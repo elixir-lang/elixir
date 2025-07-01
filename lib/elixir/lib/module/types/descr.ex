@@ -1478,59 +1478,60 @@ defmodule Module.Types.Descr do
         false
       else
         # Initialize memoization cache for the recursive phi computation
-        Process.put(:phi_cache, %{})
         arguments = Enum.map(arguments, &{false, &1})
-        phi(arguments, {false, negation(return)}, positives)
+        {result, _cache} = phi(arguments, {false, negation(return)}, positives, %{})
+        result
       end
+    end
+  end
+
+  defp phi(args, {b, t}, [], cache) do
+    {Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t)), cache}
+  end
+
+  defp phi(args, {b, ret}, [{arguments, return} | rest_positive], cache) do
+    # Create cache key from function arguments
+    cache_key = {args, {b, ret}, [{arguments, return} | rest_positive]}
+
+    case Map.get(cache, cache_key) do
+      nil ->
+        # Compute result and cache it
+        {result1, cache} = phi(args, {true, intersection(ret, return)}, rest_positive, cache)
+
+        if not result1 do
+          # Store false result in cache
+          cache = Map.put(cache, cache_key, false)
+          {false, cache}
+        else
+          # This doesn't stop if one intermediate result is false?
+          {result2, cache} =
+            Enum.with_index(arguments)
+            |> Enum.reduce_while({true, cache}, fn {type, index}, {acc_result, acc_cache} ->
+              {new_result, new_cache} =
+                List.update_at(args, index, fn {_, arg} -> {true, difference(arg, type)} end)
+                |> phi({b, ret}, rest_positive, acc_cache)
+
+              if new_result do
+                {:cont, {acc_result and new_result, new_cache}}
+              else
+                {:halt, {false, new_cache}}
+              end
+            end)
+
+          result = result1 and result2
+          # Store result in cache
+          cache = Map.put(cache, cache_key, result)
+          {result, cache}
+        end
+
+      cached_result ->
+        # Return cached result
+        {cached_result, cache}
     end
   end
 
   defp all_non_empty_domains?(positives) do
     Enum.all?(positives, fn {args, _ret} -> not empty?(args_to_domain(args)) end)
-  end
-
-  defp phi(args, {b, t}, []) do
-    Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t))
-  end
-
-  defp phi(args, {b, ret}, [{arguments, return} | rest_positive]) do
-    # Create cache key from function arguments
-    cache_key = {args, {b, ret}, [{arguments, return} | rest_positive]}
-    cache = Process.get(:phi_cache, %{})
-
-    case Map.get(cache, cache_key) do
-      nil ->
-        # Compute result and cache it
-        result1 = phi(args, {true, intersection(ret, return)}, rest_positive)
-
-        if not result1 do
-          Process.put(:phi_cache, Map.put(cache, cache_key, false))
-          false
-        else
-          # This doesn't stop if one intermediate result is false?
-          result2 =
-            Enum.with_index(arguments)
-            |> Enum.reduce_while(true, fn {type, index}, acc_result ->
-              new_result =
-                List.update_at(args, index, fn {_, arg} -> {true, difference(arg, type)} end)
-                |> phi({b, ret}, rest_positive)
-
-              if new_result do
-                {:cont, acc_result and new_result}
-              else
-                {:halt, false}
-              end
-            end)
-
-          result = result1 and result2
-          Process.put(:phi_cache, Map.put(cache, cache_key, result))
-          result
-        end
-
-      cached_result ->
-        # Return cached result
-        cached_result
-    end
   end
 
   defp fun_union(bdd1, bdd2) do

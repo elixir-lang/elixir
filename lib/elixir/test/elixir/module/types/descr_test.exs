@@ -674,6 +674,7 @@ defmodule Module.Types.DescrTest do
       assert subtype?(f, fun([none(), integer()], term()))
       assert subtype?(fun([none(), number()], atom()), f)
       assert subtype?(fun([tuple(), number()], atom()), f)
+
       # (none, float)->atom is not a subtype of (none, integer)->atom because float has an empty intersection with integer
       # it's only possible to find this out by doing the
       # intersection one by one.
