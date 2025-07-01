@@ -13,7 +13,7 @@ defmodule Mix.Compilers.Erlang do
   @type compile_opts :: [
           all_warnings: boolean(),
           force: boolean(),
-          parallel: MapSet.t(Path.t()),
+          parallel: boolean() | MapSet.t(Path.t()),
           preload: (-> term()),
           verbose: boolean()
         ]
