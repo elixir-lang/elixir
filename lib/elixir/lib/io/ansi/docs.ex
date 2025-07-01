@@ -44,7 +44,7 @@ defmodule IO.ANSI.Docs do
   Values for the color settings are strings with
   comma-separated ANSI values.
   """
-  @spec default_options() :: keyword
+  @spec default_options() :: print_opts
   def default_options do
     [
       enabled: true,

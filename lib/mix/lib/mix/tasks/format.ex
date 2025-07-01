@@ -223,55 +223,19 @@ defmodule Mix.Tasks.Format do
     ins: [text: :green, space: :green_background]
   ]
 
-  @typedoc """
-  Options passed to plugin `features/1` callback.
-
-  These are the same formatter options from `.formatter.exs` configuration,
-  allowing plugins to access formatting settings when determining their capabilities.
-  """
-  @type features_opts :: [
-          inputs: [String.t()],
-          plugins: [module()],
-          subdirectories: [String.t()],
-          import_deps: [atom()],
-          export: keyword(),
-          locals_without_parens: keyword(),
-          line_length: pos_integer(),
-          normalize_bitstring_modifiers: boolean(),
-          normalize_charlists_as_binaries: boolean()
-        ]
-
-  @typedoc """
-  Options passed to plugin `format/2` callback.
-
-  These options include context-specific information about what is being formatted
-  (sigil, extension, file) along with all the standard formatter configuration options.
-  """
-  @type format_opts :: [
-          {:sigil, atom()}
-          | {:modifiers, charlist()}
-          | {:extension, String.t()}
-          | {:file, String.t()}
-          | {:inputs, [String.t()]}
-          | {:plugins, [module()]}
-          | {:subdirectories, [String.t()]}
-          | {:import_deps, [atom()]}
-          | {:export, keyword()}
-          | {:locals_without_parens, keyword()}
-          | {:line_length, pos_integer()}
-          | {:normalize_bitstring_modifiers, boolean()}
-          | {:normalize_charlists_as_binaries, boolean()}
-        ]
-
   @doc """
   Returns which features this plugin should plug into.
+
+  It receives all options specified in `.formatter.exs`.
   """
-  @callback features(features_opts) :: [sigils: [atom()], extensions: [binary()]]
+  @callback features(keyword) :: [sigils: [atom()], extensions: [binary()]]
 
   @doc """
   Receives a string to be formatted with options and returns said string.
+
+  It receives all options specified in `.formatter.exs`.
   """
-  @callback format(String.t(), format_opts) :: String.t()
+  @callback format(String.t(), keyword) :: String.t()
 
   @impl true
   def run(all_args) do
@@ -861,18 +825,7 @@ defmodule Mix.Tasks.Format do
     end)
   end
 
-  @typedoc """
-  Options for `text_diff_format/3`.
-  """
-  @type text_diff_format_opts :: [
-          after: non_neg_integer(),
-          before: non_neg_integer(),
-          color: boolean(),
-          line: pos_integer()
-        ]
-
   @doc false
-  @spec text_diff_format(String.t(), String.t(), text_diff_format_opts) :: iolist()
   def text_diff_format(old, new, opts \\ [])
 
   def text_diff_format(code, code, _opts), do: []

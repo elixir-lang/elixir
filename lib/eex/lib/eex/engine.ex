@@ -14,29 +14,16 @@ defmodule EEx.Engine do
 
   @type state :: term
 
-  @typedoc """
-  Options passed to engine initialization.
-
-  These are the same options passed to `EEx.Compiler.compile/3`,
-  allowing engines to access compilation settings and customize
-  their behavior accordingly.
-  """
-  @type init_opts :: [
-          file: String.t(),
-          line: pos_integer(),
-          column: pos_integer(),
-          indentation: non_neg_integer(),
-          trim: boolean(),
-          parser_options: Code.parser_opts(),
-          engine: module()
-        ]
-
   @doc """
   Called at the beginning of every template.
 
+  It receives the options during compilation, including the
+  ones managed by EEx, such as `:line` and `:file`, as well
+  as custom engine options.
+
   It must return the initial state.
   """
-  @callback init(opts :: init_opts) :: state
+  @callback init(opts :: keyword) :: state
 
   @doc """
   Called at the end of every template.

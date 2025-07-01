@@ -11,9 +11,11 @@ defmodule Mix.Compilers.Erlang do
   Options for `compile/6`.
   """
   @type compile_opts :: [
+          all_warnings: boolean(),
           force: boolean(),
           parallel: MapSet.t(Path.t()),
-          preload: (-> term())
+          preload: (-> term()),
+          verbose: boolean()
         ]
 
   @doc """
@@ -27,12 +29,16 @@ defmodule Mix.Compilers.Erlang do
 
   ## Options
 
+    * `:all_warnings` - a flag to disable showing all previous warnings
+
     * `:force` - forces compilation regardless of modification times
 
     * `:parallel` - a mapset of files to compile in parallel
 
     * `:preload` - any code that must be preloaded if any pending
       entry needs to be compiled
+
+    * `:verbose` - a flag to enable verbose printing
 
   ## Examples
 

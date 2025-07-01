@@ -125,7 +125,11 @@ defmodule EEx do
           | {:indentation, non_neg_integer}
           | {:trim, boolean()}
 
-  @type compile_opt :: tokenize_opt | {:engine, module()} | {:parser_options, Code.parser_opts()}
+  @type compile_opt ::
+          tokenize_opt
+          | {:engine, module()}
+          | {:parser_options, Code.parser_opts()}
+          | {atom(), term()}
 
   @doc """
   Generates a function definition from the given string.
@@ -137,6 +141,7 @@ defmodule EEx do
   template.
 
   The supported `options` are described [in the module docs](#module-options).
+  Additional options are passed to the underlying engine.
 
   ## Examples
 

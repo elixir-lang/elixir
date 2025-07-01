@@ -10,20 +10,11 @@ defmodule Code.Normalizer do
                   is_binary(x) or
                   is_atom(x)
 
-  @typedoc """
-  Options for `normalize/2`.
-  """
-  @type normalize_opt ::
-          {:line, pos_integer() | nil}
-          | {:escape, boolean()}
-          | {:locals_without_parens, keyword()}
-          | {atom(), term()}
-
   @doc """
   Wraps literals in the quoted expression to conform to the AST format expected
   by the formatter.
   """
-  @spec normalize(Macro.t(), [normalize_opt]) :: Macro.t()
+  @spec normalize(Macro.t(), keyword()) :: Macro.t()
   def normalize(quoted, opts \\ []) do
     line = Keyword.get(opts, :line, nil)
     escape = Keyword.get(opts, :escape, true)
