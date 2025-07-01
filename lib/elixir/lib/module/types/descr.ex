@@ -283,7 +283,7 @@ defmodule Module.Types.Descr do
     case descr do
       %{dynamic: %{optional: 1}} -> %{dynamic: %{optional: 1}}
       %{optional: 1} -> %{optional: 1}
-      _ -> %{}
+      _ -> @none
     end
   end
 
@@ -490,13 +490,21 @@ defmodule Module.Types.Descr do
 
   defp iterator_difference_static(:none, map), do: map
 
-  defp empty_difference_static?(left, :term), do: not Map.has_key?(left, :optional)
-
-  defp empty_difference_static?(left, right) do
-    iterator_empty_difference_static?(:maps.next(:maps.iterator(unfold(left))), unfold(right))
+  # This function is designed to compute the difference during subtyping efficiently.
+  # Do not use it for anything else.
+  defp empty_difference_subtype?(%{dynamic: dyn_left} = left, %{dynamic: dyn_right} = right) do
+    # Dynamic will either exist on both sides or on none
+    empty_difference_subtype?(dyn_left, dyn_right) and
+      empty_difference_subtype?(Map.delete(left, :dynamic), Map.delete(right, :dynamic))
   end
 
-  defp iterator_empty_difference_static?({key, v1, iterator}, map) do
+  defp empty_difference_subtype?(left, :term), do: keep_optional(left) == @none
+
+  defp empty_difference_subtype?(left, right) do
+    iterator_empty_difference_subtype?(:maps.next(:maps.iterator(unfold(left))), unfold(right))
+  end
+
+  defp iterator_empty_difference_subtype?({key, v1, iterator}, map) do
     case map do
       %{^key => v2} ->
         value = difference(key, v1, v2)
@@ -505,15 +513,14 @@ defmodule Module.Types.Descr do
       %{} ->
         empty_key?(key, v1)
     end and
-      iterator_empty_difference_static?(:maps.next(iterator), map)
+      iterator_empty_difference_subtype?(:maps.next(iterator), map)
   end
 
-  defp iterator_empty_difference_static?(:none, _map), do: true
+  defp iterator_empty_difference_subtype?(:none, _map), do: true
 
   # Returning 0 from the callback is taken as none() for that subtype.
   defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
   defp difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
-  defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
   defp difference(:list, v1, v2), do: list_difference(v1, v2)
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
   defp difference(:optional, 1, 1), do: 0
@@ -563,7 +570,6 @@ defmodule Module.Types.Descr do
   defp empty_key?(:map, value), do: map_empty?(value)
   defp empty_key?(:list, value), do: list_empty?(value)
   defp empty_key?(:tuple, value), do: tuple_empty?(value)
-  defp empty_key?(:dynamic, value), do: empty?(value)
   defp empty_key?(_, _value), do: false
 
   @doc """
@@ -690,7 +696,7 @@ defmodule Module.Types.Descr do
   end
 
   defp subtype_static?(same, same), do: true
-  defp subtype_static?(left, right), do: empty_difference_static?(left, right)
+  defp subtype_static?(left, right), do: empty_difference_subtype?(left, right)
 
   @doc """
   Check if a type is equal to another.
@@ -2144,13 +2150,6 @@ defmodule Module.Types.Descr do
 
   defp dynamic_intersection(left, right),
     do: symmetrical_intersection(unfold(left), unfold(right), &intersection/3)
-
-  defp dynamic_difference(left, right) do
-    case difference_static(left, right) do
-      value when value == @none -> 0
-      value -> value
-    end
-  end
 
   defp dynamic_to_quoted(descr, opts) do
     cond do

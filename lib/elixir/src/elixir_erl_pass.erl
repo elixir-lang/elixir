@@ -628,7 +628,8 @@ translate_remote(Left, Right, Meta, Args, S) ->
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
       end;
     {inline_pure, Result} ->
-      translate(Result, Ann, S);
+      Generated = erl_anno:set_generated(true, Ann),
+      translate(Result, Generated, S);
     {inline_args, NewArgs} ->
       {TLeft, SL} = translate(Left, Ann, S),
       {TArgs, SA} = translate_args(NewArgs, Ann, SL),
@@ -690,7 +691,7 @@ inline_pure_function('Elixir.URI', parse) -> true;
 inline_pure_function('Elixir.URI', encode_query) -> true;
 inline_pure_function('Elixir.URI', encode_www_form) -> true;
 inline_pure_function('Elixir.URI', decode) -> true;
-inline_pure_function('Elixir.URI', decode_www_for) -> true;
+inline_pure_function('Elixir.URI', decode_www_form) -> true;
 inline_pure_function('Elixir.Version', parse) -> true;
 inline_pure_function('Elixir.Version', 'parse!') -> true;
 inline_pure_function('Elixir.Version', parse_requirement) -> true;
@@ -717,7 +718,7 @@ generate_struct_name_guard([Field | Rest], Acc, S) ->
 %% TODO: Make this a runtime error on Elixir v2.0
 no_parens_remote(nil, _Key) -> {error, {badmap, nil}};
 no_parens_remote(false, _Key) -> {error, {badmap, false}};
-no_parens_remote(true, _Key) -> {error, {badmap, false}};
+no_parens_remote(true, _Key) -> {error, {badmap, true}};
 no_parens_remote(Atom, Fun) when is_atom(Atom) ->
   Message = fun() ->
     io_lib:format(
