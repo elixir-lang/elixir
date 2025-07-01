@@ -1653,6 +1653,7 @@ defmodule Module.Types.DescrTest do
 
       assert map_get(all_domains, integer()) == {:ok, atom([:int]) |> nil_or_type()}
       assert map_get(all_domains, number()) == {:ok, atom([:int, :float]) |> nil_or_type()}
+
       assert map_get(all_domains, empty_list()) == {:ok_absent, atom([nil])}
       assert map_get(all_domains, atom([:foo])) == {:ok, binary() |> nil_or_type()}
       assert map_get(all_domains, binary()) == {:ok, integer() |> nil_or_type()}
