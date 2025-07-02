@@ -72,7 +72,7 @@ defmodule Mix.Gleam do
   defp maybe_erlang_opts(config, opts) do
     application =
       opts
-      |> Enum.filter(fn {_, value} -> value != nil end)
+      |> Enum.reject(fn {_, value} -> value == nil end)
       |> Enum.map(fn
         {"application_start_module", module} when is_binary(module) ->
           {:mod, {String.to_atom(module), []}}

@@ -556,7 +556,7 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns `true` if dependency is a Gleam project.
+  Returns `true` if dependency is a Gleam project; otherwise returns `false`.
   """
   def gleam?(%Mix.Dep{manager: manager}) do
     manager == :gleam
