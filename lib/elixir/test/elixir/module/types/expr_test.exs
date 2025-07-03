@@ -149,6 +149,16 @@ defmodule Module.Types.ExprTest do
                   data -> data
                 end).(map)
              ) == dynamic()
+
+      assert typecheck!(
+               [],
+               [true, false]
+               |> Enum.random()
+               |> then(fn
+                 true -> :ok
+                 _ -> :error
+               end)
+             ) == dynamic(atom([:ok, :error]))
     end
 
     test "bad function" do

@@ -46,8 +46,8 @@ defmodule Module.Types.Descr do
   @not_non_empty_list Map.delete(@term, :list)
   @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
-  @empty_intersection [0, @none, [], :fun_bottom]
-  @empty_difference [0, [], :fun_bottom]
+  @empty_intersection [0, []]
+  @empty_difference [0, []]
 
   defguard is_descr(descr) when is_map(descr) or descr == :term
 
@@ -398,12 +398,20 @@ defmodule Module.Types.Descr do
   # Returning 0 from the callback is taken as none() for that subtype.
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
   defp intersection(:bitmap, v1, v2), do: v1 &&& v2
-  defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
   defp intersection(:list, v1, v2), do: list_intersection(v1, v2)
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
   defp intersection(:optional, 1, 1), do: 1
   defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
-  defp intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
+
+  defp intersection(:fun, v1, v2) do
+    bdd = fun_intersection(v1, v2)
+    if bdd == :fun_bottom, do: 0, else: bdd
+  end
+
+  defp intersection(:dynamic, v1, v2) do
+    descr = dynamic_intersection(v1, v2)
+    if descr == @none, do: 0, else: descr
+  end
 
   @doc """
   Computes the difference between two types.
@@ -490,7 +498,11 @@ defmodule Module.Types.Descr do
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
   defp difference(:optional, 1, 1), do: 0
   defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
-  defp difference(:fun, v1, v2), do: fun_difference(v1, v2)
+
+  defp difference(:fun, v1, v2) do
+    bdd = fun_difference(v1, v2)
+    if bdd == :fun_bottom, do: 0, else: bdd
+  end
 
   @doc """
   Compute the negation of a type.
@@ -1159,7 +1171,7 @@ defmodule Module.Types.Descr do
     with {:ok, domain, static_arrows, dynamic_arrows} <-
            fun_normalize_both(fun_static, fun_dynamic, arity) do
       cond do
-        empty?(args_domain) ->
+        Enum.any?(arguments, &empty?/1) ->
           {:badarg, domain_to_flat_args(domain, arity)}
 
         not subtype?(args_domain, domain) ->
@@ -1170,26 +1182,21 @@ defmodule Module.Types.Descr do
           end
 
         static? ->
-          {:ok, fun_apply_static(arguments, static_arrows, false)}
+          {:ok, fun_apply_static(arguments, static_arrows)}
 
         static_arrows == [] ->
           # TODO: We need to validate this within the theory
           arguments = Enum.map(arguments, &upper_bound/1)
-          {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
+          {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows))}
 
         true ->
           # For dynamic cases, combine static and dynamic results
-          {static_args, dynamic_args, maybe_empty?} =
-            if args_dynamic? do
-              {Enum.map(arguments, &upper_bound/1), Enum.map(arguments, &lower_bound/1), true}
-            else
-              {arguments, arguments, false}
-            end
+          arguments = Enum.map(arguments, &upper_bound/1)
 
           {:ok,
            union(
-             fun_apply_static(static_args, static_arrows, false),
-             dynamic(fun_apply_static(dynamic_args, dynamic_arrows, maybe_empty?))
+             fun_apply_static(arguments, static_arrows),
+             dynamic(fun_apply_static(arguments, dynamic_arrows))
            )}
       end
     end
@@ -1289,26 +1296,12 @@ defmodule Module.Types.Descr do
     :badfun
   end
 
-  defp fun_apply_static(arguments, arrows, maybe_empty?) do
+  defp fun_apply_static(arguments, arrows) do
     type_args = args_to_domain(arguments)
 
-    # Optimization: short-circuits when inner loop is none() or outer loop is term()
-    if maybe_empty? and empty?(type_args) do
-      Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
-        Enum.reduce_while(intersection_of_arrows, term(), fn
-          {_dom, _ret}, acc when acc == @none -> {:halt, acc}
-          {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
-        end)
-        |> case do
-          :term -> {:halt, :term}
-          inner -> {:cont, union(inner, acc)}
-        end
-      end)
-    else
-      Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-        aux_apply(acc, type_args, term(), intersection_of_arrows)
-      end)
-    end
+    Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+      aux_apply(acc, type_args, term(), intersection_of_arrows)
+    end)
   end
 
   # Helper function for function application that handles the application of
@@ -1471,7 +1464,7 @@ defmodule Module.Types.Descr do
     # This avoids the expensive recursive phi computation by checking only that applying the
     # input to the positive intersection yields a subtype of the return
     if all_non_empty_domains?([{arguments, return} | positives]) do
-      fun_apply_static(arguments, [positives], false)
+      fun_apply_static(arguments, [positives])
       |> subtype?(return)
     else
       n = length(arguments)
@@ -1496,45 +1489,44 @@ defmodule Module.Types.Descr do
     # Create cache key from function arguments
     cache_key = {args, {b, ret}, [{arguments, return} | rest_positive]}
 
-    case Map.get(cache, cache_key) do
-      nil ->
+    case cache do
+      %{^cache_key => value} ->
+        value
+
+      %{} ->
         # Compute result and cache it
         {result1, cache} = phi(args, {true, intersection(ret, return)}, rest_positive, cache)
 
         if not result1 do
-          # Store false result in cache
           cache = Map.put(cache, cache_key, false)
           {false, cache}
         else
-          # This doesn't stop if one intermediate result is false?
-          {result2, cache} =
-            Enum.with_index(arguments)
-            |> Enum.reduce_while({true, cache}, fn {type, index}, {acc_result, acc_cache} ->
-              {new_result, new_cache} =
-                List.update_at(args, index, fn {_, arg} -> {true, difference(arg, type)} end)
-                |> phi({b, ret}, rest_positive, acc_cache)
+          {_index, result2, cache} =
+            Enum.reduce_while(arguments, {0, true, cache}, fn
+              type, {index, acc_result, acc_cache} ->
+                {new_result, new_cache} =
+                  args
+                  |> List.update_at(index, fn {_, arg} -> {true, difference(arg, type)} end)
+                  |> phi({b, ret}, rest_positive, acc_cache)
 
-              if new_result do
-                {:cont, {acc_result and new_result, new_cache}}
-              else
-                {:halt, {false, new_cache}}
-              end
+                if new_result do
+                  {:cont, {index + 1, acc_result and new_result, new_cache}}
+                else
+                  {:halt, {index + 1, false, new_cache}}
+                end
             end)
 
           result = result1 and result2
-          # Store result in cache
           cache = Map.put(cache, cache_key, result)
           {result, cache}
         end
-
-      cached_result ->
-        # Return cached result
-        {cached_result, cache}
     end
   end
 
   defp all_non_empty_domains?(positives) do
-    Enum.all?(positives, fn {args, _ret} -> not empty?(args_to_domain(args)) end)
+    Enum.all?(positives, fn {args, _ret} ->
+      Enum.all?(args, fn arg -> not empty?(arg) end)
+    end)
   end
 
   defp fun_union(bdd1, bdd2) do
@@ -2391,10 +2383,6 @@ defmodule Module.Types.Descr do
         catch
           :empty -> acc
         end
-    end
-    |> case do
-      [] -> 0
-      acc -> acc
     end
   end
 
