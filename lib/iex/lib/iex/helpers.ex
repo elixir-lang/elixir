@@ -1035,6 +1035,9 @@ defmodule IEx.Helpers do
 
       {:error, :enoent} ->
         IO.puts(IEx.color(:eval_error, "No directory #{directory}"))
+
+      {:error, reason} ->
+        IO.puts(IEx.color(:eval_error, :file.format_error(reason)))
     end
 
     dont_display_result()
@@ -1079,6 +1082,9 @@ defmodule IEx.Helpers do
 
       {:error, :enotdir} ->
         IO.puts(IEx.color(:eval_info, Path.absname(path)))
+
+      {:error, reason} ->
+        IO.puts(IEx.color(:eval_error, :file.format_error(reason)))
     end
 
     dont_display_result()
