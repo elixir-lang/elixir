@@ -1753,20 +1753,6 @@ defmodule Module.Types.DescrTest do
                {:ok, closed_map([{:a, not_set()}, {:b, atom()}, {domain_key(:atom), pid()}])}
     end
 
-    # TODO: operator t\[t']
-    # test "map_delete with domain keys" do
-    #   t1 = closed_map([{:a, pid()}, {domain_key(:integer), number()}])
-
-    #   assert map_delete(t1, atom([:a]))
-    #          |> equal?(closed_map([{:a, not_set()}, {domain_key(:integer), number()}]))
-
-    #   assert map_delete(t1, atom([:a, :b]))
-    #          |> equal?(closed_map([{:a, if_set(pid())}, {domain_key(:integer), number()}]))
-
-    #   assert map_delete(t1, term())
-    #          |> equal?(closed_map([{:a, if_set(pid())}, {domain_key(:integer), number()}]))
-    # end
-
     test "map_take" do
       assert map_take(term(), :a) == :badmap
       assert map_take(integer(), :a) == :badmap
