@@ -681,7 +681,6 @@ defmodule Module do
   This function is generated for all modules. It's similar to `module_info/1` but
   includes some additional Elixir-specific information, such as struct and macro
   information. For documentation, see `c:Module.__info__/1`.
-
   '''
 
   @type definition :: {atom, arity}
@@ -721,7 +720,8 @@ defmodule Module do
 
     * `:module` - the module atom name
 
-    * `:struct` - (since v1.14.0) if the module defines a struct and if so each field in order
+    * `:struct` - (since v1.14.0) if the module defines a struct and if so each field in order.
+      See `Macro.struct_info!/2` for more information
 
   """
   @callback __info__(:attributes) :: keyword()
@@ -731,7 +731,14 @@ defmodule Module do
   @callback __info__(:md5) :: binary()
   @callback __info__(:module) :: module()
   @callback __info__(:struct) ::
-              list(%{required(:field) => atom(), optional(:default) => term()}) | nil
+              [
+                %{
+                  required(:field) => atom(),
+                  optional(:required) => boolean(),
+                  optional(:default) => term()
+                }
+              ]
+              | nil
 
   @doc """
   Returns information about module attributes used by Elixir.
