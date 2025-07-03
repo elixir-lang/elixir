@@ -8,7 +8,7 @@
 -module(elixir_dispatch).
 -export([dispatch_import/6, dispatch_require/7,
   require_function/5, import_function/4,
-  expand_import/7, expand_require/6, check_deprecated/6,
+  expand_import/8, expand_require/6, check_deprecated/6,
   default_functions/0, default_macros/0, default_requires/0,
   find_import/4, find_imports/3, format_error/1]).
 -include("elixir.hrl").
@@ -115,7 +115,8 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
       _ -> false
     end,
 
-  case expand_import(Meta, Name, Arity, E, [], AllowLocals, true) of
+  DefaultLocalForCallback = fun(M, N, A, K, Env) -> elixir_def:local_for(M, N, A, K, Env) end,
+  case expand_import(Meta, Name, Arity, E, [], AllowLocals, true, DefaultLocalForCallback) of
     {macro, Receiver, Expander} ->
       check_deprecated(macro, Meta, Receiver, Name, Arity, E),
       Caller = {?line(Meta), S, E},
@@ -159,7 +160,7 @@ dispatch_require(_Meta, Receiver, Name, _Args, _S, _E, Callback) ->
 
 %% Macros expansion
 
-expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
+expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace, LocalForCallback) ->
   Tuple = {Name, Arity},
   Module = ?key(E, module),
   Dispatch = find_import_by_name_arity(Meta, Tuple, Extra, E),
@@ -172,7 +173,7 @@ expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
       do_expand_import(Dispatch, Meta, Name, Arity, Module, E, Trace);
 
     _ ->
-      Local = AllowLocals andalso elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
+      Local = AllowLocals andalso LocalForCallback(Meta, Name, Arity, [defmacro, defmacrop], E),
 
       case Dispatch of
         %% There is a local and an import. This is a conflict unless
@@ -249,14 +250,22 @@ expander_macro_named(Meta, Receiver, Name, Arity, E) ->
   fun(Args, Caller) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, Caller, E) end.
 
 expand_macro_fun(Meta, Fun, Receiver, Name, Args, Caller, E) ->
-  try
-    apply(Fun, [Caller | Args])
-  catch
-    Kind:Reason:Stacktrace ->
-      Arity = length(Args),
-      MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
-      Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(?line(Meta), E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, Caller}))
+  %% Check if Fun is actually a function, as it might be a fake value for local macros
+  %% when using custom local_for_callback
+  case is_function(Fun) of
+    true ->
+      try
+        apply(Fun, [Caller | Args])
+      catch
+        Kind:Reason:Stacktrace ->
+          Arity = length(Args),
+          MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
+          Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(?line(Meta), E)],
+          erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, Caller}))
+      end;
+    false ->
+      %% Return a fake value and omit expansion when Fun is not a function
+      ok
   end.
 
 expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E) ->

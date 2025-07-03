@@ -98,7 +98,8 @@ defmodule Macro.Env do
   @type expand_import_opts :: [
           allow_locals: boolean(),
           check_deprecations: boolean(),
-          trace: boolean()
+          trace: boolean(),
+          local_for_callback: (Macro.metadata(), atom(), arity(), [atom()], t() -> any())
         ]
 
   @type expand_require_opts :: [
@@ -561,6 +562,12 @@ defmodule Macro.Env do
     * `:check_deprecations` - when set to `false`, does not check for deprecations
       when expanding macros
 
+    * `:local_for_callback` - a function that receives the metadata, name, arity,
+      kinds list, and environment, and returns the local macro expansion or `false`.
+      The expansion can be a function or any other value. Non-function values will
+      cause the macro expansion to be skipped and return `:ok`.
+      Defaults to calling `:elixir_def.local_for/5`
+
     * #{trace_option}
 
   """
@@ -571,6 +578,10 @@ defmodule Macro.Env do
           | {:error, :not_found | {:conflict, module()} | {:ambiguous, [module()]}}
   def expand_import(env, meta, name, arity, opts \\ [])
       when is_list(meta) and is_atom(name) and is_integer(arity) and is_list(opts) do
+    local_for_callback = Keyword.get(opts, :local_for_callback, fn meta, name, arity, kinds, e ->
+      :elixir_def.local_for(meta, name, arity, kinds, e)
+    end)
+
     case :elixir_import.special_form(name, arity) do
       true ->
         {:error, :not_found}
@@ -580,13 +591,19 @@ defmodule Macro.Env do
         trace = Keyword.get(opts, :trace, true)
         module = env.module
 
+        # When local_for_callback is provided, we don't need to pass module macros as extra
+        # because the callback will handle local macro resolution
         extra =
-          case allow_locals and function_exported?(module, :__info__, 1) do
-            true -> [{module, module.__info__(:macros)}]
-            false -> []
+          if Keyword.has_key?(opts, :local_for_callback) do
+            []
+          else
+            case allow_locals and function_exported?(module, :__info__, 1) do
+              true -> [{module, module.__info__(:macros)}]
+              false -> []
+            end
           end
 
-        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace) do
+        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace, local_for_callback) do
           {:macro, receiver, expander} ->
             {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
 
