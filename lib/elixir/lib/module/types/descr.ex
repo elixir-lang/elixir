@@ -46,8 +46,8 @@ defmodule Module.Types.Descr do
   @not_non_empty_list Map.delete(@term, :list)
   @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
-  @empty_intersection [0, @none, [], :fun_bottom]
-  @empty_difference [0, [], :fun_bottom]
+  @empty_intersection [0, []]
+  @empty_difference [0, []]
 
   defguard is_descr(descr) when is_map(descr) or descr == :term
 
@@ -398,12 +398,20 @@ defmodule Module.Types.Descr do
   # Returning 0 from the callback is taken as none() for that subtype.
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
   defp intersection(:bitmap, v1, v2), do: v1 &&& v2
-  defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
   defp intersection(:list, v1, v2), do: list_intersection(v1, v2)
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
   defp intersection(:optional, 1, 1), do: 1
   defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
-  defp intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
+
+  defp intersection(:fun, v1, v2) do
+    bdd = fun_intersection(v1, v2)
+    if bdd == :fun_bottom, do: 0, else: bdd
+  end
+
+  defp intersection(:dynamic, v1, v2) do
+    descr = dynamic_intersection(v1, v2)
+    if descr == @none, do: 0, else: descr
+  end
 
   @doc """
   Computes the difference between two types.
@@ -490,7 +498,11 @@ defmodule Module.Types.Descr do
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
   defp difference(:optional, 1, 1), do: 0
   defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
-  defp difference(:fun, v1, v2), do: fun_difference(v1, v2)
+
+  defp difference(:fun, v1, v2) do
+    bdd = fun_difference(v1, v2)
+    if bdd == :fun_bottom, do: 0, else: bdd
+  end
 
   @doc """
   Compute the negation of a type.
@@ -2390,10 +2402,6 @@ defmodule Module.Types.Descr do
         catch
           :empty -> acc
         end
-    end
-    |> case do
-      [] -> 0
-      acc -> acc
     end
   end
 
