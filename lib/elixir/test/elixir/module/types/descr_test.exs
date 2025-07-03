@@ -668,6 +668,11 @@ defmodule Module.Types.DescrTest do
       assert subtype?(f, fun([none(), integer()], term()))
       assert subtype?(fun([none(), number()], atom()), f)
       assert subtype?(fun([tuple(), number()], atom()), f)
+
+      # (none, float -> atom) is not a subtype of (none, integer -> atom)
+      # because float has an empty intersection with integer.
+      # it's only possible to find this out by doing the
+      # intersection one by one.
       refute subtype?(fun([none(), float()], atom()), f)
       refute subtype?(fun([pid(), float()], atom()), f)
       # A function with the wrong arity is refused
@@ -761,54 +766,72 @@ defmodule Module.Types.DescrTest do
                intersection(fun([integer()], atom()), fun([float()], binary()))
     end
 
-    test "fun_from_overlapping_clauses" do
+    test "fun_from_inferred_clauses" do
       # No overlap
-      assert fun_from_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}])
+      assert fun_from_inferred_clauses([{[integer()], atom()}, {[float()], binary()}])
              |> equal?(
-               fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}])
+               intersection(
+                 fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}]),
+                 fun([number()], dynamic())
+               )
              )
 
       # Subsets
-      assert fun_from_overlapping_clauses([{[integer()], atom()}, {[number()], binary()}])
+      assert fun_from_inferred_clauses([{[integer()], atom()}, {[number()], binary()}])
              |> equal?(
-               fun_from_non_overlapping_clauses([
-                 {[integer()], union(atom(), binary())},
-                 {[float()], binary()}
-               ])
+               intersection(
+                 fun_from_non_overlapping_clauses([
+                   {[integer()], union(atom(), binary())},
+                   {[float()], binary()}
+                 ]),
+                 fun([number()], dynamic())
+               )
              )
 
-      assert fun_from_overlapping_clauses([{[number()], binary()}, {[integer()], atom()}])
+      assert fun_from_inferred_clauses([{[number()], binary()}, {[integer()], atom()}])
              |> equal?(
-               fun_from_non_overlapping_clauses([
-                 {[integer()], union(atom(), binary())},
-                 {[float()], binary()}
-               ])
+               intersection(
+                 fun_from_non_overlapping_clauses([
+                   {[integer()], union(atom(), binary())},
+                   {[float()], binary()}
+                 ]),
+                 fun([number()], dynamic())
+               )
              )
 
       # Partial
-      assert fun_from_overlapping_clauses([
+      assert fun_from_inferred_clauses([
                {[union(integer(), pid())], atom()},
                {[union(float(), pid())], binary()}
              ])
              |> equal?(
-               fun_from_non_overlapping_clauses([
-                 {[integer()], atom()},
-                 {[float()], binary()},
-                 {[pid()], union(atom(), binary())}
-               ])
+               intersection(
+                 fun_from_non_overlapping_clauses([
+                   {[integer()], atom()},
+                   {[float()], binary()},
+                   {[pid()], union(atom(), binary())}
+                 ]),
+                 fun([union(number(), pid())], dynamic())
+               )
              )
 
       # Difference
-      assert fun_from_overlapping_clauses([
+      assert fun_from_inferred_clauses([
                {[integer(), union(pid(), atom())], atom()},
                {[number(), pid()], binary()}
              ])
              |> equal?(
-               fun_from_non_overlapping_clauses([
-                 {[float(), pid()], binary()},
-                 {[integer(), atom()], atom()},
-                 {[integer(), pid()], union(atom(), binary())}
-               ])
+               intersection(
+                 fun_from_non_overlapping_clauses([
+                   {[float(), pid()], binary()},
+                   {[integer(), atom()], atom()},
+                   {[integer(), pid()], union(atom(), binary())}
+                 ]),
+                 fun_from_non_overlapping_clauses([
+                   {[integer(), union(pid(), atom())], dynamic()},
+                   {[number(), pid()], dynamic()}
+                 ])
+               )
              )
     end
   end
