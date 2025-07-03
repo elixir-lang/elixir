@@ -861,21 +861,39 @@ defmodule Macro do
   end
 
   @doc """
-  Extracts the struct information (equivalent to calling
-  `module.__info__(:struct)`).
+  Extracts the struct information.
 
   This is useful when a struct needs to be expanded at
   compilation time and the struct being expanded may or may
-  not have been compiled. This function is also capable of
-  expanding structs defined under the module being compiled.
+  not have been compiled (including structs in the defined
+  under the module being compiled). For compiled modules,
+  it will invoke `module.__info__(:struct)`.
+
   Calling this function also adds an export dependency on the
   given struct.
 
   It will raise `ArgumentError` if the struct is not available.
+
+  ## Compatibility considerations
+
+  This function currently returns both `:required` and `:default`
+  entries for each field. While this naming is inconsistent
+  (a required field should not have a default), this is done for
+  backwards compatibility purposes.
+
+  In future releases, Elixir may introduce truly required struct
+  fields, and therefore only one of required or default will be
+  present. Your code should prepare for such scenario accordingly.
   """
   @doc since: "1.18.0"
   @spec struct_info!(module(), Macro.Env.t()) ::
-          [%{field: atom(), required: boolean(), default: term()}]
+          [
+            %{
+              required(:field) => atom(),
+              optional(:required) => boolean(),
+              optional(:default) => term()
+            }
+          ]
   def struct_info!(module, env) when is_atom(module) do
     case :elixir_map.maybe_load_struct_info([line: env.line], module, [], true, env) do
       {:ok, info} -> info

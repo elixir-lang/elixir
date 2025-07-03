@@ -217,7 +217,7 @@ defmodule Kernel.Utils do
     case enforce_keys -- :maps.keys(struct) do
       [] ->
         mapper = fn {key, val} ->
-          %{field: key, default: val}
+          %{field: key, default: val, required: :lists.member(key, enforce_keys)}
         end
 
         :ets.insert(set, {{:elixir, :struct}, :lists.map(mapper, fields)})

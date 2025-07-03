@@ -1645,31 +1645,32 @@ defmodule MacroTest do
 
   test "struct_info!/2 expands structs multiple levels deep" do
     defmodule StructBang do
+      @enforce_keys [:b]
       defstruct [:a, :b]
 
       assert Macro.struct_info!(StructBang, __ENV__) == [
-               %{field: :a, default: nil},
-               %{field: :b, default: nil}
+               %{field: :a, default: nil, required: false},
+               %{field: :b, default: nil, required: true}
              ]
 
       def within_function do
         assert Macro.struct_info!(StructBang, __ENV__) == [
-                 %{field: :a, default: nil},
-                 %{field: :b, default: nil}
+                 %{field: :a, default: nil, required: false},
+                 %{field: :b, default: nil, required: true}
                ]
       end
 
       defmodule Nested do
         assert Macro.struct_info!(StructBang, __ENV__) == [
-                 %{field: :a, default: nil},
-                 %{field: :b, default: nil}
+                 %{field: :a, default: nil, required: false},
+                 %{field: :b, default: nil, required: true}
                ]
       end
     end
 
     assert Macro.struct_info!(StructBang, __ENV__) == [
-             %{field: :a, default: nil},
-             %{field: :b, default: nil}
+             %{field: :a, default: nil, required: false},
+             %{field: :b, default: nil, required: true}
            ]
   end
 
