@@ -1496,45 +1496,44 @@ defmodule Module.Types.Descr do
     # Create cache key from function arguments
     cache_key = {args, {b, ret}, [{arguments, return} | rest_positive]}
 
-    case Map.get(cache, cache_key) do
-      nil ->
+    case cache do
+      %{^cache_key => value} ->
+        value
+
+      %{} ->
         # Compute result and cache it
         {result1, cache} = phi(args, {true, intersection(ret, return)}, rest_positive, cache)
 
         if not result1 do
-          # Store false result in cache
           cache = Map.put(cache, cache_key, false)
           {false, cache}
         else
-          # This doesn't stop if one intermediate result is false?
-          {result2, cache} =
-            Enum.with_index(arguments)
-            |> Enum.reduce_while({true, cache}, fn {type, index}, {acc_result, acc_cache} ->
-              {new_result, new_cache} =
-                List.update_at(args, index, fn {_, arg} -> {true, difference(arg, type)} end)
-                |> phi({b, ret}, rest_positive, acc_cache)
+          {_index, result2, cache} =
+            Enum.reduce_while(arguments, {0, true, cache}, fn
+              type, {index, acc_result, acc_cache} ->
+                {new_result, new_cache} =
+                  args
+                  |> List.update_at(index, fn {_, arg} -> {true, difference(arg, type)} end)
+                  |> phi({b, ret}, rest_positive, acc_cache)
 
-              if new_result do
-                {:cont, {acc_result and new_result, new_cache}}
-              else
-                {:halt, {false, new_cache}}
-              end
+                if new_result do
+                  {:cont, {index + 1, acc_result and new_result, new_cache}}
+                else
+                  {:halt, {index + 1, false, new_cache}}
+                end
             end)
 
           result = result1 and result2
-          # Store result in cache
           cache = Map.put(cache, cache_key, result)
           {result, cache}
         end
-
-      cached_result ->
-        # Return cached result
-        {cached_result, cache}
     end
   end
 
   defp all_non_empty_domains?(positives) do
-    Enum.all?(positives, fn {args, _ret} -> not empty?(args_to_domain(args)) end)
+    Enum.all?(positives, fn {args, _ret} ->
+      Enum.all?(args, fn arg -> not empty?(arg) end)
+    end)
   end
 
   defp fun_union(bdd1, bdd2) do
