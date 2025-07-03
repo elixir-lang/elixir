@@ -1171,7 +1171,7 @@ defmodule Module.Types.Descr do
     with {:ok, domain, static_arrows, dynamic_arrows} <-
            fun_normalize_both(fun_static, fun_dynamic, arity) do
       cond do
-        empty?(args_domain) ->
+        Enum.any?(arguments, &empty?/1) ->
           {:badarg, domain_to_flat_args(domain, arity)}
 
         not subtype?(args_domain, domain) ->
@@ -1182,26 +1182,21 @@ defmodule Module.Types.Descr do
           end
 
         static? ->
-          {:ok, fun_apply_static(arguments, static_arrows, false)}
+          {:ok, fun_apply_static(arguments, static_arrows)}
 
         static_arrows == [] ->
           # TODO: We need to validate this within the theory
           arguments = Enum.map(arguments, &upper_bound/1)
-          {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
+          {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows))}
 
         true ->
           # For dynamic cases, combine static and dynamic results
-          {static_args, dynamic_args, maybe_empty?} =
-            if args_dynamic? do
-              {Enum.map(arguments, &upper_bound/1), Enum.map(arguments, &lower_bound/1), true}
-            else
-              {arguments, arguments, false}
-            end
+          arguments = Enum.map(arguments, &upper_bound/1)
 
           {:ok,
            union(
-             fun_apply_static(static_args, static_arrows, false),
-             dynamic(fun_apply_static(dynamic_args, dynamic_arrows, maybe_empty?))
+             fun_apply_static(arguments, static_arrows),
+             dynamic(fun_apply_static(arguments, dynamic_arrows))
            )}
       end
     end
@@ -1301,26 +1296,12 @@ defmodule Module.Types.Descr do
     :badfun
   end
 
-  defp fun_apply_static(arguments, arrows, maybe_empty?) do
+  defp fun_apply_static(arguments, arrows) do
     type_args = args_to_domain(arguments)
 
-    # Optimization: short-circuits when inner loop is none() or outer loop is term()
-    if maybe_empty? and empty?(type_args) do
-      Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
-        Enum.reduce_while(intersection_of_arrows, term(), fn
-          {_dom, _ret}, acc when acc == @none -> {:halt, acc}
-          {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
-        end)
-        |> case do
-          :term -> {:halt, :term}
-          inner -> {:cont, union(inner, acc)}
-        end
-      end)
-    else
-      Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-        aux_apply(acc, type_args, term(), intersection_of_arrows)
-      end)
-    end
+    Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+      aux_apply(acc, type_args, term(), intersection_of_arrows)
+    end)
   end
 
   # Helper function for function application that handles the application of
@@ -1483,7 +1464,7 @@ defmodule Module.Types.Descr do
     # This avoids the expensive recursive phi computation by checking only that applying the
     # input to the positive intersection yields a subtype of the return
     if all_non_empty_domains?([{arguments, return} | positives]) do
-      fun_apply_static(arguments, [positives], false)
+      fun_apply_static(arguments, [positives])
       |> subtype?(return)
     else
       n = length(arguments)

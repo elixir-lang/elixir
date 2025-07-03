@@ -919,16 +919,14 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
       assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
 
-      assert fun_apply(fun([dynamic()], integer()), [dynamic()])
-             |> elem(1)
-             |> equal?(integer())
+      assert fun_apply(fun([dynamic()], integer()), [dynamic()]) ==
+               {:ok, union(integer(), dynamic())}
 
-      assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()])
-             |> elem(1)
-             |> equal?(float())
+      assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()]) ==
+               {:ok, union(float(), dynamic())}
 
       fun = fun([dynamic(integer())], atom())
-      assert fun_apply(fun, [dynamic(integer())]) |> elem(1) |> equal?(atom())
+      assert fun_apply(fun, [dynamic(integer())]) == {:ok, union(atom(), dynamic())}
       assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
       assert fun_apply(fun, [integer()]) == {:ok, dynamic()}
       assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())]}
