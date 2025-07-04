@@ -96,10 +96,9 @@ defmodule Macro.Env do
         ]
 
   @type expand_import_opts :: [
-          allow_locals: boolean(),
+          allow_locals: boolean() | (Macro.metadata(), atom(), arity(), [atom()], t() -> any()),
           check_deprecations: boolean(),
-          trace: boolean(),
-          local_for_callback: (Macro.metadata(), atom(), arity(), [atom()], t() -> any())
+          trace: boolean()
         ]
 
   @type expand_require_opts :: [
@@ -557,16 +556,14 @@ defmodule Macro.Env do
   ## Options
 
     * `:allow_locals` - when set to `false`, it does not attempt to capture
-      local macros defined in the current module in `env`
+      local macros defined in the current module in `env`.
+      When set to `true`, it uses a default resolver that looks for public macros.
+      When set to a function, it uses the function as a local resolver.
+      The function must have the following signature:
+      `fn meta, name, arity, kinds, env -> function() | false`.
 
     * `:check_deprecations` - when set to `false`, does not check for deprecations
       when expanding macros
-
-    * `:local_for_callback` - a function that receives the metadata, name, arity,
-      kinds list, and environment, and returns the local macro expansion or `false`.
-      The expansion can be a function or any other value. Non-function values will
-      cause the macro expansion to be skipped and return `:ok`.
-      Defaults to calling `:elixir_def.local_for/5`
 
     * #{trace_option}
 
@@ -578,36 +575,80 @@ defmodule Macro.Env do
           | {:error, :not_found | {:conflict, module()} | {:ambiguous, [module()]}}
   def expand_import(env, meta, name, arity, opts \\ [])
       when is_list(meta) and is_atom(name) and is_integer(arity) and is_list(opts) do
-    local_for_callback = Keyword.get(opts, :local_for_callback)
-
     case :elixir_import.special_form(name, arity) do
       true ->
         {:error, :not_found}
 
       false ->
-        allow_locals = Keyword.get(opts, :allow_locals, true)
-        trace = Keyword.get(opts, :trace, true)
         module = env.module
 
-        # When local_for_callback is provided, we don't need to pass module macros as extra
-        # because the callback will handle local macro resolution
-        extra =
-          if local_for_callback do
-            []
-          else
-            case allow_locals and function_exported?(module, :__info__, 1) do
-              true -> [{module, module.__info__(:macros)}]
-              false -> []
-            end
+        allow_locals =
+          case Keyword.get(opts, :allow_locals, true) do
+            false ->
+              false
+
+            true ->
+              macros =
+                if function_exported?(module, :__info__, 1) do
+                  module.__info__(:macros)
+                else
+                  []
+                end
+
+              fn _meta, name, arity, kinds, _e ->
+                IO.puts(
+                  "Resolving local macro #{name}/#{arity} in #{module} with kinds: #{inspect(kinds)}"
+                )
+
+                IO.puts("Macros defined in #{module}: #{inspect(macros)}")
+
+                # by default use a resolver looking for public macros
+                cond do
+                  :lists.any(
+                    fn
+                      :defmacro -> true
+                      :defmacrop -> true
+                      _ -> false
+                    end,
+                    kinds
+                  ) and macro_exported?(module, name, arity) ->
+                    # public macro found - return the expander
+                    proper_name = :"MACRO-#{name}"
+                    proper_arity = arity + 1
+                    Function.capture(module, proper_name, proper_arity)
+
+                  :lists.any(
+                    fn
+                      :def -> true
+                      :defp -> true
+                      _ -> false
+                    end,
+                    kinds
+                  ) and function_exported?(module, name, arity) ->
+                    Function.capture(module, name, arity)
+
+                  true ->
+                    IO.puts(
+                      "No local macro found for #{name}/#{arity} in #{module} with kinds: #{inspect(kinds)}"
+                    )
+
+                    false
+                end
+              end
+
+            fun when is_function(fun, 5) ->
+              # If we have a custom local resolver, use it.
+              fun
           end
+
+        trace = Keyword.get(opts, :trace, true)
 
         case :elixir_dispatch.expand_import(
                meta,
                name,
                arity,
                env,
-               extra,
-               local_for_callback || allow_locals,
+               allow_locals,
                trace
              ) do
           {:macro, receiver, expander} ->
