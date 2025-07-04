@@ -2443,16 +2443,7 @@ defmodule Module.Types.Descr do
       acc ->
         try do
           {tag, fields} = map_literal_intersection(tag1, pos1, tag2, pos2)
-          entry = {tag, fields, negs1 ++ negs2}
-
-          # Imagine a, b, c, where a is closed and b and c are open with
-          # no keys in common. The result in both cases will be a and we
-          # want to avoid adding duplicates, especially as intersection
-          # is a cartesian product.
-          case :lists.member(entry, acc) do
-            true -> acc
-            false -> [entry | acc]
-          end
+          prepend_to_map_dnf(tag, fields, negs1 ++ (negs2 -- negs1), acc)
         catch
           :empty -> acc
         end
@@ -2567,42 +2558,61 @@ defmodule Module.Types.Descr do
     if empty?(type), do: throw(:empty), else: type
   end
 
-  defp map_difference(_, dnf) when dnf == @map_top do
-    0
-  end
+  defp map_difference(_, dnf) when dnf == @map_top, do: []
+  defp map_difference(dnf, dnf), do: []
 
   defp map_difference(dnf1, dnf2) do
     Enum.reduce(dnf2, dnf1, fn
-      # Optimization: we are removing an open map with one field.
-      {:open, fields2, []}, dnf1 when map_size(fields2) == 1 ->
-        Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
+      {:open, fields2, []}, current_dnf when map_size(fields2) == 1 ->
+        # Optimization: we are removing an open map with one field.
+        Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
           {key, value, _rest} = :maps.next(:maps.iterator(fields2))
           t_diff = difference(Map.get(fields1, key, map_key_tag_to_type(tag1)), value)
 
           if empty?(t_diff) do
             acc
           else
-            [{tag1, Map.put(fields1, key, t_diff), negs1} | acc]
+            {tag, pos} = {tag1, Map.put(fields1, key, t_diff)}
+            entry = {tag, pos, negs1}
+
+            cond do
+              :lists.member({tag, pos}, negs1) -> acc
+              :lists.member(entry, acc) -> acc
+              true -> [entry | acc]
+            end
           end
         end)
 
-      {tag2, fields2, negs2}, dnf1 ->
-        Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
-          acc = [{tag1, fields1, [{tag2, fields2} | negs1]} | acc]
+      {tag2, fields2, negs2}, current_dnf ->
+        Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
+          negs =
+            if :lists.member({tag2, fields2}, negs1) do
+              negs1
+            else
+              [{tag2, fields2} | negs1]
+            end
+
+          acc = prepend_to_map_dnf(tag1, fields1, negs, acc)
 
           Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
             try do
               {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
-              [{tag, fields, negs1} | acc]
+              prepend_to_map_dnf(tag, fields, negs1, acc)
             catch
               :empty -> acc
             end
           end)
         end)
     end)
-    |> case do
-      [] -> 0
-      acc -> acc
+  end
+
+  defp prepend_to_map_dnf(tag, fields, negs, acc) do
+    entry = {tag, fields, negs}
+
+    cond do
+      :lists.member({tag, fields}, negs) -> acc
+      :lists.member(entry, acc) -> acc
+      true -> [entry | acc]
     end
   end
 
