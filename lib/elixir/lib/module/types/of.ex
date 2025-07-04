@@ -146,8 +146,10 @@ defmodule Module.Types.Of do
   end
 
   def impl(struct) do
-    # Elixir did not strictly require the implementation to be available, so we need a fallback.
+    # Elixir did not strictly require the implementation to be available,
+    # so we need to deal with such cases accordingly.
     # TODO: Assume implementation is available on Elixir v2.0.
+    # A warning is emitted since v1.19+.
     if info = Code.ensure_loaded?(struct) && struct.__info__(:struct) do
       struct_type(struct, info)
     else
