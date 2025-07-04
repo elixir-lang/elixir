@@ -601,7 +601,15 @@ defmodule Macro.Env do
             end
           end
 
-        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, local_for_callback || allow_locals, trace) do
+        case :elixir_dispatch.expand_import(
+               meta,
+               name,
+               arity,
+               env,
+               extra,
+               local_for_callback || allow_locals,
+               trace
+             ) do
           {:macro, receiver, expander} ->
             {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
 
