@@ -555,12 +555,17 @@ defmodule Macro.Env do
 
   ## Options
 
-    * `:allow_locals` - when set to `false`, it does not attempt to capture
-      local macros defined in the current module in `env`.
-      When set to `true`, it uses a default resolver that looks for public macros.
-      When set to a function, it uses the function as a local resolver.
-      The function must have the following signature:
-      `fn meta, name, arity, kinds, env -> function() | false`.
+    * `:allow_locals` - controls how local macros are resolved.
+      Defaults to `true`.
+      
+      - When `false`, does not attempt to capture local macros defined in the
+        current module in `env`
+      - When `true`, uses a default resolver that looks for public macros in
+        the current module
+      - When a function, uses the function as a custom local resolver. The function
+        must have the signature: `(meta, name, arity, kinds, env) -> function() | false`
+        where `kinds` is a list of atoms indicating the types of symbols being
+        searched (e.g., `[:defmacro, :defmacrop]`)
 
     * `:check_deprecations` - when set to `false`, does not check for deprecations
       when expanding macros
@@ -580,74 +585,28 @@ defmodule Macro.Env do
         {:error, :not_found}
 
       false ->
+        allow_locals = Keyword.get(opts, :allow_locals, true)
+        trace = Keyword.get(opts, :trace, true)
         module = env.module
 
-        allow_locals =
-          case Keyword.get(opts, :allow_locals, true) do
-            false ->
-              false
-
-            true ->
-              macros =
-                if function_exported?(module, :__info__, 1) do
-                  module.__info__(:macros)
-                else
-                  []
-                end
-
-              fn _meta, name, arity, kinds, _e ->
-                IO.puts(
-                  "Resolving local macro #{name}/#{arity} in #{module} with kinds: #{inspect(kinds)}"
-                )
-
-                IO.puts("Macros defined in #{module}: #{inspect(macros)}")
-
-                # by default use a resolver looking for public macros
-                cond do
-                  :lists.any(
-                    fn
-                      :defmacro -> true
-                      :defmacrop -> true
-                      _ -> false
-                    end,
-                    kinds
-                  ) and macro_exported?(module, name, arity) ->
-                    # public macro found - return the expander
-                    proper_name = :"MACRO-#{name}"
-                    proper_arity = arity + 1
-                    Function.capture(module, proper_name, proper_arity)
-
-                  :lists.any(
-                    fn
-                      :def -> true
-                      :defp -> true
-                      _ -> false
-                    end,
-                    kinds
-                  ) and function_exported?(module, name, arity) ->
-                    Function.capture(module, name, arity)
-
-                  true ->
-                    IO.puts(
-                      "No local macro found for #{name}/#{arity} in #{module} with kinds: #{inspect(kinds)}"
-                    )
-
-                    false
-                end
-              end
-
-            fun when is_function(fun, 5) ->
-              # If we have a custom local resolver, use it.
-              fun
+        # When allow_locals is a callback, we don't need to pass module macros as extra
+        # because the callback will handle local macro resolution
+        extra =
+          if is_function(allow_locals, 5) do
+            []
+          else
+            case allow_locals and function_exported?(module, :__info__, 1) do
+              true -> [{module, module.__info__(:macros)}]
+              false -> []
+            end
           end
-
-        trace = Keyword.get(opts, :trace, true)
 
         case :elixir_dispatch.expand_import(
                meta,
                name,
                arity,
                env,
+               extra,
                allow_locals,
                trace
              ) do

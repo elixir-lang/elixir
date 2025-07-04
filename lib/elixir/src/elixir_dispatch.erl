@@ -8,7 +8,7 @@
 -module(elixir_dispatch).
 -export([dispatch_import/6, dispatch_require/7,
   require_function/5, import_function/4,
-  expand_import/6, expand_require/6, check_deprecated/6,
+  expand_import/7, expand_require/6, check_deprecated/6,
   default_functions/0, default_macros/0, default_requires/0,
   find_import/4, find_imports/3, format_error/1]).
 -include("elixir.hrl").
@@ -29,7 +29,7 @@ default_requires() ->
 find_import(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
 
-  case find_import_by_name_arity(Meta, Tuple, E) of
+  case find_import_by_name_arity(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       Receiver;
@@ -56,7 +56,7 @@ find_imports(Meta, Name, E) ->
 
 import_function(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
-  case find_import_by_name_arity(Meta, Tuple, E) of
+  case find_import_by_name_arity(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       elixir_import:record(Tuple, Receiver, ?key(E, module), ?key(E, function)),
@@ -115,7 +115,7 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
       _ -> false
     end,
 
-  case expand_import(Meta, Name, Arity, E, AllowLocals, true) of
+  case expand_import(Meta, Name, Arity, E, [], AllowLocals, true) of
     {macro, Receiver, Expander} ->
       check_deprecated(macro, Meta, Receiver, Name, Arity, E),
       Caller = {?line(Meta), S, E},
@@ -159,10 +159,10 @@ dispatch_require(_Meta, Receiver, Name, _Args, _S, _E, Callback) ->
 
 %% Macros expansion
 
-expand_import(Meta, Name, Arity, E, AllowLocals, Trace) ->
+expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
   Tuple = {Name, Arity},
   Module = ?key(E, module),
-  Dispatch = find_import_by_name_arity(Meta, Tuple, E),
+  Dispatch = find_import_by_name_arity(Meta, Tuple, Extra, E),
 
   case Dispatch of
     {ambiguous, Ambiguous} ->
@@ -303,13 +303,13 @@ find_imports_by_name(Name, [{ImportName, _} | Imports], Acc, Mod, Meta, E) when 
 find_imports_by_name(_Name, _Imports, Acc, _Mod, _Meta, _E) ->
   Acc.
 
-find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, E) ->
+find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, Extra, E) ->
   case is_import(Meta, Arity) of
     {import, _} = Import ->
       Import;
     false ->
       Funs = ?key(E, functions),
-      Macs = ?key(E, macros),
+      Macs = Extra ++ ?key(E, macros),
       FunMatch = find_import_by_name_arity(Tuple, Funs),
       MacMatch = find_import_by_name_arity(Tuple, Macs),
 
