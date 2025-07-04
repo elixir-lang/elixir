@@ -1491,7 +1491,7 @@ defmodule Module.Types.Descr do
 
     case cache do
       %{^cache_key => value} ->
-        value
+        {value, cache}
 
       %{} ->
         # Compute result and cache it
