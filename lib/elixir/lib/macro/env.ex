@@ -578,9 +578,7 @@ defmodule Macro.Env do
           | {:error, :not_found | {:conflict, module()} | {:ambiguous, [module()]}}
   def expand_import(env, meta, name, arity, opts \\ [])
       when is_list(meta) and is_atom(name) and is_integer(arity) and is_list(opts) do
-    local_for_callback = Keyword.get(opts, :local_for_callback, fn meta, name, arity, kinds, e ->
-      :elixir_def.local_for(meta, name, arity, kinds, e)
-    end)
+    local_for_callback = Keyword.get(opts, :local_for_callback)
 
     case :elixir_import.special_form(name, arity) do
       true ->
@@ -594,7 +592,7 @@ defmodule Macro.Env do
         # When local_for_callback is provided, we don't need to pass module macros as extra
         # because the callback will handle local macro resolution
         extra =
-          if Keyword.has_key?(opts, :local_for_callback) do
+          if local_for_callback do
             []
           else
             case allow_locals and function_exported?(module, :__info__, 1) do
@@ -603,7 +601,7 @@ defmodule Macro.Env do
             end
           end
 
-        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace, local_for_callback) do
+        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, local_for_callback || allow_locals, trace) do
           {:macro, receiver, expander} ->
             {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
 
