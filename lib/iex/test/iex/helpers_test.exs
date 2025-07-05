@@ -1213,6 +1213,15 @@ defmodule IEx.HelpersTest do
                  "No such file or directory unknown_dir\n"
       end)
     end
+
+    test "prints an error if part of the path is not a dir (enotdir)" do
+      File.cd!(iex_path(), fn ->
+        path = Path.join("mix.exs", "foo")
+
+        assert capture_io(fn -> ls(path) end) ==
+                 "Not a directory #{path}\n"
+      end)
+    end
   end
 
   describe "exports" do
