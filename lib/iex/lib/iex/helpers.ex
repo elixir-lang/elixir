@@ -1080,15 +1080,17 @@ defmodule IEx.Helpers do
       {:error, :enoent} ->
         IO.puts(IEx.color(:eval_error, "No such file or directory #{path}"))
 
-      {:error, :enotdir} ->
-        if File.exists?(path) do
-          IO.puts(IEx.color(:eval_info, Path.absname(path)))
-        else
-          IO.puts(IEx.color(:eval_error, "No such file or directory #{path}"))
-        end
-
       {:error, reason} ->
-        IO.puts(IEx.color(:eval_error, :file.format_error(reason)))
+        cond do
+          File.exists?(path) and not File.dir?(path) ->
+            IO.puts(IEx.color(:eval_info, Path.absname(path)))
+
+          reason == :enotdir ->
+            IO.puts(IEx.color(:eval_error, "No such file or directory #{path}"))
+
+          true ->
+            IO.puts(IEx.color(:eval_error, :file.format_error(reason)))
+        end
     end
 
     dont_display_result()
