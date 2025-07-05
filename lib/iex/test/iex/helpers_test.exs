@@ -1200,6 +1200,19 @@ defmodule IEx.HelpersTest do
     test "lists the given directory" do
       assert capture_io(fn -> ls("~") end) == capture_io(fn -> ls(System.user_home()) end)
     end
+
+    test "returns an existing file" do
+      File.cd!(iex_path(), fn ->
+        assert capture_io(fn -> ls("mix.exs") end) == Path.join(iex_path(), "mix.exs") <> "\n"
+      end)
+    end
+
+    test "prints an error if directory doesn't exist" do
+      File.cd!(iex_path(), fn ->
+        assert capture_io(fn -> ls("unknown_dir") end) ==
+                 "No such file or directory unknown_dir\n"
+      end)
+    end
   end
 
   describe "exports" do
