@@ -1084,7 +1084,7 @@ defmodule IEx.Helpers do
         if File.exists?(path) do
           IO.puts(IEx.color(:eval_info, Path.absname(path)))
         else
-          IO.puts(IEx.color(:eval_error, "Not a directory #{path}"))
+          IO.puts(IEx.color(:eval_error, "No such file or directory #{path}"))
         end
 
       {:error, reason} ->

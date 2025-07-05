@@ -1219,7 +1219,7 @@ defmodule IEx.HelpersTest do
         path = Path.join("mix.exs", "foo")
 
         assert capture_io(fn -> ls(path) end) ==
-                 "Not a directory #{path}\n"
+                 "No such file or directory #{path}\n"
       end)
     end
   end
