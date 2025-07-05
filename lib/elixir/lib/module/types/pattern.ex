@@ -454,6 +454,7 @@ defmodule Module.Types.Pattern do
     {pairs, context} =
       Enum.map_reduce(args, context, fn {key, value}, context ->
         {value_type, context} = of_pattern(value, [{:key, key} | path], stack, context)
+        # TODO: We need to assume that these are dynamic until we have typed structs.
         {{key, value_type}, context}
       end)
 
