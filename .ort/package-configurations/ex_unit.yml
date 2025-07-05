@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+id: "SpdxDocumentFile:The Elixir Team:exunit:"
+path_excludes:
+  - pattern: "lib/ex_unit/examples/**/*"
+    reason: "EXAMPLE_OF"
+    comment: "Example"
+  - pattern: "lib/ex_unit/test/**/*"
+    reason: "TEST_OF"
+    comment: "Tests"
+license_finding_curations:
+  # Test Fixtures
+  - path: "lib/ex_unit/test/fixtures/**/*"
+    reason: "NOT_DETECTED"
+    comment: "Apply default license to test fixtures"
+    detected_license: "NONE"
+    concluded_license: "Apache-2.0"
