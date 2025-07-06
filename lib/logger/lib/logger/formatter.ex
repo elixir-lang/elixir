@@ -8,7 +8,7 @@ defmodule Logger.Formatter do
   @moduledoc ~S"""
   Conveniences and built-in formatter for logs.
 
-  This modules defines a suitable `:logger` formatter which formats
+  This module defines a suitable `:logger` formatter which formats
   messages and reports as Elixir terms and also provides additional
   functionality, such as timezone conversion, truncation, and coloring.
   This formatter is used by default by `Logger` and you can configure it
