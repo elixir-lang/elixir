@@ -175,9 +175,9 @@ expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
       Local = case AllowLocals of
         false -> false;
         true  -> elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E);
-        Fun when is_function(Fun, 5) ->
+        Fun when is_function(Fun, 4) ->
           %% If we have a custom local resolver, use it.
-          Fun(Meta, Name, Arity, [defmacro, defmacrop], E)
+          Fun(Meta, Name, Arity, E)
       end,
 
       case Dispatch of

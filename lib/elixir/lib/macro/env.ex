@@ -96,7 +96,8 @@ defmodule Macro.Env do
         ]
 
   @type expand_import_opts :: [
-          allow_locals: boolean() | (Macro.metadata(), atom(), arity(), [atom()], t() -> any()),
+          allow_locals:
+            boolean() | (Macro.metadata(), atom(), arity(), t() -> function() | false),
           check_deprecations: boolean(),
           trace: boolean()
         ]
@@ -563,9 +564,7 @@ defmodule Macro.Env do
       - When `true`, uses a default resolver that looks for public macros in
         the current module
       - When a function, uses the function as a custom local resolver. The function
-        must have the signature: `(meta, name, arity, kinds, env) -> function() | false`
-        where `kinds` is a list of atoms indicating the types of symbols being
-        searched (e.g., `[:defmacro, :defmacrop]`)
+        must have the signature: `(meta, name, arity, env) -> function() | false`
 
     * `:check_deprecations` - when set to `false`, does not check for deprecations
       when expanding macros
@@ -592,7 +591,7 @@ defmodule Macro.Env do
         # When allow_locals is a callback, we don't need to pass module macros as extra
         # because the callback will handle local macro resolution
         extra =
-          if is_function(allow_locals, 5) do
+          if is_function(allow_locals, 4) do
             []
           else
             case allow_locals and function_exported?(module, :__info__, 1) do
