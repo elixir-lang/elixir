@@ -276,7 +276,7 @@ defmodule ExUnit.Case do
         test "with io", %{capture_io: io} do
           IO.puts("Hello, World!")
 
-          assert StringIO.flush(io) == "Hello, World!\n"
+          assert StringIO.flush(io) == "Hello, World!\\n"
         end
       end
 
