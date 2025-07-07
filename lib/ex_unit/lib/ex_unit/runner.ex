@@ -490,7 +490,7 @@ defmodule ExUnit.Runner do
     Process.group_leader(self(), gl)
     context = put_in(context.capture_io, gl)
     test = fun.(context)
-    put_in(test.capture_io, StringIO.flush(gl))
+    put_in(test.stdout, StringIO.flush(gl))
   end
 
   defp maybe_capture_io(false, context, fun) do

@@ -132,7 +132,7 @@ defmodule ExUnit.CLIFormatter do
       )
 
     print_failure(formatted, config)
-    print_capture_io(test.capture_io)
+    print_stdout(test.stdout)
     print_logs(test.logs)
 
     test_counter = update_test_counter(config.test_counter, test)
@@ -521,9 +521,9 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(["     The following output was logged:", indent | output])
   end
 
-  defp print_capture_io(""), do: nil
+  defp print_stdout(""), do: nil
 
-  defp print_capture_io(output) do
+  defp print_stdout(output) do
     indent = "\n     "
     output = String.replace(output, "\n", indent)
     IO.puts(["     The following standard output was captured:", indent | output])
