@@ -165,7 +165,7 @@ defmodule Mix.Tasks.Deps do
 
     * `:hex` - the name of the package, which defaults to the application name
     * `:repo` - the repository to fetch the package from, used by remote or
-      private repositories. Defaults to the global "hexpm" repository
+      private repositories. Defaults to the global [Hex package manager](https://hex.pm/) repository
     * `:warn_if_outdated` - warn if there is a more recent version of the package
       published on Hex.pm
 
