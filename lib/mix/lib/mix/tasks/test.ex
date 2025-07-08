@@ -502,7 +502,6 @@ defmodule Mix.Tasks.Test do
   @impl true
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: [b: :breakpoints])
-    opts = put_manifest_file(opts)
 
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
@@ -576,6 +575,7 @@ defmodule Mix.Tasks.Test do
     Mix.Task.run("compile", args -- ["--warnings-as-errors"])
 
     project = Mix.Project.config()
+
     {partitions, opts} = Keyword.pop(opts, :partitions)
     partitioned? = is_integer(partitions) and partitions > 1
 
@@ -667,7 +667,7 @@ defmodule Mix.Tasks.Test do
     catch
       kind, reason ->
         # Also mark the whole suite as failed
-        file = Keyword.fetch!(opts, :failures_manifest_path)
+        file = get_manifest_path(opts)
         ExUnit.Filters.fail_all!(file)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
@@ -871,7 +871,10 @@ defmodule Mix.Tasks.Test do
   defp merge_helper_opts(opts) do
     # The only options that are additive from app env are the excludes
     value = List.wrap(Application.get_env(:ex_unit, :exclude, []))
-    Keyword.update(opts, :exclude, value, &Enum.uniq(&1 ++ value))
+
+    opts
+    |> Keyword.update(:exclude, value, &Enum.uniq(&1 ++ value))
+    |> Keyword.put_new_lazy(:failures_manifest_path, fn -> get_manifest_path([]) end)
   end
 
   defp default_opts(opts) do
@@ -918,16 +921,14 @@ defmodule Mix.Tasks.Test do
 
   @manifest_file_name ".mix_test_failures"
 
-  defp put_manifest_file(opts) do
-    Keyword.put_new_lazy(
-      opts,
-      :failures_manifest_path,
-      fn -> Path.join(Mix.Project.manifest_path(), @manifest_file_name) end
-    )
+  defp get_manifest_path(opts) do
+    opts[:failures_manifest_path] ||
+      Application.get_env(:ex_unit, :failures_manifest_path) ||
+      Path.join(Mix.Project.manifest_path(), @manifest_file_name)
   end
 
   defp manifest_opts(opts) do
-    manifest_file = Keyword.fetch!(opts, :failures_manifest_path)
+    manifest_file = get_manifest_path(opts)
 
     if opts[:failed] do
       if opts[:stale] do
