@@ -131,7 +131,7 @@ iex> if true do
 In the example above, the `do` and `else` blocks make up a keyword list. They are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
 
 ```elixir
-iex> if true, do: "This will be seen", else: "This won't"
+iex> if(true, do: "This will be seen", else: "This won't")
 "This will be seen"
 ```
 
