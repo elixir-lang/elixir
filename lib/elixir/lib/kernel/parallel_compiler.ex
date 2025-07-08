@@ -187,12 +187,12 @@ defmodule Kernel.ParallelCompiler do
 
     * `:long_compilation_threshold` - the timeout (in seconds) to check for files
       taking too long to compile. For each file that exceeds the threshold, the
-      `:each_long_compilation` callback is invoked. Defaults to `10` seconds.
+      `:each_long_compilation` callback is invoked. Defaults to 10 seconds.
 
     * `:long_verification_threshold` (since v1.19.0) - the timeout (in seconds) to
       check for modules taking too long to compile. For each module that exceeds the
       threshold, the `:each_long_verification` callback is invoked. Defaults to
-      `10` seconds.
+      10 seconds.
 
     * `:verification` (since v1.19.0) - if code verification, such as unused functions,
       deprecation warnings, and type checking should run. Defaults to `true`.
