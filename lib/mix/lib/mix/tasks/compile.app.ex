@@ -100,8 +100,8 @@ defmodule Mix.Tasks.Compile.App do
 
     * `:reliable_dir_mtime` - this task relies on the operating system
       changing the mtime on a directory whenever a file is added or removed.
-      You can set this option to false if your system does not provide
-      reliable mtimes. Defaults to false on Windows.
+      You can set this option to `false` if your system does not provide
+      reliable mtimes. Defaults to `false` on Windows.
 
   ## Phases
 

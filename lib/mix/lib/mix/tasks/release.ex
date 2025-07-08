@@ -176,11 +176,11 @@ defmodule Mix.Tasks.Release do
   in daemon mode so it automatically restarts the system in case
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
-  The daemon will write all of its standard output to the "tmp/log/"
+  The daemon will write all of its standard output to the `tmp/log/`
   directory in the release root. You can watch the log file by doing
   `tail -f tmp/log/erlang.log.1` or similar. Once files get too large,
   the index suffix will be incremented. A developer can also attach
-  to the standard input of the daemon by invoking "to_erl tmp/pipe/"
+  to the standard input of the daemon by invoking `to_erl tmp/pipe/`
   from the release root. However, note that attaching to the system
   should be done with extreme care, since the usual commands for
   exiting an Elixir system, such as hitting Ctrl+C twice or Ctrl+\\,
@@ -441,12 +441,12 @@ defmodule Mix.Tasks.Release do
           ]
 
     * `:rel_templates_path` - the path to find template files that are copied to
-      the release, such as "vm.args.eex", "remote.vm.args.eex", "env.sh.eex"
-      (or "env.bat.eex"), and "overlays". Defaults to "rel" in the project root.
+      the release, such as `vm.args.eex`, `remote.vm.args.eex`, `env.sh.eex`
+      (or `env.bat.eex`), and `overlays`. Defaults to `"rel"` in the project root.
 
     * `:overlays` - a list of directories with extra files to be copied
       as is to the release. The "overlays" directory at `:rel_templates_path`
-      is always included in this list by default (typically at "rel/overlays").
+      is always included in this list by default (typically at `"rel/overlays"`).
       See the "Overlays" section for more information.
 
     * `:steps` - a list of steps to execute when assembling the release. See
@@ -479,7 +479,7 @@ defmodule Mix.Tasks.Release do
   the release is assembled. This can be easily done by placing such
   files in the `rel/overlays` directory. Any file in there is copied
   as is to the release root. For example, if you have placed a
-  "rel/overlays/Dockerfile" file, the "Dockerfile" will be copied as
+  `rel/overlays/Dockerfile` file, the "Dockerfile" will be copied as
   is to the release root.
 
   If you want to specify extra overlay directories, you can do so

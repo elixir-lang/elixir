@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Format do
     * `--stdin-filename` - path to the file being formatted on stdin.
       This is useful if you are using plugins to support custom filetypes such
       as `.heex`. Without passing this flag, it is assumed that the code being
-      passed via stdin is valid Elixir code. Defaults to "stdin.exs".
+      passed via stdin is valid Elixir code. Defaults to `stdin.exs`.
 
     * `--migrate` - enables the `:migrate` option, which should be able to
       automatically fix some deprecation warnings but changes the AST.

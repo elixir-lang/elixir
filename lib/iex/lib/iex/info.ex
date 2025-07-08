@@ -458,7 +458,7 @@ defimpl IEx.Info, for: Range do
     description = """
     This is a struct representing a range of numbers. It is commonly
     defined using the `first..last//step` syntax. The step is not
-    required and defaults to 1.
+    required and defaults to `1`.
     """
 
     [

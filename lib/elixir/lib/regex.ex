@@ -306,7 +306,7 @@ defmodule Regex do
     * `:capture` - what to capture in the result. See the ["Captures" section](#module-captures)
       to see the possible capture values.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
-      Defaults to zero.
+      Defaults to `0`.
 
   ## Examples
 
@@ -349,7 +349,7 @@ defmodule Regex do
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
-      Defaults to zero.
+      Defaults to `0 `.
 
   ## Examples
 
@@ -523,7 +523,7 @@ defmodule Regex do
     * `:capture` - what to capture in the result. See the ["Captures" section](#module-captures)
       to see the possible capture values.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
-      Defaults to zero.
+      Defaults to `0`.
 
   ## Examples
 
