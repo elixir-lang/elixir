@@ -5,11 +5,11 @@
 
 # Supervising dynamic children
 
-We have successfully how our supervisor tree is automatically started (and stopped) as part of our the application life cycle. We can also name our buckets via the `:name` option. And we also learned that, in practice, we should always start new processes inside supervisors. Let's put these teachings in practice by ensuring our buckets are named and supervised.
+We have successfully learned how our supervisor tree is automatically started (and stopped) as part of our application's life cycle. We can also name our buckets via the `:name` option. We also learned that, in practice, we should always start new processes inside supervisors. Let's apply these insights by ensuring our buckets are named and supervised.
 
 ## Child specs
 
-Supervisors know how to start processes because they are given "child specifications". In our `lib/kv.ex` file, we defined a list of childreni with a single child spec:
+Supervisors know how to start processes because they are given "child specifications". In our `lib/kv.ex` file, we defined a list of children with a single child spec:
 
 ```elixir
     children = [
@@ -17,7 +17,7 @@ Supervisors know how to start processes because they are given "child specificat
     ]
 ```
 
-When the child specification is a pair (as above) or module, then it is equivalent to calling the `child_spec/1` function on said module, which then returns the full specification. The pair above is equivalent to:
+When the child specification is a tuple (as above) or module, then it is equivalent to calling the `child_spec/1` function on said module, which then returns the full specification. The pair above is equivalent to:
 
 ```elixir
 iex> Registry.child_spec(name: KV, keys: :unique)
@@ -190,7 +190,7 @@ defmodule KV.BucketTest do
 end
 ```
 
-It is a small change but it brings our tests to the best practices. Excellent!
+It is a small change, but our tests are now using all of the relevant best practices. Excellent!
 
 ## Observer
 
