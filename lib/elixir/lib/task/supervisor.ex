@@ -366,7 +366,7 @@ defmodule Task.Supervisor do
       that caused an exited during processing. Defaults to `false`.
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
-      or an integer indicating the timeout value. Defaults to 5000 milliseconds.
+      or an integer indicating the timeout value. Defaults to `5000` milliseconds.
       The tasks must trap exits for the timeout to have an effect.
 
   ## Examples
