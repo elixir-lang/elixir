@@ -62,7 +62,7 @@ Run `iex -S mix` and you will see the following message printed:
 
 Run tests, without killing the development server, and you will see it running on port 4040.
 
-Our change was straight-forward. We used `Application.fetch_env!/2` to read the entry for `port` in `:kv`'s environment. We explicitly used `fetch_env!/2` (instead of `get_env/2` or `fetch_env`) because it will raise if the port wasn not configured (therefore our app wouldn't even boot).
+Our change was straight-forward. We used `Application.fetch_env!/2` to read the entry for `port` in `:kv`'s environment. We explicitly used `fetch_env!/2` (instead of `get_env/2` or `fetch_env`) because it will raise if the port was not configured (preventing the app from booting).
 
 ## Compile vs runtime configuration
 
@@ -143,7 +143,7 @@ iex> flush()
 :ok
 ```
 
-In other words, we can spawn processes in other nodes, hold to their PIDs, and then send messages to them as if they were running on the same machine. That's the *location transparency* principle. And because everything we have built so far was built on top of messaging passing, we should be able to adjust our key-value store to become a distributed one with little work.
+In other words, we can spawn processes in other nodes, hold onto their PIDs, and then send messages to them as if they were running on the same machine. That's the *location transparency* principle. And because everything we have built so far was built on top of messaging passing, we should be able to adjust our key-value store to become a distributed one with little work.
 
 ## Distributed naming registry with `:global`
 
@@ -175,11 +175,11 @@ iex> KV.lookup_bucket("shopping")
 nil
 ```
 
-It returns `nil`. However, if you run `KV.lookup_bucket("shopping")` in `bar@computer-name`, it will return the proper bucket. In other words, the nodes can communicate with each other, but buckets spawned in one node are not visibly to the other.
+It returns `nil`. However, if you run `KV.lookup_bucket("shopping")` in `bar@computer-name`, it will return the proper bucket. In other words, the nodes can communicate with each other, but buckets spawned in one node are not visible to the other.
 
 This is because we are using [Elixir's Registry](`Registry`) to name our buckets, which is a **local** process registry. In other words, it is designed for processes running on a single node and not for distribution.
 
-Luckily, Erlang ships with a distributed registry called [`:global`](`:global`), which is support by default as a naming registry. All we need to do is to replace the `via/1` function in `lib/kv.ex` from this:
+Luckily, Erlang ships with a distributed registry called [`:global`](`:global`), which is support by default as a naming registry. All we need to do is replace the `via/1` function in `lib/kv.ex` from this:
 
 ```elixir
   defp via(name), do: {:via, Registry, {KV, name}}
@@ -200,11 +200,11 @@ iex> KV.lookup_bucket("shopping")
 #PID<21821.179.0>
 ```
 
-And there you go! By simply changing which naming registry we used, we now have a distributed key value store. You can even try using `telnet` to configure to the different ports and validate that changes in one session are visible to other one. Exciting!
+And there you go! By simply changing which naming registry we used, we now have a distributed key value store. You can even try using `telnet` to connect to the servers on different ports and validate that changes in one session are visible in the other one. Exciting!
 
 ## Node discovery and dependencies
 
-There is one essential ingredient to wrap up our distributed key-value store. In other for the `:global` registry to work, we need to make sure the nodes are connected to each other. When we run `:erpc` call passing the node name:
+There is one essential ingredient to wrap up our distributed key-value store. In order for the `:global` registry to work, we need to make sure the nodes are connected to each other. When we run `:erpc` call passing the node name:
 
 ```elixir
 :erpc.call(:"bar@computer-name", KV, :create_bucket, ["shopping"])
@@ -260,14 +260,13 @@ Open up `config/runtime.exs` and add this to the bottom:
 ```elixir
 nodes =
   System.get_env("NODES", "")
-  |> String.split(",")
-  |> Enum.reject(& &1 == "")
+  |> String.split(",", trim: true)
   |> Enum.map(&String.to_atom/1)
 
 config :kv, :nodes, nodes
 ```
 
-We fetch the environment variable, split it on ",", discard all empty strings, and then convert each entry to an atom, as node names are atoms.
+We fetch the environment variable, split it on "," while discarding all empty strings, and then convert each entry to an atom, as node names are atoms.
 
 Now, in your `start/2` callback, we will add this to of the `start/2` function:
 
