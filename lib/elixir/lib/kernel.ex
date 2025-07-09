@@ -231,7 +231,7 @@ defmodule Kernel do
 
   Finally, note there is an overall structural sorting order, called
   "Term Ordering", defined below. This order is provided for reference
-  purposes, it is not required by Elixir developers to know it by heart.
+  purposes, it is not required for Elixir developers to know it by heart.
 
   ### Term ordering
 
