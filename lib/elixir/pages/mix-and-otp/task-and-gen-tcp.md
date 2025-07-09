@@ -109,7 +109,7 @@ My particular telnet client can be exited by typing `ctrl + ]`, typing `quit`, a
 
 Once you exit the telnet client, you will likely see an error in the IEx session:
 
-```
+```text
 ** (MatchError) no match of right hand side value: {:error, :closed}
     (kv) lib/kv/server.ex:45: KV.Server.read_line/1
     (kv) lib/kv/server.ex:37: KV.Server.serve/1

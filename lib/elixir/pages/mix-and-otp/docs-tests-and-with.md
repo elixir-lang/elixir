@@ -414,7 +414,6 @@ defmodule KV.ServerTest do
 end
 ```
 
-
 Run `mix test` and the tests should all pass. However, make sure to terminate any `iex -S mix` session you may have running, as currently tests and development environment are running on the same port (4040). We will address it in the next chapter.
 
 We added three tests, the first one tests most bucket actions, while the other two deal with error cases. Given there is a lot of shared setup across these tests, we used the `setup/2` macro to deal with common boilerplate. The macro receives the same *test context* as tests and starts a client TCP connection per test. It also defines a unique bucket name using the module name and the test name, making sure any space in the test name is replaced by `-`.

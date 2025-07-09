@@ -7,7 +7,7 @@
 
 In the [previous chapter](agents.md), we used agents to represent our buckets. In the [introduction to mix](introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
 
-```elixir
+```text
 CREATE shopping
 OK
 
@@ -145,7 +145,7 @@ end
 
 Now run `mix test` and you will see a couple things happening. First of all, you will get a compilation warning:
 
-```
+```text
 Compiling 1 file (.ex)
     warning: function start/2 required by behaviour Application is not implemented (in module KV)
     │
@@ -159,7 +159,7 @@ This warning is telling us that `use Application` actually defines a behaviour, 
 
 Then our application does not even boot because the `start/2` function is not actually implemented:
 
-```
+```text
 18:29:39.109 [notice] Application kv exited: exited in: KV.start(:normal, [])
     ** (EXIT) an exception was raised:
         ** (UndefinedFunctionError) function KV.start/2 is undefined or private

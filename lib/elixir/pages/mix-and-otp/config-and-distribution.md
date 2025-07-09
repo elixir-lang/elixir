@@ -56,7 +56,7 @@ Now we just need to read this configuration. Open up `lib/kv.ex` and the `start/
 
 Run `iex -S mix` and you will see the following message printed:
 
-```
+```text
 [info] Accepting connections on port 4050
 ```
 
@@ -149,13 +149,13 @@ In other words, we can spawn processes in other nodes, hold to their PIDs, and t
 
 First, let's check that our code is not currently distributed. Start a new node like this:
 
-```
+```console
 $ PORT=4100 iex --sname foo -S mix
 ```
 
 And the other like this:
 
-```
+```console
 $ PORT=4101 iex --sname bar -S mix
 ```
 
@@ -280,7 +280,7 @@ Now, in your `start/2` callback, we will add this to of the `start/2` function:
 
 Now we can start our nodes as:
 
-```shell
+```console
 $ NODES="foo@computer-name,bar@computer-name" PORT=4040 iex --sname foo -S mix
 $ NODES="foo@computer-name,bar@computer-name" PORT=4041 iex --sname bar -S mix
 ```

@@ -9,7 +9,7 @@ To wrap up our distributed key-value store, we will implement a feature where a 
 
 We will do by adding a new command, called SUBSCRIBE, to be used like this:
 
-```
+```text
 SUBSCRIBE shopping
 milk SET TO 1
 eggs SET TO 10
