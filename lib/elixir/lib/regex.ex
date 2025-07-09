@@ -349,7 +349,7 @@ defmodule Regex do
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
-      Defaults to `0 `.
+      Defaults to `0`.
 
   ## Examples
 
