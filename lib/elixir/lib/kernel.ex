@@ -2815,7 +2815,7 @@ defmodule Kernel do
   This is most commonly used in pipelines, using the `|>/2` operator, allowing you
   to pipe a value to a function outside of its first argument.
 
-  ### Examples
+  ## Examples
 
       iex> 1 |> then(fn x -> x * 2 end)
       2

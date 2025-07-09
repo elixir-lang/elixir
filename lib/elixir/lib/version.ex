@@ -485,7 +485,7 @@ defmodule Version do
   @doc """
   Converts the given version to a string.
 
-  ### Examples
+  ## Examples
 
       iex> Version.to_string(%Version{major: 1, minor: 2, patch: 3})
       "1.2.3"
