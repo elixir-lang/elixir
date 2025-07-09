@@ -3,142 +3,65 @@
   SPDX-FileCopyrightText: 2021 The Elixir Team
 -->
 
-# Supervision trees and applications
+# Registries and supervision trees
 
-In the previous chapter about `GenServer`, we implemented `KV.Registry` to manage buckets. At some point, we started monitoring buckets so we were able to take action whenever a `KV.Bucket` crashed. Although the change was relatively small, it introduced a question which is frequently asked by Elixir developers: what happens when something fails?
-
-Before we added monitoring, if a bucket crashed, the registry would forever point to a bucket that no longer exists. If a user tried to read or write to the crashed bucket, it would fail. Any attempt at creating a new bucket with the same name would just return the PID of the crashed bucket. In other words, that registry entry for that bucket would forever be in a bad state. Once we added monitoring, the registry automatically removes the entry for the crashed bucket. Trying to lookup the crashed bucket now (correctly) says the bucket does not exist and a user of the system can successfully create a new one if desired.
-
-In practice, we are not expecting the processes working as buckets to fail. But, if it does happen, for whatever reason, we can rest assured that our system will continue to work as intended.
-
-If you have prior programming experience, you may be wondering: "could we just guarantee the bucket does not crash in the first place?". As we will see, Elixir developers tend to refer to those practices as "defensive programming". That's because a live production system has dozens of different reasons why something can go wrong. The disk can fail, memory can be corrupted, bugs, the network may stop working for a second, etc. If we were to write software that attempted to protect or circumvent all of those errors, we would spend more time handling failures than writing our own software!
-
-Therefore, an Elixir developer prefers to "let it crash" or "fail fast". And one of the most common ways we can recover from a failure is by restarting whatever part of the system crashed.
-
-For example, imagine your computer, router, printer, or whatever device is not working properly. How often do you fix it by restarting it? Once we restart the device, we reset the device back to its initial state, which is well-tested and guaranteed to work. In Elixir, we apply this same approach to software: whenever a process crashes, we start a new process to perform the same job as the crashed process.
-
-In Elixir, this is done by a Supervisor. A Supervisor is a process that supervises other processes and restarts them whenever they crash. To do so, Supervisors manage the whole life cycle of any supervised processes, including startup and shutdown.
-
-In this chapter, we will learn how to put those concepts into practice by supervising the `KV.Registry` process. After all, if something goes wrong with the registry, the whole registry is lost and no bucket could ever be found! To address this, we will define a `KV.Supervisor` module that guarantees that our `KV.Registry` is up and running at any given moment.
-
-At the end of the chapter, we will also talk about Applications. As we will see, Mix has been packaging all of our code into an application, and we will learn how to customize our application to guarantee that our Supervisor and the Registry are up and running whenever our system starts.
-
-## Our first supervisor
-
-A supervisor is a process which supervises other processes, which we refer to as child processes. The act of supervising a process includes three distinct responsibilities. The first one is to start child processes. Once a child process is running, the supervisor may restart a child process, either because it terminated abnormally or because a certain condition was reached. For example, a supervisor may restart all children if any child dies. Finally, a supervisor is also responsible for shutting down the child processes when the system is shutting down. Please see the `Supervisor` module for a more in-depth discussion.
-
-Creating a supervisor is not much different from creating a GenServer. We are going to define a module named `KV.Supervisor`, which will use the Supervisor behaviour, inside the `lib/kv/supervisor.ex` file:
+In the [previous chapter](agents.md), we used agents to represent our buckets. In the [introduction to mix](introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
 
 ```elixir
-defmodule KV.Supervisor do
-  use Supervisor
+CREATE shopping
+OK
 
-  def start_link(opts) do
-    Supervisor.start_link(__MODULE__, :ok, opts)
-  end
+PUT shopping milk 1
+OK
 
-  @impl true
-  def init(:ok) do
-    children = [
-      KV.Registry
-    ]
-
-    Supervisor.init(children, strategy: :one_for_one)
-  end
-end
+GET shopping milk
+1
+OK
 ```
 
-Our supervisor has a single child so far: `KV.Registry`. After we define a list of children, we call `Supervisor.init/2`, passing the children and the supervision strategy.
+In the example session above we interacted with the "shopping" bucket. Therefore, an important feature in our key-value store to add names to processes.
 
-The supervision strategy dictates what happens when one of the children crashes. `:one_for_one` means that if a child dies, it will be the only one restarted. Since we have only one child now, that's all we need. The `Supervisor` behaviour supports several strategies, which we will discuss in this chapter.
-
-Once the supervisor starts, it will traverse the list of children and it will invoke the `child_spec/1` function on each module.
-
-The `child_spec/1` function returns the child specification which describes how to start the process, if the process is a worker or a supervisor, if the process is temporary, transient or permanent and so on. The `child_spec/1` function is automatically defined when we `use Agent`, `use GenServer`, `use Supervisor`, etc. Let's give it a try in the terminal with `iex -S mix`:
+We have also learned in the previous chapter we can already name our buckets. For example:
 
 ```elixir
-iex> KV.Registry.child_spec([])
-%{id: KV.Registry, start: {KV.Registry, :start_link, [[]]}}
-```
-
-We will learn those details as we move forward on this guide. If you would rather peek ahead, check the `Supervisor` docs.
-
-After the supervisor retrieves all child specifications, it proceeds to start its children one by one, in the order they were defined, using the information in the `:start` key in the child specification. For our current specification, it will call `KV.Registry.start_link([])`.
-
-Let's take the supervisor for a spin:
-
-```elixir
-iex> {:ok, sup} = KV.Supervisor.start_link([])
-{:ok, #PID<0.148.0>}
-iex> Supervisor.which_children(sup)
-[{KV.Registry, #PID<0.150.0>, :worker, [KV.Registry]}]
-```
-
-So far we have started the supervisor and listed its children. Once the supervisor started, it also started all of its children.
-
-What happens if we intentionally crash the registry started by the supervisor? Let's do so by sending it a bad input on `call`:
-
-```elixir
-iex> [{_, registry, _, _}] = Supervisor.which_children(sup)
-[{KV.Registry, #PID<0.150.0>, :worker, [KV.Registry]}]
-iex> GenServer.call(registry, :bad_input)
-08:52:57.311 [error] GenServer #PID<0.150.0> terminating
-** (FunctionClauseError) no function clause matching in KV.Registry.handle_call/3
-iex> Supervisor.which_children(sup)
-[{KV.Registry, #PID<0.157.0>, :worker, [KV.Registry]}]
-```
-
-Notice how the supervisor automatically started a new registry, with a new PID, in place of the first one once we caused it to crash due to a bad input.
-
-In the previous chapters, we have always started processes directly. For example, we would call `KV.Registry.start_link([])`, which would return `{:ok, pid}`, and that would allow us to interact with the registry via its `pid`. Now that processes are started by the supervisor, we have to directly ask the supervisor who its children are, and fetch the PID from the returned list of children. In practice, doing so every time would be very expensive. To address this, we often give names to processes, allowing them to be uniquely identified in a single machine from anywhere in our code.
-
-Let's learn how to do that.
-
-## Naming processes
-
-While our application will have many buckets, it will only have a single registry. Therefore, whenever we start the registry, we want to give it a unique name so we can reach out to it from anywhere. We do so by passing a `:name` option to `KV.Registry.start_link/1`.
-
-Let's slightly change our children definition (in `KV.Supervisor.init/1`) to be a list of tuples instead of a list of atoms:
-
-```elixir
-  def init(:ok) do
-    children = [
-      {KV.Registry, name: KV.Registry}
-    ]
-```
-
-With this in place, the supervisor will now start `KV.Registry` by calling `KV.Registry.start_link(name: KV.Registry)`.
-
-If you revisit the `KV.Registry.start_link/1` implementation, you will remember it simply passes the options to GenServer:
-
-```elixir
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, :ok, opts)
-  end
-```
-
-which in turn will register the process with the given name. The `:name` option expects an atom for locally named processes (locally named means it is available to this machine — there are other options, which we won't discuss here). Since module identifiers are atoms (try `i(KV.Registry)` in IEx), we can name a process after the module that implements it, provided there is only one process for that name. This helps when debugging and introspecting the system.
-
-Let's give the updated supervisor a try inside `iex -S mix`:
-
-```elixir
-iex> KV.Supervisor.start_link([])
-{:ok, #PID<0.66.0>}
-iex> KV.Registry.create(KV.Registry, "shopping")
+iex> KV.Bucket.start_link(name: :shopping)
+{:ok, #PID<0.43.0>}
+iex> KV.Bucket.put(:shopping, "milk", 1)
 :ok
-iex> KV.Registry.lookup(KV.Registry, "shopping")
-{:ok, #PID<0.70.0>}
+iex> KV.Bucket.get(:shopping, "milk")
+1
 ```
 
-This time the supervisor started a named registry, allowing us to create buckets without having to explicitly fetch the PID from the supervisor. You should also know how to make the registry crash again, without looking up its PID: give it a try.
+However, naming dynamic processes with atoms is a terrible idea! If we use atoms, we would need to convert the bucket name (often received from an external client) to atoms, and **we should never convert user input to atoms**. This is because atoms are not garbage collected. Once an atom is created, it is never reclaimed. Generating atoms from user input would mean the user can inject enough different names to exhaust our system memory!
 
-> At this point, you may be wondering: should you also locally name bucket processes? Remember buckets are started dynamically based on user input. Since local names MUST be atoms, we would have to dynamically create atoms, which is a bad idea since once an atom is defined, it is never erased nor garbage collected. This means that, if we create atoms dynamically based on user input, we will eventually run out of memory (or to be more precise, the VM will crash because it imposes a hard limit on the number of atoms). This limitation is precisely why we created our own registry (or why one would use Elixir's built-in `Registry` module).
+In practice, it is more likely you will reach the Erlang VM limit for the maximum number of atoms before you run out of memory, which will bring your system down regardless.
 
-We are getting closer and closer to a fully working system. The supervisor automatically starts the registry. But how can we automatically start the supervisor whenever our system starts? To answer this question, let's talk about applications.
+Luckily, Elixir (and Erlang) comes with built-in abstractions for naming processes, called name registries, each with different trade-offs which we will explore throughout these guides.
+
+## Local, decentralized, and scalable registry
+
+Elixir ships with a single-node process registry module aptly called `Registry`. Its main feature is that you can use any Elixir value to name a process, not only atoms. Let's take it for a spin in `iex`:
+
+```elixir
+iex> Registry.start_link(name: KV, keys: :unique)
+iex> name = {:via, Registry, {KV, "shopping"}}
+iex> KV.Bucket.start_link(name: name)
+{:ok, #PID<0.43.0>}
+iex> KV.Bucket.put(name, "milk", 1)
+:ok
+iex> KV.Bucket.get(name, "milk")
+1
+```
+
+As you can see, instead of passing an atom to the `:name` option, we pass a tuple of shape `{:via, registry_module, {registry_name, process_name}}`, and everything just worked. You could have used anything as the `process_name`, even an integer or a map! That's because all of Elixir built-in behaviours, agents, supervisors, tasks, etc. are compatible with naming registries, as long as you pass them using the "via" tuple format.
+
+Therefore, all we need to do to name our buckets is to start a `Registry`, using `Registry.start_link/1`. But you may be wondering, where exactly should we place that?
 
 ## Understanding applications
 
-We have been working inside an application this entire time. Every time we changed a file and ran `mix compile`, we could see a `Generated kv app` message in the compilation output.
+Every Elixir project is an application. Elixir itself is defined in an application named `:elixir`. The `ExUnit.Case` module is part of the `:ex_unit` application. And so forth.
+
+In fact, we have been working inside an application this entire time. Every time we changed a file and ran `mix compile`, we could see a `Generated kv app` message in the compilation output.
 
 We can find the generated `.app` file at `_build/dev/lib/kv/ebin/kv.app`. Let's have a look at its contents:
 
@@ -146,8 +69,7 @@ We can find the generated `.app` file at `_build/dev/lib/kv/ebin/kv.app`. Let's 
 {application,kv,
              [{applications,[kernel,stdlib,elixir,logger]},
               {description,"kv"},
-              {modules,['Elixir.KV','Elixir.KV.Bucket','Elixir.KV.Registry',
-                        'Elixir.KV.Supervisor']},
+              {modules,['Elixir.KV','Elixir.KV.Bucket']},
               {registered,[]},
               {vsn,"0.1.0"}]}.
 ```
@@ -156,7 +78,7 @@ This file contains Erlang terms (written using Erlang syntax). Even though we ar
 
 > The `logger` application ships as part of Elixir. We stated that our application needs it by specifying it in the `:extra_applications` list in `mix.exs`. See the [official documentation](`Logger`) for more information.
 
-In a nutshell, an application consists of all the modules defined in the `.app` file, including the `.app` file itself. An application has generally only two directories: `ebin`, for Elixir artifacts, such as `.beam` and `.app` files, and `priv`, with any other artifact or asset you may need in your application.
+In a nutshell, an application consists of all the modules defined in the `.app` file, including the `.app` file itself. The application itself is located at the `_build/dev/lib/kv` folder and typically has only two directories: `ebin`, for Elixir artifacts, such as `.beam` and `.app` files, and `priv`, with any other artifact or asset you may need in your application.
 
 Although Mix generates and maintains the `.app` file for us, we can customize its contents by adding new entries to the `application/0` function inside the `mix.exs` project file. We are going to do our first customization soon.
 
@@ -196,9 +118,9 @@ iex> Application.ensure_all_started(:kv)
 {:ok, [:logger, :kv]}
 ```
 
-In practice, our tools always start our applications for us, but there is an API available if you need fine-grained control.
+In practice, our tools always start our applications for us, and you don't have to worry about the above, but it is good to know how it all works behind the scenes.
 
-## The application callback
+### The application callback
 
 Whenever we invoke `iex -S mix`, Mix automatically starts our application by calling `Application.start(:kv)`. But can we customize what happens when our application starts? As a matter of fact, we can! To do so, we define an application callback.
 
@@ -213,50 +135,119 @@ The first step is to tell our application definition (for example, our `.app` fi
   end
 ```
 
-The `:mod` option specifies the "application callback module", followed by the arguments to be passed on application start. The application callback module can be any module that implements the `Application` behaviour.
+The `:mod` option specifies the "application callback module", followed by the arguments to be passed on application start. The application callback module can be any module that invokes `use Application`. Since we have specified `KV` as the module callback, let's change the `KV` module defined in `lib/kv.ex` to the following:
 
-To implement the `Application` behaviour, we have to `use Application` and define a `start/2` function. The goal of `start/2` is to start a supervisor, which will then start any child services or execute any other code our application may need. Let's use this opportunity to start the `KV.Supervisor` we have implemented earlier in this chapter.
+```elixir
+defmodule KV do
+  use Application
+end
+```
 
-Since we have specified `KV` as the module callback, let's change the `KV` module defined in `lib/kv.ex` to implement a `start/2` function:
+Now run `mix test` and you will see a couple things happening. First of all, you will get a compilation warning:
+
+```
+Compiling 1 file (.ex)
+    warning: function start/2 required by behaviour Application is not implemented (in module KV)
+    │
+  1 │ defmodule KV do
+    │ ~~~~~~~~~~~~~~~
+    │
+    └─ lib/kv.ex:1: KV (module)
+```
+
+This warning is telling us that `use Application` actually defines a behaviour, which expects us to implement to a `start/2` function in our `KV` module.
+
+Then our application does not even boot because the `start/2` function is not actually implemented:
+
+```
+18:29:39.109 [notice] Application kv exited: exited in: KV.start(:normal, [])
+    ** (EXIT) an exception was raised:
+        ** (UndefinedFunctionError) function KV.start/2 is undefined or private
+```
+
+Implementing the `start/2` callback is relatively straight-forward, all we need to do is to start a supervision tree, and return `{:ok, root_supervisor_pid}`. The `Supervisor.start_link/2` function does precisely that, it only expects a list of children and the supervision strategy. Let's just pass an empty list of children for now:
 
 ```elixir
 defmodule KV do
   use Application
 
+  # The @impl true annotation says we are implementing a callback
   @impl true
   def start(_type, _args) do
-    # Although we don't use the supervisor name below directly,
-    # it can be useful when debugging or introspecting the system.
-    KV.Supervisor.start_link(name: KV.Supervisor)
+    Supervisor.start_link([], strategy: :one_for_one)
   end
 end
 ```
 
-> Please note that by doing this, we are breaking the boilerplate test case which tested the `hello` function in `KV`. You can simply remove that test case.
+Now run `mix test` again and our app should boot but we should see one failure. When we changed the `KV` module, we broke the boilerplate test case which tested the `KV.hello/0` function. You can simply remove that test case and we are back to a green suite.
 
-When we `use Application`, we may define a couple of functions, similar to when we used `Supervisor` or `GenServer`. This time we only had to define a `start/2` function. The `Application` behaviour also has a `stop/1` callback, but it is rarely used in practice. You can check the documentation for more information.
+We wrote very little code but we did something incredibly powerful. We now have a function, `KV.start/2` that is invoked whenever your application starts. This gives us the perfect place to start our key-value registry. The `Application` module also allows us to define a `stop/1` callback and other funtionality. You can check the `Application` and `Supervisor` modules for extensive documentation on their uses.
 
-Now that you have defined an application callback which starts our supervisor, we expect the `KV.Registry` process to be up and running as soon as we start `iex -S mix`. Let's give it another try:
+Let's finally start our registry.
+
+## Supervision trees
+
+Now that we have the `start/2` callback, we can finally go ahead and start our registry. You may be tempted to do it like this:
 
 ```elixir
-iex> KV.Registry.create(KV.Registry, "shopping")
-:ok
-iex> KV.Registry.lookup(KV.Registry, "shopping")
-{:ok, #PID<0.88.0>}
+  def start(_type, _args) do
+    Registry.start_link(name: KV, keys: :unique)
+    Supervisor.start_link([], strategy: :one_for_one)
+  end
 ```
 
-Let's recap what is happening. Whenever we invoke `iex -S mix`, it automatically starts our application by calling `Application.start(:kv)`, which then invokes the application callback. The application callback's job is to start a **supervision tree**. Right now, our supervisor has a single child named `KV.Registry`, started with name `KV.Registry`. Our supervisor could have other children, and some of these children could be their own supervisors with their own children, leading to the so-called supervision trees.
+However, this would not be a good idea. In Elixir, we typically start processes inside supervision trees. In fact, we rarely use the `start_link` functions to start processes (except at the root of the supervision tree itself). Instead, do this:
+
+```elixir
+  def start(_type, _args) do
+    children = [
+      {Registry, name: KV, keys: :unique}
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+```
+
+A supervisor receives one or more child specifications that tell exactly how to start each child. A child specification is typically represented by `{module, options}` pair, as shown above, and often as simply the module name. Sometimes, these children are supervisors themselves, giving ussupervision trees.
+
+Let's take it for a spin and see if we can indeed name our buckets using our new registry. Let's make sure to start a new `iex -S mix` (`recompile()` is not enough, as it does not reload your supervision tree) and then:
+
+```iex
+iex> name = {:via, Registry, {KV, "shopping"}}
+iex> KV.Bucket.start_link(name: name)
+{:ok, #PID<0.43.0>}
+iex> KV.Bucket.put(name, "milk", 1)
+:ok
+iex> KV.Bucket.get(name, "milk")
+1
+```
+
+Perfect, this time we didn't need to start the registry inside `iex`, as it was started as part of the application itself.
+
+By starting processes inside supervisors, we gain important properties such as:
+
+  * **Introspection**: for each application, you can fully introspect and visualize each process in its supervision tree, its memory usage, message queue, etc
+
+  * **Resilience**: when a process fails for an unexpected reason, its supervisor controls if and how those processes should be restarted, leading to self-healing systems
+
+  * **Graceful shutdown**: when your application is shutting down, the children of a supervision tree is terminated in the opposite order it was started, leading to graceful shutdowns
 
 ## Projects or applications?
 
-Mix makes a distinction between projects and applications. Based on the contents of our `mix.exs` file, we would say we have a Mix project that defines the `:kv` application. As we will see in later chapters, there are projects that don't define any application.
+Mix makes a distinction between projects and applications. Based on the contents of our `mix.exs` file, we would say we have a Mix project that defines the `:kv` application.
 
 When we say "project" you should think about Mix. Mix is the tool that manages your project. It knows how to compile your project, test your project and more. It also knows how to compile and start the application relevant to your project.
 
 When we talk about applications, we talk about OTP. Applications are the entities that are started and stopped as a whole by the runtime. You can learn more about applications and how they relate to booting and shutting down of your system as a whole in the documentation for the `Application` module.
 
-## Next steps
+## Summing up
 
-Although this chapter was the first time we implemented a supervisor, it was not the first time we used one! In the previous chapter, when we used `start_supervised!` to start the registry during our tests, `ExUnit` started the registry under a supervisor managed by the ExUnit framework itself. By defining our own supervisor, we provide more structure on how we initialize, shutdown and supervise processes in our applications, aligning our production code and tests with best practices.
+We learned important concepts in this chapter:
 
-But we are not done yet. So far we are supervising the registry but our application is also starting buckets. Since buckets are started dynamically, we can use a special type of supervisor called `DynamicSupervisor`, which is optimized to handle such scenarios. Let's explore it next.
+  * Naming registries allow us find processes in a given machine (or, as we will see in the future, even in a cluster)
+
+  * Applications bundle our modules, its dependencies, and how code starts and stops
+
+  * Processes are started as part of supervisors for introspection and fault-tolerance
+
+In the next chapter, we will tie it all up by making sure all our buckets are named and supervised. To do so, we will learn a new tool called dynamic supervisors.

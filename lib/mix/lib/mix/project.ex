@@ -130,6 +130,47 @@ defmodule Mix.Project do
   makes sure Elixir is not added as a dependency to the generated `.app` file or
   to the escript generated with `mix escript.build`, and so on.
 
+  ## Umbrella projects
+
+  Umbrella projects are a convenience to help you organize and manage multiple
+  applications. While it provides a degree of separation between applications,
+  those applications are not fully decoupled, as they share the same configuration
+  and the same dependencies.
+
+  In an umbrella project, you have an `apps/` folder where you store each application.
+  Then, instead of each app in the umbrella having its own configuration, build cache,
+  lockfile and so, they all point to the parent project by specifying the following
+  configuration in their `mix.exs`:
+
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+
+  The pattern of keeping multiple applications in the same repository is known as
+  [monorepo](https://en.wikipedia.org/wiki/Monorepo). Umbrella projects maximize
+  this pattern by providing conveniences to compile, test and run multiple
+  applications at once.
+
+  ### Breaking umbrellas apart
+
+  Using umbrella projects can impact how you design and write your software and,
+  as time passes, they may turn our to be the right or the wrong choice.
+  If you find yourself in a position where you want to use different configurations
+  in each application for the same dependency or use different dependency versions,
+  then it is likely your codebase has grown beyond what umbrellas can provide.
+
+  The good news is that breaking an umbrella apart is quite straightforward,
+  as you simply need to move applications outside of the umbrella project's
+  `apps/` directory and update the project's `mix.exs` file to no longer set
+  the `build_path`, `config_path`, `deps_path`, and `lockfile` configuration.
+  You can depend on private projects outside of the umbrella in multiple ways:
+
+    1. Move it to a separate folder within the same repository and point to
+       it using a path dependency (the monorepo pattern)
+    2. Move the repository to a separate Git repository and depend on it
+    3. Publish the project to a private [Hex.pm](https://hex.pm/) organization
+
   ## Invoking this module
 
   This module contains many functions that return project information and

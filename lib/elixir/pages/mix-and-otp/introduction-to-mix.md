@@ -9,8 +9,8 @@ In this guide, we will build a complete Elixir application, with its own supervi
 
 The requirements for this guide are (see `elixir -v`):
 
-  * Elixir 1.15.0 onwards
-  * Erlang/OTP 24 onwards
+  * Elixir 1.18.0 onwards
+  * Erlang/OTP 27 onwards
 
 The application works as a distributed key-value store. We are going to organize key-value pairs into buckets and distribute those buckets across multiple nodes. We will also build a simple client that allows us to connect to any of those nodes and send requests such as:
 
@@ -44,7 +44,7 @@ In this chapter, we will create our first project using Mix and explore differen
 
 > #### Source code {: .info}
 >
-> The final code for the application built in this guide is in [this repository](https://github.com/josevalim/kv_umbrella) and can be used as a reference.
+> The final code for the application built in this guide is in [this repository](https://github.com/josevalim/kv) and can be used as a reference.
 
 > #### Is this guide required reading? {: .info}
 >
@@ -82,7 +82,7 @@ Let's take a brief look at those generated files.
 
 > #### Executables in the `PATH` {: .info}
 >
-> Mix is an Elixir executable. This means that in order to run `mix`, you need to have both `mix` and `elixir` executables in your PATH. That's what happens when you install Elixir.
+> Mix is an Elixir executable. This means that in order to run `mix`, you need to have both `mix` and `elixir` executables in your [`PATH`](https://en.wikipedia.org/wiki/PATH_(variable)). That's what happens when you install Elixir.
 
 ## Project compilation
 
