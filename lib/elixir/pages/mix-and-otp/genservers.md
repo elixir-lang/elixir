@@ -24,7 +24,7 @@ Processes in Elixir are isolated. When they need to communicate, they do so by s
 
 We have two options: links and monitors.
 
-We have used links extensively. Whenever we started a process, we typically did so by using `start_link` or similar. The idea behind links is that, if any of the processes crash, the other will crash due to the link. We talked about them in the [Process chapter of the Getting Started guide](../getting-startedprocesses.md). Here is a refresher:
+We have used links extensively. Whenever we started a process, we typically did so by using `start_link` or similar. The idea behind links is that, if any of the processes crash, the other will crash due to the link. We talked about them in the [Process chapter of the Getting Started guide](../getting-started/processes.md). Here is a refresher:
 
 ```elixir
 iex> self()
