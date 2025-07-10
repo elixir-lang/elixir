@@ -558,13 +558,13 @@ defmodule Macro.Env do
 
     * `:allow_locals` - controls how local macros are resolved.
       Defaults to `true`.
-      
+
       - When `false`, does not attempt to capture local macros defined in the
         current module in `env`
       - When `true`, uses a default resolver that looks for public macros in
         the current module
-      - When a function, uses the function as a custom local resolver. The function
-        must have the signature: `(meta, name, arity, env) -> function() | false`
+      - When a function, it will be invoked to lazily compute a local function
+        (or return false). It has signature `(-> function() | false)`
 
     * `:check_deprecations` - when set to `false`, does not check for deprecations
       when expanding macros
@@ -591,7 +591,7 @@ defmodule Macro.Env do
         # When allow_locals is a callback, we don't need to pass module macros as extra
         # because the callback will handle local macro resolution
         extra =
-          if is_function(allow_locals, 4) do
+          if is_function(allow_locals, 0) do
             []
           else
             case allow_locals and function_exported?(module, :__info__, 1) do
