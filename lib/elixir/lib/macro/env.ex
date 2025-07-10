@@ -96,8 +96,7 @@ defmodule Macro.Env do
         ]
 
   @type expand_import_opts :: [
-          allow_locals:
-            boolean() | (Macro.metadata(), atom(), arity(), t() -> function() | false),
+          allow_locals: boolean() | (-> function() | false),
           check_deprecations: boolean(),
           trace: boolean()
         ]
