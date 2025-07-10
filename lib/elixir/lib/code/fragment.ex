@@ -1213,10 +1213,10 @@ defmodule Code.Fragment do
       Defaults to `"nofile"`.
 
     * `:line` - the starting line of the string being parsed.
-      Defaults to 1.
+      Defaults to `1`.
 
     * `:column` - the starting column of the string being parsed.
-      Defaults to 1.
+      Defaults to `1`.
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
