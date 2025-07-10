@@ -633,7 +633,7 @@ defmodule Date do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> Date.convert(~D[2000-01-01], Calendar.Holocene)
@@ -667,7 +667,7 @@ defmodule Date do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> Date.convert!(~D[2000-01-01], Calendar.Holocene)
