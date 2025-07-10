@@ -39,11 +39,12 @@ defmodule Mix.Compilers.Test do
   end
 
   defp require_and_run(matched_test_files, test_paths, opts) do
-    stale = opts[:stale]
+    dry_run = Keyword.get(opts, :dry_run, false)
+    stale = Keyword.get(opts, :stale, false)
     max_requires = opts[:max_requires]
 
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
-      if stale do
+      if stale and not dry_run do
         set_up_stale(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
