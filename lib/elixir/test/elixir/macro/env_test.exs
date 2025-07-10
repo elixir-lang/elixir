@@ -207,6 +207,25 @@ defmodule Macro.EnvTest do
       assert fun.([generated: true], [quote(do: hello())]) == quote(generated: true, do: hello())
     end
 
+    defmacro allow_locals_example, do: :ok
+
+    test "allow_locals" do
+      {:macro, Macro.EnvTest, fun} =
+        expand_import(env(), meta(), :allow_locals_example, 0)
+
+      assert fun.([], []) == :ok
+
+      assert expand_import(env(), meta(), :allow_locals_example, 0, allow_locals: false) ==
+               {:error, :not_found}
+
+      assert expand_import(env(), meta(), :allow_locals_example, 0,
+               allow_locals: fn -> send(self(), false) end
+             ) ==
+               {:error, :not_found}
+
+      assert_received false
+    end
+
     test "with tracing and deprecations" do
       message = "MacroEnvMacros.my_deprecated_macro/1 is deprecated"
 
