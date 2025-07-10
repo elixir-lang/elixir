@@ -213,7 +213,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:max_concurrency` - the maximum number of files to compile in parallel.
       Setting this option to 1 will compile files sequentially.
-      Defaults to the number of schedulers online, or at least 2.
+      Defaults to the number of schedulers online, or at least `2`.
 
   """
   @doc since: "1.6.0"
@@ -263,7 +263,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:max_concurrency` - the maximum number of files to compile in parallel.
       Setting this option to 1 will compile files sequentially.
-      Defaults to the number of schedulers online, or at least 2.
+      Defaults to the number of schedulers online, or at least `2`.
 
     * `:return_diagnostics` - when `true`, returns structured diagnostics
       as maps instead of the legacy format. Defaults to `false`.

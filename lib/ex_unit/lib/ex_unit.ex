@@ -331,7 +331,7 @@ defmodule ExUnit do
       filter. See the "Filters" section in the documentation for `ExUnit.Case`;
 
     * `:exit_status` - specifies an alternate exit status to use when the test
-      suite fails. Defaults to 2;
+      suite fails. Defaults to `2`;
 
     * `:failures_manifest_path` - specifies a path to the file used to store failures
       between runs;

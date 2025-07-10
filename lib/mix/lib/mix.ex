@@ -846,7 +846,7 @@ defmodule Mix do
   ## Environment variables
 
   The `MIX_INSTALL_DIR` environment variable configures the directory that
-  caches all `Mix.install/2`. It defaults to the "mix/install" folder in the
+  caches all `Mix.install/2`. It defaults to the `mix/install` folder in the
   default user cache of your operating system. You can use `install_project_dir/0`
   to access the directory of an existing install (alongside other installs):
 

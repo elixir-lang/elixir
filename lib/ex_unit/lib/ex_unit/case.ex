@@ -187,7 +187,7 @@ defmodule ExUnit.Case do
 
     * `:skip` - skips the test with the given reason
 
-    * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000).
+    * `:timeout` - customizes the test timeout in milliseconds (defaults to `60_000`).
       Accepts `:infinity` as a timeout value.
 
     * `:tmp_dir` - (since v1.11.0) see the "Tmp Dir" section below

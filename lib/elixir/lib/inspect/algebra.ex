@@ -46,7 +46,7 @@ defmodule Inspect.Opts do
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
       printable strings and printable charlists which use the `:printable_limit` option.
-      It accepts a positive integer or `:infinity`. It defaults to 100 since
+      It accepts a positive integer or `:infinity`. It defaults to `100` since
       `Elixir v1.19.0`, as it has better defaults to deal with nested collections.
 
     * `:pretty` - if set to `true` enables pretty printing. Defaults to `false`.

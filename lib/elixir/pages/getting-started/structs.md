@@ -113,7 +113,7 @@ iex> %Product{}
 %Product{name: nil}
 ```
 
-You can define a structure combining both fields with explicit default values, and implicit `nil` values. In this case you must first specify the fields which implicitly default to nil:
+You can define a structure combining both fields with explicit default values, and implicit `nil` values. In this case you must first specify the fields which implicitly default to `nil`:
 
 ```elixir
 iex> defmodule User do

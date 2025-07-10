@@ -960,7 +960,7 @@ defmodule System do
 
     * `:close_stdin` (since v1.14.1) - if the stdin should be closed
       on Unix systems, forcing any command that waits on stdin to
-      immediately terminate. Defaults to false.
+      immediately terminate. Defaults to `false`.
   """
   @doc since: "1.12.0"
   @spec shell(binary, shell_opts) :: {Collectable.t(), exit_status :: non_neg_integer}
