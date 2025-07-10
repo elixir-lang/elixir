@@ -100,7 +100,22 @@ iex> if nil do
 "This will"
 ```
 
-This is also a good opportunity to talk about variable scoping in Elixir. If any variable is declared or changed inside [`if`](`if/2`), [`case`](`case/2`), and similar constructs, the declaration and change will only be visible inside the construct. For example:
+> #### `if` is a macro {: .info}
+>
+> An interesting note regarding [`if`](`if/2`) is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
+
+If you find yourself nesting several [`if`](`if/2`) blocks, you may want to consider using [`cond`](`cond/1`) instead. Let's check it out.
+
+## Being expressions based
+
+This is also a good opportunity to talk about Elixir being an expressions based language and how that affects variable scoping.
+
+Being an expressions based language means that everything you use in the language is an expression, which
+returns some value. This is contrary to other languages where there are language statements or even
+functions "returning nothing", sometimes called `void`.
+
+This property of elixir allows variables to be scoped to individual blocks of code like inside [`if`](`if/2`), [`case`](`case/2`), where declarations or
+changes are only visible inside the block. A change can't leak to outer blocks, which makes code easier to follow and understand. For example:
 
 ```elixir
 iex> x = 1
@@ -113,24 +128,24 @@ iex> x
 1
 ```
 
-In said cases, if you want to change a value, you must return the value from the [`if`](`if/2`):
+You see the return value of the [`if`](`if/2`) expression as the resulting `2` here. To retain changes made within the [`if`](`if/2`) expression on the outer block you need to assign the returned value to a variable in the outer block.
 
 ```elixir
 iex> x = 1
 1
-iex> x = if true do
-...>   x + 1
-...> else
-...>   x
-...> end
+iex> x =
+...>   if true do
+...>     x + 1
+...>   else
+...>     x
+...>   end
 2
 ```
 
-> #### `if` is a macro {: .info}
->
-> An interesting note regarding [`if`](`if/2`) is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
-
-If you find yourself nesting several [`if`](`if/2`) blocks, you may want to consider using [`cond`](`cond/1`) instead. Let's check it out.
+With all expressions returning a value there's also no need for alternative syntaxes
+like e.g. a ternary operator posing as an alternative to [`if`](`if/2`). You can
+use [`if`](`if/2`) directly – as we'll [show later](keywords-and-maps.md#do-blocks-and-keywords)
+there's even an inline notation for [`if`](`if/2`).
 
 ## cond
 
