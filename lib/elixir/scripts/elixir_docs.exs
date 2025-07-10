@@ -16,7 +16,6 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/getting-started/anonymous-functions.md",
     "lib/elixir/pages/getting-started/binaries-strings-and-charlists.md",
     "lib/elixir/pages/getting-started/keywords-and-maps.md",
-    "lib/elixir/pages/getting-started/compilation-and-scripting.md",
     "lib/elixir/pages/getting-started/modules-and-functions.md",
     "lib/elixir/pages/getting-started/alias-require-and-import.md",
     "lib/elixir/pages/getting-started/module-attributes.md",
