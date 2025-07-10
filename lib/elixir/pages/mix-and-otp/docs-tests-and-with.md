@@ -357,9 +357,9 @@ Our server functionality is almost complete. Only tests are missing.
 
 ## Integration tests
 
-`KV.Command.run/1`'s implementation is sending commands directly to the `KV` module, which is using a local registry to name processes. This means if we have two tests sending messages to the asme bucket, our tests will conflict with each other (and likely fail). One might think this would be a reason to use mocks and other strategies to keep our tests isolated, but such techniques often make our testing environment too distant from how our code actually runs in production, and you may end-up with bugs lurking.
+`KV.Command.run/1`'s implementation is sending commands directly to the `KV` module, which is using a local registry to name processes. This means if we have two tests sending messages to the same bucket, our tests will conflict with each other (and likely fail). One might think this would be a reason to use mocks and other strategies to keep our tests isolated, but such techniques often make our testing environment too distant from how our code actually runs in production, and you may end-up with bugs lurking.
 
-Luckily, there is a technique that we have been using throughout this guide that would be equally apply here: it is ok to rely on the local registry as long as each test uses unique names. And using a combination of the test module and test name is more than enough to guarantee that.
+Luckily, there is a technique that we have been using throughout this guide that would be equally applicable here: it is ok to rely on the local registry as long as each test uses unique names. Using a combination of the test module and test name is more than enough to guarantee that.
 
 So let's write integration tests that rely on unique names to exercise the whole stack from the TCP server to the bucket.
 
@@ -418,7 +418,7 @@ Run `mix test` and the tests should all pass. However, make sure to terminate an
 
 We added three tests, the first one tests most bucket actions, while the other two deal with error cases. Given there is a lot of shared setup across these tests, we used the `setup/2` macro to deal with common boilerplate. The macro receives the same *test context* as tests and starts a client TCP connection per test. It also defines a unique bucket name using the module name and the test name, making sure any space in the test name is replaced by `-`.
 
-Then, on each test, we pattern matched on the *test context*, extracting the socket or name as necessary. This code is similar to the one we wrote in `test/kv/bucket_test.exs`:
+Then, in each test, we pattern matched on the *test context*, extracting the socket or name as necessary. This is similar to the code we wrote in `test/kv/bucket_test.exs`:
 
 ```elixir
   test "stores values by key on a named process", config do

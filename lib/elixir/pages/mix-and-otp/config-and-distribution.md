@@ -179,7 +179,7 @@ It returns `nil`. However, if you run `KV.lookup_bucket("shopping")` in `bar@com
 
 This is because we are using [Elixir's Registry](`Registry`) to name our buckets, which is a **local** process registry. In other words, it is designed for processes running on a single node and not for distribution.
 
-Luckily, Erlang ships with a distributed registry called [`:global`](`:global`), which is support by default as a naming registry. All we need to do is replace the `via/1` function in `lib/kv.ex` from this:
+Luckily, Erlang ships with a distributed registry called [`:global`](`:global`), which is directly supported by the `:name` option by passing a `{:global, name}` tuple. All we need to do is update the `via/1` function in `lib/kv.ex` from this:
 
 ```elixir
   defp via(name), do: {:via, Registry, {KV, name}}
