@@ -1046,7 +1046,7 @@ defmodule DateTime do
   its abbreviation, which means information is lost when converting to such
   format.
 
-  ### Examples
+  ## Examples
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
@@ -1390,7 +1390,7 @@ defmodule DateTime do
   custom (but relatively common) representation which appends the time
   zone abbreviation and full name to the datetime.
 
-  ### Examples
+  ## Examples
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
@@ -1636,7 +1636,7 @@ defmodule DateTime do
   not currently supported in Elixir's standard library but it is available
   by third-party libraries.
 
-  ### Examples
+  ## Examples
 
       iex> dt = DateTime.from_naive!(~N[2018-11-15 10:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> dt |> DateTime.add(3600, :second, FakeTimeZoneDatabase)
@@ -1922,7 +1922,7 @@ defmodule DateTime do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
@@ -1969,7 +1969,7 @@ defmodule DateTime do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",

@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Archive.Build do
   ## Command line options
 
     * `-o` - specifies output file name.
-      If there is a `mix.exs`, defaults to "APP-VERSION.ez".
+      If there is a `mix.exs`, defaults to `APP-VERSION.ez`.
 
     * `-i` - specifies the input directory to archive.
       If there is a `mix.exs`, defaults to the current application build.

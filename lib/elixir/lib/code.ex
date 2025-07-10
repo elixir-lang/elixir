@@ -725,7 +725,7 @@ defmodule Code do
     * `:line` - the line the string starts, used for error reporting
 
     * `:line_length` - the line length to aim for when formatting
-      the document. Defaults to 98. This value indicates when an expression
+      the document. Defaults to `98`. This value indicates when an expression
       should be broken over multiple lines but it is not guaranteed
       to do so. See the "Line length" section below for more information
 
@@ -1227,14 +1227,14 @@ defmodule Code do
       Defaults to `"nofile"`.
 
     * `:line` - the starting line of the string being parsed.
-      Defaults to 1.
+      Defaults to `1`.
 
     * `:column` - (since v1.11.0) the starting column of the string being parsed.
-      Defaults to 1.
+      Defaults to `1`.
 
     * `:indentation` - (since v1.19.0) the indentation for the string being parsed.
       This is useful when the code parsed is embedded within another document.
-      Defaults to 0.
+      Defaults to `0`.
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.

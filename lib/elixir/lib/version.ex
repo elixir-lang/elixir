@@ -442,7 +442,7 @@ defmodule Version do
 
   If `string` is an invalid requirement, a `Version.InvalidRequirementError` is raised.
 
-  # Examples
+  ## Examples
 
       iex> Version.parse_requirement!("== 2.0.1")
       Version.parse_requirement!("== 2.0.1")
@@ -485,7 +485,7 @@ defmodule Version do
   @doc """
   Converts the given version to a string.
 
-  ### Examples
+  ## Examples
 
       iex> Version.to_string(%Version{major: 1, minor: 2, patch: 3})
       "1.2.3"

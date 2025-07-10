@@ -212,7 +212,7 @@ defmodule Mix.Tasks.Test do
       test suite) as errors and returns an exit status of 1 if the test suite would otherwise
       pass. If the test suite fails and also include warnings as errors, the exit
       status returned will be the value of the `--exit-status` option, which
-      defaults to 2, plus one. Therefore in the default case, this will be exit status 3.
+      defaults to `2`, plus one. Therefore in the default case, this will be exit status `3`.
 
       Note that failures reported by `--warnings-as-errors` cannot be retried with the
       `--failed` flag.
@@ -237,7 +237,7 @@ defmodule Mix.Tasks.Test do
       It is expected that all test paths contain a `test_helper.exs` file
 
     * `:test_pattern` - a pattern to find potential test files.
-      Defaults to `*.{ex,exs}`.
+      Defaults to `"*.{ex,exs}"`.
 
       In Elixir versions earlier than 1.19.0, this option defaulted to `*_test.exs`,
       but to allow better warnings for misnamed test files, it since matches any

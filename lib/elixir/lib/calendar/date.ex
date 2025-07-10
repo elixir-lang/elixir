@@ -321,7 +321,7 @@ defmodule Date do
   @doc """
   Converts the given date to a string according to its calendar.
 
-  ### Examples
+  ## Examples
 
       iex> Date.to_string(~D[2000-02-28])
       "2000-02-28"
@@ -399,7 +399,7 @@ defmodule Date do
   or other calendars in which the days also start at midnight.
   Attempting to convert dates from other calendars will raise an `ArgumentError`.
 
-  ### Examples
+  ## Examples
 
       iex> Date.to_iso8601(~D[2000-02-28])
       "2000-02-28"
@@ -633,7 +633,7 @@ defmodule Date do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> Date.convert(~D[2000-01-01], Calendar.Holocene)
@@ -667,7 +667,7 @@ defmodule Date do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> Date.convert!(~D[2000-01-01], Calendar.Holocene)
