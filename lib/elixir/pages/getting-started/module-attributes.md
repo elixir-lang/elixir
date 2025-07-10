@@ -32,7 +32,7 @@ In the example above, we are defining the module documentation by using the modu
 
 `@moduledoc` and `@doc` are by far the most used attributes, and we expect you to use them a lot. Elixir treats documentation as first-class and provides many functions to access documentation. We will cover them [in their own chapter](writing-documentation.md).
 
-Let's go back to the `Math` module defined in the previous chapters, add some documentation and save it to the `math.ex` file:
+Documentation is only accessible from compiled modules. So in order to give it a try, let's once again define the `Math` module, but this time within a file named `math.ex`:
 
 ```elixir
 defmodule Math do
@@ -53,23 +53,29 @@ defmodule Math do
 end
 ```
 
-Elixir promotes the use of Markdown with heredocs to write readable documentation. Heredocs are multi-line strings, they start and end with triple double-quotes, keeping the formatting of the inner text. We can access the documentation of any compiled module directly from IEx:
+Elixir promotes the use of Markdown with heredocs to write readable documentation. Heredocs are multi-line strings, they start and end with triple double-quotes, keeping the formatting of the inner text.
 
-```console
-$ elixirc math.ex
-$ iex
-```
+Now let's compile it. Start `iex` and then invoke [the `c/2` helper](`IEx.Helpers.c/2`):
 
 ```elixir
-iex> h Math # Access the docs for the module Math
+iex> c("math.ex", ".")
+[Math]
+```
+
+And now we can access them:
+
+```elixir
+iex> h Math # Docs for module Math
 ...
-iex> h Math.sum # Access the docs for the sum function
+iex> h Math.sum # Docs for the sum function
 ...
 ```
 
-We also provide a tool called [ExDoc](https://github.com/elixir-lang/ex_doc) which is used to generate HTML pages from the documentation.
+When we compiled the module, you may have noticed Elixir created a `Elixir.Math.beam` file. That's the bytecode for the module and that's where the documentation is stored.
 
-You can take a look at the docs for `Module` for a complete list of supported attributes. Elixir also uses attributes to annotate our code with [typespecs](../references/typespecs.md).
+In our day to day, Elixir developers use the `Mix` build tool to compile code and projects like [ExDoc](https://github.com/elixir-lang/ex_doc) to generate HTML and EPUB pages from the documentation.
+
+Take a look at the docs for `Module` for a complete list of supported attributes.
 
 ## As temporary storage
 
