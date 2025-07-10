@@ -133,7 +133,7 @@ defmodule Mix.Shell do
 
     * `:stderr_to_stdout` - redirects stderr to stdout, defaults to `true`, unless `:use_stdio` is set to `false`
 
-    * `:use_stdio` - controls whether the command should use `stdin` / `stdout` / `stdrr`, defaults to `true`
+    * `:use_stdio` - controls whether the command should use `stdin` / `stdout` / `stderr`, defaults to `true`
 
     * `:env` - a list of environment variables, defaults to `[]`
 
