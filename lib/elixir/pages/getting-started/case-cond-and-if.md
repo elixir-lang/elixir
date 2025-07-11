@@ -142,10 +142,7 @@ iex> x =
 2
 ```
 
-With all expressions returning a value there's also no need for alternative syntaxes
-like e.g. a ternary operator posing as an alternative to [`if`](`if/2`). You can
-use [`if`](`if/2`) directly – as we'll [show later](keywords-and-maps.md#do-blocks-and-keywords)
-there's even an inline notation for [`if`](`if/2`).
+With all expressions returning a value there's also no need for alternative constructs, such as ternary operators posing as an alternative to [`if`](`if/2`). Elixir does include an inline notation for [`if`](`if/2`) and, as we will [learn later](keywords-and-maps.md#do-blocks-and-keywords), it is a syntactic variation on `if`'s arguments.
 
 ## cond
 
