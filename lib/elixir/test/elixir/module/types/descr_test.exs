@@ -2083,11 +2083,6 @@ defmodule Module.Types.DescrTest do
       assert tuple([closed_map(a: integer()), open_map()]) |> to_quoted_string() ==
                "{%{a: integer()}, map()}"
 
-      # TODO: eliminate tuple differences
-      # assert difference(tuple([number(), term()]), tuple([integer(), atom()]))
-      #        |> to_quoted_string() ==
-      #          "{float(), term()} or {number(), term() and not atom()}"
-
       assert union(tuple([integer(), atom()]), tuple([integer(), atom()])) |> to_quoted_string() ==
                "{integer(), atom()}"
 
@@ -2249,7 +2244,7 @@ defmodule Module.Types.DescrTest do
                """
     end
 
-    test "map" do
+    test "map as records" do
       assert empty_map() |> to_quoted_string() == "empty_map()"
       assert open_map() |> to_quoted_string() == "map()"
 
@@ -2365,6 +2360,14 @@ defmodule Module.Types.DescrTest do
              |> difference(open_map(a: float(), b: atom(), c: pid()))
              |> difference(open_map(a: integer(), b: atom(), c: union(pid(), port())))
              |> to_quoted_string() == "%{..., a: float(), b: atom(), c: port()}"
+    end
+
+    test "maps as dictionaries" do
+      assert closed_map([{domain_key(:integer), integer()}])
+             |> to_quoted_string() == "%{integer() => if_set(integer())}"
+
+      assert closed_map([{domain_key(:integer), integer()}, {:float, float()}])
+             |> to_quoted_string() == "%{integer() => if_set(integer()), float: float()}"
     end
 
     test "structs" do

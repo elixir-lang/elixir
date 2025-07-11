@@ -3494,8 +3494,7 @@ defmodule Module.Types.Descr do
   def map_literal_to_quoted({domains = %{}, fields}, opts) do
     domain_fields =
       for {domain_key(domain_type), value_type} <- domains do
-        key = {:string, [], ["#{domain_type}() => "]}
-        {key, to_quoted(value_type, opts)}
+        {{domain_type, [], []}, map_value_to_quoted(value_type, opts)}
       end
 
     regular_fields_quoted = map_fields_to_quoted(:closed, Enum.sort(fields), opts)
@@ -3555,13 +3554,17 @@ defmodule Module.Types.Descr do
           literal_to_quoted(key)
         end
 
-      {optional?, type} = pop_optional_static(type)
+      {key, map_value_to_quoted(type, opts)}
+    end
+  end
 
-      cond do
-        not optional? -> {key, to_quoted(type, opts)}
-        empty?(type) -> {key, {:not_set, [], []}}
-        true -> {key, {:if_set, [], [to_quoted(type, opts)]}}
-      end
+  defp map_value_to_quoted(type, opts) do
+    {optional?, type} = pop_optional_static(type)
+
+    cond do
+      not optional? -> to_quoted(type, opts)
+      empty?(type) -> {:not_set, [], []}
+      true -> {:if_set, [], [to_quoted(type, opts)]}
     end
   end
 
