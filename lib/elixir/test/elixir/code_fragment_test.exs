@@ -127,8 +127,6 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("hello(\t") == {:local_call, ~c"hello"}
       assert CF.cursor_context("hello(\n") == {:local_call, ~c"hello"}
       assert CF.cursor_context("hello(\r\n") == {:local_call, ~c"hello"}
-      assert CF.cursor_context("...(") == {:local_call, ~c"..."}
-      assert CF.cursor_context("...(\s") == {:local_call, ~c"..."}
     end
 
     test "dot_arity" do
@@ -325,6 +323,11 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("=~ ") == {:operator_call, ~c"=~"}
       assert CF.cursor_context("<~> ") == {:operator_call, ~c"<~>"}
       assert CF.cursor_context(":: ") == {:operator_call, ~c"::"}
+
+      assert CF.cursor_context("...(") == {:operator_call, ~c"..."}
+      assert CF.cursor_context("...(\s") == {:operator_call, ~c"..."}
+      assert CF.cursor_context("+(") == {:operator_call, ~c"+"}
+      assert CF.cursor_context("++(\s") == {:operator_call, ~c"++"}
 
       assert CF.cursor_context("+/") == {:operator_arity, ~c"+"}
       assert CF.cursor_context("++/") == {:operator_arity, ~c"++"}

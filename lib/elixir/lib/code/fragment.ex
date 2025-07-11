@@ -335,7 +335,7 @@ defmodule Code.Fragment do
   end
 
   defp identifier_to_cursor_context([?., ?., ?: | _], n, _), do: {{:unquoted_atom, ~c".."}, n + 3}
-  defp identifier_to_cursor_context([?., ?., ?. | _], n, _), do: {{:local_or_var, ~c"..."}, n + 3}
+  defp identifier_to_cursor_context([?., ?., ?. | _], n, _), do: {{:operator, ~c"..."}, n + 3}
   defp identifier_to_cursor_context([?., ?: | _], n, _), do: {{:unquoted_atom, ~c"."}, n + 2}
   defp identifier_to_cursor_context([?., ?. | _], n, _), do: {{:operator, ~c".."}, n + 2}
 
