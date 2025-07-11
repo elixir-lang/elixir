@@ -234,7 +234,9 @@ defp loop_acceptor(socket) do
 end
 ```
 
-Start a new server with `iex -S mix` and we can now open up many concurrent telnet clients. You will also notice that quitting a client does not bring the acceptor down, even though we haven't fixed the bug in `:gen_tcp.recv/2` yet (we will do so in the next chapter). Excellent!
+You might notice that we added a line, `:ok = :gen_tcp.controlling_process(client, pid)`. This makes the child process the "controlling process" of the `client` socket. If we didn't do this, the acceptor would bring down all the clients if it crashed because sockets would be tied to the process that accepted them (which is the default behavior).
+
+Now start a new server with `iex -S mix` and try to open up many concurrent telnet clients. You will notice that quitting a client does not bring the acceptor down, even though we haven't fixed the bug in `:gen_tcp.recv/2` yet (which we will address in the next chapter). Excellent!
 
 ## Restart strategies
 

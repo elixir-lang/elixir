@@ -66,7 +66,7 @@ Once the process terminates, we receive a "DOWN message", represented in a five-
 
 Monitors will play a very important role in our subscribe feature. When a client subscribes to a bucket, the bucket will store the client PID and send messages to it on every change. However, if the client terminates (for example because it was disconnected), the bucket must remove the client from its list of subscribers (otherwise the list would keep on growing forever as clients connect and disconnect).
 
-Unfortunately, we chose the `Agent` module to implement our `KV.Bucket` and, unfortunately, agents cannot receive messages. So the first step is to rewrite our `KV.Bucket` to a `GenServer`. The `GenServer` module documentation has a good overview on what they are and how to implement them. Give it a read and then we are ready to proceed.
+We chose the `Agent` module to implement our `KV.Bucket` and, unfortunately, agents cannot receive messages. So the first step is to rewrite our `KV.Bucket` to a `GenServer`. The `GenServer` module documentation has a good overview on what they are and how to implement them. Give it a read and then we are ready to proceed.
 
 ## GenServer callbacks
 
@@ -185,7 +185,7 @@ Once started, the GenServer will invoke the `init/1` callback, that receives the
 
 There are two types of requests you can send to a GenServer: calls and casts. Calls are synchronous and the server **must** send a response back to such requests. While the server computes the response, the client is **waiting**. Casts are asynchronous: the server won't send a response back and therefore the client won't wait for one. Both requests are messages sent to the server, and will be handled in sequence. So far we have only used `GenServer.call/2`, to keep the same semantics as the Agent, but we will give `cast` a try when implementing subscriptions. Given we kept the same behaviour, all tests will still pass.
 
-Each request must be implemented a specific callback. For `call/2` requests, we implement a `handle_call/3` callback that receives the `request`, the process from which we received the request (`_from`), and the current server state (`state`). The `handle_call/3` callback returns a tuple in the format `{:reply, reply, updated_state}`. The first element of the tuple, `:reply`, indicates that the server should send a reply back to the client. The second element, `reply`, is what will be sent to the client while the third, `updated_state` is the new server state.
+Each request must be implemented as a specific callback. For `call/2` requests, we implement a `handle_call/3` callback that receives the `request`, the process from which we received the request (`_from`), and the current server state (`state`). The `handle_call/3` callback returns a tuple in the format `{:reply, reply, updated_state}`. The first element of the tuple, `:reply`, indicates that the server should send a reply back to the client. The second element, `reply`, is what will be sent to the client while the third, `updated_state` is the new server state.
 
 Another Elixir feature we used in the implementation above are the nested traversal functions: `get_in/1`, `put_in/2`, and `pop_in/1`. Instead of keeping the `bucket` as our GenServer state, we defined a state map with a `bucket` key inside. This will be important as we also need to track subscribers as part of the GenServer state. These new functions make it straight-forward to manipulate data structures nested in other data structures.
 

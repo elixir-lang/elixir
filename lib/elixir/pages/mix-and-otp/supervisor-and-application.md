@@ -208,7 +208,7 @@ However, this would not be a good idea. In Elixir, we typically start processes 
   end
 ```
 
-A supervisor receives one or more child specifications that tell exactly how to start each child. A child specification is typically represented by `{module, options}` pair, as shown above, and often as simply the module name. Sometimes, these children are supervisors themselves, giving ussupervision trees.
+A supervisor receives one or more child specifications that tell it exactly how to start each child. A child specification is typically represented by a `{module, options}` pair, as shown above, and often as simply the module name. Sometimes, these children are supervisors themselves, giving us supervision trees.
 
 Let's take it for a spin and see if we can indeed name our buckets using our new registry. Let's make sure to start a new `iex -S mix` (`recompile()` is not enough, as it does not reload your supervision tree) and then:
 
@@ -230,7 +230,7 @@ By starting processes inside supervisors, we gain important properties such as:
 
   * **Resilience**: when a process fails for an unexpected reason, its supervisor controls if and how those processes should be restarted, leading to self-healing systems
 
-  * **Graceful shutdown**: when your application is shutting down, the children of a supervision tree is terminated in the opposite order it was started, leading to graceful shutdowns
+  * **Graceful shutdown**: when your application is shutting down, the children of a supervision tree are terminated in the opposite order they were started, leading to graceful shutdowns
 
 ## Projects or applications?
 
@@ -244,7 +244,7 @@ When we talk about applications, we talk about OTP. Applications are the entitie
 
 We learned important concepts in this chapter:
 
-  * Naming registries allow us find processes in a given machine (or, as we will see in the future, even in a cluster)
+  * Naming registries allow us to find processes in a given machine (or, as we will see in the future, even in a cluster)
 
   * Applications bundle our modules, its dependencies, and how code starts and stops
 
