@@ -1034,7 +1034,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "nested map" do
-      assert typecheck!([x = %{}], x.foo.bar) == dynamic()
+      assert typecheck!([x = %{}], x.foo.bar) |> equal?(dynamic())
     end
 
     test "accessing a field on not a map" do
