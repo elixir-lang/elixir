@@ -2260,6 +2260,11 @@ defmodule Module.Types.Descr do
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
+  def map_normal_form([{tag, pos, negs}], acc), do: [{tag, acc ++ pos, negs}]
+
+  def map_normal_form([{tag1, pos1, negs1}, {tag2, pos2, negs2} | rest]) do
+  end
+
   defp map_union(dnf1, dnf2) do
     # Union is just concatenation, but we rely on some optimization strategies to
     # avoid the list to grow when possible
@@ -2473,39 +2478,26 @@ defmodule Module.Types.Descr do
             acc
           else
             {tag, pos} = {tag1, Map.put(fields1, key, t_diff)}
-            entry = {tag, pos, negs1}
 
             cond do
               :lists.member({tag, pos}, negs1) -> acc
-              :lists.member(entry, acc) -> acc
-              true -> [entry | acc]
+              true -> [{tag, pos, negs1} | acc]
             end
           end
         end)
 
       {tag2, fields2, negs2}, current_dnf ->
         Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
-          negs =
-            if :lists.member({tag2, fields2}, negs1), do: negs1, else: [{tag2, fields2} | negs1]
-
-          entry = {tag1, fields1, negs}
-
-          acc =
-            cond do
-              :lists.member({tag1, fields1}, negs) -> acc
-              :lists.member(entry, acc) -> acc
-              true -> [entry | acc]
-            end
+          negs = [{tag2, fields2} | negs1]
+          acc = [{tag1, fields1, negs} | acc]
 
           Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
             try do
               {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
-              entry = {tag, fields, negs1}
 
               cond do
                 :lists.member({tag, fields}, negs1) -> acc
-                :lists.member(entry, acc) -> acc
-                true -> [entry | acc]
+                true -> [{tag, fields, negs1} | acc]
               end
             catch
               :empty -> acc
