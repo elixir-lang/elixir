@@ -77,7 +77,7 @@ dbg(Map.put(feature, :in_version, "1.14.0"))
 
 The code above prints this:
 
-```shell
+```text
 [my_file.exs:2: (file)]
 feature #=> %{inspiration: "Rust", name: :dbg}
 [my_file.exs:3: (file)]
@@ -97,7 +97,7 @@ __ENV__.file
 
 This code prints:
 
-```shell
+```text
 [dbg_pipes.exs:5: (file)]
 __ENV__.file #=> "/home/myuser/dbg_pipes.exs"
 |> String.split("/", trim: true) #=> ["home", "myuser", "dbg_pipes.exs"]
