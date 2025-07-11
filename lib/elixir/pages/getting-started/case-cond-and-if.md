@@ -106,16 +106,11 @@ iex> if nil do
 
 If you find yourself nesting several [`if`](`if/2`) blocks, you may want to consider using [`cond`](`cond/1`) instead. Let's check it out.
 
-## Being expressions based
+## Expressions
 
-This is also a good opportunity to talk about Elixir being an expressions based language and how that affects variable scoping.
+Some programming languages make a distinction about expressions (code that returns a value) and statements (code that returns no value). In Elixir, there are only expressions, no statements. Everything you write in Elixir language returns some value. 
 
-Being an expressions based language means that everything you use in the language is an expression, which
-returns some value. This is contrary to other languages where there are language statements or even
-functions "returning nothing", sometimes called `void`.
-
-This property of elixir allows variables to be scoped to individual blocks of code like inside [`if`](`if/2`), [`case`](`case/2`), where declarations or
-changes are only visible inside the block. A change can't leak to outer blocks, which makes code easier to follow and understand. For example:
+This property allows variables to be scoped to individual blocks of code such as [`if`](`if/2`), [`case`](`case/2`), where declarations or changes are only visible inside the block. A change can't leak to outer blocks, which makes code easier to follow and understand. For example:
 
 ```elixir
 iex> x = 1
