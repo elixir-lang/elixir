@@ -221,7 +221,7 @@ In the Applications tab, you will see all applications currently running in your
 Not only that, as you create new buckets on the terminal, you should see new processes spawned in the supervision tree shown in Observer:
 
 ```elixir
-iex> KV.locate("shopping")
+iex> KV.lookup_bucket("shopping")
 #PID<0.89.0>
 ```
 

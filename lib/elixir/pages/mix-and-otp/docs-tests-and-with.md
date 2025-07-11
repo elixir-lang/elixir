@@ -165,7 +165,7 @@ iex> KV.Command.parse("GET shopping\r\n")
 
 As the name says, doctest is documentation first and a test later. Their goal is not to replace tests but to provide up-to-date documentation. You can read more about doctests in the `ExUnit.DocTest` documentation.
 
-## `with`
+## Using `with`
 
 As we are now able to parse commands, we can finally start implementing the logic that runs the commands. Let's add a stub definition for this function for now:
 
