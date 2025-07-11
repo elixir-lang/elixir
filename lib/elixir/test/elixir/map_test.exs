@@ -401,7 +401,7 @@ defmodule MapTest do
     end
 
     info = Macro.struct_info!(WithBitstring, __ENV__)
-    assert info == [%{default: <<255, 127::7>>, field: :bitstring}]
+    assert info == [%{default: <<255, 127::7>>, field: :bitstring, required: false}]
   end
 
   test "defstruct can only be used once in a module" do

@@ -761,7 +761,7 @@ defmodule NaiveDateTime do
   For readability, this function follows the RFC3339 suggestion of removing
   the "T" separator between the date and time components.
 
-  ### Examples
+  ## Examples
 
       iex> NaiveDateTime.to_string(~N[2000-02-28 23:00:13])
       "2000-02-28 23:00:13"
@@ -908,7 +908,7 @@ defmodule NaiveDateTime do
   Only supports converting naive datetimes which are in the ISO calendar,
   attempting to convert naive datetimes from other calendars will raise.
 
-  ### Examples
+  ## Examples
 
       iex> NaiveDateTime.to_iso8601(~N[2000-02-28 23:00:13])
       "2000-02-28T23:00:13"
@@ -1261,7 +1261,7 @@ defmodule NaiveDateTime do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> NaiveDateTime.convert(~N[2000-01-01 13:30:15], Calendar.Holocene)
@@ -1327,7 +1327,7 @@ defmodule NaiveDateTime do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> NaiveDateTime.convert!(~N[2000-01-01 13:30:15], Calendar.Holocene)

@@ -225,7 +225,7 @@ defmodule Time do
   @doc """
   Converts the given `time` to a string.
 
-  ### Examples
+  ## Examples
 
       iex> Time.to_string(~T[23:00:00])
       "23:00:00"
@@ -334,7 +334,7 @@ defmodule Time do
   format, for human readability. It also supports the "basic" format through
   passing the `:basic` option.
 
-  ### Examples
+  ## Examples
 
       iex> Time.to_iso8601(~T[23:00:13])
       "23:00:13"
@@ -781,7 +781,7 @@ defmodule Time do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> Time.convert(~T[13:30:15], Calendar.Holocene)
@@ -837,7 +837,7 @@ defmodule Time do
   ## Examples
 
   Imagine someone implements `Calendar.Holocene`, a calendar based on the
-  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  Gregorian calendar that adds exactly 10 000 years to the current Gregorian
   year:
 
       iex> Time.convert!(~T[13:30:15], Calendar.Holocene)

@@ -487,7 +487,7 @@ defmodule Module.Types.Apply do
                 {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
 
               {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
-                {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
+                {union(type, fun_from_inferred_clauses(clauses)), fallback?, context}
 
               {_, context} ->
                 {type, true, context}
@@ -705,7 +705,7 @@ defmodule Module.Types.Apply do
         result =
           case info do
             {:infer, _, clauses} when length(clauses) <= @max_clauses ->
-              fun_from_overlapping_clauses(clauses)
+              fun_from_inferred_clauses(clauses)
 
             _ ->
               dynamic(fun(arity))
@@ -1031,11 +1031,21 @@ defmodule Module.Types.Apply do
 
         Code.ensure_loaded?(mod) and
             Keyword.has_key?(mod.module_info(:attributes), :__protocol__) ->
-          # Protocol errors can be very verbose, so we collapse structs
-          """
-          but expected a type that implements the #{inspect(mod)} protocol, it must be one of:
-          #{clauses_args_to_quoted_string(clauses, converter, collapse_structs: true)}
-          """
+          if function_exported?(mod, :__protocol__, 1) and
+               mod.__protocol__(:impls) == {:consolidated, []} do
+            """
+            but the protocol was not yet implemented for any type and therefore will always fail. \
+            This error typically happens within libraries that define protocols and will disappear as \
+            soon as there is one implementation. If you expect the protocol to be implemented later on, \
+            you can define an implementation specific for development/test.
+            """
+          else
+            # Protocol errors can be very verbose, so we collapse structs
+            """
+            but expected a type that implements the #{inspect(mod)} protocol, it must be one of:
+            #{clauses_args_to_quoted_string(clauses, converter, collapse_structs: true)}
+            """
+          end
 
         true ->
           """

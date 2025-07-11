@@ -121,6 +121,10 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
+    * `--dry-run` *(since v1.19.0)* - prints which tests would be run based on current options,
+      but does not actually run any tests. This combines with all other options
+      like `--stale`, `--only`, `--exclude`, and so on.
+
     * `--exclude` - excludes tests that match the filter. This option may be given
       several times to apply different filters, such as `--exclude ci --exclude slow`
 
@@ -212,7 +216,7 @@ defmodule Mix.Tasks.Test do
       test suite) as errors and returns an exit status of 1 if the test suite would otherwise
       pass. If the test suite fails and also include warnings as errors, the exit
       status returned will be the value of the `--exit-status` option, which
-      defaults to 2, plus one. Therefore in the default case, this will be exit status 3.
+      defaults to `2`, plus one. Therefore in the default case, this will be exit status `3`.
 
       Note that failures reported by `--warnings-as-errors` cannot be retried with the
       `--failed` flag.
@@ -237,7 +241,7 @@ defmodule Mix.Tasks.Test do
       It is expected that all test paths contain a `test_helper.exs` file
 
     * `:test_pattern` - a pattern to find potential test files.
-      Defaults to `*.{ex,exs}`.
+      Defaults to `"*.{ex,exs}"`.
 
       In Elixir versions earlier than 1.19.0, this option defaulted to `*_test.exs`,
       but to allow better warnings for misnamed test files, it since matches any
@@ -494,7 +498,8 @@ defmodule Mix.Tasks.Test do
     warnings_as_errors: :boolean,
     profile_require: :string,
     exit_status: :integer,
-    repeat_until_failure: :integer
+    repeat_until_failure: :integer,
+    dry_run: :boolean
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -502,7 +507,6 @@ defmodule Mix.Tasks.Test do
   @impl true
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: [b: :breakpoints])
-    opts = put_manifest_file(opts)
 
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
@@ -576,6 +580,7 @@ defmodule Mix.Tasks.Test do
     Mix.Task.run("compile", args -- ["--warnings-as-errors"])
 
     project = Mix.Project.config()
+
     {partitions, opts} = Keyword.pop(opts, :partitions)
     partitioned? = is_integer(partitions) and partitions > 1
 
@@ -667,7 +672,7 @@ defmodule Mix.Tasks.Test do
     catch
       kind, reason ->
         # Also mark the whole suite as failed
-        file = Keyword.fetch!(opts, :failures_manifest_path)
+        file = get_manifest_path(opts)
         ExUnit.Filters.fail_all!(file)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
@@ -847,7 +852,8 @@ defmodule Mix.Tasks.Test do
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
-    :repeat_until_failure
+    :repeat_until_failure,
+    :dry_run
   ]
 
   @doc false
@@ -871,7 +877,10 @@ defmodule Mix.Tasks.Test do
   defp merge_helper_opts(opts) do
     # The only options that are additive from app env are the excludes
     value = List.wrap(Application.get_env(:ex_unit, :exclude, []))
-    Keyword.update(opts, :exclude, value, &Enum.uniq(&1 ++ value))
+
+    opts
+    |> Keyword.update(:exclude, value, &Enum.uniq(&1 ++ value))
+    |> Keyword.put_new_lazy(:failures_manifest_path, fn -> get_manifest_path([]) end)
   end
 
   defp default_opts(opts) do
@@ -918,16 +927,14 @@ defmodule Mix.Tasks.Test do
 
   @manifest_file_name ".mix_test_failures"
 
-  defp put_manifest_file(opts) do
-    Keyword.put_new_lazy(
-      opts,
-      :failures_manifest_path,
-      fn -> Path.join(Mix.Project.manifest_path(), @manifest_file_name) end
-    )
+  defp get_manifest_path(opts) do
+    opts[:failures_manifest_path] ||
+      Application.get_env(:ex_unit, :failures_manifest_path) ||
+      Path.join(Mix.Project.manifest_path(), @manifest_file_name)
   end
 
   defp manifest_opts(opts) do
-    manifest_file = Keyword.fetch!(opts, :failures_manifest_path)
+    manifest_file = get_manifest_path(opts)
 
     if opts[:failed] do
       if opts[:stale] do

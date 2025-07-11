@@ -915,7 +915,7 @@ defmodule List do
 
   If `prefix` is an empty list, it returns `true`.
 
-  ### Examples
+  ## Examples
 
       iex> List.starts_with?([1, 2, 3], [1, 2])
       true
@@ -945,7 +945,7 @@ defmodule List do
 
   If `suffix` is an empty list, it returns `true`.
 
-  ### Examples
+  ## Examples
 
       iex> List.ends_with?([1, 2, 3], [2, 3])
       true

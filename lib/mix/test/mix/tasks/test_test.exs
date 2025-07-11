@@ -716,6 +716,65 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--dry-run" do
+    test "works with --stale" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/dry_run_one_test_stale.exs", """
+        defmodule DryRunOneTest do
+          use ExUnit.Case
+
+          test "new test" do
+            assert true
+          end
+        end
+        """)
+
+        File.write!("test/dry_run_two_test_stale.exs", """
+        defmodule DryRunTwoTest do
+          use ExUnit.Case
+
+          @tag :skip
+          test "skipped test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--dry-run", "--stale"])
+        assert output =~ "Tests that would be executed:"
+        assert output =~ "test/a_test_stale.exs:4"
+        assert output =~ "test/b_test_stale.exs:4"
+        assert output =~ "test/dry_run_one_test_stale.exs:4"
+        refute output =~ "test/dry_run_two_test_stale.exs:5"
+        assert output =~ "1 test, 0 failures, 1 skipped"
+
+        # Tests should still be marked as stale
+        output = mix(["test", "--dry-run", "--stale"])
+        assert output =~ "1 test, 0 failures, 1 skipped"
+      end)
+    end
+
+    test "works with --failed" do
+      in_fixture("test_failed", fn ->
+        output = mix(["test"])
+        assert output =~ "4 tests, 2 failures"
+
+        output = mix(["test", "--dry-run", "--failed"])
+        assert output =~ "Tests that would be executed:"
+        assert output =~ "test/only_failing_test_failed.exs:4"
+        assert output =~ "test/passing_and_failing_test_failed.exs:5"
+        assert output =~ "0 tests, 0 failures"
+
+        # Force the tests to pass, verify dry-run doesn't actually run them
+        System.put_env("PASS_FAILING_TESTS", "true")
+        output = mix(["test", "--dry-run", "--failed"])
+        assert output =~ "0 tests, 0 failures"
+      end)
+    after
+      System.delete_env("PASS_FAILING_TESTS")
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->

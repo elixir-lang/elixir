@@ -15,6 +15,7 @@ defmodule Module.Types.Expr do
   list_of_modules = list(atom())
 
   @try_catch atom([:error, :exit, :throw])
+  @atom_true atom([true])
 
   @caller closed_map(
             __struct__: atom([Macro.Env]),
@@ -34,9 +35,12 @@ defmodule Module.Types.Expr do
             versioned_vars: open_map()
           )
 
-  # An annotation for terms where the reverse arrow is not yet fully defined
+  # An annotation for terms where the reverse arrow is not yet fully defined.
+  # Also revisit all users of dynamic() in this module in a later date.
   @pending term()
-  @atom_true atom([true])
+
+  # We do not make exception dynamic on purpose. If you do a blank rescue,
+  # then we will assume you need to statically handle all possible exceptions.
   @exception open_map(__struct__: atom(), __exception__: @atom_true)
 
   args_or_arity = union(list(term()), integer())
@@ -346,7 +350,7 @@ defmodule Module.Types.Expr do
 
     if stack.mode == :traversal do
       {_acc, context} = of_clauses(clauses, domain, @pending, nil, :fn, stack, context, none())
-      {dynamic(fun(length(patterns))), context}
+      {dynamic(), context}
     else
       {acc, context} =
         of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
@@ -355,7 +359,7 @@ defmodule Module.Types.Expr do
             add_inferred(acc, args, body)
         end)
 
-      {fun_from_overlapping_clauses(acc), context}
+      {fun_from_inferred_clauses(acc), context}
     end
   end
 
@@ -476,7 +480,11 @@ defmodule Module.Types.Expr do
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 
-    Apply.fun_apply(fun_type, args_types, call, stack, context)
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      Apply.fun_apply(fun_type, args_types, call, stack, context)
+    end
   end
 
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)

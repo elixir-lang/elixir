@@ -57,4 +57,4 @@ $ elixir simple.exs
 Hello world from Elixir
 ```
 
-Later on we will learn [how to compile Elixir code](modules-and-functions.md) and how to create and work within Elixir projects using the Mix build tool. For now, let's move on to learn the basic data types in the language.
+`iex` and `elixir` are all we need to learn the main language concepts. There is a separate guide named ["Mix and OTP guide"](../mix-and-otp/introduction-to-mix.md) that explores how to actually create, manage, and test full-blown Elixir projects. For now, let's move on to learn the basic data types in the language.

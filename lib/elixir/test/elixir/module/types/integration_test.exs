@@ -180,8 +180,8 @@ defmodule Module.Types.IntegrationTest do
       assert return.(:captured, 0)
              |> equal?(
                fun_from_non_overlapping_clauses([
-                 {[dynamic(binary())], atom([:ok, :error])},
-                 {[dynamic(non_empty_list(term(), term()))], atom([:list])}
+                 {[binary()], dynamic(atom([:ok, :error]))},
+                 {[non_empty_list(term(), term())], dynamic(atom([:list]))}
                ])
              )
     end
@@ -455,7 +455,7 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
-    test "mismatched impl" do
+    test "mismatched implementation" do
       files = %{
         "a.ex" => """
         defprotocol Itself do
@@ -489,6 +489,50 @@ defmodule Module.Types.IntegrationTest do
       ]
 
       assert_warnings(files, warnings)
+    end
+
+    @tag :require_ast
+    test "no implementation" do
+      files = %{
+        "a.ex" => """
+        defprotocol NoImplProtocol do
+          def callback(data)
+        end
+        """,
+        "b.ex" => """
+        defmodule NoImplProtocol.Caller do
+          def run do
+            NoImplProtocol.callback(:hello)
+          end
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: incompatible types given to NoImplProtocol.callback/1:
+
+                NoImplProtocol.callback(:hello)
+
+            given types:
+
+                -:hello-
+
+            but the protocol was not yet implemented for any type and therefore will always fail. \
+        This error typically happens within libraries that define protocols and will disappear as \
+        soon as there is one implementation. If you expect the protocol to be implemented later on, \
+        you can define an implementation specific for development/test.
+
+            typing violation found at:
+            │
+          3 │     NoImplProtocol.callback(:hello)
+            │                    ~
+            │
+            └─ b.ex:3:20: NoImplProtocol.Caller.run/0
+        """
+      ]
+
+      assert_warnings(files, warnings, consolidate_protocols: true)
     end
 
     @tag :require_ast

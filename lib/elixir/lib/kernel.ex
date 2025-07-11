@@ -231,7 +231,7 @@ defmodule Kernel do
 
   Finally, note there is an overall structural sorting order, called
   "Term Ordering", defined below. This order is provided for reference
-  purposes, it is not required by Elixir developers to know it by heart.
+  purposes, it is not required for Elixir developers to know it by heart.
 
   ### Term ordering
 
@@ -2815,7 +2815,7 @@ defmodule Kernel do
   This is most commonly used in pipelines, using the `|>/2` operator, allowing you
   to pipe a value to a function outside of its first argument.
 
-  ### Examples
+  ## Examples
 
       iex> 1 |> then(fn x -> x * 2 end)
       2

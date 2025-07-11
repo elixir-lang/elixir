@@ -12,7 +12,7 @@ defmodule Logger do
 
   Overall, you will find that `Logger`:
 
-    * Provides all 7 syslog levels
+    * Provides all 8 syslog levels
       (although debug, info, warning, and error are the most commonly used).
 
     * Supports both message-based and structural logging.

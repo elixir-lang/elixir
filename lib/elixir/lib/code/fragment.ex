@@ -302,7 +302,8 @@ defmodule Code.Fragment do
       {{:local_or_var, acc}, count} -> {{:local_arity, acc}, count}
       {{:dot, base, acc}, count} -> {{:dot_arity, base, acc}, count}
       {{:operator, acc}, count} -> {{:operator_arity, acc}, count}
-      {_, _} -> {:none, 0}
+      {{:sigil, _}, _} -> {:none, 0}
+      {_, _} -> {{:operator, ~c"/"}, 1}
     end
   end
 
@@ -335,7 +336,7 @@ defmodule Code.Fragment do
   end
 
   defp identifier_to_cursor_context([?., ?., ?: | _], n, _), do: {{:unquoted_atom, ~c".."}, n + 3}
-  defp identifier_to_cursor_context([?., ?., ?. | _], n, _), do: {{:local_or_var, ~c"..."}, n + 3}
+  defp identifier_to_cursor_context([?., ?., ?. | _], n, _), do: {{:operator, ~c"..."}, n + 3}
   defp identifier_to_cursor_context([?., ?: | _], n, _), do: {{:unquoted_atom, ~c"."}, n + 2}
   defp identifier_to_cursor_context([?., ?. | _], n, _), do: {{:operator, ~c".."}, n + 2}
 
@@ -1213,10 +1214,10 @@ defmodule Code.Fragment do
       Defaults to `"nofile"`.
 
     * `:line` - the starting line of the string being parsed.
-      Defaults to 1.
+      Defaults to `1`.
 
     * `:column` - the starting column of the string being parsed.
-      Defaults to 1.
+      Defaults to `1`.
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
