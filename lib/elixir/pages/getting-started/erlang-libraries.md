@@ -85,7 +85,7 @@ iex> :digraph.get_short_path(digraph, v0, v2)
 Note that the functions in `:digraph` alter the graph structure in-place, this
 is possible because they are implemented as ETS tables, explained next.
 
-## Erlang Term Storage
+## Erlang Term Storage (ETS)
 
 The modules [`:ets`](`:ets`) and [`:dets`](`:dets`) handle storage of large data structures in memory or on disk respectively.
 
