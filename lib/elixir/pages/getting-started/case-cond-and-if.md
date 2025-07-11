@@ -100,7 +100,7 @@ iex> if nil do
 "This will"
 ```
 
-## Expressions
+### Expressions
 
 Some programming languages make a distinction about expressions (code that returns a value) and statements (code that returns no value). In Elixir, there are only expressions, no statements. Everything you write in Elixir language returns some value.
 
