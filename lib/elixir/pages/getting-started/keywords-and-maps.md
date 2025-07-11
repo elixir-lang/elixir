@@ -225,7 +225,7 @@ These operations have one large benefit in that they raise if the key does not e
 
 Elixir developers typically prefer to use the `map.key` syntax and pattern matching instead of the functions in the `Map` module when working with maps because they lead to an assertive style of programming. [This blog post by José Valim](https://dashbit.co/blog/writing-assertive-code-with-elixir) provides insight and examples on how you get more concise and faster software by writing assertive code in Elixir.
 
-In a further chapter you'll learn about ["Structs"](structs.md) in elixir, which further enforce the idea of a map with predefined keys.
+In a further chapter you'll learn about ["Structs"](structs.md), which further enforce the idea of a map with predefined keys.
 
 ## Nested data structures
 
