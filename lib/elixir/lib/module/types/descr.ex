@@ -2246,7 +2246,7 @@ defmodule Module.Types.Descr do
   # `%{..., a: if_set(not atom()), b: integer()}`. For maps with more keys,
   # each key in a negated literal may create a new union when eliminated.
   #
-  # Instead of a tag :open or :closed, we can also use a map od domains which
+  # Instead of a tag :open or :closed, we can also use a map of domains which
   # specifies for each defined key domain (@domain_key_types) the type associated with
   # those keys.
   #
@@ -2281,7 +2281,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # TOD: Double check if we indeed want the union here
+  # TODO: Double check if we indeed want the union here
+  # when we start using domain types from Elixir itself
   defp map_put_domain(domain, key, value) do
     Map.update(domain, key, if_set(value), &union(&1, value))
   end
@@ -2725,6 +2726,7 @@ defmodule Module.Types.Descr do
   Refreshes the type of map after assuming some type was given to a key of a given type.
   Assuming that the descr is exclusively a map (or dynamic).
   """
+  # TODO: Figure out how this operation will be used from Elixir
   def map_refresh(:term, _key, _type), do: :badmap
 
   def map_refresh(descr, key_descr, type) do
@@ -2796,6 +2798,7 @@ defmodule Module.Types.Descr do
     - `:badkey`: If the key is considered invalid during the take operation (e.g.,
       an optional key that resolves to an empty type).
   """
+  # TODO: Figure out how this operation will be used from Elixir
   def map_refresh_key(descr, key, new_additional_type) when is_atom(key) do
     case map_fetch(descr, key) do
       :badmap ->
@@ -2940,6 +2943,7 @@ defmodule Module.Types.Descr do
   * `:badkeytype`: The input `key_type` was invalid (e.g., not a subtype
     of the allowed key types like `atom()`, `integer()`, etc.).
   """
+  # TODO: Figure out how to use this operation from Elixir
   def map_get(:term, _key_descr), do: :badmap
 
   def map_get(%{} = descr, key_descr) do
