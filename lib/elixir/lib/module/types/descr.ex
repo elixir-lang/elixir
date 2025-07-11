@@ -2995,7 +2995,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # TODO: Optimize this
   defp bitmap_to_domain_keys(bitmap) do
     [
       if((bitmap &&& @bit_binary) != 0, do: domain_key(:binary)),
@@ -3009,7 +3008,7 @@ defmodule Module.Types.Descr do
     |> Enum.reject(&is_nil/1)
   end
 
-  def nil_or_type(type), do: union(type, atom([nil]))
+  defp nil_or_type(type), do: union(type, atom([nil]))
 
   defp unfold_domains(:closed), do: %{}
 

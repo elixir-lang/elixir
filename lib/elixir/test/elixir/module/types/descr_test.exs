@@ -24,6 +24,7 @@ defmodule Module.Types.DescrTest do
   defp tuple_of_size(n) when is_integer(n) and n >= 0, do: tuple(List.duplicate(term(), n))
   defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
   defp map_with_default(descr), do: open_map([], if_set(descr))
+  defp nil_or_type(type), do: union(type, atom([nil]))
 
   describe "union" do
     test "bitmap" do
