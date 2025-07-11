@@ -97,7 +97,7 @@ If you give it an integer, it negates it. If you give it a boolean, it negates i
 
 We can say this function has the type `(integer() -> integer())` because it is capable of receiving an integer and returning an integer. In this case, `(integer() -> integer())` is a set that represents all functions that can receive an integer and return an integer. Even though this function can receive other arguments and return other values, it is still part of the `(integer() -> integer())` set.
 
-This function also has the type `(boolean() -> boolean())`, because it receives booleans and returns booleans. Therefore, we can say the overall type of the function is `(integer() -> integer()) and (boolean() -> boolean())`. The intersection means the function belongs to both sets.
+This function also has the type `(boolean() -> boolean())`, because it also receives booleans and returns booleans. If you pass the function above to another function that expects `(boolean() -> boolean())`, type checking will succeed. Therefore, we can say the overall type of the function is `(integer() -> integer()) and (boolean() -> boolean())`. The intersection means the function belongs to both sets.
 
 At this point, you may ask, why not a union? As a real-world example, take a t-shirt with green and yellow stripes. We can say the t-shirt belongs to the set of "t-shirts with green color". We can also say the t-shirt belongs to the set of "t-shirts with yellow color". Let's see the difference between unions and intersections:
 
@@ -105,7 +105,7 @@ At this point, you may ask, why not a union? As a real-world example, take a t-s
 
   * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and maybe other colors)
 
-Since the t-shirt has both colors, we say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it does not make sense to define the union of two functions in Elixir, so the compiler will always point to the right direction.
+Since the t-shirt has both colors, we could say it belongs to the union of green and yellow t-shirts, but doing so would not capture the fact it is both green and yellow. Therefore it is more precise to say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it is not useful to define the union of two functions in Elixir, so the compiler will point you to the right direction if you specify the wrong one.
 
 ## The `dynamic()` type
 
