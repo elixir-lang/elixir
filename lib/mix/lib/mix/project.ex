@@ -170,14 +170,14 @@ defmodule Mix.Project do
     1. Convert everything into a single Mix project, which can be done in steps.
        First move all files in `lib`, `test`, `priv`, and friends into a single
        application, while still keeping the overall umbrella structure and
-       `mix.exs` files. For example, if you umbrellas has three applications,
+       `mix.exs` files. For example, if your umbrellas has three applications,
        `foo`, `bar` and `baz`, where `baz` depends on both `foo` and `bar`,
        move all source to `baz`. Then remove `foo` and `bar` one by one,
        updating any configuration and removing references to the `:foo` and
       `:bar` application names. Until you have only a single application.
 
     2. Remove umbrella structure while keeping them as distinct applications.
-       This is done by removing moving applications outside of the umbrella
+       This is done by moving applications outside of the umbrella
        project's `apps/` directory and updating the projects' `mix.exs` files
        to no longer set the `build_path`, `config_path`, `deps_path`, and
        `lockfile` configurations, guaranteeing each of them have their own

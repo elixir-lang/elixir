@@ -278,9 +278,9 @@ Notice that a task says `:restart` is `:temporary`. `KV.Bucket` says nothing, wh
 
 Now we must ask ourselves, are those the correct settings?
 
-For `KV.Bucket`, we could argue that any value works. After all, if a bucket crashes, `KV.locate/1` already has logic for starting a new one in its place dynamically. However, for tasks, we have used them in two opposing ways in this chapter, which means at least one of them is wrong.
+For `KV.Bucket`, using `:permanent` seem logical, as should not request the user to recreate a bucket they have previous created. Although currently we would lose the bucket data, in actual system we would add mechanisms to recover it on initialization. However, for tasks, we have used them in two opposing ways in this chapter, which means at least one of them is wrong.
 
-We use a task to start the acceptor. The acceptor is a critical component of our infrastructure. If it crashes, it means we won't accept further requests, and our server would them be useless if no one can connect to it. On the other hand, we also use `Task.Supervisor` to start tasks that deal with each connection. In this case, restarting may not be useful at all, given the reason we crashed could just as well be a connection issue, and attempting to restart over the same connection would lead to further failures.
+We use a task to start the acceptor. The acceptor is a critical component of our infrastructure. If it crashes, it means we won't accept further requests, and our server would then be useless as no one can connect to it. On the other hand, we also use `Task.Supervisor` to start tasks that deal with each connection. In this case, restarting may not be useful at all, given the reason we crashed could just as well be a connection issue, and attempting to restart over the same connection would lead to further failures.
 
 Therefore, we want the acceptor to actually run in `:permanent` mode, while we preserve the `Task.Supervisor` as `:temporary`. Luckily Elixir has an API that allows us to change an existing child specification, which we use below.
 
