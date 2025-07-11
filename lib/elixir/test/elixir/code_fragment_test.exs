@@ -302,6 +302,7 @@ defmodule CodeFragmentTest do
     end
 
     test "operators" do
+      assert CF.cursor_context("/") == {:operator, ~c"/"}
       assert CF.cursor_context("+") == {:operator, ~c"+"}
       assert CF.cursor_context("++") == {:operator, ~c"++"}
       assert CF.cursor_context("!") == {:operator, ~c"!"}
@@ -360,6 +361,15 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("~r") == {:sigil, ~c"r"}
       assert CF.cursor_context("~r/") == :none
       assert CF.cursor_context("~r<") == :none
+
+      assert CF.cursor_context("~r''") == :none
+      assert CF.cursor_context("~r' '") == :none
+      assert CF.cursor_context("~r'foo'") == :none
+
+      # The slash is used in sigils, arities, and operators, so there is ambiguity
+      assert CF.cursor_context("~r//") == {:operator, ~c"/"}
+      assert CF.cursor_context("~r/ /") == {:operator, ~c"/"}
+      assert CF.cursor_context("~r/foo/") == {:local_arity, ~c"foo"}
 
       assert CF.cursor_context("~R") == {:sigil, ~c"R"}
       assert CF.cursor_context("~R/") == :none
