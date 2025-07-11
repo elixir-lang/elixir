@@ -19,7 +19,7 @@ GET shopping milk
 OK
 ```
 
-In the example session above we interacted with the "shopping" bucket. Therefore, an important feature in our key-value store to add names to processes.
+In the example session above we interacted with the "shopping" bucket by referencing its name. Therefore, an important feature in our key-value store is to give names to processes.
 
 We have also learned in the previous chapter we can already name our buckets. For example:
 
@@ -53,7 +53,7 @@ iex> KV.Bucket.get(name, "milk")
 1
 ```
 
-As you can see, instead of passing an atom to the `:name` option, we pass a tuple of shape `{:via, registry_module, {registry_name, process_name}}`, and everything just worked. You could have used anything as the `process_name`, even an integer or a map! That's because all of Elixir built-in behaviours, agents, supervisors, tasks, etc. are compatible with naming registries, as long as you pass them using the "via" tuple format.
+As you can see, instead of passing an atom to the `:name` option, we pass a tuple of shape `{:via, registry_module, {registry_name, process_name}}`, and everything just worked. You could have used anything as the `process_name`, even an integer or a map! That's because all of Elixir built-in behaviours, agents, supervisors, tasks, etc, are compatible with naming registries, as long as you pass them using the "via" tuple format.
 
 Therefore, all we need to do to name our buckets is to start a `Registry`, using `Registry.start_link/1`. But you may be wondering, where exactly should we place that?
 
