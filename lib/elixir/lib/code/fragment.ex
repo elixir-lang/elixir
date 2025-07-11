@@ -302,7 +302,8 @@ defmodule Code.Fragment do
       {{:local_or_var, acc}, count} -> {{:local_arity, acc}, count}
       {{:dot, base, acc}, count} -> {{:dot_arity, base, acc}, count}
       {{:operator, acc}, count} -> {{:operator_arity, acc}, count}
-      {_, _} -> {:none, 0}
+      {{:sigil, _}, _} -> {:none, 0}
+      {_, _} -> {{:operator, ~c"/"}, 1}
     end
   end
 
