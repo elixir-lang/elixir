@@ -3018,7 +3018,7 @@ defmodule Module.Types.Descr do
 
   defp unfold_domains(domains = %{}), do: domains
 
-  def map_get_static(%{map: [{tag_or_domains, fields, []}]}, key_descr) do
+  defp map_get_static(%{map: [{tag_or_domains, fields, []}]}, key_descr) do
     # For each non-empty kind of type in the key_descr, we add the corresponding key domain in a union.
     domains = unfold_domains(tag_or_domains)
 
@@ -3031,7 +3031,7 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  def map_get_static(%{map: dnf}, key_descr) do
+  defp map_get_static(%{map: dnf}, key_descr) do
     key_descr
     |> covered_key_types()
     |> Enum.reduce(none(), fn
@@ -3043,8 +3043,8 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  def map_get_static(%{}, _key), do: not_set()
-  def map_get_static(:term, _key), do: term_or_optional()
+  defp map_get_static(%{}, _key), do: not_set()
+  defp map_get_static(:term, _key), do: term_or_optional()
 
   # Given a map dnf return the union of types for a given atom type. Handles two cases:
   # 1. A union of atoms (e.g., `{:union, atoms}`):
@@ -3060,7 +3060,7 @@ defmodule Module.Types.Descr do
   #   Fetching a key of type `atom() and not (:a)` from a map of type
   #   `%{a: atom(), b: float(), atom() => pid()}`
   #   would return either `nil` or `float()` (key `:b`) or `pid()` (key `atom()`), but not `atom()` (key `:a`).
-  def map_get_atom(dnf, atom_type) do
+  defp map_get_atom(dnf, atom_type) do
     case atom_type do
       {:union, atoms} ->
         atoms
@@ -3112,7 +3112,7 @@ defmodule Module.Types.Descr do
   end
 
   # Take a map dnf and return the union of types for the given key domain.
-  def map_get_domain(dnf, domain_key(_) = domain_key) do
+  defp map_get_domain(dnf, domain_key(_) = domain_key) do
     dnf
     |> Enum.reduce(none(), fn
       {tag, _fields, []}, acc when is_atom(tag) ->
