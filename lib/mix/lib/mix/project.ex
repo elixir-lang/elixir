@@ -130,6 +130,67 @@ defmodule Mix.Project do
   makes sure Elixir is not added as a dependency to the generated `.app` file or
   to the escript generated with `mix escript.build`, and so on.
 
+  ## Umbrella projects
+
+  Umbrella projects are a convenience to help you organize and manage multiple
+  applications. While it provides a degree of separation between applications,
+  those applications are not fully decoupled, as they share the same configuration
+  and the same dependencies.
+
+  In an umbrella project, you have an `apps/` folder where you store each application.
+  Then, instead of each app in the umbrella having its own configuration, build cache,
+  lockfile and so, they all point to the parent project by specifying the following
+  configuration in their `mix.exs`:
+
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+
+  The pattern of keeping multiple applications in the same repository is known as
+  [monorepo](https://en.wikipedia.org/wiki/Monorepo). Umbrella projects maximize
+  this pattern by providing conveniences to compile, test and run multiple
+  applications at once. When an umbrella application needs to depend on another
+  one, it can be done by passing the `in_umbrella: true` option to your dependency.
+  If an umbrella application `:foo` depends on its sibling `:bar`, you can specify
+  this dependency in `foo`'s `mix.exs` file as:
+
+      {:bar, in_umbrella: true}
+
+  ### Undoing umbrellas
+
+  Using umbrella projects can impact how you design and write your software and,
+  as time passes, they may turn out to be the wrong choice.
+  If you find yourself in a position where you want to use different configurations
+  in each application for the same dependency or use different dependency versions,
+  then it is likely your codebase has grown beyond what umbrellas can provide.
+
+  If you find yourself in this situation, you have two options:
+
+    1. Convert everything into a single Mix project, which can be done in steps.
+       First move all files in `lib`, `test`, `priv`, and friends into a single
+       application, while still keeping the overall umbrella structure and
+       `mix.exs` files. For example, if your umbrellas has three applications,
+       `foo`, `bar` and `baz`, where `baz` depends on both `foo` and `bar`,
+       move all source to `baz`. Then remove `foo` and `bar` one by one,
+       updating any configuration and removing references to the `:foo` and
+      `:bar` application names. Until you have only a single application.
+
+    2. Remove umbrella structure while keeping them as distinct applications.
+       This is done by moving applications outside of the umbrella
+       project's `apps/` directory and updating the projects' `mix.exs` files
+       to no longer set the `build_path`, `config_path`, `deps_path`, and
+       `lockfile` configurations, guaranteeing each of them have their own
+       build and dependency structure.
+
+  Keep in mind that umbrellas are one of many options for managing private
+  packages within your organization. You might:
+
+    1. Have multiple directories inside the same repository and using `:path`
+       dependencies (which is essentially the monorepo pattern)
+    2. Use private Git repositories and Mix' ability to fetch Git dependencies
+    3. Publishing packages to a private [Hex.pm](https://hex.pm/) organization
+
   ## Invoking this module
 
   This module contains many functions that return project information and

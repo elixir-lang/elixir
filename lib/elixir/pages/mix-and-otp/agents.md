@@ -3,7 +3,7 @@
   SPDX-FileCopyrightText: 2021 The Elixir Team
 -->
 
-# Simple state management with agents
+# Simple state with agents
 
 In this chapter, we will learn how to keep and share state between multiple entities. If you have previous programming experience, you may think of globally shared variables, but the model we will learn here is quite different. The next chapters will generalize the concepts introduced here.
 
@@ -11,18 +11,13 @@ If you have skipped the *Getting Started* guide or read it long ago, be sure to 
 
 ## The trouble with (mutable) state
 
-Elixir is an immutable language where nothing is shared by default. If we want to share information, which can be read and modified from multiple places, we have two main options in Elixir:
+Elixir is an immutable language where nothing is shared by default. If we want to share information, this is typically done by sending messages between processes.
 
-  * Using processes and message passing
-  * [ETS (Erlang Term Storage)](`:ets`)
-
-We covered processes in the *Getting Started* guide. ETS (Erlang Term Storage) is a new topic that we will explore in later chapters. When it comes to processes though, we rarely hand-roll our own, instead we use the abstractions available in Elixir and OTP:
+When it comes to processes though, we rarely hand-roll our own, instead we use the abstractions available in Elixir and OTP:
 
   * `Agent` — Simple wrappers around state.
   * `GenServer` — "Generic servers" (processes) that encapsulate state, provide sync and async calls, support code reloading, and more.
   * `Task` — Asynchronous units of computation that allow spawning a process and potentially retrieving its result at a later time.
-
-We will explore these abstractions as we move forward. Keep in mind that they are all implemented on top of processes using the basic features provided by the VM, like `send/2`, `receive/1`, `spawn/1` and `Process.link/1`.
 
 Here, we will use agents, and create a module named `KV.Bucket`, responsible for storing our key-value entries in a way that allows them to be read and modified by other processes.
 
@@ -47,7 +42,7 @@ iex> Agent.stop(agent)
 :ok
 ```
 
-We started an agent with an initial state of an empty list. We updated the agent's state, adding our new item to the head of the list. The second argument of `Agent.update/3` is a function that takes the agent's current state as input and returns its desired new state. Finally, we retrieved the whole list. The second argument of `Agent.get/3` is a function that takes the state as input and returns the value that `Agent.get/3` itself will return. Once we are done with the agent, we can call `Agent.stop/3` to terminate the agent process.
+We started an agent with an initial state of an empty list. The `start_link/1` function returned the `:ok` tuple with a process identifier (PID) of the agent. We will use this PID for all further interactions. We then updated the agent's state, adding our new item to the head of the list. The second argument of `Agent.update/3` is a function that takes the agent's current state as input and returns its desired new state. Finally, we retrieved the whole list. The second argument of `Agent.get/3` is a function that takes the state as input and returns the value that `Agent.get/3` itself will return. Once we are done with the agent, we can call `Agent.stop/3` to terminate the agent process.
 
 The `Agent.update/3` function accepts as a second argument any function that receives one argument and returns a value:
 
@@ -93,7 +88,9 @@ Also note the `async: true` option passed to `ExUnit.Case`. This option makes th
 Async or not, our new test should obviously fail, as none of the functionality is implemented in the module being tested:
 
 ```text
-** (UndefinedFunctionError) function KV.Bucket.start_link/1 is undefined (module KV.Bucket is not available)
+1) test stores values by key (KV.BucketTest)
+   test/kv/bucket_test.exs:4
+   ** (UndefinedFunctionError) function KV.Bucket.start_link/1 is undefined (module KV.Bucket is not available)
 ```
 
 In order to fix the failing test, let's create a file at `lib/kv/bucket.ex` with the contents below. Feel free to give a try at implementing the `KV.Bucket` module yourself using agents before peeking at the implementation below.
@@ -104,9 +101,11 @@ defmodule KV.Bucket do
 
   @doc """
   Starts a new bucket.
+
+  All options are forwarded to `Agent.start_link/2`.
   """
-  def start_link(_opts) do
-    Agent.start_link(fn -> %{} end)
+  def start_link(opts) do
+    Agent.start_link(fn -> %{} end, opts)
   end
 
   @doc """
@@ -125,49 +124,43 @@ defmodule KV.Bucket do
 end
 ```
 
-The first step in our implementation is to call `use Agent`. Most of the functionality we will learn, such as `GenServer` and `Supervisor`, follow this pattern. For all of them, calling `use` generates a `child_spec/1` function with default configuration, which will be handy when we start supervising processes in chapter 4.
+The first step in our implementation is to call `use Agent`. This is a pattern we will see throughout the guides and understand in depth in the next chapter.
 
-Then we define a `start_link/1` function, which will effectively start the agent. It is a convention to define a `start_link/1` function that always accepts a list of options. We don't plan on using any options right now, but we might later on. We then proceed to call `Agent.start_link/1`, which receives an anonymous function that returns the Agent's initial state.
+Then we define a `start_link/1` function, which will effectively start the agent. It is a convention to define a `start_link/1` function that always accepts a list of options. We then call `Agent.start_link/2` passing an anonymous function that returns the Agent's initial state and the same list of options we received.
 
 We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/anonymous-functions.md#the-capture-operator). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
 
 Now that the `KV.Bucket` module has been defined, our test should pass! You can try it yourself by running: `mix test`.
 
-## Test setup with ExUnit callbacks
+## Naming processes
 
-Before moving on and adding more features to `KV.Bucket`, let's talk about ExUnit callbacks. As you may expect, all `KV.Bucket` tests will require a bucket agent to be up and running. Luckily, ExUnit supports callbacks that allow us to skip such repetitive tasks.
+When starting `KV.Bucket`, we pass a list of options which we forward to `Agent.start_link/2`. One of the options accepted by `Agent.start_link/2` is a name option which allows us to name a process, so we can interact with it using its name instead of its PID.
 
-Let's rewrite the test case to use callbacks:
-
-```elixir
-defmodule KV.BucketTest do
-  use ExUnit.Case, async: true
-
-  setup do
-    {:ok, bucket} = KV.Bucket.start_link([])
-    %{bucket: bucket}
-  end
-
-  test "stores values by key", %{bucket: bucket} do
-    assert KV.Bucket.get(bucket, "milk") == nil
-
-    KV.Bucket.put(bucket, "milk", 3)
-    assert KV.Bucket.get(bucket, "milk") == 3
-  end
-end
-```
-
-We have first defined a setup callback with the help of the `setup/1` macro. The `setup/1` macro defines a callback that is run before every test, in the same process as the test itself.
-
-Note that we need a mechanism to pass the `bucket` PID from the callback to the test. We do so by using the *test context*. When we return `%{bucket: bucket}` from the callback, ExUnit will merge this map into the test context. Since the test context is a map itself, we can pattern match the bucket out of it, providing access to the bucket inside the test:
+Let's write a test as an example. Back on `KV.BucketTest`, add this:
 
 ```elixir
-test "stores values by key", %{bucket: bucket} do
-  # `bucket` is now the bucket from the setup block
-end
+  test "stores values by key on a named process" do
+    {:ok, _} = KV.Bucket.start_link(name: :shopping_list)
+    assert KV.Bucket.get(:shopping_list, "milk") == nil
+
+    KV.Bucket.put(:shopping_list, "milk", 3)
+    assert KV.Bucket.get(:shopping_list, "milk") == 3
+  end
 ```
 
-You can read more about ExUnit cases in the [`ExUnit.Case` module documentation](`ExUnit.Case`) and more about callbacks in `ExUnit.Callbacks`.
+However, keep in mind that names are shared in the current node. If two tests attempt to create two processes named `:shopping_list` at the same time, one would succeed and the other would fail. For this reason, it is a common practice in Elixir to name processes started during tests after the test itself, like this:
+
+```elixir
+  test "stores values by key on a named process", config do
+    {:ok, _} = KV.Bucket.start_link(name: config.test)
+    assert KV.Bucket.get(config.test, "milk") == nil
+
+    KV.Bucket.put(config.test, "milk", 3)
+    assert KV.Bucket.get(config.test, "milk") == 3
+  end
+```
+
+The `config` argument, passed after the test name, is the *test context* and it includes configuration and metadata about the current test, which is useful in scenarios like these.
 
 ## Other agent actions
 
@@ -214,4 +207,4 @@ end
 
 When a long action is performed on the server, all other requests to that particular server will wait until the action is done, which may cause some clients to timeout.
 
-In the next chapter, we will explore GenServers, where the segregation between clients and servers is made more apparent.
+Some APIs, such as GenServers, make a clearer distiction between client and server, and we will explore them in future chapters. Next let's talk about naming things, applications, and supervisors.
