@@ -100,15 +100,9 @@ iex> if nil do
 "This will"
 ```
 
-> #### `if` is a macro {: .info}
->
-> An interesting note regarding [`if`](`if/2`) is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
-
-If you find yourself nesting several [`if`](`if/2`) blocks, you may want to consider using [`cond`](`cond/1`) instead. Let's check it out.
-
 ## Expressions
 
-Some programming languages make a distinction about expressions (code that returns a value) and statements (code that returns no value). In Elixir, there are only expressions, no statements. Everything you write in Elixir language returns some value. 
+Some programming languages make a distinction about expressions (code that returns a value) and statements (code that returns no value). In Elixir, there are only expressions, no statements. Everything you write in Elixir language returns some value.
 
 This property allows variables to be scoped to individual blocks of code such as [`if`](`if/2`), [`case`](`case/2`), where declarations or changes are only visible inside the block. A change can't leak to outer blocks, which makes code easier to follow and understand. For example:
 
@@ -138,6 +132,12 @@ iex> x =
 ```
 
 With all expressions returning a value there's also no need for alternative constructs, such as ternary operators posing as an alternative to [`if`](`if/2`). Elixir does include an inline notation for [`if`](`if/2`) and, as we will [learn later](keywords-and-maps.md#do-blocks-and-keywords), it is a syntactic variation on `if`'s arguments.
+
+> #### `if` is a macro {: .info}
+>
+> An interesting note regarding [`if`](`if/2`) is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
+
+If you find yourself nesting several [`if`](`if/2`) blocks, you may want to consider using [`cond`](`cond/1`) instead. Let's check it out.
 
 ## cond
 
