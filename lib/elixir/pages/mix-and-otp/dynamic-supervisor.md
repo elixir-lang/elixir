@@ -5,7 +5,7 @@
 
 # Supervising dynamic children
 
-We have successfully learned how our supervisor tree is automatically started (and stopped) as part of our application's life cycle. We can also name our buckets via the `:name` option. We also learned that, in practice, we should always start new processes inside supervisors. Let's apply these insights by ensuring our buckets are named and supervised.
+We have successfully learned how our supervision tree is automatically started (and stopped) as part of our application's life cycle. We can also name our buckets via the `:name` option. We also learned that, in practice, we should always start new processes inside supervisors. Let's apply these insights by ensuring our buckets are named and supervised.
 
 ## Child specs
 
@@ -39,7 +39,7 @@ iex> KV.Bucket.child_spec([name: :shopping])
 %{id: KV.Bucket, start: {KV.Bucket, :start_link, [[name: :shopping]]}}
 ```
 
-Let's try to start it as part of a supervisor then, using the `{module, options}` format:
+Let's try to start it as part of a supervisor then, using the `{module, options}` format to pass the bucket name (let's also use an atom as the name for convenience):
 
 ```elixir
 iex> children = [{KV.Bucket, name: :shopping}]
@@ -104,7 +104,7 @@ iex> KV.Bucket.get(name, "milk")
 
 Overall, processes can be named and supervised, regardless if they are supervisors, agents, etc, since all of Elixir standard library was designed around those capabilities.
 
-With all ingredients in place to supervise and name buckets, open up the `lib/kv.ex` module and let's add a new function called `KV.locate/1`, which receives a name and either create or returns a bucket for the given name:
+With all ingredients in place to supervise and name buckets, open up the `lib/kv.ex` module and let's add a new function called `KV.lookup_bucket/1`, which receives a name and either create or returns a bucket for the given name:
 
 ```elixir
 defmodule KV do
@@ -138,7 +138,7 @@ defmodule KV do
 end
 ```
 
-The code is relatively simple. First we changed `start/2` to also start a dynamic supervisor named `KV.BucketSupervisor`. Then, when implemented `KV.create_bucket/1` which receives a bucket and starts with using our registry and dynamic supervisor. And we also added `KV.locate_bucket/1` that receives the same name and attempts to find its PID.
+The code is relatively simple. First we changed `start/2` to also start a dynamic supervisor named `KV.BucketSupervisor`. Then, when implemented `KV.create_bucket/1` which receives a bucket and starts with using our registry and dynamic supervisor. And we also added `KV.lookup_bucket/1` that receives the same name and attempts to find its PID.
 
 To make sure it all works as expected, let's write a test. Open up `test/kv_test.exs` and add this:
 
@@ -160,7 +160,7 @@ end
 
 The test shows we are creating and locating buckets with any name, making sure we use a unique name to avoid conflicts between tests.
 
-## `start_supervised/1`
+## The `start_supervised` test helper
 
 Before we move on, let's do some clean up.
 
@@ -229,4 +229,4 @@ We will leave it up to you to further explore what Observer provides. Note you c
 
 At the end of the day, tools like Observer are one of the reasons you want to always start processes inside supervision trees, even if they are temporary, to ensure they are always reachable and introspectable.
 
-Now that our buckets are named and supervised, we are ready to start our server and start receiving request.
+Now that our buckets are named and supervised, we are ready to start our server and start receiving requests.

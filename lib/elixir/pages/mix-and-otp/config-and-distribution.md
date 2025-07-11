@@ -13,7 +13,7 @@ Let's do this.
 
 ## Application environment
 
-In the chapter [Registries, applications, and supervisors](supervisor-and-application.md), we have learned that our project is backed by an application, which bundles our modules and specifies how your supervision starts and shuts down. Each application can also have its own configuration, which in Erlang/OTP (and therefore Elixir) is called "application environment".
+In the chapter [Registries, applications, and supervisors](supervisor-and-application.md), we have learned that our project is backed by an application, which bundles our modules and specifies how your supervision tree starts and shuts down. Each application can also have its own configuration, which in Erlang/OTP (and therefore Elixir) is called "application environment".
 
 We can use the application environment to configure our own application, as well as others. Let's see the application environment in practice. Create a file `config/runtime.exs` with the following:
 
@@ -210,7 +210,7 @@ There is one essential ingredient to wrap up our distributed key-value store. In
 :erpc.call(:"bar@computer-name", KV, :create_bucket, ["shopping"])
 ```
 
-Elixir automatically connected the nodes together. This is easy to do in an IEx session when both nodes are running on the same machine but it requires more work in a production environment, where nodes will be in different IP addresses and may be started at any time.
+Elixir automatically connected the nodes together. This is easy to do in an IEx session when both instances are running on the same machine but it requires more work in a production environment, where instances are on different machines which may be started at any time and running on different IP addresses.
 
 Luckily for us, this is also a well-solved problem. For example, if you are using [the Phoenix web framework](https://phoenixframework.org) in production, it ships with [the `dns_cluster` package](https://github.com/phoenixframework/dns_cluster), which automatically runs DNS queries to find new nodes and connect them. If you are using Kubernetes or cloud providers, [packages like `libcluster`](https://github.com/bitwalker/libcluster) ship with different strategies to discover and connect nodes.
 
@@ -249,7 +249,7 @@ mix deps.update       # Updates the given dependencies
 
 The most common tasks are `mix deps.get` and `mix deps.update`. Once fetched, dependencies are automatically compiled for you. You can read more about deps by running `mix help deps`.
 
-To wrap up this chapter, we will build a very simple node discovery mechanism, where the name of the nodes we are should connect to are given on boot, using the lessons we learned in this chapter.
+To wrap up this chapter, we will build a very simple node discovery mechanism, where the name of the nodes we should connect to are given on boot, using the lessons we learned in this chapter.
 
 ## `Node.connect/1`
 
@@ -286,7 +286,7 @@ $ NODES="foo@computer-name,bar@computer-name" PORT=4041 iex --sname bar -S mix
 
 And they should connect to each other. Give it a try!
 
-In an actual production system, there is some additional care we must take. For example, `--sname` only allows instances on the same machine to connect. For production, we would use `--name` instead.
+In an actual production system, there is some additional care we must take. For example, we often use `--name` instead of `--sname` and give fully qualified node names.
 
 Furthermore, when connecting two instances, we must guarantee they have the same cookie, which is a secret Erlang uses to authorize the connection. When they run on the same machine, they share the same cookie by default, but it must be either explicitly set or shared in other ways when deploying in a cluster.
 

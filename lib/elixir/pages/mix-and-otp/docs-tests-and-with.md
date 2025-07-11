@@ -295,9 +295,6 @@ The last step is to implement `KV.Command.run/1` to run the parsed commands on t
   @doc """
   Runs the given command.
   """
-  @doc """
-  Runs the given command.
-  """
   def run(command, socket)
 
   def run({:create, bucket}, socket) do
@@ -416,7 +413,7 @@ end
 
 Run `mix test` and the tests should all pass. However, make sure to terminate any `iex -S mix` session you may have running, as currently tests and development environment are running on the same port (4040). We will address it in the next chapter.
 
-We added three tests, the first one tests most bucket actions, while the other two deal with error cases. Given there is a lot of shared setup across these tests, we used the `setup/2` macro to deal with common boilerplate. The macro receives the same *test context* as tests and starts a client TCP connection per test. It also defines a unique bucket name using the module name and the test name, making sure any space in the test name is replaced by `-`.
+We added three tests, the first one tests most bucket actions, while the other two deal with error cases. Given there is a lot of shared setup across these tests, we used the `setup/2` macro to deal with common boilerplate. The macro receives the same *test context* as tests and starts a client TCP connection per test. It also defines a unique bucket name using the module name and the test name, making sure any space in the test name is replaced by `-` as to not interfere with our command parsing logic.
 
 Then, in each test, we pattern matched on the *test context*, extracting the socket or name as necessary. This is similar to the code we wrote in `test/kv/bucket_test.exs`:
 
