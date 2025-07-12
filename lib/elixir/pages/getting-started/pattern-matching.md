@@ -113,6 +113,38 @@ iex> [0 | list]
 [0, 1, 2, 3]
 ```
 
+In some cases, you don't care about a particular value in a pattern. It is a common practice to bind those values to the underscore, `_`. For example, if only the head of the list matters to us, we can assign the tail to underscore:
+
+```elixir
+iex> [head | _] = [1, 2, 3]
+[1, 2, 3]
+iex> head
+1
+```
+
+The variable `_` is special in that it can never be read from. Trying to read from it gives a compile error:
+
+```elixir
+iex> _
+** (CompileError) iex:1: invalid use of _. "_" represents a value to be ignored in a pattern and cannot be used in expressions
+```
+
+If a variable is mentioned more than once in a pattern, all references must bind to the same value:
+
+```elixir
+iex> {x, x} = {1, 1}
+{1, 1}
+iex> {x, x} = {1, 2}
+** (MatchError) no match of right hand side value: {1, 2}
+```
+
+Although pattern matching allows us to build powerful constructs, its usage is limited. For instance, you cannot make function calls on the left side of a match. The following example is invalid:
+
+```elixir
+iex> length([1, [2], 3]) = 3
+** (CompileError) iex:1: cannot invoke remote function :erlang.length/1 inside match
+```
+
 Pattern matching allows developers to easily destructure data types such as tuples and lists. As we will see in the following chapters, it is one of the foundations of recursion in Elixir and applies to other types as well, like maps and binaries.
 
 ## The pin operator
@@ -166,38 +198,6 @@ Because `x` was bound to the value of `1` when it was pinned, this last example 
 ```elixir
 iex> {y, 1} = {2, 2}
 ** (MatchError) no match of right hand side value: {2, 2}
-```
-
-If a variable is mentioned more than once in a pattern, all references must bind to the same value:
-
-```elixir
-iex> {x, x} = {1, 1}
-{1, 1}
-iex> {x, x} = {1, 2}
-** (MatchError) no match of right hand side value: {1, 2}
-```
-
-In some cases, you don't care about a particular value in a pattern. It is a common practice to bind those values to the underscore, `_`. For example, if only the head of the list matters to us, we can assign the tail to underscore:
-
-```elixir
-iex> [head | _] = [1, 2, 3]
-[1, 2, 3]
-iex> head
-1
-```
-
-The variable `_` is special in that it can never be read from. Trying to read from it gives a compile error:
-
-```elixir
-iex> _
-** (CompileError) iex:1: invalid use of _. "_" represents a value to be ignored in a pattern and cannot be used in expressions
-```
-
-Although pattern matching allows us to build powerful constructs, its usage is limited. For instance, you cannot make function calls on the left side of a match. The following example is invalid:
-
-```elixir
-iex> length([1, [2], 3]) = 3
-** (CompileError) iex:1: cannot invoke remote function :erlang.length/1 inside match
 ```
 
 This finishes our introduction to pattern matching. As we will see in the next chapter, pattern matching is very common in many language constructs and they can be further augmented with guards.

@@ -9,7 +9,7 @@ Anonymous functions allow us to store and pass executable code around as if it w
 
 ## Identifying functions and documentation
 
-Before we move on to discuss anonymous functions, let's talk about how Elixir identifies named functions.
+Before we move on to discuss anonymous functions, let's talk about how Elixir identifies named functions – the functions defined in [modules](modules-and-functions.md).
 
 Functions in Elixir are identified by both their name and their arity. The arity of a function describes the number of arguments that the function takes. From this point on we will use both the function name and its arity to describe functions throughout the documentation. `trunc/1` identifies the function which is named `trunc` and takes `1` argument, whereas `trunc/2` identifies a different (nonexistent) function with the same name but with an arity of `2`.
 

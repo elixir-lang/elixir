@@ -100,7 +100,11 @@ iex> if nil do
 "This will"
 ```
 
-This is also a good opportunity to talk about variable scoping in Elixir. If any variable is declared or changed inside [`if`](`if/2`), [`case`](`case/2`), and similar constructs, the declaration and change will only be visible inside the construct. For example:
+### Expressions
+
+Some programming languages make a distinction about expressions (code that returns a value) and statements (code that returns no value). In Elixir, there are only expressions, no statements. Everything you write in Elixir language returns some value.
+
+This property allows variables to be scoped to individual blocks of code such as [`if`](`if/2`), [`case`](`case/2`), where declarations or changes are only visible inside the block. A change can't leak to outer blocks, which makes code easier to follow and understand. For example:
 
 ```elixir
 iex> x = 1
@@ -113,18 +117,21 @@ iex> x
 1
 ```
 
-In said cases, if you want to change a value, you must return the value from the [`if`](`if/2`):
+You see the return value of the [`if`](`if/2`) expression as the resulting `2` here. To retain changes made within the [`if`](`if/2`) expression on the outer block you need to assign the returned value to a variable in the outer block.
 
 ```elixir
 iex> x = 1
 1
-iex> x = if true do
-...>   x + 1
-...> else
-...>   x
-...> end
+iex> x =
+...>   if true do
+...>     x + 1
+...>   else
+...>     x
+...>   end
 2
 ```
+
+With all expressions returning a value there's also no need for alternative constructs, such as ternary operators posing as an alternative to [`if`](`if/2`). Elixir does include an inline notation for [`if`](`if/2`) and, as we will [learn later](keywords-and-maps.md#do-blocks-and-keywords), it is a syntactic variation on `if`'s arguments.
 
 > #### `if` is a macro {: .info}
 >

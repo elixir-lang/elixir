@@ -83,6 +83,19 @@ iex> _
 ** (CompileError) iex:3: invalid use of _
 ```
 
+A pinned value represents the value itself and not its – even if syntatically equal – pattern. The right hand side is compared to be equal to the pinned value:
+
+```iex
+iex> x = %{}
+%{}
+iex> {:ok, %{}} = {:ok, %{a: 13}}
+{:ok, %{a: 13}}
+iex> {:ok, ^x} = {:ok, %{a: 13}}
+** (MatchError) no match of right hand side value: {:ok, %{a: 13}}
+    (stdlib 6.2) erl_eval.erl:667: :erl_eval.expr/6
+    iex:2: (file)
+```
+
 ### Literals (numbers and atoms)
 
 Atoms and numbers (integers and floats) can appear in patterns and they are always represented as is. For example, an atom will only match an atom if they are the same atom:
