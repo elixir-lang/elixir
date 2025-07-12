@@ -502,7 +502,7 @@ defmodule IO do
   Or for large maps:
 
       1..100
-      |> Enum.reduce(%{}, & {&1, &2})
+      |> Enum.map(& {&1, &1})
       |> Enum.into(%{})
       |> IO.inspect(limit: :infinity)
 
