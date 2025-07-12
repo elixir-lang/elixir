@@ -495,6 +495,7 @@ defmodule IO do
       after: [2, 4, 6]
 
   Inspect truncates large inputs by default, to display large strings or maps use the limit options:
+
       "abc"
       |> String.duplicate(9001)
       |> IO.inspect(printable_limit: :infinity)
