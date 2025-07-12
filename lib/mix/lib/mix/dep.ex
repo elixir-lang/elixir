@@ -415,7 +415,7 @@ defmodule Mix.Dep do
       |> Kernel.++(if manager, do: [manager: manager], else: [])
       |> Kernel.++(if system_env != [], do: [system_env: system_env], else: [])
       |> Kernel.++(opts)
-      |> Keyword.drop([:dest, :build, :lock, :manager, :checkout])
+      |> Keyword.drop([:dest, :build, :lock, :manager, :checkout, :app_properties])
 
     info = if req, do: {app, req, opts}, else: {app, opts}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect(info)}\n"
