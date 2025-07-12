@@ -972,7 +972,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp atom_only?(:term), do: false
   defp atom_only?(descr), do: empty?(Map.delete(descr, :atom))
   defp atom_new(as) when is_list(as), do: {:union, :sets.from_list(as, version: 2)}
 
