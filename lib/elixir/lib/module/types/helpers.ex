@@ -495,4 +495,101 @@ defmodule Module.Types.Helpers do
   defp zip_map_reduce([], [], list, acc, _fun) do
     {Enum.reverse(list), acc}
   end
+
+  def descr_size(:term), do: 1
+
+  def descr_size(%{} = descr) do
+    Enum.reduce(descr, 0, fn {key, value}, acc ->
+      acc + descr_size(key, value)
+    end)
+  end
+
+  def descr_size(list) when is_list(list) do
+    dnf_size(list)
+  end
+
+  def dnf_size(dnf) do
+    Enum.reduce(dnf, 0, fn {_tag, pos, negs}, acc ->
+      negs_size =
+        Enum.reduce(negs, 0, fn {_neg_tag, fields}, neg_acc ->
+          neg_acc + 1 + map_size(fields)
+        end)
+
+      acc + 1 + map_size(pos) + negs_size
+    end)
+  end
+
+  def dnf_size_detailed(dnf) do
+    {total_pos, total_negs} =
+      Enum.reduce(dnf, {0, 0}, fn {_tag, pos, negs}, {pos_acc, neg_acc} ->
+        negs_size =
+          Enum.reduce(negs, 0, fn {_neg_tag, fields}, neg_sum ->
+            neg_sum + 1 + map_size(fields)
+          end)
+
+        {pos_acc + map_size(pos), neg_acc + negs_size}
+      end)
+
+    {total_pos, total_negs}
+  end
+
+  def descr_size(:tuple, dnf), do: length(dnf)
+  def descr_size(:fun, bdd), do: bdd_size(bdd)
+
+  def descr_size(:map, dnf) do
+    Enum.reduce(dnf, 0, fn {_tag, _pos, negs}, acc ->
+      acc + 1 + length(negs)
+    end)
+  end
+
+  def descr_size(:list, dnf) do
+    Enum.reduce(dnf, 0, fn {_, _last, negs}, acc ->
+      acc + 1 + length(negs)
+    end)
+  end
+
+  def descr_size(_, _), do: 1
+
+  def bdd_size({_fun, l, r}) do
+    bdd_size(l) + bdd_size(r) + 1
+  end
+
+  def bdd_size(_bdd), do: 0
+
+  def list_dnf_size(dnf) do
+    Enum.reduce(dnf, 0, fn {_, _, negs}, _acc ->
+      1 + length(negs)
+    end)
+  end
+
+  # defp map_difference_check_sizes(dnf1, dnf2) do
+  #   {pos1, neg1} = Module.Types.Helpers.dnf_size_detailed(dnf1)
+  #   {pos2, neg2} = Module.Types.Helpers.dnf_size_detailed(dnf2)
+  #   IO.inspect({length(dnf1), pos1, neg1}, label: "dnf1 (clauses, pos, neg)")
+  #   IO.inspect({length(dnf2), pos2, neg2}, label: "dnf2 (clauses, pos, neg)")
+
+  #   IO.puts("dnf1 breakdown:")
+
+  #   Enum.with_index(dnf1, fn {tag, pos, negs}, idx ->
+  #     negs_size =
+  #       Enum.reduce(negs, 0, fn {_neg_tag, fields}, acc ->
+  #         acc + 1 + map_size(fields)
+  #       end)
+
+  #     IO.inspect({idx, tag, map_size(pos), negs_size}, label: "  clause")
+  #     IO.puts(Module.Types.Descr.to_quoted_string(%{map: [{tag, pos, negs}]}))
+  #   end)
+
+  #   IO.puts("dnf2 breakdown:")
+
+  #   Enum.with_index(dnf2, fn {tag, pos, negs}, idx ->
+  #     negs_size =
+  #       Enum.reduce(negs, 0, fn {_neg_tag, fields}, acc ->
+  #         acc + 1 + map_size(fields)
+  #       end)
+
+  #     IO.inspect({idx, tag, map_size(pos), negs_size}, label: "  clause")
+  #     IO.puts(Module.Types.Descr.to_quoted_string(%{map: [{tag, pos, negs}]}))
+  #   end)
+  # end
 end
