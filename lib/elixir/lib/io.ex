@@ -467,13 +467,15 @@ defmodule IO do
 
   ## Examples
 
+  The following code:
+
       IO.inspect(<<0, 1, 2>>, width: 40)
 
   Prints:
 
       <<0, 1, 2>>
 
-  We can use the `:label` option to decorate the output:
+  You can use the `:label` option to decorate the output:
 
       IO.inspect(1..100, label: "a wonderful range")
 
@@ -481,18 +483,20 @@ defmodule IO do
 
       a wonderful range: 1..100
 
-  The `:label` option is especially useful with pipelines:
+  Inspect truncates large inputs by default. The `:printable_limit` controls
+  the limit for strings and other string-like constructs (such as charlists):
 
-      [1, 2, 3]
-      |> IO.inspect(label: "before")
-      |> Enum.map(&(&1 * 2))
-      |> IO.inspect(label: "after")
-      |> Enum.sum()
+      "abc"
+      |> String.duplicate(9001)
+      |> IO.inspect(printable_limit: :infinity)
 
-  Prints:
+  For containers such as lists, maps, and tuples, the number of entries
+  is managed by the `:limit` option:
 
-      before: [1, 2, 3]
-      after: [2, 4, 6]
+      1..100
+      |> Enum.map(& {&1, &1})
+      |> Enum.into(%{})
+      |> IO.inspect(limit: :infinity)
 
   """
   @spec inspect(item, inspect_opts) :: item when item: var
