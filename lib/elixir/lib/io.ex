@@ -494,6 +494,18 @@ defmodule IO do
       before: [1, 2, 3]
       after: [2, 4, 6]
 
+  Inspect truncates large inputs by default, to display large strings or maps use the limit options:
+      "abc"
+      |> String.duplicate("abc", 9001)
+      |> IO.inspect(printable_limit: :infinity)
+
+  Or for large maps:
+
+      1..500
+      |> Enum.reduce(%{}, & {&1, &1})
+      |> Enum.into(%{})
+      |> IO.inspect(limit: :infinity)
+
   """
   @spec inspect(item, inspect_opts) :: item when item: var
   def inspect(item, opts \\ []) do
