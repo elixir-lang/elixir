@@ -496,13 +496,13 @@ defmodule IO do
 
   Inspect truncates large inputs by default, to display large strings or maps use the limit options:
       "abc"
-      |> String.duplicate("abc", 9001)
+      |> String.duplicate(9001)
       |> IO.inspect(printable_limit: :infinity)
 
   Or for large maps:
 
-      1..500
-      |> Enum.reduce(%{}, & {&1, &1})
+      1..100
+      |> Enum.reduce(%{}, & {&1, &2})
       |> Enum.into(%{})
       |> IO.inspect(limit: :infinity)
 
