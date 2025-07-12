@@ -494,13 +494,15 @@ defmodule IO do
       before: [1, 2, 3]
       after: [2, 4, 6]
 
-  Inspect truncates large inputs by default, to display large strings or maps use the limit options:
+  Inspect truncates large inputs by default. The `:printable_limit` controls
+  the limit for strings and other string-like constructs (such as charlists):
 
       "abc"
       |> String.duplicate(9001)
       |> IO.inspect(printable_limit: :infinity)
 
-  Or for large maps:
+  For containers such as lists, maps, and tuples, the number of entries
+  is managed by the `:limit` option:
 
       1..100
       |> Enum.map(& {&1, &1})
