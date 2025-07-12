@@ -156,83 +156,6 @@ end
 
 Since `use` allows any code to run, we can't really know the side-effects of using a module without reading its documentation. Therefore use this function with care and only if strictly required. Don't use `use` where an `import` or `alias` would do.
 
-## Understanding Aliases
-
-At this point, you may be wondering: what exactly is an Elixir alias and how is it represented?
-
-An alias in Elixir is a capitalized identifier (like `String`, `Keyword`, etc) which is converted to an atom during compilation. For instance, the `String` alias translates by default to the atom `:"Elixir.String"`:
-
-```elixir
-iex> is_atom(String)
-true
-iex> to_string(String)
-"Elixir.String"
-iex> :"Elixir.String" == String
-true
-```
-
-By using the `alias/2` directive, we are changing the atom the alias expands to.
-
-Aliases expand to atoms because in the Erlang Virtual Machine (and consequently Elixir) modules are always represented by atoms:
-
-```elixir
-iex> List.flatten([1, [2], 3])
-[1, 2, 3]
-iex> :"Elixir.List".flatten([1, [2], 3])
-[1, 2, 3]
-```
-
-That's the mechanism we use to call Erlang modules:
-
-```elixir
-iex> :lists.flatten([1, [2], 3])
-[1, 2, 3]
-```
-
-## Module nesting
-
-Now that we have talked about aliases, we can talk about nesting and how it works in Elixir. Consider the following example:
-
-```elixir
-defmodule Foo do
-  defmodule Bar do
-  end
-end
-```
-
-The example above will define two modules: `Foo` and `Foo.Bar`. The second can be accessed as `Bar` inside `Foo` as long as they are in the same lexical scope.
-
-If, later, the `Bar` module is moved outside the `Foo` module definition, it must be referenced by its full name (`Foo.Bar`) or an alias must be set using the `alias` directive discussed above.
-
-**Note**: in Elixir, you don't have to define the `Foo` module before being able to define the `Foo.Bar` module, as they are effectively independent. The above could also be written as:
-
-```elixir
-defmodule Foo.Bar do
-end
-
-defmodule Foo do
-  alias Foo.Bar
-  # Can still access it as `Bar`
-end
-```
-
-Aliasing a nested module does not bring parent modules into scope. Consider the following example:
-
-```elixir
-defmodule Foo do
-  defmodule Bar do
-    defmodule Baz do
-    end
-  end
-end
-
-alias Foo.Bar.Baz
-# The module `Foo.Bar.Baz` is now available as `Baz`
-# However, the module `Foo.Bar` is *not* available as `Bar`
-```
-
-As we will see in later chapters, aliases also play a crucial role in macros, to guarantee they are hygienic.
-
 ## Multi alias/import/require/use
 
 It is possible to `alias`, `import`, `require`, or `use` multiple modules at once. This is particularly useful once we start nesting modules, which is very common when building Elixir applications. For example, imagine you have an application where all modules are nested under `MyApp`, you can alias the modules `MyApp.Foo`, `MyApp.Bar` and `MyApp.Baz` at once as follows:
@@ -241,4 +164,4 @@ It is possible to `alias`, `import`, `require`, or `use` multiple modules at onc
 alias MyApp.{Foo, Bar, Baz}
 ```
 
-With this, we have finished our tour of Elixir modules. The next topic to cover is module attributes.
+With this, we have finished our tour of Elixir modules.

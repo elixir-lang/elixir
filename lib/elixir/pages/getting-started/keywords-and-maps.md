@@ -131,7 +131,7 @@ iex> if true do
 In the example above, the `do` and `else` blocks make up a keyword list. They are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
 
 ```elixir
-iex> if true, do: "This will be seen", else: "This won't"
+iex> if(true, do: "This will be seen", else: "This won't")
 "This will be seen"
 ```
 
@@ -224,6 +224,8 @@ iex> %{map | agee: 27}
 These operations have one large benefit in that they raise if the key does not exist in the map and the compiler may even detect and warn when possible. This makes them useful to get quick feedback and spot bugs and typos early on. This is also the syntax used to power another Elixir feature called "Structs", which we will learn later on.
 
 Elixir developers typically prefer to use the `map.key` syntax and pattern matching instead of the functions in the `Map` module when working with maps because they lead to an assertive style of programming. [This blog post by José Valim](https://dashbit.co/blog/writing-assertive-code-with-elixir) provides insight and examples on how you get more concise and faster software by writing assertive code in Elixir.
+
+In a further chapter you'll learn about ["Structs"](structs.md), which further enforce the idea of a map with predefined keys.
 
 ## Nested data structures
 

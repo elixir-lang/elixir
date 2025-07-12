@@ -12,7 +12,7 @@ iex> String.length("hello")
 5
 ```
 
-In order to create our own modules in Elixir, we use the [`defmodule`](`defmodule/2`) macro. The first letter of the module must be in uppercase. We use the [`def`](`def/2`) macro to define functions in that module. The first letter of every function must be in lowercase (or underscore):
+In order to create our own modules in Elixir, we use the [`defmodule`](`defmodule/2`) macro. The first letter of an module name (an alias, as described further down) must be in uppercase. We use the [`def`](`def/2`) macro to define functions in that module. The first letter of every function must be in lowercase (or underscore):
 
 ```elixir
 iex> defmodule Math do
@@ -167,4 +167,78 @@ IO.puts(Concat.join("Hello", "world", "_")) #=> Hello_world
 
 When a variable is not used by a function or a clause, we add a leading underscore (`_`) to its name to signal this intent. This rule is also covered in our [Naming Conventions](../references/naming-conventions.md#underscore-_foo) document.
 
-This finishes our short introduction to modules. In the next chapters, we will learn how to use function definitions for recursion and later on explore more functionality related to modules.
+## Understanding Aliases
+
+An alias in Elixir is a capitalized identifier (like `String`, `Keyword`, etc) which is converted to an atom during compilation. For instance, the `String` alias translates by default to the atom `:"Elixir.String"`:
+
+```elixir
+iex> is_atom(String)
+true
+iex> to_string(String)
+"Elixir.String"
+iex> :"Elixir.String" == String
+true
+```
+
+By using the `alias/2` directive, we are changing the atom the alias expands to.
+
+Aliases expand to atoms because in the Erlang Virtual Machine (and consequently Elixir) modules are always represented by atoms. By namespacing
+those atoms elixir modules avoid conflicting with existing erlang modules.
+
+```elixir
+iex> List.flatten([1, [2], 3])
+[1, 2, 3]
+iex> :"Elixir.List".flatten([1, [2], 3])
+[1, 2, 3]
+```
+
+That's the mechanism we use to call Erlang modules:
+
+```elixir
+iex> :lists.flatten([1, [2], 3])
+[1, 2, 3]
+```
+
+## Module nesting
+
+Now that we have talked about aliases, we can talk about nesting and how it works in Elixir. Consider the following example:
+
+```elixir
+defmodule Foo do
+  defmodule Bar do
+  end
+end
+```
+
+The example above will define two modules: `Foo` and `Foo.Bar`. The second can be accessed as `Bar` inside `Foo` as long as they are in the same lexical scope.
+
+If, later, the `Bar` module is moved outside the `Foo` module definition, it must be referenced by its full name (`Foo.Bar`) or an alias must be set using the `alias` directive discussed above.
+
+**Note**: in Elixir, you don't have to define the `Foo` module before being able to define the `Foo.Bar` module, as they are effectively independent. The above could also be written as:
+
+```elixir
+defmodule Foo.Bar do
+end
+
+defmodule Foo do
+  alias Foo.Bar
+  # Can still access it as `Bar`
+end
+```
+
+Aliasing a nested module does not bring parent modules into scope. Consider the following example:
+
+```elixir
+defmodule Foo do
+  defmodule Bar do
+    defmodule Baz do
+    end
+  end
+end
+
+alias Foo.Bar.Baz
+# The module `Foo.Bar.Baz` is now available as `Baz`
+# However, the module `Foo.Bar` is *not* available as `Bar`
+```
+
+As we will see in later chapters, aliases also play a crucial role in macros, to guarantee they are hygienic.
