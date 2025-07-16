@@ -423,7 +423,7 @@ defmodule Module.ParallelChecker do
       mode =
         with {^module, binary, _filename} <- object_code,
              {:ok, {^module, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
-             {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
+             {:elixir_checker_v2, contents} <- :erlang.binary_to_term(chunk) do
           # The chunk has more information, so that's our preference
           cache_chunk(table, module, contents)
         else
