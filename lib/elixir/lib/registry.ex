@@ -231,6 +231,7 @@ defmodule Registry do
           | {:partitions, pos_integer}
           | {:listeners, [atom]}
           | {:meta, [{meta_key, meta_value}]}
+          | {:partition_by, :key | :pid}
 
   @typedoc """
   The message that the registry sends to listeners when a process registers or unregisters.
@@ -255,7 +256,7 @@ defmodule Registry do
 
   defp whereis_name(registry, key) do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
         case safe_lookup_second(key_ets, key) do
@@ -266,7 +267,7 @@ defmodule Registry do
             :undefined
         end
 
-      {kind, _, _} ->
+      {kind, _, _, _} ->
         raise ArgumentError, ":via is not supported for #{kind} registries"
     end
   end
@@ -329,6 +330,20 @@ defmodule Registry do
         {Registry, keys: :unique, name: MyApp.Registry, partitions: System.schedulers_online()}
       ], strategy: :one_for_one)
 
+  For `:duplicate` registries with many different keys (e.g., many topics with
+  few subscribers each), you can optimize key-based lookups by partitioning by key:
+
+      Registry.start_link(
+        keys: :duplicate,
+        name: MyApp.TopicRegistry,
+        partitions: System.schedulers_online(),
+        partition_by: :key
+      )
+
+  This allows key-based lookups to check only a single partition instead of
+  searching all partitions. Use the default `:pid` partitioning when you have
+  fewer keys with many entries each (e.g., one topic with many subscribers).
+
   ## Options
 
   The registry requires the following keys:
@@ -344,6 +359,19 @@ defmodule Registry do
       listener if the listener wants to be notified if the registered process
       crashes. Messages sent to listeners are of type `t:listener_message/0`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
+    * `:partition_by` - the partitioning strategy for `:duplicate` registries.
+      Can be `:key` or `:pid`. Defaults to `:pid`.
+
+      Use `:pid` (default) when you have keys with many entries (e.g., one topic
+      with many subscribers). This is the traditional behavior and groups all
+      entries from the same process together.
+
+      Use `:key` when entries are spread across many different keys (e.g., many
+      topics with few subscribers each). This makes key-based lookups more
+      efficient as they only need to check a single partition instead of all
+      partitions.
+
+      Only supported for `:duplicate` registries.
 
   """
   @doc since: "1.5.0"
@@ -388,6 +416,17 @@ defmodule Registry do
             "expected :listeners to be a list of named processes, got: #{inspect(listeners)}"
     end
 
+    partition_by = Keyword.get(options, :partition_by, :pid)
+
+    if partition_by not in [:key, :pid] do
+      raise ArgumentError,
+            "expected :partition_by to be :key or :pid, got: #{inspect(partition_by)}"
+    end
+
+    if keys == :unique and partition_by == :key do
+      raise ArgumentError, ":partition_by :key is only supported for :duplicate registries"
+    end
+
     compressed = Keyword.get(options, :compressed, false)
 
     if not is_boolean(compressed) do
@@ -397,11 +436,19 @@ defmodule Registry do
 
     # The @info format must be kept in sync with Registry.Partition optimization.
     entries = [
-      {@all_info, {keys, partitions, nil, nil, listeners}},
-      {@key_info, {keys, partitions, nil}} | meta
+      {@all_info, {keys, partitions, nil, nil, listeners, partition_by}},
+      {@key_info, {keys, partitions, nil, partition_by}} | meta
     ]
 
-    Registry.Supervisor.start_link(keys, name, partitions, listeners, entries, compressed)
+    Registry.Supervisor.start_link(
+      keys,
+      name,
+      partitions,
+      listeners,
+      entries,
+      compressed,
+      partition_by
+    )
   end
 
   @doc false
@@ -450,7 +497,7 @@ defmodule Registry do
           {new_value :: term, old_value :: term} | :error
   def update_value(registry, key, callback) when is_atom(registry) and is_function(callback, 1) do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
         try do
@@ -467,7 +514,7 @@ defmodule Registry do
             :error
         end
 
-      {kind, _, _} ->
+      {kind, _, _, _} ->
         raise ArgumentError, "Registry.update_value/3 is not supported for #{kind} registries"
     end
   end
@@ -502,18 +549,18 @@ defmodule Registry do
       when is_atom(registry) and is_function(mfa_or_fun, 1)
       when is_atom(registry) and tuple_size(mfa_or_fun) == 3 do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         (key_ets || key_ets!(registry, key, partitions))
         |> safe_lookup_second(key)
         |> List.wrap()
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
-      {:duplicate, 1, key_ets} ->
+      {:duplicate, 1, key_ets, _} ->
         key_ets
         |> safe_lookup_second(key)
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
-      {:duplicate, partitions, _} ->
+      {:duplicate, partitions, _, _} ->
         if Keyword.get(opts, :parallel, false) do
           registry
           |> dispatch_parallel(key, mfa_or_fun, partitions)
@@ -614,7 +661,7 @@ defmodule Registry do
   @spec lookup(registry, key) :: [{pid, value}]
   def lookup(registry, key) when is_atom(registry) do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
         case safe_lookup_second(key_ets, key) do
@@ -625,10 +672,14 @@ defmodule Registry do
             []
         end
 
-      {:duplicate, 1, key_ets} ->
+      {:duplicate, 1, key_ets, _} ->
         safe_lookup_second(key_ets, key)
 
-      {:duplicate, partitions, _key_ets} ->
+      {:duplicate, partitions, _key_ets, :key} ->
+        partition = hash(key, partitions)
+        safe_lookup_second(key_ets!(registry, partition), key)
+
+      {:duplicate, partitions, _key_ets, :pid} ->
         for partition <- 0..(partitions - 1),
             pair <- safe_lookup_second(key_ets!(registry, partition), key),
             do: pair
@@ -689,7 +740,7 @@ defmodule Registry do
   @doc since: "1.18.0"
   def lock(registry, lock_key, function)
       when is_atom(registry) and is_function(function, 0) do
-    {_kind, partitions, _, pid_ets, _} = info!(registry)
+    {_kind, partitions, _, pid_ets, _, _} = info!(registry)
     {pid_server, _pid_ets} = pid_ets || pid_ets!(registry, lock_key, partitions)
     Registry.Partition.lock(pid_server, lock_key, function)
   end
@@ -745,14 +796,14 @@ defmodule Registry do
     spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
 
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select(key_ets, spec)
 
-      {:duplicate, 1, key_ets} ->
+      {:duplicate, 1, key_ets, _} ->
         :ets.select(key_ets, spec)
 
-      {:duplicate, partitions, _key_ets} ->
+      {:duplicate, partitions, _key_ets, _} ->
         for partition <- 0..(partitions - 1),
             pair <- :ets.select(key_ets!(registry, partition), spec),
             do: pair
@@ -794,7 +845,7 @@ defmodule Registry do
   @doc since: "1.4.0"
   @spec keys(registry, pid) :: [key]
   def keys(registry, pid) when is_atom(registry) and is_pid(pid) do
-    {kind, partitions, _, pid_ets, _} = info!(registry)
+    {kind, partitions, _, pid_ets, _, _} = info!(registry)
     {_, pid_ets} = pid_ets || pid_ets!(registry, pid, partitions)
 
     keys =
@@ -871,7 +922,7 @@ defmodule Registry do
   @spec values(registry, key, pid) :: [value]
   def values(registry, key, pid) when is_atom(registry) do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
         case safe_lookup_second(key_ets, key) do
@@ -882,8 +933,16 @@ defmodule Registry do
             []
         end
 
-      {:duplicate, partitions, key_ets} ->
-        key_ets = key_ets || key_ets!(registry, pid, partitions)
+      {:duplicate, 1, key_ets, _} ->
+        for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
+
+      {:duplicate, partitions, _key_ets, :key} ->
+        partition = hash(key, partitions)
+        key_ets = key_ets!(registry, partition)
+        for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
+
+      {:duplicate, partitions, _key_ets, :pid} ->
+        key_ets = key_ets!(registry, pid, partitions)
         for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
     end
   end
@@ -930,8 +989,8 @@ defmodule Registry do
   @spec unregister(registry, key) :: :ok
   def unregister(registry, key) when is_atom(registry) do
     self = self()
-    {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {kind, partitions, key_ets, pid_ets, listeners, partition_by} = info!(registry)
+    {key_partition, pid_partition} = partitions(kind, key, self, partitions, partition_by)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -993,8 +1052,8 @@ defmodule Registry do
   def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
     self = self()
 
-    {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {kind, partitions, key_ets, pid_ets, listeners, partition_by} = info!(registry)
+    {key_partition, pid_partition} = partitions(kind, key, self, partitions, partition_by)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -1089,8 +1148,8 @@ defmodule Registry do
   @spec register(registry, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
   def register(registry, key, value) when is_atom(registry) do
     self = self()
-    {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {kind, partitions, key_ets, pid_ets, listeners, partition_by} = info!(registry)
+    {key_partition, pid_partition} = partitions(kind, key, self, partitions, partition_by)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -1266,12 +1325,14 @@ defmodule Registry do
   @spec count(registry) :: non_neg_integer()
   def count(registry) when is_atom(registry) do
     case key_info!(registry) do
-      {_kind, partitions, nil} ->
-        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+      {_kind, partitions, nil, _} ->
+        0..(partitions - 1)
+        |> Enum.map(fn partition_index ->
           safe_size(key_ets!(registry, partition_index))
         end)
+        |> Enum.sum()
 
-      {_kind, 1, key_ets} ->
+      {_kind, 1, key_ets, _} ->
         safe_size(key_ets)
     end
   end
@@ -1335,17 +1396,19 @@ defmodule Registry do
     spec = [{{:_, {:_, pattern}}, guards, [true]}]
 
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {:unique, partitions, key_ets, _} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select_count(key_ets, spec)
 
-      {:duplicate, 1, key_ets} ->
+      {:duplicate, 1, key_ets, _} ->
         :ets.select_count(key_ets, spec)
 
-      {:duplicate, partitions, _key_ets} ->
-        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+      {:duplicate, partitions, _key_ets, _} ->
+        0..(partitions - 1)
+        |> Enum.map(fn partition_index ->
           :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
+        |> Enum.sum()
     end
   end
 
@@ -1404,12 +1467,12 @@ defmodule Registry do
     spec = group_match_headers(spec, __ENV__.function)
 
     case key_info!(registry) do
-      {_kind, partitions, nil} ->
+      {_kind, partitions, nil, _} ->
         Enum.flat_map(0..(partitions - 1), fn partition_index ->
           :ets.select(key_ets!(registry, partition_index), spec)
         end)
 
-      {_kind, 1, key_ets} ->
+      {_kind, 1, key_ets, _} ->
         :ets.select(key_ets, spec)
     end
   end
@@ -1435,12 +1498,14 @@ defmodule Registry do
     spec = group_match_headers(spec, __ENV__.function)
 
     case key_info!(registry) do
-      {_kind, partitions, nil} ->
-        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+      {_kind, partitions, nil, _} ->
+        0..(partitions - 1)
+        |> Enum.map(fn partition_index ->
           :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
+        |> Enum.sum()
 
-      {_kind, 1, key_ets} ->
+      {_kind, 1, key_ets, _} ->
         :ets.select_count(key_ets, spec)
     end
   end
@@ -1508,11 +1573,16 @@ defmodule Registry do
     end
   end
 
-  defp partitions(:unique, key, pid, partitions) do
+  defp partitions(:unique, key, pid, partitions, _partition_by) do
     {hash(key, partitions), hash(pid, partitions)}
   end
 
-  defp partitions(:duplicate, _key, pid, partitions) do
+  defp partitions(:duplicate, key, _pid, partitions, :key) do
+    partition = hash(key, partitions)
+    {partition, partition}
+  end
+
+  defp partitions(:duplicate, _key, pid, partitions, :pid) do
     partition = hash(pid, partitions)
     {partition, partition}
   end
@@ -1546,12 +1616,12 @@ defmodule Registry.Supervisor do
   @moduledoc false
   use Supervisor
 
-  def start_link(kind, registry, partitions, listeners, entries, compressed) do
-    arg = {kind, registry, partitions, listeners, entries, compressed}
+  def start_link(kind, registry, partitions, listeners, entries, compressed, partition_by) do
+    arg = {kind, registry, partitions, listeners, entries, compressed, partition_by}
     Supervisor.start_link(__MODULE__, arg, name: registry)
   end
 
-  def init({kind, registry, partitions, listeners, entries, compressed}) do
+  def init({kind, registry, partitions, listeners, entries, compressed, partition_by}) do
     ^registry = :ets.new(registry, [:set, :public, :named_table, read_concurrency: true])
     true = :ets.insert(registry, entries)
 
@@ -1559,7 +1629,10 @@ defmodule Registry.Supervisor do
       for i <- 0..(partitions - 1) do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
-        arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
+
+        arg =
+          {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
+           partition_by}
 
         %{
           id: pid_partition,
@@ -1631,7 +1704,10 @@ defmodule Registry.Partition do
 
   ## Callbacks
 
-  def init({kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}) do
+  def init(
+        {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
+         partition_by}
+      ) do
     Process.flag(:trap_exit, true)
     key_ets = init_key_ets(kind, key_partition, compressed)
     pid_ets = init_pid_ets(kind, pid_partition)
@@ -1640,8 +1716,8 @@ defmodule Registry.Partition do
     # is to write the table information alongside the registry info.
     if partitions == 1 do
       entries = [
-        {@key_info, {kind, partitions, key_ets}},
-        {@all_info, {kind, partitions, key_ets, {self(), pid_ets}, listeners}}
+        {@key_info, {kind, partitions, key_ets, partition_by}},
+        {@all_info, {kind, partitions, key_ets, {self(), pid_ets}, listeners, partition_by}}
       ]
 
       true = :ets.insert(registry, entries)
