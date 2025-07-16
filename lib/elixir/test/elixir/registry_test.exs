@@ -23,6 +23,7 @@ defmodule Registry.Test do
     listeners = List.wrap(config[:base_listener]) |> Enum.map(&:"#{&1}_#{partitions}")
     name = :"#{config.test}_#{partitions}"
     opts = [keys: keys, name: name, partitions: partitions, listeners: listeners]
+    opts = if config[:partition_by], do: opts ++ [partition_by: config.partition_by], else: opts
     {:ok, _} = start_supervised({Registry, opts})
     %{registry: name, listeners: listeners}
   end
@@ -962,9 +963,14 @@ defmodule Registry.Test do
   end
 
   # Note: those tests relies on internals
-  for keys <- [:unique, :duplicate] do
+  for {keys, partition_by} <- [
+        {:unique, nil},
+        {:duplicate, :pid},
+        {:duplicate, :key}
+      ] do
     @tag keys: keys
-    test "clean up #{keys} registry on process crash",
+    @tag partition_by: partition_by
+    test "clean up #{keys} registry on process crash with partition_by: #{partition_by || "default"}",
          %{registry: registry, partitions: partitions} do
       {_, task1} = register_task(registry, "hello", :value)
       {_, task2} = register_task(registry, "world", :value)
