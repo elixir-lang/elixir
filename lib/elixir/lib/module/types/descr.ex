@@ -1879,16 +1879,13 @@ defmodule Module.Types.Descr do
       acc ->
         inter = intersection(list_type1, list_type2)
         last = intersection(last_type1, last_type2)
+        negs = negs1 ++ negs2
 
-        if empty?(inter) or empty?(last) do
-          acc
-        else
-          [{inter, last, negs1 ++ negs2} | acc]
+        cond do
+          :lists.member({inter, last}, negs) -> acc
+          empty?(inter) or empty?(last) -> acc
+          true -> [{inter, last, negs} | acc]
         end
-    end
-    |> case do
-      [] -> 0
-      dnf -> dnf
     end
   end
 
@@ -1902,7 +1899,7 @@ defmodule Module.Types.Descr do
   # 3. Base case: adds dnf2 type to negations of dnf1 type
   # The result may be larger than the initial dnf1, which is maintained in the accumulator.
   defp list_difference(_, dnf) when dnf == @non_empty_list_top do
-    0
+    []
   end
 
   defp list_difference(dnf1, dnf2) do
@@ -1916,7 +1913,12 @@ defmodule Module.Types.Descr do
           Enum.reduce(negs2, [], fn {nt, nlast}, nacc ->
             t = intersection(t1, nt)
             last = intersection(last1, nlast)
-            if empty?(t) or empty?(last), do: nacc, else: [{t, last, negs1} | nacc]
+
+            cond do
+              :lists.member({t, last}, negs1) -> nacc
+              empty?(t) or empty?(last) -> nacc
+              true -> [{t, last, negs1} | nacc]
+            end
           end)
 
         i = intersection(t1, t2)
