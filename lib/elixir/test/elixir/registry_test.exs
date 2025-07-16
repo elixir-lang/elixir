@@ -931,6 +931,34 @@ defmodule Registry.Test do
                  {{"world", :_, :_}, [], [true]}
                ])
     end
+
+    test "works with partition_by: :key", %{partitions: partitions} do
+      name = :"test_partition_by_keys_#{partitions}"
+      opts = [keys: :duplicate, name: name, partitions: partitions, partition_by: :key]
+      {:ok, _} = start_supervised({Registry, opts})
+
+      {:ok, _} = Registry.register(name, "hello", :value1)
+      {:ok, _} = Registry.register(name, "hello", :value2)
+      {:ok, _} = Registry.register(name, "world", :value3)
+
+      assert 3 == Registry.count(name)
+      assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
+      assert Registry.values(name, "world", self()) == [:value3]
+    end
+
+    test "works with partition_by: :pid", %{partitions: partitions} do
+      name = :"test_partition_by_pids_#{partitions}"
+      opts = [keys: :duplicate, name: name, partitions: partitions, partition_by: :pid]
+      {:ok, _} = start_supervised({Registry, opts})
+
+      {:ok, _} = Registry.register(name, "hello", :value1)
+      {:ok, _} = Registry.register(name, "hello", :value2)
+      {:ok, _} = Registry.register(name, "world", :value3)
+
+      assert 3 == Registry.count(name)
+      assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
+      assert Registry.values(name, "world", self()) == [:value3]
+    end
   end
 
   # Note: those tests relies on internals
@@ -958,7 +986,7 @@ defmodule Registry.Test do
           assert :ets.tab2list(pid) == []
         end
       else
-        [{-1, {_, _, key, {partition, pid}, _}}] = :ets.lookup(registry, -1)
+        [{-1, {_, _, key, {partition, pid}, _, _}}] = :ets.lookup(registry, -1)
         GenServer.call(partition, :sync)
         assert :ets.tab2list(key) == []
         assert :ets.tab2list(pid) == []
