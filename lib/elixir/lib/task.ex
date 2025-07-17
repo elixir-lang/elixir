@@ -1444,6 +1444,13 @@ defmodule Task do
     end
   end
 
+  # exported only to avoid dialyzer opaqueness check in internal Task modules
+  @doc false
+  @spec __alias__(pid()) :: Task.ref()
+  def __alias__(pid) do
+    build_alias(pid)
+  end
+
   ## Optimizations
 
   defp build_monitor(pid) do
