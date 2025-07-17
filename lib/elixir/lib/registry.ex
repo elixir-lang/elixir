@@ -1574,10 +1574,12 @@ defmodule Registry do
   defp partitions(:unique, key, pid, partitions) do
     {hash(key, partitions), hash(pid, partitions)}
   end
+
   defp partitions({:duplicate, :key}, key, _pid, partitions) do
     partition = hash(key, partitions)
     {partition, partition}
   end
+
   defp partitions({:duplicate, :pid}, _key, pid, partitions) do
     partition = hash(pid, partitions)
     {partition, partition}
