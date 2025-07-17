@@ -50,7 +50,9 @@ defmodule Kernel.DialyzerTest do
       Module,
       Protocol,
       String,
-      String.Chars
+      String.Chars,
+      Task,
+      Task.Supervisor
     ]
 
     files = Enum.map(mods, &:code.which/1)
@@ -178,8 +180,8 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
-  test "no warning on inlined calls returning opaque", context do
-    copy_beam!(context, Dialyzer.OpaqueInline)
+  test "no warning due to opaqueness edge cases", context do
+    copy_beam!(context, Dialyzer.Opaqueness)
     assert_dialyze_no_warnings!(context)
   end
 
