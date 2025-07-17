@@ -932,40 +932,35 @@ defmodule Registry.Test do
                ])
     end
 
-    test "works with tuple syntax {:duplicate, :key}", %{partitions: partitions} do
-      name = :"test_tuple_keys_#{partitions}"
-      opts = [keys: {:duplicate, :key}, name: name, partitions: partitions]
-      {:ok, _} = start_supervised({Registry, opts})
-
-      {:ok, _} = Registry.register(name, "hello", :value1)
-      {:ok, _} = Registry.register(name, "hello", :value2)
-      {:ok, _} = Registry.register(name, "world", :value3)
-
-      assert 3 == Registry.count(name)
-      assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
-      assert Registry.values(name, "world", self()) == [:value3]
-    end
-
-    test "works with tuple syntax {:duplicate, :pid}", %{partitions: partitions} do
-      name = :"test_tuple_pids_#{partitions}"
-      opts = [keys: {:duplicate, :pid}, name: name, partitions: partitions]
-      {:ok, _} = start_supervised({Registry, opts})
-
-      {:ok, _} = Registry.register(name, "hello", :value1)
-      {:ok, _} = Registry.register(name, "hello", :value2)
-      {:ok, _} = Registry.register(name, "world", :value3)
-
-      assert 3 == Registry.count(name)
-      assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
-      assert Registry.values(name, "world", self()) == [:value3]
-    end
-
     test "rejects invalid tuple syntax", %{partitions: partitions} do
       name = :"test_invalid_tuple_#{partitions}"
 
       assert_raise ArgumentError, ~r/expected :keys to be given and be one of/, fn ->
         Registry.start_link(keys: {:duplicate, :invalid}, name: name, partitions: partitions)
       end
+    end
+  end
+
+  for {keys, partitions} <- [
+        {{:duplicate, :key}, 1},
+        {{:duplicate, :key}, 8},
+        {{:duplicate, :pid}, 1},
+        {{:duplicate, :pid}, 8}
+      ] do
+    @tag keys: keys, partitions: partitions
+    test "works with tuple syntax #{inspect(keys)} with #{partitions} partitions",
+         %{keys: keys, partitions: partitions} do
+      name = :"test_tuple_#{elem(keys, 1)}_#{partitions}"
+      opts = [keys: keys, name: name, partitions: partitions]
+      {:ok, _} = start_supervised({Registry, opts})
+
+      {:ok, _} = Registry.register(name, "hello", :value1)
+      {:ok, _} = Registry.register(name, "hello", :value2)
+      {:ok, _} = Registry.register(name, "world", :value3)
+
+      assert 3 == Registry.count(name)
+      assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
+      assert Registry.values(name, "world", self()) == [:value3]
     end
   end
 
