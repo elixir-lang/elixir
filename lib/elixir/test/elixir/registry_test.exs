@@ -23,7 +23,6 @@ defmodule Registry.Test do
     listeners = List.wrap(config[:base_listener]) |> Enum.map(&:"#{&1}_#{partitions}")
     name = :"#{config.test}_#{partitions}"
     opts = [keys: keys, name: name, partitions: partitions, listeners: listeners]
-    opts = if config[:partition_by], do: opts ++ [partition_by: config.partition_by], else: opts
     {:ok, _} = start_supervised({Registry, opts})
     %{registry: name, listeners: listeners}
   end
@@ -933,9 +932,9 @@ defmodule Registry.Test do
                ])
     end
 
-    test "works with partition_by: :key", %{partitions: partitions} do
-      name = :"test_partition_by_keys_#{partitions}"
-      opts = [keys: :duplicate, name: name, partitions: partitions, partition_by: :key]
+    test "works with tuple syntax {:duplicate, :key}", %{partitions: partitions} do
+      name = :"test_tuple_keys_#{partitions}"
+      opts = [keys: {:duplicate, :key}, name: name, partitions: partitions]
       {:ok, _} = start_supervised({Registry, opts})
 
       {:ok, _} = Registry.register(name, "hello", :value1)
@@ -947,9 +946,9 @@ defmodule Registry.Test do
       assert Registry.values(name, "world", self()) == [:value3]
     end
 
-    test "works with partition_by: :pid", %{partitions: partitions} do
-      name = :"test_partition_by_pids_#{partitions}"
-      opts = [keys: :duplicate, name: name, partitions: partitions, partition_by: :pid]
+    test "works with tuple syntax {:duplicate, :pid}", %{partitions: partitions} do
+      name = :"test_tuple_pids_#{partitions}"
+      opts = [keys: {:duplicate, :pid}, name: name, partitions: partitions]
       {:ok, _} = start_supervised({Registry, opts})
 
       {:ok, _} = Registry.register(name, "hello", :value1)
@@ -959,18 +958,26 @@ defmodule Registry.Test do
       assert 3 == Registry.count(name)
       assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
       assert Registry.values(name, "world", self()) == [:value3]
+    end
+
+    test "rejects invalid tuple syntax", %{partitions: partitions} do
+      name = :"test_invalid_tuple_#{partitions}"
+
+      assert_raise ArgumentError, ~r/expected :keys to be given and be one of/, fn ->
+        Registry.start_link(keys: {:duplicate, :invalid}, name: name, partitions: partitions)
+      end
     end
   end
 
   # Note: those tests relies on internals
-  for {keys, partition_by} <- [
-        {:unique, nil},
+  for keys <- [
+        :unique,
+        :duplicate,
         {:duplicate, :pid},
         {:duplicate, :key}
       ] do
     @tag keys: keys
-    @tag partition_by: partition_by
-    test "clean up #{keys} registry on process crash with partition_by: #{partition_by || "default"}",
+    test "clean up #{inspect(keys)} registry on process crash",
          %{registry: registry, partitions: partitions} do
       {_, task1} = register_task(registry, "hello", :value)
       {_, task2} = register_task(registry, "world", :value)
@@ -992,7 +999,7 @@ defmodule Registry.Test do
           assert :ets.tab2list(pid) == []
         end
       else
-        [{-1, {_, _, key, {partition, pid}, _, _}}] = :ets.lookup(registry, -1)
+        [{-1, {_, _, key, {partition, pid}, _}}] = :ets.lookup(registry, -1)
         GenServer.call(partition, :sync)
         assert :ets.tab2list(key) == []
         assert :ets.tab2list(pid) == []
