@@ -1450,7 +1450,10 @@ defmodule Task do
     :erlang.monitor(:process, pid)
   end
 
-  defp build_alias(pid) do
+  # exported only to avoid dialyzer opaqueness check in internal Task modules
+  @doc false
+  @spec build_alias(pid()) :: Task.ref()
+  def build_alias(pid) do
     :erlang.monitor(:process, pid, alias: :demonitor)
   end
 

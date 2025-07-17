@@ -614,7 +614,7 @@ defmodule Task.Supervisor do
     case start_child_with_spec(supervisor, [get_owner(owner), :monitor], :temporary, shutdown) do
       {:ok, pid} ->
         if link_type == :link, do: Process.link(pid)
-        alias = :erlang.monitor(:process, pid, alias: :demonitor)
+        alias = Task.build_alias(pid)
         send(pid, {owner, alias, alias, get_callers(owner), {module, fun, args}})
         %Task{pid: pid, ref: alias, owner: owner, mfa: {module, fun, length(args)}}
 
