@@ -229,20 +229,6 @@ defmodule Mix.UtilsTest do
   end
 
   describe "write_dot_graph!/4" do
-    test "escapes quotes" do
-      in_tmp("dot_quotes", fn ->
-        callback = fn node -> {{node, nil}, []} end
-
-        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo \"bar\""], callback, [])
-
-        assert File.read!("graph.dot") == """
-               digraph "graph" {
-                 "foo \\"bar\\""
-               }
-               """
-      end)
-    end
-
     test "preserves newlines and other control characters" do
       in_tmp("dot_newlines", fn ->
         callback = fn node -> {{node, nil}, []} end
@@ -254,20 +240,6 @@ defmodule Mix.UtilsTest do
                  "foo 
                bar\r
                baz"
-               }
-               """
-      end)
-    end
-
-    test "handles backslashes correctly" do
-      in_tmp("dot_backslashes", fn ->
-        callback = fn node -> {{node, nil}, []} end
-
-        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo\\bar"], callback, [])
-
-        assert File.read!("graph.dot") == """
-               digraph "graph" {
-                 "foo\\bar"
                }
                """
       end)

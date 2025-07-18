@@ -483,36 +483,30 @@ defmodule Mix.Utils do
 
   defp quoted(data) do
     string = to_string(data)
-    escaped_data = escape_dot_string(string)
-    [?", escaped_data, ?"]
+    escape_dot_string(string, <<?">>)
   end
 
   # Escape a string for DOT format according to GraphViz specification https://graphviz.org/doc/info/lang.html
   # - Only quotes need escaping
-  # - String must not end with an odd number of backslashes (would escape the closing quote)
-  defp escape_dot_string(string) do
-    escape_dot_string(string, [], 0)
+  # - The ending quote should not be escaped (which requires an even of trailing backslashes)
+  defp escape_dot_string(<<?\\, ?\\, rest::binary>>, acc) do
+    escape_dot_string(rest, <<acc::binary, ?\\, ?\\>>)
   end
 
-  defp escape_dot_string(<<>>, acc, backslash_count) do
-    if rem(backslash_count, 2) == 1 do
-      # Odd number of trailing backslashes - add one more to make it even
-      [acc, "\\"]
-    else
-      acc
-    end
+  defp escape_dot_string(<<?", rest::binary>>, acc) do
+    escape_dot_string(rest, <<acc::binary, ?\\, ?">>)
   end
-
-  defp escape_dot_string(<<?"::utf8, rest::binary>>, acc, _backslash_count) do
-    escape_dot_string(rest, [acc, "\\\""], 0)
+  
+  defp escape_dot_string(<<char, rest::binary>>, acc) do
+    escape_dot_string(rest, <<acc::binary, char>>)
   end
-
-  defp escape_dot_string(<<"\\"::utf8, rest::binary>>, acc, backslash_count) do
-    escape_dot_string(rest, [acc, "\\"], backslash_count + 1)
+  
+  defp escape_dot_string(<<?\\>>, acc) do
+    <<acc::binary, ?\\, ?\\, ?">>
   end
-
-  defp escape_dot_string(<<char::utf8, rest::binary>>, acc, _backslash_count) do
-    escape_dot_string(rest, [acc, char], 0)
+  
+  defp escape_dot_string(<<>>, acc) do
+    <<acc::binary, ?">>
   end
 
   @doc false
