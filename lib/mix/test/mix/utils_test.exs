@@ -228,6 +228,98 @@ defmodule Mix.UtilsTest do
     end
   end
 
+  describe "write_dot_graph!/4" do
+    test "preserves newlines and other control characters" do
+      in_tmp("dot_newlines", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo \nbar\r\nbaz"], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 "foo 
+               bar\r
+               baz"
+               }
+               """
+      end)
+    end
+
+    test "quote and backslash combinations" do
+      in_tmp("dot_complex", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        test_cases = [
+          # "fo"o" -> "fo\"o"
+          {"fo\"o", "fo\\\"o"},
+          # "fo\"o" -> "fo\\\"o"
+          {"fo\\\"o", "fo\\\\\"o"},
+          # "fo\o" -> "fo\o"
+          {"fo\\o", "fo\\o"},
+          # "fo\\o" -> "fo\\o"
+          {"fo\\\\o", "fo\\\\o"},
+          # "fo\\\o" -> "fo\\\o"
+          {"fo\\\\\\o", "fo\\\\\\o"}
+        ]
+
+        Enum.each(test_cases, fn {input, expected} ->
+          Mix.Utils.write_dot_graph!("graph.dot", "graph", [input], callback, [])
+          content = File.read!("graph.dot")
+          assert content == "digraph \"graph\" {\n  \"#{expected}\"\n}\n"
+        end)
+      end)
+    end
+
+    test "escapes backslash at end of string" do
+      in_tmp("dot_end_backslash", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        test_cases = [
+          # "fo\" -> "fo\\" (add backslash)
+          {"fo\\", "fo\\\\"},
+          # "fo\\" -> "fo\\" (already valid)
+          {"fo\\\\", "fo\\\\"},
+          # "fo\\\" -> "fo\\\\" (add backslash)
+          {"fo\\\\\\", "fo\\\\\\\\"}
+        ]
+
+        Enum.each(test_cases, fn {input, expected} ->
+          Mix.Utils.write_dot_graph!("graph.dot", "graph", [input], callback, [])
+          content = File.read!("graph.dot")
+          assert content == "digraph \"graph\" {\n  \"#{expected}\"\n}\n"
+        end)
+      end)
+    end
+
+    test "handles empty strings" do
+      in_tmp("dot_empty", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", [""], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 ""
+               }
+               """
+      end)
+    end
+
+    test "handles edge labels with escaping" do
+      in_tmp("dot_edge_labels", fn ->
+        callback = fn node -> {{node, "edge \"label\""}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["node"], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 "node" [label="edge \\"label\\""]
+               }
+               """
+      end)
+    end
+  end
+
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} ->

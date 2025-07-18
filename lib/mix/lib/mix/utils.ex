@@ -481,7 +481,33 @@ defmodule Mix.Utils do
     ["  ", parent, quoted(name), edge_info, ?\n]
   end
 
-  defp quoted(data), do: [?", to_string(data), ?"]
+  defp quoted(data) do
+    string = to_string(data)
+    escape_dot_string(string, <<?">>)
+  end
+
+  # Escape a string for DOT format according to GraphViz specification https://graphviz.org/doc/info/lang.html
+  # - Only quotes need escaping
+  # - The ending quote should not be escaped (which requires an even of trailing backslashes)
+  defp escape_dot_string(<<?\\, ?\\, rest::binary>>, acc) do
+    escape_dot_string(rest, <<acc::binary, ?\\, ?\\>>)
+  end
+
+  defp escape_dot_string(<<?", rest::binary>>, acc) do
+    escape_dot_string(rest, <<acc::binary, ?\\, ?">>)
+  end
+
+  defp escape_dot_string(<<?\\>>, acc) do
+    <<acc::binary, ?\\, ?\\, ?">>
+  end
+
+  defp escape_dot_string(<<char, rest::binary>>, acc) do
+    escape_dot_string(rest, <<acc::binary, char>>)
+  end
+
+  defp escape_dot_string(<<>>, acc) do
+    <<acc::binary, ?">>
+  end
 
   @doc false
   @deprecated "Use Macro.underscore/1 instead"
