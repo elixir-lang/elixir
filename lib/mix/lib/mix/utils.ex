@@ -482,26 +482,37 @@ defmodule Mix.Utils do
   end
 
   defp quoted(data) do
-    escaped_data =
-      data
-      |> to_string()
-      # escape \
-      |> String.replace("\\", "\\\\")
-      # escape " (required in DOT quoted strings)
-      |> String.replace("\"", "\\\"")
-      # escape other special characters
-      |> String.replace("\0", "\\0")
-      |> String.replace("\a", "\\a")
-      |> String.replace("\b", "\\b")
-      |> String.replace("\d", "\\d")
-      |> String.replace("\e", "\\e")
-      |> String.replace("\f", "\\f")
-      |> String.replace("\n", "\\n")
-      |> String.replace("\r", "\\r")
-      |> String.replace("\t", "\\t")
-      |> String.replace("\v", "\\v")
-
+    string = to_string(data)
+    escaped_data = escape_dot_string(string)
     [?", escaped_data, ?"]
+  end
+
+  # Escape a string for DOT format according to GraphViz specification https://graphviz.org/doc/info/lang.html
+  # - Only quotes need escaping
+  # - String must not end with an odd number of backslashes (would escape the closing quote)
+  defp escape_dot_string(string) do
+    escape_dot_string(string, [], 0)
+  end
+
+  defp escape_dot_string(<<>>, acc, backslash_count) do
+    if rem(backslash_count, 2) == 1 do
+      # Odd number of trailing backslashes - add one more to make it even
+      [acc, "\\"]
+    else
+      acc
+    end
+  end
+
+  defp escape_dot_string(<<?"::utf8, rest::binary>>, acc, _backslash_count) do
+    escape_dot_string(rest, [acc, "\\\""], 0)
+  end
+
+  defp escape_dot_string(<<"\\"::utf8, rest::binary>>, acc, backslash_count) do
+    escape_dot_string(rest, [acc, "\\"], backslash_count + 1)
+  end
+
+  defp escape_dot_string(<<char::utf8, rest::binary>>, acc, _backslash_count) do
+    escape_dot_string(rest, [acc, char], 0)
   end
 
   @doc false
