@@ -481,7 +481,28 @@ defmodule Mix.Utils do
     ["  ", parent, quoted(name), edge_info, ?\n]
   end
 
-  defp quoted(data), do: [?", to_string(data), ?"]
+  defp quoted(data) do
+    escaped_data =
+      data
+      |> to_string()
+      # escape \
+      |> String.replace("\\", "\\\\")
+      # escape " (required in DOT quoted strings)
+      |> String.replace("\"", "\\\"")
+      # escape other special characters
+      |> String.replace("\0", "\\0")
+      |> String.replace("\a", "\\a")
+      |> String.replace("\b", "\\b")
+      |> String.replace("\d", "\\d")
+      |> String.replace("\e", "\\e")
+      |> String.replace("\f", "\\f")
+      |> String.replace("\n", "\\n")
+      |> String.replace("\r", "\\r")
+      |> String.replace("\t", "\\t")
+      |> String.replace("\v", "\\v")
+
+    [?", escaped_data, ?"]
+  end
 
   @doc false
   @deprecated "Use Macro.underscore/1 instead"

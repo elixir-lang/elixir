@@ -228,6 +228,64 @@ defmodule Mix.UtilsTest do
     end
   end
 
+  describe "write_dot_graph!/4" do
+    test "escapes quotes" do
+      in_tmp("dot_quotes", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo \"bar\""], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 "foo \\"bar\\""
+               }
+               """
+      end)
+    end
+
+    test "escapes newlines" do
+      in_tmp("dot_quotes", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo \nbar\r\nbaz"], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 "foo \\nbar\\r\\nbaz"
+               }
+               """
+      end)
+    end
+
+    test "escapes backslashes" do
+      in_tmp("dot_backslashes", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo\\bar"], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 "foo\\\\bar"
+               }
+               """
+      end)
+    end
+
+    test "escapes control characters" do
+      in_tmp("dot_tabs", fn ->
+        callback = fn node -> {{node, nil}, []} end
+
+        Mix.Utils.write_dot_graph!("graph.dot", "graph", ["foo\v\t\f\e\d\b\a\0bar"], callback, [])
+
+        assert File.read!("graph.dot") == """
+               digraph "graph" {
+                 "foo\\v\\t\\f\\e\\d\\b\\a\\0bar"
+               }
+               """
+      end)
+    end
+  end
+
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} ->
