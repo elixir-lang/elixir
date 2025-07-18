@@ -496,7 +496,7 @@ defmodule Mix.Utils do
   defp escape_dot_string(<<?", rest::binary>>, acc) do
     escape_dot_string(rest, <<acc::binary, ?\\, ?">>)
   end
-  
+
   defp escape_dot_string(<<?\\>>, acc) do
     <<acc::binary, ?\\, ?\\, ?">>
   end
@@ -504,7 +504,7 @@ defmodule Mix.Utils do
   defp escape_dot_string(<<char, rest::binary>>, acc) do
     escape_dot_string(rest, <<acc::binary, char>>)
   end
-  
+
   defp escape_dot_string(<<>>, acc) do
     <<acc::binary, ?">>
   end
