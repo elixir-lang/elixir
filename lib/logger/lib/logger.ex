@@ -449,8 +449,9 @@ defmodule Logger do
         end
       end
 
-  It may return `:log` (to log the message), `:stop` (to not log the
-  message), or `:ignore` (to ignore the filter).
+  The filter may return the possibly modified event (to change the
+  event used by subsequent filters), `:stop` (to discard the event),
+  or `:ignore` (to ignore the filter and continue with the subsequent filters).
 
   Then you can attach the filter, either as a primary filter (which
   applies to all handlers), or to a specific handler, when you start
