@@ -5,7 +5,7 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
 -export([extract/6, unescape_string/1, unescape_string/2,
-unescape_tokens/1, unescape_map/1]).
+unescape_tokens/1, unescape_map/1, format_error/1]).
 -include("elixir.hrl").
 -include("elixir_tokenizer.hrl").
 
@@ -135,10 +135,16 @@ cursor_complete(Line, Column, Terminators) ->
 %% Unescape a series of tokens as returned by extract.
 
 unescape_tokens(Tokens) ->
-  try [unescape_token(Token, fun unescape_map/1) || Token <- Tokens] of
-    Unescaped -> {ok, Unescaped}
+  try
+    erlang:put(elixir_interpolation_warnings, []),
+    Unescaped = [unescape_token(Token, fun unescape_map/1) || Token <- Tokens],
+    Warnings = lists:reverse(erlang:get(elixir_interpolation_warnings)),
+    erlang:erase(elixir_interpolation_warnings),
+    {ok, Unescaped, Warnings}
   catch
-    {error, _Reason, _Token} = Error -> Error
+    {error, _Reason, _Token} = Error ->
+      erlang:erase(elixir_interpolation_warnings),
+      Error
   end.
 
 unescape_token(Token, Map) when is_list(Token) ->
@@ -211,31 +217,31 @@ unescape_hex(<<A, B, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
 %% TODO: Remove deprecated sequences on v2.0
 
 unescape_hex(<<A, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
-  io:format(standard_error, "warning: \\xH inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh),
   append_codepoint(Rest, Map, [A], Acc, 16);
 
 unescape_hex(<<${, A, $}, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
-  io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh_curly),
   append_codepoint(Rest, Map, [A], Acc, 16);
 
 unescape_hex(<<${, A, B, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
-  io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh_curly),
   append_codepoint(Rest, Map, [A, B], Acc, 16);
 
 unescape_hex(<<${, A, B, C, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
-  io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh_curly),
   append_codepoint(Rest, Map, [A, B, C], Acc, 16);
 
 unescape_hex(<<${, A, B, C, D, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
-  io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh_curly),
   append_codepoint(Rest, Map, [A, B, C, D], Acc, 16);
 
 unescape_hex(<<${, A, B, C, D, E, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
-  io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh_curly),
   append_codepoint(Rest, Map, [A, B, C, D, E], Acc, 16);
 
 unescape_hex(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
-  io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead~n", []),
+  warn(deprecated_xh_curly),
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
 unescape_hex(<<_/binary>>, _Map, _Acc) ->
@@ -292,6 +298,12 @@ unescape_map($t) -> $\t;
 unescape_map($v) -> $\v;
 unescape_map(E)  -> E.
 
+warn(Type) ->
+  case erlang:get(elixir_interpolation_warnings) of
+    undefined -> ok;
+    List -> erlang:put(elixir_interpolation_warnings, [Type | List])
+  end.
+
 % Extract Helpers
 
 finish_extraction(Remaining, Buffer, Output, Line, Column, Scope) ->
@@ -310,3 +322,8 @@ build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
 
 prepend_warning(Line, Column, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
   Scope#elixir_tokenizer{warnings = [{{Line, Column}, Msg} | Warnings]}.
+
+format_error(deprecated_xh) ->
+  "\\xH inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead";
+format_error(deprecated_xh_curly) ->
+  "\\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (code point) instead".
