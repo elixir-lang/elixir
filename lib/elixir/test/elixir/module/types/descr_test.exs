@@ -587,7 +587,7 @@ defmodule Module.Types.DescrTest do
     test "list" do
       # Basic list type differences
       assert difference(list(term()), empty_list()) == non_empty_list(term())
-      assert difference(list(integer()), list(term())) == none()
+      assert difference(list(integer()), list(term())) |> empty?()
 
       assert difference(list(integer()), list(float()))
              |> equal?(non_empty_list(integer()))
@@ -609,7 +609,7 @@ defmodule Module.Types.DescrTest do
       refute difference(list(union(atom(), binary())), list(atom())) == list(binary())
 
       # Tests for list with last element
-      assert difference(list(integer(), atom()), list(number(), term())) == none()
+      assert difference(list(integer(), atom()), list(number(), term())) |> empty?()
 
       assert difference(
                list(atom(), term()),
@@ -657,8 +657,8 @@ defmodule Module.Types.DescrTest do
              )
 
       # Difference with proper list
-      assert difference(list(integer(), atom()), list(integer())) ==
-               non_empty_list(integer(), atom())
+      assert difference(list(integer(), atom()), list(integer()))
+             |> equal?(non_empty_list(integer(), atom()))
     end
 
     test "fun" do
