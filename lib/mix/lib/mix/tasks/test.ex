@@ -276,7 +276,7 @@ defmodule Mix.Tasks.Test do
 
   After running the command above, you must restart your current console.
 
-  ## Filters
+  ## Tags and filters
 
   ExUnit provides tags and filtering functionality that allow developers
   to select which tests to run. The most common functionality is to exclude
@@ -298,10 +298,11 @@ defmodule Mix.Tasks.Test do
 
   Note that all tests are included by default, so unless they are excluded
   first (either in the test helper or via the `--exclude` option) the
-  `--include` option has no effect.
+  `--include` option has no effect. The other in which filters are applied
+  are also consistent: first all exclusions are computed, then the inclusions.
 
-  For this reason, Mix also provides an `--only` option that excludes all
-  tests and includes only the given ones:
+  For convenience, Mix also provides an `--only` option that excludes all tests
+  and includes only the given ones:
 
       $ mix test --only external
 
@@ -309,7 +310,7 @@ defmodule Mix.Tasks.Test do
 
       $ mix test --include external --exclude test
 
-  It differs in that the test suite will fail if no tests are executed when the `--only` option is used.
+  However, when the `--only` option is used and no tests run, the test run fails.
 
   In case a single file is being tested, it is possible to pass one or more specific
   line numbers to run only those given tests:
@@ -328,8 +329,9 @@ defmodule Mix.Tasks.Test do
 
       $ mix test --exclude test --include line:12 --include line:24 test/some/particular/file_test.exs
 
-  If a given line starts a `describe` block, that line filter runs all tests in it.
-  Otherwise, it runs the closest test on or before the given line number.
+  If a given line starts a `describe` block, that line filter includes all tests
+  within the describe. Otherwise, it runs the closest test on or before the given
+  line number.
 
   ## Coverage
 
