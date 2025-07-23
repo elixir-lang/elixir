@@ -298,8 +298,8 @@ defmodule Mix.Tasks.Test do
 
   Note that all tests are included by default, so unless they are excluded
   first (either in the test helper or via the `--exclude` option) the
-  `--include` option has no effect. The other in which filters are applied
-  are also consistent: first all exclusions are computed, then the inclusions.
+  `--include` option has no effect. The order in which filters are applied
+  is also consistent: first all exclusions are computed, then the inclusions.
 
   For convenience, Mix also provides an `--only` option that excludes all tests
   and includes only the given ones:
