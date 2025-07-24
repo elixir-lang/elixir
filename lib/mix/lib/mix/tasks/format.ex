@@ -518,6 +518,12 @@ defmodule Mix.Tasks.Format do
   defp eval_deps_opts(deps, opts) do
     deps_paths = opts[:deps_paths] || Mix.Project.deps_paths()
 
+    if not is_map(deps_paths) do
+      Mix.raise(
+        "Expected :deps_paths to return a map of dependency paths, got: #{inspect(deps_paths)}"
+      )
+    end
+
     for dep <- deps,
         dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
         dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
