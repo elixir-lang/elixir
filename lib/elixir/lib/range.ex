@@ -516,6 +516,25 @@ defmodule Range do
     end
   end
 
+  @doc """
+  Creates an index range of the provided length
+
+  ## Examples
+
+      iex> Range.index(5)
+      0..4//1
+      iex> Range.index(10, 1)
+      1..10//1
+      iex> Range.index(10, 0, 2)
+      0..9//2
+
+  """
+  @doc since: "1.19.0"
+  @spec index(limit, integer, step) :: t
+  def index(length, start \\ 0, step \\ 1) do
+    new(0, length - 1, step) |> shift(start)
+  end
+
   @compile inline: [normalize: 3]
   defp normalize(first, last, step) when first > last,
     do: {first - abs(div(first - last, step) * step), first, -step}
