@@ -2031,6 +2031,30 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic(integer())
     end
+
+    # test "regressions – duplicate-key list pattern" do
+    #   assert typecheck!(
+    #            # HEAD PATTERN LIST
+    #            [
+    #              # first tuple
+    #              [
+    #                {key, _}
+    #                # second tuple + rest
+    #                | [{key, _} | _] = rest
+    #              ]
+    #            ],
+    #            # BODY – we just return the tail we captured
+    #            rest
+    #          ) ==
+    #            dynamic(
+    #              non_empty_list(
+    #                # every element is {term, term}
+    #                tuple([term(), term()]),
+    #                # the tail can be anything
+    #                term()
+    #              )
+    #            )
+    # end
   end
 
   describe "info" do

@@ -1831,14 +1831,22 @@ defmodule Module.Types.Descr do
           :error ->
             list_new(list_type, last_type)
 
-          {bdd, last_type} ->
-            # It is safe to discard the negations for the tail because
-            # `list(term()) and not list(integer())` means a list
-            # of all terms except lists where all of them are integer,
-            # which means the head is still a term().
-            {list_type, _} =
+          {bdd, last_type_no_list} ->
+            # The argument last_type may include list types; in this case, we aim to add
+            # those to the main list type, only to keep the type of the final element (which may
+            # be either the empty list, or some non-list value).
+            # To do so, we go through the list types in last_type, but since those are stored
+            # as a bdd of list types, we take care to include the effect of negations on computing
+            # each last type.
+            # To see if a negation changes the last type or the list type, we just need to check
+            # if the negative list type is a supertype of the positive list type. In that case,
+            # we can remove the negative last type from the positive one.
+            # (If this subtracted type was empty, the whole type would be empty)
+            {list_type, last_type} =
               list_get_pos(bdd)
-              |> Enum.reduce({list_type, last_type}, fn {head, tail}, {acc_head, acc_tail} ->
+              |> Enum.reduce({list_type, last_type_no_list}, fn {head, tail},
+                                                                {acc_head, acc_tail} ->
+                tail = list_tail_unfold(tail)
                 {union(head, acc_head), union(tail, acc_tail)}
               end)
 
@@ -1854,7 +1862,13 @@ defmodule Module.Types.Descr do
             # empty_list()
             # maybe i should get tl on the bdd?
 
-            list_new(list_type, Map.delete(last_type, :list))
+            last_type =
+              case last_type do
+                :term -> @not_non_empty_list
+                other -> Map.delete(other, :list)
+              end
+
+            list_new(list_type, last_type)
         end
       end
 
@@ -1871,7 +1885,7 @@ defmodule Module.Types.Descr do
     {{list_type, last_type}, :bdd_top, :bdd_bot}
   end
 
-  # Takes all the paths from the root to the leaves finishing with a 1,
+  # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
   defp list_get(bdd), do: list_get([], {:term, :term}, [], bdd)
@@ -1890,31 +1904,48 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Takes all the paths from the root to the leaves finishing with a 1,
-  # and compile into tuples of positive and negative nodes. Keep only the non-empty positives.
-  defp list_get_pos(bdd), do: list_get_pos([], {:term, :term}, [], bdd)
+  # Takes all the lines from the root to the leaves finishing with a 1,
+  # and compile into tuples of positive and negative nodes. Keep only the non-empty positives,
+  # and include the impact of negations on the last type.
+  # To see if a negation changes the last type or the list type, we just need to check
+  # if the negative list type is a supertype of the positive list type. In that case,
+  # we can remove the negative last type from the positive one.
+  # (If this subtracted type was empty, the whole type would be empty)
+  defp list_get_pos(bdd), do: list_get_pos(:term, :term, bdd, [])
 
-  defp list_get_pos(acc, {list_acc, tail_acc} = pos, negs, bdd) do
+  defp list_get_pos(list_acc, last_acc, bdd, lines_acc) do
     case bdd do
       :bdd_bot ->
-        acc
+        lines_acc
 
       :bdd_top ->
-        if list_empty_line?(list_acc, tail_acc, negs) do
-          acc
-        else
-          [pos | acc]
-        end
+        [{list_acc, last_acc} | lines_acc]
 
-      {{list, tail} = list_type, left, right} ->
-        new_pos = {intersection(list_acc, list), intersection(tail_acc, tail)}
-        list_get_pos(list_get_pos(acc, new_pos, negs, left), pos, [list_type | negs], right)
+      {{list, last}, left, right} ->
+        # Case 1: count the list_type negatively. Check condition when it affects the positive one.
+        lines_acc =
+          if subtype?(list_acc, list) do
+            last = difference(last_acc, last)
+            if empty?(last), do: lines_acc, else: list_get_pos(list_acc, last, right, lines_acc)
+          else
+            list_get_pos(list_acc, last_acc, right, lines_acc)
+          end
+
+        # Case 2: count the list_type positively.
+        list_acc = intersection(list_acc, list)
+        last_acc = intersection(last_acc, last)
+
+        if empty?(list_acc) or empty?(last_acc) do
+          lines_acc
+        else
+          list_get_pos(list_acc, last_acc, left, lines_acc)
+        end
     end
   end
 
-  # Takes all the paths from the root to the leaves finishing with a 1, computes the intersection
+  # Takes all the lines from the root to the leaves finishing with a 1, computes the intersection
   # of the positives, and calls the condition on the result. Checks it is true for all of them.
-  # As if calling Enum.all? on all the paths of the bdd.
+  # As if calling Enum.all? on all the lines of the bdd.
   defp list_all?(bdd, condition), do: list_all?({:term, :term}, [], bdd, condition)
 
   defp list_all?({list_acc, tail_acc} = pos, negs, bdd, condition) do
