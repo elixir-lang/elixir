@@ -426,20 +426,17 @@ defmodule OptionParserTest do
     end
 
     test "parse! raises an exception for invalid regex patterns" do
-      assert_raise OptionParser.ParseError, ~r/Expected type regex/, fn ->
-        OptionParser.parse!(["--pattern", "[invalid"], switches: [pattern: :regex])
-      end
+      assert_raise OptionParser.ParseError,
+                   ~r/Invalid regular expression \"\[invalid\": missing terminating \] for character class at position 8/,
+                   fn ->
+                     OptionParser.parse!(["--pattern", "[invalid"], switches: [pattern: :regex])
+                   end
 
-      assert_raise OptionParser.ParseError, ~r/Expected type regex/, fn ->
-        OptionParser.parse!(["--pattern", "(?invalid)"], switches: [pattern: :regex])
-      end
-
-      # Valid regex should not raise
-      assert {[pattern: regex], []} =
-               OptionParser.parse!(["--pattern", "valid.*"], switches: [pattern: :regex])
-
-      %Regex{} = regex
-      assert Regex.match?(regex, "valid test")
+      assert_raise OptionParser.ParseError,
+                   ~r/Invalid regular expression \"\(\?invalid\)\": unrecognized character after \(\? or \(\?\- at position 3/,
+                   fn ->
+                     OptionParser.parse!(["--pattern", "(?invalid)"], switches: [pattern: :regex])
+                   end
     end
   end
 

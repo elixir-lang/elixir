@@ -508,7 +508,7 @@ defmodule Mix.Tasks.Test do
     dry_run: :boolean
   ]
 
-  @aliases [b: :breakpoints, t: :name_pattern]
+  @aliases [b: :breakpoints, n: :name_pattern]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
 

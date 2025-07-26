@@ -898,7 +898,13 @@ defmodule OptionParser do
 
   defp format_error({option, value}, opts, types) do
     type = get_type(option, opts, types)
-    "#{option} : Expected type #{type}, got #{inspect(value)}"
+
+    with :regex <- type,
+         {:error, {reason, position}} <- Regex.compile(value) do
+      "#{option} : Invalid regular expression #{inspect(value)}: #{reason} at position #{position}"
+    else
+      _ -> "#{option} : Expected type #{type}, got #{inspect(value)}"
+    end
   end
 
   defp get_type(option, opts, types) do
