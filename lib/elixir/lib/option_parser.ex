@@ -129,6 +129,7 @@ defmodule OptionParser do
     * `:integer` - parses the value as an integer
     * `:float` - parses the value as a float
     * `:string` - parses the value as a string
+    * `:regex` - parses the value as a regular expression with Unicode support
 
   If a switch can't be parsed according to the given type, it is
   returned in the invalid options list.
@@ -664,7 +665,7 @@ defmodule OptionParser do
   end
 
   defp validate_switch({_name, type_or_type_and_modifiers}) do
-    valid = [:boolean, :count, :integer, :float, :string, :keep]
+    valid = [:boolean, :count, :integer, :float, :string, :regex, :keep]
     invalid = List.wrap(type_or_type_and_modifiers) -- valid
 
     if invalid != [] do
@@ -702,6 +703,12 @@ defmodule OptionParser do
           case Float.parse(value) do
             {value, ""} -> {false, value}
             _ -> {true, value}
+          end
+
+        :regex in kinds ->
+          case Regex.compile(value, "u") do
+            {:ok, regex} -> {false, regex}
+            {:error, _} -> {true, value}
           end
 
         true ->
@@ -896,7 +903,13 @@ defmodule OptionParser do
 
   defp format_error({option, value}, opts, types) do
     type = get_type(option, opts, types)
-    "#{option} : Expected type #{type}, got #{inspect(value)}"
+
+    with :regex <- type,
+         {:error, {reason, position}} <- Regex.compile(value, "u") do
+      "#{option} : Invalid regular expression #{inspect(value)}: #{reason} at position #{position}"
+    else
+      _ -> "#{option} : Expected type #{type}, got #{inspect(value)}"
+    end
   end
 
   defp get_type(option, opts, types) do
