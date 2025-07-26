@@ -100,21 +100,46 @@ defmodule OptionParserTest do
   end
 
   test "parse!/2 raises an exception for an unknown option using strict" do
-    msg = "1 error found!\n--doc-bar : Unknown option. Did you mean --docs-bar?"
+    msg =
+      """
+      1 error found!
+      --doc-bar : Unknown option. Did you mean --docs-bar?
+
+      Supported options:
+        --docs-bar STRING
+        --source STRING\
+      """
 
     assert_raise OptionParser.ParseError, msg, fn ->
       argv = ["--source", "from_docs/", "--doc-bar", "show"]
       OptionParser.parse!(argv, strict: [source: :string, docs_bar: :string])
     end
 
-    assert_raise OptionParser.ParseError, "1 error found!\n--foo : Unknown option", fn ->
-      argv = ["--source", "from_docs/", "--foo", "show"]
-      OptionParser.parse!(argv, strict: [source: :string, docs: :string])
-    end
+    assert_raise OptionParser.ParseError,
+                 """
+                 1 error found!
+                 --foo : Unknown option
+
+                 Supported options:
+                   --docs STRING
+                   --source STRING\
+                 """,
+                 fn ->
+                   argv = ["--source", "from_docs/", "--foo", "show"]
+                   OptionParser.parse!(argv, strict: [source: :string, docs: :string])
+                 end
   end
 
   test "parse!/2 raises an exception for an unknown option using strict when it is only off by underscores" do
-    msg = "1 error found!\n--docs_bar : Unknown option. Did you mean --docs-bar?"
+    msg =
+      """
+      1 error found!
+      --docs_bar : Unknown option. Did you mean --docs-bar?
+
+      Supported options:
+        --docs-bar STRING
+        --source STRING\
+      """
 
     assert_raise OptionParser.ParseError, msg, fn ->
       argv = ["--source", "from_docs/", "--docs_bar", "show"]
@@ -123,14 +148,57 @@ defmodule OptionParserTest do
   end
 
   test "parse!/2 raises an exception when an option is of the wrong type" do
-    assert_raise OptionParser.ParseError, fn ->
-      argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
-      OptionParser.parse!(argv, switches: [bad: :integer])
+    assert_raise OptionParser.ParseError,
+                 """
+                 1 error found!
+                 --bad : Expected type integer, got "opt"
+
+                 Supported options:
+                   --bad INTEGER\
+                 """,
+                 fn ->
+                   argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
+                   OptionParser.parse!(argv, switches: [bad: :integer])
+                 end
+  end
+
+  test "parse!/2 lists all supported options and aliases" do
+    expected_suggestion =
+      """
+      1 error found!
+      --verbos : Unknown option. Did you mean --verbose?
+
+      Supported options:
+        --count INTEGER (alias: -c)
+        --debug, --no-debug (alias: -d)
+        --files STRING (alias: -f) (may be given more than once)
+        --name STRING (alias: -n)
+        --verbose, --no-verbose (alias: -v)\
+      """
+
+    assert_raise OptionParser.ParseError, expected_suggestion, fn ->
+      OptionParser.parse!(["--verbos"],
+        strict: [
+          name: :string,
+          count: :integer,
+          verbose: :boolean,
+          debug: :boolean,
+          files: :keep
+        ],
+        aliases: [n: :name, c: :count, v: :verbose, d: :debug, f: :files]
+      )
     end
   end
 
   test "parse_head!/2 raises an exception when an option is of the wrong type" do
-    message = "1 error found!\n--number : Expected type integer, got \"lib\""
+    message =
+      """
+      1 error found!
+      --number : Expected type integer, got "lib"
+
+      Supported options:
+        --number INTEGER\
+      """
 
     assert_raise OptionParser.ParseError, message, fn ->
       argv = ["--number", "lib", "test/enum_test.exs"]

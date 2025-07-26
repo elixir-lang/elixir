@@ -282,11 +282,11 @@ defmodule OptionParser do
 
       iex> OptionParser.parse!(["--limit", "xyz"], strict: [limit: :integer])
       ** (OptionParser.ParseError) 1 error found!
-      --limit : Expected type integer, got "xyz"
+      --limit : Expected type integer, got "xyz"...
 
       iex> OptionParser.parse!(["--unknown", "xyz"], strict: [])
       ** (OptionParser.ParseError) 1 error found!
-      --unknown : Unknown option
+      --unknown : Unknown option...
 
       iex> OptionParser.parse!(
       ...>   ["-l", "xyz", "-f", "bar"],
@@ -295,7 +295,7 @@ defmodule OptionParser do
       ...> )
       ** (OptionParser.ParseError) 2 errors found!
       -l : Expected type integer, got "xyz"
-      -f : Expected type integer, got "bar"
+      -f : Expected type integer, got "bar"...
 
   """
   @spec parse!(argv, options) :: {parsed, argv}
@@ -354,7 +354,7 @@ defmodule OptionParser do
       ...>   strict: [number: :integer]
       ...> )
       ** (OptionParser.ParseError) 1 error found!
-      --number : Expected type integer, got "lib"
+      --number : Expected type integer, got "lib"...
 
       iex> OptionParser.parse_head!(
       ...>   ["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
@@ -362,7 +362,7 @@ defmodule OptionParser do
       ...> )
       ** (OptionParser.ParseError) 2 errors found!
       --verbose : Missing argument of type integer
-      --source : Expected type integer, got "lib"
+      --source : Expected type integer, got "lib"...
 
   """
   @spec parse_head!(argv, options) :: {parsed, argv}
@@ -863,15 +863,20 @@ defmodule OptionParser do
     error_count = length(errors)
     error = if error_count == 1, do: "error", else: "errors"
 
-    "#{error_count} #{error} found!\n" <>
-      Enum.map_join(errors, "\n", &format_error(&1, opts, types))
+    slogan =
+      "#{error_count} #{error} found!\n" <>
+        Enum.map_join(errors, "\n", &format_error(&1, opts, types))
+
+    case format_available_options(opts, types) do
+      "" -> slogan
+      available_options -> slogan <> "\n\n#{available_options}"
+    end
   end
 
   defp format_error({option, nil}, opts, types) do
     if type = get_type(option, opts, types) do
       if String.contains?(option, "_") do
         msg = "#{option} : Unknown option"
-
         msg <> ". Did you mean #{String.replace(option, "_", "-")}?"
       else
         "#{option} : Missing argument of type #{type}"
@@ -916,5 +921,58 @@ defmodule OptionParser do
     score = String.jaro_distance(source, target)
     option = String.replace(source, "_", "-")
     if score < current, do: best, else: {option, score}
+  end
+
+  defp format_available_options(opts, switches) do
+    reverse_aliases =
+      opts
+      |> Keyword.get(:aliases, [])
+      |> Enum.reduce(%{}, fn {alias, target}, acc ->
+        Map.update(acc, target, [alias], &[alias | &1])
+      end)
+
+    formatted_options =
+      switches
+      |> Enum.sort()
+      |> Enum.map(fn {name, types} ->
+        types = List.wrap(types)
+
+        case types |> List.delete(:keep) |> List.first(:string) do
+          :boolean ->
+            base = "#{to_switch(name)}, #{to_switch(name, "--no-")}"
+            add_aliases(base, name, reverse_aliases)
+
+          type ->
+            base = "#{to_switch(name)} #{String.upcase(Atom.to_string(type))}"
+            base = add_aliases(base, name, reverse_aliases)
+
+            if :keep in types do
+              base <> " (may be given more than once)"
+            else
+              base
+            end
+        end
+      end)
+
+    if formatted_options == [] do
+      ""
+    else
+      "Supported options:\n" <> Enum.map_join(formatted_options, "\n", &("  " <> &1))
+    end
+  end
+
+  defp add_aliases(base, name, reverse_aliases) do
+    case Map.get(reverse_aliases, name, []) do
+      [] ->
+        base
+
+      alias_list ->
+        alias_str =
+          alias_list
+          |> Enum.sort()
+          |> Enum.map_join(", ", &("-" <> Atom.to_string(&1)))
+
+        base <> " (alias: #{alias_str})"
+    end
   end
 end
