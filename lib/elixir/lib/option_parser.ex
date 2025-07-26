@@ -970,8 +970,7 @@ defmodule OptionParser do
         alias_str =
           alias_list
           |> Enum.sort()
-          |> Enum.map(&("-" <> Atom.to_string(&1)))
-          |> Enum.join(", ")
+          |> Enum.map_join(", ", &("-" <> Atom.to_string(&1)))
 
         base <> " (alias: #{alias_str})"
     end
