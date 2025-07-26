@@ -931,12 +931,48 @@ defmodule Registry.Test do
                  {{"world", :_, :_}, [], [true]}
                ])
     end
+
+    test "rejects invalid tuple syntax", %{partitions: partitions} do
+      name = :"test_invalid_tuple_#{partitions}"
+
+      assert_raise ArgumentError, ~r/expected :keys to be given and be one of/, fn ->
+        Registry.start_link(keys: {:duplicate, :invalid}, name: name, partitions: partitions)
+      end
+    end
+  end
+
+  for {keys, partitions} <- [
+        {{:duplicate, :key}, 1},
+        {{:duplicate, :key}, 8},
+        {{:duplicate, :pid}, 1},
+        {{:duplicate, :pid}, 8}
+      ] do
+    @tag keys: keys, partitions: partitions
+    test "works with tuple syntax #{inspect(keys)} with #{partitions} partitions",
+         %{keys: keys, partitions: partitions} do
+      name = :"test_tuple_#{elem(keys, 1)}_#{partitions}"
+      opts = [keys: keys, name: name, partitions: partitions]
+      {:ok, _} = start_supervised({Registry, opts})
+
+      {:ok, _} = Registry.register(name, "hello", :value1)
+      {:ok, _} = Registry.register(name, "hello", :value2)
+      {:ok, _} = Registry.register(name, "world", :value3)
+
+      assert 3 == Registry.count(name)
+      assert Registry.values(name, "hello", self()) |> Enum.sort() == [:value1, :value2]
+      assert Registry.values(name, "world", self()) == [:value3]
+    end
   end
 
   # Note: those tests relies on internals
-  for keys <- [:unique, :duplicate] do
+  for keys <- [
+        :unique,
+        :duplicate,
+        {:duplicate, :pid},
+        {:duplicate, :key}
+      ] do
     @tag keys: keys
-    test "clean up #{keys} registry on process crash",
+    test "clean up #{inspect(keys)} registry on process crash",
          %{registry: registry, partitions: partitions} do
       {_, task1} = register_task(registry, "hello", :value)
       {_, task2} = register_task(registry, "world", :value)
