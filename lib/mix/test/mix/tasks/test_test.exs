@@ -9,31 +9,41 @@ defmodule Mix.Tasks.TestTest do
 
   describe "ex_unit_opts/1" do
     test "returns ex unit options" do
-      assert ex_unit_opts_from_given(unknown: "ok", seed: 13) == [seed: 13]
+      assert filtered_ex_unit_opts(unknown: "ok", seed: 13) == [seed: 13]
     end
 
     test "returns includes and excludes" do
       included = [include: [:focus, key: "val"]]
-      assert ex_unit_opts_from_given(include: "focus", include: "key:val") == included
+      assert filtered_ex_unit_opts(include: "focus", include: "key:val") == included
 
       excluded = [exclude: [:focus, key: "val"]]
-      assert ex_unit_opts_from_given(exclude: "focus", exclude: "key:val") == excluded
+      assert filtered_ex_unit_opts(exclude: "focus", exclude: "key:val") == excluded
     end
 
     test "translates :only into includes and excludes" do
-      assert ex_unit_opts_from_given(only: "focus") == [include: [:focus], exclude: [:test]]
+      assert filtered_ex_unit_opts(only: "focus") == [include: [:focus], exclude: [:test]]
 
       only = [include: [:focus, :special], exclude: [:test]]
-      assert ex_unit_opts_from_given(only: "focus", include: "special") == only
+      assert filtered_ex_unit_opts(only: "focus", include: "special") == only
+    end
+
+    test "translates :name_pattern into includes and excludes" do
+      assert [include: [test: hello_regex, test: world_regex], exclude: [:test]] =
+               filtered_ex_unit_opts(name_pattern: ~r/hello/, name_pattern: ~r/world/)
+
+      assert Regex.match?(hello_regex, "hello")
+      refute Regex.match?(hello_regex, "world")
+      refute Regex.match?(world_regex, "hello")
+      assert Regex.match?(world_regex, "world")
     end
 
     test "translates :color into list containing an enabled key-value pair" do
-      assert ex_unit_opts_from_given(color: false) == [colors: [enabled: false]]
-      assert ex_unit_opts_from_given(color: true) == [colors: [enabled: true]]
+      assert filtered_ex_unit_opts(color: false) == [colors: [enabled: false]]
+      assert filtered_ex_unit_opts(color: true) == [colors: [enabled: true]]
     end
 
     test "translates :formatter into list of modules" do
-      assert ex_unit_opts_from_given(formatter: "A.B") == [formatters: [A.B]]
+      assert filtered_ex_unit_opts(formatter: "A.B") == [formatters: [A.B]]
     end
 
     test "accepts custom :exit_status" do
@@ -53,8 +63,8 @@ defmodule Mix.Tasks.TestTest do
       ex_unit_opts
     end
 
-    defp ex_unit_opts_from_given(passed) do
-      passed
+    defp filtered_ex_unit_opts(opts) do
+      opts
       |> Keyword.put(:failures_manifest_path, "foo.bar")
       |> ex_unit_opts()
       |> Keyword.drop([:failures_manifest_path, :autorun, :exit_status])

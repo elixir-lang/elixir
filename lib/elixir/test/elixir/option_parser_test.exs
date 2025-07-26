@@ -418,6 +418,80 @@ defmodule OptionParserTest do
       assert OptionParser.parse(["arg1", "--option", "-43.2"], opts) ==
                {[option: -43.2], ["arg1"], []}
     end
+
+    test "parses configured regexes" do
+      assert {[pattern: regex], ["foo"], []} =
+               OptionParser.parse(["--pattern", "a.*b", "foo"], switches: [pattern: :regex])
+
+      assert Regex.match?(regex, "aXXXb")
+      refute Regex.match?(regex, "xyz")
+
+      assert {[pattern: regex], ["foo"], []} =
+               OptionParser.parse(["--pattern=a.*b", "foo"], switches: [pattern: :regex])
+
+      assert Regex.match?(regex, "aXXXb")
+
+      # Test Unicode support
+      assert {[pattern: regex], ["foo"], []} =
+               OptionParser.parse(["--pattern", "café.*résumé", "foo"],
+                 switches: [pattern: :regex]
+               )
+
+      assert Regex.match?(regex, "café test résumé")
+      refute Regex.match?(regex, "ascii only")
+
+      # Test invalid regex
+      assert OptionParser.parse(["--pattern", "[invalid", "foo"], switches: [pattern: :regex]) ==
+               {[], ["foo"], [{"--pattern", "[invalid"}]}
+    end
+
+    test "parses configured regexes with keep" do
+      argv = ["--pattern", "a.*", "--pattern", "b.*", "foo"]
+
+      assert {[pattern: regex1, pattern: regex2], ["foo"], []} =
+               OptionParser.parse(argv, switches: [pattern: [:regex, :keep]])
+
+      assert Regex.match?(regex1, "aXXX")
+      assert Regex.match?(regex2, "bXXX")
+      refute Regex.match?(regex1, "bXXX")
+      refute Regex.match?(regex2, "aXXX")
+
+      argv = ["--pattern=a.*", "foo", "--pattern=b.*", "bar"]
+
+      assert {[pattern: regex1, pattern: regex2], ["foo", "bar"], []} =
+               OptionParser.parse(argv, switches: [pattern: [:regex, :keep]])
+
+      assert Regex.match?(regex1, "aXXX")
+      assert Regex.match?(regex2, "bXXX")
+    end
+
+    test "correctly handles regex compilation errors" do
+      opts = [switches: [pattern: :regex]]
+
+      # Invalid regex patterns should be treated as errors
+      assert OptionParser.parse(["--pattern", "*invalid"], opts) ==
+               {[], [], [{"--pattern", "*invalid"}]}
+
+      assert OptionParser.parse(["--pattern", "[unclosed"], opts) ==
+               {[], [], [{"--pattern", "[unclosed"}]}
+
+      assert OptionParser.parse(["--pattern", "(?invalid)"], opts) ==
+               {[], [], [{"--pattern", "(?invalid)"}]}
+    end
+
+    test "parse! raises an exception for invalid regex patterns" do
+      assert_raise OptionParser.ParseError,
+                   ~r/Invalid regular expression \"\[invalid\": missing terminating \] for character class at position \d/,
+                   fn ->
+                     OptionParser.parse!(["--pattern", "[invalid"], switches: [pattern: :regex])
+                   end
+
+      assert_raise OptionParser.ParseError,
+                   ~r/Invalid regular expression \"\(\?invalid\)\": unrecognized character after \(\? or \(\?\- at position \d/,
+                   fn ->
+                     OptionParser.parse!(["--pattern", "(?invalid)"], switches: [pattern: :regex])
+                   end
+    end
   end
 
   describe "next" do
