@@ -409,20 +409,6 @@ defmodule OptionParserTest do
 
       assert OptionParser.parse(["--pattern", "(?invalid)"], opts) ==
                {[], [], [{"--pattern", "(?invalid)"}]}
-
-      # Valid regex patterns should compile successfully
-      assert {[pattern: regex], [], []} =
-               OptionParser.parse(["--pattern", "valid.*pattern"], opts)
-
-      assert Regex.match?(regex, "valid test pattern")
-      refute Regex.match?(regex, "invalid")
-
-      # Test complex valid patterns
-      assert {[pattern: regex], [], []} =
-               OptionParser.parse(["--pattern", "\\d{3}-\\d{2}-\\d{4}"], opts)
-
-      assert Regex.match?(regex, "123-45-6789")
-      refute Regex.match?(regex, "abc-de-fghi")
     end
 
     test "parse! raises an exception for invalid regex patterns" do

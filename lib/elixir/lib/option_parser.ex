@@ -900,7 +900,7 @@ defmodule OptionParser do
     type = get_type(option, opts, types)
 
     with :regex <- type,
-         {:error, {reason, position}} <- Regex.compile(value) do
+         {:error, {reason, position}} <- Regex.compile(value, "u") do
       "#{option} : Invalid regular expression #{inspect(value)}: #{reason} at position #{position}"
     else
       _ -> "#{option} : Expected type #{type}, got #{inspect(value)}"
