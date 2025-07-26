@@ -157,6 +157,9 @@ defmodule Mix.Tasks.Test do
     * `--max-requires` - sets the maximum number of test files to compile in parallel.
       Setting this to 1 will compile test files sequentially.
 
+    * `-t`, `--name-pattern` *(since v1.19.0)* - only run tests which the name match
+      the given regular expression
+
     * `--no-archives-check` - does not check archives
 
     * `--no-color` - disables color in the output
@@ -481,6 +484,7 @@ defmodule Mix.Tasks.Test do
     include: :keep,
     exclude: :keep,
     seed: :integer,
+    name_pattern: :regex,
     only: :keep,
     compile: :boolean,
     start: :boolean,
@@ -504,11 +508,13 @@ defmodule Mix.Tasks.Test do
     dry_run: :boolean
   ]
 
+  @aliases [b: :breakpoints, t: :name_pattern]
+
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
 
   @impl true
   def run(args) do
-    {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: [b: :breakpoints])
+    {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
@@ -707,8 +713,10 @@ defmodule Mix.Tasks.Test do
             end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
-            message = "The --only option was given to \"mix test\" but no test was executed"
-            raise_or_error_at_exit(shell, message, opts)
+            nothing_executed("--only", shell, message, opts)
+
+          excluded == total and Keyword.has_key?(opts, :name_pattern) ->
+            nothing_executed("--name-pattern", shell, message, opts)
 
           true ->
             :ok
@@ -761,6 +769,11 @@ defmodule Mix.Tasks.Test do
   defp raise_with_shell(shell, message) do
     Mix.shell(shell)
     Mix.raise(message)
+  end
+
+  defp nothing_executed(option, shell, message, opts) do
+    message = "The #{option} option was given to \"mix test\" but no test was executed"
+    raise_or_error_at_exit(shell, message, opts)
   end
 
   defp raise_or_error_at_exit(shell, message, opts) do
@@ -866,7 +879,7 @@ defmodule Mix.Tasks.Test do
       opts
       |> filter_opts(:include)
       |> filter_opts(:exclude)
-      |> filter_opts(:only)
+      |> filter_only_and_name_pattern()
       |> formatter_opts()
       |> color_opts()
       |> exit_status_opts()
@@ -896,21 +909,25 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp filter_opts(opts, :only) do
-    if filters = parse_filters(opts, :only) do
-      opts
-      |> Keyword.update(:include, filters, &(filters ++ &1))
-      |> Keyword.update(:exclude, [:test], &[:test | &1])
-    else
-      opts
+  defp filter_only_and_name_pattern(opts) do
+    only = parse_filters(opts, :only)
+    name_patterns = opts |> Keyword.get_values(:name_pattern) |> Enum.map(&{:test, &1})
+
+    case only ++ patterns do
+      [] ->
+        opts
+
+      filters ->
+        opts
+        |> Keyword.update(:include, filters, &(filters ++ &1))
+        |> Keyword.update(:exclude, [:test], &[:test | &1])
     end
   end
 
   defp filter_opts(opts, key) do
-    if filters = parse_filters(opts, key) do
-      Keyword.put(opts, key, filters)
-    else
-      opts
+    case parse_filters(opts, key) do
+      [] -> opts
+      filters -> Keyword.put(opts, key, filters)
     end
   end
 
