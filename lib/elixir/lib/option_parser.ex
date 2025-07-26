@@ -936,15 +936,14 @@ defmodule OptionParser do
       |> Enum.sort()
       |> Enum.map(fn {name, types} ->
         types = List.wrap(types)
-        option_name = String.replace(Atom.to_string(name), "_", "-")
 
         case types |> List.delete(:keep) |> List.first(:string) do
           :boolean ->
-            base = "--#{option_name}, --no-#{option_name}"
+            base = "#{to_switch(name)}, #{to_switch(name, "--no-")}"
             add_aliases(base, name, reverse_aliases)
 
           type ->
-            base = "--#{option_name} #{String.upcase(Atom.to_string(type))}"
+            base = "#{to_switch(name)} #{String.upcase(Atom.to_string(type))}"
             base = add_aliases(base, name, reverse_aliases)
 
             if :keep in types do
