@@ -168,18 +168,22 @@ defmodule ExUnit.Case do
 
     * `:test_pid` - the PID of the testing process
 
-    * `:test_type` - the test type used when printing test results.
-      It is set by ExUnit to `:test`, `:doctest` and so on, but is customizable.
+    * `:test_type` - the test type used when printing test results. It can also
+      be used for filtering. It is set by ExUnit to `:test`, `:doctest`, or
+      the equivalent type given to `register_test/6`
 
     * `:describe` - the describe block the test belongs to (if in a describe)
 
-    * `:describe_line` - the line the describe block begins on (if in a describe)
+    * `:describe_line` - the line the describe block begins on (if in a describe).
+      It can be used to run all tests in the describe block given by line
 
     * `:doctest` - the module or the file being doctested (if a doctest)
 
-    * `:doctest_data` - additional metadata about doctests (if a doctest)
+    * `:doctest_data` - additional metadata about doctests stored in a map,
+      such as the `:end_line`, available for reflection purposes (if a doctest)
 
-    * `:doctest_line` - the line the doctest was defined (if a doctest)
+    * `:doctest_line` - the line the doctest was defined (if a doctest).
+      It can be used to run a doctest defined at the given source line
 
   The following tags customize how tests behave:
 
@@ -658,12 +662,11 @@ defmodule ExUnit.Case do
   end
 
   @doc """
-  Registers a function to run as part of this case.
+  Registers a function to run as a test for this module.
 
-  This is used by third-party projects, like QuickCheck, to
-  implement macros like `property/3` that works like `test`
-  but instead defines a property. See `test/3` implementation
-  for an example of invoking this function.
+  This is used by third-party projects to implement macros like
+  `property/3` that works like `test` but instead defines a property.
+  See `test/3` implementation for an example of invoking this function.
 
   The test type will be converted to a string and pluralized for
   display. You can use `ExUnit.plural_rule/2` to set a custom

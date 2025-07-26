@@ -196,11 +196,8 @@ defmodule ExUnit.Filters do
   Tests are first excluded, then included, and then skipped (if any left).
 
   If a `:skip` tag is found in `tags`, `{:skipped, message}` is returned if the test
-  has been left after the `exclude` and `include` filters. Otherwise `{:exclude, message}`
-  is returned.
-
-  The only exception to this rule is that `:skip` is found in the `include` filter,
-  `:ok` is returned regardless of whether the test was excluded or not.
+  remains after the `exclude` and `include` filters. However, if skipped tests are
+  specifically included, then they will always run.
 
   ## Examples
 
