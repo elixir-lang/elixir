@@ -1023,15 +1023,33 @@ is_unnecessary_quote(_Parts, _Scope) ->
 unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
     is_binary(Part) andalso byte_size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
-  {error, {?LOC(Line, Column), "atom length must be less than system limit: ", elixir_utils:characters_to_list(Part)}};
+  try
+    PartList = elixir_utils:characters_to_list(Part),
+    {error, {?LOC(Line, Column), "atom length must be less than system limit: ", PartList}}
+  catch
+    error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+      {error, {?LOC(Line, Column), "invalid encoding in atom: ", elixir_utils:characters_to_list(Message)}}
+  end;
 unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder}) when
     is_function(StaticAtomsEncoder) ->
-  Value = elixir_utils:characters_to_binary(Part),
-  case StaticAtomsEncoder(Value, [{line, Line}, {column, Column}]) of
-    {ok, Term} ->
-      {ok, Term};
-    {error, Reason} when is_binary(Reason) ->
-      {error, {?LOC(Line, Column), elixir_utils:characters_to_list(Reason) ++ ": ", elixir_utils:characters_to_list(Part)}}
+  EncodeResult = try
+    ValueEncBin = elixir_utils:characters_to_binary(Part),
+    ValueEncList = elixir_utils:characters_to_list(Part),
+    {ok, ValueEncBin, ValueEncList}
+  catch
+    error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+      {error, {?LOC(Line, Column), "invalid encoding in atom: ", elixir_utils:characters_to_list(Message)}}
+  end,
+
+  case EncodeResult of
+    {ok, Value, ValueList} ->
+      case StaticAtomsEncoder(Value, [{line, Line}, {column, Column}]) of
+        {ok, Term} ->
+          {ok, Term};
+        {error, Reason} when is_binary(Reason) ->
+          {error, {?LOC(Line, Column), elixir_utils:characters_to_list(Reason) ++ ": ", ValueList}}
+      end;
+    EncError -> EncError
   end;
 unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
   try
@@ -1039,9 +1057,14 @@ unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}
   catch
     error:badarg -> 
       % Check if it's a UTF-8 issue by trying to convert to list
-      elixir_utils:characters_to_list(Binary),
-      % If we get here, it's not a UTF-8 issue
-      {error, {?LOC(Line, Column), "unsafe atom does not exist: ", elixir_utils:characters_to_list(Binary)}}
+      try
+        List = elixir_utils:characters_to_list(Binary),
+        % If we get here, it's not a UTF-8 issue
+        {error, {?LOC(Line, Column), "unsafe atom does not exist: ", List}}
+      catch
+        error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+          {error, {?LOC(Line, Column), "invalid encoding in atom: ", elixir_utils:characters_to_list(Message)}}
+      end
   end;
 unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{}) when is_binary(Binary) ->
   try
@@ -1049,9 +1072,14 @@ unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{}) when is_binary(Binary)
   catch
     error:badarg ->
       % Try to convert using elixir_utils to get proper UnicodeConversionError
-      elixir_utils:characters_to_list(Binary),
-      % If we get here, it's not a UTF-8 issue, so it's some other badarg
-      {error, {?LOC(Line, Column), "invalid atom: ", elixir_utils:characters_to_list(Binary)}}
+      try
+        List = elixir_utils:characters_to_list(Binary),
+        % If we get here, it's not a UTF-8 issue, so it's some other badarg
+        {error, {?LOC(Line, Column), "invalid atom: ", List}}
+      catch
+        error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+          {error, {?LOC(Line, Column), "invalid encoding in atom: ", elixir_utils:characters_to_list(Message)}}
+      end
   end;
 unsafe_to_atom(List, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_list(List) ->
   try
@@ -1059,9 +1087,14 @@ unsafe_to_atom(List, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) 
   catch
     error:badarg ->
       % Try to convert using elixir_utils to get proper UnicodeConversionError
-      elixir_utils:characters_to_binary(List),
-      % If we get here, it's not a UTF-8 issue
-      {error, {?LOC(Line, Column), "unsafe atom does not exist: ", List}}
+      try
+        elixir_utils:characters_to_binary(List),
+        % If we get here, it's not a UTF-8 issue
+        {error, {?LOC(Line, Column), "unsafe atom does not exist: ", List}}
+      catch
+        error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+          {error, {?LOC(Line, Column), "invalid encoding in atom: ", elixir_utils:characters_to_list(Message)}}
+      end
   end;
 unsafe_to_atom(List, Line, Column, #elixir_tokenizer{}) when is_list(List) ->
   try
@@ -1069,9 +1102,14 @@ unsafe_to_atom(List, Line, Column, #elixir_tokenizer{}) when is_list(List) ->
   catch
     error:badarg ->
       % Try to convert using elixir_utils to get proper UnicodeConversionError
-      elixir_utils:characters_to_binary(List),
-      % If we get here, it's not a UTF-8 issue, so it's some other badarg
-      {error, {?LOC(Line, Column), "invalid atom: ", List}}
+      try
+        elixir_utils:characters_to_binary(List),
+        % If we get here, it's not a UTF-8 issue, so it's some other badarg
+        {error, {?LOC(Line, Column), "invalid atom: ", List}}
+      catch
+        error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+          {error, {?LOC(Line, Column), "invalid encoding in atom: ", elixir_utils:characters_to_list(Message)}}
+      end
   end.
 
 collect_modifiers([H | T], Buffer) when ?is_downcase(H) or ?is_upcase(H) or ?is_digit(H) ->
@@ -1095,7 +1133,12 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
           {Parts1, {ShouldWarn, _}} = lists:mapfoldl(Fun, {false, Line}, Parts0),
           Parts2 = extract_heredoc_head(Parts1),
           NewScope = maybe_heredoc_warn(ShouldWarn, Column, InterScope, H),
-          {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope};
+          try
+            {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope}
+          catch
+            error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+              {error, interpolation_format(Message, " (for heredoc starting at line ~B)", [Line], Line, Column, [H, H, H], [H, H, H])}
+          end;
 
         {error, Reason} ->
           {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line], Line, Column, [H, H, H], [H, H, H])}
@@ -1166,8 +1209,13 @@ unescape_tokens(Tokens, Line, Column, #elixir_tokenizer{unescape=true}) ->
     {error, Message, Token} ->
       {error, {?LOC(Line, Column), Message ++ ". Syntax error after: ", Token}}
   end;
-unescape_tokens(Tokens, _Line, _Column, #elixir_tokenizer{unescape=false}) ->
-  {ok, tokens_to_binary(Tokens)}.
+unescape_tokens(Tokens, Line, Column, #elixir_tokenizer{unescape=false}) ->
+  try
+    {ok, tokens_to_binary(Tokens)}
+  catch
+    error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+      {error, {?LOC(Line, Column), "invalid encoding in tokens: ", elixir_utils:characters_to_list(Message)}}
+  end.
 
 tokens_to_binary(Tokens) ->
   [if is_list(Token) -> elixir_utils:characters_to_binary(Token); true -> Token end
@@ -1671,7 +1719,14 @@ tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, S
   case elixir_interpolation:extract(Line, Column + 1, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest, NewScope} ->
       Indentation = nil,
-      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>);
+      try
+        add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>)
+      catch
+        error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+          Sigil = [$~, S, H],
+          Message = " (for sigil ~ts starting at line ~B)",
+          interpolation_error(Message, [$~] ++ SigilName ++ Original, Scope, Tokens, Message, [Sigil, Line], Line, Column, [H], [sigil_terminator(H)])
+      end;
 
     {error, Reason} ->
       Sigil = [$~, S, H],
