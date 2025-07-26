@@ -713,10 +713,10 @@ defmodule Mix.Tasks.Test do
             end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
-            nothing_executed("--only", shell, message, opts)
+            nothing_executed(shell, "--only", opts)
 
           excluded == total and Keyword.has_key?(opts, :name_pattern) ->
-            nothing_executed("--name-pattern", shell, message, opts)
+            nothing_executed(shell, "--name-pattern", opts)
 
           true ->
             :ok
@@ -771,7 +771,7 @@ defmodule Mix.Tasks.Test do
     Mix.raise(message)
   end
 
-  defp nothing_executed(option, shell, message, opts) do
+  defp nothing_executed(shell, option, opts) do
     message = "The #{option} option was given to \"mix test\" but no test was executed"
     raise_or_error_at_exit(shell, message, opts)
   end
@@ -906,6 +906,8 @@ defmodule Mix.Tasks.Test do
   defp parse_filters(opts, key) do
     if Keyword.has_key?(opts, key) do
       ExUnit.Filters.parse(Keyword.get_values(opts, key))
+    else
+      []
     end
   end
 
@@ -913,7 +915,7 @@ defmodule Mix.Tasks.Test do
     only = parse_filters(opts, :only)
     name_patterns = opts |> Keyword.get_values(:name_pattern) |> Enum.map(&{:test, &1})
 
-    case only ++ patterns do
+    case only ++ name_patterns do
       [] ->
         opts
 
