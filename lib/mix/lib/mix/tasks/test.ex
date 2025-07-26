@@ -157,7 +157,7 @@ defmodule Mix.Tasks.Test do
     * `--max-requires` - sets the maximum number of test files to compile in parallel.
       Setting this to 1 will compile test files sequentially.
 
-    * `-n`, `--name-pattern` *(since v1.19.0)* - only run tests which the name matching
+    * `-n`, `--name-pattern` *(since v1.19.0)* - only run tests with names that match
       the given regular expression
 
     * `--no-archives-check` - does not check archives
