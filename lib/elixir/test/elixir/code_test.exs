@@ -556,24 +556,47 @@ defmodule CodeTest do
     assert token4 == "\\u"
   end
 
-  test "string_to_quoted raises UnicodeConversionError for invalid UTF-8 in quoted atoms and function calls" do
+  test "string_to_quoted returns error for invalid UTF-8 in strings" do
     invalid_utf8_cases = [
+      # charlist
+      "'\\xFF'",
+      # charlist heredoc
+      "'''\n\\xFF\\\n'''"
+    ]
+
+    for code <- invalid_utf8_cases do
+      assert {:error, {_, message, _}} = Code.string_to_quoted(code)
+      assert message =~ "invalid encoding starting at <<255>>"
+    end
+  end
+
+  test "string_to_quoted returns error for invalid UTF-8 in quoted atoms and function calls" do
+    invalid_utf8_cases = [
+      # charlist
+      # ~S{'\xFF'},
+      # charlist heredoc
+      # ~s{'''\n\xFF\n'''},
       # Quoted atom
       ~S{:"\xFF"},
       ~S{:'\xFF'},
+      # Quoted keyword identifier
+      ~S{["\xFF": 1]},
+      ~S{['\xFF': 1]},
       # Quoted function call
       ~S{foo."\xFF"()},
       ~S{foo.'\xFF'()}
     ]
 
     for code <- invalid_utf8_cases do
-      assert_raise UnicodeConversionError, fn ->
-        Code.string_to_quoted!(code)
-      end
+      assert {:error, {_, message, detail}} = Code.string_to_quoted(code)
+      assert message =~ "invalid encoding in atom: "
+      assert detail =~ "invalid encoding starting at <<255>>"
 
-      assert_raise UnicodeConversionError, fn ->
-        Code.string_to_quoted!(code, existing_atoms_only: true)
-      end
+      assert {:error, {_, message, detail}} =
+               Code.string_to_quoted(code, existing_atoms_only: true)
+
+      assert message =~ "invalid encoding in atom: "
+      assert detail =~ "invalid encoding starting at <<255>>"
     end
   end
 
