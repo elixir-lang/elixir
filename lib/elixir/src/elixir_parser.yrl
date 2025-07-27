@@ -1016,7 +1016,13 @@ build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
   {'<<>>', Meta, string_parts(Args)}.
 
 build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
-  handle_literal(elixir_utils:characters_to_list(H), Token, ExtraMeta);
+  try
+    List = elixir_utils:characters_to_list(H),
+    handle_literal(List, Token, ExtraMeta)
+  catch
+    error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
+      return_error(?location(Token), elixir_utils:characters_to_list(Message), "'")
+  end;
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
