@@ -1055,7 +1055,7 @@ unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}
   try
     {ok, binary_to_existing_atom(Binary, utf8)}
   catch
-    error:badarg -> 
+    error:badarg ->
       % Check if it's a UTF-8 issue by trying to convert to list
       try
         List = elixir_utils:characters_to_list(Binary),
@@ -1719,14 +1719,7 @@ tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, S
   case elixir_interpolation:extract(Line, Column + 1, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest, NewScope} ->
       Indentation = nil,
-      try
-        add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>)
-      catch
-        error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
-          Sigil = [$~, S, H],
-          Message = " (for sigil ~ts starting at line ~B)",
-          interpolation_error(Message, [$~] ++ SigilName ++ Original, Scope, Tokens, Message, [Sigil, Line], Line, Column, [H], [sigil_terminator(H)])
-      end;
+      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>);
 
     {error, Reason} ->
       Sigil = [$~, S, H],
