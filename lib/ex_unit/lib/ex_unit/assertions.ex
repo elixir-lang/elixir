@@ -177,13 +177,16 @@ defmodule ExUnit.Assertions do
       {args, value} = extract_args(assertion, __CALLER__)
 
       quote generated: true do
-        if value = unquote(value) do
-          value
-        else
-          raise ExUnit.AssertionError,
-            args: unquote(args),
-            expr: unquote(escape_quoted(:assert, [], assertion)),
-            message: "Expected truthy, got #{inspect(value)}"
+        # not using `if` here because we don't want :generated to be propagated and suppress warnings
+        case unquote(value) do
+          falsy when falsy in [false, nil] ->
+            raise ExUnit.AssertionError,
+              args: unquote(args),
+              expr: unquote(escape_quoted(:assert, [], assertion)),
+              message: "Expected truthy, got #{inspect(falsy)}"
+
+          truthy ->
+            truthy
         end
       end
     end
@@ -238,13 +241,16 @@ defmodule ExUnit.Assertions do
       {args, value} = extract_args(assertion, __CALLER__)
 
       quote generated: true do
-        if value = unquote(value) do
-          raise ExUnit.AssertionError,
-            args: unquote(args),
-            expr: unquote(escape_quoted(:refute, [], assertion)),
-            message: "Expected false or nil, got #{inspect(value)}"
-        else
-          value
+        # not using `if` here because we don't want :generated to be propagated and suppress warnings
+        case unquote(value) do
+          falsy when falsy in [false, nil] ->
+            falsy
+
+          truthy ->
+            raise ExUnit.AssertionError,
+              args: unquote(args),
+              expr: unquote(escape_quoted(:refute, [], assertion)),
+              message: "Expected false or nil, got #{inspect(truthy)}"
         end
       end
     end
