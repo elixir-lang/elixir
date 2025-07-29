@@ -129,10 +129,12 @@ defmodule Module.Types.DescrTest do
       assert union(empty_map(), open_map([{domain_key(:integer), atom()}]))
              |> equal?(open_map([{domain_key(:integer), atom()}]))
 
-      assert union(open_map(), open_map([{domain_key(:integer), atom()}])) == open_map()
+      assert union(open_map(), open_map([{domain_key(:integer), atom()}]))
+             |> equal?(open_map())
 
       # Test union of open map and map with domain key
-      assert union(open_map(), open_map([{domain_key(:integer), atom()}])) == open_map()
+      assert union(open_map(), open_map([{domain_key(:integer), atom()}]))
+             |> equal?(open_map())
     end
 
     test "list" do
@@ -161,7 +163,8 @@ defmodule Module.Types.DescrTest do
       assert union(
                open_map(a: float(), b: atom()),
                open_map(a: integer(), b: atom())
-             ) == open_map(a: union(float(), integer()), b: atom())
+             )
+             |> equal?(open_map(a: union(float(), integer()), b: atom()))
 
       assert union(
                closed_map(a: float(), b: atom()),
@@ -279,11 +282,11 @@ defmodule Module.Types.DescrTest do
                closed_map(a: integer())
              )
 
-      assert intersection(closed_map(a: integer()), open_map(b: not_set())) ==
-               closed_map(a: integer())
+      assert intersection(closed_map(a: integer()), open_map(b: not_set()))
+             |> equal?(closed_map(a: integer()))
 
-      assert intersection(closed_map(a: integer()), open_map(b: if_set(integer()))) ==
-               closed_map(a: integer())
+      assert intersection(closed_map(a: integer()), open_map(b: if_set(integer())))
+             |> equal?(closed_map(a: integer()))
 
       assert equal?(
                intersection(closed_map(a: integer()), closed_map(a: if_set(integer()))),
@@ -541,6 +544,7 @@ defmodule Module.Types.DescrTest do
       # Non-overlapping domain keys
       t1 = closed_map([{domain_key(:integer), atom()}])
       t2 = closed_map([{domain_key(:atom), binary()}])
+
       assert equal?(difference(t1, t2) |> union(empty_map()), t1)
       assert empty?(difference(t1, t1))
 
@@ -1724,15 +1728,21 @@ defmodule Module.Types.DescrTest do
       assert map_delete(term(), :a) == :badmap
       assert map_delete(integer(), :a) == :badmap
       assert map_delete(union(open_map(), integer()), :a) == :badmap
-      assert map_delete(closed_map(a: integer(), b: atom()), :a) == {:ok, closed_map(b: atom())}
-      assert map_delete(empty_map(), :a) == {:ok, empty_map()}
 
-      assert map_delete(closed_map(a: if_set(integer()), b: atom()), :a) ==
-               {:ok, closed_map(b: atom())}
+      assert map_delete(closed_map(a: integer(), b: atom()), :a)
+             |> elem(1)
+             |> equal?(closed_map(b: atom()))
+
+      assert map_delete(empty_map(), :a) |> elem(1) |> equal?(empty_map())
+
+      assert map_delete(closed_map(a: if_set(integer()), b: atom()), :a)
+             |> elem(1)
+             |> equal?(closed_map(b: atom()))
 
       # Deleting a non-existent key
-      assert map_delete(closed_map(a: integer(), b: atom()), :c) ==
-               {:ok, closed_map(a: integer(), b: atom())}
+      assert map_delete(closed_map(a: integer(), b: atom()), :c)
+             |> elem(1)
+             |> equal?(closed_map(a: integer(), b: atom()))
 
       # Deleting from a dynamic map
       assert map_delete(dynamic(), :a) == {:ok, dynamic(open_map(a: not_set()))}
@@ -1770,9 +1780,10 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map_delete with atom fallback" do
-      assert closed_map([{:a, integer()}, {:b, atom()}, {domain_key(:atom), pid()}])
-             |> map_delete(:a) ==
-               {:ok, closed_map([{:a, not_set()}, {:b, atom()}, {domain_key(:atom), pid()}])}
+      assert closed_map(a: integer(), b: atom(), atom: pid())
+             |> map_delete(:a)
+             |> elem(1)
+             |> equal?(closed_map(a: not_set(), b: atom(), atom: pid()))
     end
 
     test "map_take" do
@@ -1780,8 +1791,8 @@ defmodule Module.Types.DescrTest do
       assert map_take(integer(), :a) == :badmap
       assert map_take(union(open_map(), integer()), :a) == :badmap
 
-      assert map_take(closed_map(a: integer(), b: atom()), :a) ==
-               {integer(), closed_map(b: atom())}
+      {took, rest} = map_take(closed_map(a: integer(), b: atom()), :a)
+      assert equal?(took, integer()) and equal?(rest, closed_map(b: atom()))
 
       # Deleting a non-existent key
       assert map_take(empty_map(), :a) == :badkey
@@ -1880,6 +1891,13 @@ defmodule Module.Types.DescrTest do
 
       # Put a key-value pair in a difference of maps
       {:ok, type} = difference(open_map(), closed_map(a: integer())) |> map_put(:b, atom())
+
+      type2 = difference(open_map(b: atom()), closed_map(a: integer()))
+      diff = difference(type, type2)
+      assert empty?(diff)
+      assert subtype?(type, type2)
+      assert subtype?(type2, type)
+
       assert equal?(type, difference(open_map(b: atom()), closed_map(a: integer())))
 
       # Put a new key-value pair with dynamic type
@@ -2034,7 +2052,7 @@ defmodule Module.Types.DescrTest do
              |> difference(list(integer()))
              |> difference(list(atom()))
              |> to_quoted_string() ==
-               "non_empty_list(term()) and not (non_empty_list(atom()) or non_empty_list(integer()))"
+               "non_empty_list(term()) and not (non_empty_list(integer()) or non_empty_list(atom()))"
 
       assert list(term(), integer()) |> to_quoted_string() ==
                "empty_list() or non_empty_list(term(), integer())"

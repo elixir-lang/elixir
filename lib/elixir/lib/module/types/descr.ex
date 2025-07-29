@@ -26,6 +26,9 @@ defmodule Module.Types.Descr do
   @bit_top (1 <<< 7) - 1
   @bit_number @bit_integer ||| @bit_float
 
+  defmacrop map_literal(tag, fields), do: {:{}, [], [{tag, fields}, :bdd_top, :bdd_bot]}
+  defmacrop list_literal(list, last), do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot]}
+
   defmacrop domain_key(key), do: {:domain_key, key}
 
   @domain_key_types [
@@ -45,10 +48,10 @@ defmodule Module.Types.Descr do
 
   @fun_top :fun_top
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top [{:open, %{}, []}]
+  @map_top {{:open, %{}}, :bdd_top, :bdd_bot}
   @non_empty_list_top {{:term, :term}, :bdd_top, :bdd_bot}
   @tuple_top [{:open, []}]
-  @map_empty [{:closed, %{}, []}]
+  @map_empty {{:closed, %{}}, :bdd_top, :bdd_bot}
 
   @none %{}
   @term %{
@@ -544,6 +547,52 @@ defmodule Module.Types.Descr do
   (bitmap, atom) are checked first for speed since, if they are present,
   the type is non-empty as we normalize then during construction.
   """
+
+  # defguardp is_descr(d)
+  #           when d == :term or
+  #                  (is_map(d) and
+  #                     (Map.has_key?(d, :atom) or Map.has_key?(d, :bitmap) or
+  #                        Map.has_key?(d, :list) or Map.has_key?(d, :map) or
+  #                        Map.has_key?(d, :tuple) or Map.has_key?(d, :fun)))
+
+  # defp bdd_size({{tag, fields = %{}}, l, r}) when tag in [:open, :closed] do
+  #   bdd_size(l) + bdd_size(r) + 1 + Enum.reduce(fields, 0, fn d, acc -> descr_size(d) + acc end)
+  # end
+
+  # defp bdd_size({{list = %{}, last = %{}}, l, r}) do
+  #   bdd_size(l) + bdd_size(r) + 1 + descr_or_domain_size(list) + descr_or_fields_size(last)
+  # end
+
+  defp bdd_size({lit, l, r}), do: bdd_size(l) + bdd_size(r) + 1
+
+  defp bdd_size(bdd), do: 0
+
+  defp dnf_structural_size(dnf) do
+    Enum.reduce(dnf, 0, fn {_tag, pos}, acc ->
+      1 + acc + length(pos)
+    end)
+  end
+
+  defp dnf_size(dnf) do
+    Enum.reduce(dnf, 0, fn {_tag, pos}, acc ->
+      1 + acc + Enum.reduce(pos, 0, fn d, acc -> descr_size(d) + acc end)
+    end)
+  end
+
+  def descr_size(:term), do: 1
+
+  def descr_size(%{} = descr) do
+    Enum.reduce(Map.to_list(descr), 0, fn {key, value}, acc ->
+      acc + descr_size(key, value)
+    end)
+  end
+
+  def descr_size(:tuple, dnf), do: dnf_size(dnf)
+  def descr_size(:fun, bdd), do: bdd_size(bdd)
+  def descr_size(:map, bdd), do: bdd_size(bdd)
+  def descr_size(:list, bdd), do: bdd_size(bdd)
+  def descr_size(_, _), do: 1
+
   def empty?(:term), do: false
 
   def empty?(%{} = descr) do
@@ -555,6 +604,46 @@ defmodule Module.Types.Descr do
         true
 
       descr ->
+        # IO.puts("Woooh")
+        d = descr_size(descr)
+
+        if d > 100 do
+          IO.puts("descr_size(descr): #{d}")
+          IO.puts("The decomposition is:")
+
+          if Map.has_key?(descr, :atom),
+            do: IO.puts("Atom size: #{descr_size(:atom, descr.atom)}")
+
+          if Map.has_key?(descr, :list) do
+            IO.puts("List size: #{descr_size(:list, descr.list)}")
+          else
+            IO.puts("List size: 0")
+          end
+
+          if Map.has_key?(descr, :map) do
+            IO.puts("Map size: #{descr_size(:map, descr.map)}")
+          else
+            IO.puts("Map size: 0")
+          end
+
+          if Map.has_key?(descr, :tuple) do
+            IO.puts("Tuple size: #{descr_size(:tuple, descr.tuple)}")
+            IO.puts("Tuple structural size: #{dnf_structural_size(descr.tuple)}")
+          else
+            IO.puts("Tuple size: 0")
+          end
+
+          if Map.has_key?(descr, :fun) do
+            IO.puts("Fun size: #{descr_size(:fun, descr.fun)}")
+          else
+            IO.puts("Fun size: 0")
+          end
+
+          # dbg(descr)
+        end
+
+        # dbg(descr, limit: :infinity, printable_limit: :infinity, width: :infinity)
+
         not Map.has_key?(descr, :atom) and
           not Map.has_key?(descr, :bitmap) and
           not Map.has_key?(descr, :optional) and
@@ -1979,38 +2068,54 @@ defmodule Module.Types.Descr do
   defp list_tail_unfold(:term), do: @not_non_empty_list
   defp list_tail_unfold(other), do: Map.delete(other, :list)
 
-  defp list_union(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      {:bdd_top, _} -> :bdd_top
-      {_, :bdd_top} -> :bdd_top
-      {:bdd_bot, bdd} -> bdd
-      {bdd, :bdd_bot} -> bdd
-      {{list, l1, r1}, {list, l2, r2}} -> {list, list_union(l1, l2), list_union(r1, r2)}
-      # Note: this is a deep merge, that goes down bdd1 to insert bdd2 into it.
-      # It is the same as going down bdd1 to insert bdd1 into it.
-      # Possible opti: insert into the bdd with smallest height
-      {{list, l, r}, bdd} -> {list, list_union(l, bdd), list_union(r, bdd)}
+  # Attempt a merge, if the union is between two single lists.
+  defp list_union(list_literal(list1, last1), list_literal(list2, last2)) do
+    cond do
+      subtype?(list1, list2) and subtype?(last1, last2) -> list_literal(list2, last2)
+      subtype?(list2, list1) and subtype?(last2, last1) -> list_literal(list1, last1)
+      equal?(list1, list2) -> list_literal(list1, union(last1, last2))
+      true -> list_union_recur(list_literal(list1, last1), list_literal(list2, last2))
     end
   end
 
-  defp list_intersection(bdd1, bdd2) do
+  defp list_union(bdd1, bdd2), do: list_union_recur(bdd1, bdd2)
+
+  defp list_union_recur(bdd1, bdd2) do
     case {bdd1, bdd2} do
-      {bdd, {{list, tail}, :bdd_top, :bdd_bot}} when is_tuple(bdd) ->
-        if list == :term and tail == :term do
-          bdd
-        else
-          list_intersection_recur(bdd1, bdd2)
-        end
+      {:bdd_top, _} ->
+        :bdd_top
 
-      {{{list, tail}, :bdd_top, :bdd_bot}, bdd} when is_tuple(bdd) ->
-        if list == :term and tail == :term do
-          bdd
-        else
-          list_intersection_recur(bdd1, bdd2)
-        end
+      {_, :bdd_top} ->
+        :bdd_top
 
-      _ ->
-        list_intersection_recur(bdd1, bdd2)
+      {:bdd_bot, bdd} ->
+        bdd
+
+      {bdd, :bdd_bot} ->
+        bdd
+
+      {{list, l1, r1}, {list, l2, r2}} ->
+        {list, list_union(l1, l2), list_union(r1, r2)}
+
+      {{list1, l1, r1}, {list2, l2, r2}} when list1 < list2 ->
+        {list1, list_union(l1, bdd2), list_union(r1, bdd2)}
+
+      {{list1, l1, r1}, {list2, l2, r2}} when list1 > list2 ->
+        {list2, list_union(bdd1, l2), list_union(bdd1, r2)}
+    end
+  end
+
+  defp is_list_top?({{list, tail}, :bdd_top, :bdd_bot}) do
+    list == :term and tail == :term
+  end
+
+  defp is_list_top?(_), do: false
+
+  defp list_intersection(bdd1, bdd2) do
+    cond do
+      is_list_top?(bdd1) and is_tuple(bdd2) -> bdd2
+      is_list_top?(bdd2) and is_tuple(bdd1) -> bdd1
+      true -> list_intersection_recur(bdd1, bdd2)
     end
     |> case do
       {_, :bdd_bot, :bdd_bot} -> :bdd_bot
@@ -2039,24 +2144,38 @@ defmodule Module.Types.Descr do
       # whole bdd).
       # Note: instead of inserting the bdd at the root, we decided to intersect with
       # every atom in the bdd. If empty, then replace with the right tree.
-      {bdd, {list, :bdd_top, :bdd_bot}} ->
-        intersect_bdd_with_list(bdd, list)
+      # {bdd, {list, :bdd_top, :bdd_bot}} ->
+      #   intersect_bdd_with_list(bdd, list)
 
-      {bdd, {list, :bdd_bottom, :bdd_top}} ->
-        {list, :bdd_bottom, bdd}
+      # {bdd, {list, :bdd_bottom, :bdd_top}} ->
+      #   {list, :bdd_bottom, bdd}
 
-      {{list, :bdd_top, :bdd_bottom}, bdd} ->
-        intersect_bdd_with_list(bdd, list)
+      # {{list, :bdd_top, :bdd_bottom}, bdd} ->
+      #   intersect_bdd_with_list(bdd, list)
 
-      {{list, :bdd_bottom, :bdd_top}, bdd} ->
-        {list, :bdd_bottom, bdd}
+      # {{list, :bdd_bottom, :bdd_top}, bdd} ->
+      #   {list, :bdd_bottom, bdd}
+      {list_literal(list1, last1), list_literal(list2, last2)} ->
+        try do
+          list1 = non_empty_intersection!(list1, list2)
+          last1 = non_empty_intersection!(last1, last2)
+          list_literal(list1, last1)
+        catch
+          :empty -> :bdd_bot
+        end
 
       # General cases
       {{list, l1, r1}, {list, l2, r2}} ->
         {list, list_intersection_recur(l1, l2), list_intersection_recur(r1, r2)}
 
-      {{list, l, r}, bdd} ->
-        {list, list_intersection_recur(l, bdd), list_intersection_recur(r, bdd)}
+      {{list1, l1, r1}, {list2, l2, r2}} when list1 < list2 ->
+        {list1, list_intersection_recur(l1, bdd2), list_intersection_recur(r1, bdd2)}
+
+      {{list1, l1, r1}, {list2, l2, r2}} when list1 > list2 ->
+        {list2, list_intersection_recur(bdd1, l2), list_intersection_recur(bdd1, r2)}
+
+        # {{list, l, r}, bdd} ->
+        # {list, list_intersection_recur(l, bdd), list_intersection_recur(r, bdd)}
     end
   end
 
@@ -2093,12 +2212,29 @@ defmodule Module.Types.Descr do
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
   defp list_difference(bdd1, bdd2) do
     case {bdd1, bdd2} do
-      {:bdd_bot, _} -> :bdd_bot
-      {_, :bdd_top} -> :bdd_bot
-      {bdd, :bdd_bot} -> bdd
-      {:bdd_top, {lst, l, r}} -> {lst, list_difference(:bdd_top, l), list_difference(:bdd_top, r)}
-      {{lst, l1, r1}, {lst, l2, r2}} -> {lst, list_difference(l1, l2), list_difference(r1, r2)}
-      {{lst, l, r}, bdd} -> {lst, list_difference(l, bdd), list_difference(r, bdd)}
+      {:bdd_bot, _} ->
+        :bdd_bot
+
+      {_, :bdd_top} ->
+        :bdd_bot
+
+      {bdd, :bdd_bot} ->
+        bdd
+
+      {:bdd_top, {lst, l, r}} ->
+        {lst, list_difference(:bdd_top, l), list_difference(:bdd_top, r)}
+
+      {{lst, l1, r1}, {lst, l2, r2}} ->
+        {lst, list_difference(l1, l2), list_difference(r1, r2)}
+
+      {{lst1, l1, r1}, {lst2, l2, r2}} when lst1 < lst2 ->
+        {lst1, list_difference(l1, bdd2), list_difference(r1, bdd2)}
+
+      {{lst1, l1, r1}, {lst2, l2, r2}} when lst1 > lst2 ->
+        {lst2, list_difference(bdd1, l2), list_difference(bdd1, r2)}
+
+        # {{lst, l, r}, bdd} ->
+        #   {lst, list_difference(l, bdd), list_difference(r, bdd)}
     end
     |> case do
       {_, :bdd_bot, :bdd_bot} -> :bdd_bot
@@ -2449,6 +2585,239 @@ defmodule Module.Types.Descr do
   # and other keys bound to any type. It will be represented using a map domain that maps
   # atom to `if_set(integer())`, and every other domain key to `term_or_optional()`.
 
+  # ## TESTING
+  # def map_merge(%{map: bdd1} = d1, %{map: bdd2} = d2) do
+  #   # Starting accumulator: the empty map type
+  #   res = %{map: :bdd_bot}
+
+  #   # Recursive auxiliary function
+  #   aux = fn aux, accu, bdd1, bdd2 ->
+  #     case {map_first_label(bdd1), map_first_label(bdd2)} do
+  #       {:dummy, :dummy} ->
+  #         {some1, none1} = map_empty_cases(bdd1)
+  #         {some2, none2} = map_empty_cases(bdd2)
+
+  #         some = some1 or some2
+  #         none = none1 and none2
+
+  #         # Approximation if some and not none
+  #         if some do
+  #           fields = :maps.from_list(accu)
+  #           map_union(res, %{map: map_new(:open, fields)})
+  #         else
+  #           res
+  #         end
+
+  #       {l1, l2} ->
+  #         l = min_label(l1, l2)
+
+  #         # Split along label l
+  #         split1 = map_split(bdd1, l)
+  #         split2 = map_split(bdd2, l)
+
+  #         Enum.reduce(split1, res, fn {t1, d1_next}, acc ->
+  #           Enum.reduce(split2, acc, fn {t2, d2_next}, acc2 ->
+  #             t =
+  #               if Map.has_key?(t2, :optional) and t2.optional do
+  #                 union(t1, remove_optional(t2))
+  #               else
+  #                 t2
+  #               end
+
+  #             aux.(aux, [{l, t} | accu], d1_next.map, d2_next.map)
+  #           end)
+  #         end)
+  #     end
+  #   end
+
+  #   aux.(aux, [], bdd1, bdd2)
+  # end
+
+  # defp map_first_label(:bdd_top), do: :dummy
+  # defp map_first_label(:bdd_bot), do: :dummy
+
+  # defp map_first_label({{tag, fields}, :bdd_top, :bdd_bot}) do
+  #   case :maps.next(:maps.iterator(fields)) do
+  #     :none -> :dummy
+  #     {key, _value, _iter} -> key
+  #   end
+  # end
+
+  # defp map_first_label({{_tag, _fields}, l, _r}), do: map_first_label(l)
+
+  # # Returns {some, none}
+  # defp map_empty_cases(bdd) do
+  #   map_bdd_get(bdd)
+  #   |> Enum.reduce({false, true}, fn
+  #     {:open, fields, _negs}, {some, none} ->
+  #       some = some or map_size(fields) > 0
+  #       none = none and map_size(fields) == 0
+  #       {some, none}
+
+  #     {:closed, fields, _negs}, {some, none} ->
+  #       some = some or map_size(fields) > 0
+  #       none = none and map_size(fields) == 0
+  #       {some, none}
+  #   end)
+  # end
+
+  # # Split a BDD into a list of {type_for_label, rest_of_map}
+  # defp map_split(bdd, label) do
+  #   map_bdd_get(bdd)
+  #   |> Enum.map(fn {tag, fields, negs} ->
+  #     case :maps.take(label, fields) do
+  #       {value, fields_rest} ->
+  #         {remove_optional(value), %{map: map_new(tag, fields_rest)}}
+
+  #       :error ->
+  #         # If absent
+  #         type_for_label =
+  #           case tag do
+  #             :open -> term_or_optional()
+  #             :closed -> not_set()
+  #             domains = %{} -> Map.get(domains, domain_key(:atom), not_set())
+  #           end
+
+  #         {type_for_label, %{map: map_new(tag, fields)}}
+  #     end
+  #   end)
+  # end
+
+  # defp min_label(:dummy, :dummy), do: :dummy
+  # defp min_label(:dummy, l), do: l
+  # defp min_label(l, :dummy), do: l
+  # defp min_label(l1, l2), do: if(l1 <= l2, do: l1, else: l2)
+
+  @doc """
+  Type-level merge for maps (like `Map.merge/2`).
+
+  Semantics per OCaml code:
+  - For each key `l`, if the right map's type for `l` **may be absent**,
+    the merged type for `l` is `left(l) ∪ present(right(l))`;
+    otherwise it is `right(l)` (right-biased override).
+  - Domains are merged with the same rule (component-wise).
+  - If either side is `:open`, the result is effectively open (via domains).
+
+  Returns `{:ok, merged_descr}` or `:badmap` if either input is not a (possibly dynamic) map type.
+  """
+  def map_merge(:term, _), do: :badmap
+  def map_merge(_, :term), do: :badmap
+
+  def map_merge(%{} = descr1, %{} = descr2) do
+    case {:maps.take(:dynamic, descr1), :maps.take(:dynamic, descr2)} do
+      {:error, :error} ->
+        with {:ok, m} <- map_merge_static(descr1, descr2) do
+          {:ok, m}
+        else
+          :badmap -> :badmap
+        end
+
+      {{dyn1, stat1}, :error} ->
+        with {:ok, stat_stat} <- map_merge_static(stat1, descr2),
+             {:ok, dyn_stat} <- map_merge_static(dynamic(dyn1), descr2) do
+          {:ok, union(stat_stat, dynamic(dyn_stat))}
+        else
+          :badmap -> :badmap
+        end
+
+      {:error, {dyn2, stat2}} ->
+        with {:ok, stat_stat} <- map_merge_static(descr1, stat2),
+             {:ok, stat_dyn} <- map_merge_static(descr1, dynamic(dyn2)) do
+          {:ok, union(stat_stat, dynamic(stat_dyn))}
+        else
+          :badmap -> :badmap
+        end
+
+      {{dyn1, stat1}, {dyn2, stat2}} ->
+        with {:ok, ss} <- map_merge_static(stat1, stat2),
+             {:ok, sd} <- map_merge_static(stat1, dynamic(dyn2)),
+             {:ok, ds} <- map_merge_static(dynamic(dyn1), stat2),
+             {:ok, dd} <- map_merge_static(dynamic(dyn1), dynamic(dyn2)) do
+          {:ok, union(ss, union(dynamic(sd), union(dynamic(ds), dynamic(dd))))}
+        else
+          :badmap -> :badmap
+        end
+    end
+  end
+
+  # --- Core static merger on the BDDs ---------------------------------------
+
+  defp map_merge_static(%{map: bdd1} = d1, %{map: bdd2} = d2) do
+    # both inputs must be exclusively map (no extra components)
+    if map_only?(d1) and map_only?(d2) do
+      # Build the result by taking the cross-product of positive literals
+      # (DNF lines) and unioning merged literals.
+      merged_bdd =
+        map_bdd_get(bdd1)
+        |> Enum.reduce(:bdd_bot, fn {tag1, fields1, _negs1}, acc1 ->
+          Enum.reduce(map_bdd_get(bdd2), acc1, fn {tag2, fields2, _negs2}, acc2 ->
+            {new_tag_or_domains, new_fields} =
+              map_literal_merge(tag1, fields1, tag2, fields2)
+
+            map_union(acc2, {{new_tag_or_domains, new_fields}, :bdd_top, :bdd_bot})
+          end)
+        end)
+
+      {:ok, %{map: merged_bdd}}
+    else
+      :badmap
+    end
+  end
+
+  defp map_merge_static(_, _), do: :badmap
+
+  # --- Literal / domain merge (right-biased with "optional means fallback") --
+
+  # Merge two map literals (tag-or-domains + fields) into one literal.
+  defp map_literal_merge(tag_or_domains1, fields1, tag_or_domains2, fields2) do
+    default1 = map_key_tag_to_type(tag_or_domains1)
+    default2 = map_key_tag_to_type(tag_or_domains2)
+
+    # Merge domains first (handles openness and all non-atom key domains)
+    new_tag_or_domains = map_domain_merge(tag_or_domains1, tag_or_domains2)
+
+    # For explicit atom keys: symmetrical merge with defaults for missing keys
+    new_fields =
+      symmetrical_merge(fields1, default1, fields2, default2, fn _key, v1, v2 ->
+        map_merge_value(v1, v2)
+      end)
+
+    {new_tag_or_domains, new_fields}
+  end
+
+  # Component-wise merge of domains. For every domain key dk in @domain_key_types:
+  # result(dk) = merge_value( domain1(dk), domain2(dk) ).
+  # If all resulting domain entries are empty/optional, collapse to :closed.
+  defp map_domain_merge(tag_or_domains1, tag_or_domains2) do
+    new_domains =
+      for domain_key(_) = dk <- @domain_key_types, reduce: %{} do
+        acc ->
+          v1 = map_domain_default(tag_or_domains1, dk)
+          v2 = map_domain_default(tag_or_domains2, dk)
+          v = map_merge_value(v1, v2)
+
+          if empty_or_optional?(v) do
+            acc
+          else
+            Map.put(acc, dk, v)
+          end
+      end
+
+    if map_size(new_domains) == 0, do: :closed, else: new_domains
+  end
+
+  # Default value for a domain when not explicitly present in the literal.
+  defp map_domain_default(:open, _dk), do: term_or_optional()
+  defp map_domain_default(:closed, _dk), do: not_set()
+  defp map_domain_default(domains = %{}, dk), do: Map.get(domains, dk, not_set())
+
+  # Merge the two value types for a key, per OCaml's rule:
+  # if right may be absent, use left ∪ present(right), else right.
+  defp map_merge_value(left, right) do
+    {optional?, right_present} = pop_optional_static(right)
+    if optional?, do: union(left, right_present), else: right
+  end
+
   defp map_descr(tag, pairs, default, force?) do
     {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
 
@@ -2513,24 +2882,72 @@ defmodule Module.Types.Descr do
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
 
-  defp map_new(tag, fields = %{}), do: [{tag, fields, []}]
+  defp map_new(tag, fields = %{}), do: {{tag, fields}, :bdd_top, :bdd_bot}
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
-  defp map_union(dnf1, dnf2) do
-    # Union is just concatenation, but we rely on some optimization strategies to
-    # avoid the list to grow when possible
+  defp map_union(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {:bdd_top, _} ->
+        :bdd_top
 
-    # first pass trying to identify patterns where two maps can be fused as one
-    with [map1] <- dnf1,
-         [map2] <- dnf2,
-         optimized when optimized != nil <- maybe_optimize_map_union(map1, map2) do
-      [optimized]
-    else
-      # otherwise we just concatenate and remove structural duplicates
-      _ -> dnf1 ++ (dnf2 -- dnf1)
+      {_, :bdd_top} ->
+        :bdd_top
+
+      {:bdd_bot, bdd} ->
+        bdd
+
+      {bdd, :bdd_bot} ->
+        bdd
+
+      {map_literal(tag1, fields1), map_literal(tag2, fields2)} ->
+        case maybe_optimize_map_union({tag1, fields1, []}, {tag2, fields2, []}) do
+          {tag, fields, []} ->
+            {{tag, fields}, :bdd_top, :bdd_bot}
+
+          nil ->
+            lit1 = {tag1, fields1}
+            lit2 = {tag2, fields2}
+
+            cond do
+              lit1 == lit2 -> {lit1, :bdd_top, :bdd_bot}
+              lit1 < lit2 -> {lit1, :bdd_top, {lit2, :bdd_top, :bdd_bot}}
+              lit1 > lit2 -> {lit2, :bdd_top, {lit1, :bdd_top, :bdd_bot}}
+            end
+        end
+
+      {{map, l1, r1}, {map, l2, r2}} ->
+        {map, map_union(l1, l2), map_union(r1, r2)}
+
+      # Note: this is a deep merge, that goes down bdd1 to insert bdd2 into it.
+      # It is the same as going down bdd1 to insert bdd1 into it.
+      # Possible opti: insert into the bdd with smallest height
+      {{map1, l1, r1}, {map2, l2, r2}} when map1 < map2 ->
+        {map1, map_union(l1, bdd2), map_union(r1, bdd2)}
+
+      {{map1, l1, r1}, {map2, l2, r2}} when map1 > map2 ->
+        {map2, map_union(bdd1, l2), map_union(bdd1, r2)}
+
+        # {{map, l, r}, bdd} ->
+        #   {map, map_union(l, bdd), map_union(r, bdd)}
     end
   end
+
+  # defp map_union(dnf1, dnf2) do
+  #   # Union is just concatenation, but we rely on some optimization strategies to
+  #   # avoid the list to grow when possible
+
+  #   # first pass trying to identify patterns where two maps can be fused as one
+  #   with [map1] <- dnf1,
+  #        [map2] <- dnf2,
+  #        optimized when optimized != nil <- maybe_optimize_map_union(map1, map2) do
+  #     [optimized]
+  #   else
+  #     # otherwise we just concatenate and remove structural duplicates
+  #     _ -> dnf1 ++ (dnf2 -- dnf1)
+  #   end
+  # end
+  # defp maybe_optimize_map_union(map, map), do: map
 
   defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2) do
     case map_union_optimization_strategy(tag1, pos1, tag2, pos2) do
@@ -2555,7 +2972,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp maybe_optimize_map_union(_, _), do: nil
+  defp maybe_optimize_map_union(map1, map2),
+    do: raise("I should not be there: see inputs #{inspect(map1)} and #{inspect(map2)}")
 
   defp map_union_optimization_strategy(tag1, pos1, tag2, pos2)
   defp map_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
@@ -2627,20 +3045,110 @@ defmodule Module.Types.Descr do
     if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
-  # Given two unions of maps, intersects each pair of maps.
-  defp map_intersection(dnf1, dnf2) do
-    for {tag1, pos1, negs1} <- dnf1,
-        {tag2, pos2, negs2} <- dnf2,
-        reduce: [] do
-      acc ->
-        try do
-          {tag, fields} = map_literal_intersection(tag1, pos1, tag2, pos2)
-          prepend_to_map_dnf(tag, fields, negs1 ++ (negs2 -- negs1), acc)
-        catch
-          :empty -> acc
-        end
+  defp is_map_top?({{tag, fields}, :bdd_top, :bdd_bot}) do
+    tag == :open and map_size(fields) == 0
+  end
+
+  defp is_map_top?(_), do: false
+
+  defp map_intersection(bdd1, bdd2) do
+    # If intersecting with the top map type, no-op
+    cond do
+      is_map_top?(bdd1) and is_tuple(bdd2) -> bdd2
+      is_map_top?(bdd2) and is_tuple(bdd1) -> bdd1
+      true -> map_intersection_recur(bdd1, bdd2)
     end
   end
+
+  defp map_intersection_recur(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      # Base cases
+      {_, :bdd_bot} ->
+        :bdd_bot
+
+      {:bdd_bot, _} ->
+        :bdd_bot
+
+      {:bdd_top, bdd} ->
+        bdd
+
+      {bdd, :bdd_top} ->
+        bdd
+
+      {map_literal(tag1, fields1), map_literal(tag2, fields2)} ->
+        try do
+          map = map_literal_intersection(tag1, fields1, tag2, fields2)
+          {map, :bdd_top, :bdd_bot}
+        catch
+          :empty -> :bdd_bot
+        end
+
+      # Optimizations
+      # If intersecting with a single positive or negative function, we insert
+      # it at the root instead of merging the trees (this avoids going down the
+      # whole bdd).
+      # No: bc we want to have increasing order of literals.
+      # {bdd, {map, :bdd_top, :bdd_bot}} ->
+      #   {map, bdd, :bdd_bot}
+
+      # {bdd, {map, :bdd_bot, :bdd_top}} ->
+      #   {map, :bdd_bot, bdd}
+
+      # {{map, :bdd_top, :bdd_bot}, bdd} ->
+      #   {map, bdd, :bdd_bot}
+
+      # {{map, :bdd_bot, :bdd_top}, bdd} ->
+      #   {map, :bdd_bot, bdd}
+
+      # General cases
+      {{map, l1, r1}, {map, l2, r2}} ->
+        {map, map_intersection_recur(l1, l2), map_intersection_recur(r1, r2)}
+
+      {{map1, l1, r1}, {map2, l2, r2}} when map1 < map2 ->
+        {map1, map_intersection_recur(l1, bdd2), map_intersection_recur(r1, bdd2)}
+
+      {{map1, l1, r1}, {map2, l2, r2}} when map1 > map2 ->
+        {map2, map_intersection_recur(bdd1, l2), map_intersection_recur(bdd1, r2)}
+
+        # {{map, l, r}, bdd} ->
+        #   {map, map_intersection_recur(l, bdd), map_intersection_recur(r, bdd)}
+    end
+  end
+
+  defp map_difference(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {:bdd_bot, _} ->
+        :bdd_bot
+
+      {_, :bdd_top} ->
+        :bdd_bot
+
+      {bdd, :bdd_bot} ->
+        bdd
+
+      {:bdd_top, {map, l, r}} ->
+        {map, map_difference(:bdd_top, l), map_difference(:bdd_top, r)}
+
+      {{map, l1, r1}, {map, l2, r2}} ->
+        {map, map_difference(l1, l2), map_difference(r1, r2)}
+
+      {{map1, l1, r1}, {map2, _l2, _r2}} when map1 < map2 ->
+        {map1, map_difference(l1, bdd2), map_difference(r1, bdd2)}
+
+      {{map1, _l1, _r1}, {map2, l2, r2}} when map1 > map2 ->
+        {map2, map_difference(bdd1, l2), map_difference(bdd1, r2)}
+
+        # {{map, l, r}, bdd} -> {map, map_difference(l, bdd), map_difference(r, bdd)}
+    end
+  end
+
+  # defp map_negation(bdd) do
+  #   case bdd do
+  #     :bdd_bot -> :bdd_top
+  #     :bdd_top -> :bdd_bot
+  #     {map, l, r} -> {map, map_negation(l), map_negation(r)}
+  #   end
+  # end
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
@@ -2750,61 +3258,90 @@ defmodule Module.Types.Descr do
     if empty?(type), do: throw(:empty), else: type
   end
 
-  defp map_difference(_, dnf) when dnf == @map_top, do: []
-  defp map_difference(dnf, dnf), do: []
+  # defp map_difference(_, dnf) when dnf == @map_top, do: []
+  # defp map_difference(dnf, dnf), do: []
 
-  defp map_difference(dnf1, dnf2) do
-    Enum.reduce(dnf2, dnf1, fn
-      {:open, fields2, []}, current_dnf when map_size(fields2) == 1 ->
-        # Optimization: we are removing an open map with one field.
-        Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
-          {key, value, _rest} = :maps.next(:maps.iterator(fields2))
-          t_diff = difference(Map.get(fields1, key, map_key_tag_to_type(tag1)), value)
+  # defp map_difference(dnf1, dnf2) do
+  #   Enum.reduce(dnf2, dnf1, fn
+  #     {:open, fields2, []}, current_dnf when map_size(fields2) == 1 ->
+  #       # Optimization: we are removing an open map with one field.
+  #       Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
+  #         {key, value, _rest} = :maps.next(:maps.iterator(fields2))
+  #         t_diff = difference(Map.get(fields1, key, map_key_tag_to_type(tag1)), value)
 
-          if empty?(t_diff) do
-            acc
-          else
-            {tag, pos} = {tag1, Map.put(fields1, key, t_diff)}
-            entry = {tag, pos, negs1}
+  #         if empty?(t_diff) do
+  #           acc
+  #         else
+  #           {tag, pos} = {tag1, Map.put(fields1, key, t_diff)}
+  #           entry = {tag, pos, negs1}
 
-            cond do
-              :lists.member({tag, pos}, negs1) -> acc
-              :lists.member(entry, acc) -> acc
-              true -> [entry | acc]
-            end
-          end
-        end)
+  #           cond do
+  #             :lists.member({tag, pos}, negs1) -> acc
+  #             :lists.member(entry, acc) -> acc
+  #             true -> [entry | acc]
+  #           end
+  #         end
+  #       end)
 
-      {tag2, fields2, negs2}, current_dnf ->
-        Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
-          negs =
-            if :lists.member({tag2, fields2}, negs1) do
-              negs1
-            else
-              [{tag2, fields2} | negs1]
-            end
+  #     {tag2, fields2, negs2}, current_dnf ->
+  #       Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
+  #         negs =
+  #           if :lists.member({tag2, fields2}, negs1) do
+  #             negs1
+  #           else
+  #             [{tag2, fields2} | negs1]
+  #           end
 
-          acc = prepend_to_map_dnf(tag1, fields1, negs, acc)
+  #         acc = prepend_to_map_dnf(tag1, fields1, negs, acc)
 
-          Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
-            try do
-              {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
-              prepend_to_map_dnf(tag, fields, negs1, acc)
-            catch
-              :empty -> acc
-            end
-          end)
-        end)
-    end)
+  #         Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
+  #           try do
+  #             {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
+  #             prepend_to_map_dnf(tag, fields, negs1, acc)
+  #           catch
+  #             :empty -> acc
+  #           end
+  #         end)
+  #       end)
+  #   end)
+  # end
+
+  # defp prepend_to_map_dnf(tag, fields, negs, acc) do
+  #   entry = {tag, fields, negs}
+
+  #   cond do
+  #     :lists.member({tag, fields}, negs) -> acc
+  #     :lists.member(entry, acc) -> acc
+  #     true -> [entry | acc]
+  #   end
+  # end
+
+  # Takes all the lines from the root to the leaves finishing with a 1,
+  # and compile into tuples of positive and negative nodes. Positive nodes are
+  # those followed by a left path, negative nodes are those followed by a right path.
+  def map_bdd_get(bdd) do
+    # dbg(bdd)
+    map_bdd_get([], {:open, %{}}, [], bdd)
   end
 
-  defp prepend_to_map_dnf(tag, fields, negs, acc) do
-    entry = {tag, fields, negs}
+  defp map_bdd_get(acc, {tag, fields} = map, negs, bdd) do
+    case bdd do
+      :bdd_bot ->
+        acc
 
-    cond do
-      :lists.member({tag, fields}, negs) -> acc
-      :lists.member(entry, acc) -> acc
-      true -> [entry | acc]
+      :bdd_top ->
+        if map_empty?(tag, fields, negs), do: acc, else: [{tag, fields, negs} | acc]
+
+      {{next_tag, next_fields} = next_map, left, right} ->
+        acc =
+          try do
+            new_pos = map_literal_intersection(tag, fields, next_tag, next_fields)
+            map_bdd_get(acc, new_pos, negs, left)
+          catch
+            :empty -> acc
+          end
+
+        map_bdd_get(acc, map, [next_map | negs], right)
     end
   end
 
@@ -2851,15 +3388,15 @@ defmodule Module.Types.Descr do
 
   # Optimization: if the key does not exist in the map, avoid building
   # if_set/not_set pairs and return the popped value directly.
-  defp map_fetch_static(%{map: [{tag_or_domains, fields, []}]}, key)
+  defp map_fetch_static(%{map: {{tag_or_domains, fields}, :bdd_top, :bdd_bot}}, key)
        when not is_map_key(fields, key) do
     map_key_tag_to_type(tag_or_domains) |> pop_optional_static()
   end
 
   # Takes a map dnf and returns the union of types it can take for a given key.
   # If the key may be undefined, it will contain the `not_set()` type.
-  defp map_fetch_static(%{map: dnf}, key) do
-    dnf
+  defp map_fetch_static(%{map: bdd}, key) do
+    map_bdd_get(bdd)
     |> Enum.reduce(none(), fn
       # Optimization: if there are no negatives and key exists, return its value
       {_tag, %{^key => value}, []}, acc ->
@@ -3022,28 +3559,20 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_refresh_domain(%{map: [{tag, fields, []}]}, domain, type) do
-    %{map: [{map_refresh_tag(tag, domain, type), fields, []}]}
+  def map_refresh_domain(%{map: {{tag, fields}, :bdd_top, :bdd_bot}}, domain, type) do
+    %{map: {{map_refresh_tag(tag, domain, type), fields}, :bdd_top, :bdd_bot}}
   end
 
-  def map_refresh_domain(%{map: dnf}, domain, type) do
-    Enum.map(dnf, fn
-      {tag, fields, []} ->
-        {map_refresh_tag(tag, domain, type), fields, []}
-
-      {tag, fields, negs} ->
-        # For negations, we count on the idea that a negation will not remove any
-        # type from a domain unless it completely cancels out the type.
-        # So for any non-empty map dnf, we just update the domain with the new type,
-        # as well as its negations to keep them accurate.
-        {map_refresh_tag(tag, domain, type), fields,
-         Enum.map(negs, fn {neg_tag, neg_fields} ->
-           {map_refresh_tag(neg_tag, domain, type), neg_fields}
-         end)}
-    end)
+  # TODO: TEST THIS (previous implem was wrong)
+  def map_refresh_domain(%{map: bdd}, domain, type) do
+    # For negations, we count on the idea that a negation will not remove any
+    # type from a domain unless it completely cancels out the type.
+    # So for any non-empty map dnf, we just update the domain with the new type,
+    # as well as its negations to keep them accurate.
+    %{map: bdd_map(bdd, fn {tag, fields} -> {map_refresh_tag(tag, domain, type), fields} end)}
   end
 
-  def map_refresh_atom(descr = %{map: dnf}, atom_key, type) do
+  def map_refresh_atom(descr = %{map: bdd}, atom_key, type) do
     case atom_key do
       {:union, keys} ->
         keys
@@ -3051,10 +3580,9 @@ defmodule Module.Types.Descr do
         |> Enum.reduce(descr, fn key, acc -> map_refresh_key(acc, key, type) end)
 
       {:negation, keys} ->
-        # 1) Fetch all the possible keys in the dnf
+        # 1) Fetch all the possible keys in the bdd
         # 2) Get them all, except the ones in neg_atoms
-        possible_keys = map_fetch_all_key_names(dnf)
-        considered_keys = :sets.subtract(possible_keys, keys)
+        considered_keys = map_fetch_all_key_names(bdd) |> :sets.subtract(keys)
 
         considered_keys
         |> :sets.to_list()
@@ -3078,19 +3606,21 @@ defmodule Module.Types.Descr do
   end
 
   # Directly inserts a key of a given type into every positive and negative map.
-  defp map_put_static(%{map: dnf} = descr, key, type) do
-    dnf =
-      Enum.map(dnf, fn {tag, fields, negs} ->
-        {tag, Map.put(fields, key, type),
-         Enum.map(negs, fn {neg_tag, neg_fields} ->
-           {neg_tag, Map.put(neg_fields, key, type)}
-         end)}
-      end)
+  defp map_put_static(%{map: bdd} = descr, key, type) do
+    bdd = bdd_map(bdd, fn {tag, fields} -> {tag, Map.put(fields, key, type)} end)
 
-    %{descr | map: dnf}
+    %{descr | map: bdd}
   end
 
   defp map_put_static(descr, _key, _type), do: descr
+
+  defp bdd_map(bdd, fun) do
+    case bdd do
+      :bdd_bot -> :bdd_bot
+      :bdd_top -> :bdd_top
+      {literal, left, right} -> {fun.(literal), bdd_map(left, fun), bdd_map(right, fun)}
+    end
+  end
 
   @doc """
   Removes a key from a map type.
@@ -3222,7 +3752,7 @@ defmodule Module.Types.Descr do
 
   defp unfold_domains(domains = %{}), do: domains
 
-  defp map_get_static(%{map: [{tag_or_domains, fields, []}]}, key_descr) do
+  defp map_get_static(%{map: {{tag_or_domains, fields}, :bdd_top, :bdd_bot}}, key_descr) do
     # For each non-empty kind of type in the key_descr, we add the corresponding key domain in a union.
     domains = unfold_domains(tag_or_domains)
 
@@ -3230,20 +3760,23 @@ defmodule Module.Types.Descr do
     |> covered_key_types()
     |> Enum.reduce(none(), fn
       # Note: we could stop if we reach term_or_optional()
-      {:atom, atom_type}, acc -> map_get_atom([{domains, fields, []}], atom_type) |> union(acc)
-      key_type, acc -> Map.get(domains, key_type, not_set()) |> union(acc)
+      {:atom, atom_type}, acc ->
+        map_get_atom(map_literal(domains, fields), atom_type) |> union(acc)
+
+      key_type, acc ->
+        Map.get(domains, key_type, not_set()) |> union(acc)
     end)
   end
 
-  defp map_get_static(%{map: dnf}, key_descr) do
+  defp map_get_static(%{map: bdd}, key_descr) do
     key_descr
     |> covered_key_types()
     |> Enum.reduce(none(), fn
       {:atom, atom_type}, acc ->
-        map_get_atom(dnf, atom_type) |> union(acc)
+        map_get_atom(bdd, atom_type) |> union(acc)
 
       domain_key, acc ->
-        map_get_domain(dnf, domain_key) |> union(acc)
+        map_get_domain(bdd, domain_key) |> union(acc)
     end)
   end
 
@@ -3264,13 +3797,13 @@ defmodule Module.Types.Descr do
   #   Fetching a key of type `atom() and not (:a)` from a map of type
   #   `%{a: atom(), b: float(), atom() => pid()}`
   #   would return either `nil` or `float()` (key `:b`) or `pid()` (key `atom()`), but not `atom()` (key `:a`).
-  defp map_get_atom(dnf, atom_type) do
+  defp map_get_atom(bdd, atom_type) do
     case atom_type do
       {:union, atoms} ->
         atoms
         |> :sets.to_list()
         |> Enum.reduce(none(), fn atom, acc ->
-          {static_optional?, type} = map_fetch_static(%{map: dnf}, atom)
+          {static_optional?, type} = map_fetch_static(%{map: bdd}, atom)
 
           if static_optional? do
             union(type, acc) |> nil_or_type() |> if_set()
@@ -3280,15 +3813,15 @@ defmodule Module.Types.Descr do
         end)
 
       {:negation, atoms} ->
-        # 1) Fetch all the possible keys in the dnf
+        # 1) Fetch all the possible keys in the bdd
         # 2) Get them all, except the ones in neg_atoms
-        possible_keys = map_fetch_all_key_names(dnf)
+        possible_keys = map_fetch_all_key_names(bdd)
         considered_keys = :sets.subtract(possible_keys, atoms)
 
         considered_keys
         |> :sets.to_list()
         |> Enum.reduce(none(), fn atom, acc ->
-          {static_optional?, type} = map_fetch_static(%{map: dnf}, atom)
+          {static_optional?, type} = map_fetch_static(%{map: bdd}, atom)
 
           if static_optional? do
             union(type, acc) |> nil_or_type() |> if_set()
@@ -3296,13 +3829,13 @@ defmodule Module.Types.Descr do
             union(type, acc)
           end
         end)
-        |> union(map_get_domain(dnf, domain_key(:atom)))
+        |> union(map_get_domain(bdd, domain_key(:atom)))
     end
   end
 
   # Fetch all present keys in a map dnf (including negated ones).
-  defp map_fetch_all_key_names(dnf) do
-    dnf
+  defp map_fetch_all_key_names(bdd) do
+    map_bdd_get(bdd)
     |> Enum.reduce(:sets.new(version: 2), fn {_tag, fields, negs}, acc ->
       keys = :sets.from_list(Map.keys(fields))
 
@@ -3316,8 +3849,8 @@ defmodule Module.Types.Descr do
   end
 
   # Take a map dnf and return the union of types for the given key domain.
-  defp map_get_domain(dnf, domain_key(_) = domain_key) do
-    dnf
+  defp map_get_domain(bdd, domain_key(_) = domain_key) do
+    map_bdd_get(bdd)
     |> Enum.reduce(none(), fn
       {tag, _fields, []}, acc when is_atom(tag) ->
         map_key_tag_to_type(tag) |> union(acc)
@@ -3368,7 +3901,8 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :map) and map_only?(descr) do
-          {optional?, taken, result} = map_take_static(descr, key, initial)
+          {optional?, taken, result} =
+            map_take_static(descr, key, initial)
 
           cond do
             taken == nil -> {nil, updater.(result)}
@@ -3386,9 +3920,14 @@ defmodule Module.Types.Descr do
           result = union(dynamic(updater.(dynamic_result)), updater.(static_result))
 
           cond do
-            static_taken == nil and dynamic_taken == nil -> {nil, result}
-            static_optional? or empty?(dynamic_taken) -> :badkey
-            true -> {union(dynamic(dynamic_taken), static_taken), result}
+            static_taken == nil and dynamic_taken == nil ->
+              {nil, result}
+
+            static_optional? or empty?(dynamic_taken) ->
+              :badkey
+
+            true ->
+              {union(dynamic(dynamic_taken), static_taken), result}
           end
         else
           :badmap
@@ -3398,7 +3937,7 @@ defmodule Module.Types.Descr do
 
   # Takes a static map type and removes a key from it.
   # This allows the key to be put or deleted later on.
-  defp map_take_static(%{map: [{tag, fields, []}]} = descr, key, initial)
+  defp map_take_static(%{map: {{tag, fields}, :bdd_top, :bdd_bot}} = descr, key, initial)
        when not is_map_key(fields, key) do
     case tag do
       :open -> {true, maybe_union(initial, fn -> term() end), descr}
@@ -3406,9 +3945,10 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_take_static(%{map: dnf}, key, initial) do
+  defp map_take_static(%{map: bdd}, key, initial) do
     {value, map} =
-      Enum.reduce(dnf, {initial, none()}, fn
+      map_bdd_get(bdd)
+      |> Enum.reduce({initial, none()}, fn
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {value, map} ->
           {fst, snd} = map_pop_key(tag, fields, key)
@@ -3447,9 +3987,7 @@ defmodule Module.Types.Descr do
   # Short-circuits if it finds a non-empty map literal in the union.
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
-  defp map_empty?(dnf) do
-    Enum.all?(dnf, fn {tag, pos, negs} -> map_empty?(tag, pos, negs) end)
-  end
+  defp map_empty?(bdd), do: map_bdd_get(bdd) == []
 
   defp map_empty?(_, pos, []), do: Enum.any?(Map.to_list(pos), fn {_, v} -> empty?(v) end)
   defp map_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
@@ -3460,7 +3998,7 @@ defmodule Module.Types.Descr do
       atom_default = map_key_tag_to_type(tag)
       neg_atom_default = map_key_tag_to_type(neg_tag)
 
-      (Enum.all?(neg_fields, fn {neg_key, neg_type} ->
+      (Enum.all?(Map.to_list(neg_fields), fn {neg_key, neg_type} ->
          cond do
            # Ignore keys present in both maps; will be handled below
            is_map_key(fields, neg_key) ->
@@ -3481,7 +4019,7 @@ defmodule Module.Types.Descr do
              empty?(diff) or map_empty?(tag, Map.put(fields, neg_key, diff), negs)
          end
        end) and
-         Enum.all?(fields, fn {key, type} ->
+         Enum.all?(Map.to_list(fields), fn {key, type} ->
            case neg_fields do
              %{^key => neg_type} ->
                diff = difference(type, neg_type)
@@ -3568,24 +4106,31 @@ defmodule Module.Types.Descr do
   end
 
   # Use heuristics to normalize a map dnf for pretty printing.
-  defp map_normalize(dnfs) do
-    for dnf <- dnfs, not map_empty?([dnf]) do
-      {tag, fields, negs} = dnf
-
+  defp map_normalize(bdd) do
+    for {tag, fields, negs} <- map_bdd_get(bdd) do
       {fields, negs} =
-        Enum.reduce(negs, {fields, []}, fn neg = {neg_tag, neg_fields}, {acc_fields, acc_negs} ->
-          if map_empty_negation?(tag, acc_fields, neg) do
-            {acc_fields, acc_negs}
-          else
-            case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
-              {:one, diff_key} ->
-                {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])),
-                 acc_negs}
+        Enum.reduce(negs, {fields, []}, fn
+          # Optimization: we are removing an open map with one field.
+          {:open, neg_fields}, {acc_fields, acc_negs} when map_size(neg_fields) == 1 ->
+            {key, value, _rest} = :maps.next(:maps.iterator(neg_fields))
+            t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
 
-              _ ->
-                {acc_fields, [neg | acc_negs]}
+            # If the difference was empty, then the whole line would be empty, which is not.
+            {Map.put(acc_fields, key, t_diff), acc_negs}
+
+          neg = {neg_tag, neg_fields}, {acc_fields, acc_negs} ->
+            if non_intersecting_negation?(tag, acc_fields, neg) do
+              {acc_fields, acc_negs}
+            else
+              case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
+                {:one, diff_key} ->
+                  {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])),
+                   acc_negs}
+
+                _ ->
+                  {acc_fields, [neg | acc_negs]}
+              end
             end
-          end
         end)
 
       {tag, fields, negs}
@@ -3619,11 +4164,10 @@ defmodule Module.Types.Descr do
   defp map_fuse_with_first_fusible(map, []), do: [map]
 
   defp map_fuse_with_first_fusible(map, [candidate | rest]) do
-    if fused = maybe_optimize_map_union(map, candidate) do
+    case maybe_optimize_map_union(map, candidate) do
+      nil -> [candidate | map_fuse_with_first_fusible(map, rest)]
       # we found a fusible candidate, we're done
-      [fused | rest]
-    else
-      [candidate | map_fuse_with_first_fusible(map, rest)]
+      fused -> [fused | rest]
     end
   end
 
@@ -3646,7 +4190,7 @@ defmodule Module.Types.Descr do
   end
 
   # Adapted from `map_empty?` to remove useless negations.
-  defp map_empty_negation?(tag, fields, {neg_tag, neg_fields}) do
+  defp non_intersecting_negation?(tag, fields, {neg_tag, neg_fields}) do
     (tag == :closed and
        Enum.any?(neg_fields, fn {neg_key, neg_type} ->
          not is_map_key(fields, neg_key) and not is_optional_static(neg_type)
@@ -3657,9 +4201,8 @@ defmodule Module.Types.Descr do
          end))
   end
 
-  defp map_to_quoted(dnf, opts) do
-    dnf
-    |> map_normalize()
+  defp map_to_quoted(bdd, opts) do
+    map_normalize(bdd)
     |> Enum.map(&map_each_to_quoted(&1, opts))
   end
 
