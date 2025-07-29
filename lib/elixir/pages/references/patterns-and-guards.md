@@ -378,23 +378,23 @@ However, if your guard has multiple conditions, such as checking for tuples or m
 There exists an additional way to simplify a chain of `or` expressions in guards: Elixir supports writing "multiple guards" in the same clause. The following code:
 
 ```elixir
-def is_number_or_nil(term) when is_integer(term) or is_float(term) or is_nil(term),
+def number_or_nil?(term) when is_integer(term) or is_float(term) or is_nil(term),
   do: :maybe_number
-def is_number_or_nil(_other),
+def number_or_nil?(_other),
   do: :something_else
 ```
 
 can be alternatively written as:
 
 ```elixir
-def is_number_or_nil(term)
+def number_or_nil?(term)
     when is_integer(term)
     when is_float(term)
     when is_nil(term) do
   :maybe_number
 end
 
-def is_number_or_nil(_other) do
+def number_or_nil?(_other) do
   :something_else
 end
 ```

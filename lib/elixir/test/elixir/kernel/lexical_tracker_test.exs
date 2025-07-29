@@ -406,7 +406,7 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.StructPattern do
-          def is_uri(%URI{}), do: true
+          def uri?(%URI{}), do: true
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
         """)
@@ -439,8 +439,8 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.PatternGuardsRuntime do
-          def is_uri_atom(URI), do: true
-          def is_range_struct(range) when is_struct(range, Range), do: true
+          def uri_atom?(URI), do: true
+          def range_struct?(range) when is_struct(range, Range), do: true
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
         """)
