@@ -29,7 +29,7 @@ defmodule Kernel.GuardTest do
       defguard is_foo(atom) when atom == :foo
       defguard is_equal(foo, bar) when foo == bar
 
-      def foobar?(atom) when is_foo(atom) do
+      def foo?(atom) when is_foo(atom) do
         is_foo(atom)
       end
     end
