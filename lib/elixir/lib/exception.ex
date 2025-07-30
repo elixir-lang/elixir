@@ -288,10 +288,10 @@ defmodule Exception do
     end
   end
 
-  defp is_map_node?({:is_map, _, [_]}), do: true
-  defp is_map_node?(_), do: false
-  defp is_map_key_node?({:is_map_key, _, [_, _]}), do: true
-  defp is_map_key_node?(_), do: false
+  defp map_node?({:is_map, _, [_]}), do: true
+  defp map_node?(_), do: false
+  defp map_key_node?({:is_map_key, _, [_, _]}), do: true
+  defp map_key_node?(_), do: false
 
   defp struct_validation_node?(
          {:is_atom, _, [{{:., [], [:erlang, :map_get]}, _, [:__struct__, _]}]}
@@ -305,16 +305,16 @@ defmodule Exception do
 
   defp struct_validation_node?(_), do: false
 
-  defp is_struct_macro?(
+  defp struct_macro?(
          {:and, _,
           [
             {:and, _, [%{node: node_1 = {_, _, [arg]}}, %{node: node_2 = {_, _, [arg, _]}}]},
             %{node: node_3 = {_, _, [{_, _, [_, arg]}]}}
           ]}
        ),
-       do: is_map_node?(node_1) and is_map_key_node?(node_2) and struct_validation_node?(node_3)
+       do: map_node?(node_1) and map_key_node?(node_2) and struct_validation_node?(node_3)
 
-  defp is_struct_macro?(
+  defp struct_macro?(
          {:and, _,
           [
             {:and, _,
@@ -329,12 +329,12 @@ defmodule Exception do
             %{node: node_3 = {_, _, [{_, _, [_, arg]}, _]}}
           ]}
        ),
-       do: is_map_node?(node_1) and is_map_key_node?(node_2) and struct_validation_node?(node_3)
+       do: map_node?(node_1) and map_key_node?(node_2) and struct_validation_node?(node_3)
 
-  defp is_struct_macro?(_), do: false
+  defp struct_macro?(_), do: false
 
   defp translate_guard(guard) do
-    if is_struct_macro?(guard) do
+    if struct_macro?(guard) do
       undo_is_struct_guard(guard)
     else
       guard

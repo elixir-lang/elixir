@@ -29,7 +29,7 @@ defmodule Kernel.GuardTest do
       defguard is_foo(atom) when atom == :foo
       defguard is_equal(foo, bar) when foo == bar
 
-      def is_foobar(atom) when is_foo(atom) do
+      def foo?(atom) when is_foo(atom) do
         is_foo(atom)
       end
     end
@@ -151,31 +151,31 @@ defmodule Kernel.GuardTest do
     defmodule IntegerPrivateGuards do
       defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
 
-      def is_even_and_large?(value) when is_even(value) and value > 100, do: true
-      def is_even_and_large?(_), do: false
+      def even_and_large?(value) when is_even(value) and value > 100, do: true
+      def even_and_large?(_), do: false
 
-      def is_even_and_small?(value) do
+      def even_and_small?(value) do
         if is_even(value) and value <= 100, do: true, else: false
       end
     end
 
     test "defguardp defines private guards that work inside and outside guard clauses" do
-      assert IntegerPrivateGuards.is_even_and_large?(102)
-      refute IntegerPrivateGuards.is_even_and_large?(98)
-      refute IntegerPrivateGuards.is_even_and_large?(99)
-      refute IntegerPrivateGuards.is_even_and_large?(103)
+      assert IntegerPrivateGuards.even_and_large?(102)
+      refute IntegerPrivateGuards.even_and_large?(98)
+      refute IntegerPrivateGuards.even_and_large?(99)
+      refute IntegerPrivateGuards.even_and_large?(103)
 
-      assert IntegerPrivateGuards.is_even_and_small?(98)
-      refute IntegerPrivateGuards.is_even_and_small?(99)
-      refute IntegerPrivateGuards.is_even_and_small?(102)
-      refute IntegerPrivateGuards.is_even_and_small?(103)
+      assert IntegerPrivateGuards.even_and_small?(98)
+      refute IntegerPrivateGuards.even_and_small?(99)
+      refute IntegerPrivateGuards.even_and_small?(102)
+      refute IntegerPrivateGuards.even_and_small?(103)
 
       assert_compile_error(~r"cannot find or invoke local is_even/1", fn ->
         defmodule IntegerPrivateGuardUtils do
           import IntegerPrivateGuards
 
-          def is_even_and_large?(value) when is_even(value) and value > 100, do: true
-          def is_even_and_large?(_), do: false
+          def even_and_large?(value) when is_even(value) and value > 100, do: true
+          def even_and_large?(_), do: false
         end
       end)
 
@@ -183,7 +183,7 @@ defmodule Kernel.GuardTest do
         defmodule IntegerPrivateFunctionUtils do
           import IntegerPrivateGuards
 
-          def is_even_and_small?(value) do
+          def even_and_small?(value) do
             if is_even(value) and value <= 100, do: true, else: false
           end
         end
