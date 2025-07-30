@@ -36,7 +36,7 @@ iex> %User{name: "Jane"}
 %User{age: 27, name: "Jane"}
 ```
 
-Structs provide _compile-time_ guarantees that only the fields defined through `defstruct` will be allowed to exist in a struct:
+Structs provide *compile-time* guarantees that only the fields defined through `defstruct` will be allowed to exist in a struct:
 
 ```elixir
 iex> %User{oops: :field}
