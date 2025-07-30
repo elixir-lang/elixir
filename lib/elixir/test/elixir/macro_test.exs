@@ -444,6 +444,28 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
+    test "pipeline on multiple lines that raises" do
+      {result, formatted} =
+        dbg_format_no_newline(
+          abc()
+          |> tl()
+          |> tl()
+          |> tl()
+          |> tl()
+        )
+
+      assert %ArgumentError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             abc() #=> [:a, :b, :c]
+             |> tl() #=> [:b, :c]
+             |> tl() #=> [:c]
+             |> tl() #=> []
+             """
+    end
+
     test "simple boolean expressions" do
       {result, formatted} = dbg_format(:rand.uniform() < 0.0 and length([]) == 0)
       assert result == false

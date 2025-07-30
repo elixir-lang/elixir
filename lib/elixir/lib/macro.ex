@@ -2639,34 +2639,29 @@ defmodule Macro do
   # Pipelines.
   defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast, _env) do
     value_var = unique_var(:value, __MODULE__)
-    values_acc_var = unique_var(:values, __MODULE__)
 
-    [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
-    rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
+    [start_ast | rest_asts] = for {ast, 0} <- unpipe(pipe_ast), do: ast
+    piped_rest_asts = Enum.map(rest_asts, &{&1, pipe(value_var, &1, 0)})
 
-    initial_acc =
+    first_entry =
       quote do
         unquote(value_var) = unquote(start_ast)
-        unquote(values_acc_var) = [unquote(value_var)]
+        {:multi_value, unquote(escape(start_ast)), unquote(value_var)}
       end
 
-    values_ast =
-      for step_ast <- rest_asts, reduce: initial_acc do
-        ast_acc ->
-          quote do
-            unquote(ast_acc)
-            unquote(value_var) = unquote(step_ast)
-            unquote(values_acc_var) = [unquote(value_var) | unquote(values_acc_var)]
-          end
-      end
+    len = length(piped_rest_asts)
 
-    [
-      quote do
-        unquote(values_ast)
+    pipe_entries =
+      Enum.with_index(piped_rest_asts, fn {original_ast, step_ast}, i ->
+        tag = if i + 1 == len, do: :pipe_end, else: :pipe
 
-        {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values_acc_var))}
-      end
-    ]
+        quote do
+          unquote(value_var) = unquote(step_ast)
+          {unquote(tag), unquote(escape(original_ast)), unquote(value_var)}
+        end
+      end)
+
+    [first_entry | pipe_entries]
   end
 
   dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
@@ -2886,18 +2881,19 @@ defmodule Macro do
     result
   end
 
-  defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
-    result = List.last(values)
-    code_strings = Enum.map(code_asts, &to_string_with_colors(&1, options))
-    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_strings, values)
-    first_formatted = [dbg_format_ast(first_ast), " ", inspect(first_value, options), ?\n]
+  defp dbg_format_ast_to_debug({:pipe, code_ast, value}, options) do
+    formatted = [
+      [:faint, "|> ", :reset],
+      dbg_format_ast_with_value_no_newline(code_ast, value, options)
+    ]
 
-    rest_formatted =
-      Enum.map(asts_with_values, fn {code_ast, value} ->
-        [:faint, "|> ", :reset, dbg_format_ast(code_ast), " ", inspect(value, options), ?\n]
-      end)
+    {formatted, value}
+  end
 
-    {[first_formatted | rest_formatted], result}
+  defp dbg_format_ast_to_debug({:pipe_end, code_ast, value}, options) do
+    {formatted, value} = dbg_format_ast_to_debug({:pipe, code_ast, value}, options)
+
+    {[formatted | ?\n], value}
   end
 
   defp dbg_format_ast_to_debug({:case_argument, expr_ast, expr_value}, options) do
