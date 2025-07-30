@@ -1,3 +1,7 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
 # Structs
 
 We learned about maps [in earlier chapters](keywords-and-maps.md):
