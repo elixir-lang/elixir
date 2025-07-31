@@ -507,7 +507,7 @@ defmodule Application do
   of all loaded applications. Returns `nil` if
   the module is not listed in any application spec.
   """
-  @spec get_application(atom) :: atom | nil
+  @spec get_application(module) :: app | nil
   def get_application(module) when is_atom(module) do
     case :application.get_application(module) do
       {:ok, app} -> app
@@ -814,7 +814,7 @@ defmodule Application do
   stick after the application is loaded and also on application reload.
   """
   @spec put_env(app, key, value, timeout: timeout, persistent: boolean) :: :ok
-  def put_env(app, key, value, opts \\ []) when is_atom(app) do
+  def put_env(app, key, value, opts \\ []) when is_atom(app) and is_list(opts) do
     maybe_warn_on_app_env_key(app, key)
     :application.set_env(app, key, value, opts)
   end
@@ -856,7 +856,7 @@ defmodule Application do
   It receives the same options as `put_env/4`. Returns `:ok`.
   """
   @spec delete_env(app, key, timeout: timeout, persistent: boolean) :: :ok
-  def delete_env(app, key, opts \\ []) when is_atom(app) do
+  def delete_env(app, key, opts \\ []) when is_atom(app) and is_list(opts) do
     maybe_warn_on_app_env_key(app, key)
     :application.unset_env(app, key, opts)
   end
@@ -921,11 +921,12 @@ defmodule Application do
           {:ok, [app]} | {:error, term}
   def ensure_all_started(app_or_apps, type_or_opts \\ [])
 
-  def ensure_all_started(app, type) when is_atom(type) do
-    ensure_all_started(app, type: type)
+  def ensure_all_started(app_or_apps, type)
+      when (is_atom(app_or_apps) or is_list(app_or_apps)) and is_atom(type) do
+    ensure_all_started(app_or_apps, type: type)
   end
 
-  def ensure_all_started(app, opts) when is_atom(app) do
+  def ensure_all_started(app, opts) when is_atom(app) and is_list(opts) do
     ensure_all_started([app], opts)
   end
 
@@ -1056,7 +1057,8 @@ defmodule Application do
   Returns a list with information about the applications which are currently running.
   """
   @spec started_applications(timeout) :: [{app, description :: charlist(), vsn :: charlist()}]
-  def started_applications(timeout \\ 5000) do
+  def started_applications(timeout \\ 5000)
+      when timeout == :infinity or (is_integer(timeout) and timeout >= 0) do
     :application.which_applications(timeout)
   end
 
