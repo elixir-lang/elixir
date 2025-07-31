@@ -2893,7 +2893,7 @@ defmodule Macro do
   defp dbg_format_ast_to_debug({:pipe_end, code_ast, value}, options) do
     {formatted, value} = dbg_format_ast_to_debug({:pipe, code_ast, value}, options)
 
-    {[formatted | ?\n], value}
+    {[formatted, ?\n], value}
   end
 
   defp dbg_format_ast_to_debug({:case_argument, expr_ast, expr_value}, options) do
