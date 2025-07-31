@@ -903,13 +903,13 @@ defmodule Application do
   @doc """
   Ensures the given `app` or `apps` and their child applications are started.
 
-  The second argument is either the `t:restart_type/1` (for consistency with
+  The second argument is either the `t:restart_type/0` (for consistency with
   `start/2`) or a keyword list.
 
   ## Options
 
     * `:type` - if the application should be started `:temporary` (default),
-      `:permanent`, or `:transient`. See `t:restart_type/1` for more information.
+      `:permanent`, or `:transient`. See `t:restart_type/0` for more information.
 
     * `:mode` - (since v1.15.0) if the applications should be started serially
       (`:serial`, default) or concurrently (`:concurrent`).
