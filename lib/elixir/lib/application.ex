@@ -921,8 +921,7 @@ defmodule Application do
           {:ok, [app]} | {:error, term}
   def ensure_all_started(app_or_apps, type_or_opts \\ [])
 
-  def ensure_all_started(app_or_apps, type)
-      when (is_atom(app_or_apps) or is_list(app_or_apps)) and is_atom(type) do
+  def ensure_all_started(app_or_apps, type) when is_atom(type) do
     ensure_all_started(app_or_apps, type: type)
   end
 
