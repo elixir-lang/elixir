@@ -3,6 +3,7 @@
 
 ort:
   enableRepositoryPackageCurations: true
+  enableRepositoryPackageConfigurations: true
 
   scanner:
     skipConcluded: false
@@ -11,4 +12,10 @@ ort:
   analyzer:
     allowDynamicVersions: true
     enabledPackageManagers: [SpdxDocumentFile]
-    skipExcluded: true
+
+  reporter:
+    reporters:
+      SpdxDocument:
+        options:
+          creationInfoOrganization: The Elixir Team
+          documentName: "Elixir Source SPDX Document"

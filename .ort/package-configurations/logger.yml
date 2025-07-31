@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+id: "SpdxDocumentFile:The Elixir Team:logger:"
+path_excludes:
+  - pattern: "lib/logger/test/**/*"
+    reason: "TEST_OF"
+    comment: "Tests"
