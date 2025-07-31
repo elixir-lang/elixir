@@ -62,6 +62,16 @@ runs:
         # Override Default Evaluator Rules
         cp .ort/config/evaluator.rules.kts "$HOME/.ort/config/evaluator.rules.kts"
 
+        # Add Package Configurations
+        mkdir -p "$HOME/.ort/config/package-configurations/SpdxDocumentFile/The Elixir Team"
+        for FILE in .ort/package-configurations/*.yml; do
+          COMPONENT="$(basename "$FILE")"
+          cp "$FILE" "$HOME/.ort/config/package-configurations/SpdxDocumentFile/The Elixir Team/$COMPONENT"
+          sed -i -E \
+            "s/(\"SpdxDocumentFile:The Elixir Team:.+:)\"/\1${ELIXIR_VERSION}\"/" \
+            "$HOME/.ort/config/package-configurations/SpdxDocumentFile/The Elixir Team/$COMPONENT"
+        done
+
         # Set Version in SPDX & Config
         sed -i "s/# elixir-version-insert/versionInfo: '${ELIXIR_VERSION}'/" project.spdx.yml
         sed -i -E "s/(\"SpdxDocumentFile:The Elixir Team:.+:)\"/\1${ELIXIR_VERSION}\"/" .ort.yml
@@ -80,7 +90,7 @@ runs:
       id: ort
       uses: oss-review-toolkit/ort-ci-github-action@1805edcf1f4f55f35ae6e4d2d9795ccfb29b6021 # v1.1.0
       with:
-        image: ghcr.io/oss-review-toolkit/ort-minimal:54.0.0
+        image: ghcr.io/oss-review-toolkit/ort-minimal:65.0.0
         run: >-
           labels,
           cache-dependencies,
