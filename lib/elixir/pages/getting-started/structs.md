@@ -76,6 +76,28 @@ iex> %User{} = %{}
 
 For more details on creating, updating, and pattern matching structs, see the documentation for `%/2`.
 
+## Dynamic struct updates
+
+When you need to update structs with data from keyword lists or maps, use `Kernel.struct!/2`:
+
+```elixir
+iex> john = %User{name: "John", age: 27}
+%User{age: 27, name: "John"}
+iex> updates = [name: "Jane", age: 30]
+[name: "Jane", age: 30]
+iex> struct!(john, updates)
+%User{age: 27, name: "Jane"}
+```
+
+`struct!/2` will raise an error if you try to set invalid fields:
+
+```elixir
+iex> struct!(john, invalid: "field")
+** (KeyError) key :invalid not found in: %User{age: 27, name: "John"}
+```
+
+Use the map update syntax (`%{john | name: "Jane"}`) when you know the exact fields at compile time. Always use `struct!/2` instead of `Map` functions to preserve struct integrity.
+
 ## Structs are bare maps underneath
 
 Structs are simply maps with a "special" field named `__struct__` that holds the name of the struct:
