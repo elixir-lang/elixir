@@ -2143,28 +2143,66 @@ defmodule Enum do
 
   @doc """
   Returns a tuple with the minimal and the maximal elements in the
-  enumerable according to Erlang's term ordering.
+  enumerable.
 
   If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
-
-  Calls the provided `empty_fallback` function and returns its value if
-  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
       iex> Enum.min_max([2, 3, 1])
       {1, 3}
 
+      iex> Enum.min_max(["foo", "bar", "baz"])
+      {"bar", "foo"}
+
       iex> Enum.min_max([], fn -> {nil, nil} end)
       {nil, nil}
 
-  """
-  @spec min_max(t, (-> empty_result)) :: {element, element} | empty_result
-        when empty_result: any
-  def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+  The fact this function uses Erlang's term ordering means that the
+  comparison is structural and not semantic. Therefore, if you want
+  to compare structs, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare/2` function
+  of said module:
 
-  def min_max(first..last//step = range, empty_fallback) when is_function(empty_fallback, 0) do
+      iex> dates = [
+      ...>   ~D[2019-01-01],
+      ...>   ~D[2020-01-01],
+      ...>   ~D[2018-01-01]
+      ...> ]
+      iex> Enum.min_max(dates, Date)
+      {~D[2018-01-01], ~D[2020-01-01]}
+
+  You can also pass a custom sorting function:
+
+      iex> Enum.min_max([2, 3, 1], &>/2)
+      {3, 1}
+
+  Finally, if you don't want to raise on empty enumerables, you can pass
+  the empty fallback:
+
+      iex> Enum.min_max([], fn -> nil end)
+      nil
+
+  """
+  @spec min_max(t, (element, element -> boolean) | module()) ::
+          {element, element} | empty_result
+        when empty_result: any
+  @spec min_max(
+          t,
+          (element, element -> boolean) | module(),
+          (-> empty_result)
+        ) :: {element, element} | empty_result
+        when empty_result: any
+
+  def min_max(enumerable) do
+    min_max(enumerable, fn -> raise Enum.EmptyError end)
+  end
+
+  def min_max(first..last//step = range, empty_fallback)
+      when is_function(empty_fallback, 0) do
     case Range.size(range) do
       0 ->
         empty_fallback.()
@@ -2175,11 +2213,39 @@ defmodule Enum do
     end
   end
 
-  def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
+  def min_max(enumerable, empty_fallback)
+      when is_function(empty_fallback, 0) do
+    min_max(enumerable, &</2, empty_fallback)
+  end
+
+  def min_max(enumerable, sorter) when is_atom(sorter) do
+    min_max(enumerable, min_max_sort_fun(sorter))
+  end
+
+  def min_max(enumerable, sorter) when is_function(sorter, 2) do
+    min_max(enumerable, sorter, fn -> raise Enum.EmptyError end)
+  end
+
+  def min_max(enumerable, sorter, empty_fallback)
+      when is_atom(sorter) and is_function(empty_fallback, 0) do
+    min_max(enumerable, min_max_sort_fun(sorter), empty_fallback)
+  end
+
+  def min_max(enumerable, sorter, empty_fallback)
+      when is_function(sorter, 2) and is_function(empty_fallback, 0) do
     first_fun = &[&1 | &1]
 
-    reduce_fun = fn entry, [min | max] ->
-      [Kernel.min(min, entry) | Kernel.max(max, entry)]
+    reduce_fun = fn entry, [min | max] = acc ->
+      cond do
+        sorter.(entry, min) ->
+          [entry | max]
+
+        sorter.(max, entry) ->
+          [min | entry]
+
+        true ->
+          acc
+      end
     end
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
@@ -2259,7 +2325,7 @@ defmodule Enum do
 
   def min_max_by(enumerable, fun, sorter, empty_fallback)
       when is_function(fun, 1) and is_atom(sorter) and is_function(empty_fallback, 0) do
-    min_max_by(enumerable, fun, min_max_by_sort_fun(sorter), empty_fallback)
+    min_max_by(enumerable, fun, min_max_sort_fun(sorter), empty_fallback)
   end
 
   def min_max_by(enumerable, fun, sorter, empty_fallback)
@@ -2290,7 +2356,7 @@ defmodule Enum do
     end
   end
 
-  defp min_max_by_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) == :lt)
+  defp min_max_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) == :lt)
 
   @doc """
   Splits the `enumerable` in two lists according to the given function `fun`.
