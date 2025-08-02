@@ -743,6 +743,30 @@ defmodule EnumTest do
     assert_runs_enumeration_only_once(&Enum.min_max(&1, fn -> nil end))
   end
 
+  test "min_max/3" do
+    dates = [~D[2020-01-01], ~D[2019-01-01]]
+
+    assert Enum.min_max(dates, Date) ==
+             {~D[2019-01-01], ~D[2020-01-01]}
+
+    assert Enum.min_max([~D[2000-01-01]], Date) ==
+             {~D[2000-01-01], ~D[2000-01-01]}
+
+    assert Enum.min_max([3, 1, 2], &>/2, fn -> nil end) ==
+             {3, 1}
+
+    assert Enum.min_max([], &>/2, fn -> {:no_min, :no_max} end) ==
+             {:no_min, :no_max}
+
+    assert Enum.min_max(%{}, &>/2, fn -> {:no_min, :no_max} end) ==
+             {:no_min, :no_max}
+
+    assert Enum.min_max(1..5, &>/2, fn -> {:no_min, :no_max} end) ==
+             {5, 1}
+
+    assert_runs_enumeration_only_once(&Enum.min_max(&1, fn a, b -> a > b end, fn -> nil end))
+  end
+
   test "min_max_by/2" do
     assert Enum.min_max_by(["aaa", "a", "aa"], fn x -> String.length(x) end) == {"a", "aaa"}
 
