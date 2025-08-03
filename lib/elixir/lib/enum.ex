@@ -2145,8 +2145,8 @@ defmodule Enum do
   Returns a tuple with the minimal and the maximal elements in the
   enumerable.
 
-  If multiple elements are considered maximal or minimal, the first one
-  that was found is returned.
+  By default, the comparison is done with the `<` sorter function,
+  as the function must not return true for equal elements.
 
   ## Examples
 
@@ -2266,8 +2266,8 @@ defmodule Enum do
   Returns a tuple with the minimal and the maximal elements in the
   enumerable as calculated by the given function.
 
-  If multiple elements are considered maximal or minimal, the first one
-  that was found is returned.
+  By default, the comparison is done with the `<` sorter function,
+  as the function must not return true for equal elements.
 
   ## Examples
 
