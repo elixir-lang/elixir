@@ -637,13 +637,14 @@ defmodule Module.Types.DescrTest do
              )
 
       # Nested lists with last element
+      # "lists of (lists of integers), ending with atom"
+      # minus
+      # "lists of (lists of numbers), ending with boolean"
+      # gives:
+      # "non empty lists of (lists of integers), ending with (atom and not boolean)"
+
       assert difference(list(list(integer()), atom()), list(list(number()), boolean()))
-             |> equal?(
-               union(
-                 non_empty_list(list(integer()), difference(atom(), boolean())),
-                 non_empty_list(difference(list(integer()), list(number())), atom())
-               )
-             )
+             |> equal?(non_empty_list(list(integer()), difference(atom(), boolean())))
 
       # Union types in last element
       assert difference(list(integer(), union(atom(), binary())), list(number(), atom()))
@@ -1538,11 +1539,12 @@ defmodule Module.Types.DescrTest do
     test "map_fetch" do
       assert map_fetch(term(), :a) == :badmap
       assert map_fetch(union(open_map(), integer()), :a) == :badmap
+      assert map_fetch(difference(open_map(), open_map()), :a) == :badmap
+      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) == :badmap
 
       assert map_fetch(open_map(), :a) == :badkey
       assert map_fetch(open_map(a: not_set()), :a) == :badkey
       assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) == :badkey
-      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) == :badkey
 
       assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
 
@@ -2361,7 +2363,7 @@ defmodule Module.Types.DescrTest do
              )
              |> union(difference(open_map(x: atom()), open_map(x: boolean())))
              |> to_quoted_string() ==
-               "%{..., a: integer(), b: atom(), c: boolean()} or %{..., x: atom() and not boolean()}"
+               "%{..., a: integer(), b: atom(), c: boolean()} or\n  (%{..., x: atom() and not boolean()} and not %{..., a: integer(), b: atom(), c: boolean()})"
 
       assert closed_map(a: number(), b: atom(), c: pid())
              |> difference(closed_map(a: integer(), b: atom(), c: pid()))
@@ -2375,6 +2377,11 @@ defmodule Module.Types.DescrTest do
 
       # Remark: this simplification is order dependent. Having the first difference
       # after the second gives a different result.
+      assert open_map(a: number(), b: atom(), c: union(pid(), port()))
+             |> difference(open_map(a: integer(), b: atom(), c: union(pid(), port())))
+             |> difference(open_map(a: float(), b: atom(), c: pid()))
+             |> to_quoted_string() == "%{..., a: float(), b: atom(), c: port()}"
+
       assert open_map(a: number(), b: atom(), c: union(pid(), port()))
              |> difference(open_map(a: float(), b: atom(), c: pid()))
              |> difference(open_map(a: integer(), b: atom(), c: union(pid(), port())))

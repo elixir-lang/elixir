@@ -12,6 +12,7 @@ defmodule Module.Types.Descr do
   # Vocabulary:
   #
   # * DNF - disjunctive normal form which is a pair of unions and negations.
+  # * BDD - binary decision diagram which is a set-theoretic representation of types as a tree.
   #   In the case of maps, we augment each pair with the open/closed tag.
 
   import Bitwise
@@ -27,6 +28,7 @@ defmodule Module.Types.Descr do
   @bit_number @bit_integer ||| @bit_float
 
   defmacrop map_literal(tag, fields), do: {:{}, [], [{tag, fields}, :bdd_top, :bdd_bot]}
+  defmacrop tuple_literal(tag, elements), do: {:{}, [], [{tag, elements}, :bdd_top, :bdd_bot]}
   defmacrop list_literal(list, last), do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot]}
 
   defmacrop domain_key(key), do: {:domain_key, key}
@@ -50,7 +52,7 @@ defmodule Module.Types.Descr do
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top {{:open, %{}}, :bdd_top, :bdd_bot}
   @non_empty_list_top {{:term, :term}, :bdd_top, :bdd_bot}
-  @tuple_top [{:open, []}]
+  @tuple_top {{:open, []}, :bdd_top, :bdd_bot}
   @map_empty {{:closed, %{}}, :bdd_top, :bdd_bot}
 
   @none %{}
@@ -176,15 +178,28 @@ defmodule Module.Types.Descr do
     Enum.reduce(funs, &intersection/2)
   end
 
+  # This is an insertion of an arrow {domain, return} into a list of non-overlapping arrows.
+  # If no arrow overlaps with the new arrow, it will be inserted at the end.
+  # For any arrow that overlaps, we split this arrow into two: one where the domains intersect,
+  # and one where the domains differ. Then we continue the recursion with the domain subtracted
+  # from the one of the overlapping arrow.
   defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
     common = intersection(domain, acc_domain)
 
     if empty?(common) do
       [{acc_domain, acc_return} | pivot_overlapping_clause(domain, return, acc)]
     else
-      [{common, union(return, acc_return)} | acc]
-      |> prepend_to_unless_empty(difference(domain, common), return)
-      |> prepend_to_unless_empty(difference(acc_domain, common), acc_return)
+      diff = difference(domain, acc_domain)
+
+      rest =
+        if empty?(diff) do
+          []
+        else
+          pivot_overlapping_clause(diff, return, acc)
+        end
+
+      [{common, union(return, acc_return)} | rest]
+      |> prepend_to_unless_empty(difference(acc_domain, domain), acc_return)
     end
   end
 
@@ -233,8 +248,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp unwrap_domain_tuple(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
-    Enum.map(dnf, transform)
+  defp unwrap_domain_tuple(%{tuple: bdd} = descr, transform) when map_size(descr) == 1 do
+    tuple_bdd_to_dnf_no_negations(bdd) |> Enum.map(transform)
   end
 
   defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
@@ -456,9 +471,11 @@ defmodule Module.Types.Descr do
       {right_dynamic, right_static} = Map.pop(right, :dynamic, right)
       dynamic_part = difference_static(left_dynamic, right_static)
 
-      if empty?(dynamic_part),
-        do: none(),
-        else: Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
+      # This might be the worst place possible to check for emptiness.
+      # if empty?(dynamic_part),
+      # do: none(),
+      # else:
+      Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
     else
       difference_static(left, right)
     end
@@ -547,52 +564,6 @@ defmodule Module.Types.Descr do
   (bitmap, atom) are checked first for speed since, if they are present,
   the type is non-empty as we normalize then during construction.
   """
-
-  # defguardp is_descr(d)
-  #           when d == :term or
-  #                  (is_map(d) and
-  #                     (Map.has_key?(d, :atom) or Map.has_key?(d, :bitmap) or
-  #                        Map.has_key?(d, :list) or Map.has_key?(d, :map) or
-  #                        Map.has_key?(d, :tuple) or Map.has_key?(d, :fun)))
-
-  # defp bdd_size({{tag, fields = %{}}, l, r}) when tag in [:open, :closed] do
-  #   bdd_size(l) + bdd_size(r) + 1 + Enum.reduce(fields, 0, fn d, acc -> descr_size(d) + acc end)
-  # end
-
-  # defp bdd_size({{list = %{}, last = %{}}, l, r}) do
-  #   bdd_size(l) + bdd_size(r) + 1 + descr_or_domain_size(list) + descr_or_fields_size(last)
-  # end
-
-  defp bdd_size({lit, l, r}), do: bdd_size(l) + bdd_size(r) + 1
-
-  defp bdd_size(bdd), do: 0
-
-  defp dnf_structural_size(dnf) do
-    Enum.reduce(dnf, 0, fn {_tag, pos}, acc ->
-      1 + acc + length(pos)
-    end)
-  end
-
-  defp dnf_size(dnf) do
-    Enum.reduce(dnf, 0, fn {_tag, pos}, acc ->
-      1 + acc + Enum.reduce(pos, 0, fn d, acc -> descr_size(d) + acc end)
-    end)
-  end
-
-  def descr_size(:term), do: 1
-
-  def descr_size(%{} = descr) do
-    Enum.reduce(Map.to_list(descr), 0, fn {key, value}, acc ->
-      acc + descr_size(key, value)
-    end)
-  end
-
-  def descr_size(:tuple, dnf), do: dnf_size(dnf)
-  def descr_size(:fun, bdd), do: bdd_size(bdd)
-  def descr_size(:map, bdd), do: bdd_size(bdd)
-  def descr_size(:list, bdd), do: bdd_size(bdd)
-  def descr_size(_, _), do: 1
-
   def empty?(:term), do: false
 
   def empty?(%{} = descr) do
@@ -604,50 +575,10 @@ defmodule Module.Types.Descr do
         true
 
       descr ->
-        # IO.puts("Woooh")
-        d = descr_size(descr)
-
-        if d > 100 do
-          IO.puts("descr_size(descr): #{d}")
-          IO.puts("The decomposition is:")
-
-          if Map.has_key?(descr, :atom),
-            do: IO.puts("Atom size: #{descr_size(:atom, descr.atom)}")
-
-          if Map.has_key?(descr, :list) do
-            IO.puts("List size: #{descr_size(:list, descr.list)}")
-          else
-            IO.puts("List size: 0")
-          end
-
-          if Map.has_key?(descr, :map) do
-            IO.puts("Map size: #{descr_size(:map, descr.map)}")
-          else
-            IO.puts("Map size: 0")
-          end
-
-          if Map.has_key?(descr, :tuple) do
-            IO.puts("Tuple size: #{descr_size(:tuple, descr.tuple)}")
-            IO.puts("Tuple structural size: #{dnf_structural_size(descr.tuple)}")
-          else
-            IO.puts("Tuple size: 0")
-          end
-
-          if Map.has_key?(descr, :fun) do
-            IO.puts("Fun size: #{descr_size(:fun, descr.fun)}")
-          else
-            IO.puts("Fun size: 0")
-          end
-
-          # dbg(descr)
-        end
-
-        # dbg(descr, limit: :infinity, printable_limit: :infinity, width: :infinity)
-
         not Map.has_key?(descr, :atom) and
           not Map.has_key?(descr, :bitmap) and
           not Map.has_key?(descr, :optional) and
-          not Map.has_key?(descr, :tuple) and
+          (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
           (not Map.has_key?(descr, :map) or map_empty?(descr.map)) and
           (not Map.has_key?(descr, :list) or list_empty?(descr.list)) and
           (not Map.has_key?(descr, :fun) or fun_empty?(descr.fun))
@@ -661,6 +592,7 @@ defmodule Module.Types.Descr do
   defp empty_key?(:fun, value), do: fun_empty?(value)
   defp empty_key?(:map, value), do: map_empty?(value)
   defp empty_key?(:list, value), do: list_empty?(value)
+  defp empty_key?(:tuple, value), do: tuple_empty?(value)
   defp empty_key?(_, _value), do: false
 
   @doc """
@@ -732,9 +664,9 @@ defmodule Module.Types.Descr do
   defp to_quoted(:atom, val, _opts), do: atom_to_quoted(val)
   defp to_quoted(:bitmap, val, _opts), do: bitmap_to_quoted(val)
   defp to_quoted(:dynamic, descr, opts), do: dynamic_to_quoted(descr, opts)
-  defp to_quoted(:map, dnf, opts), do: map_to_quoted(dnf, opts)
-  defp to_quoted(:list, dnf, opts), do: list_to_quoted(dnf, false, opts)
-  defp to_quoted(:tuple, dnf, opts), do: tuple_to_quoted(dnf, opts)
+  defp to_quoted(:map, bdd, opts), do: map_to_quoted(bdd, opts)
+  defp to_quoted(:list, bdd, opts), do: list_to_quoted(bdd, false, opts)
+  defp to_quoted(:tuple, bdd, opts), do: tuple_to_quoted(bdd, opts)
   defp to_quoted(:fun, bdd, opts), do: fun_to_quoted(bdd, opts)
 
   @doc """
@@ -1417,7 +1349,22 @@ defmodule Module.Types.Descr do
     type_args = args_to_domain(arguments)
 
     Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-      aux_apply(acc, type_args, term(), intersection_of_arrows)
+      {x, _cache} = aux_apply(acc, type_args, term(), intersection_of_arrows, %{})
+      x
+    end)
+  end
+
+  defp apply_disjoint(arguments, arrows) do
+    type_args = args_to_domain(arguments)
+
+    Enum.reduce(arrows, none(), fn {args, ret}, acc_return ->
+      dom = args_to_domain(args)
+
+      if empty?(intersection(dom, type_args)) do
+        acc_return
+      else
+        union(acc_return, ret)
+      end
     end)
   end
 
@@ -1435,39 +1382,67 @@ defmodule Module.Types.Descr do
   # - arrow_intersections: The list of function arrows to process
 
   # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
-  defp aux_apply(result, _input, rets_reached, []) do
-    if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
+  defp aux_apply(result, input, rets_reached, [], cache) do
+    cache_key = {result, input, rets_reached, []}
+    res = union(result, rets_reached)
+    {res, Map.put(cache, cache_key, res)}
   end
 
-  defp aux_apply(result, input, returns_reached, [{args, ret} | arrow_intersections]) do
+  defp aux_apply(result, input, returns_reached, [{args, ret} | arrow_intersections], cache) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = difference(input, args_to_domain(args))
+    cache_key = {result, input, returns_reached, [{args, ret} | arrow_intersections]}
 
-    # Refine the return type by intersecting with this arrow's return type
-    ret_refine = intersection(returns_reached, ret)
+    case cache do
+      %{^cache_key => value} ->
+        {value, cache}
 
-    # Phase 1: Domain partitioning
-    # If the input is not fully covered by the arrow's domain, then the result type should be
-    # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
-    # parts of the domain.
-    #
-    # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
-    # both atoms and pids in the result.
-    result =
-      if empty?(dom_subtract) do
-        result
-      else
-        aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
-      end
+      _ ->
+        dom = args_to_domain(args)
+        no_intersection? = empty?(intersection(dom, input))
 
-    # 2. Return type refinement
-    # The result type is also refined (intersected) in the sense that, if several arrows match
-    # the same part of the input, then the result type is an intersection of the return types of
-    # those arrows.
+        cond do
+          # First: is there any intersection between the input and the arrow's domain?
+          # If not, we skip this arrow.
+          no_intersection? ->
+            {result, cache} =
+              aux_apply(result, input, returns_reached, arrow_intersections, cache)
 
-    # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
-    # should result in (atom() ∩ pid()), which is none().
-    aux_apply(result, input, ret_refine, arrow_intersections)
+            cache = Map.put(cache, cache_key, result)
+            {result, cache}
+
+          true ->
+            dom_subtract = difference(input, dom)
+
+            # Refine the return type by intersecting with this arrow's return type
+            ret_refine = intersection(returns_reached, ret)
+
+            # Phase 1: Domain partitioning
+            # If the input is not fully covered by the arrow's domain, then the result type should be
+            # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
+            # parts of the domain.
+            #
+            # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
+            # both atoms and pids in the result.
+
+            {result, cache} =
+              if empty?(dom_subtract) do
+                {result, cache}
+              else
+                aux_apply(result, dom_subtract, returns_reached, arrow_intersections, cache)
+              end
+
+            # 2. Return type refinement
+            # The result type is also refined (intersected) in the sense that, if several arrows match
+            # the same part of the input, then the result type is an intersection of the return types of
+            # those arrows.
+
+            # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
+            # should result in (atom() ∩ pid()), which is none().
+            {result, cache} = aux_apply(result, input, ret_refine, arrow_intersections, cache)
+            cache = Map.put(cache, cache_key, result)
+            {result, cache}
+        end
+    end
   end
 
   # Takes all the paths from the root to the leaves finishing with a 1,
@@ -1497,9 +1472,15 @@ defmodule Module.Types.Descr do
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
   defp fun_empty?(bdd) do
     case bdd do
-      :fun_bottom -> true
-      :fun_top -> false
-      bdd -> fun_get(bdd) |> Enum.all?(fn {posits, negats} -> fun_empty?(posits, negats) end)
+      :fun_bottom ->
+        true
+
+      :fun_top ->
+        false
+
+      bdd ->
+        fun_get(bdd)
+        |> Enum.all?(fn {posits, negats} -> fun_empty?(posits, negats) end)
     end
   end
 
@@ -1536,8 +1517,10 @@ defmodule Module.Types.Descr do
           # Filter positives to only those with matching arity, then check if the negative
           # function's domain is a supertype of the positive domain and if the phi function
           # determines emptiness.
+          neg_dom = args_to_domain(neg_arguments)
+
           length(neg_arguments) == positive_arity and
-            subtype?(args_to_domain(neg_arguments), positive_domain) and
+            subtype?(neg_dom, positive_domain) and
             phi_starter(neg_arguments, neg_return, positives)
         end)
     end
@@ -1580,26 +1563,32 @@ defmodule Module.Types.Descr do
     # we can simplify the phi function check to a direct subtyping test.
     # This avoids the expensive recursive phi computation by checking only that applying the
     # input to the positive intersection yields a subtype of the return
-    if all_non_empty_domains?([{arguments, return} | positives]) do
-      fun_apply_static(arguments, [positives])
-      |> subtype?(return)
-    else
-      n = length(arguments)
-      # Arity mismatch: functions with different arities cannot be subtypes
-      # of the target function type (arguments -> return)
-      if Enum.any?(positives, fn {args, _ret} -> length(args) != n end) do
-        false
-      else
-        # Initialize memoization cache for the recursive phi computation
-        arguments = Enum.map(arguments, &{false, &1})
-        {result, _cache} = phi(arguments, {false, negation(return)}, positives, %{})
-        result
-      end
+    case disjoint_non_empty_domains?({arguments, return}, positives) do
+      :disjoint_non_empty ->
+        apply_disjoint(arguments, positives) |> subtype?(return)
+
+      :non_empty ->
+        fun_apply_static(arguments, [positives]) |> subtype?(return)
+
+      _ ->
+        n = length(arguments)
+        # Arity mismatch: functions with different arities cannot be subtypes
+        # of the target function type (arguments -> return)
+        if Enum.any?(positives, fn {args, _ret} -> length(args) != n end) do
+          false
+        else
+          # Initialize memoization cache for the recursive phi computation
+          arguments = Enum.map(arguments, &{false, &1})
+          {result, _cache} = phi(arguments, {false, negation(return)}, positives, %{})
+          result
+        end
     end
   end
 
   defp phi(args, {b, t}, [], cache) do
-    {Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t)), cache}
+    result = Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t))
+    {result, Map.put(cache, {args, {b, t}, []}, result)}
+    # {Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t)), cache}
   end
 
   defp phi(args, {b, ret}, [{arguments, return} | rest_positive], cache) do
@@ -1640,9 +1629,46 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp disjoint_non_empty_domains?({arguments, return}, positives) do
+    b1 = all_disjoint_domains?(positives)
+    b2 = all_non_empty_domains?([{arguments, return} | positives])
+
+    cond do
+      b1 and b2 -> :disjoint_non_empty
+      b2 -> :non_empty
+      true -> nil
+    end
+  end
+
   defp all_non_empty_domains?(positives) do
     Enum.all?(positives, fn {args, _ret} ->
       Enum.all?(args, fn arg -> not empty?(arg) end)
+    end)
+  end
+
+  # For two arguments to be disjoint, we need at least one of their types to be disjoint.
+  defp disjoint_arguments?(args1, args2) do
+    Enum.reduce_while(Enum.zip(args1, args2), false, fn {t1, t2}, acc ->
+      t = intersection(t1, t2)
+
+      if empty?(t) do
+        {:halt, true}
+      else
+        {:cont, acc}
+      end
+    end)
+  end
+
+  # Test that all positives are two to two disjoint. We iterate on the list to do so.
+  defp all_disjoint_domains?([]), do: true
+
+  defp all_disjoint_domains?([{args, _} | rest]) do
+    Enum.reduce_while(rest, true, fn {args_rest, _}, _acc ->
+      if disjoint_arguments?(args, args_rest) do
+        {:cont, true}
+      else
+        {:halt, false}
+      end
     end)
   end
 
@@ -1895,15 +1921,15 @@ defmodule Module.Types.Descr do
 
   ## List
 
-  # Represents both list and improper list simultaneously using a pair
-  # `{list_type, last_type}`.
-  #
-  # We compute if it is a proper or improper list based if the last_type
-  # is an empty_list() or a list(). In particular, the last_type may be
-  # stored as `:term` for optimization purposes. This is ok because operations
-  # like `tl` effectively return the list itself plus the union of the tail
-  # (and if the tail includes the list itself, they are equivalent). And,
-  # for other operations like difference, we expand the tail_type back into
+  # Represents list and improper list simultaneously as a BDD with nodes of the form
+  # `{list_type, last_type}`, where `list_type` is the type of elements in the list,
+  # and `last_type` is the type of the last element (so `[]` if the list is proper,
+  # and anything else but a list if the list is improper).
+
+  # The last_type may be stored as `:term` for optimization purposes. This is ok
+  # because operations like `tl` effectively return the list itself plus the union of
+  # the tail (and if the tail includes the list itself, they are equivalent). And, for other
+  # operations like difference, we expand the tail_type back into
   # `not non_empty_list()` via `list_tail_unfold/1`. Overall, this simplifies
   # the code because we don't need to special case `not non_empty_list()`.
   #
@@ -2068,42 +2094,8 @@ defmodule Module.Types.Descr do
   defp list_tail_unfold(:term), do: @not_non_empty_list
   defp list_tail_unfold(other), do: Map.delete(other, :list)
 
-  # Attempt a merge, if the union is between two single lists.
-  defp list_union(list_literal(list1, last1), list_literal(list2, last2)) do
-    cond do
-      subtype?(list1, list2) and subtype?(last1, last2) -> list_literal(list2, last2)
-      subtype?(list2, list1) and subtype?(last2, last1) -> list_literal(list1, last1)
-      equal?(list1, list2) -> list_literal(list1, union(last1, last2))
-      true -> list_union_recur(list_literal(list1, last1), list_literal(list2, last2))
-    end
-  end
-
-  defp list_union(bdd1, bdd2), do: list_union_recur(bdd1, bdd2)
-
-  defp list_union_recur(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      {:bdd_top, _} ->
-        :bdd_top
-
-      {_, :bdd_top} ->
-        :bdd_top
-
-      {:bdd_bot, bdd} ->
-        bdd
-
-      {bdd, :bdd_bot} ->
-        bdd
-
-      {{list, l1, r1}, {list, l2, r2}} ->
-        {list, list_union(l1, l2), list_union(r1, r2)}
-
-      {{list1, l1, r1}, {list2, l2, r2}} when list1 < list2 ->
-        {list1, list_union(l1, bdd2), list_union(r1, bdd2)}
-
-      {{list1, l1, r1}, {list2, l2, r2}} when list1 > list2 ->
-        {list2, list_union(bdd1, l2), list_union(bdd1, r2)}
-    end
-  end
+  @compile {:inline, list_union: 2}
+  defp list_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp is_list_top?({{list, tail}, :bdd_top, :bdd_bot}) do
     list == :term and tail == :term
@@ -2111,93 +2103,25 @@ defmodule Module.Types.Descr do
 
   defp is_list_top?(_), do: false
 
+  defp list_intersection(list_literal(list1, last1), list_literal(list2, last2)) do
+    try do
+      list = non_empty_intersection!(list1, list2)
+      last = non_empty_intersection!(last1, last2)
+      list_literal(list, last)
+    catch
+      :empty -> :bdd_bot
+    end
+  end
+
   defp list_intersection(bdd1, bdd2) do
     cond do
       is_list_top?(bdd1) and is_tuple(bdd2) -> bdd2
       is_list_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> list_intersection_recur(bdd1, bdd2)
+      true -> bdd_intersection(bdd1, bdd2)
     end
     |> case do
       {_, :bdd_bot, :bdd_bot} -> :bdd_bot
       bdd -> bdd
-    end
-  end
-
-  defp list_intersection_recur(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      # Base cases
-      {_, :bdd_bot} ->
-        :bdd_bot
-
-      {:bdd_bot, _} ->
-        :bdd_bot
-
-      {:bdd_top, bdd} ->
-        bdd
-
-      {bdd, :bdd_top} ->
-        bdd
-
-      # Optimizations
-      # If intersecting with a single positive or negative function, we insert
-      # it at the root instead of merging the trees (this avoids going down the
-      # whole bdd).
-      # Note: instead of inserting the bdd at the root, we decided to intersect with
-      # every atom in the bdd. If empty, then replace with the right tree.
-      # {bdd, {list, :bdd_top, :bdd_bot}} ->
-      #   intersect_bdd_with_list(bdd, list)
-
-      # {bdd, {list, :bdd_bottom, :bdd_top}} ->
-      #   {list, :bdd_bottom, bdd}
-
-      # {{list, :bdd_top, :bdd_bottom}, bdd} ->
-      #   intersect_bdd_with_list(bdd, list)
-
-      # {{list, :bdd_bottom, :bdd_top}, bdd} ->
-      #   {list, :bdd_bottom, bdd}
-      {list_literal(list1, last1), list_literal(list2, last2)} ->
-        try do
-          list1 = non_empty_intersection!(list1, list2)
-          last1 = non_empty_intersection!(last1, last2)
-          list_literal(list1, last1)
-        catch
-          :empty -> :bdd_bot
-        end
-
-      # General cases
-      {{list, l1, r1}, {list, l2, r2}} ->
-        {list, list_intersection_recur(l1, l2), list_intersection_recur(r1, r2)}
-
-      {{list1, l1, r1}, {list2, l2, r2}} when list1 < list2 ->
-        {list1, list_intersection_recur(l1, bdd2), list_intersection_recur(r1, bdd2)}
-
-      {{list1, l1, r1}, {list2, l2, r2}} when list1 > list2 ->
-        {list2, list_intersection_recur(bdd1, l2), list_intersection_recur(bdd1, r2)}
-
-        # {{list, l, r}, bdd} ->
-        # {list, list_intersection_recur(l, bdd), list_intersection_recur(r, bdd)}
-    end
-  end
-
-  # We can only do this if the bdd has :bdd_bot as right child. Otherwise, if `a` is the root,
-  # it contains both formulas `a and left`, and `not a and right`. Thus, intersecting `not a`
-  # with a `{list, last}` is a wrong formula. Then, if the intersection is empty, the whole
-  # bdd is empty.
-  defp intersect_bdd_with_list(bdd, {list, last}) do
-    case bdd do
-      {{bdd_list, bdd_last}, left, :bdd_bot} ->
-        list = intersection(bdd_list, list)
-        last = intersection(bdd_last, last)
-
-        if empty?(list) or empty?(last) do
-          :bdd_bot
-        else
-          {{list, last}, left, :bdd_bot}
-        end
-
-      _ ->
-        # Otherwise, we simply put the positive list at the root.
-        {{list, last}, bdd, :bdd_bot}
     end
   end
 
@@ -2210,32 +2134,24 @@ defmodule Module.Types.Descr do
   #    b) If only the last type differs, subtracts it
   # 3. Base case: adds bdd2 type to negations of bdd1 type
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
-  defp list_difference(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      {:bdd_bot, _} ->
+  defp list_difference(list_literal(list1, last1) = bdd1, list_literal(list2, last2) = bdd2) do
+    cond do
+      empty?(intersection(list1, list2)) or empty?(intersection(last1, last2)) ->
+        list_literal(list1, last1)
+
+      subtype?(list1, list2) and subtype?(last1, last2) ->
         :bdd_bot
 
-      {_, :bdd_top} ->
-        :bdd_bot
+      equal?(list1, list2) ->
+        list_literal(list1, difference(last1, last2))
 
-      {bdd, :bdd_bot} ->
-        bdd
-
-      {:bdd_top, {lst, l, r}} ->
-        {lst, list_difference(:bdd_top, l), list_difference(:bdd_top, r)}
-
-      {{lst, l1, r1}, {lst, l2, r2}} ->
-        {lst, list_difference(l1, l2), list_difference(r1, r2)}
-
-      {{lst1, l1, r1}, {lst2, l2, r2}} when lst1 < lst2 ->
-        {lst1, list_difference(l1, bdd2), list_difference(r1, bdd2)}
-
-      {{lst1, l1, r1}, {lst2, l2, r2}} when lst1 > lst2 ->
-        {lst2, list_difference(bdd1, l2), list_difference(bdd1, r2)}
-
-        # {{lst, l, r}, bdd} ->
-        #   {lst, list_difference(l, bdd), list_difference(r, bdd)}
+      true ->
+        bdd_difference(bdd1, bdd2)
     end
+  end
+
+  defp list_difference(bdd1, bdd2) do
+    bdd_difference(bdd1, bdd2)
     |> case do
       {_, :bdd_bot, :bdd_bot} -> :bdd_bot
       bdd -> bdd
@@ -2247,13 +2163,23 @@ defmodule Module.Types.Descr do
 
   defp list_empty_line?(list_type, last_type, negs) do
     last_type = list_tail_unfold(last_type)
-
+    # To make a list {list, last} empty with some negative lists:
+    # 1. Ignore negative lists which do not have a list type that is a supertype of the positive one.
+    # 2. Each of the list supertypes:
+    #     a. either completely covers the type, if its last type is a supertype of the positive one,
+    #     b. or it removes part of the last type.
     empty?(list_type) or empty?(last_type) or
       Enum.reduce_while(negs, last_type, fn {neg_type, neg_last}, acc_last_type ->
-        if subtype?(list_type, neg_type) and subtype?(acc_last_type, neg_last) do
-          {:halt, nil}
+        if subtype?(list_type, neg_type) do
+          d = difference(acc_last_type, neg_last)
+
+          if empty?(d) do
+            {:halt, nil}
+          else
+            {:cont, d}
+          end
         else
-          {:cont, difference(acc_last_type, neg_last)}
+          {:cont, acc_last_type}
         end
       end)
       |> is_nil()
@@ -2554,17 +2480,30 @@ defmodule Module.Types.Descr do
 
   ## Map
   #
-  # Maps are in disjunctive normal form (DNF), that is, a list (union) of pairs
-  # `{map_literal, negated_literals}` where `map_literal` is a map type literal
-  # and `negated_literals` is a list of map type literals that are negated from it.
-  # Each pair is augmented with the :open or :closed tag.
+  # Maps are represented as BDDs, that is, a tree of pairs `{tag_or_domain, fields}`
+  # where `tag_or_domain` is either :closed or :open, or a map from domain keys
+  # (@domain_key_types) to types, and `fields` is a map of atom keys (:foo, :bar, ...)
+  # to types.
   #
   # For instance, the type `%{..., a: integer()} and not %{b: atom()}` can be represented
-  # by the DNF containing one pair of shape:
+  # by the BDD containing one pair of shape:
   #
-  #     {:open, %{a => integer()}, [{:closed, %{b => atom()}}]}
+  #     {{:open, %{:a => integer()}}, {{:closed, %{:b => atom()}}, :bdd_bot, :bdd_top}, :bdd_bot}
   #
-  # The goal of keeping symbolic negations is to avoid distributing difference on
+  # which can be seen as:
+  #
+  #     └─ %{..., a: integer()}
+  #      ├─ %{b: atom()}
+  #      │  ├─ :bdd_bot
+  #      │  └─ :bdd_top
+  #      └─ :bdd_bot
+  #
+  # and is interpreted as the intersection of `%{..., a: integer()}` with
+  # `not %{b: atom()}`, since the only path from the root to the leaves which
+  # ends with `:bdd_top` is the one which takes the first (left) branch after
+  # `%{..., a: integer()}`, and the second (right) branch after `%{b: atom()}`.
+  #
+  # This representation keeps negations symbolic, and avoids distributing difference on
   # every member of a union which creates a lot of map literals in the union and
   # requires emptiness checks to avoid creating empty maps.
   #
@@ -2573,7 +2512,7 @@ defmodule Module.Types.Descr do
   # `%{..., a: if_set(not atom()), b: integer()}`. For maps with more keys,
   # each key in a negated literal may create a new union when eliminated.
   #
-  # Instead of a tag :open or :closed, we can also use a map of domains which
+  # Instead of a tag :open or :closed, we can use a map of domains which
   # specifies for each defined key domain (@domain_key_types) the type associated with
   # those keys.
   #
@@ -2584,239 +2523,6 @@ defmodule Module.Types.Descr do
   # The type `%{..., atom() => integer()}` represents maps with atom keys bound to integers,
   # and other keys bound to any type. It will be represented using a map domain that maps
   # atom to `if_set(integer())`, and every other domain key to `term_or_optional()`.
-
-  # ## TESTING
-  # def map_merge(%{map: bdd1} = d1, %{map: bdd2} = d2) do
-  #   # Starting accumulator: the empty map type
-  #   res = %{map: :bdd_bot}
-
-  #   # Recursive auxiliary function
-  #   aux = fn aux, accu, bdd1, bdd2 ->
-  #     case {map_first_label(bdd1), map_first_label(bdd2)} do
-  #       {:dummy, :dummy} ->
-  #         {some1, none1} = map_empty_cases(bdd1)
-  #         {some2, none2} = map_empty_cases(bdd2)
-
-  #         some = some1 or some2
-  #         none = none1 and none2
-
-  #         # Approximation if some and not none
-  #         if some do
-  #           fields = :maps.from_list(accu)
-  #           map_union(res, %{map: map_new(:open, fields)})
-  #         else
-  #           res
-  #         end
-
-  #       {l1, l2} ->
-  #         l = min_label(l1, l2)
-
-  #         # Split along label l
-  #         split1 = map_split(bdd1, l)
-  #         split2 = map_split(bdd2, l)
-
-  #         Enum.reduce(split1, res, fn {t1, d1_next}, acc ->
-  #           Enum.reduce(split2, acc, fn {t2, d2_next}, acc2 ->
-  #             t =
-  #               if Map.has_key?(t2, :optional) and t2.optional do
-  #                 union(t1, remove_optional(t2))
-  #               else
-  #                 t2
-  #               end
-
-  #             aux.(aux, [{l, t} | accu], d1_next.map, d2_next.map)
-  #           end)
-  #         end)
-  #     end
-  #   end
-
-  #   aux.(aux, [], bdd1, bdd2)
-  # end
-
-  # defp map_first_label(:bdd_top), do: :dummy
-  # defp map_first_label(:bdd_bot), do: :dummy
-
-  # defp map_first_label({{tag, fields}, :bdd_top, :bdd_bot}) do
-  #   case :maps.next(:maps.iterator(fields)) do
-  #     :none -> :dummy
-  #     {key, _value, _iter} -> key
-  #   end
-  # end
-
-  # defp map_first_label({{_tag, _fields}, l, _r}), do: map_first_label(l)
-
-  # # Returns {some, none}
-  # defp map_empty_cases(bdd) do
-  #   map_bdd_get(bdd)
-  #   |> Enum.reduce({false, true}, fn
-  #     {:open, fields, _negs}, {some, none} ->
-  #       some = some or map_size(fields) > 0
-  #       none = none and map_size(fields) == 0
-  #       {some, none}
-
-  #     {:closed, fields, _negs}, {some, none} ->
-  #       some = some or map_size(fields) > 0
-  #       none = none and map_size(fields) == 0
-  #       {some, none}
-  #   end)
-  # end
-
-  # # Split a BDD into a list of {type_for_label, rest_of_map}
-  # defp map_split(bdd, label) do
-  #   map_bdd_get(bdd)
-  #   |> Enum.map(fn {tag, fields, negs} ->
-  #     case :maps.take(label, fields) do
-  #       {value, fields_rest} ->
-  #         {remove_optional(value), %{map: map_new(tag, fields_rest)}}
-
-  #       :error ->
-  #         # If absent
-  #         type_for_label =
-  #           case tag do
-  #             :open -> term_or_optional()
-  #             :closed -> not_set()
-  #             domains = %{} -> Map.get(domains, domain_key(:atom), not_set())
-  #           end
-
-  #         {type_for_label, %{map: map_new(tag, fields)}}
-  #     end
-  #   end)
-  # end
-
-  # defp min_label(:dummy, :dummy), do: :dummy
-  # defp min_label(:dummy, l), do: l
-  # defp min_label(l, :dummy), do: l
-  # defp min_label(l1, l2), do: if(l1 <= l2, do: l1, else: l2)
-
-  @doc """
-  Type-level merge for maps (like `Map.merge/2`).
-
-  Semantics per OCaml code:
-  - For each key `l`, if the right map's type for `l` **may be absent**,
-    the merged type for `l` is `left(l) ∪ present(right(l))`;
-    otherwise it is `right(l)` (right-biased override).
-  - Domains are merged with the same rule (component-wise).
-  - If either side is `:open`, the result is effectively open (via domains).
-
-  Returns `{:ok, merged_descr}` or `:badmap` if either input is not a (possibly dynamic) map type.
-  """
-  def map_merge(:term, _), do: :badmap
-  def map_merge(_, :term), do: :badmap
-
-  def map_merge(%{} = descr1, %{} = descr2) do
-    case {:maps.take(:dynamic, descr1), :maps.take(:dynamic, descr2)} do
-      {:error, :error} ->
-        with {:ok, m} <- map_merge_static(descr1, descr2) do
-          {:ok, m}
-        else
-          :badmap -> :badmap
-        end
-
-      {{dyn1, stat1}, :error} ->
-        with {:ok, stat_stat} <- map_merge_static(stat1, descr2),
-             {:ok, dyn_stat} <- map_merge_static(dynamic(dyn1), descr2) do
-          {:ok, union(stat_stat, dynamic(dyn_stat))}
-        else
-          :badmap -> :badmap
-        end
-
-      {:error, {dyn2, stat2}} ->
-        with {:ok, stat_stat} <- map_merge_static(descr1, stat2),
-             {:ok, stat_dyn} <- map_merge_static(descr1, dynamic(dyn2)) do
-          {:ok, union(stat_stat, dynamic(stat_dyn))}
-        else
-          :badmap -> :badmap
-        end
-
-      {{dyn1, stat1}, {dyn2, stat2}} ->
-        with {:ok, ss} <- map_merge_static(stat1, stat2),
-             {:ok, sd} <- map_merge_static(stat1, dynamic(dyn2)),
-             {:ok, ds} <- map_merge_static(dynamic(dyn1), stat2),
-             {:ok, dd} <- map_merge_static(dynamic(dyn1), dynamic(dyn2)) do
-          {:ok, union(ss, union(dynamic(sd), union(dynamic(ds), dynamic(dd))))}
-        else
-          :badmap -> :badmap
-        end
-    end
-  end
-
-  # --- Core static merger on the BDDs ---------------------------------------
-
-  defp map_merge_static(%{map: bdd1} = d1, %{map: bdd2} = d2) do
-    # both inputs must be exclusively map (no extra components)
-    if map_only?(d1) and map_only?(d2) do
-      # Build the result by taking the cross-product of positive literals
-      # (DNF lines) and unioning merged literals.
-      merged_bdd =
-        map_bdd_get(bdd1)
-        |> Enum.reduce(:bdd_bot, fn {tag1, fields1, _negs1}, acc1 ->
-          Enum.reduce(map_bdd_get(bdd2), acc1, fn {tag2, fields2, _negs2}, acc2 ->
-            {new_tag_or_domains, new_fields} =
-              map_literal_merge(tag1, fields1, tag2, fields2)
-
-            map_union(acc2, {{new_tag_or_domains, new_fields}, :bdd_top, :bdd_bot})
-          end)
-        end)
-
-      {:ok, %{map: merged_bdd}}
-    else
-      :badmap
-    end
-  end
-
-  defp map_merge_static(_, _), do: :badmap
-
-  # --- Literal / domain merge (right-biased with "optional means fallback") --
-
-  # Merge two map literals (tag-or-domains + fields) into one literal.
-  defp map_literal_merge(tag_or_domains1, fields1, tag_or_domains2, fields2) do
-    default1 = map_key_tag_to_type(tag_or_domains1)
-    default2 = map_key_tag_to_type(tag_or_domains2)
-
-    # Merge domains first (handles openness and all non-atom key domains)
-    new_tag_or_domains = map_domain_merge(tag_or_domains1, tag_or_domains2)
-
-    # For explicit atom keys: symmetrical merge with defaults for missing keys
-    new_fields =
-      symmetrical_merge(fields1, default1, fields2, default2, fn _key, v1, v2 ->
-        map_merge_value(v1, v2)
-      end)
-
-    {new_tag_or_domains, new_fields}
-  end
-
-  # Component-wise merge of domains. For every domain key dk in @domain_key_types:
-  # result(dk) = merge_value( domain1(dk), domain2(dk) ).
-  # If all resulting domain entries are empty/optional, collapse to :closed.
-  defp map_domain_merge(tag_or_domains1, tag_or_domains2) do
-    new_domains =
-      for domain_key(_) = dk <- @domain_key_types, reduce: %{} do
-        acc ->
-          v1 = map_domain_default(tag_or_domains1, dk)
-          v2 = map_domain_default(tag_or_domains2, dk)
-          v = map_merge_value(v1, v2)
-
-          if empty_or_optional?(v) do
-            acc
-          else
-            Map.put(acc, dk, v)
-          end
-      end
-
-    if map_size(new_domains) == 0, do: :closed, else: new_domains
-  end
-
-  # Default value for a domain when not explicitly present in the literal.
-  defp map_domain_default(:open, _dk), do: term_or_optional()
-  defp map_domain_default(:closed, _dk), do: not_set()
-  defp map_domain_default(domains = %{}, dk), do: Map.get(domains, dk, not_set())
-
-  # Merge the two value types for a key, per OCaml's rule:
-  # if right may be absent, use left ∪ present(right), else right.
-  defp map_merge_value(left, right) do
-    {optional?, right_present} = pop_optional_static(right)
-    if optional?, do: union(left, right_present), else: right
-  end
 
   defp map_descr(tag, pairs, default, force?) do
     {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
@@ -2886,68 +2592,21 @@ defmodule Module.Types.Descr do
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
-  defp map_union(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      {:bdd_top, _} ->
-        :bdd_top
-
-      {_, :bdd_top} ->
-        :bdd_top
-
-      {:bdd_bot, bdd} ->
-        bdd
-
-      {bdd, :bdd_bot} ->
-        bdd
-
-      {map_literal(tag1, fields1), map_literal(tag2, fields2)} ->
-        case maybe_optimize_map_union({tag1, fields1, []}, {tag2, fields2, []}) do
-          {tag, fields, []} ->
-            {{tag, fields}, :bdd_top, :bdd_bot}
-
-          nil ->
-            lit1 = {tag1, fields1}
-            lit2 = {tag2, fields2}
-
-            cond do
-              lit1 == lit2 -> {lit1, :bdd_top, :bdd_bot}
-              lit1 < lit2 -> {lit1, :bdd_top, {lit2, :bdd_top, :bdd_bot}}
-              lit1 > lit2 -> {lit2, :bdd_top, {lit1, :bdd_top, :bdd_bot}}
-            end
-        end
-
-      {{map, l1, r1}, {map, l2, r2}} ->
-        {map, map_union(l1, l2), map_union(r1, r2)}
-
-      # Note: this is a deep merge, that goes down bdd1 to insert bdd2 into it.
-      # It is the same as going down bdd1 to insert bdd1 into it.
-      # Possible opti: insert into the bdd with smallest height
-      {{map1, l1, r1}, {map2, l2, r2}} when map1 < map2 ->
-        {map1, map_union(l1, bdd2), map_union(r1, bdd2)}
-
-      {{map1, l1, r1}, {map2, l2, r2}} when map1 > map2 ->
-        {map2, map_union(bdd1, l2), map_union(bdd1, r2)}
-
-        # {{map, l, r}, bdd} ->
-        #   {map, map_union(l, bdd), map_union(r, bdd)}
+  defp non_empty_map_only?(descr) do
+    case :maps.take(:map, descr) do
+      :error -> false
+      {map_bdd, rest} -> empty?(rest) and not map_empty?(map_bdd)
     end
   end
 
-  # defp map_union(dnf1, dnf2) do
-  #   # Union is just concatenation, but we rely on some optimization strategies to
-  #   # avoid the list to grow when possible
+  def map_union(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
+    case maybe_optimize_map_union({tag1, fields1, []}, {tag2, fields2, []}) do
+      {tag, fields, []} -> map_literal(tag, fields)
+      nil -> {{tag1, fields1}, :bdd_top, {{tag2, fields2}, :bdd_top, :bdd_bot}}
+    end
+  end
 
-  #   # first pass trying to identify patterns where two maps can be fused as one
-  #   with [map1] <- dnf1,
-  #        [map2] <- dnf2,
-  #        optimized when optimized != nil <- maybe_optimize_map_union(map1, map2) do
-  #     [optimized]
-  #   else
-  #     # otherwise we just concatenate and remove structural duplicates
-  #     _ -> dnf1 ++ (dnf2 -- dnf1)
-  #   end
-  # end
-  # defp maybe_optimize_map_union(map, map), do: map
+  def map_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2) do
     case map_union_optimization_strategy(tag1, pos1, tag2, pos2) do
@@ -3045,110 +2704,52 @@ defmodule Module.Types.Descr do
     if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
-  defp is_map_top?({{tag, fields}, :bdd_top, :bdd_bot}) do
-    tag == :open and map_size(fields) == 0
-  end
-
+  defp is_map_top?(map_literal(:open, fields)) when map_size(fields) == 0, do: true
   defp is_map_top?(_), do: false
+
+  defp map_intersection(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
+    try do
+      map = map_literal_intersection(tag1, fields1, tag2, fields2)
+      {map, :bdd_top, :bdd_bot}
+    catch
+      :empty -> :bdd_bot
+    end
+  end
 
   defp map_intersection(bdd1, bdd2) do
     # If intersecting with the top map type, no-op
     cond do
       is_map_top?(bdd1) and is_tuple(bdd2) -> bdd2
       is_map_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> map_intersection_recur(bdd1, bdd2)
+      true -> bdd_intersection(bdd1, bdd2)
     end
   end
 
-  defp map_intersection_recur(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      # Base cases
-      {_, :bdd_bot} ->
+  # Optimizations on single maps.
+  defp map_difference(map_literal(tag, fields) = map1, map_literal(neg_tag, neg_fields) = map2) do
+    # Case 1: we are removing an open map with one field. Just do the difference of that field.
+    if neg_tag == :open and map_size(neg_fields) == 1 do
+      {key, value, _rest} = :maps.next(:maps.iterator(neg_fields))
+      t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
+
+      if empty?(t_diff) do
         :bdd_bot
+      else
+        map_literal(tag, Map.put(fields, key, t_diff))
+      end
+    else
+      # Case 2: the maps have all but one key in common. Do the difference of that key.
+      case map_all_but_one(tag, fields, neg_tag, neg_fields) do
+        {:one, diff_key} ->
+          map_literal(tag, Map.update!(fields, diff_key, &difference(&1, neg_fields[diff_key])))
 
-      {:bdd_bot, _} ->
-        :bdd_bot
-
-      {:bdd_top, bdd} ->
-        bdd
-
-      {bdd, :bdd_top} ->
-        bdd
-
-      {map_literal(tag1, fields1), map_literal(tag2, fields2)} ->
-        try do
-          map = map_literal_intersection(tag1, fields1, tag2, fields2)
-          {map, :bdd_top, :bdd_bot}
-        catch
-          :empty -> :bdd_bot
-        end
-
-      # Optimizations
-      # If intersecting with a single positive or negative function, we insert
-      # it at the root instead of merging the trees (this avoids going down the
-      # whole bdd).
-      # No: bc we want to have increasing order of literals.
-      # {bdd, {map, :bdd_top, :bdd_bot}} ->
-      #   {map, bdd, :bdd_bot}
-
-      # {bdd, {map, :bdd_bot, :bdd_top}} ->
-      #   {map, :bdd_bot, bdd}
-
-      # {{map, :bdd_top, :bdd_bot}, bdd} ->
-      #   {map, bdd, :bdd_bot}
-
-      # {{map, :bdd_bot, :bdd_top}, bdd} ->
-      #   {map, :bdd_bot, bdd}
-
-      # General cases
-      {{map, l1, r1}, {map, l2, r2}} ->
-        {map, map_intersection_recur(l1, l2), map_intersection_recur(r1, r2)}
-
-      {{map1, l1, r1}, {map2, l2, r2}} when map1 < map2 ->
-        {map1, map_intersection_recur(l1, bdd2), map_intersection_recur(r1, bdd2)}
-
-      {{map1, l1, r1}, {map2, l2, r2}} when map1 > map2 ->
-        {map2, map_intersection_recur(bdd1, l2), map_intersection_recur(bdd1, r2)}
-
-        # {{map, l, r}, bdd} ->
-        #   {map, map_intersection_recur(l, bdd), map_intersection_recur(r, bdd)}
+        _ ->
+          bdd_difference(map1, map2)
+      end
     end
   end
 
-  defp map_difference(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      {:bdd_bot, _} ->
-        :bdd_bot
-
-      {_, :bdd_top} ->
-        :bdd_bot
-
-      {bdd, :bdd_bot} ->
-        bdd
-
-      {:bdd_top, {map, l, r}} ->
-        {map, map_difference(:bdd_top, l), map_difference(:bdd_top, r)}
-
-      {{map, l1, r1}, {map, l2, r2}} ->
-        {map, map_difference(l1, l2), map_difference(r1, r2)}
-
-      {{map1, l1, r1}, {map2, _l2, _r2}} when map1 < map2 ->
-        {map1, map_difference(l1, bdd2), map_difference(r1, bdd2)}
-
-      {{map1, _l1, _r1}, {map2, l2, r2}} when map1 > map2 ->
-        {map2, map_difference(bdd1, l2), map_difference(bdd1, r2)}
-
-        # {{map, l, r}, bdd} -> {map, map_difference(l, bdd), map_difference(r, bdd)}
-    end
-  end
-
-  # defp map_negation(bdd) do
-  #   case bdd do
-  #     :bdd_bot -> :bdd_top
-  #     :bdd_top -> :bdd_bot
-  #     {map, l, r} -> {map, map_negation(l), map_negation(r)}
-  #   end
-  # end
+  defp map_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
@@ -3258,71 +2859,10 @@ defmodule Module.Types.Descr do
     if empty?(type), do: throw(:empty), else: type
   end
 
-  # defp map_difference(_, dnf) when dnf == @map_top, do: []
-  # defp map_difference(dnf, dnf), do: []
-
-  # defp map_difference(dnf1, dnf2) do
-  #   Enum.reduce(dnf2, dnf1, fn
-  #     {:open, fields2, []}, current_dnf when map_size(fields2) == 1 ->
-  #       # Optimization: we are removing an open map with one field.
-  #       Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
-  #         {key, value, _rest} = :maps.next(:maps.iterator(fields2))
-  #         t_diff = difference(Map.get(fields1, key, map_key_tag_to_type(tag1)), value)
-
-  #         if empty?(t_diff) do
-  #           acc
-  #         else
-  #           {tag, pos} = {tag1, Map.put(fields1, key, t_diff)}
-  #           entry = {tag, pos, negs1}
-
-  #           cond do
-  #             :lists.member({tag, pos}, negs1) -> acc
-  #             :lists.member(entry, acc) -> acc
-  #             true -> [entry | acc]
-  #           end
-  #         end
-  #       end)
-
-  #     {tag2, fields2, negs2}, current_dnf ->
-  #       Enum.reduce(current_dnf, [], fn {tag1, fields1, negs1}, acc ->
-  #         negs =
-  #           if :lists.member({tag2, fields2}, negs1) do
-  #             negs1
-  #           else
-  #             [{tag2, fields2} | negs1]
-  #           end
-
-  #         acc = prepend_to_map_dnf(tag1, fields1, negs, acc)
-
-  #         Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
-  #           try do
-  #             {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
-  #             prepend_to_map_dnf(tag, fields, negs1, acc)
-  #           catch
-  #             :empty -> acc
-  #           end
-  #         end)
-  #       end)
-  #   end)
-  # end
-
-  # defp prepend_to_map_dnf(tag, fields, negs, acc) do
-  #   entry = {tag, fields, negs}
-
-  #   cond do
-  #     :lists.member({tag, fields}, negs) -> acc
-  #     :lists.member(entry, acc) -> acc
-  #     true -> [entry | acc]
-  #   end
-  # end
-
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  def map_bdd_get(bdd) do
-    # dbg(bdd)
-    map_bdd_get([], {:open, %{}}, [], bdd)
-  end
+  def map_bdd_get(bdd), do: map_bdd_get([], {:open, %{}}, [], bdd)
 
   defp map_bdd_get(acc, {tag, fields} = map, negs, bdd) do
     case bdd do
@@ -3358,7 +2898,7 @@ defmodule Module.Types.Descr do
   def map_fetch(%{} = descr, key) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if descr_key?(descr, :map) and map_only?(descr) do
+        if descr_key?(descr, :map) and non_empty_map_only?(descr) do
           {static_optional?, static_type} = map_fetch_static(descr, key)
 
           if static_optional? or empty?(static_type) do
@@ -3613,14 +3153,6 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_static(descr, _key, _type), do: descr
-
-  defp bdd_map(bdd, fun) do
-    case bdd do
-      :bdd_bot -> :bdd_bot
-      :bdd_top -> :bdd_top
-      {literal, left, right} -> {fun.(literal), bdd_map(left, fun), bdd_map(right, fun)}
-    end
-  end
 
   @doc """
   Removes a key from a map type.
@@ -4107,35 +3639,50 @@ defmodule Module.Types.Descr do
 
   # Use heuristics to normalize a map dnf for pretty printing.
   defp map_normalize(bdd) do
-    for {tag, fields, negs} <- map_bdd_get(bdd) do
-      {fields, negs} =
-        Enum.reduce(negs, {fields, []}, fn
-          # Optimization: we are removing an open map with one field.
-          {:open, neg_fields}, {acc_fields, acc_negs} when map_size(neg_fields) == 1 ->
-            {key, value, _rest} = :maps.next(:maps.iterator(neg_fields))
-            t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
+    map_bdd_get(bdd)
+    |> Enum.map(fn {tag, fields, negs} ->
+      map_eliminate_while_negs_decrease(tag, fields, negs)
+    end)
+    |> map_fusion()
+  end
 
-            # If the difference was empty, then the whole line would be empty, which is not.
-            {Map.put(acc_fields, key, t_diff), acc_negs}
+  # Continue to eliminate negations while length of list of negs decreases
+  defp map_eliminate_while_negs_decrease(tag, fields, []), do: {tag, fields, []}
 
-          neg = {neg_tag, neg_fields}, {acc_fields, acc_negs} ->
-            if non_intersecting_negation?(tag, acc_fields, neg) do
-              {acc_fields, acc_negs}
-            else
-              case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
-                {:one, diff_key} ->
-                  {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])),
-                   acc_negs}
+  defp map_eliminate_while_negs_decrease(tag, fields, negs) do
+    n = length(negs)
+    {fields, negs} = maybe_eliminate_map_negations(tag, fields, negs)
 
-                _ ->
-                  {acc_fields, [neg | acc_negs]}
-              end
-            end
-        end)
-
+    if length(negs) < n do
+      map_eliminate_while_negs_decrease(tag, fields, negs)
+    else
       {tag, fields, negs}
     end
-    |> map_fusion()
+  end
+
+  defp maybe_eliminate_map_negations(tag, fields, negs) do
+    Enum.reduce(negs, {fields, []}, fn neg = {neg_tag, neg_fields}, {acc_fields, acc_negs} ->
+      # If the intersection with the negative is empty, we can remove the negative.
+      empty_intersection? =
+        try do
+          _ = map_literal_intersection(tag, acc_fields, neg_tag, neg_fields)
+          false
+        catch
+          :empty -> true
+        end
+
+      if empty_intersection? do
+        {acc_fields, acc_negs}
+      else
+        case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
+          {:one, diff_key} ->
+            {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])), acc_negs}
+
+          _ ->
+            {acc_fields, [neg | acc_negs]}
+        end
+      end
+    end)
   end
 
   # Given a dnf, fuse maps when possible
@@ -4187,18 +3734,6 @@ defmodule Module.Types.Descr do
     else
       _ -> :no
     end
-  end
-
-  # Adapted from `map_empty?` to remove useless negations.
-  defp non_intersecting_negation?(tag, fields, {neg_tag, neg_fields}) do
-    (tag == :closed and
-       Enum.any?(neg_fields, fn {neg_key, neg_type} ->
-         not is_map_key(fields, neg_key) and not is_optional_static(neg_type)
-       end)) or
-      (neg_tag == :closed and
-         Enum.any?(fields, fn {key, type} ->
-           not is_map_key(neg_fields, key) and not is_optional_static(type)
-         end))
   end
 
   defp map_to_quoted(bdd, opts) do
@@ -4317,7 +3852,7 @@ defmodule Module.Types.Descr do
 
   ## Tuple
 
-  # Represents tuple types in two forms:
+  # Represents tuple types as a BDD with nodes of the following forms:
   # 1. Closed tuples: Fixed-length tuples with specific element types
   #    Example: {integer(), atom()}
   # 2. Open tuples: Variable-length tuples with a minimum set of element types
@@ -4374,27 +3909,16 @@ defmodule Module.Types.Descr do
     {acc, dynamic?}
   end
 
-  defp tuple_new(tag, elements), do: [{tag, elements}]
+  defp tuple_new(tag, elements), do: tuple_literal(tag, elements)
 
-  defp tuple_intersection(dnf1, dnf2) do
-    for {tag1, elements1} <- dnf1,
-        {tag2, elements2} <- dnf2,
-        reduce: [] do
-      acc ->
-        case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-          {tag, elements} ->
-            entry = {tag, elements}
-
-            case :lists.member(entry, acc) do
-              true -> acc
-              false -> [entry | acc]
-            end
-
-          :empty ->
-            acc
-        end
+  defp tuple_intersection(tuple_literal(tag1, elements1), tuple_literal(tag2, elements2)) do
+    case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+      {tag, elements} -> tuple_literal(tag, elements)
+      :empty -> :bdd_bot
     end
   end
+
+  defp tuple_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
   defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
     n = length(elements1)
@@ -4428,20 +3952,21 @@ defmodule Module.Types.Descr do
     zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
   end
 
-  defp tuple_difference(_, dnf) when dnf == @tuple_top do
-    0
-  end
+  defp tuple_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
-  defp tuple_difference(dnf1, dnf2) do
-    Enum.reduce(dnf2, dnf1, fn {tag2, elements2}, dnf1 ->
-      Enum.reduce(dnf1, [], fn {tag1, elements1}, acc ->
-        tuple_eliminate_single_negation(tag1, elements1, {tag2, elements2})
-        |> tuple_union(acc)
-      end)
-    end)
-  end
+  defp tuple_empty?(bdd), do: tuple_bdd_to_dnf(bdd) == []
 
-  defp tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements}) do
+  # No negations, so not empty unless there's an empty type
+  # Note: since the extraction from the BDD is done in a way that guarantees that
+  # the elements are non-empty, we can avoid checking for empty types there.
+  # Otherwise, tuple_empty?(_, elements, []) would be Enum.any?(elements, &empty?/1)
+  defp tuple_empty?(_, _, []), do: false
+  # Open empty negation makes it empty
+  defp tuple_empty?(_, _, [{:open, []} | _]), do: true
+  # Open positive can't be emptied by a single closed negative
+  defp tuple_empty?(:open, _pos, [{:closed, _}]), do: false
+
+  defp tuple_empty?(tag, elements, [{neg_tag, neg_elements} | negs]) do
     n = length(elements)
     m = length(neg_elements)
 
@@ -4449,33 +3974,154 @@ defmodule Module.Types.Descr do
     # 1. When removing larger tuples from a fixed-size positive tuple
     # 2. When removing smaller tuples from larger tuples
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
+      tuple_empty?(tag, elements, negs)
+    else
+      case element_intersection(elements, neg_elements) do
+        :empty ->
+          tuple_empty?(tag, elements, negs)
+
+        _ ->
+          tuple_elements_empty?([], tag, elements, neg_elements, negs) and
+            tuple_compatibility(n, m, tag, elements, neg_tag, negs)
+      end
+    end
+  end
+
+  # Recursively check elements for emptiness
+  defp tuple_elements_empty?(_, _, _, [], _), do: true
+
+  defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs) do
+    # Handles the case where {tag, elements} is an open tuple, like {:open, []}
+    {ty, elements} = List.pop_at(elements, 0, term())
+    diff = difference(ty, neg_type)
+    meet = intersection(ty, neg_type)
+
+    # In this case, there is no intersection between the positive and this negative.
+    # So we should just "go next"
+    (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs)) and
+      tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs)
+  end
+
+  # Function that, given two tuples {tag1, elements1} and {tag2, elements2}, computes the
+  # intersection of all their elements (with default term() if one is open).
+  # If any intersection is empty, it return :empty. Else, it should return the list of them.
+  defp element_intersection(elements1, elements2) do
+    elements1 =
+      if length(elements1) < length(elements2),
+        do: tuple_fill(elements1, length(elements2)),
+        else: elements1
+
+    elements2 =
+      if length(elements1) > length(elements2),
+        do: tuple_fill(elements2, length(elements1)),
+        else: elements2
+
+    Enum.reduce_while(Enum.zip(elements1, elements2), [], fn {type1, type2}, acc ->
+      case intersection(type1, type2) do
+        :empty -> {:halt, :empty}
+        meet -> {:cont, [meet | acc]}
+      end
+    end)
+    |> case do
+      :empty -> :empty
+      list -> Enum.reverse(list)
+    end
+  end
+
+  # Determines if the set difference is empty when:
+  # - Positive tuple: {tag, elements} of size n
+  # - Negative tuple: open or closed tuples of size m
+  defp tuple_compatibility(n, m, tag, elements, neg_tag, negs) do
+    # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
+    # closed, we also need to consider tuples of size greater than m + 1.
+    tag == :closed or
+      (Enum.all?(n..(m - 1)//1, &tuple_empty?(:closed, tuple_fill(elements, &1), negs)) and
+         (neg_tag == :open or tuple_empty?(:open, tuple_fill(elements, m + 1), negs)))
+  end
+
+  defp tuple_eliminate_negations(tag, elements, negs) do
+    Enum.reduce(negs, [{tag, elements}], fn {neg_tag, neg_elements}, acc ->
+      Enum.flat_map(acc, fn {tag, elements} ->
+        tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements})
+      end)
+    end)
+  end
+
+  defp empty_element_intersection?(elements1, elements2) do
+    Enum.any?(Enum.zip(elements1, elements2), fn {type1, type2} ->
+      empty?(intersection(type1, type2))
+    end)
+  end
+
+  # Important: this generates DISJOINT tuples.
+  defp tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements}) do
+    n = length(elements)
+    m = length(neg_elements)
+
+    # Scenarios where the difference is guaranteed to be empty:
+    # 1. When removing larger tuples from a fixed-size positive tuple
+    # 2. When removing smaller tuples from larger tuples
+    # 3. When there is no intersection between the elements of the two tuples
+    if (tag == :closed and n < m) or (neg_tag == :closed and n > m) or
+         empty_element_intersection?(elements, neg_elements) do
       [{tag, elements}]
     else
-      tuple_union(
+      tuple_dnf_union(
         tuple_elim_content([], tag, elements, neg_elements),
         tuple_elim_size(n, m, tag, elements, neg_tag)
       )
     end
   end
 
-  # Eliminates negations according to tuple content.
-  defp tuple_elim_content(_acc, _tag, _elements, []), do: []
-
-  # Subtracts each element of a negative tuple to build a new tuple with the difference.
-  # Example: {number(), atom()} and not {float(), :foo} contains types {integer(), :foo}
-  # as well as {float(), atom() and not :foo}
-  # Same process as tuple_elements_empty?
+  # Build a disjoint disjunction for {t1,...,tn} ∧ not {u1,...,un}
+  # by splitting on the *earliest* index where they differ.
+  #
+  # Invariant:
+  # - `acc` holds the prefix we've already forced to *match* the negative tuple,
+  #   stored in reverse order (so we can `Enum.reverse/2` at the end when we emit).
+  # - `elements` are the yet-unprocessed positive tuple element types.
+  # - `neg_elements` are the corresponding negative tuple element types.
+  #
+  # For position i:
+  #   - One branch mismatches here:  (ti \ ui), with earlier positions fixed to intersection(tj, uj).
+  #   - The other recursive path forces match here: intersection(ti, ui) and continues to i+1.
+  #
+  # This yields disjoint branches like:
+  #   {t1∧¬u1, t2, t3, ...} OR {t1∧u1, t2∧¬u2, t3, ...} OR {t1∧u1, t2∧u2, t3∧¬u3, ...} ...
   defp tuple_elim_content(acc, tag, elements, [neg_type | neg_elements]) do
-    {ty, elements} = List.pop_at(elements, 0, term())
+    # If `elements` is shorter, default to top type `term()` (as in your example).
+    {ty, rest} = List.pop_at(elements, 0, term())
+
+    # ti \ ui  (i.e., ti ∧ ¬ui)
     diff = difference(ty, neg_type)
+    # ti ∧ ui
+    meet = intersection(ty, neg_type)
 
-    res = tuple_elim_content([ty | acc], tag, elements, neg_elements)
+    # Branch where the earliest difference is *here*.
+    # Earlier positions are the accumulated matches in `acc`;
+    # later positions remain unconstrained (`rest` as-is).
+    here_branch =
+      if empty?(diff) do
+        []
+      else
+        [{tag, Enum.reverse(acc, [diff | rest])}]
+      end
 
-    if empty?(diff) do
-      res
-    else
-      [{tag, Enum.reverse(acc, [diff | elements])} | res]
-    end
+    # Branches where we force equality here and defer the first difference to later positions.
+    later_branches =
+      if empty?(meet) do
+        []
+      else
+        tuple_elim_content([meet | acc], tag, rest, neg_elements)
+      end
+
+    here_branch ++ later_branches
+  end
+
+  # No more negative elements to process: there is no “all-equal” branch to add,
+  # because we’re constructing {t} ∧ ¬{u}, which must differ somewhere.
+  defp tuple_elim_content(_acc, _tag, _elements, []) do
+    []
   end
 
   # Eliminates negations according to size
@@ -4498,8 +4144,8 @@ defmodule Module.Types.Descr do
     )
   end
 
-  defp tuple_union(dnf1, dnf2) do
-    # Union is just concatenation, but we rely on some optimization strategies to
+  defp tuple_dnf_union(dnf1, dnf2) do
+    # Union of tuple DNFs is just concatenation, but we rely on some optimization strategies to
     # avoid the list to grow when possible
 
     # first pass trying to identify patterns where two maps can be fused as one
@@ -4512,6 +4158,18 @@ defmodule Module.Types.Descr do
       _ -> dnf1 ++ (dnf2 -- dnf1)
     end
   end
+
+  defp tuple_union(
+         tuple_literal(tag1, elements1) = tuple1,
+         tuple_literal(tag2, elements2) = tuple2
+       ) do
+    case maybe_optimize_tuple_union({tag1, elements1}, {tag2, elements2}) do
+      {tag, elements} -> tuple_literal(tag, elements)
+      nil -> bdd_union(tuple1, tuple2)
+    end
+  end
+
+  defp tuple_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp maybe_optimize_tuple_union({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
     case tuple_union_optimization_strategy(tag1, pos1, tag2, pos2) do
@@ -4599,22 +4257,57 @@ defmodule Module.Types.Descr do
     if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
-  defp tuple_to_quoted(dnf, opts) do
-    dnf
+  defp tuple_to_quoted(bdd, opts) do
+    tuple_bdd_to_dnf_no_negations(bdd)
     |> tuple_fusion()
     |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
 
-  # Given a dnf of tuples, fuses the tuple unions when possible,
+  # Transforms a bdd into a dnf (union of tuples with negations)
+  def tuple_bdd_to_dnf(bdd),
+    do: tuple_bdd_get([], {:open, []}, [], bdd, &{&1, &2, &3}, &[&1 | &2])
+
+  # Transforms a bdd into a positive normal form (union of tuples with no negations)
+  # Note: it is important to compose the results with tuple_dnf_union/2 to avoid duplicates
+  defp tuple_bdd_to_dnf_no_negations(bdd),
+    do: tuple_bdd_get([], {:open, []}, [], bdd, &tuple_eliminate_negations/3, &tuple_dnf_union/2)
+
+  defp tuple_bdd_get(acc, {tag, elements} = tuple, negs, bdd, transform, compose) do
+    case bdd do
+      :bdd_bot ->
+        acc
+
+      :bdd_top ->
+        if tuple_empty?(tag, elements, negs) do
+          acc
+        else
+          compose.(transform.(tag, elements, negs), acc)
+        end
+
+      {{next_tag, next_elements} = next_tuple, left, right} ->
+        acc =
+          case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
+            :empty ->
+              acc
+
+            new_tuple ->
+              tuple_bdd_get(acc, new_tuple, negs, left, transform, compose)
+          end
+
+        tuple_bdd_get(acc, tuple, [next_tuple | negs], right, transform, compose)
+    end
+  end
+
+  # Given a union of tuples, fuses the tuple unions when possible,
   # e.g. {integer(), atom()} or {float(), atom()} into {number(), atom()}
   # The negations of two fused tuples are just concatenated.
-  defp tuple_fusion(dnf) do
+  defp tuple_fusion(dnf_no_negations) do
     # Steps:
     # 1. Consider tuples without negations apart from those with
     # 2. Group tuples by size and tag
     # 3. Try fusions for each group until no fusion is found
     # 4. Merge the groups back into a dnf
-    dnf
+    dnf_no_negations
     |> Enum.group_by(fn {tag, elems} -> {tag, length(elems)} end)
     |> Enum.flat_map(fn {_, tuples} -> tuple_non_negated_fuse(tuples) end)
   end
@@ -4688,7 +4381,7 @@ defmodule Module.Types.Descr do
   def tuple_fetch(%{} = descr, key) when is_integer(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if descr_key?(descr, :tuple) and tuple_only?(descr) do
+        if descr_key?(descr, :tuple) and non_empty_tuple_only?(descr) do
           {static_optional?, static_type} = tuple_fetch_static(descr, key)
 
           # If I access a static tuple at a "open position", we have two options:
@@ -4732,6 +4425,13 @@ defmodule Module.Types.Descr do
 
   defp tuple_only?(descr), do: empty?(Map.delete(descr, :tuple))
 
+  defp non_empty_tuple_only?(descr) do
+    case :maps.take(:tuple, descr) do
+      :error -> false
+      {tuple_bdd, rest} -> empty?(rest) and not tuple_empty?(tuple_bdd)
+    end
+  end
+
   defp tuple_fetch_static(descr, index) when is_integer(index) do
     case descr do
       :term -> {true, term()}
@@ -4740,8 +4440,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_get(dnf, index) do
-    Enum.reduce(dnf, none(), fn
+  defp tuple_get(bdd, index) do
+    tuple_bdd_to_dnf_no_negations(bdd)
+    |> Enum.reduce(none(), fn
       {tag, elements}, acc -> Enum.at(elements, index, tuple_tag_to_type(tag)) |> union(acc)
     end)
   end
@@ -4755,23 +4456,24 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if tuple_only?(descr) do
-          process_tuples_values(Map.get(descr, :tuple, []))
+          process_tuples_values(Map.get(descr, :tuple, :bdd_bot))
         else
           :badtuple
         end
 
       {dynamic, static} ->
         if tuple_only?(static) and descr_key?(dynamic, :tuple) do
-          dynamic(process_tuples_values(Map.get(dynamic, :tuple, [])))
-          |> union(process_tuples_values(Map.get(static, :tuple, [])))
+          dynamic(process_tuples_values(Map.get(dynamic, :tuple, :bdd_bot)))
+          |> union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
         else
           :badtuple
         end
     end
   end
 
-  defp process_tuples_values(dnf) do
-    Enum.reduce(dnf, none(), fn {tag, elements}, acc ->
+  defp process_tuples_values(bdd) do
+    tuple_bdd_to_dnf_no_negations(bdd)
+    |> Enum.reduce(none(), fn {tag, elements}, acc ->
       cond do
         Enum.any?(elements, &empty?/1) -> none()
         tag == :open -> term()
@@ -4830,8 +4532,8 @@ defmodule Module.Types.Descr do
   def tuple_delete_at(_, _), do: :badindex
 
   # Takes a static map type and removes an index from it.
-  defp tuple_delete_static(%{tuple: dnf}, index) do
-    %{tuple: Enum.map(dnf, fn {tag, elements} -> {tag, List.delete_at(elements, index)} end)}
+  defp tuple_delete_static(%{tuple: bdd}, index) do
+    %{tuple: bdd_map(bdd, fn {tag, elements} -> {tag, List.delete_at(elements, index)} end)}
   end
 
   # If there is no map part to this static type, there is nothing to delete.
@@ -4894,8 +4596,8 @@ defmodule Module.Types.Descr do
   defp tuple_insert_static(descr, _, _) when descr == @none, do: none()
 
   defp tuple_insert_static(descr, index, type) do
-    Map.update!(descr, :tuple, fn dnf ->
-      Enum.map(dnf, fn {tag, elements} ->
+    Map.update!(descr, :tuple, fn bdd ->
+      bdd_map(bdd, fn {tag, elements} ->
         {tag, List.insert_at(elements, index, type)}
       end)
     end)
@@ -4907,13 +4609,95 @@ defmodule Module.Types.Descr do
 
   defp tuple_of_size_at_least_static?(descr, index) do
     case descr do
-      %{tuple: dnf} ->
-        Enum.all?(dnf, fn
-          {_, elements} -> length(elements) >= index
-        end)
+      %{tuple: bdd} ->
+        tuple_bdd_to_dnf_no_negations(bdd)
+        |> Enum.all?(fn {_, elements} -> length(elements) >= index end)
 
       %{} ->
         true
+    end
+  end
+
+  ## BDD helpers
+
+  # Leaf cases
+  defp bdd_intersection(_, :bdd_bot), do: :bdd_bot
+  defp bdd_intersection(:bdd_bot, _), do: :bdd_bot
+  defp bdd_intersection(:bdd_top, other), do: other
+  defp bdd_intersection(other, :bdd_top), do: other
+
+  # Internal-node cases
+  # Keeping the invariant that literals are ordered ensures nodes are not duplicated down
+  defp bdd_intersection({lit, l1, r1}, {lit, l2, r2}),
+    do: {lit, bdd_intersection(l1, l2), bdd_intersection(r1, r2)}
+
+  defp bdd_intersection({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+    do: {lit1, bdd_intersection(l1, bdd2), bdd_intersection(r1, bdd2)}
+
+  defp bdd_intersection({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+    do: {lit2, bdd_intersection(bdd1, l2), bdd_intersection(bdd1, r2)}
+
+  defp bdd_difference(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {:bdd_bot, _} ->
+        :bdd_bot
+
+      {other, :bdd_bot} ->
+        other
+
+      {:bdd_top, {lit, l, r}} ->
+        {lit, bdd_difference(:bdd_top, l), bdd_difference(:bdd_top, r)}
+
+      {_, :bdd_top} ->
+        :bdd_bot
+
+      {{lit, l1, r1}, {lit, l2, r2}} ->
+        {lit, bdd_difference(l1, l2), bdd_difference(r1, r2)}
+
+      {{lit1, l1, r1}, {lit2, _, _} = bdd2} when lit1 < lit2 ->
+        {lit1, bdd_difference(l1, bdd2), bdd_difference(r1, bdd2)}
+
+      {{lit1, _, _} = bdd1, {lit2, l2, r2}} when lit1 > lit2 ->
+        {lit2, bdd_difference(bdd1, l2), bdd_difference(bdd1, r2)}
+    end
+  end
+
+  # defp bdd_difference(:bdd_bot, _), do: :bdd_bot
+  # defp bdd_difference(other, :bdd_bot), do: other
+  # defp bdd_difference(:bdd_top, other), do: bdd_negation(other)
+  # defp bdd_difference(_, :bdd_top), do: :bdd_bot
+
+  # defp bdd_difference({lit, l1, r1}, {lit, l2, r2}),
+  #   do: {lit, bdd_difference(l1, l2), bdd_difference(r1, r2)}
+
+  # defp bdd_difference({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+  #   do: {lit1, bdd_difference(l1, bdd2), bdd_difference(r1, bdd2)}
+
+  # defp bdd_difference({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+  #   do: {lit2, bdd_difference(bdd1, l2), bdd_difference(bdd1, r2)}
+
+  # defp bdd_negation(:bdd_bot), do: :bdd_top
+  # defp bdd_negation(:bdd_top), do: :bdd_bot
+  # defp bdd_negation({lit, l, r}), do: {lit, bdd_negation(l), bdd_negation(r)}
+
+  defp bdd_union(:bdd_top, _), do: :bdd_top
+  defp bdd_union(_, :bdd_top), do: :bdd_top
+  defp bdd_union(:bdd_bot, other), do: other
+  defp bdd_union(other, :bdd_bot), do: other
+  defp bdd_union({map, l1, r1}, {map, l2, r2}), do: {map, bdd_union(l1, l2), bdd_union(r1, r2)}
+
+  # Maintaining the invariant that literals are ordered ensures they are not duplicated down the tree
+  defp bdd_union({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+    do: {lit1, bdd_union(l1, bdd2), bdd_union(r1, bdd2)}
+
+  defp bdd_union({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+    do: {lit2, bdd_union(bdd1, l2), bdd_union(bdd1, r2)}
+
+  defp bdd_map(bdd, fun) do
+    case bdd do
+      :bdd_bot -> :bdd_bot
+      :bdd_top -> :bdd_top
+      {literal, left, right} -> {fun.(literal), bdd_map(left, fun), bdd_map(right, fun)}
     end
   end
 
