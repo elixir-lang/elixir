@@ -2033,19 +2033,26 @@ defmodule Module.Types.ExprTest do
     end
 
     # test "regressions – duplicate-key list pattern" do
-    #   assert typecheck!(
-    #            # HEAD PATTERN LIST
-    #            [
-    #              # first tuple
-    #              [
-    #                {key, _}
-    #                # second tuple + rest
-    #                | [{key, _} | _] = rest
-    #              ]
-    #            ],
-    #            # BODY – we just return the tail we captured
-    #            rest
-    #          ) ==
+    #   x =
+    #     typecheck!(
+    #       # HEAD PATTERN LIST
+    #       [
+    #         # first tuple
+    #         [
+    #           {key, _}
+    #           # second tuple + rest
+    #           | [{key, _} | _] = rest
+    #         ]
+    #       ],
+    #       # BODY – we just return the tail we captured
+    #       rest
+    #     )
+
+    #   IO.puts("x: #{to_quoted_string(x)}")
+    #   IO.puts("x: #{inspect(x)}")
+
+    #   assert x
+    #          |> equal?(
     #            dynamic(
     #              non_empty_list(
     #                # every element is {term, term}
@@ -2054,6 +2061,7 @@ defmodule Module.Types.ExprTest do
     #                term()
     #              )
     #            )
+    #          )
     # end
 
     test "typecheck! must finish fast for large pattern match" do
