@@ -622,7 +622,12 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_message(value, formatter) do
-    value = pad_multiline(value, 5)
+    value =
+      case value do
+        binary when is_binary(binary) -> binary
+        other -> inspect(other)
+      end
+      |> pad_multiline(5)
 
     if String.contains?(value, IO.ANSI.reset()) do
       value
