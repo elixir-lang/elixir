@@ -196,7 +196,6 @@ defmodule Module.Types.Descr do
   #     We emit `{common, union(return, acc_return)}` for the shared part,
   #     keep `{left, acc_return}` (if any), and continue inserting `diff`
   #     into the remainder of the list to handle further overlaps.
-
   defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
     common = intersection(domain, acc_domain)
 
@@ -1314,7 +1313,7 @@ defmodule Module.Types.Descr do
   defp fun_normalize(%{fun: bdd}, arity, mode) do
     {domain, arrows, bad_arities} =
       Enum.reduce(fun_get(bdd), {term(), [], []}, fn
-        {pos_funs, neg_funs}, {domain, arrows, bad_arities} ->
+        {pos_funs, _neg_funs}, {domain, arrows, bad_arities} ->
           arrow_arity =
             case pos_funs do
               [{args, _} | _] -> length(args)
@@ -1324,9 +1323,6 @@ defmodule Module.Types.Descr do
           cond do
             arrow_arity != arity ->
               {domain, arrows, [arrow_arity | bad_arities]}
-
-            fun_empty?(pos_funs, neg_funs) ->
-              {domain, arrows, bad_arities}
 
             true ->
               # Calculate domain from all positive functions
@@ -1363,13 +1359,13 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp apply_disjoint(arguments, arrows) do
-    type_args = args_to_domain(arguments)
+  # A fast way to do function application when the arguments of the function are disjoint.
+  # Just build the union of all the return types of arrows that match the input.
+  defp apply_disjoint(input_arguments, arrows) do
+    type_input = args_to_domain(input_arguments)
 
     Enum.reduce(arrows, none(), fn {args, ret}, acc_return ->
-      dom = args_to_domain(args)
-
-      if empty?(intersection(dom, type_args)) do
+      if empty?(intersection(args_to_domain(args), type_input)) do
         acc_return
       else
         union(acc_return, ret)
@@ -1399,6 +1395,9 @@ defmodule Module.Types.Descr do
     # Calculate the part of the input not covered by this arrow's domain
     dom_subtract = difference(input, args_to_domain(args))
 
+    # Refine the return type by intersecting with this arrow's return type
+    ret_refine = intersection(returns_reached, ret)
+
     # Phase 1: Domain partitioning
     # If the input is not fully covered by the arrow's domain, then the result type should be
     # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
@@ -1418,9 +1417,6 @@ defmodule Module.Types.Descr do
     # the same part of the input, then the result type is an intersection of the return types of
     # those arrows.
 
-    # Refine the return type by intersecting with this arrow's return type
-    ret_refine = intersection(returns_reached, ret)
-
     # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
     # should result in (atom() ∩ pid()), which is none().
     aux_apply(result, input, ret_refine, arrow_intersections)
@@ -1434,7 +1430,7 @@ defmodule Module.Types.Descr do
   defp fun_get(acc, pos, neg, bdd) do
     case bdd do
       :bdd_bot -> acc
-      :bdd_top -> [{pos, neg} | acc]
+      :bdd_top -> if fun_empty?(pos, neg), do: acc, else: [{pos, neg} | acc]
       {fun, left, right} -> fun_get(fun_get(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
   end
@@ -1451,13 +1447,7 @@ defmodule Module.Types.Descr do
   # - `fun(1) and not fun(1)` is empty
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
-  defp fun_empty?(bdd) do
-    case bdd do
-      :bdd_bot -> true
-      :bdd_top -> false
-      bdd -> fun_get(bdd) |> Enum.all?(fn {posits, negats} -> fun_empty?(posits, negats) end)
-    end
-  end
+  defp fun_empty?(bdd), do: fun_get(bdd) == []
 
   # Checks if a function type represented by positive and negative function literals is empty.
 
@@ -1660,6 +1650,8 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # Note: using this for functions instead of bdd_intersection because the printing
+  # fun_denormalize relies on the order of functions in the bdd.
   defp fun_bdd_intersection(bdd1, bdd2) do
     case {bdd1, bdd2} do
       # Base cases
@@ -1817,7 +1809,7 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_get_pos(bdd) do
-    for {pos, negs} <- fun_get(bdd), not fun_empty?(pos, negs) do
+    for {pos, _negs} <- fun_get(bdd) do
       fun_filter_subset(pos, [])
     end
   end
