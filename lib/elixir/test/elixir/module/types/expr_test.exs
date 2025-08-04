@@ -2032,38 +2032,6 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(integer())
     end
 
-    # test "regressions – duplicate-key list pattern" do
-    #   x =
-    #     typecheck!(
-    #       # HEAD PATTERN LIST
-    #       [
-    #         # first tuple
-    #         [
-    #           {key, _}
-    #           # second tuple + rest
-    #           | [{key, _} | _] = rest
-    #         ]
-    #       ],
-    #       # BODY – we just return the tail we captured
-    #       rest
-    #     )
-
-    #   IO.puts("x: #{to_quoted_string(x)}")
-    #   IO.puts("x: #{inspect(x)}")
-
-    #   assert x
-    #          |> equal?(
-    #            dynamic(
-    #              non_empty_list(
-    #                # every element is {term, term}
-    #                tuple([term(), term()]),
-    #                # the tail can be anything
-    #                term()
-    #              )
-    #            )
-    #          )
-    # end
-
     test "typecheck! must finish fast for large pattern match" do
       type =
         typecheck!(fn
