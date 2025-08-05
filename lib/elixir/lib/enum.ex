@@ -2187,19 +2187,18 @@ defmodule Enum do
       nil
 
   """
-  @spec min_max(t, (element, element -> boolean) | module()) ::
+  @spec min_max(t) :: {element, element}
+  @spec min_max(t, (element, element -> boolean) | module()) :: {element, element}
+  @spec min_max(t, (-> empty_result)) :: {element, element} | empty_result when empty_result: any
+  @spec min_max(t, (element, element -> boolean) | module(), (-> empty_result)) ::
           {element, element} | empty_result
-        when empty_result: any
-  @spec min_max(
-          t,
-          (element, element -> boolean) | module(),
-          (-> empty_result)
-        ) :: {element, element} | empty_result
         when empty_result: any
 
   def min_max(enumerable) do
     min_max(enumerable, fn -> raise Enum.EmptyError end)
   end
+
+  def min_max(enumerable, sorter_or_empty_fallback)
 
   def min_max(first..last//step = range, empty_fallback)
       when is_function(empty_fallback, 0) do
