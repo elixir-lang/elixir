@@ -118,6 +118,12 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "raises on multi-alias with non-atom base" do
+      assert_compile_error(~r"invalid alias: \"foo\"", fn ->
+        expand(quote(do: alias(foo.{Bar, Baz})))
+      end)
+    end
+
     test "invalid options" do
       assert_compile_error(~r"unsupported option :ops given to alias", fn ->
         expand(quote(do: alias(Foo, ops: 1)))

@@ -574,18 +574,24 @@ escape_map(Map) -> {'%{}', [], lists:sort(maps:to_list(Map))}.
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E) ->
   {BaseRef, SB, EB} = expand_without_aliases_report(Base, S, E),
 
-  Fun = fun
-    ({'__aliases__', _, Ref}, SR, ER) ->
-      expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, SR, ER);
+  case is_atom(BaseRef) of
+    true ->
+      Fun = fun
+        ({'__aliases__', _, Ref}, SR, ER) ->
+          expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, SR, ER);
 
-    (Ref, SR, ER) when is_atom(Ref) ->
-      expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, SR, ER);
+        (Ref, SR, ER) when is_atom(Ref) ->
+          expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, SR, ER);
 
-    (Other, _SR, _ER) ->
-      file_error(Meta, E, ?MODULE, {expected_compile_time_module, Kind, Other})
-  end,
+        (Other, _SR, _ER) ->
+          file_error(Meta, E, ?MODULE, {expected_compile_time_module, Kind, Other})
+      end,
 
-  mapfold(Fun, SB, EB, Refs).
+      mapfold(Fun, SB, EB, Refs);
+
+    false ->
+      file_error(Meta, E, ?MODULE, {invalid_alias, Base})
+  end.
 
 resolve_super(Meta, Arity, E) ->
   Module = assert_module_scope(Meta, super, E),
