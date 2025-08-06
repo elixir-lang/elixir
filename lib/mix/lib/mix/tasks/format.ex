@@ -33,6 +33,10 @@ defmodule Mix.Tasks.Format do
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
       Patterns are expanded with `Path.wildcard/2`.
 
+    * `:excludes` (a list of paths and patterns) - specifies the files to exclude from the
+      list of inputs to this task. For example, `["config/runtime.exs", "test/**/*.{ex,exs}"]`.
+      Patterns are expanded with `Path.wildcard/2`.
+
     * `:plugins` (a list of modules) (since v1.13.0) - specifies a list of
       modules to customize how the formatter works. See the "Plugins" section
       below for more information.
@@ -634,11 +638,19 @@ defmodule Mix.Tasks.Format do
       Mix.raise("Expected :inputs or :subdirectories key in #{dot_formatter}")
     end
 
+    excluded_files =
+      formatter_opts
+      |> Map.get(:excludes, [])
+      |> List.wrap()
+      |> Enum.flat_map(&Path.wildcard(Path.expand(&1, cwd), match_dot: true))
+      |> MapSet.new()
+
     map =
-      for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(Path.expand(input, cwd), match_dot: true),
-          do: {file, {dot_formatter, formatter_opts}},
-          into: %{}
+      formatter_opts[:inputs]
+      |> List.wrap()
+      |> Stream.flat_map(&Path.wildcard(Path.expand(&1, cwd), match_dot: true))
+      |> Stream.filter(fn file -> not MapSet.member?(excluded_files, file) end)
+      |> Enum.into(%{}, fn file -> {file, {dot_formatter, formatter_opts}} end)
 
     acc =
       Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, formatter_opts} ->
