@@ -4,7 +4,9 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule MacroEnvMacros do
-  defmacro my_macro(arg), do: arg
+  defmacro my_macro(arg) do
+    quote do: foo(unquote(arg))
+  end
 
   @deprecated "this is deprecated"
   defmacro my_deprecated_macro(arg), do: arg
@@ -154,9 +156,15 @@ defmodule Macro.EnvTest do
 
     test "expands with argument" do
       {:macro, MacroEnvMacros, fun} = expand_require(env(), meta(), MacroEnvMacros, :my_macro, 1)
-      assert fun.([], [quote(do: hello())]) == quote(do: hello())
-      assert fun.([line: 789], [quote(do: hello())]) == quote(line: 789, do: hello())
-      assert fun.([generated: true], [quote(do: hello())]) == quote(generated: true, do: hello())
+      assert fun.([], [quote(do: hello())]) == quote(do: foo(hello()))
+      assert fun.([line: 789], [quote(do: hello())]) == quote(line: 789, do: foo(hello()))
+
+      # do not propagate generated: true to arguments
+      assert {:foo, outer_meta, [{:hello, inner_meta, []}]} =
+               fun.([generated: true], [quote(do: hello())])
+
+      assert outer_meta[:generated]
+      refute inner_meta[:generated]
     end
 
     test "with tracing and deprecations" do
@@ -202,9 +210,15 @@ defmodule Macro.EnvTest do
 
     test "expands with argument" do
       {:macro, MacroEnvMacros, fun} = expand_import(env(), meta(), :my_macro, 1)
-      assert fun.([], [quote(do: hello())]) == quote(do: hello())
-      assert fun.([line: 789], [quote(do: hello())]) == quote(line: 789, do: hello())
-      assert fun.([generated: true], [quote(do: hello())]) == quote(generated: true, do: hello())
+      assert fun.([], [quote(do: hello())]) == quote(do: foo(hello()))
+      assert fun.([line: 789], [quote(do: hello())]) == quote(line: 789, do: foo(hello()))
+
+      # do not propagate generated: true to arguments
+      assert {:foo, outer_meta, [{:hello, inner_meta, []}]} =
+               fun.([generated: true], [quote(do: hello())])
+
+      assert outer_meta[:generated]
+      refute inner_meta[:generated]
     end
 
     defmacro allow_locals_example, do: :ok
