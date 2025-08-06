@@ -639,18 +639,17 @@ defmodule Mix.Tasks.Format do
     end
 
     excluded_files =
-      formatter_opts
-      |> Map.get(:excludes, [])
+      formatter_opts[:excludes]
       |> List.wrap()
       |> Enum.flat_map(&Path.wildcard(Path.expand(&1, cwd), match_dot: true))
       |> MapSet.new()
 
     map =
-      formatter_opts[:inputs]
-      |> List.wrap()
-      |> Stream.flat_map(&Path.wildcard(Path.expand(&1, cwd), match_dot: true))
-      |> Stream.filter(fn file -> not MapSet.member?(excluded_files, file) end)
-      |> Enum.into(%{}, fn file -> {file, {dot_formatter, formatter_opts}} end)
+      for input <- List.wrap(formatter_opts[:inputs]),
+          file <- Path.wildcard(Path.expand(input, cwd), match_dot: true),
+          file not in excluded_files,
+          do: {file, {dot_formatter, formatter_opts}},
+          into: %{}
 
     acc =
       Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, formatter_opts} ->
