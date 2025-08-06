@@ -264,7 +264,7 @@ defmodule MacroTest do
       assert Macro.expand_once(expr, __ENV__) == expr
     end
 
-    test "propagates generated" do
+    test "propagates :generated" do
       assert {:||, meta, [1, false]} = Macro.expand_once(quote(do: oror(1, false)), __ENV__)
       refute meta[:generated]
 
@@ -272,6 +272,41 @@ defmodule MacroTest do
                Macro.expand_once(quote(generated: true, do: oror(1, false)), __ENV__)
 
       assert meta[:generated]
+    end
+
+    test "does not propagate :generated to unquoted" do
+      non_generated = quote do: foo()
+
+      assert {:||, outer_meta, [{:foo, inner_meta, []}, false]} =
+               Macro.expand_once(
+                 quote generated: true do
+                   oror(unquote(non_generated), false)
+                 end,
+                 __ENV__
+               )
+
+      assert outer_meta[:generated]
+      refute inner_meta[:generated]
+    end
+
+    defmacro foo_bar(x) do
+      y = quote do: bar(unquote(x))
+
+      quote do: foo(unquote(y))
+    end
+
+    test "propagates :generated to unquote within macro" do
+      non_generated = quote do: baz()
+
+      assert {:foo, foo_meta, [{:bar, bar_meta, [{:baz, baz_meta, []}]}]} =
+               Macro.expand_once(
+                 quote(generated: true, do: foo_bar(unquote(non_generated))),
+                 __ENV__
+               )
+
+      assert foo_meta[:generated]
+      assert bar_meta[:generated]
+      refute baz_meta[:generated]
     end
 
     test "does not expand module attributes" do

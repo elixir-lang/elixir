@@ -9,7 +9,7 @@
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
 -define(lexical(Kind), Kind == import; Kind == alias; Kind == require).
--compile({inline, [keyfind/2, keystore/3, keydelete/2, keynew/3, do_tuple_linify/5]}).
+-compile({inline, [keyfind/2, keystore/3, keydelete/2, keynew/3, do_tuple_linify/6]}).
 
 -record(elixir_quote, {
   line=false,
@@ -84,53 +84,58 @@ linify(Line, Key, Exprs) when is_integer(Line) ->
         end
     end,
 
-  do_linify(Fun, Exprs, nil).
+  do_linify(Fun, Exprs, nil, false).
 
 %% Same as linify but also considers the context counter and generated.
 linify_with_context_counter(ContextMeta, Var, Exprs) when is_list(ContextMeta) ->
   Line = ?line(ContextMeta),
 
-  Fun =
-    case lists:keyfind(generated, 1, ContextMeta) of
-      {generated, true} when Line =:= 0 -> fun elixir_utils:generated/1;
-      {generated, true} -> fun(Meta) -> elixir_utils:generated(keynew(line, Meta, Line)) end;
-      _ when Line =:= 0 -> fun(Meta) -> Meta end;
-      _ -> fun(Meta) -> keynew(line, Meta, Line) end
-    end,
+  Generated = keyfind(generated, ContextMeta) == {generated, true},
 
-  do_linify(Fun, Exprs, Var).
+  Fun = if
+    Line =:= 0 -> fun(Meta) -> Meta end;
+    true -> fun(Meta) -> keynew(line, Meta, Line) end
+  end,
 
-do_linify(Fun, {quote, Meta, [_ | _] = Args}, {Receiver, Counter} = Var)
+  do_linify(Fun, Exprs, Var, Generated).
+
+do_linify(Fun, {quote, Meta, [_ | _] = Args}, {Receiver, Counter} = Var, Gen)
     when is_list(Meta) ->
   NewMeta =
     case keyfind(context, Meta) == {context, Receiver} of
       true -> keynew(counter, Meta, Counter);
       false -> Meta
     end,
-  do_tuple_linify(Fun, NewMeta, quote, Args, Var);
+  do_tuple_linify(Fun, NewMeta, quote, Args, Var, Gen);
 
-do_linify(Fun, {Left, Meta, Receiver}, {Receiver, Counter} = Var)
+do_linify(Fun, {Left, Meta, Receiver}, {Receiver, Counter} = Var, Gen)
     when is_atom(Left), is_list(Meta), Left /= '_' ->
-  do_tuple_linify(Fun, keynew(counter, Meta, Counter), Left, Receiver, Var);
+  do_tuple_linify(Fun, keynew(counter, Meta, Counter), Left, Receiver, Var, Gen);
 
-do_linify(Fun, {Lexical, Meta, [_ | _] = Args}, {_, Counter} = Var)
+do_linify(Fun, {Lexical, Meta, [_ | _] = Args}, {_, Counter} = Var, Gen)
     when ?lexical(Lexical); Lexical == '__aliases__' ->
-  do_tuple_linify(Fun, keynew(counter, Meta, Counter), Lexical, Args, Var);
+  do_tuple_linify(Fun, keynew(counter, Meta, Counter), Lexical, Args, Var, Gen);
 
-do_linify(Fun, {Left, Meta, Right}, Var) when is_list(Meta) ->
-  do_tuple_linify(Fun, Meta, Left, Right, Var);
+do_linify(Fun, {Left, Meta, Right}, Var, Gen) when is_list(Meta) ->
+  do_tuple_linify(Fun, Meta, Left, Right, Var, Gen);
 
-do_linify(Fun, {Left, Right}, Var) ->
-  {do_linify(Fun, Left, Var), do_linify(Fun, Right, Var)};
+do_linify(Fun, {Left, Right}, Var, Gen) ->
+  {do_linify(Fun, Left, Var, Gen), do_linify(Fun, Right, Var, Gen)};
 
-do_linify(Fun, List, Var) when is_list(List) ->
-  [do_linify(Fun, X, Var) || X <- List];
+do_linify(Fun, List, Var, Gen) when is_list(List) ->
+  [do_linify(Fun, X, Var, Gen) || X <- List];
 
-do_linify(_, Else, _) -> Else.
+do_linify(_, Else, _, _Gen) -> Else.
 
--compile({inline, do_tuple_linify/5}).
-do_tuple_linify(Fun, Meta, Left, Right, Var) ->
-  {do_linify(Fun, Left, Var), Fun(Meta), do_linify(Fun, Right, Var)}.
+do_tuple_linify(Fun, Meta, Left, Right, Var, Gen) ->
+  {NewMeta, NewGen} =
+    case keyfind(stop_generated, Meta) of
+      {stop_generated, true} -> {keydelete(stop_generated, Meta), false};
+      _ when Gen -> {elixir_utils:generated(Meta), Gen};
+      _ -> {Meta, Gen}
+    end,
+
+  {do_linify(Fun, Left, Var, NewGen), Fun(NewMeta), do_linify(Fun, Right, Var, NewGen)}.
 
 %% Escaping
 

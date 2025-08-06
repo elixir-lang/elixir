@@ -133,7 +133,7 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert({:=, meta, [left, right]} = assertion) do
-    code = escape_quoted(:assert, meta, assertion)
+    code = escape_quoted(:assert, meta, mark_as_generated(assertion))
 
     check =
       quote generated: true do
@@ -150,7 +150,7 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro assert({:match?, meta, [left, right]} = assertion) do
-    code = escape_quoted(:assert, meta, assertion)
+    code = escape_quoted(:assert, meta, mark_as_generated(assertion))
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
 
     left = __expand_pattern__(left, __CALLER__)
@@ -727,9 +727,12 @@ defmodule ExUnit.Assertions do
 
   defp has_var?(pattern, name, context), do: Enum.any?(pattern, &match?({^name, _, ^context}, &1))
 
-  defp mark_as_generated(vars) do
-    for {name, meta, context} <- vars, do: {name, [generated: true] ++ meta, context}
+  defp mark_as_generated(vars) when is_list(vars) do
+    Enum.map(vars, fn {name, meta, context} -> {name, [generated: true] ++ meta, context} end)
   end
+
+  defp mark_as_generated({name, meta, context}), do: {name, [generated: true] ++ meta, context}
+  defp mark_as_generated(other), do: other
 
   @doc false
   def __expand_pattern__({:when, meta, [left, right]}, caller) do
@@ -952,7 +955,7 @@ defmodule ExUnit.Assertions do
   defp do_catch(kind, expr) do
     quote do
       try do
-        _ = unquote(expr)
+        _ = unquote(mark_as_generated(expr))
         flunk("Expected to catch #{unquote(kind)}, got nothing")
       rescue
         e in [ExUnit.AssertionError] ->
