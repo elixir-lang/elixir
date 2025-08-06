@@ -129,9 +129,9 @@ do_linify(_, Else, _, _Gen) -> Else.
 
 do_tuple_linify(Fun, Meta, Left, Right, Var, Gen) ->
   {NewMeta, NewGen} =
-    case keyfind(stop_generated, Meta) of
-      {stop_generated, true} -> {keydelete(stop_generated, Meta), false};
-      _ when Gen -> {elixir_utils:generated(Meta), Gen};
+    case keyfind(generated, Meta) of
+      {generated, false} -> {keydelete(generated, Meta), false};
+      false when Gen -> {[{generated, true} | Meta], Gen};
       _ -> {Meta, Gen}
     end,
 

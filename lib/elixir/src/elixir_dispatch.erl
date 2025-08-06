@@ -10,7 +10,7 @@
   require_function/5, import_function/4,
   expand_import/7, expand_require/6, check_deprecated/6,
   default_functions/0, default_macros/0, default_requires/0,
-  find_import/4, find_imports/3, format_error/1, stop_generated/1]).
+  find_import/4, find_imports/3, format_error/1, stop_generated_propagation/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(kernel, 'Elixir.Kernel').
@@ -119,7 +119,7 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
     {macro, Receiver, Expander} ->
       check_deprecated(macro, Meta, Receiver, Name, Arity, E),
       Caller = {?line(Meta), S, E},
-      expand_quoted(Meta, Receiver, Name, Arity, Expander(stop_generated(Args), Caller), S, E);
+      expand_quoted(Meta, Receiver, Name, Arity, Expander(stop_generated_propagation(Args), Caller), S, E);
     {function, Receiver, NewName} ->
       case elixir_rewrite:inline(Receiver, NewName, Arity) of
         {AR, AN} ->
@@ -134,9 +134,10 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
       elixir_errors:file_error(Meta, E, ?MODULE, {import, Error, Name, Arity})
   end.
 
-stop_generated(Args) ->
+stop_generated_propagation(Args) ->
   lists:map(fun
-    ({Call, Meta, Ctx}) when is_list(Meta) -> {Call, [{stop_generated, true} | Meta], Ctx};
+    % we add generated: false but do not overwrite any potential generated: true if present
+    ({Call, Meta, Ctx}) when is_list(Meta) -> {Call, [{generated, false} | Meta], Ctx};
     (Other) -> Other
   end, Args).
 
