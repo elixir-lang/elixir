@@ -436,8 +436,9 @@ defmodule Logger do
       defmodule LogFilter do
         def filter(log_event, _opts) do
           case log_event do
-            %{msg: msg} when is_binary(msg) ->
-              if msg =~ "password" do
+            %{msg: {:string, msg}} ->
+              # msg may be a charlist or a binary
+              if to_string(msg) =~ "password" do
                 :stop
               else
                 :ignore
