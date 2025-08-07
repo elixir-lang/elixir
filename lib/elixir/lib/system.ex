@@ -1040,25 +1040,6 @@ defmodule System do
   > such as `.exe`, and double check the program is indeed not a batch
   > file or `.com` application.
 
-  ## Examples
-
-      iex> System.cmd("echo", ["hello"])
-      {"hello\n", 0}
-
-      iex> System.cmd("echo", ["hello"], env: [{"MIX_ENV", "test"}])
-      {"hello\n", 0}
-
-  If you want to stream the output to Standard IO as it arrives:
-
-      iex> System.cmd("echo", ["hello"], into: IO.stream())
-      hello
-      {%IO.Stream{}, 0}
-
-  If you want to read lines:
-
-      iex> System.cmd("echo", ["hello\nworld"], into: [], lines: 1024)
-      {["hello", "world"], 0}
-
   ## Options
 
     * `:into` - injects the result into the given collectable, defaults to `""`
@@ -1122,6 +1103,26 @@ defmodule System do
 
   If you desire to execute a trusted command inside a shell, with pipes,
   redirecting and so on, please check `shell/2`.
+
+  ## Examples
+
+      iex> System.cmd("echo", ["hello"])
+      {"hello\n", 0}
+
+      iex> System.cmd("echo", ["hello"], env: [{"MIX_ENV", "test"}])
+      {"hello\n", 0}
+
+  If you want to stream the output to Standard IO as it arrives:
+
+      iex> System.cmd("echo", ["hello"], into: IO.stream())
+      hello
+      {%IO.Stream{}, 0}
+
+  If you want to read lines:
+
+      iex> System.cmd("echo", ["hello\nworld"], into: [], lines: 1024)
+      {["hello", "world"], 0}
+
   """
   @spec cmd(binary, [binary], cmd_opts) :: {Collectable.t(), exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
