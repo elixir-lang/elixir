@@ -940,9 +940,19 @@ defmodule ExUnit.Case do
 
   defp normalize_tags(tags) do
     Enum.reduce(Enum.reverse(tags), %{}, fn
-      {key, value}, acc -> Map.put(acc, key, value)
-      tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
-      tag, acc when is_list(tag) -> Enum.into(tag, acc)
+      {key, value}, acc ->
+        Map.put(acc, key, value)
+
+      tag, acc when is_atom(tag) ->
+        Map.put(acc, tag, true)
+
+      tag, acc ->
+        if Keyword.keyword?(tag) do
+          Enum.into(tag, acc)
+        else
+          raise "an invalid value for a tag was used; " <>
+                  "expected an atom or a keyword list, got: #{inspect(tag)}"
+        end
     end)
   end
 end
