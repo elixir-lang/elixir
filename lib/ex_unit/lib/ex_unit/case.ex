@@ -950,8 +950,8 @@ defmodule ExUnit.Case do
         if Keyword.keyword?(tag) do
           Enum.into(tag, acc)
         else
-          raise "an invalid value for a tag was used; " <>
-                  "expected an atom or a keyword list, got: #{inspect(tag)}"
+          raise "an invalid value for a tag was used. " <>
+                  "Expected an atom or a keyword list, got: #{inspect(tag)}"
         end
     end)
   end
