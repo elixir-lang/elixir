@@ -1096,12 +1096,13 @@ defmodule Code do
       [
         unescape: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        include_comments: true,
         token_metadata: true,
         emit_warnings: false
       ] ++ opts
 
-    {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
-    to_algebra_opts = [comments: comments] ++ opts
+    forms = string_to_quoted!(string, to_quoted_opts)
+    to_algebra_opts = opts
     doc = Code.Formatter.to_algebra(forms, to_algebra_opts)
     Inspect.Algebra.format(doc, line_length)
   end
@@ -1271,6 +1272,12 @@ defmodule Code do
     * `:emit_warnings` (since v1.16.0) - when `false`, does not emit
       tokenizing/parsing related warnings. Defaults to `true`.
 
+    * `:include_comments` (since v1.19.0) - when `true`, includes comments
+      in the quoted form. Defaults to `false`. If this option is set to
+      `true`, the `:literal_encoder` option must  be set to a function
+      that ensures all literals are annotated, for example
+      `&{:ok, {:__block__, &2, [&1]}}`.
+
   ## `Macro.to_string/2`
 
   The opposite of converting a string to its quoted form is
@@ -1318,6 +1325,64 @@ defmodule Code do
       iex> Code.string_to_quoted("1 \ 3")
       {:error, {[line: 1, column: 4], "syntax error before: ", "\"3\""}}
 
+  ## Comments
+
+  When `include_comments: true` is passed, comments are included in the
+  quoted form.
+
+  There are three types of comments:
+  - `:leading_comments`: Comments that are located before a node,
+    or in the same line.
+
+    Examples:
+
+        # This is a leading comment
+        foo # This one too
+
+  - `:trailing_comments`: Comments that are located after a node, and
+    before the end of the parent enclosing the node(or the root document).
+
+    Examples:
+
+        foo
+        # This is a trailing comment
+        # This one too
+
+  - `:inner_comments`: Comments that are located inside an empty node.
+
+    Examples:
+
+        foo do
+          # This is an inner comment
+        end
+
+        [
+          # This is an inner comment
+        ]
+
+        %{
+          # This is an inner comment
+        }
+
+  A comment may be considered inner or trailing depending on wether the enclosing
+  node is empty or not. For example, in the following code:
+
+      foo do
+        # This is an inner comment
+      end
+
+  The comment is considered inner because the `do` block is empty. However, in the
+  following code:
+
+      foo do
+        bar
+        # This is a trailing comment
+      end
+
+  The comment is considered trailing to `bar` because the `do` block is not empty.
+
+  In the case no nodes are present in the AST but there are comments, they are
+  inserted into a placeholder `:__block__` node as `:inner_comments`.
   """
   @spec string_to_quoted(List.Chars.t(), parser_opts) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
@@ -1325,11 +1390,30 @@ defmodule Code do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
+    include_comments? = Keyword.get(opts, :include_comments, false)
 
-    case :elixir.string_to_tokens(to_charlist(string), line, column, file, opts) do
-      {:ok, tokens} ->
-        :elixir.tokens_to_quoted(tokens, file, opts)
+    Process.put(:code_formatter_comments, [])
+    opts =
+      if include_comments? do
+        [
+          preserve_comments: &preserve_comments/5,
+          token_metadata: true,
+        ] ++ opts
+      else
+        opts
+      end
 
+    with {:ok, tokens} <- :elixir.string_to_tokens(to_charlist(string), line, column, file, opts),
+         {:ok, quoted} <- :elixir.tokens_to_quoted(tokens, file, opts) do
+      if include_comments? do
+        quoted = Code.Normalizer.normalize(quoted)
+        quoted = Code.Comments.merge_comments(quoted, Process.get(:code_formatter_comments))
+
+        {:ok, quoted}
+      else
+        {:ok, quoted}
+      end
+    else
       {:error, _error_msg} = error ->
         error
     end
@@ -1351,7 +1435,27 @@ defmodule Code do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
-    :elixir.string_to_quoted!(to_charlist(string), line, column, file, opts)
+    include_comments? = Keyword.get(opts, :include_comments, false)
+
+    Process.put(:code_formatter_comments, [])
+
+    opts =
+      if include_comments? do
+        [
+          preserve_comments: &preserve_comments/5,
+          token_metadata: true,
+        ] ++ opts
+      else
+        opts
+      end
+
+    quoted = :elixir.string_to_quoted!(to_charlist(string), line, column, file, opts)
+
+    if include_comments? do
+      Code.Comments.merge_comments(quoted, Process.get(:code_formatter_comments))
+    else
+      quoted
+    end
   end
 
   @doc """
