@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - name: "Download build"
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
 
@@ -202,7 +202,7 @@ jobs:
 
       - name: "Download Build Artifacts"
         id: download-build-artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
@@ -268,7 +268,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs,SBoM,Attestations}"
           merge-multiple: true
@@ -313,7 +313,7 @@ jobs:
       FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
       OTP_GENERIC_VERSION: "25"
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
