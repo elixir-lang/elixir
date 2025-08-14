@@ -1214,7 +1214,7 @@ defmodule Enum do
   end
 
   @doc """
-  Maps the given `fun` over `enumerable` and flattens the result.
+  Maps the given `fun` over `enumerable` and flattens the result only one level deep.
 
   This function returns a new enumerable built by appending the result of invoking `fun`
   on each element of `enumerable` together; conceptually, this is similar to a
@@ -1262,12 +1262,15 @@ defmodule Enum do
   defp flat_reverse([], acc), do: acc
 
   @doc """
-  Maps and reduces an `enumerable`, flattening the given results (only one level deep).
+  Maps and reduces an `enumerable`, flattening the results only one level deep.
 
   It expects an accumulator and a function that receives each enumerable
   element, and must return a tuple containing a new enumerable (often a list)
   with the new accumulator or a tuple with `:halt` as first element and
   the accumulator as second.
+
+  Returns a 2-element tuple where the first element is the results flattened one level deep and
+  the second element is the last accumulator.
 
   ## Examples
 
