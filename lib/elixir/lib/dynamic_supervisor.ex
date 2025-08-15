@@ -137,67 +137,6 @@ defmodule DynamicSupervisor do
 
   A supervisor is bound to the same name registration rules as a `GenServer`.
   Read more about these rules in the documentation for `GenServer`.
-
-  ## Migrating from Supervisor's :simple_one_for_one
-
-  In case you were using the deprecated `:simple_one_for_one` strategy from
-  the `Supervisor` module, you can migrate to the `DynamicSupervisor` in
-  few steps.
-
-  Imagine the given "old" code:
-
-      defmodule MySupervisor do
-        use Supervisor
-
-        def start_link(init_arg) do
-          Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
-        end
-
-        def start_child(foo, bar, baz) do
-          # This will start child by calling MyWorker.start_link(init_arg, foo, bar, baz)
-          Supervisor.start_child(__MODULE__, [foo, bar, baz])
-        end
-
-        @impl true
-        def init(init_arg) do
-          children = [
-            # Or the deprecated: worker(MyWorker, [init_arg])
-            %{id: MyWorker, start: {MyWorker, :start_link, [init_arg]}}
-          ]
-
-          Supervisor.init(children, strategy: :simple_one_for_one)
-        end
-      end
-
-  It can be upgraded to the DynamicSupervisor like this:
-
-      defmodule MySupervisor do
-        use DynamicSupervisor
-
-        def start_link(init_arg) do
-          DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
-        end
-
-        def start_child(foo, bar, baz) do
-          # If MyWorker is not using the new child specs, we need to pass a map:
-          # spec = %{id: MyWorker, start: {MyWorker, :start_link, [foo, bar, baz]}}
-          spec = {MyWorker, foo: foo, bar: bar, baz: baz}
-          DynamicSupervisor.start_child(__MODULE__, spec)
-        end
-
-        @impl true
-        def init(init_arg) do
-          DynamicSupervisor.init(
-            strategy: :one_for_one,
-            extra_arguments: [init_arg]
-          )
-        end
-      end
-
-  The difference is that the `DynamicSupervisor` expects the child specification
-  at the moment `start_child/2` is called, and no longer on the init callback.
-  If there are any initial arguments given on initialization, such as `[initial_arg]`,
-  it can be given in the `:extra_arguments` flag on `DynamicSupervisor.init/1`.
   """
 
   @behaviour GenServer
@@ -233,9 +172,10 @@ defmodule DynamicSupervisor do
   @typedoc """
   Return values of `start_child` functions.
 
-  Unlike `Supervisor`, this module ignores the child spec ids, so
-  `{:error, {:already_started, pid}}` is not returned for child specs given with the same id.
-  `{:error, {:already_started, pid}}` is returned however if a duplicate name is used when using
+  Unlike `Supervisor`, this module ignores the child spec ids,
+  so `{:error, {:already_started, pid}}` is not returned for child specs
+  given with the same id. `{:error, {:already_started, pid}}` is returned
+  however if a duplicate name is used when using
   [name registration](`m:GenServer#module-name-registration`).
   """
   @type on_start_child ::
@@ -415,6 +355,10 @@ defmodule DynamicSupervisor do
   `{:error, {:already_started, pid}}` is returned however if a duplicate name is
   used when using [name registration](`m:GenServer#module-name-registration`).
 
+  This function will block the `DynamicSupervisor` until the child initializes.
+  When starting too many processes dynamically, you may want to use a
+  `PartitionSupervisor` to split the work across multiple processes.
+
   If the child process start function returns `{:ok, child}` or `{:ok, child,
   info}`, then child specification and PID are added to the supervisor and
   this function returns the same value.
@@ -517,6 +461,14 @@ defmodule DynamicSupervisor do
 
   @doc """
   Terminates the given child identified by `pid`.
+
+  This function will block the `DynamicSupervisor` until the child
+  terminates, which may take an arbitrary amount of time if the child
+  is trapping exits and implements its own terminate callback.
+  For this reason, it is often better to ask the child process
+  itself to terminate, often by declaring in its child spec it has
+  a restart strategy of `:transient` (or `:temporary`) and then
+  sending it a message to stop with reason `:shutdown`.
 
   If successful, this function returns `:ok`. If there is no process with
   the given PID, this function returns `{:error, :not_found}`.
