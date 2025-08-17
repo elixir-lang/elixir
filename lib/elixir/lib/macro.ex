@@ -1765,12 +1765,17 @@ defmodule Macro do
   @doc """
   Applies a `mod`, `function`, and `args` at compile-time in `caller`.
 
-  This is used when you want to programmatically invoke a macro at
-  compile-time.
+  This is used when you want to dynamically invoke a function at
+  compile-time and force it to be tracked as a compile-time dependency.
+  For example, this is used by `dbg/1` to force the `dbg_callback`
+  configuration to be a compile-time dependency.
+
+  If you want to "invoke" a macro instead, remember macros are by
+  definition compile-time, and you can use `Macro.expand/2`.
   """
   @doc since: "1.16.0"
   def compile_apply(mod, fun, args, caller) do
-    :elixir_env.trace({:remote_macro, [], mod, fun, length(args)}, caller)
+    :elixir_env.trace({:remote_function, [], mod, fun, length(args)}, %{caller | function: nil})
     Kernel.apply(mod, fun, args)
   end
 
