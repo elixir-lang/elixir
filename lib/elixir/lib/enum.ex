@@ -1845,7 +1845,7 @@ defmodule Enum do
   Returns the maximal element in the `enumerable` according
   to Erlang's term ordering.
 
-  By default, the comparison is done with the `>=` sorter function.
+  By default, the comparison is done with the [`>=`](`>=/2`) sorter function.
   If multiple elements are considered maximal, the first one that
   was found is returned. If you want the last element considered
   maximal to be returned, the sorter function should not return true
@@ -1912,7 +1912,7 @@ defmodule Enum do
   Returns the maximal element in the `enumerable` as calculated
   by the given `fun`.
 
-  By default, the comparison is done with the `>=` sorter function.
+  By default, the comparison is done with the [`>=`](`>=/2`) sorter function.
   If multiple elements are considered maximal, the first one that
   was found is returned. If you want the last element considered
   maximal to be returned, the sorter function should not return true
@@ -2025,7 +2025,7 @@ defmodule Enum do
   Returns the minimal element in the `enumerable` according
   to Erlang's term ordering.
 
-  By default, the comparison is done with the `<=` sorter function.
+  By default, the comparison is done with the [`<=`](`<=/2`) sorter function.
   If multiple elements are considered minimal, the first one that
   was found is returned. If you want the last element considered
   minimal to be returned, the sorter function should not return true
@@ -2092,7 +2092,7 @@ defmodule Enum do
   Returns the minimal element in the `enumerable` as calculated
   by the given `fun`.
 
-  By default, the comparison is done with the `<=` sorter function.
+  By default, the comparison is done with the [`<=`](`<=/2`) sorter function.
   If multiple elements are considered minimal, the first one that
   was found is returned. If you want the last element considered
   minimal to be returned, the sorter function should not return true
@@ -2148,7 +2148,7 @@ defmodule Enum do
   Returns a tuple with the minimal and the maximal elements in the
   enumerable.
 
-  By default, the comparison is done with the `<` sorter function,
+  By default, the comparison is done with the [`<`](`</2`) sorter function,
   as the function must not return true for equal elements.
 
   ## Examples
@@ -2263,8 +2263,8 @@ defmodule Enum do
   Returns a tuple with the minimal and the maximal elements in the
   enumerable as calculated by the given function.
 
-  By default, the comparison is done with the `<` sorter function,
-  as the function must not return true for equal elements.
+  By default, the comparison is done with the [`<`](`</2`) sorter function,
+  as the function must not return `true` for equal elements.
 
   ## Examples
 
