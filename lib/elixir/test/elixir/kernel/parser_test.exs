@@ -1429,6 +1429,16 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(["nofile:1:5:", "syntax error before: ?す"], ~c":ok ?す")
     end
 
+    test "character literals take newlines into account" do
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert parse!("{?\n}\n{123}") ==
+                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
+
+        assert parse!("{?\\\n}\n{123}") ==
+                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
+      end)
+    end
+
     test "numbers are printed correctly in syntax errors" do
       assert_syntax_error(["nofile:1:5:", ~s/syntax error before: "12"/], ~c":ok 12")
       assert_syntax_error(["nofile:1:5:", ~s/syntax error before: "0b1"/], ~c":ok 0b1")
