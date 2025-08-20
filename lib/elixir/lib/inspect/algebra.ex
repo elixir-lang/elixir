@@ -396,7 +396,7 @@ defmodule Inspect.Algebra do
   def to_doc_with_opts(term, opts)
 
   def to_doc_with_opts(%_{} = struct, %Inspect.Opts{inspect_fun: fun} = opts) do
-    if opts.structs and Inspect.Map.valid_struct?(struct) do
+    if opts.structs and valid_struct?(struct) do
       try do
         fun.(struct, opts)
       rescue
@@ -452,6 +452,26 @@ defmodule Inspect.Algebra do
   def to_doc_with_opts(arg, %Inspect.Opts{inspect_fun: fun} = opts) do
     fun.(arg, opts) |> pack_opts(opts)
   end
+
+  defp valid_struct?(%module{} = struct) do
+    try do
+      module.__info__(:struct)
+    rescue
+      _ -> false
+    else
+      info ->
+        valid_struct?(info, struct, map_size(struct) - 1)
+    end
+  end
+
+  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
+    do: valid_struct?(info, struct, count - 1)
+
+  defp valid_struct?([], _struct, 0),
+    do: true
+
+  defp valid_struct?(_fields, _struct, _count),
+    do: false
 
   defp pack_opts({_doc, %Inspect.Opts{}} = doc_opts, _opts), do: doc_opts
   defp pack_opts(doc, opts), do: {doc, opts}

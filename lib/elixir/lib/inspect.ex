@@ -475,26 +475,6 @@ defimpl Inspect, for: Map do
     map_container_doc(infos, name, opts, fun)
   end
 
-  def valid_struct?(%module{} = struct) do
-    try do
-      module.__info__(:struct)
-    rescue
-      _ -> false
-    else
-      info ->
-        valid_struct?(info, struct, map_size(struct) - 1)
-    end
-  end
-
-  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
-    do: valid_struct?(info, struct, count - 1)
-
-  defp valid_struct?([], _struct, 0),
-    do: true
-
-  defp valid_struct?(_fields, _struct, _count),
-    do: false
-
   defp to_assoc({key, value}, opts, sep) do
     {key_doc, opts} = to_doc_with_opts(key, opts)
     {value_doc, opts} = to_doc_with_opts(value, opts)
