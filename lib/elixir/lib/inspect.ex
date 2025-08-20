@@ -475,6 +475,32 @@ defimpl Inspect, for: Map do
     map_container_doc(infos, name, opts, fun)
   end
 
+  def valid_struct?(struct) do
+    !!valid_struct_info(struct)
+  end
+
+  def valid_struct_info(%module{} = struct) do
+    try do
+      module.__info__(:struct)
+    rescue
+      _ -> nil
+    else
+      info ->
+        if valid_struct?(info, struct, map_size(struct) - 1) do
+          info
+        end
+    end
+  end
+
+  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
+    do: valid_struct?(info, struct, count - 1)
+
+  defp valid_struct?([], _struct, 0),
+    do: true
+
+  defp valid_struct?(_fields, _struct, _count),
+    do: false
+
   defp to_assoc({key, value}, opts, sep) do
     {key_doc, opts} = to_doc_with_opts(key, opts)
     {value_doc, opts} = to_doc_with_opts(value, opts)
@@ -662,35 +688,17 @@ end
 
 defimpl Inspect, for: Any do
   def inspect(%module{} = struct, opts) do
-    try do
-      module.__info__(:struct)
-    rescue
-      _ -> Inspect.Map.inspect_as_map(struct, opts)
-    else
-      info ->
-        if valid_struct?(info, struct) do
-          info =
-            for %{field: field} = map <- info,
-                field != :__exception__,
-                do: map
+    if info = Inspect.Map.valid_struct_info(struct) do
+      info =
+        for %{field: field} = map <- info,
+            field != :__exception__,
+            do: map
 
-          Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
-        else
-          Inspect.Map.inspect_as_map(struct, opts)
-        end
+      Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
+    else
+      Inspect.Map.inspect_as_map(struct, opts)
     end
   end
-
-  defp valid_struct?(info, struct), do: valid_struct?(info, struct, map_size(struct) - 1)
-
-  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
-    do: valid_struct?(info, struct, count - 1)
-
-  defp valid_struct?([], _struct, 0),
-    do: true
-
-  defp valid_struct?(_fields, _struct, _count),
-    do: false
 
   def inspect_as_struct(map, name, infos, opts) do
     open = color_doc("#" <> name <> "<", :map, opts)

@@ -149,27 +149,6 @@ defmodule Date.RangeTest do
   end
 
   describe "old date ranges" do
-    test "inspect" do
-      asc = %{
-        __struct__: Date.Range,
-        first: ~D[2021-07-14],
-        first_in_iso_days: 738_350,
-        last: ~D[2021-07-17],
-        last_in_iso_days: 738_353
-      }
-
-      desc = %{
-        __struct__: Date.Range,
-        first: ~D[2021-07-17],
-        first_in_iso_days: 738_353,
-        last: ~D[2021-07-14],
-        last_in_iso_days: 738_350
-      }
-
-      assert inspect(asc) == "Date.range(~D[2021-07-14], ~D[2021-07-17])"
-      assert inspect(desc) == "Date.range(~D[2021-07-17], ~D[2021-07-14], -1)"
-    end
-
     test "enumerable" do
       asc = %{
         __struct__: Date.Range,

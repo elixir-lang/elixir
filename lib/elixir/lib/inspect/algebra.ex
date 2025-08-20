@@ -396,7 +396,7 @@ defmodule Inspect.Algebra do
   def to_doc_with_opts(term, opts)
 
   def to_doc_with_opts(%_{} = struct, %Inspect.Opts{inspect_fun: fun} = opts) do
-    if opts.structs do
+    if opts.structs and Inspect.Map.valid_struct?(struct) do
       try do
         fun.(struct, opts)
       rescue
