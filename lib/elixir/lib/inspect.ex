@@ -475,20 +475,14 @@ defimpl Inspect, for: Map do
     map_container_doc(infos, name, opts, fun)
   end
 
-  def valid_struct?(struct) do
-    !!valid_struct_info(struct)
-  end
-
-  def valid_struct_info(%module{} = struct) do
+  def valid_struct?(%module{} = struct) do
     try do
       module.__info__(:struct)
     rescue
-      _ -> nil
+      _ -> false
     else
       info ->
-        if valid_struct?(info, struct, map_size(struct) - 1) do
-          info
-        end
+        valid_struct?(info, struct, map_size(struct) - 1)
     end
   end
 
@@ -688,16 +682,12 @@ end
 
 defimpl Inspect, for: Any do
   def inspect(%module{} = struct, opts) do
-    if info = Inspect.Map.valid_struct_info(struct) do
-      info =
-        for %{field: field} = map <- info,
-            field != :__exception__,
-            do: map
+    info =
+      for %{field: field} = map <- module.__info__(:struct),
+          field != :__exception__,
+          do: map
 
-      Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
-    else
-      Inspect.Map.inspect_as_map(struct, opts)
-    end
+    Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
   end
 
   def inspect_as_struct(map, name, infos, opts) do
