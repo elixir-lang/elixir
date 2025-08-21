@@ -6657,7 +6657,16 @@ defmodule Kernel do
       # TODO: Remove this when we require Erlang/OTP 28.1+
       is_binary(binary_or_tuple) and Code.ensure_loaded?(:re) and
           function_exported?(:re, :import, 1) ->
-        Macro.escape(Regex.compile_export!(binary_or_tuple, bin_opts))
+        %{re_pattern: exported_pattern, source: source, opts: opts} =
+          Regex.compile_export!(binary_or_tuple, bin_opts)
+
+        quote do
+          %Regex{
+            re_pattern: :re.import(unquote(Macro.escape(exported_pattern))),
+            source: unquote(source),
+            opts: unquote(opts)
+          }
+        end
 
       true ->
         quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(bin_opts)))
