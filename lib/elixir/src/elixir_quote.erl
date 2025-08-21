@@ -168,9 +168,28 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
       {'<<>>', [], [{'::', [], [Bits, {size, [], [Size]}]}, {'::', [], [Bytes, {binary, [], nil}]}]}
   end;
 
+do_escape(#{
+  '__struct__' := 'Elixir.Regex',
+  're_pattern' := {re_pattern, _, _, _, Ref},
+  'source' := Source,
+  'opts' := Opts
+} = Map, Q) when is_reference(Ref), is_binary(Source), is_list(Opts)  ->
+  case erlang:function_exported(re, import, 1) of
+    true ->
+      {ok, ExportedPattern} = re:compile(Source, [export | Opts]),
+      PatternAst = {{'.', [], ['re', 'import']}, [], [do_escape(ExportedPattern, Q)]},
+      {'%{}', [], [
+        {'__struct__', 'Elixir.Regex'},
+        {'re_pattern', PatternAst},
+        {'source', Source},
+        {'opts', do_escape(Opts, Q)}
+      ]};
+    false ->
+      escape_map(Map, Q)
+  end;
+
 do_escape(Map, Q) when is_map(Map) ->
-  TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
-  {'%{}', [], TT};
+  escape_map(Map, Q);
 
 do_escape([], _) ->
   [];
@@ -202,6 +221,10 @@ do_escape(Fun, _) when is_function(Fun) ->
 
 do_escape(Other, _) ->
   bad_escape(Other).
+
+escape_map(Map, Q) ->
+  TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
+  {'%{}', [], TT}.
 
 escape_map_key_value(K, V, Map, Q) ->
   MaybeRef = if
