@@ -202,21 +202,23 @@ defmodule Regex do
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, term}
   def compile(source, opts \\ "") when is_binary(source) do
-    do_compile(source, opts)
+    do_compile(source, opts, false)
   end
 
-  defp do_compile(source, opts) when is_binary(opts) do
+  defp do_compile(source, opts, export?) when is_binary(opts) do
     case translate_options(opts, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
       translated_opts ->
-        do_compile(source, translated_opts)
+        do_compile(source, translated_opts, export?)
     end
   end
 
-  defp do_compile(source, opts) when is_list(opts) do
-    case :re.compile(source, opts) do
+  defp do_compile(source, opts, export?) when is_list(opts) do
+    compile_opts = if export?, do: [:export | opts], else: opts
+
+    case :re.compile(source, compile_opts) do
       {:ok, re_pattern} ->
         {:ok, %Regex{re_pattern: re_pattern, source: source, opts: opts}}
 
@@ -225,12 +227,28 @@ defmodule Regex do
     end
   end
 
+  @spec compile_export(binary, binary | [term]) :: {:ok, t} | {:error, term}
+  def compile_export(source, opts \\ "") when is_binary(source) do
+    do_compile(source, opts, true)
+  end
+
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
   """
   @spec compile!(binary, binary | [term]) :: t
   def compile!(source, options \\ "") when is_binary(source) do
     case compile(source, options) do
+      {:ok, regex} -> regex
+      {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
+    end
+  end
+
+  @doc """
+  Compiles the regular expression and raises `Regex.CompileError` in case of errors.
+  """
+  @spec compile_export!(binary, binary | [term]) :: t
+  def compile_export!(source, options \\ "") when is_binary(source) do
+    case compile_export(source, options) do
       {:ok, regex} -> regex
       {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
     end
@@ -506,6 +524,7 @@ defmodule Regex do
   """
   @spec names(t) :: [String.t()]
   def names(%Regex{re_pattern: re_pattern}) do
+    re_pattern = maybe_import_pattern(re_pattern)
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
@@ -576,9 +595,14 @@ defmodule Regex do
       %Regex{source: source, opts: compile_opts} = regex
       :re.run(string, source, compile_opts ++ options)
     else
-      _ -> :re.run(string, re_pattern, options)
+      _ -> :re.run(string, maybe_import_pattern(re_pattern), options)
     end
   end
+
+  defp maybe_import_pattern({:re_exported_pattern, _, _, _, _} = exported),
+    do: :re.import(exported)
+
+  defp maybe_import_pattern(re_pattern), do: re_pattern
 
   @typedoc """
   Options for regex functions that capture matches.

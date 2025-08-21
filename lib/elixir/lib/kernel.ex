@@ -6647,13 +6647,20 @@ defmodule Kernel do
   end
 
   defp compile_regex(binary_or_tuple, options) do
-    # TODO: Remove this when we require Erlang/OTP 28+
-    case is_binary(binary_or_tuple) and :erlang.system_info(:otp_release) < [?2, ?8] do
-      true ->
-        Macro.escape(Regex.compile!(binary_or_tuple, :binary.list_to_bin(options)))
+    bin_opts = :binary.list_to_bin(options)
 
-      false ->
-        quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(:binary.list_to_bin(options))))
+    cond do
+      # TODO: Remove this when we require Erlang/OTP 28+
+      is_binary(binary_or_tuple) and :erlang.system_info(:otp_release) < [?2, ?8] ->
+        Macro.escape(Regex.compile!(binary_or_tuple, bin_opts))
+
+      # TODO: Remove this when we require Erlang/OTP 28.1+
+      is_binary(binary_or_tuple) and Code.ensure_loaded?(:re) and
+          function_exported?(:re, :import, 1) ->
+        Macro.escape(Regex.compile_export!(binary_or_tuple, bin_opts))
+
+      true ->
+        quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(bin_opts)))
     end
   end
 
