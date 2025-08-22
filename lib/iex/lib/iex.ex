@@ -323,6 +323,8 @@ defmodule IEx do
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
 
+  When remsh halts, the Elixir shell process exits with reason `:normal`.
+
   ## The .iex.exs file
 
   When starting, IEx looks for a configured path, then for a local `.iex.exs` file
