@@ -16,7 +16,29 @@ expand_map(Meta, [{'|', _, [_, _]}] = Args, _S, #{context := Context, file := Fi
 expand_map(Meta, Args, S, E) ->
   {EArgs, SE, EE} = elixir_expand:expand_args(Args, S, E),
   validate_kv(Meta, EArgs, Args, E),
-  {{'%{}', Meta, EArgs}, SE, EE}.
+  PArgs = post_process_map_args(EArgs, E),
+  {{'%{}', Meta, PArgs}, SE, EE}.
+
+post_process_map_args(Args, #{context := nil}) ->
+  case lists:keyfind('__struct__', 1, Args) of
+    {'__struct__', 'Elixir.Regex'} ->
+      case lists:sort(Args) of
+        [
+          {'__struct__', 'Elixir.Regex'},
+          {opts, Opts},
+          {re_pattern, '__expand_compile__'},
+          {source, Source}
+        ] when is_binary(Source), is_list(Opts) ->
+          {ok, Exported} = re:compile(Source, [export] ++ Opts),
+          PatternAst = {{'.', [], [re, import]}, [], [elixir_quote:escape(Exported, none, false)]},
+          lists:keyreplace(re_pattern, 1, Args, {re_pattern, PatternAst});
+        _ ->
+          Args
+        end;
+    _ -> Args
+  end;
+
+post_process_map_args(Args, _) -> Args.
 
 expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = E) ->
   CleanMapArgs = delete_struct_key(Meta, MapArgs, E),
