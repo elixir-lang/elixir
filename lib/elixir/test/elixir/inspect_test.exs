@@ -445,6 +445,13 @@ defmodule Inspect.MapTest do
              "%{__struct__: Inspect.MapTest.Public, foo: :bar, key: 1}"
   end
 
+  test "public modified struct with defimpl" do
+    map_set = MapSet.new([1, 2])
+
+    assert inspect(Map.put(map_set, :foo, :bar), custom_options: [sort_maps: true]) ==
+             "%{__struct__: MapSet, foo: :bar, map: %{1 => [], 2 => []}}"
+  end
+
   test "private struct" do
     assert inspect(%{__struct__: Private, key: 1}, custom_options: [sort_maps: true]) ==
              "%{__struct__: Inspect.MapTest.Private, key: 1}"
