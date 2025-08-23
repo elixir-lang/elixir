@@ -723,7 +723,26 @@ unexpected_token([T | Rest], Line, Column, Scope, Tokens) ->
 tokenize_eol(Rest, Line, Scope, Tokens) ->
   {StrippedRest, Column} = strip_horizontal_space(Rest, Scope#elixir_tokenizer.column),
   IndentedScope = Scope#elixir_tokenizer{indentation=Column-1},
-  tokenize(StrippedRest, Line + 1, Column, IndentedScope, Tokens).
+  %% If we arrived here via a line continuation (\\\n or \\\r\n), there is no EOL token added.
+  %% In such case, if the previous token is an identifier and the next non-space token
+  %% is a dual operator sign (+ or -) followed by a non-marker, we should mirror the
+  %% same-line space-sensitive behavior and convert the identifier to op_identifier.
+  %% This makes: foo\\\n-1 and foo\\\n +1 behave like foo -1 and foo +1.
+  case {Tokens, StrippedRest} of
+    {[{identifier, _, _} = H | TokensTail], [Sign, NotMarker | T]} ->
+      case previous_was_eol(Tokens) of
+        %% Only apply across line continuations (no previous EOL recorded)
+        nil when ?dual_op(Sign), not(?is_space(NotMarker)), NotMarker =/= Sign, NotMarker =/= $/, NotMarker =/= $> ->
+          DualOpToken = {dual_op, {Line + 1, Column, nil}, list_to_atom([Sign])},
+          Rest2 = [NotMarker | T],
+          tokenize(Rest2, Line + 1, Column + 1, IndentedScope,
+                   [DualOpToken, setelement(1, H, op_identifier) | TokensTail]);
+        _ ->
+          tokenize(StrippedRest, Line + 1, Column, IndentedScope, Tokens)
+      end;
+    _ ->
+      tokenize(StrippedRest, Line + 1, Column, IndentedScope, Tokens)
+  end.
 
 strip_horizontal_space([H | T], Counter) when ?is_horizontal_space(H) ->
   strip_horizontal_space(T, Counter + 1);
