@@ -211,11 +211,16 @@ escape_map_key_value(K, V, Map, Q) ->
   end,
   if
     is_reference(MaybeRef) ->
-      case Map of
-        % we could make expose this mechanism in the future, e.g. by calling sth like StructModule.__info__(:hide_struct_refs)
-        #{'__struct__' := 'Elixir.Regex'} ->
-          {do_quote(K, Q), '__expand_compile__'};
+      ExpandCompile = case Map of
+        #{'__struct__' := Module} ->
+          code:ensure_loaded(Module) == {module, Module} andalso erlang:function_exported(Module, '__expand_compile__', 2);
         _ ->
+          false
+      end,
+      case ExpandCompile of
+        true ->
+          {do_quote(K, Q), '__expand_compile__'};
+        false ->
           argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
                             ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped ",
                             "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>)

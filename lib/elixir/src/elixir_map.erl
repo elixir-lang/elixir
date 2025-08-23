@@ -19,26 +19,39 @@ expand_map(Meta, Args, S, E) ->
   PArgs = post_process_map_args(EArgs, E),
   {{'%{}', Meta, PArgs}, SE, EE}.
 
-post_process_map_args(Args, #{context := nil}) ->
-  case lists:keyfind('__struct__', 1, Args) of
-    {'__struct__', 'Elixir.Regex'} ->
-      case lists:sort(Args) of
-        [
-          {'__struct__', 'Elixir.Regex'},
-          {opts, Opts},
-          {re_pattern, '__expand_compile__'},
-          {source, Source}
-        ] when is_binary(Source), is_list(Opts) ->
-          {ok, Exported} = re:compile(Source, [export] ++ Opts),
-          PatternAst = {{'.', [], [re, import]}, [], [elixir_quote:escape(Exported, none, false)]},
-          lists:keyreplace(re_pattern, 1, Args, {re_pattern, PatternAst});
-        _ ->
-          Args
-        end;
-    _ -> Args
-  end;
+post_process_map_args(Args, E) ->
+  % TODO rewrite with maybe once we require OTP 2X+
+  case lists:keyfind('__expand_compile__', 2, Args) of
+    {_Key, '__expand_compile__'} ->
+      case lists:keyfind('__struct__', 1, Args) of
+        {'__struct__', Module} ->
+          case code:ensure_loaded(Module) == {module, Module} andalso erlang:function_exported(Module, '__expand_compile__', 2) andalso is_literal(Args) of
+            true ->
+              case E of
+                #{context := nil} ->
+                  Map = eval_literal({'%{}', [], Args}),
+                  lists:map(fun
+                    ({Key, '__expand_compile__'}) -> {Key, Module:'__expand_compile__'(Map, Key)};
+                    ({Key, Value}) -> {Key, Value}
+                  end, Args);
+                #{context := match} ->
+                  % replace it by wildcards in matches
+                  lists:map(fun
+                    ({Key, '__expand_compile__'}) -> {Key, {'_,', [], nil}};
+                    ({Key, Value}) -> {Key, Value}
+                  end, Args);
+                _ ->
+                  Args
+                end;
 
-post_process_map_args(Args, _) -> Args.
+            false ->
+              Args
+          end;
+        _ -> Args
+      end;
+      false ->
+        Args
+  end.
 
 expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = E) ->
   CleanMapArgs = delete_struct_key(Meta, MapArgs, E),
@@ -125,10 +138,18 @@ validate_not_repeated(Meta, Key, Used, E) ->
       Used
   end.
 
+is_literal({'{}', _, List}) when is_list(List) -> lists:all(fun is_literal/1, List);
+is_literal({'%{}', _, List}) when is_list(List) -> lists:all(fun is_literal/1, List);
 is_literal({_, _, _}) -> false;
 is_literal({Left, Right}) -> is_literal(Left) andalso is_literal(Right);
 is_literal([_ | _] = List) -> lists:all(fun is_literal/1, List);
 is_literal(_) -> true.
+
+eval_literal({'{}', _, List}) when is_list(List) -> list_to_tuple(eval_literal(List));
+eval_literal({'%{}', _, List})  when is_list(List) -> maps:from_list(eval_literal(List));
+eval_literal({Left, Right}) -> {eval_literal(Left), eval_literal(Right)};
+eval_literal([_ | _] = List) -> lists:map(fun eval_literal/1, List);
+eval_literal(Other) when is_binary(Other); is_atom(Other); is_number(Other); is_pid(Other); Other == [] -> Other.
 
 validate_kv(Meta, KV, Original, #{context := Context} = E) ->
   lists:foldl(fun

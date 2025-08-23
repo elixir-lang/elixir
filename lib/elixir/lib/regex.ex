@@ -1000,4 +1000,11 @@ defmodule Regex do
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(t, _acc), do: {:error, t}
+
+  if Code.ensure_loaded?(:re) and function_exported?(:re, :import, 1) do
+    def __expand_compile__(%Regex{source: source, opts: opts}, :re_pattern) do
+      {:ok, exported} = :re.compile(source, [:export] ++ opts)
+      quote do: :re.import(unquote(Macro.escape(exported)))
+    end
+  end
 end
