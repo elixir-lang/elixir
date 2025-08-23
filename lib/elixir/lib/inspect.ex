@@ -662,35 +662,13 @@ end
 
 defimpl Inspect, for: Any do
   def inspect(%module{} = struct, opts) do
-    try do
-      module.__info__(:struct)
-    rescue
-      _ -> Inspect.Map.inspect_as_map(struct, opts)
-    else
-      info ->
-        if valid_struct?(info, struct) do
-          info =
-            for %{field: field} = map <- info,
-                field != :__exception__,
-                do: map
+    info =
+      for %{field: field} = map <- module.__info__(:struct),
+          field != :__exception__,
+          do: map
 
-          Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
-        else
-          Inspect.Map.inspect_as_map(struct, opts)
-        end
-    end
+    Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
   end
-
-  defp valid_struct?(info, struct), do: valid_struct?(info, struct, map_size(struct) - 1)
-
-  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
-    do: valid_struct?(info, struct, count - 1)
-
-  defp valid_struct?([], _struct, 0),
-    do: true
-
-  defp valid_struct?(_fields, _struct, _count),
-    do: false
 
   def inspect_as_struct(map, name, infos, opts) do
     open = color_doc("#" <> name <> "<", :map, opts)

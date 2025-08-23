@@ -200,14 +200,6 @@ defmodule RangeTest do
   end
 
   describe "old ranges" do
-    test "inspect" do
-      asc = %{__struct__: Range, first: 1, last: 3}
-      desc = %{__struct__: Range, first: 3, last: 1}
-
-      assert inspect(asc) == "1..3"
-      assert inspect(desc) == "3..1//-1"
-    end
-
     test "enum" do
       asc = %{__struct__: Range, first: 1, last: 3}
       desc = %{__struct__: Range, first: 3, last: 1}
