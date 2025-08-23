@@ -1389,6 +1389,7 @@ defmodule CompileError do
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
     * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
+    * `:description` (`t:String.t/0`) - a description of the compile error
 
   This is mostly raised by Elixir tooling when compiling and evaluating code.
   """
