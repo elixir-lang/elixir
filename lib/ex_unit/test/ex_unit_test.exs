@@ -350,6 +350,43 @@ defmodule ExUnitTest do
     assert output =~ "\n1 test, 1 failure (3 excluded)\n"
   end
 
+  test "io capturing" do
+    defmodule IOCapturingTest do
+      use ExUnit.Case
+
+      @tag :capture_io
+      test "one" do
+        # test successful, captured "one" isn't printed
+        IO.puts("one")
+        assert 1 == 1
+      end
+
+      @tag :capture_io
+      test "two" do
+        # test failed, captured "two" is printed
+        IO.puts("two")
+        assert 1 == 2
+      end
+
+      @tag :capture_io
+      test "three, four", %{capture_io: io} do
+        # io is flushed, captured "three" isn't printed
+        IO.puts("three")
+        assert StringIO.flush(io) == "three\n"
+
+        # test failed, captured "four" is printed
+        IO.puts("four")
+        assert 1 == 2
+      end
+    end
+
+    output = capture_io(&ExUnit.run/0)
+    refute output =~ "one\n"
+    assert output =~ "two\n"
+    refute output =~ "three\n"
+    assert output =~ "four\n"
+  end
+
   test "log capturing" do
     defmodule LogCapturingTest do
       use ExUnit.Case
