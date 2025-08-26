@@ -614,7 +614,6 @@ defmodule ExUnit.Assertions do
   def __pins__(pins) do
     pins
     |> Enum.filter(fn {{_, ctx}, _} -> ctx == nil end)
-    |> Enum.reverse()
     |> Enum.map_join(@indent, fn {{name, _}, var} -> "#{name} = #{inspect(var)}" end)
     |> case do
       "" ->
