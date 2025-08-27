@@ -524,8 +524,8 @@ defmodule ExUnit.AssertionsTest do
         """
         Assertion failed, no matching message after 0ms
         The following variables were pinned:
-          status = :valid
           other_status = :invalid
+          status = :valid
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
