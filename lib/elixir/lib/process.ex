@@ -202,24 +202,23 @@ defmodule Process do
   @doc """
   Sends an exit signal with the given `reason` to `pid`.
 
-  The following behavior applies if `reason` is any term except `:normal`
-  or `:kill`:
+  Exit behavior differs based on the value of `reason`:
 
-    1. If `pid` is not trapping exits, `pid` will exit with the given
-       `reason`.
+    - If `:normal`, `pid` will not exit unless it is the calling process, in
+      which case it will exit with the reason `:normal`. If it is trapping exits,
+      the exit signal is transformed into a message `{:EXIT, from, :normal}` and
+      delivered to its message queue.
 
-    2. If `pid` is trapping exits, the exit signal is transformed into a
-       message `{:EXIT, from, reason}` and delivered to the message queue
-       of `pid`.
+    - If `:kill`, which occurs when `Process.exit(pid, :kill)` is called, an
+      untrappable exit signal is sent to `pid` which will unconditionally exit
+      with reason `:killed`.
 
-  If `reason` is the atom `:normal`, `pid` will not exit (unless `pid` is
-  the calling process, in which case it will exit with the reason `:normal`).
-  If it is trapping exits, the exit signal is transformed into a message
-  `{:EXIT, from, :normal}` and delivered to its message queue.
+    - If any other term and `pid` is not trapping exits, `pid` will exit with
+      the given `reason`.
 
-  If `reason` is the atom `:kill`, that is if `Process.exit(pid, :kill)` is called,
-  an untrappable exit signal is sent to `pid` which will unconditionally exit
-  with reason `:killed`.
+    - If any other term and `pid` is trapping exits, the exit signal is
+      transformed into a message `{:EXIT, from, reason}` and delivered to its
+      message queue.
 
   Inlined by the compiler.
 
