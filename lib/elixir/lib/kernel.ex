@@ -3524,8 +3524,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A convenience macro that checks if the right side (an expression) matches the
-  left side (a pattern).
+  A convenience macro that checks if the result of `expression` matches `pattern`.
 
   ## Examples
 
@@ -3603,7 +3602,7 @@ defmodule Kernel do
       #=> (MatchError) no match of right hand side value: %{x: 1, y: 2}
 
   """
-  defmacro match?(pattern, expr) do
+  defmacro match?(pattern, expression) do
     success =
       quote do
         unquote(pattern) -> true
@@ -3614,7 +3613,7 @@ defmodule Kernel do
         _ -> false
       end
 
-    {:case, [], [expr, [do: success ++ failure]]}
+    {:case, [], [expression, [do: success ++ failure]]}
   end
 
   @doc """
