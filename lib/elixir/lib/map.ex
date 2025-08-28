@@ -318,7 +318,7 @@ defmodule Map do
       1
 
   When the key is missing, an exception is raised:
-      
+
       Map.fetch!(%{a: 1}, :b)
       ** (KeyError) key :b not found in: %{a: 1}
 
@@ -658,7 +658,8 @@ defmodule Map do
       %{a: 4, b: 2, d: 4}
 
   """
-  @spec merge(map, map, (key, value, value -> value)) :: map
+  @spec merge(map1, map2, (key, value1, value2 -> new_value)) :: map
+        when map1: map, map2: map, value1: value, value2: value, new_value: value
   def merge(map1, map2, fun) when is_function(fun, 3) do
     :maps.merge_with(fun, map1, map2)
   end
