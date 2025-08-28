@@ -502,8 +502,8 @@ defmodule Task.Supervisor do
   Returns all children PIDs except those that are restarting.
 
   Note that calling this function when supervising a large number
-  of children under low memory conditions can cause an out of memory
-  exception.
+  of children under low memory conditions can bring the system down due to an
+  out of memory error.
   """
   @spec children(Supervisor.supervisor()) :: [pid]
   def children(supervisor) do
