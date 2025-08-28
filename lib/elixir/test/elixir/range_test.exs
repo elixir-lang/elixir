@@ -60,6 +60,7 @@ defmodule RangeTest do
 
   test "shift" do
     assert Range.shift(0..10//2, 2) == 4..14//2
+    assert Range.shift(0..10//2, 0) == 0..10//2
     assert Range.shift(10..0//-2, 2) == 6..-4//-2
     assert Range.shift(10..0//-2, -2) == 14..4//-2
   end
