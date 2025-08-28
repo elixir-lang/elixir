@@ -3524,7 +3524,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A convenience macro that checks if `expression` matches `pattern`.
+  A convenience macro that checks if the result of `expression` matches `pattern`.
 
   ## Examples
 
