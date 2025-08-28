@@ -290,7 +290,7 @@ defmodule Range do
   """
   @doc since: "1.14.0"
   @spec shift(t, integer) :: t
-  def shift(range, 0) when is_struct(range, Range), do: range
+  def shift(%Range{} = range, 0), do: range
 
   def shift(first..last//step, steps_to_shift) when is_integer(steps_to_shift) do
     shift = steps_to_shift * step
