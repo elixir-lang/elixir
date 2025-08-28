@@ -450,7 +450,7 @@ defmodule PartitionSupervisor do
   end
 
   @doc """
-  Returns a list with information about all children.
+  Returns a list with information about all children of the given supervisor.
 
   This function returns a list of tuples containing:
 

@@ -16,7 +16,7 @@ defmodule DynamicSupervisor do
 
   ## Examples
 
-  A dynamic supervisor is started with no children and often a name:
+  A dynamic supervisor is started with no children and often with a name:
 
       children = [
         {DynamicSupervisor, name: MyApp.DynamicSupervisor, strategy: :one_for_one}
@@ -480,7 +480,7 @@ defmodule DynamicSupervisor do
   end
 
   @doc """
-  Returns a list with information about all children.
+  Returns a list with information about all children of the given supervisor.
 
   Note that calling this function when supervising a large number
   of children under low memory conditions can bring the system down due to an
