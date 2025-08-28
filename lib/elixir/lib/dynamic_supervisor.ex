@@ -483,8 +483,8 @@ defmodule DynamicSupervisor do
   Returns a list with information about all children.
 
   Note that calling this function when supervising a large number
-  of children under low memory conditions can cause an out of memory
-  exception.
+  of children under low memory conditions can bring the system down due to an
+  out of memory error.
 
   This function returns a list of tuples containing:
 
