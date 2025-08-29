@@ -2924,6 +2924,23 @@ defmodule Kernel do
   def get_in(data, [h]), do: Access.get(data, h)
   def get_in(data, [h | t]), do: get_in(Access.get(data, h), t)
 
+
+  @doc """
+  Gets a value from a nested structure with nil-safe handling. If the value does not exist or is nil, returns the default value.
+
+  ## Examples
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23, access_level: :admin}}
+      iex> get_in(users, ["john", :access_level], :none)
+      :none
+  """
+  @spec get_in(map, list, any) :: any
+  def get_in(map, keys, default) do
+    case get_in(map, keys) do
+      nil -> default
+      value -> value
+    end
+  end
+
   @doc """
   Puts a value in a nested structure.
 

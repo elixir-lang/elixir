@@ -1002,6 +1002,16 @@ defmodule KernelTest do
       assert get_in(map, ["unknown", by_index(3)]) == nil
     end
 
+    test "get_in/3" do
+      users = %{"john" => %{age: 27}, "meg" => %{age: 23, access_level: :admin}}
+      assert get_in(users, ["john", :access_level], :none) == :none
+      assert get_in(users, ["meg", :access_level], :none) == :admin
+
+      map = %{"fruits" => ["banana", "apple", "orange"]}
+      assert get_in(map, ["fruits", by_index(0)], "strawberry") == "banana"
+      assert get_in(map, ["fruits", by_index(3)], "strawberry") == "strawberry"
+    end
+
     test "put_in/3" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
