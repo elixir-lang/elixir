@@ -1332,7 +1332,7 @@ defmodule Code.Fragment do
   defp drop_tokens([{:do, _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
 
   defp drop_tokens([_ | tokens], counter), do: drop_tokens(tokens, counter)
-  defp drop_tokens([], 0), do: []
+  defp drop_tokens([], _counter), do: []
 
   defp maybe_missing_stab?([{:after, _} | _], _stab_choice?), do: true
   defp maybe_missing_stab?([{:do, _} | _], _stab_choice?), do: true
