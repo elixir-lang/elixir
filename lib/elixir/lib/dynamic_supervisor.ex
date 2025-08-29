@@ -206,6 +206,7 @@ defmodule DynamicSupervisor do
   See `Supervisor` for more information about child specifications.
   """
   @doc since: "1.6.1"
+  @spec child_spec([init_option() | GenServer.option()]) :: Supervisor.child_spec()
   def child_spec(options) when is_list(options) do
     id =
       case Keyword.get(options, :name, DynamicSupervisor) do
