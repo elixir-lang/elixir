@@ -3813,13 +3813,6 @@ defmodule Kernel do
           {_, doc} when doc_attr? ->
             do_at_escape(name, doc)
 
-          %{__struct__: Regex, source: source, opts: opts} = regex ->
-            # TODO: Automatically deal with exported regexes
-            case :erlang.system_info(:otp_release) < [?2, ?8] do
-              true -> do_at_escape(name, regex)
-              false -> quote(do: Regex.compile!(unquote(source), unquote(opts)))
-            end
-
           value ->
             do_at_escape(name, value)
         end
