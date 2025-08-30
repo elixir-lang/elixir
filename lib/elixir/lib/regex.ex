@@ -1000,4 +1000,45 @@ defmodule Regex do
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(t, _acc), do: {:error, t}
+
+  @doc false
+  def __escape__(%{__struct__: Regex} = regex) do
+    # OTP 28.0 introduced refs in patterns, which can't be used in AST anymore
+    # OTP 28.1 introduced :re.import/1 which allows us to work with pre-compiled binaries again
+
+    pattern_ast =
+      cond do
+        # TODO: Remove this when we require Erlang/OTP 28+
+        # Before OTP 28.0, patterns did not contain any refs and could be safely be escaped
+        :erlang.system_info(:otp_release) < [?2, ?8] ->
+          Macro.escape(regex.re_pattern)
+
+        # OTP 28.1+ introduced the ability to export and import regexes from compiled binaries
+        Code.ensure_loaded?(:re) and function_exported?(:re, :import, 1) ->
+          {:ok, exported} = :re.compile(regex.source, [:export] ++ regex.opts)
+
+          quote do
+            :re.import(unquote(Macro.escape(exported)))
+          end
+
+        # TODO: Remove this when we require Erlang/OTP 28.1+
+        # OTP 28.0 works in degraded mode performance-wise, we need to recompile from the source
+        true ->
+          quote do
+            {:ok, pattern} =
+              :re.compile(unquote(Macro.escape(regex.source)), unquote(Macro.escape(regex.opts)))
+
+            pattern
+          end
+      end
+
+    quote do
+      %{
+        __struct__: unquote(Regex),
+        re_pattern: unquote(pattern_ast),
+        source: unquote(Macro.escape(regex.source)),
+        opts: unquote(Macro.escape(regex.opts))
+      }
+    end
+  end
 end

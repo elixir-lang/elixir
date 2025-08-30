@@ -141,10 +141,25 @@ defmodule MacroTest do
       assert Macro.escape({:quote, [], [[do: :foo]]}) == {:{}, [], [:quote, [], [[do: :foo]]]}
     end
 
-    test "inspects container when a reference cannot be escaped" do
-      assert_raise ArgumentError, ~r"~r/foo/ contains a reference", fn ->
-        Macro.escape(%{~r/foo/ | re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
+    test "escape container when a reference cannot be escaped" do
+      assert_raise ArgumentError, ~r"contains a reference", fn ->
+        Macro.escape(%{re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
       end
+    end
+
+    @tag :re_import
+    test "escape regex will remove references and replace it by a call to :re.import/1" do
+      assert {
+               :%{},
+               [],
+               [
+                 __struct__: Regex,
+                 re_pattern:
+                   {{:., [], [:re, :import]}, [], [{:{}, [], [:re_exported_pattern | _]}]},
+                 source: "foo",
+                 opts: []
+               ]
+             } = Macro.escape(~r/foo/)
     end
   end
 
