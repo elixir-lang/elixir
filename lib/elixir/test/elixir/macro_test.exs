@@ -141,10 +141,9 @@ defmodule MacroTest do
       assert Macro.escape({:quote, [], [[do: :foo]]}) == {:{}, [], [:quote, [], [[do: :foo]]]}
     end
 
-    @tag skip: System.otp_release() < "28" or function_exported?(:re, :import, 1)
     test "escape container when a reference cannot be escaped" do
-      assert_raise ArgumentError, ~r"~r/foo/ contains a reference", fn ->
-        Macro.escape(%{~r/foo/ | re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
+      assert_raise ArgumentError, ~r"contains a reference", fn ->
+        Macro.escape(%{re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
       end
     end
 
@@ -160,7 +159,7 @@ defmodule MacroTest do
                  source: "foo",
                  opts: []
                ]
-             } = Macro.escape(%{~r/foo/ | re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
+             } = Macro.escape(~r/foo/)
     end
   end
 

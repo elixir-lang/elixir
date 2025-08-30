@@ -6648,22 +6648,13 @@ defmodule Kernel do
   defp compile_regex(binary_or_tuple, options) do
     bin_opts = :binary.list_to_bin(options)
 
-    # TODO: Remove this when we require Erlang/OTP 28.1+
-    case is_binary(binary_or_tuple) and compile_time_regexes_supported?() do
+    case is_binary(binary_or_tuple) do
       true ->
         Macro.escape(Regex.compile!(binary_or_tuple, bin_opts))
 
       false ->
         quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(bin_opts)))
     end
-  end
-
-  defp compile_time_regexes_supported? do
-    # OTP 28.0 introduced refs in patterns, which can't be used in AST anymore
-    # OTP 28.1 introduced :re.import/1 which allows us to fix this in Macro.escape
-    :erlang.system_info(:otp_release) < [?2, ?8] or
-      (Code.ensure_loaded?(:re) and
-         function_exported?(:re, :import, 1))
   end
 
   @doc ~S"""
