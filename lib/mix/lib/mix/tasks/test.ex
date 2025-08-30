@@ -155,7 +155,7 @@ defmodule Mix.Tasks.Test do
       failures is reached. It runs all tests if omitted
 
     * `--max-requires` - sets the maximum number of test files to compile in parallel.
-      Setting this to 1 will compile test files sequentially.
+      Setting this to `1` will compile test files sequentially.
 
     * `-n`, `--name-pattern` *(since v1.19.0)* - only run tests with names that match
       the given regular expression

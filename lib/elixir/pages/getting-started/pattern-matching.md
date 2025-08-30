@@ -29,7 +29,7 @@ iex> 2 = x
 ** (MatchError) no match of right hand side value: 1
 ```
 
-Notice that `1 = x` is a valid expression, and it matched because both the left and right side are equal to 1. When the sides do not match, a `MatchError` is raised.
+Notice that `1 = x` is a valid expression, and it matched because both the left and right side are equal to `1`. When the sides do not match, a `MatchError` is raised.
 
 A variable can only be assigned on the left side of [`=`](`=/2`):
 
