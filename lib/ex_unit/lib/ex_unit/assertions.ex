@@ -480,7 +480,7 @@ defmodule ExUnit.Assertions do
   The `pattern` argument must be a match pattern. Flunks with `failure_message`
   if a message matching `pattern` was not received.
 
-  Timeout is set to 0, so there is no waiting time.
+  Timeout is set to `0`, so there is no waiting time.
 
   ## Examples
 
@@ -1005,7 +1005,7 @@ defmodule ExUnit.Assertions do
   The `pattern` argument must be a match pattern. Flunks with `failure_message`
   if a message matching `pattern` was received.
 
-  Timeout is set to 0, so there is no waiting time.
+  Timeout is set to `0`, so there is no waiting time.
 
   ## Examples
 
