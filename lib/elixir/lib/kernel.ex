@@ -3814,13 +3814,6 @@ defmodule Kernel do
           {_, doc} when doc_attr? ->
             do_at_escape(name, doc)
 
-          %{__struct__: Regex, source: source, opts: opts} = regex ->
-            # TODO: Automatically deal with exported regexes
-            case :erlang.system_info(:otp_release) < [?2, ?8] do
-              true -> do_at_escape(name, regex)
-              false -> quote(do: Regex.compile!(unquote(source), unquote(opts)))
-            end
-
           value ->
             do_at_escape(name, value)
         end
@@ -6647,13 +6640,14 @@ defmodule Kernel do
   end
 
   defp compile_regex(binary_or_tuple, options) do
-    # TODO: Remove this when we require Erlang/OTP 28+
-    case is_binary(binary_or_tuple) and :erlang.system_info(:otp_release) < [?2, ?8] do
+    bin_opts = :binary.list_to_bin(options)
+
+    case is_binary(binary_or_tuple) do
       true ->
-        Macro.escape(Regex.compile!(binary_or_tuple, :binary.list_to_bin(options)))
+        Macro.escape(Regex.compile!(binary_or_tuple, bin_opts))
 
       false ->
-        quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(:binary.list_to_bin(options))))
+        quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(bin_opts)))
     end
   end
 

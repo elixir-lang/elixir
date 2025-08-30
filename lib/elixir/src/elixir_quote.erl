@@ -3,6 +3,9 @@
 %% SPDX-FileCopyrightText: 2012 Plataformatec
 
 -module(elixir_quote).
+
+-feature(maybe_expr, enable).
+
 -export([escape/3, linify/3, linify_with_context_counter/3, build/7, quote/2, has_unquotes/1, fun_to_quoted/1]).
 -export([dot/5, tail_list/3, list/2, validate_runtime/2, shallow_validate_ast/1]). %% Quote callbacks
 
@@ -164,8 +167,17 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
   end;
 
 do_escape(Map, Q) when is_map(Map) ->
-  TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
-  {'%{}', [], TT};
+  maybe
+    #{'__struct__' := Module} ?= Map,
+    true ?= is_atom(Module),
+    {module, Module} ?= code:ensure_loaded(Module),
+    true ?= erlang:function_exported(Module, '__escape__', 1),
+    Module:'__escape__'(Map)
+  else
+    _ ->
+      TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
+      {'%{}', [], TT}
+  end;
 
 do_escape([], _) ->
   [];
@@ -211,7 +223,7 @@ escape_map_key_value(K, V, Map, Q) ->
                         "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
     true ->
       {do_quote(K, Q), do_quote(V, Q)}
-    end.
+  end.
 
 find_tuple_ref(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
 find_tuple_ref(Tuple, Index) ->

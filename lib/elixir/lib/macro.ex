@@ -843,6 +843,66 @@ defmodule Macro do
   `escape/2` is used to escape *values* (either directly passed or variable
   bound), while `quote/2` produces syntax trees for
   expressions.
+
+  ## Dealing with references and other runtime values
+
+  Macros work at compile-time and therefore `Macro.escape/1` can only escape values
+  that are valid during compilation, such as numbers, atoms, tuples, maps, binaries,
+  etc.
+
+  However, you may have values at compile-time which cannot be escaped, such as
+  `reference`s and `pid`s, since the process or memory address they point to will
+  no longer exist once compilation completes. Attempting to escape said values will
+  raise an exception. This is a common issue when working with NIFs.
+
+  Luckily, Elixir v1.19 introduces a mechanism that allows those values to be escaped,
+  as long as they are encapsulated by a struct within a module that defines the
+  `__escape__/1` function. This is possible as long as the reference has a natural
+  text or binary representation that can be serialized during compilation.
+
+  Let's imagine we have the following struct:
+
+      defmodule WrapperStruct do
+        defstruct [:ref]
+
+        def new(...), do: %WrapperStruct{ref: ...}
+
+        # efficiently dump to / load from binaries
+        def dump_to_binary(%WrapperStruct{ref: ref}), do: ...
+        def load_from_binary(binary), do: %WrapperStruct{ref: ...}
+      end
+
+  Such a struct could not be used in module attributes or escaped with `Macro.escape/2`:
+
+      defmodule Foo do
+        @my_struct WrapperStruct.new(...)
+        def my_struct, do: @my_struct
+      end
+
+      ** (ArgumentError) cannot inject attribute @my_struct into function/macro because cannot escape #Reference<...>
+
+  To address this, structs can re-define how they should be escaped by defining a custom
+  `__escape__/1` function which returns the AST. In our example:
+
+      defmodule WrapperStruct do
+        # ...
+
+        def __escape__(struct) do
+          # dump to a binary representation at compile-time
+          binary = dump_to_binary(struct)
+          quote do
+            # load from the binary representation at runtime
+            WrapperStruct.load_from_binary(unquote(Macro.escape(binary)))
+          end
+        end
+      end
+
+  Now, our example above will be expanded as:
+
+      def my_struct, do: WrapperStruct.load_from_binary(<<...>>)
+
+  When implementing `__escape__/1`, you must ensure that the quoted expression
+  will evaluate to a struct that represents the one given as argument.
   """
   @spec escape(term, escape_opts) :: t()
   def escape(expr, opts \\ []) do

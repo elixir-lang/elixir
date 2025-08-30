@@ -132,11 +132,20 @@ cover_exclude =
     []
   end
 
+# OTP 28.1+
+re_import_exclude =
+  if Code.ensure_loaded?(:re) and function_exported?(:re, :import, 1) do
+    []
+  else
+    [:re_import]
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude:
     epmd_exclude ++
-      os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude,
+      os_exclude ++
+      line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude ++ re_import_exclude,
   include: line_include,
   assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )
