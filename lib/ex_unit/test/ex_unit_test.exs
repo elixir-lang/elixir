@@ -211,7 +211,7 @@ defmodule ExUnitTest do
     output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
   after
-    ExUnit.configure(timeout: 60000)
+    ExUnit.configure(timeout: 60_000)
   end
 
   test "reports slow tests" do
@@ -281,7 +281,7 @@ defmodule ExUnitTest do
     config = ExUnit.configuration()
     assert config[:trace]
     assert config[:max_cases] == 1
-    assert config[:timeout] == 60000
+    assert config[:timeout] == 60_000
   end
 
   test "sets trace when slowest is enabled" do

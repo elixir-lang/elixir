@@ -839,7 +839,7 @@ defmodule Process do
   @spec flag(:min_bin_vheap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:min_heap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:priority, priority_level) :: priority_level
-  @spec flag(:save_calls, 0..10000) :: 0..10000
+  @spec flag(:save_calls, 0..10_000) :: 0..10_000
   @spec flag(:sensitive, boolean) :: boolean
   @spec flag(:trap_exit, boolean) :: boolean
   defdelegate flag(flag, value), to: :erlang, as: :process_flag
@@ -858,7 +858,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec flag(pid, :save_calls, 0..10000) :: 0..10000
+  @spec flag(pid, :save_calls, 0..10_000) :: 0..10_000
   defdelegate flag(pid, flag, value), to: :erlang, as: :process_flag
 
   @doc """

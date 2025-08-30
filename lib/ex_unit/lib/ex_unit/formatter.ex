@@ -182,16 +182,16 @@ defmodule ExUnit.Formatter do
 
   ## Examples
 
-      iex> format_times(%{run: 10000, async: nil, load: nil})
+      iex> format_times(%{run: 10_000, async: nil, load: nil})
       "Finished in 0.01 seconds (0.00s async, 0.01s sync)"
 
-      iex> format_times(%{run: 10000, async: nil, load: 20000})
+      iex> format_times(%{run: 10_000, async: nil, load: 20_000})
       "Finished in 0.03 seconds (0.02s on load, 0.00s async, 0.01s sync)"
 
-      iex> format_times(%{run: 10000, async: nil, load: 200_000})
+      iex> format_times(%{run: 10_000, async: nil, load: 200_000})
       "Finished in 0.2 seconds (0.2s on load, 0.00s async, 0.01s sync)"
 
-      iex> format_times(%{run: 100_000, async: 50000, load: 200_000})
+      iex> format_times(%{run: 100_000, async: 50_000, load: 200_000})
       "Finished in 0.3 seconds (0.2s on load, 0.05s async, 0.05s sync)"
 
   """
@@ -215,7 +215,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp normalize_us(nil), do: 0
-  defp normalize_us(us), do: div(us, 10000)
+  defp normalize_us(us), do: div(us, 10_000)
 
   defp format_us(us) do
     if us < 10 do

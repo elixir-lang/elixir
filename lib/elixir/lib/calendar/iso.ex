@@ -182,7 +182,7 @@ defmodule Calendar.ISO do
 
   @type day_of_year :: 1..366
   @type quarter_of_year :: 1..4
-  @type year_of_era :: {1..10000, era}
+  @type year_of_era :: {1..10_000, era}
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
@@ -652,7 +652,7 @@ defmodule Calendar.ISO do
           day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
 
           {{year, month, day}, {hour, minute, second, _}} =
-            case add_day_fraction_to_iso_days({0, day_fraction}, -offset, 86400) do
+            case add_day_fraction_to_iso_days({0, day_fraction}, -offset, 86_400) do
               {0, day_fraction} ->
                 {{year, month, day}, time_from_day_fraction(day_fraction)}
 
@@ -784,13 +784,13 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.naive_datetime_from_iso_days({0, {0, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({0, {0, 86_400}})
       {0, 1, 1, 0, 0, 0, {0, 6}}
-      iex> Calendar.ISO.naive_datetime_from_iso_days({730_485, {0, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({730_485, {0, 86_400}})
       {2000, 1, 1, 0, 0, 0, {0, 6}}
-      iex> Calendar.ISO.naive_datetime_from_iso_days({730_485, {43200, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({730_485, {43_200, 86_400}})
       {2000, 1, 1, 12, 0, 0, {0, 6}}
-      iex> Calendar.ISO.naive_datetime_from_iso_days({-365, {0, 86400000000}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({-365, {0, 86_400_000_000}})
       {-1, 1, 1, 0, 0, 0, {0, 6}}
 
   """
@@ -1133,7 +1133,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec year_of_era(year) :: {1..10000, era}
+  @spec year_of_era(year) :: {1..10_000, era}
   def year_of_era(year) when is_year_CE(year), do: {year, 1}
   def year_of_era(year) when is_year_BCE(year), do: {abs(year) + 1, 0}
 
@@ -1159,7 +1159,7 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.13.0"
   @impl true
-  @spec year_of_era(year, month, day) :: {1..10000, era}
+  @spec year_of_era(year, month, day) :: {1..10_000, era}
   def year_of_era(year, _month, _day), do: year_of_era(year)
 
   @doc """
@@ -1704,11 +1704,11 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.iso_days_to_beginning_of_day({0, {0, 86400000000}})
+      iex> Calendar.ISO.iso_days_to_beginning_of_day({0, {0, 86_400_000_000}})
       {0, {0, 86400000000}}
-      iex> Calendar.ISO.iso_days_to_beginning_of_day({730485, {43200000000, 86400000000}})
+      iex> Calendar.ISO.iso_days_to_beginning_of_day({730_485, {43_200_000_000, 86_400_000_000}})
       {730485, {0, 86400000000}}
-      iex> Calendar.ISO.iso_days_to_beginning_of_day({730485, {46800000000, 86400000000}})
+      iex> Calendar.ISO.iso_days_to_beginning_of_day({730_485, {46_800_000_000, 86_400_000_000}})
       {730485, {0, 86400000000}}
 
   """
@@ -1724,11 +1724,11 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.iso_days_to_end_of_day({0, {0, 86400000000}})
+      iex> Calendar.ISO.iso_days_to_end_of_day({0, {0, 86_400_000_000}})
       {0, {86399999999, 86400000000}}
-      iex> Calendar.ISO.iso_days_to_end_of_day({730485, {43200000000, 86400000000}})
+      iex> Calendar.ISO.iso_days_to_end_of_day({730_485, {43_200_000_000, 86_400_000_000}})
       {730485, {86399999999, 86400000000}}
-      iex> Calendar.ISO.iso_days_to_end_of_day({730485, {46800000000, 86400000000}})
+      iex> Calendar.ISO.iso_days_to_end_of_day({730_485, {46_800_000_000, 86_400_000_000}})
       {730485, {86399999999, 86400000000}}
 
   """
@@ -1888,7 +1888,7 @@ defmodule Calendar.ISO do
 
   def shift_time_unit({_days, _day_fraction} = iso_days, value, unit)
       when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
-    ppd = System.convert_time_unit(86400, :second, unit)
+    ppd = System.convert_time_unit(86_400, :second, unit)
     add_day_fraction_to_iso_days(iso_days, value, ppd)
   end
 
@@ -1937,7 +1937,7 @@ defmodule Calendar.ISO do
        }) do
     [
       month: year * 12 + month,
-      second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
+      second: week * 7 * 86_400 + day * 86_400 + hour * 3600 + minute * 60 + second,
       microsecond: microsecond
     ]
   end
