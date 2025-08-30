@@ -844,13 +844,21 @@ defmodule Macro do
   bound), while `quote/2` produces syntax trees for
   expressions.
 
-  ## Customizing struct escapes
+  ## Dealing with references and other runtime values
 
-  By default, structs are escaped to generate the AST for their internal representation.
+  Macros work at compile-time and therefore `Macro.escape/1` can only escape
+  values that are valid during compilation, such as numbers, atoms, tuples, binaries,
+  etc.
 
-  This approach does not work if the internal representation contains references (like
-  `Regex` structs), because references can't be escaped.
-  This is a common issue when working with NIFs.
+  However, you may have values at compile-time which cannot be escaped, such as
+  `reference`s and `pid`s, since the process or memory address they point to will
+  no longer exist once compilation completes. Attempting to escape said values will
+  load to errors. This is a common issue when working with NIFs.
+
+  Luckily, Elixir v1.19 introduces a mechanism that allow those values to be escaped,
+  as long as they are encapsulated by a struct within a module that defines the
+  `__escape__/1` function. This is possible as long as the reference has a natural
+  text or binary representation that can be serialized during compilation.
 
   Let's imagine we have the following struct:
 
@@ -893,6 +901,8 @@ defmodule Macro do
 
       def my_struct, do: WrapperStruct.load_from_binary(<<...>>)
 
+  When implementing `__escape__/1`, you must ensure that the quoted expression
+  will evaluate to a struct that represents the one given as argument.
   """
   @spec escape(term, escape_opts) :: t()
   def escape(expr, opts \\ []) do
