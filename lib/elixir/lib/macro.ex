@@ -843,6 +843,56 @@ defmodule Macro do
   `escape/2` is used to escape *values* (either directly passed or variable
   bound), while `quote/2` produces syntax trees for
   expressions.
+
+  ## Customizing struct escapes
+
+  By default, structs are escaped to generate the AST for their internal representation.
+
+  This approach does not work if the internal representation contains references (like
+  `Regex` structs), because references can't be escaped.
+  This is a common issue when working with NIFs.
+
+  Let's imagine we have the following struct:
+
+      defmodule WrapperStruct do
+        defstruct [:ref]
+
+        def new(...), do: %WrapperStruct{ref: ...}
+
+        # efficiently dump to / load from binaries
+        def dump_to_binary(%WrapperStruct{ref: ref}), do: ...
+        def load_from_binary(binary), do: %WrapperStruct{ref: ...}
+      end
+
+  Such a struct could not be used in module attributes or escaped with `Macro.escape/2`:
+
+      defmodule Foo do
+        @my_struct WrapperStruct.new(...)
+        def my_struct, do: @my_struct
+      end
+
+      ** (ArgumentError) cannot inject attribute @my_struct into function/macro because cannot escape #Reference<...>
+
+  To address this, structs can re-define how they should be escaped by defining a custom
+  `__escape__/1` function which returns the AST. In our example:
+
+      defmodule WrapperStruct do
+        # ...
+
+        def __escape__(struct) do
+          # dump to a binary representation at compile-time
+          binary = dump_to_binary(struct)
+          quote do
+            # load from the binary representation at runtime
+            WrapperStruct.load_from_binary(unquote(Macro.escape(binary)))
+          end
+        end
+      end
+
+  Now, our example above will be expanded as:
+
+      def my_struct, do: WrapperStruct.load_from_binary(<<...>>)
+
   """
   @spec escape(term, escape_opts) :: t()
   def escape(expr, opts \\ []) do
