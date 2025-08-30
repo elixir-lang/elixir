@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     * OWN - time spent in the function, excluding the time of called functions
 
   The first row (Total) is the sum of all functions executed in all profiled
-  processes. For the given output, we had a total of 200279 function calls and spent
+  processes. For the given output, we had a total of 200 279 function calls and spent
   about 2 seconds running the code.
 
   More detailed information is returned if you provide the `--callers` and
