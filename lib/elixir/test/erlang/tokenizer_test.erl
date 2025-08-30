@@ -184,6 +184,22 @@ space_test() ->
    {dual_op, {1, 6, nil}, '-'},
    {int, {1, 7, 2}, "2"}] = tokenize("foo  -2").
 
+op_identifier_line_continuation_test() ->
+  %% Backslash followed by LF
+  [{op_identifier, {1, 1, _}, foo},
+   {dual_op, {2, 1, nil}, '+'},
+   {int, {2, 2, 1}, "1"}] = tokenize("foo\\\n+1"),
+
+  %% Backslash followed by CRLF
+  [{op_identifier, {1, 1, _}, foo},
+   {dual_op, {2, 1, nil}, '+'},
+   {int, {2, 2, 1}, "1"}] = tokenize("foo\\\r\n+1"),
+
+  %% Backslash-LF then a space before '+'
+  [{op_identifier, {1, 1, _}, foo},
+   {dual_op, {2, 2, nil}, '+'},
+   {int, {2, 3, 1}, "1"}] = tokenize("foo\\\n +1").
+
 chars_test() ->
   [{char, {1, 1, "?a"}, 97}] = tokenize("?a"),
   [{char, {1, 1, "?c"}, 99}] = tokenize("?c"),
