@@ -853,7 +853,7 @@ defmodule Macro do
   However, you may have values at compile-time which cannot be escaped, such as
   `reference`s and `pid`s, since the process or memory address they point to will
   no longer exist once compilation completes. Attempting to escape said values will
-  raise. This is a common issue when working with NIFs.
+  raise an exception. This is a common issue when working with NIFs.
 
   Luckily, Elixir v1.19 introduces a mechanism that allows those values to be escaped,
   as long as they are encapsulated by a struct within a module that defines the
