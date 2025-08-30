@@ -64,7 +64,7 @@ defmodule Logger.UtilsTest do
   end
 
   test "with :infinity truncate" do
-    long_string = String.duplicate("foo", 10000)
+    long_string = String.duplicate("foo", 10_000)
     assert scan_inspect(~c"~ts", [long_string], :infinity) == {~c"~ts", [long_string]}
   end
 end

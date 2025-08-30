@@ -6375,7 +6375,7 @@ defmodule Kernel do
 
   With a timeout:
 
-      iex> to_timeout(5400000)
+      iex> to_timeout(5_400_000)
       5400000
       iex> to_timeout(:infinity)
       :infinity

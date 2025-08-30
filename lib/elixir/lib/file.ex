@@ -694,7 +694,7 @@ defmodule File do
       File.touch("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
       {:error, :enoent}
 
-      File.touch("/tmp/a.txt", 1544519753)
+      File.touch("/tmp/a.txt", 1_544_519_753)
       #=> :ok
 
   """
@@ -733,7 +733,7 @@ defmodule File do
       File.touch!("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
       ** (File.Error) could not touch "/fakedir/b.txt": no such file or directory
 
-      File.touch!("/tmp/a.txt", 1544519753)
+      File.touch!("/tmp/a.txt", 1_544_519_753)
 
   """
   @spec touch!(Path.t(), erlang_time() | posix_time()) :: :ok

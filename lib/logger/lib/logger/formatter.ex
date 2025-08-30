@@ -94,7 +94,7 @@ defmodule Logger.Formatter do
   > discarded.
   """
 
-  @type date :: {1970..10000, 1..12, 1..31}
+  @type date :: {1970..10_000, 1..12, 1..31}
   @type time_ms :: {0..23, 0..59, 0..59, 0..999}
   @type date_time_ms :: {date, time_ms}
 

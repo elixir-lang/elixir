@@ -41,7 +41,7 @@ defmodule Logger.FormatterTest do
     assert truncate(~c"ol" ++ "á", 4) == ~c"ol" ++ "á"
 
     # :infinity
-    long_string = String.duplicate("foo", 10000)
+    long_string = String.duplicate("foo", 10_000)
     assert truncate(long_string, :infinity) == long_string
   end
 

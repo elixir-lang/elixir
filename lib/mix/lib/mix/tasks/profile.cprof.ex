@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   Other caveats are the impossibility to call count trace BIFs, since breakpoints can
   only be set on BEAM code; functions calls performed by `:cprof` are not traced; the
   maximum size of a call counter is equal to the host machine's word size
-  (for example, 2147483647 in a 32-bit host).
+  (for example, `2_147_483_647` in a 32-bit host).
   """
 
   @typedoc """

@@ -145,7 +145,7 @@ The [`:rand`](`:rand`) has functions for returning random values and setting the
 ```elixir
 iex> :rand.uniform()
 0.8175669086010815
-iex> _ = :rand.seed(:exs1024, {123, 123534, 345345})
+iex> _ = :rand.seed(:exs1024, {123, 123_534, 345_345})
 iex> :rand.uniform()
 0.5820506340260994
 iex> :rand.uniform(6)

@@ -696,7 +696,7 @@ defmodule Application do
       config :my_app, Databases.RepoTwo,
         # Another database configuration (for the same OTP app)
         ip: "localhost",
-        port: 20717
+        port: 20_717
 
       config :my_app, my_app_databases: [Databases.RepoOne, Databases.RepoTwo]
 

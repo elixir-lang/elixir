@@ -53,7 +53,7 @@ defmodule Date do
       iex> Date.diff(~D[2010-04-17], ~D[1970-01-01])
       14716
 
-      iex> Date.add(~D[1970-01-01], 14716)
+      iex> Date.add(~D[1970-01-01], 14_716)
       ~D[2010-04-17]
 
       iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 2)
