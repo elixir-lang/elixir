@@ -147,7 +147,7 @@ defmodule MacroTest do
       end
     end
 
-    @tag skip: not function_exported?(:re, :import, 1)
+    @tag :re_import
     test "escape regex will remove references and replace it by a call to :re.import/1" do
       assert {
                :%{},
