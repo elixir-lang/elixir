@@ -362,7 +362,7 @@ defmodule GenServer do
         end
 
         @impl true
-        def handle_call(:succ, _from, count) do
+        def handle_call(:increment, _from, count) do
           new_count = count + 1
           {:reply, new_count, new_count, @timeout}
         end
@@ -374,10 +374,10 @@ defmodule GenServer do
       end
 
   A `Counter` server will exit with `:normal` if there are no messages in 5 seconds
-  after the initialization or after the last `:succ` call:
+  after the initialization or after the last `:increment` call:
 
       {:ok, counter_pid} = GenServer.start(Counter, 50)
-      GenServer.call(counter_pid, :succ)
+      GenServer.call(counter_pid, :increment)
       #=> 51
 
       # After 5 seconds
