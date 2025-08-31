@@ -30,7 +30,10 @@ expand(Meta, Args, S, E, RequireSize) ->
 expand(_BitstrMeta, _Fun, [], Acc, S, E, Alignment, _RequireSize) ->
   {lists:reverse(Acc), Alignment, S, E};
 expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment, RequireSize) ->
-  {ELeft, {SL, OriginalS}, EL} = expand_expr(Left, Fun, S, E),
+  % We don't want to consider variables added in the Left pattern inside the Right specs
+  {#elixir_ex{vars=BeforeVars}, _} = S,
+
+  {ELeft, {#elixir_ex{vars=AfterVars} = SL, OriginalS}, EL} = expand_expr(Left, Fun, S, E),
   validate_expr(ELeft, Meta, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
@@ -40,10 +43,11 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
     {'^', _, [{_, _, _}]} -> {infer, ELeft};
     _ -> required
   end,
-  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, ExpectSize),
+
+  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL#elixir_ex{vars=BeforeVars}, OriginalS, EL, ExpectSize),
 
   EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
-  expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
+  expand(BitstrMeta, Fun, T, EAcc, {SS#elixir_ex{vars=AfterVars}, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
   {ELeft, {SS, OriginalS}, ES} = expand_expr(H, Fun, S, E),
