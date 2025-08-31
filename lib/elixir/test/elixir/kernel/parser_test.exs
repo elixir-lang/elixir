@@ -447,6 +447,22 @@ defmodule Kernel.ParserTest do
                {:ok, {:=, context, [List.to_string(nfd_abba), 1]}}
     end
 
+    test "not in" do
+      assert Code.string_to_quoted!("a not in b", columns: true) ==
+               {:not, [line: 1, column: 3],
+                [
+                  {:in, [line: 1, column: 7],
+                   [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
+                ]}
+
+      assert Code.string_to_quoted!("a not  in b", columns: true) ==
+               {:not, [line: 1, column: 3],
+                [
+                  {:in, [line: 1, column: 8],
+                   [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 11], nil}]}
+                ]}
+    end
+
     test "handles maps and structs" do
       assert Code.string_to_quoted("%{}", columns: true) ==
                {:ok, {:%{}, [line: 1, column: 1], []}}

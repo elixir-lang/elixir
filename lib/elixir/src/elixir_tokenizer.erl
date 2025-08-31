@@ -1670,8 +1670,8 @@ tokenize_keyword(Kind, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
 
       _ ->
         case {Kind, Tokens} of
-          {in_op, [{unary_op, NotInfo, 'not'} | T]} ->
-            add_token_with_eol({in_op, NotInfo, 'not in'}, T);
+          {in_op, [{unary_op, {NotLine, NotColumn, _}, 'not'} | T]} ->
+            add_token_with_eol({in_op, {NotLine, NotColumn, {Line, Column, nil}}, 'not in'}, T);
 
           {_, _} ->
             add_token_with_eol({Kind, {Line, Column, previous_was_eol(Tokens)}, Atom}, Tokens)

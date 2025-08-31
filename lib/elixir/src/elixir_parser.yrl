@@ -752,8 +752,9 @@ build_op({UOp, _, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) w
   {UOp, Meta, [{'in', Meta, [Left, Right]}]};
 
 build_op(Left, {_Kind, Location, 'not in'}, Right) ->
-  Meta = meta_from_location(Location),
-  {'not', Meta, [{'in', Meta, [Left, Right]}]};
+  NotMeta = meta_from_location(Location),
+  InMeta = meta_from_location(element(3, Location)),
+  {'not', NotMeta, [{'in', InMeta, [Left, Right]}]};
 
 build_op(Left, {_Kind, Location, Op}, Right) ->
   {Op, newlines_op(Location) ++ meta_from_location(Location), [Left, Right]}.
