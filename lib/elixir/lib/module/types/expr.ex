@@ -233,7 +233,6 @@ defmodule Module.Types.Expr do
   end
 
   # %Struct{map | ...}
-  # This syntax is deprecated, so we simply traverse.
   def of_expr(
         {:%, meta, [module, {:%{}, _, [{:|, _, [map, pairs]}]}]} = struct,
         _expected,

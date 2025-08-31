@@ -38,6 +38,11 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [Enum] Add `Enum.min_max` sorter
+  * [Kernel] Print intermediate results of `dbg` for pipes
+
 ### 2. Bug fixes
 
 ### 3. Soft deprecations (no warnings emitted)
