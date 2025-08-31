@@ -161,6 +161,26 @@ defmodule MacroTest do
                ]
              } = Macro.escape(~r/foo/)
     end
+
+    defmodule EscapedStruct do
+      defstruct [:ast, :ref]
+
+      def __escape__(%{ast: ast}), do: ast
+    end
+
+    test "escape struct with custom __escape__ (valid AST)" do
+      struct = %EscapedStruct{ast: {:valid_ast, [], []}, ref: make_ref()}
+
+      assert {:valid_ast, [], []} = Macro.escape(struct)
+    end
+
+    test "escape struct with custom __escape__ (shallow invalid AST)" do
+      struct = %EscapedStruct{ast: %{invalid: :ast}, ref: make_ref()}
+
+      assert_raise ArgumentError,
+                   "MacroTest.EscapedStruct.__escape__/1 returned invalid AST: %{invalid: :ast}",
+                   fn -> Macro.escape(struct) end
+    end
   end
 
   describe "expand_once/2" do
