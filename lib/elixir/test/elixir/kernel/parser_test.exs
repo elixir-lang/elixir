@@ -1434,6 +1434,9 @@ defmodule Kernel.ParserTest do
         assert parse!("{?\n}\n{123}") ==
                  {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
 
+        assert parse!("{?\\n}\n{123}") ==
+                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 2], ~c"{"}]}
+
         assert parse!("{?\\\n}\n{123}") ==
                  {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
       end)
