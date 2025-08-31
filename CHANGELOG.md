@@ -194,6 +194,34 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosystem Foundation.
 
+## v1.19.0-rc.1
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Raise when U+2028 and U+2029 characters are present in comments and strings to avoid line spoofing attacks
+  * [Macro] Add `__escape__/1` callback so structs can escape references and other runtime data types in `Macro.escape/1`
+  * [OptionParser] Support the `:regex` type
+  * [OptionParser] Enhance parsing error to display available options
+
+#### Mix
+
+  * [mix format] Add options to mix format to allow excluding of files
+  * [mix test] Add `--name-pattern` option to `mix test`
+  * [Mix.install/2] Support the `:compilers` option
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Return error on invalid unicode sequences in `Code.string_to_quoted/2` instead of raising
+  * [Kernel] Properly increment metadata newline when `?` is followed ny a literal newline character
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Fix order in ExUnit results when listing pinned variables
+
 ## v1.19.0-rc.0 (2025-06-09)
 
 ### 1. Enhancements
