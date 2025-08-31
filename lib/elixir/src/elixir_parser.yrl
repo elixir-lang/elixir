@@ -479,7 +479,7 @@ dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
 dot_alias -> alias : build_alias('$1').
 dot_alias -> matched_expr dot_op alias : build_dot_alias('$2', '$1', '$3').
-dot_alias -> matched_expr dot_op open_curly '}' : build_dot_container('$2', '$1', [], []).
+dot_alias -> matched_expr dot_op open_curly '}' : build_dot_container('$2', '$1', [], newlines_pair('$3', '$4')).
 dot_alias -> matched_expr dot_op open_curly container_args close_curly : build_dot_container('$2', '$1', '$4', newlines_pair('$3', '$5')).
 
 dot_op_identifier -> op_identifier : '$1'.
