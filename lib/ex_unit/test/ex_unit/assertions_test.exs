@@ -857,6 +857,22 @@ defmodule ExUnit.AssertionsTest do
       "assertion" = error.message
   end
 
+  test "assert operator with custom options" do
+    assert 1 > 2, message: "assertion"
+    flunk("This should never be tested")
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "assertion" = error.message
+  end
+
+  test "assert operator with invalid options" do
+    assert 1 > 2, message: 123
+    flunk("This should never be tested")
+  rescue
+    error in [ArgumentError] ->
+      ":message in ExUnit.Assertion must be a binary, got: 123" = error.message
+  end
+
   test "assert lack of equality" do
     try do
       assert "one" != "one"
