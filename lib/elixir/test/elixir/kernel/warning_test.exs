@@ -499,7 +499,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:1\n", message],
+      ["nofile:1:5\n", message],
       """
       try do
         "oops"

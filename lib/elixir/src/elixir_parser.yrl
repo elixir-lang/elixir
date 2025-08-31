@@ -320,13 +320,13 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 %% Blocks
 
 do_block -> do_eoe 'end' :
-              {do_end_meta('$1', '$2'), [[{handle_literal(do, '$1'), {'__block__', [], []}}]]}.
+              {do_end_meta('$1', '$2'), [[{handle_literal(do, '$1'), {'__block__', meta_from_token('$1'), []}}]]}.
 do_block -> do_eoe stab_eoe 'end' :
-              {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), build_stab('$2')}]]}.
+              {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), build_stab('$2', meta_from_token('$1'))}]]}.
 do_block -> do_eoe block_list 'end' :
-              {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), {'__block__', [], []}} | '$2']]}.
+              {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), {'__block__', meta_from_token('$1'), []}} | '$2']]}.
 do_block -> do_eoe stab_eoe block_list 'end' :
-              {do_end_meta('$1', '$4'), [[{handle_literal(do, '$1'), build_stab('$2')} | '$3']]}.
+              {do_end_meta('$1', '$4'), [[{handle_literal(do, '$1'), build_stab('$2', meta_from_token('$1'))} | '$3']]}.
 
 eoe -> eol : '$1'.
 eoe -> ';' : '$1'.
@@ -366,7 +366,7 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
 
 block_item -> block_eoe stab_eoe :
-                {handle_literal(?exprs('$1'), '$1'), build_stab('$2')}.
+                {handle_literal(?exprs('$1'), '$1'), build_stab('$2', [])}.
 block_item -> block_eoe :
                 {handle_literal(?exprs('$1'), '$1'), {'__block__', [], []}}.
 
@@ -793,27 +793,21 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, none).
+build_block(Exprs) -> build_block(Exprs, []).
 
-build_block([{unquote_splicing, _, [_]}]=Exprs, BeforeAfter) ->
-  {'__block__', block_meta(BeforeAfter), Exprs};
-build_block([{Op, ExprMeta, Args}], {Before, After}) ->
+build_block([{unquote_splicing, _, [_]}]=Exprs, Meta) ->
+  {'__block__', Meta, Exprs};
+build_block([{Op, ExprMeta, Args}], Meta) ->
   ExprMetaWithExtra =
     case ?token_metadata() of
-      true ->
-        ParensEntry = meta_from_token(Before) ++ [{closing, meta_from_token(After)}],
-        [{parens, ParensEntry} | ExprMeta];
-      false ->
-        ExprMeta
+      true when Meta /= [] -> [{parens, Meta} | ExprMeta];
+      _ -> ExprMeta
     end,
   {Op, ExprMetaWithExtra, Args};
-build_block([Expr], _BeforeAfter) ->
+build_block([Expr], _Meta) ->
   Expr;
-build_block(Exprs, BeforeAfter) ->
-  {'__block__', block_meta(BeforeAfter), Exprs}.
-
-block_meta(none) -> [];
-block_meta({Before, After}) -> meta_from_token_with_closing(Before, After).
+build_block(Exprs, Meta) ->
+  {'__block__', Meta, Exprs}.
 
 %% Newlines
 
@@ -1115,9 +1109,9 @@ check_stab([_], Meta) -> error_invalid_stab(Meta);
 check_stab([{'->', Meta, [_, _]} | T], _) -> check_stab(T, Meta);
 check_stab([_ | T], MaybeMeta) -> check_stab(T, MaybeMeta).
 
-build_stab(Stab) ->
+build_stab(Stab, BlockMeta) ->
   case check_stab(Stab, none) of
-    block -> build_block(reverse(Stab));
+    block -> build_block(reverse(Stab), BlockMeta);
     stab -> collect_stab(Stab, [], [])
   end.
 
@@ -1125,7 +1119,7 @@ build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) 
   {'__block__', [], Exprs};
 build_paren_stab(Before, Stab, After) ->
   case check_stab(Stab, none) of
-    block -> build_block(reverse(Stab), {Before, After});
+    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After));
     stab -> handle_literal(collect_stab(Stab, [], []), Before, newlines_pair(Before, After))
   end.
 
@@ -1162,7 +1156,7 @@ unwrap_when(Args) ->
 parens_meta({Open, Close}) ->
   case ?token_metadata() of
     true ->
-      ParensEntry = meta_from_token(Open) ++ [{closing, meta_from_token(Close)}],
+      ParensEntry = [{closing, meta_from_token(Close)} | meta_from_token(Open)],
       [{parens, ParensEntry}];
     false ->
       []
