@@ -64,6 +64,7 @@ defmodule Kernel.ParserTest do
     test "ambiguous ops in keywords" do
       assert parse!("f(+: :ok)") == {:f, [line: 1], [[+: :ok]]}
       assert parse!("f +: :ok") == {:f, [line: 1], [[+: :ok]]}
+      assert parse!("f +:\n:ok") == {:f, [line: 1], [[+: :ok]]}
     end
   end
 
@@ -104,6 +105,39 @@ defmodule Kernel.ParserTest do
       assert_syntax_error([msg], "foo..bar baz//bat")
       assert_syntax_error([msg], "foo++bar//bat")
       assert_syntax_error([msg], "foo..(bar//bat)")
+    end
+  end
+
+  describe "\\\\ + newline" do
+    test "with ambiguous ops" do
+      assert parse!("f \\\n-var") ==
+               {:f, [ambiguous_op: nil, line: 1], [{:-, [line: 2], [{:var, [line: 2], nil}]}]}
+
+      assert parse!("f \\\n- var") ==
+               {:-, [line: 2], [{:f, [line: 1], nil}, {:var, [line: 2], nil}]}
+
+      assert parse!("f -\\\nvar") ==
+               {:-, [line: 1], [{:f, [line: 1], nil}, {:var, [line: 2], nil}]}
+
+      assert parse!("f -\\\n var") ==
+               {:-, [line: 1], [{:f, [line: 1], nil}, {:var, [line: 2], nil}]}
+    end
+
+    test "with capture" do
+      assert parse!("&..//\\\n/3") ==
+               {:&, [line: 1], [{:/, [line: 2], [{:..//, [line: 1], nil}, 3]}]}
+
+      assert parse!("&\\\n+/2") == {:&, [line: 1], [{:/, [line: 2], [{:+, [line: 2], nil}, 2]}]}
+      assert parse!("&\\\n//2") == {:&, [line: 1], [{:/, [line: 2], [{:/, [line: 2], nil}, 2]}]}
+      assert parse!("&\\\nor/2") == {:&, [line: 1], [{:/, [line: 2], [{:or, [line: 2], nil}, 2]}]}
+
+      assert parse!("&+\\\n/2") == {:&, [line: 1], [{:/, [line: 2], [{:+, [line: 1], nil}, 2]}]}
+      assert parse!("&/\\\n/2") == {:&, [line: 1], [{:/, [line: 2], [{:/, [line: 1], nil}, 2]}]}
+      assert parse!("&or\\\n/2") == {:&, [line: 1], [{:/, [line: 2], [{:or, [line: 1], nil}, 2]}]}
+
+      assert parse!("&+/\\\n2") == {:&, [line: 1], [{:/, [line: 1], [{:+, [line: 1], nil}, 2]}]}
+      assert parse!("&//\\\n2") == {:&, [line: 1], [{:/, [line: 1], [{:/, [line: 1], nil}, 2]}]}
+      assert parse!("&or/\\\n2") == {:&, [line: 1], [{:/, [line: 1], [{:or, [line: 1], nil}, 2]}]}
     end
   end
 
@@ -995,7 +1029,7 @@ defmodule Kernel.ParserTest do
       )
 
       assert_syntax_error(
-        ["nofile:1:5:", "invalid bidirectional formatting character in comment: \\u202A"],
+        ["nofile:1:6:", "invalid bidirectional formatting character in comment: \\u202A"],
         ~c"foo. # This is a \u202A"
       )
 
@@ -1023,7 +1057,7 @@ defmodule Kernel.ParserTest do
       )
 
       assert_syntax_error(
-        ["nofile:1:5:", "invalid line break character in comment: \\u2028"],
+        ["nofile:1:6:", "invalid line break character in comment: \\u2028"],
         ~c"foo. # This is a \u2028"
       )
 

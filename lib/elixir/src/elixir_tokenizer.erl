@@ -353,11 +353,11 @@ tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
 
 tokenize("..//" ++ Rest = String, Line, Column, Scope, Tokens) ->
-  case strip_horizontal_space(Rest, 0) of
-    {[$/ | _] = Remaining, Extra} ->
+  case strip_horizontal_space(Rest, Line, Column + 4, Scope) of
+    {[$/ | _] = Remaining, NewLine, NewColumn} ->
       Token = {identifier, {Line, Column, nil}, '..//'},
-      tokenize(Remaining, Line, Column + 4 + Extra, Scope, [Token | Tokens]);
-    {_, _} ->
+      tokenize(Remaining, NewLine, NewColumn, Scope, [Token | Tokens]);
+    {_, _, _} ->
       unexpected_token(String, Line, Column, Scope, Tokens)
   end;
 
@@ -464,17 +464,17 @@ tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?stab_op(T1, T2) ->
 
 tokenize([$& | Rest], Line, Column, Scope, Tokens) ->
   Kind =
-    case strip_horizontal_space(Rest, 0) of
-      {[Int | _], 0} when ?is_digit(Int) ->
+    case strip_horizontal_space(Rest, Line, 0, Scope) of
+      {[Int | _], Line, 0} when ?is_digit(Int) ->
         capture_int;
 
-      {[$/ | NewRest], _} ->
-        case strip_horizontal_space(NewRest, 0) of
-          {[$/ | _], _} -> capture_op;
-          {_, _} -> identifier
+      {[$/ | NewRest], _, _} ->
+        case strip_horizontal_space(NewRest, Line, 0, Scope) of
+          {[$/ | _], _, _} -> capture_op;
+          {_, _, _} -> identifier
         end;
 
-      {_, _} ->
+      {_, _, _} ->
         capture_op
     end,
 
@@ -612,8 +612,8 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
 % Spaces
 
 tokenize([T | Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
-  {Remaining, Stripped} = strip_horizontal_space(Rest, 0),
-  handle_space_sensitive_tokens(Remaining, Line, Column + 1 + Stripped, Scope, Tokens);
+  {Remaining, NewLine, NewColumn} = strip_horizontal_space(Rest, Line, Column + 1, Scope),
+  handle_space_sensitive_tokens(Remaining, NewLine, NewColumn, Scope, Tokens);
 
 % End of line
 
@@ -735,32 +735,39 @@ unexpected_token([T | Rest], Line, Column, Scope, Tokens) ->
   error({?LOC(Line, Column), "unexpected token: ", Message}, Rest, Scope, Tokens).
 
 tokenize_eol(Rest, Line, Scope, Tokens) ->
-  {StrippedRest, Column} = strip_horizontal_space(Rest, Scope#elixir_tokenizer.column),
-  IndentedScope = Scope#elixir_tokenizer{indentation=Column-1},
-  tokenize(StrippedRest, Line + 1, Column, IndentedScope, Tokens).
+  {StrippedRest, NewLine, NewColumn} =
+    strip_horizontal_space(Rest, Line + 1, Scope#elixir_tokenizer.column, Scope),
+  IndentedScope = Scope#elixir_tokenizer{indentation=NewColumn-1},
+  tokenize(StrippedRest, NewLine, NewColumn, IndentedScope, Tokens).
 
-strip_horizontal_space([H | T], Counter) when ?is_horizontal_space(H) ->
-  strip_horizontal_space(T, Counter + 1);
-strip_horizontal_space(T, Counter) ->
-  {T, Counter}.
+strip_horizontal_space([H | T], Line, Counter, Scope) when ?is_horizontal_space(H) ->
+  strip_horizontal_space(T, Line, Counter + 1, Scope);
+%% \\ at the end of lines is treated as horizontal whitespace
+%% except at the very end of the buffer, which we treat as incomplete
+strip_horizontal_space("\\\n" ++ T, Line, _Counter, Scope) when T /= [] ->
+  strip_horizontal_space(T, Line+1, Scope#elixir_tokenizer.column, Scope);
+strip_horizontal_space("\\\r\n" ++ T, Line, _Counter, Scope) when T /= [] ->
+  strip_horizontal_space(T, Line+1, Scope#elixir_tokenizer.column, Scope);
+strip_horizontal_space(T, Line, Counter, _Scope) ->
+  {T, Line, Counter}.
 
 tokenize_dot(T, Line, Column, DotInfo, Scope, Tokens) ->
-  case strip_horizontal_space(T, 0) of
-    {[$# | R], _} ->
+  case strip_horizontal_space(T, Line, Column, Scope) of
+    {[$# | R], NewLine, NewColumn} ->
       case tokenize_comment(R, [$#]) of
         {error, Char, Reason} ->
-          error_comment(Char, Reason, [$# | R], Line, Column, Scope, Tokens);
+          error_comment(Char, Reason, [$# | R], NewLine, NewColumn, Scope, Tokens);
 
         {Rest, Comment} ->
-          preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
-          tokenize_dot(Rest, Line, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens)
+          preserve_comments(NewLine, NewColumn, Tokens, Comment, Rest, Scope),
+          tokenize_dot(Rest, NewLine, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens)
       end;
-    {"\r\n" ++ Rest, _} ->
-      tokenize_dot(Rest, Line + 1, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens);
-    {"\n" ++ Rest, _} ->
-      tokenize_dot(Rest, Line + 1, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens);
-    {Rest, Length} ->
-      handle_dot([$. | Rest], Line, Column + Length, DotInfo, Scope, Tokens)
+    {"\r\n" ++ Rest, NewLine, _NewColumn} ->
+      tokenize_dot(Rest, NewLine + 1, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens);
+    {"\n" ++ Rest, NewLine, _NewColumn} ->
+      tokenize_dot(Rest, NewLine + 1, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens);
+    {Rest, NewLine, NewColumn} ->
+      handle_dot([$. | Rest], NewLine, NewColumn, DotInfo, Scope, Tokens)
   end.
 
 handle_char(0)   -> {"\\0", "null byte"};
@@ -871,13 +878,13 @@ handle_unary_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) whe
   tokenize(Rest, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
 handle_unary_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
-  case strip_horizontal_space(Rest, 0) of
-    {[$/ | _] = Remaining, Extra} ->
+  case strip_horizontal_space(Rest, Line, Column + Length, Scope) of
+    {[$/ | _] = Remaining, NewLine, NewColumn} ->
       Token = {identifier, {Line, Column, nil}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
-    {Remaining, Extra} ->
+      tokenize(Remaining, NewLine, NewColumn, Scope, [Token | Tokens]);
+    {Remaining, NewLine, NewColumn} ->
       Token = {Kind, {Line, Column, nil}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens])
+      tokenize(Remaining, NewLine, NewColumn, Scope, [Token | Tokens])
   end.
 
 handle_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -885,11 +892,11 @@ handle_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_
   tokenize(Rest, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
 handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
-  case strip_horizontal_space(Rest, 0) of
-    {[$/ | _] = Remaining, Extra} ->
+  case strip_horizontal_space(Rest, Line, Column + Length, Scope) of
+    {[$/ | _] = Remaining, NewLine, NewColumn} ->
       Token = {identifier, {Line, Column, nil}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
-    {Remaining, Extra} ->
+      tokenize(Remaining, NewLine, NewColumn, Scope, [Token | Tokens]);
+    {Remaining, NewLine, NewColumn} ->
       NewScope =
         %% TODO: Remove these deprecations on Elixir v2.0
         case Op of
@@ -910,7 +917,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
         end,
 
       Token = {Kind, {Line, Column, previous_was_eol(Tokens)}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, NewScope, add_token_with_eol(Token, Tokens))
+      tokenize(Remaining, NewLine, NewColumn, NewScope, add_token_with_eol(Token, Tokens))
   end.
 
 % ## Three Token Operators
@@ -996,12 +1003,21 @@ handle_call_identifier(Rest, Line, Column, DotInfo, Length, UnencodedOp, Scope, 
 
 % ## Ambiguous unary/binary operators tokens
 % Keywords are not ambiguous operators
-handle_space_sensitive_tokens([Sign, $:, Space | _] = String, Line, Column, Scope, Tokens) when ?dual_op(Sign), ?is_space(Space) ->
+handle_space_sensitive_tokens([Sign, $:, Space | _] = String, Line, Column, Scope, Tokens) when
+    ?dual_op(Sign), ?is_space(Space) ->
   tokenize(String, Line, Column, Scope, Tokens);
 
 % But everything else, except other operators, are
 handle_space_sensitive_tokens([Sign, NotMarker | T], Line, Column, Scope, [{identifier, _, _} = H | Tokens]) when
-    ?dual_op(Sign), not(?is_space(NotMarker)), NotMarker =/= Sign, NotMarker =/= $/, NotMarker =/= $> ->
+    ?dual_op(Sign), not(?is_space(NotMarker)),
+    %% Do not match ++ or --
+    NotMarker =/= Sign,
+    %% Do not match +/2 or -/2
+    NotMarker =/= $/,
+    %% Do not match ->
+    NotMarker =/= $>,
+    %% Do not match +\\n or -\\n (it should be treated as if a space is there)
+    NotMarker =/= $\\ ->
   Rest = [NotMarker | T],
   DualOpToken = {dual_op, {Line, Column, nil}, list_to_atom([Sign])},
   tokenize(Rest, Line, Column + 1, Scope, [DualOpToken, setelement(1, H, op_identifier) | Tokens]);
@@ -1664,8 +1680,8 @@ tokenize_keyword(block, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
 
 tokenize_keyword(Kind, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
   NewTokens =
-    case strip_horizontal_space(Rest, 0) of
-      {[$/ | _], _} ->
+    case strip_horizontal_space(Rest, Line, Column, Scope) of
+      {[$/ | _], _, _} ->
         [{identifier, {Line, Column, nil}, Atom} | Tokens];
 
       _ ->
