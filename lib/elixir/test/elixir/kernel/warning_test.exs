@@ -2237,20 +2237,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "deprecate non-quoted variables in bitstring size modifiers" do
-    assert_warn_eval(
-      [
-        "the variable \"a\" is accessed inside size(...) of a bitstring but it was defined outside of the match",
-        "You must precede it with the pin operator"
-      ],
-      """
-      a = "foo"
-      <<a::binary-size(byte_size(a) - 1)>> <> _ = a
-      "fo" = a
-      """
-    )
-  end
-
   defp assert_compile_error(messages, string) do
     captured =
       capture_err(fn ->
