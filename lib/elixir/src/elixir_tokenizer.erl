@@ -241,9 +241,9 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   end,
 
   Token = {char, {Line, Column, [$?, $\\, H]}, Char},
-  case Char of
+  case H of
     $\n ->
-      %% If Char is a literal line feed, we already emit a warning,
+      %% If original char is a literal line feed, we already emit a warning,
       %% but we need to bump the line without emitting an EOL token.
       tokenize_eol(T, Line, NewScope, [Token | Tokens]);
     _ ->
@@ -262,7 +262,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   Token = {char, {Line, Column, [$?, Char]}, Char},
   case Char of
     $\n ->
-      %% If Char is a literal line feed, we already emit a warning,
+      %% If original char is a literal line feed, we already emit a warning,
       %% but we need to bump the line without emitting an EOL token.
       tokenize_eol(T, Line, NewScope, [Token | Tokens]);
     _ ->
