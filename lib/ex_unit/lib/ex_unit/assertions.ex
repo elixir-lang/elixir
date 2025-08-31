@@ -39,6 +39,16 @@ defmodule ExUnit.AssertionError do
   end
 
   @impl true
+  def exception(opts) do
+    with {:ok, message} when not is_binary(message) <- Keyword.fetch(opts, :message) do
+      raise ArgumentError,
+            ":message in ExUnit.Assertion must be a binary, got: #{inspect(message)}"
+    end
+
+    struct(__MODULE__, opts)
+  end
+
+  @impl true
   def message(exception) do
     "\n\n" <> ExUnit.Formatter.format_assertion_error(exception)
   end
