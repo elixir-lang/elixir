@@ -89,9 +89,12 @@ extract(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
 
 extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
   case unicode_util:gc(Rest) of
-    [Char | _] when ?bidi(Char) ->
+    [Char | _] when ?bidi(Char); ?break(Char) ->
       Token = io_lib:format("\\u~4.16.0B", [Char]),
-      Pre = "invalid bidirectional formatting character in string: ",
+      Pre = if
+        ?bidi(Char) -> "invalid bidirectional formatting character in string: ";
+        true -> "invalid line break character in string: "
+      end,
       Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
       {error, {?LOC(Line, Column), {Pre, Pos}, Token}};
 

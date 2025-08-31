@@ -33,3 +33,11 @@
                  C =:= 16#2068;
                  C =:= 16#202C;
                  C =:= 16#2069).
+
+%% Unsupported newlines
+%% https://www.unicode.org/reports/tr55/
+-define(break(C), C =:= 16#000B;
+                  C =:= 16#000C;
+                  C =:= 16#0085;
+                  C =:= 16#2028;
+                  C =:= 16#2029).

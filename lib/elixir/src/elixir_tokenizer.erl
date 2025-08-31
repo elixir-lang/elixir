@@ -198,8 +198,8 @@ tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
 
 tokenize([$# | String], Line, Column, Scope, Tokens) ->
   case tokenize_comment(String, [$#]) of
-    {error, Char} ->
-      error_comment(Char, [$# | String], Line, Column, Scope, Tokens);
+    {error, Char, Reason} ->
+      error_comment(Char, Reason, [$# | String], Line, Column, Scope, Tokens);
     {Rest, Comment} ->
       preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
       tokenize(Rest, Line, Column, Scope, reset_eol(Tokens))
@@ -748,8 +748,8 @@ tokenize_dot(T, Line, Column, DotInfo, Scope, Tokens) ->
   case strip_horizontal_space(T, 0) of
     {[$# | R], _} ->
       case tokenize_comment(R, [$#]) of
-        {error, Char} ->
-          error_comment(Char, [$# | R], Line, Column, Scope, Tokens);
+        {error, Char, Reason} ->
+          error_comment(Char, Reason, [$# | R], Line, Column, Scope, Tokens);
 
         {Rest, Comment} ->
           preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
@@ -1315,16 +1315,17 @@ tokenize_comment("\r\n" ++ _ = Rest, Acc) ->
 tokenize_comment("\n" ++ _ = Rest, Acc) ->
   {Rest, lists:reverse(Acc)};
 tokenize_comment([H | _Rest], _) when ?bidi(H) ->
-  {error, H};
+  {error, H, "invalid bidirectional formatting character in comment: "};
+tokenize_comment([H | _Rest], _) when ?break(H) ->
+  {error, H, "invalid line break character in comment: "};
 tokenize_comment([H | Rest], Acc) ->
   tokenize_comment(Rest, [H | Acc]);
 tokenize_comment([], Acc) ->
   {[], lists:reverse(Acc)}.
 
-error_comment(H, Comment, Line, Column, Scope, Tokens) ->
-  Token = io_lib:format("\\u~4.16.0B", [H]),
-  Reason = {?LOC(Line, Column), "invalid bidirectional formatting character in comment: ", Token},
-  error(Reason, Comment, Scope, Tokens).
+error_comment(Char, Reason, Comment, Line, Column, Scope, Tokens) ->
+  Token = io_lib:format("\\u~4.16.0B", [Char]),
+  error({?LOC(Line, Column), Reason, Token}, Comment, Scope, Tokens).
 
 preserve_comments(Line, Column, Tokens, Comment, Rest, Scope) ->
   case Scope#elixir_tokenizer.preserve_comments of
