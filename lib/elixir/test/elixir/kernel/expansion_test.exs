@@ -2890,6 +2890,17 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "raises for variable used both in pattern and size" do
+      assert_compile_error(~r/undefined variable "foo"/, fn ->
+        code =
+          quote do
+            fn <<foo::size(foo)>> -> :ok end
+          end
+
+        expand(code, [])
+      end)
+    end
+
     test "raises for invalid unit" do
       message = ~r"unit in bitstring expects an integer as argument, got: :oops"
 
