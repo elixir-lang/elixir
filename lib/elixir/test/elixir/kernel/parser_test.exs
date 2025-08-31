@@ -702,6 +702,24 @@ defmodule Kernel.ParserTest do
                 ]}
     end
 
+    test "adds opening and closing information for tuples" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
+
+      assert string_to_quoted.("{}") ==
+               {:{}, [closing: [line: 1, column: 2], line: 1, column: 1], []}
+
+      assert string_to_quoted.("{123}") ==
+               {:{}, [closing: [line: 1, column: 5], line: 1, column: 1], [123]}
+
+      assert string_to_quoted.("x.{}") ==
+               {{:., [line: 1, column: 2], [{:x, [line: 1, column: 1], nil}, :{}]},
+                [closing: [line: 1, column: 4], line: 1, column: 2], []}
+
+      assert string_to_quoted.("x.{123}") ==
+               {{:., [line: 1, column: 2], [{:x, [line: 1, column: 1], nil}, :{}]},
+                [closing: [line: 1, column: 7], line: 1, column: 2], [123]}
+    end
+
     test "adds opening and closing information for empty block" do
       string_to_quoted =
         &Code.string_to_quoted!(&1, token_metadata: true, columns: true, emit_warnings: false)
