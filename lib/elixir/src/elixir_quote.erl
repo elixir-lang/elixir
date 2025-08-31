@@ -172,7 +172,12 @@ do_escape(Map, Q) when is_map(Map) ->
     true ?= is_atom(Module),
     {module, Module} ?= code:ensure_loaded(Module),
     true ?= erlang:function_exported(Module, '__escape__', 1),
-    Module:'__escape__'(Map)
+    Expr = Module:'__escape__'(Map),
+    case shallow_valid_ast(Expr) of
+      true -> Expr;
+      false -> argument_error(
+        <<('Elixir.Kernel':inspect(Module))/binary, ".__escape__/1 returned invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary>>)
+    end
   else
     _ ->
       TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
