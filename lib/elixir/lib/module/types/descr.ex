@@ -2265,7 +2265,7 @@ defmodule Module.Types.Descr do
 
   # Case 3: when a list with negations is united with one of its negations
   defp add_to_list_normalize([{t, l, n} = cur | rest], list, last, []) do
-    case pop_elem({list, last}, n) do
+    case pop_elem(n, {list, last}, []) do
       {true, n1} -> [{t, l, n1} | rest]
       {false, _} -> [cur | add_to_list_normalize(rest, list, last, n)]
     end
@@ -2273,13 +2273,9 @@ defmodule Module.Types.Descr do
 
   defp add_to_list_normalize(rest, list, last, negs), do: [{list, last, negs} | rest]
 
-  defp pop_elem(elem, list) do
-    case :lists.delete(elem, list) do
-      ^list -> {false, list}
-      new_list -> {true, new_list}
-    end
-  end
-
+  defp pop_elem([key | t], key, acc), do: {true, :lists.reverse(acc, t)}
+  defp pop_elem([h | t], key, acc), do: pop_elem(t, key, [h | acc])
+  defp pop_elem([], _key, acc), do: {false, :lists.reverse(acc)}
   ## Dynamic
   #
   # A type with a dynamic component is a gradual type; without, it is a static
