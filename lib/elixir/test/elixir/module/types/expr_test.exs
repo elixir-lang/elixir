@@ -291,6 +291,37 @@ defmodule Module.Types.ExprTest do
                  (term() -> dynamic({:ok, term()}))
              """
     end
+
+    test "works when there are multiple clauses with lists and maps" do
+      type =
+        typecheck!(fn
+          [:oban, :job, _event], _measure, _meta, _opts ->
+            :ok
+
+          [:oban, :notifier, :switch], _measure, %{status: _status}, _opts ->
+            :ok
+
+          [:oban, :peer, :election, :stop], _measure, _meta, _opts ->
+            :ok
+
+          [:oban, :plugin, :exception], _measure, _meta, _opts ->
+            :ok
+
+          [:oban, :plugin, :stop], _measure, _meta, _opts ->
+            :ok
+
+          [:oban, :queue, :shutdown], _measure, %{orphaned: [_ | _]}, _opts ->
+            :ok
+
+          [:oban, :stager, :switch], _measure, %{mode: _mode}, _opts ->
+            :ok
+
+          _event, _measure, _meta, _opts ->
+            :ok
+        end)
+
+      assert subtype?(type, fun([term(), term(), term(), term()], atom([:ok])))
+    end
   end
 
   describe "remotes" do
@@ -2030,37 +2061,6 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) == dynamic(integer())
-    end
-
-    test "typecheck! must finish fast for large pattern match" do
-      type =
-        typecheck!(fn
-          [:oban, :job, _event], _measure, _meta, _opts ->
-            :ok
-
-          [:oban, :notifier, :switch], _measure, %{status: _status}, _opts ->
-            :ok
-
-          [:oban, :peer, :election, :stop], _measure, _meta, _opts ->
-            :ok
-
-          [:oban, :plugin, :exception], _measure, _meta, _opts ->
-            :ok
-
-          [:oban, :plugin, :stop], _measure, _meta, _opts ->
-            :ok
-
-          [:oban, :queue, :shutdown], _measure, %{orphaned: [_ | _]}, _opts ->
-            :ok
-
-          [:oban, :stager, :switch], _measure, %{mode: _mode}, _opts ->
-            :ok
-
-          _event, _measure, _meta, _opts ->
-            :ok
-        end)
-
-      assert subtype?(type, fun([term(), term(), term(), term()], atom([:ok])))
     end
   end
 
