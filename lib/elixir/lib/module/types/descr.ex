@@ -754,24 +754,12 @@ defmodule Module.Types.Descr do
   def disjoint?(%{dynamic: :term}, other), do: empty?(remove_optional(other))
   def disjoint?(other, %{dynamic: :term}), do: empty?(remove_optional(other))
 
+  # Two gradual types are disjoint if their upper bounds are disjoint.
   def disjoint?(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
+    left_upper = unfold(left) |> Map.get(:dynamic, left)
+    right_upper = unfold(right) |> Map.get(:dynamic, right)
 
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        not non_disjoint_intersection?(left, right_with_dynamic)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        not non_disjoint_intersection?(left_with_dynamic, right)
-
-      true ->
-        not non_disjoint_intersection?(left, right)
-    end
+    not non_disjoint_intersection?(left_upper, right_upper)
   end
 
   @doc """
