@@ -2038,11 +2038,8 @@ defmodule Module.Types.Descr do
   # 3. Base case: adds bdd2 type to negations of bdd1 type
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
   defp list_difference(list_literal(list1, last1) = bdd1, list_literal(list2, last2) = bdd2) do
-    list = intersection(list1, list2)
-    last = intersection(last1, last2)
-
     cond do
-      empty?(list) or empty?(last) -> list_literal(list1, last1)
+      disjoint?(list1, list2) or disjoint?(last1, last2) -> list_literal(list1, last1)
       subtype?(list1, list2) and subtype?(last1, last2) -> :bdd_bot
       equal?(list1, list2) -> list_literal(list1, difference(last1, last2))
       true -> bdd_difference(bdd1, bdd2)
@@ -4171,13 +4168,11 @@ defmodule Module.Types.Descr do
         end
 
       {{next_tag, next_elements} = next_tuple, left, right} ->
+        # If an intersection of tuples is empty, the line is empty and we skip it.
         acc =
           case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
-            :empty ->
-              acc
-
-            new_tuple ->
-              tuple_bdd_get(acc, new_tuple, negs, left, transform, compose)
+            :empty -> acc
+            new_tuple -> tuple_bdd_get(acc, new_tuple, negs, left, transform, compose)
           end
 
         tuple_bdd_get(acc, tuple, [next_tuple | negs], right, transform, compose)
