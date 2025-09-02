@@ -652,7 +652,7 @@ map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2
 map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', element(2, '$4'), element(1, '$4')).
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', '$3', []).
 
-map -> map_op map_args : '$2'.
+map -> map_op map_args : update_map_meta('$1', '$2').
 map -> '%' map_base_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
 map -> '%' map_base_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
@@ -669,6 +669,13 @@ Erlang code.
 
 -compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
 -import(lists, [reverse/1, reverse/2]).
+
+update_map_meta(MapOp, {'%{}', Meta, Args}) ->
+  MapOpMeta = meta_from_token(MapOp),
+  FilteredMeta = [M || M <- Meta, 
+                   element(1, M) =/= line andalso 
+                   element(1, M) =/= column],
+  {'%{}', FilteredMeta ++ MapOpMeta, Args}.
 
 meta_from_token(Token) ->
   meta_from_location(?location(Token)).
