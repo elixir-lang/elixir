@@ -73,8 +73,8 @@ defmodule Module.Types.Descr do
   @term_or_dynamic_optional Map.put(@term, :dynamic, %{optional: 1})
   @not_atom_or_optional Map.delete(@term_or_optional, :atom)
 
-  @empty_intersection [0, [], :bdd_bot]
-  @empty_difference [0, [], :bdd_bot]
+  @empty_intersection [0, :bdd_bot]
+  @empty_difference [0, :bdd_bot]
 
   defguard is_descr(descr) when is_map(descr) or descr == :term
 
