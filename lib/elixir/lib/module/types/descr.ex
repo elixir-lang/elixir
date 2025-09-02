@@ -3799,27 +3799,23 @@ defmodule Module.Types.Descr do
 
   defp tuple_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
+  defp tuple_literal_intersection(:open, [], tag, elements), do: {tag, elements}
+
   defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
     n = length(elements1)
     m = length(elements2)
 
-    cond do
-      (tag1 == :closed and n < m) or (tag2 == :closed and n > m) ->
-        :empty
-
-      tag1 == :open and tag2 == :open ->
-        try do
-          {:open, zip_non_empty_intersection!(elements1, elements2, [])}
-        catch
-          :empty -> :empty
-        end
-
-      true ->
-        try do
-          {:closed, zip_non_empty_intersection!(elements1, elements2, [])}
-        catch
-          :empty -> :empty
-        end
+    if (tag1 == :closed and n < m) or (tag2 == :closed and n > m) do
+      :empty
+    else
+      try do
+        zip_non_empty_intersection!(elements1, elements2, [])
+      catch
+        :empty -> :empty
+      else
+        elements when tag1 == :open and tag2 == :open -> {:open, elements}
+        elements -> {:closed, elements}
+      end
     end
   end
 
@@ -3831,9 +3827,39 @@ defmodule Module.Types.Descr do
     zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
   end
 
+  defp zip_empty_intersection?([], _types2), do: false
+  defp zip_empty_intersection?(_types1, []), do: false
+
+  defp zip_empty_intersection?([type1 | rest1], [type2 | rest2]) do
+    case empty?(intersection(type1, type2)) do
+      true -> true
+      false -> zip_empty_intersection?(rest1, rest2)
+    end
+  end
+
   defp tuple_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
-  defp tuple_empty?(bdd), do: tuple_bdd_to_dnf(bdd) == []
+  defp tuple_empty?(bdd), do: tuple_bdd_empty?({:open, []}, [], bdd)
+
+  defp tuple_bdd_empty?({tag, elements} = pos, negs, bdd) do
+    case bdd do
+      :bdd_bot ->
+        true
+
+      :bdd_top ->
+        tuple_empty?(tag, elements, negs)
+
+      {{next_tag, next_elements} = next_tuple, left, right} ->
+        case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
+          :empty ->
+            tuple_bdd_empty?(pos, [next_tuple | negs], right)
+
+          new_tuple ->
+            tuple_bdd_empty?(new_tuple, negs, left) and
+              tuple_bdd_empty?(pos, [next_tuple | negs], right)
+        end
+    end
+  end
 
   # No negations, so not empty unless there's an empty type
   # Note: since the extraction from the BDD is done in a way that guarantees that
@@ -3855,14 +3881,8 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       tuple_empty?(tag, elements, negs)
     else
-      case element_intersection(elements, neg_elements) do
-        :empty ->
-          tuple_empty?(tag, elements, negs)
-
-        _ ->
-          tuple_elements_empty?([], tag, elements, neg_elements, negs) and
-            tuple_compatibility(n, m, tag, elements, neg_tag, negs)
-      end
+      tuple_elements_empty?([], tag, elements, neg_elements, negs) and
+        tuple_empty_arity?(n, m, tag, elements, neg_tag, negs)
     end
   end
 
@@ -3875,42 +3895,15 @@ defmodule Module.Types.Descr do
     diff = difference(ty, neg_type)
     meet = intersection(ty, neg_type)
 
-    # In this case, there is no intersection between the positive and this negative.
-    # So we should just "go next"
+    # In this case, there is no intersection between the positive and this negative
     (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs)) and
-      tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs)
-  end
-
-  # Function that, given two tuples {tag1, elements1} and {tag2, elements2}, computes the
-  # intersection of all their elements (with default term() if one is open).
-  # If any intersection is empty, it return :empty. Else, it should return the list of them.
-  defp element_intersection(elements1, elements2) do
-    elements1 =
-      if length(elements1) < length(elements2),
-        do: tuple_fill(elements1, length(elements2)),
-        else: elements1
-
-    elements2 =
-      if length(elements1) > length(elements2),
-        do: tuple_fill(elements2, length(elements1)),
-        else: elements2
-
-    Enum.reduce_while(Enum.zip(elements1, elements2), [], fn {type1, type2}, acc ->
-      case intersection(type1, type2) do
-        :empty -> {:halt, :empty}
-        meet -> {:cont, [meet | acc]}
-      end
-    end)
-    |> case do
-      :empty -> :empty
-      list -> Enum.reverse(list)
-    end
+      (empty?(meet) or tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs))
   end
 
   # Determines if the set difference is empty when:
   # - Positive tuple: {tag, elements} of size n
   # - Negative tuple: open or closed tuples of size m
-  defp tuple_compatibility(n, m, tag, elements, neg_tag, negs) do
+  defp tuple_empty_arity?(n, m, tag, elements, neg_tag, negs) do
     # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
     # closed, we also need to consider tuples of size greater than m + 1.
     tag == :closed or
@@ -3926,12 +3919,6 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp empty_element_intersection?(elements1, elements2) do
-    Enum.any?(Enum.zip(elements1, elements2), fn {type1, type2} ->
-      empty?(intersection(type1, type2))
-    end)
-  end
-
   # Important: this generates DISJOINT tuples.
   defp tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements}) do
     n = length(elements)
@@ -3942,7 +3929,7 @@ defmodule Module.Types.Descr do
     # 2. When removing smaller tuples from larger tuples
     # 3. When there is no intersection between the elements of the two tuples
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) or
-         empty_element_intersection?(elements, neg_elements) do
+         zip_empty_intersection?(elements, neg_elements) do
       [{tag, elements}]
     else
       tuple_dnf_union(
@@ -4141,10 +4128,6 @@ defmodule Module.Types.Descr do
     |> tuple_fusion()
     |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
-
-  # Transforms a bdd into a dnf (union of tuples with negations)
-  def tuple_bdd_to_dnf(bdd),
-    do: tuple_bdd_get([], {:open, []}, [], bdd, &{&1, &2, &3}, &[&1 | &2])
 
   # Transforms a bdd into a positive normal form (union of tuples with no negations)
   # Note: it is important to compose the results with tuple_dnf_union/2 to avoid duplicates
