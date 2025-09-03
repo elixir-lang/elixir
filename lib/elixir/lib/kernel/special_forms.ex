@@ -2355,7 +2355,7 @@ defmodule Kernel.SpecialForms do
   defmacro try(args), do: error!([args])
 
   @doc """
-  Checks if there is a message matching any of the given clauses in the current
+  Consumes the first message matching any of the given clauses in the current
   process mailbox.
 
   If there is no matching message, the current process waits until a matching

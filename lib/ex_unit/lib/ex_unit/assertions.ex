@@ -459,8 +459,10 @@ defmodule ExUnit.Assertions do
   The default timeout duration is determined by the `assert_receive_timeout` option,
   which can be set using `ExUnit.configure/1`. This option defaults to 100 milliseconds.
 
-  The `pattern` argument must be a match pattern. Flunks with `failure_message`
-  if a message matching `pattern` is not received.
+  The `pattern` argument must be a match pattern.
+
+  Flunks with `failure_message` if a message matching `pattern` is not received.
+  If a message matches, it is also removed from the process mailbox.
 
   ## Examples
 
@@ -487,8 +489,10 @@ defmodule ExUnit.Assertions do
   Asserts that a message matching `pattern` was received and is in the
   current process' mailbox.
 
-  The `pattern` argument must be a match pattern. Flunks with `failure_message`
-  if a message matching `pattern` was not received.
+  The `pattern` argument must be a match pattern.
+
+  Flunks with `failure_message` if a message matching `pattern` was not received.
+  If a message matches, it is also removed from the process mailbox.
 
   Timeout is set to `0`, so there is no waiting time.
 
