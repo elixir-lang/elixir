@@ -1300,7 +1300,7 @@ defmodule Module.Types.Descr do
 
   defp fun_normalize(%{fun: bdd}, arity, mode) do
     {domain, arrows, bad_arities} =
-      Enum.reduce(fun_get(bdd), {term(), [], []}, fn
+      Enum.reduce(fun_bdd_get(bdd), {term(), [], []}, fn
         {pos_funs, _neg_funs}, {domain, arrows, bad_arities} ->
           arrow_arity =
             case pos_funs do
@@ -1413,13 +1413,18 @@ defmodule Module.Types.Descr do
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  defp fun_get(bdd), do: fun_get([], [], [], bdd)
+  defp fun_bdd_get(bdd), do: fun_bdd_get([], [], [], bdd)
 
-  defp fun_get(acc, pos, neg, bdd) do
+  defp fun_bdd_get(acc, pos, neg, bdd) do
     case bdd do
-      :bdd_bot -> acc
-      :bdd_top -> if fun_empty?(pos, neg), do: acc, else: [{pos, neg} | acc]
-      {fun, left, right} -> fun_get(fun_get(acc, [fun | pos], neg, left), pos, [fun | neg], right)
+      :bdd_bot ->
+        acc
+
+      :bdd_top ->
+        if fun_empty?(pos, neg), do: acc, else: [{pos, neg} | acc]
+
+      {fun, left, right} ->
+        fun_bdd_get(fun_bdd_get(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
   end
 
@@ -1435,7 +1440,7 @@ defmodule Module.Types.Descr do
   # - `fun(1) and not fun(1)` is empty
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
-  defp fun_empty?(bdd), do: fun_get(bdd) == []
+  defp fun_empty?(bdd), do: fun_bdd_get(bdd) == []
 
   # Checks if a function type represented by positive and negative function literals is empty.
 
@@ -1699,8 +1704,8 @@ defmodule Module.Types.Descr do
   # and put static and dynamic parts back together to improve
   # pretty printing.
   defp fun_denormalize(%{fun: static_bdd} = static, %{fun: dynamic_bdd} = dynamic, opts) do
-    static_pos = fun_get_pos(static_bdd)
-    dynamic_pos = fun_get_pos(dynamic_bdd)
+    static_pos = fun_bdd_get_pos(static_bdd)
+    dynamic_pos = fun_bdd_get_pos(dynamic_bdd)
 
     if static_pos != [] and dynamic_pos != [] do
       {static_pos, dynamic_pos} = fun_denormalize_pos(static_pos, dynamic_pos)
@@ -1790,14 +1795,14 @@ defmodule Module.Types.Descr do
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation
   defp fun_to_quoted(bdd, opts) do
-    case fun_get_pos(bdd) do
+    case fun_bdd_get_pos(bdd) do
       [] -> []
       pos -> [fun_pos_to_quoted(pos, opts)]
     end
   end
 
-  defp fun_get_pos(bdd) do
-    for {pos, _negs} <- fun_get(bdd) do
+  defp fun_bdd_get_pos(bdd) do
+    for {pos, _negs} <- fun_bdd_get(bdd) do
       fun_filter_subset(pos, [])
     end
   end
@@ -1879,11 +1884,11 @@ defmodule Module.Types.Descr do
             # corresponding positive list type; in that case we subtract the negated
             # variant from the positive one.
             {list_type, last_type} =
-              list_get_pos(bdd)
-              |> Enum.reduce({list_type, last_type_no_list}, fn {head, tail},
-                                                                {acc_head, acc_tail} ->
-                tail = list_tail_unfold(tail)
-                {union(head, acc_head), union(tail, acc_tail)}
+              list_bdd_get_pos(bdd)
+              |> Enum.reduce({list_type, last_type_no_list}, fn
+                {head, tail}, {acc_head, acc_tail} ->
+                  tail = list_tail_unfold(tail)
+                  {union(head, acc_head), union(tail, acc_tail)}
               end)
 
             list_new(list_type, last_type)
@@ -1906,9 +1911,9 @@ defmodule Module.Types.Descr do
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  defp list_get(bdd), do: list_get([], {:term, :term}, [], bdd)
+  defp list_bdd_get(bdd), do: list_bdd_get([], {:term, :term}, [], bdd)
 
-  defp list_get(acc, {list_acc, tail_acc} = pos, negs, bdd) do
+  defp list_bdd_get(acc, {list_acc, tail_acc} = pos, negs, bdd) do
     case bdd do
       :bdd_bot ->
         acc
@@ -1918,7 +1923,7 @@ defmodule Module.Types.Descr do
 
       {{list, tail} = list_type, left, right} ->
         new_pos = {intersection(list_acc, list), intersection(tail_acc, tail)}
-        list_get(list_get(acc, new_pos, negs, left), pos, [list_type | negs], right)
+        list_bdd_get(list_bdd_get(acc, new_pos, negs, left), pos, [list_type | negs], right)
     end
   end
 
@@ -1929,9 +1934,9 @@ defmodule Module.Types.Descr do
   # if the negative list type is a supertype of the positive list type. In that case,
   # we can remove the negative last type from the positive one.
   # (If this subtracted type was empty, the whole type would be empty)
-  defp list_get_pos(bdd), do: list_get_pos(:term, :term, bdd, [])
+  defp list_bdd_get_pos(bdd), do: list_bdd_get_pos(:term, :term, bdd, [])
 
-  defp list_get_pos(list_acc, last_acc, bdd, lines_acc) do
+  defp list_bdd_get_pos(list_acc, last_acc, bdd, lines_acc) do
     case bdd do
       :bdd_bot ->
         lines_acc
@@ -1944,9 +1949,12 @@ defmodule Module.Types.Descr do
         lines_acc =
           if subtype?(list_acc, list) do
             last = difference(last_acc, last)
-            if empty?(last), do: lines_acc, else: list_get_pos(list_acc, last, right, lines_acc)
+
+            if empty?(last),
+              do: lines_acc,
+              else: list_bdd_get_pos(list_acc, last, right, lines_acc)
           else
-            list_get_pos(list_acc, last_acc, right, lines_acc)
+            list_bdd_get_pos(list_acc, last_acc, right, lines_acc)
           end
 
         # Case 2: count the list_type positively.
@@ -1956,7 +1964,7 @@ defmodule Module.Types.Descr do
         if empty?(list_acc) or empty?(last_acc) do
           lines_acc
         else
-          list_get_pos(list_acc, last_acc, left, lines_acc)
+          list_bdd_get_pos(list_acc, last_acc, left, lines_acc)
         end
     end
   end
@@ -2112,7 +2120,7 @@ defmodule Module.Types.Descr do
   defp list_hd_static(:term), do: :term
 
   defp list_hd_static(%{list: bdd}) do
-    list_get_pos(bdd)
+    list_bdd_get_pos(bdd)
     |> Enum.reduce(none(), fn {list, _}, acc ->
       union(list, acc)
     end)
@@ -2164,7 +2172,7 @@ defmodule Module.Types.Descr do
           %{list: bdd}
       end
 
-    list_get_pos(bdd) |> Enum.reduce(initial, fn {_, tail}, acc -> union(tail, acc) end)
+    list_bdd_get_pos(bdd) |> Enum.reduce(initial, fn {_, tail}, acc -> union(tail, acc) end)
   end
 
   defp list_tl_static(%{}), do: none()
@@ -2229,7 +2237,7 @@ defmodule Module.Types.Descr do
   # Eliminate empty lists from the union, and redundant types (that are subtypes of others,
   # or that can be merged with others).
   defp list_normalize(bdd) do
-    list_get(bdd)
+    list_bdd_get(bdd)
     |> Enum.reduce([], fn {{list, last}, negs}, acc ->
       # First, try to eliminate the negations from the existing type.
       {list, last, negs} =
@@ -2276,6 +2284,7 @@ defmodule Module.Types.Descr do
   defp pop_elem([key | t], key, acc), do: {true, :lists.reverse(acc, t)}
   defp pop_elem([h | t], key, acc), do: pop_elem(t, key, [h | acc])
   defp pop_elem([], _key, acc), do: {false, :lists.reverse(acc)}
+
   ## Dynamic
   #
   # A type with a dynamic component is a gradual type; without, it is a static
@@ -2609,7 +2618,7 @@ defmodule Module.Types.Descr do
   defp map_difference(map_literal(tag, fields) = map1, map_literal(neg_tag, neg_fields) = map2) do
     # Case 1: we are removing an open map with one field. Just do the difference of that field.
     if neg_tag == :open and map_size(neg_fields) == 1 do
-      {key, value, _rest} = :maps.next(:maps.iterator(neg_fields))
+      [{key, value}] = Map.to_list(neg_fields)
       t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
 
       if empty?(t_diff) do
@@ -2813,7 +2822,7 @@ defmodule Module.Types.Descr do
     map_key_tag_to_type(tag_or_domains) |> pop_optional_static()
   end
 
-  # Takes a map dnf and returns the union of types it can take for a given key.
+  # Takes a map and returns the union of types it can take for a given key.
   # If the key may be undefined, it will contain the `not_set()` type.
   defp map_fetch_static(%{map: bdd}, key) do
     map_bdd_get(bdd)
