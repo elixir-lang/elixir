@@ -228,7 +228,7 @@ defmodule Task do
 
   ## Ancestor and Caller Tracking
 
-  Whenever you start a new process, Elixir annotates the parent of that process
+  Whenever you start a new process, Elixir annotates the process with the parent
   through the `$ancestors` key in the process dictionary. This is often used to
   track the hierarchy inside a supervision tree.
 
