@@ -2356,7 +2356,7 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   Checks if there is a message matching any of the given clauses in the current
-  process mailbox.
+  process mailbox. The first matching message is consumed and no longer available.
 
   If there is no matching message, the current process waits until a matching
   message arrives or until after a given timeout value.
