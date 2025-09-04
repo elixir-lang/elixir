@@ -101,6 +101,10 @@ defmodule Date.RangeTest do
     end
   end
 
+  test "Enum.take/1 for empty range with negative step" do
+    assert Enum.take(@empty_range, -1) == []
+  end
+
   test "works with date-like structs" do
     range = Date.range(~N[2000-01-01 09:00:00], ~U[2000-01-02 09:00:00Z])
     assert range.first == ~D[2000-01-01]
