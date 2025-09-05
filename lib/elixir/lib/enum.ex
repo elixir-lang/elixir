@@ -5186,6 +5186,9 @@ defimpl Enumerable, for: Range do
     slice(Map.put(range, :step, step))
   end
 
-  defp slice(_current, _step, 0), do: []
-  defp slice(current, step, remaining), do: [current | slice(current + step, step, remaining - 1)]
+  defp slice(current, _step, 1), do: [current]
+
+  defp slice(current, step, remaining) when remaining > 1 do
+    [current | slice(current + step, step, remaining - 1)]
+  end
 end

@@ -91,11 +91,11 @@ defmodule Date.Range do
       slice(Map.put(date_range, :step, step))
     end
 
-    defp slice(_current, _step, 0, _calendar) do
-      []
+    defp slice(current, _step, 1, calendar) do
+      [date_from_iso_days(current, calendar)]
     end
 
-    defp slice(current, step, remaining, calendar) do
+    defp slice(current, step, remaining, calendar) when remaining > 1 do
       [
         date_from_iso_days(current, calendar)
         | slice(current + step, step, remaining - 1, calendar)
