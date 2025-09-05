@@ -128,6 +128,16 @@ parse_otp_release() ->
   %% Whenever we change this check, we should also change Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
     {Num, _} when Num >= 26 ->
+      case Num == 28 andalso (code:ensure_loaded(re) == {module, re}) andalso not erlang:function_exported(re, import, 1) of
+        true ->
+          io:format(standard_error,
+            "warning! Erlang/OTP 28.0 detected.~n"
+            "Regexes will be re-compiled from source at runtime, which will cause degraded performance.~n"
+            "This can be fixed by using Erlang OTP 28.1+ or 27-.~n"
+          , []);
+        false ->
+          ok
+      end,
       Num;
     _ ->
       io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 26+~n", []),
