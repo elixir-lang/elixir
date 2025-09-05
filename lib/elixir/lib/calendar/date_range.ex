@@ -95,7 +95,7 @@ defmodule Date.Range do
       [date_from_iso_days(current, calendar)]
     end
 
-    defp slice(current, step, remaining, calendar) do
+    defp slice(current, step, remaining, calendar) when remaining > 1 do
       [
         date_from_iso_days(current, calendar)
         | slice(current + step, step, remaining - 1, calendar)

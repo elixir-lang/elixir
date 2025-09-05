@@ -3674,9 +3674,14 @@ defmodule Enum do
   end
 
   def take(enumerable, amount) when is_integer(amount) and amount < 0 do
-    {count, fun} = slice_count_and_fun(enumerable, 1)
-    first = Kernel.max(amount + count, 0)
-    fun.(first, count - first, 1)
+    case slice_count_and_fun(enumerable, 1) do
+      {0, _fun} ->
+        []
+
+      {count, fun} ->
+        first = Kernel.max(amount + count, 0)
+        fun.(first, count - first, 1)
+    end
   end
 
   @doc """
@@ -5181,6 +5186,9 @@ defimpl Enumerable, for: Range do
     slice(Map.put(range, :step, step))
   end
 
-  defp slice(_current, _step, 0), do: []
-  defp slice(current, step, remaining), do: [current | slice(current + step, step, remaining - 1)]
+  defp slice(current, _step, 1), do: [current]
+
+  defp slice(current, step, remaining) when remaining > 1 do
+    [current | slice(current + step, step, remaining - 1)]
+  end
 end
