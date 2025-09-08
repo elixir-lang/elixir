@@ -891,7 +891,7 @@ defmodule Access do
   end
 
   defp filter(:get, data, func, next) when is_list(data) do
-    data |> Enum.filter(func) |> Enum.map(next)
+    for elem <- data, func.(elem), do: next.(elem)
   end
 
   defp filter(:get_and_update, data, func, next) when is_list(data) do
