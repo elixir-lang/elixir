@@ -673,7 +673,7 @@ defmodule Mix.Tasks.Test do
     warn_files != [] && warn_misnamed_test_files(warn_files)
 
     try do
-      Enum.each(test_paths, &require_test_helper(shell, &1))
+      Enum.each(test_paths, &require_test_helper(shell, &1, warnings_as_errors?))
       # test_opts always wins because those are given via args
       ExUnit.configure(ex_unit_opts |> merge_helper_opts() |> Keyword.merge(test_opts))
       CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
@@ -1028,11 +1028,20 @@ defmodule Mix.Tasks.Test do
     Keyword.put_new(opts, :exit_status, 2)
   end
 
-  defp require_test_helper(shell, dir) do
+  defp require_test_helper(shell, dir, warnings_as_errors?) do
     file = Path.join(dir, "test_helper.exs")
 
     if File.exists?(file) do
-      Code.require_file(file)
+      {result, warnings} = Code.with_diagnostics([log: true], fn -> Code.require_file(file) end)
+
+      if warnings != [] and warnings_as_errors? do
+        raise_with_shell(
+          shell,
+          "Failed due to warnings in #{inspect(file)} (warnings have been logged above)"
+        )
+      end
+
+      result
     else
       raise_with_shell(
         shell,
