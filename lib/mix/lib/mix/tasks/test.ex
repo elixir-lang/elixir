@@ -666,10 +666,12 @@ defmodule Mix.Tasks.Test do
     warn_files != [] && warn_misnamed_test_files(warn_files)
 
     try do
-      Enum.each(test_paths, &require_test_helper(shell, &1))
+      helper_warned? = Enum.any?(test_paths, &require_test_helper(shell, &1))
       # test_opts always wins because those are given via args
       ExUnit.configure(ex_unit_opts |> merge_helper_opts() |> Keyword.merge(test_opts))
-      CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
+
+      {CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts),
+       helper_warned?}
     catch
       kind, reason ->
         # Also mark the whole suite as failed
@@ -677,12 +679,13 @@ defmodule Mix.Tasks.Test do
         ExUnit.Filters.fail_all!(file)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      {:ok, %{excluded: excluded, failures: failures, warnings?: warnings?, total: total}} ->
+      {{:ok, %{excluded: excluded, failures: failures, warnings?: warnings?, total: total}},
+       helper_warned?} ->
         Mix.shell(shell)
         cover && cover.()
 
         cond do
-          warnings_as_errors? and warnings? and failures == 0 ->
+          warnings_as_errors? and (warnings? or helper_warned?) and failures == 0 ->
             message =
               "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
 
@@ -715,7 +718,7 @@ defmodule Mix.Tasks.Test do
             :ok
         end
 
-      :noop ->
+      {:noop, _} ->
         cond do
           opts[:stale] ->
             Mix.shell().info("No stale tests")
@@ -1024,7 +1027,8 @@ defmodule Mix.Tasks.Test do
     file = Path.join(dir, "test_helper.exs")
 
     if File.exists?(file) do
-      Code.require_file(file)
+      {_result, warnings} = Code.with_diagnostics([log: true], fn -> Code.require_file(file) end)
+      warnings != []
     else
       raise_with_shell(
         shell,
