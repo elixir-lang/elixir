@@ -190,15 +190,14 @@ defmodule LoggerTest do
     assert Logger.metadata() == [data: true]
     assert Logger.metadata(data: true) == :ok
     assert Logger.metadata() == [data: true]
-    assert Logger.metadata(meta: 1) == :ok
-    metadata = Logger.metadata()
-    assert Enum.sort(metadata) == [data: true, meta: 1]
-    assert Logger.metadata(data: nil) == :ok
+    assert Logger.metadata(%{meta: 1}) == :ok
+    assert Enum.sort(Logger.metadata()) == [data: true, meta: 1]
+    assert Logger.metadata(%{data: nil}) == :ok
     assert Logger.metadata() == [meta: 1]
 
     assert Logger.reset_metadata(meta: 2) == :ok
     assert Logger.metadata() == [meta: 2]
-    assert Logger.reset_metadata(data: true, app: nil) == :ok
+    assert Logger.reset_metadata(%{data: true, app: nil}) == :ok
     assert Logger.metadata() == [data: true]
     assert Logger.reset_metadata() == :ok
     assert Logger.metadata() == []

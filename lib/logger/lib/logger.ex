@@ -586,24 +586,24 @@ defmodule Logger do
   end
 
   @doc """
-  Alters the current process metadata according to the given keyword list.
+  Alters the current process metadata according to the given enumerable.
 
-  This function will merge the given keyword list into the existing metadata,
+  This function will merge the given enumerable into the existing metadata,
   with the exception of setting a key to `nil`, which will remove that key
   from the metadata.
 
   Note some metadata keys are reserved and cannot be overridden. See
   [the module documentation](#module-metadata) for more information.
   """
-  @spec metadata(metadata) :: :ok
-  def metadata(keyword) do
+  @spec metadata(Enumerable.t({atom(), term()})) :: :ok
+  def metadata(enumerable) do
     case :logger.get_process_metadata() do
       :undefined ->
-        reset_metadata(keyword)
+        reset_metadata(enumerable)
 
       map when is_map(map) ->
         metadata =
-          Enum.reduce(keyword, map, fn
+          Enum.reduce(enumerable, map, fn
             {k, nil}, acc -> Map.delete(acc, k)
             {k, v}, acc -> Map.put(acc, k, v)
           end)
@@ -627,11 +627,11 @@ defmodule Logger do
   end
 
   @doc """
-  Resets the current process metadata to the given keyword list.
+  Resets the current process metadata to the given enumerable.
   """
-  @spec reset_metadata(metadata) :: :ok
-  def reset_metadata(keyword \\ []) do
-    :ok = :logger.set_process_metadata(filter_out_nils(keyword))
+  @spec reset_metadata(Enumerable.t({atom(), term()})) :: :ok
+  def reset_metadata(enumerable \\ []) do
+    :ok = :logger.set_process_metadata(filter_out_nils(enumerable))
   end
 
   defp filter_out_nils(keyword) do
