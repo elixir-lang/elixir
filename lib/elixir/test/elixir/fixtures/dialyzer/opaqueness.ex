@@ -4,9 +4,14 @@ defmodule Dialyzer.Opaqueness do
     set
   end
 
-  def foo() do
+  def inlined do
     # inlining of literals should not violate opaqueness check
     bar(MapSet.new([1, 2, 3]))
+  end
+
+  @my_set MapSet.new([1, 2, 3])
+  def module_attr do
+    bar(@my_set)
   end
 
   # Task.Supervisor returns a Task.t() containing an opaque Task.ref()

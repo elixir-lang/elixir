@@ -3864,6 +3864,11 @@ defmodule Kernel do
         raise ArgumentError,
               "cannot inject attribute @#{name} into function/macro because " <>
                 Exception.message(ex)
+    else
+      # mark module attrs as shallow-generated since the ast for their representation
+      # might contain opaque terms
+      {caller, meta, args} when is_list(meta) -> {caller, [generated: true] ++ meta, args}
+      ast -> ast
     end
   end
 
