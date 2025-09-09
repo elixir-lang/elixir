@@ -808,6 +808,10 @@ defmodule Macro do
       nodes. Note this option changes the semantics of escaped code and
       it should only be used when escaping ASTs. Defaults to `false`.
 
+    * `:generated` - (since v1.19.0) Whether the AST should be considered as generated
+      by the compiler or not. This means the compiler and tools like Dialyzer may not
+      emit certain warnings.
+
       As an example for `:prune_metadata`, `ExUnit` stores the AST of every
       assertion, so when an assertion fails we can show code snippets to users.
       Without this option, each time the test module is compiled, we would get a
@@ -908,7 +912,17 @@ defmodule Macro do
   def escape(expr, opts \\ []) do
     unquote = Keyword.get(opts, :unquote, false)
     kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :none
-    :elixir_quote.escape(expr, kind, unquote)
+    generated = Keyword.get(opts, :generated, false)
+
+    case :elixir_quote.escape(expr, kind, unquote) do
+      # mark module attrs as shallow-generated since the ast for their representation
+      # might contain opaque terms
+      {caller, meta, args} when generated and is_list(meta) ->
+        {caller, [generated: true] ++ meta, args}
+
+      ast ->
+        ast
+    end
   end
 
   # TODO: Deprecate me on Elixir v1.22
