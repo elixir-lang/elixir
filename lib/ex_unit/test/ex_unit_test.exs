@@ -1234,6 +1234,14 @@ defmodule ExUnitTest do
     end
   end
 
+  test "sets process label for each test" do
+    # TODO: Remove check once we support Erlang/OTP 27+
+    if function_exported?(:proc_lib, :get_label, 1) do
+      label = apply(:proc_lib, :get_label, [self()])
+      assert label == {ExUnitTest, :"test sets process label for each test"}
+    end
+  end
+
   defp configure_and_reload_on_exit(opts) do
     old_opts = ExUnit.configuration()
 
