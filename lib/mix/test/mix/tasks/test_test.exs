@@ -593,6 +593,25 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ "2 failures"
       end)
     end
+
+    test "fail with exit status 1 if warning in test_helper.exs" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/test_helper.exs", """
+        unused_var = 123
+
+        ExUnit.start()
+        """)
+
+        msg =
+          "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+        {output, exit_status} = mix_code(["test", "--warnings-as-errors"])
+
+        assert output =~ "variable \"unused_var\" is unused"
+        assert output =~ msg
+        assert exit_status == 1
+      end)
+    end
   end
 
   describe "--exit-status" do
