@@ -134,8 +134,8 @@ defmodule Kernel.StringTokenizerTest do
 
     test "allows legitimate script mixing" do
       # Mixed script with supersets, numbers, and underscores
-      assert Code.eval_string("幻ㄒㄧㄤ = 1") == {1, [幻ㄒㄧㄤ: 1]}
-      assert Code.eval_string("幻ㄒㄧㄤ1 = 1") == {1, [幻ㄒㄧㄤ1: 1]}
+      assert Code.eval_string("幻한 = 1") == {1, [幻한: 1]}
+      assert Code.eval_string("幻한1 = 1") == {1, [幻한1: 1]}
       assert Code.eval_string("__सवव_1? = 1") == {1, [__सवव_1?: 1]}
 
       # Elixir's normalizations combine scriptsets of the 'from' and 'to' characters,

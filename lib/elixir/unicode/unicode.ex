@@ -154,7 +154,7 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
 
 defmodule String.Unicode do
   @moduledoc false
-  def version, do: {16, 0, 0}
+  def version, do: {17, 0, 0}
 
   [unconditional_mappings, _conditional_mappings] =
     Path.join(__DIR__, "SpecialCasing.txt")
