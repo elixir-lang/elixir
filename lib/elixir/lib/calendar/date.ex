@@ -174,6 +174,72 @@ defmodule Date do
   end
 
   @doc """
+  Returns the current date in the provided time zone.
+
+  By default, it uses the default time zone database returned by
+  `Calendar.get_time_zone_database/0`, which defaults to
+  `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
+  Other time zone databases can be passed as an argument or set globally.
+  See the "Time zone database" section in the `DateTime` module docs.
+
+  ## Examples
+
+      iex> {:ok, date} = Date.today("Etc/UTC")
+      iex> date.year >= 2024
+      true
+
+      iex> Date.today("Europe/Copenhagen")
+      {:error, :utc_only_time_zone_database}
+
+      iex> Date.today("bad timezone", FakeTimeZoneDatabase)
+      {:error, :time_zone_not_found}
+
+  """
+  @doc since: "1.19.1"
+  @spec today(Calendar.time_zone(), Calendar.time_zone_database()) ::
+          {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
+  def today(time_zone, time_zone_database \\ Calendar.get_time_zone_database())
+
+  def today("Etc/UTC", _) do
+    {:ok, utc_today()}
+  end
+
+  def today(time_zone, time_zone_database) do
+    with {:ok, datetime} <- DateTime.now(time_zone, time_zone_database) do
+      %{year: year, month: month, day: day, calendar: calendar} = datetime
+      {:ok, %Date{year: year, month: month, day: day, calendar: calendar}}
+    end
+  end
+
+  @doc """
+  Returns the current date in the provided time zone or raises on errors.
+
+  See `today/2` for more information.
+
+  ## Examples
+
+      iex> Date.today!("Europe/Copenhagen")
+      ** (ArgumentError) cannot get current date in "Europe/Copenhagen" time zone, reason: :utc_only_time_zone_database
+
+      iex> Date.today!("bad timezone", FakeTimeZoneDatabase)
+      ** (ArgumentError) cannot get current date in "bad timezone" time zone, reason: :time_zone_not_found
+
+  """
+  @doc since: "1.19.1"
+  @spec today!(Calendar.time_zone(), Calendar.time_zone_database()) :: t
+  def today!(time_zone, time_zone_database \\ Calendar.get_time_zone_database()) do
+    case today(time_zone, time_zone_database) do
+      {:ok, date} ->
+        date
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot get current date in #{inspect(time_zone)} time zone, reason: " <>
+                inspect(reason)
+    end
+  end
+
+  @doc """
   Returns the current date in UTC.
 
   ## Examples

@@ -814,10 +814,10 @@ defmodule DateTime do
   @doc """
   Returns the current datetime in the provided time zone.
 
-  By default, it uses the default time_zone returned by
+  By default, it uses the default time zone database returned by
   `Calendar.get_time_zone_database/0`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
-  Other time zone databases can be passed as argument or set globally.
+  Other time zone databases can be passed as an argument or set globally.
   See the "Time zone database" section in the module docs.
 
   ## Examples
@@ -847,7 +847,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Returns the current datetime in the provided time zone or raises on errors
+  Returns the current datetime in the provided time zone or raises on errors.
 
   See `now/2` for more information.
 
