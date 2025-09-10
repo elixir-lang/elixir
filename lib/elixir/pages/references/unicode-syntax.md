@@ -48,7 +48,7 @@ For the technical details, see the next sections that cover the technical Unicod
 
 ## Unicode Annex #31
 
-Elixir implements the requirements outlined in the [Unicode Annex #31](https://unicode.org/reports/tr31/), version 15.0.
+Elixir implements the requirements outlined in the [Unicode Annex #31](https://unicode.org/reports/tr31/), version 17.0.
 
 ### R1. Default Identifiers
 
@@ -112,23 +112,21 @@ Choosing requirement R4 automatically excludes requirements R5, R6, and R7.
 
 ## Unicode Technical Standard #39
 
-Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security, version 15.0.
+Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security, version 17.0.
 
 ### C1. General Security Profile for Identifiers
 
-Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`.
+Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`, except for the outlined 'Additional normalizations' section below.
 
 > An implementation following the General Security Profile does not permit any characters in \p{Identifier_Status=Restricted}, ...
 
-For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger this warning.
-
-See the note below about additional normalizations, which can perform automatic replacement of some Restricted identifiers.
+For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger a warning.
 
 ### C2. Confusable detection
 
 Elixir will warn on identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn about identifiers within a single file that could be confused with each other.
 
-We use the means described in Section 4, 'Confusable Detection', with one noted modification
+We use the means described in Section 4, 'Confusable Detection', with one noted modification:
 
 > Alternatively, it shall declare that it uses a modification, and provide a precise list of character mappings that are added to or removed from the provided ones.
 
@@ -136,9 +134,9 @@ Elixir will not warn on confusability for identifiers made up exclusively of cha
 
 ### C3. Mixed Script Detection
 
-Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the modification documented in the section 'Additional Normalizations', below.
+Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the 'Additional Normalizations' documented in.
 
-Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. When mixing Latin and Japanese scripts, underscores are necessary, as in `:T_シャツ` (the Japanese word for 't-shirt' with an additional underscore separating the letter T).
+Examples: Elixir allows an identifiers like `幻한`, even though it includes characters from multiple 'scripts', as Han characters may be mixed with Japanese and Korean, according to the rules from UTS 39 5.1. When mixing Latin and Japanese scripts, underscores are necessary, as in `:T_シャツ` (the Japanese word for 't-shirt' with an additional underscore separating the letter T).
 
 Elixir does not allow code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve and a descriptive error is shown.
 
@@ -148,16 +146,14 @@ Elixir does not allow code like `if аdmin, do: :ok, else: :err`, where the scri
 
 'C5 - Mixed number detection' conformance is inapplicable as Elixir does not support Unicode numbers.
 
-### Addition normalizations and documented UTS 39 modifications
+### Addition Normalizations
 
 As of Elixir 1.14, some codepoints in `\p{Identifier_Status=Restricted}` are *normalized* to other, unrestricted codepoints.
 
-Initially this is only done to translate MICRO SIGN `µ` to Greek lowercase mu, `μ`.
+This is currently only applied to translate MICRO SIGN (`µ`) to Greek lowercase mu (`μ`).
 
-This is not a modification of UTS39 clauses C1 (General Security Profile) or C2 (Confusability Detection); however, it is a documented modification of C3, 'Mixed-Script detection'.
+The normalization avoids confusability and the mixed-script detection is modified to the extent that the normalized codepoint is given the union of scriptsets from both characters.
 
-Mixed-script detection is modified by these normalizations to the extent that the normalized codepoint is given the union of scriptsets from both characters.
-
-  * For instance, in the example of MICRO => MU, Micro was a 'Common'-script character -- the same script given to the '_' underscore codepoint -- and thus the normalized character's scriptset will be {Greek, Common}. 'Common' intersects with all non-empty scriptsets, and thus the normalized character can be used in tokens written in any script without causing script mixing.
+  * For instance, in the example of MICRO => MU, MICRO was a 'Common'-script character - the same script given to the '_' underscore codepoint - and thus the normalized character's scriptset will be {Greek, Common}. 'Common' intersects with all non-empty scriptsets, and thus the normalized character can be used in tokens written in any script without causing script mixing.
 
   * The code points normalized in this fashion are those that are in use in the community, and judged not likely to cause issues with unsafe script mixing. For instance, the MICRO or MU codepoint may be used in an atom or variable dealing with microseconds.

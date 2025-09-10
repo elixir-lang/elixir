@@ -1,6 +1,6 @@
-# PropertyValueAliases-16.0.0.txt
-# Date: 2024-07-30, 19:59:00 GMT
-# © 2024 Unicode®, Inc.
+# PropertyValueAliases-17.0.0.txt
+# Date: 2025-06-30, 06:16:21 GMT
+# © 2025 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
@@ -93,6 +93,7 @@ age; 14.0                             ; V14_0
 age; 15.0                             ; V15_0
 age; 15.1                             ; V15_1
 age; 16.0                             ; V16_0
+age; 17.0                             ; V17_0
 age; NA                               ; Unassigned
 
 # Alphabetic (Alpha)
@@ -179,6 +180,7 @@ blk; Bamum_Sup                        ; Bamum_Supplement
 blk; Bassa_Vah                        ; Bassa_Vah
 blk; Batak                            ; Batak
 blk; Bengali                          ; Bengali
+blk; Beria_Erfe                       ; Beria_Erfe
 blk; Bhaiksuki                        ; Bhaiksuki
 blk; Block_Elements                   ; Block_Elements
 blk; Bopomofo                         ; Bopomofo
@@ -211,6 +213,7 @@ blk; CJK_Ext_F                        ; CJK_Unified_Ideographs_Extension_F
 blk; CJK_Ext_G                        ; CJK_Unified_Ideographs_Extension_G
 blk; CJK_Ext_H                        ; CJK_Unified_Ideographs_Extension_H
 blk; CJK_Ext_I                        ; CJK_Unified_Ideographs_Extension_I
+blk; CJK_Ext_J                        ; CJK_Unified_Ideographs_Extension_J
 blk; CJK_Radicals_Sup                 ; CJK_Radicals_Supplement
 blk; CJK_Strokes                      ; CJK_Strokes
 blk; CJK_Symbols                      ; CJK_Symbols_And_Punctuation
@@ -360,6 +363,7 @@ blk; Misc_Math_Symbols_A              ; Miscellaneous_Mathematical_Symbols_A
 blk; Misc_Math_Symbols_B              ; Miscellaneous_Mathematical_Symbols_B
 blk; Misc_Pictographs                 ; Miscellaneous_Symbols_And_Pictographs
 blk; Misc_Symbols                     ; Miscellaneous_Symbols
+blk; Misc_Symbols_Sup                 ; Miscellaneous_Symbols_Supplement
 blk; Misc_Technical                   ; Miscellaneous_Technical
 blk; Modi                             ; Modi
 blk; Modifier_Letters                 ; Spacing_Modifier_Letters
@@ -419,9 +423,11 @@ blk; Runic                            ; Runic
 blk; Samaritan                        ; Samaritan
 blk; Saurashtra                       ; Saurashtra
 blk; Sharada                          ; Sharada
+blk; Sharada_Sup                      ; Sharada_Supplement
 blk; Shavian                          ; Shavian
 blk; Shorthand_Format_Controls        ; Shorthand_Format_Controls
 blk; Siddham                          ; Siddham
+blk; Sidetic                          ; Sidetic
 blk; Sinhala                          ; Sinhala
 blk; Sinhala_Archaic_Numbers          ; Sinhala_Archaic_Numbers
 blk; Small_Forms                      ; Small_Form_Variants
@@ -456,12 +462,14 @@ blk; Tai_Le                           ; Tai_Le
 blk; Tai_Tham                         ; Tai_Tham
 blk; Tai_Viet                         ; Tai_Viet
 blk; Tai_Xuan_Jing                    ; Tai_Xuan_Jing_Symbols
+blk; Tai_Yo                           ; Tai_Yo
 blk; Takri                            ; Takri
 blk; Tamil                            ; Tamil
 blk; Tamil_Sup                        ; Tamil_Supplement
 blk; Tangsa                           ; Tangsa
 blk; Tangut                           ; Tangut
 blk; Tangut_Components                ; Tangut_Components
+blk; Tangut_Components_Sup            ; Tangut_Components_Supplement
 blk; Tangut_Sup                       ; Tangut_Supplement
 blk; Telugu                           ; Telugu
 blk; Thaana                           ; Thaana
@@ -470,6 +478,7 @@ blk; Tibetan                          ; Tibetan
 blk; Tifinagh                         ; Tifinagh
 blk; Tirhuta                          ; Tirhuta
 blk; Todhri                           ; Todhri
+blk; Tolong_Siki                      ; Tolong_Siki
 blk; Toto                             ; Toto
 blk; Transport_And_Map                ; Transport_And_Map_Symbols
 blk; Tulu_Tigalari                    ; Tulu_Tigalari
@@ -878,7 +887,7 @@ InPC; Bottom_And_Left                 ; Bottom_And_Left
 InPC; Bottom_And_Right                ; Bottom_And_Right
 InPC; Left                            ; Left
 InPC; Left_And_Right                  ; Left_And_Right
-InPC; NA                              ; NA
+InPC; NA                              ; Not_Applicable
 InPC; Overstruck                      ; Overstruck
 InPC; Right                           ; Right
 InPC; Top                             ; Top
@@ -1088,6 +1097,7 @@ jg ; Taw                              ; Taw
 jg ; Teh_Marbuta                      ; Teh_Marbuta
 jg ; Teh_Marbuta_Goal                 ; Teh_Marbuta_Goal                 ; Hamza_On_Heh_Goal
 jg ; Teth                             ; Teth
+jg ; Thin_Noon                        ; Thin_Noon
 jg ; Thin_Yeh                         ; Thin_Yeh
 jg ; Vertical_Tail                    ; Vertical_Tail
 jg ; Waw                              ; Waw
@@ -1131,6 +1141,7 @@ lb ; EX                               ; Exclamation
 lb ; GL                               ; Glue
 lb ; H2                               ; H2
 lb ; H3                               ; H3
+lb ; HH                               ; Unambiguous_Hyphen
 lb ; HL                               ; Hebrew_Letter
 lb ; HY                               ; Hyphen
 lb ; ID                               ; Ideographic
@@ -1319,6 +1330,7 @@ sc ; Bamu                             ; Bamum
 sc ; Bass                             ; Bassa_Vah
 sc ; Batk                             ; Batak
 sc ; Beng                             ; Bengali
+sc ; Berf                             ; Beria_Erfe
 sc ; Bhks                             ; Bhaiksuki
 sc ; Bopo                             ; Bopomofo
 sc ; Brah                             ; Brahmi
@@ -1438,6 +1450,7 @@ sc ; Sgnw                             ; SignWriting
 sc ; Shaw                             ; Shavian
 sc ; Shrd                             ; Sharada
 sc ; Sidd                             ; Siddham
+sc ; Sidt                             ; Sidetic
 sc ; Sind                             ; Khudawadi
 sc ; Sinh                             ; Sinhala
 sc ; Sogd                             ; Sogdian
@@ -1455,6 +1468,7 @@ sc ; Talu                             ; New_Tai_Lue
 sc ; Taml                             ; Tamil
 sc ; Tang                             ; Tangut
 sc ; Tavt                             ; Tai_Viet
+sc ; Tayo                             ; Tai_Yo
 sc ; Telu                             ; Telugu
 sc ; Tfng                             ; Tifinagh
 sc ; Tglg                             ; Tagalog
@@ -1464,6 +1478,7 @@ sc ; Tibt                             ; Tibetan
 sc ; Tirh                             ; Tirhuta
 sc ; Tnsa                             ; Tangsa
 sc ; Todr                             ; Todhri
+sc ; Tols                             ; Tolong_Siki
 sc ; Toto                             ; Toto
 sc ; Tutg                             ; Tulu_Tigalari
 sc ; Ugar                             ; Ugaritic
@@ -1704,5 +1719,17 @@ kEH_NoMirror; Y                       ; Yes                              ; T    
 
 kEH_NoRotate; N                       ; No                               ; F                                ; False
 kEH_NoRotate; Y                       ; Yes                              ; T                                ; True
+
+# kMandarin (cjkMandarin)
+
+# @missing: 0000..10FFFF; kMandarin; <none>
+
+# kTotalStrokes (cjkTotalStrokes)
+
+# @missing: 0000..10FFFF; kTotalStrokes; <none>
+
+# kUnihanCore2020 (cjkUnihanCore2020)
+
+# @missing: 0000..10FFFF; kUnihanCore2020; <none>
 
 # EOF
