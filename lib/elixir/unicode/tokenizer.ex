@@ -217,7 +217,11 @@ defmodule String.Tokenizer do
     end)
     |> Map.new()
 
-  # Some scriptsets must be augmented according to the rules below
+  # Some scriptsets must be augmented according to the rules below,
+  # see https://www.unicode.org/reports/tr39/
+  #
+  # Note, however, Bopo(mofo) characters are not actually tokenized,
+  # as it is not in the list of recommended scriptsets.
   augmentation_rules = %{
     "Han" => ["Han with Bopomofo", "Japanese", "Korean"],
     "Hiragana" => ["Japanese"],
