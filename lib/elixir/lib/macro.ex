@@ -199,7 +199,8 @@ defmodule Macro do
 
   @type escape_opts :: [
           unquote: boolean(),
-          prune_metadata: boolean()
+          prune_metadata: boolean(),
+          generated: boolean()
         ]
 
   @type inspect_atom_opts :: [
