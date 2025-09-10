@@ -251,71 +251,55 @@ GenServer.cast(pid, {:report_ip_address, conn.remote_ip})
 
 #### Problem
 
-In Elixir, creating a process outside a supervision tree is not an anti-pattern in itself. However, when you spawn many long-running processes outside of supervision trees, this can make visibility and monitoring of these processes difficult, preventing developers from fully controlling their applications.
+In Elixir, creating a process outside a supervision tree is not an anti-pattern in itself. However, when you spawn many long-running processes outside of supervision trees, this can make visibility and monitoring of these processes difficult, preventing developers from fully controlling their lifecycle.
 
 #### Example
 
-The following code example seeks to illustrate a library responsible for maintaining a numerical `Counter` through a `GenServer` process *outside a supervision tree*. Multiple counters can be created simultaneously by a client (one process for each counter), making these *unsupervised* processes difficult to manage. This can cause problems with the initialization, restart, and shutdown of a system.
+The following code example seeks to illustrate a library responsible for maintaining a numerical `Counter` through a `Agent` process *outside a supervision tree*.
 
 ```elixir
 defmodule Counter do
   @moduledoc """
-  Global counter implemented through a GenServer process.
+  Global counter implemented as an Agent.
   """
 
-  use GenServer
+  use Agent
 
   @doc "Starts a counter process."
   def start_link(opts \\ []) do
-    initial_value = Keyword.get(opts, :initial_value, 0)
+    initial_state = Keyword.get(opts, :initial_value, 0)
     name = Keyword.get(opts, :name, __MODULE__)
-    GenServer.start(__MODULE__, initial_value, name: name)
+    Agent.start_link(fn -> initial_state end, name: name)
   end
 
   @doc "Gets the current value of the given counter."
-  def get(pid_name \\ __MODULE__) do
-    GenServer.call(pid_name, :get)
+  def get(name \\ __MODULE__) do
+    Agent.get(name, fn state -> state end)
   end
 
   @doc "Bumps the value of the given counter."
-  def bump(pid_name \\ __MODULE__, value) do
-    GenServer.call(pid_name, {:bump, value})
-  end
-
-  @impl true
-  def init(counter) do
-    {:ok, counter}
-  end
-
-  @impl true
-  def handle_call(:get, _from, counter) do
-    {:reply, counter, counter}
-  end
-
-  def handle_call({:bump, value}, _from, counter) do
-    {:reply, counter, counter + value}
+  def bump(name \\ __MODULE__, value) do
+    Agent.get_and_update(fn state -> {state, value + state} end)
   end
 end
 ```
 
+While it is possible to start the process outside of a supervision tree:
+
 ```elixir
 iex> Counter.start_link()
 {:ok, #PID<0.115.0>}
-iex> Counter.get()
+iex> Counter.bump(13)
 0
-iex> Counter.start_link(initial_value: 15, name: :other_counter)
-{:ok, #PID<0.120.0>}
-iex> Counter.get(:other_counter)
-15
-iex> Counter.bump(:other_counter, -3)
-12
-iex> Counter.bump(Counter, 7)
-7
+iex> Counter.get()
+13
 ```
+
+Such processes are harder to observe and control their lifecycle. For example, if you have other processes that depend on the `Counter` above, you will need ad-hoc mechanisms to make sure they are initialized in order. Furthermore, when your application is shutting down, there is no guarantee when they are terminated.
 
 #### Refactoring
 
-To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. One is initialized with `0`, the other with `15`. By means of this supervision tree, it is possible to manage the life cycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
+To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree.
 
 ```elixir
 defmodule SupervisedProcess.Application do
@@ -338,21 +322,8 @@ defmodule SupervisedProcess.Application do
 end
 ```
 
-```elixir
-iex> Supervisor.count_children(App.Supervisor)
-%{active: 2, specs: 2, supervisors: 0, workers: 2}
-iex> Counter.get(Counter)
-0
-iex> Counter.get(:other_counter)
-15
-iex> Counter.bump(Counter, 7)
-7
-iex> Supervisor.terminate_child(App.Supervisor, Counter)
-iex> Supervisor.count_children(App.Supervisor) # Only one active child
-%{active: 1, specs: 2, supervisors: 0, workers: 2}
-iex> Counter.get(Counter) # The process was terminated
-** (EXIT) no process: the process is not alive...
-iex> Supervisor.restart_child(App.Supervisor, Counter)
-iex> Counter.get(Counter) # After the restart, this process can be used again
-0
-```
+Besides having a deterministic order in which processes are started, supervision trees also guarantee they are terminated in reverse order, allowing you to perform any necessary clean up during shut down. Furthermore, supervision strategies allows us to configure exactly how process should act in case of unexpected failures.
+
+Finally, applications and supervision trees can be introspected through applications like the [Phoenix.LiveDashboard](http://github.com/phoenixframework/phoenix_live_dashboard) and [Erlang's built-in observer](https://www.erlang.org/doc/apps/observer/observer_ug):
+
+<img src="assets/kv-observer.png" alt="Observer GUI screenshot" />
