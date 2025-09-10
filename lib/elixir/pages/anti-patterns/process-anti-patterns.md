@@ -308,8 +308,12 @@ iex> Counter.start_link(initial_value: 15, name: :other_counter)
 iex> Counter.get(:other_counter)
 15
 iex> Counter.bump(:other_counter, -3)
-12
+15
 iex> Counter.bump(Counter, 7)
+0
+iex> Counter.get(:other_counter)
+12
+iex> Counter.get()
 7
 ```
 
@@ -346,6 +350,8 @@ iex> Counter.get(Counter)
 iex> Counter.get(:other_counter)
 15
 iex> Counter.bump(Counter, 7)
+0
+iex> Counter.get(Counter)
 7
 iex> Supervisor.terminate_child(App.Supervisor, Counter)
 iex> Supervisor.count_children(App.Supervisor) # Only one active child
