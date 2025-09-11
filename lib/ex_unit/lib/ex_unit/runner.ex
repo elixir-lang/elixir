@@ -440,7 +440,7 @@ defmodule ExUnit.Runner do
          context
        ) do
     spawn_monitor(fn ->
-      Process.set_label({test.case, test.name})
+      Process.set_label({:ex_unit, test.case, test.name})
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test, rand_algorithm)
       context = context |> Map.merge(test.tags) |> Map.put(:test_pid, self())
