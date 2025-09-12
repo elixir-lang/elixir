@@ -6618,11 +6618,13 @@ defmodule Kernel do
   defmacro sigil_r(term, modifiers)
 
   defmacro sigil_r({:<<>>, _meta, [binary]}, options) when is_binary(binary) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "the ~r sigil")
     binary = :elixir_interpolation.unescape_string(binary, &regex_unescape_map/1)
     compile_regex(binary, options)
   end
 
   defmacro sigil_r({:<<>>, meta, pieces}, options) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "the ~r sigil")
     tuple = {:<<>>, meta, unescape_tokens(pieces, &regex_unescape_map/1)}
     compile_regex(tuple, options)
   end
