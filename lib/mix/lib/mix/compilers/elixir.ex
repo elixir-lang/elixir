@@ -6,7 +6,7 @@ defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
   @manifest_vsn 28
-  @checkpoint_vsn 2
+  @checkpoint_vsn 3
 
   import Record
 
@@ -152,7 +152,8 @@ defmodule Mix.Compilers.Elixir do
           removed,
           Map.merge(stale_modules, removed_modules),
           Map.merge(stale_exports, removed_modules),
-          dest
+          dest,
+          timestamp
         )
       end
 
@@ -320,8 +321,11 @@ defmodule Mix.Compilers.Elixir do
     {%{}, %{}, all_paths, sources_stats}
   end
 
-  # If any .beam file is missing, the first one will the first to miss,
-  # so we always check that. If there are no modules, then we can rely
+  # If the user does a change, compilation fails, and then they revert
+  # the change, the mtime will have changed but the .beam files will
+  # be missing and the digest is the same, so we need to check if .beam
+  # files are available. Checking the first .beam file is enough, as
+  # they would be all removed. If there are no modules, then we can rely
   # purely on digests.
   defp missing_beam_file?(dest, [mod | _]), do: not File.exists?(beam_path(dest, mod))
   defp missing_beam_file?(_dest, []), do: false
@@ -334,55 +338,43 @@ defmodule Mix.Compilers.Elixir do
          removed,
          stale_modules,
          stale_exports,
-         dest
+         dest,
+         timestamp
        ) do
-    {modules_to_recompile, modules_to_mix_check} =
-      for {module, module(recompile?: recompile?)} <- all_modules, reduce: {[], []} do
-        {modules_to_recompile, modules_to_mix_check} ->
-          cond do
-            Map.has_key?(stale_modules, module) ->
-              {[module | modules_to_recompile], modules_to_mix_check}
-
-            recompile? ->
-              {modules_to_recompile, [module | modules_to_mix_check]}
-
-            true ->
-              {modules_to_recompile, modules_to_mix_check}
-          end
-      end
-
-    _ = Code.ensure_all_loaded(modules_to_mix_check)
-
-    modules_to_recompile =
-      modules_to_recompile ++
-        for {:ok, {module, true}} <-
-              Task.async_stream(
-                modules_to_mix_check,
-                fn module ->
-                  {module,
-                   function_exported?(module, :__mix_recompile__?, 0) and
-                     module.__mix_recompile__?()}
-                end,
-                ordered: false,
-                timeout: :infinity
-              ) do
-          module
-        end
-
-    {checkpoint_stale_modules, checkpoint_stale_exports, checkpoint_modules} =
-      parse_checkpoint(manifest)
-
-    modules_to_recompile =
-      Map.merge(checkpoint_modules, Map.from_keys(modules_to_recompile, true))
-
+    {checkpoint_stale_modules, checkpoint_stale_exports} = parse_checkpoint(manifest)
     stale_modules = Map.merge(checkpoint_stale_modules, stale_modules)
     stale_exports = Map.merge(checkpoint_stale_exports, stale_exports)
 
     if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
-         map_size(stale_exports) != map_size(checkpoint_stale_exports) or
-         map_size(modules_to_recompile) != map_size(checkpoint_modules) do
-      write_checkpoint(manifest, stale_modules, stale_exports, modules_to_recompile)
+         map_size(stale_exports) != map_size(checkpoint_stale_exports) do
+      write_checkpoint(manifest, stale_modules, stale_exports)
     end
+
+    # We don't need to store those in the checkpoint because
+    # these changes come from modules and, when they are stale,
+    # we remove the .beam files and touch sources.
+    modules_to_mix_check =
+      for {module, module(recompile?: true)} <- all_modules,
+          not Map.has_key?(stale_modules, module),
+          do: module
+
+    _ = Code.ensure_all_loaded(modules_to_mix_check)
+
+    modules_to_recompile =
+      for {:ok, {module, true}} <-
+            Task.async_stream(
+              modules_to_mix_check,
+              fn module ->
+                {module,
+                 function_exported?(module, :__mix_recompile__?, 0) and
+                   module.__mix_recompile__?()}
+              end,
+              ordered: false,
+              timeout: :infinity
+            ),
+          into: %{} do
+        {module, true}
+      end
 
     sources_stats =
       for path <- new_paths,
@@ -392,20 +384,30 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      for {source,
-           source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)} <-
-            all_sources,
-          {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-          # If the user does a change, compilation fails, and then they revert
-          # the change, the mtime will have changed but the .beam files will
-          # be missing and the digest is the same, so we need to check if .beam
-          # files are available.
-          size != last_size or
-            Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
+      Enum.flat_map(all_sources, fn
+        {source,
+         source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)} ->
+          {last_mtime, last_size} = Map.fetch!(sources_stats, source)
+
+          cond do
             Enum.any?(external, &stale_external?(&1, sources_stats)) or
-            (last_mtime > mtime and
-               (missing_beam_file?(dest, modules) or digest_changed?(source, digest))),
-          do: source
+                has_any_key?(modules_to_recompile, modules) ->
+              # Mark the source as changed so the combination of a timestamp
+              # plus removed beam files (which are removed by update_stale_entries)
+              # causes it to be recompiled
+              File.touch!(source, timestamp + 1)
+              [source]
+
+            size != last_size or
+              has_any_key?(stale_modules, modules) or
+                (last_mtime > mtime and
+                   (missing_beam_file?(dest, modules) or digest_changed?(source, digest))) ->
+              [source]
+
+            true ->
+              []
+          end
+      end)
 
     changed = new_paths ++ changed
 
@@ -576,7 +578,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp has_any_key?(map, enumerable) do
-    Enum.any?(enumerable, &Map.has_key?(map, &1))
+    map != %{} and Enum.any?(enumerable, &Map.has_key?(map, &1))
   end
 
   defp stale_local_deps(local_deps, manifest, stale_modules, modified, deps_exports) do
@@ -940,25 +942,20 @@ defmodule Mix.Compilers.Elixir do
   #
   # Therefore, it is important for us to checkpoint any state that may
   # have lead to a compilation and which can now be reverted.
-
   defp parse_checkpoint(manifest) do
     try do
       (manifest <> ".checkpoint") |> File.read!() |> :erlang.binary_to_term()
     rescue
-      _ ->
-        {%{}, %{}, %{}}
+      _ -> {%{}, %{}}
     else
-      {@checkpoint_vsn, stale_modules, stale_exports, recompile_modules} ->
-        {stale_modules, stale_exports, recompile_modules}
-
-      _ ->
-        {%{}, %{}, %{}}
+      {@checkpoint_vsn, stale_modules, stale_exports} -> {stale_modules, stale_exports}
+      _ -> {%{}, %{}}
     end
   end
 
-  defp write_checkpoint(manifest, stale_modules, stale_exports, recompile_modules) do
+  defp write_checkpoint(manifest, stale_modules, stale_exports) do
     File.mkdir_p!(Path.dirname(manifest))
-    term = {@checkpoint_vsn, stale_modules, stale_exports, recompile_modules}
+    term = {@checkpoint_vsn, stale_modules, stale_exports}
     checkpoint_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest <> ".checkpoint", checkpoint_data)
   end
@@ -1117,8 +1114,10 @@ defmodule Mix.Compilers.Elixir do
     {pending_modules, exports, changed} =
       update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, compile_path)
 
-    # For each changed file, mark it as changed.
-    # If compilation fails mid-cycle, they will be picked next time around.
+    # Those files have been changed transitively, so we mark them as changed
+    # in case compilation fails mid-cycle. The combination of the outdated
+    # timestamp plus the missing BEAM files (which were removed in
+    # update_stale_entries above) will cause them to be recompiled next time.
     for file <- changed do
       File.touch!(file, timestamp)
     end
