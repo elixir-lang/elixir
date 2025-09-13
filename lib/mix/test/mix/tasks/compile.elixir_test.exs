@@ -965,6 +965,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         @external_resource "lib/a.eex"
         @external_resource #{inspect(tmp)}
         def a, do: :ok
+
+        if System.get_env("RAISE_EXTERNAL_RESOURCE") do
+          raise "oops"
+        end
       end
       """)
 
@@ -978,7 +982,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("lib/a.eex", {{2038, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
+      # Force recompilation but fail compilation
       force_recompilation("lib/a.eex")
+      System.put_env("RAISE_EXTERNAL_RESOURCE", "1")
+
+      assert capture_io(:stderr, fn ->
+               assert {:error, [_]} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+             end) =~ "oops"
+
+      # Delete failure reason, it will now compile for good
+      System.delete_env("RAISE_EXTERNAL_RESOURCE")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
