@@ -14,8 +14,11 @@ defmodule Mix.Utils do
   @doc """
   Gets the Mix home.
 
-  It uses the locations `MIX_HOME`, `XDG_DATA_HOME/mix`,
-  `~/.mix` with decreasing priority.
+  Possible locations:
+
+     * `MIX_HOME`
+     * `XDG_CONFIG_HOME/mix` (if `MIX_XDG` is set)
+     * `~/.mix`
 
   Developers should only store entries in the
   `MIX_HOME` directory which are guaranteed to
