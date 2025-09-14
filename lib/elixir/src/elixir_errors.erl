@@ -109,9 +109,11 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
 
   case get(elixir_code_diagnostics) of
     undefined ->
+      StoreDiagnostic = proplists:get_value(store_diagnostic, Options, true),
+
       case get(elixir_compiler_info) of
-        undefined -> print_diagnostic(Diagnostic, ReadSnippet);
-        {CompilerPid, _} -> CompilerPid ! {diagnostic, Diagnostic, ReadSnippet}
+        {CompilerPid, _} when StoreDiagnostic -> CompilerPid ! {diagnostic, Diagnostic, ReadSnippet};
+        _ -> print_diagnostic(Diagnostic, ReadSnippet)
       end;
 
     {Tail, true} ->

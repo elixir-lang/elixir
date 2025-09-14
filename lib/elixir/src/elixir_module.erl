@@ -375,7 +375,9 @@ check_module_availability(Module, Line, E) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          elixir_errors:file_warn([{line, Line}], E, ?MODULE, {module_defined, Module});
+          %% This diagnostic is by definition temporary
+          WarnMeta = [{store_diagnostic, false}, {line, Line}],
+          elixir_errors:file_warn(WarnMeta, E, ?MODULE, {module_defined, Module});
         {error, _}  ->
           ok
       end;

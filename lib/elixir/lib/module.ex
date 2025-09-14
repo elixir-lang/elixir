@@ -560,14 +560,19 @@ defmodule Module do
   callback is invoked under different scenarios, Elixir provides no guarantees
   of when in the compilation cycle nor in which process the callback runs.
 
+  Furthermore, after verification callbacks are not expected to raise.
+  Given they run after the code is compiled, artifacts have already been
+  written to disk, and therefore raising does not effectively halt compilation
+  and may leave unused artifacts on disk. If you must raise, use `@after_compile`
+  or other callback. Given modules have already been compiled, functions in
+  ths module, such as `get_attribute/2`, which expect modules to not have been
+  yet compiled, do not work on `@after_verify` callback.
+
   Accepts a module or a `{module, function_name}` tuple. The function
   must take one argument: the module name. When just a module is provided,
   the function is assumed to be `__after_verify__/1`.
 
   Callbacks will run in the order they are registered.
-
-  `Module` functions expecting not yet compiled modules are no longer available
-  at the time `@after_verify` is invoked.
 
   #### Example
 
