@@ -283,21 +283,7 @@ defmodule Module.ParallelChecker do
       |> emit_warnings(file, log?)
 
     Enum.each(after_verify, fn {verify_mod, verify_fun} ->
-      try do
-        apply(verify_mod, verify_fun, [module])
-      catch
-        # We need to catch exceptions because files have already been written to disk,
-        # so we need to convert verification errors into diagnostics by using IO.warn.
-        kind, reason ->
-          IO.warn(
-            "exception happened while verifying module #{inspect(module)}\n\n" <>
-              Exception.format(kind, reason, __STACKTRACE__),
-            file: file,
-            line: line,
-            module: verify_mod,
-            function: {verify_fun, 1}
-          )
-      end
+      apply(verify_mod, verify_fun, [module])
     end)
 
     diagnostics

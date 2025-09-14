@@ -1296,27 +1296,6 @@ defmodule Module.Types.IntegrationTest do
 
       assert_warnings(files, warning)
     end
-
-    test "converts errors into diagnostics" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          @after_verify __MODULE__
-
-          def __after_verify__(__MODULE__) do
-            raise "oops"
-          end
-        end
-        """
-      }
-
-      warning = [
-        "warning: exception happened while verifying module A",
-        "** (RuntimeError) oops"
-      ]
-
-      assert_warnings(files, warning)
-    end
   end
 
   describe "deprecated" do
