@@ -96,7 +96,7 @@ defmodule EEx.Compiler do
               "unexpected beginning of EEx tag \"<%#{marker}\" on \"<%#{marker}#{expr}%>\", " <>
                 "please remove \"#{marker}\""
 
-            :elixir_errors.erl_warn({line, column}, state.file, message)
+            IO.warn(message, file: state.file, line: line, column: column)
             ~c""
           else
             marker
@@ -373,7 +373,7 @@ defmodule EEx.Compiler do
       message =
         "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
 
-      :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
+      IO.warn(message, file: state.file, line: meta.line, column: meta.column)
     end
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
