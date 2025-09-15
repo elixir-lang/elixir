@@ -304,8 +304,6 @@ jobs:
     runs-on: ubuntu-22.04
     concurrency: builds-hex-pm
     environment: release
-    # Only run if HEX_AWS_REGION is set (no failing job in forks)
-    if: "${{ vars.HEX_AWS_REGION }}"
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
@@ -313,6 +311,12 @@ jobs:
       AWS_S3_BUCKET: ${{ vars.HEX_AWS_S3_BUCKET }}
       OTP_GENERIC_VERSION: "25"
     steps:
+      - name: "Check if variables are set up"
+        if: "${{ ! vars.HEX_AWS_REGION }}"
+        run: |
+          echo "Required variables for uploading to hex.pm are not set up, skipping..."
+          exit 1
+
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
