@@ -291,7 +291,7 @@ defmodule EEx do
       "foo baz"
 
   """
-  @spec eval_string(String.t(), keyword, [compile_opt]) :: String.t()
+  @spec eval_string(String.t(), keyword, [compile_opt]) :: term()
   def eval_string(source, bindings \\ [], options \\ [])
       when is_binary(source) and is_list(bindings) and is_list(options) do
     compiled = compile_string(source, options)
