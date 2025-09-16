@@ -1580,6 +1580,14 @@ defmodule Enum do
     map(enumerable, transform)
   end
 
+  def into(enumerable, collectable, transform) when is_struct(collectable, MapSet) do
+    if MapSet.size(collectable) == 0 do
+      MapSet.new(enumerable, transform)
+    else
+      MapSet.new(enumerable, transform) |> MapSet.union(collectable)
+    end
+  end
+
   def into(enumerable, %_{} = collectable, transform) do
     into_protocol(enumerable, collectable, transform)
   end

@@ -479,6 +479,9 @@ defmodule EnumTest do
     assert Enum.into([1, 2, 3], [], fn x -> x * 2 end) == [2, 4, 6]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
 
+    assert Enum.into([1, 2, 3], MapSet.new(), &(&1 * 2)) == MapSet.new([2, 4, 6])
+    assert Enum.into([1, 2, 3], MapSet.new([0, 2]), &(&1 * 2)) == MapSet.new([0, 2, 4, 6])
+
     assert_raise MatchError, fn ->
       Enum.into([2, 3], %{a: 1}, & &1)
     end
@@ -2049,6 +2052,7 @@ defmodule EnumTest.Range do
   test "into/3" do
     assert Enum.into(1..5, [], fn x -> x * 2 end) == [2, 4, 6, 8, 10]
     assert Enum.into(1..3, "numbers: ", &to_string/1) == "numbers: 123"
+    assert Enum.into(1..3, MapSet.new(), &(&1 * 2)) == MapSet.new([2, 4, 6])
   end
 
   test "join/2" do
