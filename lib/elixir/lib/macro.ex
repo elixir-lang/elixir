@@ -803,7 +803,9 @@ defmodule Macro do
     * `:unquote` - when `true`, this function leaves `unquote/1` and
       `unquote_splicing/1` expressions unescaped, effectively unquoting
       the contents on escape. This option is useful only when escaping
-      ASTs which may have quoted fragments in them. Defaults to `false`.
+      ASTs which may have quoted fragments in them. Note this option
+      will give a special meaning to `quote`/`unquote` nodes, which need
+      to be valid AST before escaping. Defaults to `false`.
 
     * `:prune_metadata` - when `true`, removes most metadata from escaped AST
       nodes. Note this option changes the semantics of escaped code and
