@@ -455,6 +455,10 @@ defmodule EnumTest do
     assert Enum.into(%{a: 1, b: 2}, []) |> Enum.sort() == [a: 1, b: 2]
     assert Enum.into(1..3, []) == [1, 2, 3]
     assert Enum.into(["H", "i"], "") == "Hi"
+
+    assert Enum.into([a: 1, b: 2], MapSet.new()) == MapSet.new(a: 1, b: 2)
+    assert Enum.into(%{a: 1, b: 2}, MapSet.new()) == MapSet.new(a: 1, b: 2)
+    assert Enum.into([a: 1, b: 2], MapSet.new(a: 1, c: 3)) == MapSet.new(a: 1, b: 2, c: 3)
   end
 
   test "into/2 exceptions" do
@@ -474,6 +478,9 @@ defmodule EnumTest do
   test "into/3" do
     assert Enum.into([1, 2, 3], [], fn x -> x * 2 end) == [2, 4, 6]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
+
+    assert Enum.into([1, 2, 3], MapSet.new(), &(&1 * 2)) == MapSet.new([2, 4, 6])
+    assert Enum.into([1, 2, 3], MapSet.new([0, 2]), &(&1 * 2)) == MapSet.new([0, 2, 4, 6])
 
     assert_raise MatchError, fn ->
       Enum.into([2, 3], %{a: 1}, & &1)
@@ -2039,11 +2046,13 @@ defmodule EnumTest.Range do
 
   test "into/2" do
     assert Enum.into(1..5, []) == [1, 2, 3, 4, 5]
+    assert Enum.into(1..5, MapSet.new()) == MapSet.new([1, 2, 3, 4, 5])
   end
 
   test "into/3" do
     assert Enum.into(1..5, [], fn x -> x * 2 end) == [2, 4, 6, 8, 10]
     assert Enum.into(1..3, "numbers: ", &to_string/1) == "numbers: 123"
+    assert Enum.into(1..3, MapSet.new(), &(&1 * 2)) == MapSet.new([2, 4, 6])
   end
 
   test "join/2" do
