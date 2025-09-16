@@ -343,15 +343,25 @@ quote(Expr, Q) ->
 
 %% quote/unquote
 
-do_quote({quote, Meta, [Arg]}, #elixir_quote{op=quote, context=Context} = Q) when is_list(Meta) ->
+do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
-  NewMeta = keystore(context, Meta, Context),
+
+  NewMeta = case Q of
+    #elixir_quote{op=quote, context=Context} -> keystore(context, Meta, Context);
+    _ -> Meta
+  end,
+
   {'{}', [], [quote, meta(NewMeta, Q), [TArg]]};
 
-do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{op=quote, context=Context} = Q) when is_list(Meta) ->
+do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
   TOpts = do_quote(Opts, Q),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
-  NewMeta = keystore(context, Meta, Context),
+
+  NewMeta = case Q of
+    #elixir_quote{op=quote, context=Context} -> keystore(context, Meta, Context);
+    _ -> Meta
+  end,
+
   {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
 %
