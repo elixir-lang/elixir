@@ -340,23 +340,13 @@ quote(Expr, Q) ->
 do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
-  NewMeta = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
-    _ -> Meta
-  end,
-
-  {'{}', [], [quote, meta(NewMeta, Q), [TArg]]};
+  {'{}', [], [quote, quote_meta(Meta, Q), [TArg]]};
 
 do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
   TOpts = do_quote(Opts, Q),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
-  NewMeta = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
-    _ -> Meta
-  end,
-
-  {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
+  {'{}', [], [quote, quote_meta(Meta, Q), [TOpts, TArg]]};
 
 %
 do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true, shallow_validate=Validate}) when is_list(Meta) ->
@@ -597,6 +587,14 @@ argument_error(Message) ->
 
 meta(Meta, Q) ->
   generated(keep(keydelete(column, Meta), Q), Q).
+
+quote_meta(Meta, Q) ->
+  Meta1 = do_quote(Meta, Q),
+  Meta2 = case Q of
+    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta1, Context);
+    _ -> Meta1
+  end,
+  meta(Meta2, Q).
 
 generated(Meta, #elixir_quote{generated=true}) -> [{generated, true} | Meta];
 generated(Meta, #elixir_quote{generated=false}) -> Meta.

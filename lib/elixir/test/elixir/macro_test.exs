@@ -146,6 +146,11 @@ defmodule MacroTest do
       assert Macro.escape({:quote, [], [[do: :foo]]}) == {:{}, [], [:quote, [], [[do: :foo]]]}
     end
 
+    test "escapes the content of :quote tuples" do
+      assert Macro.escape({:quote, [%{}], [{}]}) ==
+               {:{}, [], [:quote, [{:%{}, [], []}], [{:{}, [], []}]]}
+    end
+
     test "escape container when a reference cannot be escaped" do
       assert_raise ArgumentError, ~r"contains a reference", fn ->
         Macro.escape(%{re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
