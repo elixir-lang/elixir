@@ -145,21 +145,27 @@ do_tuple_linify(Fun, Meta, Left, Right, Var, Gen) ->
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Op, Unquote) ->
-  do_quote(Expr, #elixir_quote{
+  Q = #elixir_quote{
     line=true,
     file=nil,
     op=Op,
     unquote=Unquote
-  }).
+  },
+  case Unquote of
+    true -> do_quote(Expr, Q);
+    false -> do_escape(Expr, Q)
+  end.
 
 do_escape({Left, Meta, Right}, #elixir_quote{op=prune_metadata} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
-  TL = do_quote(Left, Q),
-  TR = do_quote(Right, Q),
+  TL = do_escape(Left, Q),
+  TR = do_escape(Right, Q),
   {'{}', [], [TL, TM, TR]};
 
+do_escape({Left, Right}, Q) ->
+  {do_escape(Left, Q), do_escape(Right, Q)};
 do_escape(Tuple, Q) when is_tuple(Tuple) ->
-  TT = do_quote(tuple_to_list(Tuple), Q),
+  TT = do_escape(tuple_to_list(Tuple), Q),
   {'{}', [], TT};
 
 do_escape(BitString, _) when is_bitstring(BitString) ->
@@ -193,7 +199,7 @@ do_escape([], _) ->
   [];
 
 do_escape([H | T], #elixir_quote{unquote=false} = Q) ->
-  do_quote_simple_list(T, do_quote(H, Q), Q);
+  do_quote_simple_list(T, do_escape(H, Q), Q);
 
 do_escape([H | T], Q) ->
   %% The improper case is inefficient, but improper lists are rare.
@@ -203,7 +209,7 @@ do_escape([H | T], Q) ->
     _:_ ->
       {L, R} = reverse_improper(T, [H]),
       TL = do_quote_splice(L, Q, [], []),
-      TR = do_quote(R, Q),
+      TR = do_escape(R, Q),
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
   end;
 
@@ -232,7 +238,7 @@ escape_map_key_value(K, V, Map, Q) ->
                         ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped ",
                         "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
     true ->
-      {do_quote(K, Q), do_quote(V, Q)}
+      {do_escape(K, Q), do_escape(V, Q)}
   end.
 
 find_tuple_ref(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
@@ -340,13 +346,23 @@ quote(Expr, Q) ->
 do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
-  {'{}', [], [quote, quote_meta(Meta, Q), [TArg]]};
+  NewMeta = case Q of
+    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
+    _ -> Meta
+  end,
+
+  {'{}', [], [quote, meta(NewMeta, Q), [TArg]]};
 
 do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
   TOpts = do_quote(Opts, Q),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
-  {'{}', [], [quote, quote_meta(Meta, Q), [TOpts, TArg]]};
+  NewMeta = case Q of
+    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
+    _ -> Meta
+  end,
+
+  {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
 %
 do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true, shallow_validate=Validate}) when is_list(Meta) ->
@@ -587,14 +603,6 @@ argument_error(Message) ->
 
 meta(Meta, Q) ->
   generated(keep(keydelete(column, Meta), Q), Q).
-
-quote_meta(Meta, Q) ->
-  Meta1 = do_quote(Meta, Q),
-  Meta2 = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta1, Context);
-    _ -> Meta1
-  end,
-  meta(Meta2, Q).
 
 generated(Meta, #elixir_quote{generated=true}) -> [{generated, true} | Meta];
 generated(Meta, #elixir_quote{generated=false}) -> Meta.
