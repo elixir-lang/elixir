@@ -455,6 +455,10 @@ defmodule EnumTest do
     assert Enum.into(%{a: 1, b: 2}, []) |> Enum.sort() == [a: 1, b: 2]
     assert Enum.into(1..3, []) == [1, 2, 3]
     assert Enum.into(["H", "i"], "") == "Hi"
+
+    assert Enum.into([a: 1, b: 2], MapSet.new()) == MapSet.new(a: 1, b: 2)
+    assert Enum.into(%{a: 1, b: 2}, MapSet.new()) == MapSet.new(a: 1, b: 2)
+    assert Enum.into([a: 1, b: 2], MapSet.new(a: 1, c: 3)) == MapSet.new(a: 1, b: 2, c: 3)
   end
 
   test "into/2 exceptions" do
@@ -2039,6 +2043,7 @@ defmodule EnumTest.Range do
 
   test "into/2" do
     assert Enum.into(1..5, []) == [1, 2, 3, 4, 5]
+    assert Enum.into(1..5, MapSet.new()) == MapSet.new([1, 2, 3, 4, 5])
   end
 
   test "into/3" do

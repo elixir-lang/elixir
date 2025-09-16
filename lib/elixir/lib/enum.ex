@@ -1496,6 +1496,14 @@ defmodule Enum do
     to_list(enumerable)
   end
 
+  def into(enumerable, collectable) when is_struct(collectable, MapSet) do
+    if MapSet.size(collectable) == 0 do
+      MapSet.new(enumerable)
+    else
+      MapSet.new(enumerable) |> MapSet.union(collectable)
+    end
+  end
+
   def into(%_{} = enumerable, collectable) do
     into_protocol(enumerable, collectable)
   end
