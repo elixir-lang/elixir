@@ -18,7 +18,7 @@
   line=false,
   file=nil,
   context=nil,
-  op=none, % none | escape | escape_and_prune | add_context
+  op=escape, % escape | escape_and_prune | quote
   aliases_hygiene=nil,
   imports_hygiene=nil,
   unquote=true,
@@ -267,7 +267,7 @@ build(Meta, Line, File, Context, Unquote, Generated, E) ->
   validate_runtime(generated, Generated),
 
   Q = #elixir_quote{
-    op=add_context,
+    op=quote,
     aliases_hygiene=E,
     imports_hygiene=E,
     line=VLine,
@@ -343,25 +343,15 @@ quote(Expr, Q) ->
 
 %% quote/unquote
 
-do_quote({quote, Meta, [Arg]}, #elixir_quote{op=Op} = Q) when is_list(Meta), Op /= escape, Op /= escape_and_prune ->
+do_quote({quote, Meta, [Arg]}, #elixir_quote{op=quote, context=Context} = Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
-
-  NewMeta = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
-    _ -> Meta
-  end,
-
+  NewMeta = keystore(context, Meta, Context),
   {'{}', [], [quote, meta(NewMeta, Q), [TArg]]};
 
-do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{op=Op} = Q) when is_list(Meta), Op /= escape, Op /= escape_and_prune ->
+do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{op=quote, context=Context} = Q) when is_list(Meta) ->
   TOpts = do_quote(Opts, Q),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
-
-  NewMeta = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
-    _ -> Meta
-  end,
-
+  NewMeta = keystore(context, Meta, Context),
   {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
 %
@@ -385,7 +375,7 @@ do_quote({'__aliases__', Meta, [H | T]}, #elixir_quote{aliases_hygiene=(#{}=E)} 
 
 %% Vars
 
-do_quote({Name, Meta, nil}, #elixir_quote{op=add_context} = Q)
+do_quote({Name, Meta, nil}, #elixir_quote{op=quote} = Q)
     when is_atom(Name), is_list(Meta) ->
   ImportMeta = case Q#elixir_quote.imports_hygiene of
     nil -> Meta;
@@ -441,7 +431,7 @@ do_quote({Left, Right}, Q) ->
 
 %% Everything else
 
-do_quote(Other, #elixir_quote{op=Op} = Q) when Op =/= add_context ->
+do_quote(Other, #elixir_quote{op=Op} = Q) when Op =/= quote ->
   do_escape(Other, Q);
 
 do_quote({_, _, _} = Tuple, Q) ->
