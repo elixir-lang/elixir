@@ -5185,7 +5185,7 @@ defmodule Kernel do
           quote(do: Kernel.LexicalTracker.read_cache(unquote(pid), unquote(integer)))
 
         %{} ->
-          :elixir_quote.escape(block, :none, false)
+          :elixir_quote.escape(block, :escape, false)
       end
 
     versioned_vars = env.versioned_vars
@@ -5465,7 +5465,7 @@ defmodule Kernel do
     store =
       case unquoted_expr or unquoted_call do
         true ->
-          :elixir_quote.escape({call, expr}, :none, true)
+          :elixir_quote.escape({call, expr}, :escape, true)
 
         false ->
           key = :erlang.unique_integer()

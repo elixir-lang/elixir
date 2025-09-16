@@ -912,7 +912,7 @@ defmodule Macro do
   @spec escape(term, escape_opts) :: t()
   def escape(expr, opts \\ []) do
     unquote = Keyword.get(opts, :unquote, false)
-    kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :none
+    kind = if Keyword.get(opts, :prune_metadata, false), do: :escape_and_prune, else: :escape
     generated = Keyword.get(opts, :generated, false)
 
     case :elixir_quote.escape(expr, kind, unquote) do

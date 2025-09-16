@@ -18,7 +18,7 @@
   line=false,
   file=nil,
   context=nil,
-  op=none, % none | prune_metadata | add_context
+  op=none, % none | escape | escape_and_prune | add_context
   aliases_hygiene=nil,
   imports_hygiene=nil,
   unquote=true,
@@ -156,7 +156,7 @@ escape(Expr, Op, Unquote) ->
     false -> do_escape(Expr, Q)
   end.
 
-do_escape({Left, Meta, Right}, #elixir_quote{op=prune_metadata} = Q) when is_list(Meta) ->
+do_escape({Left, Meta, Right}, #elixir_quote{op=escape_and_prune} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
   TL = do_escape(Left, Q),
   TR = do_escape(Right, Q),
