@@ -1572,10 +1572,6 @@ defmodule Enum do
     map(enumerable, transform)
   end
 
-  def into(%_{} = enumerable, collectable, transform) do
-    into_protocol(enumerable, collectable, transform)
-  end
-
   def into(enumerable, %_{} = collectable, transform) do
     into_protocol(enumerable, collectable, transform)
   end
