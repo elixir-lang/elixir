@@ -18,7 +18,7 @@
   line=false,
   file=nil,
   context=nil,
-  op=none, % none | prune_metadata | add_context
+  op=escape, % escape | escape_and_prune | quote
   aliases_hygiene=nil,
   imports_hygiene=nil,
   unquote=true,
@@ -145,21 +145,27 @@ do_tuple_linify(Fun, Meta, Left, Right, Var, Gen) ->
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Op, Unquote) ->
-  do_quote(Expr, #elixir_quote{
+  Q = #elixir_quote{
     line=true,
     file=nil,
     op=Op,
     unquote=Unquote
-  }).
+  },
+  case Unquote of
+    true -> do_quote(Expr, Q);
+    false -> do_escape(Expr, Q)
+  end.
 
-do_escape({Left, Meta, Right}, #elixir_quote{op=prune_metadata} = Q) when is_list(Meta) ->
+do_escape({Left, Meta, Right}, #elixir_quote{op=escape_and_prune} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
-  TL = do_quote(Left, Q),
-  TR = do_quote(Right, Q),
+  TL = do_escape(Left, Q),
+  TR = do_escape(Right, Q),
   {'{}', [], [TL, TM, TR]};
 
+do_escape({Left, Right}, Q) ->
+  {do_escape(Left, Q), do_escape(Right, Q)};
 do_escape(Tuple, Q) when is_tuple(Tuple) ->
-  TT = do_quote(tuple_to_list(Tuple), Q),
+  TT = do_escape(tuple_to_list(Tuple), Q),
   {'{}', [], TT};
 
 do_escape(BitString, _) when is_bitstring(BitString) ->
@@ -193,7 +199,7 @@ do_escape([], _) ->
   [];
 
 do_escape([H | T], #elixir_quote{unquote=false} = Q) ->
-  do_quote_simple_list(T, do_quote(H, Q), Q);
+  do_quote_simple_list(T, do_escape(H, Q), Q);
 
 do_escape([H | T], Q) ->
   %% The improper case is inefficient, but improper lists are rare.
@@ -203,7 +209,7 @@ do_escape([H | T], Q) ->
     _:_ ->
       {L, R} = reverse_improper(T, [H]),
       TL = do_quote_splice(L, Q, [], []),
-      TR = do_quote(R, Q),
+      TR = do_escape(R, Q),
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
   end;
 
@@ -232,7 +238,7 @@ escape_map_key_value(K, V, Map, Q) ->
                         ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped ",
                         "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
     true ->
-      {do_quote(K, Q), do_quote(V, Q)}
+      {do_escape(K, Q), do_escape(V, Q)}
   end.
 
 find_tuple_ref(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
@@ -261,7 +267,7 @@ build(Meta, Line, File, Context, Unquote, Generated, E) ->
   validate_runtime(generated, Generated),
 
   Q = #elixir_quote{
-    op=add_context,
+    op=quote,
     aliases_hygiene=E,
     imports_hygiene=E,
     line=VLine,
@@ -341,7 +347,7 @@ do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
   NewMeta = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
+    #elixir_quote{op=quote, context=Context} -> keystore(context, Meta, Context);
     _ -> Meta
   end,
 
@@ -352,7 +358,7 @@ do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
   NewMeta = case Q of
-    #elixir_quote{op=add_context, context=Context} -> keystore(context, Meta, Context);
+    #elixir_quote{op=quote, context=Context} -> keystore(context, Meta, Context);
     _ -> Meta
   end,
 
@@ -379,7 +385,7 @@ do_quote({'__aliases__', Meta, [H | T]}, #elixir_quote{aliases_hygiene=(#{}=E)} 
 
 %% Vars
 
-do_quote({Name, Meta, nil}, #elixir_quote{op=add_context} = Q)
+do_quote({Name, Meta, nil}, #elixir_quote{op=quote} = Q)
     when is_atom(Name), is_list(Meta) ->
   ImportMeta = case Q#elixir_quote.imports_hygiene of
     nil -> Meta;
@@ -435,7 +441,7 @@ do_quote({Left, Right}, Q) ->
 
 %% Everything else
 
-do_quote(Other, #elixir_quote{op=Op} = Q) when Op =/= add_context ->
+do_quote(Other, #elixir_quote{op=Op} = Q) when Op =/= quote ->
   do_escape(Other, Q);
 
 do_quote({_, _, _} = Tuple, Q) ->
