@@ -194,7 +194,11 @@ do_escape([], _) ->
   [];
 
 do_escape([H | T], #elixir_quote{unquote=false} = Q) ->
-  do_quote_simple_list(T, do_escape(H, Q), Q);
+  case is_list(T) of
+    true -> [do_escape(H, Q) | do_escape(T, Q)];
+    % improper list
+    false -> [{'|', [], [do_escape(H, Q), do_escape(T, Q)]}]
+  end;
 
 do_escape([H | T], Q) ->
   %% The improper case is inefficient, but improper lists are rare.

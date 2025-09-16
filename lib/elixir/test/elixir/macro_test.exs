@@ -149,6 +149,9 @@ defmodule MacroTest do
     test "escapes the content of :quote tuples" do
       assert Macro.escape({:quote, [%{}], [{}]}) ==
                {:{}, [], [:quote, [{:%{}, [], []}], [{:{}, [], []}]]}
+
+      assert Macro.escape([:foo, {:quote, [%{}], [{}]}]) ==
+               [:foo, {:{}, [], [:quote, [{:%{}, [], []}], [{:{}, [], []}]]}]
     end
 
     test "escape container when a reference cannot be escaped" do
