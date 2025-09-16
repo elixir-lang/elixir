@@ -343,7 +343,7 @@ quote(Expr, Q) ->
 
 %% quote/unquote
 
-do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
+do_quote({quote, Meta, [Arg]}, #elixir_quote{op=Op} = Q) when is_list(Meta), Op /= escape, Op /= escape_and_prune ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
   NewMeta = case Q of
@@ -353,7 +353,7 @@ do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
 
   {'{}', [], [quote, meta(NewMeta, Q), [TArg]]};
 
-do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
+do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{op=Op} = Q) when is_list(Meta), Op /= escape, Op /= escape_and_prune ->
   TOpts = do_quote(Opts, Q),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
 
