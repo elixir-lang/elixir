@@ -2494,7 +2494,11 @@ defmodule Module.Types.Descr do
   def map_union(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
     case maybe_optimize_map_union({tag1, fields1, []}, {tag2, fields2, []}) do
       {tag, fields, []} -> map_literal(tag, fields)
-      nil -> {{tag1, fields1}, :bdd_top, {{tag2, fields2}, :bdd_top, :bdd_bot}}
+      nil -> 
+        case {{tag1, fields1}, {tag2, fields2}} do
+          {r, l} when l < r -> {l, :bdd_top, {r, :bdd_top, :bdd_bot}}
+          {l, r} -> {l, :bdd_top, {r, :bdd_top, :bdd_bot}}
+      end
     end
   end
 
