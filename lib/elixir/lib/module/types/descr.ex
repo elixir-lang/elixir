@@ -2759,7 +2759,7 @@ defmodule Module.Types.Descr do
         acc
 
       :bdd_top ->
-        if map_empty?(tag, fields, negs), do: acc, else: [{tag, fields, negs} | acc]
+        if map_line_empty?(tag, fields, negs), do: acc, else: [{tag, fields, negs} | acc]
 
       {{next_tag, next_fields} = next_map, left, right} ->
         acc =
@@ -3407,13 +3407,31 @@ defmodule Module.Types.Descr do
   # Short-circuits if it finds a non-empty map literal in the union.
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
-  defp map_empty?(bdd), do: map_bdd_get(bdd) == []
+  defp map_empty?(bdd), do: map_bdd_empty?({:open, %{}}, [], bdd)
 
-  defp map_empty?(_, pos, []), do: Enum.any?(Map.to_list(pos), fn {_, v} -> empty?(v) end)
-  defp map_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
-  defp map_empty?(:open, fs, [{:closed, _} | negs]), do: map_empty?(:open, fs, negs)
+  defp map_bdd_empty?({tag, fields} = map, negs, bdd) do
+    case bdd do
+      :bdd_bot ->
+        true
 
-  defp map_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
+      :bdd_top ->
+        map_line_empty?(tag, fields, negs)
+
+      {{next_tag, next_fields} = next_map, left, right} ->
+        try do
+          new_map = map_literal_intersection(tag, fields, next_tag, next_fields)
+          map_bdd_empty?(new_map, negs, left) and map_bdd_empty?(map, [next_map | negs], right)
+        catch
+          :empty -> map_bdd_empty?(map, [next_map | negs], right)
+        end
+    end
+  end
+
+  defp map_line_empty?(_, pos, []), do: Enum.any?(Map.to_list(pos), fn {_, v} -> empty?(v) end)
+  defp map_line_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
+  defp map_line_empty?(:open, fs, [{:closed, _} | negs]), do: map_line_empty?(:open, fs, negs)
+
+  defp map_line_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
     if map_check_domain_keys(tag, neg_tag) do
       atom_default = map_key_tag_to_type(tag)
       neg_atom_default = map_key_tag_to_type(neg_tag)
@@ -3432,18 +3450,18 @@ defmodule Module.Types.Descr do
            # There may be value in common
            tag == :open ->
              diff = difference(term_or_optional(), neg_type)
-             empty?(diff) or map_empty?(tag, Map.put(fields, neg_key, diff), negs)
+             empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
 
            true ->
              diff = difference(atom_default, neg_type)
-             empty?(diff) or map_empty?(tag, Map.put(fields, neg_key, diff), negs)
+             empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
          end
        end) and
          Enum.all?(Map.to_list(fields), fn {key, type} ->
            case neg_fields do
              %{^key => neg_type} ->
                diff = difference(type, neg_type)
-               empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
+               empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
 
              %{} ->
                cond do
@@ -3456,12 +3474,12 @@ defmodule Module.Types.Descr do
                  true ->
                    # an absent key in a open negative map can be ignored
                    diff = difference(type, neg_atom_default)
-                   empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
+                   empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
                end
            end
-         end)) or map_empty?(tag, fields, negs)
+         end)) or map_line_empty?(tag, fields, negs)
     else
-      map_empty?(tag, fields, negs)
+      map_line_empty?(tag, fields, negs)
     end
   end
 
