@@ -165,7 +165,7 @@ defmodule Protocol.ConsolidationTest do
 
     defp exports(binary) do
       {:ok, {_, [{~c"ExCk", check_bin}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-      assert {:elixir_checker_v2, contents} = :erlang.binary_to_term(check_bin)
+      assert {:elixir_checker_v3, contents} = :erlang.binary_to_term(check_bin)
       Map.new(contents.exports)
     end
 
