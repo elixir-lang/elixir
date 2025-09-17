@@ -3547,7 +3547,7 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Use heuristics to normalize a map dnf for pretty printing.
+  # Use heuristics to normalize a map bdd for pretty printing.
   defp map_normalize(bdd) do
     map_bdd_get(bdd)
     |> Enum.map(fn {tag, fields, negs} ->
