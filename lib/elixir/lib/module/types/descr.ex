@@ -3856,7 +3856,7 @@ defmodule Module.Types.Descr do
         true
 
       :bdd_top ->
-        tuple_empty?(tag, elements, negs)
+        tuple_line_empty?(tag, elements, negs)
 
       {{next_tag, next_elements} = next_tuple, left, right} ->
         case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
@@ -3874,13 +3874,13 @@ defmodule Module.Types.Descr do
   # Note: since the extraction from the BDD is done in a way that guarantees that
   # the elements are non-empty, we can avoid checking for empty types there.
   # Otherwise, tuple_empty?(_, elements, []) would be Enum.any?(elements, &empty?/1)
-  defp tuple_empty?(_, _, []), do: false
+  defp tuple_line_empty?(_, _, []), do: false
   # Open empty negation makes it empty
-  defp tuple_empty?(_, _, [{:open, []} | _]), do: true
+  defp tuple_line_empty?(_, _, [{:open, []} | _]), do: true
   # Open positive can't be emptied by a single closed negative
-  defp tuple_empty?(:open, _pos, [{:closed, _}]), do: false
+  defp tuple_line_empty?(:open, _pos, [{:closed, _}]), do: false
 
-  defp tuple_empty?(tag, elements, [{neg_tag, neg_elements} | negs]) do
+  defp tuple_line_empty?(tag, elements, [{neg_tag, neg_elements} | negs]) do
     n = length(elements)
     m = length(neg_elements)
 
@@ -3888,7 +3888,7 @@ defmodule Module.Types.Descr do
     # 1. When removing larger tuples from a fixed-size positive tuple
     # 2. When removing smaller tuples from larger tuples
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
-      tuple_empty?(tag, elements, negs)
+      tuple_line_empty?(tag, elements, negs)
     else
       tuple_elements_empty?([], tag, elements, neg_elements, negs) and
         tuple_empty_arity?(n, m, tag, elements, neg_tag, negs)
@@ -3904,8 +3904,9 @@ defmodule Module.Types.Descr do
     diff = difference(ty, neg_type)
     meet = intersection(ty, neg_type)
 
-    # In this case, there is no intersection between the positive and this negative
-    (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs)) and
+    # In this case, there is no intersection between the positive and this negative.
+    # So we should just "go next"
+    (empty?(diff) or tuple_line_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs)) and
       (empty?(meet) or tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs))
   end
 
@@ -3916,8 +3917,8 @@ defmodule Module.Types.Descr do
     # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
     # closed, we also need to consider tuples of size greater than m + 1.
     tag == :closed or
-      (Enum.all?(n..(m - 1)//1, &tuple_empty?(:closed, tuple_fill(elements, &1), negs)) and
-         (neg_tag == :open or tuple_empty?(:open, tuple_fill(elements, m + 1), negs)))
+      (Enum.all?(n..(m - 1)//1, &tuple_line_empty?(:closed, tuple_fill(elements, &1), negs)) and
+         (neg_tag == :open or tuple_line_empty?(:open, tuple_fill(elements, m + 1), negs)))
   end
 
   defp tuple_eliminate_negations(tag, elements, negs) do
@@ -4149,7 +4150,7 @@ defmodule Module.Types.Descr do
         acc
 
       :bdd_top ->
-        if tuple_empty?(tag, elements, negs) do
+        if tuple_line_empty?(tag, elements, negs) do
           acc
         else
           compose.(transform.(tag, elements, negs), acc)
