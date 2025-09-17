@@ -135,6 +135,18 @@ defmodule Module.Types.DescrTest do
       # Test union of open map and map with domain key
       assert union(open_map(), open_map([{domain_key(:integer), atom()}]))
              |> equal?(open_map())
+
+      # Ensure no duplicate, no matter the order
+      assert union(
+               open_map(a: integer()),
+               open_map(a: number(), b: binary())
+             )
+             |> union(open_map(a: integer())) ==
+               union(
+                 open_map(a: number(), b: binary()),
+                 open_map(a: integer())
+               )
+               |> union(open_map(a: integer()))
     end
 
     test "list" do
