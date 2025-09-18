@@ -662,7 +662,7 @@ checker_chunk(Map, Def, ChunkOpts) ->
     end
   },
 
-  [{<<"ExCk">>, term_to_binary({elixir_checker_v2, Contents}, ChunkOpts)}].
+  [{<<"ExCk">>, term_to_binary({elixir_checker_v3, Contents}, ChunkOpts)}].
 
 prepend_behaviour_info(true, Def) -> [{{behaviour_info, 1}, []} | Def];
 prepend_behaviour_info(false, Def) -> Def.
