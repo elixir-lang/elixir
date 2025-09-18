@@ -1421,7 +1421,7 @@ defmodule Module.Types.Descr do
         acc
 
       :bdd_top ->
-        if fun_empty?(pos, neg), do: acc, else: [{pos, neg} | acc]
+        if fun_line_empty?(pos, neg), do: acc, else: [{pos, neg} | acc]
 
       {fun, left, right} ->
         fun_bdd_to_dnf(fun_bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
@@ -1448,7 +1448,7 @@ defmodule Module.Types.Descr do
         true
 
       :bdd_top ->
-        fun_empty?(pos, neg)
+        fun_line_empty?(pos, neg)
 
       {fun, left, right} ->
         fun_bdd_empty?([fun | pos], neg, left) and fun_bdd_empty?(pos, [fun | neg], right)
@@ -1468,9 +1468,9 @@ defmodule Module.Types.Descr do
   # - `{[fun(integer() -> atom())], [fun(none() -> term())]}` is empty
   # - `{[], _}` (representing the top function type fun()) is never empty
   #
-  defp fun_empty?([], _), do: false
+  defp fun_line_empty?([], _), do: false
 
-  defp fun_empty?(positives, negatives) do
+  defp fun_line_empty?(positives, negatives) do
     case fetch_arity_and_domain(positives) do
       # If there are functions with different arities in positives, then the function type is empty
       {:empty, _} ->
