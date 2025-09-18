@@ -1440,7 +1440,20 @@ defmodule Module.Types.Descr do
   # - `fun(1) and not fun(1)` is empty
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
-  defp fun_empty?(bdd), do: fun_bdd_to_dnf(bdd) == []
+  defp fun_empty?(bdd), do: fun_bdd_empty?([], [], bdd)
+
+  defp fun_bdd_empty?(pos, neg, bdd) do
+    case bdd do
+      :bdd_bot ->
+        true
+
+      :bdd_top ->
+        fun_empty?(pos, neg)
+
+      {fun, left, right} ->
+        fun_bdd_empty?([fun | pos], neg, left) and fun_bdd_empty?(pos, [fun | neg], right)
+    end
+  end
 
   # Checks if a function type represented by positive and negative function literals is empty.
 
