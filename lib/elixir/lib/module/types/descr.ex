@@ -262,7 +262,7 @@ defmodule Module.Types.Descr do
   end
 
   defp unwrap_domain_tuple(%{tuple: bdd} = descr, transform) when map_size(descr) == 1 do
-    tuple_bdd_to_dnf_no_negations(bdd) |> Enum.map(transform)
+    tuple_normalize(bdd) |> Enum.map(transform)
   end
 
   defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
@@ -4158,17 +4158,16 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_to_quoted(bdd, opts) do
-    tuple_bdd_to_dnf_no_negations(bdd)
+    tuple_normalize(bdd)
     |> tuple_fusion()
     |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
 
-  # Transforms a bdd into a positive normal form (union of tuples with no negations)
+  # Transforms a bdd into a union of tuples with no negations.
   # Note: it is important to compose the results with tuple_dnf_union/2 to avoid duplicates
-  defp tuple_bdd_to_dnf_no_negations(bdd),
-    do: tuple_bdd_get([], {:open, []}, [], bdd, &tuple_eliminate_negations/3, &tuple_dnf_union/2)
+  defp tuple_normalize(bdd), do: tuple_normalize([], {:open, []}, [], bdd)
 
-  defp tuple_bdd_get(acc, {tag, elements} = tuple, negs, bdd, transform, compose) do
+  defp tuple_normalize(acc, {tag, elements} = tuple, negs, bdd) do
     case bdd do
       :bdd_bot ->
         acc
@@ -4177,7 +4176,7 @@ defmodule Module.Types.Descr do
         if tuple_line_empty?(tag, elements, negs) do
           acc
         else
-          compose.(transform.(tag, elements, negs), acc)
+          tuple_eliminate_negations(tag, elements, negs) |> tuple_dnf_union(acc)
         end
 
       {{next_tag, next_elements} = next_tuple, left, right} ->
@@ -4185,10 +4184,10 @@ defmodule Module.Types.Descr do
         acc =
           case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
             :empty -> acc
-            new_tuple -> tuple_bdd_get(acc, new_tuple, negs, left, transform, compose)
+            new_tuple -> tuple_normalize(acc, new_tuple, negs, left)
           end
 
-        tuple_bdd_get(acc, tuple, [next_tuple | negs], right, transform, compose)
+        tuple_normalize(acc, tuple, [next_tuple | negs], right)
     end
   end
 
@@ -4335,7 +4334,7 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_get(bdd, index) do
-    tuple_bdd_to_dnf_no_negations(bdd)
+    tuple_normalize(bdd)
     |> Enum.reduce(none(), fn
       {tag, elements}, acc -> Enum.at(elements, index, tuple_tag_to_type(tag)) |> union(acc)
     end)
@@ -4366,7 +4365,7 @@ defmodule Module.Types.Descr do
   end
 
   defp process_tuples_values(bdd) do
-    tuple_bdd_to_dnf_no_negations(bdd)
+    tuple_normalize(bdd)
     |> Enum.reduce(none(), fn {tag, elements}, acc ->
       cond do
         Enum.any?(elements, &empty?/1) -> none()
@@ -4504,7 +4503,7 @@ defmodule Module.Types.Descr do
   defp tuple_of_size_at_least_static?(descr, index) do
     case descr do
       %{tuple: bdd} ->
-        tuple_bdd_to_dnf_no_negations(bdd)
+        tuple_normalize(bdd)
         |> Enum.all?(fn {_, elements} -> length(elements) >= index end)
 
       %{} ->
