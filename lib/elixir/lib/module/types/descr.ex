@@ -2757,9 +2757,9 @@ defmodule Module.Types.Descr do
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  def map_bdd_get(bdd), do: map_bdd_get([], {:open, %{}}, [], bdd)
+  def map_bdd_to_dnf(bdd), do: map_bdd_to_dnf([], {:open, %{}}, [], bdd)
 
-  defp map_bdd_get(acc, {tag, fields} = map, negs, bdd) do
+  defp map_bdd_to_dnf(acc, {tag, fields} = map, negs, bdd) do
     case bdd do
       :bdd_bot ->
         acc
@@ -2771,12 +2771,12 @@ defmodule Module.Types.Descr do
         acc =
           try do
             new_pos = map_literal_intersection(tag, fields, next_tag, next_fields)
-            map_bdd_get(acc, new_pos, negs, left)
+            map_bdd_to_dnf(acc, new_pos, negs, left)
           catch
             :empty -> acc
           end
 
-        map_bdd_get(acc, map, [next_map | negs], right)
+        map_bdd_to_dnf(acc, map, [next_map | negs], right)
     end
   end
 
@@ -2828,11 +2828,17 @@ defmodule Module.Types.Descr do
     map_key_tag_to_type(tag_or_domains) |> pop_optional_static()
   end
 
-  # Takes a map and returns the union of types it can take for a given key.
-  # If the key may be undefined, it will contain the `not_set()` type.
   defp map_fetch_static(%{map: bdd}, key) do
-    map_bdd_get(bdd)
-    |> Enum.reduce(none(), fn
+    map_bdd_to_dnf(bdd) |> map_dnf_fetch_static(key)
+  end
+
+  defp map_fetch_static(%{}, _key), do: {false, none()}
+  defp map_fetch_static(:term, _key), do: {true, term()}
+
+  # Takes a map DNF and returns the union of types it can take for a given key.
+  # If the key may be undefined, it will contain the `not_set()` type.
+  defp map_dnf_fetch_static(dnf, key) do
+    Enum.reduce(dnf, none(), fn
       # Optimization: if there are no negatives and key exists, return its value
       {_tag, %{^key => value}, []}, acc ->
         value |> union(acc)
@@ -2857,9 +2863,6 @@ defmodule Module.Types.Descr do
     end)
     |> pop_optional_static()
   end
-
-  defp map_fetch_static(%{}, _key), do: {false, none()}
-  defp map_fetch_static(:term, _key), do: {true, term()}
 
   @doc """
   Fetches and puts a `key` of a given type, assuming that the descr is exclusively
@@ -3001,7 +3004,7 @@ defmodule Module.Types.Descr do
   def map_refresh_domain(%{map: bdd}, domain, type) do
     # For negations, we count on the idea that a negation will not remove any
     # type from a domain unless it completely cancels out the type.
-    # So for any non-empty map dnf, we just update the domain with the new type,
+    # So for any non-empty map bdd, we just update the domain with the new type,
     # as well as its negations to keep them accurate.
     %{map: bdd_map(bdd, fn {tag, fields} -> {map_refresh_tag(tag, domain, type), fields} end)}
   end
@@ -3016,7 +3019,7 @@ defmodule Module.Types.Descr do
       {:negation, keys} ->
         # 1) Fetch all the possible keys in the bdd
         # 2) Get them all, except the ones in neg_atoms
-        considered_keys = map_fetch_all_key_names(bdd) |> :sets.subtract(keys)
+        considered_keys = map_bdd_to_dnf(bdd) |> map_fetch_all_key_names() |> :sets.subtract(keys)
 
         considered_keys
         |> :sets.to_list()
@@ -3178,7 +3181,7 @@ defmodule Module.Types.Descr do
 
   defp unfold_domains(domains = %{}), do: domains
 
-  defp map_get_static(%{map: {{tag_or_domains, fields}, :bdd_top, :bdd_bot}}, key_descr) do
+  defp map_get_static(%{map: map_literal(tag_or_domains, fields)}, key_descr) do
     # For each non-empty kind of type in the key_descr, we add the corresponding key domain in a union.
     domains = unfold_domains(tag_or_domains)
 
@@ -3187,7 +3190,7 @@ defmodule Module.Types.Descr do
     |> Enum.reduce(none(), fn
       # Note: we could stop if we reach term_or_optional()
       {:atom, atom_type}, acc ->
-        map_get_atom(map_literal(domains, fields), atom_type) |> union(acc)
+        map_get_atom([{domains, fields, []}], atom_type) |> union(acc)
 
       key_type, acc ->
         Map.get(domains, key_type, not_set()) |> union(acc)
@@ -3195,14 +3198,16 @@ defmodule Module.Types.Descr do
   end
 
   defp map_get_static(%{map: bdd}, key_descr) do
+    dnf = map_bdd_to_dnf(bdd)
+
     key_descr
     |> covered_key_types()
     |> Enum.reduce(none(), fn
       {:atom, atom_type}, acc ->
-        map_get_atom(bdd, atom_type) |> union(acc)
+        map_get_atom(dnf, atom_type) |> union(acc)
 
       domain_key, acc ->
-        map_get_domain(bdd, domain_key) |> union(acc)
+        map_get_domain(dnf, domain_key) |> union(acc)
     end)
   end
 
@@ -3223,13 +3228,13 @@ defmodule Module.Types.Descr do
   #   Fetching a key of type `atom() and not (:a)` from a map of type
   #   `%{a: atom(), b: float(), atom() => pid()}`
   #   would return either `nil` or `float()` (key `:b`) or `pid()` (key `atom()`), but not `atom()` (key `:a`).
-  defp map_get_atom(bdd, atom_type) do
+  defp map_get_atom(dnf, atom_type) do
     case atom_type do
       {:union, atoms} ->
         atoms
         |> :sets.to_list()
         |> Enum.reduce(none(), fn atom, acc ->
-          {static_optional?, type} = map_fetch_static(%{map: bdd}, atom)
+          {static_optional?, type} = map_dnf_fetch_static(dnf, atom)
 
           if static_optional? do
             union(type, acc) |> nil_or_type() |> if_set()
@@ -3241,13 +3246,13 @@ defmodule Module.Types.Descr do
       {:negation, atoms} ->
         # 1) Fetch all the possible keys in the bdd
         # 2) Get them all, except the ones in neg_atoms
-        possible_keys = map_fetch_all_key_names(bdd)
+        possible_keys = map_fetch_all_key_names(dnf)
         considered_keys = :sets.subtract(possible_keys, atoms)
 
         considered_keys
         |> :sets.to_list()
         |> Enum.reduce(none(), fn atom, acc ->
-          {static_optional?, type} = map_fetch_static(%{map: bdd}, atom)
+          {static_optional?, type} = map_dnf_fetch_static(dnf, atom)
 
           if static_optional? do
             union(type, acc) |> nil_or_type() |> if_set()
@@ -3255,14 +3260,13 @@ defmodule Module.Types.Descr do
             union(type, acc)
           end
         end)
-        |> union(map_get_domain(bdd, domain_key(:atom)))
+        |> union(map_get_domain(dnf, domain_key(:atom)))
     end
   end
 
   # Fetch all present keys in a map dnf (including negated ones).
-  defp map_fetch_all_key_names(bdd) do
-    map_bdd_get(bdd)
-    |> Enum.reduce(:sets.new(version: 2), fn {_tag, fields, negs}, acc ->
+  defp map_fetch_all_key_names(dnf) do
+    Enum.reduce(dnf, :sets.new(version: 2), fn {_tag, fields, negs}, acc ->
       keys = :sets.from_list(Map.keys(fields))
 
       # Add all the negative keys
@@ -3274,10 +3278,9 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Take a map dnf and return the union of types for the given key domain.
-  defp map_get_domain(bdd, domain_key(_) = domain_key) do
-    map_bdd_get(bdd)
-    |> Enum.reduce(none(), fn
+  # Take a map bdd and return the union of types for the given key domain.
+  defp map_get_domain(dnf, domain_key(_) = domain_key) do
+    Enum.reduce(dnf, none(), fn
       {tag, _fields, []}, acc when is_atom(tag) ->
         map_key_tag_to_type(tag) |> union(acc)
 
@@ -3373,7 +3376,7 @@ defmodule Module.Types.Descr do
 
   defp map_take_static(%{map: bdd}, key, initial) do
     {value, map} =
-      map_bdd_get(bdd)
+      map_bdd_to_dnf(bdd)
       |> Enum.reduce({initial, none()}, fn
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {value, map} ->
@@ -3551,7 +3554,7 @@ defmodule Module.Types.Descr do
 
   # Use heuristics to normalize a map bdd for pretty printing.
   defp map_normalize(bdd) do
-    map_bdd_get(bdd)
+    map_bdd_to_dnf(bdd)
     |> Enum.map(fn {tag, fields, negs} ->
       map_eliminate_while_negs_decrease(tag, fields, negs)
     end)
