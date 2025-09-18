@@ -2375,7 +2375,7 @@ defmodule Module.Types.DescrTest do
              )
              |> union(difference(open_map(x: atom()), open_map(x: boolean())))
              |> to_quoted_string() ==
-               "%{..., a: integer(), b: atom(), c: boolean()} or\n  (%{..., x: atom() and not boolean()} and not %{..., a: integer(), b: atom(), c: boolean()})"
+               "%{..., x: atom() and not boolean()} or\n  (%{..., a: integer(), b: atom(), c: boolean()} and not %{..., x: atom() and not boolean()})"
 
       assert closed_map(a: number(), b: atom(), c: pid())
              |> difference(closed_map(a: integer(), b: atom(), c: pid()))
