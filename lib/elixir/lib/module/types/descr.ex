@@ -1932,11 +1932,18 @@ defmodule Module.Types.Descr do
         acc
 
       :bdd_top ->
-        if list_empty?(list_acc, tail_acc, negs), do: acc, else: [{pos, negs} | acc]
+        if list_line_empty?(list_acc, tail_acc, negs), do: acc, else: [{pos, negs} | acc]
 
-      {{list, tail} = list_type, left, right} ->
-        new_pos = {intersection(list_acc, list), intersection(tail_acc, tail)}
-        list_bdd_to_dnf(list_bdd_to_dnf(acc, new_pos, negs, left), pos, [list_type | negs], right)
+      {{list, tail} = next_list, left, right} ->
+        try do
+          li = non_empty_intersection!(list_acc, list)
+          la = non_empty_intersection!(tail_acc, tail)
+
+          list_bdd_to_dnf(acc, {li, la}, negs, left)
+          |> list_bdd_to_dnf(pos, [next_list | negs], right)
+        catch
+          :empty -> list_bdd_to_dnf(acc, pos, [next_list | negs], right)
+        end
     end
   end
 
@@ -1979,30 +1986,6 @@ defmodule Module.Types.Descr do
         else
           list_bdd_to_pos_dnf(list_acc, last_acc, left, lines_acc)
         end
-    end
-  end
-
-  # Takes all the lines from the root to the leaves finishing with a 1, computes the intersection
-  # of the positives, and calls the condition on the result. Checks it is true for all of them.
-  # As if calling Enum.all? on all the lines of the bdd.
-  defp list_all?(bdd, condition), do: list_all?({:term, :term}, [], bdd, condition)
-
-  defp list_all?({list_acc, tail_acc} = pos, negs, bdd, condition) do
-    case bdd do
-      :bdd_bot ->
-        true
-
-      :bdd_top ->
-        condition.(list_acc, tail_acc, negs)
-
-      {{list, tail} = list_type, left, right} ->
-        list_all?(
-          {intersection(list_acc, list), intersection(tail_acc, tail)},
-          negs,
-          left,
-          condition
-        ) and
-          list_all?(pos, [list_type | negs], right, condition)
     end
   end
 
@@ -2076,9 +2059,30 @@ defmodule Module.Types.Descr do
   end
 
   defp list_empty?(@non_empty_list_top), do: false
-  defp list_empty?(bdd), do: list_all?(bdd, &list_empty?/3)
+  defp list_empty?(bdd), do: list_bdd_empty?({:term, :term}, [], bdd)
 
-  defp list_empty?(list_type, last_type, negs) do
+  defp list_bdd_empty?({list_acc, tail_acc} = pos, negs, bdd) do
+    case bdd do
+      :bdd_bot ->
+        true
+
+      :bdd_top ->
+        list_line_empty?(list_acc, tail_acc, negs)
+
+      {{list, tail} = list_type, left, right} ->
+        try do
+          li = non_empty_intersection!(list_acc, list)
+          la = non_empty_intersection!(tail_acc, tail)
+
+          list_bdd_empty?({li, la}, negs, left) and
+            list_bdd_empty?(pos, [list_type | negs], right)
+        catch
+          :empty -> list_bdd_empty?(pos, [list_type | negs], right)
+        end
+    end
+  end
+
+  defp list_line_empty?(list_type, last_type, negs) do
     last_type = list_tail_unfold(last_type)
     # To make a list {list, last} empty with some negative lists:
     # 1. Ignore negative lists which do not have a list type that is a supertype of the positive one.
