@@ -58,6 +58,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def add_require(pid, module, meta) when is_atom(module) do
+    :gen_server.cast(pid, {:add_require, module, meta})
+  end
+
+  @doc false
   def add_import(pid, module, fas, meta, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_import, module, fas, meta, warn})
   end
@@ -119,12 +124,18 @@ defmodule Kernel.LexicalTracker do
     :gen_server.call(pid, :unused_aliases, @timeout)
   end
 
+  @doc false
+  def collect_unused_requires(pid) do
+    :gen_server.call(pid, :unused_requires, @timeout)
+  end
+
   # Callbacks
 
   def init(:ok) do
     state = %{
       aliases: %{},
       imports: %{},
+      requires: %{},
       references: %{},
       exports: %{},
       cache: %{},
@@ -148,6 +159,17 @@ defmodule Kernel.LexicalTracker do
       end
 
     {:reply, Enum.sort(imports), state}
+  end
+
+  def handle_call(:unused_requires, _from, state) do
+    unused_requires =
+      for {module, meta} <- state.requires,
+          Map.get(state.references, module) != :compile,
+          Keyword.get(meta[:opts], :warn, true) != false do
+        {module, meta}
+      end
+
+    {:reply, Enum.sort(unused_requires), state}
   end
 
   def handle_call(:references, _from, state) do
@@ -243,6 +265,10 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:warn_import, module}, state) do
     {:noreply, put_in(state.imports[module][@warn_key], true)}
+  end
+
+  def handle_cast({:add_require, module, meta}, state) do
+    {:noreply, put_in(state.requires[module], meta)}
   end
 
   @doc false
