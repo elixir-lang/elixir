@@ -275,8 +275,6 @@ defprotocol Inspect do
 end
 
 defimpl Inspect, for: Atom do
-  require Macro
-
   def inspect(atom, opts) do
     color_doc(Macro.inspect_atom(:literal, atom), color_key(atom), opts)
   end
