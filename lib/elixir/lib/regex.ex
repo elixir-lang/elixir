@@ -1018,6 +1018,7 @@ defmodule Regex do
           {:ok, exported} = :re.compile(regex.source, [:export] ++ regex.opts)
 
           quote do
+            __assert_assert_no_match_or_guard_scope__("an escaped Regex")
             :re.import(unquote(Macro.escape(exported)))
           end
 
