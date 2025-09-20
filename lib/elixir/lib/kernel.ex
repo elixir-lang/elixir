@@ -7004,12 +7004,6 @@ defmodule Kernel do
 
   ## Shared functions
 
-  @doc false
-  defmacro __assert_assert_no_match_or_guard_scope__(exp) do
-    assert_no_match_or_guard_scope(__CALLER__.context, exp)
-    nil
-  end
-
   defp assert_module_scope(env, fun, arity) do
     case env.module do
       nil -> raise ArgumentError, "cannot invoke #{fun}/#{arity} outside module"
