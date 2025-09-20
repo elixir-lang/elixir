@@ -1018,7 +1018,8 @@ defmodule Regex do
           {:ok, exported} = :re.compile(regex.source, [:export] ++ regex.opts)
 
           quote do
-            :re.import(unquote(Macro.escape(exported)))
+            require Regex
+            Regex.__import_pattern__(unquote(Macro.escape(exported)))
           end
 
         # TODO: Remove this when we require Erlang/OTP 28.1+
@@ -1039,6 +1040,17 @@ defmodule Regex do
         source: unquote(Macro.escape(regex.source)),
         opts: unquote(Macro.escape(regex.opts))
       }
+    end
+  end
+
+  @doc false
+  defmacro __import_pattern__(pattern) do
+    if __CALLER__.context in [:match, :guard] do
+      raise ArgumentError, "escaped"
+    end
+
+    quote do
+      :re.import(unquote(pattern))
     end
   end
 end
