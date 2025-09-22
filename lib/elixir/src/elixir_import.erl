@@ -20,7 +20,7 @@ import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) ->
     {Functions, Macros, Added} ->
       Trace andalso elixir_env:trace({import, Meta, Ref, Opts}, E),
       EI = E#{functions := Functions, macros := Macros},
-      {ok, Added, elixir_aliases:require([{from_import, true} | Meta], Ref, Opts, EI, Trace)};
+      {ok, Added, elixir_aliases:require(Meta, Ref, [{warn, false} | Opts], EI, Trace)};
 
     {error, Reason} ->
       {error, Reason}

@@ -39,11 +39,7 @@ trace({require, Meta, Module, Opts}, #{lexical_tracker := Pid, module := Current
     {from_macro, true} -> ?tracker:remote_dispatch(Pid, Module, compile);
     _ -> 
       ?tracker:add_export(Pid, Module),
-      % Only track explicit requires, not implicit ones from imports
-      case lists:keyfind(from_import, 1, Meta) of
-        {from_import, true} -> ok;
-        _ -> ?tracker:add_require(Pid, Module, [{module, CurrentModule}, {opts, Opts} | Meta])
-      end
+      ?tracker:add_require(Pid, Module, [{module, CurrentModule}, {opts, Opts} | Meta])
   end,
   ok;
 trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
