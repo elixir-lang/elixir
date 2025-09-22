@@ -691,10 +691,15 @@ defmodule Date do
   @doc """
   Adds the number of days to the given `date`.
 
-  The days are counted as Gregorian days. The date is returned in the same
-  calendar as it was given in.
+  > #### Prefer `shift/2` {: .info}
+  >
+  > Prefer `shift/2` over `add/2`, as it offers a more ergonomic API.
+  >
+  > `add/2` always considers a day to be measured according to the
+  > `Calendar.ISO`.
 
-  To shift a date by a `Duration` and according to its underlying calendar, use `Date.shift/2`.
+  The days are counted as Gregorian days, independent of the underlying
+  calendar. The date is returned in the same calendar as it was given in.
 
   ## Examples
 

@@ -1611,30 +1611,42 @@ defmodule DateTime do
   @doc """
   Adds a specified amount of time to a `DateTime`.
 
+  > #### Prefer `shift/2` {: .info}
+  >
+  > Prefer `shift/2` over `add/3`, as it offers a more ergonomic API.
+  >
+  > `add/3` provides a lower-level API which only supports fixed units
+  > such as `:hour` and `:second`, but not `:month` (as the exact length
+  > of a month depends on the current month). `add/3` always considers
+  > the unit to be computed according to the `Calendar.ISO`.
+
   Accepts an `amount_to_add` in any `unit`. `unit` can be `:day`,
   `:hour`, `:minute`, `:second` or any subsecond precision from
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
 
-  This function always considers the unit to be computed according
-  to the `Calendar.ISO`.
-
   This function relies on a contiguous representation of time,
-  ignoring the wall time and timezone changes. For example, if you add
-  one day when there are summer time/daylight saving time changes,
-  it will also change the time forward or backward by one hour,
-  so the elapsed time is precisely 24 hours. Similarly, adding just
-  a few seconds to a datetime just before "spring forward" can cause
-  wall time to increase by more than an hour.
+  ignoring timezone changes. For example, if you add one day when there
+  are summer time/daylight saving time changes, it will also change the
+  time forward or backward by one hour, so the elapsed time is precisely
+  24 hours. Similarly, adding just a few seconds to a datetime just before
+  "spring forward" can cause wall time to increase by more than an hour.
 
   While this means this function is precise in terms of elapsed time,
-  its result may be misleading in certain use cases. For example, if a
+  its result may be confusing in certain use cases. For example, if a
   user requests a meeting to happen every day at 15:00 and you use this
   function to compute all future meetings by adding day after day, this
   function may change the meeting time to 14:00 or 16:00 if there are
-  changes to the current timezone. Computing of recurring datetimes is
-  not currently supported in Elixir's standard library but it is available
-  by third-party libraries.
+  changes to the current timezone.
+
+  In case you don't want these changes to happen automatically or you
+  want to surface time zone conflicts to the user, you can add to
+  the datetime as a naive datetime and then use `from_naive/2`:
+
+      dt |> NaiveDateTime.add(1, :day) |> DateTime.from_naive(dt.time_zone)
+
+  The above will surface time jumps and ambiguous datetimes, allowing you
+  to deal with them accordingly.
 
   ## Examples
 
@@ -1663,8 +1675,6 @@ defmodule DateTime do
       ~U[2014-10-02 00:29:10.021Z]
       iex> result.microsecond
       {21000, 3}
-
-  To shift a datetime by a `Duration` and according to its underlying calendar, use `DateTime.shift/3`.
 
   """
   @doc since: "1.8.0"
@@ -1739,7 +1749,7 @@ defmodule DateTime do
   to UTC, and finally computing the new timezone in case of shifts.
   This ensures `shift/3` always returns a valid datetime.
 
-  On the other hand, time zones that observe "Daylight Saving Time"
+  Consequently, time zones that observe "Daylight Saving Time"
   or other changes, across summer/winter time will add/remove hours
   from the resulting datetime:
 
@@ -1751,11 +1761,21 @@ defmodule DateTime do
       DateTime.shift(dt, hour: 2)
       #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
 
+  Although the first example shows a difference of 2 hours when
+  comparing the wall clocks of the given datetime with the returned one,
+  due to the "spring forward" time jump, the actual ellapsed time is
+  still exactly of 1 hour.
+
   In case you don't want these changes to happen automatically or you
   want to surface time zone conflicts to the user, you can shift
   the datetime as a naive datetime and then use `from_naive/2`:
 
       dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)
+
+  The above will surface time jumps and ambiguous datetimes, allowing you
+  to deal with them accordingly.
+
+  ## ISO calendar considerations
 
   When using the default ISO calendar, durations are collapsed and
   applied in the order of months, then seconds and microseconds:

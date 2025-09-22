@@ -391,13 +391,19 @@ defmodule NaiveDateTime do
   @doc """
   Adds a specified amount of time to a `NaiveDateTime`.
 
+  > #### Prefer `shift/2` {: .info}
+  >
+  > Prefer `shift/2` over `add/3`, as it offers a more ergonomic API.
+  >
+  > `add/3` provides a lower-level API which only supports fixed units
+  > such as `:hour` and `:second`, but not `:month` (as the exact length
+  > of a month depends on the current month). `add/3` always considers
+  > the unit to be computed according to the `Calendar.ISO`.
+
   Accepts an `amount_to_add` in any `unit`. `unit` can be `:day`,
   `:hour`, `:minute`, `:second` or any subsecond precision from
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
-
-  This function always consider the unit to be computed according
-  to the `Calendar.ISO`.
 
   ## Examples
 
@@ -446,8 +452,6 @@ defmodule NaiveDateTime do
       ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> NaiveDateTime.add(dt, 21, :second)
       ~N[2000-02-29 23:00:28]
-
-  To shift a naive datetime by a `Duration` and according to its underlying calendar, use `NaiveDateTime.shift/2`.
 
   """
   @doc since: "1.4.0"
