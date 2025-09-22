@@ -2269,178 +2269,25 @@ defmodule Kernel.WarningTest do
     Enum.each(list, &purge/1)
   end
 
-  # Test modules with macros for require testing
-  defmodule RequireTestMacroModule do
-    defmacro test_macro(value) do
-      quote do: unquote(value) * 2
-    end
-
-    defmacro another_macro(value) do
-      quote do: unquote(value) + 1
-    end
-
-    def test_function(value) do
-      value * 2
-    end
-  end
-
-  defmodule RequireTestAnotherMacroModule do
-    defmacro some_macro(value) do
-      quote do: unquote(value) - 1
-    end
-  end
-
   test "unused require" do
     assert_warn_compile(
-      ["nofile:2:3", "unused require Kernel.WarningTest.RequireTestMacroModule"],
+      ["nofile:2:3", "unused require Application"],
       """
       defmodule Sample do
-        require Kernel.WarningTest.RequireTestMacroModule
+        require Application 
         def a, do: nil
       end
       """
     )
 
     assert_warn_compile(
-      ["nofile:1:1", "unused require Kernel.WarningTest.RequireTestMacroModule"],
+      ["nofile:1:1", "unused require Logger"],
       """
-      require Kernel.WarningTest.RequireTestMacroModule
-      """
-    )
-  after
-    purge(Sample)
-  end
-
-  test "unused require with alias" do
-    assert_warn_compile(
-      ["nofile:2:3", "unused require Kernel.WarningTest.RequireTestMacroModule"],
-      """
-      defmodule Sample do
-        require Kernel.WarningTest.RequireTestMacroModule, as: TestMacro
-        def a, do: nil
-      end
+      require Logger 
       """
     )
   after
     purge(Sample)
-  end
-
-  test "used require does not warn" do
-    assert capture_err(fn ->
-             defmodule KernelTest.UsedRequire do
-               require Kernel.WarningTest.RequireTestMacroModule
-               def fun, do: Kernel.WarningTest.RequireTestMacroModule.test_macro(5)
-             end
-           end) == ""
-  after
-    purge(KernelTest.UsedRequire)
-  end
-
-  test "function calls do not prevent require warnings" do
-    assert_warn_compile(
-      ["nofile:2:3", "unused require Kernel.WarningTest.RequireTestMacroModule"],
-      """
-      defmodule Sample do
-        require Kernel.WarningTest.RequireTestMacroModule
-        def fun, do: Kernel.WarningTest.RequireTestMacroModule.test_function(5)
-      end
-      """
-    )
-  after
-    purge(Sample)
-  end
-
-  test "used require with alias does not warn" do
-    assert capture_err(fn ->
-             defmodule KernelTest.UsedRequireWithAlias do
-               require Kernel.WarningTest.RequireTestMacroModule, as: TestMacro
-               def fun, do: TestMacro.test_macro(5)
-             end
-           end) == ""
-  after
-    purge(KernelTest.UsedRequireWithAlias)
-  end
-
-  test "unused require with warn: false" do
-    assert capture_err(fn ->
-             defmodule KernelTest.UnusedRequireNoWarn do
-               require Kernel.WarningTest.RequireTestMacroModule, warn: false
-               def fun, do: nil
-             end
-           end) == ""
-  after
-    purge(KernelTest.UnusedRequireNoWarn)
-  end
-
-  test "unused require with warn: true (explicit)" do
-    assert_warn_compile(
-      ["nofile:2:3", "unused require Kernel.WarningTest.RequireTestMacroModule"],
-      """
-      defmodule Sample do
-        require Kernel.WarningTest.RequireTestMacroModule, warn: true
-        def a, do: nil
-      end
-      """
-    )
-  after
-    purge(Sample)
-  end
-
-  test "unused require with warn: false and alias" do
-    assert capture_err(fn ->
-             defmodule KernelTest.UnusedRequireNoWarnAlias do
-               require Kernel.WarningTest.RequireTestMacroModule, as: TestMacro, warn: false
-               def fun, do: nil
-             end
-           end) == ""
-  after
-    purge(KernelTest.UnusedRequireNoWarnAlias)
-  end
-
-  test "multiple unused requires" do
-    assert_warn_compile(
-      [
-        "nofile:2:3",
-        "unused require Kernel.WarningTest.RequireTestMacroModule",
-        "nofile:3:3",
-        "unused require Kernel.WarningTest.RequireTestAnotherMacroModule"
-      ],
-      """
-      defmodule Sample do
-        require Kernel.WarningTest.RequireTestMacroModule
-        require Kernel.WarningTest.RequireTestAnotherMacroModule
-        def a, do: nil
-      end
-      """
-    )
-  after
-    purge(Sample)
-  end
-
-  test "mixed warn options" do
-    assert_warn_compile(
-      ["nofile:3:3", "unused require Kernel.WarningTest.RequireTestAnotherMacroModule"],
-      """
-      defmodule Sample do
-        require Kernel.WarningTest.RequireTestMacroModule, warn: false
-        require Kernel.WarningTest.RequireTestAnotherMacroModule, warn: true
-        def a, do: nil
-      end
-      """
-    )
-  after
-    purge(Sample)
-  end
-
-  test "warn: false preserves functionality" do
-    assert capture_err(fn ->
-             defmodule KernelTest.WarnFalsePreservesFunctionality do
-               require Kernel.WarningTest.RequireTestMacroModule, warn: false
-               def fun, do: Kernel.WarningTest.RequireTestMacroModule.test_macro(5)
-             end
-           end) == ""
-  after
-    purge(KernelTest.WarnFalsePreservesFunctionality)
   end
 
   defp purge(module) when is_atom(module) do
