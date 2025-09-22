@@ -8,24 +8,29 @@ defprotocol JSON.Encoder do
   If you have a struct, you can derive the implementation of this protocol
   by specifying which fields should be encoded to JSON:
 
-      @derive {JSON.Encoder, only: [....]}
+      @derive {JSON.Encoder, only: [...]}
       defstruct ...
 
-  It is also possible to encode all fields or skip some fields via the
-  `:except` option:
+  Additionally, you can exclude specific fields using the `:except` option or
+  encode all fields by omitting both options entirely, but these should be used
+  with caution:
+
+      @derive {JSON.Encoder, except: [...]}
+      defstruct ...
 
       @derive JSON.Encoder
       defstruct ...
 
   > #### Leaking Private Information {: .error}
   >
-  > The `:except` approach should be used carefully to avoid
-  > accidentally leaking private information when new fields are added.
+  > Prefer using `:only` to avoid accidentally leaking private information when
+  > new fields are added. Other approaches should be used with auction.
 
-  Finally, if you don't own the struct you want to encode to JSON,
-  you may use `Protocol.derive/3` placed outside of any module:
+  You can also use `Protocol.derive/3` if you don't own the struct that you want
+  to encode to JSON:
 
       Protocol.derive(JSON.Encoder, NameOfTheStruct, only: [...])
+      Protocol.derive(JSON.Encoder, NameOfTheStruct, except: [...])
       Protocol.derive(JSON.Encoder, NameOfTheStruct)
 
   """
