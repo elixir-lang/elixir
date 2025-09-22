@@ -505,13 +505,17 @@ defmodule Time do
   @doc """
   Adds the `amount_to_add` of `unit`s to the given `time`.
 
+  > #### Prefer `shift/2` {: .info}
+  >
+  > Prefer `shift/2` over `add/3`, as it offers a more ergonomic API.
+  >
+  > `add/3` always considers the unit to be computed according to
+  > the `Calendar.ISO`.
+
   Accepts an `amount_to_add` in any `unit`. `unit` can be
   `:hour`, `:minute`, `:second` or any subsecond precision from
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
-
-  This function always consider the unit to be computed according
-  to the `Calendar.ISO`.
 
   Note the result value represents the time of day, meaning that it is cyclic,
   for instance, it will never go over 24 hours for the ISO calendar.
@@ -548,8 +552,6 @@ defmodule Time do
       ~T[00:29:10.021]
       iex> result.microsecond
       {21000, 3}
-
-  To shift a time by a `Duration` and according to its underlying calendar, use `Time.shift/2`.
 
   """
   @doc since: "1.6.0"
