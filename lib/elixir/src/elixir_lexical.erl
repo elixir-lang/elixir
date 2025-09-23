@@ -18,6 +18,7 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
         Res ->
           warn_unused_aliases(Pid, LexEnv),
           warn_unused_imports(Pid, LexEnv),
+          warn_unused_requires(Pid, LexEnv),
           AfterExecutionCallback(LexEnv),
           Res
       after
@@ -33,10 +34,12 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
   ok;
-trace({require, Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
+trace({require, Meta, Module, Opts}, #{lexical_tracker := Pid, module := CurrentModule}) ->
   case lists:keyfind(from_macro, 1, Meta) of
     {from_macro, true} -> ?tracker:remote_dispatch(Pid, Module, compile);
-    _ -> ?tracker:add_export(Pid, Module)
+    _ -> 
+      ?tracker:add_export(Pid, Module),
+      ?tracker:add_require(Pid, Module, [{module, CurrentModule}, {opts, Opts} | Meta])
   end,
   ok;
 trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
@@ -95,6 +98,11 @@ warn_unused_imports(Pid, E) ->
       {ModOrMFA, Meta} <- unused_imports_for_module(Module, Imports)],
   ok.
 
+warn_unused_requires(Pid, E) ->
+  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module})
+   || {Module, Meta} <- ?tracker:collect_unused_requires(Pid)],
+  ok.
+
 unused_imports_for_module(Module, Imports) ->
   case Imports of
     #{Module := Meta} -> [{Module, Meta}];
@@ -111,4 +119,6 @@ format_error({unused_alias, Module}) ->
 format_error({unused_import, {Module, Function, Arity}}) ->
   io_lib:format("unused import ~ts.~ts/~w", [elixir_aliases:inspect(Module), Function, Arity]);
 format_error({unused_import, Module}) ->
-  io_lib:format("unused import ~ts", [elixir_aliases:inspect(Module)]).
+  io_lib:format("unused import ~ts", [elixir_aliases:inspect(Module)]);
+format_error({unused_require, Module}) ->
+  io_lib:format("unused require ~ts", [elixir_aliases:inspect(Module)]).

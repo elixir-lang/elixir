@@ -364,7 +364,7 @@ defmodule CodeTest do
     end
 
     test "with defguard" do
-      require Integer
+      require Integer, warn: false
       env = Code.env_for_eval(__ENV__)
       quoted = quote do: Integer.is_even(1)
       {false, binding, env} = Code.eval_quoted_with_env(quoted, [], env, prune_binding: true)

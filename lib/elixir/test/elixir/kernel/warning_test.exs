@@ -2269,6 +2269,27 @@ defmodule Kernel.WarningTest do
     Enum.each(list, &purge/1)
   end
 
+  test "unused require" do
+    assert_warn_compile(
+      ["nofile:2:3", "unused require Application"],
+      """
+      defmodule Sample do
+        require Application 
+        def a, do: nil
+      end
+      """
+    )
+
+    assert_warn_compile(
+      ["nofile:1:1", "unused require Logger"],
+      """
+      require Logger 
+      """
+    )
+  after
+    purge(Sample)
+  end
+
   defp purge(module) when is_atom(module) do
     :code.purge(module)
     :code.delete(module)
