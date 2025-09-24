@@ -75,9 +75,19 @@ defmodule Mix.Tasks.Cmd do
     end
 
     if apps == [] or Mix.Project.config()[:app] in apps do
+      path = hd(args)
+      rest = tl(args)
+
+      path =
+        if String.contains?(path, ["/", "\\"]) and Path.type(path) != :absolute do
+          Path.expand(path, Keyword.get(opts, :cd, "."))
+        else
+          path
+        end
+
       cmd_opts = Keyword.take(opts, [:cd])
 
-      case Mix.shell().cmd({hd(args), tl(args)}, cmd_opts) do
+      case Mix.shell().cmd({path, rest}, cmd_opts) do
         0 -> :ok
         status -> exit(status)
       end
