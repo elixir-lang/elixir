@@ -14,6 +14,21 @@ defmodule Mix.Tasks.CmdTest do
     assert_received {:mix_shell, :run, ["hello world\n"]}
   end
 
+  @tag :unix
+  test "supports relative paths" do
+    in_tmp("cmd-relative", fn ->
+      File.mkdir_p!("priv")
+      File.write!("priv/world.sh", "#!/bin/sh\necho world")
+      File.chmod!("priv/world.sh", 0o755)
+
+      Mix.Task.run("cmd", ["priv/world.sh"])
+      assert_received {:mix_shell, :run, ["world\n"]}
+
+      Mix.Task.run("cmd", ["--cd", "priv", "./world.sh"])
+      assert_received {:mix_shell, :run, ["world\n"]}
+    end)
+  end
+
   test "runs the command for each app" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
