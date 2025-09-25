@@ -76,9 +76,10 @@ defmodule Regex do
 
     * `:caseless` (i) - adds case insensitivity
 
-    * `:dotall` (s) - causes dot to match newlines and also set newline to
-      anycrlf; the new line setting can be overridden by setting `(*CR)` or
-      `(*LF)` or `(*CRLF)` or `(*ANY)` according to `:re` documentation
+    * `:dotall` (s) - causes dot to match newlines and also sets newline to
+      `(*ANYCRLF)`; the new line setting can be overridden by starting the
+      regular expression pattern with `(*CR)`, `(*LF)`, `(*CRLF)`, `(*ANY)` or
+      `(*NUL)` as described in the [`:re` documentation](`:re`)
 
     * `:multiline` (m) - causes `^` and `$` to mark the beginning and end of
       each line; use `\A` and `\z` to match the end or beginning of the string
