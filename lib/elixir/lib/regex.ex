@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 defmodule Regex do
+  # TODO: Remove the "Starting from Erlang/OTP 28" part in the Modifiers'
+  #       section once Erlang/OTP 28+ is exclusively supported.
   @moduledoc ~S"""
   Provides regular expressions for Elixir.
 
@@ -77,9 +79,15 @@ defmodule Regex do
     * `:caseless` (i) - adds case insensitivity
 
     * `:dotall` (s) - causes dot to match newlines and also sets newline to
-      `(*ANYCRLF)`; the new line setting can be overridden by starting the
-      regular expression pattern with `(*CR)`, `(*LF)`, `(*CRLF)`, `(*ANY)` or
-      `(*NUL)` as described in the [`:re` documentation](`:re`)
+      `(*ANYCRLF)`.\
+      The new line setting, as described in the [`:re` documentation](`:re`),
+      can be overridden by starting the regular expression pattern with:
+      * `(*CR)` - carriage return
+      * `(*LF)` - line feed
+      * `(*CRLF)` - carriage return, followed by line feed
+      * `(*ANYCRLF)` - any of the three above
+      * `(*ANY)` - all Unicode newline sequences
+      * _Starting from Erlang/OTP 28, `(*NUL)` - the NUL character (binary zero)_
 
     * `:multiline` (m) - causes `^` and `$` to mark the beginning and end of
       each line; use `\A` and `\z` to match the end or beginning of the string
