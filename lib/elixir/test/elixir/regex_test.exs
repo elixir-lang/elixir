@@ -32,7 +32,7 @@ defmodule RegexTest do
   test "module attribute in match context" do
     assert_raise(
       ArgumentError,
-      ~r/invalid expression in match, an escaped Regex is not allowed in patterns such as function clauses/,
+      ~r/escaped Regex structs are not allowed in match or guards/,
       fn ->
         Code.eval_quoted(
           quote do

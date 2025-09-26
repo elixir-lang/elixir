@@ -167,14 +167,9 @@ defmodule MacroTest do
                [],
                [
                  __struct__: Regex,
-                 re_pattern: {
-                   :__block__,
-                   [],
-                   [
-                     {:__assert_assert_no_match_or_guard_scope__, _, _},
-                     {{:., [], [:re, :import]}, [], [{:{}, [], [:re_exported_pattern | _]}]}
-                   ]
-                 },
+                 re_pattern:
+                   {{:., [], [{:__aliases__, _, [:Regex]}, :__import_pattern__]},
+                    [required: true], [{:{}, [], [:re_exported_pattern | _]}]},
                  source: "foo",
                  opts: []
                ]
