@@ -69,7 +69,7 @@ defmodule IEx.Evaluator do
   """
   def parse(input, opts, parser_state)
 
-  def parse(input, opts, []), do: parse(input, opts, {[], :other})
+  def parse(input, opts, []), do: parse(input, opts, {[], :other, nil})
 
   def parse(@break_trigger, opts, _parser_state) do
     :elixir_errors.parse_error(
@@ -81,7 +81,7 @@ defmodule IEx.Evaluator do
     )
   end
 
-  def parse(input, opts, {buffer, last_op}) do
+  def parse(input, opts, {buffer, last_op, adjusted_op}) do
     input = buffer ++ input
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -89,7 +89,8 @@ defmodule IEx.Evaluator do
 
     result =
       with {:ok, tokens} <- :elixir.string_to_tokens(input, line, column, file, opts),
-           {:ok, adjusted_tokens} <- adjust_operator(tokens, line, column, file, opts, last_op),
+           {:ok, adjusted_tokens, adjusted_op} <-
+             adjust_operator(tokens, line, column, file, opts, last_op),
            {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
         last_op =
           case forms do
@@ -97,15 +98,37 @@ defmodule IEx.Evaluator do
             _ -> :other
           end
 
+        forms =
+          if adjusted_op do
+            quote do
+              case Process.get(:iex_error) do
+                {_kind, _error, _stacktrace} ->
+                  IO.write(:stdio, [
+                    "Skippping evaluation of:\n\n",
+                    unquote(input),
+                    "\n\n",
+                    "For safety, you cannot begin an expression with `#{unquote(adjusted_op)}` when the last expression was an error.\n"
+                  ])
+
+                  IEx.dont_display_result()
+
+                _ ->
+                  unquote(forms)
+              end
+            end
+          else
+            forms
+          end
+
         {:ok, forms, last_op}
       end
 
     case result do
       {:ok, forms, last_op} ->
-        {:ok, forms, {[], last_op}}
+        {:ok, forms, {[], last_op, adjusted_op}}
 
       {:error, {_, _, ""}} ->
-        {:incomplete, {input, last_op}}
+        {:incomplete, {input, last_op, adjusted_op}}
 
       {:error, {location, error, token}} ->
         :elixir_errors.parse_error(
@@ -129,10 +152,10 @@ defmodule IEx.Evaluator do
   defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do
     {:ok, prefix} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
-    {:ok, prefix ++ tokens}
+    {:ok, prefix ++ tokens, op_type}
   end
 
-  defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens}
+  defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens, nil}
 
   @doc """
   Gets a value out of the binding, using the provided
@@ -293,9 +316,12 @@ defmodule IEx.Evaluator do
   defp safe_eval_and_inspect(forms, counter, state) do
     put_history(state)
     put_whereami(state)
-    {:ok, eval_and_inspect(forms, counter, state)}
+    result = eval_and_inspect(forms, counter, state)
+    Process.delete(:iex_error)
+    {:ok, result}
   catch
     kind, error ->
+      Process.put(:iex_error, {kind, error, __STACKTRACE__})
       print_error(kind, error, __STACKTRACE__)
       {:error, state}
   after
