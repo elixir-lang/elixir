@@ -101,7 +101,7 @@ defmodule IEx.Evaluator do
         forms =
           if adjusted_op != nil do
             quote do
-              if Process.get(:iex_error?) == true do
+              if Process.get(:iex_error) do
                 reraise RuntimeError.exception(
                           "skipping evaluation of expression because pipeline has failed"
                         ),
@@ -311,11 +311,17 @@ defmodule IEx.Evaluator do
     put_history(state)
     put_whereami(state)
     result = eval_and_inspect(forms, counter, state)
-    Process.delete(:iex_error?)
+
+    if Process.get(:iex_error) == :force do
+      Process.put(:iex_error, true)
+    else
+      Process.delete(:iex_error)
+    end
+
     {:ok, result}
   catch
     kind, error ->
-      Process.put(:iex_error?, true)
+      Process.put(:iex_error, true)
       print_error(kind, error, __STACKTRACE__)
       {:error, state}
   after
