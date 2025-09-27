@@ -5,7 +5,6 @@
 defmodule Logger.App do
   @moduledoc false
 
-  require Logger
   use Application
 
   @doc false

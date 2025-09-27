@@ -10,12 +10,21 @@ defmodule Kernel.MacrosTest.Nested do
   defmacro do_identity!(do: x) do
     x
   end
+
+  defmacro unused_require do
+    quote do
+      require Integer
+    end
+  end
 end
 
 defmodule Kernel.MacrosTest do
   use ExUnit.Case, async: true
 
   Kernel.MacrosTest.Nested = require Kernel.MacrosTest.Nested, as: Nested
+
+  # Unused require from macro should not warn
+  Kernel.MacrosTest.Nested.unused_require()
 
   @spec my_macro :: Macro.t()
   defmacro my_macro do

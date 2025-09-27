@@ -300,7 +300,7 @@ defmodule Macro.Env do
 
       iex> Macro.Env.required?(__ENV__, Integer)
       false
-      iex> require Integer
+      iex> require Integer, warn: false
       iex> Macro.Env.required?(__ENV__, Integer)
       true
 

@@ -22,6 +22,15 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc """
+  Invoked during module expansion to annotate a require
+  must be warned if unused.
+  """
+  def warn_require(pid, meta, module) do
+    :gen_server.cast(pid, {:warn_require, module, meta})
+    module
+  end
+
+  @doc """
   Invoked during module expansion to annotate an alias
   must be warned if unused.
   """
@@ -163,9 +172,7 @@ defmodule Kernel.LexicalTracker do
 
   def handle_call(:unused_requires, _from, state) do
     unused_requires =
-      for {module, meta} <- state.requires,
-          Map.get(state.references, module) != :compile,
-          Keyword.get(meta[:opts], :warn, true) != false do
+      for {module, meta} <- state.requires, Map.get(state.references, module) != :compile do
         {module, meta}
       end
 
@@ -267,7 +274,7 @@ defmodule Kernel.LexicalTracker do
     {:noreply, put_in(state.imports[module][@warn_key], true)}
   end
 
-  def handle_cast({:add_require, module, meta}, state) do
+  def handle_cast({:warn_require, module, meta}, state) do
     {:noreply, put_in(state.requires[module], meta)}
   end
 

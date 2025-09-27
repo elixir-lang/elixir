@@ -604,7 +604,7 @@ defmodule Code do
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
-      iex> require Integer
+      iex> require Integer, warn: false
       iex> {result, binding} = Code.eval_string("if Integer.is_odd(a), do: a + b", [a: 1, b: 2], __ENV__)
       iex> result
       3

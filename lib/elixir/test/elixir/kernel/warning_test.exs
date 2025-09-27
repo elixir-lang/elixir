@@ -2274,7 +2274,7 @@ defmodule Kernel.WarningTest do
       ["nofile:2:3", "unused require Application"],
       """
       defmodule Sample do
-        require Application 
+        require Application
         def a, do: nil
       end
       """
@@ -2283,9 +2283,22 @@ defmodule Kernel.WarningTest do
     assert_warn_compile(
       ["nofile:1:1", "unused require Logger"],
       """
-      require Logger 
+      require Logger
       """
     )
+  after
+    purge(Sample)
+  end
+
+  test "conditional require" do
+    assert capture_err(fn ->
+             defmodule KernelTest.ConditionalRequire do
+               if false do
+                 require Integer
+                 def fun(x), do: Integer.is_odd(x)
+               end
+             end
+           end) == ""
   after
     purge(Sample)
   end

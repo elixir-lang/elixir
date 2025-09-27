@@ -1032,7 +1032,7 @@ defmodule Protocol do
     # expression (and therefore most likely a compile-time one).
     behaviour =
       if is_atom(protocol) do
-        quote(do: require(unquote(protocol), warn: false))
+        quote(do: require(unquote(protocol)))
       else
         quote(do: protocol)
       end

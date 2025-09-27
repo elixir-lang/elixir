@@ -91,56 +91,22 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.collect_unused_imports(config[:pid]) == [{String, %{}}]
   end
 
-  test "unused requires", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [])
-    assert D.collect_unused_requires(config[:pid]) == [{String, [module: TestModule, opts: []]}]
-  end
-
-  test "used requires are not unused", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [])
-    D.remote_dispatch(config[:pid], String, :compile)
-    assert D.collect_unused_requires(config[:pid]) == []
-  end
-
-  test "requires with warn: false are not unused", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [warn: false])
-    assert D.collect_unused_requires(config[:pid]) == []
-  end
-
-  test "requires with warn: true are unused when not referenced", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [warn: true])
-
-    assert D.collect_unused_requires(config[:pid]) == [
-             {String, [module: TestModule, opts: [warn: true]]}
-           ]
-  end
-
-  test "multiple unused requires", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [])
-    D.add_require(config[:pid], List, module: TestModule, opts: [])
-
-    assert D.collect_unused_requires(config[:pid]) == [
-             {List, [module: TestModule, opts: []]},
-             {String, [module: TestModule, opts: []]}
-           ]
-  end
-
-  test "mixed used and unused requires", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [])
-    D.add_require(config[:pid], List, module: TestModule, opts: [])
-    D.remote_dispatch(config[:pid], String, :compile)
-    assert D.collect_unused_requires(config[:pid]) == [{List, [module: TestModule, opts: []]}]
-  end
-
-  test "function calls do not count as macro usage", config do
-    D.add_require(config[:pid], String, module: TestModule, opts: [])
-    D.remote_dispatch(config[:pid], String, :runtime)
-    assert D.collect_unused_requires(config[:pid]) == [{String, [module: TestModule, opts: []]}]
-  end
-
   test "imports with no warn are not unused", config do
     D.add_import(config[:pid], String, [], 1, false)
     assert D.collect_unused_imports(config[:pid]) == []
+  end
+
+  test "unused requires", config do
+    D.warn_require(config[:pid], [], String)
+    D.warn_require(config[:pid], [], List)
+    D.remote_dispatch(config[:pid], String, :compile)
+    assert D.collect_unused_requires(config[:pid]) == [{List, []}]
+  end
+
+  test "function calls do not count as macro usage", config do
+    D.warn_require(config[:pid], [], String)
+    D.remote_dispatch(config[:pid], String, :runtime)
+    assert D.collect_unused_requires(config[:pid]) == [{String, []}]
   end
 
   test "unused aliases", config do

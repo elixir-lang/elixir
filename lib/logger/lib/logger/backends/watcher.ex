@@ -4,7 +4,6 @@
 
 defmodule Logger.Backends.Watcher do
   @moduledoc false
-  require Logger
   use GenServer
 
   @doc false
