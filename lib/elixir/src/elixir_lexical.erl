@@ -99,7 +99,17 @@ warn_unused_imports(Pid, E) ->
   ok.
 
 warn_unused_requires(Pid, E) ->
-  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module})
+  [case lists:keyfind(opts, 1, Meta) of
+     {opts, Opts} ->
+       case lists:keyfind(as, 1, Opts) of
+         {as, Alias} when is_atom(Alias) ->
+           elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module, Alias});
+         _ ->
+           elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module})
+       end;
+     _ ->
+       elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module})
+   end
    || {Module, Meta} <- ?tracker:collect_unused_requires(Pid)],
   ok.
 
@@ -121,4 +131,7 @@ format_error({unused_import, {Module, Function, Arity}}) ->
 format_error({unused_import, Module}) ->
   io_lib:format("unused import ~ts", [elixir_aliases:inspect(Module)]);
 format_error({unused_require, Module}) ->
-  io_lib:format("unused require ~ts", [elixir_aliases:inspect(Module)]).
+  io_lib:format("unused require ~ts", [elixir_aliases:inspect(Module)]);
+format_error({unused_require, Module, Alias}) ->
+  io_lib:format("unused require ~ts. Consider using alias ~ts, as: ~ts instead", 
+                [elixir_aliases:inspect(Module), elixir_aliases:inspect(Module), elixir_aliases:inspect(Alias)]).

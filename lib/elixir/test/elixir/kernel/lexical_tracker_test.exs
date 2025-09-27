@@ -138,6 +138,22 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.collect_unused_requires(config[:pid]) == [{String, [module: TestModule, opts: []]}]
   end
 
+  test "unused require with as option - module not used", config do
+    D.add_require(config[:pid], Application, module: TestModule, opts: [as: Foo])
+
+    assert D.collect_unused_requires(config[:pid]) == [
+             {Application, [module: TestModule, opts: [as: Foo]]}
+           ]
+  end
+
+  test "unused require with as option - module used via alias", config do
+    D.add_require(config[:pid], Application, module: TestModule, opts: [as: Foo])
+
+    assert D.collect_unused_requires(config[:pid]) == [
+             {Application, [module: TestModule, opts: [as: Foo]]}
+           ]
+  end
+
   test "imports with no warn are not unused", config do
     D.add_import(config[:pid], String, [], 1, false)
     assert D.collect_unused_imports(config[:pid]) == []

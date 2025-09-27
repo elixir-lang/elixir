@@ -2290,6 +2290,23 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unused require with as: suggest alias" do
+    assert_warn_compile(
+      [
+        "nofile:2:3",
+        "unused require Application. Consider using alias Application, as: Foo instead"
+      ],
+      """
+      defmodule Sample do
+        require Application, as: Foo
+        def a, do: Foo.app_dir(:bar)
+      end
+      """
+    )
+  after
+    purge(Sample)
+  end
+
   defp purge(module) when is_atom(module) do
     :code.purge(module)
     :code.delete(module)
