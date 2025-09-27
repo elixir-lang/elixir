@@ -99,22 +99,9 @@ defmodule IEx.Evaluator do
           end
 
         forms =
-          if adjusted_op do
+          if adjusted_op != nil and Process.get(:iex_error) != nil do
             quote do
-              case Process.get(:iex_error) do
-                {_kind, _error, _stacktrace} ->
-                  IO.write(:stdio, [
-                    "Skippping evaluation of:\n\n",
-                    unquote(input),
-                    "\n\n",
-                    "For safety, you cannot begin an expression with `#{unquote(adjusted_op)}` when the last expression was an error.\n"
-                  ])
-
-                  IEx.dont_display_result()
-
-                _ ->
-                  unquote(forms)
-              end
+             reraise RuntimeError.exception("skipping evaluation of expression because pipeline has failed"), []
             end
           else
             forms
