@@ -168,7 +168,8 @@ defmodule MacroTest do
                [
                  __struct__: Regex,
                  re_pattern:
-                   {{:., [], [:re, :import]}, [], [{:{}, [], [:re_exported_pattern | _]}]},
+                   {{:., [], [{:__aliases__, _, [:Regex]}, :__import_pattern__]},
+                    [required: true], [{:{}, [], [:re_exported_pattern | _]}]},
                  source: "foo",
                  opts: []
                ]

@@ -28,6 +28,25 @@ defmodule RegexTest do
     end
   end
 
+  @tag :re_import
+  test "module attribute in match context" do
+    assert_raise(
+      ArgumentError,
+      ~r/escaped Regex structs are not allowed in match or guards/,
+      fn ->
+        Code.eval_quoted(
+          quote do
+            defmodule ModAttrGuard do
+              @regex ~r/example/
+              def example?(@regex), do: true
+              def example?(_), do: false
+            end
+          end
+        )
+      end
+    )
+  end
+
   test "multiline" do
     refute Regex.match?(~r/^b$/, "a\nb\nc")
     assert Regex.match?(~r/^b$/m, "a\nb\nc")

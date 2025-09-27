@@ -1008,6 +1008,9 @@ defmodule Regex do
 
     pattern_ast =
       cond do
+        is_nil(regex.re_pattern) ->
+          nil
+
         # TODO: Remove this when we require Erlang/OTP 28+
         # Before OTP 28.0, patterns did not contain any refs and could be safely be escaped
         :erlang.system_info(:otp_release) < [?2, ?8] ->
@@ -1018,8 +1021,10 @@ defmodule Regex do
           {:ok, exported} = :re.compile(regex.source, [:export] ++ regex.opts)
 
           quote do
-            :re.import(unquote(Macro.escape(exported)))
+            Regex.__import_pattern__(unquote(Macro.escape(exported)))
           end
+          # we now that the Regex module is defined at this stage, so this macro can be safely called
+          |> Macro.update_meta(&([required: true] ++ &1))
 
         # TODO: Remove this when we require Erlang/OTP 28.1+
         # OTP 28.0 works in degraded mode performance-wise, we need to recompile from the source
@@ -1039,6 +1044,17 @@ defmodule Regex do
         source: unquote(Macro.escape(regex.source)),
         opts: unquote(Macro.escape(regex.opts))
       }
+    end
+  end
+
+  @doc false
+  defmacro __import_pattern__(pattern) do
+    if __CALLER__.context in [:match, :guard] do
+      raise ArgumentError, "escaped Regex structs are not allowed in match or guards"
+    end
+
+    quote do
+      :re.import(unquote(pattern))
     end
   end
 end
