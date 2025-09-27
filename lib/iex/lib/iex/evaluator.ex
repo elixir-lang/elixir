@@ -206,6 +206,10 @@ defmodule IEx.Evaluator do
 
   defp loop(%{server: server, ref: ref} = state) do
     receive do
+      {:reader_errored, ^server} ->
+        Process.put(:iex_error, true)
+        loop(state)
+
       {:eval, ^server, code, counter} ->
         {status, state} = safe_eval_and_inspect(code, counter, state)
         send(server, {:evaled, self(), status})
@@ -318,11 +322,7 @@ defmodule IEx.Evaluator do
     put_whereami(state)
     result = eval_and_inspect(forms, counter, state)
 
-    if Process.get(:iex_error) == :force do
-      Process.put(:iex_error, true)
-    else
-      Process.delete(:iex_error)
-    end
+    Process.delete(:iex_error)
 
     {:ok, result}
   catch
