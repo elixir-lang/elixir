@@ -101,7 +101,7 @@ defmodule IEx.Evaluator do
         forms =
           if adjusted_op != nil do
             quote do
-              if Process.get(:iex_error) do
+              if Process.get(:iex_error, false) do
                 reraise RuntimeError.exception(
                           "skipping evaluation of expression because pipeline has failed"
                         ),
