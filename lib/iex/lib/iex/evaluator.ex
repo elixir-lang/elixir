@@ -69,7 +69,7 @@ defmodule IEx.Evaluator do
   """
   def parse(input, opts, parser_state)
 
-  def parse(input, opts, []), do: parse(input, opts, {[], :other, nil})
+  def parse(input, opts, []), do: parse(input, opts, {[], :other})
 
   def parse(@break_trigger, opts, _parser_state) do
     :elixir_errors.parse_error(
@@ -81,7 +81,7 @@ defmodule IEx.Evaluator do
     )
   end
 
-  def parse(input, opts, {buffer, last_op, adjusted_op}) do
+  def parse(input, opts, {buffer, last_op}) do
     input = buffer ++ input
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -99,9 +99,16 @@ defmodule IEx.Evaluator do
           end
 
         forms =
-          if adjusted_op != nil and Process.get(:iex_error) != nil do
+          if adjusted_op != nil do
             quote do
-             reraise RuntimeError.exception("skipping evaluation of expression because pipeline has failed"), []
+              if Process.get(:iex_error?) == true do
+                reraise RuntimeError.exception(
+                          "skipping evaluation of expression because pipeline has failed"
+                        ),
+                        []
+              else
+                unquote(forms)
+              end
             end
           else
             forms
@@ -112,10 +119,10 @@ defmodule IEx.Evaluator do
 
     case result do
       {:ok, forms, last_op} ->
-        {:ok, forms, {[], last_op, adjusted_op}}
+        {:ok, forms, {[], last_op}}
 
       {:error, {_, _, ""}} ->
-        {:incomplete, {input, last_op, adjusted_op}}
+        {:incomplete, {input, last_op}}
 
       {:error, {location, error, token}} ->
         :elixir_errors.parse_error(
@@ -304,11 +311,11 @@ defmodule IEx.Evaluator do
     put_history(state)
     put_whereami(state)
     result = eval_and_inspect(forms, counter, state)
-    Process.delete(:iex_error)
+    Process.delete(:iex_error?)
     {:ok, result}
   catch
     kind, error ->
-      Process.put(:iex_error, {kind, error, __STACKTRACE__})
+      Process.put(:iex_error?, true)
       print_error(kind, error, __STACKTRACE__)
       {:error, state}
   after
