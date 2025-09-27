@@ -101,14 +101,8 @@ defmodule IEx.Evaluator do
         forms =
           if adjusted_op != nil do
             quote do
-              if Process.get(:iex_error, false) do
-                reraise RuntimeError.exception(
-                          "skipping evaluation of expression because pipeline has failed"
-                        ),
-                        []
-              else
-                unquote(forms)
-              end
+              IEx.Evaluator.assert_no_error!()
+              unquote(forms)
             end
           else
             forms
@@ -150,6 +144,18 @@ defmodule IEx.Evaluator do
   end
 
   defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens, nil}
+
+  @doc """
+  Raises an error if the last iex result was itself an error
+  """
+  def assert_no_error!() do
+    if Process.get(:iex_error, false) do
+      reraise RuntimeError.exception(
+                "skipping evaluation of expression because pipeline has failed"
+              ),
+              []
+    end
+  end
 
   @doc """
   Gets a value out of the binding, using the provided
