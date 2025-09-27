@@ -150,6 +150,15 @@ defmodule IEx.Server do
         end
 
       {:io_reply, ^input, {:error, kind, error, stacktrace}} ->
+        send(
+          evaluator,
+          {:eval, self(),
+           quote do
+             Process.put(:iex_error, :force)
+             IEx.dont_display_result()
+           end, 0}
+        )
+
         banner = Exception.format_banner(kind, error, stacktrace)
 
         banner =
