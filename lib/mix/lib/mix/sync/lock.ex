@@ -185,9 +185,15 @@ defmodule Mix.Sync.Lock do
         %{socket: socket, path: path}
 
       {:ok, _n} ->
-        # We grabbed lock_1+, so we need to replace lock_0 and clean up
-        take_over(path, port_path)
-        %{socket: socket, path: path}
+        # We grabbed lock_1+, so we need to replace lock_0 and clean up.
+        # If another process races us and already replaced lock_0, we retry.
+        case take_over(path, port_path) do
+          :ok ->
+            %{socket: socket, path: path}
+
+          :retry ->
+            try_lock(path, socket, port, on_taken)
+        end
 
       {:taken, probe_socket, os_pid} ->
         # Another process has the lock, wait for close and start over
@@ -312,20 +318,36 @@ defmodule Mix.Sync.Lock do
 
     lock_path = Path.join(path, "lock_0")
 
-    # We linked to lock_N successfully, so port_path should exist
-    File.rename!(port_path, lock_path)
+    # We linked to lock_N successfully, so port_path should exist.
+    # On Windows, renaming to an existing destination returns :eexist.
+    # In that case, another process won the race; we signal a retry.
+    case File.rename(port_path, lock_path) do
+      :ok ->
+        names = File.ls!(path)
 
-    names = File.ls!(path)
+        # On Windows, removing a file may fail if the file is open, so we
+        # ignore failures just to be safe
+        for "port_" <> _ = name <- names do
+          _ = File.rm(Path.join(path, name))
+        end
 
-    # On Windows, removing a file may fail if the file is open, so we
-    # ignore failures just to be safe
+        for "lock_" <> _ = name <- names, name != "lock_0" do
+          _ = File.rm(Path.join(path, name))
+        end
 
-    for "port_" <> _ = name <- names do
-      _ = File.rm(Path.join(path, name))
-    end
+        :ok
 
-    for "lock_" <> _ = name <- names, name != "lock_0" do
-      _ = File.rm(Path.join(path, name))
+      {:error, :eexist} ->
+        # Someone else already replaced lock_0; abandon takeover and retry.
+        :retry
+
+      {:error, :enoent} ->
+        # Our port file vanished or lock path changed under us; retry.
+        :retry
+
+      {:error, _reason} ->
+        # Be conservative: leave files as-is and retry acquisition.
+        :retry
     end
   end
 
@@ -346,7 +368,27 @@ defmodule Mix.Sync.Lock do
     lock_path = Path.join(lock.path, "lock_0")
 
     File.write!(port_path, <<0::unsigned-integer-32>>, [:raw])
-    File.rename!(port_path, lock_path)
+
+    # Mark lock_0 as stale by replacing its contents with 0.
+    # On Windows, destination may already exist; treat that as success and
+    # remove the temp file to avoid clutter.
+    case File.rename(port_path, lock_path) do
+      :ok ->
+        :ok
+
+      {:error, :eexist} ->
+        _ = File.rm(port_path)
+        :ok
+
+      {:error, :enoent} ->
+        # The directory or files may have been cleaned up; ignore.
+        :ok
+
+      {:error, _reason} ->
+        # Best-effort cleanup of the temporary file.
+        _ = File.rm(port_path)
+        :ok
+    end
   after
     # Closing the socket will cause the accepting process to finish
     # and all accepted sockets (tied to that process) will get closed
