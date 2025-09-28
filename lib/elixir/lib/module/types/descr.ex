@@ -1440,19 +1440,9 @@ defmodule Module.Types.Descr do
   # - `fun(1) and not fun(1)` is empty
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
-  defp fun_empty?(bdd), do: fun_bdd_empty?([], [], bdd)
-
-  defp fun_bdd_empty?(pos, neg, bdd) do
-    case bdd do
-      :bdd_bot ->
-        true
-
-      :bdd_top ->
-        fun_line_empty?(pos, neg)
-
-      {fun, left, right} ->
-        fun_bdd_empty?([fun | pos], neg, left) and fun_bdd_empty?(pos, [fun | neg], right)
-    end
+  defp fun_empty?(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.all?(fn {pos, neg} -> fun_line_empty?(pos, neg) end)
   end
 
   # Checks if a function type represented by positive and negative function literals is empty.
@@ -2058,28 +2048,26 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_empty?(@non_empty_list_top), do: false
-  defp list_empty?(bdd), do: list_bdd_empty?({:term, :term}, [], bdd)
-
-  defp list_bdd_empty?({list_acc, tail_acc} = pos, negs, bdd) do
-    case bdd do
-      :bdd_bot ->
-        true
-
-      :bdd_top ->
-        list_line_empty?(list_acc, tail_acc, negs)
-
-      {{list, tail} = list_type, left, right} ->
-        try do
-          li = non_empty_intersection!(list_acc, list)
-          la = non_empty_intersection!(tail_acc, tail)
-
-          list_bdd_empty?({li, la}, negs, left) and
-            list_bdd_empty?(pos, [list_type | negs], right)
-        catch
-          :empty -> list_bdd_empty?(pos, [list_type | negs], right)
-        end
+  defp non_empty_list_literals_intersection(list_literals) do
+    try do
+      Enum.reduce(list_literals, {:term, :term}, fn {next_list, next_last}, {list, last} ->
+        {non_empty_intersection!(list, next_list), non_empty_intersection!(last, next_last)}
+      end)
+    catch
+      :empty -> :empty
     end
+  end
+
+  defp list_empty?(@non_empty_list_top), do: false
+
+  defp list_empty?(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.all?(fn {pos, negs} ->
+      case non_empty_list_literals_intersection(pos) do
+        :empty -> true
+        {list, last} -> list_line_empty?(list, last, negs)
+      end
+    end)
   end
 
   defp list_line_empty?(list_type, last_type, negs) do
@@ -2774,27 +2762,21 @@ defmodule Module.Types.Descr do
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  def map_bdd_to_dnf(bdd), do: map_bdd_to_dnf([], {:open, %{}}, [], bdd)
+  def map_bdd_to_dnf(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce([], fn {pos, negs}, acc ->
+      case non_empty_map_literals_intersection(pos) do
+        :empty ->
+          acc
 
-  defp map_bdd_to_dnf(acc, {tag, fields} = map, negs, bdd) do
-    case bdd do
-      :bdd_bot ->
-        acc
-
-      :bdd_top ->
-        if map_line_empty?(tag, fields, negs), do: acc, else: [{tag, fields, negs} | acc]
-
-      {{next_tag, next_fields} = next_map, left, right} ->
-        acc =
-          try do
-            new_pos = map_literal_intersection(tag, fields, next_tag, next_fields)
-            map_bdd_to_dnf(acc, new_pos, negs, left)
-          catch
-            :empty -> acc
+        {tag, fields} ->
+          if init_map_line_empty?(tag, fields, negs) do
+            acc
+          else
+            [{tag, fields, negs} | acc]
           end
-
-        map_bdd_to_dnf(acc, map, [next_map | negs], right)
-    end
+      end
+    end)
   end
 
   @doc """
@@ -3430,30 +3412,44 @@ defmodule Module.Types.Descr do
     {true, maybe_union(initial, fn -> term() end), open_map()}
   end
 
-  # Short-circuits if it finds a non-empty map literal in the union.
-  # Since the algorithm is recursive, we implement the short-circuiting
-  # as throw/catch.
-  defp map_empty?(bdd), do: map_bdd_empty?({:open, %{}}, [], bdd)
-
-  defp map_bdd_empty?({tag, fields} = map, negs, bdd) do
-    case bdd do
-      :bdd_bot ->
-        true
-
-      :bdd_top ->
-        map_line_empty?(tag, fields, negs)
-
-      {{next_tag, next_fields} = next_map, left, right} ->
-        try do
-          new_map = map_literal_intersection(tag, fields, next_tag, next_fields)
-          map_bdd_empty?(new_map, negs, left) and map_bdd_empty?(map, [next_map | negs], right)
-        catch
-          :empty -> map_bdd_empty?(map, [next_map | negs], right)
-        end
+  defp non_empty_map_literals_intersection(maps) do
+    try do
+      Enum.reduce(maps, {:open, %{}}, fn {next_tag, next_fields}, {tag, fields} ->
+        map_literal_intersection(tag, fields, next_tag, next_fields)
+      end)
+    catch
+      :empty -> :empty
     end
   end
 
-  defp map_line_empty?(_, pos, []), do: Enum.any?(Map.to_list(pos), fn {_, v} -> empty?(v) end)
+  # Short-circuits if it finds a non-empty map literal in the union.
+  # Since the algorithm is recursive, we implement the short-circuiting
+  # as throw/catch.
+  defp map_empty?(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.all?(fn {pos, negs} ->
+      case non_empty_map_literals_intersection(pos) do
+        :empty ->
+          true
+
+        {tag, fields} when is_map(fields) ->
+          # We check the emptiness of the fields because non_empty_map_literal_intersection
+          # will not return :empty on fields that are set to none() and that exist
+          # just in one map, but not the other.
+          init_map_line_empty?(tag, fields, negs)
+      end
+    end)
+  end
+
+  defp init_map_line_empty?(tag, fields, negs) do
+    Enum.any?(Map.to_list(fields), fn {_key, type} -> empty?(type) end) or
+      map_line_empty?(tag, fields, negs)
+  end
+
+  # These positives get checked once when calling init_map_line_empty?, and then every time
+  # an intersection or difference is computed, its emptiness is checked again.
+  # So they are all necessarily non-empty.
+  defp map_line_empty?(_, _pos, []), do: false
   defp map_line_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
   defp map_line_empty?(:open, fs, [{:closed, _} | negs]), do: map_line_empty?(:open, fs, negs)
 
@@ -3462,48 +3458,49 @@ defmodule Module.Types.Descr do
       atom_default = map_key_tag_to_type(tag)
       neg_atom_default = map_key_tag_to_type(neg_tag)
 
-      (Enum.all?(Map.to_list(neg_fields), fn {neg_key, neg_type} ->
-         cond do
-           # Ignore keys present in both maps; will be handled below
-           is_map_key(fields, neg_key) ->
-             true
+      Enum.all?(Map.to_list(neg_fields), fn {neg_key, neg_type} ->
+        cond do
+          # Ignore keys present in both maps; will be handled below
+          is_map_key(fields, neg_key) ->
+            true
 
-           # The key is not shared between positive and negative maps,
-           # if the negative type is optional, then there may be a value in common
-           tag == :closed ->
-             is_optional_static(neg_type)
+          # The keys is only in the negative map, and the positive map is closed
+          # in that case, this field is not_set(), and its difference with the negative map type is empty iff
+          # the negative type is optional.
+          tag == :closed ->
+            is_optional_static(neg_type) or
+              map_line_empty?(tag, fields, negs)
 
-           # There may be value in common
-           tag == :open ->
-             diff = difference(term_or_optional(), neg_type)
-             empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
+          # There may be value in common
+          tag == :open ->
+            diff = difference(term_or_optional(), neg_type)
+            empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
 
-           true ->
-             diff = difference(atom_default, neg_type)
-             empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
-         end
-       end) and
-         Enum.all?(Map.to_list(fields), fn {key, type} ->
-           case neg_fields do
-             %{^key => neg_type} ->
-               diff = difference(type, neg_type)
-               empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
+          true ->
+            diff = difference(atom_default, neg_type)
+            empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
+        end
+      end) and
+        Enum.all?(Map.to_list(fields), fn {key, type} ->
+          case neg_fields do
+            %{^key => neg_type} ->
+              diff = difference(type, neg_type)
+              empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
 
-             %{} ->
-               cond do
-                 neg_tag == :open ->
-                   true
+            %{} ->
+              cond do
+                # The key is only in the positive map, while the negative map is open
+                # so this key is absorbed (e.g. %{a: integer} and not %{...})
+                neg_tag == :open ->
+                  true
 
-                 neg_tag == :closed and not is_optional_static(type) ->
-                   false
-
-                 true ->
-                   # an absent key in a open negative map can be ignored
-                   diff = difference(type, neg_atom_default)
-                   empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
-               end
-           end
-         end)) or map_line_empty?(tag, fields, negs)
+                true ->
+                  # an absent key in a open negative map can be ignored
+                  diff = difference(type, neg_atom_default)
+                  empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
+              end
+          end
+        end)
     else
       map_line_empty?(tag, fields, negs)
     end
@@ -3892,26 +3889,27 @@ defmodule Module.Types.Descr do
 
   defp tuple_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
-  defp tuple_empty?(bdd), do: tuple_bdd_empty?({:open, []}, [], bdd)
-
-  defp tuple_bdd_empty?({tag, elements} = pos, negs, bdd) do
-    case bdd do
-      :bdd_bot ->
-        true
-
-      :bdd_top ->
-        tuple_line_empty?(tag, elements, negs)
-
-      {{next_tag, next_elements} = next_tuple, left, right} ->
+  defp non_empty_tuple_literals_intersection(tuples) do
+    try do
+      Enum.reduce(tuples, {:open, []}, fn {next_tag, next_elements}, {tag, elements} ->
         case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
-          :empty ->
-            tuple_bdd_empty?(pos, [next_tuple | negs], right)
-
-          new_tuple ->
-            tuple_bdd_empty?(new_tuple, negs, left) and
-              tuple_bdd_empty?(pos, [next_tuple | negs], right)
+          :empty -> throw(:empty)
+          next -> next
         end
+      end)
+    catch
+      :empty -> :empty
     end
+  end
+
+  defp tuple_empty?(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.all?(fn {pos, negs} ->
+      case non_empty_tuple_literals_intersection(pos) do
+        :empty -> true
+        {tag, fields} -> tuple_line_empty?(tag, fields, negs)
+      end
+    end)
   end
 
   # No negations, so not empty unless there's an empty type
@@ -4586,6 +4584,21 @@ defmodule Module.Types.Descr do
       :bdd_bot -> :bdd_bot
       :bdd_top -> :bdd_top
       {literal, left, right} -> {fun.(literal), bdd_map(left, fun), bdd_map(right, fun)}
+    end
+  end
+
+  defp bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
+
+  defp bdd_to_dnf(acc, pos, neg, bdd) do
+    case bdd do
+      :bdd_bot ->
+        acc
+
+      :bdd_top ->
+        [{pos, neg} | acc]
+
+      {fun, left, right} ->
+        bdd_to_dnf(bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
   end
 
