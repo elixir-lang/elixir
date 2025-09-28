@@ -150,6 +150,8 @@ defmodule IEx.Server do
         end
 
       {:io_reply, ^input, {:error, kind, error, stacktrace}} ->
+        send(evaluator, {:reader_errored, self()})
+
         banner = Exception.format_banner(kind, error, stacktrace)
 
         banner =

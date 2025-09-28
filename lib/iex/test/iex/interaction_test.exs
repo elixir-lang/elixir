@@ -327,4 +327,41 @@ defmodule IEx.InteractionTest do
     File.write!(path, contents)
     path
   end
+
+  describe "pipeline error safety" do
+    test "syntax error in pipeline prevents subsequent operations" do
+      input = """
+      1, 2, 3]
+      |> Enum.map(&(&1 * 2))
+      """
+
+      output = capture_iex(input)
+      assert output =~ "skipping evaluation of expression because pipeline has failed"
+    end
+
+    test "runtime error in first pipeline step prevents subsequent operations" do
+      input = """
+      :not_a_list
+      |> Enum.map(&(&1 * 2))
+      |> Enum.sum()
+      """
+
+      output = capture_iex(input)
+      assert output =~ "skipping evaluation of expression because pipeline has failed"
+    end
+
+    test "error state is cleared after successful evaluation" do
+      input = """
+      :not_a_list
+      |> Enum.map(&(&1 * 2))
+      |> Enum.sum()
+      [1, 2, 3]
+      |> Enum.sum()
+      """
+
+      output = capture_iex(input)
+      assert output =~ "skipping evaluation of expression because pipeline has failed"
+      assert String.ends_with?(output, "6")
+    end
+  end
 end
