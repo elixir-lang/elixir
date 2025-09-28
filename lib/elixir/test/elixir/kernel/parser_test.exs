@@ -455,11 +455,32 @@ defmodule Kernel.ParserTest do
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
                 ]}
 
-      assert Code.string_to_quoted!("a not  in b", columns: true) ==
+      assert Code.string_to_quoted!("a not  in b", columns: true, token_metadata: true) ==
                {:not, [line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 8],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 11], nil}]}
+                ]}
+
+      assert Code.string_to_quoted!("a\nnot in b", columns: true, token_metadata: true) ==
+               {:not, [newlines: 1, line: 2, column: 1],
+                [
+                  {:in, [line: 2, column: 5],
+                   [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 8], nil}]}
+                ]}
+
+      assert Code.string_to_quoted!("a not in\nb", columns: true, token_metadata: true) ==
+               {:not, [newlines: 1, line: 1, column: 3],
+                [
+                  {:in, [line: 1, column: 7],
+                   [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 1], nil}]}
+                ]}
+
+      assert Code.string_to_quoted!("a\nnot in\nb", columns: true, token_metadata: true) ==
+               {:not, [newlines: 1, line: 2, column: 1],
+                [
+                  {:in, [line: 2, column: 5],
+                   [{:a, [line: 1, column: 1], nil}, {:b, [line: 3, column: 1], nil}]}
                 ]}
     end
 
