@@ -2756,7 +2756,7 @@ defmodule Module.Types.Descr do
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  def map_bdd_to_dnf(bdd) do
+  defp map_bdd_to_dnf(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {pos, negs}, acc ->
       case non_empty_map_literals_intersection(pos) do
@@ -4590,6 +4590,9 @@ defmodule Module.Types.Descr do
 
       :bdd_top ->
         [{pos, neg} | acc]
+
+      {fun, :bdd_top, right} ->
+        bdd_to_dnf([{[fun | pos], neg} | acc], pos, neg, right)
 
       {fun, left, right} ->
         bdd_to_dnf(bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
