@@ -89,12 +89,23 @@ defmodule IEx.Evaluator do
 
     result =
       with {:ok, tokens} <- :elixir.string_to_tokens(input, line, column, file, opts),
-           {:ok, adjusted_tokens} <- adjust_operator(tokens, line, column, file, opts, last_op),
+           {:ok, adjusted_tokens, adjusted_op} <-
+             adjust_operator(tokens, line, column, file, opts, last_op),
            {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
         last_op =
           case forms do
             {:=, _, [_, _]} -> :match
             _ -> :other
+          end
+
+        forms =
+          if adjusted_op != nil do
+            quote do
+              IEx.Evaluator.assert_no_error!()
+              unquote(forms)
+            end
+          else
+            forms
           end
 
         {:ok, forms, last_op}
@@ -129,10 +140,20 @@ defmodule IEx.Evaluator do
   defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do
     {:ok, prefix} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
-    {:ok, prefix ++ tokens}
+    {:ok, prefix ++ tokens, op_type}
   end
 
-  defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens}
+  defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens, nil}
+
+  @doc """
+  Raises an error if the last iex result was itself an error
+  """
+  def assert_no_error!() do
+    if Process.get(:iex_error, false) do
+      message = "skipping evaluation of expression because pipeline has failed"
+      reraise RuntimeError.exception(message), []
+    end
+  end
 
   @doc """
   Gets a value out of the binding, using the provided
@@ -183,6 +204,10 @@ defmodule IEx.Evaluator do
 
   defp loop(%{server: server, ref: ref} = state) do
     receive do
+      {:reader_errored, ^server} ->
+        Process.put(:iex_error, true)
+        loop(state)
+
       {:eval, ^server, code, counter} ->
         {status, state} = safe_eval_and_inspect(code, counter, state)
         send(server, {:evaled, self(), status})
@@ -293,9 +318,12 @@ defmodule IEx.Evaluator do
   defp safe_eval_and_inspect(forms, counter, state) do
     put_history(state)
     put_whereami(state)
-    {:ok, eval_and_inspect(forms, counter, state)}
+    result = eval_and_inspect(forms, counter, state)
+    Process.delete(:iex_error)
+    {:ok, result}
   catch
     kind, error ->
+      Process.put(:iex_error, true)
       print_error(kind, error, __STACKTRACE__)
       {:error, state}
   after
