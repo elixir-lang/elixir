@@ -167,61 +167,55 @@ defmodule Module.Types.Descr do
     domain_clauses =
       Enum.reduce(args_clauses, [], fn {args, return}, acc ->
         domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
-        pivot_overlapping_clause(domain, upper_bound(return), acc)
+        return = upper_bound(return)
+        pivot_overlapping_clause(domain, return, return, acc)
       end)
 
     funs =
-      for {domain, return} <- domain_clauses,
+      for {domain, _return, union} <- domain_clauses,
           args <- domain_to_args(domain),
-          do: fun(args, dynamic(return))
+          do: fun(args, dynamic(union))
 
     Enum.reduce(funs, &intersection/2)
   end
 
-  # Inserts a new arrow `{domain, return}` into `acc`, a list whose arrows
-  # have disjoint domains.
+  # If you have a function with multiple clauses, they may overlap,
+  # and we need to find the correct return type. This can be done
+  # in two different algorithms: a precise and a fast one.
+  # Consider the inferred clauses:
   #
-  # To preserve that invariant we compare the new arrow with every function in
-  # the accumulator, `{acc_domain, acc_return}`:
+  #     (integer() or atom() -> :foo) and (integer() or float() -> :bar)
   #
-  #   * If `intersection(domain, acc_domain)` is empty, the arrows do not overlap.
-  #     We keep the current arrow and recurse on the tail.
+  # The precise algorithm works by finding the intersections between
+  # domains, assigning it the union, and then computing the leftovers
+  # on each side. The trouble of this approach is that it builds
+  # differences, which can be expensive, and can lead to several new
+  # clauses. For example, the clause above would emit:
   #
-  #   * Otherwise, the domains overlap. We partition them into:
+  #     (integer() -> :foo or :bar) and (atom() -> :foo) and (float() -> :bar)
   #
-  #       common = intersection(domain, acc_domain)   # shared part
-  #       diff   = difference(domain, acc_domain)     # only in new arrow
-  #       left   = difference(acc_domain, domain)     # only in existing arrow
+  # Due to performance constraints, we chose the fast approach, which
+  # leads to broad return types, but this is acceptable because we mark
+  # all return types as dynamic anyway. Therefore we infer the type:
   #
-  #     We emit `{common, union(return, acc_return)}` for the shared part,
-  #     keep `{left, acc_return}` (if any), and continue inserting `diff`
-  #     into the remainder of the list to handle further overlaps.
-  defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
-    common = intersection(domain, acc_domain)
-
-    if empty?(common) do
-      [{acc_domain, acc_return} | pivot_overlapping_clause(domain, return, acc)]
+  #     (integer() or atom() -> :foo or :bar) and (integer() or float() -> :foo or :bar)
+  #
+  defp pivot_overlapping_clause(domain, return, union, [{acc_domain, acc_return, acc_union} | acc]) do
+    if disjoint?(domain, acc_domain) do
+      [
+        {acc_domain, acc_return, acc_union}
+        | pivot_overlapping_clause(domain, return, union, acc)
+      ]
     else
-      diff = difference(domain, acc_domain)
-
-      rest =
-        if empty?(diff) do
-          []
-        else
-          pivot_overlapping_clause(diff, return, acc)
-        end
-
-      [{common, union(return, acc_return)} | rest]
-      |> prepend_to_unless_empty(difference(acc_domain, domain), acc_return)
+      [
+        {acc_domain, acc_return, union(return, acc_union)}
+        | pivot_overlapping_clause(domain, return, union(acc_return, union), acc)
+      ]
     end
   end
 
-  defp pivot_overlapping_clause(domain, return, []) do
-    [{domain, return}]
-  end
-
-  defp prepend_to_unless_empty(acc, domain, return) do
-    if empty?(domain), do: acc, else: [{domain, return} | acc]
+  defp pivot_overlapping_clause(domain, return, union, []) do
+    [{domain, return, union}]
   end
 
   @doc """

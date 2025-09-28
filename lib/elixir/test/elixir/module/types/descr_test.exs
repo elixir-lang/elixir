@@ -964,24 +964,18 @@ defmodule Module.Types.DescrTest do
       # Subsets
       assert fun_from_inferred_clauses([{[integer()], atom()}, {[number()], binary()}])
              |> equal?(
-               intersection(
-                 fun_from_non_overlapping_clauses([
-                   {[integer()], union(atom(), binary())},
-                   {[float()], binary()}
-                 ]),
-                 fun([number()], dynamic())
-               )
+               fun_from_non_overlapping_clauses([
+                 {[integer()], dynamic(union(atom(), binary()))},
+                 {[number()], dynamic(union(atom(), binary()))}
+               ])
              )
 
       assert fun_from_inferred_clauses([{[number()], binary()}, {[integer()], atom()}])
              |> equal?(
-               intersection(
-                 fun_from_non_overlapping_clauses([
-                   {[integer()], union(atom(), binary())},
-                   {[float()], binary()}
-                 ]),
-                 fun([number()], dynamic())
-               )
+               fun_from_non_overlapping_clauses([
+                 {[integer()], dynamic(union(atom(), binary()))},
+                 {[number()], dynamic(union(atom(), binary()))}
+               ])
              )
 
       # Partial
@@ -990,14 +984,10 @@ defmodule Module.Types.DescrTest do
                {[union(float(), pid())], binary()}
              ])
              |> equal?(
-               intersection(
-                 fun_from_non_overlapping_clauses([
-                   {[integer()], atom()},
-                   {[float()], binary()},
-                   {[pid()], union(atom(), binary())}
-                 ]),
-                 fun([union(number(), pid())], dynamic())
-               )
+               fun_from_non_overlapping_clauses([
+                 {[union(integer(), pid())], dynamic(union(atom(), binary()))},
+                 {[union(float(), pid())], dynamic(union(atom(), binary()))}
+               ])
              )
 
       # Difference
@@ -1006,17 +996,10 @@ defmodule Module.Types.DescrTest do
                {[number(), pid()], binary()}
              ])
              |> equal?(
-               intersection(
-                 fun_from_non_overlapping_clauses([
-                   {[float(), pid()], binary()},
-                   {[integer(), atom()], atom()},
-                   {[integer(), pid()], union(atom(), binary())}
-                 ]),
-                 fun_from_non_overlapping_clauses([
-                   {[integer(), union(pid(), atom())], dynamic()},
-                   {[number(), pid()], dynamic()}
-                 ])
-               )
+               fun_from_non_overlapping_clauses([
+                 {[integer(), union(pid(), atom())], dynamic(union(atom(), binary()))},
+                 {[number(), pid()], dynamic(union(atom(), binary()))}
+               ])
              )
     end
   end
