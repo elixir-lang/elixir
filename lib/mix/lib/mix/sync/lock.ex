@@ -131,8 +131,7 @@ defmodule Mix.Sync.Lock do
 
   defp base_path do
     # We include user in the dir to avoid permission conflicts across users
-    user = System.get_env("USER", "default")
-    Path.join(System.tmp_dir!(), "mix_lock_#{Base.url_encode64(user, padding: false)}")
+    Path.join(System.tmp_dir!(), "mix_lock_user#{Mix.Utils.detect_user_id!()}")
   end
 
   defp lock_disabled?(), do: System.get_env("MIX_OS_CONCURRENCY_LOCK") in ~w(0 false)
