@@ -204,6 +204,15 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
   * [Macro] Add `__escape__/1` callback so structs can escape references and other runtime data types in `Macro.escape/1`
   * [OptionParser] Support the `:regex` type
   * [OptionParser] Enhance parsing error to display available options
+  * [String] Update to Unicode 17.0.0
+
+#### ExUnit
+
+  * [ExUnit] Set a process label for each test
+
+#### Logger
+
+  * [Logger] Accept any enumerable in `Logger.metadata/1`
 
 #### Mix
 
@@ -216,17 +225,30 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
 #### Elixir
 
   * [Code] Return error on invalid unicode sequences in `Code.string_to_quoted/2` instead of raising
+  * [Code] Properly handle column annotation for `in` in `not in` expressions
+  * [Enum] Fix infinite loop on `Enum.take/2` with negative index on empty enumerable
   * [Inspect] Inspect ill-formed structs as maps
-  * [Kernel] Properly increment metadata newline when `?` is followed ny a literal newline character
+  * [Kernel] Properly increment metadata newline when `?` is followed by a literal newline character
 
 #### ExUnit
 
   * [ExUnit.Assertions] Fix order in ExUnit results when listing pinned variables
   * [ExUnit.Assertions] Raise if attempting to raise an assertion error with invalid message (not a binary)
 
+#### IEx
+
+  * [IEx] Abort pipelines when there is an error in any step along the way
+
 #### Mix
 
+  * [mix compile] Fix bug where reverting changes to an external resource (such as HEEx template) after a compilation error would make it so the source module would not be compiled
   * [mix test] Prevent `mix test` from overriding `:failures_manifest_path` option
+
+### 3. Hard deprecations
+
+#### Elixir
+
+  * [Code] Warn if line-break characters outside of `\r` and `\r\n` are found in strings according to UX#55. This warning will be fast-tracked into an error for security reasons in Elixir v1.20, following a similar rule to bidirectional control characters. They will already raise if found in comments
 
 ## v1.19.0-rc.0 (2025-06-09)
 
