@@ -1026,22 +1026,6 @@ defmodule Kernel.ParserTest do
         ["nofile:1:5:", "invalid line break character in comment: \\u2028"],
         ~c"foo. # This is a \u2028"
       )
-
-      assert_syntax_error(
-        [
-          "nofile:1:12:",
-          "invalid line break character in string: \\u2028. If you want to use such character, use it in its escaped \\u2028 form instead"
-        ],
-        ~c"\"this is a \u2028\""
-      )
-
-      assert_syntax_error(
-        [
-          "nofile:1:13:",
-          "invalid line break character in string: \\u2028. If you want to use such character, use it in its escaped \\u2028 form instead"
-        ],
-        ~c"\"this is a \\\u2028\""
-      )
     end
 
     test "reserved tokens" do
