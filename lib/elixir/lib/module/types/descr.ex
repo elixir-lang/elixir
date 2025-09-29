@@ -1610,19 +1610,9 @@ defmodule Module.Types.Descr do
       all_disjoint_arguments?(rest)
   end
 
-  defp fun_union(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      {:bdd_top, _} -> :bdd_top
-      {_, :bdd_top} -> :bdd_top
-      {:bdd_bot, bdd} -> bdd
-      {bdd, :bdd_bot} -> bdd
-      {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_union(l1, l2), fun_union(r1, r2)}
-      # Note: this is a deep merge, that goes down bdd1 to insert bdd2 into it.
-      # It is the same as going down bdd1 to insert bdd1 into it.
-      # Possible opti: insert into the bdd with smallest height
-      {{fun, l, r}, bdd} -> {fun, fun_union(l, bdd), fun_union(r, bdd)}
-    end
-  end
+  defp fun_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
+
+  defp bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
 
   defp is_fun_top?(bdd, {{args, return}, :bdd_top, :bdd_bot}) do
     return == :term and Enum.all?(args, &(&1 == %{})) and
@@ -1636,49 +1626,7 @@ defmodule Module.Types.Descr do
       # If intersecting with the top type for that arity, no-op
       is_tuple(bdd2) and is_fun_top?(bdd2, bdd1) -> bdd2
       is_tuple(bdd1) and is_fun_top?(bdd1, bdd2) -> bdd1
-      true -> fun_bdd_intersection(bdd1, bdd2)
-    end
-  end
-
-  # Note: using this for functions instead of bdd_intersection because the printing
-  # fun_denormalize relies on the order of functions in the bdd.
-  defp fun_bdd_intersection(bdd1, bdd2) do
-    case {bdd1, bdd2} do
-      # Base cases
-      {_, :bdd_bot} ->
-        :bdd_bot
-
-      {:bdd_bot, _} ->
-        :bdd_bot
-
-      {:bdd_top, bdd} ->
-        bdd
-
-      {bdd, :bdd_top} ->
-        bdd
-
-      # Optimizations
-      # If intersecting with a single positive or negative function, we insert
-      # it at the root instead of merging the trees (this avoids going down the
-      # whole bdd).
-      {bdd, {fun, :bdd_top, :bdd_bot}} ->
-        {fun, bdd, :bdd_bot}
-
-      {bdd, {fun, :bdd_bot, :bdd_top}} ->
-        {fun, :bdd_bot, bdd}
-
-      {{fun, :bdd_top, :bdd_bot}, bdd} ->
-        {fun, bdd, :bdd_bot}
-
-      {{fun, :bdd_bot, :bdd_top}, bdd} ->
-        {fun, :bdd_bot, bdd}
-
-      # General cases
-      {{fun, l1, r1}, {fun, l2, r2}} ->
-        {fun, fun_bdd_intersection(l1, l2), fun_bdd_intersection(r1, r2)}
-
-      {{fun, l, r}, bdd} ->
-        {fun, fun_bdd_intersection(l, bdd), fun_bdd_intersection(r, bdd)}
+      true -> bdd_intersection(bdd1, bdd2)
     end
   end
 
@@ -3462,8 +3410,7 @@ defmodule Module.Types.Descr do
           # in that case, this field is not_set(), and its difference with the negative map type is empty iff
           # the negative type is optional.
           tag == :closed ->
-            is_optional_static(neg_type) or
-              map_line_empty?(tag, fields, negs)
+            is_optional_static(neg_type) or map_line_empty?(tag, fields, negs)
 
           # There may be value in common
           tag == :open ->
