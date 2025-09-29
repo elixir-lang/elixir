@@ -1089,7 +1089,8 @@ defmodule Module.Types.Descr do
   # Note: Function domains are expressed as tuple types. We use separate representations
   # rather than unary functions with tuple domains to handle special cases like representing
   # functions of a specific arity (e.g., (none,none->term) for arity 2).
-  defp fun_new(inputs, output), do: {{inputs, output}, :bdd_top, :bdd_bot}
+  # NOTE: this is a ternary (lazy) BDD where the middle node encodes unions.
+  defp fun_new(inputs, output), do: {{inputs, output}, :bdd_top, :bdd_bot, :bdd_bot}
 
   # Creates a function type from a list of inputs and an output
   # where the inputs and/or output may be dynamic.
@@ -1407,19 +1408,9 @@ defmodule Module.Types.Descr do
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  defp fun_bdd_to_dnf(bdd), do: fun_bdd_to_dnf([], [], [], bdd)
-
-  defp fun_bdd_to_dnf(acc, pos, neg, bdd) do
-    case bdd do
-      :bdd_bot ->
-        acc
-
-      :bdd_top ->
-        if fun_line_empty?(pos, neg), do: acc, else: [{pos, neg} | acc]
-
-      {fun, left, right} ->
-        fun_bdd_to_dnf(fun_bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
-    end
+  defp fun_bdd_to_dnf(bdd) do
+    lazy_bdd_to_dnf(bdd)
+    |> Enum.filter(fn {pos, neg} -> not fun_line_empty?(pos, neg) end)
   end
 
   # Checks if a function type is empty.
@@ -1435,7 +1426,7 @@ defmodule Module.Types.Descr do
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
   defp fun_empty?(bdd) do
-    bdd_to_dnf(bdd)
+    lazy_bdd_to_dnf(bdd)
     |> Enum.all?(fn {pos, neg} -> fun_line_empty?(pos, neg) end)
   end
 
@@ -1451,7 +1442,6 @@ defmodule Module.Types.Descr do
   # - `{[fun(1), fun(2)], []}` is empty (different arities)
   # - `{[fun(integer() -> atom())], [fun(none() -> term())]}` is empty
   # - `{[], _}` (representing the top function type fun()) is never empty
-  #
   defp fun_line_empty?([], _), do: false
 
   defp fun_line_empty?(positives, negatives) do
@@ -1610,9 +1600,7 @@ defmodule Module.Types.Descr do
       all_disjoint_arguments?(rest)
   end
 
-  defp fun_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
-
-  defp bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
+  defp fun_union(bdd1, bdd2), do: lazy_bdd_union(bdd1, bdd2)
 
   defp is_fun_top?(bdd, {{args, return}, :bdd_top, :bdd_bot}) do
     return == :term and Enum.all?(args, &(&1 == %{})) and
@@ -1626,7 +1614,7 @@ defmodule Module.Types.Descr do
       # If intersecting with the top type for that arity, no-op
       is_tuple(bdd2) and is_fun_top?(bdd2, bdd1) -> bdd2
       is_tuple(bdd1) and is_fun_top?(bdd1, bdd2) -> bdd1
-      true -> bdd_intersection(bdd1, bdd2)
+      true -> lazy_bdd_intersection(bdd1, bdd2)
     end
   end
 
@@ -1642,7 +1630,7 @@ defmodule Module.Types.Descr do
 
   defp matching_arity_right?(_, _arity), do: true
 
-  defp fun_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
+  defp fun_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
 
   # Converts the static and dynamic parts of descr to its quoted
   # representation. The goal here is to the opposite of fun_descr
@@ -4544,6 +4532,116 @@ defmodule Module.Types.Descr do
       {fun, left, right} ->
         bdd_to_dnf(bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
+  end
+
+  def lazy_bdd_union(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {:bdd_top, _bdd} ->
+        :bdd_top
+
+      {_bdd, :bdd_top} ->
+        :bdd_top
+
+      {:bdd_bot, bdd} ->
+        bdd
+
+      {bdd, :bdd_bot} ->
+        bdd
+
+      {{lit, l1, u1, r1}, {lit, l2, u2, r2}} ->
+        {lit, lazy_bdd_union(l1, l2), lazy_bdd_union(u1, u2), lazy_bdd_union(r1, r2)}
+
+      {{lit1, l1, u1, r1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
+        {lit1, l1, lazy_bdd_union(u1, bdd2), r1}
+
+      {{lit1, _, _, _} = bdd1, {lit2, l2, u2, r2}} when lit1 > lit2 ->
+        {lit2, l2, lazy_bdd_union(bdd1, u2), r2}
+    end
+  end
+
+  def lazy_bdd_difference(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {_bdd, :bdd_top} ->
+        :bdd_bot
+
+      {:bdd_bot, _bdd} ->
+        :bdd_bot
+
+      {bdd, :bdd_bot} ->
+        bdd
+
+      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
+        {lit, lazy_bdd_difference(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
+         lazy_bdd_difference(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+
+      {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
+        {lit1, lazy_bdd_difference(lazy_bdd_union(c1, u1), bdd2), :bdd_bot,
+         lazy_bdd_difference(lazy_bdd_union(d1, u1), bdd2)}
+
+      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} when lit1 > lit2 ->
+        {lit2, lazy_bdd_difference(bdd1, lazy_bdd_union(c2, u2)), :bdd_bot,
+         lazy_bdd_difference(bdd1, lazy_bdd_union(d2, u2))}
+
+      {:bdd_top, {lit, c2, u2, d2}} ->
+        lazy_bdd_negation({lit, c2, u2, d2})
+    end
+  end
+
+  # To do lazy negation: eliminate the union, then perform normal negation (switching leaves)
+  def lazy_bdd_negation(:bdd_top), do: :bdd_bot
+  def lazy_bdd_negation(:bdd_bot), do: :bdd_top
+
+  def lazy_bdd_negation({lit, c, u, d}) do
+    {lit, lazy_bdd_negation(lazy_bdd_union(c, u)), :bdd_bot,
+     lazy_bdd_negation(lazy_bdd_union(d, u))}
+  end
+
+  def lazy_bdd_intersection(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {:bdd_top, bdd} ->
+        bdd
+
+      {bdd, :bdd_top} ->
+        bdd
+
+      {:bdd_bot, _bdd} ->
+        :bdd_bot
+
+      {_, :bdd_bot} ->
+        :bdd_bot
+
+      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
+        {lit, lazy_bdd_intersection(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
+         lazy_bdd_intersection(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+
+      {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
+        {lit1, lazy_bdd_intersection(c1, bdd2), lazy_bdd_intersection(u1, bdd2),
+         lazy_bdd_intersection(d1, bdd2)}
+
+      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} when lit1 > lit2 ->
+        {lit2, lazy_bdd_intersection(bdd1, c2), lazy_bdd_intersection(bdd1, u2),
+         lazy_bdd_intersection(bdd1, d2)}
+    end
+  end
+
+  def lazy_bdd_to_dnf(bdd), do: lazy_bdd_to_dnf([], [], [], bdd)
+
+  defp lazy_bdd_to_dnf(acc, _pos, _neg, :bdd_bot), do: acc
+  defp lazy_bdd_to_dnf(acc, pos, neg, :bdd_top), do: [{pos, neg} | acc]
+
+  # Lazy node: {lit, C, U, D}  ≡  (lit ∧ C) ∪ U ∪ (¬lit ∧ D)
+  defp lazy_bdd_to_dnf(acc, pos, neg, {lit, c, u, d}) do
+    # U is a bdd in itself, we accumulate its lines first
+    lazy_bdd_to_dnf(acc, [], [], u)
+    # C-part
+    |> lazy_bdd_to_dnf([lit | pos], neg, c)
+    # D-part
+    |> lazy_bdd_to_dnf(pos, [lit | neg], d)
+  end
+
+  # Optional guard: blow up if someone passes a binary node by mistake
+  defp lazy_bdd_to_dnf(_acc, _pos, _neg, {_lit, _t, _e}) do
+    raise ArgumentError, "lazy_bdd_to_dnf expects lazy nodes {lit, c, u, d}"
   end
 
   ## Pairs
