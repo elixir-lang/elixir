@@ -1090,7 +1090,7 @@ defmodule Module.Types.Descr do
   # rather than unary functions with tuple domains to handle special cases like representing
   # functions of a specific arity (e.g., (none,none->term) for arity 2).
   # NOTE: this is a ternary (lazy) BDD where the middle node encodes unions.
-  defp fun_new(inputs, output), do: {{inputs, output}, :bdd_top, :bdd_bot, :bdd_bot}
+  defp fun_new(inputs, output), do: lazy_bdd_new({inputs, output})
 
   # Creates a function type from a list of inputs and an output
   # where the inputs and/or output may be dynamic.
@@ -1847,9 +1847,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_new(list_type, last_type) do
-    {{list_type, last_type}, :bdd_top, :bdd_bot}
-  end
+  defp list_new(list_type, last_type), do: bdd_new({list_type, last_type})
 
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
@@ -1934,10 +1932,7 @@ defmodule Module.Types.Descr do
   @compile {:inline, list_union: 2}
   defp list_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp is_list_top?({{list, tail}, :bdd_top, :bdd_bot}) do
-    list == :term and tail == :term
-  end
-
+  defp is_list_top?(list_literal(list, tail)), do: list == :term and tail == :term
   defp is_list_top?(_), do: false
 
   defp list_intersection(list_literal(list1, last1), list_literal(list2, last2)) do
@@ -2425,7 +2420,7 @@ defmodule Module.Types.Descr do
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
 
-  defp map_new(tag, fields = %{}), do: {{tag, fields}, :bdd_top, :bdd_bot}
+  defp map_new(tag, fields = %{}), do: bdd_new({tag, fields})
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
@@ -2443,12 +2438,13 @@ defmodule Module.Types.Descr do
 
       nil ->
         case {{tag1, fields1}, {tag2, fields2}} do
-          {r, l} when l < r -> {l, :bdd_top, {r, :bdd_top, :bdd_bot}}
-          {l, r} -> {l, :bdd_top, {r, :bdd_top, :bdd_bot}}
+          {r, l} when l < r -> bdd_new(l, :bdd_top, bdd_new(r))
+          {l, r} -> bdd_new(l, :bdd_top, bdd_new(r))
         end
     end
   end
 
+  @compile {:inline, map_union: 2}
   def map_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2) do
@@ -2549,8 +2545,8 @@ defmodule Module.Types.Descr do
 
   defp map_intersection(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
     try do
-      map = map_literal_intersection(tag1, fields1, tag2, fields2)
-      {map, :bdd_top, :bdd_bot}
+      map_literal = map_literal_intersection(tag1, fields1, tag2, fields2)
+      bdd_new(map_literal)
     catch
       :empty -> :bdd_bot
     end
@@ -2762,7 +2758,7 @@ defmodule Module.Types.Descr do
 
   # Optimization: if the key does not exist in the map, avoid building
   # if_set/not_set pairs and return the popped value directly.
-  defp map_fetch_static(%{map: {{tag_or_domains, fields}, :bdd_top, :bdd_bot}}, key)
+  defp map_fetch_static(%{map: map_literal(tag_or_domains, fields)}, key)
        when not is_map_key(fields, key) do
     map_key_tag_to_type(tag_or_domains) |> pop_optional_static()
   end
@@ -2936,8 +2932,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_refresh_domain(%{map: {{tag, fields}, :bdd_top, :bdd_bot}}, domain, type) do
-    %{map: {{map_refresh_tag(tag, domain, type), fields}, :bdd_top, :bdd_bot}}
+  def map_refresh_domain(%{map: map_literal(tag, fields)}, domain, type) do
+    %{map: bdd_new({map_refresh_tag(tag, domain, type), fields})}
   end
 
   def map_refresh_domain(%{map: bdd}, domain, type) do
@@ -3305,7 +3301,7 @@ defmodule Module.Types.Descr do
 
   # Takes a static map type and removes a key from it.
   # This allows the key to be put or deleted later on.
-  defp map_take_static(%{map: {{tag, fields}, :bdd_top, :bdd_bot}} = descr, key, initial)
+  defp map_take_static(%{map: map_literal(tag, fields)} = descr, key, initial)
        when not is_map_key(fields, key) do
     case tag do
       :open -> {true, maybe_union(initial, fn -> term() end), descr}
@@ -4026,6 +4022,7 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @compile {:inline, tuple_union: 2}
   defp tuple_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp maybe_optimize_tuple_union({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
@@ -4470,6 +4467,10 @@ defmodule Module.Types.Descr do
 
   ## BDD helpers
 
+  # Creation of a BDD
+  defp bdd_new(literal), do: {literal, :bdd_top, :bdd_bot}
+  defp bdd_new(literal, left, right), do: {literal, left, right}
+
   # Leaf cases
   defp bdd_intersection(_, :bdd_bot), do: :bdd_bot
   defp bdd_intersection(:bdd_bot, _), do: :bdd_bot
@@ -4543,6 +4544,10 @@ defmodule Module.Types.Descr do
         bdd_to_dnf(bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
   end
+
+  ## Lazy BDD helpers
+  defp lazy_bdd_new(literal), do: {literal, :bdd_top, :bdd_bot, :bdd_bot}
+  defp lazy_bdd_new(literal, left, right), do: {literal, left, :bdd_bot, right}
 
   def lazy_bdd_union(bdd1, bdd2) do
     case {bdd1, bdd2} do
@@ -4650,8 +4655,10 @@ defmodule Module.Types.Descr do
   end
 
   # Optional guard: blow up if someone passes a binary node by mistake
-  defp lazy_bdd_to_dnf(_acc, _pos, _neg, {_lit, _t, _e}) do
-    raise ArgumentError, "lazy_bdd_to_dnf expects lazy nodes {lit, c, u, d}"
+  defp lazy_bdd_to_dnf(_acc, _pos, _neg, {_lit, _t, _e} = node) do
+    raise ArgumentError,
+          "lazy_bdd_to_dnf expects lazy nodes {lit, c, u, d} #{inspect(node)}\n
+          #{inspect(Process.info(self(), :current_stacktrace))}"
   end
 
   ## Pairs
