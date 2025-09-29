@@ -162,9 +162,16 @@ build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
   {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
   {?remote(Ann, maps, from_list, [ReduceExpr]), SR};
 build_into(Ann, Clauses, Expr, ?empty_map_set_pattern = _Into, Uniq, S) ->
-  InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
+  InnerFun = fun(InnerExpr, InnerAcc) ->
+    % [{Expr, []} | Acc]
+    {cons, Ann, {tuple, Ann, [InnerExpr, {nil, Ann}]}, InnerAcc}
+  end,
   {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S),
-  {?remote(Ann, 'Elixir.MapSet', new, [ReduceExpr]), SR};
+  MapSetExpr = {map, Ann, [
+    {map_field_assoc, Ann, {atom, Ann, '__struct__'}, {atom, Ann, 'Elixir.MapSet'}},
+    {map_field_assoc, Ann, {atom, Ann, map}, ?remote(Ann, maps, from_list, [ReduceExpr])}
+  ]},
+  {MapSetExpr, SR};
 build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
   {Fun, SF}    = build_var(Ann, S),
   {Acc, SA}    = build_var(Ann, SF),
