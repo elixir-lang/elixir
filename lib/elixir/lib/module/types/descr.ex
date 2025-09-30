@@ -1691,7 +1691,7 @@ defmodule Module.Types.Descr do
   defp fun_denormalize_intersections([{static_args, static_return} | statics], dynamics, acc) do
     dynamics
     |> Enum.split_while(fn {dynamic_args, dynamic_return} ->
-      not (subtype?(static_return, dynamic_return) and args_subtype?(dynamic_args, static_args))
+      not arrow_subtype?(static_args, static_return, dynamic_args, dynamic_return)
     end)
     |> case do
       {_dynamics, []} ->
@@ -1739,23 +1739,46 @@ defmodule Module.Types.Descr do
 
   defp fun_bdd_to_pos_dnf(bdd) do
     for {pos, _negs} <- fun_bdd_to_dnf(bdd) do
-      fun_filter_subset(pos, [])
+      fun_eliminate_intersections(pos, [])
+    end
+    |> fun_eliminate_unions([])
+  end
+
+  defp fun_eliminate_unions([], acc), do: acc
+
+  defp fun_eliminate_unions([[{args, return}] | tail], acc) do
+    # If another arrow is a superset of the current one, we skip it
+    superset = fn
+      [{other_args, other_return}] ->
+        arrow_subtype?(args, return, other_args, other_return)
+
+      _ ->
+        false
+    end
+
+    if Enum.any?(tail, superset) or Enum.any?(acc, superset) do
+      fun_eliminate_unions(tail, acc)
+    else
+      fun_eliminate_unions(tail, [[{args, return}] | acc])
     end
   end
 
-  defp fun_filter_subset([], acc), do: acc
+  defp fun_eliminate_unions([head | tail], acc) do
+    fun_eliminate_unions(tail, [head | acc])
+  end
 
-  defp fun_filter_subset([{args, return} | tail], acc) do
+  defp fun_eliminate_intersections([], acc), do: acc
+
+  defp fun_eliminate_intersections([{args, return} | tail], acc) do
     # If another arrow is a subset of the current one, we skip it
-    if Enum.any?(tail, fn {other_args, other_return} ->
-         arrow_subtype?(other_args, other_return, args, return)
-       end) or
-         Enum.any?(acc, fn {other_args, other_return} ->
-           arrow_subtype?(other_args, other_return, args, return)
-         end) do
-      fun_filter_subset(tail, acc)
+    subset = fn {other_args, other_return} ->
+      arrow_subtype?(other_args, other_return, args, return)
+    end
+
+    if Enum.any?(tail, subset) or Enum.any?(acc, subset) do
+      fun_eliminate_intersections(tail, acc)
     else
-      fun_filter_subset(tail, [{args, return} | acc])
+      fun_eliminate_intersections(tail, [{args, return} | acc])
     end
   end
 
