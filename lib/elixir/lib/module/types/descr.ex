@@ -27,6 +27,7 @@ defmodule Module.Types.Descr do
   @bit_top (1 <<< 7) - 1
   @bit_number @bit_integer ||| @bit_float
 
+  # Remark: those use AST for BDDs
   defmacrop map_literal(tag, fields), do: {:{}, [], [{tag, fields}, :bdd_top, :bdd_bot]}
   defmacrop tuple_literal(tag, elements), do: {:{}, [], [{tag, elements}, :bdd_top, :bdd_bot]}
   defmacrop list_literal(list, last), do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot]}
@@ -48,6 +49,7 @@ defmodule Module.Types.Descr do
     {:domain_key, :list}
   ]
 
+  # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top :bdd_top
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top {{:open, %{}}, :bdd_top, :bdd_bot}
@@ -1849,30 +1851,32 @@ defmodule Module.Types.Descr do
 
   defp list_new(list_type, last_type), do: bdd_new({list_type, last_type})
 
+  defp non_empty_list_literals_intersection(list_literals) do
+    try do
+      Enum.reduce(list_literals, {:term, :term}, fn {next_list, next_last}, {list, last} ->
+        {non_empty_intersection!(list, next_list), non_empty_intersection!(last, next_last)}
+      end)
+    catch
+      :empty -> :empty
+    end
+  end
+
   # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  defp list_bdd_to_dnf(bdd), do: list_bdd_to_dnf([], {:term, :term}, [], bdd)
+  defp list_bdd_to_dnf(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce([], fn {pos_list, neg_list}, acc ->
+      case non_empty_list_literals_intersection(pos_list) do
+        :empty ->
+          acc
 
-  defp list_bdd_to_dnf(acc, {list_acc, tail_acc} = pos, negs, bdd) do
-    case bdd do
-      :bdd_bot ->
-        acc
-
-      :bdd_top ->
-        if list_line_empty?(list_acc, tail_acc, negs), do: acc, else: [{pos, negs} | acc]
-
-      {{list, tail} = next_list, left, right} ->
-        try do
-          li = non_empty_intersection!(list_acc, list)
-          la = non_empty_intersection!(tail_acc, tail)
-
-          list_bdd_to_dnf(acc, {li, la}, negs, left)
-          |> list_bdd_to_dnf(pos, [next_list | negs], right)
-        catch
-          :empty -> list_bdd_to_dnf(acc, pos, [next_list | negs], right)
-        end
-    end
+        {list, last} ->
+          if list_line_empty?(list, last, neg_list),
+            do: acc,
+            else: [{{list, last}, neg_list} | acc]
+      end
+    end)
   end
 
   # Takes all the lines from the root to the leaves finishing with a 1,
@@ -1882,40 +1886,51 @@ defmodule Module.Types.Descr do
   # if the negative list type is a supertype of the positive list type. In that case,
   # we can remove the negative last type from the positive one.
   # (If this subtracted type was empty, the whole type would be empty)
-  defp list_bdd_to_pos_dnf(bdd), do: list_bdd_to_pos_dnf(:term, :term, bdd, [])
+  defp list_bdd_to_pos_dnf(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce([], fn {pos_list, neg_list}, acc ->
+      case non_empty_list_literals_intersection(pos_list) do
+        :empty ->
+          acc
 
-  defp list_bdd_to_pos_dnf(list_acc, last_acc, bdd, lines_acc) do
-    case bdd do
-      :bdd_bot ->
-        lines_acc
-
-      :bdd_top ->
-        [{list_acc, last_acc} | lines_acc]
-
-      {{list, last}, left, right} ->
-        # Case 1: count the list_type negatively. Check condition when it affects the positive one.
-        lines_acc =
-          if subtype?(list_acc, list) do
-            last = difference(last_acc, last)
-
-            if empty?(last),
-              do: lines_acc,
-              else: list_bdd_to_pos_dnf(list_acc, last, right, lines_acc)
-          else
-            list_bdd_to_pos_dnf(list_acc, last_acc, right, lines_acc)
-          end
-
-        # Case 2: count the list_type positively.
-        list_acc = intersection(list_acc, list)
-        last_acc = intersection(last_acc, last)
-
-        if empty?(list_acc) or empty?(last_acc) do
-          lines_acc
-        else
-          list_bdd_to_pos_dnf(list_acc, last_acc, left, lines_acc)
-        end
-    end
+        {list, last} ->
+          if list_line_empty?(list, last, neg_list), do: acc, else: [{list, last} | acc]
+      end
+    end)
   end
+
+  # defp list_bdd_to_pos_dnf(list_acc, last_acc, bdd, lines_acc) do
+  #   case bdd do
+  #     :bdd_bot ->
+  #       lines_acc
+
+  #     :bdd_top ->
+  #       [{list_acc, last_acc} | lines_acc]
+
+  #     {{list, last}, left, right} ->
+  #       # Case 1: count the list_type negatively. Check condition when it affects the positive one.
+  #       lines_acc =
+  #         if subtype?(list_acc, list) do
+  #           last = difference(last_acc, last)
+
+  #           if empty?(last),
+  #             do: lines_acc,
+  #             else: list_bdd_to_pos_dnf(list_acc, last, right, lines_acc)
+  #         else
+  #           list_bdd_to_pos_dnf(list_acc, last_acc, right, lines_acc)
+  #         end
+
+  #       # Case 2: count the list_type positively.
+  #       list_acc = intersection(list_acc, list)
+  #       last_acc = intersection(last_acc, last)
+
+  #       if empty?(list_acc) or empty?(last_acc) do
+  #         lines_acc
+  #       else
+  #         list_bdd_to_pos_dnf(list_acc, last_acc, left, lines_acc)
+  #       end
+  #   end
+  # end
 
   defp list_pop_dynamic(:term), do: {false, :term}
 
@@ -1980,16 +1995,6 @@ defmodule Module.Types.Descr do
     |> case do
       {_, :bdd_bot, :bdd_bot} -> :bdd_bot
       bdd -> bdd
-    end
-  end
-
-  defp non_empty_list_literals_intersection(list_literals) do
-    try do
-      Enum.reduce(list_literals, {:term, :term}, fn {next_list, next_last}, {list, last} ->
-        {non_empty_intersection!(list, next_list), non_empty_intersection!(last, next_last)}
-      end)
-    catch
-      :empty -> :empty
     end
   end
 
@@ -4119,30 +4124,21 @@ defmodule Module.Types.Descr do
 
   # Transforms a bdd into a union of tuples with no negations.
   # Note: it is important to compose the results with tuple_dnf_union/2 to avoid duplicates
-  defp tuple_normalize(bdd), do: tuple_normalize([], {:open, []}, [], bdd)
-
-  defp tuple_normalize(acc, {tag, elements} = tuple, negs, bdd) do
-    case bdd do
-      :bdd_bot ->
-        acc
-
-      :bdd_top ->
-        if tuple_line_empty?(tag, elements, negs) do
+  defp tuple_normalize(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce([], fn {positive_tuples, negative_tuples}, acc ->
+      case non_empty_tuple_literals_intersection(positive_tuples) do
+        :empty ->
           acc
-        else
-          tuple_eliminate_negations(tag, elements, negs) |> tuple_dnf_union(acc)
-        end
 
-      {{next_tag, next_elements} = next_tuple, left, right} ->
-        # If an intersection of tuples is empty, the line is empty and we skip it.
-        acc =
-          case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
-            :empty -> acc
-            new_tuple -> tuple_normalize(acc, new_tuple, negs, left)
+        {tag, elements} ->
+          if tuple_line_empty?(tag, elements, negative_tuples) do
+            acc
+          else
+            tuple_eliminate_negations(tag, elements, negative_tuples) |> tuple_dnf_union(acc)
           end
-
-        tuple_normalize(acc, tuple, [next_tuple | negs], right)
-    end
+      end
+    end)
   end
 
   # Given a union of tuples, fuses the tuple unions when possible,
@@ -4467,7 +4463,16 @@ defmodule Module.Types.Descr do
 
   ## BDD helpers
 
-  # Creation of a BDD
+  # defp bdd_new(literal), do: lazy_bdd_new(literal)
+  # defp bdd_new(literal, left, right), do: lazy_bdd_new(literal, left, right)
+
+  # defp bdd_intersection(bdd1, bdd2), do: lazy_bdd_intersection(bdd1, bdd2)
+  # defp bdd_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
+  # defp bdd_union(bdd1, bdd2), do: lazy_bdd_union(bdd1, bdd2)
+  # defp bdd_negation(bdd), do: lazy_bdd_negation(bdd)
+  # defp bdd_map(bdd, fun), do: lazy_bdd_map(bdd, fun)
+  # defp bdd_to_dnf(bdd), do: lazy_bdd_to_dnf(bdd)
+
   defp bdd_new(literal), do: {literal, :bdd_top, :bdd_bot}
   defp bdd_new(literal, left, right), do: {literal, left, right}
 
@@ -4659,6 +4664,19 @@ defmodule Module.Types.Descr do
     raise ArgumentError,
           "lazy_bdd_to_dnf expects lazy nodes {lit, c, u, d} #{inspect(node)}\n
           #{inspect(Process.info(self(), :current_stacktrace))}"
+  end
+
+  defp lazy_bdd_map(bdd, fun) do
+    case bdd do
+      :bdd_bot ->
+        :bdd_bot
+
+      :bdd_top ->
+        :bdd_top
+
+      {literal, left, union, right} ->
+        {fun.(literal), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun)}
+    end
   end
 
   ## Pairs
