@@ -6,6 +6,11 @@
 -export([translate/3]).
 -include("elixir.hrl").
 
+-define(empty_map_set_pattern, {map, _, [
+    {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.MapSet'}},
+    {map_field_assoc, _, {atom, _, map}, {map, _, []}}
+  ]}).
+
 translate(Meta, Args, S) ->
   {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
 
@@ -156,6 +161,10 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
 build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
   {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
   {?remote(Ann, maps, from_list, [ReduceExpr]), SR};
+build_into(Ann, Clauses, Expr, ?empty_map_set_pattern = _Into, Uniq, S) ->
+  InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
+  {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S),
+  {?remote(Ann, 'Elixir.MapSet', new, [ReduceExpr]), SR};
 build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
   {Fun, SF}    = build_var(Ann, S),
   {Acc, SA}    = build_var(Ann, SF),
