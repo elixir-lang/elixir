@@ -126,7 +126,9 @@ defmodule Mix.Tasks.Test do
       like `--stale`, `--only`, `--exclude`, and so on.
 
     * `--exclude` - excludes tests that match the filter. This option may be given
-      several times to apply different filters, such as `--exclude ci --exclude slow`
+      several times to apply different filters, such as `--exclude ci --exclude slow`.
+      A value can also be provided for the filter such as `--exclude async:true` to only
+      run the sync tests.
 
     * `--exit-status` - use an alternate exit status to use when the test suite
       fails (default is 2).
@@ -172,7 +174,9 @@ defmodule Mix.Tasks.Test do
 
     * `--no-start` - does not start applications after compilation
 
-    * `--only` - runs only tests that match the filter
+    * `--only` - runs only tests that match the filter. Such as `--only ci`. A value
+      can also be provided for the filter such as `--only async:true` to only
+      run the async tests.
 
     * `--partitions` - sets the amount of partitions to split tests in. It must be
       a number greater than zero. If set to one, it acts a no-op. If more than one,
