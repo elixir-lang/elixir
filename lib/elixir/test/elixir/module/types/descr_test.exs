@@ -2231,7 +2231,7 @@ defmodule Module.Types.DescrTest do
              |> difference(none_fun(2))
              |> intersection(none_fun(1))
              |> to_quoted_string() ==
-               "(integer() -> atom())"
+               "(none() -> term()) and (integer() -> atom())"
     end
 
     test "function with dynamic signatures" do

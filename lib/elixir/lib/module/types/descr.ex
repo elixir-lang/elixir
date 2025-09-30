@@ -1738,9 +1738,8 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_bdd_to_pos_dnf(bdd) do
-    for {pos, _negs} <- fun_bdd_to_dnf(bdd) do
-      fun_eliminate_intersections(pos, [])
-    end
+    fun_bdd_to_dnf(bdd)
+    |> Enum.map(fn {pos, _negs} -> pos end)
     |> fun_eliminate_unions([])
   end
 
@@ -1765,21 +1764,6 @@ defmodule Module.Types.Descr do
 
   defp fun_eliminate_unions([head | tail], acc) do
     fun_eliminate_unions(tail, [head | acc])
-  end
-
-  defp fun_eliminate_intersections([], acc), do: acc
-
-  defp fun_eliminate_intersections([{args, return} | tail], acc) do
-    # If another arrow is a subset of the current one, we skip it
-    subset = fn {other_args, other_return} ->
-      arrow_subtype?(other_args, other_return, args, return)
-    end
-
-    if Enum.any?(tail, subset) or Enum.any?(acc, subset) do
-      fun_eliminate_intersections(tail, acc)
-    else
-      fun_eliminate_intersections(tail, [{args, return} | acc])
-    end
   end
 
   defp fun_pos_to_quoted([_ | _] = pos, opts) do
