@@ -1602,35 +1602,37 @@ defmodule Module.Types.Descr do
 
   defp fun_union(bdd1, bdd2), do: lazy_bdd_union(bdd1, bdd2)
 
-  defp is_fun_top?(bdd, {{args, return}, :bdd_top, :bdd_bot}) do
-    return == :term and Enum.all?(args, &(&1 == %{})) and
-      matching_arity_left?(bdd, length(args))
-  end
-
-  defp is_fun_top?(_, _), do: false
-
   defp fun_intersection(bdd1, bdd2) do
     cond do
       # If intersecting with the top type for that arity, no-op
-      is_tuple(bdd2) and is_fun_top?(bdd2, bdd1) -> bdd2
-      is_tuple(bdd1) and is_fun_top?(bdd1, bdd2) -> bdd1
+      is_tuple(bdd2) and fun_top?(bdd2, bdd1) -> bdd2
+      is_tuple(bdd1) and fun_top?(bdd1, bdd2) -> bdd1
       true -> lazy_bdd_intersection(bdd1, bdd2)
     end
   end
 
-  defp matching_arity_left?({{args, _return}, l, r}, arity) do
-    length(args) == arity and matching_arity_left?(l, arity) and matching_arity_right?(r, arity)
+  defp fun_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
+
+  defp fun_top?(bdd, {{args, return}, :bdd_top, :bdd_bot, :bdd_bot}) do
+    return == :term and Enum.all?(args, &(&1 == %{})) and
+      matching_arity_left?(bdd, length(args))
+  end
+
+  defp fun_top?(_, _), do: false
+
+  defp matching_arity_left?({{args, _return}, l, u, r}, arity) do
+    length(args) == arity and matching_arity_left?(l, arity) and matching_arity_left?(u, arity) and
+      matching_arity_right?(r, arity)
   end
 
   defp matching_arity_left?(_, _arity), do: true
 
-  defp matching_arity_right?({_, l, r}, arity) do
-    matching_arity_left?(l, arity) and matching_arity_right?(r, arity)
+  defp matching_arity_right?({_, l, u, r}, arity) do
+    matching_arity_left?(l, arity) and matching_arity_left?(u, arity) and
+      matching_arity_right?(r, arity)
   end
 
   defp matching_arity_right?(_, _arity), do: true
-
-  defp fun_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
 
   # Converts the static and dynamic parts of descr to its quoted
   # representation. The goal here is to the opposite of fun_descr
