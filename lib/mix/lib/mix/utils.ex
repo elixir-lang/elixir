@@ -917,7 +917,7 @@ defmodule Mix.Utils do
         File.mkdir_p!(dir)
         rand = :crypto.strong_rand_bytes(3) |> Base.url_encode64()
         path = Path.join(dir, "mix_user_check_#{System.os_time()}_#{rand}")
-    
+
         uid =
           try do
             File.touch!(path)
