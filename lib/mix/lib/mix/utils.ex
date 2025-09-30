@@ -874,4 +874,37 @@ defmodule Mix.Utils do
 
     [proxy_auth: {user, pass}]
   end
+
+  @doc """
+  Returns the user id of the currently running process.
+
+  The user id is obtained by creating a temporary file and checking
+  it's UID. Note that the UID may be `nil` on non-Unix systems.
+  """
+  def detect_user_id!() do
+    case Mix.State.fetch(:user_id) do
+      {:ok, uid} ->
+        uid
+
+      :error ->
+        dir = System.tmp_dir!()
+        File.mkdir_p!(dir)
+        rand = :crypto.strong_rand_bytes(3) |> Base.url_encode64()
+        path = Path.join(dir, "mix_user_check_#{System.os_time()}_#{rand}")
+
+        uid =
+          try do
+            File.touch!(path)
+            File.stat!(path)
+          else
+            %{uid: :undefined} -> nil
+            %{uid: uid} -> uid
+          after
+            File.rm(path)
+          end
+
+        Mix.State.put(:user_id, uid)
+        uid
+    end
+  end
 end
