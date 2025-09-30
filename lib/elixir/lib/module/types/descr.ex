@@ -1686,22 +1686,23 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # We assume those pairs are always formed in the same order
-  defp fun_denormalize_intersections(
-         [{static_args, static_return} | statics],
-         [{dynamic_args, dynamic_return} | dynamics],
-         acc
-       ) do
-    if subtype?(static_return, dynamic_return) and args_subtype?(dynamic_args, static_args) do
-      args =
-        Enum.zip_with(static_args, dynamic_args, fn static_arg, dynamic_arg ->
-          union(dynamic(static_arg), dynamic_arg)
-        end)
+  defp fun_denormalize_intersections([{static_args, static_return} | statics], dynamics, acc) do
+    dynamics
+    |> Enum.split_while(fn {dynamic_args, dynamic_return} ->
+      not (subtype?(static_return, dynamic_return) and args_subtype?(dynamic_args, static_args))
+    end)
+    |> case do
+      {_dynamics, []} ->
+        :error
 
-      return = union(dynamic(dynamic_return), static_return)
-      fun_denormalize_intersections(statics, dynamics, [{args, return} | acc])
-    else
-      :error
+      {pre, [{dynamic_args, dynamic_return} | post]} ->
+        args =
+          Enum.zip_with(static_args, dynamic_args, fn static_arg, dynamic_arg ->
+            union(dynamic(static_arg), dynamic_arg)
+          end)
+
+        return = union(dynamic(dynamic_return), static_return)
+        fun_denormalize_intersections(statics, pre ++ post, [{args, return} | acc])
     end
   end
 
