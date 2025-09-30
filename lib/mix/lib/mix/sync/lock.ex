@@ -72,7 +72,6 @@ defmodule Mix.Sync.Lock do
   @probe_data "mixlock"
   @probe_data_size byte_size(@probe_data)
   @probe_timeout_ms 5_000
-  @version 2
 
   @typedoc """
   Options for `with_lock/3`.
@@ -132,12 +131,7 @@ defmodule Mix.Sync.Lock do
 
   defp base_path do
     # We include user in the dir to avoid permission conflicts across users
-    user = System.get_env("USER", "default")
-
-    Path.join(
-      System.tmp_dir!(),
-      "mix_lock_#{@version}_#{Base.url_encode64(user, padding: false)}"
-    )
+    Path.join(System.tmp_dir!(), "mix_lock_user#{Mix.Utils.detect_user_id!()}")
   end
 
   defp lock_disabled?(), do: System.get_env("MIX_OS_CONCURRENCY_LOCK") in ~w(0 false)
