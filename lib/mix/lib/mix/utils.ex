@@ -908,19 +908,29 @@ defmodule Mix.Utils do
   it's UID. Note that the UID may be `nil` on non-Unix systems.
   """
   def detect_user_id!() do
-    dir = System.tmp_dir!()
-    File.mkdir_p!(dir)
+    case Mix.State.fetch(:user_id) do
+      {:ok, uid} ->
+        uid
 
-    path =
-      Path.join(dir, "mix_user_check_#{System.os_time()}_#{System.unique_integer([:positive])}")
+      :error ->
+        dir = System.tmp_dir!()
+        File.mkdir_p!(dir)
+        rand = :crypto.strong_rand_bytes(3) |> Base.url_encode64()
+        path = Path.join(dir, "mix_user_check_#{System.os_time()}_#{rand}")
+    
+        uid =
+          try do
+            File.touch!(path)
+            File.stat!(path)
+          else
+            %{uid: :undefined} -> nil
+            %{uid: uid} -> uid
+          after
+            File.rm(path)
+          end
 
-    File.touch!(path)
-    %{uid: uid} = File.stat!(path)
-    _ = File.rm(path)
-
-    case uid do
-      :undefined -> nil
-      uid -> uid
+        Mix.State.put(:user_id, uid)
+        uid
     end
   end
 end
