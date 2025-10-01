@@ -2408,14 +2408,8 @@ defmodule Module.Types.Descr do
 
   def map_union(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
     case maybe_optimize_map_union({tag1, fields1, []}, {tag2, fields2, []}) do
-      {tag, fields, []} ->
-        map_literal(tag, fields)
-
-      nil ->
-        case {{tag1, fields1}, {tag2, fields2}} do
-          {r, l} when l < r -> bdd_new(l, :bdd_top, bdd_new(r))
-          {l, r} -> bdd_new(l, :bdd_top, bdd_new(r))
-        end
+      {tag, fields, []} -> map_literal(tag, fields)
+      nil -> bdd_union(map_literal(tag1, fields1), map_literal(tag2, fields2))
     end
   end
 
@@ -4436,16 +4430,16 @@ defmodule Module.Types.Descr do
   # TODO: find out if using lazy BDDs everywhere is worth it
   # Remark: uncomment those, and swap the macro and attribute definitions to use lazy BDDs.
   defp bdd_new(literal), do: lazy_bdd_new(literal)
-  defp bdd_new(literal, left, right), do: lazy_bdd_new(literal, left, right)
+  # defp bdd_new(literal, left, right), do: lazy_bdd_new(literal, left, right)
 
   defp bdd_intersection(bdd1, bdd2), do: lazy_bdd_intersection(bdd1, bdd2)
   defp bdd_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
   defp bdd_union(bdd1, bdd2), do: lazy_bdd_union(bdd1, bdd2)
-  defp bdd_negation(bdd), do: lazy_bdd_negation(bdd)
+  # defp bdd_negation(bdd), do: lazy_bdd_negation(bdd)
   defp bdd_map(bdd, fun), do: lazy_bdd_map(bdd, fun)
   defp bdd_to_dnf(bdd), do: lazy_bdd_to_dnf(bdd)
 
-  defp lazy_bdd_new(literal, left, right), do: {literal, left, :bdd_bot, right}
+  # defp lazy_bdd_new(literal, left, right), do: {literal, left, :bdd_bot, right}
 
   defp lazy_bdd_map(bdd, fun) do
     case bdd do
@@ -4564,8 +4558,8 @@ defmodule Module.Types.Descr do
         {lit2, l2, lazy_bdd_union(bdd1, u2), r2}
     end
     |> case do
-      {lit, l, :bdd_top, r} -> :bdd_top
-      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      {_lit, _l, :bdd_top, _r} -> :bdd_top
+      {_lit, l, u, l} -> lazy_bdd_union(l, u)
       bdd -> bdd
     end
   end
@@ -4597,8 +4591,8 @@ defmodule Module.Types.Descr do
         lazy_bdd_negation({lit, c2, u2, d2})
     end
     |> case do
-      {lit, l, :bdd_top, r} -> :bdd_top
-      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      {_lit, _l, :bdd_top, _r} -> :bdd_top
+      {_lit, l, u, l} -> lazy_bdd_union(l, u)
       bdd -> bdd
     end
   end
@@ -4611,8 +4605,7 @@ defmodule Module.Types.Descr do
     {lit, lazy_bdd_negation(lazy_bdd_union(c, u)), :bdd_bot,
      lazy_bdd_negation(lazy_bdd_union(d, u))}
     |> case do
-      {lit, l, :bdd_top, r} -> :bdd_top
-      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      {_lit, l, u, l} -> lazy_bdd_union(l, u)
       bdd -> bdd
     end
   end
@@ -4644,8 +4637,8 @@ defmodule Module.Types.Descr do
          lazy_bdd_intersection(bdd1, d2)}
     end
     |> case do
-      {lit, l, :bdd_top, r} -> :bdd_top
-      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      {_lit, _l, :bdd_top, _r} -> :bdd_top
+      {_lit, l, u, l} -> lazy_bdd_union(l, u)
       bdd -> bdd
     end
   end
