@@ -1936,10 +1936,6 @@ defmodule Module.Types.Descr do
       is_list_top?(bdd2) and is_tuple(bdd1) -> bdd1
       true -> bdd_intersection(bdd1, bdd2)
     end
-    |> case do
-      {_, :bdd_bot, :bdd_bot} -> :bdd_bot
-      bdd -> bdd
-    end
   end
 
   # Computes the difference between two BDD (Binary Decision Diagram) list types.
@@ -1960,13 +1956,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_difference(bdd1, bdd2) do
-    bdd_difference(bdd1, bdd2)
-    |> case do
-      {_, :bdd_bot, :bdd_bot} -> :bdd_bot
-      bdd -> bdd
-    end
-  end
+  defp list_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
   defp list_empty?(@non_empty_list_top), do: false
 
@@ -4534,6 +4524,19 @@ defmodule Module.Types.Descr do
   ## Lazy BDD helpers
   defp lazy_bdd_new(literal), do: {literal, :bdd_top, :bdd_bot, :bdd_bot}
 
+  # defp bdd_union(:bdd_top, _), do: :bdd_top
+  # defp bdd_union(_, :bdd_top), do: :bdd_top
+  # defp bdd_union(:bdd_bot, other), do: other
+  # defp bdd_union(other, :bdd_bot), do: other
+  # defp bdd_union({map, l1, r1}, {map, l2, r2}), do: {map, bdd_union(l1, l2), bdd_union(r1, r2)}
+
+  # # Maintaining the invariant that literals are ordered ensures they are not duplicated down the tree
+  # defp bdd_union({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+  #   do: {lit1, bdd_union(l1, bdd2), bdd_union(r1, bdd2)}
+
+  # defp bdd_union({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+  #   do: {lit2, bdd_union(bdd1, l2), bdd_union(bdd1, r2)}
+
   def lazy_bdd_union(bdd1, bdd2) do
     case {bdd1, bdd2} do
       {:bdd_top, _bdd} ->
@@ -4588,7 +4591,7 @@ defmodule Module.Types.Descr do
          lazy_bdd_difference(bdd1, lazy_bdd_union(d2, u2))}
 
       {:bdd_top, {lit, c2, u2, d2}} ->
-        lazy_bdd_negation({lit, c2, u2, d2})
+        lazy_bdd_negation({lit, lazy_bdd_union(c2, u2), :bdd_bot, lazy_bdd_union(d2, u2)})
     end
     |> case do
       {_lit, _l, :bdd_top, _r} -> :bdd_top
