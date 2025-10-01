@@ -1133,7 +1133,7 @@ defmodule Kernel.WarningTest do
     message = "def hello/1 has multiple clauses and also declares default values"
 
     assert_warn_eval(
-      ["nofile:3:7\n", message],
+      ["nofile:3:7\n", message, "the previous clause is defined on line 2"],
       ~S"""
       defmodule Sample1 do
         def hello(arg), do: arg
@@ -1143,7 +1143,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3:7\n", message],
+      ["nofile:3:7\n", message, "the previous clause is defined on line 2"],
       ~S"""
       defmodule Sample2 do
         def hello(_arg)
@@ -1157,7 +1157,11 @@ defmodule Kernel.WarningTest do
 
   test "clauses with default should use header" do
     assert_warn_eval(
-      ["nofile:3:7\n", "def hello/1 has multiple clauses and also declares default values"],
+      [
+        "nofile:3:7\n",
+        "def hello/1 has multiple clauses and also declares default values",
+        "the previous clause is defined on line 2"
+      ],
       ~S"""
       defmodule Sample do
         def hello(arg \\ 0), do: arg
