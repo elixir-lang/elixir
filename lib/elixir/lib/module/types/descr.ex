@@ -4658,7 +4658,7 @@ defmodule Module.Types.Descr do
   # Lazy node: {lit, C, U, D}  ≡  (lit ∧ C) ∪ U ∪ (¬lit ∧ D)
   defp lazy_bdd_to_dnf(acc, pos, neg, {lit, c, u, d}) do
     # U is a bdd in itself, we accumulate its lines first
-    lazy_bdd_to_dnf(acc, [], [], u)
+    lazy_bdd_to_dnf(acc, pos, neg, u)
     # C-part
     |> lazy_bdd_to_dnf([lit | pos], neg, c)
     # D-part
