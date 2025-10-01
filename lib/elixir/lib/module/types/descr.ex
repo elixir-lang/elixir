@@ -4591,7 +4591,7 @@ defmodule Module.Types.Descr do
          lazy_bdd_difference(bdd1, lazy_bdd_union(d2, u2))}
 
       {:bdd_top, {lit, c2, u2, d2}} ->
-        lazy_bdd_negation({lit, lazy_bdd_union(c2, u2), :bdd_bot, lazy_bdd_union(d2, u2)})
+        lazy_bdd_negation({lit, c2, u2, d2})
     end
     |> case do
       {_lit, _l, :bdd_top, _r} -> :bdd_top
