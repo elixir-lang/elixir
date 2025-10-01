@@ -28,9 +28,12 @@ defmodule Module.Types.Descr do
   @bit_number @bit_integer ||| @bit_float
 
   # Remark: those use AST for BDDs
-  defmacrop map_literal(tag, fields), do: {:{}, [], [{tag, fields}, :bdd_top, :bdd_bot]}
-  defmacrop tuple_literal(tag, elements), do: {:{}, [], [{tag, elements}, :bdd_top, :bdd_bot]}
-  defmacrop list_literal(list, last), do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot]}
+  defmacrop map_literal(tag, fields), do: {:{}, [], [{tag, fields}, :bdd_top, :bdd_bot, :bdd_bot]}
+
+  defmacrop tuple_literal(tag, elements),
+    do: {:{}, [], [{tag, elements}, :bdd_top, :bdd_bot, :bdd_bot]}
+
+  defmacrop list_literal(list, last), do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot, :bdd_bot]}
 
   defmacrop domain_key(key), do: {:domain_key, key}
 
@@ -52,10 +55,10 @@ defmodule Module.Types.Descr do
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top :bdd_top
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top {{:open, %{}}, :bdd_top, :bdd_bot}
-  @non_empty_list_top {{:term, :term}, :bdd_top, :bdd_bot}
-  @tuple_top {{:open, []}, :bdd_top, :bdd_bot}
-  @map_empty {{:closed, %{}}, :bdd_top, :bdd_bot}
+  @map_top {{:open, %{}}, :bdd_top, :bdd_bot, :bdd_bot}
+  @non_empty_list_top {{:term, :term}, :bdd_top, :bdd_bot, :bdd_bot}
+  @tuple_top {{:open, []}, :bdd_top, :bdd_bot, :bdd_bot}
+  @map_empty {{:closed, %{}}, :bdd_top, :bdd_bot, :bdd_bot}
 
   @none %{}
   @term %{
@@ -1898,39 +1901,6 @@ defmodule Module.Types.Descr do
       end
     end)
   end
-
-  # defp list_bdd_to_pos_dnf(list_acc, last_acc, bdd, lines_acc) do
-  #   case bdd do
-  #     :bdd_bot ->
-  #       lines_acc
-
-  #     :bdd_top ->
-  #       [{list_acc, last_acc} | lines_acc]
-
-  #     {{list, last}, left, right} ->
-  #       # Case 1: count the list_type negatively. Check condition when it affects the positive one.
-  #       lines_acc =
-  #         if subtype?(list_acc, list) do
-  #           last = difference(last_acc, last)
-
-  #           if empty?(last),
-  #             do: lines_acc,
-  #             else: list_bdd_to_pos_dnf(list_acc, last, right, lines_acc)
-  #         else
-  #           list_bdd_to_pos_dnf(list_acc, last_acc, right, lines_acc)
-  #         end
-
-  #       # Case 2: count the list_type positively.
-  #       list_acc = intersection(list_acc, list)
-  #       last_acc = intersection(last_acc, last)
-
-  #       if empty?(list_acc) or empty?(last_acc) do
-  #         lines_acc
-  #       else
-  #         list_bdd_to_pos_dnf(list_acc, last_acc, left, lines_acc)
-  #       end
-  #   end
-  # end
 
   defp list_pop_dynamic(:term), do: {false, :term}
 
@@ -4463,96 +4433,112 @@ defmodule Module.Types.Descr do
 
   ## BDD helpers
 
-  # defp bdd_new(literal), do: lazy_bdd_new(literal)
-  # defp bdd_new(literal, left, right), do: lazy_bdd_new(literal, left, right)
+  # TODO: find out if using lazy BDDs everywhere is worth it
+  # Remark: uncomment those, and swap the macro and attribute definitions to use lazy BDDs.
+  defp bdd_new(literal), do: lazy_bdd_new(literal)
+  defp bdd_new(literal, left, right), do: lazy_bdd_new(literal, left, right)
 
-  # defp bdd_intersection(bdd1, bdd2), do: lazy_bdd_intersection(bdd1, bdd2)
-  # defp bdd_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
-  # defp bdd_union(bdd1, bdd2), do: lazy_bdd_union(bdd1, bdd2)
-  # defp bdd_negation(bdd), do: lazy_bdd_negation(bdd)
-  # defp bdd_map(bdd, fun), do: lazy_bdd_map(bdd, fun)
-  # defp bdd_to_dnf(bdd), do: lazy_bdd_to_dnf(bdd)
+  defp bdd_intersection(bdd1, bdd2), do: lazy_bdd_intersection(bdd1, bdd2)
+  defp bdd_difference(bdd1, bdd2), do: lazy_bdd_difference(bdd1, bdd2)
+  defp bdd_union(bdd1, bdd2), do: lazy_bdd_union(bdd1, bdd2)
+  defp bdd_negation(bdd), do: lazy_bdd_negation(bdd)
+  defp bdd_map(bdd, fun), do: lazy_bdd_map(bdd, fun)
+  defp bdd_to_dnf(bdd), do: lazy_bdd_to_dnf(bdd)
 
-  defp bdd_new(literal), do: {literal, :bdd_top, :bdd_bot}
-  defp bdd_new(literal, left, right), do: {literal, left, right}
+  defp lazy_bdd_new(literal, left, right), do: {literal, left, :bdd_bot, right}
 
-  # Leaf cases
-  defp bdd_intersection(_, :bdd_bot), do: :bdd_bot
-  defp bdd_intersection(:bdd_bot, _), do: :bdd_bot
-  defp bdd_intersection(:bdd_top, other), do: other
-  defp bdd_intersection(other, :bdd_top), do: other
-
-  # Internal-node cases
-  # Keeping the invariant that literals are ordered ensures nodes are not duplicated down
-  defp bdd_intersection({lit, l1, r1}, {lit, l2, r2}),
-    do: {lit, bdd_intersection(l1, l2), bdd_intersection(r1, r2)}
-
-  defp bdd_intersection({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
-    do: {lit1, bdd_intersection(l1, bdd2), bdd_intersection(r1, bdd2)}
-
-  defp bdd_intersection({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
-    do: {lit2, bdd_intersection(bdd1, l2), bdd_intersection(bdd1, r2)}
-
-  defp bdd_difference(:bdd_bot, _), do: :bdd_bot
-  defp bdd_difference(other, :bdd_bot), do: other
-  defp bdd_difference(:bdd_top, other), do: bdd_negation(other)
-  defp bdd_difference(_, :bdd_top), do: :bdd_bot
-
-  defp bdd_difference({lit, l1, r1}, {lit, l2, r2}),
-    do: {lit, bdd_difference(l1, l2), bdd_difference(r1, r2)}
-
-  defp bdd_difference({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
-    do: {lit1, bdd_difference(l1, bdd2), bdd_difference(r1, bdd2)}
-
-  defp bdd_difference({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
-    do: {lit2, bdd_difference(bdd1, l2), bdd_difference(bdd1, r2)}
-
-  defp bdd_negation(:bdd_bot), do: :bdd_top
-  defp bdd_negation(:bdd_top), do: :bdd_bot
-  defp bdd_negation({lit, l, r}), do: {lit, bdd_negation(l), bdd_negation(r)}
-
-  defp bdd_union(:bdd_top, _), do: :bdd_top
-  defp bdd_union(_, :bdd_top), do: :bdd_top
-  defp bdd_union(:bdd_bot, other), do: other
-  defp bdd_union(other, :bdd_bot), do: other
-  defp bdd_union({map, l1, r1}, {map, l2, r2}), do: {map, bdd_union(l1, l2), bdd_union(r1, r2)}
-
-  # Maintaining the invariant that literals are ordered ensures they are not duplicated down the tree
-  defp bdd_union({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
-    do: {lit1, bdd_union(l1, bdd2), bdd_union(r1, bdd2)}
-
-  defp bdd_union({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
-    do: {lit2, bdd_union(bdd1, l2), bdd_union(bdd1, r2)}
-
-  defp bdd_map(bdd, fun) do
-    case bdd do
-      :bdd_bot -> :bdd_bot
-      :bdd_top -> :bdd_top
-      {literal, left, right} -> {fun.(literal), bdd_map(left, fun), bdd_map(right, fun)}
-    end
-  end
-
-  defp bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
-
-  defp bdd_to_dnf(acc, pos, neg, bdd) do
+  defp lazy_bdd_map(bdd, fun) do
     case bdd do
       :bdd_bot ->
-        acc
+        :bdd_bot
 
       :bdd_top ->
-        [{pos, neg} | acc]
+        :bdd_top
 
-      {fun, :bdd_top, right} ->
-        bdd_to_dnf([{[fun | pos], neg} | acc], pos, neg, right)
-
-      {fun, left, right} ->
-        bdd_to_dnf(bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
+      {literal, left, union, right} ->
+        {fun.(literal), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun)}
     end
   end
+
+  # defp bdd_new(literal), do: {literal, :bdd_top, :bdd_bot}
+  # defp bdd_new(literal, left, right), do: {literal, left, right}
+
+  # # Leaf cases
+  # defp bdd_intersection(_, :bdd_bot), do: :bdd_bot
+  # defp bdd_intersection(:bdd_bot, _), do: :bdd_bot
+  # defp bdd_intersection(:bdd_top, other), do: other
+  # defp bdd_intersection(other, :bdd_top), do: other
+
+  # # Internal-node cases
+  # # Keeping the invariant that literals are ordered ensures nodes are not duplicated down
+  # defp bdd_intersection({lit, l1, r1}, {lit, l2, r2}),
+  #   do: {lit, bdd_intersection(l1, l2), bdd_intersection(r1, r2)}
+
+  # defp bdd_intersection({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+  #   do: {lit1, bdd_intersection(l1, bdd2), bdd_intersection(r1, bdd2)}
+
+  # defp bdd_intersection({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+  #   do: {lit2, bdd_intersection(bdd1, l2), bdd_intersection(bdd1, r2)}
+
+  # defp bdd_difference(:bdd_bot, _), do: :bdd_bot
+  # defp bdd_difference(other, :bdd_bot), do: other
+  # defp bdd_difference(:bdd_top, other), do: bdd_negation(other)
+  # defp bdd_difference(_, :bdd_top), do: :bdd_bot
+
+  # defp bdd_difference({lit, l1, r1}, {lit, l2, r2}),
+  #   do: {lit, bdd_difference(l1, l2), bdd_difference(r1, r2)}
+
+  # defp bdd_difference({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+  #   do: {lit1, bdd_difference(l1, bdd2), bdd_difference(r1, bdd2)}
+
+  # defp bdd_difference({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+  #   do: {lit2, bdd_difference(bdd1, l2), bdd_difference(bdd1, r2)}
+
+  # defp bdd_negation(:bdd_bot), do: :bdd_top
+  # defp bdd_negation(:bdd_top), do: :bdd_bot
+  # defp bdd_negation({lit, l, r}), do: {lit, bdd_negation(l), bdd_negation(r)}
+
+  # defp bdd_union(:bdd_top, _), do: :bdd_top
+  # defp bdd_union(_, :bdd_top), do: :bdd_top
+  # defp bdd_union(:bdd_bot, other), do: other
+  # defp bdd_union(other, :bdd_bot), do: other
+  # defp bdd_union({map, l1, r1}, {map, l2, r2}), do: {map, bdd_union(l1, l2), bdd_union(r1, r2)}
+
+  # # Maintaining the invariant that literals are ordered ensures they are not duplicated down the tree
+  # defp bdd_union({lit1, l1, r1}, {lit2, _, _} = bdd2) when lit1 < lit2,
+  #   do: {lit1, bdd_union(l1, bdd2), bdd_union(r1, bdd2)}
+
+  # defp bdd_union({lit1, _, _} = bdd1, {lit2, l2, r2}) when lit1 > lit2,
+  #   do: {lit2, bdd_union(bdd1, l2), bdd_union(bdd1, r2)}
+
+  # defp bdd_map(bdd, fun) do
+  #   case bdd do
+  #     :bdd_bot -> :bdd_bot
+  #     :bdd_top -> :bdd_top
+  #     {literal, left, right} -> {fun.(literal), bdd_map(left, fun), bdd_map(right, fun)}
+  #   end
+  # end
+
+  # defp bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
+
+  # defp bdd_to_dnf(acc, pos, neg, bdd) do
+  #   case bdd do
+  #     :bdd_bot ->
+  #       acc
+
+  #     :bdd_top ->
+  #       [{pos, neg} | acc]
+
+  #     {fun, :bdd_top, right} ->
+  #       bdd_to_dnf([{[fun | pos], neg} | acc], pos, neg, right)
+
+  #     {fun, left, right} ->
+  #       bdd_to_dnf(bdd_to_dnf(acc, [fun | pos], neg, left), pos, [fun | neg], right)
+  #   end
+  # end
 
   ## Lazy BDD helpers
   defp lazy_bdd_new(literal), do: {literal, :bdd_top, :bdd_bot, :bdd_bot}
-  defp lazy_bdd_new(literal, left, right), do: {literal, left, :bdd_bot, right}
 
   def lazy_bdd_union(bdd1, bdd2) do
     case {bdd1, bdd2} do
@@ -4576,6 +4562,11 @@ defmodule Module.Types.Descr do
 
       {{lit1, _, _, _} = bdd1, {lit2, l2, u2, r2}} when lit1 > lit2 ->
         {lit2, l2, lazy_bdd_union(bdd1, u2), r2}
+    end
+    |> case do
+      {lit, l, :bdd_top, r} -> :bdd_top
+      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      bdd -> bdd
     end
   end
 
@@ -4605,15 +4596,25 @@ defmodule Module.Types.Descr do
       {:bdd_top, {lit, c2, u2, d2}} ->
         lazy_bdd_negation({lit, c2, u2, d2})
     end
+    |> case do
+      {lit, l, :bdd_top, r} -> :bdd_top
+      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      bdd -> bdd
+    end
   end
 
-  # To do lazy negation: eliminate the union, then perform normal negation (switching leaves)
+  # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
   def lazy_bdd_negation(:bdd_top), do: :bdd_bot
   def lazy_bdd_negation(:bdd_bot), do: :bdd_top
 
   def lazy_bdd_negation({lit, c, u, d}) do
     {lit, lazy_bdd_negation(lazy_bdd_union(c, u)), :bdd_bot,
      lazy_bdd_negation(lazy_bdd_union(d, u))}
+    |> case do
+      {lit, l, :bdd_top, r} -> :bdd_top
+      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      bdd -> bdd
+    end
   end
 
   def lazy_bdd_intersection(bdd1, bdd2) do
@@ -4642,6 +4643,11 @@ defmodule Module.Types.Descr do
         {lit2, lazy_bdd_intersection(bdd1, c2), lazy_bdd_intersection(bdd1, u2),
          lazy_bdd_intersection(bdd1, d2)}
     end
+    |> case do
+      {lit, l, :bdd_top, r} -> :bdd_top
+      {lit, l, u, l} -> lazy_bdd_union(l, u)
+      bdd -> bdd
+    end
   end
 
   def lazy_bdd_to_dnf(bdd), do: lazy_bdd_to_dnf([], [], [], bdd)
@@ -4664,19 +4670,6 @@ defmodule Module.Types.Descr do
     raise ArgumentError,
           "lazy_bdd_to_dnf expects lazy nodes {lit, c, u, d} #{inspect(node)}\n
           #{inspect(Process.info(self(), :current_stacktrace))}"
-  end
-
-  defp lazy_bdd_map(bdd, fun) do
-    case bdd do
-      :bdd_bot ->
-        :bdd_bot
-
-      :bdd_top ->
-        :bdd_top
-
-      {literal, left, union, right} ->
-        {fun.(literal), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun)}
-    end
   end
 
   ## Pairs
