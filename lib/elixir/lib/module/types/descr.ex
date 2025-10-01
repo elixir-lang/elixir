@@ -4557,7 +4557,7 @@ defmodule Module.Types.Descr do
       {{lit1, l1, u1, r1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
         {lit1, l1, lazy_bdd_union(u1, bdd2), r1}
 
-      {{lit1, _, _, _} = bdd1, {lit2, l2, u2, r2}} when lit1 > lit2 ->
+      {{lit1, _, _, _} = bdd1, {lit2, l2, u2, r2}} ->
         {lit2, l2, lazy_bdd_union(bdd1, u2), r2}
     end
     |> case do
@@ -4586,7 +4586,7 @@ defmodule Module.Types.Descr do
         {lit1, lazy_bdd_difference(lazy_bdd_union(c1, u1), bdd2), :bdd_bot,
          lazy_bdd_difference(lazy_bdd_union(d1, u1), bdd2)}
 
-      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} when lit1 > lit2 ->
+      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_difference(bdd1, lazy_bdd_union(c2, u2)), :bdd_bot,
          lazy_bdd_difference(bdd1, lazy_bdd_union(d2, u2))}
 
@@ -4635,7 +4635,7 @@ defmodule Module.Types.Descr do
         {lit1, lazy_bdd_intersection(c1, bdd2), lazy_bdd_intersection(u1, bdd2),
          lazy_bdd_intersection(d1, bdd2)}
 
-      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} when lit1 > lit2 ->
+      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_intersection(bdd1, c2), lazy_bdd_intersection(bdd1, u2),
          lazy_bdd_intersection(bdd1, d2)}
     end
