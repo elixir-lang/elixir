@@ -470,7 +470,7 @@ defmodule Mix.Sync.Lock do
             raise File.Error, reason: reason, action: "sync file"
         end
 
-      {:error, {_n, reason}} ->
+      {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file at position"
     end
   end
