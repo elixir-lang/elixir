@@ -4619,35 +4619,34 @@ defmodule Module.Types.Descr do
         :bdd_bot
 
       {{lit, c1, u1, d1} = bdd1, {lit, c2, u2, d2} = bdd2} ->
-        cond do
-          # If possible, keep unions without dematerializing them down
-          d1 == :bdd_bot and u1 != :bdd_bot ->
-            {lit, lazy_bdd_intersection(c1, lazy_bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
-            |> lazy_bdd_union(lazy_bdd_intersection(u1, bdd2))
-
-          d2 == :bdd_bot and u2 != :bdd_bot ->
-            {lit, lazy_bdd_intersection(c2, lazy_bdd_union(c1, u1)), :bdd_bot, :bdd_bot}
-            |> lazy_bdd_union(lazy_bdd_intersection(u2, bdd1))
-
-          # Avoid doing the same operation multiple times when possible
-          u1 == u2 ->
-            {lit, lazy_bdd_union(u1, lazy_bdd_intersection(c1, c2)), :bdd_bot,
-             lazy_bdd_union(u2, lazy_bdd_intersection(d1, d2))}
-
-          true ->
-            {lit, lazy_bdd_intersection(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
-             lazy_bdd_intersection(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+        # If possible, keep unions without dematerializing them down.
+        # We rely on the fact that (t1 ∨ t2) ∧ t3 is the same as (t1 ∧ t3) ∨ (t2 ∧ t3).
+        if u1 != :bdd_bot do
+          {lit, lazy_bdd_intersection_union(c1, c2, u2), :bdd_bot,
+           lazy_bdd_intersection_union(d1, d2, u2)}
+          |> lazy_bdd_union(lazy_bdd_intersection(u1, bdd2))
+        else
+          {lit, lazy_bdd_intersection_union(c2, c1, u1), :bdd_bot,
+           lazy_bdd_intersection_union(d2, d1, u1)}
+          |> lazy_bdd_union(lazy_bdd_intersection(u2, bdd1))
         end
 
       {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
         {lit1, lazy_bdd_intersection(c1, bdd2), lazy_bdd_intersection(u1, bdd2),
          lazy_bdd_intersection(d1, bdd2)}
 
-      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} ->
+      {bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_intersection(bdd1, c2), lazy_bdd_intersection(bdd1, u2),
          lazy_bdd_intersection(bdd1, d2)}
     end
   end
+
+  # Version of i ^ (u1 v u2) that only computes the union if i is not bottom
+  defp lazy_bdd_intersection_union(:bdd_bot, _u1, _u2),
+    do: :bdd_bot
+
+  defp lazy_bdd_intersection_union(i, u1, u2),
+    do: lazy_bdd_intersection(i, lazy_bdd_union(u1, u2))
 
   def lazy_bdd_to_dnf(bdd), do: lazy_bdd_to_dnf([], [], [], bdd)
 
