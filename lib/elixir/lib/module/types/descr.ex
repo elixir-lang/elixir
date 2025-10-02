@@ -4631,18 +4631,27 @@ defmodule Module.Types.Descr do
       {_, :bdd_bot} ->
         :bdd_bot
 
-      {{lit, c1, u1, d1} = bdd1, {lit, c2, u2, d2} = bdd2} ->
-        # If possible, keep unions without dematerializing them down.
-        # We rely on the fact that (t1 ∨ t2) ∧ t3 is the same as (t1 ∧ t3) ∨ (t2 ∧ t3).
-        if u1 != :bdd_bot do
-          {lit, lazy_bdd_intersection_union(c1, c2, u2), :bdd_bot,
-           lazy_bdd_intersection_union(d1, d2, u2)}
-          |> lazy_bdd_union(lazy_bdd_intersection(u1, bdd2))
-        else
-          {lit, lazy_bdd_intersection_union(c2, c1, u1), :bdd_bot,
-           lazy_bdd_intersection_union(d2, d1, u1)}
-          |> lazy_bdd_union(lazy_bdd_intersection(u2, bdd1))
-        end
+      # Notice that (l ? c1, u1, d1) and (l ? c2, u2, d2) is, on paper, equivalent to
+      # [(l /\ c1) \/ u1 \/ (not l /\ d1)] and [(l /\ c2) \/ u2 \/ (not l /\ d2)]
+      # which is equivalent, by distributivity of intersection over union, to
+      # l /\ [(c1 /\ c2) \/ (c1 /\ u2) \/ (u1 /\ c2)]
+      #      \/ (u1 /\ u2)
+      #      \/ [(not l) /\ ((d1 /\ u2) \/ (d1 /\ d2) \/ (u1 /\ d2))]
+      # which is equivalent, by factoring out c1 in the first disjunct, and d1 in the third, to
+      # l /\ [c1 /\ (c2 \/ u2)] \/ (u1 /\ c2)
+      #     \/ (u1 /\ u2)
+      #     \/ (not l) /\ [d1 /\ (u2 \/ d2) \/ (u1 /\ d2)]
+      # This last expression gives the following implementation:
+      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
+        {lit,
+         lazy_bdd_union(
+           lazy_bdd_intersection_union(c1, c2, u2),
+           lazy_bdd_intersection(u1, c2)
+         ), lazy_bdd_intersection(u1, u2),
+         lazy_bdd_union(
+           lazy_bdd_intersection_union(d1, u2, d2),
+           lazy_bdd_intersection(u1, d2)
+         )}
 
       {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
         {lit1, lazy_bdd_intersection(c1, bdd2), lazy_bdd_intersection(u1, bdd2),
