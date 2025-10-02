@@ -4573,6 +4573,9 @@ defmodule Module.Types.Descr do
       {bdd, :bdd_bot} ->
         bdd
 
+      {:bdd_top, {lit, c2, u2, d2}} ->
+        lazy_bdd_negation({lit, c2, u2, d2})
+
       {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
         if u1 == u2 do
           {lit, lazy_bdd_difference(c1, lazy_bdd_union(c2, u2)), :bdd_bot,
@@ -4589,9 +4592,6 @@ defmodule Module.Types.Descr do
       {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_difference(bdd1, lazy_bdd_union(c2, u2)), :bdd_bot,
          lazy_bdd_difference(bdd1, lazy_bdd_union(d2, u2))}
-
-      {:bdd_top, {lit, c2, u2, d2}} ->
-        lazy_bdd_negation({lit, c2, u2, d2})
     end
   end
 
