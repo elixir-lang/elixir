@@ -4560,11 +4560,6 @@ defmodule Module.Types.Descr do
       {{lit1, _, _, _} = bdd1, {lit2, l2, u2, r2}} ->
         {lit2, l2, lazy_bdd_union(bdd1, u2), r2}
     end
-    |> case do
-      {_lit, _l, :bdd_top, _r} -> :bdd_top
-      {_lit, l, u, l} -> lazy_bdd_union(l, u)
-      bdd -> bdd
-    end
   end
 
   def lazy_bdd_difference(bdd1, bdd2) do
@@ -4579,8 +4574,13 @@ defmodule Module.Types.Descr do
         bdd
 
       {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
-        {lit, lazy_bdd_difference(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
-         lazy_bdd_difference(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+        if u1 == u2 do
+          {lit, lazy_bdd_difference(c1, lazy_bdd_union(c2, u2)), :bdd_bot,
+           lazy_bdd_difference(d1, lazy_bdd_union(d2, u2))}
+        else
+          {lit, lazy_bdd_difference(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
+           lazy_bdd_difference(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+        end
 
       {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
         {lit1, lazy_bdd_difference(lazy_bdd_union(c1, u1), bdd2), :bdd_bot,
@@ -4593,11 +4593,6 @@ defmodule Module.Types.Descr do
       {:bdd_top, {lit, c2, u2, d2}} ->
         lazy_bdd_negation({lit, c2, u2, d2})
     end
-    |> case do
-      {_lit, _l, :bdd_top, _r} -> :bdd_top
-      {_lit, l, u, l} -> lazy_bdd_union(l, u)
-      bdd -> bdd
-    end
   end
 
   # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
@@ -4607,10 +4602,6 @@ defmodule Module.Types.Descr do
   def lazy_bdd_negation({lit, c, u, d}) do
     {lit, lazy_bdd_negation(lazy_bdd_union(c, u)), :bdd_bot,
      lazy_bdd_negation(lazy_bdd_union(d, u))}
-    |> case do
-      {_lit, l, u, l} -> lazy_bdd_union(l, u)
-      bdd -> bdd
-    end
   end
 
   def lazy_bdd_intersection(bdd1, bdd2) do
@@ -4627,9 +4618,24 @@ defmodule Module.Types.Descr do
       {_, :bdd_bot} ->
         :bdd_bot
 
+      # If possible, keep unions without spreading them down
+      {{lit1, c1, u1, :bdd_bot}, bdd2} when u1 != :bdd_bot ->
+        lazy_bdd_intersection({lit1, c1, :bdd_bot, :bdd_bot}, bdd2)
+        |> lazy_bdd_union(lazy_bdd_intersection(u1, bdd2))
+
+      {bdd1, {lit2, c2, u2, :bdd_bot}} when u2 != :bdd_bot ->
+        lazy_bdd_intersection({lit2, c2, :bdd_bot, :bdd_bot}, bdd1)
+        |> lazy_bdd_union(lazy_bdd_intersection(u2, bdd1))
+
       {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
-        {lit, lazy_bdd_intersection(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
-         lazy_bdd_intersection(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+        # Avoid doing the same operation multiple times when possible
+        if u1 == u2 do
+          {lit, lazy_bdd_union(u1, lazy_bdd_intersection(c1, c2)), :bdd_bot,
+           lazy_bdd_union(u2, lazy_bdd_intersection(d1, d2))}
+        else
+          {lit, lazy_bdd_intersection(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
+           lazy_bdd_intersection(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+        end
 
       {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
         {lit1, lazy_bdd_intersection(c1, bdd2), lazy_bdd_intersection(u1, bdd2),
@@ -4638,11 +4644,6 @@ defmodule Module.Types.Descr do
       {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_intersection(bdd1, c2), lazy_bdd_intersection(bdd1, u2),
          lazy_bdd_intersection(bdd1, d2)}
-    end
-    |> case do
-      {_lit, _l, :bdd_top, _r} -> :bdd_top
-      {_lit, l, u, l} -> lazy_bdd_union(l, u)
-      bdd -> bdd
     end
   end
 
