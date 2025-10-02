@@ -4557,7 +4557,7 @@ defmodule Module.Types.Descr do
       {{lit1, l1, u1, r1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
         {lit1, l1, lazy_bdd_union(u1, bdd2), r1}
 
-      {{lit1, _, _, _} = bdd1, {lit2, l2, u2, r2}} ->
+      {bdd1, {lit2, l2, u2, r2}} ->
         {lit2, l2, lazy_bdd_union(bdd1, u2), r2}
     end
   end
@@ -4576,24 +4576,31 @@ defmodule Module.Types.Descr do
       {:bdd_top, {lit, c2, u2, d2}} ->
         lazy_bdd_negation({lit, c2, u2, d2})
 
-      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
-        if u1 == u2 do
-          {lit, lazy_bdd_difference(c1, lazy_bdd_union(c2, u2)), :bdd_bot,
-           lazy_bdd_difference(d1, lazy_bdd_union(d2, u2))}
-        else
-          {lit, lazy_bdd_difference(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
-           lazy_bdd_difference(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
-        end
+      # If possible, keep unions without dematerializing them down.
+      # We rely on the fact that (t1 ∨ t2) \ t3 is the same as (t1 \ t3) ∨ (t2 \ t3).
+      {{lit, c1, u1, d1}, bdd2} when u1 != :bdd_bot ->
+        lazy_bdd_difference({lit, c1, :bdd_bot, d1}, bdd2)
+        |> lazy_bdd_union(lazy_bdd_difference(u1, bdd2))
 
-      {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
-        {lit1, lazy_bdd_difference(lazy_bdd_union(c1, u1), bdd2), :bdd_bot,
-         lazy_bdd_difference(lazy_bdd_union(d1, u1), bdd2)}
+      {{lit, c1, :bdd_bot, d1}, {lit, c2, u2, d2}} ->
+        {lit, lazy_bdd_difference_union(c1, c2, u2), :bdd_bot,
+         lazy_bdd_difference_union(d1, d2, u2)}
 
-      {{lit1, _, _, _} = bdd1, {lit2, c2, u2, d2}} ->
+      {{lit1, c1, :bdd_bot, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
+        {lit1, lazy_bdd_difference(c1, bdd2), :bdd_bot, lazy_bdd_difference(d1, bdd2)}
+
+      {bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_difference(bdd1, lazy_bdd_union(c2, u2)), :bdd_bot,
          lazy_bdd_difference(bdd1, lazy_bdd_union(d2, u2))}
     end
   end
+
+  # Version of i \ (u1 v u2) that only computes the union if i is not bottom
+  defp lazy_bdd_difference_union(:bdd_bot, _u1, _u2),
+    do: :bdd_bot
+
+  defp lazy_bdd_difference_union(i, u1, u2),
+    do: lazy_bdd_difference(i, lazy_bdd_union(u1, u2))
 
   # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
   def lazy_bdd_negation(:bdd_top), do: :bdd_bot
