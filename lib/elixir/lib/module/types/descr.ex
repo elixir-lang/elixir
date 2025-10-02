@@ -4576,18 +4576,36 @@ defmodule Module.Types.Descr do
       {:bdd_top, {lit, c2, u2, d2}} ->
         lazy_bdd_negation({lit, c2, u2, d2})
 
-      # If possible, keep unions without dematerializing them down.
-      # We rely on the fact that (t1 ∨ t2) \ t3 is the same as (t1 \ t3) ∨ (t2 \ t3).
-      {{lit, c1, u1, d1}, bdd2} when u1 != :bdd_bot ->
-        lazy_bdd_difference({lit, c1, :bdd_bot, d1}, bdd2)
-        |> lazy_bdd_union(lazy_bdd_difference(u1, bdd2))
+      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
+        cond do
+          u2 == :bdd_top ->
+            {lit, :bdd_bot, :bdd_bot, :bdd_bot}
 
-      {{lit, c1, :bdd_bot, d1}, {lit, c2, u2, d2}} ->
-        {lit, lazy_bdd_difference_union(c1, c2, u2), :bdd_bot,
-         lazy_bdd_difference_union(d1, d2, u2)}
+          u1 == u2 ->
+            {lit, lazy_bdd_difference_union(c1, c2, u2), :bdd_bot,
+             lazy_bdd_difference_union(d1, d2, u2)}
 
-      {{lit1, c1, :bdd_bot, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
-        {lit1, lazy_bdd_difference(c1, bdd2), :bdd_bot, lazy_bdd_difference(d1, bdd2)}
+          true ->
+            {lit, lazy_bdd_difference(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
+             lazy_bdd_difference(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+
+            # u =
+            #   if u1 == :bdd_bot or c2 == :bdd_bot or d2 == :bdd_bot do
+            #     :bdd_bot
+            #   else
+            #     u1
+            #     |> lazy_bdd_intersection(c2)
+            #     |> lazy_bdd_intersection(d2)
+            #     |> lazy_bdd_difference(u2)
+            #   end
+
+            # {lit, lazy_bdd_difference(lazy_bdd_intersection(c1, c2), u2), u,
+            #  lazy_bdd_difference(lazy_bdd_intersection(d1, d2), u2)}
+        end
+
+      {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
+        {lit1, lazy_bdd_difference(lazy_bdd_union(c1, u1), bdd2), :bdd_bot,
+         lazy_bdd_difference(lazy_bdd_union(d1, u1), bdd2)}
 
       {bdd1, {lit2, c2, u2, d2}} ->
         {lit2, lazy_bdd_difference(bdd1, lazy_bdd_union(c2, u2)), :bdd_bot,
