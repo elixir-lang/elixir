@@ -33,9 +33,11 @@ defmodule Module.Types.Descr do
   defmacrop tuple_literal(tag, elements),
     do: {:{}, [], [{tag, elements}, :bdd_top, :bdd_bot, :bdd_bot]}
 
-  defmacrop list_literal(list, last), do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot, :bdd_bot]}
+  defmacrop list_literal(list, last),
+    do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot, :bdd_bot]}
 
-  defmacrop domain_key(key), do: {:domain_key, key}
+  defmacrop domain_key(key),
+    do: {:domain_key, key}
 
   @domain_key_types [
     {:domain_key, :binary},
@@ -1094,7 +1096,6 @@ defmodule Module.Types.Descr do
   # Note: Function domains are expressed as tuple types. We use separate representations
   # rather than unary functions with tuple domains to handle special cases like representing
   # functions of a specific arity (e.g., (none,none->term) for arity 2).
-  # NOTE: this is a ternary (lazy) BDD where the middle node encodes unions.
   defp fun_new(inputs, output), do: bdd_new({inputs, output})
 
   # Creates a function type from a list of inputs and an output
