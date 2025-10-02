@@ -2214,6 +2214,13 @@ defmodule Module.Types.DescrTest do
              |> intersection(fun([float()], boolean()))
              |> to_quoted_string() ==
                "(integer() -> boolean()) and (float() -> boolean())"
+
+      # Thanks to lazy BDDs, consecutive union of functions come out as the original union
+      assert fun([integer()], integer())
+             |> union(fun([float()], float()))
+             |> union(fun([pid()], pid()))
+             |> to_quoted_string() ==
+               "(integer() -> integer()) or (float() -> float()) or (pid() -> pid())"
     end
 
     test "function with optimized intersections" do
@@ -2224,7 +2231,7 @@ defmodule Module.Types.DescrTest do
              |> difference(none_fun(2))
              |> intersection(none_fun(1))
              |> to_quoted_string() ==
-               "(integer() -> atom())"
+               "(none() -> term()) and (integer() -> atom())"
     end
 
     test "function with dynamic signatures" do
