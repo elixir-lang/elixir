@@ -4618,23 +4618,25 @@ defmodule Module.Types.Descr do
       {_, :bdd_bot} ->
         :bdd_bot
 
-      # If possible, keep unions without spreading them down
-      {{lit1, c1, u1, :bdd_bot}, bdd2} when u1 != :bdd_bot ->
-        lazy_bdd_intersection({lit1, c1, :bdd_bot, :bdd_bot}, bdd2)
-        |> lazy_bdd_union(lazy_bdd_intersection(u1, bdd2))
+      {{lit, c1, u1, d1} = bdd1, {lit, c2, u2, d2} = bdd2} ->
+        cond do
+          # If possible, keep unions without dematerializing them down
+          d1 == :bdd_bot and u1 != :bdd_bot ->
+            {lit, lazy_bdd_intersection(c1, lazy_bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
+            |> lazy_bdd_union(lazy_bdd_intersection(u1, bdd2))
 
-      {bdd1, {lit2, c2, u2, :bdd_bot}} when u2 != :bdd_bot ->
-        lazy_bdd_intersection({lit2, c2, :bdd_bot, :bdd_bot}, bdd1)
-        |> lazy_bdd_union(lazy_bdd_intersection(u2, bdd1))
+          d2 == :bdd_bot and u2 != :bdd_bot ->
+            {lit, lazy_bdd_intersection(c2, lazy_bdd_union(c1, u1)), :bdd_bot, :bdd_bot}
+            |> lazy_bdd_union(lazy_bdd_intersection(u2, bdd1))
 
-      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
-        # Avoid doing the same operation multiple times when possible
-        if u1 == u2 do
-          {lit, lazy_bdd_union(u1, lazy_bdd_intersection(c1, c2)), :bdd_bot,
-           lazy_bdd_union(u2, lazy_bdd_intersection(d1, d2))}
-        else
-          {lit, lazy_bdd_intersection(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
-           lazy_bdd_intersection(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
+          # Avoid doing the same operation multiple times when possible
+          u1 == u2 ->
+            {lit, lazy_bdd_union(u1, lazy_bdd_intersection(c1, c2)), :bdd_bot,
+             lazy_bdd_union(u2, lazy_bdd_intersection(d1, d2))}
+
+          true ->
+            {lit, lazy_bdd_intersection(lazy_bdd_union(c1, u1), lazy_bdd_union(c2, u2)), :bdd_bot,
+             lazy_bdd_intersection(lazy_bdd_union(d1, u1), lazy_bdd_union(d2, u2))}
         end
 
       {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
