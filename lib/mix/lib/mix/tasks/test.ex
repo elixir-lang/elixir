@@ -851,7 +851,7 @@ defmodule Mix.Tasks.Test do
     This might indicate a typo in a test file name (for example, using "foo_tests.exs" instead of "foo_test.exs").
 
     You can adjust which files trigger this warning by configuring the `:test_ignore_filters` option in your
-    Mix project's configuration. To disable the warning entirely, set that option to false.
+    Mix project's configuration. To disable the warning entirely, set that option to [fn _ -> true end].
 
     For more information, run `mix help test`.
     """)
