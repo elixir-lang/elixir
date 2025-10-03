@@ -4458,14 +4458,17 @@ defmodule Module.Types.Descr do
           {:gt, bdd1, {lit2, c2, u2, d2}} ->
             {lit2, c2, bdd_union(bdd1, u2), d2}
 
-          {:eq, {_, _}, bdd2} ->
-            bdd2
-
-          {:eq, bdd1, {_, _}} ->
-            bdd1
-
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
             {lit, bdd_union(c1, c2), bdd_union(u1, u2), bdd_union(d1, d2)}
+
+          {:eq, {lit, _, u1, d1}, _} ->
+            {lit, :bdd_top, u1, d1}
+
+          {:eq, _, {lit, _, u2, d2}} ->
+            {lit, :bdd_top, u2, d2}
+
+          {:eq, _, _} ->
+            bdd1
         end
     end
   end
@@ -4508,14 +4511,14 @@ defmodule Module.Types.Descr do
                  bdd_difference(bdd_union(d1, u1), bdd_union(d2, u2))}
             end
 
-          {:eq, {_, _}, {_, _}} ->
-            :bdd_bot
-
           {:eq, _, {lit, c2, u2, _d2}} ->
             {lit, bdd_negation(bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
 
           {:eq, {lit, _c1, u1, d1}, _} ->
             {lit, :bdd_bot, :bdd_bot, bdd_union(d1, u1)}
+
+          {:eq, _, _} ->
+            :bdd_bot
         end
     end
   end
@@ -4559,12 +4562,6 @@ defmodule Module.Types.Descr do
             {lit2, bdd_intersection(bdd1, c2), bdd_intersection(bdd1, u2),
              bdd_intersection(bdd1, d2)}
 
-          {:eq, {_, _} = bdd1, _} ->
-            bdd1
-
-          {:eq, _, {_, _} = bdd2} ->
-            bdd2
-
           # Notice that (l ? c1, u1, d1) and (l ? c2, u2, d2) is, on paper, equivalent to
           # [(l /\ c1) \/ u1 \/ (not l /\ d1)] and [(l /\ c2) \/ u2 \/ (not l /\ d2)]
           # which is equivalent, by distributivity of intersection over union, to
@@ -4580,6 +4577,15 @@ defmodule Module.Types.Descr do
             {lit, bdd_union(bdd_intersection_union(c1, c2, u2), bdd_intersection(u1, c2)),
              bdd_intersection(u1, u2),
              bdd_union(bdd_intersection_union(d1, u2, d2), bdd_intersection(u1, d2))}
+
+          {:eq, {lit, c1, u1, _}, _} ->
+            {lit, bdd_union(c1, u1), :bdd_bot, :bdd_bot}
+
+          {:eq, _, {lit, c2, u2, _}} ->
+            {lit, bdd_union(c2, u2), :bdd_bot, :bdd_bot}
+
+          {:eq, bdd, _} ->
+            bdd
         end
     end
   end
