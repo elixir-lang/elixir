@@ -28,13 +28,7 @@ defmodule Module.Types.Descr do
   @bit_number @bit_integer ||| @bit_float
 
   # Remark: those use AST for BDDs
-  defmacrop map_literal(tag, fields), do: {:{}, [], [{tag, fields}, :bdd_top, :bdd_bot, :bdd_bot]}
-
-  defmacrop tuple_literal(tag, elements),
-    do: {:{}, [], [{tag, elements}, :bdd_top, :bdd_bot, :bdd_bot]}
-
-  defmacrop list_literal(list, last),
-    do: {:{}, [], [{list, last}, :bdd_top, :bdd_bot, :bdd_bot]}
+  defmacrop bdd_leaf(arg1, arg2), do: {arg1, arg2}
 
   defmacrop domain_key(key),
     do: {:domain_key, key}
@@ -57,10 +51,10 @@ defmodule Module.Types.Descr do
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top :bdd_top
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top {{:open, %{}}, :bdd_top, :bdd_bot, :bdd_bot}
-  @non_empty_list_top {{:term, :term}, :bdd_top, :bdd_bot, :bdd_bot}
-  @tuple_top {{:open, []}, :bdd_top, :bdd_bot, :bdd_bot}
-  @map_empty {{:closed, %{}}, :bdd_top, :bdd_bot, :bdd_bot}
+  @map_top {:open, %{}}
+  @non_empty_list_top {:term, :term}
+  @tuple_top {:open, []}
+  @map_empty {:closed, %{}}
 
   @none %{}
   @term %{
@@ -1096,7 +1090,7 @@ defmodule Module.Types.Descr do
   # Note: Function domains are expressed as tuple types. We use separate representations
   # rather than unary functions with tuple domains to handle special cases like representing
   # functions of a specific arity (e.g., (none,none->term) for arity 2).
-  defp fun_new(inputs, output), do: bdd_new({inputs, output})
+  defp fun_new(inputs, output), do: bdd_leaf(inputs, output)
 
   # Creates a function type from a list of inputs and an output
   # where the inputs and/or output may be dynamic.
@@ -1853,7 +1847,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_new(list_type, last_type), do: bdd_new({list_type, last_type})
+  defp list_new(list_type, last_type), do: bdd_leaf(list_type, last_type)
 
   defp non_empty_list_literals_intersection(list_literals) do
     try do
@@ -1918,14 +1912,14 @@ defmodule Module.Types.Descr do
   @compile {:inline, list_union: 2}
   defp list_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp is_list_top?(list_literal(list, tail)), do: list == :term and tail == :term
+  defp is_list_top?(bdd_leaf(list, tail)), do: list == :term and tail == :term
   defp is_list_top?(_), do: false
 
-  defp list_intersection(list_literal(list1, last1), list_literal(list2, last2)) do
+  defp list_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
     try do
       list = non_empty_intersection!(list1, list2)
       last = non_empty_intersection!(last1, last2)
-      list_literal(list, last)
+      bdd_leaf(list, last)
     catch
       :empty -> :bdd_bot
     end
@@ -1948,11 +1942,11 @@ defmodule Module.Types.Descr do
   #    b) If only the last type differs, subtracts it
   # 3. Base case: adds bdd2 type to negations of bdd1 type
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
-  defp list_difference(list_literal(list1, last1) = bdd1, list_literal(list2, last2) = bdd2) do
+  defp list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2) do
     cond do
-      disjoint?(list1, list2) or disjoint?(last1, last2) -> list_literal(list1, last1)
+      disjoint?(list1, list2) or disjoint?(last1, last2) -> bdd_leaf(list1, last1)
       subtype?(list1, list2) and subtype?(last1, last2) -> :bdd_bot
-      equal?(list1, list2) -> list_literal(list1, difference(last1, last2))
+      equal?(list1, list2) -> bdd_leaf(list1, difference(last1, last2))
       true -> bdd_difference(bdd1, bdd2)
     end
   end
@@ -2386,7 +2380,7 @@ defmodule Module.Types.Descr do
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
 
-  defp map_new(tag, fields = %{}), do: bdd_new({tag, fields})
+  defp map_new(tag, fields = %{}), do: bdd_leaf(tag, fields)
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
@@ -2397,10 +2391,10 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_union(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
+  defp map_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     case maybe_optimize_map_union({tag1, fields1, []}, {tag2, fields2, []}) do
-      {tag, fields, []} -> map_literal(tag, fields)
-      nil -> bdd_union(map_literal(tag1, fields1), map_literal(tag2, fields2))
+      {tag, fields, []} -> bdd_leaf(tag, fields)
+      nil -> bdd_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2))
     end
   end
 
@@ -2500,13 +2494,13 @@ defmodule Module.Types.Descr do
     if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
-  defp is_map_top?(map_literal(:open, fields)) when map_size(fields) == 0, do: true
+  defp is_map_top?(bdd_leaf(:open, fields)) when map_size(fields) == 0, do: true
   defp is_map_top?(_), do: false
 
-  defp map_intersection(map_literal(tag1, fields1), map_literal(tag2, fields2)) do
+  defp map_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     try do
-      map_literal = map_literal_intersection(tag1, fields1, tag2, fields2)
-      bdd_new(map_literal)
+      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
+      bdd_leaf(tag, fields)
     catch
       :empty -> :bdd_bot
     end
@@ -2522,7 +2516,7 @@ defmodule Module.Types.Descr do
   end
 
   # Optimizations on single maps.
-  defp map_difference(map_literal(tag, fields) = map1, map_literal(neg_tag, neg_fields) = map2) do
+  defp map_difference(bdd_leaf(tag, fields) = map1, bdd_leaf(neg_tag, neg_fields) = map2) do
     # Case 1: we are removing an open map with one field. Just do the difference of that field.
     if neg_tag == :open and map_size(neg_fields) == 1 do
       [{key, value}] = Map.to_list(neg_fields)
@@ -2531,13 +2525,13 @@ defmodule Module.Types.Descr do
       if empty?(t_diff) do
         :bdd_bot
       else
-        map_literal(tag, Map.put(fields, key, t_diff))
+        bdd_leaf(tag, Map.put(fields, key, t_diff))
       end
     else
       # Case 2: the maps have all but one key in common. Do the difference of that key.
       case map_all_but_one(tag, fields, neg_tag, neg_fields) do
         {:one, diff_key} ->
-          map_literal(tag, Map.update!(fields, diff_key, &difference(&1, neg_fields[diff_key])))
+          bdd_leaf(tag, Map.update!(fields, diff_key, &difference(&1, neg_fields[diff_key])))
 
         _ ->
           bdd_difference(map1, map2)
@@ -2718,7 +2712,7 @@ defmodule Module.Types.Descr do
 
   # Optimization: if the key does not exist in the map, avoid building
   # if_set/not_set pairs and return the popped value directly.
-  defp map_fetch_static(%{map: map_literal(tag_or_domains, fields)}, key)
+  defp map_fetch_static(%{map: bdd_leaf(tag_or_domains, fields)}, key)
        when not is_map_key(fields, key) do
     map_key_tag_to_type(tag_or_domains) |> pop_optional_static()
   end
@@ -2892,8 +2886,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_refresh_domain(%{map: map_literal(tag, fields)}, domain, type) do
-    %{map: bdd_new({map_refresh_tag(tag, domain, type), fields})}
+  def map_refresh_domain(%{map: bdd_leaf(tag, fields)}, domain, type) do
+    %{map: bdd_leaf(map_refresh_tag(tag, domain, type), fields)}
   end
 
   def map_refresh_domain(%{map: bdd}, domain, type) do
@@ -3076,7 +3070,7 @@ defmodule Module.Types.Descr do
 
   defp unfold_domains(domains = %{}), do: domains
 
-  defp map_get_static(%{map: map_literal(tag_or_domains, fields)}, key_descr) do
+  defp map_get_static(%{map: bdd_leaf(tag_or_domains, fields)}, key_descr) do
     # For each non-empty kind of type in the key_descr, we add the corresponding key domain in a union.
     domains = unfold_domains(tag_or_domains)
 
@@ -3261,7 +3255,7 @@ defmodule Module.Types.Descr do
 
   # Takes a static map type and removes a key from it.
   # This allows the key to be put or deleted later on.
-  defp map_take_static(%{map: map_literal(tag, fields)} = descr, key, initial)
+  defp map_take_static(%{map: bdd_leaf(tag, fields)} = descr, key, initial)
        when not is_map_key(fields, key) do
     case tag do
       :open -> {true, maybe_union(initial, fn -> term() end), descr}
@@ -3733,11 +3727,11 @@ defmodule Module.Types.Descr do
     {acc, dynamic?}
   end
 
-  defp tuple_new(tag, elements), do: tuple_literal(tag, elements)
+  defp tuple_new(tag, elements), do: bdd_leaf(tag, elements)
 
-  defp tuple_intersection(tuple_literal(tag1, elements1), tuple_literal(tag2, elements2)) do
+  defp tuple_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
     case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-      {tag, elements} -> tuple_literal(tag, elements)
+      {tag, elements} -> bdd_leaf(tag, elements)
       :empty -> :bdd_bot
     end
   end
@@ -3973,11 +3967,11 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_union(
-         tuple_literal(tag1, elements1) = tuple1,
-         tuple_literal(tag2, elements2) = tuple2
+         bdd_leaf(tag1, elements1) = tuple1,
+         bdd_leaf(tag2, elements2) = tuple2
        ) do
     case maybe_optimize_tuple_union({tag1, elements1}, {tag2, elements2}) do
-      {tag, elements} -> tuple_literal(tag, elements)
+      {tag, elements} -> bdd_leaf(tag, elements)
       nil -> bdd_union(tuple1, tuple2)
     end
   end
@@ -4417,9 +4411,6 @@ defmodule Module.Types.Descr do
   end
 
   ## BDD helpers
-
-  @compile {:inline, bdd_new: 1}
-  defp bdd_new(literal), do: {literal, :bdd_top, :bdd_bot, :bdd_bot}
 
   defp bdd_map(bdd, fun) do
     case bdd do
