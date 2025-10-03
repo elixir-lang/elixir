@@ -4429,6 +4429,9 @@ defmodule Module.Types.Descr do
       :bdd_top ->
         :bdd_top
 
+      {_, _} ->
+        fun.(bdd)
+
       {literal, left, union, right} ->
         {fun.(literal), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun)}
     end
@@ -4448,14 +4451,23 @@ defmodule Module.Types.Descr do
       {bdd, :bdd_bot} ->
         bdd
 
-      {{lit, l1, u1, r1}, {lit, l2, u2, r2}} ->
-        {lit, bdd_union(l1, l2), bdd_union(u1, u2), bdd_union(r1, r2)}
+      _ ->
+        case bdd_compare(bdd1, bdd2) do
+          {:lt, {lit1, c1, u1, d1}, bdd2} ->
+            {lit1, c1, bdd_union(u1, bdd2), d1}
 
-      {{lit1, l1, u1, r1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
-        {lit1, l1, bdd_union(u1, bdd2), r1}
+          {:gt, bdd1, {lit2, c2, u2, d2}} ->
+            {lit2, c2, bdd_union(bdd1, u2), d2}
 
-      {bdd1, {lit2, l2, u2, r2}} ->
-        {lit2, l2, bdd_union(bdd1, u2), r2}
+          {:eq, {_, _}, bdd2} ->
+            bdd2
+
+          {:eq, bdd1, {_, _}} ->
+            bdd1
+
+          {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
+            {lit, bdd_union(c1, c2), bdd_union(u1, u2), bdd_union(d1, d2)}
+        end
     end
   end
 
@@ -4473,7 +4485,7 @@ defmodule Module.Types.Descr do
       {:bdd_top, bdd} ->
         bdd_negation(bdd)
 
-      {bdd1, bdd2} ->
+      _ ->
         case bdd_compare(bdd1, bdd2) do
           {:lt, {lit1, c1, u1, d1}, bdd2} ->
             {lit1, bdd_difference(bdd_union(c1, u1), bdd2), :bdd_bot,
@@ -4538,27 +4550,38 @@ defmodule Module.Types.Descr do
       {_, :bdd_bot} ->
         :bdd_bot
 
-      # Notice that (l ? c1, u1, d1) and (l ? c2, u2, d2) is, on paper, equivalent to
-      # [(l /\ c1) \/ u1 \/ (not l /\ d1)] and [(l /\ c2) \/ u2 \/ (not l /\ d2)]
-      # which is equivalent, by distributivity of intersection over union, to
-      # l /\ [(c1 /\ c2) \/ (c1 /\ u2) \/ (u1 /\ c2)]
-      #      \/ (u1 /\ u2)
-      #      \/ [(not l) /\ ((d1 /\ u2) \/ (d1 /\ d2) \/ (u1 /\ d2))]
-      # which is equivalent, by factoring out c1 in the first disjunct, and d1 in the third, to
-      # l /\ [c1 /\ (c2 \/ u2)] \/ (u1 /\ c2)
-      #     \/ (u1 /\ u2)
-      #     \/ (not l) /\ [d1 /\ (u2 \/ d2) \/ (u1 /\ d2)]
-      # This last expression gives the following implementation:
-      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
-        {lit, bdd_union(bdd_intersection_union(c1, c2, u2), bdd_intersection(u1, c2)),
-         bdd_intersection(u1, u2),
-         bdd_union(bdd_intersection_union(d1, u2, d2), bdd_intersection(u1, d2))}
+      _ ->
+        case bdd_compare(bdd1, bdd2) do
+          {:lt, {lit1, c1, u1, d1}, bdd2} ->
+            {lit1, bdd_intersection(c1, bdd2), bdd_intersection(u1, bdd2),
+             bdd_intersection(d1, bdd2)}
 
-      {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
-        {lit1, bdd_intersection(c1, bdd2), bdd_intersection(u1, bdd2), bdd_intersection(d1, bdd2)}
+          {:gt, bdd1, {lit2, c2, u2, d2}} ->
+            {lit2, bdd_intersection(bdd1, c2), bdd_intersection(bdd1, u2),
+             bdd_intersection(bdd1, d2)}
 
-      {bdd1, {lit2, c2, u2, d2}} ->
-        {lit2, bdd_intersection(bdd1, c2), bdd_intersection(bdd1, u2), bdd_intersection(bdd1, d2)}
+          {:eq, {_, _} = bdd1, _} ->
+            bdd1
+
+          {:eq, _, {_, _} = bdd2} ->
+            bdd2
+
+          # Notice that (l ? c1, u1, d1) and (l ? c2, u2, d2) is, on paper, equivalent to
+          # [(l /\ c1) \/ u1 \/ (not l /\ d1)] and [(l /\ c2) \/ u2 \/ (not l /\ d2)]
+          # which is equivalent, by distributivity of intersection over union, to
+          # l /\ [(c1 /\ c2) \/ (c1 /\ u2) \/ (u1 /\ c2)]
+          #      \/ (u1 /\ u2)
+          #      \/ [(not l) /\ ((d1 /\ u2) \/ (d1 /\ d2) \/ (u1 /\ d2))]
+          # which is equivalent, by factoring out c1 in the first disjunct, and d1 in the third, to
+          # l /\ [c1 /\ (c2 \/ u2)] \/ (u1 /\ c2)
+          #     \/ (u1 /\ u2)
+          #     \/ (not l) /\ [d1 /\ (u2 \/ d2) \/ (u1 /\ d2)]
+          # This last expression gives the following implementation:
+          {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
+            {lit, bdd_union(bdd_intersection_union(c1, c2, u2), bdd_intersection(u1, c2)),
+             bdd_intersection(u1, u2),
+             bdd_union(bdd_intersection_union(d1, u2, d2), bdd_intersection(u1, d2))}
+        end
     end
   end
 
