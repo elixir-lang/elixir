@@ -1613,12 +1613,20 @@ defmodule Module.Types.Descr do
 
   defp fun_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
-  defp fun_top?(bdd, {{args, return}, :bdd_top, :bdd_bot, :bdd_bot}) do
-    return == :term and Enum.all?(args, &(&1 == %{})) and
-      matching_arity_left?(bdd, length(args))
+  defp fun_top?(bdd, other_bdd) do
+    case bdd_expand(other_bdd) do
+      {{args, return}, :bdd_top, :bdd_bot, :bdd_bot} ->
+        return == :term and Enum.all?(args, &(&1 == %{})) and
+          matching_arity_left?(bdd, length(args))
+
+      _ ->
+        false
+    end
   end
 
-  defp fun_top?(_, _), do: false
+  defp matching_arity_left?({args, _return}, arity) do
+    length(args) == arity
+  end
 
   defp matching_arity_left?({{args, _return}, l, u, r}, arity) do
     length(args) == arity and matching_arity_left?(l, arity) and matching_arity_left?(u, arity) and
@@ -1912,8 +1920,8 @@ defmodule Module.Types.Descr do
   @compile {:inline, list_union: 2}
   defp list_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp is_list_top?(bdd_leaf(list, tail)), do: list == :term and tail == :term
-  defp is_list_top?(_), do: false
+  defp list_top?(bdd_leaf(:term, :term)), do: true
+  defp list_top?(_), do: false
 
   defp list_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
     try do
@@ -1927,8 +1935,8 @@ defmodule Module.Types.Descr do
 
   defp list_intersection(bdd1, bdd2) do
     cond do
-      is_list_top?(bdd1) and is_tuple(bdd2) -> bdd2
-      is_list_top?(bdd2) and is_tuple(bdd1) -> bdd1
+      list_top?(bdd1) and is_tuple(bdd2) -> bdd2
+      list_top?(bdd2) and is_tuple(bdd1) -> bdd1
       true -> bdd_intersection(bdd1, bdd2)
     end
   end
@@ -2494,8 +2502,8 @@ defmodule Module.Types.Descr do
     if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
-  defp is_map_top?(bdd_leaf(:open, fields)) when map_size(fields) == 0, do: true
-  defp is_map_top?(_), do: false
+  defp map_top?(bdd_leaf(:open, fields)) when map_size(fields) == 0, do: true
+  defp map_top?(_), do: false
 
   defp map_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     try do
@@ -2509,8 +2517,8 @@ defmodule Module.Types.Descr do
   defp map_intersection(bdd1, bdd2) do
     # If intersecting with the top map type, no-op
     cond do
-      is_map_top?(bdd1) and is_tuple(bdd2) -> bdd2
-      is_map_top?(bdd2) and is_tuple(bdd1) -> bdd1
+      map_top?(bdd1) and is_tuple(bdd2) -> bdd2
+      map_top?(bdd2) and is_tuple(bdd1) -> bdd1
       true -> bdd_intersection(bdd1, bdd2)
     end
   end
