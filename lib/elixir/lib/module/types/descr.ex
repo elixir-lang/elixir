@@ -4470,29 +4470,50 @@ defmodule Module.Types.Descr do
       {bdd, :bdd_bot} ->
         bdd
 
-      {:bdd_top, {lit, c2, u2, d2}} ->
-        bdd_negation({lit, c2, u2, d2})
+      {:bdd_top, bdd} ->
+        bdd_negation(bdd)
 
-      {{lit, c1, u1, d1}, {lit, c2, u2, d2}} ->
-        cond do
-          u2 == :bdd_bot and d2 == :bdd_bot ->
-            {lit, bdd_difference(c1, c2), bdd_difference(u1, c2), bdd_union(u1, d1)}
+      {bdd1, bdd2} ->
+        case bdd_compare(bdd1, bdd2) do
+          {:lt, {lit1, c1, u1, d1}, bdd2} ->
+            {lit1, bdd_difference(bdd_union(c1, u1), bdd2), :bdd_bot,
+             bdd_difference(bdd_union(d1, u1), bdd2)}
 
-          u1 == u2 ->
-            {lit, bdd_difference_union(c1, c2, u2), :bdd_bot, bdd_difference_union(d1, d2, u2)}
+          {:gt, bdd1, {lit2, c2, u2, d2}} ->
+            {lit2, bdd_difference(bdd1, bdd_union(c2, u2)), :bdd_bot,
+             bdd_difference(bdd1, bdd_union(d2, u2))}
 
-          true ->
-            {lit, bdd_difference(bdd_union(c1, u1), bdd_union(c2, u2)), :bdd_bot,
-             bdd_difference(bdd_union(d1, u1), bdd_union(d2, u2))}
+          {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
+            cond do
+              u2 == :bdd_bot and d2 == :bdd_bot ->
+                {lit, bdd_difference(c1, c2), bdd_difference(u1, c2), bdd_union(u1, d1)}
+
+              u1 == u2 ->
+                {lit, bdd_difference_union(c1, c2, u2), :bdd_bot,
+                 bdd_difference_union(d1, d2, u2)}
+
+              true ->
+                {lit, bdd_difference(bdd_union(c1, u1), bdd_union(c2, u2)), :bdd_bot,
+                 bdd_difference(bdd_union(d1, u1), bdd_union(d2, u2))}
+            end
+
+          {:eq, {_, _}, {_, _}} ->
+            :bdd_bot
+
+          {:eq, _, {lit, c2, u2, _d2}} ->
+            {lit, bdd_negation(bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
+
+          {:eq, {lit, _c1, u1, d1}, _} ->
+            {lit, :bdd_bot, :bdd_bot, bdd_union(d1, u1)}
         end
+    end
+  end
 
-      {{lit1, c1, u1, d1}, {lit2, _, _, _} = bdd2} when lit1 < lit2 ->
-        {lit1, bdd_difference(bdd_union(c1, u1), bdd2), :bdd_bot,
-         bdd_difference(bdd_union(d1, u1), bdd2)}
-
-      {bdd1, {lit2, c2, u2, d2}} ->
-        {lit2, bdd_difference(bdd1, bdd_union(c2, u2)), :bdd_bot,
-         bdd_difference(bdd1, bdd_union(d2, u2))}
+  defp bdd_compare(bdd1, bdd2) do
+    case {bdd_head(bdd1), bdd_head(bdd2)} do
+      {lit1, lit2} when lit1 < lit2 -> {:lt, bdd_expand(bdd1), bdd2}
+      {lit1, lit2} when lit1 > lit2 -> {:gt, bdd1, bdd_expand(bdd2)}
+      _ -> {:eq, bdd1, bdd2}
     end
   end
 
@@ -4551,6 +4572,7 @@ defmodule Module.Types.Descr do
   # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
   defp bdd_negation(:bdd_top), do: :bdd_bot
   defp bdd_negation(:bdd_bot), do: :bdd_top
+  defp bdd_negation({_, _} = pair), do: {pair, :bdd_bot, :bdd_bot, :bdd_top}
 
   defp bdd_negation({lit, c, u, d}) do
     {lit, bdd_negation(bdd_union(c, u)), :bdd_bot, bdd_negation(bdd_union(d, u))}
@@ -4561,6 +4583,10 @@ defmodule Module.Types.Descr do
   defp bdd_to_dnf(acc, _pos, _neg, :bdd_bot), do: acc
   defp bdd_to_dnf(acc, pos, neg, :bdd_top), do: [{pos, neg} | acc]
 
+  defp bdd_to_dnf(acc, pos, neg, {_, _} = lit) do
+    [{[lit | pos], neg} | acc]
+  end
+
   # Lazy node: {lit, C, U, D}  ≡  (lit ∧ C) ∪ U ∪ (¬lit ∧ D)
   defp bdd_to_dnf(acc, pos, neg, {lit, c, u, d}) do
     # U is a bdd in itself, we accumulate its lines first
@@ -4570,6 +4596,13 @@ defmodule Module.Types.Descr do
     # D-part
     |> bdd_to_dnf(pos, [lit | neg], d)
   end
+
+  @compile {:inline, bdd_expand: 1, bdd_head: 1}
+  defp bdd_expand({_, _} = pair), do: {pair, :bdd_top, :bdd_bot, :bdd_bot}
+  defp bdd_expand(bdd), do: bdd
+
+  defp bdd_head({lit, _, _, _}), do: lit
+  defp bdd_head(pair), do: pair
 
   ## Pairs
 
