@@ -660,7 +660,7 @@ defmodule Mix.Tasks.Test do
     {potential_test_files, directly_included_test_files} = extract_files(test_files, test_pattern)
 
     {load_files, _ignored_files, warn_files} =
-      classify_test_files(potential_test_files, project)
+      classify_test_files(shell, potential_test_files, project)
 
     # ensure that files given as direct argument to mix test are loaded,
     # even if the test_load_filters don't match
@@ -797,16 +797,10 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp classify_test_files(potential_test_files, project) do
+  defp classify_test_files(shell, potential_test_files, project) do
     test_load_filters = project[:test_load_filters] || [&String.ends_with?(&1, "_test.exs")]
-    elixirc_paths = project[:elixirc_paths] || []
 
-    # ignore any _helper.exs files and files that are compiled (test support files)
-    test_ignore_filters =
-      [
-        &String.ends_with?(&1, "_helper.exs"),
-        fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
-      ] ++ Keyword.get(project, :test_ignore_filters, [])
+    test_ignore_filters = get_test_ignore_filters(shell, project)
 
     {to_load, to_ignore, to_warn} =
       for file <- potential_test_files, reduce: {[], [], []} do
@@ -825,6 +819,25 @@ defmodule Mix.Tasks.Test do
 
     # get the files back in the original order
     {Enum.reverse(to_load), Enum.reverse(to_ignore), Enum.reverse(to_warn)}
+  end
+
+  defp get_test_ignore_filters(shell, project) do
+    elixirc_paths = project[:elixirc_paths] || []
+
+    case Keyword.get(project, :test_ignore_filters, []) do
+      list when is_list(list) ->
+        # ignore any _helper.exs files and files that are compiled (test support files)
+        [
+          &String.ends_with?(&1, "_helper.exs"),
+          fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
+        ] ++ list
+
+      other ->
+        raise_with_shell(
+          shell,
+          "Invalid configuration for :test_ignore_filters, expected a list, got: #{inspect(other)}"
+        )
+    end
   end
 
   defp any_file_matches?(file, filters) do
@@ -851,7 +864,7 @@ defmodule Mix.Tasks.Test do
     This might indicate a typo in a test file name (for example, using "foo_tests.exs" instead of "foo_test.exs").
 
     You can adjust which files trigger this warning by configuring the `:test_ignore_filters` option in your
-    Mix project's configuration. To disable the warning entirely, set that option to false.
+    Mix project's configuration. To disable the warning entirely, set that option to [fn _ -> true end].
 
     For more information, run `mix help test`.
     """)
