@@ -39,6 +39,10 @@ defmodule ExUnit.AssertionError do
   end
 
   @impl true
+  def exception(message) when is_binary(message) do
+    %ExUnit.AssertionError{message: message}
+  end
+
   def exception(opts) do
     with {:ok, message} when not is_binary(message) <- Keyword.fetch(opts, :message) do
       raise ArgumentError,
