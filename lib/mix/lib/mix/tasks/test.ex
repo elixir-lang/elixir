@@ -247,13 +247,15 @@ defmodule Mix.Tasks.Test do
       `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
 
-    * `:test_pattern` - a pattern to find potential test files.
-      Defaults to `"*.{ex,exs}"`.
+    * `:test_pattern` - a pattern to find potential test files. Defaults to `"*.{ex,exs}"`.
 
-      In Elixir versions earlier than 1.19.0, this option defaulted to `*_test.exs`,
-      but to allow better warnings for misnamed test files, it since matches any
-      Elixir file and expects those to be filtered by `:test_load_filters` and
-      `:test_ignore_filters`.
+      Once files are found, they are filtered in two ways:
+
+        * Files that match `:test_load_filters` are loaded
+        * Files that match `:test_ignore_filters` are ignored
+        * All other files emit a warning
+
+      In Elixir versions earlier than 1.19.0, this option defaulted to `*_test.exs`.
 
     * `:test_load_filters` - a list of files, regular expressions or one-arity
       functions to restrict which files matched by the `:test_pattern` are loaded.
@@ -261,15 +263,13 @@ defmodule Mix.Tasks.Test do
       the project root and separated by `/`, even on Windows.
 
     * `:test_ignore_filters` - a list of files, regular expressions or one-arity
-      functions to restrict which files matched by the `:test_pattern`, but not loaded
-      by `:test_load_filters`, trigger a warning for a potentially misnamed test file.
+      functions to ignore by the loader. Any file that is not loaded and not
+      ignored will emit a warning.
 
       Mix ignores files ending in `_helper.exs` by default, as well as any file
-      included in the project's `:elixirc_paths`. This ensures that any helper
-      or test support files are not triggering a warning.
+      included in the project's `:elixirc_paths`. You may choose to disable all
+      warnings by ignoring all files with `[fn _ -> true end]`.
 
-      Any extra filters configured in the project are appended to the defaults.
-      Warnings can be disabled by setting this option to `[fn _ -> true end]`.
       Paths are relative to the project root and separated by `/`, even on Windows.
 
   ## Coloring
@@ -857,16 +857,16 @@ defmodule Mix.Tasks.Test do
 
   defp warn_misnamed_test_files(ignored) do
     Mix.shell().info("""
-    warning: the following files do not match any of the configured `:test_load_filters` / `:test_ignore_filters`:
+    warning: the following files do not match any of the configured \
+    `:test_load_filters` / `:test_ignore_filters`:
 
     #{Enum.join(ignored, "\n")}
 
-    This might indicate a typo in a test file name (for example, using "foo_tests.exs" instead of "foo_test.exs").
+    This might indicate a typo in a test file name (for example, \
+    using "foo_tests.exs" instead of "foo_test.exs").
 
-    You can adjust which files trigger this warning by configuring the `:test_ignore_filters` option in your
-    Mix project's configuration. To disable the warning entirely, set that option to [fn _ -> true end].
-
-    For more information, run `mix help test`.
+    See the configuration for `:test_pattern` under `mix help test` \
+    for more information.
     """)
   end
 
