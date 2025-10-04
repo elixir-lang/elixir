@@ -63,6 +63,15 @@ defmodule ExUnit.AssertionsTest do
 
   defguardp is_zero(zero) when zero == 0
 
+  test "direct raise" do
+    try do
+      raise ExUnit.AssertionError, "This is a test"
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "This is a test" = error.message
+    end
+  end
+
   test "assert inside macro" do
     assert_ok(42)
   end
