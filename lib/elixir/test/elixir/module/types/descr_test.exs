@@ -2600,7 +2600,7 @@ defmodule Module.Types.DescrTest do
       range =
         closed_map(__struct__: atom([Range]), first: integer(), last: integer(), step: integer())
 
-      assert empty?(difference(range, Enum.reduce(entries, &union/2)))
+      refute empty?(difference(range, Enum.reduce(entries, &union/2)))
     end
   end
 end
