@@ -6,7 +6,7 @@ defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
   @manifest_vsn 28
-  @checkpoint_vsn 3
+  @checkpoint_vsn 4
 
   import Record
 
@@ -52,6 +52,16 @@ defmodule Mix.Compilers.Elixir do
     {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config,
      old_project_mtime, old_config_mtime, old_protocols_and_impls} =
       parse_manifest(manifest, dest)
+
+    # In case we aborted in the middle of a verification,
+    # we need to delete all modules that we wrote to disk.
+    # In the future, we may want to make it so we only run
+    # the verification again.
+    with {:ok, modules} <- parse_checkpoint(:verify, manifest) do
+      for module <- modules do
+        File.rm(Path.join(dest, Atom.to_string(module) <> ".beam"))
+      end
+    end
 
     # Prepend ourselves early because of __mix_recompile__? checks
     # and also that, in case of nothing compiled, we already need
@@ -197,7 +207,7 @@ defmodule Mix.Compilers.Elixir do
           consolidation: consolidation
         }
 
-        compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
+        compiler_loop(manifest, stale, stale_modules, dest, timestamp, opts, state)
       else
         {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
           %{
@@ -354,13 +364,28 @@ defmodule Mix.Compilers.Elixir do
          dest,
          timestamp
        ) do
-    {checkpoint_stale_modules, checkpoint_stale_exports} = parse_checkpoint(manifest)
+    {checkpoint_stale_modules, checkpoint_stale_exports} =
+      case parse_checkpoint(:update, manifest) do
+        {:ok, {_, _} = data} -> data
+        :error -> {%{}, %{}}
+      end
+
     stale_modules = Map.merge(checkpoint_stale_modules, stale_modules)
     stale_exports = Map.merge(checkpoint_stale_exports, stale_exports)
 
+    # Once we added semantic recompilation, the following can happen:
+    #
+    # 1. The user changes config/mix.exs/__mix_recompile__?
+    # 2. We detect the change, remove .beam files and start recompilation
+    # 3. Recompilation fails
+    # 4. The user reverts the change
+    # 5. The compiler no longer recompiles and the .beam files are missing
+    #
+    # Therefore, it is important for us to checkpoint any state that may
+    # have lead to a compilation and which can now be reverted.
     if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
          map_size(stale_exports) != map_size(checkpoint_stale_exports) do
-      write_checkpoint(manifest, stale_modules, stale_exports)
+      write_checkpoint(:update, manifest, {stale_modules, stale_exports})
     end
 
     # We don't need to store those in the checkpoint because
@@ -932,7 +957,7 @@ defmodule Mix.Compilers.Elixir do
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)
-    delete_checkpoint(manifest)
+    delete_checkpoints(manifest)
 
     # Since Elixir is a dependency itself, we need to touch the lock
     # so the current Elixir version, used to compile the files above,
@@ -945,36 +970,27 @@ defmodule Mix.Compilers.Elixir do
     Path.join(compile_path, Atom.to_string(module) <> ".beam")
   end
 
-  # Once we added semantic recompilation, the following can happen:
-  #
-  # 1. The user changes config/mix.exs/__mix_recompile__?
-  # 2. We detect the change, remove .beam files and start recompilation
-  # 3. Recompilation fails
-  # 4. The user reverts the change
-  # 5. The compiler no longer recompiles and the .beam files are missing
-  #
-  # Therefore, it is important for us to checkpoint any state that may
-  # have lead to a compilation and which can now be reverted.
-  defp parse_checkpoint(manifest) do
+  defp parse_checkpoint(type, manifest) when type in [:update, :verify] do
     try do
-      (manifest <> ".checkpoint") |> File.read!() |> :erlang.binary_to_term()
+      (manifest <> ".#{type}.cp") |> File.read!() |> :erlang.binary_to_term()
     rescue
-      _ -> {%{}, %{}}
+      _ -> :error
     else
-      {@checkpoint_vsn, stale_modules, stale_exports} -> {stale_modules, stale_exports}
-      _ -> {%{}, %{}}
+      {@checkpoint_vsn, data} -> {:ok, data}
+      _ -> :error
     end
   end
 
-  defp write_checkpoint(manifest, stale_modules, stale_exports) do
+  defp write_checkpoint(type, manifest, data) when type in [:update, :verify] do
     File.mkdir_p!(Path.dirname(manifest))
-    term = {@checkpoint_vsn, stale_modules, stale_exports}
-    checkpoint_data = :erlang.term_to_binary(term, [:compressed])
-    File.write!(manifest <> ".checkpoint", checkpoint_data)
+    term = {@checkpoint_vsn, data}
+    checkpoint_data = :erlang.term_to_binary(term)
+    File.write!(manifest <> ".#{type}.cp", checkpoint_data)
   end
 
-  defp delete_checkpoint(manifest) do
-    File.rm(manifest <> ".checkpoint")
+  defp delete_checkpoints(manifest) do
+    File.rm(manifest <> ".update.cp")
+    File.rm(manifest <> ".verify.cp")
   end
 
   defp unless_warnings_as_errors(opts, {status, all_warnings}) do
@@ -1008,7 +1024,7 @@ defmodule Mix.Compilers.Elixir do
   ## Compiler loop
   # The compiler is invoked in a separate process so we avoid blocking its main loop.
 
-  defp compiler_loop(stale, stale_modules, dest, timestamp, opts, state) do
+  defp compiler_loop(manifest, stale, stale_modules, dest, timestamp, opts, state) do
     ref = make_ref()
     parent = self()
     compilation_threshold = opts[:long_compilation_threshold] || 10
@@ -1025,7 +1041,7 @@ defmodule Mix.Compilers.Elixir do
       spawn_link(fn ->
         compile_opts = [
           after_compile: fn ->
-            compiler_call(parent, ref, {:after_compile, dest, opts})
+            compiler_call(parent, ref, {:after_compile, manifest, opts})
           end,
           each_cycle: fn ->
             compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
@@ -1073,8 +1089,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_loop(ref, pid, state, cwd) do
     receive do
-      {^ref, {:after_compile, dest, opts}} ->
-        {response, state} = after_compile(dest, state, opts)
+      {^ref, {:after_compile, manifest, opts}} ->
+        {response, state} = after_compile(manifest, state, opts)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
@@ -1111,8 +1127,9 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp after_compile(_dest, state, opts) do
+  defp after_compile(manifest, state, opts) do
     %{modules: modules, pending_modules: pending_modules, consolidation: consolidation} = state
+    write_checkpoint(:verify, manifest, Map.keys(modules))
     consolidation = maybe_consolidate(consolidation, modules, pending_modules, opts)
     {:ok, %{state | consolidation: consolidation}}
   end
