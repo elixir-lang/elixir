@@ -159,7 +159,7 @@ defmodule Mix.Compilers.Elixir do
 
     stale = changed -- removed
 
-    {sources, removed_modules} =
+    {sources, stale_exports} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
     consolidation_status =
@@ -186,12 +186,26 @@ defmodule Mix.Compilers.Elixir do
 
       try do
         consolidation = {consolidation_status, old_protocols_and_impls, protocols_and_impls}
-        state = {%{}, exports, sources, [], modules, removed_modules, consolidation}
+
+        state = %{
+          modules: %{},
+          exports: exports,
+          sources: sources,
+          changed: [],
+          pending_modules: modules,
+          stale_exports: stale_exports,
+          consolidation: consolidation
+        }
+
         compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
       else
         {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
-          {modules, _exports, sources, _changed, pending_modules, _stale_exports,
-           protocols_and_impls} = state
+          %{
+            modules: modules,
+            sources: sources,
+            pending_modules: pending_modules,
+            consolidation: protocols_and_impls
+          } = state
 
           previous_warnings =
             if Keyword.get(opts, :all_warnings, true),
@@ -233,11 +247,10 @@ defmodule Mix.Compilers.Elixir do
               else: {errors, r_warnings ++ c_warnings}
 
           # In case of errors, we show all previous warnings and all new ones.
-          {_, _, sources, _, _, _, _} = state
           errors = Enum.map(errors, &diagnostic/1)
           warnings = Enum.map(warnings, &diagnostic/1)
           all_warnings = Keyword.get(opts, :all_warnings, errors == [])
-          {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
+          {:error, previous_warnings(state.sources, all_warnings) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
       end
@@ -1012,7 +1025,7 @@ defmodule Mix.Compilers.Elixir do
       spawn_link(fn ->
         compile_opts = [
           after_compile: fn ->
-            compiler_call(parent, ref, {:after_compile, opts})
+            compiler_call(parent, ref, {:after_compile, dest, opts})
           end,
           each_cycle: fn ->
             compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
@@ -1060,8 +1073,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_loop(ref, pid, state, cwd) do
     receive do
-      {^ref, {:after_compile, opts}} ->
-        {response, state} = after_compile(state, opts)
+      {^ref, {:after_compile, dest, opts}} ->
+        {response, state} = after_compile(dest, state, opts)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
@@ -1098,21 +1111,39 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp after_compile(state, opts) do
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
-
-    state =
-      {modules, exports, sources, changed, pending_modules, stale_exports,
-       maybe_consolidate(consolidation, modules, pending_modules, opts)}
-
-    {:ok, state}
+  defp after_compile(_dest, state, opts) do
+    %{modules: modules, pending_modules: pending_modules, consolidation: consolidation} = state
+    consolidation = maybe_consolidate(consolidation, modules, pending_modules, opts)
+    {:ok, %{state | consolidation: consolidation}}
   end
 
-  defp each_cycle(stale_modules, compile_path, timestamp, state) do
-    {modules, _exports, sources, changed, pending_modules, stale_exports, consolidation} = state
+  defp each_cycle(stale_modules, dest, timestamp, state) do
+    %{
+      modules: modules,
+      sources: sources,
+      changed: changed,
+      pending_modules: pending_modules,
+      stale_exports: stale_exports
+    } = state
 
+    # At this point, we may have additional files to compile.
+    # There are two potential sources:
+    #
+    # * We need to go through all exports that we have confirmed that changed.
+    #   When we first compile, we store all removed/changed modules as stale
+    #   exports. Then, if they are not compiled again, or compiled with a
+    #   different exports MD5, they remain as stale, causing the next cycle.
+    #
+    # * In case a module is defined in two places, we add all sources to changed
     {pending_modules, exports, changed} =
-      update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, compile_path)
+      update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, dest)
+
+    state = %{
+      state
+      | changed: [],
+        exports: exports,
+        pending_modules: pending_modules
+    }
 
     # Those files have been changed transitively, so we mark them as changed
     # in case compilation fails mid-cycle. The combination of the outdated
@@ -1152,36 +1183,30 @@ defmodule Mix.Compilers.Elixir do
         end)
 
       runtime_paths =
-        Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
+        Enum.map(runtime_modules, &{&1, Path.join(dest, Atom.to_string(&1) <> ".beam")})
 
-      state = {modules, exports, sources, [], pending_modules, stale_exports, consolidation}
+      state = %{state | sources: sources}
       {{:runtime, runtime_paths, []}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
 
-      # If we have a compile time dependency to a module, as soon as its file
-      # change, we will detect the compile time dependency and recompile. However,
-      # the whole goal of pending exports is to delay this decision, so we need to
-      # track which modules were removed and start them as our pending exports and
-      # remove the pending exports as we notice they have not gone stale.
-      {sources, removed_modules} =
-        Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
+      # Now we need to detect the new stale_exports.
+      # This is a simplified version of update_stale_sources.
+      {sources, %{}} =
+        Enum.reduce(changed, {sources, stale_exports}, fn file, {acc_sources, acc_modules} ->
           source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
           acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-
-          # Define empty records for the sources that needs
-          # to be recompiled (but were not changed on disk)
           {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
         end)
 
-      state = {modules, exports, sources, [], pending_modules, removed_modules, consolidation}
+      state = %{state | sources: sources, stale_exports: stale_exports}
       {{:compile, changed, []}, state}
     end
   end
 
   defp each_file(file, references, verbose, state, cwd) do
     {compile_references, export_references, runtime_references, compile_env} = references
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
+    %{sources: sources} = state
 
     file = Path.relative_to(file, cwd)
 
@@ -1208,12 +1233,18 @@ defmodule Mix.Compilers.Elixir do
         compile_env: compile_env
       )
 
-    sources = Map.replace!(sources, file, source)
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation}
+    %{state | sources: Map.replace!(sources, file, source)}
   end
 
   defp each_module(file, module, kind, external, new_export, recompile?, state, timestamp, cwd) do
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
+    %{
+      modules: modules,
+      exports: exports,
+      sources: sources,
+      changed: changed,
+      pending_modules: pending_modules,
+      stale_exports: stale_exports
+    } = state
 
     file = Path.relative_to(file, cwd)
     external = process_external_resources(external, cwd)
@@ -1266,7 +1297,7 @@ defmodule Mix.Compilers.Elixir do
         %{} -> changed
       end
 
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation}
+    %{state | modules: modules, changed: changed, sources: sources, stale_exports: stale_exports}
   end
 
   defp detect_kind(module) do
