@@ -32,7 +32,7 @@ Even though the `+` operator works with both integers and floats, Elixir infers 
 
 ### Acknowledgements
 
-The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), [Starfish*](https://starfish.team/), and [Dashbit](https://dashbit.co/).
+The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Dashbit](https://dashbit.co/).
 
 ## v1.20.0-dev
 
