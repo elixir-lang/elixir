@@ -122,7 +122,7 @@ defmodule Kernel.ImplTest do
     end
   end
 
-  test "warns for undefined value" do
+  test "warns for undefined behaviour" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Kernel.ImplTest.ImplAttributes do
@@ -133,7 +133,8 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) =~
-             "got \"@impl :abc\" for function foo/0 but this behaviour does not specify such callback. There are no known callbacks"
+             "got \"@impl :abc\" for function foo/0 but behaviour :abc does not exist. " <>
+               "There are no known callbacks, please specify the proper @behaviour and make sure it defines callbacks"
   end
 
   test "warns for callbacks without impl and @impl has been set before" do
