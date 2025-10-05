@@ -935,7 +935,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert capture_io(:stderr, fn ->
                File.write!("lib/a.ex", "defmodule B, do: :not_ok")
-               assert {:ok, []} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+               assert {:ok, [_]} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
                assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
                assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
                purge([A, B])
