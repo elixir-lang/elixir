@@ -42,6 +42,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
   * [Enum] Add `Enum.min_max` sorter
   * [Kernel] Print intermediate results of `dbg` for pipes
+  * [Kernel] Warn on unused requires
 
 ### 2. Bug fixes
 
