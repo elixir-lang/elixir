@@ -610,7 +610,14 @@ defmodule Mix.Tasks.Test do
     # before requiring test_helper.exs so that the configuration is
     # available in test_helper.exs
     Mix.shell().print_app()
-    app_start_args = if opts[:slowest], do: ["--preload-modules" | args], else: args
+
+    app_start_args =
+      if opts[:slowest] || opts[:slowest_modules] do
+        ["--preload-modules" | args]
+      else
+        args
+      end
+
     Mix.Task.run("app.start", app_start_args)
 
     # The test helper may change the Mix.shell(), so revert it whenever we raise and after suite
