@@ -170,7 +170,7 @@ Elixir v1.19 ships with a new pretty printing implementation that tracks limits 
 ]
 ```
 
-This allows for more information to be shown at different nesting levels, which is useful for complex data structures. But it led to some pathological cases where the `limit` option had little effect on actually filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
+This allows for more information to be shown at different nesting levels, which is useful for complex data structures. But it led to some pathological cases where the `limit` option had little effect on filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
 
 ```elixir
 [
@@ -194,13 +194,14 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosystem Foundation.
 
-## v1.19.0-rc.1
+## v1.19.0-rc.1 (2025-10-05)
 
 ### 1. Enhancements
 
 #### Elixir
 
   * [Kernel] Raise when U+2028 and U+2029 characters are present in comments and strings to avoid line spoofing attacks
+  * [Kernel] Include the line for the previous clause in errors/warnings related to conflicts between defaults on function definitions
   * [Macro] Add `__escape__/1` callback so structs can escape references and other runtime data types in `Macro.escape/1`
   * [OptionParser] Support the `:regex` type
   * [OptionParser] Enhance parsing error to display available options
@@ -242,6 +243,8 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
 #### Mix
 
   * [mix compile] Fix bug where reverting changes to an external resource (such as HEEx template) after a compilation error would make it so the source module would not be compiled
+  * [mix compile] Avoid failures when locking compilation across different users
+  * [mix compile] Fix race condition when renaming files used by the compilation lock
   * [mix test] Prevent `mix test` from overriding `:failures_manifest_path` option
 
 ### 3. Hard deprecations
