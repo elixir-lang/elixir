@@ -11,12 +11,6 @@
 1. Update version in /VERSION, bin/elixir, and bin/elixir.bat
 
 2. Ensure /CHANGELOG.md is updated, versioned and add the current date
-   - If this release addresses any publicly known security vulnerabilities with
-     assigned CVEs, add a "Security" section to `CHANGELOG.md`. For example:
-     ```md
-     ## Security
-     - Fixed CVE-2025-00000: Description of the vulnerability
-     ```
 
 3. Update "Compatibility and Deprecations" if a new OTP version is supported
 
