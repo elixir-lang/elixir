@@ -122,32 +122,44 @@ defmodule Kernel.ImplTest do
     end
   end
 
-  test "warns about undefined module" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Abc
+  test "warns about undefined module, but does not warn at @impl line" do
+    capture_err =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Abc
 
-               @impl Abc
-               def foo(), do: :ok
-             end
-             """)
-           end) =~
-             "got \"@impl Abc\" for function foo/0 but module Abc does not exist"
+          @impl Abc
+          def foo(), do: :ok
+        end
+        """)
+      end)
+
+    assert capture_err =~
+             "@behaviour Abc does not exist (in module Kernel.ImplTest.ImplAttributes)"
+
+    refute capture_err =~
+             "got \"@impl Abc\""
   end
 
-  test "warns about undefined behaviour" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Enum
+  test "warns about undefined behaviour, but does not warn at @impl line" do
+    capture_err =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Enum
 
-               @impl Enum
-               def foo(), do: :ok
-             end
-             """)
-           end) =~
-             "got \"@impl Enum\" for function foo/0 but behaviour Enum does not exist"
+          @impl Enum
+          def foo(), do: :ok
+        end
+        """)
+      end)
+
+    assert capture_err =~
+             "module Enum is not a behaviour (in module Kernel.ImplTest.ImplAttributes)"
+
+    refute capture_err =~
+             "got \"@impl Abc\""
   end
 
   test "warns for callbacks without impl and @impl has been set before" do
