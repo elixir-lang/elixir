@@ -1641,9 +1641,7 @@ defmodule Registry.Supervisor do
       for i <- 0..(partitions - 1) do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
-
-        arg =
-          {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
+        arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
 
         %{
           id: pid_partition,
