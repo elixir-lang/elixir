@@ -2511,5 +2511,96 @@ defmodule Module.Types.DescrTest do
       refute subtype?(map1, map2)
       assert subtype?(map2, map1)
     end
+
+    test "struct difference" do
+      entries =
+        [
+          closed_map(__struct__: atom([MapSet]), map: term()),
+          closed_map(__struct__: atom([Jason.OrderedObject]), values: term()),
+          closed_map(__struct__: atom([GenEvent.Stream]), timeout: term(), manager: term()),
+          closed_map(__struct__: atom([HashDict]), size: term(), root: term()),
+          closed_map(__struct__: atom([HashSet]), size: term(), root: term()),
+          closed_map(
+            __struct__: atom([IO.Stream]),
+            raw: term(),
+            device: term(),
+            line_or_bytes: term()
+          ),
+          closed_map(__struct__: atom([Range]), first: term(), last: term(), step: term()),
+          closed_map(
+            __struct__: atom([Stream]),
+            enum: term(),
+            done: term(),
+            funs: term(),
+            accs: term()
+          ),
+          closed_map(
+            __struct__: atom([Req.Response.Async]),
+            pid: term(),
+            ref: term(),
+            stream_fun: term(),
+            cancel_fun: term()
+          ),
+          closed_map(
+            __struct__: atom([Postgrex.Stream]),
+            options: term(),
+            params: term(),
+            query: term(),
+            conn: term()
+          ),
+          closed_map(
+            __struct__: atom([DBConnection.PrepareStream]),
+            opts: term(),
+            params: term(),
+            query: term(),
+            conn: term()
+          ),
+          closed_map(
+            __struct__: atom([DBConnection.Stream]),
+            opts: term(),
+            params: term(),
+            query: term(),
+            conn: term()
+          ),
+          closed_map(
+            __struct__: atom([Ecto.Adapters.SQL.Stream]),
+            meta: term(),
+            opts: term(),
+            params: term(),
+            statement: term()
+          ),
+          closed_map(
+            __struct__: atom([Date.Range]),
+            first: term(),
+            last: term(),
+            step: term(),
+            first_in_iso_days: term(),
+            last_in_iso_days: term()
+          ),
+          closed_map(
+            __struct__: atom([File.Stream]),
+            node: term(),
+            raw: term(),
+            path: term(),
+            modes: term(),
+            line_or_bytes: term()
+          ),
+          closed_map(
+            __struct__: atom([Phoenix.LiveView.LiveStream]),
+            name: term(),
+            ref: term(),
+            inserts: term(),
+            deletes: term(),
+            reset?: term(),
+            dom_id: term(),
+            consumable?: term()
+          )
+        ]
+
+      range =
+        closed_map(__struct__: atom([Range]), first: integer(), last: integer(), step: integer())
+
+      assert subtype?(range, Enum.reduce(entries, &union/2))
+    end
   end
 end
