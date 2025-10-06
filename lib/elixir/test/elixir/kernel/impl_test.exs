@@ -122,18 +122,44 @@ defmodule Kernel.ImplTest do
     end
   end
 
-  test "warns for undefined value" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour :abc
+  test "warns about undefined module, but does not warn at @impl line" do
+    capture_err =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Abc
 
-               @impl :abc
-               def foo(), do: :ok
-             end
-             """)
-           end) =~
-             "got \"@impl :abc\" for function foo/0 but this behaviour does not specify such callback. There are no known callbacks"
+          @impl Abc
+          def foo(), do: :ok
+        end
+        """)
+      end)
+
+    assert capture_err =~
+             "@behaviour Abc does not exist (in module Kernel.ImplTest.ImplAttributes)"
+
+    refute capture_err =~
+             "got \"@impl Abc\""
+  end
+
+  test "warns about undefined behaviour, but does not warn at @impl line" do
+    capture_err =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Enum
+
+          @impl Enum
+          def foo(), do: :ok
+        end
+        """)
+      end)
+
+    assert capture_err =~
+             "module Enum is not a behaviour (in module Kernel.ImplTest.ImplAttributes)"
+
+    refute capture_err =~
+             "got \"@impl Abc\""
   end
 
   test "warns for callbacks without impl and @impl has been set before" do
@@ -315,7 +341,7 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) =~
-             "got \"@impl Kernel.ImplTest.Behaviour\" for function bar/0 but this behaviour does not specify such callback"
+             "got \"@impl Kernel.ImplTest.Behaviour\" for function bar/0 but Kernel.ImplTest.Behaviour does not specify such callback"
   end
 
   test "warns for @impl module with macro callback name not in behaviour" do
@@ -328,7 +354,7 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) =~
-             "got \"@impl Kernel.ImplTest.MacroBehaviour\" for macro foo/0 but this behaviour does not specify such callback"
+             "got \"@impl Kernel.ImplTest.MacroBehaviour\" for macro foo/0 but Kernel.ImplTest.MacroBehaviour does not specify such callback"
   end
 
   test "warns for @impl module with macro callback kind not in behaviour" do
@@ -341,7 +367,7 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) =~
-             "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function foo/0 but this behaviour does not specify such callback"
+             "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function foo/0 but Kernel.ImplTest.MacroBehaviour does not specify such callback"
   end
 
   test "warns for @impl module and callback belongs to another known module" do
@@ -355,7 +381,7 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) =~
-             "got \"@impl Kernel.ImplTest.Behaviour\" for function bar/0 but this behaviour does not specify such callback"
+             "got \"@impl Kernel.ImplTest.Behaviour\" for function bar/0 but Kernel.ImplTest.Behaviour does not specify such callback"
   end
 
   test "warns for @impl module and callback belongs to another unknown module" do
@@ -509,7 +535,7 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) =~
-             "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function foo/0 but this behaviour does not specify such callback"
+             "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function foo/0 but Kernel.ImplTest.MacroBehaviour does not specify such callback"
   end
 
   test "warns only for non-generated functions in non-generated @impl" do

@@ -181,8 +181,16 @@ defmodule Module.Behaviour do
       behaviour not in behaviours ->
         {:error, {:behaviour_not_declared, behaviour}}
 
+      not Code.ensure_loaded?(behaviour) ->
+        # Module does not exist, but we have already warned about it.
+        {:ok, []}
+
+      not behaviour_defined?(callbacks, behaviour) ->
+        # Module does not define behaviour, but we have already warned about it.
+        {:ok, []}
+
       true ->
-        {:error, {:behaviour_not_defined, behaviour, callbacks}}
+        {:error, {:callback_not_defined, behaviour, callbacks}}
     end
   end
 
@@ -213,6 +221,18 @@ defmodule Module.Behaviour do
       nil ->
         callbacks_for_impls(tail, callbacks)
     end
+  end
+
+  # Determines whether there is at least one callback defined for the given behaviour.
+  # If not, that means that the behaviour has not been defined.
+  defp behaviour_defined?(callbacks, behaviour) do
+    callbacks
+    |> Map.values()
+    |> List.flatten()
+    |> Enum.any?(fn
+      {_kind, ^behaviour, _optional?} -> true
+      {_kind, _behaviour, _optional?} -> false
+    end)
   end
 
   defp warn_missing_impls(%{callbacks: callbacks} = context, _impl_contexts, _defs)
@@ -390,13 +410,17 @@ defmodule Module.Behaviour do
     ]
   end
 
-  defp format_warning({:behaviour_not_defined, callback, kind, behaviour, callbacks}) do
+  defp format_warning({:callback_not_defined, callback, kind, behaviour, callbacks}) do
+    behaviour_string = inspect(behaviour)
+
     [
       "got \"@impl ",
-      inspect(behaviour),
+      behaviour_string,
       "\" for ",
       format_definition(kind, callback),
-      " but this behaviour does not specify such callback",
+      " but ",
+      behaviour_string,
+      " does not specify such callback",
       known_callbacks(callbacks)
     ]
   end
