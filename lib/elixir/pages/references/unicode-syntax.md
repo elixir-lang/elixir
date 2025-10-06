@@ -40,7 +40,7 @@ Make sure all characters in the identifier resolve to a single script or a highl
 restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
 ```
 
-Finally, Elixir will also warn on confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.
+Finally, Elixir will also warn of confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.
 
 That's the overall introduction of how Unicode is used in Elixir identifiers. In a nutshell, its goal is to support different writing systems in use today while keeping the Elixir language itself clear and secure.
 
@@ -124,13 +124,13 @@ For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, i
 
 ### C2. Confusable detection
 
-Elixir will warn on identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn about identifiers within a single file that could be confused with each other.
+Elixir will warn of identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn of identifiers within a single file that could be confused with each other.
 
 We use the means described in Section 4, 'Confusable Detection', with one noted modification:
 
 > Alternatively, it shall declare that it uses a modification, and provide a precise list of character mappings that are added to or removed from the provided ones.
 
-Elixir will not warn on confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
+Elixir will not warn about confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
 
 ### C3. Mixed Script Detection
 

@@ -636,7 +636,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "test_load_filters and test_ignore_filters" do
-    test "warns for files that are not loaded and don't match test_ignore_filters" do
+    test "warns of files that are not loaded and don't match test_ignore_filters" do
       in_tmp("test_warn", fn ->
         File.write!("mix.exs", """
         defmodule TestWarn.MixProject do

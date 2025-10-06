@@ -178,7 +178,7 @@ defmodule Kernel.WarningTest do
   end
 
   describe "unnecessary quotes" do
-    test "does not warn for unnecessary quotes in uppercase atoms/keywords" do
+    test "does not warn of unnecessary quotes in uppercase atoms/keywords" do
       assert capture_eval(~s/:"Foo"/) == ""
       assert capture_eval(~s/["Foo": :bar]/) == ""
       assert capture_eval(~s/:"Foo"/) == ""
@@ -187,7 +187,7 @@ defmodule Kernel.WarningTest do
       assert capture_eval(~s/:"3L1X1R"/) == ""
     end
 
-    test "warns for unnecessary quotes" do
+    test "warns of unnecessary quotes" do
       assert_warn_eval(
         ["nofile:1:1", "found quoted atom \"foo\" but the quotes are not required"],
         ~s/:"foo"/
@@ -206,7 +206,7 @@ defmodule Kernel.WarningTest do
   end
 
   describe "deprecated single quotes in atoms" do
-    test "warns for single quotes in atoms" do
+    test "warns of single quotes in atoms" do
       assert_warn_eval(
         [
           "nofile:1:1",
@@ -216,7 +216,7 @@ defmodule Kernel.WarningTest do
       )
     end
 
-    test "warns twice for single and unnecessary atom quotes" do
+    test "warns twice of single and unnecessary atom quotes" do
       assert_warn_eval(
         [
           "nofile:1:1",
@@ -228,7 +228,7 @@ defmodule Kernel.WarningTest do
       )
     end
 
-    test "warns twice for single and unnecessary call quotes" do
+    test "warns twice of single and unnecessary call quotes" do
       assert_warn_eval(
         [
           "nofile:1:9",
@@ -1029,7 +1029,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "late function heads do not warn for meta programming" do
+  test "late function heads do not warn of meta programming" do
     assert capture_eval("""
            defmodule Sample1 do
              defmacro __using__(_) do
@@ -1532,7 +1532,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "ungrouped defs do not warn for meta programming" do
+  test "ungrouped defs do not warn of meta programming" do
     assert capture_eval("""
            defmodule Sample do
              for atom <- [:foo, :bar] do

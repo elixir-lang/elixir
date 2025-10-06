@@ -652,7 +652,7 @@ defmodule Mix.Tasks.Test do
     test_paths = project[:test_paths] || default_test_paths()
     test_pattern = project[:test_pattern] || "*.{ex,exs}"
 
-    # Warn about deprecated warn configuration
+    # Warn of deprecated warn configuration
     if project[:warn_test_pattern] do
       Mix.shell().info("""
       warning: the `:warn_test_pattern` configuration is deprecated and will be ignored. \
