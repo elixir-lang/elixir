@@ -181,8 +181,11 @@ defmodule Module.Behaviour do
       behaviour not in behaviours ->
         {:error, {:behaviour_not_declared, behaviour}}
 
+      not Code.ensure_loaded?(behaviour) ->
+        {:error, {:module_not_defined, behaviour}}
+
       not behaviour_defined?(callbacks, behaviour) ->
-        {:error, {:behaviour_not_defined, behaviour, callbacks}}
+        {:error, {:behaviour_not_defined, behaviour}}
 
       true ->
         {:error, {:callback_not_defined, behaviour, callbacks}}
@@ -405,26 +408,45 @@ defmodule Module.Behaviour do
     ]
   end
 
-  defp format_warning({:behaviour_not_defined, callback, kind, behaviour, callbacks}) do
+  defp format_warning({:module_not_defined, callback, kind, behaviour}) do
+    behaviour_string = inspect(behaviour)
+
     [
       "got \"@impl ",
-      inspect(behaviour),
+      behaviour_string,
+      "\" for ",
+      format_definition(kind, callback),
+      " but module ",
+      behaviour_string,
+      " does not exist"
+    ]
+  end
+
+  defp format_warning({:behaviour_not_defined, callback, kind, behaviour}) do
+    behaviour_string = inspect(behaviour)
+
+    [
+      "got \"@impl ",
+      behaviour_string,
       "\" for ",
       format_definition(kind, callback),
       " but behaviour ",
-      inspect(behaviour),
-      " does not exist",
-      known_callbacks(callbacks)
+      behaviour_string,
+      " does not exist"
     ]
   end
 
   defp format_warning({:callback_not_defined, callback, kind, behaviour, callbacks}) do
+    behaviour_string = inspect(behaviour)
+
     [
       "got \"@impl ",
-      inspect(behaviour),
+      behaviour_string,
       "\" for ",
       format_definition(kind, callback),
-      " but this behaviour does not specify such callback",
+      " but ",
+      behaviour_string,
+      " does not specify such callback",
       known_callbacks(callbacks)
     ]
   end
