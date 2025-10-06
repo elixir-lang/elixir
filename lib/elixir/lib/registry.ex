@@ -511,8 +511,9 @@ defmodule Registry do
             :error
         end
 
-      {kind, _, _, _} ->
-        raise ArgumentError, "Registry.update_value/3 is not supported for #{kind} registries"
+      {kind, _, _} ->
+        raise ArgumentError,
+              "Registry.update_value/3 is not supported for #{inspect(kind)} registries"
     end
   end
 
@@ -843,15 +844,34 @@ defmodule Registry do
   @spec keys(registry, pid) :: [key]
   def keys(registry, pid) when is_atom(registry) and is_pid(pid) do
     {kind, partitions, _, pid_ets, _} = info!(registry)
-    {_, pid_ets} = pid_ets || pid_ets!(registry, pid, partitions)
+
+    pid_etses =
+      if pid_ets do
+        {_, pid_ets} = pid_ets
+        [pid_ets]
+      else
+        case kind do
+          {:duplicate, :key} ->
+            for partition <- 0..(partitions - 1) do
+              {_, pid_ets} = pid_ets!(registry, partition)
+              pid_ets
+            end
+
+          _ ->
+            {_, pid_ets} = pid_ets!(registry, pid, partitions)
+            [pid_ets]
+        end
+      end
 
     keys =
-      try do
-        spec = [{{pid, :"$1", :"$2", :_}, [], [{{:"$1", :"$2"}}]}]
-        :ets.select(pid_ets, spec)
-      catch
-        :error, :badarg -> []
-      end
+      Enum.flat_map(pid_etses, fn pid_ets ->
+        try do
+          spec = [{{pid, :"$1", :"$2", :_}, [], [{{:"$1", :"$2"}}]}]
+          :ets.select(pid_ets, spec)
+        catch
+          :error, :badarg -> []
+        end
+      end)
 
     # Handle the possibility of fake keys
     keys = gather_keys(keys, [], false)
