@@ -203,7 +203,7 @@ matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
 
-%% We warn exclusively for |> and friends because they are used
+%% We warn exclusively of |> and friends because they are used
 %% in other languages with lower precedence than function application,
 %% which can be the source of confusion.
 matched_op_expr -> arrow_op_eol no_parens_one_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.

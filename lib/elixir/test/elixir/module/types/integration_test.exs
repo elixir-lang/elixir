@@ -1027,7 +1027,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "do not warn for module defined in local (runtime) context" do
+    test "do not warn of module defined in local (runtime) context" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -1045,7 +1045,7 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
-    test "warn for unrequired module" do
+    test "warn of unrequired module" do
       files = %{
         "ab.ex" => """
         defmodule A do
@@ -1102,7 +1102,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "warn for external nested module" do
+    test "warn of external nested module" do
       files = %{
         "a.ex" => """
         defmodule A.B do
@@ -1130,7 +1130,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "warn for compile time context module defined before calls" do
+    test "warn of compile time context module defined before calls" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -1157,7 +1157,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "warn for compile time context module defined after calls and aliased" do
+    test "warn of compile time context module defined after calls and aliased" do
       files = %{
         "a.ex" => """
         defmodule A do
