@@ -3356,33 +3356,43 @@ defmodule Module.Types.Descr do
       atom_default = map_key_tag_to_type(tag)
       neg_atom_default = map_key_tag_to_type(neg_tag)
 
-      Enum.all?(Map.to_list(neg_fields), fn {neg_key, neg_type} ->
-        cond do
-          # Ignore keys present in both maps; will be handled below
-          is_map_key(fields, neg_key) ->
-            true
+      pending_negs =
+        Enum.reject(Map.to_list(neg_fields), fn {neg_key, neg_type} ->
+          cond do
+            # Ignore keys present in both maps; will be handled below
+            is_map_key(fields, neg_key) ->
+              true
 
-          # The keys is only in the negative map, and the positive map is closed
-          # in that case, this field is not_set(), and its difference with the
-          # negative map type is empty iff the negative type is optional.
-          tag == :closed ->
-            is_optional_static(neg_type) or throw(:closed)
+            # The keys is only in the negative map, and the positive map is closed
+            # in that case, this field is not_set(), and its difference with the
+            # negative map type is empty iff the negative type is optional.
+            # So we need to check the remaining negative later.
+            tag == :closed ->
+              is_optional_static(neg_type)
 
-          # There may be value in common
-          tag == :open ->
-            diff = difference(term_or_optional(), neg_type)
-            empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
+            # There may be value in common
+            tag == :open ->
+              diff = difference(term_or_optional(), neg_type)
 
-          true ->
-            diff = difference(atom_default, neg_type)
-            empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
-        end
-      end) and
-        Enum.all?(Map.to_list(fields), fn {key, type} ->
+              empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs) or
+                throw(:non_empty)
+
+            true ->
+              diff = difference(atom_default, neg_type)
+
+              empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs) or
+                throw(:non_empty)
+          end
+        end)
+
+      pending_pos =
+        Enum.reject(Map.to_list(fields), fn {key, type} ->
           case neg_fields do
             %{^key => neg_type} ->
               diff = difference(type, neg_type)
-              empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
+
+              empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs) or
+                throw(:non_empty)
 
             %{} ->
               cond do
@@ -3392,20 +3402,25 @@ defmodule Module.Types.Descr do
                   true
 
                 neg_tag == :closed and not is_optional_static(type) ->
-                  false or throw(:closed)
+                  # We need to check the remaining negative later
+                  false
 
                 true ->
                   # an absent key in a open negative map can be ignored
                   diff = difference(type, neg_atom_default)
-                  empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
+
+                  empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs) or
+                    throw(:non_empty)
               end
           end
         end)
+
+      (pending_pos == [] and pending_negs == []) or map_line_empty?(tag, fields, negs)
     else
       map_line_empty?(tag, fields, negs)
     end
   catch
-    :closed -> map_line_empty?(tag, fields, negs)
+    :non_empty -> false
   end
 
   # Verify the domain condition from equation (22) in paper ICFP'23 https://www.irif.fr/~gc/papers/icfp23.pdf
