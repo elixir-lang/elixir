@@ -3363,10 +3363,10 @@ defmodule Module.Types.Descr do
             true
 
           # The keys is only in the negative map, and the positive map is closed
-          # in that case, this field is not_set(), and its difference with the negative map type is empty iff
-          # the negative type is optional.
+          # in that case, this field is not_set(), and its difference with the
+          # negative map type is empty iff the negative type is optional.
           tag == :closed ->
-            is_optional_static(neg_type) or map_line_empty?(tag, fields, negs)
+            is_optional_static(neg_type) or throw(:closed)
 
           # There may be value in common
           tag == :open ->
@@ -3391,6 +3391,9 @@ defmodule Module.Types.Descr do
                 neg_tag == :open ->
                   true
 
+                neg_tag == :closed and not is_optional_static(type) ->
+                  throw(:closed)
+
                 true ->
                   # an absent key in a open negative map can be ignored
                   diff = difference(type, neg_atom_default)
@@ -3401,6 +3404,8 @@ defmodule Module.Types.Descr do
     else
       map_line_empty?(tag, fields, negs)
     end
+  catch
+    :closed -> map_line_empty?(tag, fields, negs)
   end
 
   # Verify the domain condition from equation (22) in paper ICFP'23 https://www.irif.fr/~gc/papers/icfp23.pdf
