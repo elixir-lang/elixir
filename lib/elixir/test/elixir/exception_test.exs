@@ -608,17 +608,17 @@ defmodule ExceptionTest do
       assert blame_message(Enum, & &1.map(:ok)) == """
              function Enum.map/1 is undefined or private. Did you mean:
 
-                   * map/2
+                 * map/2
              """
 
       assert blame_message(Enum, & &1.man(:ok)) == """
              function Enum.man/1 is undefined or private. Did you mean:
 
-                   * map/2
-                   * max/1
-                   * max/2
-                   * max/3
-                   * min/1
+                 * map/2
+                 * max/1
+                 * max/2
+                 * max/3
+                 * min/1
              """
 
       message = blame_message(:erlang, & &1.gt_cookie())
@@ -731,22 +731,23 @@ defmodule ExceptionTest do
     test "annotates key error with suggestions if keys are atoms" do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
-      assert message == """
-             key :firts not found in:
+      assert message ==
+               """
+               key :firts not found in:
 
-                 %{first: nil, second: nil}
+                   %{first: nil, second: nil}
 
-             Did you mean:
+               Did you mean:
 
                    * :first
-             """
+               """
 
       message = blame_message(%{"first" => nil, "second" => nil}, fn map -> map.firts end)
 
       assert message == """
              key :firts not found in:
 
-                 %{"first" => nil, "second" => nil}\
+                 %{"first" => nil, "second" => nil}
              """
 
       message =
@@ -756,7 +757,7 @@ defmodule ExceptionTest do
                """
                key "firts" not found in:
 
-                   %{"first" => nil, "second" => nil}\
+                   %{"first" => nil, "second" => nil}
                """
 
       message =
@@ -786,9 +787,9 @@ defmodule ExceptionTest do
 
              Did you mean:
 
-                   * :created_at
-                   * :finished_at
-                   * :started_at
+                 * :created_at
+                 * :finished_at
+                 * :started_at
              """
     end
 

@@ -229,7 +229,7 @@ defmodule MapTest do
       Map.replace!(map, :x, 10)
     end
 
-    assert_raise KeyError, "key :x not found in:\n\n    %{}", fn ->
+    assert_raise KeyError, "key :x not found in:\n\n    %{}\n", fn ->
       Map.replace!(%{}, :x, 10)
     end
   end
