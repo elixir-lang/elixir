@@ -5,19 +5,29 @@
 defmodule Mix.Tasks.Help do
   use Mix.Task
 
-  @shortdoc "Prints help information for tasks"
+  @shortdoc "Prints help information for tasks, aliases, modules, and applications"
 
   @moduledoc """
-  Lists all tasks and aliases or prints the documentation for a given task or alias.
+  Prints documentation for tasks, aliases, modules, and applications.
 
-  ## Arguments
+  ## Examples
+
+  Without an explicit argument, this task lists tasks/aliases:
 
       $ mix help                  - prints all aliases, tasks and their short descriptions
-      $ mix help ALIAS            - prints the definition for the given alias
-      $ mix help TASK             - prints full docs for the given task
       $ mix help --search PATTERN - prints all tasks and aliases that contain PATTERN in the name
       $ mix help --names          - prints all task names and aliases (useful for autocompletion)
       $ mix help --aliases        - prints all aliases
+
+  You can access documentation for a given task/alias:
+
+      $ mix help TASK/ALIAS       - prints full docs for the given task/alias
+
+  But also for modules, functions, and applications:
+
+      $ mix help MODULE           - prints the definition for the given module
+      $ mix help MODULE.FUN       - prints the definition for the given module+function
+      $ mix help app:APP          - prints a summary of all public modules in application
 
   ## Colors
 
@@ -100,6 +110,31 @@ defmodule Mix.Tasks.Help do
 
   @compile {:no_warn_undefined, IEx.Introspection}
 
+  def run(["app:" <> app]) do
+    loadpaths!()
+    app = String.to_atom(app)
+
+    if modules = Application.spec(app, :modules) do
+      for module <- modules,
+          not (module |> Atom.to_string() |> String.starts_with?("Elixir.Mix.Tasks.")),
+          {:docs_v1, _, :elixir, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
+            [Code.fetch_docs(module)] do
+        leading = doc |> String.split(["\n\n", "\r\n\r\n"], parts: 2) |> hd()
+        "# #{inspect(module)}\n#{leading}\n"
+      end
+      |> case do
+        [] ->
+          Mix.shell().error("No modules with accessible documentation found for #{app}")
+
+        listing ->
+          docs = listing |> Enum.sort() |> Enum.join()
+          IO.ANSI.Docs.print(docs, "text/markdown", ansi_opts())
+      end
+    else
+      Mix.shell().error("Application #{app} does not exist or is not loaded")
+    end
+  end
+
   def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?: do
     loadpaths!()
 
@@ -124,8 +159,7 @@ defmodule Mix.Tasks.Help do
 
   def run([task]) do
     loadpaths!()
-    opts = Application.get_env(:mix, :colors)
-    opts = [width: width(), enabled: ansi_docs?(opts)] ++ opts
+    opts = ansi_opts()
 
     for doc <- verbose_doc(task) do
       print_doc(task, doc, opts)
@@ -136,6 +170,11 @@ defmodule Mix.Tasks.Help do
 
   def run(_) do
     Mix.raise("Unexpected arguments, expected \"mix help\" or \"mix help TASK\"")
+  end
+
+  defp ansi_opts do
+    opts = Application.get_env(:mix, :colors)
+    [width: width(), enabled: ansi_docs?(opts)] ++ opts
   end
 
   defp print_doc(task, {doc, location, note}, opts) do
