@@ -23,7 +23,7 @@
 'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
 'MACRO-defmodule'({Line, _S, _E} = _Caller, Alias, [{do, Block}]) ->
-  Escaped = elixir_quote:escape(Block, none, false),
+  Escaped = elixir_quote:escape(Block, escape, false),
   Args = [[{line, Line}], Alias, Escaped, [], false, env()],
   {{'.', [], [elixir_module, compile]}, [], Args}.
 
@@ -46,7 +46,7 @@ define({Line, _S, #{module := Module} = E}, Kind, Call, Expr) ->
   Store =
     case UC or UE of
       true ->
-        elixir_quote:escape({Call, Expr}, none, true);
+        elixir_quote:escape({Call, Expr}, escape, true);
 
       false ->
         Key = erlang:unique_integer(),

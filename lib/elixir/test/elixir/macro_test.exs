@@ -177,14 +177,14 @@ defmodule MacroTest do
     end
 
     @tag :re_import
-    test "escape works within structs fields" do
-      defmodule Test do
-        # Structs have their own escape logic, which now needs to be expanded
-        defstruct my_regex: ~r/^hi$/
-        def init, do: %__MODULE__{}
-      end
-
-      assert %Regex{} = Test.init().my_regex
+    test "escape raises within structs fields" do
+      assert_raise ArgumentError,
+                   ~r"Regex defines custom escaping rules which are not supported in struct defaults",
+                   fn ->
+                     defmodule Test do
+                       defstruct my_regex: ~r/^hi$/
+                     end
+                   end
     end
 
     defmodule EscapedStruct do

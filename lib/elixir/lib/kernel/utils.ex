@@ -126,10 +126,11 @@ defmodule Kernel.Utils do
         key == :__struct__ and raise(ArgumentError, "cannot set :__struct__ in struct definition")
 
         try do
-          :elixir_quote.escape(val, :escape, false)
+          :elixir_quote.escape(val, {:struct, module}, false)
         rescue
           e in [ArgumentError] ->
-            raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
+            raise ArgumentError,
+                  "invalid default value for struct field #{key}, " <> Exception.message(e)
         else
           _ -> {key, val}
         end
@@ -171,7 +172,7 @@ defmodule Kernel.Utils do
 
     :lists.foreach(foreach, enforce_keys)
     struct = :maps.from_list([__struct__: module] ++ fields)
-    escaped_struct = :elixir_quote.escape(struct, :escape, false)
+    escaped_struct = :elixir_quote.escape(struct, {:struct, module}, false)
 
     body =
       case bootstrapped? do
