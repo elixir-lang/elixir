@@ -153,7 +153,7 @@ defmodule Kernel.WithTest do
   end
 
   test "else conditions with match error" do
-    assert_raise WithClauseError, "no with clause matching:\n\n    :error", fn ->
+    assert_raise WithClauseError, "no with clause matching:\n\n    :error\n", fn ->
       with({:ok, res} <- error(), do: res, else: ({:error, error} -> error))
     end
   end

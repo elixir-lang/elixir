@@ -188,13 +188,12 @@ defmodule Exception do
       term
       |> inspect(pretty: true)
       |> String.split("\n")
-      |> Enum.map(fn
+      |> Enum.map_intersperse("\n", fn
         "" -> ""
         line -> "    " <> line
       end)
-      |> Enum.join("\n")
 
-    message <> "\n\n" <> inspected
+    IO.iodata_to_binary([message, "\n\n", inspected, "\n"])
   end
 
   @doc """
@@ -1899,7 +1898,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp format_fa({_dist, fun, arity}) do
-    ["      * ", Macro.inspect_atom(:remote_call, fun), ?/, Integer.to_string(arity), ?\n]
+    ["    * ", Macro.inspect_atom(:remote_call, fun), ?/, Integer.to_string(arity), ?\n]
   end
 
   defp exports_for(module) do
@@ -2231,7 +2230,7 @@ defmodule KeyError do
 
     case suggestions do
       [] -> []
-      suggestions -> ["\n\nDid you mean:\n\n" | format_suggestions(suggestions)]
+      suggestions -> ["\nDid you mean:\n\n" | format_suggestions(suggestions)]
     end
   end
 
@@ -2240,7 +2239,7 @@ defmodule KeyError do
     |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
     |> Enum.take(@max_suggestions)
     |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
-    |> Enum.map(fn {_, key} -> ["      * ", inspect(key), ?\n] end)
+    |> Enum.map(fn {_, key} -> ["    * ", inspect(key), ?\n] end)
   end
 end
 
