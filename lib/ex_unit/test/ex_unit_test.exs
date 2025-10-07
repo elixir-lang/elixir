@@ -720,6 +720,30 @@ defmodule ExUnitTest do
     assert_receive {:tmp_dir, tmp_dir2} when tmp_dir1 != tmp_dir2
   end
 
+  test "empty parameterized tests" do
+    defmodule EmptyParameterizedTests do
+      use ExUnit.Case, async: true, parameterize: []
+
+      test "hello world" do
+        assert false
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+    assert capture_io(fn -> ExUnit.run() end) =~ "0 tests"
+
+    defmodule EmptyGroupedParameterizedTests do
+      use ExUnit.Case, async: true, parameterize: [], group: :example
+
+      test "hello world" do
+        assert false
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+    assert capture_io(fn -> ExUnit.run() end) =~ "0 tests"
+  end
+
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)
