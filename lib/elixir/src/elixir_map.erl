@@ -35,7 +35,8 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
           Keys = ['__struct__'] ++ AssocKeys,
           WithoutKeys = lists:sort(maps:to_list(maps:without(Keys, Struct))),
           StructAssocs = elixir_quote:escape(WithoutKeys, none, false),
-          {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, SE, EE};
+          {EStructAssocs, SA, EA} = elixir_expand:expand(StructAssocs, SE, EE),
+          {{'%', Meta, [ELeft, {'%{}', MapMeta, EStructAssocs ++ Assocs}]}, SA, EA};
 
         {'%{}', MapMeta, Assocs} ->
           _ = load_struct_info(Meta, ELeft, Assocs, EE),
