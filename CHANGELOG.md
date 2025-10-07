@@ -128,7 +128,21 @@ This release makes it so modules are loaded lazily. This reduces the pressure on
 
 Implementation wise, [the parallel compiler already acts as a mechanism to resolve modules during compilation](https://elixir-lang.org/blog/2012/04/24/a-peek-inside-elixir-s-parallel-compiler/), so we built on that. By making sure the compiler controls both module compilation and module loading, it can also better guarantee deterministic builds.
 
-The only potential regression in this approach happens if you have a module, which is used at compile time and defines an `@on_load` callback (typically used for [NIFs](https://www.erlang.org/doc/system/nif.html)) that invokes another modules within the same project. For example:
+There are two potential regressions with this approach. The first one happens if you spawn processes during compilation which invoke other modules defined within the same project. For example:
+
+```elixir
+defmodule MyLib.SomeModule do
+  list = [...]
+
+  Task.async_stream(list, fn item ->
+    MyLib.SomeOtherModule.do_something(item)
+  end)
+end
+```
+
+Because the spawned module is not visible by the compiler, it won't be able to load `MyLib.SomeOtherModule`. You have two options, either use `Kernel.ParallelCompiler.pmap/2` or explicitly call `Code.ensure_loaded!(MyLib.SomeOtherModule)` before spawning the process that uses said module.
+
+The second one is related to `@on_load` callbacks (typically used for [NIFs](https://www.erlang.org/doc/system/nif.html)) that invoke other modules defined within the same project. For example:
 
 ```elixir
 defmodule MyLib.SomeModule do
@@ -147,6 +161,8 @@ MyLib.SomeModule.something_else()
 ```
 
 The reason this fails is because `@on_load` callbacks are invoked within the code server and therefore they have limited ability to load additional modules. It is generally advisable to limit invocation of external modules during `@on_load` callbacks but, in case it is strictly necessary, you can set `@compile {:autoload, true}` in the invoked module to address this issue in a forward and backwards compatible manner.
+
+Both snippets above could actually lead to non-deterministic compilation in the past, and as a result of these changes, compilating these cases are now deterministic.
 
 ### Parallel compilation of dependencies
 
@@ -182,6 +198,30 @@ This allows for more information to be shown at different nesting levels, which 
 The outer list is the first element, the first nested list is the second, followed by three numbers, reaching the limit. This gives developers more precise control over pretty printing.
 
 Given this may reduce the amount of data printed by default, the default limit has also been increased from 50 to 100. We may further increase it in upcoming releases based on community feedback.
+
+## Erlang/OTP 28 support
+
+Elixir v1.19 officially supports Erlang/OTP 28.1+ and later. In order to support the new Erlang/OTP 28 representation for regular expressions, structs can now control how they are escaped by defining a `__escape__/1` callback that must return AST.
+
+On the other, the new representation for regular expressions implies they can no longer be used as default values for struct fields. Instead of this:
+
+```elixir
+defmodule Foo do
+  defstruct regex: ~r/foo/
+end
+```
+
+You must do this:
+
+```elixir
+defmodule Foo do
+  defstruct [:regex]
+
+  def new do
+    %Foo{regex: ~r/foo/}
+  end
+end
+```
 
 ## OpenChain certification
 
