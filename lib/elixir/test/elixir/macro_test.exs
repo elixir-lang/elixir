@@ -176,6 +176,17 @@ defmodule MacroTest do
              } = Macro.escape(~r/foo/)
     end
 
+    @tag :re_import
+    test "escape works within structs fields" do
+      defmodule Test do
+        # Structs have their own escape logic, which now needs to be expanded
+        defstruct my_regex: ~r/^hi$/
+        def init, do: %__MODULE__{}
+      end
+
+      assert %Regex{} = Test.init().my_regex
+    end
+
     defmodule EscapedStruct do
       defstruct [:ast, :ref]
 
