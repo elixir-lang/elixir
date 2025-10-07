@@ -321,7 +321,10 @@ defmodule Kernel.ParallelCompiler do
     if Keyword.get(options, :return_diagnostics, false) do
       {status, modules_or_errors, info}
     else
-      IO.warn("you must pass return_diagnostics: true when invoking Kernel.ParallelCompiler")
+      IO.warn(
+        "you must pass return_diagnostics: true when invoking Kernel.ParallelCompiler functions"
+      )
+
       to_tuples = &Enum.map(&1, fn diag -> {diag.file, diag.position, diag.message} end)
 
       modules_or_errors =
