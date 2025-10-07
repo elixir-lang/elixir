@@ -18,7 +18,7 @@
   line=false,
   file=nil,
   context=nil,
-  op=escape, % escape | escape_and_prune | quote
+  op=escape, % escape | escape_and_prune | {struct, Module} | quote
   aliases_hygiene=nil,
   imports_hygiene=nil,
   unquote=true,
@@ -140,15 +140,24 @@ do_tuple_linify(Fun, Meta, Left, Right, Var) ->
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Op, Unquote) ->
-  Q = #elixir_quote{
-    line=true,
-    file=nil,
-    op=Op,
-    unquote=Unquote
-  },
-  case Unquote of
-    true -> do_quote(Expr, Q);
-    false -> do_escape(Expr, Q)
+  try
+    Q = #elixir_quote{
+      line=true,
+      file=nil,
+      op=Op,
+      unquote=Unquote
+    },
+    case Unquote of
+      true -> do_quote(Expr, Q);
+      false -> do_escape(Expr, Q)
+    end
+  catch
+    Kind:Reason:Stacktrace ->
+      Pruned = lists:dropwhile(fun
+        ({?MODULE, _, _, _}) -> true;
+        (_) -> false
+      end, Stacktrace),
+      erlang:raise(Kind, Reason, Pruned)
   end.
 
 do_escape({Left, Meta, Right}, #elixir_quote{op=escape_and_prune} = Q) when is_list(Meta) ->
@@ -176,13 +185,24 @@ do_escape(Map, Q) when is_map(Map) ->
   maybe
     #{'__struct__' := Module} ?= Map,
     true ?= is_atom(Module),
+    % We never escape ourselves (it can only happen during Elixir bootstrapping)
+    true ?= (Q#elixir_quote.op /= {struct, Module}),
     {module, Module} ?= code:ensure_loaded(Module),
     true ?= erlang:function_exported(Module, '__escape__', 1),
-    Expr = Module:'__escape__'(Map),
-    case shallow_valid_ast(Expr) of
-      true -> Expr;
-      false -> argument_error(
-        <<('Elixir.Kernel':inspect(Module))/binary, ".__escape__/1 returned invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary>>)
+    case Q#elixir_quote.op of
+      {struct, _Module} ->
+        argument_error(<<('Elixir.Kernel':inspect(Module))/binary,
+          " defines custom escaping rules which are not supported in struct defaults",
+          (bad_escape_hint())/binary>>);
+
+      _ ->
+        Expr = Module:'__escape__'(Map),
+        case shallow_valid_ast(Expr) of
+          true -> Expr;
+          false -> argument_error(
+            <<('Elixir.Kernel':inspect(Module))/binary, ".__escape__/1 returned invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary>>
+          )
+        end
     end
   else
     _ ->
@@ -234,8 +254,8 @@ escape_map_key_value(K, V, Map, Q) ->
   if
     is_reference(MaybeRef) ->
       argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
-                        ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped ",
-                        "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
+                        ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped",
+                        (bad_escape_hint())/binary>>);
     true ->
       {do_escape(K, Q), do_escape(V, Q)}
   end.
@@ -248,11 +268,11 @@ find_tuple_ref(Tuple, Index) ->
   end.
 
 bad_escape(Arg) ->
-  argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
+  argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary,
                    (bad_escape_hint())/binary>>).
 
 bad_escape_hint() ->
-  <<"The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
+  <<". The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
     "PIDs and remote functions in the format &Mod.fun/arity">>.
 
 %% Quote entry points

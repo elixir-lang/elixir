@@ -1017,9 +1017,6 @@ defmodule Regex do
 
     pattern_ast =
       cond do
-        is_nil(regex.re_pattern) ->
-          nil
-
         # TODO: Remove this when we require Erlang/OTP 28+
         # Before OTP 28.0, patterns did not contain any refs and could be safely be escaped
         :erlang.system_info(:otp_release) < [?2, ?8] ->

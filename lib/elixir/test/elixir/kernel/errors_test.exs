@@ -435,7 +435,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid struct field value" do
-    msg = ~r"invalid value for struct field baz, cannot escape "
+    msg = ~r"invalid default value for struct field baz, cannot escape "
 
     assert_raise ArgumentError, msg, fn ->
       defmodule InvalidStructFieldValue do
