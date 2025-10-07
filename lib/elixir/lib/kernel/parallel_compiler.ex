@@ -146,10 +146,9 @@ defmodule Kernel.ParallelCompiler do
   the current file stops being compiled until the dependency is
   resolved.
 
-  It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
-  by default but we recommend using `return_diagnostics: true` so it returns
-  diagnostics as maps as well as a map of compilation information.
-  The map has the shape of:
+  It must be invoked with `return_diagnostics: true` as option, so it returns
+  `{:ok, modules, warnings_info}` or `{:error, errors, warnings_info}`,
+  where `warnings_info` has the shape:
 
       %{
         runtime_warnings: [warning],
@@ -209,7 +208,8 @@ defmodule Kernel.ParallelCompiler do
     * `:beam_timestamp` - the modification timestamp to give all BEAM files
 
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
-      a list of warnings and returns diagnostics as maps instead of tuples
+      a list of warnings and returns diagnostics as maps instead of tuples.
+      This option must be set to true, except for backwards compatibibility reasons.
 
     * `:max_concurrency` - the maximum number of files to compile in parallel.
       Setting this option to 1 will compile files sequentially.
@@ -243,10 +243,9 @@ defmodule Kernel.ParallelCompiler do
   Opposite to compile, dependencies are not attempted to be
   automatically solved between files.
 
-  It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
-  by default but we recommend using `return_diagnostics: true` so it returns
-  diagnostics as maps as well as a map of compilation information.
-  The map has the shape of:
+  It must be invoked with `return_diagnostics: true` as option, so it returns
+  `{:ok, modules, warnings_info}` or `{:error, errors, warnings_info}`,
+  where `warnings_info` has the shape:
 
       %{
         runtime_warnings: [warning],
@@ -265,8 +264,9 @@ defmodule Kernel.ParallelCompiler do
       Setting this option to 1 will compile files sequentially.
       Defaults to the number of schedulers online, or at least `2`.
 
-    * `:return_diagnostics` - when `true`, returns structured diagnostics
-      as maps instead of the legacy format. Defaults to `false`.
+    * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
+      a list of warnings and returns diagnostics as maps instead of tuples.
+      This option must be set to true, except for backwards compatibibility reasons.
 
   """
   @doc since: "1.6.0"
