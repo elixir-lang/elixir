@@ -50,13 +50,13 @@ after: [2, 4, 6]
 It is also very common to use `IO.inspect/2` with `binding/0`, which returns all variable names and their values:
 
 ```elixir
-def some_fun(a, b, c) do
+def some_function(a, b, c) do
   IO.inspect(binding())
   ...
 end
 ```
 
-When `some_fun/3` is invoked with `:foo`, `"bar"`, `:baz` it prints:
+When `some_function/3` is invoked with `:foo`, `"bar"`, `:baz` it prints:
 
 ```elixir
 [a: :foo, b: "bar", c: :baz]
