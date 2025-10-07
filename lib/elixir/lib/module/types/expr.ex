@@ -852,12 +852,12 @@ defmodule Module.Types.Expr do
           you may optionally convert the struct update into a map update. For \
           example, instead of:
 
-              user = some_fun()
+              user = some_function()
               %User{user | name: "John Doe"}
 
           it is enough to write:
 
-              %User{} = user = some_fun()
+              %User{} = user = some_function()
               %{user | name: "John Doe"}
           """
         ])
