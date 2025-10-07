@@ -234,6 +234,30 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosystem Foundation.
 
+## v1.19.0-rc.2 (2025-10-07)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Regex] Raise error message when regexes are used as default values in struct fields for compatibility with Erlang/OTP 28
+  * [Registry] Add key-based partitioning of duplicate registries
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Address issue with type checking not completing on protocol consolidation
+
+#### ExUnit
+
+  * [ExUnit] Do not crash on empty test unit groups
+
+#### Mix
+
+  * [mix help] Add `mix help app:APP`
+  * [mix test] Fix module preloading in `mix test --slowest-modules=N`
+
 ## v1.19.0-rc.1 (2025-10-05)
 
 ### 1. Enhancements
