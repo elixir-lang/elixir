@@ -448,17 +448,17 @@ defmodule Task do
   the code before async/await has the same properties after you
   add the async call. For example, imagine you have this:
 
-      x = heavy_fun()
-      y = some_fun()
+      x = heavy_function()
+      y = some_function()
       x + y
 
-  Now you want to make the `heavy_fun()` async:
+  Now you want to make the `heavy_function()` async:
 
-      x = Task.async(&heavy_fun/0)
-      y = some_fun()
+      x = Task.async(&heavy_function/0)
+      y = some_function()
       Task.await(x) + y
 
-  As before, if `heavy_fun/0` fails, the whole computation will
+  As before, if `heavy_function/0` fails, the whole computation will
   fail, including the caller process. If you don't want the task
   to fail then you must change the `heavy_fun/0` code in the
   same way you would achieve it if you didn't have the async call.
