@@ -1763,7 +1763,7 @@ defmodule DateTime do
 
   Although the first example shows a difference of 2 hours when
   comparing the wall clocks of the given datetime with the returned one,
-  due to the "spring forward" time jump, the actual ellapsed time is
+  due to the "spring forward" time jump, the actual elapsed time is
   still exactly of 1 hour.
 
   In case you don't want these changes to happen automatically or you
