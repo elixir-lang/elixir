@@ -49,8 +49,8 @@ defmodule Module.Types do
     finder =
       fn fun_arity ->
         case :lists.keyfind(fun_arity, 1, defs) do
-          {_, kind, _, _} = clause ->
-            {infer_mode(kind, infer_signatures?), clause, default_domain(fun_arity, impl)}
+          {_, kind, _, _} = def ->
+            default_domain(infer_mode(kind, infer_signatures?), def, fun_arity, impl)
 
           false ->
             false
@@ -82,7 +82,7 @@ defmodule Module.Types do
         {types, context} ->
           # Optimized version of finder, since we already the definition
           finder = fn _ ->
-            {infer_mode(kind, infer_signatures?), def, default_domain(fun_arity, impl)}
+            default_domain(infer_mode(kind, infer_signatures?), def, fun_arity, impl)
           end
 
           {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
@@ -146,12 +146,24 @@ defmodule Module.Types do
     end
   end
 
-  defp default_domain({_, arity} = fun_arity, impl) do
+  defp default_domain(mode, def, {_, arity} = fun_arity, impl) do
     with {for, callbacks} <- impl,
          true <- fun_arity in callbacks do
-      [Descr.dynamic(Module.Types.Of.impl(for)) | List.duplicate(Descr.dynamic(), arity - 1)]
+      args = [
+        Descr.dynamic(Module.Types.Of.impl(for))
+        | List.duplicate(Descr.dynamic(), arity - 1)
+      ]
+
+      {fun_arity, kind, meta, clauses} = def
+
+      clauses =
+        for {meta, args, guards, body} <- clauses do
+          {[type_check: {:impl, for}] ++ meta, args, guards, body}
+        end
+
+      {mode, {fun_arity, kind, meta, clauses}, args}
     else
-      _ -> List.duplicate(Descr.dynamic(), arity)
+      _ -> {mode, def, List.duplicate(Descr.dynamic(), arity)}
     end
   end
 
@@ -208,7 +220,7 @@ defmodule Module.Types do
 
     finder = fn fun_arity ->
       case :lists.keyfind(fun_arity, 1, defs) do
-        {_, _, _, _} = clause -> {:dynamic, clause, default_domain(fun_arity, impl)}
+        {_, _, _, _} = def -> default_domain(:dynamic, def, fun_arity, impl)
         false -> false
       end
     end
@@ -219,7 +231,7 @@ defmodule Module.Types do
     context =
       Enum.reduce(defs, context(), fn {fun_arity, _kind, meta, _clauses} = def, context ->
         # Optimized version of finder, since we already the definition
-        finder = fn _ -> {:dynamic, def, default_domain(fun_arity, impl)} end
+        finder = fn _ -> default_domain(:dynamic, def, fun_arity, impl) end
         {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
         context
       end)

@@ -259,12 +259,12 @@ defmodule Module.Types.Pattern do
   defp badpattern_error(expr, index, tag, stack, context) do
     meta =
       if meta = get_meta(expr) do
-        meta ++ Keyword.take(stack.meta, [:generated, :line])
+        meta ++ Keyword.take(stack.meta, [:generated, :line, :type_check])
       else
         stack.meta
       end
 
-    error(__MODULE__, {:badpattern, expr, index, tag, context}, meta, stack, context)
+    error(__MODULE__, {:badpattern, meta, expr, index, tag, context}, meta, stack, context)
   end
 
   defp of_pattern_intersect(tree, expected, expr, index, tag, stack, context) do
@@ -803,13 +803,19 @@ defmodule Module.Types.Pattern do
   #
   # The match pattern ones have the whole expression instead
   # of a single pattern.
-  def format_diagnostic({:badpattern, pattern_or_expr, index, tag, context}) do
+  def format_diagnostic({:badpattern, meta, pattern_or_expr, index, tag, context}) do
     {to_trace, message} = badpattern(tag, pattern_or_expr, index)
     traces = collect_traces(to_trace, context)
 
+    hints =
+      case Keyword.get(meta, :type_check) do
+        {:impl, _} = impl -> [impl]
+        _ -> []
+      end
+
     %{
       details: %{typing_traces: traces},
-      message: IO.iodata_to_binary([message, format_traces(traces)])
+      message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
     }
   end
 
