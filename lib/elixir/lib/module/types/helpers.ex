@@ -132,6 +132,20 @@ defmodule Module.Types.Helpers do
         the union (which may be none)
         """
 
+      {:impl, for} ->
+        # Get the type without dynamic for better pretty printing
+        type =
+          for
+          |> Module.Types.Of.impl()
+          |> Module.Types.Descr.dynamic()
+          |> Map.fetch!(:dynamic)
+          |> Module.Types.Descr.to_quoted_string(collapse_structs: true)
+
+        """
+
+        #{hint()} defimpl for #{inspect(for)} requires its callbacks to match exclusively on #{type}
+        """
+
       :empty_domain ->
         """
 

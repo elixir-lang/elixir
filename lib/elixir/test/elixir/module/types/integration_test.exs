@@ -408,6 +408,8 @@ defmodule Module.Types.IntegrationTest do
 
                 dynamic(%Range{})
 
+            hint: defimpl for Range requires its callbacks to match exclusively on %Range{}
+
             typing violation found at:
             │
           6 │   def itself(nil), do: nil
