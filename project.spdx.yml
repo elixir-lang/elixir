@@ -139,7 +139,7 @@ packages:
   # elixir-version-insert
 - SPDXID: "SPDXRef-Project-erlang"
   description: "Erlang is a programming language and runtime system for building massively scalable soft real-time systems with requirements on high availability."
-  copyrightText: "Copyright Ericsson AB 2010-2024. All Rights Reserved."
+  copyrightText: "Copyright Ericsson AB 2010-2025. All Rights Reserved."
   downloadLocation: "git+https://github.com/erlang/otp.git"
   filesAnalyzed: false
   homepage: "https://www.erlang.org/"
