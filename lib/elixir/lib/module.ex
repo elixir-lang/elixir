@@ -565,7 +565,7 @@ defmodule Module do
   written to disk, and therefore raising does not effectively halt compilation
   and may leave unused artifacts on disk. If you must raise, use `@after_compile`
   or other callback. Given modules have already been compiled, functions in
-  ths module, such as `get_attribute/2`, which expect modules to not have been
+  this module, such as `get_attribute/2`, which expect modules to not have been
   yet compiled, do not work on `@after_verify` callback.
 
   Accepts a module or a `{module, function_name}` tuple. The function
