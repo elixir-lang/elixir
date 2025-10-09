@@ -83,7 +83,7 @@ iex> _
 ** (CompileError) iex:3: invalid use of _
 ```
 
-A pinned value represents the value itself and not its – even if syntatically equal – pattern. The right hand side is compared to be equal to the pinned value:
+A pinned value represents the value itself and not its – even if syntactically equal – pattern. The right hand side is compared to be equal to the pinned value:
 
 ```iex
 iex> x = %{}

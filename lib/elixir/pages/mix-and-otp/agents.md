@@ -207,4 +207,4 @@ end
 
 When a long action is performed on the server, all other requests to that particular server will wait until the action is done, which may cause some clients to timeout.
 
-Some APIs, such as GenServers, make a clearer distiction between client and server, and we will explore them in future chapters. Next let's talk about naming things, applications, and supervisors.
+Some APIs, such as GenServers, make a clearer distinction between client and server, and we will explore them in future chapters. Next let's talk about naming things, applications, and supervisors.
