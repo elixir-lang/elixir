@@ -383,7 +383,7 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
 
 #### Mix
 
-  * [mix cmd] Preserve argument quoting in subcommands
+  * [mix cmd] Preserve argument quoting in subcommands by no longer performing shell expansion. To revert to the previous behaviour, pass `--shell` before the command name
   * [mix format] Ensure the formatter does not go over the specified limit in certain corner cases
   * [mix release] Fix `RELEASE_SYS_CONFIG` for Windows 11
   * [mix test] Preserve files with no longer filter on `mix test`
