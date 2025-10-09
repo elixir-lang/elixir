@@ -14,6 +14,12 @@ defmodule Mix.Tasks.CmdTest do
     assert_received {:mix_shell, :run, ["hello world\n"]}
   end
 
+  test "can be invoked as a shell" do
+    nl = os_newline()
+    Mix.Task.run("cmd", ["--shell", "echo", "hello"])
+    assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+  end
+
   @tag :unix
   test "supports relative paths" do
     in_tmp("cmd-relative", fn ->
