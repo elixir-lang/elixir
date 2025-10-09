@@ -181,7 +181,7 @@ end
 
 Now run `mix test` again and our app should boot but we should see one failure. When we changed the `KV` module, we broke the boilerplate test case which tested the `KV.hello/0` function. You can simply remove that test case and we are back to a green suite.
 
-We wrote very little code but we did something incredibly powerful. We now have a function, `KV.start/2` that is invoked whenever your application starts. This gives us the perfect place to start our key-value registry. The `Application` module also allows us to define a `stop/1` callback and other funtionality. You can check the `Application` and `Supervisor` modules for extensive documentation on their uses.
+We wrote very little code but we did something incredibly powerful. We now have a function, `KV.start/2` that is invoked whenever your application starts. This gives us the perfect place to start our key-value registry. The `Application` module also allows us to define a `stop/1` callback and other functionality. You can check the `Application` and `Supervisor` modules for extensive documentation on their uses.
 
 Let's finally start our registry.
 

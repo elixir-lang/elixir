@@ -320,7 +320,7 @@ end
 
 In the previous example, even though Elixir does not know which modules the function `example/0` was invoked on, it knows the modules `OtherModule.Foo` and `OtherModule.Bar` are referred outside of a function and therefore they become compile-time dependencies. If any of them change, Elixir will recompile `MyModule` itself.
 
-However, you should not programatically generate the module names themselves, as that would make it impossible for Elixir to track them. More precisely, do not do this:
+However, you should not programmatically generate the module names themselves, as that would make it impossible for Elixir to track them. More precisely, do not do this:
 
 ```elixir
 defmodule MyModule do
@@ -348,7 +348,7 @@ end
 
 #### Refactoring
 
-To address this anti-pattern, you should avoid defining module names programatically. For example, if you need to dispatch to multiple modules, do so by using full module names.
+To address this anti-pattern, you should avoid defining module names programmatically. For example, if you need to dispatch to multiple modules, do so by using full module names.
 
 Instead of:
 

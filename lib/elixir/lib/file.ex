@@ -317,7 +317,7 @@ defmodule File do
       directories of `path`
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory
-    * `:eperm`   - missed required permisions
+    * `:eperm`   - missed required permissions
 
   ## Examples
 
