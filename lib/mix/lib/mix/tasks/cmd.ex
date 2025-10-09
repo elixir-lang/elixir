@@ -15,29 +15,66 @@ defmodule Mix.Tasks.Cmd do
 
       $ mix cmd make
 
-  By passing the `--cd` flag before the command, you can also force
-  the command to run in a specific directory:
+  ## Shell expansion
 
-      $ mix cmd --cd "third-party" make
+  When you invoke `mix cmd` from the command line, environment variables,
+  glob patterns, and similar are expanded by the current shell and then
+  passed to `mix cmd`. For example, if you invoke:
+
+      $ mix cmd echo lib/*
+
+  Your shell will expand "lib/*" and then pass multiple arguments to
+  `mix cmd`, which in turn passes them to `echo`. Note that, `mix cmd`
+  by itself, does not perform any shell expansion. This means that,
+  if you invoke `mix cmd` programatically, as in:
+
+      Mix.Task.run("cmd", ["echo", "lib/*"])
+
+  or through a `mix.exs` alias:
+
+      alias: "cmd echo lib/*"
+
+  It will literally print "lib/*".
+
+  This behaviour is the default from Elixir v1.19. If you want
+  `mix cmd` to behave like a shell, you can pass the `--shell`
+  option before the command name:
+
+      Mix.Task.run("cmd", ["--shell", "echo", "lib/*"])
+
+  Keep in mind however that, if `--shell` is given, quoted arguments
+  are no longer correctly propagated to the underlying command
+  (as they get expanded before hand).
+
+  This task is automatically re-enabled, so it can be called multiple times
+  with different arguments.
+
+  ## Umbrella applications and directories
 
   This task is also useful in umbrella applications to execute a command
   on each child app:
 
       $ mix cmd pwd
 
+  In such cases, Mix will change the current working directory to the root
+  of each umbrella application before executing the command.
+
   You can limit which apps the cmd runs in by using `mix do` with the `--app`
   option:
 
       $ mix do --app app1 --app app2 cmd pwd
 
-  The tasks aborts whenever a command exits with a non-zero status.
+  Note the tasks aborts whenever a command exits with a non-zero status.
 
-  This task is automatically re-enabled, so it can be called multiple times
-  with different arguments.
+  Outside of umbrella projects, you can pass the `--cd` flag before the command,
+  to specify a directory:
+
+      $ mix cmd --cd "third-party" make
 
   ## Command line options
 
     * `--cd` *(since v1.10.4)* - the directory to run the command in
+    * `--shell` *(since v1.19.0)* - perform shell expansion of the arguments
 
   ## Orphan operating system processes
 
@@ -54,7 +91,8 @@ defmodule Mix.Tasks.Cmd do
 
   @switches [
     app: :keep,
-    cd: :string
+    cd: :string,
+    shell: :boolean
   ]
 
   @impl true
@@ -78,16 +116,21 @@ defmodule Mix.Tasks.Cmd do
       path = hd(args)
       rest = tl(args)
 
-      path =
-        if String.contains?(path, ["/", "\\"]) and Path.type(path) != :absolute do
-          Path.expand(path, Keyword.get(opts, :cd, "."))
-        else
-          path
+      arg =
+        cond do
+          Keyword.get(opts, :shell, false) ->
+            Enum.join([path | rest], " ")
+
+          String.contains?(path, ["/", "\\"]) and Path.type(path) != :absolute ->
+            {Path.expand(path, Keyword.get(opts, :cd, ".")), rest}
+
+          true ->
+            {path, rest}
         end
 
       cmd_opts = Keyword.take(opts, [:cd])
 
-      case Mix.shell().cmd({path, rest}, cmd_opts) do
+      case Mix.shell().cmd(arg, cmd_opts) do
         0 -> :ok
         status -> exit(status)
       end
