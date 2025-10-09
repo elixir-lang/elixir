@@ -16,7 +16,7 @@ defmodule Mix.Tasks.CmdTest do
 
   test "can be invoked as a shell" do
     nl = os_newline()
-    Mix.Task.run("cmd", ["--shel", "echo", "hello"])
+    Mix.Task.run("cmd", ["--shell", "echo", "hello"])
     assert_received {:mix_shell, :run, ["hello" <> ^nl]}
   end
 
