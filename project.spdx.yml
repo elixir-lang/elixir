@@ -12,7 +12,7 @@ documentDescribes:
 - "SPDXRef-Project-elixir-lang"
 packages:
 - SPDXID: "SPDXRef-Project-elixir-lang"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git"
   filesAnalyzed: false
@@ -30,7 +30,7 @@ packages:
       comment: "GitHub PURL"
   # elixir-version-insert
 - SPDXID: "SPDXRef-Package-eex"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/eex"
   filesAnalyzed: false
@@ -48,7 +48,7 @@ packages:
       comment: "OTP PURL"
   # elixir-version-insert
 - SPDXID: "SPDXRef-Package-elixir"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/elixir"
   filesAnalyzed: false
@@ -66,7 +66,7 @@ packages:
       comment: "OTP PURL"
   # elixir-version-insert
 - SPDXID: "SPDXRef-Package-exunit"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/ex_unit"
   filesAnalyzed: false
@@ -84,7 +84,7 @@ packages:
       comment: "OTP PURL"
   # elixir-version-insert
 - SPDXID: "SPDXRef-Package-iex"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/iex"
   filesAnalyzed: false
@@ -102,7 +102,7 @@ packages:
       comment: "OTP PURL"
   # elixir-version-insert
 - SPDXID: "SPDXRef-Package-logger"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git/lib/logger"
   filesAnalyzed: false
@@ -120,7 +120,7 @@ packages:
       comment: "OTP PURL"
   # elixir-version-insert
 - SPDXID: "SPDXRef-Package-mix"
-  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  summary: "Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/mix"
   filesAnalyzed: false
