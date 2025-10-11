@@ -100,6 +100,8 @@ defmodule MacroTest do
     test "with remote unquote" do
       contents = quote(unquote: false, do: Kernel.unquote(:is_atom)(:ok))
       assert eval_escaped(contents) == quote(do: Kernel.is_atom(:ok))
+
+      assert eval_escaped(%{foo: contents}) == %{foo: quote(do: Kernel.is_atom(:ok))}
     end
 
     test "with nested unquote" do

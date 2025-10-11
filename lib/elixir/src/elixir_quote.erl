@@ -152,10 +152,7 @@ escape(Expr, Op, Unquote) ->
       op=Op,
       unquote=Unquote
     },
-    case Unquote of
-      true -> do_quote(Expr, Q);
-      false -> do_escape(Expr, Q)
-    end
+    do_escape(Expr, Q)
   catch
     Kind:Reason:Stacktrace ->
       Pruned = lists:dropwhile(fun
@@ -165,8 +162,21 @@ escape(Expr, Op, Unquote) ->
       erlang:raise(Kind, Reason, Pruned)
   end.
 
+%% Quote - unquote
+
+do_escape({quote, Meta, Args}, #elixir_quote{unquote=true} = Q) when is_list(Meta), is_list(Args) ->
+  do_quote({quote, Meta, Args}, Q#elixir_quote{unquote=false});
+
 do_escape({unquote, Meta, [Expr]}, #elixir_quote{unquote=true} = Q) when is_list(Meta) ->
   do_quote({unquote, Meta, [Expr]}, Q);
+
+do_escape({{{'.', Meta, [Left, unquote]}, _, [Expr]}, _, Args}, #elixir_quote{unquote=true} = Q) when is_list(Meta) ->
+  do_escape_call(Left, Meta, Expr, Args, Q);
+
+do_escape({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} = Q) when is_list(Meta) ->
+  do_escape_call(Left, Meta, Expr, nil, Q);
+
+% Tuples
 
 do_escape({Left, Meta, Right}, #elixir_quote{op=escape_and_prune} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
@@ -252,6 +262,11 @@ do_escape(Fun, _) when is_function(Fun) ->
 
 do_escape(Other, _) ->
   bad_escape(Other).
+
+do_escape_call(Left, Meta, Expr, Args, Q) ->
+  All  = [Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
+  TAll = [do_escape(X, Q) || X <- All],
+  {{'.', Meta, [elixir_quote, dot]}, Meta, [meta(Meta, Q) | TAll]}.
 
 escape_map_key_value(K, V, Map, Q) ->
   MaybeRef = if
