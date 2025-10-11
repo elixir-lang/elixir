@@ -165,6 +165,9 @@ escape(Expr, Op, Unquote) ->
       erlang:raise(Kind, Reason, Pruned)
   end.
 
+do_escape({unquote, Meta, [Expr]}, #elixir_quote{unquote=true} = Q) when is_list(Meta) ->
+  do_quote({unquote, Meta, [Expr]}, Q);
+
 do_escape({Left, Meta, Right}, #elixir_quote{op=escape_and_prune} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
   TL = do_escape(Left, Q),

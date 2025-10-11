@@ -82,6 +82,9 @@ defmodule MacroTest do
 
       contents = quote(unquote: false, do: unquote(x))
       assert Macro.escape(contents, unquote: true) == {:x, [], MacroTest}
+
+      contents = %{foo: quote(unquote: false, do: unquote(1))}
+      assert Macro.escape(contents, unquote: true) == {:%{}, [], [foo: 1]}
     end
 
     test "with generated" do
