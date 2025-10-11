@@ -82,6 +82,9 @@ defmodule MacroTest do
 
       contents = quote(unquote: false, do: unquote(x))
       assert Macro.escape(contents, unquote: true) == {:x, [], MacroTest}
+
+      contents = %{foo: quote(unquote: false, do: unquote(1))}
+      assert Macro.escape(contents, unquote: true) == {:%{}, [], [foo: 1]}
     end
 
     test "with generated" do
@@ -97,6 +100,8 @@ defmodule MacroTest do
     test "with remote unquote" do
       contents = quote(unquote: false, do: Kernel.unquote(:is_atom)(:ok))
       assert eval_escaped(contents) == quote(do: Kernel.is_atom(:ok))
+
+      assert eval_escaped(%{foo: contents}) == %{foo: quote(do: Kernel.is_atom(:ok))}
     end
 
     test "with nested unquote" do
