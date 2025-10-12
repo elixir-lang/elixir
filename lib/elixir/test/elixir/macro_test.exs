@@ -145,6 +145,9 @@ defmodule MacroTest do
         quote(unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]) | [5]])
 
       assert eval_escaped(contents) == [1, 2, 3, 4, 5]
+
+      contents = %{foo: quote(unquote: false, do: [1, 2, unquote_splicing([3, 4, 5])])}
+      assert eval_escaped(contents) == %{foo: [1, 2, 3, 4, 5]}
     end
 
     test "does not add context to quote" do
