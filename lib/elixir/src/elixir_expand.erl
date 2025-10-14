@@ -257,11 +257,12 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   {EContext, SC, EC} = expand(QContext, SP, EP),
   Quoted = elixir_quote:quote(Exprs, Q),
   {EQuoted, ES, EQ} = expand(Quoted, SC, EC),
+  BindingMeta = lists:keydelete(column, 1, Meta),
 
   EBinding =
       [{'{}', [],
         ['=', [], [
-          {'{}', [], [K, Meta, EContext]},
+          {'{}', [], [K, BindingMeta, EContext]},
           V
         ]
        ]} || {K, V} <- Binding],

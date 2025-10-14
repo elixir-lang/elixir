@@ -82,6 +82,9 @@ defmodule MacroTest do
 
       contents = quote(unquote: false, do: unquote(x))
       assert Macro.escape(contents, unquote: true) == {:x, [], MacroTest}
+
+      contents = %{foo: quote(unquote: false, do: unquote(1))}
+      assert Macro.escape(contents, unquote: true) == {:%{}, [], [foo: 1]}
     end
 
     test "with generated" do
@@ -97,6 +100,7 @@ defmodule MacroTest do
     test "with remote unquote" do
       contents = quote(unquote: false, do: Kernel.unquote(:is_atom)(:ok))
       assert eval_escaped(contents) == quote(do: Kernel.is_atom(:ok))
+      assert eval_escaped(%{foo: contents}) == %{foo: quote(do: Kernel.is_atom(:ok))}
     end
 
     test "with nested unquote" do
@@ -140,6 +144,9 @@ defmodule MacroTest do
         quote(unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]) | [5]])
 
       assert eval_escaped(contents) == [1, 2, 3, 4, 5]
+
+      contents = %{foo: quote(unquote: false, do: [1, 2, unquote_splicing([3, 4, 5])])}
+      assert eval_escaped(contents) == %{foo: [1, 2, 3, 4, 5]}
     end
 
     test "does not add context to quote" do
@@ -152,12 +159,6 @@ defmodule MacroTest do
 
       assert Macro.escape([:foo, {:quote, [%{}], [{}]}]) ==
                [:foo, {:{}, [], [:quote, [{:%{}, [], []}], [{:{}, [], []}]]}]
-    end
-
-    test "escape container when a reference cannot be escaped" do
-      assert_raise ArgumentError, ~r"contains a reference", fn ->
-        Macro.escape(%{re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
-      end
     end
 
     @tag :re_import

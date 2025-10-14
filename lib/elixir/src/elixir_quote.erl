@@ -141,16 +141,12 @@ do_tuple_linify(Fun, Meta, Left, Right, Var) ->
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Op, Unquote) ->
   try
-    Q = #elixir_quote{
+    do_quote(Expr, #elixir_quote{
       line=true,
       file=nil,
       op=Op,
       unquote=Unquote
-    },
-    case Unquote of
-      true -> do_quote(Expr, Q);
-      false -> do_escape(Expr, Q)
-    end
+    })
   catch
     Kind:Reason:Stacktrace ->
       Pruned = lists:dropwhile(fun
@@ -162,14 +158,15 @@ escape(Expr, Op, Unquote) ->
 
 do_escape({Left, Meta, Right}, #elixir_quote{op=escape_and_prune} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
-  TL = do_escape(Left, Q),
-  TR = do_escape(Right, Q),
+  TL = do_quote(Left, Q),
+  TR = do_quote(Right, Q),
   {'{}', [], [TL, TM, TR]};
 
 do_escape({Left, Right}, Q) ->
-  {do_escape(Left, Q), do_escape(Right, Q)};
+  {do_quote(Left, Q), do_quote(Right, Q)};
+
 do_escape(Tuple, Q) when is_tuple(Tuple) ->
-  TT = do_escape(tuple_to_list(Tuple), Q),
+  TT = do_quote(tuple_to_list(Tuple), Q),
   {'{}', [], TT};
 
 do_escape(BitString, _) when is_bitstring(BitString) ->
@@ -206,7 +203,10 @@ do_escape(Map, Q) when is_map(Map) ->
     end
   else
     _ ->
-      TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
+      TT = [
+        {do_quote(K, Q), do_quote(V, Q)}
+        || {K, V} <- lists:sort(maps:to_list(Map))
+      ],
       {'%{}', [], TT}
   end;
 
@@ -214,11 +214,7 @@ do_escape([], _) ->
   [];
 
 do_escape([H | T], #elixir_quote{unquote=false} = Q) ->
-  case is_list(T) of
-    true -> [do_escape(H, Q) | do_escape(T, Q)];
-    % improper list
-    false -> [{'|', [], [do_escape(H, Q), do_escape(T, Q)]}]
-  end;
+  do_quote_simple_list(T, do_escape(H, Q), Q);
 
 do_escape([H | T], Q) ->
   %% The improper case is inefficient, but improper lists are rare.
@@ -228,7 +224,7 @@ do_escape([H | T], Q) ->
     _:_ ->
       {L, R} = reverse_improper(T, [H]),
       TL = do_quote_splice(L, Q, [], []),
-      TR = do_escape(R, Q),
+      TR = do_quote(R, Q),
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
   end;
 
@@ -244,28 +240,6 @@ do_escape(Fun, _) when is_function(Fun) ->
 
 do_escape(Other, _) ->
   bad_escape(Other).
-
-escape_map_key_value(K, V, Map, Q) ->
-  MaybeRef = if
-    is_reference(V) -> V;
-    is_tuple(V) -> find_tuple_ref(V, 1);
-    true -> nil
-  end,
-  if
-    is_reference(MaybeRef) ->
-      argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
-                        ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped",
-                        (bad_escape_hint())/binary>>);
-    true ->
-      {do_escape(K, Q), do_escape(V, Q)}
-  end.
-
-find_tuple_ref(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
-find_tuple_ref(Tuple, Index) ->
-  case element(Index, Tuple) of
-    Ref when is_reference(Ref) -> Ref;
-    _ -> find_tuple_ref(Tuple, Index + 1)
-  end.
 
 bad_escape(Arg) ->
   argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary,
@@ -383,7 +357,6 @@ do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
 
   {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
-%
 do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true, shallow_validate=Validate}) when is_list(Meta) ->
   case Validate of
     true -> {{'.', Meta, [?MODULE, shallow_validate_ast]}, Meta, [Expr]};
@@ -620,8 +593,10 @@ argument_error(Message) ->
 
 %% Helpers
 
+meta(Meta, #elixir_quote{op=quote} = Q) ->
+  generated(keep(keydelete(column, Meta), Q), Q);
 meta(Meta, Q) ->
-  generated(keep(keydelete(column, Meta), Q), Q).
+  do_quote(Meta, Q).
 
 generated(Meta, #elixir_quote{generated=true}) -> [{generated, true} | Meta];
 generated(Meta, #elixir_quote{generated=false}) -> Meta.
