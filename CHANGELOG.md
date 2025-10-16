@@ -122,9 +122,9 @@ While Elixir has always compiled the given files in project or a dependency in p
 
 ### Code loading bottlenecks
 
-Prior to this release, Elixir would load modules as soon as they were defined. However, because the Erlang part of code loading happens within a single process (the code server), this would make it a bottleneck, reducing the amount of parallelization, especially on large projects.
+Prior to this release, Elixir would load modules as soon as they were defined. However, because the Erlang part of code loading happens within a single process (the code server), this would make it a bottleneck, reducing parallelization, especially on large projects.
 
-This release makes it so modules are loaded lazily. This reduces the pressure on the code server, making compilation up to 2x faster for large projects, and also reduces the overall amount of work done during compilation.
+This release makes it so modules are loaded lazily. This reduces the pressure on the code server and the amount of work during compilation, with reports of more than two times faster compilation for large projects. The benefits depend on the codebase size and the number of CPU cores available.
 
 Implementation wise, [the parallel compiler already acts as a mechanism to resolve modules during compilation](https://elixir-lang.org/blog/2012/04/24/a-peek-inside-elixir-s-parallel-compiler/), so we built on that. By making sure the compiler controls both module compilation and module loading, it can also better guarantee deterministic builds.
 
@@ -140,7 +140,7 @@ defmodule MyLib.SomeModule do
 end
 ```
 
-Because the spawned module is not visible by the compiler, it won't be able to load `MyLib.SomeOtherModule`. You have two options, either use `Kernel.ParallelCompiler.pmap/2` or explicitly call `Code.ensure_loaded!(MyLib.SomeOtherModule)` before spawning the process that uses said module.
+Because the spawned process is not visible to the compiler, it won't be able to load `MyLib.SomeOtherModule`. You have two options, either use `Kernel.ParallelCompiler.pmap/2` or explicitly call `Code.ensure_compiled!(MyLib.SomeOtherModule)` before spawning the process that uses said module.
 
 The second one is related to `@on_load` callbacks (typically used for [NIFs](https://www.erlang.org/doc/system/nif.html)) that invoke other modules defined within the same project. For example:
 
@@ -162,13 +162,13 @@ MyLib.SomeModule.something_else()
 
 The reason this fails is because `@on_load` callbacks are invoked within the code server and therefore they have limited ability to load additional modules. It is generally advisable to limit invocation of external modules during `@on_load` callbacks but, in case it is strictly necessary, you can set `@compile {:autoload, true}` in the invoked module to address this issue in a forward and backwards compatible manner.
 
-Both snippets above could actually lead to non-deterministic compilation in the past, and as a result of these changes, compilating these cases are now deterministic.
+Both snippets above could actually lead to non-deterministic compilation failures in the past, and as a result of these changes, compiling these cases are now deterministic.
 
 ### Parallel compilation of dependencies
 
 This release introduces a variable called `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`, which instructs `mix deps.compile` to compile dependencies in parallel.
 
-While fetching dependencies and compiling individual Elixir dependencies already happened in parallel, there were pathological cases where performance would be left on the table, such as compiling dependencies with native code or dependencies where one or two large file would take over most of the compilation time.
+While fetching dependencies and compiling individual Elixir dependencies already happened in parallel, as outlined in the previous section, there were pathological cases where performance gains would be left on the table, such as when compiling dependencies with native code or dependencies where one or two large files would take most of the compilation time.
 
 By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Empirical testing shows that setting it to half of the number of cores on your machine is enough to maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
 
@@ -201,9 +201,9 @@ Given this may reduce the amount of data printed by default, the default limit h
 
 ## Erlang/OTP 28 support
 
-Elixir v1.19 officially supports Erlang/OTP 28.1+ and later. In order to support the new Erlang/OTP 28 representation for regular expressions, structs can now control how they are escaped by defining a `__escape__/1` callback that must return AST.
+Elixir v1.19 officially supports Erlang/OTP 28.1+ and later. In order to support the new Erlang/OTP 28 representation for regular expressions, structs can now control how they are escaped into abstract syntax trees by defining a `__escape__/1` callback.
 
-On the other, the new representation for regular expressions implies they can no longer be used as default values for struct fields. Instead of this:
+On the other hand, the new representation for regular expressions implies they can no longer be used as default values for struct fields. Instead of this:
 
 ```elixir
 defmodule Foo do
@@ -232,92 +232,9 @@ Elixir v1.19 is also our first release following OpenChain compliance, [as previ
 
 These additions offer greater transparency into the components and licenses of each release, supporting more rigorous supply chain requirements.
 
-This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosystem Foundation.
+This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
-## v1.19.0-rc.2 (2025-10-07)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Regex] Raise error message when regexes are used as default values in struct fields for compatibility with Erlang/OTP 28
-  * [Registry] Add key-based partitioning of duplicate registries
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Address issue with type checking not completing on protocol consolidation
-
-#### ExUnit
-
-  * [ExUnit] Do not crash on empty test unit groups
-
-#### Mix
-
-  * [mix help] Add `mix help app:APP`
-  * [mix test] Fix module preloading in `mix test --slowest-modules=N`
-
-## v1.19.0-rc.1 (2025-10-05)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Kernel] Raise when U+2028 and U+2029 characters are present in comments and strings to avoid line spoofing attacks
-  * [Kernel] Include the line for the previous clause in errors/warnings related to conflicts between defaults on function definitions
-  * [Macro] Add `__escape__/1` callback so structs can escape references and other runtime data types in `Macro.escape/1`
-  * [OptionParser] Support the `:regex` type
-  * [OptionParser] Enhance parsing error to display available options
-  * [String] Update to Unicode 17.0.0
-
-#### ExUnit
-
-  * [ExUnit] Set a process label for each test
-
-#### Logger
-
-  * [Logger] Accept any enumerable in `Logger.metadata/1`
-
-#### Mix
-
-  * [mix format] Add options to mix format to allow excluding of files
-  * [mix test] Add `--name-pattern` option to `mix test`
-  * [Mix.install/2] Support the `:compilers` option
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Code] Return error on invalid unicode sequences in `Code.string_to_quoted/2` instead of raising
-  * [Code] Properly handle column annotation for `in` in `not in` expressions
-  * [Enum] Fix infinite loop on `Enum.take/2` with negative index on empty enumerable
-  * [Inspect] Inspect ill-formed structs as maps
-  * [Kernel] Properly increment metadata newline when `?` is followed by a literal newline character
-
-#### ExUnit
-
-  * [ExUnit.Assertions] Fix order in ExUnit results when listing pinned variables
-  * [ExUnit.Assertions] Raise if attempting to raise an assertion error with invalid message (not a binary)
-
-#### IEx
-
-  * [IEx] Abort pipelines when there is an error in any step along the way
-
-#### Mix
-
-  * [mix compile] Fix bug where reverting changes to an external resource (such as HEEx template) after a compilation error would make it so the source module would not be compiled
-  * [mix compile] Avoid failures when locking compilation across different users
-  * [mix compile] Fix race condition when renaming files used by the compilation lock
-  * [mix test] Prevent `mix test` from overriding `:failures_manifest_path` option
-
-### 3. Hard deprecations
-
-#### Elixir
-
-  * [Code] Warn if line-break characters outside of `\r` and `\r\n` are found in strings according to UX#55. This warning will be fast-tracked into an error for security reasons in Elixir v1.20, following a similar rule to bidirectional control characters. They will already raise if found in comments
-
-## v1.19.0-rc.0 (2025-06-09)
+## v1.19.0 (2025-10-16)
 
 ### 1. Enhancements
 
@@ -335,18 +252,26 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
   * [Inspect] Allow `optional: :all` when deriving Inspect
   * [Inspect.Algebra] Add optimistic/pessimistic groups as a simplified implementation of `next_break_fits`
   * [IO.ANSI] Add ANSI codes to turn off conceal and crossed_out
-  * [Kernel] Allow controlling which applications are used during inference
+  * [Kernel] Raise when U+2028 and U+2029 characters are present in comments and strings to avoid line spoofing attacks
+  * [Kernel] Include the line for the previous clause in errors/warnings related to conflicts between defaults on function definitions
   * [Kernel] Support `min/2` and `max/2` as guards
   * [Kernel.ParallelCompiler] Add `each_long_verification_threshold` which invokes a callback when type checking a module takes too long
   * [Kernel.ParallelCompiler] Include lines in `== Compilation error in file ... ==` slogans
   * [Macro] Print debugging results from `Macro.dbg/3` as they happen, instead of once at the end
+  * [Macro] Add `__escape__/1` callback so structs can escape references and other runtime data types in `Macro.escape/1`
   * [Module] Do not automatically load modules after their compilation, guaranteeing a more consistent compile time experience and drastically improving compilation times
+  * [OptionParser] Support the `:regex` type
+  * [OptionParser] Enhance parsing error to display available options
   * [Protocol] Type checking of protocols dispatch and implementations
   * [Regex] Add `Regex.to_embed/2` which returns an embeddable representation of regex in another regex
+  * [Regex] Raise error message when regexes are used as default values in struct fields for compatibility with Erlang/OTP 28
+  * [Registry] Add key-based partitioning of duplicate registries
   * [String] Add `String.count/2` to count occurrences of a pattern
+  * [String] Update to Unicode 17.0.0
 
 #### ExUnit
 
+  * [ExUnit] Set a process label for each test
   * [ExUnit.CaptureLog] Parallelize log dispatch when multiple processes are capturing log
   * [ExUnit.Case] Add `:test_group` to the test context
   * [ExUnit.Doctest] Support ellipsis in doctest exceptions to match the remaining of the exception
@@ -357,36 +282,61 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
   * [IEx] Support multi-line prompts (due to this feature, `:continuation_prompt` and `:alive_continuation_prompt` are no longer supported as IEx configuration)
   * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear within their own groups in autocompletion
 
+#### Logger
+
+  * [Logger] Accept any enumerable in `Logger.metadata/1`
+
 #### Mix
 
   * [mix] Add support for `MIX_PROFILE_FLAGS` to configure `MIX_PROFILE`
   * [mix compile] Debug the compiler and type checker PID when `MIX_DEBUG=1` and compilation/verification thresholds are met
   * [mix compile] Add `Mix.Tasks.Compiler.reenable/1`
   * [mix deps.compile] Support `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` for compiling deps concurrently across multiple operating system processes
-  * [mix help] Add `mix help Mod`, `mix help :mod`, `mix help Mod.fun` and `mix help Mod.fun/arity`
+  * [mix help] Add `mix help Mod`, `mix help :mod`, `mix help Mod.fun`, `mix help Mod.fun/arity`, and `mix help app:package`
+  * [mix format] Add options to mix format to allow excluding of files
+  * [mix test] Add `--name-pattern` option to `mix test`
   * [mix test] Allow to distinguish the exit status between warnings as errors and test failures
   * [mix xref graph] Add support for `--format json`
   * [mix xref graph] Emit a warning if `--source` is part of a cycle
-  * [M ix.Task.Compiler] Add `Mix.Task.Compiler.run/2`
+  * [Mix] Support the `:compilers` option
+  * [Mix.Task.Compiler] Add `Mix.Task.Compiler.run/2`
 
 ### 2. Bug fixes
 
 #### Elixir
 
+  * [Code] Return error on invalid unicode sequences in `Code.string_to_quoted/2` instead of raising
+  * [Code] Properly handle column annotation for `in` in `not in` expressions
   * [DateTime] Do not truncate microseconds regardless of precision in `DateTime.diff/3`
+  * [Enum] Fix infinite loop on `Enum.take/2` with negative index on empty enumerable
   * [File] Properly handle permissions errors cascading from parent in `File.mkdir_p/1`
+  * [Inspect] Inspect ill-formed structs as maps
+  * [Kernel] Properly increment metadata newline when `?` is followed by a literal newline character
   * [Kernel] `not_a_map.key` now raises `BadMapError` for consistency with other map operations
   * [Protocol] `defstruct/1` and `defexception/1` are now disabled inside `defprotocol` as to not allow defining structs/exceptions alongside a protocol
   * [Regex] Fix `Regex.split/2` returning too many results when the chunk being split on was empty (which can happen when using features such as `/K`)
   * [Stream] Ensure `Stream.transform/5` respects suspend command when its inner stream halts
   * [URI] Several fixes to `URI.merge/2` related to trailing slashes, trailing dots, and hostless base URIs
 
+#### ExUnit
+
+  * [ExUnit.Assertions] Fix order of pinned variables in failure reports
+  * [ExUnit.Assertions] Raise if attempting to raise an assertion error with invalid message (not a binary)
+  * [ExUnit.Case] Do not crash on empty test unit groups
+
+#### IEx
+
+  * [IEx] Abort pipelines when there is an error in any step along the way
+
 #### Mix
 
   * [mix cmd] Preserve argument quoting in subcommands by no longer performing shell expansion. To revert to the previous behaviour, pass `--shell` before the command name
+  * [mix compile] Fix bug where reverting changes to an external resource (such as HEEx template) after a compilation error would make it so the source module would not be compiled
+  * [mix compile] Avoid failures when locking compilation across different users
+  * [mix compile] Fix race condition when renaming files used by the compilation lock
   * [mix format] Ensure the formatter does not go over the specified limit in certain corner cases
   * [mix release] Fix `RELEASE_SYS_CONFIG` for Windows 11
-  * [mix test] Preserve files with no longer filter on `mix test`
+  * [mix test] Ensure modules are preloaded in `mix test --slowest-modules=N`
   * [mix xref graph] Provide more consistent output by considering strong connected components only when computing graphs
 
 ### 3. Soft deprecations (no warnings emitted)
@@ -399,12 +349,13 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
 #### Mix
 
   * [mix compile] `--no-protocol-consolidation` is deprecated in favor of `--no-consolidate-protocols` for consistency with `mix.exs` configuration
-  * [mix compile.protocols] Protocol consolidation is now part of `compile.elixir` and has no effect
+  * [mix compile.protocols] Protocol consolidation is now part of `compile.elixir` and the task itself has no effect
 
 ### 4. Hard deprecations
 
 #### Elixir
 
+  * [Code] Warn if line-break characters outside of `\r` and `\r\n` are found in strings according to UX#55. This warning will be fast-tracked into an error for security reasons in Elixir v1.20, following a similar rule to bidirectional control characters. They will already raise if found in comments
   * [Code] The `on_undefined_variable: :warn` is deprecated. Relying on undefined variables becoming function calls will not be supported in the future
   * [File] Passing a callback as third argument to `File.cp/3` is deprecated, pass it as a `on_conflict: callback` option instead
   * [File] Passing a callback as third argument to `File.cp_r/3` is deprecated, pass it as a `on_conflict: callback` option instead

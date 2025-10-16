@@ -142,11 +142,13 @@ Inferring type signatures comes with a series of trade-offs:
 
   * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide "module type inference": our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies (in the future). Calls to modules within the same project are assumed to be `dynamic()` as to reduce cyclic dependencies and the need for recompilations. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, we are exploring "module type inference": our goal is to infer type signatures considering invocations of functions in the same module and of functions from *other applications* (such as Elixir itself and your dependencies). Once module types are inferred, your whole project is type checked considering all declared and inferred types.
 
-Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
+We have successfully implemented these features as part of Elixir v1.19, by performing inference of all constructs (except guards), taking into account the signatures from calls to functions within the same module and in Elixir's standard library.
 
-In the long term, Elixir developers who want typing guarantees must explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages, without performing type inference. In summary, type checking will rely on type signatures and only fallback to inferred types when no signature is available.
+In future releases, we plan to perform type inference of guards and also consider the type signatures of your dependencies during inference. Overall, our goal with type inference is to find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
+
+Keep in mind this only applies to *type inference*. Once we introduce type signatures and you explicitly annotate your functions, type inference and the trade-offs above no longer play a role. Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages.
 
 ## Roadmap
 
