@@ -80,7 +80,9 @@ defmodule IEx.Config do
   end
 
   def parser() do
-    Application.fetch_env!(:iex, :parser)
+    # Since the parser itself can be invoked from the remote node
+    # without IEx running, we cannot use fetch_env!
+    Application.get_env(:iex, :parser, {IEx.Evaluator, :parse, []})
   end
 
   def color(color) do
