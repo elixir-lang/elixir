@@ -4495,8 +4495,7 @@ defmodule Module.Types.Descr do
       _ ->
         case bdd_compare(bdd1, bdd2) do
           {:lt, {lit1, c1, u1, d1}, bdd2} ->
-            {lit1, bdd_difference(bdd_union(c1, u1), bdd2), :bdd_bot,
-             bdd_difference(bdd_union(d1, u1), bdd2)}
+            {lit1, bdd_difference(c1, bdd2), bdd_difference(u1, bdd2), bdd_difference(d1, bdd2)}
 
           {:gt, bdd1, {lit2, c2, u2, d2}} ->
             {lit2, bdd_difference(bdd1, bdd_union(c2, u2)), :bdd_bot,
@@ -4504,10 +4503,44 @@ defmodule Module.Types.Descr do
 
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
             cond do
-              u2 == :bdd_bot and d2 == :bdd_bot ->
-                {lit, bdd_difference(c1, c2), bdd_difference(u1, c2), bdd_union(u1, d1)}
+              c2 == :bdd_bot and d2 == :bdd_bot ->
+                {lit, bdd_difference(c1, u2), bdd_difference(u1, u2), bdd_difference(d1, u2)}
 
-              u1 == u2 ->
+              u2 == :bdd_bot ->
+                cond do
+                  d2 == :bdd_bot ->
+                    {lit, bdd_difference(c1, c2), bdd_difference(u1, c2), bdd_union(u1, d1)}
+
+                  c2 == :bdd_bot ->
+                    {lit, bdd_union(u1, c1), bdd_difference(u1, d2), bdd_difference(c1, c2)}
+
+                  true ->
+                    # If d2 or c2 are bottom, we can remove one union.
+                    #
+                    # For example, if d2 is bottom, we have this BDD:
+                    #
+                    #   {l, (C1 or U1) and not C2, U1 and not C2, D1 or U1}
+                    #
+                    # Where the constrained part is:
+                    #
+                    #   (l and (C1 or U1) and not C2)
+                    #
+                    # Which expands to:
+                    #
+                    #   (l and C1 and not C2) or (l and U1 and not C2)
+                    #
+                    # Given (U1 and not C2) is already part of the uncertain/union,
+                    # we can skip (l and U1 and not C2), and we end up with:
+                    #
+                    #   {l, C1 and not C2, U1 and not C2, D1 or U1}
+                    #
+                    # Which are the formulas used above.
+                    {lit, bdd_difference(bdd_union(u1, c1), c2),
+                     bdd_difference(bdd_difference(u1, c2), d2),
+                     bdd_difference(bdd_union(u1, d1), d2)}
+                end
+
+              u1 == :bdd_bot or u1 == u2 ->
                 {lit, bdd_difference_union(c1, c2, u2), :bdd_bot,
                  bdd_difference_union(d1, d2, u2)}
 
@@ -4568,15 +4601,20 @@ defmodule Module.Types.Descr do
              bdd_intersection(bdd1, d2)}
 
           # Notice that (l ? c1, u1, d1) and (l ? c2, u2, d2) is, on paper, equivalent to
-          # [(l /\ c1) \/ u1 \/ (not l /\ d1)] and [(l /\ c2) \/ u2 \/ (not l /\ d2)]
+          # [(l and c1) or u1 or (not l and d1)] and [(l and c2) or u2 or (not l and d2)].
+          #
           # which is equivalent, by distributivity of intersection over union, to
-          # l /\ [(c1 /\ c2) \/ (c1 /\ u2) \/ (u1 /\ c2)]
-          #      \/ (u1 /\ u2)
-          #      \/ [(not l) /\ ((d1 /\ u2) \/ (d1 /\ d2) \/ (u1 /\ d2))]
+          #
+          # l and [(c1 and c2) or (c1 and u2) or (u1 and c2)]
+          #      or (u1 and u2)
+          #      or [(not l) and ((d1 and u2) or (d1 and d2) or (u1 and d2))]
+          #
           # which is equivalent, by factoring out c1 in the first disjunct, and d1 in the third, to
-          # l /\ [c1 /\ (c2 \/ u2)] \/ (u1 /\ c2)
-          #     \/ (u1 /\ u2)
-          #     \/ (not l) /\ [d1 /\ (u2 \/ d2) \/ (u1 /\ d2)]
+          #
+          # l and [c1 and (c2 or u2)] or (u1 and c2)
+          #     or (u1 and u2)
+          #     or (not l) and [d1 and (u2 or d2) or (u1 and d2)]
+          #
           # This last expression gives the following implementation:
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
             {lit, bdd_union(bdd_intersection_union(c1, c2, u2), bdd_intersection(u1, c2)),
