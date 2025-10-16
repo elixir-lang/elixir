@@ -1042,7 +1042,10 @@ defmodule Module.Types.Apply do
           else
             # Protocol errors can be very verbose, so we collapse structs
             """
-            but expected a type that implements the #{inspect(mod)} protocol, it must be one of:
+            but expected a type that implements the #{inspect(mod)} protocol. You either passed the wrong \
+            value or you forgot to implement the protocol.
+
+            The #{inspect(mod)} protocol is implemented for the following types:
             #{clauses_args_to_quoted_string(clauses, converter, collapse_structs: true)}
             """
           end
