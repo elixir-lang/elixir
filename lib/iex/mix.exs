@@ -19,7 +19,6 @@ defmodule IEx.MixProject do
       mod: {IEx.App, []},
       env: [
         colors: [],
-        parser: {IEx.Evaluator, :parse, []},
         inspect: [pretty: true],
         history_size: 20,
         default_prompt: "%prefix(%counter)>",
