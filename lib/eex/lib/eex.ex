@@ -236,7 +236,9 @@ defmodule EEx do
   """
   @spec compile_string(String.t(), [compile_opt]) :: Macro.t()
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
-    case tokenize(source, options) do
+    tokenize_opts = Keyword.take(options, [:file, :line, :column, :indentation, :trim])
+
+    case tokenize(source, tokenize_opts) do
       {:ok, tokens} ->
         EEx.Compiler.compile(tokens, source, options)
 
