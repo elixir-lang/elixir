@@ -558,7 +558,9 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Range{})-
 
-            but expected a type that implements the String.Chars protocol, it must be one of:
+            but expected a type that implements the String.Chars protocol. You either passed the wrong value or you forgot to implement the protocol.
+
+            The String.Chars protocol is implemented for the following types:
 
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
@@ -582,7 +584,9 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Range{})-
 
-            but expected a type that implements the String.Chars protocol, it must be one of:
+            but expected a type that implements the String.Chars protocol. You either passed the wrong value or you forgot to implement the protocol.
+
+            The String.Chars protocol is implemented for the following types:
 
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
@@ -622,7 +626,9 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Date{})-
 
-            but expected a type that implements the Enumerable protocol, it must be one of:
+            but expected a type that implements the Enumerable protocol. You either passed the wrong value or you forgot to implement the protocol.
+
+            The Enumerable protocol is implemented for the following types:
 
                 dynamic(
                   %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
@@ -653,7 +659,9 @@ defmodule Module.Types.IntegrationTest do
 
                 -integer()-
 
-            but expected a type that implements the Collectable protocol, it must be one of:
+            but expected a type that implements the Collectable protocol. You either passed the wrong value or you forgot to implement the protocol.
+
+            The Collectable protocol is implemented for the following types:
 
                 dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
