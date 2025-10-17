@@ -1484,6 +1484,11 @@ defmodule KernelTest do
       assert output =~ "3"
     end
 
+    test "prints the given expression with complex options" do
+      output = capture_io(fn -> assert dbg(123, [] ++ []) == 123 end)
+      assert output =~ "kernel_test.exs"
+    end
+
     test "doesn't print any colors if :syntax_colors is []" do
       output =
         capture_io(fn ->
