@@ -309,7 +309,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ vars.HEX_AWS_REGION }}
       AWS_S3_BUCKET: ${{ vars.HEX_AWS_S3_BUCKET }}
-      OTP_GENERIC_VERSION: "25"
     steps:
       - name: "Check if variables are set up"
         if: "${{ ! vars.HEX_AWS_REGION }}"
@@ -330,6 +329,8 @@ jobs:
         run: |
           ref_name=${{ github.ref_name }}
 
+          oldest_otp=$(find . -type f -name 'elixir-otp-*.zip' | sed -r 's/^.*elixir-otp-([[:digit:]]+)\.zip$/\1/' | sort -n | head -n 1)
+
           for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
             dest=${zip/elixir/${ref_name}}
             surrogate_key=${dest/.zip$/}
@@ -339,7 +340,7 @@ jobs:
               --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
             echo "builds/elixir/${surrogate_key}" >> purge_keys.txt
 
-            if [ "$zip" == "elixir-otp-${OTP_GENERIC_VERSION}.zip" ]; then
+            if [ "$zip" == "elixir-otp-${oldest_otp}.zip" ]; then
               aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
@@ -372,6 +373,8 @@ jobs:
           date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           ref_name=${{ github.ref_name }}
 
+          oldest_otp=$(find . -name 'elixir-otp-*.zip.sha256sum' | sed -r 's/^.*elixir-otp-([[:digit:]]+)\.zip\.sha256sum$/\1/' | sort -n | head -n 1)
+
           aws s3 cp "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt" builds.txt || true
           touch builds.txt
 
@@ -382,7 +385,7 @@ jobs:
             sed -i "/^${ref_name}-${otp_version} /d" builds.txt
             echo -e "${ref_name}-${otp_version} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
 
-            if [ "${otp_version}" == "otp-${OTP_GENERIC_VERSION}" ]; then
+            if [ "${otp_version}" == "otp-${oldest_otp}" ]; then
               sed -i "/^${ref_name} /d" builds.txt
               echo -e "${ref_name} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
             fi
