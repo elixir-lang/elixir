@@ -59,7 +59,7 @@ Our *actionable item policy* has some important consequences, such as:
     comment and we can always reopen the issue.
 
 By keeping the overall issues tracker tidy and organized, the community
-can easily peak at what is coming in new releases and also get involved
+can easily peek at what is coming in new releases and also get involved
 by commenting on existing issues and submitting pull requests. Please
 remember to keep the tone positive and be kind! For more information,
 see the [Code of Conduct][1].
