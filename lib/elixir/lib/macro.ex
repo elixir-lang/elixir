@@ -2700,7 +2700,7 @@ defmodule Macro do
         :ok
     end
 
-    prelude = quote do: options = unquote(Macro.escape(options))
+    prelude = quote do: options = unquote(options)
     acc = {prelude, dbg_format_header(env)}
 
     {acc, nil} =
