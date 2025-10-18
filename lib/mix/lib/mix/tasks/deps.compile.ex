@@ -102,8 +102,11 @@ defmodule Mix.Tasks.Deps.Compile do
 
     count = System.get_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "0") |> String.to_integer()
 
+    # If all dependencies are local and ok, do not bother starting
+    # processes as it will likely slow everything down.
     compiled? =
-      if count > 1 and length(deps) > 1 do
+      if count > 1 and match?([_, _ | _], deps) and
+           not Enum.all?(deps, &(Mix.Dep.ok?(&1) and not &1.scm.fetchable?())) do
         Mix.shell().info("mix deps.compile running across #{count} OS processes")
         Mix.Tasks.Deps.Partition.server(deps, count, force?)
       else
