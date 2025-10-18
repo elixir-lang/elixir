@@ -1283,7 +1283,7 @@ defmodule Module.Types.Apply do
           common = intersection(actual, expected)
 
           uncommon_doc =
-            difference(actual, common)
+            difference(actual, expected)
             |> to_quoted()
             |> Code.Formatter.to_algebra()
             |> ansi_red()
