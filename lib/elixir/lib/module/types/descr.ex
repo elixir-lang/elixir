@@ -4499,8 +4499,14 @@ defmodule Module.Types.Descr do
              bdd_difference(bdd_union(d1, u1), bdd2)}
 
           {:gt, bdd1, {lit2, c2, u2, d2}} ->
-            {lit2, bdd_difference(bdd1, bdd_union(c2, u2)), :bdd_bot,
-             bdd_difference(bdd1, bdd_union(d2, u2))}
+            # The proper formula is:
+            #
+            #     b1 and not (c2 or u2) : bdd_bot : b1 and not (d2 or u2)
+            #
+            # Both extremes have (b1 and not u2),
+            # so we compute it first and only once.
+            bdd1_minus_u2 = bdd_difference(bdd1, u2)
+            {lit2, bdd_difference(bdd1_minus_u2, c2), :bdd_bot, bdd_difference(bdd1_minus_u2, d2)}
 
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
             cond do
