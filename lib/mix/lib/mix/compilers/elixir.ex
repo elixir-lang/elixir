@@ -432,8 +432,9 @@ defmodule Mix.Compilers.Elixir do
                 has_any_key?(modules_to_recompile, modules) ->
               # Mark the source as changed so the combination of a timestamp
               # plus removed beam files (which are removed by update_stale_entries)
-              # causes it to be recompiled
-              File.touch!(source, timestamp + 1)
+              # causes it to be recompiled. Note we don't raise use touch! because
+              # in case of checkpoints the file may have been removed.
+              File.touch(source, timestamp + 1)
               [source]
 
             size != last_size or
