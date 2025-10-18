@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Format do
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
       Patterns are expanded with `Path.wildcard/2`.
 
-    * `:excludes` (a list of paths and patterns) - specifies the files to exclude from the
+    * `:excludes` (a list of paths and patterns) (since v1.19.0) - specifies the files to exclude from the
       list of inputs to this task. For example, `["config/runtime.exs", "test/**/*.{ex,exs}"]`.
       Patterns are expanded with `Path.wildcard/2`.
 
