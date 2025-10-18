@@ -979,7 +979,7 @@ defmodule Module.Types.Apply do
     {mod, fun, arity, converter} = mfac
     meta = elem(expr, 1)
 
-    {banner, hints, traces} =
+    {banner, traces} =
       case Keyword.get(meta, :type_check) do
         :interpolation ->
           {_, _, [arg]} = expr
@@ -990,7 +990,7 @@ defmodule Module.Types.Apply do
                #{expr_to_string(arg) |> indent(4)}
 
            it has type:
-           """, [:interpolation], collect_traces(expr, context)}
+           """, collect_traces(expr, context)}
 
         :generator ->
           {:<-, _, [_, arg]} = expr
@@ -1001,7 +1001,7 @@ defmodule Module.Types.Apply do
                #{expr_to_string(expr) |> indent(4)}
 
            it has type:
-           """, [:generator], collect_traces(arg, context)}
+           """, collect_traces(arg, context)}
 
         :into ->
           {"""
@@ -1010,7 +1010,7 @@ defmodule Module.Types.Apply do
                into: #{expr_to_string(expr) |> indent(4)}
 
            it has type:
-           """, [:into], collect_traces(expr, context)}
+           """, collect_traces(expr, context)}
 
         _ ->
           mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
@@ -1021,40 +1021,68 @@ defmodule Module.Types.Apply do
                #{expr_to_string(expr) |> indent(4)}
 
            given types:
-           """, [], collect_traces(expr, context)}
+           """, collect_traces(expr, context)}
       end
 
-    explanation =
+    {explanation, impls} =
       cond do
         reason = empty_arg_reason(converter.(args_types)) ->
-          reason
+          {reason, ""}
 
         Code.ensure_loaded?(mod) and
             Keyword.has_key?(mod.module_info(:attributes), :__protocol__) ->
           if function_exported?(mod, :__protocol__, 1) and
                mod.__protocol__(:impls) == {:consolidated, []} do
-            """
-            but the protocol was not yet implemented for any type and therefore will always fail. \
-            This error typically happens within libraries that define protocols and will disappear as \
-            soon as there is one implementation. If you expect the protocol to be implemented later on, \
-            you can define an implementation specific for development/test.
-            """
-          else
-            # Protocol errors can be very verbose, so we collapse structs
-            """
-            but expected a type that implements the #{inspect(mod)} protocol. You either passed the wrong \
-            value or you forgot to implement the protocol.
+            {"""
+             but the #{inspect(mod)} protocol was not yet implemented \
+             for any type and therefore will always fail.
 
-            The #{inspect(mod)} protocol is implemented for the following types:
-            #{clauses_args_to_quoted_string(clauses, converter, collapse_structs: true)}
-            """
+             This warning will disappear once you define a implementation. \
+             If the protocol is part of a library, you may define a dummy \
+             implementation for development/test.
+             """, ""}
+          else
+            fix =
+              case mod do
+                String.Chars ->
+                  """
+                  You either passed the wrong value or you must:
+
+                  1. convert the given value to a string explicitly
+                     (use inspect/1 if you want to convert any data structure to a string)
+                  2. implement the String.Chars protocol
+                  """
+
+                Enumerable ->
+                  """
+                  You either passed the wrong value or you must:
+
+                  1. convert the given value to an Enumerable explicitly
+                  2. implement the Enumerable protocol
+                  """
+
+                _ ->
+                  """
+                  You either passed the wrong value or you forgot to implement the protocol.
+                  """
+              end
+
+            {"""
+             but expected a type that implements the #{inspect(mod)} protocol.
+             #{fix}\
+             """,
+             """
+
+             #{hint()} the #{inspect(mod)} protocol is implemented for the following types:
+             #{clauses_args_to_quoted_string(clauses, converter, collapse_structs: true)}
+             """}
           end
 
         true ->
-          """
-          but expected one of:
-          #{clauses_args_to_quoted_string(clauses, converter, [])}
-          """
+          {"""
+           but expected one of:
+           #{clauses_args_to_quoted_string(clauses, converter, [])}
+           """, ""}
       end
 
     %{
@@ -1069,7 +1097,7 @@ defmodule Module.Types.Apply do
           """,
           explanation,
           format_traces(traces),
-          format_hints(hints)
+          impls
         ])
     }
   end
