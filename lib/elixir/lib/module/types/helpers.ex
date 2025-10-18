@@ -91,29 +91,6 @@ defmodule Module.Types.Helpers do
         "var.fun()" (with parentheses) means "var" is an atom()
         """
 
-      :interpolation ->
-        """
-
-        #{hint()} string interpolation uses the String.Chars protocol to \
-        convert a data structure into a string. Either convert the data type into a \
-        string upfront or implement the protocol accordingly
-        """
-
-      :generator ->
-        """
-
-        #{hint()} for-comprehensions use the Enumerable protocol to traverse \
-        data structures. Either convert the data type into a list (or another Enumerable) \
-        or implement the protocol accordingly
-        """
-
-      :into ->
-        """
-
-        #{hint()} the :into option in for-comprehensions use the Collectable protocol to \
-        build its result. Either pass a valid data type or implement the protocol accordingly
-        """
-
       :anonymous_rescue ->
         """
 

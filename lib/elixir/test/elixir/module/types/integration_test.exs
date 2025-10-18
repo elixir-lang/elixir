@@ -520,10 +520,9 @@ defmodule Module.Types.IntegrationTest do
 
                 -:hello-
 
-            but the protocol was not yet implemented for any type and therefore will always fail. \
-        This error typically happens within libraries that define protocols and will disappear as \
-        soon as there is one implementation. If you expect the protocol to be implemented later on, \
-        you can define an implementation specific for development/test.
+            but the NoImplProtocol protocol was not yet implemented for any type and therefore will always fail.
+
+            This warning will disappear once you define a implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
 
             typing violation found at:
             │
@@ -550,32 +549,6 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         """
-            warning: incompatible value given to string interpolation:
-
-                data
-
-            it has type:
-
-                -dynamic(%Range{})-
-
-            but expected a type that implements the String.Chars protocol. You either passed the wrong value or you forgot to implement the protocol.
-
-            The String.Chars protocol is implemented for the following types:
-
-                dynamic(
-                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
-                    %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
-
-            where "data" was given the type:
-
-                # type: dynamic(%Range{})
-                # from: a.ex:3:24
-                _.._//_ = data
-
-            hint: string interpolation uses the String.Chars protocol to convert a data structure into a string. Either convert the data type into a string upfront or implement the protocol accordingly
-        """,
-        """
             warning: incompatible types given to String.Chars.to_string/1:
 
                 to_string(data)
@@ -584,19 +557,46 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Range{})-
 
-            but expected a type that implements the String.Chars protocol. You either passed the wrong value or you forgot to implement the protocol.
+            but expected a type that implements the String.Chars protocol.
+            You either passed the wrong value or you must:
 
-            The String.Chars protocol is implemented for the following types:
-
-                dynamic(
-                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
-                    %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
+            1. convert the given value to a string explicitly
+               (use inspect/1 if you want to convert any data structure to a string)
+            2. implement the String.Chars protocol
 
             where "data" was given the type:
 
                 # type: dynamic(%Range{})
                 # from: a.ex:2:24
+                _.._//_ = data
+
+            hint: the String.Chars protocol is implemented for the following types:
+
+                dynamic(
+                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                    %Version.Requirement{}
+                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
+        """,
+        """
+            warning: incompatible value given to string interpolation:
+
+                data
+
+            it has type:
+
+                -dynamic(%Range{})-
+
+            but expected a type that implements the String.Chars protocol.
+            You either passed the wrong value or you must:
+
+            1. convert the given value to a string explicitly
+               (use inspect/1 if you want to convert any data structure to a string)
+            2. implement the String.Chars protocol
+
+            where "data" was given the type:
+
+                # type: dynamic(%Range{})
+                # from: a.ex:3:24
                 _.._//_ = data
         """
       ]
@@ -626,14 +626,11 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Date{})-
 
-            but expected a type that implements the Enumerable protocol. You either passed the wrong value or you forgot to implement the protocol.
+            but expected a type that implements the Enumerable protocol.
+            You either passed the wrong value or you must:
 
-            The Enumerable protocol is implemented for the following types:
-
-                dynamic(
-                  %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
-                    %IO.Stream{} or %MapSet{} or %Range{} or %Stream{}
-                ) or empty_list() or fun() or non_empty_list(term(), term()) or non_struct_map()
+            1. convert the given value to an Enumerable explicitly
+            2. implement the Enumerable protocol
 
             where "date" was given the type:
 
@@ -641,7 +638,12 @@ defmodule Module.Types.IntegrationTest do
                 # from: a.ex:2:24
                 %Date{} = date
 
-            hint: for-comprehensions use the Enumerable protocol to traverse data structures. Either convert the data type into a list (or another Enumerable) or implement the protocol accordingly
+            hint: the Enumerable protocol is implemented for the following types:
+
+                dynamic(
+                  %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
+                    %IO.Stream{} or %MapSet{} or %Range{} or %Stream{}
+                ) or empty_list() or fun() or non_empty_list(term(), term()) or non_struct_map()
         """,
         """
             warning: incompatible value given to :into option in for-comprehension:
@@ -649,6 +651,16 @@ defmodule Module.Types.IntegrationTest do
                 into: Date.utc_today()
 
             it has type:
+
+                -dynamic(%Date{})-
+
+            but expected a type that implements the Collectable protocol.
+            You either passed the wrong value or you forgot to implement the protocol.
+
+            hint: the Collectable protocol is implemented for the following types:
+
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                  empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """,
         """
             warning: incompatible value given to :into option in for-comprehension:
@@ -659,14 +671,13 @@ defmodule Module.Types.IntegrationTest do
 
                 -integer()-
 
-            but expected a type that implements the Collectable protocol. You either passed the wrong value or you forgot to implement the protocol.
+            but expected a type that implements the Collectable protocol.
+            You either passed the wrong value or you forgot to implement the protocol.
 
-            The Collectable protocol is implemented for the following types:
+            hint: the Collectable protocol is implemented for the following types:
 
                 dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
-
-            hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
         """
       ]
 
