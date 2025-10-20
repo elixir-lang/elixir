@@ -234,6 +234,26 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.1 (2025-10-20)
+
+### 1. Bug fixes
+
+#### EEx
+
+  * [EEx] Address Dialyzer warnings when invoking `EEx.compile_string`
+
+#### Elixir
+
+  * [Kernel] Optimize how types are computed for pretty printing
+  * [Kernel] Optimize how differences are computed in the type system
+  * [Macro] Do not escape options given to `dbg/2`
+  * [Protocol] Improve protocol violation warnings
+
+#### Mix
+
+  * [mix compile] Do not attempt to touch deleted files when compilation fails and then resumed with missing files
+  * [mix deps.compile] Do not spawn partitions when all dependencies are local and already compiled
+
 ## v1.19.0 (2025-10-16)
 
 ### 1. Enhancements
