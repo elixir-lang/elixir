@@ -4448,6 +4448,10 @@ defmodule Module.Types.Descr do
           {:eq, _, _} ->
             bdd1
         end
+        |> case do
+          {_, :bdd_top, _, :bdd_top} -> :bdd_top
+          other -> other
+        end
     end
   end
 
@@ -4537,6 +4541,10 @@ defmodule Module.Types.Descr do
           {:eq, _, _} ->
             :bdd_bot
         end
+        |> case do
+          {_, :bdd_bot, u, :bdd_bot} -> u
+          other -> other
+        end
     end
   end
 
@@ -4600,6 +4608,10 @@ defmodule Module.Types.Descr do
 
           {:eq, bdd, _} ->
             bdd
+        end
+        |> case do
+          {_, :bdd_bot, u, :bdd_bot} -> u
+          other -> other
         end
     end
   end
