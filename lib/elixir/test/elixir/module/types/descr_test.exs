@@ -2504,6 +2504,20 @@ defmodule Module.Types.DescrTest do
       assert subtype?(map2, map1)
     end
 
+    test "map intersection and then difference" do
+      actual = open_map(__struct__: atom(), __exception__: atom([true]))
+
+      expected =
+        for i <- 1..50 do
+          name = :"name_#{i}"
+          closed_map([__struct__: atom([name])] ++ [{name, binary()}])
+        end
+        |> Enum.reduce(&union/2)
+
+      common = intersection(actual, expected)
+      difference(actual, common)
+    end
+
     test "struct difference" do
       entries =
         [
