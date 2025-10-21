@@ -27,11 +27,8 @@ defmodule Module.Types.Descr do
   @bit_top (1 <<< 7) - 1
   @bit_number @bit_integer ||| @bit_float
 
-  # Remark: those use AST for BDDs
-  defmacrop bdd_leaf(arg1, arg2), do: {arg1, arg2}
-
-  defmacrop domain_key(key),
-    do: {:domain_key, key}
+  defmacro bdd_leaf(arg1, arg2), do: {arg1, arg2}
+  defmacro domain_key(key), do: {:domain_key, key}
 
   @domain_key_types [
     {:domain_key, :binary},
@@ -454,11 +451,7 @@ defmodule Module.Types.Descr do
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
   defp intersection(:optional, 1, 1), do: 1
   defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
-
-  defp intersection(:fun, v1, v2) do
-    bdd = fun_intersection(v1, v2)
-    if bdd == :bdd_bot, do: 0, else: bdd
-  end
+  defp intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
 
   defp intersection(:dynamic, v1, v2) do
     descr = dynamic_intersection(v1, v2)
@@ -548,11 +541,7 @@ defmodule Module.Types.Descr do
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
   defp difference(:optional, 1, 1), do: 0
   defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
-
-  defp difference(:fun, v1, v2) do
-    bdd = fun_difference(v1, v2)
-    if bdd == :bdd_bot, do: 0, else: bdd
-  end
+  defp difference(:fun, v1, v2), do: fun_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -4425,23 +4414,7 @@ defmodule Module.Types.Descr do
 
   ## BDD helpers
 
-  defp bdd_map(bdd, fun) do
-    case bdd do
-      :bdd_bot ->
-        :bdd_bot
-
-      :bdd_top ->
-        :bdd_top
-
-      {_, _} ->
-        fun.(bdd)
-
-      {literal, left, union, right} ->
-        {fun.(literal), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun)}
-    end
-  end
-
-  defp bdd_union(bdd1, bdd2) do
+  def bdd_union(bdd1, bdd2) do
     case {bdd1, bdd2} do
       {:bdd_top, _bdd} ->
         :bdd_top
@@ -4478,7 +4451,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp bdd_difference(bdd1, bdd2) do
+  def bdd_difference(bdd1, bdd2) do
     case {bdd1, bdd2} do
       {_bdd, :bdd_top} ->
         :bdd_bot
@@ -4567,14 +4540,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp bdd_compare(bdd1, bdd2) do
-    case {bdd_head(bdd1), bdd_head(bdd2)} do
-      {lit1, lit2} when lit1 < lit2 -> {:lt, bdd_expand(bdd1), bdd2}
-      {lit1, lit2} when lit1 > lit2 -> {:gt, bdd1, bdd_expand(bdd2)}
-      _ -> {:eq, bdd1, bdd2}
-    end
-  end
-
   # Version of i \ (u1 v u2) that only computes the union if i is not bottom
   defp bdd_difference_union(:bdd_bot, _u1, _u2),
     do: :bdd_bot
@@ -4582,7 +4547,7 @@ defmodule Module.Types.Descr do
   defp bdd_difference_union(i, u1, u2),
     do: bdd_difference(i, bdd_union(u1, u2))
 
-  defp bdd_intersection(bdd1, bdd2) do
+  def bdd_intersection(bdd1, bdd2) do
     case {bdd1, bdd2} do
       {:bdd_top, bdd} ->
         bdd
@@ -4647,15 +4612,15 @@ defmodule Module.Types.Descr do
     do: bdd_intersection(i, bdd_union(u1, u2))
 
   # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
-  defp bdd_negation(:bdd_top), do: :bdd_bot
-  defp bdd_negation(:bdd_bot), do: :bdd_top
-  defp bdd_negation({_, _} = pair), do: {pair, :bdd_bot, :bdd_bot, :bdd_top}
+  def bdd_negation(:bdd_top), do: :bdd_bot
+  def bdd_negation(:bdd_bot), do: :bdd_top
+  def bdd_negation({_, _} = pair), do: {pair, :bdd_bot, :bdd_bot, :bdd_top}
 
-  defp bdd_negation({lit, c, u, d}) do
+  def bdd_negation({lit, c, u, d}) do
     {lit, bdd_negation(bdd_union(c, u)), :bdd_bot, bdd_negation(bdd_union(d, u))}
   end
 
-  defp bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
+  def bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
 
   defp bdd_to_dnf(acc, _pos, _neg, :bdd_bot), do: acc
   defp bdd_to_dnf(acc, pos, neg, :bdd_top), do: [{pos, neg} | acc]
@@ -4672,6 +4637,30 @@ defmodule Module.Types.Descr do
     |> bdd_to_dnf([lit | pos], neg, c)
     # D-part
     |> bdd_to_dnf(pos, [lit | neg], d)
+  end
+
+  defp bdd_compare(bdd1, bdd2) do
+    case {bdd_head(bdd1), bdd_head(bdd2)} do
+      {lit1, lit2} when lit1 < lit2 -> {:lt, bdd_expand(bdd1), bdd2}
+      {lit1, lit2} when lit1 > lit2 -> {:gt, bdd1, bdd_expand(bdd2)}
+      _ -> {:eq, bdd1, bdd2}
+    end
+  end
+
+  defp bdd_map(bdd, fun) do
+    case bdd do
+      :bdd_bot ->
+        :bdd_bot
+
+      :bdd_top ->
+        :bdd_top
+
+      {_, _} ->
+        fun.(bdd)
+
+      {literal, left, union, right} ->
+        {fun.(literal), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun)}
+    end
   end
 
   @compile {:inline, bdd_expand: 1, bdd_head: 1}

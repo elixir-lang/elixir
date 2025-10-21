@@ -16,8 +16,6 @@ defmodule Module.Types.DescrTest do
 
   import Module.Types.Descr, except: [fun: 1]
 
-  defmacrop domain_key(key), do: {:domain_key, key}
-
   defp number(), do: union(integer(), float())
   defp empty_tuple(), do: tuple([])
   defp tuple_of_size_at_least(n) when is_integer(n), do: open_tuple(List.duplicate(term(), n))
