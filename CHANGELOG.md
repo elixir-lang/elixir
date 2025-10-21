@@ -357,7 +357,7 @@ This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponso
   * [mix format] Ensure the formatter does not go over the specified limit in certain corner cases
   * [mix release] Fix `RELEASE_SYS_CONFIG` for Windows 11
   * [mix test] Ensure modules are preloaded in `mix test --slowest-modules=N`
-  * [mix xref graph] Provide more consistent output by considering strong connected components only when computing graphs
+  * [mix xref graph] Provide more consistent output by considering strong connected components when computing graphs. This means that, if you were using `mix xref graph --format cycles`, you will now get fewer but larger cycles, as cycle between `A` and `B` and another between `A` and `C` is now considered a single cycle between `A`, `B`, and `C`. Note the cycles themselves are not problematic, unless they have compile-time dependencies in them
 
 ### 3. Soft deprecations (no warnings emitted)
 
