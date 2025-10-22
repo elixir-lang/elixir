@@ -706,7 +706,7 @@ defmodule File do
     path = IO.chardata_to_string(path)
 
     with {:error, :enoent} <- :elixir_utils.change_universal_time(path, time),
-         :ok <- write(path, "", [:append]),
+         :ok <- write(path, "", [:raw, :append]),
          do: :elixir_utils.change_universal_time(path, time)
   end
 
@@ -714,7 +714,7 @@ defmodule File do
     path = IO.chardata_to_string(path)
 
     with {:error, :enoent} <- :elixir_utils.change_posix_time(path, time),
-         :ok <- write(path, "", [:append]),
+         :ok <- write(path, "", [:raw, :append]),
          do: :elixir_utils.change_posix_time(path, time)
   end
 
