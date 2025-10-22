@@ -4,6 +4,7 @@
 
 defmodule Module.ParallelChecker do
   @moduledoc false
+  @elixir_checker_version :elixir_erl.checker_version()
 
   import Kernel, except: [spawn: 3]
 
@@ -96,10 +97,12 @@ defmodule Module.ParallelChecker do
                     end
 
                   with {:ok, binary} <- File.read(location),
-                       {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
-                       {:debug_info_v1, backend, data} = chunk,
-                       {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
-                    cache_from_module_map(table, module_map)
+                       {:ok,
+                        {_, [{:debug_info, {:debug_info_v1, backend, data}}, {~c"ExCk", checker}]}} <-
+                         :beam_lib.chunks(binary, [:debug_info, ~c"ExCk"]),
+                       {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []),
+                       {@elixir_checker_version, contents} <- :erlang.binary_to_term(checker) do
+                    {cache_chunk(table, module, contents), module_map_to_module_tuple(module_map)}
                   else
                     _ -> {:not_found, nil}
                   end
@@ -177,9 +180,9 @@ defmodule Module.ParallelChecker do
   end
 
   @doc """
-  Receives pairs of module maps and BEAM binaries. In parallel it verifies
-  the modules and adds the ExCk chunk to the binaries. Returns the updated
-  list of warnings from the verification.
+  Receives pairs of module maps and BEAM binaries.
+
+  Returns the updated list of warnings from the verification.
   """
   @spec verify(cache(), [{module(), Path.t()}]) :: [warning()]
   def verify({checker, table}, runtime_files) do
@@ -423,7 +426,7 @@ defmodule Module.ParallelChecker do
       mode =
         with {^module, binary, _filename} <- object_code,
              {:ok, {^module, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
-             {:elixir_checker_v3, contents} <- :erlang.binary_to_term(chunk) do
+             {@elixir_checker_version, contents} <- :erlang.binary_to_term(chunk) do
           # The chunk has more information, so that's our preference
           cache_chunk(table, module, contents)
         else

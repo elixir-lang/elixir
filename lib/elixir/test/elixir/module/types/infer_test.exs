@@ -23,10 +23,10 @@ defmodule Module.Types.InferTest do
         []
       )
 
-    {:ok, {_, [debug_info: chunk]}} = :beam_lib.chunks(binary, [:debug_info])
-    {:debug_info_v1, backend, data} = chunk
-    {:ok, %{signatures: signatures}} = backend.debug_info(:elixir_v1, module, data, [])
-    signatures
+    version = :elixir_erl.checker_version()
+    {:ok, {_, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
+    {^version, data} = :erlang.binary_to_term(chunk)
+    for {fun, %{sig: sig}} <- data.exports, into: %{}, do: {fun, sig}
   end
 
   test "infer types from patterns", config do
