@@ -267,6 +267,8 @@ defmodule Protocol do
 
   @optional_callbacks __deriving__: 2
 
+  @elixir_checker_version :elixir_erl.checker_version()
+
   @doc false
   defmacro def(signature)
 
@@ -564,31 +566,34 @@ defmodule Protocol do
     # Ensure the types are sorted so the compiled beam is deterministic
     types = Enum.sort(types)
 
-    with {:ok, any, definitions, signatures, compile_info} <- beam_protocol(protocol),
-         {:ok, definitions, signatures} <-
-           consolidate(protocol, any, definitions, signatures, types),
-         do: compile(definitions, signatures, compile_info)
+    with {:ok, any, definitions, checker, compile_info} <- beam_protocol(protocol),
+         {:ok, definitions, checker} <-
+           consolidate(protocol, any, definitions, checker, types),
+         do: compile(definitions, checker, compile_info)
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:debug_info, [?D, ?o, ?c, ?s]]
+    chunk_ids = [:debug_info, [?E, ?x, ?C, ?k], [?D, ?o, ?c, ?s]]
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
-      {:ok, {^protocol, [{:debug_info, debug_info} | chunks]}} ->
+      {:ok, {^protocol, [{:debug_info, debug_info}, {_, checker} | chunks]}} ->
         {:debug_info_v1, _backend, {:elixir_v1, module_map, specs}} = debug_info
         %{attributes: attributes, definitions: definitions} = module_map
 
-        # Protocols in precompiled archives may not have signatures, so we default to an empty map.
-        # TODO: Remove this on Elixir v1.23.
-        signatures = Map.get(module_map, :signatures, %{})
-
-        chunks = :lists.filter(fn {_name, value} -> value != :missing_chunk end, chunks)
-        chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
-
         case attributes[:__protocol__] do
           [fallback_to_any: any] ->
-            {:ok, any, definitions, signatures, {module_map, specs, chunks}}
+            checker =
+              with true <- is_binary(checker),
+                   {@elixir_checker_version, contents} <- :erlang.binary_to_term(checker) do
+                contents
+              else
+                _ -> nil
+              end
+
+            chunks = :lists.filter(fn {_name, value} -> value != :missing_chunk end, chunks)
+            chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
+            {:ok, any, definitions, checker, {module_map, specs, chunks}}
 
           _ ->
             {:error, :not_a_protocol}
@@ -607,7 +612,7 @@ defmodule Protocol do
   end
 
   # Consolidate the protocol for faster implementations and fine-grained type information.
-  defp consolidate(protocol, fallback_to_any?, definitions, signatures, types) do
+  defp consolidate(protocol, fallback_to_any?, definitions, checker, types) do
     case List.keytake(definitions, {:__protocol__, 1}, 0) do
       {protocol_def, definitions} ->
         types = if fallback_to_any?, do: types, else: List.delete(types, Any)
@@ -623,11 +628,24 @@ defmodule Protocol do
         protocol_def = change_protocol(protocol_def, types)
         impl_for = change_impl_for(impl_for, protocol, types)
         struct_impl_for = change_struct_impl_for(struct_impl_for, protocol, types, structs)
-        new_signatures = new_signatures(definitions, protocol_funs, protocol, types)
-
         definitions = [protocol_def, impl_for, impl_for!, struct_impl_for] ++ definitions
-        signatures = Enum.into(new_signatures, signatures)
-        {:ok, definitions, signatures}
+
+        checker =
+          if checker do
+            update_in(checker.exports, fn exports ->
+              signatures = new_signatures(definitions, protocol_funs, protocol, types)
+
+              for {fun, info} <- exports do
+                if sig = Map.get(signatures, fun) do
+                  {fun, %{info | sig: sig}}
+                else
+                  {fun, info}
+                end
+              end
+            end)
+          end
+
+        {:ok, definitions, checker}
 
       nil ->
         {:error, :not_a_protocol}
@@ -680,10 +698,12 @@ defmodule Protocol do
         {fun_arity, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
       end
 
-    [
-      {{:impl_for, 1}, {:strong, [Descr.term()], impl_for}},
-      {{:impl_for!, 1}, {:strong, [domain], impl_for!}}
-    ] ++ new_signatures
+    Map.new(
+      [
+        {{:impl_for, 1}, {:strong, [Descr.term()], impl_for}},
+        {{:impl_for!, 1}, {:strong, [domain], impl_for!}}
+      ] ++ new_signatures
+    )
   end
 
   defp get_protocol_functions({_name, _kind, _meta, clauses}) do
@@ -752,11 +772,9 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(definitions, signatures, {module_map, specs, docs_chunk}) do
-    # Protocols in precompiled archives may not have signatures, so we default to an empty map.
-    # TODO: Remove this on Elixir v1.23.
-    module_map = %{module_map | definitions: definitions} |> Map.put(:signatures, signatures)
-    {:ok, :elixir_erl.consolidate(module_map, specs, docs_chunk)}
+  defp compile(definitions, checker, {module_map, specs, docs_chunk}) do
+    module_map = %{module_map | definitions: definitions}
+    {:ok, :elixir_erl.consolidate(module_map, checker, specs, docs_chunk)}
   end
 
   ## Definition callbacks

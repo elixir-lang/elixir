@@ -5,10 +5,13 @@
 %% Compiler backend to Erlang.
 
 -module(elixir_erl).
--export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/1, consolidate/3,
-         get_ann/1, debug_info/4, scope/2, format_error/1]).
+-export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/1, consolidate/4,
+         get_ann/1, debug_info/4, scope/2, checker_version/0, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
+
+checker_version() ->
+  elixir_checker_v3.
 
 %% debug_info callback
 
@@ -132,9 +135,9 @@ scope(_Meta, ExpandCaptures) ->
 
 %% Static compilation hook, used in protocol consolidation
 
-consolidate(Map, TypeSpecs, DocsChunk) ->
-  {Prefix, Forms, Def, _Defmacro, _Macros} = dynamic_form(Map, nil),
-  CheckerChunk = checker_chunk(Map, Def, chunk_opts(Map)),
+consolidate(Map, Checker, TypeSpecs, DocsChunk) ->
+  {Prefix, Forms, _Def, _Defmacro, _Macros} = dynamic_form(Map, nil),
+  CheckerChunk = checker_chunk(Checker, chunk_opts(Map)),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 %% Dynamic compilation hook, used in regular compiler
@@ -516,8 +519,10 @@ load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chu
   Binary.
 
 debug_opts(Map, Specs, Opts) ->
+  %% Signatures are moved to ExCk, no need to duplicate in chunks
+  Keys = [signatures],
   case take_debug_opts(Opts) of
-    {true, Rest} -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}} | Rest];
+    {true, Rest} -> [{debug_info, {?MODULE, {elixir_v1, maps:without(Keys, Map), Specs}}} | Rest];
     {false, Rest} -> [{debug_info, {?MODULE, none}} | Rest]
   end.
 
@@ -639,6 +644,11 @@ signature_to_binary(_, Name, Signature) ->
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
 
+checker_chunk(nil, _ChunkOpts) ->
+  [];
+checker_chunk(Contents, ChunkOpts) ->
+  [{<<"ExCk">>, term_to_binary({checker_version(), Contents}, ChunkOpts)}].
+
 checker_chunk(Map, Def, ChunkOpts) ->
   #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour,
     signatures := Signatures, attributes := Attributes} = Map,
@@ -662,7 +672,7 @@ checker_chunk(Map, Def, ChunkOpts) ->
     end
   },
 
-  [{<<"ExCk">>, term_to_binary({elixir_checker_v3, Contents}, ChunkOpts)}].
+  checker_chunk(Contents, ChunkOpts).
 
 prepend_behaviour_info(true, Def) -> [{{behaviour_info, 1}, []} | Def];
 prepend_behaviour_info(false, Def) -> Def.
