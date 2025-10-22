@@ -5,7 +5,7 @@
 %% Compiler backend to Erlang.
 
 -module(elixir_erl).
--export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/1, consolidate/4,
+-export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/2, consolidate/4,
          get_ann/1, debug_info/4, scope/2, checker_version/0, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
@@ -142,7 +142,7 @@ consolidate(Map, Checker, TypeSpecs, DocsChunk) ->
 
 %% Dynamic compilation hook, used in regular compiler
 
-compile(#{module := Module, anno := Anno} = BaseMap) ->
+compile(#{module := Module, anno := Anno} = BaseMap, Signatures) ->
   Map =
     case elixir_erl_compiler:env_compiler_options() of
       [] -> BaseMap;
@@ -164,7 +164,7 @@ compile(#{module := Module, anno := Anno} = BaseMap) ->
 
   ChunkOpts = chunk_opts(Map),
   DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks, ChunkOpts),
-  CheckerChunk = checker_chunk(Map, Def, ChunkOpts),
+  CheckerChunk = checker_chunk(Map, Def, Signatures, ChunkOpts),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 chunk_opts(Map) ->
@@ -519,10 +519,8 @@ load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chu
   Binary.
 
 debug_opts(Map, Specs, Opts) ->
-  %% Signatures are moved to ExCk, no need to duplicate in chunks
-  Keys = [signatures],
   case take_debug_opts(Opts) of
-    {true, Rest} -> [{debug_info, {?MODULE, {elixir_v1, maps:without(Keys, Map), Specs}}} | Rest];
+    {true, Rest} -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}} | Rest];
     {false, Rest} -> [{debug_info, {?MODULE, none}} | Rest]
   end.
 
@@ -649,9 +647,8 @@ checker_chunk(nil, _ChunkOpts) ->
 checker_chunk(Contents, ChunkOpts) ->
   [{<<"ExCk">>, term_to_binary({checker_version(), Contents}, ChunkOpts)}].
 
-checker_chunk(Map, Def, ChunkOpts) ->
-  #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour,
-    signatures := Signatures, attributes := Attributes} = Map,
+checker_chunk(Map, Def, Signatures, ChunkOpts) ->
+  #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, attributes := Attributes} = Map,
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =

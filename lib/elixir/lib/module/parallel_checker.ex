@@ -63,14 +63,14 @@ defmodule Module.ParallelChecker do
   @doc """
   Spawns a process that runs the parallel checker.
   """
-  def spawn({pid, {checker, table}}, module, module_map, beam_location, log?) do
+  def spawn({pid, {checker, table}}, module, module_map, signatures, beam_location, log?) do
     # Protocols may have been consolidated. So if we know their beam location,
     # we discard their module map on purpose and start from file.
     info =
       if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
         List.to_string(beam_location)
       else
-        cache_from_module_map(table, module_map)
+        cache_from_module_map(table, module_map, signatures)
       end
 
     inner_spawn(pid, checker, table, module, info, log?)
@@ -477,12 +477,12 @@ defmodule Module.ParallelChecker do
     if Keyword.has_key?(attributes, :__protocol__), do: :protocol, else: :elixir
   end
 
-  defp cache_from_module_map(table, map) do
+  defp cache_from_module_map(table, map, signatures) do
     exports =
       behaviour_exports(map) ++
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
-    cache_info(table, map.module, exports, Map.new(map.deprecated), map.signatures)
+    cache_info(table, map.module, exports, Map.new(map.deprecated), signatures)
     {elixir_mode(map.attributes), module_map_to_module_tuple(map)}
   end
 

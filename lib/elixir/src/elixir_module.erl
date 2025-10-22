@@ -219,14 +219,13 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           deprecated => get_deprecated(DataBag),
           defines_behaviour => defines_behaviour(DataBag),
           impls => Impls,
-          unreachable => Unreachable,
-          signatures => Signatures
+          unreachable => Unreachable
         },
 
         compile_error_if_tainted(DataSet, E),
-        Binary = elixir_erl:compile(ModuleMap),
+        Binary = elixir_erl:compile(ModuleMap, Signatures),
         Autoload = Forceload or proplists:get_value(autoload, CompileOpts, false),
-        spawn_parallel_checker(CheckerInfo, Module, ModuleMap, BeamLocation),
+        spawn_parallel_checker(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation),
         {Binary, PersistedAttributes, Autoload}
       end),
 
@@ -581,15 +580,15 @@ checker_info() ->
     _ -> 'Elixir.Module.ParallelChecker':get()
   end.
 
-spawn_parallel_checker({_, nil}, _Module, _ModuleMap, _BeamLocation) ->
+spawn_parallel_checker({_, nil}, _Module, _ModuleMap, _Signatures, _BeamLocation) ->
   ok;
-spawn_parallel_checker(CheckerInfo, Module, ModuleMap, BeamLocation) ->
+spawn_parallel_checker(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation) ->
   Log =
     case erlang:get(elixir_code_diagnostics) of
       {_, false} -> false;
       _ -> true
     end,
-  'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, BeamLocation, Log).
+  'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation, Log).
 
 make_module_available(Module, Binary, Loaded) ->
   case get(elixir_module_binaries) of
