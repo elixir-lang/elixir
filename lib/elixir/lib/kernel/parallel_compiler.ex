@@ -380,27 +380,73 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp write_module_binaries(result, {:compile, path}, timestamp) do
-    File.mkdir_p!(path)
-    Code.prepend_path(path)
+  defp write_module_binaries(result, {:compile, path}, state) when map_size(result) > 0 do
+    profile(state, "writing modules to disk", fn ->
+      File.mkdir_p!(path)
+      Code.prepend_path(path)
+      timestamp = state.beam_timestamp
 
-    for {{:module, module}, {binary, _}} when is_binary(binary) <- result do
-      full_path = Path.join(path, Atom.to_string(module) <> ".beam")
-      File.write!(full_path, binary)
-      if timestamp, do: File.touch!(full_path, timestamp)
-      module
-    end
+      # We fan-out the writes as that improves performance
+      # when writing hundreds of beam files. This is cheap as
+      # we only transfer atoms and binaries across processes.
+      pool_size = min(map_size(result), state.schedulers)
+
+      pool_list =
+        for _ <- 1..pool_size do
+          spawn_link(fn -> write_loop(path, timestamp) end)
+        end
+
+      pool_tuple = List.to_tuple(pool_list)
+
+      {modules, _} =
+        Enum.flat_map_reduce(result, 0, fn
+          {{:module, module}, {binary, _}}, scheduler when is_binary(binary) ->
+            send(elem(pool_tuple, scheduler), {:write, module, binary})
+            {[module], rem(scheduler + 1, pool_size)}
+
+          _, scheduler ->
+            {[], scheduler}
+        end)
+
+      pool_refs =
+        for pid <- pool_list do
+          ref = Process.monitor(pid)
+          send(pid, :done)
+          ref
+        end
+
+      for ref <- pool_refs do
+        receive do
+          {:DOWN, ^ref, _, _, _} -> :ok
+        end
+      end
+
+      modules
+    end)
   end
 
-  defp write_module_binaries(result, _output, _timestamp) do
+  defp write_module_binaries(result, _output, _state) do
     for {{:module, module}, {binary, _}} when is_binary(binary) <- result, do: module
+  end
+
+  defp write_loop(path, timestamp) do
+    receive do
+      {:write, module, binary} ->
+        full_path = Path.join(path, Atom.to_string(module) <> ".beam")
+        File.write!(full_path, binary, [:raw])
+        if timestamp, do: File.touch!(full_path, timestamp)
+        write_loop(path, timestamp)
+
+      :done ->
+        :ok
+    end
   end
 
   ## Verification
 
   defp verify_modules(result, compile_warnings, dependent_modules, state) do
-    modules = write_module_binaries(result, state.output, state.beam_timestamp)
-    _ = state.after_compile.()
+    modules = write_module_binaries(result, state.output, state)
+    profile(state, "after compile callback", state.after_compile)
 
     runtime_warnings =
       if state.verification? do

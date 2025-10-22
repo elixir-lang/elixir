@@ -127,7 +127,7 @@ change_posix_time(Name, Time) when is_integer(Time) ->
 change_universal_time(Name, {{Y, M, D}, {H, Min, Sec}}=Time)
     when is_integer(Y), is_integer(M), is_integer(D),
          is_integer(H), is_integer(Min), is_integer(Sec) ->
-  file:write_file_info(Name, #file_info{mtime=Time}, [{time, universal}]).
+  file:write_file_info(Name, #file_info{mtime=Time}, [raw, {time, universal}]).
 
 relative_to_cwd(Path) ->
   try elixir_config:get(relative_paths) of
