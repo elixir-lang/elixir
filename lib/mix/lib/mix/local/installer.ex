@@ -315,7 +315,10 @@ defmodule Mix.Local.Installer do
           nil
       end
     else
-      Mix.raise("No argument was given to uninstall command")
+      Mix.raise(
+        "No argument was given to uninstall command. " <>
+          " Use \"mix archive.uninstall PATH\" or run \"mix help archive.uninstall\" for more information"
+      )
     end
   end
 

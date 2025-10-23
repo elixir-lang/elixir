@@ -64,7 +64,10 @@ defmodule Mix.Tasks.New do
 
     case argv do
       [] ->
-        Mix.raise("Expected PATH to be given, please use \"mix new PATH\"")
+        Mix.raise(
+          "Expected PATH to be given. " <>
+            "Use \"mix new PATH\" or run \"mix help new\" for more information"
+        )
 
       [path | _] ->
         app = opts[:app] || Path.basename(Path.expand(path))

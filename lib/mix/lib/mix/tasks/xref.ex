@@ -470,7 +470,9 @@ defmodule Mix.Tasks.Xref do
         )
 
       _ ->
-        Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
+        Mix.raise(
+          "No argument was given to xref command. Run \"mix help xref\" for more information"
+        )
     end
   end
 

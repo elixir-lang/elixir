@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Cmd do
     {opts, args} = OptionParser.parse_head!(args, strict: @switches)
 
     if args == [] do
-      Mix.raise("Expected at least one argument in mix cmd")
+      Mix.raise("No argument was given to mix cmd. Run \"mix help cmd\" for more information")
     end
 
     apps =

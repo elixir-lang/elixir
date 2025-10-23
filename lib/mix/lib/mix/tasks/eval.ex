@@ -97,7 +97,10 @@ defmodule Mix.Tasks.Eval do
         end
 
       _ ->
-        Mix.raise("\"mix eval\" expects a single string to evaluate as argument")
+        Mix.raise(
+          "\"mix eval\" expects a single string to evaluate as argument. " <>
+            "Run \"mix help eval\" for more information"
+        )
     end
   end
 end
