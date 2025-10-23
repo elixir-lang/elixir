@@ -6,6 +6,21 @@
 canonical = System.fetch_env!("CANONICAL")
 
 [
+  search: [
+    %{
+      name: "Elixir + libraries",
+      help: "Search Elixir, EEx, ExUnit, IEx, Logger, and Mix",
+      packages:
+        Enum.map(
+          [:elixir, :eex, :ex_unit, :iex, :logger, :mix],
+          &{&1, String.trim(canonical, "/")}
+        )
+    },
+    %{
+      name: "Current project",
+      help: "Search only this project"
+    }
+  ],
   assets: %{"lib/elixir/pages/images" => "assets"},
   extras: [
     "lib/elixir/pages/getting-started/introduction.md",
