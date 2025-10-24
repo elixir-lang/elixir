@@ -7,24 +7,6 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.Compile.AppTest do
   use MixTest.Case
 
-  defmodule CustomProject do
-    def project do
-      [
-        app: :custom_project,
-        version: "0.2.0",
-        description: "Some UTF-8 dëscriptión"
-      ]
-    end
-
-    def application do
-      [
-        maxT: :infinity,
-        applications: [:example_app, mix: :optional],
-        extra_applications: [:logger, ex_unit: :optional]
-      ]
-    end
-  end
-
   defmodule CustomDeps do
     def project do
       [app: :custom_deps, version: "0.2.0", deps: deps()]
@@ -51,9 +33,13 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
   end
 
-  defmodule InvalidProject do
+  defmodule CustomProject do
     def project do
-      [app: :invalid_project, version: "0.3.0"]
+      [
+        app: :custom_project,
+        version: "0.3.0",
+        description: "Some UTF-8 dëscriptión"
+      ]
     end
 
     def application do
@@ -124,19 +110,29 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "uses custom application settings" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(CustomProject)
+      env = [foo: [:one, "two", 3, 4], bar: [{} | %{foo: :bar}]]
+
+      Process.put(:application,
+        maxT: :infinity,
+        applications: [:example_app, mix: :optional],
+        extra_applications: [:logger, ex_unit: :optional],
+        env: env
+      )
 
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
 
       properties = parse_resource_file(:custom_project)
-      assert Application.spec(:custom_project, :vsn) == ~c"0.2.0"
-      assert properties[:vsn] == ~c"0.2.0"
+      assert Application.spec(:custom_project, :vsn) == ~c"0.3.0"
+      assert properties[:vsn] == ~c"0.3.0"
       assert properties[:maxT] == :infinity
       assert properties[:optional_applications] == [:ex_unit, :mix]
       assert properties[:description] == ~c"Some UTF-8 dëscriptión"
 
       assert properties[:applications] ==
                [:kernel, :stdlib, :elixir, :logger, :ex_unit, :example_app, :mix]
+
+      assert properties[:env] == [foo: [:one, "two", 3, 4], bar: [{} | %{foo: :bar}]]
 
       refute Keyword.has_key?(properties, :extra_applications)
     end)
@@ -160,7 +156,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
   test "validates properties" do
     in_fixture("no_mixfile", fn ->
-      Mix.Project.push(InvalidProject)
+      Mix.Project.push(CustomProject)
 
       Process.put(:application, [:not_a_keyword, applications: []])
       message = "Application configuration returned from application/0 should be a keyword list"
@@ -248,6 +244,15 @@ defmodule Mix.Tasks.Compile.AppTest do
 
       message =
         "Application start phases (:start_phases) should be a keyword list, got: [:invalid]"
+
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, env: [foo: make_ref()])
+
+      message =
+        ~r"\"def application\" has a term which cannot be written to \.app files: #Reference"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
