@@ -244,7 +244,20 @@ defmodule Logger.Formatter do
     case if(is_function(enabled, 0), do: enabled.(), else: enabled) do
       true ->
         color = md[:ansi_color] || Map.fetch!(colors, level)
-        [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
+        fragment = IO.ANSI.format_fragment(color, true)
+        data = IO.iodata_to_binary(data)
+        size = byte_size(data)
+
+        cond do
+          :binary.at(data, size - 2) == ?\r and :binary.at(data, size - 1) == ?\n ->
+            [fragment, binary_part(data, 0, size - 2), IO.ANSI.reset() | "\r\n"]
+
+          :binary.at(data, size - 1) == ?\n ->
+            [fragment, binary_part(data, 0, size - 1), IO.ANSI.reset(), ?\n]
+
+          true ->
+            [fragment, data | IO.ANSI.reset()]
+        end
 
       false ->
         data

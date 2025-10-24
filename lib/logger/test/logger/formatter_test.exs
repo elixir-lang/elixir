@@ -97,6 +97,26 @@ defmodule Logger.FormatterTest do
              |> format(formatter)
              |> IO.chardata_to_string() =~ ~r"\d\d\d message"
     end
+
+    test "handles colorize with newlines" do
+      {_, formatter} =
+        new(
+          format: "$message",
+          colors: [enabled: true]
+        )
+
+      assert %{level: :warning, msg: {:string, "message"}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33mmessage\e[0m"
+
+      assert %{level: :warning, msg: {:string, "message\n"}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33mmessage\e[0m\n"
+
+      assert %{level: :warning, msg: {:string, "message\r\n"}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33mmessage\e[0m\r\n"
+    end
   end
 
   describe "compile + format" do

@@ -228,7 +228,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Process Label: {:any, \"term\"}
-           Last message \(from #PID<\d+\.\d+\.\d+>\): :error
+           Last message \(from #PID<\d+\.\d+\.\d+>\): :error\
            """s
   end
 
@@ -301,7 +301,7 @@ defmodule Logger.TranslatorTest do
            .*
            Last message \(from #PID<\d+\.\d+\.\d+>\): :error_on_down
            State: :ok
-           Client #PID<\d+\.\d+\.\d+> is dead
+           Client #PID<\d+\.\d+\.\d+> is dead\
            """s
   end
 
@@ -317,7 +317,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Last message: {:"\$gen_cast", :error}
-           State: :ok
+           State: :ok\
            """s
   end
 
@@ -384,7 +384,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Process Label: {:any, "term"}
-           Last message: :error
+           Last message: :error\
            """s
   end
 
@@ -399,7 +399,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Last message: :error
-           State: :ok
+           State: :ok\
            """s
 
     assert_receive {:event, {:report, %{label: {:gen_event, :terminate}}}, metadata}
@@ -464,7 +464,7 @@ defmodule Logger.TranslatorTest do
            .*
            Process Label: {:any, \"term\"}
            Queue: .*
-           Postponed: \[\]
+           Postponed: \[\]\
            """s
   end
 
@@ -543,7 +543,7 @@ defmodule Logger.TranslatorTest do
            Postponed: \[\]
            State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
-           Client #PID<\d+\.\d+\.\d+> is dead
+           Client #PID<\d+\.\d+\.\d+> is dead\
            """s
   end
 
@@ -561,7 +561,7 @@ defmodule Logger.TranslatorTest do
            Queue: .*
            Postponed: \[\]
            State: {:started, :ok}
-           Callback mode: :state_functions, state_enter: false
+           Callback mode: :state_functions, state_enter: false\
            """s
   end
 
@@ -619,7 +619,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Function: &Logger.TranslatorTest.task\/1
-               Args: \[#PID<\d+\.\d+\.\d+>\]
+               Args: \[#PID<\d+\.\d+\.\d+>\]\
            """s
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -640,7 +640,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(UndefinedFunctionError\) function :module_does_not_exist.undef/0 is undefined \(module :module_does_not_exist is not available\)
            .*
            Function: &:module_does_not_exist.undef/0
-               Args: \[\]
+               Args: \[\]\
            """s
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -660,7 +660,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(UndefinedFunctionError\) function Logger.TranslatorTest.undef/0 is undefined or private
            .*
            Function: &Logger.TranslatorTest.undef/0
-               Args: \[\]
+               Args: \[\]\
            """s
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -688,7 +688,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(ErlangError\) Erlang error: :foo
            .*
            Function: &:erlang\.error/1
-               Args: \[%ErlangError{.*}\]
+               Args: \[%ErlangError{.*}\]\
            """s
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -708,7 +708,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(ArgumentError\) argument error
            .*
            Function: &:erlang\.error/1
-               Args: \[:badarg\]
+               Args: \[:badarg\]\
            """s
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -728,7 +728,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(stop\) :abnormal
            .*
            Function: &:erlang\.exit/1
-               Args: \[:abnormal\]
+               Args: \[:abnormal\]\
            """s
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -755,26 +755,22 @@ defmodule Logger.TranslatorTest do
              .*
              Process Label: {:any, \"term\"}
              Function: &Logger.TranslatorTest.task\/2
-                 Args: \[#PID<\d+\.\d+\.\d+>\, .*]
+                 Args: \[#PID<\d+\.\d+\.\d+>\, .*]\
              """s
   end
 
   test "translates application start" do
     assert capture_log(fn ->
-             Application.start(:eex)
+             :ok = Application.start(:eex)
              Application.stop(:eex)
-           end) =~ """
-           Application eex started at #{inspect(node())}
-           """
+           end) =~ "Application eex started at #{inspect(node())}"
   end
 
   test "translates application stop" do
     assert capture_log(fn ->
              :ok = Application.start(:eex)
              Application.stop(:eex)
-           end) =~ """
-           Application eex exited: :stopped
-           """
+           end) =~ "Application eex exited: :stopped"
   end
 
   test "translates bare process crashes" do
@@ -810,7 +806,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Initial Call: Logger.TranslatorTest.task/2
-           Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+           Ancestors: \[#PID<\d+\.\d+\.\d+>\]\
            """s
 
     assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
@@ -854,7 +850,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            .*
            Initial Call: Logger.TranslatorTest.task/2
-           Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+           Ancestors: \[#PID<\d+\.\d+\.\d+>\]\
            """s
 
     assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
@@ -881,7 +877,7 @@ defmodule Logger.TranslatorTest do
            .*
            Initial Call: Logger.TranslatorTest.task/2
            Process Label: {:any, \"term\"}
-           Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+           Ancestors: \[#PID<\d+\.\d+\.\d+>\]\
            """s
 
     assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
@@ -905,7 +901,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Process #PID<\d+\.\d+\.\d+> terminating
            \*\* \(RuntimeError\) oops
            .*
-           Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+           Ancestors: \[#PID<\d+\.\d+\.\d+>\]\
            """s
 
     assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
@@ -926,7 +922,7 @@ defmodule Logger.TranslatorTest do
                #PID<\d+\.\d+\.\d+>
                    Initial Call: Logger.TranslatorTest.sleep/1
                    Current Call: Logger.TranslatorTest.sleep/1
-                   Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
+                   Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]\
            """
   end
 
@@ -949,7 +945,7 @@ defmodule Logger.TranslatorTest do
                Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\)
                    Initial Call: Logger.TranslatorTest.sleep/1
                    Current Call: Logger.TranslatorTest.sleep/1
-                   Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
+                   Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]\
            """
   end
 
@@ -1016,7 +1012,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
            Restart: :permanent
            Shutdown: 5000
-           Type: :worker
+           Type: :worker\
            """
   end
 
@@ -1031,7 +1027,7 @@ defmodule Logger.TranslatorTest do
            end) =~ ~r"""
            \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
            \*\* \(exit\) :stop
-           Start Call: Logger.TranslatorTest.error\(\)
+           Start Call: Logger.TranslatorTest.error\(\)\
            """
   end
 
@@ -1048,7 +1044,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(exit\) an exception was raised:
                \*\* \(UndefinedFunctionError\) function Logger.TranslatorTest.undef/0 is undefined or private
                .*
-           Start Call: Logger.TranslatorTest.undef\(\)
+           Start Call: Logger.TranslatorTest.undef\(\)\
            """s
 
     assert_receive {:event, {:report, %{label: {:supervisor, :start_error}}}, _child_metadata}
@@ -1065,7 +1061,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) terminated
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
+           Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)\
            """
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -1087,7 +1083,7 @@ defmodule Logger.TranslatorTest do
            end) =~ ~r"""
            \[error\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) caused shutdown
            \*\* \(exit\) :reached_max_restart_intensity
-           Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
+           Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)\
            """
 
     assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
@@ -1108,7 +1104,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Logger.TranslatorTest.abnormal\(\)
+           Start Call: Logger.TranslatorTest.abnormal\(\)\
            """
 
     assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
@@ -1128,7 +1124,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            Restart: :permanent
            Shutdown: 5000
-           Type: :worker
+           Type: :worker\
            """
 
     assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
@@ -1147,7 +1143,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Logger.TranslatorTest.abnormal\(\)
+           Start Call: Logger.TranslatorTest.abnormal\(\)\
            """
 
     assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
@@ -1168,7 +1164,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Logger.TranslatorTest.abnormal\(:extra, :args\)
+           Start Call: Logger.TranslatorTest.abnormal\(:extra, :args\)\
            """
 
     assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
@@ -1187,7 +1183,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child :undefined of Supervisor Logger.TranslatorTest shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Logger.TranslatorTest.abnormal\(\)
+           Start Call: Logger.TranslatorTest.abnormal\(\)\
            """
 
     assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
@@ -1202,7 +1198,7 @@ defmodule Logger.TranslatorTest do
            end) =~ ~r"""
            \[info\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) started
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Logger.TranslatorTest.MyBridge.init\(:normal\)
+           Start Call: Logger.TranslatorTest.MyBridge.init\(:normal\)\
            """
   end
 
@@ -1216,7 +1212,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) terminated
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Module: Logger.TranslatorTest.MyBridge
+           Start Module: Logger.TranslatorTest.MyBridge\
            """
 
     assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, task_metadata}
