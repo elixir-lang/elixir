@@ -9,7 +9,7 @@ defmodule Mix.Compilers.Protocol do
 
   ## Umbrella handling
 
-  @switches [force: :boolean, verbose: :boolean, consolidate_protocols: :boolean]
+  @switches [force: :boolean, verbose: :boolean, consolidate_protocols: :boolean, warnings_as_errors: :boolean]
 
   def umbrella(args, res) do
     config = Mix.Project.config()
