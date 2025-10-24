@@ -187,11 +187,11 @@ defmodule Mix.Tasks.Compile.App do
         |> add_compile_env(current_properties)
         |> add_modules(modules, compile_path)
 
-      contents = :io_lib.format("~p.~n", [{:application, app, properties}])
+      contents = to_erl_term({:application, app, properties})
       :application.load({:application, app, properties})
 
       Mix.Project.ensure_structure()
-      File.write!(target, IO.chardata_to_string(contents))
+      File.write!(target, [contents, ?.])
       File.touch!(target, new_mtime)
 
       # If we just created the .app file, it will have touched
@@ -207,6 +207,53 @@ defmodule Mix.Tasks.Compile.App do
       {:noop, []}
     end
   end
+
+  defp to_erl_term(tuple) when is_tuple(tuple) do
+    [?{, tuple |> Tuple.to_list() |> to_erl_head(), ?}]
+  end
+
+  defp to_erl_term(list) when is_list(list) do
+    [?[, to_erl_head(list), ?]]
+  end
+
+  defp to_erl_term(map) when is_map(map) do
+    inner =
+      Enum.map_intersperse(
+        :maps.to_list(:maps.iterator(map, :reversed)),
+        ?,,
+        fn {key, value} -> [to_erl_term(key), "=>", to_erl_term(value)] end
+      )
+
+    [?#, ?{, inner, ?}]
+  end
+
+  defp to_erl_term(map) when is_map(map) do
+    inner =
+      Enum.map_intersperse(
+        :maps.to_list(:maps.iterator(map, :reversed)),
+        ?,,
+        fn {key, value} -> [to_erl_term(key), "=>", to_erl_term(value)] end
+      )
+
+    [?#, ?{, inner, ?}]
+  end
+
+  defp to_erl_term(term) when is_function(term) or is_reference(term) or is_pid(term) do
+    Mix.raise(
+      "\"def application\" has a term which cannot be written to .app files: #{inspect(term)}"
+    )
+  end
+
+  defp to_erl_term(term) do
+    :io_lib.print(term)
+  end
+
+  defp to_erl_head([]), do: []
+  defp to_erl_head([h | t]), do: [to_erl_term(h) | to_erl_tail(t)]
+
+  defp to_erl_tail([h | t]), do: [?,, to_erl_term(h) | to_erl_tail(t)]
+  defp to_erl_tail([]), do: []
+  defp to_erl_tail(other), do: [?|, to_erl_term(other)]
 
   defp current_app_properties(target) do
     case :file.consult(target) do
