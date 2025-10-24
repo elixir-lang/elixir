@@ -223,9 +223,11 @@ defmodule Mix.Tasks.NewTest do
     end)
 
     in_tmp("new without a specified path", fn ->
-      assert_raise Mix.Error, "Expected PATH to be given, please use \"mix new PATH\"", fn ->
-        Mix.Tasks.New.run([])
-      end
+      assert_raise Mix.Error,
+                   "Expected PATH to be given. Use \"mix new PATH\" or run \"mix help new\" for more information",
+                   fn ->
+                     Mix.Tasks.New.run([])
+                   end
     end)
   end
 

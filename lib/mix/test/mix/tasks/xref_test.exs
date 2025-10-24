@@ -177,7 +177,8 @@ defmodule Mix.Tasks.XrefTest do
 
     test "no argument gives error" do
       in_fixture("no_mixfile", fn ->
-        message = "xref doesn't support this command. For more information run \"mix help xref\""
+        message =
+          "No argument was given to xref command. Run \"mix help xref\" for more information"
 
         assert_raise Mix.Error, message, fn ->
           assert Mix.Task.run("xref", ["callers"]) == :error

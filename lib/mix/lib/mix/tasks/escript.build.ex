@@ -154,7 +154,8 @@ defmodule Mix.Tasks.Escript.Build do
     if !main do
       error_message =
         "Could not generate escript, please set :main_module " <>
-          "in your project configuration (under :escript option) to a module that implements main/1"
+          "in your project configuration (under :escript option) to a module that implements main/1. " <>
+          "Run \"mix help escript.build\" for more information"
 
       Mix.raise(error_message)
     end
