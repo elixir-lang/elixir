@@ -122,7 +122,7 @@ For now, there is a more important bug we need to fix: what happens if our TCP a
 
 ## Tasks
 
-Whenever you have an existing function and you simply want to execute it when your application starts, the `Task` module is exactly you need. For example, it has a `Task.start_link/1` function that receives an anonymous function and executes it inside a new process that will be part of a supervision tree.
+Whenever you have an existing function and you simply want to execute it when your application starts, the `Task` module is exactly what you need. For example, it has a `Task.start_link/1` function that receives an anonymous function and executes it inside a new process that will be part of a supervision tree.
 
 Let's give it a try. Open up `lib/kv.ex` and let's add a new child:
 
