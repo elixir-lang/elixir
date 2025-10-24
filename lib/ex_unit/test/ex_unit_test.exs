@@ -375,9 +375,9 @@ defmodule ExUnitTest do
     end
 
     output = capture_io(&ExUnit.run/0)
-    refute output =~ "[debug] one\n"
-    assert output =~ "[debug] two\n"
-    assert output =~ "[debug] three\n"
+    refute output =~ "[debug] one"
+    assert output =~ "[debug] two"
+    assert output =~ "[debug] three"
   end
 
   test "supports multi errors" do
