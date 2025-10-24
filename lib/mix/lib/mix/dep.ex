@@ -27,7 +27,7 @@ defmodule Mix.Dep do
     * `top_level` - true if dependency was defined in the top-level project
 
     * `manager` - the project management, possible values:
-      `:rebar3` | `:mix` | `:make` | `:gleam' | `nil`
+      `:rebar3` | `:mix` | `:make` | `:gleam` | `nil`
 
     * `from` - path to the file where the dependency was defined
 
