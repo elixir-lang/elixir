@@ -12,6 +12,49 @@ defmodule Mix.Utils do
   @compile {:no_warn_undefined, Logger}
 
   @doc """
+  Returns the apps of a project with no filtering.
+
+  `compile.all` calls it to extract all compile-time apps.
+  `compile.app` calls it to extract all runtime apps.
+  """
+  def project_apps(properties, config, extra, deps_loader) do
+    apps = Keyword.get(properties, :applications) || deps_loader.(deps_opts(config))
+    {all, required, optional} = split_by_type(extra ++ apps)
+    all = Enum.uniq(language_apps(config) ++ Enum.reverse(all))
+    optional = Enum.uniq(Enum.reverse(optional -- required))
+    {all, optional}
+  end
+
+  defp split_by_type(apps) do
+    Enum.reduce(apps, {[], [], []}, fn
+      app, {all, required, optional} when is_atom(app) ->
+        {[app | all], [app | required], optional}
+
+      {app, :required}, {all, required, optional} ->
+        {[app | all], [app | required], optional}
+
+      {app, :optional}, {all, required, optional} ->
+        {[app | all], required, [app | optional]}
+    end)
+  end
+
+  defp language_apps(config) do
+    case Keyword.get(config, :language, :elixir) do
+      :elixir -> [:kernel, :stdlib, :elixir]
+      :erlang -> [:kernel, :stdlib]
+    end
+  end
+
+  defp deps_opts(config) do
+    for config_dep <- Keyword.get(config, :deps, []),
+        do: {elem(config_dep, 0), dep_opts(config_dep)}
+  end
+
+  defp dep_opts({_app, opts}) when is_list(opts), do: opts
+  defp dep_opts({_app, _req, opts}) when is_list(opts), do: opts
+  defp dep_opts(_), do: []
+
+  @doc """
   Gets the Mix home.
 
   It uses the locations `MIX_HOME`, `XDG_DATA_HOME/mix`,

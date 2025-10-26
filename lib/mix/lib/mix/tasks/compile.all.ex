@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Compile.All do
     # the load paths before compiling, which means any SCM coming
     # from archives will be removed from the code path.
     deps = Mix.Dep.cached()
-    apps = project_apps(config)
+    apps = compile_apps(config, args)
 
     {loaded_paths, loaded_modules} =
       Mix.AppLoader.load_apps(apps, deps, config, {[], []}, fn {app, path}, {paths, mods} ->
@@ -97,7 +97,10 @@ defmodule Mix.Tasks.Compile.All do
     {status, diagnostics}
   end
 
-  def project_apps(config) do
+  @doc """
+  Returns all apps that should be available at compile time.
+  """
+  def compile_apps(config, args) do
     project = Mix.Project.get!()
 
     properties =
@@ -107,12 +110,17 @@ defmodule Mix.Tasks.Compile.All do
       Keyword.get(properties, :included_applications, []) ++
         Keyword.get(properties, :extra_applications, [])
 
-    {all, _optional} =
-      Mix.Tasks.Compile.App.project_apps(properties, config, extra, fn ->
-        # Include all deps by design
-        Enum.map(config[:deps], &elem(&1, 0))
+    {all, optional} =
+      Mix.Utils.project_apps(properties, config, extra, fn apps_opts ->
+        for {app, opts} <- apps_opts do
+          {app, if(Keyword.get(opts, :optional, false), do: :optional, else: :required)}
+        end
       end)
 
-    all
+    if "--no-optional-deps" in args do
+      all -- optional
+    else
+      all
+    end
   end
 end

@@ -447,8 +447,8 @@ defmodule Mix.Tasks.Compile.App do
     end
 
     {all, optional} =
-      project_apps(properties, config, extra, fn ->
-        apps_from_runtime_prod_deps(properties, config)
+      Mix.Utils.project_apps(properties, config, extra, fn apps_opts ->
+        apps_from_runtime_prod_deps(properties, apps_opts)
       end)
 
     properties
@@ -456,10 +456,10 @@ defmodule Mix.Tasks.Compile.App do
     |> Keyword.put(:optional_applications, optional)
   end
 
-  defp apps_from_runtime_prod_deps(properties, config) do
+  defp apps_from_runtime_prod_deps(properties, apps_opts) do
     included_applications = Keyword.get(properties, :included_applications, [])
 
-    for {app, opts} <- deps_opts(config),
+    for {app, opts} <- apps_opts,
         runtime_app?(opts),
         app not in included_applications,
         do: {app, if(Keyword.get(opts, :optional, false), do: :optional, else: :required)}
@@ -481,46 +481,6 @@ defmodule Mix.Tasks.Compile.App do
     case Keyword.fetch(opts, :targets) do
       {:ok, value} -> Mix.target() in List.wrap(value)
       :error -> true
-    end
-  end
-
-  defp deps_opts(config) do
-    for config_dep <- Keyword.get(config, :deps, []),
-        do: {elem(config_dep, 0), dep_opts(config_dep)}
-  end
-
-  defp dep_opts({_app, opts}) when is_list(opts), do: opts
-  defp dep_opts({_app, _req, opts}) when is_list(opts), do: opts
-  defp dep_opts(_), do: []
-
-  ## Helpers for loading and manipulating apps
-
-  @doc false
-  def project_apps(properties, config, extra, deps_loader) do
-    apps = Keyword.get(properties, :applications) || deps_loader.()
-    {all, required, optional} = split_by_type(extra ++ apps)
-    all = Enum.uniq(language_apps(config) ++ Enum.reverse(all))
-    optional = Enum.uniq(Enum.reverse(optional -- required))
-    {all, optional}
-  end
-
-  defp split_by_type(apps) do
-    Enum.reduce(apps, {[], [], []}, fn
-      app, {all, required, optional} when is_atom(app) ->
-        {[app | all], [app | required], optional}
-
-      {app, :required}, {all, required, optional} ->
-        {[app | all], [app | required], optional}
-
-      {app, :optional}, {all, required, optional} ->
-        {[app | all], required, [app | optional]}
-    end)
-  end
-
-  defp language_apps(config) do
-    case Keyword.get(config, :language, :elixir) do
-      :elixir -> [:kernel, :stdlib, :elixir]
-      :erlang -> [:kernel, :stdlib]
     end
   end
 end
