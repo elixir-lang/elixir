@@ -141,7 +141,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   defp partition([dep | deps], not_ok, compile) do
     cond do
       Mix.Dep.compilable?(dep) or (Mix.Dep.ok?(dep) and local?(dep)) ->
-        partition(deps, not_ok, [dep | compile])
+        if from_umbrella?(dep) do
+          partition(deps, not_ok, compile)
+        else
+          partition(deps, not_ok, [dep | compile])
+        end
 
       Mix.Dep.ok?(dep) ->
         partition(deps, not_ok, compile)
@@ -153,6 +157,14 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   defp partition([], not_ok, compile) do
     {Enum.reverse(not_ok), Enum.reverse(compile)}
+  end
+
+  # Children from the umbrella are compiled sequentially by the umbrella project itself.
+  # We could start compiling them as dependencies, and therefore in parallel, but because
+  # `mix compile` in an umbrella is expected to return the diagnostics of all children,
+  # we would need a pass after compilation to compite diagnostics.
+  defp from_umbrella?(dep) do
+    dep.opts[:from_umbrella]
   end
 
   defp reload_deps(deps) do
