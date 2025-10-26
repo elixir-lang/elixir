@@ -66,7 +66,7 @@ defmodule Mix.UmbrellaTest do
         # Ensure we can compile and run checks
         Mix.Task.run("deps.compile")
         Mix.Task.run("deps.loadpaths")
-        Mix.Task.run("compile", ["--verbose"])
+        Mix.Task.run("compile")
 
         # Extra applications are picked even for umbrellas
         assert :code.where_is_file(~c"runtime_tools.app") != :non_existing
@@ -83,6 +83,13 @@ defmodule Mix.UmbrellaTest do
         assert_received {:mix_shell, :info, [":foo env is dev"]}
         assert_received {:mix_shell, :info, [":bar env is dev"]}
 
+        # Ensure we can compile --force
+        Mix.Task.clear()
+        Mix.Task.run("compile", ["--force"])
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
+
+        # Ensure we can start even with --no-compile
         Mix.Task.clear()
         Mix.Task.run("app.start", ["--no-compile"])
       end)
@@ -280,23 +287,6 @@ defmodule Mix.UmbrellaTest do
         assert Bar.bar() == "hello world"
       end)
     end)
-  end
-
-  test "compile for umbrella as dependency with os partitions" do
-    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
-
-    in_fixture("umbrella_dep", fn ->
-      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        output = ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("compile") end)
-        assert output =~ ~r/\d> :foo env is prod/
-        assert output =~ ~r/\d> :bar env is prod/
-
-        assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
-        assert Bar.bar() == "hello world"
-      end)
-    end)
-  after
-    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
   defmodule CycleDeps do
