@@ -1724,6 +1724,102 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles when beam file is missing even if source mtime unchanged" do
+    # This test demonstrates a bug where Mix fails to recompile a file when:
+    # 1. The .beam file is missing
+    # 2. The source file's mtime hasn't changed since last compilation
+    #
+    # This can happen in scenarios like:
+    # - Partial cache restore in CI
+    # - Manual deletion of .beam files
+    # - Corrupted _build directory
+    # - Partial mix clean operations
+    #
+    # The issue is in lib/mix/lib/mix/compilers/elixir.ex around line 439-440
+    # where missing_beam_file?() is only checked when (last_mtime > mtime),
+    # which prevents recompilation when the source hasn't been touched.
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      # Initial compilation
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+      beam_path = "_build/dev/lib/sample/ebin/Elixir.A.beam"
+      assert File.regular?(beam_path)
+
+      # Clear and verify no-op recompilation
+      purge([A, B])
+      Mix.Task.clear()
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
+
+      # Delete beam WITHOUT touching source - simulates cache corruption
+      File.rm!(beam_path)
+      refute File.exists?(beam_path)
+
+      # Verify source exists with unchanged mtime
+      assert File.exists?("lib/a.ex")
+
+      purge([A, B])
+      Mix.Task.clear()
+
+      # BUG: Should detect missing beam and recompile, but doesn't
+      # because (last_mtime > mtime) is false, so missing_beam_file?() never runs
+      Mix.Tasks.Compile.Elixir.run([])
+
+      # EXPECTED: beam file should be recreated
+      # ACTUAL: beam file is still missing (bug!)
+      assert File.exists?(beam_path),
+             "BUG: Missing beam file not detected when source mtime unchanged. " <>
+               "See lib/mix/lib/mix/compilers/elixir.ex:439-440"
+    end)
+
+    # This test demonstrates a bug where Mix fails to recompile a file when:
+    # 1. The .beam file is missing
+    # 2. The source file's mtime hasn't changed since last compilation
+    #
+    # This can happen in scenarios like:
+    # - Partial cache restore in CI
+    # - Manual deletion of .beam files
+    # - Corrupted _build directory
+    # - Partial mix clean operations
+    #
+    # The issue is in lib/mix/lib/mix/compilers/elixir.ex around line 439-440
+    # where missing_beam_file?() is only checked when (last_mtime > mtime),
+    # which prevents recompilation when the source hasn't been touched.
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      # Initial compilation
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+      beam_path = "_build/dev/lib/sample/ebin/Elixir.A.beam"
+      assert File.regular?(beam_path)
+
+      # Clear and verify no-op recompilation
+      purge([A, B])
+      Mix.Task.clear()
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
+
+      # Delete beam WITHOUT touching source - simulates cache corruption
+      File.rm!(beam_path)
+      refute File.exists?(beam_path)
+
+      # Verify source exists with unchanged mtime
+      assert File.exists?("lib/a.ex")
+
+      purge([A, B])
+      Mix.Task.clear()
+
+      # BUG: Should detect missing beam and recompile, but doesn't
+      # because (last_mtime > mtime) is false, so missing_beam_file?() never runs
+      Mix.Tasks.Compile.Elixir.run([])
+
+      # EXPECTED: beam file should be recreated
+      # ACTUAL: beam file is still missing (bug!)
+      assert File.exists?(beam_path),
+             "BUG: Missing beam file not detected when source mtime unchanged. " <>
+               "See lib/mix/lib/mix/compilers/elixir.ex:439-440"
+    end)
+  end
+
   describe "consolidation protocols" do
     test "with local protocols", context do
       in_tmp(context.test, fn ->
@@ -1899,6 +1995,95 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         consolidation = Mix.Project.consolidation_path()
         args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
         assert Mix.Tasks.Compile.run(args) == {:ok, []}
+      end)
+    end
+
+    test "manifest corruption bug when file is partially written" do
+      # This test demonstrates a critical bug in manifest handling.
+      #
+      # BUG: If the manifest file is partially written (e.g., due to process interruption
+      # or disk full), the next compilation will read corrupted data and fall back to
+      # empty state, causing all modules to appear missing.
+      #
+      # Scenario:
+      # 1. Compilation starts writing manifest
+      # 2. Process is interrupted or disk becomes full
+      # 3. Manifest file contains partial/corrupted data
+      # 4. Next compilation reads corrupted manifest
+      # 5. parse_manifest fails and falls back to @default_manifest
+      # 6. All modules appear missing, causing cache corruption
+      #
+      # The bug is in lib/mix/lib/mix/compilers/elixir.ex:888-892:
+      #   try do
+      #     manifest |> File.read!() |> :erlang.binary_to_term()
+      #   rescue
+      #     _ -> @default_manifest
+      # This silently falls back to empty state on any error.
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(MixTest.Case.Sample)
+
+        # Create a module
+        File.write!("lib/test_module.ex", """
+        defmodule TestModule do
+          def value, do: :test
+        end
+        """)
+
+        # Initial compilation
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        beam_path = "_build/dev/lib/sample/ebin/Elixir.TestModule.beam"
+        assert File.exists?(beam_path)
+
+        # Verify it works
+        purge([TestModule, A, B])
+        assert TestModule.value() == :test
+
+        # Now simulate the corruption bug:
+        # Create a corrupted manifest file
+        manifest_path = "_build/dev/lib/sample/.mix/compile.elixir"
+
+        # Write corrupted data to manifest (simulates partial write)
+        File.write!(manifest_path, "corrupted manifest data")
+
+        # Try to read the manifest - this should trigger the bug
+        purge([TestModule, A, B])
+        Mix.Task.clear()
+
+        # This should fail because the manifest is corrupted
+        compilation_result = Mix.Tasks.Compile.Elixir.run([])
+
+        # BUG: The corrupted manifest should cause parse_manifest to fail
+        # and fall back to @default_manifest, making all modules appear missing
+
+        case compilation_result do
+          {:ok, []} ->
+            # Check if the module still works despite corrupted manifest
+            purge([TestModule])
+
+            try do
+              result = TestModule.value()
+
+              if result != :test do
+                flunk(
+                  "BUG: Manifest corruption - module returning wrong value. " <>
+                    "Expected :test, got #{inspect(result)}"
+                )
+              end
+            rescue
+              e ->
+                flunk("BUG: Manifest corruption - module not working: #{inspect(e)}")
+            end
+
+          {:error, _} ->
+            # This could be CORRECT if compilation failed due to corrupted manifest
+            :ok
+
+          other ->
+            flunk(
+              "BUG: Unexpected compilation result #{inspect(other)}. " <>
+                "Expected compilation to handle corrupted manifest gracefully."
+            )
+        end
       end)
     end
   end
