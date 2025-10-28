@@ -511,7 +511,8 @@ defmodule IO do
   """
   @spec inspect(device, item, inspect_opts) :: item when item: var
   def inspect(device, item, opts) when is_device(device) and is_list(opts) do
-    label = if label = opts[:label], do: [to_chardata(label), ": "], else: []
+    {label, opts} = Keyword.pop(opts, :label)
+    label = if label, do: [to_chardata(label), ": "], else: []
     opts = Inspect.Opts.new(opts)
     doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(item, opts))
     chardata = Inspect.Algebra.format(doc, opts.width)
