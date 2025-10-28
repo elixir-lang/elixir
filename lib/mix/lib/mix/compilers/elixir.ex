@@ -299,6 +299,7 @@ defmodule Mix.Compilers.Elixir do
   """
   def clean(manifest, compile_path) do
     {modules, _} = read_manifest(manifest)
+    _ = File.rm(manifest)
 
     Enum.each(modules, fn {module, _} ->
       File.rm(beam_path(compile_path, module))
@@ -440,7 +441,7 @@ defmodule Mix.Compilers.Elixir do
 
             size != last_size or
               has_any_key?(stale_modules, modules) or
-                (last_mtime > mtime and
+                (last_mtime != mtime and
                    (missing_beam_file?(dest, modules) or digest_changed?(source, digest))) ->
               [source]
 
@@ -479,7 +480,7 @@ defmodule Mix.Compilers.Elixir do
         digest != nil
 
       %{^external => {last_mtime, last_size}} ->
-        size != last_size or (last_mtime > mtime and digest_changed?(external, digest))
+        size != last_size or (last_mtime != mtime and digest_changed?(external, digest))
     end
   end
 

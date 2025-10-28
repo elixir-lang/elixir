@@ -199,8 +199,9 @@ defmodule Mix.Compilers.Erlang do
   Removes compiled files for the given `manifest`.
   """
   def clean(manifest) do
-    Enum.each(read_manifest(manifest), fn {file, _} -> File.rm(file) end)
+    contents = read_manifest(manifest)
     File.rm(manifest)
+    Enum.each(contents, fn {file, _} -> File.rm(file) end)
   end
 
   @doc """
