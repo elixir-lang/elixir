@@ -63,6 +63,10 @@ defmodule Mix.Dep.Fetcher do
 
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
+        # Mark the dependency as fetched upfront, in case updating
+        # fails, get interrupted, or corrupted.
+        mark_as_fetched([dep])
+
         new =
           if scm.checked_out?(opts) do
             Mix.shell().info("* Updating #{format_dep(dep)}")
@@ -73,7 +77,6 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          mark_as_fetched([dep])
           dep = put_in(dep.opts[:lock], new)
           {dep, [app | acc], Map.put(lock, app, new)}
         else
@@ -108,11 +111,13 @@ defmodule Mix.Dep.Fetcher do
         []
       end
 
+    # Mark parents as fetched before we write the lock file.
+    mark_as_fetched(parent_deps)
+
     # Merge the new lock on top of the old to guarantee we don't
     # leave out things that could not be fetched and save it.
     lock = Map.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock, opts)
-    mark_as_fetched(parent_deps)
 
     # See if any of the deps diverged and abort.
     show_diverged!(Enum.filter(all_deps, &Mix.Dep.diverged?/1))
