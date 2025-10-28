@@ -71,7 +71,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--long-verification-threshold N` - sets the "long verification" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--no-verification` - disables code verification, such as unused functions,
-      deprecation warnings, and type checking. It must be used alongside `MIX_DEBUG=1`
+      deprecation warnings, and type checking. It must be used solely for debugging
+      alongside `MIX_DEBUG=1`
+    * `--no-check-cwd` - Elixir stores absolute paths in .beam files, which means rellocating
+      the project root triggers a full build. Pass this option if you don't want the current
+      working directory to be checked
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
     * `--profile` - if set to `time`, outputs timing information of compilation steps
@@ -109,7 +113,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     profile: :string,
     all_warnings: :boolean,
     verification: :boolean,
-    tracer: :keep
+    tracer: :keep,
+    check_cwd: :boolean
   ]
 
   @impl true
@@ -127,7 +132,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     manifest = manifest()
     base = xref_exclude_opts(project[:elixirc_options] || [], project)
-    cache_key = {base, srcs, File.cwd!(), "--no-optional-deps" in args}
+    cache_key = {base, srcs, "--no-optional-deps" in args}
 
     opts =
       base
