@@ -5,7 +5,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 28
+  @manifest_vsn 29
   @checkpoint_vsn 4
 
   import Record
@@ -49,8 +49,8 @@ defmodule Mix.Compilers.Elixir do
     timestamp = System.os_time(:second)
     all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
-    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config,
-     old_project_mtime, old_config_mtime, old_protocols_and_impls} =
+    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_cwd,
+     old_deps_config, old_project_mtime, old_config_mtime, old_protocols_and_impls} =
       parse_manifest(manifest, dest)
 
     # In case we aborted in the middle of a verification,
@@ -100,7 +100,8 @@ defmodule Mix.Compilers.Elixir do
 
     {force?, stale, new_deps_config} =
       cond do
-        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
+        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key or
+            (Keyword.get(opts, :check_cwd, true) and old_cwd != File.cwd!()) ->
           {true, stale, deps_config(local_deps)}
 
         deps_changed? or compile_env_apps != [] ->
@@ -313,7 +314,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _, _, _, _, _, _, _} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -881,7 +882,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {%{}, %{}, %{}, [], nil, nil, 0, 0, {%{}, %{}}}
+  @default_manifest {%{}, %{}, %{}, [], nil, nil, nil, 0, 0, {%{}, %{}}}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
@@ -891,9 +892,9 @@ defmodule Mix.Compilers.Elixir do
       _ ->
         @default_manifest
     else
-      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config,
+      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, cwd, deps_config,
        project_mtime, config_mtime, protocols_and_impls} ->
-        {modules, sources, local_exports, parent, cache_key, deps_config, project_mtime,
+        {modules, sources, local_exports, parent, cache_key, cwd, deps_config, project_mtime,
          config_mtime, protocols_and_impls}
 
       # {vsn, %{module => record}, sources, ...} v22-?
@@ -952,8 +953,8 @@ defmodule Mix.Compilers.Elixir do
     File.mkdir_p!(Path.dirname(manifest))
 
     term =
-      {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config, project_mtime,
-       config_mtime, protocols_and_impls}
+      {@manifest_vsn, modules, sources, exports, parents, cache_key, File.cwd!(), deps_config,
+       project_mtime, config_mtime, protocols_and_impls}
 
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)

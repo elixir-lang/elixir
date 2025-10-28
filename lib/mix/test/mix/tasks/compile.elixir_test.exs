@@ -118,6 +118,26 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "does not recompiles project if cwd changes and --no-check-pwd is given" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      Mix.Project.pop()
+
+      old_cwd = File.cwd!()
+
+      in_tmp("new_cwd", fn ->
+        Mix.Project.push(MixTest.Case.Sample)
+        File.cp_r!(old_cwd, File.cwd!())
+
+        purge([A, B])
+        Mix.Task.clear()
+        assert {:noop, _} = Mix.Tasks.Compile.Elixir.run(["--verbose", "--no-check-cwd"])
+      end)
+    end)
+  end
+
   test "recompiles files using Mix.Project if mix.exs changes" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample, __ENV__.file)
