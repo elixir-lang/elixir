@@ -311,8 +311,7 @@ defmodule Mix.Compilers.Elixir do
   """
   def read_manifest(manifest) do
     try do
-      {:ok, contents} = Mix.Task.Compiler.read_checksumed_file(manifest)
-      :erlang.binary_to_term(contents)
+      manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ -> {[], []}
     else
@@ -889,8 +888,7 @@ defmodule Mix.Compilers.Elixir do
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
     try do
-      {:ok, contents} = Mix.Task.Compiler.read_checksumed_file(manifest)
-      :erlang.binary_to_term(contents)
+      manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
         @default_manifest
@@ -960,7 +958,7 @@ defmodule Mix.Compilers.Elixir do
        project_mtime, config_mtime, protocols_and_impls}
 
     manifest_data = :erlang.term_to_binary(term, [:compressed])
-    :ok = Mix.Task.Compiler.write_checksumed_file(manifest, manifest_data)
+    File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)
     delete_checkpoints(manifest)
 
