@@ -121,8 +121,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
-    if not is_list(srcs) do
-      Mix.raise(":elixirc_paths should be a list of paths, got: #{inspect(srcs)}")
+    if not (is_list(srcs) and Enum.all?(srcs, &is_binary/1)) do
+      Mix.shell().error(":elixirc_paths should be a list of string paths, got: #{inspect(srcs)}")
     end
 
     manifest = manifest()
