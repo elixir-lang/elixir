@@ -370,4 +370,51 @@ defmodule Mix.Task.Compiler do
     Mix.Task.reenable("compile.all")
     Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
   end
+
+  @checksum_version 1
+
+  @doc """
+  Reads a checksumed file.
+
+  This function is useful to read files with checksums
+  and validate they won't get corrupted with time.
+  """
+  def read_checksumed_file(path) do
+    case File.read(path) do
+      {:ok, <<@checksum_version, size::64, checksum::binary-size(size), contents::binary>>} ->
+        if checksum(contents) == checksum do
+          {:ok, contents}
+        else
+          {:error, :echecksum}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Writes a checksumed file.
+
+  This function is useful to write compilation manifests
+  and validate they won't get corrupted with time.
+  """
+  def write_checksumed_file(path, contents) do
+    checksum = checksum(contents)
+
+    File.write(
+      path,
+      <<@checksum_version, byte_size(checksum)::64, checksum::binary, contents::binary>>
+    )
+  end
+
+  defp checksum(contents) do
+    case :erlang.system_info(:wordsize) do
+      8 -> :crypto.hash(:blake2b, contents)
+      _ -> :crypto.hash(:blake2s, contents)
+    end
+  rescue
+    # Blake may not be available on all OpenSSL distribution
+    _ -> :erlang.md5(contents)
+  end
 end
