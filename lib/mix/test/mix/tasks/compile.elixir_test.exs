@@ -653,13 +653,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       manifest = "_build/dev/lib/sample/.mix/compile.elixir"
 
-      {:ok, contents} = Mix.Task.Compiler.read_checksumed_file(manifest)
-
-      contents
+      File.read!(manifest)
       |> :erlang.binary_to_term()
       |> put_elem(0, 9)
       |> :erlang.term_to_binary()
-      |> then(&Mix.Task.Compiler.write_checksumed_file(manifest, &1))
+      |> then(&File.write!(manifest, &1))
 
       Mix.Task.clear()
       assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
