@@ -16,6 +16,10 @@ tokenize_error(String) ->
   {error, Error, _, _, _} = elixir_tokenizer:tokenize(String, 1, []),
   Error.
 
+tokenize_warnings(String) ->
+  {ok, _Line, _Column, Warnings, Result, []} = elixir_tokenizer:tokenize(String, 1, []),
+  {lists:reverse(Result), Warnings}.
+
 type_test() ->
   [{int, {1, 1, 1}, "1"},
    {type_op, {1, 3, nil}, '::'},
@@ -279,3 +283,13 @@ sigil_heredoc_test() ->
 invalid_sigil_delimiter_test() ->
   {[{line, 1}, {column, 1}], "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
   true = lists:prefix("\"\\\" (column 3, code point U+005C)", lists:flatten(Message)).
+
+deprecated_operators_test() ->
+  {
+    [{xor_op, {1, 1, nil}, '^^^'}, {int, {1, 4, 1}, "1"}],
+    [{{1, 1}, "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead"}]
+  } = tokenize_warnings("^^^1"),
+  {
+    [{unary_op, {1, 1, nil}, '~~~'}, {int, {1, 4, 1}, "1"}],
+    [{{1, 1}, "~~~ is deprecated. Use Bitwise.bnot/1 instead for clarity"}]
+  } = tokenize_warnings("~~~1").
