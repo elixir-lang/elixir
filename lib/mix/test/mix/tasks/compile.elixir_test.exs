@@ -118,7 +118,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "does not recompiles project if cwd changes and --no-check-pwd is given" do
+  test "does not recompiles project if cwd changes and --no-check-cwd is given" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
