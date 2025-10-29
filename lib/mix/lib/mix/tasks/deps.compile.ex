@@ -201,7 +201,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp touch_fetchable(scm, opts) do
     if scm.fetchable?() do
-      Mix.Dep.ElixirSCM.update(Path.join(opts[:build], ".mix"))
+      Mix.Dep.ElixirSCM.update(Path.join(opts[:build], ".mix"), scm)
       true
     else
       false
