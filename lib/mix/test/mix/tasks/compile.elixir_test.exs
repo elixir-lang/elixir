@@ -608,7 +608,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert File.exists?("_build/dev/lib/sample")
       assert File.exists?("_build/dev/lib/sample/consolidated")
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
 
       Mix.Task.clear()
       File.write!("_build/dev/lib/sample/consolidated/.to_be_removed", "")
@@ -617,7 +617,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
 
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
       refute File.exists?("_build/dev/lib/sample/consolidated/.to_be_removed")
@@ -631,7 +631,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
 
       Mix.Task.clear()
       manifest_data = :erlang.term_to_binary({1, @elixir_otp_version, :another})
@@ -639,7 +639,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
 
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
     end)
@@ -703,9 +703,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Task.clear()
       Mix.State.clear_cache()
       purge([GitRepo.MixProject, PathOnGitRepo.MixProject, PathOnGitRepo.Hello])
-
-      # Unload the git repo application so we can pick the new modules definition
-      :ok = Application.unload(:git_repo)
 
       Mix.Tasks.Deps.Update.run(["--all"])
       assert File.read!("mix.lock") =~ last

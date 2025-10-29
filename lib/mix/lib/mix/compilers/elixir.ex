@@ -965,7 +965,8 @@ defmodule Mix.Compilers.Elixir do
     # Since Elixir is a dependency itself, we need to touch the lock
     # so the current Elixir version, used to compile the files above,
     # is properly stored.
-    Mix.Dep.ElixirSCM.update(Mix.Project.config()[:build_scm])
+    config = Mix.Project.config()
+    Mix.Dep.ElixirSCM.update(config[:build_scm], config[:deps_lock])
     :ok
   end
 

@@ -63,8 +63,8 @@ defmodule Mix.Dep.Fetcher do
 
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
-        # Mark the dependency as fetched upfront, in case updating
-        # fails, get interrupted, or corrupted.
+        # Mark the dependency as fetched upfront, in case updating fails,
+        # gets interrupted, or corrupted.
         mark_as_fetched([dep])
 
         new =

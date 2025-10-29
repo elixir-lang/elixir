@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Loadpaths do
     # any of SCM or Elixir version changes. Applies
     # to dependencies and the main project alike.
     case Mix.Dep.ElixirSCM.read() do
-      {:ok, old_vsn, old_scm} when old_vsn != vsn or old_scm != scm ->
+      {:ok, old_vsn, old_scm, _deps_lock} when old_vsn != vsn or old_scm != scm ->
         if Mix.debug?() do
           Mix.shell().info(
             "-- Recompiling #{inspect(config[:app])} because Erlang/OTP, Elixir, or SCM version changed"

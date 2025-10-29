@@ -3,20 +3,21 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 # Manifest file where we treat Erlang/OTP, Elixir and SCMs as a dependency.
+# We also store the exact version this dependency was compiled for.
 defmodule Mix.Dep.ElixirSCM do
   @moduledoc false
   @manifest "compile.elixir_scm"
-  @manifest_vsn 1
+  @manifest_vsn 2
 
   def manifest(manifest_path \\ Mix.Project.manifest_path()) do
     Path.join(manifest_path, @manifest)
   end
 
-  def update(manifest_path \\ Mix.Project.manifest_path(), scm) do
+  def update(manifest_path \\ Mix.Project.manifest_path(), scm, lock) do
     File.mkdir_p!(manifest_path)
 
     manifest_data =
-      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, scm}
+      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, scm, lock}
       |> :erlang.term_to_binary()
 
     File.write!(manifest(manifest_path), manifest_data)
@@ -26,10 +27,10 @@ defmodule Mix.Dep.ElixirSCM do
     case File.read(manifest(manifest_path)) do
       {:ok, contents} ->
         try do
-          {@manifest_vsn, vsn, scm} = :erlang.binary_to_term(contents)
-          {:ok, vsn, scm}
+          {@manifest_vsn, vsn, scm, lock} = :erlang.binary_to_term(contents)
+          {:ok, vsn, scm, lock}
         rescue
-          _ -> {:ok, {"1.0.0", ~c"17"}, nil}
+          _ -> {:ok, {"1.0.0", ~c"17"}, nil, nil}
         end
 
       _ ->

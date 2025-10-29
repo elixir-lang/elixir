@@ -258,10 +258,18 @@ defmodule Mix.Dep do
       |> Keyword.put(:build_scm, scm)
       |> Keyword.put(:deps_app_path, opts[:build])
 
-    # If the dependency is not fetchable, then it is never compiled
-    # from scratch and therefore it needs the parent configuration
-    # files to know when to recompile.
-    config = [inherit_parent_config_files: not scm.fetchable?()] ++ config
+    config =
+      if scm.fetchable?() do
+        # If the dependency is fetchable, we want to store the lock in
+        # the Elixir SCM file.
+        [deps_lock: opts[:lock]] ++ config
+      else
+        # If the dependency is not fetchable, then it is never compiled
+        # from scratch and therefore it needs the parent configuration
+        # files to know when to recompile.
+        [inherit_parent_config_files: true] ++ config
+      end
+
     env = opts[:env] || :prod
     old_env = Mix.env()
 
@@ -436,23 +444,35 @@ defmodule Mix.Dep do
           %{dep | status: :lockoutdated}
 
         :ok ->
-          check_manifest(dep, opts[:build])
+          check_manifest(dep)
       end
     else
       dep
     end
   end
 
-  defp check_manifest(%{scm: scm} = dep, build_path) do
+  defp check_manifest(%{scm: scm, opts: opts} = dep) do
     vsn = {System.version(), :erlang.system_info(:otp_release)}
+    lock = opts[:lock]
 
-    case Mix.Dep.ElixirSCM.read(Path.join(build_path, ".mix")) do
-      {:ok, old_vsn, _} when old_vsn != vsn ->
+    case Mix.Dep.ElixirSCM.read(Path.join(opts[:build], ".mix")) do
+      {:ok, old_vsn, _, _} when old_vsn != vsn ->
         %{dep | status: {:vsnlock, old_vsn}}
 
-      {:ok, _, old_scm} when old_scm != scm ->
+      {:ok, _, old_scm, _} when old_scm != scm ->
         %{dep | status: {:scmlock, old_scm}}
 
+      {:ok, _, _, old_lock} when old_lock != lock ->
+        %{dep | status: :compile}
+
+      :error ->
+        if scm.fetchable?() do
+          %{dep | status: :compile}
+        else
+          dep
+        end
+
+      # If the file is missing, it is handled in the loader
       _ ->
         dep
     end
