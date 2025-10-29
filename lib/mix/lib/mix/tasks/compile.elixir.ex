@@ -73,9 +73,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--no-verification` - disables code verification, such as unused functions,
       deprecation warnings, and type checking. It must be used solely for debugging
       alongside `MIX_DEBUG=1`
-    * `--no-check-cwd` - Elixir stores absolute paths in .beam files, which means rellocating
-      the project root triggers a full build. Pass this option if you don't want the current
-      working directory to be checked
+    * `--no-check-cwd` - (since v1.19.2) Elixir stores absolute paths in .beam files, which means
+      that relocating the project root triggers a full build. Pass this option if you don't want
+      the current working directory to be checked
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
     * `--profile` - if set to `time`, outputs timing information of compilation steps
