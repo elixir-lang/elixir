@@ -876,8 +876,18 @@ handle_unary_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
       Token = {identifier, {Line, Column, nil}, Op},
       tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
     {Remaining, Extra} ->
+      NewScope =
+        %% TODO: Remove these deprecations on Elixir v2.0
+        case Op of
+          '~~~' ->
+            Msg = "~~~ is deprecated. Use Bitwise.bnot/1 instead for clarity",
+            prepend_warning(Line, Column, Msg, Scope);
+          _ ->
+            Scope
+        end,
+
       Token = {Kind, {Line, Column, nil}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens])
+      tokenize(Remaining, Line, Column + Length + Extra, NewScope, [Token | Tokens])
   end.
 
 handle_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -895,10 +905,6 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
         case Op of
           '^^^' ->
             Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead",
-            prepend_warning(Line, Column, Msg, Scope);
-
-          '~~~' ->
-            Msg = "~~~ is deprecated. Use Bitwise.bnot/1 instead for clarity",
             prepend_warning(Line, Column, Msg, Scope);
 
           '<|>' ->
