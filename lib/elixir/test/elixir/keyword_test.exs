@@ -28,6 +28,11 @@ defmodule KeywordTest do
     assert Map.__info__(:functions) -- Keyword.__info__(:functions) == [from_struct: 1]
   end
 
+  test "get_and_update/3 removes duplicates from the input keyword list" do
+    assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn value -> {value, value + 10} end) ==
+             {1, [a: 11, b: 2]}
+  end
+
   test "get_and_update/3 raises on bad return value from the argument function" do
     message = "the given function must return a two-element tuple or :pop, got: 1"
 
@@ -40,6 +45,11 @@ defmodule KeywordTest do
     assert_raise RuntimeError, message, fn ->
       Keyword.get_and_update([], :a, fn value -> value end)
     end
+  end
+
+  test "get_and_update!/3 removes duplicates from the input keyword list" do
+    assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn value -> {value, value + 10} end) ==
+             {1, [a: 11, b: 2]}
   end
 
   test "get_and_update!/3 raises on bad return value from the argument function" do

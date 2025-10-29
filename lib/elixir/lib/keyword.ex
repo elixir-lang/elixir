@@ -437,7 +437,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Gets the value from `key` and updates it, all in one pass.
+  Gets the value for `key` and updates it in one pass, deleting duplicate keys.
 
   The `fun` argument receives the value of `key` (or `nil` if `key`
   is not present) and must return a two-element tuple: the current value
@@ -483,7 +483,7 @@ defmodule Keyword do
   defp get_and_update([{key, current} | t], acc, key, fun) do
     case fun.(current) do
       {get, value} ->
-        {get, :lists.reverse(acc, [{key, value} | t])}
+        {get, :lists.reverse(acc, [{key, value} | delete(t, key)])}
 
       :pop ->
         {current, :lists.reverse(acc, t)}
@@ -509,7 +509,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Gets the value under `key` and updates it. Raises if there is no `key`.
+  Gets the value for `key` and updates it in one pass, deleting duplicate keys,
+  raising if `key` can't be found in `keywords`.
 
   The `fun` argument receives the value under `key` and must return a
   two-element tuple: the current value (the retrieved value, which can be
@@ -545,21 +546,21 @@ defmodule Keyword do
     get_and_update!(keywords, key, fun, [])
   end
 
-  defp get_and_update!([{key, value} | keywords], key, fun, acc) do
+  defp get_and_update!([{key, value} | t], key, fun, acc) do
     case fun.(value) do
       {get, value} ->
-        {get, :lists.reverse(acc, [{key, value} | delete(keywords, key)])}
+        {get, :lists.reverse(acc, [{key, value} | delete(t, key)])}
 
       :pop ->
-        {value, :lists.reverse(acc, keywords)}
+        {value, :lists.reverse(acc, t)}
 
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 
-  defp get_and_update!([{_, _} = e | keywords], key, fun, acc) do
-    get_and_update!(keywords, key, fun, [e | acc])
+  defp get_and_update!([{_, _} = h | t], key, fun, acc) do
+    get_and_update!(t, key, fun, [h | acc])
   end
 
   defp get_and_update!([], key, _fun, acc) when is_atom(key) do
