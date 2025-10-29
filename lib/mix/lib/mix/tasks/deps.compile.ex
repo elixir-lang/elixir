@@ -104,17 +104,18 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # If all dependencies are local and ok, do not bother starting
     # processes as it will likely slow everything down.
-    compiled? =
-      if count > 1 and match?([_, _ | _], deps) and
-           not Enum.all?(deps, &(Mix.Dep.ok?(&1) and not &1.scm.fetchable?())) do
-        Mix.shell().info("mix deps.compile running across #{count} OS processes")
-        Mix.Tasks.Deps.Partition.server(deps, count, force?)
-      else
-        config = Mix.Project.deps_config()
-        true in Enum.map(deps, &compile_single(&1, force?, config))
-      end
+    if count > 1 and match?([_, _ | _], deps) and
+         not Enum.all?(deps, &(Mix.Dep.ok?(&1) and not &1.scm.fetchable?())) do
+      Mix.shell().info("mix deps.compile running across #{count} OS processes")
 
-    if compiled?, do: Mix.Task.run("will_recompile"), else: :ok
+      if Mix.Tasks.Deps.Partition.server(deps, count, force?) do
+        # Each partition will trigger will_recompile but we need to trigger it here too
+        Mix.Task.run("will_recompile")
+      end
+    else
+      config = Mix.Project.deps_config()
+      Enum.each(deps, &compile_single(&1, force?, config))
+    end
   end
 
   @doc false
@@ -169,8 +170,14 @@ defmodule Mix.Tasks.Deps.Compile do
     # We should touch fetchable dependencies even if they
     # did not compile otherwise they will always be marked
     # as stale, even when there is nothing to do.
-    fetchable? = touch_fetchable(scm, opts[:build])
-    compiled? and fetchable?
+    fetchable? = touch_fetchable(scm, opts)
+
+    if compiled? and fetchable? do
+      Mix.Task.run("will_recompile")
+      true
+    else
+      false
+    end
   end
 
   defp check_unavailable!(app, scm, {:unavailable, path}) do
@@ -192,9 +199,9 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp touch_fetchable(scm, path) do
+  defp touch_fetchable(scm, opts) do
     if scm.fetchable?() do
-      Mix.Dep.ElixirSCM.update(Path.join(path, ".mix"), scm)
+      Mix.Dep.ElixirSCM.update(Path.join(opts[:build], ".mix"))
       true
     else
       false

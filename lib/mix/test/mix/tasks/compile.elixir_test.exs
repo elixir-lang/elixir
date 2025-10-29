@@ -704,9 +704,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.State.clear_cache()
       purge([GitRepo.MixProject, PathOnGitRepo.MixProject, PathOnGitRepo.Hello])
 
-      # Unload the git repo application so we can pick the new modules definition
-      :ok = Application.unload(:git_repo)
-
       Mix.Tasks.Deps.Update.run(["--all"])
       assert File.read!("mix.lock") =~ last
 

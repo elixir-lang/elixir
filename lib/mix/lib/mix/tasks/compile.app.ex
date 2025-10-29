@@ -188,6 +188,7 @@ defmodule Mix.Tasks.Compile.App do
         |> add_modules(modules, compile_path)
 
       contents = to_erl_term({:application, app, properties})
+      :application.unload(app)
       :application.load({:application, app, properties})
 
       Mix.Project.ensure_structure()
