@@ -6,7 +6,7 @@ defmodule LoggerTest do
   use Logger.Case
   require Logger
 
-  @moduletag formatter: [metadata: [:application, :module]]
+  @moduletag formatter: [metadata: [:application, :module, :process_label]]
 
   setup tags do
     :logger.update_handler_config(:default, :formatter, Logger.default_formatter(tags.formatter))
@@ -531,6 +531,14 @@ defmodule LoggerTest do
            end) =~ msg("application=sample_app module=LoggerTest.SampleApp [info] hello")
   after
     Logger.configure(compile_time_application: nil)
+  end
+
+  test "sets process_label in metadata if available" do
+    Process.set_label(SampleProcess)
+
+    assert capture_log(fn ->
+             assert Logger.bare_log(:info, "ok") == :ok
+           end) =~ msg("process_label=SampleProcess [info] ok")
   end
 
   @tag formatter: [truncate: 4]

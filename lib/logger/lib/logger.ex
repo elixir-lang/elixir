@@ -1042,16 +1042,26 @@ defmodule Logger do
 
   def __do_log__(level, msg, location, metadata)
       when level in @levels and is_map(location) and is_map(metadata) do
-    if is_binary(msg) or is_list(msg) or is_map(msg) do
-      :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
-    else
-      IO.warn(
-        "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, " <>
-          "a string, a list of strings, or a zero-arity anonymous function"
-      )
+    msg =
+      if is_binary(msg) or is_list(msg) or is_map(msg) do
+        msg
+      else
+        IO.warn(
+          "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, " <>
+            "a string, a list of strings, or a zero-arity anonymous function"
+        )
 
-      :logger.macro_log(location, level, to_string(msg), add_elixir_domain(metadata))
-    end
+        to_string(msg)
+      end
+
+    :logger.macro_log(
+      location,
+      level,
+      msg,
+      metadata
+      |> add_elixir_domain()
+      |> maybe_add_process_label()
+    )
   end
 
   defp add_elixir_domain(%{domain: domain} = metadata) when is_list(domain) do
@@ -1059,6 +1069,15 @@ defmodule Logger do
   end
 
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
+
+  defp maybe_add_process_label(%{process_label: _} = metadata), do: metadata
+
+  defp maybe_add_process_label(metadata) do
+    case :proc_lib.get_label(self()) do
+      :undefined -> metadata
+      process_label -> Map.put(metadata, :process_label, process_label)
+    end
+  end
 
   for level <- @levels do
     report = [something: :reported, this: level]
