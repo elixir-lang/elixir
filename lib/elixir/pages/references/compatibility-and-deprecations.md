@@ -92,17 +92,17 @@ The first column is the version the feature was hard deprecated. The second colu
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>`
-[v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)`
-[v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2`
-[v1.20] | `Logger.*_backend` functions                        | The `LoggerBackends` module from `:logger_backends` package
-[v1.20] | `Logger.enable/1` / `Logger.disable/1`              | `Logger.put_process_level/2` and `Logger.delete_process_level/1`
+[v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)` (v1.16)
+[v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2` (v1.16)
+[v1.20] | `Logger.*_backend` functions                        | The `LoggerBackends` module from [`:logger_backends`](https://hex.pm/packages/logger_backends) package
+[v1.20] | `Logger.enable/1` and `Logger.disable/1`            | `Logger.put_process_level/2` and `Logger.delete_process_level/1` respectively (v1.15)
 [v1.19] | CLI configuration in `def project` inside `mix.exs` | Moving it to `def cli` (v1.14)
 [v1.19] | Using `,` to separate tasks in `mix do`             | Using `+` (v1.14)
-[v1.19] | Logger's `:backends` configuration                  | Logger's `:default_handler` configuration (v1.15)
-[v1.19] | Passing a callback to `File.cp`/`File.cp_r`         | The `:on_conflict` option (v1.14)
+[v1.19] | `Logger`'s `:backends` configuration                | `Logger`'s `:default_handler` configuration (v1.15)
+[v1.19] | Passing a callback to `File.cp/3`, `File.cp!/3`, `File.cp_r/3`, and `File.cp_r!/3` | The `:on_conflict` option (v1.14)
 [v1.18] | `<%#` in EEx                                        | `<%!--` (v1.14) or `<% #` (v1.0)
-[v1.18] | `handle_text/2` callback in EEx                     | `handle_text/3` (v1.14)
-[v1.18] | Returning 2-arity fun from `Enumerable.slice/1`     | Returning 3-arity (v1.14)
+[v1.18] | `EEx.Engine.handle_text/2` callback in EEx          | `c:EEx.Engine.handle_text/3` (v1.14)
+[v1.18] | Returning a 2-arity function from `Enumerable.slice/1` | Returning a 3-arity function (v1.14)
 [v1.18] | Ranges with negative steps in `Range.new/2`         | Explicit steps in ranges (v1.11)
 [v1.18] | `Tuple.append/2`                                    | `Tuple.insert_at/3` (v1.0)
 [v1.18] | `mix cmd --app APP`                                 | `mix do --app APP` (v1.14)
@@ -162,7 +162,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.8]  | `Kernel.ParallelCompiler.files_to_path/2`           | `Kernel.ParallelCompiler.compile_to_path/2` (v1.6)
 [v1.8]  | `Kernel.ParallelRequire.files/2`                    | `Kernel.ParallelCompiler.require/2` (v1.6)
 [v1.8]  | Returning `{:ok, contents}` or `:error` from `Mix.Compilers.Erlang.compile/6`'s callback | Return `{:ok, contents, warnings}` or `{:error, errors, warnings}` (v1.6)
-[v1.8]  | `System.cwd/0` and `System.cwd!/0`                  | `File.cwd/0` and `File.cwd!/0` (v1.0)
+[v1.8]  | `System.cwd/0` and `System.cwd!/0`                  | `File.cwd/0` and `File.cwd!/0` respectively (v1.0)
 [v1.7]  | `Code.get_docs/2`                                   | `Code.fetch_docs/1` (v1.7)
 [v1.7]  | `Enum.chunk/2,3,4`                                  | `Enum.chunk_every/2` and [`Enum.chunk_every/3,4`](`Enum.chunk_every/4`) (v1.5)
 [v1.7]  | Calling `super/1` in`GenServer` callbacks           | Implementing the behaviour explicitly without calling `super/1` (v1.0)
