@@ -86,7 +86,7 @@ iex> john = %User{name: "John", age: 27}
 iex> updates = [name: "Jane", age: 30]
 [name: "Jane", age: 30]
 iex> struct!(john, updates)
-%User{age: 27, name: "Jane"}
+%User{age: 30, name: "Jane"}
 ```
 
 `struct!/2` will raise an error if you try to set invalid fields:
