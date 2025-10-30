@@ -230,6 +230,9 @@ defmodule Logger.TranslatorTest do
            Process Label: {:any, \"term\"}
            Last message \(from #PID<\d+\.\d+\.\d+>\): :error\
            """s
+
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, gen_server_metadata}
+    assert {:any, "term"} = gen_server_metadata[:process_label]
   end
 
   test "translates GenServer crashes with custom inspect options" do
@@ -386,6 +389,9 @@ defmodule Logger.TranslatorTest do
            Process Label: {:any, "term"}
            Last message: :error\
            """s
+
+    assert_receive {:event, {:report, %{label: {:gen_event, :terminate}}}, gen_event_metadata}
+    assert {:any, "term"} = gen_event_metadata[:process_label]
   end
 
   test "translates :gen_event crashes on debug" do
@@ -466,6 +472,9 @@ defmodule Logger.TranslatorTest do
            Queue: .*
            Postponed: \[\]\
            """s
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, gen_statem_metadata}
+    assert {:any, "term"} = gen_statem_metadata[:process_label]
   end
 
   test "translates :gen_statem crashes with custom inspect options" do
@@ -757,6 +766,9 @@ defmodule Logger.TranslatorTest do
              Function: &Logger.TranslatorTest.task\/2
                  Args: \[#PID<\d+\.\d+\.\d+>\, .*]\
              """s
+
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
+    assert {:any, "term"} = task_metadata[:process_label]
   end
 
   test "translates application start" do
@@ -882,6 +894,7 @@ defmodule Logger.TranslatorTest do
 
     assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+    assert {:any, "term"} = process_metadata[:process_label]
   end
 
   test "translates :proc_lib crashes without initial call" do
