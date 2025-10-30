@@ -126,10 +126,6 @@ defmodule Logger do
 
     * `:registered_name` - the process registered name as an atom
 
-    * `:process_label` - (available from Erlang/OTP 27+) an arbitrary term
-      which can be added to a process with `Process.set_label/1` for
-      debugging purposes
-
     * `:domain` - a list of domains for the logged message. For example,
       all Elixir reports default to `[:elixir]`. Erlang reports may start
       with `[:otp]` or `[:sasl]`
