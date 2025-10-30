@@ -144,10 +144,10 @@ defmodule Mix.Tasks.New do
     # 3. Elixir names
     ~w(boot_var compile config configfd env pa pz path run s setcookie)a ++
       ~w(otp asn1 common_test compiler crypto debugger dialyzer diameter
-         edoc eldap erl_docgen erl_interface erts et eunit ftp hipe
+         edoc eldap erl_docgen erl_interface erts et eunit ftp
          inets jinterface kernel megaco mnesia observer odbc os_mon
          parsetools public_key reltool runtime_tools sasl snmp ssh
-         ssl stdlib syntax_tools toolbar tools typer wx xmerl)a ++
+         ssl stdlib syntax_tools tftp toolbar tools typer wx xmerl)a ++
       ~w(eex elixir ex_unit iex logger mix)a
   end
 
