@@ -46,7 +46,7 @@ defmodule Mix.ProjectTest do
 
     test "considers MIX_BUILD_PATH" do
       System.put_env("MIX_BUILD_PATH", "_build")
-      assert Mix.Project.build_path() == "_build"
+      assert Mix.Project.build_path() == Path.join(File.cwd!(), "_build")
     after
       System.delete_env("MIX_BUILD_PATH")
     end
