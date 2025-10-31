@@ -242,4 +242,13 @@ defmodule KeywordTest do
     assert Keyword.split_with([a: "1", a: 1, b: 2], fn {k, v} -> k in [:a] and is_integer(v) end) ==
              {[a: 1], [a: "1", b: 2]}
   end
+
+  test "take!/2" do
+    assert Keyword.take!([a: 1, a: 1, b: 2], [:a, :a, :b, :b]) ==
+             [a: 1, a: 1, b: 2]
+
+    assert_raise KeyError, ~r"key :c not found in:", fn ->
+      Keyword.take!([a: 1, a: 1, b: 2], [:a, :a, :b, :b, :c, :d])
+    end
+  end
 end

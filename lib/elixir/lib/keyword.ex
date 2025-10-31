@@ -1274,12 +1274,16 @@ defmodule Keyword do
   Takes all entries corresponding to the given `keys` and returns them as a new
   keyword list.
 
+  If `keys` contains keys that are not in keyword list, they're simply ignored.
+
   Preserves duplicate keys in the new keyword list.
+
+  See also `take!/2`.
 
   ## Examples
 
-      iex> Keyword.take([a: 1, b: 2, c: 3], [:a, :c, :e])
-      [a: 1, c: 3]
+      iex> Keyword.take([a: 1, b: 2, c: 3, a: 5], [:a, :c, :e])
+      [a: 1, c: 3, a: 5]
       iex> Keyword.take([a: 1, b: 2, c: 3, a: 5], [:a, :c, :e])
       [a: 1, c: 3, a: 5]
 
@@ -1289,9 +1293,67 @@ defmodule Keyword do
     :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
   end
 
-  # TODO
-  def take!(_keywords, _keys) do
+  @doc """
+  Takes all entries corresponding to the given `keys` and returns them as a new
+  keyword list.
+
+  If `keys` contains keys that are not in keyword list, an error is raised.
+
+  Preserves duplicate keys in the new keyword list.
+
+  See also `take/2`.
+
+  ## Examples
+
+      iex> Keyword.take([a: 1, b: 2, c: 3, a: 5], [:a, :c])
+      [a: 1, c: 3, a: 5]
+
+      iex> Keyword.take!([a: 1, b: 2, c: 3, a: 5], [:a, :c, :e])
+      ** (KeyError) key :e not found in:
+      ...
+
+  """
+  @doc since: "1.20.0"
+  @spec take!(t, [key]) :: t
+  def take!(keywords, keys) when is_list(keywords) and is_list(keys) do
+    allowed_keys = Keyword.keys(keywords)
+
+    :lists.foreach(
+      fn key ->
+        if not :lists.member(key, allowed_keys) do
+          raise KeyError, key: key, term: keywords
+        end
+      end,
+      keys
+    )
+
+    :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
   end
+
+  # def take!(keywords, keys) when is_list(keywords) and is_list(keys) do
+  #   take!(keywords, MapSet.new(keys), MapSet.new(), _acc = [])
+  # catch
+  #   key ->
+  #     raise KeyError, key: key, term: keywords
+  # end
+
+  # def take!([{key, value} | rest], keys, used_keys, acc) do
+  #   if MapSet.member?(keys, key) do
+  #     take!(rest, keys, MapSet.put(used_keys, key), [{key, value} | acc])
+  #   else
+  #     take!(rest, keys, MapSet.put(used_keys, key), acc)
+  #   end
+  # end
+
+  # def take!([], keys, used_keys, acc) do
+  #   case MapSet.to_list(MapSet.difference(keys, used_keys)) do
+  #     [] ->
+  #       :lists.reverse(acc)
+
+  #     [key | _] ->
+  #       throw(key)
+  #   end
+  # end
 
   @doc """
   Drops the given `keys` from the keyword list.
