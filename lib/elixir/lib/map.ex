@@ -861,6 +861,48 @@ defmodule Map do
   end
 
   @doc """
+  Drops the given `keys` from `map`.
+
+  If `keys` contains keys that are not in `map`, an error is raised.
+
+  ## Examples
+
+      iex> Map.drop!(%{a: 1, b: 2, c: 3}, [:b, :c])
+      %{a: 1}
+
+      iex> Map.drop!(%{a: 1, b: 2, c: 3}, [:b, :d])
+      ** (KeyError) key :d not found in:
+      ...
+
+  """
+  @doc since: "1.20.0"
+  @spec drop!(map, [key]) :: map
+  def drop!(map, keys)
+
+  def drop!(map, keys) when is_map(map) and is_list(keys) do
+    drop_keys!(keys, map)
+  catch
+    key ->
+      raise KeyError, key: key, term: map
+  end
+
+  def drop!(non_map, keys) when is_list(keys) do
+    :erlang.error({:badmap, non_map}, [non_map, keys])
+  end
+
+  defp drop_keys!([], acc) do
+    acc
+  end
+
+  defp drop_keys!([key | rest], acc) when is_map_key(acc, key) do
+    drop_keys!(rest, delete(acc, key))
+  end
+
+  defp drop_keys!([key | _], _acc) do
+    throw(key)
+  end
+
+  @doc """
   Takes all entries corresponding to the given `keys` in `map` and extracts
   them into a separate map.
 
