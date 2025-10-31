@@ -151,6 +151,11 @@ defmodule IntegerTest do
     assert_raise ArgumentError, "invalid base nil", fn -> Integer.parse("2", nil) end
   end
 
+  test "to_float/1" do
+    assert Integer.to_float(12) == 12.0
+    assert Integer.to_float(-300) == -300.0
+  end
+
   test "to_string/2" do
     assert Integer.to_string(42) == "42"
     assert Integer.to_string(+42) == "42"

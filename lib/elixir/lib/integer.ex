@@ -320,6 +320,19 @@ defmodule Integer do
   defp count_digits_nosign(<<_::bits>>, _, count), do: count
 
   @doc """
+  Returns a float equal to the given integer.
+
+  ## Examples
+
+      iex> Integer.to_float(12)
+      12.0
+
+      iex> Integer.to_float(-300)
+      -300.0
+  """
+  def to_float(integer) when is_integer(integer), do: integer / 1
+
+  @doc """
   Returns a binary which corresponds to the text representation
   of `integer` in the given `base`.
 
