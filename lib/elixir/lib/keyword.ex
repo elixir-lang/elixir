@@ -1330,35 +1330,14 @@ defmodule Keyword do
     :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
   end
 
-  # def take!(keywords, keys) when is_list(keywords) and is_list(keys) do
-  #   take!(keywords, MapSet.new(keys), MapSet.new(), _acc = [])
-  # catch
-  #   key ->
-  #     raise KeyError, key: key, term: keywords
-  # end
-
-  # def take!([{key, value} | rest], keys, used_keys, acc) do
-  #   if MapSet.member?(keys, key) do
-  #     take!(rest, keys, MapSet.put(used_keys, key), [{key, value} | acc])
-  #   else
-  #     take!(rest, keys, MapSet.put(used_keys, key), acc)
-  #   end
-  # end
-
-  # def take!([], keys, used_keys, acc) do
-  #   case MapSet.to_list(MapSet.difference(keys, used_keys)) do
-  #     [] ->
-  #       :lists.reverse(acc)
-
-  #     [key | _] ->
-  #       throw(key)
-  #   end
-  # end
-
   @doc """
   Drops the given `keys` from the keyword list.
 
   Removes duplicate keys from the new keyword list.
+
+  If `keys` contains keys that are not in keyword list, they're simply ignored.
+
+  See also `drop!/2`.
 
   ## Examples
 
@@ -1372,6 +1351,44 @@ defmodule Keyword do
   """
   @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
+    :lists.filter(fn {k, _} -> k not in keys end, keywords)
+  end
+
+  @doc """
+  Drops the given `keys` from the keyword list.
+
+  Removes duplicate keys from the new keyword list.
+
+  If `keys` contains keys that are not in keyword list, an error is raised.
+
+  See also `drop/2`.
+
+  ## Examples
+
+      iex> Keyword.drop!([a: 1, a: 2], [:a])
+      []
+      iex> Keyword.drop!([a: 1, b: 2, c: 3], [:a, :b])
+      [c: 3]
+
+      iex> Keyword.drop!([a: 1, b: 2, c: 3], [:b, :d])
+      ** (KeyError) key :d not found in:
+      ...
+
+  """
+  @doc since: "1.20.0"
+  @spec drop!(t, [key]) :: t
+  def drop!(keywords, keys) when is_list(keywords) and is_list(keys) do
+    allowed_keys = Keyword.keys(keywords)
+
+    :lists.foreach(
+      fn key ->
+        if not :lists.member(key, allowed_keys) do
+          raise KeyError, key: key, term: keywords
+        end
+      end,
+      keys
+    )
+
     :lists.filter(fn {k, _} -> k not in keys end, keywords)
   end
 
