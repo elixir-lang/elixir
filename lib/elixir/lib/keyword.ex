@@ -1289,6 +1289,10 @@ defmodule Keyword do
     :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
   end
 
+  # TODO
+  def take!(_keywords, _keys) do
+  end
+
   @doc """
   Drops the given `keys` from the keyword list.
 
