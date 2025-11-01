@@ -12,9 +12,9 @@ We have successfully learned how our supervision tree is automatically started (
 Supervisors know how to start processes because they are given "child specifications". In our `lib/kv.ex` file, we defined a list of children with a single child spec:
 
 ```elixir
-    children = [
-      {Registry, name: KV, keys: :unique}
-    ]
+children = [
+  {Registry, name: KV, keys: :unique}
+]
 ```
 
 When the child specification is a tuple (as above) or module, then it is equivalent to calling the `child_spec/1` function on said module, which then returns the full specification. The pair above is equivalent to:
@@ -71,10 +71,10 @@ Given our buckets can already be supervised, it is time to hook them into our su
 Given our buckets can already be supervised, you may be thinking to start them as part of our application `start/2` callback, such as:
 
 ```elixir
-    children = [
-      {Registry, name: KV, keys: :unique}
-      {KV.Bucket, name: {:via, Registry, {KV, "shopping"}}}
-    ]
+children = [
+  {Registry, name: KV, keys: :unique}
+  {KV.Bucket, name: {:via, Registry, {KV, "shopping"}}}
+]
 ```
 
 And while the above would definitely work, it comes with a huge caveat: it only starts a single bucket. In practice, we want the user to be able to create new buckets at any time. In other words, we need to start and supervise processes dynamically.
