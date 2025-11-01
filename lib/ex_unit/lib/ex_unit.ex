@@ -148,11 +148,23 @@ defmodule ExUnit do
       * `:state` - the finished test state (see `t:ExUnit.state/0`)
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
-      * `:logs` - the captured logs
+      * `:logs` - the captured logs (see ["Log Capture"](`ExUnit.Case#module-log-capture`))
+      * `:stdout` - (since v1.20.0) the captured IO (see
+        ["IO Capture"](`ExUnit.Case#module-io-capture`))
       * `:parameters` - the test parameters
 
     """
-    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: "", parameters: %{}]
+    defstruct [
+      :name,
+      :case,
+      :module,
+      :state,
+      time: 0,
+      tags: %{},
+      logs: "",
+      stdout: "",
+      parameters: %{}
+    ]
 
     # TODO: Remove the `:case` field on v2.0
     @type t :: %__MODULE__{
