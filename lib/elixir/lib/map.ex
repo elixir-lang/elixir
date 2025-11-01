@@ -471,13 +471,15 @@ defmodule Map do
 
   If `keys` contains keys that are not in `map`, they're simply ignored.
 
+  See also `take!/2`.
+
   ## Examples
 
       iex> Map.take(%{a: 1, b: 2, c: 3}, [:a, :c, :e])
       %{a: 1, c: 3}
 
   """
-  @spec take(map, [key]) :: map
+  @spec take(map(), [key()]) :: map()
   def take(map, keys)
 
   def take(map, keys) when is_map(map) and is_list(keys) do
@@ -509,6 +511,50 @@ defmodule Map do
       end
 
     take(rest, map, acc)
+  end
+
+  @doc """
+  Returns a new map with all the key-value pairs in `map` where the key
+  is in `keys`.
+
+  If `keys` contains keys that are not in `map`, an error is raised.
+
+  See also `take/2`.
+
+  ## Examples
+
+      iex> Map.take!(%{a: 1, b: 2, c: 3}, [:a, :c])
+      %{a: 1, c: 3}
+
+      iex> Map.take!(%{a: 1, b: 2, c: 3}, [:a, :c, :e])
+      ** (KeyError) key :e not found in:
+      ...
+
+  """
+  @doc since: "1.20.0"
+  @spec take!(map(), [key()]) :: map()
+  def take!(map, keys)
+
+  def take!(map, keys) when is_map(map) and is_list(keys) do
+    take!(keys, map, _acc = [])
+  end
+
+  def take!(non_map, keys) when is_list(keys) do
+    :erlang.error({:badmap, non_map})
+  end
+
+  defp take!([], _map, acc) do
+    :maps.from_list(acc)
+  end
+
+  defp take!([key | rest], map, acc) do
+    acc =
+      case map do
+        %{^key => value} -> [{key, value} | acc]
+        %{} -> raise KeyError, key: key, term: map
+      end
+
+    take!(rest, map, acc)
   end
 
   @doc """
@@ -812,6 +858,48 @@ defmodule Map do
 
   defp drop_keys([key | rest], acc) do
     drop_keys(rest, delete(acc, key))
+  end
+
+  @doc """
+  Drops the given `keys` from `map`.
+
+  If `keys` contains keys that are not in `map`, an error is raised.
+
+  ## Examples
+
+      iex> Map.drop!(%{a: 1, b: 2, c: 3}, [:b, :c])
+      %{a: 1}
+
+      iex> Map.drop!(%{a: 1, b: 2, c: 3}, [:b, :d])
+      ** (KeyError) key :d not found in:
+      ...
+
+  """
+  @doc since: "1.20.0"
+  @spec drop!(map, [key]) :: map
+  def drop!(map, keys)
+
+  def drop!(map, keys) when is_map(map) and is_list(keys) do
+    drop_keys!(keys, map)
+  catch
+    key ->
+      raise KeyError, key: key, term: map
+  end
+
+  def drop!(non_map, keys) when is_list(keys) do
+    :erlang.error({:badmap, non_map}, [non_map, keys])
+  end
+
+  defp drop_keys!([], acc) do
+    acc
+  end
+
+  defp drop_keys!([key | rest], acc) when is_map_key(acc, key) do
+    drop_keys!(rest, delete(acc, key))
+  end
+
+  defp drop_keys!([key | _], _acc) do
+    throw(key)
   end
 
   @doc """
