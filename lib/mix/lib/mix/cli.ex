@@ -8,18 +8,18 @@ defmodule Mix.CLI do
   @doc """
   Runs Mix according to the command line arguments.
   """
-  def main(args \\ System.argv()) do
+  def main(args \\ System.argv(), mix_exs \\ System.get_env("MIX_EXS") || "mix.exs") do
     if env_variable_activated?("MIX_DEBUG") do
       IO.puts("-> Running mix CLI")
-      {time, res} = :timer.tc(&main/2, [args, true])
+      {time, res} = :timer.tc(&main/3, [args, mix_exs, true])
       IO.puts(["<- Ran mix CLI in ", Integer.to_string(div(time, 1000)), "ms"])
       res
     else
-      main(args, false)
+      main(args, mix_exs, false)
     end
   end
 
-  defp main(args, debug?) do
+  defp main(args, mix_exs, debug?) do
     Mix.start()
 
     if debug?, do: Mix.debug(true)
@@ -46,13 +46,13 @@ defmodule Mix.CLI do
         display_version()
 
       nil ->
-        proceed(args)
+        proceed(args, mix_exs)
     end
   end
 
-  defp proceed(args) do
+  defp proceed(args, mix_exs) do
     load_dot_config()
-    load_mix_exs(args)
+    load_mix_exs(args, mix_exs)
     project = Mix.Project.get()
     {task, args} = get_task(args, project)
     ensure_hex(task)
@@ -60,14 +60,12 @@ defmodule Mix.CLI do
     run_task(task, args)
   end
 
-  defp load_mix_exs(args) do
-    file = System.get_env("MIX_EXS") || "mix.exs"
-
-    if File.regular?(file) do
+  defp load_mix_exs(args, mix_exs) do
+    if is_binary(mix_exs) and File.regular?(mix_exs) do
       Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
       old_undefined = Code.get_compiler_option(:no_warn_undefined)
       Code.put_compiler_option(:no_warn_undefined, :all)
-      Code.compile_file(file)
+      Code.compile_file(mix_exs)
       Code.put_compiler_option(:no_warn_undefined, old_undefined)
     end
   end

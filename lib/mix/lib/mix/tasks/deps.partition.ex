@@ -7,8 +7,6 @@ defmodule Mix.Tasks.Deps.Partition do
 
   ## Server
 
-  @deps_partition_install_mix_exs ~c"deps.partition.mix.exs"
-
   def server(deps, count, force?) do
     {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: false])
 
@@ -29,41 +27,18 @@ defmodule Mix.Tasks.Deps.Partition do
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
     force_flag = if force?, do: ~c"--force", else: ~c"--no-force"
 
-    env_vars =
-      if Mix.install?() do
-        blob =
-          Mix.Project.config()
-          |> :erlang.term_to_binary()
-          |> :binary.bin_to_list()
-          |> Enum.join(",")
-
-        # We replicate the initialization logic from Mix.install/2 as part of mix.exs
-        File.write!(@deps_partition_install_mix_exs, """
-        config = <<#{blob}>>
-        project = :erlang.binary_to_term(config)
-
-        if compile_config = project[:compile_config] do
-          Application.put_all_env(compile_config, persistent: true)
-        end
-
-        Mix.ProjectStack.push(Mix.InstallProject, project, "nofile")
-        """)
-
-        [{~c"MIX_EXS", @deps_partition_install_mix_exs}]
-      else
-        []
-      end
-
     args = [
       ansi_flag,
       ~c"-e",
-      ~c"Mix.CLI.main",
-      ~c"deps.partition",
+      ~c"Mix.Tasks.Deps.Partition.client",
+      ~c"--",
       force_flag,
       ~c"--port",
       Integer.to_charlist(port),
       ~c"--host",
-      ~c"127.0.0.1"
+      ~c"127.0.0.1",
+      ~c"--config",
+      Mix.ProjectStack.peek() |> :erlang.term_to_binary() |> Base.url_encode64()
     ]
 
     options = [
@@ -77,7 +52,6 @@ defmodule Mix.Tasks.Deps.Partition do
         {~c"MIX_OS_CONCURRENCY_LOCK", ~c"false"},
         {~c"MIX_ENV", Atom.to_charlist(Mix.env())},
         {~c"MIX_TARGET", Atom.to_charlist(Mix.target())}
-        | env_vars
       ]
     ]
 
@@ -241,16 +215,36 @@ defmodule Mix.Tasks.Deps.Partition do
 
   ## Client
 
-  @switches [port: :integer, host: :string, force: :boolean, index: :string]
+  @switches [port: :integer, host: :string, force: :boolean, index: :string, config: :string]
 
-  @impl true
-  def run(args) do
+  def client do
     # If stdin closes, we shutdown the VM
     spawn(fn ->
       _ = IO.gets("")
       System.halt(0)
     end)
 
+    args = System.argv()
+    {opts, []} = OptionParser.parse!(args, strict: @switches)
+    peek = Keyword.fetch!(opts, :config) |> Base.url_decode64!() |> :erlang.binary_to_term()
+
+    # This is specific to Mix.install/2 and how it handles compile-time config
+    if compile_config = peek.config[:compile_config] do
+      Application.put_all_env(compile_config, persistent: true)
+    end
+
+    partition_args =
+      opts
+      |> Keyword.take([:host, :port, :index, :force])
+      |> OptionParser.to_argv()
+
+    Mix.start()
+    Mix.ProjectStack.push(peek.name, peek.config, peek.file)
+    Mix.CLI.main(["deps.partition" | partition_args], nil)
+  end
+
+  @impl true
+  def run(args) do
     {opts, []} = OptionParser.parse!(args, strict: @switches)
     host = Keyword.fetch!(opts, :host)
     port = Keyword.fetch!(opts, :port)
