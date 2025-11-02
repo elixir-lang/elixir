@@ -341,48 +341,67 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   end
 
-  test "escript.install from Git" do
-    in_fixture("git_repo", fn ->
-      File.mkdir_p!("config")
+  for count <- [1, 2] do
+    test "escript.install from Git (with MIX_OS_DEPS_COMPILE_PARTITION_COUNT=#{count})" do
+      System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "#{unquote(count)}")
 
-      File.write!("config/config.exs", """
-      import Config
-      config :git_repo, :escript_config, true
-      """)
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("config")
+        File.mkdir_p!("lib")
 
-      File.write!("lib/git_repo.ex", """
-      require Application
-      true = Application.compile_env!(:git_repo, :escript_config)
+        File.write!("config/config.exs", """
+        import Config
+        config :source_repo, :escript_config, true
+        """)
 
-      defmodule GitRepo.Escript do
-        def main(_argv) do
-          IO.puts("TEST")
+        File.write!("lib/source_repo.ex", """
+        require Application
+        true = Application.compile_env!(:source_repo, :escript_config)
+
+        defmodule SourceRepo.Escript do
+          def main(_argv) do
+            IO.puts("TEST")
+          end
         end
-      end
-      """)
+        """)
 
-      File.write!("mix.exs", """
-      defmodule GitRepo.MixProject do
-        use Mix.Project
+        File.write!("mix.exs", """
+        defmodule SourceRepo.MixProject do
+          use Mix.Project
 
-        def project do
-          [app: :git_repo, version: "0.1.0", escript: [main_module: GitRepo.Escript]]
+          def project do
+            [
+              app: :source_repo,
+              version: "0.1.0",
+              escript: [main_module: SourceRepo.Escript],
+              deps: [
+                {:git_repo, path: "#{MixTest.Case.fixture_path("git_repo")}"},
+                {:git_rebar, path: "#{MixTest.Case.fixture_path("git_rebar")}", manager: :rebar3},
+                {:ok, path: "deps/ok"},
+              ]
+            ]
+          end
         end
-      end
-      """)
+        """)
 
-      System.cmd("git", ~w[add .])
-      System.cmd("git", ~w[commit -m "ok"])
+        System.cmd("git", ~w[init])
+        System.cmd("git", ~w[add .])
+        System.cmd("git", ~w[commit -m "ok"])
 
-      send(self(), {:mix_shell_input, :yes?, true})
-      Mix.Tasks.Escript.Install.run(["git", File.cwd!()])
-      assert_received {:mix_shell, :info, ["Generated escript git_repo with MIX_ENV=prod"]}
+        ExUnit.CaptureIO.capture_io(fn ->
+          send(self(), {:mix_shell_input, :yes?, true})
+          Mix.Tasks.Escript.Install.run(["git", File.cwd!()])
+        end)
 
-      escript_path = Path.join([tmp_path(".mix"), "escripts", "git_repo"])
-      assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
-    end)
-  after
-    purge([GitRepo.Escript, GitRepo.MixProject, Mix.Local.Installer.MixProject])
+        assert_received {:mix_shell, :info, ["Generated escript source_repo with MIX_ENV=prod"]}
+
+        escript_path = Path.join([tmp_path(".mix"), "escripts", "source_repo"])
+        assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
+      end)
+    after
+      System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
+      purge([SourceRepo.Escript, SourceRepo.MixProject, Mix.Local.Installer.MixProject])
+    end
   end
 
   defp push_project_with_config(module, config \\ []) do
