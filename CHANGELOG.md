@@ -234,6 +234,36 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.2 (2025-11-02)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Measure and optimize writing of `.beam` files in the compiler
+  * [Kernel] Optimize rare scenarios where type checking took too long
+
+#### Mix
+
+  * [mix compile] Add flag `--no-check-cwd` to skip compiler check to aid debugging
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [IO] Fix dialyzer warning on `IO.inspect :label`
+  * [Kernel] Ensure we warn on deprecated `~~~` unary operator
+
+#### Logger
+
+  * [Logger] Reset ansi escapes before newlines in Logger
+
+#### Mix
+
+  * [mix compile] Warn if `elixirc_paths` is not a list of string paths
+  * [mix compile] Address regression where umbrella children were compiled too early and without respecting compilation flags
+  * [mix deps.compile] Improve reliability of `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` across `mix escript.install`, `mix archive.install`, and others
+
 ## v1.19.1 (2025-10-20)
 
 ### 1. Bug fixes
