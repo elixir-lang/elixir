@@ -768,11 +768,11 @@ defmodule Mix.Project do
   @spec build_path(keyword) :: Path.t()
   def build_path(config \\ config()) do
     cond do
-      build_path = System.get_env("MIX_BUILD_PATH") ->
-        Path.expand(build_path)
-
       deps_build_path = config[:deps_build_path] ->
         deps_build_path
+
+      build_path = System.get_env("MIX_BUILD_PATH") ->
+        Path.expand(build_path)
 
       true ->
         do_build_path(config)
