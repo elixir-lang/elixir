@@ -787,8 +787,7 @@ defmodule Protocol do
         @before_compile Protocol
 
         # We don't allow function definition inside protocols
-        import Kernel,
-          except: [def: 1, def: 2, defdelegate: 2, defguard: 1, defguardp: 1]
+        import Kernel, except: [def: 1, def: 2]
 
         # Import the new `def` that is used by protocols
         import Protocol, only: [def: 1]
@@ -846,6 +845,21 @@ defmodule Protocol do
     if functions == [] do
       warn(
         "protocols must define at least one function, but none was defined",
+        env,
+        nil
+      )
+    end
+
+    extra =
+      ((Module.definitions_in(env.module, :def) ++ Module.definitions_in(env.module, :defmacro)) --
+         functions) --
+        [impl_for: 1, impl_for!: 1, __protocol__: 1, __deriving__: 2, __deriving__: 3]
+
+    # TODO: Make an error on Elixir v2.0
+    if extra != [] do
+      warn(
+        "protocols can only define functions without implementation via def/1, found: " <>
+          Enum.map_join(extra, ", ", fn {name, arity} -> "#{name}/#{arity}" end),
         env,
         nil
       )

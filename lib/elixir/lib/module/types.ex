@@ -80,7 +80,7 @@ defmodule Module.Types do
           kind in [:def, :defmacro],
           reduce: {[], context()} do
         {types, context} ->
-          # Optimized version of finder, since we already the definition
+          # Optimized version of finder, since we already have the definition
           finder = fn _ ->
             default_domain(infer_mode(kind, infer_signatures?), def, fun_arity, impl)
           end

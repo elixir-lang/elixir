@@ -19,12 +19,6 @@ defprotocol List.Chars do
   """
   @spec to_charlist(t) :: charlist
   def to_charlist(term)
-
-  @doc false
-  @deprecated "Use List.Chars.to_charlist/1 instead"
-  Kernel.def to_char_list(term) do
-    __MODULE__.to_charlist(term)
-  end
 end
 
 defimpl List.Chars, for: Atom do
