@@ -90,7 +90,7 @@ defmodule Module.Types.Descr do
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
-  def closed_map(pairs), do: map_descr(:closed, pairs, @term_or_optional, false)
+  def closed_map(pairs), do: map_descr(:closed, pairs, term_or_optional(), false)
   def empty_list(), do: %{bitmap: @bit_empty_list}
   def empty_map(), do: %{map: @map_empty}
   def integer(), do: %{bitmap: @bit_integer}
@@ -98,7 +98,7 @@ defmodule Module.Types.Descr do
   def list(type), do: list_descr(type, @empty_list, true)
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
   def open_map(), do: %{map: @map_top}
-  def open_map(pairs), do: map_descr(:open, pairs, @term_or_optional, false)
+  def open_map(pairs), do: map_descr(:open, pairs, term_or_optional(), false)
   def open_map(pairs, default), do: map_descr(:open, pairs, if_set(default), true)
   def open_tuple(elements, _fallback \\ term()), do: tuple_descr(:open, elements)
   def pid(), do: %{bitmap: @bit_pid}
@@ -2993,28 +2993,6 @@ defmodule Module.Types.Descr do
 
   defp nil_or_type(type), do: union(type, atom([nil]))
 
-  defp unfold_domains(:open), do: Map.from_keys(@domain_key_types, @term_or_optional)
-  defp unfold_domains(:closed), do: %{}
-  defp unfold_domains(domains = %{}), do: domains
-
-  defp map_get_static(%{map: bdd_leaf(tag_or_domains, fields)}, key_descr) do
-    # For each non-empty kind of type in the key_descr, we add the corresponding key domain in a union.
-    domains = unfold_domains(tag_or_domains)
-
-    {key_descr, acc} =
-      case :maps.take(:atom, key_descr) do
-        {atom, key_descr} -> {key_descr, map_get_atom([{domains, fields, []}], atom)}
-        :error -> {key_descr, none()}
-      end
-
-    key_descr
-    |> to_domain_keys()
-    |> Enum.reduce(acc, fn
-      key_type, acc ->
-        Map.get(domains, key_type, not_set()) |> union(acc)
-    end)
-  end
-
   defp map_get_static(%{map: bdd}, key_descr) do
     dnf = map_bdd_to_dnf(bdd)
 
@@ -3096,16 +3074,19 @@ defmodule Module.Types.Descr do
   # Take a map bdd and return the union of types for the given key domain.
   defp map_get_domain(dnf, domain_key(_) = domain_key) do
     Enum.reduce(dnf, none(), fn
-      {tag, _fields, []}, acc when is_atom(tag) ->
-        map_key_tag_to_type(tag) |> union(acc)
+      {:open, _fields, []}, acc ->
+        union(term_or_optional(), acc)
+
+      {:closed, _fields, []}, acc ->
+        acc
 
       # Optimization: if there are no negatives and domains exists, return its value
       {%{^domain_key => value}, _fields, []}, acc ->
         value |> union(acc)
 
-      # Optimization: if there are no negatives and the key does not exist, return the default type.
-      {domains = %{}, _fields, []}, acc ->
-        map_key_tag_to_type(domains) |> union(acc)
+      # Optimization: if there are no negatives and the key does not exist, skip it
+      {_domains, _fields, []}, acc ->
+        acc
 
       {tag_or_domains, fields, negs}, acc ->
         {fst, snd} = map_pop_domain(tag_or_domains, fields, domain_key)
