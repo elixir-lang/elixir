@@ -179,9 +179,8 @@ defmodule Module.Types.Of do
     {pairs_types, context} = pairs(pairs, expected, stack, context, of_fun)
 
     map =
-      permutate_map(pairs_types, stack, fn fallback, _keys, pairs ->
-        # TODO: Use the fallback type to actually indicate if open or closed.
-        if fallback == none(), do: closed_map(pairs), else: dynamic(open_map(pairs))
+      permutate_map(pairs_types, stack, fn pairs ->
+        closed_map(pairs)
       end)
 
     {map, context}
@@ -194,36 +193,40 @@ defmodule Module.Types.Of do
     Enum.map_reduce(pairs, context, fn {key, value}, context ->
       {_key_type, context} = of_fun.(key, term(), stack, context)
       {value_type, context} = of_fun.(value, term(), stack, context)
-      {{true, :none, value_type}, context}
+      {{{:domain, to_domain_keys(:term)}, true, value_type}, context}
     end)
   end
 
   def pairs(pairs, expected, stack, context, of_fun) do
     Enum.map_reduce(pairs, context, fn {key, value}, context ->
-      {dynamic_key?, keys, context} = finite_key_type(key, stack, context, of_fun)
+      {key_tagged_type, dynamic_key?, context} = map_key_type(key, stack, context, of_fun)
 
       expected_value_type =
-        with [key] <- keys, {_, expected_value_type} <- map_fetch(expected, key) do
+        with {:keys, [key]} <- key_tagged_type,
+             {_, expected_value_type} <- map_fetch(expected, key) do
           expected_value_type
         else
           _ -> term()
         end
 
       {value_type, context} = of_fun.(value, expected_value_type, stack, context)
-      {{dynamic_key? or gradual?(value_type), keys, value_type}, context}
+      {{key_tagged_type, dynamic_key? or gradual?(value_type), value_type}, context}
     end)
   end
 
-  defp finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {false, [key], context}
+  @doc """
+  Returns the type of a map key.
+  """
+  def map_key_type(key, _stack, context, _of_fun) when is_atom(key) do
+    {{:keys, [key]}, false, context}
   end
 
-  defp finite_key_type(key, stack, context, of_fun) do
+  def map_key_type(key, stack, context, of_fun) do
     {key_type, context} = of_fun.(key, term(), stack, context)
 
     case atom_fetch(key_type) do
-      {:finite, list} -> {gradual?(key_type), list, context}
-      _ -> {gradual?(key_type), :none, context}
+      {:finite, list} -> {{:keys, list}, gradual?(key_type), context}
+      _ -> {{:domain, to_domain_keys(key_type)}, gradual?(key_type), context}
     end
   end
 
@@ -235,45 +238,35 @@ defmodule Module.Types.Of do
   end
 
   def permutate_map(pairs_types, _stack, of_map) do
-    {dynamic?, fallback, single, multiple, assert} =
-      Enum.reduce(pairs_types, {false, none(), [], [], []}, fn
-        {dynamic_pair?, keys, value_type}, {dynamic?, fallback, single, multiple, assert} ->
+    {dynamic?, domain, single, multiple} =
+      Enum.reduce(pairs_types, {false, [], [], []}, fn
+        {key_tagged_type, dynamic_pair?, value_type}, {dynamic?, domain, single, multiple} ->
           dynamic? = dynamic? or dynamic_pair?
 
-          case keys do
-            :none ->
-              fallback = union(fallback, value_type)
-
-              {fallback, assert} =
-                Enum.reduce(single, {fallback, assert}, fn {key, type}, {fallback, assert} ->
-                  {union(fallback, type), [key | assert]}
-                end)
-
-              {fallback, assert} =
-                Enum.reduce(multiple, {fallback, assert}, fn {keys, type}, {fallback, assert} ->
-                  {union(fallback, type), keys ++ assert}
-                end)
-
-              {dynamic?, fallback, [], [], assert}
-
+          case key_tagged_type do
             # Because a multiple key may override single keys, we can only
             # collect single keys while there are no multiples.
-            [key] when multiple == [] ->
-              {dynamic?, fallback, [{key, value_type} | single], multiple, assert}
+            {:keys, [key]} when multiple == [] ->
+              {dynamic?, domain, [{key, value_type} | single], multiple}
 
-            keys ->
-              {dynamic?, fallback, single, [{keys, value_type} | multiple], assert}
+            {:keys, keys} ->
+              {dynamic?, domain, single, [{keys, value_type} | multiple]}
+
+            {:domain, keys} ->
+              {dynamic?, [{keys, value_type} | domain], single, multiple}
           end
       end)
+
+    non_multiple = Enum.reverse(single, domain)
 
     map =
       case Enum.reverse(multiple) do
         [] ->
-          of_map.(fallback, Enum.uniq(assert), Enum.reverse(single))
+          of_map.(non_multiple)
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            of_map.(fallback, Enum.uniq(assert), Enum.reverse(single, [{key, type} | t]))
+            of_map.(non_multiple ++ [{key, type} | t])
           end
           |> Enum.reduce(&union/2)
       end

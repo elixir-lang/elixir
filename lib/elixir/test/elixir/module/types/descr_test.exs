@@ -1835,9 +1835,9 @@ defmodule Module.Types.DescrTest do
       assert equal?(type, open_map(a: not_set()))
     end
 
-    test "map_fetch_and_put" do
-      assert map_fetch_and_put(term(), :a, integer()) == :badmap
-      assert map_fetch_and_put(open_map(), :a, integer()) == :badkey
+    test "map_put_existing" do
+      assert map_put_existing(term(), :a, integer()) == :badmap
+      assert map_put_existing(open_map(), :a, integer()) == :badkey
     end
 
     test "map_put" do
@@ -1907,64 +1907,6 @@ defmodule Module.Types.DescrTest do
       {:ok, map} = map_put(union(dynamic(), empty_map()), :a, atom())
       {false, type} = map_fetch(map, :a)
       assert equal?(type, atom())
-    end
-
-    test "map_put with domain keys" do
-      # Using a literal key or an expression of that singleton key is the same
-      assert map_refresh(empty_map(), atom([:a]), integer()) == {:ok, closed_map(a: integer())}
-
-      # Several keys
-      assert map_refresh(empty_map(), atom([:a, :b]), integer()) ==
-               {:ok, closed_map(a: if_set(integer()), b: if_set(integer()))}
-
-      assert map_refresh(empty_map(), integer(), integer()) ==
-               {:ok, closed_map([{domain_key(:integer), integer()}])}
-
-      assert map_refresh(closed_map([{domain_key(:integer), integer()}]), integer(), float()) ==
-               {:ok, closed_map([{domain_key(:integer), number()}])}
-
-      assert map_refresh(open_map(), integer(), integer()) == {:ok, open_map()}
-
-      # TODO: Revisit this
-      # {:ok, type} = map_refresh(empty_map(), integer(), dynamic())
-      # assert equal?(type, dynamic(closed_map([{domain_key(:integer), term()}])))
-
-      # Adding a key of type float to a dynamic only guarantees that we have a map
-      # as we cannot express "has at least one key of type float => float"
-      {:ok, type} = map_refresh(dynamic(), float(), float())
-      assert equal?(type, dynamic(open_map()))
-
-      assert closed_map([{domain_key(:integer), integer()}])
-             |> difference(open_map())
-             |> empty?()
-
-      assert closed_map([{domain_key(:integer), integer()}])
-             |> difference(open_map())
-             |> map_refresh(integer(), float()) == :badmap
-
-      assert map_refresh(empty_map(), number(), float()) ==
-               {:ok,
-                closed_map([
-                  {domain_key(:integer), float()},
-                  {domain_key(:float), float()}
-                ])}
-
-      # Tricky cases with atoms:
-      # We add one atom fields that maps to an integer, which is not :a. So we do not touch
-      # :a, add integer to :b, and add a domain field.
-      assert map_refresh(
-               closed_map(a: pid(), b: pid()),
-               atom() |> difference(atom([:a])),
-               integer()
-             ) ==
-               {:ok,
-                closed_map([
-                  {:a, pid()},
-                  {:b, union(pid(), integer())},
-                  {domain_key(:atom), integer()}
-                ])}
-
-      assert map_refresh(empty_map(), term(), integer()) == {:ok, map_with_default(integer())}
     end
   end
 

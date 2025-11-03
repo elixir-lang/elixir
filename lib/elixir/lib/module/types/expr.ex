@@ -172,58 +172,53 @@ defmodule Module.Types.Expr do
     # allow variables defined on the left side of | to be available
     # on the right side, this is safe.
     {pairs_types, context} =
-      Of.pairs(args, expected, stack, context, &of_expr(&1, &2, expr, &3, &4))
+      Enum.map_reduce(args, context, fn {key, value}, context ->
+        {key_tagged_type, dynamic_key?, context} =
+          Of.map_key_type(key, stack, context, &of_expr(&1, &2, expr, &3, &4))
+
+        {value_type, context} = of_expr(value, term(), expr, stack, context)
+        {{key_tagged_type, dynamic_key? or gradual?(value_type), value_type}, context}
+      end)
 
     expected =
       if stack.mode == :traversal do
         expected
       else
-        # TODO: Once we introduce domain keys, if we ever find a domain
-        # that overlaps atoms, we can only assume optional(atom()) => term(),
-        # which is what the `open_map()` below falls back into anyway.
-        Enum.reduce_while(pairs_types, expected, fn
-          {_, [key], _}, acc ->
-            case map_fetch_and_put(acc, key, term()) do
-              {_value, acc} -> {:cont, acc}
-              _ -> {:halt, open_map()}
-            end
+        # The only information we can attach to the expected types is that
+        # certain keys are expected.
+        #
+        # * If we have a single key, that's straight-forward
+        #
+        # * If we have multiple keys, it may be one or the other,
+        #   so we would need to generate unions, therefore we abort
+        #
+        # * If it is a domain key, then we could say such key is expected,
+        #   but it wouldn't effectively add any new information, so we skip it
+        expected_pairs =
+          Enum.reduce_while(pairs_types, [], fn
+            {{:domain, _}, _, _}, acc -> {:cont, acc}
+            {{:keys, [key]}, _, _}, acc -> {:cont, [{key, term()} | acc]}
+            {_, _, _}, _acc -> {:halt, []}
+          end)
 
-          _, _ ->
-            {:halt, open_map()}
-        end)
+        intersection(expected, open_map(expected_pairs))
       end
 
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
-      Of.permutate_map(pairs_types, stack, fn fallback, keys_to_assert, pairs ->
-        # Ensure all keys to assert and all type pairs exist in map
-        keys_to_assert = Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert
-
-        Enum.each(Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert, fn key ->
-          case map_fetch(map_type, key) do
-            {_, _} -> :ok
-            :badkey -> throw({:badkey, map_type, key, update, context})
-            :badmap -> throw({:badmap, map_type, update, context})
-          end
-        end)
-
-        # If all keys are known is no fallback (i.e. we know all keys being updated),
-        # we can update the existing map.
-        if fallback == none() do
-          Enum.reduce(pairs, map_type, fn {key, type}, acc ->
-            case map_fetch_and_put(acc, key, type) do
-              {_value, descr} -> descr
-              :badkey -> throw({:badkey, map_type, key, update, context})
+      Of.permutate_map(pairs_types, stack, fn pairs ->
+        Enum.reduce(pairs, map_type, fn {key_or_domains, type}, acc ->
+          if is_atom(key_or_domains) do
+            case map_put_existing(acc, key_or_domains, type) do
+              {:ok, descr} -> descr
+              :badkey -> throw({:badkey, map_type, key_or_domains, update, context})
               :badmap -> throw({:badmap, map_type, update, context})
             end
-          end)
-        else
-          # TODO: Use the fallback type to actually indicate if open or closed.
-          # The fallback must be unioned with the result of map_values with all
-          # `keys` deleted.
-          dynamic(open_map(pairs))
-        end
+          else
+            acc
+          end
+        end)
       end)
     catch
       error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
@@ -240,6 +235,8 @@ defmodule Module.Types.Expr do
         stack,
         context
       ) do
+    # We pass the expected type as `term()` because the struct update
+    # operator already expects it to be a map at this point.
     {map_type, context} = of_expr(map, term(), struct, stack, context)
 
     context =
@@ -259,8 +256,8 @@ defmodule Module.Types.Expr do
       # TODO: Once we support typed structs, we need to type check them here
       {type, context} = of_expr(value, term(), expr, stack, context)
 
-      case map_fetch_and_put(acc, key, type) do
-        {_value, acc} -> {acc, context}
+      case map_put_existing(acc, key, type) do
+        {:ok, acc} -> {acc, context}
         _ -> {acc, context}
       end
     end)
