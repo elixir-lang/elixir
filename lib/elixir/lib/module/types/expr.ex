@@ -243,7 +243,7 @@ defmodule Module.Types.Expr do
       if stack.mode == :traversal do
         context
       else
-        with {false, struct_key_type} <- map_fetch(map_type, :__struct__),
+        with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
              {:finite, [^module]} <- atom_fetch(struct_key_type) do
           context
         else
@@ -256,7 +256,7 @@ defmodule Module.Types.Expr do
       # TODO: Once we support typed structs, we need to type check them here
       {type, context} = of_expr(value, term(), expr, stack, context)
 
-      case map_put_existing(acc, key, type) do
+      case map_put_key(acc, key, type) do
         {:ok, acc} -> {acc, context}
         _ -> {acc, context}
       end

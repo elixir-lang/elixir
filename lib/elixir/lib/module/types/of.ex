@@ -163,7 +163,7 @@ defmodule Module.Types.Of do
   Handles fetching a map key.
   """
   def map_fetch(expr, type, field, stack, context) when is_atom(field) do
-    case map_fetch(type, field) do
+    case map_fetch_key(type, field) do
       {_optional?, value_type} ->
         {value_type, context}
 
@@ -203,7 +203,7 @@ defmodule Module.Types.Of do
 
       expected_value_type =
         with {:keys, [key]} <- key_tagged_type,
-             {_, expected_value_type} <- map_fetch(expected, key) do
+             {_, expected_value_type} <- map_fetch_key(expected, key) do
           expected_value_type
         else
           _ -> term()
@@ -297,7 +297,7 @@ defmodule Module.Types.Of do
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
         value_type =
           with true <- mode != :traversal,
-               {_, expected_value_type} <- map_fetch(expected, key) do
+               {_, expected_value_type} <- map_fetch_key(expected, key) do
             expected_value_type
           else
             _ -> term()
