@@ -2311,6 +2311,19 @@ defmodule Module.Types.Descr do
     acc
   end
 
+  defp domain_key_to_descr(domain_key(:atom)), do: atom()
+  defp domain_key_to_descr(domain_key(:binary)), do: binary()
+  defp domain_key_to_descr(domain_key(:empty_list)), do: empty_list()
+  defp domain_key_to_descr(domain_key(:integer)), do: integer()
+  defp domain_key_to_descr(domain_key(:float)), do: float()
+  defp domain_key_to_descr(domain_key(:pid)), do: pid()
+  defp domain_key_to_descr(domain_key(:port)), do: port()
+  defp domain_key_to_descr(domain_key(:reference)), do: reference()
+  defp domain_key_to_descr(domain_key(:fun)), do: fun()
+  defp domain_key_to_descr(domain_key(:tuple)), do: tuple()
+  defp domain_key_to_descr(domain_key(:map)), do: open_map()
+  defp domain_key_to_descr(domain_key(:list)), do: non_empty_list(term(), term())
+
   defp map_descr(tag, pairs, default, force_domains?) do
     {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
 
@@ -2921,148 +2934,184 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # def map_update(:term, key_descr, _type), do: :badmap
+  @doc """
+  TODO
+  """
+  def map_update(:term, _key_descr, _type), do: :badmap
 
-  # def map_update(descr, key_descr, :term),
-  #   do: map_update_shared(descr, key_descr, :term)
+  def map_update(descr, key_descr, :term),
+    do: map_update_shared(descr, key_descr, :term)
 
-  # def map_update(descr, key_descr, type) do
-  #   case :maps.take(:dynamic, type) do
-  #     :error -> map_update_shared(descr, key_descr, type)
-  #     {dynamic, _static} -> map_update_shared(dynamic(descr), key_descr, dynamic)
-  #   end
-  # end
+  def map_update(descr, key_descr, type) do
+    case :maps.take(:dynamic, type) do
+      :error -> map_update_shared(descr, key_descr, type)
+      {dynamic, _static} -> map_update_shared(dynamic(descr), key_descr, dynamic)
+    end
+  end
 
-  # defp map_update_shared(descr, key_descr, type) do
-  #   key_descr = upper_bound(key_descr)
+  defp map_update_shared(descr, key_descr, type) do
+    split_keys = map_split_keys_and_domains(key_descr)
 
-  #   case :maps.take(:dynamic, descr) do
-  #     :error ->
-  #       if descr_key?(descr, :map) and map_only?(descr) do
-  #         case map_existing_domains(descr, domain_keys) do
-  #           [] -> :badkey
-  #           domain_keys -> {:ok, map_update_domains(descr, domain_keys, type)}
-  #         end
-  #       else
-  #         :badmap
-  #       end
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if descr_key?(descr, :map) and map_only?(descr) do
+          {present?, _value, descr} =
+            map_update_static(descr, split_keys, type, fn optional?, value ->
+              optional? or empty?(value)
+            end)
 
-  #     {dynamic, static} ->
-  #       if descr_key?(dynamic, :map) and map_only?(static) do
-  #         case map_existing_domains(dynamic, domain_keys) do
-  #           [] ->
-  #             :badkey
+          if present? do
+            {:ok, descr}
+          else
+            {:badomain, key_descr}
+          end
+        else
+          :badmap
+        end
 
-  #           domain_keys ->
-  #             {:ok,
-  #              union(
-  #                dynamic(map_update_domains(dynamic, domain_keys, type)),
-  #                map_update_domains(static, domain_keys, type)
-  #              )}
-  #         end
-  #       else
-  #         :badmap
-  #       end
-  #   end
-  # end
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          {static_present?, _value, static_descr} =
+            map_update_static(descr, split_keys, type, fn optional?, _ -> optional? end)
 
-  # defp map_update_static(%{map: bdd}, key_descr, type) do
-  #   dnf = map_bdd_to_dnf(bdd)
-  #   {keys, key_descr} = map_split_keys(key_descr, bdd)
-  #   {optional, value, descr} = map_update_keys(dnf, keys, type)
+          {dynamic_present?, _value, dynamic_descr} =
+            map_update_static(descr, split_keys, type, fn _, value -> empty?(value) end)
 
-  #   key_descr
-  #   |> to_domain_keys()
-  #   |> Enum.reduce({optional, value, descr}, fn domain_key, acc ->
-  #     map_update_domain(dnf, domain_key) |> union(acc)
-  #   end)
-  # end
+          if static_present? or dynamic_present? do
+            {:ok, union(static_descr, dynamic(dynamic_descr))}
+          else
+            {:badomain, key_descr}
+          end
+        else
+          :badmap
+        end
+    end
+  end
 
-  # defp map_update_static(%{}, _key_descr, _type) do
-  #   # No optional keys, no returned value, none is returned
-  #   {none(), none(), none()}
-  # end
+  defp map_update_static(%{map: bdd}, split_keys, type, missing_fun) do
+    {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
+      split_keys
 
-  # defp map_update_static(:term, key_descr, _type) do
-  #   # The whole key_descr is optional, returned value is term, open map is returned
-  #   {key_descr, term(), open_map()}
-  # end
-
-  # defp map_update_keys(dnf, keys, type) do
-  #   Enum.reduce(keys, {none(), none(), none()}, fn atom, {optional, value, acc} ->
-  #     {optional?, value, descr} = map_dnf_take_static(dnf, atom, value)
-  #     optional = if optional?, do: union(optional, atom([atom])), else: optional
-  #     descr = union(map_put_key_static(descr, atom, type), acc)
-  #     {optional, value, descr}
-  #   end)
-  # end
-
-  # defp map_update_atom_negation(%{atom: {:negation, atoms}} = descr, type) do
-  #   # 1) Fetch all the possible keys in the bdd
-  #   # 2) Get them all, except the ones in neg_atoms
-  #   all_fields = map_merge_all_fields(dnf)
-  #   acc = map_get_domain(dnf, domain_key(:atom))
-
-  #   for {atom, _} <- all_fields, not :sets.is_element(atom, atoms), reduce: acc do
-  #     acc ->
-  #       {static_optional?, type} = map_dnf_fetch_static(dnf, atom)
-
-  #       if static_optional? do
-  #         union(type, acc) |> nil_or_type() |> if_set()
-  #       else
-  #         union(type, acc)
-  #       end
-  #   end
-  # end
-
-  defp map_existing_domains(%{map: bdd}, domain_keys) do
+    non_negated = map_materialize_negated_set(maybe_negated_set, bdd)
     dnf = map_bdd_to_dnf(bdd)
 
-    Enum.filter(domain_keys, fn domain_key ->
-      Enum.any?(dnf, fn
-        {:open, _fields, []} ->
-          true
+    case map_update_get_domains(dnf, required_domains, none()) do
+      {required_domains, [], value} ->
+        # Optional domains can miss
+        {optional_domains, _, value} = map_update_get_domains(dnf, optional_domains, value)
 
-        {:closed, _fields, []} ->
-          false
+        # If any of required or optional domains are satisfied, we are already good
+        present? = required_domains != [] or optional_domains != []
 
-        {domains, _fields, []} ->
-          case domains do
-            %{^domain_key => type} -> not empty_or_optional?(type)
-            %{} -> false
-          end
+        # Now compute the initial return type. Note that map_update_static_keys works
+        # on the original bdd/dnf, not the one with updated domains
+        descr = map_update_put_domains(bdd, required_domains ++ optional_domains, type)
 
-        {tag_or_domains, fields, negs} ->
-          {fst, snd} = map_pop_domain(tag_or_domains, fields, domain_key)
+        map_update_static_keys(
+          dnf,
+          required_keys,
+          optional_keys,
+          non_negated,
+          type,
+          missing_fun,
+          {present?, value, descr}
+        )
 
-          case map_split_negative_domain(negs, domain_key) do
-            :empty ->
-              false
+      {_, [missing_domain | _], _} ->
+        {:baddomain, domain_key_to_descr(missing_domain)}
+    end
+  end
 
-            negative ->
-              type =
-                negative
-                |> pair_make_disjoint()
-                |> pair_eliminate_negations_fst(fst, snd)
+  defp map_update_static(%{}, _split_keys, _type, _missing_fun) do
+    {false, none(), none()}
+  end
 
-              not empty_or_optional?(type)
-          end
-      end)
+  defp map_update_static(:term, split_keys, type, missing_fun) do
+    # Since it is an open map, we don't need to check the domains...
+    {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
+      split_keys
+
+    non_negated = :sets.to_list(maybe_negated_set)
+    dnf = map_bdd_to_dnf(@map_top)
+    acc = {required_domains != [] or optional_domains != [], term(), open_map()}
+    map_update_static_keys(dnf, required_keys, optional_keys, non_negated, type, missing_fun, acc)
+  end
+
+  defp map_update_static_keys(dnf, required, optional, non_negated, type, missing_fun, acc) do
+    acc = map_update_keys(dnf, required, type, :required, missing_fun, acc)
+    acc = map_update_keys(dnf, optional, type, :optional, missing_fun, acc)
+    acc = map_update_keys(dnf, non_negated, type, :optional, missing_fun, acc)
+    acc
+  catch
+    {:badkey, key} -> {:badkey, key}
+  end
+
+  defp map_update_keys(dnf, keys, type, required_or_optional, missing_fun, acc) do
+    Enum.reduce(keys, acc, fn key, {present?, acc_value, acc_descr} ->
+      {optional?, value, descr} = map_dnf_take_static(dnf, key, none())
+      value = union(value, acc_value)
+      descr = union(map_put_key_static(descr, key, type), acc_descr)
+
+      missing? = missing_fun.(optional?, value)
+      required_or_optional == :required and missing? and throw({:badkey, key})
+      {present? or not missing?, value, descr}
     end)
   end
 
-  defp map_update_domains(%{map: bdd}, domain_keys, type) do
+  defp map_update_get_domains(dnf, domain_keys, acc) do
+    Enum.reduce(domain_keys, {[], [], acc}, fn domain_key, {valid, invalid, acc} ->
+      value =
+        Enum.reduce(dnf, none(), fn
+          {:open, _fields, []}, _acc ->
+            term()
+
+          {:closed, _fields, []}, acc ->
+            acc
+
+          {domains, _fields, []}, acc ->
+            case domains do
+              %{^domain_key => type} -> union(remove_optional_static(type), acc)
+              %{} -> acc
+            end
+
+          {tag_or_domains, fields, negs}, acc ->
+            {fst, snd} = map_pop_domain(tag_or_domains, fields, domain_key)
+
+            case map_split_negative_domain(negs, domain_key) do
+              :empty ->
+                acc
+
+              negative ->
+                negative
+                |> pair_make_disjoint()
+                |> pair_eliminate_negations_fst(fst, snd)
+                |> remove_optional_static()
+                |> union(acc)
+            end
+        end)
+
+      if empty?(value) do
+        {valid, [domain_key | invalid], acc}
+      else
+        {[domain_key | valid], invalid, union(acc, value)}
+      end
+    end)
+  end
+
+  defp map_update_put_domains(bdd, domain_keys, type) do
     # For negations, we count on the idea that a negation will not remove any
     # type from a domain unless it completely cancels out the type.
     # So for any non-empty map bdd, we just update the domain with the new type,
     # as well as its negations to keep them accurate.
     %{
       map:
-        bdd_map(bdd, fn {tag, fields} -> {map_update_domain(tag, domain_keys, type), fields} end)
+        bdd_map(bdd, fn {tag, fields} ->
+          {map_update_put_domain(tag, domain_keys, type), fields}
+        end)
     }
   end
 
-  defp map_update_domain(tag_or_domains, domain_keys, type) do
+  defp map_update_put_domain(tag_or_domains, domain_keys, type) do
     case tag_or_domains do
       :open ->
         :open
@@ -3122,7 +3171,7 @@ defmodule Module.Types.Descr do
   def map_get(:term, _key_descr), do: :badmap
 
   def map_get(%{} = descr, key_descr) do
-    split_keys = map_split_keys(key_descr)
+    split_keys = map_split_keys_and_domains(key_descr)
 
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -3162,10 +3211,10 @@ defmodule Module.Types.Descr do
   defp nil_or_type(type), do: union(type, atom([nil]))
 
   defp map_get_static(%{map: bdd}, split_keys) do
-    dnf = map_bdd_to_dnf(bdd)
-
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
+
+    dnf = map_bdd_to_dnf(bdd)
 
     acc = none()
     acc = map_get_keys(dnf, required_keys, acc)
@@ -3232,7 +3281,7 @@ defmodule Module.Types.Descr do
   end
 
   # Compute which keys are optional, which ones are required, as well as domain keys
-  defp map_split_keys(%{dynamic: dynamic} = static) do
+  defp map_split_keys_and_domains(%{dynamic: dynamic} = static) do
     {required_keys, optional_keys, maybe_negated_set} =
       case {static, dynamic} do
         {%{atom: {:union, static_union}}, %{atom: {:union, dynamic_union}}} ->
@@ -3264,20 +3313,20 @@ defmodule Module.Types.Descr do
           {[], [], nil}
       end
 
-    required_domain = to_domain_keys(Map.delete(static, :dynamic))
-    optional_domain = to_domain_keys(dynamic) -- required_domain
-    {required_keys, optional_keys, maybe_negated_set, required_domain, optional_domain}
+    required_domains = to_domain_keys(Map.delete(static, :dynamic))
+    optional_domains = to_domain_keys(dynamic) -- required_domains
+    {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains}
   end
 
-  defp map_split_keys(%{atom: {:union, atoms}} = key_descr) do
+  defp map_split_keys_and_domains(%{atom: {:union, atoms}} = key_descr) do
     {:sets.to_list(atoms), [], nil, to_domain_keys(key_descr), []}
   end
 
-  defp map_split_keys(%{atom: {:negation, atoms}} = key_descr) do
+  defp map_split_keys_and_domains(%{atom: {:negation, atoms}} = key_descr) do
     {[], [], atoms, to_domain_keys(key_descr), []}
   end
 
-  defp map_split_keys(key_descr) do
+  defp map_split_keys_and_domains(key_descr) do
     {[], [], nil, to_domain_keys(key_descr), []}
   end
 
