@@ -1736,120 +1736,59 @@ defmodule Module.Types.DescrTest do
                {:ok, dynamic(closed_map(key: atom([:value, :new_value])))}
     end
 
-    # TODO: needs to be rewritten to key types
-    test "map_delete" do
-      assert map_delete(term(), :a) == :badmap
-      assert map_delete(integer(), :a) == :badmap
-      assert map_delete(union(open_map(), integer()), :a) == :badmap
+    test "map_take_key" do
+      assert map_take_key(term(), :a) == :badmap
+      assert map_take_key(integer(), :a) == :badmap
+      assert map_take_key(union(open_map(), integer()), :a) == :badmap
 
-      assert map_delete(closed_map(a: integer(), b: atom()), :a)
-             |> elem(1)
-             |> equal?(closed_map(b: atom()))
-
-      assert map_delete(empty_map(), :a) |> elem(1) |> equal?(empty_map())
-
-      assert map_delete(closed_map(a: if_set(integer()), b: atom()), :a)
-             |> elem(1)
-             |> equal?(closed_map(b: atom()))
-
-      # Deleting a non-existent key
-      assert map_delete(closed_map(a: integer(), b: atom()), :c)
-             |> elem(1)
-             |> equal?(closed_map(a: integer(), b: atom()))
-
-      # Deleting from a dynamic map
-      assert map_delete(dynamic(), :a) == {:ok, dynamic(open_map(a: not_set()))}
-
-      # Deleting from an open map
-      {:ok, type} = map_delete(open_map(a: integer(), b: atom()), :a)
-      assert equal?(type, open_map(a: not_set(), b: atom()))
-
-      # Deleting from a union of maps
-      {:ok, type} = map_delete(union(closed_map(a: integer()), closed_map(b: atom())), :a)
-      assert equal?(type, union(empty_map(), closed_map(b: atom())))
-
-      # Deleting from a gradual map
-      {:ok, type} = map_delete(union(dynamic(), closed_map(a: integer())), :a)
-      assert equal?(type, union(dynamic(open_map(a: not_set())), empty_map()))
-
-      {:ok, type} = map_delete(dynamic(open_map(a: not_set())), :b)
-      assert equal?(type, dynamic(open_map(a: not_set(), b: not_set())))
-
-      # Deleting from an intersection of maps
-      {:ok, type} = map_delete(intersection(open_map(a: integer()), open_map(b: atom())), :a)
-      assert equal?(type, open_map(a: not_set(), b: atom()))
-
-      # Deleting from a difference of maps
-      {:ok, type} =
-        map_delete(
-          difference(closed_map(a: integer(), b: atom()), closed_map(a: integer())),
-          :b
-        )
-
-      assert equal?(type, closed_map(a: integer()))
-
-      {:ok, type} = map_delete(difference(open_map(), open_map(a: not_set())), :a)
-      assert equal?(type, open_map(a: not_set()))
-    end
-
-    test "map_delete with atom fallback" do
-      assert closed_map(a: integer(), b: atom(), atom: pid())
-             |> map_delete(:a)
-             |> elem(1)
-             |> equal?(closed_map(a: not_set(), b: atom(), atom: pid()))
-    end
-
-    # TODO: needs to be rewritten to key types
-    test "map_take" do
-      assert map_take(term(), :a) == :badmap
-      assert map_take(integer(), :a) == :badmap
-      assert map_take(union(open_map(), integer()), :a) == :badmap
-
-      {took, rest} = map_take(closed_map(a: integer(), b: atom()), :a)
+      {took, rest} = map_take_key(closed_map(a: integer(), b: atom()), :a)
       assert equal?(took, integer()) and equal?(rest, closed_map(b: atom()))
 
       # Deleting a non-existent key
-      assert map_take(empty_map(), :a) == :badkey
-      assert map_take(closed_map(a: integer(), b: atom()), :c) == :badkey
-      assert map_take(closed_map(a: if_set(integer()), b: atom()), :a) == :badkey
+      assert map_take_key(empty_map(), :a) == :badkey
+      assert map_take_key(closed_map(a: integer(), b: atom()), :c) == :badkey
+      assert map_take_key(closed_map(a: if_set(integer()), b: atom()), :a) == :badkey
 
       # Deleting from a dynamic map
-      assert map_take(dynamic(), :a) == {dynamic(), dynamic(open_map(a: not_set()))}
+      assert map_take_key(dynamic(), :a) == {dynamic(), dynamic(open_map(a: not_set()))}
 
       # Deleting from an open map
-      {value, type} = map_take(open_map(a: integer(), b: atom()), :a)
+      {value, type} = map_take_key(open_map(a: integer(), b: atom()), :a)
       assert value == integer()
       assert equal?(type, open_map(a: not_set(), b: atom()))
 
       # Deleting from a union of maps
       union = union(closed_map(a: integer()), closed_map(b: atom()))
-      assert map_take(union, :a) == :badkey
-      {value, type} = map_take(dynamic(union), :a)
+      assert map_take_key(union, :a) == :badkey
+      {value, type} = map_take_key(dynamic(union), :a)
       assert value == dynamic(integer())
       assert equal?(type, dynamic(union(empty_map(), closed_map(b: atom()))))
 
       # Deleting from a gradual map
-      {value, type} = map_take(union(dynamic(), closed_map(a: integer())), :a)
+      {value, type} = map_take_key(union(dynamic(), closed_map(a: integer())), :a)
       assert value == union(dynamic(), integer())
       assert equal?(type, union(dynamic(open_map(a: not_set())), empty_map()))
 
-      {value, type} = map_take(dynamic(open_map(a: not_set())), :b)
+      {value, type} = map_take_key(dynamic(open_map(a: not_set())), :b)
       assert equal?(value, dynamic())
       assert equal?(type, dynamic(open_map(a: not_set(), b: not_set())))
 
       # Deleting from an intersection of maps
-      {value, type} = map_take(intersection(open_map(a: integer()), open_map(b: atom())), :a)
+      {value, type} = map_take_key(intersection(open_map(a: integer()), open_map(b: atom())), :a)
       assert value == integer()
       assert equal?(type, open_map(a: not_set(), b: atom()))
 
       # Deleting from a difference of maps
       {value, type} =
-        map_take(difference(closed_map(a: integer(), b: atom()), closed_map(a: integer())), :b)
+        map_take_key(
+          difference(closed_map(a: integer(), b: atom()), closed_map(a: integer())),
+          :b
+        )
 
       assert value == atom()
       assert equal?(type, closed_map(a: integer()))
 
-      {value, type} = map_take(difference(open_map(), open_map(a: not_set())), :a)
+      {value, type} = map_take_key(difference(open_map(), open_map(a: not_set())), :a)
       assert equal?(value, term())
       assert equal?(type, open_map(a: not_set()))
     end

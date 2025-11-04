@@ -2783,7 +2783,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_key_shared(descr, key, type) do
-    with {nil, descr} <- map_take(descr, key, nil, &map_put_key_static(&1, key, type)) do
+    with {nil, descr} <- map_take_key(descr, key, nil, &map_put_key_static(&1, key, type)) do
       {:ok, descr}
     end
   end
@@ -2797,17 +2797,6 @@ defmodule Module.Types.Descr do
   defp map_put_key_static(descr, _key, _type), do: descr
 
   @doc """
-  Removes a key from a map type.
-  """
-  def map_delete(descr, key) do
-    # We pass nil as the initial value so we can avoid computing the unions.
-    with {nil, descr} <-
-           map_take(descr, key, nil, &intersection_static(&1, open_map([{key, not_set()}]))) do
-      {:ok, descr}
-    end
-  end
-
-  @doc """
   Removes a key from a map type and return its type.
 
   ## Algorithm
@@ -2818,19 +2807,20 @@ defmodule Module.Types.Descr do
   3. Intersect this with an open record type where the key is explicitly absent.
      This step eliminates the key from open record types where it was implicitly present.
   """
-  def map_take(descr, key) do
-    map_take(descr, key, none(), &intersection_static(&1, open_map([{key, not_set()}])))
+  # TODO: This should not be exposed
+  def map_take_key(descr, key) do
+    map_take_key(descr, key, none(), &intersection_static(&1, open_map([{key, not_set()}])))
   end
 
-  # If initial is nil, note we don't compute the value.
-  defp map_take(:term, _key, _initial, _updater), do: :badmap
+  # If initial is nil, note we don't compute the value
+  defp map_take_key(:term, _key, _initial, _updater), do: :badmap
 
-  defp map_take(descr, key, initial, updater) when is_atom(key) do
+  defp map_take_key(descr, key, initial, updater) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :map) and map_only?(descr) do
           {optional?, taken, result} =
-            map_take_static(descr, key, initial)
+            map_take_key_static(descr, key, initial)
 
           cond do
             taken == nil -> {nil, updater.(result)}
@@ -2843,8 +2833,11 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          {_, dynamic_taken, dynamic_result} = map_take_static(dynamic, key, initial)
-          {static_optional?, static_taken, static_result} = map_take_static(static, key, initial)
+          {_, dynamic_taken, dynamic_result} = map_take_key_static(dynamic, key, initial)
+
+          {static_optional?, static_taken, static_result} =
+            map_take_key_static(static, key, initial)
+
           result = union(dynamic(updater.(dynamic_result)), updater.(static_result))
 
           cond do
@@ -2865,20 +2858,20 @@ defmodule Module.Types.Descr do
 
   # Takes a static map type and removes a key from it.
   # This allows the key to be put or deleted later on.
-  defp map_take_static(%{map: bdd}, key, initial) do
-    map_dnf_take_static(map_bdd_to_dnf(bdd), key, initial)
+  defp map_take_key_static(%{map: bdd}, key, initial) do
+    map_dnf_take_key_static(map_bdd_to_dnf(bdd), key, initial)
   end
 
   # If there is no map part to this static type, there is nothing to delete.
-  defp map_take_static(%{}, _key, initial) do
+  defp map_take_key_static(%{}, _key, initial) do
     {false, initial, none()}
   end
 
-  defp map_take_static(:term, _key, initial) do
+  defp map_take_key_static(:term, _key, initial) do
     {true, maybe_union(initial, fn -> term() end), open_map()}
   end
 
-  defp map_dnf_take_static(dnf, key, initial) do
+  defp map_dnf_take_key_static(dnf, key, initial) do
     {value, descr} =
       Enum.reduce(dnf, {initial, none()}, fn
         # Optimization: if there are no negatives, we can directly remove the key.
@@ -2911,31 +2904,9 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
-  Fetches and puts a `key_or_domains`, assuming that the descr is exclusively
-  a map (or dynamic).
+  Updates the `key_descr` with `type`.
 
-  This is a counter-part to `map_put/3` but one that assumes the `key_or_domains` exist.
-  """
-  def map_put_existing(:term, _key_or_domains, _type), do: :badmap
-
-  def map_put_existing(descr, key_or_domains, :term),
-    do: map_put_existing_shared(descr, key_or_domains, :term)
-
-  def map_put_existing(descr, key_or_domains, type) do
-    case :maps.take(:dynamic, type) do
-      :error -> map_put_existing_shared(descr, key_or_domains, type)
-      {dynamic, _static} -> map_put_existing_shared(dynamic(descr), key_or_domains, dynamic)
-    end
-  end
-
-  defp map_put_existing_shared(descr, key, type) when is_atom(key) do
-    with {_, type} <- map_take(descr, key, none(), &map_put_key_static(&1, key, type)) do
-      {:ok, type}
-    end
-  end
-
-  @doc """
-  TODO
+  `key_descr` is split into optional and required keys and tracked accordingly.
   """
   def map_update(:term, _key_descr, _type), do: :badmap
 
@@ -3053,7 +3024,7 @@ defmodule Module.Types.Descr do
 
   defp map_update_keys(dnf, keys, type, required_or_optional, missing_fun, acc) do
     Enum.reduce(keys, acc, fn key, {present?, acc_value, acc_descr} ->
-      {optional?, value, descr} = map_dnf_take_static(dnf, key, none())
+      {optional?, value, descr} = map_dnf_take_key_static(dnf, key, none())
       missing? = missing_fun.(optional?, value)
 
       required_or_optional == :required and missing? and throw({:badkey, key})
