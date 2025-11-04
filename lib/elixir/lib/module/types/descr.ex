@@ -3006,7 +3006,6 @@ defmodule Module.Types.Descr do
     case map_update_get_domains(dnf, required_domains, none(), callback) do
       {found_required?, required_domains, [], value} ->
         # Optional domains can be missing
-        # TODO: In order to support map_put, we need to add these missing domains as ORs
         {found_optional?, optional_domains, _, value} =
           map_update_get_domains(dnf, optional_domains, value, callback)
 

@@ -249,7 +249,9 @@ defmodule Module.Types.Of do
   defp map_key_type(key, stack, context, of_fun) do
     {key_type, context} = of_fun.(key, term(), stack, context)
 
-    # TODO: deal with negations here too
+    # TODO: Deal with negations such that
+    # `%{not :key => value}` => `%{atom() => value, key: none()}`
+    # `%{:key => value, not :key => value}` => `%{atom() => value, key: value}`
     case atom_fetch(key_type) do
       {:finite, list} -> {{:keys, list}, gradual?(key_type), context}
       _ -> {{:domain, to_domain_keys(key_type)}, gradual?(key_type), context}
