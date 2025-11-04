@@ -192,7 +192,7 @@ defmodule Mix.Tasks.Compile.App do
       :application.load({:application, app, properties})
 
       Mix.Project.ensure_structure()
-      File.write!(target, [contents, ?.])
+      File.write!(target, IO.chardata_to_string([contents, ?.]))
       File.touch!(target, new_mtime)
 
       # If we just created the .app file, it will have touched
