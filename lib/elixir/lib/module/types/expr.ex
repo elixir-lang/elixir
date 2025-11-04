@@ -173,11 +173,9 @@ defmodule Module.Types.Expr do
     # on the right side, this is safe.
     {pairs_types, context} =
       Enum.map_reduce(args, context, fn {key, value}, context ->
-        {key_tagged_type, dynamic_key?, context} =
-          Of.map_key_type(key, stack, context, &of_expr(&1, &2, expr, &3, &4))
-
+        {key_type, context} = of_expr(key, term(), expr, stack, context)
         {value_type, context} = of_expr(value, term(), expr, stack, context)
-        {{key_tagged_type, dynamic_key? or gradual?(value_type), value_type}, context}
+        {{key_type, value_type}, context}
       end)
 
     expected =
@@ -186,19 +184,12 @@ defmodule Module.Types.Expr do
       else
         # The only information we can attach to the expected types is that
         # certain keys are expected.
-        #
-        # * If we have a single key, that's straight-forward
-        #
-        # * If we have multiple keys, it may be one or the other,
-        #   so we would need to generate unions, therefore we abort
-        #
-        # * If it is a domain key, then we could say such key is expected,
-        #   but it wouldn't effectively add any new information, so we skip it
         expected_pairs =
-          Enum.reduce_while(pairs_types, [], fn
-            {{:domain, _}, _, _}, acc -> {:cont, acc}
-            {{:keys, [key]}, _, _}, acc -> {:cont, [{key, term()} | acc]}
-            {_, _, _}, _acc -> {:halt, []}
+          Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
+            case atom_fetch(key_type) do
+              {:finite, [key]} -> [{key, term()}]
+              _ -> []
+            end
           end)
 
         intersection(expected, open_map(expected_pairs))
@@ -207,18 +198,13 @@ defmodule Module.Types.Expr do
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
-      Of.permutate_map(pairs_types, stack, fn pairs ->
-        Enum.reduce(pairs, map_type, fn {key_or_domains, type}, acc ->
-          if is_atom(key_or_domains) do
-            case map_put_existing(acc, key_or_domains, type) do
-              {:ok, descr} -> descr
-              :badkey -> throw({:badkey, map_type, key_or_domains, update, context})
-              :badmap -> throw({:badmap, map_type, update, context})
-            end
-          else
-            acc
-          end
-        end)
+      Enum.reduce(pairs_types, map_type, fn {key_type, value_type}, acc ->
+        case map_update(acc, key_type, value_type) do
+          {:ok, descr} -> descr
+          {:badkey, key} -> throw({:badkey, map_type, key, update, context})
+          {:baddomain, domain} -> throw({:baddomain, map_type, domain, update, context})
+          :badmap -> throw({:badmap, map_type, update, context})
+        end
       end)
     catch
       error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
@@ -891,6 +877,27 @@ defmodule Module.Types.Expr do
         IO.iodata_to_binary([
           """
           expected a map with key #{inspect(key)} in map update syntax:
+
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type, collapse_structs: false) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:baddomain, type, key_type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map with key #{to_quoted_string(key_type)} in map update syntax:
 
               #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
 

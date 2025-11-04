@@ -1722,6 +1722,20 @@ defmodule Module.Types.DescrTest do
                {:ok, union(atom([:b]), pid() |> nil_or_type())}
     end
 
+    test "map_update" do
+      assert map_update(open_map(key: atom([:value])), atom([:key]), atom([:new_value])) ==
+               {:ok, open_map(key: atom([:new_value]))}
+
+      assert map_update(dynamic(open_map(key: atom([:value]))), atom([:key]), atom([:new_value])) ==
+               {:ok, dynamic(open_map(key: atom([:new_value])))}
+
+      assert map_update(closed_map(key: atom([:value])), dynamic(), atom([:new_value])) ==
+               {:ok, closed_map(key: atom([:value, :new_value]))}
+
+      assert map_update(dynamic(closed_map(key: atom([:value]))), dynamic(), atom([:new_value])) ==
+               {:ok, dynamic(closed_map(key: atom([:value, :new_value])))}
+    end
+
     # TODO: needs to be rewritten to key types
     test "map_delete" do
       assert map_delete(term(), :a) == :badmap

@@ -175,69 +175,20 @@ defmodule Module.Types.Of do
   @doc """
   Builds a closed map.
   """
+  def closed_map(pairs, _expected, %{mode: :traversal} = stack, context, of_fun) do
+    context =
+      Enum.reduce(pairs, context, fn {key, value}, context ->
+        {_key_type, context} = of_fun.(key, term(), stack, context)
+        {_, context} = of_fun.(value, term(), stack, context)
+        context
+      end)
+
+    {dynamic(), context}
+  end
+
   def closed_map(pairs, expected, stack, context, of_fun) do
     {pairs_types, context} = pairs(pairs, expected, stack, context, of_fun)
 
-    map =
-      permutate_map(pairs_types, stack, fn pairs ->
-        closed_map(pairs)
-      end)
-
-    {map, context}
-  end
-
-  @doc """
-  Computes the types of key-value pairs.
-  """
-  def pairs(pairs, _expected, %{mode: :traversal} = stack, context, of_fun) do
-    Enum.map_reduce(pairs, context, fn {key, value}, context ->
-      {_key_type, context} = of_fun.(key, term(), stack, context)
-      {value_type, context} = of_fun.(value, term(), stack, context)
-      {{{:domain, to_domain_keys(:term)}, true, value_type}, context}
-    end)
-  end
-
-  def pairs(pairs, expected, stack, context, of_fun) do
-    Enum.map_reduce(pairs, context, fn {key, value}, context ->
-      {key_tagged_type, dynamic_key?, context} = map_key_type(key, stack, context, of_fun)
-
-      expected_value_type =
-        with {:keys, [key]} <- key_tagged_type,
-             {_, expected_value_type} <- map_fetch_key(expected, key) do
-          expected_value_type
-        else
-          _ -> term()
-        end
-
-      {value_type, context} = of_fun.(value, expected_value_type, stack, context)
-      {{key_tagged_type, dynamic_key? or gradual?(value_type), value_type}, context}
-    end)
-  end
-
-  @doc """
-  Returns the type of a map key.
-  """
-  def map_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {{:keys, [key]}, false, context}
-  end
-
-  def map_key_type(key, stack, context, of_fun) do
-    {key_type, context} = of_fun.(key, term(), stack, context)
-
-    case atom_fetch(key_type) do
-      {:finite, list} -> {{:keys, list}, gradual?(key_type), context}
-      _ -> {{:domain, to_domain_keys(key_type)}, gradual?(key_type), context}
-    end
-  end
-
-  @doc """
-  Builds permutation of maps according to the given pairs types.
-  """
-  def permutate_map(_pairs_types, %{mode: :traversal}, _of_map) do
-    dynamic()
-  end
-
-  def permutate_map(pairs_types, _stack, of_map) do
     {dynamic?, domain, single, multiple} =
       Enum.reduce(pairs_types, {false, [], [], []}, fn
         {key_tagged_type, dynamic_pair?, value_type}, {dynamic?, domain, single, multiple} ->
@@ -262,16 +213,47 @@ defmodule Module.Types.Of do
     map =
       case Enum.reverse(multiple) do
         [] ->
-          of_map.(non_multiple)
+          closed_map(non_multiple)
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            of_map.(non_multiple ++ [{key, type} | t])
+            closed_map(non_multiple ++ [{key, type} | t])
           end
           |> Enum.reduce(&union/2)
       end
 
-    if dynamic?, do: dynamic(map), else: map
+    {if(dynamic?, do: dynamic(map), else: map), context}
+  end
+
+  defp pairs(pairs, expected, stack, context, of_fun) do
+    Enum.map_reduce(pairs, context, fn {key, value}, context ->
+      {key_tagged_type, dynamic_key?, context} = map_key_type(key, stack, context, of_fun)
+
+      expected_value_type =
+        with {:keys, [key]} <- key_tagged_type,
+             {_, expected_value_type} <- map_fetch_key(expected, key) do
+          expected_value_type
+        else
+          _ -> term()
+        end
+
+      {value_type, context} = of_fun.(value, expected_value_type, stack, context)
+      {{key_tagged_type, dynamic_key? or gradual?(value_type), value_type}, context}
+    end)
+  end
+
+  defp map_key_type(key, _stack, context, _of_fun) when is_atom(key) do
+    {{:keys, [key]}, false, context}
+  end
+
+  defp map_key_type(key, stack, context, of_fun) do
+    {key_type, context} = of_fun.(key, term(), stack, context)
+
+    # TODO: deal with negations here too
+    case atom_fetch(key_type) do
+      {:finite, list} -> {{:keys, list}, gradual?(key_type), context}
+      _ -> {{:domain, to_domain_keys(key_type)}, gradual?(key_type), context}
+    end
   end
 
   defp cartesian_map(lists) do
