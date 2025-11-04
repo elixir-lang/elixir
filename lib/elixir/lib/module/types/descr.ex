@@ -2955,7 +2955,7 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :map) and map_only?(descr) do
-          {present?, _value, descr} =
+          {present?, _maybe_optional_value, descr} =
             map_update_static(descr, split_keys, type, fn optional?, value ->
               optional? or empty?(value)
             end)
@@ -2971,10 +2971,10 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          {static_present?, _value, static_descr} =
+          {static_present?, _maybe_optional_static_value, static_descr} =
             map_update_static(descr, split_keys, type, fn optional?, _ -> optional? end)
 
-          {dynamic_present?, _value, dynamic_descr} =
+          {dynamic_present?, _maybe_optional_dynamic_value, dynamic_descr} =
             map_update_static(descr, split_keys, type, fn _, value -> empty?(value) end)
 
           if static_present? or dynamic_present? do
@@ -2997,15 +2997,21 @@ defmodule Module.Types.Descr do
 
     case map_update_get_domains(dnf, required_domains, none()) do
       {required_domains, [], value} ->
-        # Optional domains can miss
+        # Optional domains can be missing
+        # TODO: In order to support map_put, we need to add these missing domains as ORs
         {optional_domains, _, value} = map_update_get_domains(dnf, optional_domains, value)
 
-        # If any of required or optional domains are satisfied, we are already good
-        present? = required_domains != [] or optional_domains != []
-
-        # Now compute the initial return type. Note that map_update_static_keys works
-        # on the original bdd/dnf, not the one with updated domains
-        descr = map_update_put_domains(bdd, required_domains ++ optional_domains, type)
+        acc =
+          if required_domains == [] and optional_domains == [] do
+            # Value can only be none
+            {false, value, none()}
+          else
+            # If any of required or optional domains are satisfied, then we compute the
+            # initial return type. `map_update_static_keys` will then union into the
+            # computed type below, using the original bdd/dnf, not the one with updated domains.
+            descr = map_update_put_domains(bdd, required_domains ++ optional_domains, type)
+            {true, value, descr}
+          end
 
         map_update_static_keys(
           dnf,
@@ -3014,7 +3020,7 @@ defmodule Module.Types.Descr do
           non_negated,
           type,
           missing_fun,
-          {present?, value, descr}
+          acc
         )
 
       {_, [missing_domain | _], _} ->
@@ -3031,10 +3037,17 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    non_negated = :sets.to_list(maybe_negated_set)
-    dnf = map_bdd_to_dnf(@map_top)
-    acc = {required_domains != [] or optional_domains != [], term(), open_map()}
-    map_update_static_keys(dnf, required_keys, optional_keys, non_negated, type, missing_fun, acc)
+    # But any required key will fail
+    case required_keys do
+      [key | _] ->
+        {:badkey, key}
+
+      _ ->
+        non_negated = :sets.to_list(maybe_negated_set)
+        dnf = map_bdd_to_dnf(@map_top)
+        acc = {required_domains != [] or optional_domains != [], term(), open_map()}
+        map_update_static_keys(dnf, [], optional_keys, non_negated, type, missing_fun, acc)
+    end
   end
 
   defp map_update_static_keys(dnf, required, optional, non_negated, type, missing_fun, acc) do
@@ -3060,37 +3073,9 @@ defmodule Module.Types.Descr do
 
   defp map_update_get_domains(dnf, domain_keys, acc) do
     Enum.reduce(domain_keys, {[], [], acc}, fn domain_key, {valid, invalid, acc} ->
-      value =
-        Enum.reduce(dnf, none(), fn
-          {:open, _fields, []}, _acc ->
-            term()
+      value = map_get_domain(dnf, domain_key, none())
 
-          {:closed, _fields, []}, acc ->
-            acc
-
-          {domains, _fields, []}, acc ->
-            case domains do
-              %{^domain_key => type} -> union(remove_optional_static(type), acc)
-              %{} -> acc
-            end
-
-          {tag_or_domains, fields, negs}, acc ->
-            {fst, snd} = map_pop_domain(tag_or_domains, fields, domain_key)
-
-            case map_split_negative_domain(negs, domain_key) do
-              :empty ->
-                acc
-
-              negative ->
-                negative
-                |> pair_make_disjoint()
-                |> pair_eliminate_negations_fst(fst, snd)
-                |> remove_optional_static()
-                |> union(acc)
-            end
-        end)
-
-      if empty?(value) do
+      if empty_or_optional?(value) do
         {valid, [domain_key | invalid], acc}
       else
         {[domain_key | valid], invalid, union(acc, value)}
@@ -3098,11 +3083,30 @@ defmodule Module.Types.Descr do
     end)
   end
 
+  # For negations, we count on the idea that a negation will not remove any
+  # type from a domain unless it completely cancels out the type.
+  #
+  # So for any non-empty map bdd, we just update the domain with the new type,
+  # as well as its negations to keep them accurate.
+  #
+  # Note we store all domain_keys at once. Therefore, this operation:
+  #
+  #    map = %{integer() => if_set(:foo), float() => if_set(:bar)}
+  #    Map.put(map, integer() or float(), pid())
+  #
+  # will return:
+  #
+  #    %{integer() => if_set(:foo or pid()), float() => if_set(:bar or pid())}
+  #
+  # We could instead have returned:
+  #
+  #    %{integer() => if_set(:foo or pid()), float() => if_set(:bar)} or
+  #      %{integer() => if_set(:foo), float() => if_set(:bar or pid())}
+  #
+  # But that would not be helpful, as we can't distinguish between these two
+  # in Elixir code. It only makes sense to build the union for domain keys
+  # that do not exist.
   defp map_update_put_domains(bdd, domain_keys, type) do
-    # For negations, we count on the idea that a negation will not remove any
-    # type from a domain unless it completely cancels out the type.
-    # So for any non-empty map bdd, we just update the domain with the new type,
-    # as well as its negations to keep them accurate.
     %{
       map:
         bdd_map(bdd, fn {tag, fields} ->
