@@ -195,31 +195,35 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
-  test "help app:APP" do
+  test "help app:APP", context do
     apps = for {app, _, _} <- Application.loaded_applications(), do: app
     assert :mix in apps
     refute :iex in apps
     refute :ftp in apps
 
-    output =
-      capture_io(fn ->
-        Mix.Tasks.Help.run(["app:iex"])
-      end)
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["app:iex"])
+        end)
 
-    assert output =~ "# IEx\n\nElixir's interactive shell."
+      assert output =~ "# IEx\n\nElixir's interactive shell."
 
-    output =
-      capture_io(fn ->
-        Mix.Tasks.Help.run(["app:ftp"])
-      end)
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["app:ftp"])
+        end)
 
-    assert output =~ "# :ftp"
+      assert output =~ "# :ftp"
+    end)
   end
 
-  test "help app:UNKNOWN" do
-    assert_raise Mix.Error, ~r/The application \"foobar\" could not be found/, fn ->
-      Mix.Tasks.Help.run(["app:foobar"])
-    end
+  test "help app:UNKNOWN", context do
+    in_tmp(context.test, fn ->
+      assert_raise Mix.Error, ~r/The application \"foobar\" could not be found/, fn ->
+        Mix.Tasks.Help.run(["app:foobar"])
+      end
+    end)
   end
 
   test "help Elixir MODULE", context do
