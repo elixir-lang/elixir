@@ -216,11 +216,10 @@ defmodule Mix.Tasks.HelpTest do
     assert output =~ "# :ftp"
   end
 
-  test "help unknown app:APP", context do
-    in_tmp(context.test, fn ->
+  test "help unknown app:APP" do
+    assert_raise Mix.Error, ~r/The application \"foobar\" could not be found/, fn ->
       Mix.Tasks.Help.run(["app:foobar"])
-      assert_received {:mix_shell, :error, ["Application foobar does not exist or is not loaded"]}
-    end)
+    end
   end
 
   test "help Elixir MODULE", context do
