@@ -51,6 +51,7 @@ defmodule Module.Types.Descr do
     list: @non_empty_list_top,
     fun: @fun_top
   }
+  @list_top %{bitmap: @bit_empty_list, list: @non_empty_list_top}
   @empty_list %{bitmap: @bit_empty_list}
   @not_non_empty_list Map.delete(@term, :list)
   @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
@@ -313,6 +314,9 @@ defmodule Module.Types.Descr do
       _ -> :term
     end
   end
+
+  defp optional_static?(%{optional: 1}), do: true
+  defp optional_static?(%{}), do: false
 
   defp pop_optional_static(:term), do: {false, :term}
 
@@ -2295,7 +2299,6 @@ defmodule Module.Types.Descr do
 
   defp domain_key_to_descr(:atom), do: atom()
   defp domain_key_to_descr(:binary), do: binary()
-  defp domain_key_to_descr(:empty_list), do: empty_list()
   defp domain_key_to_descr(:integer), do: integer()
   defp domain_key_to_descr(:float), do: float()
   defp domain_key_to_descr(:pid), do: pid()
@@ -2304,7 +2307,7 @@ defmodule Module.Types.Descr do
   defp domain_key_to_descr(:fun), do: fun()
   defp domain_key_to_descr(:tuple), do: tuple()
   defp domain_key_to_descr(:map), do: open_map()
-  defp domain_key_to_descr(:list), do: non_empty_list(term(), term())
+  defp domain_key_to_descr(:list), do: @list_top
 
   defp map_descr(tag, pairs, default, force_domains?) do
     {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
@@ -2745,6 +2748,118 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Returns the map converted into a list.
+  """
+  def map_to_list(:term), do: :badmap
+
+  def map_to_list(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if descr_key?(descr, :map) and map_only?(descr) do
+          map_to_list_static(descr.map)
+        else
+          :badmap
+        end
+
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          with {:ok, dynamic_type} <- map_to_list_static(dynamic.map) do
+            if descr_key?(static, :map) do
+              with {:ok, static_type} <- map_to_list_static(static.map) do
+                {:ok, union(static_type, dynamic(dynamic_type))}
+              end
+            else
+              {:ok, dynamic(dynamic_type)}
+            end
+          end
+        else
+          :badmap
+        end
+    end
+  end
+
+  defp map_to_list_static(bdd) do
+    case map_bdd_to_dnf(bdd) do
+      [] ->
+        :badmap
+
+      dnf ->
+        case map_to_list_static(bdd, dnf) do
+          value when value == @none ->
+            {:ok, empty_list()}
+
+          inner ->
+            if has_empty_map?(dnf) do
+              {:ok, list(inner)}
+            else
+              {:ok, non_empty_list(inner)}
+            end
+        end
+    end
+  end
+
+  defp has_empty_map?(dnf) do
+    Enum.any?(dnf, fn {_, fields, negs} ->
+      Enum.all?(fields, fn {_key, value} -> optional_static?(value) end) and
+        Enum.all?(negs, fn {_, fields} ->
+          not Enum.all?(fields, fn {_key, value} -> optional_static?(value) end)
+        end)
+    end)
+  end
+
+  defp map_to_list_static(bdd, dnf) do
+    try do
+      # Check if any line in the DNF represents an open map or compute the union of domain keys types
+      Enum.reduce(dnf, none(), fn
+        {tag_or_domains, _fields, _negs}, acc ->
+          case tag_or_domains do
+            :open ->
+              # A negation cannot make an open map closed without cancelling it completely,
+              # which is filtered by `map_bdd_to_dnf/1`.
+              throw(:open)
+
+            domains = %{} ->
+              Enum.reduce(domains, acc, fn {domain_key, value}, acc ->
+                value = remove_optional(value)
+
+                if empty?(value) do
+                  acc
+                else
+                  union(acc, tuple([domain_key_to_descr(domain_key), value]))
+                end
+              end)
+
+            _ ->
+              acc
+          end
+      end)
+    catch
+      :open -> tuple([term(), term()])
+    else
+      domain_keys_type ->
+        {_seen, acc} =
+          bdd_reduce(bdd, {%{}, domain_keys_type}, fn {_tag, fields}, seen_acc ->
+            Enum.reduce(fields, seen_acc, fn {key, _type}, {seen, acc} ->
+              if Map.has_key?(seen, key) do
+                {seen, acc}
+              else
+                value = dnf |> map_dnf_fetch_static(key) |> remove_optional_static()
+                seen = Map.put(seen, key, [])
+
+                if empty?(value) do
+                  {seen, acc}
+                else
+                  {seen, union(acc, tuple([atom([key]), value]))}
+                end
+              end
+            end)
+          end)
+
+        acc
+    end
+  end
+
+  @doc """
   Updates `key_descr` in `descr` with `type`.
 
   `key_descr` is split into optional and required keys and tracked accordingly.
@@ -2979,7 +3094,7 @@ defmodule Module.Types.Descr do
           if Map.has_key?(seen, key) do
             {seen, acc}
           else
-            value = dnf |> map_dnf_fetch_static(key) |> remove_optional()
+            value = dnf |> map_dnf_fetch_static(key) |> remove_optional_static()
             {Map.put(seen, key, []), union(acc, value)}
           end
         end)
@@ -3994,8 +4109,8 @@ defmodule Module.Types.Descr do
     here_branch ++ later_branches
   end
 
-  # No more negative elements to process: there is no “all-equal” branch to add,
-  # because we’re constructing {t} ant not {u}, which must differ somewhere.
+  # No more negative elements to process: there is no "all-equal" branch to add,
+  # because we're constructing {t} ant not {u}, which must differ somewhere.
   defp tuple_elim_content(_acc, _tag, _elements, []) do
     []
   end
