@@ -113,15 +113,12 @@ defmodule Mix.Tasks.Help do
   def run(["app:" <> app]) do
     loadpaths!()
     app = String.to_atom(app)
-
-    if app in [:eex, :elixir, :ex_unit, :iex, :logger, :mix] do
-      Application.ensure_loaded(app)
-    end
+    Application.ensure_loaded(app)
 
     if modules = Application.spec(app, :modules) do
       for module <- modules,
           not (module |> Atom.to_string() |> String.starts_with?("Elixir.Mix.Tasks.")),
-          {:docs_v1, _, :elixir, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
+          {:docs_v1, _, _, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
             [Code.fetch_docs(module)] do
         leading = doc |> String.split(["\n\n", "\r\n\r\n"], parts: 2) |> hd()
         "# #{inspect(module)}\n#{leading}\n"
