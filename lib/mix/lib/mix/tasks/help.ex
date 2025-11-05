@@ -114,6 +114,10 @@ defmodule Mix.Tasks.Help do
     loadpaths!()
     app = String.to_atom(app)
 
+    if app in [:eex, :elixir, :ex_unit, :iex, :logger, :mix] do
+      Application.ensure_loaded(app)
+    end
+
     if modules = Application.spec(app, :modules) do
       for module <- modules,
           not (module |> Atom.to_string() |> String.starts_with?("Elixir.Mix.Tasks.")),

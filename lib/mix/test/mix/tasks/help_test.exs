@@ -206,6 +206,21 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help Elixir stdlib app", context do
+    apps = for {app, _, _} <- Application.loaded_applications(), do: app
+    assert :mix in apps
+    refute :iex in apps
+
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["app:iex"])
+        end)
+
+      assert output =~ "# IEx\n\nElixir's interactive shell."
+    end)
+  end
+
   test "help unknown app:APP", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["app:foobar"])
