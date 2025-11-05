@@ -195,7 +195,7 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
-  test "help Elixir/OTP app" do
+  test "help app:APP" do
     apps = for {app, _, _} <- Application.loaded_applications(), do: app
     assert :mix in apps
     refute :iex in apps
@@ -216,7 +216,7 @@ defmodule Mix.Tasks.HelpTest do
     assert output =~ "# :ftp"
   end
 
-  test "help unknown app:APP" do
+  test "help app:UNKNOWN" do
     assert_raise Mix.Error, ~r/The application \"foobar\" could not be found/, fn ->
       Mix.Tasks.Help.run(["app:foobar"])
     end
