@@ -166,8 +166,17 @@ defmodule Map do
 
   ## Examples
 
-      Map.values(%{a: 1, b: 2})
+      iex> Map.values(%{a: 1, b: 2})
       [1, 2]
+
+  For structs:
+
+      defmodule MapValues do
+        defstruct [:a, :b]
+      end
+
+     iex> Map.values(%MapValues{a: 1, b: 2})
+     [1, 2, MapValues]
 
   """
   @spec values(map) :: [value]
