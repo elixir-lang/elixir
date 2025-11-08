@@ -199,14 +199,23 @@ defmodule Mix.Tasks.HelpTest do
     in_tmp(context.test, fn ->
       output =
         capture_io(fn ->
-          Mix.Tasks.Help.run(["app:mix"])
+          Mix.Tasks.Help.run(["app:iex"])
         end)
 
-      assert output =~ "# Mix\n\nMix is a build tool"
+      assert output =~ "# IEx\n\nElixir's interactive shell."
+
+      if System.otp_release() >= "27" do
+        output =
+          capture_io(fn ->
+            Mix.Tasks.Help.run(["app:parsetools"])
+          end)
+
+        assert output =~ "# :leex"
+      end
     end)
   end
 
-  test "help unknown app:APP", context do
+  test "help app:UNKNOWN", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["app:foobar"])
       assert_received {:mix_shell, :error, ["Application foobar does not exist or is not loaded"]}
