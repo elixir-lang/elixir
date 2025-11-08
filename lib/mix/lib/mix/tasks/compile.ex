@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Compile do
 
   @shortdoc "Compiles source files"
 
-  @moduledoc """
+  @moduledoc ~S"""
   The main entry point to compile source files.
 
   It simply runs the compilers registered in your project and returns
@@ -59,7 +59,9 @@ defmodule Mix.Tasks.Compile do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
-    * `--force` - forces compilation
+    * `--force` - forces compilation. You can also specify `--force-#{compiler}` for each compiler
+      invoked to force specifically that compiler to run (it requires the compiler to respect the
+      `--force` option, which is advised)
     * `--list` - lists all enabled compilers
     * `--listeners` - starts Mix listeners (they are started by default,
       unless `--no-listeners` or `--no-deps-check` are given)

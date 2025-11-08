@@ -295,8 +295,22 @@ defmodule Mix.Task.Compiler do
   end
 
   defp run_compiler(compiler, args) do
-    result = normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
+    args_maybe_force = maybe_prepend_force(args, compiler)
+    result = normalize(Mix.Task.run("compile.#{compiler}", args_maybe_force), compiler)
     Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
+  end
+
+  defp maybe_prepend_force(args, compiler) do
+    args
+    |> Enum.any?(fn
+      "--force-" <> rest -> rest == compiler |> to_string() |> String.replace("_", "-")
+      _ -> false
+    end)
+    |> if do
+      ["--force" | args]
+    else
+      args
+    end
   end
 
   # Normalize the compiler result to a diagnostic tuple
