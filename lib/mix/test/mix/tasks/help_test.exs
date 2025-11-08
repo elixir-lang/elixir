@@ -204,12 +204,14 @@ defmodule Mix.Tasks.HelpTest do
 
       assert output =~ "# IEx\n\nElixir's interactive shell."
 
-      output =
-        capture_io(fn ->
-          Mix.Tasks.Help.run(["app:parsetools"])
-        end)
+      if System.otp_release() >= "27" do
+        output =
+          capture_io(fn ->
+            Mix.Tasks.Help.run(["app:parsetools"])
+          end)
 
-      assert output =~ "# :leex"
+        assert output =~ "# :leex"
+      end
     end)
   end
 
