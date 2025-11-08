@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "uses custom application settings" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(CustomProject)
-      env = [foo: [:one, "two", 3, 4, "฿"], bar: [{} | %{foo: :bar}]]
+      env = [foo: [:one, "two", 3, 4, "฿", &List.flatten/1], bar: [{} | %{foo: :bar}]]
 
       Process.put(:application,
         maxT: :infinity,
@@ -132,7 +132,10 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert properties[:applications] ==
                [:kernel, :stdlib, :elixir, :logger, :ex_unit, :example_app, :mix]
 
-      assert properties[:env] == [foo: [:one, "two", 3, 4, "฿"], bar: [{} | %{foo: :bar}]]
+      assert properties[:env] == [
+               foo: [:one, "two", 3, 4, "฿", &List.flatten/1],
+               bar: [{} | %{foo: :bar}]
+             ]
 
       refute Keyword.has_key?(properties, :extra_applications)
     end)
