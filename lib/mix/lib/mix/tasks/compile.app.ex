@@ -239,7 +239,20 @@ defmodule Mix.Tasks.Compile.App do
     [?#, ?{, inner, ?}]
   end
 
-  defp to_erl_term(term) when is_function(term) or is_reference(term) or is_pid(term) do
+  defp to_erl_term(function) when is_function(function) do
+    fun_info = Function.info(function)
+
+    if fun_info[:type] == :external and fun_info[:env] == [] do
+      :io_lib.print(function)
+    else
+      Mix.raise(
+        "\"def application\" has a function which cannot be written to .app files: #{inspect(function)}" <>
+          " (only functions in the form &Mod.fun/arity can be part of the application environment)"
+      )
+    end
+  end
+
+  defp to_erl_term(term) when is_reference(term) or is_pid(term) do
     Mix.raise(
       "\"def application\" has a term which cannot be written to .app files: #{inspect(term)}"
     )
