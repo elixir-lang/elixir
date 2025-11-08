@@ -114,10 +114,19 @@ defmodule Mix.Tasks.Help do
     loadpaths!()
     app = String.to_atom(app)
 
+    # If the application is not available, attempt to load it from Erlang/Elixir
+    if is_nil(Application.spec(app, :vsn)) do
+      try do
+        Mix.ensure_application!(app)
+      rescue
+        _ -> :ok
+      end
+    end
+
     if modules = Application.spec(app, :modules) do
       for module <- modules,
           not (module |> Atom.to_string() |> String.starts_with?("Elixir.Mix.Tasks.")),
-          {:docs_v1, _, :elixir, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
+          {:docs_v1, _, _, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
             [Code.fetch_docs(module)] do
         leading = doc |> String.split(["\n\n", "\r\n\r\n"], parts: 2) |> hd()
         "# #{inspect(module)}\n#{leading}\n"
