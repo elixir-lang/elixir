@@ -1253,6 +1253,23 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles with --force-elixir" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Task.run("compile") == {:ok, []}
+      purge([A, B])
+
+      # Now we have a noop
+      Mix.Task.clear()
+      assert Mix.Task.run("compile") == {:noop, []}
+
+      # --force-elixir
+      Mix.Task.clear()
+      assert Mix.Task.run("compile", ["--verbose", "--force-elixir"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  end
+
   test "compiles files with autoload disabled" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
