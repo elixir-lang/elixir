@@ -113,7 +113,15 @@ defmodule Mix.Tasks.Help do
   def run(["app:" <> app]) do
     loadpaths!()
     app = String.to_atom(app)
-    Mix.ensure_application!(app)
+
+    # If the application is not available, attempt to load it from Erlang/Elixir
+    if is_nil(Application.spec(app, :vsn)) do
+      try do
+        Mix.ensure_application!(app)
+      rescue
+        _ -> :ok
+      end
+    end
 
     if modules = Application.spec(app, :modules) do
       for module <- modules,

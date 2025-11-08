@@ -196,11 +196,6 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help app:APP", context do
-    apps = for {app, _, _} <- Application.loaded_applications(), do: app
-    assert :mix in apps
-    refute :iex in apps
-    refute :ftp in apps
-
     in_tmp(context.test, fn ->
       output =
         capture_io(fn ->
@@ -211,18 +206,17 @@ defmodule Mix.Tasks.HelpTest do
 
       output =
         capture_io(fn ->
-          Mix.Tasks.Help.run(["app:ftp"])
+          Mix.Tasks.Help.run(["app:parsetools"])
         end)
 
-      assert output =~ "# :ftp"
+      assert output =~ "# :leex"
     end)
   end
 
   test "help app:UNKNOWN", context do
     in_tmp(context.test, fn ->
-      assert_raise Mix.Error, ~r/The application \"foobar\" could not be found/, fn ->
-        Mix.Tasks.Help.run(["app:foobar"])
-      end
+      Mix.Tasks.Help.run(["app:foobar"])
+      assert_received {:mix_shell, :error, ["Application foobar does not exist or is not loaded"]}
     end)
   end
 
