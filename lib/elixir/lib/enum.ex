@@ -39,6 +39,20 @@ defprotocol Enumerable do
   `reduce/3` function. All other functions exist as optimizations paths
   for data structures that can implement certain properties in better
   than linear time.
+
+  ## Default implementation for lists
+
+  Sometimes you may want to implement this protocol for a list contained
+  in struct. This can be done by delegating to the `Enumerable.List` module
+  in the `reduce/3` implementation and providing a straight-forward
+  implementation for the remaining ones:
+
+      defimpl Enumerable, for: CustomStruct do
+        def count(struct), do: {:ok, length(struct.items)}
+        def member?(struct, value), do: {:ok, value in struct.items}
+        def slice(struct), do: {:error, __MODULE__}
+        def reduce(struct, acc, fun), do: Enumerable.List.reduce(struct.items, acc, fun)
+      end
   """
 
   @typedoc """
@@ -5086,8 +5100,7 @@ end
 defimpl Enumerable, for: List do
   def count(list), do: {:ok, length(list)}
 
-  def member?([], _value), do: {:ok, false}
-  def member?(_list, _value), do: {:error, __MODULE__}
+  def member?(list, value), do: {:ok, :lists.member(value, list)}
 
   def slice([]), do: {:ok, 0, fn _, _, _ -> [] end}
   def slice(_list), do: {:error, __MODULE__}
