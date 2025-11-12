@@ -730,23 +730,6 @@ defmodule Mix do
 
   ## Options
 
-    * `:force` - if `true`, runs with empty install cache. This is useful when you want
-      to update your dependencies or your install got into an inconsistent state.
-      To use this option, you can also set the `MIX_INSTALL_FORCE` environment variable.
-      (Default: `false`)
-
-    * `:verbose` - if `true`, prints additional debugging information
-      (Default: `false`)
-
-    * `:consolidate_protocols` - if `true`, runs protocol consolidation (Default: `true`)
-
-    * `:elixir` - if set, ensures the current Elixir version matches the given
-      version requirement (Default: `nil`)
-
-    * `:system_env` *(since v1.13.0)* - a list or a map of system environment variable
-      names with respective values as binaries. The system environment is made part
-      of the `Mix.install/2` cache, so different configurations will lead to different apps
-
     * `:config` *(since v1.13.0)* - a keyword list of keyword lists of compile-time
       configuration. The configuration is part of the `Mix.install/2` cache, so
       different configurations will lead to different apps. For this reason, you
@@ -756,11 +739,32 @@ defmodule Mix do
     * `:config_path` *(since v1.14.0)* - path to a configuration file. If a `runtime.exs`
       file exists in the same directory as the given path, it is loaded too.
 
+    * `:consolidate_protocols` - if `true`, runs protocol consolidation (Default: `true`)
+
+    * `:elixir` - if set, ensures the current Elixir version matches the given
+      version requirement (Default: `nil`)
+
+    * `:force` - if `true`, runs with empty install cache. This is useful when you want
+      to update your dependencies or your install got into an inconsistent state.
+      To use this option, you can also set the `MIX_INSTALL_FORCE` environment variable.
+      (Default: `false`)
+
     * `:lockfile` *(since v1.14.0)* - path to a lockfile to be used as a basis of
       dependency resolution.
 
     * `:start_applications` *(since v1.15.3)* - if `true`, ensures that installed app
       and its dependencies are started after install (Default: `true`)
+
+    * `:stop_unused_applications` *(since v1.20.0)* - as part of the installation process,
+      Elixir may start Hex, SSL, and other applications. Those are automatically shutdown
+      after installation, but you can set this option to false so they remain running
+
+    * `:system_env` *(since v1.13.0)* - a list or a map of system environment variable
+      names with respective values as binaries. The system environment is made part
+      of the `Mix.install/2` cache, so different configurations will lead to different apps
+
+    * `:verbose` - if `true`, prints additional debugging information
+      (Default: `false`)
 
   ## Examples
 
@@ -913,6 +917,7 @@ defmodule Mix do
         lockfile: nil,
         runtime_config: [],
         start_applications: true,
+        stop_unused_applications: true,
         system_env: [],
         verbose: false
       )
@@ -1015,7 +1020,9 @@ defmodule Mix do
 
             # Hex and SSL can use a good amount of memory after the registry fetching,
             # so we stop any app started during deps resolution.
-            stop_apps(Application.started_applications() -- started_apps)
+            if Keyword.fetch!(opts, :stop_unused_applications) do
+              stop_apps(Application.started_applications() -- started_apps)
+            end
 
             Mix.Task.rerun("compile")
 
