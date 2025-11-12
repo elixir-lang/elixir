@@ -22,6 +22,14 @@ defmodule Mix.Shell.IOTest do
            end) =~ "hello"
   end
 
+  test "raises when device cannot prompt" do
+    Process.group_leader(self(), Process.whereis(:standard_error))
+
+    assert_raise RuntimeError, "Mix.shell().prompt/1 is not supported over this device", fn ->
+      prompt("Ok?")
+    end
+  end
+
   test "asks the user with yes? with implicit default option" do
     assert capture_io("\n", fn -> yes?("Ok?") end) == "Ok? [Yn] "
     assert capture_io("\n", fn -> assert yes?("Ok?") end)
@@ -61,6 +69,12 @@ defmodule Mix.Shell.IOTest do
     assert_raise ArgumentError, message, fn ->
       capture_io("\n", fn -> yes?("Ok?", default: :other) end)
     end
+  end
+
+  test "uses default when device cannot read" do
+    Process.group_leader(self(), Process.whereis(:standard_error))
+    assert yes?("Ok?")
+    refute yes?("Ok?", default: :no)
   end
 
   test "runs a given command" do

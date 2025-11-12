@@ -33,8 +33,6 @@ defmodule Mix.Tasks.Deps.Partition do
       ~c"Mix.Tasks.Deps.Partition.client",
       ~c"--",
       force_flag,
-      ~c"--shell",
-      Atom.to_charlist(Mix.shell()),
       ~c"--port",
       Integer.to_charlist(port),
       ~c"--host",
@@ -217,14 +215,7 @@ defmodule Mix.Tasks.Deps.Partition do
 
   ## Client
 
-  @switches [
-    port: :integer,
-    host: :string,
-    force: :boolean,
-    index: :string,
-    config: :string,
-    shell: :string
-  ]
+  @switches [port: :integer, host: :string, force: :boolean, index: :string, config: :string]
 
   def client do
     # If stdin closes, we shutdown the VM
@@ -235,10 +226,10 @@ defmodule Mix.Tasks.Deps.Partition do
 
     args = System.argv()
     {opts, []} = OptionParser.parse!(args, strict: @switches)
-    config = opts |> Keyword.fetch!(:config) |> Base.url_decode64!() |> :erlang.binary_to_term()
+    peek = Keyword.fetch!(opts, :config) |> Base.url_decode64!() |> :erlang.binary_to_term()
 
     # This is specific to Mix.install/2 and how it handles compile-time config
-    if compile_config = config.config[:compile_config] do
+    if compile_config = peek.config[:compile_config] do
       Application.put_all_env(compile_config, persistent: true)
     end
 
@@ -248,15 +239,7 @@ defmodule Mix.Tasks.Deps.Partition do
       |> OptionParser.to_argv()
 
     Mix.start()
-
-    Mix.shell(
-      case opts |> Keyword.fetch!(:shell) |> String.to_atom() do
-        Mix.Shell.Process -> Mix.Shell.IO
-        other -> other
-      end
-    )
-
-    Mix.ProjectStack.push(config.name, config.config, config.file)
+    Mix.ProjectStack.push(peek.name, peek.config, peek.file)
     Mix.CLI.main(["deps.partition" | partition_args], nil)
   end
 

@@ -251,37 +251,6 @@ defmodule Mix.Tasks.DepsTest do
     System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
-  test "compiles deps using os partitions respects custom shells" do
-    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
-
-    in_fixture("deps_status", fn ->
-      File.write!("mix.exs", """
-      defmodule ParDepsApp do
-        use Mix.Project
-
-        def project do
-          [
-            app: :par_sample,
-            version: "0.1.0",
-            deps: [
-              {:raw_repo, "0.1.0", path: "custom/raw_repo"},
-              {:git_repo, "0.1.0", path: #{inspect(fixture_path("git_repo"))}}
-            ]
-          ]
-        end
-      end
-      """)
-
-      Mix.Project.in_project(:par_sample, ".", fn _ ->
-        Mix.shell(Mix.Shell.Quiet)
-        assert ExUnit.CaptureIO.capture_io(fn -> Mix.Tasks.Deps.Compile.run([]) end) == ""
-      end)
-    end)
-  after
-    Mix.shell(Mix.Shell.Process)
-    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
-  end
-
   test "doesn't compile any umbrella apps if --skip-umbrella-children is given" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

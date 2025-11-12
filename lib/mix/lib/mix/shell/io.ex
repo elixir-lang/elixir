@@ -51,7 +51,11 @@ defmodule Mix.Shell.IO do
   """
   def prompt(message) do
     print_app()
-    IO.gets(message <> " ")
+
+    case IO.gets(message <> " ") do
+      {:error, _} -> raise "Mix.shell().prompt/1 is not supported over this device"
+      answer -> answer
+    end
   end
 
   @doc """
@@ -63,6 +67,9 @@ defmodule Mix.Shell.IO do
   to either accept or reject the prompt. The latter case
   may be useful for a potentially dangerous operation that
   should require explicit confirmation from the user.
+
+  If the default IO device is stderr, then it will default
+  to the default value.
 
   ## Options
 
@@ -96,8 +103,10 @@ defmodule Mix.Shell.IO do
 
     print_app()
 
-    answer = IO.gets(message <> prompt)
-    is_binary(answer) and String.trim(answer) in accepted_answers
+    case IO.gets(message <> prompt) do
+      {:error, _} -> default == :yes
+      answer -> is_binary(answer) and String.trim(answer) in accepted_answers
+    end
   end
 
   defp red(message) do
