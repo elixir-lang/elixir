@@ -221,6 +221,14 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
+  defp to_erl_term(%Regex{re_pattern: {:re_pattern, _, _, _, ref}} = regex)
+       when is_reference(ref) do
+    Mix.raise("""
+    \"def application\" has a term which cannot be written to .app files: #{inspect(regex)}.
+    Use the E modifier to store regexes in application config.
+    """)
+  end
+
   defp to_erl_term(map) when is_map(map) do
     inner =
       Enum.map_intersperse(
