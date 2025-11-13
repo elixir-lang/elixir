@@ -891,7 +891,6 @@ defmodule Inspect.OthersTest do
 
   test "regex" do
     assert inspect(~r(foo)m) == "~r/foo/m"
-    assert inspect(~r(foo)E) == "~r/foo/E"
     assert inspect(~r[\\\#{2,}]iu) == ~S"~r/\\\#{2,}/iu"
 
     assert inspect(Regex.compile!("a\\/b")) == "~r/a\\/b/"
@@ -905,6 +904,11 @@ defmodule Inspect.OthersTest do
 
     assert inspect(Regex.compile!("foo", "i")) == "~r/foo/i"
     assert inspect(Regex.compile!("foo", [:ucp])) == ~S'Regex.compile!("foo", [:ucp])'
+  end
+
+  @tag :re_import
+  test "exported regex" do
+    assert inspect(~r(foo)E) == "~r/foo/E"
   end
 
   test "inspect_fun" do
