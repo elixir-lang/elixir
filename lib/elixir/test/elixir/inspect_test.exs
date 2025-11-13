@@ -908,7 +908,7 @@ defmodule Inspect.OthersTest do
 
   @tag :re_import
   test "exported regex" do
-    assert inspect(~r(foo)E) == "~r/foo/E"
+    assert inspect(~r/foo/E) == "~r/foo/E"
   end
 
   test "inspect_fun" do

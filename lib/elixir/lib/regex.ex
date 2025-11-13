@@ -101,9 +101,12 @@ defmodule Regex do
     * `:ungreedy` (U) - inverts the "greediness" of the regexp
       (the previous `r` option is deprecated in favor of `U`)
 
-    * `:export` (e) (from Erlang OTP 28.1 and Elixir 1.20) - uses an exported pattern
+    * `:export` (E) (since Elixir 1.20) - uses an exported pattern
       which can be shared across nodes or through config, at the cost of a runtime
       overhead every time to re-import it every time it is executed.
+      This modifier only has an effect starting on Erlang/OTP 28, and it is ignored
+      on older versions (i.e. `~r/foo/E == ~r/foo/`). This is because patterns cannot
+      and do not need to be exported in order to be shared in these versions.
 
   ## Captures
 
@@ -1017,7 +1020,14 @@ defmodule Regex do
     translate_options(t, [:ungreedy | acc])
   end
 
-  defp translate_options(<<?E, t::binary>>, acc), do: translate_options(t, [:export | acc])
+  defp translate_options(<<?E, t::binary>>, acc) do
+    # on OTP 27-, the E modifier is a no-op since the feature doesn't exist but isn't needed
+    # (regexes aren't using references and can be shared across nodes or stored in config)
+    case Code.ensure_loaded?(:re) and function_exported?(:re, :import, 1) do
+      true -> translate_options(t, [:export | acc])
+      false -> translate_options(t, acc)
+    end
+  end
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(t, _acc), do: {:error, t}
