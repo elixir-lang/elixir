@@ -132,6 +132,19 @@ defmodule RegexTest do
     end
   end
 
+  @tag :re_import
+  test "import/1 (on exported Regex)" do
+    imported = Regex.import(~r/foo/E)
+
+    assert imported.opts == []
+    assert "foo" =~ imported
+    assert {:re_pattern, _, _, _, _} = imported.re_pattern
+
+    assert_raise ArgumentError, "Expected an exported Regex, got: ~r/foo/", fn ->
+      Regex.import(~r/foo/)
+    end
+  end
+
   test "opts/1" do
     assert Regex.opts(Regex.compile!("foo", "i")) == [:caseless]
     assert Regex.opts(Regex.compile!("foo", [:ucp])) == [:ucp]
