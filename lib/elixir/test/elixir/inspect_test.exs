@@ -891,6 +891,7 @@ defmodule Inspect.OthersTest do
 
   test "regex" do
     assert inspect(~r(foo)m) == "~r/foo/m"
+    assert inspect(~r(foo)e) == "~r/foo/e"
     assert inspect(~r[\\\#{2,}]iu) == ~S"~r/\\\#{2,}/iu"
 
     assert inspect(Regex.compile!("a\\/b")) == "~r/a\\/b/"

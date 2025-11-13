@@ -52,6 +52,20 @@ defmodule RegexTest do
     assert Regex.match?(~r/^b$/m, "a\nb\nc")
   end
 
+  @tag :re_import
+  test "export" do
+    # exported patterns have no structs, so these are structurally equal
+    assert ~r/foo/e == Regex.compile!("foo", [:export])
+
+    assert Regex.match?(~r/foo/e, "foo")
+    refute Regex.match?(~r/foo/e, "Foo")
+
+    assert Regex.run(~r/c(d)/e, "abcd") == ["cd", "d"]
+    assert Regex.run(~r/e/e, "abcd") == nil
+
+    assert Regex.names(~r/(?<FOO>foo)/e) == ["FOO"]
+  end
+
   test "precedence" do
     assert {"aa", :unknown} |> elem(0) =~ ~r/(a)\1/
   end
