@@ -1023,6 +1023,7 @@ defmodule Regex do
   defp translate_options(<<?E, t::binary>>, acc) do
     # on OTP 27-, the E modifier is a no-op since the feature doesn't exist but isn't needed
     # (regexes aren't using references and can be shared across nodes or stored in config)
+    # TODO: remove this check on Erlang/OTP 28+ and update docs
     case Code.ensure_loaded?(:re) and function_exported?(:re, :import, 1) do
       true -> translate_options(t, [:export | acc])
       false -> translate_options(t, acc)
