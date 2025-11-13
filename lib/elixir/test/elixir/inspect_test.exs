@@ -906,6 +906,11 @@ defmodule Inspect.OthersTest do
     assert inspect(Regex.compile!("foo", [:ucp])) == ~S'Regex.compile!("foo", [:ucp])'
   end
 
+  @tag :re_import
+  test "exported regex" do
+    assert inspect(~r/foo/E) == "~r/foo/E"
+  end
+
   test "inspect_fun" do
     fun = fn
       integer, _opts when is_integer(integer) ->
