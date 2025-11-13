@@ -465,6 +465,21 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats setup_all exit stacktraces using module context" do
+    stacktrace = [
+      {Hello, :setup_all, [], [file: __ENV__.file, line: 123]},
+      {Hello, :some_fun, [], [file: __ENV__.file, line: 456]}
+    ]
+
+    failure = [{{:EXIT, self()}, {:function_clause, stacktrace}, []}]
+
+    formatted =
+      format_test_all_failure(test_module(), failure, 1, 80, &formatter/2)
+
+    assert formatted =~ "Hello.setup_all/0"
+    assert formatted =~ "Hello.some_fun()"
+  end
+
   test "formats assertions with operators with no limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
 
