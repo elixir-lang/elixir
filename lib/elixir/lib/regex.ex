@@ -101,7 +101,7 @@ defmodule Regex do
     * `:ungreedy` (U) - inverts the "greediness" of the regexp
       (the previous `r` option is deprecated in favor of `U`)
 
-    * `:export` (E) (since Elixir 1.20) - uses an exported pattern
+    * `:export` (E) (since Elixir 1.19.3) - uses an exported pattern
       which can be shared across nodes or through config, at the cost of a runtime
       overhead every time to re-import it every time it is executed.
       This modifier only has an effect starting on Erlang/OTP 28, and it is ignored
