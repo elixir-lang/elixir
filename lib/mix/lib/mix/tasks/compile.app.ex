@@ -214,7 +214,11 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp to_erl_term(list) when is_list(list) do
-    [?[, to_erl_head(list), ?]]
+    if List.ascii_printable?(list) do
+      :io_lib.print(list)
+    else
+      [?[, to_erl_head(list), ?]]
+    end
   end
 
   defp to_erl_term(map) when is_map(map) do
