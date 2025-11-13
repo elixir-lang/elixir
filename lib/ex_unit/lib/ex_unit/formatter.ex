@@ -338,13 +338,7 @@ defmodule ExUnit.Formatter do
         {formatted_reason, wrapped_stack} =
           format_exception(test, struct, wrapped_stack, width, formatter, @counter_padding)
 
-        formatted_stack =
-          format_stacktrace(
-            wrapped_stack,
-            stacktrace_case(test),
-            stacktrace_test(test),
-            formatter
-          )
+        formatted_stack = format_stacktrace(wrapped_stack, test, formatter)
 
         {error_info(header, formatter) <> pad(formatted_reason <> formatted_stack), stack}
 
@@ -373,14 +367,6 @@ defmodule ExUnit.Formatter do
   end
 
   defp linked_or_trapped_exit(_kind, _reason), do: :error
-
-  defp stacktrace_case(%ExUnit.Test{module: module}), do: module
-  defp stacktrace_case(%ExUnit.TestModule{name: name}), do: name
-  defp stacktrace_case(_), do: nil
-
-  defp stacktrace_test(%ExUnit.Test{name: name}), do: name
-  defp stacktrace_test(%ExUnit.TestModule{}), do: nil
-  defp stacktrace_test(_), do: nil
 
   defp format_exception(test, %ExUnit.AssertionError{} = struct, stack, width, formatter, pad) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
@@ -687,22 +673,28 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_stacktrace([], _case, _test, _color) do
+  defp format_stacktrace(stack, %{module: module, name: name}, color),
+    do: format_stacktrace(stack, module, name, color)
+
+  defp format_stacktrace(stack, %{name: name}, color),
+    do: format_stacktrace(stack, name, nil, color)
+
+  defp format_stacktrace([], _module, _test, _color) do
     ""
   end
 
-  defp format_stacktrace(stacktrace, test_case, test, color) do
+  defp format_stacktrace(stacktrace, module, test, color) do
     extra_info("stacktrace:", color) <>
       Enum.map_join(stacktrace, fn entry ->
-        stacktrace_info(format_stacktrace_entry(entry, test_case, test), color)
+        stacktrace_info(format_stacktrace_entry(entry, module, test), color)
       end)
   end
 
-  defp format_stacktrace_entry({test_case, test, _, location}, test_case, test) do
+  defp format_stacktrace_entry({module, test, _, location}, module, test) do
     format_file_line(location[:file], location[:line], " (test)")
   end
 
-  defp format_stacktrace_entry(entry, _test_case, _test) do
+  defp format_stacktrace_entry(entry, _module, _test) do
     format_stacktrace_entry(entry)
   end
 
