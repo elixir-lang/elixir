@@ -234,6 +234,34 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.3 (2025-11-13)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Support /E modifier for regular expressions in config files
+
+#### Mix
+
+  * [mix compile] Allow forcing specific compilers, such as `--force-elixir`, `--force-app`, etc
+  * [mix help app:APP] Support showing helps for apps in Elixir and Erlang standard libraries
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [IO] Fix dialyzer warning on `IO.inspect :label`
+
+#### ExUnit
+
+  * [ExUnit.Case] Fix crash when formatting errors caused by a linked/trapped exit during `setup_all`
+
+#### Mix
+
+  * [mix compile.app] Ensure functions in the format `&Mod.fun/arity` can be written to .app files
+  * [mix compile.app] Ensure strings with Unicode characters can be written to .app files
+
 ## v1.19.2 (2025-11-02)
 
 ### 1. Enhancements

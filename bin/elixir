@@ -6,7 +6,7 @@
 
 set -e
 
-ELIXIR_VERSION=1.19.2
+ELIXIR_VERSION=1.19.3
 
 if [ $# -eq 0 ] || { [ $# -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; }; then
   cat <<USAGE >&2
