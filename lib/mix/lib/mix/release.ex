@@ -468,51 +468,48 @@ defmodule Mix.Release do
     {sys_config, runtime_config?} =
       merge_provider_config(release, sys_config, config_provider_path)
 
-    path = Path.join(release.version_path, "sys.config")
-
-    args = [runtime_config?, sys_config]
-    format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n~tw.~n"
-    File.mkdir_p!(Path.dirname(path))
-    File.write!(path, IO.chardata_to_string(:io_lib.format(format, args)))
-
-    case :file.consult(path) do
-      {:ok, _} ->
+    case consultable_sys_config(sys_config) do
+      {:ok, contents} ->
+        path = Path.join(release.version_path, "sys.config")
+        args = [runtime_config?, contents]
+        format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n~ts.~n"
+        File.mkdir_p!(Path.dirname(path))
+        File.write!(path, IO.chardata_to_string(:io_lib.format(format, args)))
         :ok
 
-      {:error, reason} ->
-        invalid =
-          for {app, kv} <- sys_config,
-              {key, value} <- kv,
-              not valid_config?(value),
-              do: """
-
-              Application: #{inspect(app)}
-              Key: #{inspect(key)}
-              Value: #{inspect(value)}
-              """
-
-        message =
-          case invalid do
-            [] ->
-              "Could not read configuration file. Reason: #{inspect(reason)}"
-
-            _ ->
-              "Could not read configuration file. It has invalid configuration terms " <>
-                "such as functions, references, and pids. Please make sure your configuration " <>
-                "is made of numbers, atoms, strings, maps, tuples and lists. The following entries " <>
-                "are wrong:\n#{Enum.join(invalid)}"
-          end
-
+      {:error, message} ->
         {:error, message}
     end
   end
 
-  defp valid_config?(m) when is_map(m),
-    do: Enum.all?(Map.delete(m, :__struct__), &valid_config?/1)
+  defp consultable_sys_config(sys_config) do
+    contents =
+      Enum.map_intersperse(sys_config, ?,, fn {app, kv} ->
+        kv =
+          Enum.map_intersperse(kv, ?,, fn {key, value} ->
+            case Mix.Utils.consultable(value) do
+              {:ok, value} -> [?{, :io_lib.print(key), ?,, value, ?}]
+              {:error, term, reason} -> throw({:error, app, key, term, reason})
+            end
+          end)
 
-  defp valid_config?(l) when is_list(l), do: Enum.all?(l, &valid_config?/1)
-  defp valid_config?(t) when is_tuple(t), do: Enum.all?(Tuple.to_list(t), &valid_config?/1)
-  defp valid_config?(o), do: is_number(o) or is_atom(o) or is_binary(o)
+        [?{, :io_lib.print(app), ?,, ?[, kv, ?], ?}]
+      end)
+
+    {:ok, [?[, contents, ?]]}
+  catch
+    {:error, app, key, value, reason} ->
+      message = """
+      Could not write configuration file because it has invalid terms
+
+      Application: #{inspect(app)}
+      Key: #{inspect(key)}
+      Invalid value: #{inspect(value)}
+      Reason: #{reason}
+      """
+
+      {:error, message}
+  end
 
   defp merge_provider_config(%{config_providers: []}, sys_config, _), do: {sys_config, false}
 

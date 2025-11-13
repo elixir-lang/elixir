@@ -592,19 +592,20 @@ defmodule Mix.ReleaseTest do
       assert make_sys_config(release([]), [foo: [bar: :baz]], "unused/runtime/path") == :ok
       contents = File.read!(@sys_config)
       assert contents =~ "%% RUNTIME_CONFIG=false"
-      assert contents =~ "[{foo,[{bar,baz}]}]."
+      {:ok, contents} = :file.consult(@sys_config)
+      assert contents == [[foo: [bar: :baz]]]
     end
 
     test "writes sys_config with encoding" do
       assert make_sys_config(
                release([]),
-               [encoding: {:_μ, :"£", "£", ~c"£"}],
+               [encoding: [key: {:_μ, :"£", "£", ~c"£"}]],
                "unused/runtime/path"
              ) ==
                :ok
 
       {:ok, contents} = :file.consult(@sys_config)
-      assert contents == [[encoding: {:_μ, :"£", "£", ~c"£"}]]
+      assert contents == [[encoding: [key: {:_μ, :"£", "£", ~c"£"}]]]
     end
 
     test "writes the given sys_config with config providers" do
@@ -649,12 +650,12 @@ defmodule Mix.ReleaseTest do
     end
 
     test "errors on bad config" do
-      assert {:error, "Could not read configuration file." <> _} =
+      assert {:error, "Could not write configuration file " <> _} =
                make_sys_config(release([]), [foo: [bar: self()]], "unused/runtime/path")
 
       env = %{__ENV__ | lexical_tracker: self()}
 
-      assert {:error, "Could not read configuration file." <> _} =
+      assert {:error, "Could not write configuration file " <> _} =
                make_sys_config(release([]), [foo: [bar: env]], "unused/runtime/path")
     end
   end

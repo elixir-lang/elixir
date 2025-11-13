@@ -187,7 +187,17 @@ defmodule Mix.Tasks.Compile.App do
         |> add_compile_env(current_properties)
         |> add_modules(modules, compile_path)
 
-      contents = to_erl_term({:application, app, properties})
+      contents =
+        case Mix.Utils.consultable({:application, app, properties}) do
+          {:ok, contents} ->
+            contents
+
+          {:error, term, reason} ->
+            Mix.raise(
+              "\"def application\" has a term which cannot be written to .app files: #{inspect(term)} (#{reason})"
+            )
+        end
+
       :application.unload(app)
       :application.load({:application, app, properties})
 
@@ -208,78 +218,6 @@ defmodule Mix.Tasks.Compile.App do
       {:noop, []}
     end
   end
-
-  defp to_erl_term(tuple) when is_tuple(tuple) do
-    [?{, tuple |> Tuple.to_list() |> to_erl_head(), ?}]
-  end
-
-  defp to_erl_term(list) when is_list(list) do
-    if List.ascii_printable?(list) do
-      :io_lib.print(list)
-    else
-      [?[, to_erl_head(list), ?]]
-    end
-  end
-
-  defp to_erl_term(%Regex{re_pattern: {:re_pattern, _, _, _, ref}} = regex)
-       when is_reference(ref) do
-    Mix.raise("""
-    \"def application\" has a term which cannot be written to .app files: #{inspect(regex)}.
-    Use the E modifier to store regexes in application config.
-    """)
-  end
-
-  defp to_erl_term(map) when is_map(map) do
-    inner =
-      Enum.map_intersperse(
-        :maps.to_list(:maps.iterator(map, :reversed)),
-        ?,,
-        fn {key, value} -> [to_erl_term(key), "=>", to_erl_term(value)] end
-      )
-
-    [?#, ?{, inner, ?}]
-  end
-
-  defp to_erl_term(map) when is_map(map) do
-    inner =
-      Enum.map_intersperse(
-        :maps.to_list(:maps.iterator(map, :reversed)),
-        ?,,
-        fn {key, value} -> [to_erl_term(key), "=>", to_erl_term(value)] end
-      )
-
-    [?#, ?{, inner, ?}]
-  end
-
-  defp to_erl_term(function) when is_function(function) do
-    fun_info = Function.info(function)
-
-    if fun_info[:type] == :external and fun_info[:env] == [] do
-      :io_lib.print(function)
-    else
-      Mix.raise(
-        "\"def application\" has a function which cannot be written to .app files: #{inspect(function)}" <>
-          " (only functions in the form &Mod.fun/arity can be part of the application environment)"
-      )
-    end
-  end
-
-  defp to_erl_term(term) when is_reference(term) or is_pid(term) do
-    Mix.raise(
-      "\"def application\" has a term which cannot be written to .app files: #{inspect(term)}"
-    )
-  end
-
-  defp to_erl_term(term) do
-    :io_lib.print(term)
-  end
-
-  defp to_erl_head([]), do: []
-  defp to_erl_head([h | t]), do: [to_erl_term(h) | to_erl_tail(t)]
-
-  defp to_erl_tail([h | t]), do: [?,, to_erl_term(h) | to_erl_tail(t)]
-  defp to_erl_tail([]), do: []
-  defp to_erl_tail(other), do: [?|, to_erl_term(other)]
 
   defp current_app_properties(target) do
     case :file.consult(target) do

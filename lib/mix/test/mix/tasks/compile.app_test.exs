@@ -267,25 +267,17 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "accepts only regexes without a reference" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(CustomProject)
-
       Process.put(:application, env: [regex: ~r/foo/])
 
-      message = """
-      "def application" has a term which cannot be written to \.app files: ~r\/foo\/.
-      Use the E modifier to store regexes in application config.
-      """
-
-      assert_raise Mix.Error, message, fn ->
+      assert_raise Mix.Error, ~r/you must use the \/E modifier to store regexes/, fn ->
         Mix.Tasks.Compile.App.run([])
       end
 
       Process.put(:application, env: [exported: ~r/foo/E])
-
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
 
       properties = parse_resource_file(:custom_project)
-
       assert properties[:env] == [exported: ~r/foo/E]
     end)
   end
