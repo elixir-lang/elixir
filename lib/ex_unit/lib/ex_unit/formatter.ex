@@ -338,7 +338,14 @@ defmodule ExUnit.Formatter do
         {formatted_reason, wrapped_stack} =
           format_exception(test, struct, wrapped_stack, width, formatter, @counter_padding)
 
-        formatted_stack = format_stacktrace(wrapped_stack, test.module, test.name, formatter)
+        formatted_stack =
+          format_stacktrace(
+            wrapped_stack,
+            stacktrace_case(test),
+            stacktrace_test(test),
+            formatter
+          )
+
         {error_info(header, formatter) <> pad(formatted_reason <> formatted_stack), stack}
 
       :error ->
@@ -366,6 +373,14 @@ defmodule ExUnit.Formatter do
   end
 
   defp linked_or_trapped_exit(_kind, _reason), do: :error
+
+  defp stacktrace_case(%ExUnit.Test{module: module}), do: module
+  defp stacktrace_case(%ExUnit.TestModule{name: name}), do: name
+  defp stacktrace_case(_), do: nil
+
+  defp stacktrace_test(%ExUnit.Test{name: name}), do: name
+  defp stacktrace_test(%ExUnit.TestModule{}), do: nil
+  defp stacktrace_test(_), do: nil
 
   defp format_exception(test, %ExUnit.AssertionError{} = struct, stack, width, formatter, pad) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
