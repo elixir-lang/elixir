@@ -55,15 +55,15 @@ defmodule RegexTest do
   @tag :re_import
   test "export" do
     # exported patterns have no structs, so these are structurally equal
-    assert ~r/foo/e == Regex.compile!("foo", [:export])
+    assert ~r/foo/E == Regex.compile!("foo", [:export])
 
-    assert Regex.match?(~r/foo/e, "foo")
-    refute Regex.match?(~r/foo/e, "Foo")
+    assert Regex.match?(~r/foo/E, "foo")
+    refute Regex.match?(~r/foo/E, "Foo")
 
-    assert Regex.run(~r/c(d)/e, "abcd") == ["cd", "d"]
-    assert Regex.run(~r/e/e, "abcd") == nil
+    assert Regex.run(~r/c(d)/E, "abcd") == ["cd", "d"]
+    assert Regex.run(~r/e/E, "abcd") == nil
 
-    assert Regex.names(~r/(?<FOO>foo)/e) == ["FOO"]
+    assert Regex.names(~r/(?<FOO>foo)/E) == ["FOO"]
   end
 
   test "precedence" do

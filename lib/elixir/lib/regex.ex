@@ -1017,7 +1017,7 @@ defmodule Regex do
     translate_options(t, [:ungreedy | acc])
   end
 
-  defp translate_options(<<?e, t::binary>>, acc), do: translate_options(t, [:export | acc])
+  defp translate_options(<<?E, t::binary>>, acc), do: translate_options(t, [:export | acc])
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(t, _acc), do: {:error, t}

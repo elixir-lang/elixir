@@ -567,7 +567,7 @@ defimpl Inspect, for: Regex do
   defp translate_options([:firstline | t], acc), do: translate_options(t, [?f | acc])
   defp translate_options([:ungreedy | t], acc), do: translate_options(t, [?U | acc])
   defp translate_options([:multiline | t], acc), do: translate_options(t, [?m | acc])
-  defp translate_options([:export | t], acc), do: translate_options(t, [?e | acc])
+  defp translate_options([:export | t], acc), do: translate_options(t, [?E | acc])
   defp translate_options([], acc), do: acc
   defp translate_options(_t, _acc), do: :error
 
