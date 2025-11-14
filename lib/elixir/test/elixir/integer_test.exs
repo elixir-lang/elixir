@@ -44,10 +44,13 @@ defmodule IntegerTest do
   end
 
   test "mod/2" do
+    assert Integer.mod(10, -5) == 0
     assert Integer.mod(3, 2) == 1
     assert Integer.mod(0, 10) == 0
-    assert Integer.mod(30000, 2001) == 1986
+    assert Integer.mod(0, -5) == 0
+    assert Integer.mod(30000, -2001) == -15
     assert Integer.mod(-20, 11) == 2
+    assert Integer.mod(-55, -22) == -11
   end
 
   test "mod/2 raises ArithmeticError when divisor is 0" do
@@ -56,10 +59,13 @@ defmodule IntegerTest do
   end
 
   test "floor_div/2" do
+    assert Integer.floor_div(10, -5) == -2
     assert Integer.floor_div(3, 2) == 1
     assert Integer.floor_div(0, 10) == 0
-    assert Integer.floor_div(30000, 2001) == 14
+    assert Integer.floor_div(0, -5) == 0
+    assert Integer.floor_div(30000, -2001) == -15
     assert Integer.floor_div(-20, 11) == -2
+    assert Integer.floor_div(-55, -22) == 2
   end
 
   test "floor_div/2 raises ArithmeticError when divisor is 0" do
@@ -70,6 +76,26 @@ defmodule IntegerTest do
   test "floor_div/2 raises ArithmeticError when non-integers used as arguments" do
     assert_raise ArithmeticError, fn -> Integer.floor_div(3.0, 2) end
     assert_raise ArithmeticError, fn -> Integer.floor_div(20, 1.2) end
+  end
+
+  test "ceil_div/2" do
+    assert Integer.ceil_div(10, -5) == -2
+    assert Integer.ceil_div(3, 2) == 2
+    assert Integer.ceil_div(0, 10) == 0
+    assert Integer.ceil_div(0, -10) == 0
+    assert Integer.ceil_div(30000, -2001) == -14
+    assert Integer.ceil_div(-20, 11) == -1
+    assert Integer.ceil_div(-55, -22) == 3
+  end
+
+  test "ceil_div/2 raises ArithmeticError when divisor is 0" do
+    assert_raise ArithmeticError, fn -> Integer.ceil_div(3, 0) end
+    assert_raise ArithmeticError, fn -> Integer.ceil_div(-50, 0) end
+  end
+
+  test "ceil_div/2 raises ArithmeticError when non-integers used as arguments" do
+    assert_raise ArithmeticError, fn -> Integer.ceil_div(3.0, 2) end
+    assert_raise ArithmeticError, fn -> Integer.ceil_div(20, 1.2) end
   end
 
   test "digits/2" do
