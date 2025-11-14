@@ -292,7 +292,7 @@ defmodule Regex do
       ~r/foo/
 
   """
-  @doc since: "1.19.4"
+  @doc since: "1.20.0"
   @spec import(t) :: t
   def import(%Regex{re_pattern: re_pattern} = regex) do
     case re_pattern do
