@@ -132,17 +132,16 @@ defmodule RegexTest do
     end
   end
 
-  @tag :re_import
-  test "import/1 (on exported Regex)" do
+  test "import/1" do
+    # no-op for non-exported regexes
+    regex = ~r/foo/
+    assert Regex.import(regex) == regex
+
     imported = Regex.import(~r/foo/E)
 
     assert imported.opts == []
     assert "foo" =~ imported
     assert {:re_pattern, _, _, _, _} = imported.re_pattern
-
-    assert_raise ArgumentError, "Expected an exported Regex, got: ~r/foo/", fn ->
-      Regex.import(~r/foo/)
-    end
   end
 
   test "opts/1" do

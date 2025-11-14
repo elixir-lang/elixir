@@ -276,22 +276,20 @@ defmodule Regex do
   end
 
   @doc """
-  Accepts an exported `regex` and imports it.
+  Imports a `regex` that has been exported, otherwise returns the `regex` unchanged.
 
   This means it will lose the ability to be sent across nodes or passed through config,
   but will be faster since it won't need to be imported on the fly every time it is executed.
 
-  Importing only has an effect on Erlang OTP versions 28 or above. For older versions,
-  it does nothing and returns the `regex` as is.
+  Exported regexes only exist on OTP 28, so this has no effect on older versions.
 
   ## Examples
 
       Regex.import(~r/foo/E)
       ~r/foo/
 
-      # on OTP 28+:
       Regex.import(~r/foo/)
-      ** (ArgumentError) Expected an exported Regex, got: ~r/foo/
+      ~r/foo/
 
   """
   @doc since: "1.19.4"
@@ -301,12 +299,8 @@ defmodule Regex do
       {:re_exported_pattern, _, _, _, _} ->
         %{regex | re_pattern: :re.import(re_pattern), opts: regex.opts -- [:export]}
 
-      {:re_pattern, _, _, _, _} ->
-        if Code.ensure_loaded?(:re) and function_exported?(:re, :import, 1) do
-          raise ArgumentError, "Expected an exported Regex, got: #{inspect(regex)}"
-        else
-          regex
-        end
+      _ ->
+        regex
     end
   end
 
