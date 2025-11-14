@@ -53,7 +53,7 @@ iex> add.(1, 2)
 
 The dot makes it clear when you are calling an anonymous function, stored in the variable `add`, opposed to a function named `add/2`. For example, if you have an anonymous function stored in the variable `is_atom`, there is no ambiguity between `is_atom.(:foo)` and `is_atom(:foo)`. If both used the same `is_atom(:foo)` syntax, the only way to know the actual behavior of `is_atom(:foo)` would be by scanning all code thus far for a possible definition of the `is_atom` variable. This scanning hurts maintainability as it requires developers to track additional context in their head when reading and writing code.
 
-Anonymous functions in Elixir are also identified by the number of arguments they receive. We can check if a value is function using `is_function/1` and also check its arity by using `is_function/2`:
+Anonymous functions in Elixir are also identified by the number of arguments they receive. We can check if a value is a function using `is_function/1` and also check its arity by using `is_function/2`:
 
 ```elixir
 iex> is_function(add)
