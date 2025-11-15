@@ -597,6 +597,7 @@ defmodule Regex do
   end
 
   @compile {:inline, maybe_import_pattern: 1}
+  @compile {:no_warn_undefined, {:re, :import, 1}}
   defp maybe_import_pattern({:re_exported_pattern, _, _, _, _} = exported),
     do: :re.import(exported)
 
