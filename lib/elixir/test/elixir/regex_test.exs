@@ -132,6 +132,18 @@ defmodule RegexTest do
     end
   end
 
+  test "import/1" do
+    # no-op for non-exported regexes
+    regex = ~r/foo/
+    assert Regex.import(regex) == regex
+
+    imported = Regex.import(~r/foo/E)
+
+    assert imported.opts == []
+    assert "foo" =~ imported
+    assert {:re_pattern, _, _, _, _} = imported.re_pattern
+  end
+
   test "opts/1" do
     assert Regex.opts(Regex.compile!("foo", "i")) == [:caseless]
     assert Regex.opts(Regex.compile!("foo", [:ucp])) == [:ucp]

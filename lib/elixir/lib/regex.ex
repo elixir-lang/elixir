@@ -102,8 +102,8 @@ defmodule Regex do
       (the previous `r` option is deprecated in favor of `U`)
 
     * `:export` (E) (since Elixir 1.19.3) - uses an exported pattern
-      which can be shared across nodes or through config, at the cost of a runtime
-      overhead every time to re-import it every time it is executed.
+      which can be shared across nodes or passed through config, at the cost of a runtime
+      overhead to re-import it every time it is executed.
       This modifier only has an effect starting on Erlang/OTP 28, and it is ignored
       on older versions (i.e. `~r/foo/E == ~r/foo/`). This is because patterns cannot
       and do not need to be exported in order to be shared in these versions.
@@ -273,6 +273,35 @@ defmodule Regex do
   @doc since: "1.4.0"
   def recompile!(regex) do
     regex
+  end
+
+  @doc """
+  Imports a `regex` that has been exported, otherwise returns the `regex` unchanged.
+
+  This means it will lose the ability to be sent across nodes or passed through config,
+  but will be faster since it won't need to be imported on the fly every time it is executed.
+
+  Exported regexes only exist on OTP 28, so this has no effect on older versions.
+
+  ## Examples
+
+      Regex.import(~r/foo/E)
+      ~r/foo/
+
+      Regex.import(~r/foo/)
+      ~r/foo/
+
+  """
+  @doc since: "1.20.0"
+  @spec import(t) :: t
+  def import(%Regex{re_pattern: re_pattern} = regex) do
+    case re_pattern do
+      {:re_exported_pattern, _, _, _, _} ->
+        %{regex | re_pattern: :re.import(re_pattern), opts: regex.opts -- [:export]}
+
+      _ ->
+        regex
+    end
   end
 
   @doc """
