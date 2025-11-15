@@ -1509,6 +1509,150 @@ defmodule Module.Types.DescrTest do
              |> equal?(integer())
     end
 
+    test "map_values" do
+      assert map_values(:term) == :badmap
+      assert map_values(integer()) == :badmap
+      assert map_values(union(open_map(), integer())) == :badmap
+      assert map_values(none()) == :badmap
+      assert map_values(empty_map()) == none()
+      assert map_values(open_map()) == term()
+      assert map_values(closed_map(a: integer())) == integer()
+      assert map_values(closed_map(a: integer(), b: atom())) == union(integer(), atom())
+
+      # Returns :badbap if the map type is empty
+      assert open_map()
+             |> difference(open_map(a: if_set(term()), c: if_set(term())))
+             |> map_values() == :badmap
+
+      assert map_values(union(closed_map(a: float()), closed_map(b: pid()))) ==
+               union(float(), pid())
+
+      assert map_values(difference(closed_map(a: number(), b: atom()), closed_map(a: float()))) ==
+               union(number(), atom())
+
+      # A negation may remove a key entirely; in that case, its value should not appear
+      assert closed_map(a: if_set(integer()), b: atom())
+             |> difference(closed_map(a: integer(), b: term()))
+             |> equal?(closed_map(b: atom()))
+
+      assert closed_map(a: if_set(integer()), b: atom())
+             |> difference(closed_map(a: integer(), b: term()))
+             |> map_values() == atom()
+
+      # Test with domain keys
+      assert map_values(closed_map([{domain_key(:integer), binary()}])) == binary()
+      assert map_values(closed_map([{domain_key(:atom), integer()}])) == integer()
+
+      # Test with both atom keys and domain keys
+      map_with_both =
+        closed_map([
+          {:a, atom([:ok])},
+          {:b, float()},
+          {domain_key(:integer), binary()},
+          {domain_key(:tuple), pid()}
+        ])
+
+      assert map_values(map_with_both) ==
+               union(atom([:ok]), union(float(), union(binary(), pid())))
+
+      # Test open maps with domain keys
+      assert map_values(open_map([{domain_key(:integer), binary()}])) == term()
+
+      # Test dynamic maps
+      assert map_values(dynamic(open_map())) == dynamic()
+      assert map_values(dynamic(closed_map(a: integer()))) == dynamic(integer())
+
+      assert map_values(union(dynamic(closed_map(a: integer())), closed_map(b: atom()))) ==
+               union(dynamic(integer()), atom())
+
+      # A static integer is refused.
+      assert map_values(union(dynamic(open_map()), integer())) == :badmap
+
+      # A dynamic integer, if there are some map types, is accepted (and ignored).
+      assert map_values(dynamic(union(integer(), closed_map(a: atom())))) == dynamic(atom())
+
+      # Test with if_set (optional keys)
+      assert map_values(closed_map(a: if_set(integer()))) == integer()
+
+      # Complex difference cases
+      assert map_values(open_map() |> difference(negation(closed_map(a: integer())))) == integer()
+
+      assert closed_map([{:a, float()}, {domain_key(:integer), integer()}])
+             |> difference(negation(closed_map(a: term())))
+             |> map_values() == float()
+    end
+
+    test "map_keys" do
+      assert map_keys(:term) == :badmap
+      assert map_keys(integer()) == :badmap
+      assert map_keys(union(open_map(), integer())) == :badmap
+      assert map_keys(none()) == :badmap
+
+      # A non existent map type is refused.
+      assert open_map()
+             |> difference(open_map(a: if_set(term()), c: if_set(term())))
+             |> map_keys() == :badmap
+
+      assert map_keys(empty_map()) == none()
+      assert map_keys(open_map()) == term()
+      assert map_keys(closed_map(a: integer())) == atom([:a])
+      assert map_keys(closed_map(a: integer(), b: atom())) == atom([:a, :b])
+      assert map_keys(union(closed_map(a: float()), closed_map(b: pid()))) == atom([:a, :b])
+
+      # Test with domain keys
+      assert map_keys(closed_map([{domain_key(:integer), binary()}])) == integer()
+      assert map_keys(closed_map([{domain_key(:tuple), binary()}])) == tuple()
+
+      # Test with both atom keys and domain keys
+      map_with_both =
+        closed_map([
+          {:a, atom([:ok])},
+          {:b, float()},
+          {domain_key(:integer), binary()},
+          {domain_key(:tuple), pid()}
+        ])
+
+      assert map_keys(map_with_both) ==
+               union(atom([:a, :b]), union(integer(), tuple()))
+
+      # Test open maps - should return term() for keys
+      assert map_keys(open_map()) == term()
+      assert map_keys(open_map([{domain_key(:integer), binary()}])) == term()
+      assert map_keys(open_map(a: integer())) == term()
+
+      # Test with multiple domain keys
+      all_domains =
+        closed_map([
+          {domain_key(:integer), atom([:int])},
+          {domain_key(:float), atom([:float])},
+          {domain_key(:atom), binary()},
+          {domain_key(:binary), integer()},
+          {domain_key(:tuple), float()}
+        ])
+
+      assert map_keys(all_domains) ==
+               union(integer(), union(float(), union(atom(), union(binary(), tuple()))))
+
+      # Test dynamic maps
+      assert map_keys(dynamic(open_map())) == dynamic()
+      assert map_keys(dynamic(closed_map(a: integer()))) == dynamic(atom([:a]))
+
+      assert map_keys(union(dynamic(closed_map(a: integer())), closed_map(b: atom()))) ==
+               union(dynamic(atom([:a])), atom([:b]))
+
+      # A static integer is refused.
+      assert map_keys(union(dynamic(open_map()), integer())) == :badmap
+
+      # Test with negations
+      assert map_keys(difference(closed_map(a: integer(), b: atom()), closed_map(a: integer()))) ==
+               atom([:a, :b])
+
+      # If a key is removed entirely by a negation, it should not appear in the result
+      assert closed_map(a: if_set(integer()), b: atom())
+             |> difference(closed_map(a: integer(), b: term()))
+             |> map_keys() == atom([:b])
+    end
+
     test "domain_to_args" do
       # take complex tuples, normalize them, and check if they are still equal
       complex_tuples = [

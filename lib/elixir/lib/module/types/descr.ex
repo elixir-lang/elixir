@@ -88,6 +88,8 @@ defmodule Module.Types.Descr do
   defp unfold(other), do: other
   defp unfolded_term, do: @term
 
+  # Special case: empty atom list is equivalent to none()
+  def atom([]), do: @none
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
@@ -2667,6 +2669,239 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Returns the union of all possible key types in a map type.
+  If a key is not in this union, then it cannot be present in the map type.
+  For closed maps, returns the union of atom keys and domain key types.
+  For open maps, returns term() since any key type is possible.
+  """
+  def map_keys(:term), do: :badmap
+
+  def map_keys(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if descr_key?(descr, :map) and map_only?(descr) do
+          process_map_keys(descr.map)
+        else
+          :badmap
+        end
+
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          dynamic_keys = process_map_keys(dynamic.map)
+
+          # If dynamic returns :badmap, the result is :badmap
+          if dynamic_keys == :badmap do
+            :badmap
+          else
+            # Only process static part if it has a :map key
+            if descr_key?(static, :map) do
+              static_keys = process_map_keys(static.map)
+
+              # If static returns :badmap, the result is :badmap
+              if static_keys == :badmap do
+                :badmap
+              else
+                dynamic(dynamic_keys) |> union(static_keys)
+              end
+            else
+              # Static part is empty, so just return dynamic
+              dynamic(dynamic_keys)
+            end
+          end
+        else
+          :badmap
+        end
+    end
+  end
+
+  @doc """
+  Returns the union of all value types that a map type may contain.
+  For closed maps, returns the union of all field values and domain values.
+  For open maps, returns term() since any value type is possible.
+  """
+  def map_values(:term), do: :badmap
+
+  def map_values(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if descr_key?(descr, :map) and map_only?(descr) do
+          process_map_values(Map.get(descr, :map, :bdd_bot))
+        else
+          :badmap
+        end
+
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          dynamic_values = process_map_values(Map.get(dynamic, :map, :bdd_bot))
+
+          # If dynamic returns :badmap, the result is :badmap
+          if dynamic_values == :badmap do
+            :badmap
+          else
+            # Only process static part if it has a :map key
+            if descr_key?(static, :map) do
+              static_values = process_map_values(Map.get(static, :map, :bdd_bot))
+
+              # If static returns :badmap, the result is :badmap
+              if static_values == :badmap do
+                :badmap
+              else
+                dynamic(dynamic_values) |> union(static_values)
+              end
+            else
+              # Static part is empty, so just return dynamic
+              dynamic(dynamic_values)
+            end
+          end
+        else
+          :badmap
+        end
+    end
+  end
+
+  defp process_map_keys(bdd) do
+    # If the map type does not exist, returns :badmap
+    # If the map type is empty_map(), returns none()
+
+    # Gets the nonempty maps from the TDD
+    dnf = map_bdd_to_dnf(bdd)
+
+    if dnf == [] do
+      :badmap
+    else
+      # Check if any line in the DNF represents an open map, and compute the union of domain keys types.
+      {has_open_map, domain_keys_types} =
+        Enum.reduce_while(dnf, {false, none()}, fn {tag_or_domains, _fields, _negs},
+                                                   {_flag, acc} ->
+          case tag_or_domains do
+            :open ->
+              # A negation cannot make an open map closed without cancelling it completely, which is filtered by `map_bdd_to_dnf/1`.
+              {:halt, {true, acc}}
+
+            domains = %{} ->
+              new_acc =
+                Enum.reduce(domains, acc, fn {domain_key, value}, acc ->
+                  if not subtype?(value, not_set()) do
+                    union(domain_key_to_type(domain_key), acc)
+                  else
+                    acc
+                  end
+                end)
+
+              # It's likely that we saturate the domain keys up to literal term(), so we can check for it.
+              if new_acc == unfolded_term() do
+                {:halt, {true, acc}}
+              else
+                {:cont, {false, new_acc}}
+              end
+
+            _ ->
+              {:cont, {false, acc}}
+          end
+        end)
+
+      if has_open_map do
+        term()
+      else
+        # Get all possible atom keys from the DNF
+        all_atom_keys = map_fetch_all_key_names(dnf)
+
+        # Filter atom keys that are actually present (non-empty after negations)
+        present_atom_keys =
+          all_atom_keys
+          |> :sets.to_list()
+          |> Enum.filter(fn atom_key ->
+            {_optional?, value_type} = map_dnf_fetch_static(dnf, atom_key)
+            not empty?(value_type)
+          end)
+
+        atom_keys_type =
+          if Enum.empty?(present_atom_keys) do
+            none()
+          else
+            atom(present_atom_keys)
+          end
+
+        union(atom_keys_type, domain_keys_types)
+      end
+    end
+  end
+
+  defp process_map_values(bdd) do
+    # First check if the map type itself is empty (impossible)
+    # If map_empty? returns true, the map type is impossible, so return :badmap
+    # If it returns false, at least one valid map exists, so process normally
+    if map_empty?(bdd) do
+      :badmap
+    else
+      dnf = map_bdd_to_dnf(bdd)
+
+      # Check if any line in the DNF represents an open map
+      # An open map is either :open tag, or has all domain keys (which only happens
+      # when open_map is used with domain specifications)
+      {has_all_values, domain_values} =
+        Enum.reduce_while(dnf, {false, none()}, fn {tag_or_domains, _fields, _negs},
+                                                   {_flag, acc} ->
+          case tag_or_domains do
+            :open ->
+              # A negation cannot make an open map closed without cancelling it completely, which is filtered by `map_bdd_to_dnf/1`.
+              {:halt, {true, acc}}
+
+            domains = %{} ->
+              # A negation cannot remove a domain without cancelling it completely, which is filtered by `map_bdd_to_dnf/1`.
+              new_acc =
+                Enum.reduce(domains, acc, fn {_domain_key, domain_value}, acc ->
+                  union(domain_value, acc)
+                end)
+                |> remove_optional_static()
+
+              # Short-circuit if we saturate the domain values up to term()
+              if new_acc == unfolded_term() do
+                {:halt, {true, acc}}
+              else
+                {:cont, {false, new_acc}}
+              end
+
+            _ ->
+              {:cont, {false, acc}}
+          end
+        end)
+
+      if has_all_values do
+        term()
+      else
+        # Get all possible atom keys from the DNF
+        all_atom_keys = map_fetch_all_key_names(dnf)
+
+        # For each atom key, get its value type using map_dnf_fetch_static (handles negations)
+        atom_key_values =
+          all_atom_keys
+          |> :sets.to_list()
+          |> Enum.reduce(none(), fn atom_key, acc ->
+            {_optional?, value_type} = map_dnf_fetch_static(dnf, atom_key)
+            union(value_type, acc)
+          end)
+
+        union(atom_key_values, domain_values)
+      end
+    end
+  end
+
+  # Convert a domain_key tuple to the actual type
+  defp domain_key_to_type({:domain_key, :binary}), do: binary()
+  defp domain_key_to_type({:domain_key, :empty_list}), do: empty_list()
+  defp domain_key_to_type({:domain_key, :integer}), do: integer()
+  defp domain_key_to_type({:domain_key, :float}), do: float()
+  defp domain_key_to_type({:domain_key, :pid}), do: pid()
+  defp domain_key_to_type({:domain_key, :port}), do: port()
+  defp domain_key_to_type({:domain_key, :reference}), do: reference()
+  defp domain_key_to_type({:domain_key, :fun}), do: fun()
+  defp domain_key_to_type({:domain_key, :atom}), do: atom()
+  defp domain_key_to_type({:domain_key, :tuple}), do: tuple()
+  defp domain_key_to_type({:domain_key, :map}), do: open_map()
+  defp domain_key_to_type({:domain_key, :list}), do: non_empty_list(term(), term())
+
+  @doc """
   Fetches the type of the value returned by accessing `key` on `map`
   with the assumption that the descr is exclusively a map (or dynamic).
 
@@ -3927,8 +4162,8 @@ defmodule Module.Types.Descr do
     here_branch ++ later_branches
   end
 
-  # No more negative elements to process: there is no “all-equal” branch to add,
-  # because we’re constructing {t} ant not {u}, which must differ somewhere.
+  # No more negative elements to process: there is no "all-equal" branch to add,
+  # because we're constructing {t} ant not {u}, which must differ somewhere.
   defp tuple_elim_content(_acc, _tag, _elements, []) do
     []
   end
