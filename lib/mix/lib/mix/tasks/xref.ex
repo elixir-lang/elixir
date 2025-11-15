@@ -44,11 +44,21 @@ defmodule Mix.Tasks.Xref do
                   └── lib/a.ex
 
   Because you have a compile-time dependency, any of the files `lib/a.ex`,
-  `lib/b.ex`, and `lib/c.ex` depend on will cause the whole cycle to
-  recompile. Therefore, your first priority to reduce compile times is
-  to remove such cycles. You can spot them by running:
+  `lib/b.ex`, and `lib/c.ex` depend on will cause `lib/a.ex` to recompile.
+  In other words, whenever you have a cycle, **a change to any file in the
+  cycle will cause all compile-time deps to recompile**. Therefore, your
+  first priority to reduce constant recompilations is to remve them.
+  You can spot them by running:
 
       $ mix xref graph --format cycles --label compile-connected
+
+  > #### Use the --label option
+  >
+  > The job of `mix xref` is to explore relationships between files
+  > and it is expected that most of your files are either directly
+  > or indirectly connected. For this reason, it is strongly advised
+  > to pass the `--label` option to filter the amount of data,
+  > specifically with `compile-connected` (or `compile`) as values.
 
   Whenever you find a compile-time dependency, such as `lib/a.ex` pointing
   to `lib/b.ex`, there are two ways to remove them:
@@ -208,13 +218,11 @@ defmodule Mix.Tasks.Xref do
     * `--exclude` - path to exclude. Can be repeated to exclude multiple paths.
 
     * `--label` - only shows relationships with the given label.
-      The labels are "compile", "export" and "runtime". By default, the `--label`
-      option does not change how the graph is computed, it simply filters the
-      printed graph to show only relationships with the given label. However,
-      you can pass `--only-direct` to trim the graph to only the nodes that
-      have the direct relationship given by label. There is also a special
-      label called "compile-connected" that keeps only compile-time files with
-      at least one transitive dependency. See "Dependency types" section below.
+      The labels are "compile-connected", "compile", "export" and "runtime".
+      By default, the `--label` option does not change how the graph is computed,
+      it simply filters the printed graph to show only relationships with the given
+      label. However, you can pass `--only-direct` to trim the graph to only the
+      nodes that have the direct relationship given by label.
 
     * `--group` - provide comma-separated paths to consider as a group. Dependencies
       from and into multiple files of the group are considered a single dependency.
@@ -238,6 +246,9 @@ defmodule Mix.Tasks.Xref do
 
     * `--min-cycle-size` - controls the minimum cycle size on formats
       like `stats` and `cycles`
+
+    * `--min-cycle-label` - controls the minimum number of dependencies
+      with the given `--label` on a cycle
 
     * `--format` - can be set to one of:
 
@@ -435,6 +446,7 @@ defmodule Mix.Tasks.Xref do
     sink: :keep,
     source: :keep,
     min_cycle_size: :integer,
+    min_cycle_label: :integer,
     output: :string
   ]
 
@@ -1218,9 +1230,22 @@ defmodule Mix.Tasks.Xref do
         cycles
       end
 
-    # :compile_connected is the same
+    min_cycle_label =
+      if integer = opts[:min_cycle_label] do
+        if filter == :all do
+          Mix.raise("--min-cycle-label requires the --label option to be given")
+        end
+
+        integer
+      else
+        1
+      end
+
+    # :compile_connected is the same as :compile
     if cycle_fn = cycle_filter_fn(filter) do
-      Enum.filter(cycles, fn {_length, cycle} -> Enum.any?(cycle, cycle_fn) end)
+      Enum.filter(cycles, fn {_length, cycle} ->
+        Enum.count_until(cycle, cycle_fn, min_cycle_label) == min_cycle_label
+      end)
     else
       cycles
     end
@@ -1269,11 +1294,35 @@ defmodule Mix.Tasks.Xref do
           shell.info("#{length(cycles)} cycles found. Showing them in decreasing size:\n")
 
           for {length, cycle} <- cycles do
-            shell.info("Cycle of length #{length}:\n")
+            meta =
+              cycle
+              |> Enum.reduce({0, 0}, fn
+                {_, :compile}, {compile, export} -> {compile + 1, export}
+                {_, :export}, {compile, export} -> {compile, export + 1}
+                {_, _}, {compile, export} -> {compile, export}
+              end)
+              |> case do
+                {0, 0} ->
+                  ""
+
+                {compile, export} ->
+                  info =
+                    if(compile > 0, do: ["#{compile} compile"], else: []) ++
+                      if(export > 0, do: ["#{export} export"], else: [])
+
+                  " (" <> Enum.join(info, ", ") <> ")"
+              end
+
+            shell.info("Cycle of length #{length}#{meta}:\n")
 
             for {node, type} <- cycle do
-              type = if type, do: " (#{type})", else: ""
-              shell.info("    " <> node <> type)
+              shell.info(
+                case type do
+                  :compile -> [:red, "    #{node} (compile)"]
+                  :export -> "    #{node} (export)"
+                  _ -> "    #{node}"
+                end
+              )
             end
 
             shell.info("")
