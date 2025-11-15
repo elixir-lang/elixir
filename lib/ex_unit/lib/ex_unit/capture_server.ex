@@ -75,7 +75,10 @@ defmodule ExUnit.CaptureServer do
     refs = Map.put(config.log_captures, ref, true)
 
     {level, opts} = Keyword.pop(opts, :level)
-    {formatter_mod, formatter_config} = Logger.default_formatter(opts)
+
+    {formatter_mod, formatter_config} =
+      Keyword.get_lazy(opts, :formatter, fn -> Logger.default_formatter(opts) end)
+
     true = :ets.insert(@ets, {ref, string_io, level || :all, formatter_mod, formatter_config})
 
     if map_size(refs) == 1 do
