@@ -48,6 +48,7 @@ defmodule IntegerTest do
     assert Integer.mod(3, 2) == 1
     assert Integer.mod(0, 10) == 0
     assert Integer.mod(0, -5) == 0
+    assert Integer.mod(30000, 2001) == 1986
     assert Integer.mod(30000, -2001) == -15
     assert Integer.mod(-20, 11) == 2
     assert Integer.mod(-55, -22) == -11
@@ -63,6 +64,7 @@ defmodule IntegerTest do
     assert Integer.floor_div(3, 2) == 1
     assert Integer.floor_div(0, 10) == 0
     assert Integer.floor_div(0, -5) == 0
+    assert Integer.floor_div(30000, 2001) == 14
     assert Integer.floor_div(30000, -2001) == -15
     assert Integer.floor_div(-20, 11) == -2
     assert Integer.floor_div(-55, -22) == 2
