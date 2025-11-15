@@ -173,6 +173,35 @@ defmodule Integer do
   end
 
   @doc """
+  Performs a ceiled integer division.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+  This function performs a *ceiled* integer division, which means that
+  the result will always be rounded towards positive infinity.
+
+  ## Examples
+
+      iex> Integer.ceil_div(5, 2)
+      3
+      iex> Integer.ceil_div(6, -4)
+      -1
+      iex> Integer.ceil_div(-99, 2)
+      -49
+
+  """
+  @doc since: "1.20.0"
+  @spec ceil_div(integer, neg_integer | pos_integer) :: integer
+  def ceil_div(dividend, divisor) do
+    if not :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
+      div(dividend, divisor) + 1
+    else
+      div(dividend, divisor)
+    end
+  end
+
+  @doc """
   Returns the ordered digits for the given `integer`.
 
   An optional `base` value may be provided representing the radix for the returned
