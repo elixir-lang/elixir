@@ -42,7 +42,7 @@ defmodule Mix.Sync.PubSub do
 
   The messages are delivered to the caller's message queue.
   """
-  @spec subscribe(String.t()) :: :ok
+  @spec subscribe(String.t()) :: :ok | {:error, String.t()}
   def subscribe(key) do
     GenServer.call(@name, {:subscribe, self(), key}, :infinity)
   end
