@@ -143,6 +143,112 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
+  defmodule ReverseFormatter do
+    def new(options \\ []) do
+      {_, opts} = Logger.Formatter.new(options)
+      {__MODULE__, opts}
+    end
+
+    def format(event, config) do
+      event
+      |> reverse()
+      |> Logger.Formatter.format(config)
+    end
+
+    defp reverse(event) do
+      msg =
+        event
+        |> Logger.Formatter.format_event(:infinity)
+        |> to_string()
+        |> String.reverse()
+
+      %{event | msg: {:string, msg}}
+    end
+  end
+
+  describe "with formatter" do
+    test "log tracking" do
+      logged =
+        capture_log([formatter: ReverseFormatter.new()], fn ->
+          Logger.info("one")
+
+          logged = capture_log([formatter: ReverseFormatter.new()], fn -> Logger.error("one") end)
+          send(test = self(), {:nested, logged})
+
+          Logger.warning("two")
+
+          spawn(fn ->
+            Logger.debug("three")
+            send(test, :done)
+          end)
+
+          receive do: (:done -> :ok)
+        end)
+
+      assert logged
+      assert logged =~ "[info] eno"
+      assert logged =~ "[warning] owt"
+      assert logged =~ "[debug] eerht"
+      assert logged =~ "[error] eno"
+
+      receive do
+        {:nested, logged} ->
+          assert logged =~ "[error] eno"
+          refute logged =~ "[warning] owt"
+      end
+    end
+
+    test "with_log/2: returns the result and the log" do
+      {result, log} =
+        with_log([formatter: ReverseFormatter.new()], fn ->
+          Logger.error("calculating...")
+          2 + 2
+        end)
+
+      assert result == 4
+      assert log =~ "...gnitaluclac"
+    end
+
+    test "respects the :format, :metadata, and :colors options" do
+      options = [
+        formatter:
+          ReverseFormatter.new(
+            format: "$metadata| $message",
+            metadata: [:id],
+            colors: [enabled: false]
+          )
+      ]
+
+      assert {4, log} =
+               with_log(options, fn ->
+                 Logger.info("hello", id: 123)
+                 2 + 2
+               end)
+
+      assert log == "id=123 | olleh"
+    end
+
+    @tag capture_log: true
+    test "with_log/2: respect options with capture_log: true" do
+      {_, opts} =
+        Logger.Formatter.new(
+          format: "$metadata| $message",
+          metadata: [:id],
+          colors: [enabled: false]
+        )
+
+      options = [formatter: {ReverseFormatter, opts}]
+
+      assert {4, log} =
+               with_log(options, fn ->
+                 Logger.info("hello", id: 123)
+                 2 + 2
+               end)
+
+      assert log == "id=123 | olleh"
+    end
+  end
+
   defp wait_capture_removal() do
     if ExUnit.CaptureServer in Enum.map(:logger.get_handler_config(), & &1.id) do
       Process.sleep(20)

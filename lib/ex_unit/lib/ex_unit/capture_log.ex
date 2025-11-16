@@ -44,16 +44,17 @@ defmodule ExUnit.CaptureLog do
   @compile {:no_warn_undefined, Logger}
 
   @type capture_log_opts :: [
-          level: Logger.level() | nil
+          {:level, Logger.level() | nil}
+          | {:formatter, {module(), term()} | nil}
         ]
 
   @doc """
   Captures Logger messages generated when evaluating `fun`.
 
   Returns the binary which is the captured output. The captured log
-  messages will be formatted using `Logger.default_formatter/1`. Any
-  option, besides the `:level`, will be forwarded as an override to
-  the default formatter.
+  messages will be formatted using `Logger.default_formatter/1` by
+  default. Any option, besides `:level` or `formatter`, will be
+  forwarded as an override to the default formatter.
 
   This function mutes the default logger handler and captures any log
   messages sent to Logger from the calling processes. It is possible
@@ -74,6 +75,11 @@ defmodule ExUnit.CaptureLog do
   Therefore, if `Logger.level/0` is set to a higher level than the one
   configured in this function, no message will be captured.
   The behaviour is undetermined if async tests change Logger level.
+
+  It is possible to use an alternative log formatter with `:formatter`,
+  which must be provided as `{module, config}`. If `:formatter` is not
+  provided, the formatter configuration from `Logger.default_formatter/1`
+  will be used.
 
   To get the result of the evaluation along with the captured log,
   use `with_log/2`.
