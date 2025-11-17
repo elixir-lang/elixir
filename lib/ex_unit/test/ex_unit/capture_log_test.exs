@@ -143,6 +143,44 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
+  defmodule CustomFormatter do
+    def new do
+      {_, opts} =
+        Logger.Formatter.new(
+          format: "$metadata| $message",
+          metadata: [:id],
+          colors: [enabled: false]
+        )
+
+      {__MODULE__, opts}
+    end
+
+    def format(event, config) do
+      event
+      |> wrap()
+      |> Logger.Formatter.format(config)
+    end
+
+    defp wrap(event) do
+      msg =
+        event
+        |> Logger.Formatter.format_event(:infinity)
+        |> to_string()
+
+      %{event | msg: {:string, ["[CUSTOM]", msg, "[/CUSTOM]"]}}
+    end
+  end
+
+  test "uses the formatter from the `:formatter` option" do
+    log =
+      capture_log([formatter: CustomFormatter.new()], fn ->
+        Logger.info("hello", id: 123)
+        2 + 2
+      end)
+
+    assert log == "id=123 | [CUSTOM]hello[/CUSTOM]"
+  end
+
   defp wait_capture_removal() do
     if ExUnit.CaptureServer in Enum.map(:logger.get_handler_config(), & &1.id) do
       Process.sleep(20)
