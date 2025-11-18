@@ -160,6 +160,7 @@ defmodule ExUnit.Assertions do
         end
       end
 
+    {left, right} = move_match(left, right)
     __match__(left, right, code, check, __CALLER__)
   end
 
@@ -380,6 +381,12 @@ defmodule ExUnit.Assertions do
     {ExUnit.AssertionError.no_value(), expr}
   end
 
+  defp move_match(left, {:=, meta, [middle, right]}),
+    do: move_match({:=, meta, [left, middle]}, right)
+
+  defp move_match(left, right),
+    do: {left, right}
+
   @doc false
   def __match__({:when, _, _} = left, right, _, _, _) do
     suggestion =
@@ -409,7 +416,7 @@ defmodule ExUnit.Assertions do
           case right do
             unquote(left) ->
               unquote(check)
-              unquote(mark_as_generated(vars))
+              {unquote_splicing(mark_as_generated(vars))}
 
             _ ->
               left = unquote(Macro.escape(left))
@@ -427,7 +434,7 @@ defmodule ExUnit.Assertions do
     quote do
       right = unquote(right)
       expr = unquote(code)
-      unquote(vars) = unquote(match_expr)
+      {unquote_splicing(vars)} = unquote(match_expr)
       right
     end
   end
