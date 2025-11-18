@@ -964,7 +964,14 @@ defmodule ExUnit.DocTest do
 
   @doc false
   defmacro __assert__({:=, _, [left, right]} = assertion) do
+    {left, right} = move_match(left, right)
     code = Macro.escape(assertion, prune_metadata: true)
     ExUnit.Assertions.__match__(left, right, code, :ok, __CALLER__)
   end
+
+  defp move_match(left, {:=, meta, [middle, right]}),
+    do: move_match({:=, meta, [left, middle]}, right)
+
+  defp move_match(left, right),
+    do: {left, right}
 end

@@ -246,6 +246,16 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert parallel match" do
+    assert %URI{} = uri = apply(URI, :parse, ["/foo"])
+    # This should not warn
+    assert %URI{uri | path: "/bar"}.path == "/bar"
+
+    assert uri = %URI{} = apply(URI, :parse, ["/foo"])
+    # This should not warn
+    assert %URI{uri | path: "/bar"}.path == "/bar"
+  end
+
   test "assert match with pinned variable" do
     a = 1
     {2, 1} = assert {2, ^a} = Value.tuple()
