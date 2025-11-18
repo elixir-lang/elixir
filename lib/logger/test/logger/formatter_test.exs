@@ -105,6 +105,14 @@ defmodule Logger.FormatterTest do
           colors: [enabled: true]
         )
 
+      assert %{level: :warning, msg: {:string, ""}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33m\e[0m"
+
+      assert %{level: :warning, msg: {:string, "s"}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33ms\e[0m"
+
       assert %{level: :warning, msg: {:string, "message"}, meta: %{}}
              |> format(formatter)
              |> IO.chardata_to_string() == "\e[33mmessage\e[0m"
@@ -116,6 +124,18 @@ defmodule Logger.FormatterTest do
       assert %{level: :warning, msg: {:string, "message\r\n"}, meta: %{}}
              |> format(formatter)
              |> IO.chardata_to_string() == "\e[33mmessage\e[0m\r\n"
+
+      assert %{level: :warning, msg: {:string, [?é, ["message", [?\n]]]}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33mémessage\e[0m\n"
+
+      assert %{level: :warning, msg: {:string, [?é, "message", ?\r, ?\n]}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33mémessage\e[0m\r\n"
+
+      assert %{level: :warning, msg: {:string, [?é, "message" | "\r\n"]}, meta: %{}}
+             |> format(formatter)
+             |> IO.chardata_to_string() == "\e[33mémessage\e[0m\r\n"
     end
   end
 
