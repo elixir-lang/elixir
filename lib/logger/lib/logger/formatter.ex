@@ -244,25 +244,37 @@ defmodule Logger.Formatter do
     case if(is_function(enabled, 0), do: enabled.(), else: enabled) do
       true ->
         color = md[:ansi_color] || Map.fetch!(colors, level)
-        fragment = IO.ANSI.format_fragment(color, true)
-        data = IO.iodata_to_binary(data)
-        size = byte_size(data)
-
-        cond do
-          :binary.at(data, size - 2) == ?\r and :binary.at(data, size - 1) == ?\n ->
-            [fragment, binary_part(data, 0, size - 2), IO.ANSI.reset() | "\r\n"]
-
-          :binary.at(data, size - 1) == ?\n ->
-            [fragment, binary_part(data, 0, size - 1), IO.ANSI.reset(), ?\n]
-
-          true ->
-            [fragment, data | IO.ANSI.reset()]
-        end
+        [IO.ANSI.format_fragment(color, true), add_reset(data)]
 
       false ->
         data
     end
   end
+
+  defp add_reset(binary) when is_binary(binary) do
+    size = byte_size(binary)
+
+    cond do
+      binary == "" ->
+        IO.ANSI.reset()
+
+      :binary.at(binary, size - 1) == ?\n ->
+        if size > 1 and :binary.at(binary, size - 2) == ?\r do
+          [binary_part(binary, 0, size - 2), IO.ANSI.reset() | "\r\n"]
+        else
+          [binary_part(binary, 0, size - 1), IO.ANSI.reset(), ?\n]
+        end
+
+      true ->
+        [binary | IO.ANSI.reset()]
+    end
+  end
+
+  defp add_reset([?\r, ?\n]), do: [IO.ANSI.reset(), ?\r, ?\n]
+  defp add_reset([?\n]), do: [IO.ANSI.reset(), ?\n]
+  defp add_reset([last]), do: add_reset(last)
+  defp add_reset([h | t]), do: [h | add_reset(t)]
+  defp add_reset(rest), do: [rest | IO.ANSI.reset()]
 
   @doc """
   Formats the message of a log event.
