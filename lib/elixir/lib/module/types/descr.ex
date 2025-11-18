@@ -1178,7 +1178,7 @@ defmodule Module.Types.Descr do
 
       {fun_dynamic, fun_static} ->
         cond do
-          fun_static == %{} and fun_closes_all?(fun_dynamic) ->
+          fun_static == %{} and dynamic_fun_top?(fun_dynamic) ->
             {:ok, dynamic()}
 
           fun_only?(fun_static) ->
@@ -1191,9 +1191,9 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
-  defp fun_closes_all?(:term), do: true
-  defp fun_closes_all?(%{fun: {:negation, map}}), do: map == %{}
-  defp fun_closes_all?(_), do: false
+  defp dynamic_fun_top?(:term), do: true
+  defp dynamic_fun_top?(%{fun: {:negation, map}}), do: map == %{}
+  defp dynamic_fun_top?(_), do: false
 
   defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
     args_domain = args_to_domain(arguments)
