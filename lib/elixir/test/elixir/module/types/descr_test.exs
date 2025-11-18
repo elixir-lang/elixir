@@ -1003,7 +1003,7 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "function application" do
-    defp none_fun(arity), do: fun(List.duplicate(none(), arity), term())
+    defp none_fun(arity), do: %{fun: {:union, %{arity => :bdd_top}}}
 
     test "non funs" do
       assert fun_apply(term(), [integer()]) == :badfun
@@ -2229,7 +2229,7 @@ defmodule Module.Types.DescrTest do
              |> difference(none_fun(2))
              |> intersection(none_fun(1))
              |> to_quoted_string() ==
-               "(none() -> term()) and (integer() -> atom())"
+               "(integer() -> atom())"
     end
 
     test "function with dynamic signatures" do
