@@ -19,9 +19,8 @@ ensuring that Elixir remains a trusted and innovative open source project.
 
 ## 2. Scope
 
-This policy applies to the Elixir Programming Language, located at
-<https://github.com/elixir-lang/elixir>, and the rest of the projects under the
-Elixir Programming Organization, which is located at <https://github.com/elixir-lang/>.
+This policy applies to the Elixir Programming language and all other projects under the
+Elixir Organization, which is located at <https://github.com/elixir-lang/>.
 It covers every file, and contribution made, including documentation and any
 associated assets.
 
