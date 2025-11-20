@@ -1090,7 +1090,7 @@ defmodule Code do
   @doc since: "1.6.0"
   @spec format_string!(binary, [format_opt]) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
-    line_length = Keyword.get(opts, :line_length, 98)
+    {line_length, opts} = Keyword.pop(opts, :line_length, 98)
 
     to_quoted_opts =
       [
