@@ -787,6 +787,18 @@ defmodule FileTest do
       end
     end
 
+    test "cp_r! with file src and dest unknown" do
+      src = fixture_path("cp_r/a/1.txt")
+      dest = tmp_path("tmp/unknown/")
+
+      message =
+        "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{dest}: no such file or directory"
+
+      assert_raise File.CopyError, message, fn ->
+        File.cp_r!(src, dest)
+      end
+    end
+
     test "cp preserves mode" do
       File.mkdir_p!(tmp_path("tmp"))
       src = fixture_path("cp_mode")
