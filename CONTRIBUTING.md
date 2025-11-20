@@ -91,6 +91,10 @@ case you are looking for some examples:
   * [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
   * [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
 
+Before joining our community, we encourage you to familiarize yourself with our
+[code of conduct](CODE_OF_CONDUCT.md), which sets a baseline standard of behavior
+for discussing Elixir effectively, productively, and respectfully - even in disagreements.
+
 ## Reviewing changes
 
 Once a pull request is sent, the Elixir team will review your changes.
