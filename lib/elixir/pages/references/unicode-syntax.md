@@ -46,9 +46,9 @@ That's the overall introduction of how Unicode is used in Elixir identifiers. In
 
 For the technical details, see the next sections that cover the technical Unicode requirements.
 
-## Unicode Annex #31
+## Unicode Standard Annex #31
 
-Elixir implements the requirements outlined in the [Unicode Annex #31](https://unicode.org/reports/tr31/), version 17.0.
+Elixir conforms to the standards outlined in the [Unicode Standard Annex #31: Unicode Identifiers and Syntax](https://unicode.org/reports/tr31/), version 17.0.
 
 ### R1. Default Identifiers
 
