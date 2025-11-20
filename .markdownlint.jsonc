@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2021 The Elixir Team
 
 {
-  // Consecutive header levels (h1 -> h2 -> h3). We don't care about this.
+  // Consecutive header levels (h1 -> h2 -> h3).
   "MD001": false,
   // Header style. We use #s.
   "MD003": {
@@ -41,5 +41,7 @@
   // This warns if you have spaces in code blocks. Sometimes, that's fine.
   "MD038": false,
   // Code block style. We don't care if it's fenced or indented.
-  "MD046": false
+  "MD046": false,
+  // Our tables are too large to align.
+  "MD060": false,
 }
