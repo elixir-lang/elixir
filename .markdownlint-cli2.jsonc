@@ -7,5 +7,49 @@
   "ignores": [
     ".git/**"
   ],
-  "gitignore": true
+  "gitignore": true,
+  "config": {
+    // Consecutive header levels (h1 -> h2 -> h3).
+    "MD001": false,
+    // Header style. We use #s.
+    "MD003": {
+      "style": "atx"
+    },
+    // Style of unordered lists..
+    "MD007": {
+      "indent": 2,
+      "start_indented": true
+    },
+    // Line length. Who cares.
+    "MD013": false,
+    // This warns if you have "console" or "shell" code blocks with a dollar sign $ that
+    // don't show output. We use those a lot, so this is fine for us.
+    "MD014": false,
+    // Multiple headings with the same content. That's fine.
+    "MD024": false,
+    // Some headers finish with ! because it refers to a function name
+    "MD026": false,
+    // Allow empty line between block quotes. Used by contiguous admonition blocks.
+    "MD028": false,
+    // Allowed HTML inline elements.
+    "MD033": {
+      "allowed_elements": [
+        "h1",
+        "a",
+        "br",
+        "img",
+        "picture",
+        "source",
+        "noscript",
+        "p",
+        "script"
+      ]
+    },
+    // This warns if you have spaces in code blocks. Sometimes, that's fine.
+    "MD038": false,
+    // Code block style. We don't care if it's fenced or indented.
+    "MD046": false,
+    // Our tables are too large to align.
+    "MD060": false
+  }
 }
