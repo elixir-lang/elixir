@@ -8,10 +8,10 @@ on:
     branches:
       - "main"
     paths:
-      - "lib/**/*.md"
+      - "**/*.md"
   pull_request:
     paths:
-      - "lib/**/*.md"
+      - "**/*.md"
   workflow_dispatch:
 
 permissions:
@@ -34,7 +34,3 @@ jobs:
 
       - name: Run markdownlint
         uses: DavidAnson/markdownlint-cli2-action@30a0e04f1870d58f8d717450cc6134995f993c63 # v21.0.0
-        with:
-          globs: |
-            lib/elixir/pages/**/*.md
-            README.md

@@ -20,7 +20,7 @@ ensuring that Elixir remains a trusted and innovative open source project.
 ## 2. Scope
 
 This policy applies to the Elixir Programming language, located at
-https://github.com/elixir-lang/elixir. It covers every file, and contribution
+<https://github.com/elixir-lang/elixir>. It covers every file, and contribution
 made, including documentation and any associated assets.
 
 ## 3. Licensing
@@ -29,9 +29,9 @@ All code released by the Elixir team is licensed under the
 [Apache-2.0](./LICENSES/Apache-2.0.txt) license. Additionally, the following
 licenses are recognized as permissible in this project:
 
-- The Unicode license, as documented at
+  - The Unicode license, as documented at
   [LicenseRef-scancode-unicode](./LICENSES/LicenseRef-scancode-unicode.txt)
-- The Elixir Trademark Policy, as documented at
+  - The Elixir Trademark Policy, as documented at
   [LicenseRef-elixir-trademark-policy](./LICENSES/LicenseRef-elixir-trademark-policy.txt)
 
 These licenses are considered acceptable for any files or code that form part of

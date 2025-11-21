@@ -121,30 +121,30 @@ Please review our [Open Source Policy](OPEN_SOURCE_POLICY.md) for complete
 guidelines on licensing and compliance. Below is a summary of the key points
 affecting **all external contributors**:
 
-- Accepted Licenses: Any code contributed must be licensed under the
+  * Accepted Licenses: Any code contributed must be licensed under the
   `Apache-2.0` license.
-- SPDX License Headers: With the exception of approved test fixture files,
+  * SPDX License Headers: With the exception of approved test fixture files,
   all new or modified files in a pull request must include correct SPDX
   headers. If you are creating a new file under the `Apache-2.0` license, for
   instance, please use:
-    
+
     ```elixir
     # SPDX-License-Identifier: Apache-2.0
     # SPDX-FileCopyrightText: 2021 The Elixir Team
     ```
-    
-- No Executable Binaries: Contributions must **not** include any executable
+
+  * No Executable Binaries: Contributions must **not** include any executable
   binary files. If you require an exception (for example, certain test artifacts),
   please see the policy on how to request approval and document exceptions.
-- Preserving Copyright and License Info: If you copy code from elsewhere,
+  * Preserving Copyright and License Info: If you copy code from elsewhere,
   ensure that **all original copyright and license notices remain intact**. If
   they are missing or incomplete, you must add them.
-- Failure to Comply: Pull requests that do not meet these licensing and
+  * Failure to Comply: Pull requests that do not meet these licensing and
   compliance standards will be rejected or require modifications before merging.
-- Developer Certificate of Origin: All contributions are subject to the
+  * Developer Certificate of Origin: All contributions are subject to the
   Developer Certificate of Origin.
 
-    ```
+    ```text
     By making a contribution to this project, I certify that:
 
     (a) The contribution was created in whole or in part by me and I
@@ -171,7 +171,7 @@ affecting **all external contributors**:
         involved.
     ```
 
-    See http://developercertificate.org/ for a copy of the Developer Certificate
+    See <http://developercertificate.org/> for a copy of the Developer Certificate
     of Origin license.
 
 ## Building documentation
