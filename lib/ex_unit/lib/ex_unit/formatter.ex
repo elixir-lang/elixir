@@ -513,10 +513,15 @@ defmodule ExUnit.Formatter do
 
   defp format_diff(left, right, context, formatter) do
     if has_value?(left) and has_value?(right) do
-      {result, env} = find_diff(left, right, context)
-      result = if formatter.(:diff_enabled?, false), do: result
-      hints = Enum.map(env.hints, &{:hint, format_hint(&1)})
-      {result, hints}
+      case find_diff(left, right, context) do
+        {result, env} ->
+          result = if formatter.(:diff_enabled?, false), do: result
+          hints = Enum.map(env.hints, &{:hint, format_hint(&1)})
+          {result, hints}
+
+        nil ->
+          {nil, []}
+      end
     else
       {nil, []}
     end
