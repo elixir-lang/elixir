@@ -177,17 +177,19 @@ affecting **all external contributors**:
 ## Building documentation
 
 Building the documentation requires that [ExDoc](https://github.com/elixir-lang/ex_doc)
-is installed and built alongside Elixir:
+is installed and built alongside Elixir.
+
+After cloning and compiling Elixir, run:
 
 ```sh
-# After cloning and compiling Elixir, in its parent directory:
-git clone https://github.com/elixir-lang/ex_doc.git
-cd ex_doc && ../elixir/bin/elixir ../elixir/bin/mix do deps.get + compile
-```
+elixir_dir=$(pwd)
+cd .. && git clone https://github.com/elixir-lang/ex_doc.git
+cd ex_doc && "${elixir_dir}/bin/elixir" "${elixir_dir}/bin/mix" do deps.get + compile
 
-Now go back to Elixir's root directory and generate HTML and EPUB documents:
+# Now we will go back to Elixir's root directory,
+cd "${elixir_dir}"
 
-```sh
+# and generate HTML and EPUB documents:
 make docs
 ```
 
