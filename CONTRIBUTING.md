@@ -185,11 +185,10 @@ git clone https://github.com/elixir-lang/ex_doc.git
 cd ex_doc && ../elixir/bin/elixir ../elixir/bin/mix do deps.get + compile
 ```
 
-Now go back to Elixir's root directory and run:
+Now go back to Elixir's root directory and generate HTML and EPUB documents:
 
 ```sh
-make docs                  # to generate HTML pages
-make docs DOCS_FORMAT=epub # to generate EPUB documents
+make docs
 ```
 
 This will produce documentation sets for `elixir`, `eex`, `ex_unit`, `iex`, `logger`,
