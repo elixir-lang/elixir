@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Xref do
   `lib/b.ex`, and `lib/c.ex` depend on will cause `lib/a.ex` to recompile.
   In other words, whenever you have a cycle, **a change to any file in the
   cycle will cause all compile-time deps to recompile**. Therefore, your
-  first priority to reduce constant recompilations is to remve them.
+  first priority to reduce constant recompilations is to remove them.
   You can spot them by running:
 
       $ mix xref graph --format cycles --label compile-connected
