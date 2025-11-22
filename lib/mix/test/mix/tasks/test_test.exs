@@ -285,6 +285,21 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ "** (RuntimeError) oops"
       end)
     end
+
+    test "fail with exit status 1 if failed tests cannot be found" do
+      in_fixture("test_not_found", fn ->
+        output = mix(["test", "--failed"])
+        assert output =~ "There are no tests to run"
+
+        # Run `mix test` once to record failures...
+        output = mix(["test"])
+        assert output =~ "1 test, 1 failure"
+
+        {output, exit_status} = mix_code(["test", "--failed"])
+        assert output =~ "ERROR! Unable to find failed tests while using the --failed option"
+        assert exit_status == 1
+      end)
+    end
   end
 
   describe "--listen-on-stdin" do

@@ -713,6 +713,16 @@ defmodule Mix.Tasks.Test do
               exit({:shutdown, 1})
             end)
 
+          total == 0 and opts[:failed] ->
+            message =
+              "\nERROR! Unable to find failed tests while using the --failed option"
+
+            IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+            System.at_exit(fn _ ->
+              exit({:shutdown, 1})
+            end)
+
           failures > 0 and opts[:raise] ->
             raise_with_shell(shell, "\"mix test\" failed")
 
