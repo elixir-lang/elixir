@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Cmd do
   Your shell will expand "lib/*" and then pass multiple arguments to
   `mix cmd`, which in turn passes them to `echo`. Note that, `mix cmd`
   by itself, does not perform any shell expansion. This means that,
-  if you invoke `mix cmd` programatically, as in:
+  if you invoke `mix cmd` programmatically, as in:
 
       Mix.Task.run("cmd", ["echo", "lib/*"])
 
