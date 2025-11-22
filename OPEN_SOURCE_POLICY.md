@@ -30,9 +30,10 @@ All code released by the Elixir team is licensed under the
 licenses are recognized as permissible in this project:
 
   - The Unicode license, as documented at
-  [LicenseRef-scancode-unicode](./LICENSES/LicenseRef-scancode-unicode.txt)
+    [LicenseRef-scancode-unicode](./LICENSES/LicenseRef-scancode-unicode.txt)
+
   - The Elixir Trademark Policy, as documented at
-  [LicenseRef-elixir-trademark-policy](./LICENSES/LicenseRef-elixir-trademark-policy.txt)
+    [LicenseRef-elixir-trademark-policy](./LICENSES/LicenseRef-elixir-trademark-policy.txt)
 
 These licenses are considered acceptable for any files or code that form part of
 an Elixir repository. If a contribution requires a different license, it must
