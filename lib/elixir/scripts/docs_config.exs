@@ -24,6 +24,8 @@ versions =
     )
     |> Enum.sort({:desc, Version})
   else
+    IO.warn("skipping version dropdown", [])
+
     []
   end
 
@@ -34,32 +36,24 @@ latest =
     |> Enum.fetch!(0)
     |> Version.to_string()
   else
-    nil
+    System.version()
   end
 
 version_nodes =
-  if git_repo? do
-    for version <- versions do
-      version_string = Version.to_string(version)
-      map = %{version: "v#{version_string}", url: "https://hexdocs.pm/#{app}/#{version_string}"}
+  for version <- versions do
+    version_string = Version.to_string(version)
+    map = %{version: "v#{version_string}", url: "https://hexdocs.pm/#{app}/#{version_string}"}
 
-      if version_string == latest do
-        Map.put(map, :latest, true)
-      else
-        map
-      end
+    if version_string == latest do
+      Map.put(map, :latest, true)
+    else
+      map
     end
-  else
-    []
   end
 
 search_nodes =
-  if git_repo? do
-    for app <- ~w(eex elixir ex_unit iex logger mix)s do
-      %{name: app, version: latest}
-    end
-  else
-    []
+  for app <- ~w(eex elixir ex_unit iex logger mix)s do
+    %{name: app, version: latest}
   end
 
 File.mkdir_p!("doc/#{app}")
