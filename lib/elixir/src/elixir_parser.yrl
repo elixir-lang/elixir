@@ -98,12 +98,12 @@ Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eoe : {'__block__', meta_from_token('$1'), []}.
+grammar -> eoe : {'__block__', meta_from_location({1, 1, nil}), []}.
 grammar -> expr_list : build_block(reverse('$1')).
 grammar -> eoe expr_list : build_block(reverse('$2')).
 grammar -> expr_list eoe : build_block(reverse(annotate_eoe('$2', '$1'))).
 grammar -> eoe expr_list eoe : build_block(reverse(annotate_eoe('$3', '$2'))).
-grammar -> '$empty' : {'__block__', [], []}.
+grammar -> '$empty' : {'__block__', meta_from_location({1, 1, nil}), []}.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
