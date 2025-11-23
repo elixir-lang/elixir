@@ -51,6 +51,14 @@ re_import_exclude =
     [:re_import]
   end
 
+gleam_exclude =
+  try do
+    Mix.Gleam.require!()
+    []
+  rescue
+    Mix.Error -> [gleam: true]
+  end
+
 Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
 CoverageRecorder.maybe_record("mix")
 
@@ -58,7 +66,8 @@ ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude:
     epmd_exclude ++
-      os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude ++ re_import_exclude,
+      os_exclude ++
+      git_exclude ++ line_exclude ++ cover_exclude ++ re_import_exclude ++ gleam_exclude,
   include: line_include,
   assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )
@@ -282,6 +291,17 @@ File.mkdir_p!(Path.dirname(rebar3_target))
 File.cp!(rebar3_source, rebar3_target)
 
 fixtures = ~w(rebar_dep rebar_override)
+
+Enum.each(fixtures, fn fixture ->
+  source = MixTest.Case.fixture_path(fixture)
+  dest = MixTest.Case.tmp_path(fixture)
+  File.mkdir_p!(dest)
+  File.cp_r!(source, dest)
+end)
+
+## Set up Gleam fixtures
+
+fixtures = ~w(gleam_dep subfolder)
 
 Enum.each(fixtures, fn fixture ->
   source = MixTest.Case.fixture_path(fixture)
