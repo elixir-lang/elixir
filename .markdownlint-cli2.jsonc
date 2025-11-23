@@ -25,8 +25,11 @@
     // This warns if you have "console" or "shell" code blocks with a dollar sign $ that
     // don't show output. We use those a lot, so this is fine for us.
     "MD014": false,
-    // Multiple headings with the same content. That's fine.
-    "MD024": false,
+    // Multiple headings with the same content.
+    "MD024": {
+      // Duplication is allowed for headings with different parents.
+      "siblings_only": true
+    },
     // Some headers finish with ! because it refers to a function name
     "MD026": false,
     // Allow empty line between block quotes. Used by contiguous admonition blocks.
