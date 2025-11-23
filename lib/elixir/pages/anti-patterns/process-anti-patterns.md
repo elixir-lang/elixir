@@ -9,11 +9,11 @@ This document outlines potential anti-patterns related to processes and process-
 
 ## Code organization by process
 
-#### Problem
+### Problem
 
 This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, error isolation, etc). When you use a process for code organization, it can create bottlenecks in the system.
 
-#### Example
+### Example
 
 An example of this anti-pattern, as shown below, is a module that implements arithmetic operations (like `add` and `subtract`) by means of a `GenServer` process. If the number of calls to this single process grows, this code organization can compromise the system performance, therefore becoming a bottleneck.
 
@@ -85,11 +85,11 @@ iex> Calculator.subtract(2, 3)
 
 ## Scattered process interfaces
 
-#### Problem
+### Problem
 
 In Elixir, the use of an `Agent`, a `GenServer`, or any other process abstraction is not an anti-pattern in itself. However, when the responsibility for direct interaction with a process is spread throughout the entire system, it can become problematic. This bad practice can increase the difficulty of code maintenance and make the code more prone to bugs.
 
-#### Example
+### Example
 
 The following code seeks to illustrate this anti-pattern. The responsibility for interacting directly with the `Agent` is spread across four different modules (`A`, `B`, `C`, and `D`).
 
@@ -195,13 +195,13 @@ This anti-pattern was formerly known as [Agent obsession](https://github.com/luc
 
 ## Sending unnecessary data
 
-#### Problem
+### Problem
 
 Sending a message to a process can be an expensive operation if the message is big enough. That's because that message will be fully copied to the receiving process, which may be CPU and memory intensive. This is due to Erlang's "share nothing" architecture, where each process has its own memory, which simplifies and speeds up garbage collection.
 
 This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, and so on. It is more subtle here as the anonymous function passed to these functions captures the variables it references, and all captured variables will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
 
-#### Example
+### Example
 
 Imagine you were to implement some simple reporting of IP addresses that made requests against your application. You want to do this asynchronously and not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection because we might need more data later. However passing the connection results in copying a lot of unnecessary data like the request body, params, etc.
 
@@ -249,11 +249,11 @@ GenServer.cast(pid, {:report_ip_address, conn.remote_ip})
 
 ## Unsupervised processes
 
-#### Problem
+### Problem
 
 In Elixir, creating a process outside a supervision tree is not an anti-pattern in itself. However, when you spawn many long-running processes outside of supervision trees, this can make visibility and monitoring of these processes difficult, preventing developers from fully controlling their lifecycle.
 
-#### Example
+### Example
 
 The following code example seeks to illustrate a library responsible for maintaining a numerical `Counter` through a `Agent` process *outside a supervision tree*.
 

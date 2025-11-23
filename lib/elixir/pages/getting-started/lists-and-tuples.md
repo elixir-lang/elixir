@@ -75,7 +75,7 @@ Implemented protocols
 
 We will talk more about charlists in the ["Binaries, strings, and charlists"](binaries-strings-and-charlists.md) chapter.
 
-> #### Single-quoted strings {: .info}
+> ### Single-quoted strings {: .info}
 >
 > In Elixir, you can also use `'hello'` to build charlists, but this notation has been soft-deprecated in Elixir v1.15 and will emit warnings in future versions. Prefer to write `~c"hello"` instead.
 

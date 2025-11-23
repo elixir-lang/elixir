@@ -32,7 +32,7 @@ hello world
 
 The `File` module contains functions that allow us to open files as IO devices. By default, files are opened in binary mode, which requires developers to use the specific `IO.binread/2` and `IO.binwrite/2` functions from the `IO` module:
 
-> #### Potential data loss warning {: .warning}
+> ### Potential data loss warning {: .warning}
 >
 > The following code opens a file for writing. If an existing file is available at the given path, its contents will be deleted.
 

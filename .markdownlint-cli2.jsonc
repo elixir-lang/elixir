@@ -9,7 +9,8 @@
   ],
   "gitignore": true,
   "config": {
-    // Consecutive header levels (h1 -> h2 -> h3).
+    // Heading levels should only increment by one level at a time.
+    // Admonition blocks do not follow this rule.
     "MD001": false,
     // Header style. We use #s.
     "MD003": {

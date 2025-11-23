@@ -9,13 +9,13 @@ This document outlines potential anti-patterns related to meta-programming.
 
 ## Compile-time dependencies
 
-#### Problem
+### Problem
 
 This anti-pattern is related to dependencies between files in Elixir. Because macros are used at compile-time, the use of any macro in Elixir adds a compile-time dependency to the module that defines the macro.
 
 However, when macros are used in the body of a module, the arguments to the macro themselves may become compile-time dependencies. These dependencies may lead to dependency graphs where changing a single file causes several files to be recompiled.
 
-#### Example
+### Example
 
 Let's take the [`Plug`](https://github.com/elixir-plug/plug) library as an example. The `Plug` project allows you to specify several modules, also known as plugs, which will be invoked whenever there is a request. As a user of `Plug`, you would use it as follows:
 
@@ -58,7 +58,7 @@ end
 
 The trouble with the code above is that, because the `plug MyApp.Authentication` was invoked at compile-time, the module `MyApp.Authentication` is now a compile-time dependency of `MyApp`, even though `MyApp.Authentication` is never used at compile-time. If `MyApp.Authentication` depends on other modules, even at runtime, this can now lead to a large recompilation graph in case of changes.
 
-#### Refactoring
+### Refactoring
 
 To address this anti-pattern, a macro can expand literals within the context they are meant to be used, as follows:
 
@@ -80,11 +80,11 @@ In actual projects, developers may use `mix xref trace path/to/file.ex` to execu
 
 ## Large code generation
 
-#### Problem
+### Problem
 
 This anti-pattern is related to macros that generate too much code. When a macro generates a large amount of code, it impacts how the compiler and/or the runtime work. The reason for this is that Elixir may have to expand, compile, and execute the code multiple times, which will make compilation slower and the resulting compiled artifacts larger.
 
-#### Example
+### Example
 
 Imagine you are defining a router for a web application, where you could have macros like `get/2`. On every invocation of the macro (which could be hundreds), the code inside `get/2` will be expanded and compiled, which can generate a large volume of code overall.
 
@@ -109,7 +109,7 @@ defmodule Routes do
 end
 ```
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, the developer should simplify the macro, delegating part of its work to other functions. As shown below, by encapsulating the code inside `quote/1` inside the function `__define__/3` instead, we reduce the code that is expanded and compiled on every invocation of the macro, and instead we dispatch to a function to do the bulk of the work.
 
@@ -137,11 +137,11 @@ end
 
 ## Unnecessary macros
 
-#### Problem
+### Problem
 
 *Macros* are powerful meta-programming mechanisms that can be used in Elixir to extend the language. While using macros is not an anti-pattern in itself, this meta-programming mechanism should only be used when absolutely necessary. Whenever a macro is used, but it would have been possible to solve the same problem using functions or other existing Elixir structures, the code becomes unnecessarily more complex and less readable. Because macros are more difficult to implement and reason about, their indiscriminate use can compromise the evolution of a system, reducing its maintainability.
 
-#### Example
+### Example
 
 The `MyMath` module implements the `sum/2` macro to perform the sum of two numbers received as parameters. While this code has no syntax errors and can be executed correctly to get the desired result, it is unnecessarily more complex. By implementing this functionality as a macro rather than a conventional function, the code became less clear:
 
@@ -164,7 +164,7 @@ iex> MyMath.sum(3 + 1, 5 + 6)
 15
 ```
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, the developer must replace the unnecessary macro with structures that are simpler to write and understand, such as named functions. The code shown below is the result of the refactoring of the previous example. Basically, the `sum/2` macro has been transformed into a conventional named function. Note that the `require/2` call is no longer needed:
 
@@ -185,13 +185,13 @@ iex> MyMath.sum(3+1, 5+6)
 
 ## `use` instead of `import`
 
-#### Problem
+### Problem
 
 Elixir has mechanisms such as `import/1`, `alias/1`, and `use/1` to establish dependencies between modules. Code implemented with these mechanisms does not characterize a smell by itself. However, while the `import/1` and `alias/1` directives have lexical scope and only facilitate a module calling functions of another, the `use/1` directive has a *broader scope*, which can be problematic.
 
 The `use/1` directive allows a module to inject any type of code into another, including propagating dependencies. In this way, using the `use/1` directive makes code harder to read, because to understand exactly what will happen when it references a module, it is necessary to have knowledge of the internal details of the referenced module.
 
-#### Example
+### Example
 
 The code shown below is an example of this anti-pattern. It defines three modules -- `ModuleA`, `Library`, and `ClientApp`. `ClientApp` is reusing code from the `Library` via the `use/1` directive, but is unaware of its internal details. This makes it harder for the author of `ClientApp` to visualize which modules and functionality are now available within its module. To make matters worse, `Library` also imports `ModuleA`, which defines a `foo/0` function that conflicts with a local function defined in `ClientApp`:
 
@@ -239,7 +239,7 @@ error: imported ModuleA.foo/0 conflicts with local function
   └ client_app.ex:4:
 ```
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, we recommend library authors avoid providing `__using__/1` callbacks whenever it can be replaced by `alias/1` or `import/1` directives. In the following code, we assume `use Library` is no longer available and `ClientApp` was refactored in this way, and with that, the code is clearer and the conflict as previously shown no longer exists:
 
@@ -290,11 +290,11 @@ For convenience, the markup notation to generate the admonition block above is t
 
 ## Untracked compile-time dependencies
 
-#### Problem
+### Problem
 
 This anti-pattern is the opposite of ["Compile-time dependencies"](#compile-time-dependencies) and it happens when a compile-time dependency is accidentally bypassed, making the Elixir compiler unable to track dependencies and recompile files correctly. This happens when building aliases (in other words, module names) dynamically, either within a module or within a macro.
 
-#### Example
+### Example
 
 For example, imagine you invoke a module at compile-time, you could write it as such:
 
@@ -346,7 +346,7 @@ defmodule MyModule do
 end
 ```
 
-#### Refactoring
+### Refactoring
 
 To address this anti-pattern, you should avoid defining module names programmatically. For example, if you need to dispatch to multiple modules, do so by using full module names.
 

@@ -9,11 +9,11 @@ This document outlines potential anti-patterns related to your code and particul
 
 ## Comments overuse
 
-#### Problem
+### Problem
 
 When you overuse comments or comment self-explanatory code, it can have the effect of making code *less readable*.
 
-#### Example
+### Example
 
 ```elixir
 # Returns the Unix timestamp of 5 minutes from the current time
@@ -29,7 +29,7 @@ defp unix_five_min_from_now do
 end
 ```
 
-#### Refactoring
+### Refactoring
 
 Prefer clear and self-explanatory function names, module names, and variable names when possible. In the example above, the function name explains well what the function does, so you likely won't need the comment before it. The code also explains the operations well through variable names and clear function calls.
 
@@ -47,17 +47,17 @@ end
 
 We removed the unnecessary comments. We also added a `@five_min_in_seconds` module attribute, which serves the additional purpose of giving a name to the "magic" number `60 * 5`, making the code clearer and more expressive.
 
-#### Additional remarks
+### Additional remarks
 
 Elixir makes a clear distinction between **documentation** and code comments. The language has built-in first-class support for documentation through `@doc`, `@moduledoc`, and more. See the ["Writing documentation"](../getting-started/writing-documentation.md) guide for more information.
 
 ## Complex `else` clauses in `with`
 
-#### Problem
+### Problem
 
 This anti-pattern refers to `with` expressions that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because it's difficult to know from which clause the error value came.
 
-#### Example
+### Example
 
 An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a Base64-encoded string content from a file and returns a decoded binary string. This function uses a `with` expression that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
 
@@ -75,7 +75,7 @@ end
 
 In the code above, it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less clear the code gets, and the more likely it is that unrelated failures will overlap each other.
 
-#### Refactoring
+### Refactoring
 
 In this situation, instead of concentrating all error handling within a single complex `else` block, it is better to normalize the return types in specific private functions. In this way, `with` can focus on the success case and the errors are normalized closer to where they happen, leading to better organized and maintainable code.
 
@@ -104,11 +104,11 @@ end
 
 ## Complex extractions in clauses
 
-#### Problem
+### Problem
 
 When we use multi-clause functions, it is possible to extract values in the clauses for further usage and for pattern matching/guard checking. This extraction itself does not represent an anti-pattern, but when you have *extractions made across several clauses and several arguments of the same function*, it becomes hard to know which extracted parts are used for pattern/guards and what is used only inside the function body. This anti-pattern is related to [Unrelated multi-clause function](design-anti-patterns.md#unrelated-multi-clause-function), but with implications of its own. It impairs the code readability in a different way.
 
-#### Example
+### Example
 
 The multi-clause function `drive/1` is extracting fields of an `%User{}` struct for usage in the clause expression (`age`) and for usage in the function body (`name`):
 
@@ -124,7 +124,7 @@ end
 
 While the example above is small and does not constitute an anti-pattern, it is an example of mixed extraction and pattern matching. A situation where `drive/1` was more complex, having many more clauses, arguments, and extractions, would make it hard to know at a glance which variables are used for pattern/guards and which ones are not.
 
-#### Refactoring
+### Refactoring
 
 As shown below, a possible solution to this anti-pattern is to extract only pattern/guard related variables in the signature once you have many arguments or multiple clauses:
 
@@ -142,13 +142,13 @@ end
 
 ## Dynamic atom creation
 
-#### Problem
+### Problem
 
 An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself. However, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1 048 576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
 
 For these reasons, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
 
-#### Example
+### Example
 
 Picture yourself implementing code that converts string values into atoms. These strings could have been received from an external system, either as part of a request into our application, or as part of a response to your application. This dynamic and unpredictable scenario poses a security risk, as these uncontrolled conversions can potentially trigger out-of-memory errors.
 
@@ -167,7 +167,7 @@ iex> MyRequestHandler.parse(%{"status" => "ok", "message" => "all good"})
 
 When we use the `String.to_atom/1` function to dynamically create an atom, it essentially gains potential access to create arbitrary atoms in our system, causing us to lose control over adhering to the limits established by the BEAM. This issue could be exploited by someone to create enough atoms to shut down a system.
 
-#### Refactoring
+### Refactoring
 
 To eliminate this anti-pattern, developers must either perform explicit conversions by mapping strings to atoms or replace the use of `String.to_atom/1` with `String.to_existing_atom/1`. An explicit conversion could be done as follows:
 
@@ -237,11 +237,11 @@ However, keep in mind using a module attribute or defining the atoms in the modu
 
 ## Long parameter list
 
-#### Problem
+### Problem
 
 In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point where the function's interface becomes confusing and prone to errors during use.
 
-#### Example
+### Example
 
 In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
 
@@ -254,7 +254,7 @@ defmodule Library do
 end
 ```
 
-#### Refactoring
+### Refactoring
 
 To address this anti-pattern, related arguments can be grouped using key-value data structures, such as maps, structs, or even keyword lists in the case of optional arguments. This effectively reduces the number of arguments and the key-value data structures adds clarity to the caller.
 
@@ -274,13 +274,13 @@ Other times, a function may legitimately take half a dozen or more completely un
 
 ## Namespace trespassing
 
-#### Problem
+### Problem
 
 This anti-pattern manifests when a package author or a library defines modules outside of its "namespace". A library should use its name as a "prefix" for all of its modules. For example, a package named `:my_lib` should define all of its modules within the `MyLib` namespace, such as `MyLib.User`, `MyLib.SubModule`, `MyLib.Application`, and `MyLib` itself.
 
 This is important because the Erlang VM can only load one instance of a module at a time. So if there are multiple libraries that define the same module, then they are incompatible with each other due to this limitation. By always using the library name as a prefix, it avoids module name clashes due to the unique prefix.
 
-#### Example
+### Example
 
 This problem commonly manifests when writing an extension of another library. For example, imagine you are writing a package that adds authentication to [Plug](https://github.com/elixir-plug/plug) called `:plug_auth`. You must avoid defining modules within the `Plug` namespace:
 
@@ -292,7 +292,7 @@ end
 
 Even if `Plug` does not currently define a `Plug.Auth` module, it may add such a module in the future, which would ultimately conflict with `plug_auth`'s definition.
 
-#### Refactoring
+### Refactoring
 
 Given the package is named `:plug_auth`, it must define modules inside the `PlugAuth` namespace:
 
@@ -314,7 +314,7 @@ There are few known exceptions to this anti-pattern:
 
 ## Non-assertive map access
 
-#### Problem
+### Problem
 
 In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically.
 
@@ -324,14 +324,14 @@ When a key is optional, the `map[:key]` notation must be used instead. This way,
 
 When you use `map[:key]` to access a key that always exists in the map, you are making the code less clear for developers and for the compiler, as they now need to work with the assumption the key may not be there. This mismatch may also make it harder to track certain bugs. If the key is unexpectedly missing, you will have a `nil` value propagate through the system, instead of raising on map access.
 
-##### Table: Comparison of map access notations
+#### Table: Comparison of map access notations
 
 | Access notation | Key exists | Key doesn't exist | Use case |
 | --------------- | ---------- | ----------------- | -------- |
 | `map.key` | Returns the value | Raises `KeyError` | Structs and maps with known atom keys |
 | `map[:key]` | Returns the value | Returns `nil` | Any `Access`-based data structure, optional keys |
 
-#### Example
+### Example
 
 The function `plot/1` tries to draw a graphic to represent the position of a point in a Cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D Cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
 
@@ -378,7 +378,7 @@ iex> distance_from_origin = :math.sqrt(x * x + y * y)
 
 The error above occurs later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations, making it harder to identify the original issue.
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, we must use the dynamic `map[:key]` syntax and the static `map.key` notation according to our requirements. We expect `:x` and `:y` to always exist, but not `:z`. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
 
@@ -464,11 +464,11 @@ This anti-pattern was formerly known as [Accessing non-existent map/struct field
 
 ## Non-assertive pattern matching
 
-#### Problem
+### Problem
 
 Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, and don't propagate to the entire application. A supervisor detects the failing process, reports it, and possibly restarts it. This anti-pattern arises when developers write defensive or imprecise code, capable of returning incorrect values which were not planned for, instead of programming in an assertive style through pattern matching and guards.
 
-#### Example
+### Example
 
 The function `get_value/2` tries to extract a value from a specific key of a URL query string. As it is not implemented using pattern matching, `get_value/2` always returns a value, regardless of the format of the URL query string passed as a parameter in the call. Sometimes the returned value will be valid. However, if a URL query string with an unexpected format is used in the call, `get_value/2` will extract incorrect values from it:
 
@@ -496,7 +496,7 @@ iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "univ
 "institution"   # <= why not "institution=UFMG"? or only "UFMG"?
 ```
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behavior, shown below, allows clients to decide how to handle these errors and doesn't give a false impression that the code is working correctly when unexpected values are extracted:
 
@@ -554,11 +554,11 @@ This anti-pattern was formerly known as [Speculative assumptions](https://github
 
 ## Non-assertive truthiness
 
-#### Problem
+### Problem
 
 Elixir provides the concept of truthiness: `nil` and `false` are considered "falsy" and all other values are "truthy". Many constructs in the language, such as `&&/2`, `||/2`, and `!/1` handle truthy and falsy values. Using those operators is not an anti-pattern. However, using those operators when all operands are expected to be booleans, may be an anti-pattern.
 
-#### Example
+### Example
 
 The simplest scenario where this anti-pattern manifests is in conditionals, such as:
 
@@ -572,7 +572,7 @@ end
 
 Given both operands of `&&/2` are booleans, the code is more generic than necessary, and potentially unclear.
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, we can replace `&&/2`, `||/2`, and `!/1` by `and/2`, `or/2`, and `not/1` respectively. These operators assert at least their first argument is a boolean:
 
@@ -588,11 +588,11 @@ This technique may be particularly important when working with Erlang code. Erla
 
 ## Structs with 32 fields or more
 
-#### Problem
+### Problem
 
 Structs in Elixir are implemented as compile-time maps, which have a predefined amount of fields. When structs have 32 or more fields, their internal representation in the Erlang Virtual Machines changes, potentially leading to bloating and higher memory usage.
 
-#### Example
+### Example
 
 Any struct with 32 or more fields will be problematic:
 
@@ -623,7 +623,7 @@ end
 
 All user structs will point to the same tuple keys at compile-time, also reducing the memory cost of instantiating structs with `%MyStruct{...}` notation. This optimization is also not available if the struct has 32 keys or more.
 
-#### Refactoring
+### Refactoring
 
 Removing this anti-pattern, in a nutshell, requires ensuring your struct has fewer than 32 fields. There are a few techniques you could apply:
 

@@ -9,11 +9,11 @@ This document outlines potential anti-patterns related to your modules, function
 
 ## Alternative return types
 
-#### Problem
+### Problem
 
 This anti-pattern refers to functions that receive options (typically as a *keyword list* parameter) that drastically change their return type. Because options are optional and sometimes set dynamically, if they also change the return type, it may be hard to understand what the function actually returns.
 
-#### Example
+### Example
 
 An example of this anti-pattern, as shown below, is when a function has many alternative return types, depending on the options received as a parameter.
 
@@ -42,7 +42,7 @@ iex> AlternativeInteger.parse("13", discard_rest: true)
 13
 ```
 
-#### Refactoring
+### Refactoring
 
 To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_discard_rest/1`), no longer delegating this to options passed as arguments.
 
@@ -72,13 +72,13 @@ iex> AlternativeInteger.parse_discard_rest("13")
 
 ## Boolean obsession
 
-#### Problem
+### Problem
 
 This anti-pattern happens when booleans are used instead of atoms to encode information. The usage of booleans themselves is not an anti-pattern, but whenever multiple booleans are used with overlapping states, replacing the booleans by atoms (or composite data types such as *tuples*) may lead to clearer code.
 
 This is a special case of [*Primitive obsession*](#primitive-obsession), specific to boolean values.
 
-#### Example
+### Example
 
 An example of this anti-pattern is a function that receives two or more options, such as `editor: true` and `admin: true`, to configure its behavior in overlapping ways. In the code below, the `:editor` option has no effect if `:admin` is set, meaning that the `:admin` option has higher priority than `:editor`, and they are ultimately related.
 
@@ -94,7 +94,7 @@ defmodule MyApp do
 end
 ```
 
-#### Refactoring
+### Refactoring
 
 Instead of using multiple options, the code above could be refactored to receive a single option, called `:role`, that can be either `:admin`, `:editor`, or `:default`:
 
@@ -128,11 +128,11 @@ Remember booleans are internally represented as atoms. Therefore there is no per
 
 ## Exceptions for control-flow
 
-#### Problem
+### Problem
 
 This anti-pattern refers to code that uses `Exception`s for control flow. Exception handling itself does not represent an anti-pattern, but developers must prefer to use `case` and pattern matching to change the flow of their code, instead of `try/rescue`. In turn, library authors should provide developers with APIs to handle errors without relying on exception handling. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
 
-#### Example
+### Example
 
 An example of this anti-pattern, as shown below, is using `try/rescue` to deal with file operations:
 
@@ -157,7 +157,7 @@ could not read file "invalid_file": no such file or directory
 :ok
 ```
 
-#### Refactoring
+### Refactoring
 
 To refactor this anti-pattern, as shown next, use `File.read/1`, which returns tuples instead of raising when a file cannot be read:
 
@@ -204,11 +204,11 @@ This anti-pattern was formerly known as [Using exceptions for control-flow](http
 
 ## Primitive obsession
 
-#### Problem
+### Problem
 
 This anti-pattern happens when Elixir basic types (for example, *integer*, *float*, and *string*) are excessively used to carry structured information, rather than creating specific composite data types (for example, *tuples*, *maps*, and *structs*) that can better represent a domain.
 
-#### Example
+### Example
 
 An example of this anti-pattern is the use of a single *string* to represent an `Address`. An `Address` is a more complex structure than a simple basic (aka, primitive) value.
 
@@ -228,7 +228,7 @@ While you may receive the `address` as a string from a database, web request, or
 
 Another example of this anti-pattern is using floating numbers to model money and currency, when [richer data structures should be preferred](https://hexdocs.pm/ex_money/).
 
-#### Refactoring
+### Refactoring
 
 Possible solutions to this anti-pattern is to use maps or structs to model our address. The example below creates an `Address` struct, better representing this domain through a composite type. Additionally, we introduce a `parse/1` function, that converts the string into an `Address`, which will simplify the logic of remaining functions. With this modification, we can extract each field of this composite type individually when needed.
 
@@ -256,11 +256,11 @@ end
 
 ## Unrelated multi-clause function
 
-#### Problem
+### Problem
 
 Using multi-clause functions is a powerful Elixir feature. However, some developers may abuse this feature to group *unrelated* functionality, which is an anti-pattern.
 
-#### Example
+### Example
 
 A frequent example of this usage of multi-clause functions occurs when developers mix unrelated business logic into the same function definition, in a way that the behavior of each clause becomes completely distinct from the others. Such functions often have too broad specifications, making it difficult for other developers to understand and maintain them.
 
@@ -285,7 +285,7 @@ end
 
 If updating an animal is completely different from updating a product and requires a different set of rules, it may be worth splitting those over different functions or even different modules.
 
-#### Refactoring
+### Refactoring
 
 As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in simple functions. Each function can have a specific name and `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can impact the function's callers, so be careful!
 
@@ -348,11 +348,11 @@ The difference here is that the `struct/2` function behaves precisely the same f
 
 ## Using application configuration for libraries
 
-#### Problem
+### Problem
 
 The [*application environment*](https://hexdocs.pm/elixir/Application.html#module-the-application-environment) can be used to parameterize global values that can be used in an Elixir system. This mechanism can be very useful and therefore is not considered an anti-pattern by itself. However, library authors should avoid using the application environment to configure their library. The reason is exactly that the application environment is a **global** state, so there can only be a single value for each key in the environment for an application. This makes it impossible for multiple applications depending on the same library to configure the same aspect of the library in different ways.
 
-#### Example
+### Example
 
 The `DashSplitter` module represents a library that configures the behavior of its functions through the global application environment. These configurations are concentrated in the *config/config.exs* file, shown below:
 
@@ -385,7 +385,7 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi")
 ["Lucas", "Francisco", "da-Matta-Vegi"]
 ```
 
-#### Refactoring
+### Refactoring
 
 To remove this anti-pattern, this type of configuration should be performed using a parameter passed to the function. The code shown below performs the refactoring of the `split/1` function by accepting [keyword lists](`Keyword`) as a new optional parameter. With this new parameter, it is possible to modify the default behavior of the function at the time of its call, allowing multiple different ways of using `split/2` within the same application:
 

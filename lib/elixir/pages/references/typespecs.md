@@ -6,7 +6,7 @@
 
 # Typespecs reference
 
-> #### Typespecs are not set-theoretic types {: .warning}
+> ### Typespecs are not set-theoretic types {: .warning}
 >
 > Elixir is in the process of implementing its
 > [own type system](./gradual-set-theoretic-types.md) based on set-theoretic types.
@@ -59,7 +59,7 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
 
 The notation to represent the union of types is the pipe `|`. For example, the typespec `type :: atom() | pid() | tuple()` creates a type `type` that can be either an `atom`, a `pid`, or a `tuple`. This is usually called a [sum type](https://en.wikipedia.org/wiki/Tagged_union) in other languages
 
-> #### Differences with set-theoretic types {: .warning}
+> ### Differences with set-theoretic types {: .warning}
 >
 > While they do share some similarities, the types below do not map one-to-one
 > to the new types from the set-theoretic type system.
