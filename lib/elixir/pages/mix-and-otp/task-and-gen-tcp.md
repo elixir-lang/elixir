@@ -228,7 +228,7 @@ Now we need to change `loop_acceptor/1` to use `Task.Supervisor` to serve each r
 ```elixir
 defp loop_acceptor(socket) do
   {:ok, client} = :gen_tcp.accept(socket)
-  {:ok, pid} = Task.Supervisor.start_child(KV.BucketSupervisor, fn -> serve(client) end)
+  {:ok, pid} = Task.Supervisor.start_child(KV.ServerSupervisor, fn -> serve(client) end)
   :ok = :gen_tcp.controlling_process(client, pid)
   loop_acceptor(socket)
 end
