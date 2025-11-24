@@ -1710,15 +1710,22 @@ defmodule Module.Types.DescrTest do
       assert map_get(map_with_list_domain, empty_list()) == {:ok, atom([:empty]) |> nil_or_type()}
 
       # non_empty_list() should also access the :list domain
-      assert map_get(map_with_list_domain, non_empty_list(integer())) == {:ok, atom([:empty]) |> nil_or_type()}
+      assert map_get(map_with_list_domain, non_empty_list(integer())) ==
+               {:ok, atom([:empty]) |> nil_or_type()}
 
       # list() should also access the :list domain
-      assert map_get(map_with_list_domain, list(integer())) == {:ok, atom([:empty]) |> nil_or_type()}
+      assert map_get(map_with_list_domain, list(integer())) ==
+               {:ok, atom([:empty]) |> nil_or_type()}
 
       # If I create a map and instantiate both empty_list() and non_empty_list(integer()), it should return the union of the two types
-      map = closed_map([{domain_key(:list), atom([:empty])}, {domain_key(:list), atom([:non_empty])}])
+      map =
+        closed_map([{domain_key(:list), atom([:empty])}, {domain_key(:list), atom([:non_empty])}])
+
       assert map_get(map, empty_list()) == {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
-      assert map_get(map, non_empty_list(integer())) == {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
+
+      assert map_get(map, non_empty_list(integer())) ==
+               {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
+
       assert map_get(map, list(integer())) == {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
     end
 
