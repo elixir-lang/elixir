@@ -28,20 +28,8 @@ defmodule Module.Types.Descr do
 
   defmacro bdd_leaf(arg1, arg2), do: {arg1, arg2}
 
-  @domain_key_types [
-    :binary,
-    :empty_list,
-    :integer,
-    :float,
-    :pid,
-    :port,
-    :reference,
-    :fun,
-    :atom,
-    :tuple,
-    :map,
-    :list
-  ]
+  @domain_key_types [:binary, :integer, :float, :pid, :port, :reference] ++
+                      [:fun, :atom, :tuple, :map, :list]
 
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
@@ -2274,17 +2262,28 @@ defmodule Module.Types.Descr do
     for {type_kind, type} <- key_descr, reduce: [] do
       acc ->
         cond do
-          type_kind == :atom and match?({:union, _}, type) -> acc
-          type_kind == :bitmap -> bitmap_to_domain_keys(type, acc)
-          not empty?(%{type_kind => type}) -> [type_kind | acc]
-          true -> acc
+          type_kind == :list and
+              match?(%{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0, key_descr) ->
+            acc
+
+          type_kind == :atom and match?({:union, _}, type) ->
+            acc
+
+          type_kind == :bitmap ->
+            bitmap_to_domain_keys(type, acc)
+
+          not empty?(%{type_kind => type}) ->
+            [type_kind | acc]
+
+          true ->
+            acc
         end
     end
   end
 
   defp bitmap_to_domain_keys(bitmap, acc) do
     acc = if (bitmap &&& @bit_binary) != 0, do: [:binary | acc], else: acc
-    acc = if (bitmap &&& @bit_empty_list) != 0, do: [:empty_list | acc], else: acc
+    acc = if (bitmap &&& @bit_empty_list) != 0, do: [:list | acc], else: acc
     acc = if (bitmap &&& @bit_integer) != 0, do: [:integer | acc], else: acc
     acc = if (bitmap &&& @bit_float) != 0, do: [:float | acc], else: acc
     acc = if (bitmap &&& @bit_pid) != 0, do: [:pid | acc], else: acc
