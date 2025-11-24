@@ -32,7 +32,6 @@ defmodule Module.Types.Descr do
 
   @domain_key_types [
     {:domain_key, :binary},
-    {:domain_key, :empty_list},
     {:domain_key, :integer},
     {:domain_key, :float},
     {:domain_key, :pid},
@@ -3031,7 +3030,7 @@ defmodule Module.Types.Descr do
   defp bitmap_to_domain_keys(bitmap) do
     [
       if((bitmap &&& @bit_binary) != 0, do: domain_key(:binary)),
-      if((bitmap &&& @bit_empty_list) != 0, do: domain_key(:empty_list)),
+      if((bitmap &&& @bit_empty_list) != 0, do: domain_key(:list)),
       if((bitmap &&& @bit_integer) != 0, do: domain_key(:integer)),
       if((bitmap &&& @bit_float) != 0, do: domain_key(:float)),
       if((bitmap &&& @bit_pid) != 0, do: domain_key(:pid)),
