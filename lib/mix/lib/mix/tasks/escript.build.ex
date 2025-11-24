@@ -271,7 +271,8 @@ defmodule Mix.Tasks.Escript.Build do
     []
   end
 
-  defp extra_apps_in_app_tree(app) when app in [:eex, :ex_unit, :iex, :logger, :mix] do
+  # We include hex in here as it is always an archive and it cannot be depended on
+  defp extra_apps_in_app_tree(app) when app in [:eex, :ex_unit, :iex, :logger, :mix, :hex] do
     [app]
   end
 
