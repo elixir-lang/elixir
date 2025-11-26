@@ -28,7 +28,7 @@ defmodule Record do
   ## Types
 
   Types can be defined for tuples with the `record/2` construct (which is only
-  available in typespecs), with the record name as argument and a keyword list
+  available in typespecs), with the record name as an atom and a keyword list
   of fields and their types as argument:
 
       defmodule MyModule do
