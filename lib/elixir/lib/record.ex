@@ -27,8 +27,9 @@ defmodule Record do
 
   ## Types
 
-  Types can be defined for tuples with the `record/2` macro (only available in
-  typespecs). This macro will expand to a tuple as seen in the example below:
+  Types can be defined for tuples with the `record/2` construct (which is only
+  available in typespecs), with the record name as argument and a keyword list
+  of fields and their types as argument:
 
       defmodule MyModule do
         require Record
