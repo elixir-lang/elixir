@@ -959,8 +959,9 @@ defmodule Macro do
   backwards compatibility purposes.
 
   In future releases, Elixir may introduce truly required struct
-  fields, and therefore only one of required or default will be
-  present. Your code should prepare for such scenario accordingly.
+  fields, the required field will be removed and default will be
+  present only if the field is optional. Your code should prepare
+  for such scenario accordingly.
   """
   @doc since: "1.18.0"
   @spec struct_info!(module(), Macro.Env.t()) ::
