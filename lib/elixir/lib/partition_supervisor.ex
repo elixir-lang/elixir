@@ -546,7 +546,7 @@ defmodule PartitionSupervisor do
   end
 
   @doc false
-  def unregister_name(_, _) do
+  def unregister_name(_) do
     raise "{:via, PartitionSupervisor, _} cannot be given on unregistration"
   end
 end
