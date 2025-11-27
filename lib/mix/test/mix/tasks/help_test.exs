@@ -217,8 +217,9 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help app:UNKNOWN", context do
     in_tmp(context.test, fn ->
-      Mix.Tasks.Help.run(["app:foobar"])
-      assert_received {:mix_shell, :error, ["Application foobar does not exist or is not loaded"]}
+      assert_raise Mix.Error, ~r/The application "foobar" could not be found/, fn ->
+        Mix.Tasks.Help.run(["app:foobar"])
+      end
     end)
   end
 
