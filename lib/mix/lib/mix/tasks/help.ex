@@ -125,7 +125,6 @@ defmodule Mix.Tasks.Help do
             Mix.Task.run("compile")
           end
       end
-      end
     end
 
     if modules = Application.spec(app, :modules) do
