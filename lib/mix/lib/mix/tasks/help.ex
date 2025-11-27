@@ -121,6 +121,7 @@ defmodule Mix.Tasks.Help do
         Mix.ensure_application!(app)
       rescue
         _ ->
+          # Otherwise, it may be a dep or the current project not yet compiled
           if Mix.Project.get() do
             Mix.Task.run("compile")
           end
