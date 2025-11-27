@@ -38,10 +38,10 @@ Operator                                       | Associativity
 
 Elixir also has two ternary operators:
 
-Operator
-------------------------------
-`first..last//step`                
-`%{map | key => value, ...}`
+Operator                                       | Associativity
+---------------------------------------------- | -------------
+`first..last//step`                            | Right
+`%{map | key => value, ...}`                   | None
 
 ## General operators
 
