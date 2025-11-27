@@ -128,25 +128,27 @@ defmodule Mix.Tasks.Help do
           if Mix.Project.get() do
             Mix.Task.run("compile")
           end
-
-          Mix.ensure_application!(app)
       end
     end
 
-    for module <- Application.spec(app, :modules),
-        not (module |> Atom.to_string() |> String.starts_with?("Elixir.Mix.Tasks.")),
-        {:docs_v1, _, _, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
-          [Code.fetch_docs(module)] do
-      leading = doc |> String.split(["\n\n", "\r\n\r\n"], parts: 2) |> hd()
-      "# #{inspect(module)}\n#{leading}\n"
-    end
-    |> case do
-      [] ->
-        Mix.shell().error("No modules with accessible documentation found for #{app}")
+    if modules = Application.spec(app, :modules) do
+      for module <- modules,
+          not (module |> Atom.to_string() |> String.starts_with?("Elixir.Mix.Tasks.")),
+          {:docs_v1, _, _, "text/markdown", %{"en" => <<doc::binary>>}, _, _} <-
+            [Code.fetch_docs(module)] do
+        leading = doc |> String.split(["\n\n", "\r\n\r\n"], parts: 2) |> hd()
+        "# #{inspect(module)}\n#{leading}\n"
+      end
+      |> case do
+        [] ->
+          Mix.shell().error("No modules with accessible documentation found for #{app}")
 
-      listing ->
-        docs = listing |> Enum.sort() |> Enum.join()
-        IO.ANSI.Docs.print(docs, "text/markdown", ansi_opts())
+        listing ->
+          docs = listing |> Enum.sort() |> Enum.join()
+          IO.ANSI.Docs.print(docs, "text/markdown", ansi_opts())
+      end
+    else
+      Mix.shell().error("Application #{app} does not exist or is not loaded")
     end
   end
 
