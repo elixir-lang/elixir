@@ -234,6 +234,34 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.4 (2025-11-27)
+
+### 1. Enhancements
+
+#### Mix
+
+  * [mix xref] Add `--min-cycle-label` to help projects adapt to the more precise `mix xref graph` reports in Elixir v1.19. In previous versions, Elixir would break a large compilation cycle into several smaller ones, and therefore developers would check for `--min-cycle-size` on CI. However, the issue is not the size of the cycle (it has no implication in the amount of compiled files), but how many compile-time dependencies (aka compile labels) in a cycle. The new option allows developers to filter on the label parameter
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [File] Ensure `File.cp_r/3` reports non-existing destination properly (instead of source)
+
+#### ExUnit
+
+  * [ExUnit] Fix formatter crash when diffing takes too long
+  * [ExUnit] Ensure parallel matches in `assert` propagate type information
+
+#### Logger
+
+  * [Logger] Fix regression where formatter would crash when given chardata (the crash would happen when logging non-ASCII characters)
+
+#### Mix
+
+  * [mix help] Ensure `app:APP` works when the project or its dependencies were not yet compiled
+  * [mix escript.build] Ensure the `hex` application can be included in escripts
+
 ## v1.19.3 (2025-11-13)
 
 ### 1. Enhancements
