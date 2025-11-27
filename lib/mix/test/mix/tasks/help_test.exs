@@ -222,6 +222,41 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  defmodule ExampleProject do
+    def project do
+      [
+        app: :sample,
+        version: "0.1.0"
+      ]
+    end
+  end
+
+  test "help app:APP for current project", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(ExampleProject)
+      File.mkdir_p!("lib")
+
+      File.write!("lib/example.ex", ~s'''
+      defmodule Example do
+        @moduledoc """
+        This is an example module.
+        """
+      end
+      ''')
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["app:sample"])
+        end)
+
+      assert output =~ """
+             # Example
+
+             This is an example module.
+             """
+    end)
+  end
+
   test "help Elixir MODULE", context do
     in_tmp(context.test, fn ->
       output =
