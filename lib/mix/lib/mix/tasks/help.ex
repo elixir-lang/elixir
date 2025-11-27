@@ -124,7 +124,12 @@ defmodule Mix.Tasks.Help do
       try do
         Mix.ensure_application!(app)
       rescue
-        _ -> :ok
+        _ ->
+          if Mix.Project.get() do
+            Mix.Task.run("compile")
+          end
+
+          Mix.ensure_application!(app)
       end
     end
 
