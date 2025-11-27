@@ -121,13 +121,8 @@ defmodule Mix.Tasks.Help do
 
     # If the application is not available, attempt to load it from Erlang/Elixir
     if is_nil(Application.spec(app, :vsn)) do
-      try do
-        Mix.ensure_application!(app)
-      rescue
-        _ ->
-          if Mix.Project.get() do
-            Mix.Task.run("compile")
-          end
+      if Mix.Project.get() do
+        Mix.Task.run("compile")
       end
     end
 
