@@ -222,18 +222,9 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
-  defmodule ExampleProject do
-    def project do
-      [
-        app: :sample,
-        version: "0.1.0"
-      ]
-    end
-  end
-
   test "help app:APP for current project", context do
     in_tmp(context.test, fn ->
-      Mix.Project.push(ExampleProject)
+      Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("lib")
 
       File.write!("lib/example.ex", ~s'''
@@ -255,6 +246,8 @@ defmodule Mix.Tasks.HelpTest do
              This is an example module.
              """
     end)
+  after
+    purge([Example])
   end
 
   test "help Elixir MODULE", context do
