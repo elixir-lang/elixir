@@ -402,30 +402,21 @@ defmodule Module do
 
   Accepts the function name (as an atom) of a function in the current module.
   The function must have an arity of 0 (no arguments). If the function does
-  not return `:ok`, the loading of the module will be aborted.
-  For example:
+  not return `:ok`, the loading of the module will be aborted. Its primary
+  use case is to load [NIFs](https://www.erlang.org/doc/man/erl_nif):
 
       defmodule MyModule do
-        @on_load :load_check
+        @on_load :load_external_code
 
-        def load_check do
-          if some_condition() do
-            :ok
-          else
-            :abort
-          end
-        end
-
-        def some_condition do
-          false
+        def load_external_code do
+          :erlang.load_nif(~c"path/to/extension.so_or_dll")
         end
       end
 
   The function given to `on_load` should avoid calling functions from
-  other modules. If you must call functions in other modules and those
-  modules are defined within the same project, the called modules must
-  have the `@compile {:autoload, true}` annotation, so they are loaded
-  upfront (and not from within the `@on_load` callback).
+  other modules. This is because, when running a `mix release`,
+  `on_load` runs extremely early, before any application starts running,
+  and therefore even systems like the `Logger` and `IO` are not yet available.
 
   ### `@vsn`
 
