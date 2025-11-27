@@ -41,7 +41,7 @@ Elixir also has two ternary operators:
 Operator                                       | Associativity
 ---------------------------------------------- | -------------
 `first..last//step`                            | Right
-`%{map | key => value, ...}`                   | None
+`%{map \| key => value, ...}`                  | None
 
 ## General operators
 
