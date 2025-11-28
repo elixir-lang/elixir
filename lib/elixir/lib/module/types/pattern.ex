@@ -292,7 +292,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_var([{:key, field} | rest], type, reachable_var?, info, context)
        when is_atom(field) do
-    case map_fetch(type, field) do
+    case map_fetch_key(type, field) do
       {_optional?, type} -> of_pattern_var(rest, type, reachable_var?, info, context)
       _reason -> :error
     end
