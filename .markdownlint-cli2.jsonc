@@ -30,8 +30,12 @@
       // Duplication is allowed for headings with different parents.
       "siblings_only": true
     },
-    // Some headers finish with ! because it refers to a function name
-    "MD026": false,
+    // Trailing punctuation in heading.
+    // Some headers finish with ! because it refers to a function name. Therefore we remove ! from
+    // the default values.
+    "MD026": {
+      "punctuation": ".,;:。，；：！"
+    },
     // Allow empty line between block quotes. Used by contiguous admonition blocks.
     "MD028": false,
     // Allowed HTML inline elements.
