@@ -36,6 +36,7 @@ defmodule Kernel.DialyzerTest do
       ArgumentError,
       Atom,
       Code,
+      EEx,
       Enum,
       Exception,
       ExUnit.AssertionError,

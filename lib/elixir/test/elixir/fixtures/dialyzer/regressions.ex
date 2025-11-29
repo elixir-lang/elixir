@@ -11,4 +11,8 @@ defmodule Dialyzer.Regressions do
       migrate: true
     )
   end
+
+  def eex_eval_opts do
+    EEx.eval_string("foo <%= bar %>", [bar: "baz"], trim: true)
+  end
 end
