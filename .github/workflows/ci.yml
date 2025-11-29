@@ -23,6 +23,8 @@ permissions:
 jobs:
   test_linux:
     name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
+    runs-on: ubuntu-24.04
+
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +46,7 @@ jobs:
             development: true
           - otp_version: maint
             development: true
-    runs-on: ubuntu-24.04
+
     # Earlier Erlang/OTP versions ignored compiler directives
     # when using warnings_as_errors. So we only set ERLC_OPTS
     # from Erlang/OTP 27+.
@@ -104,11 +106,16 @@ jobs:
           path: cover/*
 
   test_windows:
-    name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
+    name: Windows Server 2022, Erlang/OTP ${{ matrix.otp_version }}
+    runs-on: windows-2022
+
     strategy:
       matrix:
-        otp_version: ["26.2", "27.3", "28.1"]
-    runs-on: windows-2022
+        otp_version:
+          - "28.1"
+          - "27.3"
+          - "26.2"
+
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
