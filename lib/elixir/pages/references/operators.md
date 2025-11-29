@@ -21,6 +21,7 @@ Operator                                       | Associativity
 `*` `/`                                        | Left
 `+` `-`                                        | Left
 `++` `--` `+++` `---` `..` `<>`                | Right
+`//` (valid only inside `..//`)                | Right
 `in` `not in`                                  | Left
 `\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>`  | Left
 `<` `>` `<=` `>=`                              | Left
@@ -29,11 +30,18 @@ Operator                                       | Associativity
 `\|\|` `\|\|\|` `or`                           | Left
 `=`                                            | Right
 `&`, `...`                                     | Unary
-`=>` (valid only inside `%{}`)                 | Right
 `\|`                                           | Right
 `::`                                           | Right
 `when`                                         | Right
 `<-` `\\`                                      | Left
+`=>` (valid only inside `%{}`)                 | None
+
+Elixir also has two ternary operators:
+
+Operator                                       | Associativity
+---------------------------------------------- | -------------
+`first..last//step`                            | Right
+`%{map \| key => value, ...}`                  | None
 
 ## General operators
 
