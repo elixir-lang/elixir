@@ -22,6 +22,8 @@ on:
   pull_request:
     paths: *paths-filter
 
+  workflow_dispatch:
+
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
   ELIXIRC_OPTS: "--warnings-as-errors"
@@ -37,25 +39,35 @@ jobs:
 
     strategy:
       fail-fast: false
+
       matrix:
         include:
           # NOTE: When updating latest Erlang/OTP version, also update it in
           #       .github/workflows/documentation.yml
           - otp_version: "28.1"
+            erlc_opts: "warnings_as_errors"
             deterministic: true
+            skip_tests: true
+
           - otp_version: "28.1"
             erlc_opts: "warnings_as_errors"
             coverage: true
+            skip_tests: true
+
           - otp_version: "28.1"
-            otp_latest: true
             erlc_opts: "warnings_as_errors"
+
           - otp_version: "27.3"
             erlc_opts: "warnings_as_errors"
+
           - otp_version: "27.0"
             erlc_opts: "warnings_as_errors"
+
           - otp_version: "26.0"
+
           - otp_version: master
             development: true
+
           - otp_version: maint
             development: true
 
@@ -83,15 +95,18 @@ jobs:
         run: bin/elixir --version
 
       - name: Check format
+        if: ${{ !matrix.skip_tests }}
         run: |
           make test_formatted && \
             echo "All Elixir source code files are properly formatted."
 
       - name: Erlang test suite
+        if: ${{ !matrix.skip_tests }}
         run: make test_erlang
         continue-on-error: ${{ matrix.development }}
 
       - name: Elixir test suite
+        if: ${{ matrix.coverage || !matrix.skip_tests }}
         run: make test_elixir
         continue-on-error: ${{ matrix.development }}
         env:
