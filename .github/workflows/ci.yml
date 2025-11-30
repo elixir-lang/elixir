@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
+    name: Ubuntu 24.04, OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
     runs-on: ubuntu-24.04
 
     strategy:
@@ -106,7 +106,7 @@ jobs:
           path: cover/*
 
   test_windows:
-    name: Windows Server 2022, Erlang/OTP ${{ matrix.otp_version }}
+    name: Windows Server 2022, OTP ${{ matrix.otp_version }}
     runs-on: windows-2022
 
     strategy:
