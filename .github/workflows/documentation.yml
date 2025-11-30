@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+name: Elixir Documentation
+
+on:
+  push:
+    paths: &paths-filter
+      - .github/workflows/documentation.yml
+      - .github/workflows/build_docs/**/*
+      - CHANGELOG.md
+      - Makefile
+      - VERSION
+      - lib/**/*
+
+      # Ignore
+      - "!lib/*/test/**/*"
+
+  pull_request:
+    paths: *paths-filter
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_docs:
+    name: Build docs
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Build docs
+        uses: ./.github/workflows/build_docs
+        with:
+          otp_version: "28.1"
+          ex_doc_version: "main"
+          warnings_as_errors: true

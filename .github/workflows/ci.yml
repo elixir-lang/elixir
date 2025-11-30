@@ -29,6 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # NOTE: When updating latest Erlang/OTP version, also update it in
+          #       .github/workflows/documentation.yml
           - otp_version: "28.1"
             deterministic: true
           - otp_version: "28.1"
@@ -78,19 +80,11 @@ jobs:
         continue-on-error: ${{ matrix.development }}
         env:
           COVER: "${{ matrix.coverage }}"
+
       - name: "Calculate Coverage"
         run: make cover | tee "$GITHUB_STEP_SUMMARY"
         if: "${{ matrix.coverage }}"
-      - name: Build docs (ExDoc main)
-        if: ${{ matrix.otp_latest }}
-        run: |
-          cd ..
-          git clone https://github.com/elixir-lang/ex_doc.git --depth 1
-          cd ex_doc
-          ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
-          cd ../elixir/
-          git fetch --tags
-          DOCS_OPTIONS="--warnings-as-errors" make docs
+
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
         run: |

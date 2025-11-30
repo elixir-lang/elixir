@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+name: Build Elixir Documentation
+description: Builds ExDoc and generates Elixir documentation
+
+permissions:
+  contents: read
+
+inputs:
+  otp_version:
+    description: The exact OTP version (major.minor[.patch])
+    required: true
+
+  ex_doc_version:
+    description: ExDoc version (main or latest_stable)
+    required: true
+
+  warnings_as_errors:
+    description: Fails if ExDoc generates warnings
+    default: "false"
+
+  zip:
+    description: Whether to zip the docs
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
+      with:
+        otp-version: ${{ inputs.otp_version }}
+        version-type: strict
+
+    - name: Compile Elixir
+      shell: bash
+      run: |
+        make compile
+        echo "$PWD/bin" >> $GITHUB_PATH
+
+    - name: Build info
+      shell: bash
+      run: bin/elixir --version
+
+    - name: Get ExDoc reference
+      shell: bash
+      run: |
+        if [ "${{ inputs.ex_doc_version }}" = "main" ]; then
+          ref=main
+        else
+          ref=v$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+        fi
+
+        echo "EX_DOC_REF=$ref" >> $GITHUB_ENV
+
+    - name: Checkout ExDoc
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      with:
+        repository: elixir-lang/ex_doc
+        ref: ${{ env.EX_DOC_REF }}
+        path: ex_doc
+
+    - name: Compile ExDoc
+      shell: bash
+      env:
+        LANG: C.UTF-8
+      run: |
+        mv ex_doc ../ex_doc
+        cd ../ex_doc
+        ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile && \
+          echo "ExDoc successfully built."
+
+    - name: Set DOCS_OPTIONS
+      shell: bash
+      run: |
+        if [[ "${{ inputs.warnings_as_errors }}" == "true" ]]; then
+          echo "DOCS_OPTIONS=--warnings-as-errors" >> $GITHUB_ENV
+        else
+          echo "DOCS_OPTIONS=" >> $GITHUB_ENV
+        fi
+
+    - name: Build docs
+      shell: bash
+      env:
+        LANG: C.UTF-8
+      run: |
+        cd ../elixir
+        git fetch --tags
+        make ${{ inputs.zip == 'true' && 'Docs.zip' || 'docs' }} && \
+          if [[ "${{ inputs.warnings_as_errors }}" == "true" ]]; then
+            echo "Docs successfully generated without warnings."
+          else
+            echo "Docs successfully generated."
+          fi

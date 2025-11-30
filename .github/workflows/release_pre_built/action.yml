@@ -13,6 +13,8 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
     - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
       with:
         otp-version: ${{ inputs.otp_version }}
@@ -35,33 +37,11 @@ runs:
         export ELIXIR_ZIP=$PWD/elixir-otp-${{ inputs.otp }}.zip
         (cd lib/elixir/scripts/windows_installer && ./build.sh)
         mv lib/elixir/scripts/windows_installer/tmp/elixir-otp-${{ inputs.otp }}.exe .
-    - name: Get ExDoc ref
-      if: ${{ inputs.build_docs }}
-      shell: bash
-      run: |
-        if [ "${{ github.ref_name }}" = "main" ]; then
-          ref=main
-        else
-          ref=v$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
-        fi
-        echo "EX_DOC_REF=$ref" >> $GITHUB_ENV
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      if: ${{ inputs.build_docs }}
-      with:
-        repository: elixir-lang/ex_doc
-        ref: ${{ env.EX_DOC_REF }}
-        path: ex_doc
-    - name: Build ex_doc
-      if: ${{ inputs.build_docs }}
-      shell: bash
-      run: |
-        mv ex_doc ../ex_doc
-        cd ../ex_doc
-        ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
-        cd ../elixir
+
     - name: Build Docs
-      if: ${{ inputs.build_docs }}
-      shell: bash
-      run: |
-        git fetch --tags
-        make Docs.zip
+      if: inputs.build_docs
+      uses: ./.github/workflows/build_docs
+      with:
+        otp_version: ${{ inputs.otp_version }}
+        ex_doc_version: ${{ github.ref_name  == 'main' && 'main' || 'latest_stable' }}
+        zip: true
