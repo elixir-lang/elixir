@@ -7,6 +7,7 @@ name: Elixir Building and Testing
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
@@ -23,10 +24,13 @@ jobs:
 
     strategy:
       fail-fast: false
+
       matrix:
         include:
           - otp_version: "28.1"
+            erlc_opts: "warnings_as_errors"
             deterministic: true
+            skip_format_and_tests: true
 
           - otp_version: "28.1"
             erlc_opts: "warnings_as_errors"
@@ -73,15 +77,18 @@ jobs:
         run: bin/elixir --version
 
       - name: Check format
+        if: ${{ !matrix.skip_format_and_tests }}
         run: |
           make test_formatted && \
             echo "All Elixir source code files are properly formatted."
 
       - name: Erlang test suite
+        if: ${{ !matrix.skip_format_and_tests }}
         run: make test_erlang
         continue-on-error: ${{ matrix.development == true }}
 
       - name: Elixir test suite
+        if: ${{ !matrix.skip_format_and_tests || matrix.coverage }}
         run: make test_elixir
         continue-on-error: ${{ matrix.development == true }}
         env:
