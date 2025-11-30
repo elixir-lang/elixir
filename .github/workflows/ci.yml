@@ -6,11 +6,21 @@ name: Elixir Building and Testing
 
 on:
   push:
-    paths-ignore:
-      - "lib/**/*.md"
+    paths: &paths-filter
+      - .github/workflows/ci.yml
+      - lib/*/test/fixtures/**/**.md
+
+      # Ignore
+      - "!*.{md,yml,jsonc}"
+      - "!.git*"
+      - "!.github/workflows/**/*"
+      - "!.ort/**/*"
+      - "!lib/*/pages/**/*.md"
+      - "!LICENSES/*"
+      - "!man/*"
+
   pull_request:
-    paths-ignore:
-      - "lib/**/*.md"
+    paths: *paths-filter
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
