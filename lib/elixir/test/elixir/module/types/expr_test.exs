@@ -9,6 +9,7 @@ defmodule Module.Types.ExprTest do
 
   import TypeHelper
   import Module.Types.Descr
+  defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defmacro generated(x) do
     quote generated: true do
@@ -852,12 +853,12 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
-    test "creating closed maps" do
+    test "creating maps as records" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
     end
 
-    test "creating closed maps with dynamic keys" do
+    test "creating maps as records with dynamic keys" do
       assert typecheck!(
                (
                  foo = :foo
@@ -884,12 +885,59 @@ defmodule Module.Types.ExprTest do
              )
     end
 
-    test "creating open maps" do
-      assert typecheck!(%{123 => 456}) == dynamic(open_map())
-      # Since key cannot override :foo, we preserve it
-      assert typecheck!([key], %{key => 456, foo: :bar}) == dynamic(open_map(foo: atom([:bar])))
-      # Since key can override :foo, we do not preserve it
-      assert typecheck!([key], %{:foo => :bar, key => :baz}) == dynamic(open_map())
+    test "creating maps as dictionaries" do
+      assert typecheck!(%{123 => 456}) == closed_map([{domain_key(:integer), integer()}])
+
+      # Since key cannot override :foo based on position, we preserve it
+      assert typecheck!([key], %{key => 456, foo: :bar}) ==
+               dynamic(
+                 closed_map([
+                   {to_domain_keys(:term), integer()},
+                   {:foo, atom([:bar])}
+                 ])
+               )
+
+      # Since key can override :foo based on position, we union it
+      assert typecheck!([key], %{:foo => :bar, key => :baz}) ==
+               dynamic(
+                 closed_map([
+                   {to_domain_keys(:term), atom([:baz])},
+                   {:foo, atom([:bar, :baz])}
+                 ])
+               )
+
+      # Since key cannot override :foo based on domain, we preserve it
+      assert typecheck!(
+               [arg],
+               (
+                 key = String.to_integer(arg)
+                 %{:foo => :bar, key => :baz}
+               )
+             ) ==
+               closed_map([
+                 {domain_key(:integer), atom([:baz])},
+                 {:foo, atom([:bar])}
+               ])
+
+      # Multiple keys are fully overridden for simplicity
+      assert typecheck!(
+               [arg],
+               (
+                 foo_or_bar = if String.starts_with?(arg, "0"), do: :foo, else: :bar
+                 key = String.to_integer(arg)
+                 %{foo_or_bar => :old, key => :new}
+               )
+             ) ==
+               union(
+                 closed_map([
+                   {domain_key(:integer), atom([:new])},
+                   {:foo, atom([:old])}
+                 ]),
+                 closed_map([
+                   {domain_key(:integer), atom([:new])},
+                   {:bar, atom([:old])}
+                 ])
+               )
     end
 
     test "creating structs" do
@@ -910,7 +958,7 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "updating to closed maps" do
+    test "updating to maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: atom([:zero])))
 
@@ -1010,6 +1058,36 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-3
                  x = %{foo: :baz}
              """
+
+      # The goal of this assertion is to verify we assert keys,
+      # even if they may be overridden later.
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :value}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :foo in map update syntax:
+
+                 %{x | :foo => :baz, key => :bat}
+
+             but got type:
+
+                 %{key: :value}
+
+             where "key" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE-5
+                 key
+
+             where "x" was given the type:
+
+                 # type: %{key: :value}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :value}
+             """
     end
 
     test "updating structs" do
@@ -1093,61 +1171,78 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "updating to open maps" do
+    test "updating to maps as dictionaries" do
       assert typecheck!(
                [key],
                (
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == dynamic(open_map())
+             ) == closed_map(foo: atom([:bar, :baz]))
 
-      # Since key cannot override :foo, we preserve it
+      # Override based on position
       assert typecheck!(
                [key],
                (
-                 x = %{foo: :bar}
-                 %{x | key => :baz, foo: :bat}
+                 x = %{foo: :bar, baz: :bat}
+                 %{x | key => :old, foo: :new}
                )
-             ) == dynamic(open_map(foo: atom([:bat])))
+             ) == closed_map(foo: atom([:new]), baz: atom([:old, :bat]))
 
-      # Since key can override :foo, we do not preserve it
-      assert typecheck!(
-               [key],
-               (
-                 x = %{foo: :bar}
-                 %{x | :foo => :baz, key => :bat}
-               )
-             ) == dynamic(open_map())
-
-      # The goal of this assertion is to verify we assert keys,
-      # even if they may be overridden later.
       assert typeerror!(
                [key],
                (
-                 x = %{key: :value}
-                 %{x | :foo => :baz, key => :bat}
+                 x = %{String.to_integer(key) => :old}
+                 %{x | String.to_atom(key) => :new}
                )
              ) == ~l"""
-             expected a map with key :foo in map update syntax:
+             expected a map with key of type atom() in map update syntax:
 
-                 %{x | :foo => :baz, key => :bat}
+                 %{x | String.to_atom(key) => :new}
 
              but got type:
 
-                 %{key: :value}
+                 %{integer() => :old}
 
              where "key" was given the type:
 
-                 # type: dynamic()
-                 # from: types_test.ex:LINE-5
-                 key
+                 # type: binary()
+                 # from: types_test.ex:LINE-3
+                 String.to_integer(key)
 
              where "x" was given the type:
 
-                 # type: %{key: :value}
+                 # type: %{integer() => :old}
                  # from: types_test.ex:LINE-3
-                 x = %{key: :value}
+                 x = %{String.to_integer(key) => :old}
+             """
+
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :old}
+                 %{x | String.to_atom(key) => :new}
+               )
+             ) == ~l"""
+             expected a map with key of type atom() in map update syntax:
+
+                 %{x | String.to_atom(key) => :new}
+
+             but got type:
+
+                 %{key: :old}
+
+             where "key" was given the type:
+
+                 # type: binary()
+                 # from: types_test.ex:LINE-2
+                 String.to_atom(key)
+
+             where "x" was given the type:
+
+                 # type: %{key: :old}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :old}
              """
     end
 

@@ -48,6 +48,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/getting-started/erlang-libraries.md",
     "lib/elixir/pages/getting-started/debugging.md",
     "lib/elixir/pages/cheatsheets/enum-cheat.cheatmd",
+    "lib/elixir/pages/cheatsheets/types-cheat.cheatmd",
     "lib/elixir/pages/anti-patterns/what-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/code-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/design-anti-patterns.md",

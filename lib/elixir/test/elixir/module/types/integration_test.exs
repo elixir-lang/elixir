@@ -106,8 +106,8 @@ defmodule Module.Types.IntegrationTest do
             x
           end
 
-          def map_update_with_unknown_keys(x, y) do
-            infer(%{x | y => 123})
+          def map_update_with_unknown_keys(x, key) do
+            infer(%{x | key => 123})
             x
           end
 
@@ -147,13 +147,20 @@ defmodule Module.Types.IntegrationTest do
                  closed_map(
                    __struct__: atom([A]),
                    x: binary(),
-                   y: term(),
+                   y: atom([nil]),
                    z: term()
                  )
                )
 
       assert return.(:map_update_with_unknown_keys, 2) ==
-               dynamic(open_map())
+               dynamic(
+                 closed_map(
+                   __struct__: atom([A]),
+                   x: binary(),
+                   y: atom([nil]),
+                   z: term()
+                 )
+               )
     end
 
     test "writes exports with inferred function types" do

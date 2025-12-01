@@ -438,7 +438,7 @@ defmodule Module.Types.Apply do
         empty?(common) and not (number_type?(left) and number_type?(right)) ->
           {:error, :mismatched_comparison}
 
-        match?({false, _}, map_fetch(dynamic(common), :__struct__)) ->
+        match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
           {:error, :struct_comparison}
 
         true ->
