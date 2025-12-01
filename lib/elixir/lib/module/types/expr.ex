@@ -897,7 +897,7 @@ defmodule Module.Types.Expr do
       message:
         IO.iodata_to_binary([
           """
-          expected a map with key #{to_quoted_string(key_type)} in map update syntax:
+          expected a map with key of type #{to_quoted_string(key_type)} in map update syntax:
 
               #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
 

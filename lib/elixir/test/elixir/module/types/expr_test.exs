@@ -1058,6 +1058,36 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-3
                  x = %{foo: :baz}
              """
+
+      # The goal of this assertion is to verify we assert keys,
+      # even if they may be overridden later.
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :value}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :foo in map update syntax:
+
+                 %{x | :foo => :baz, key => :bat}
+
+             but got type:
+
+                 %{key: :value}
+
+             where "key" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE-5
+                 key
+
+             where "x" was given the type:
+
+                 # type: %{key: :value}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :value}
+             """
     end
 
     test "updating structs" do
@@ -1159,34 +1189,60 @@ defmodule Module.Types.ExprTest do
                )
              ) == closed_map(foo: atom([:new]), baz: atom([:old, :bat]))
 
-      # The goal of this assertion is to verify we assert keys,
-      # even if they may be overridden later.
       assert typeerror!(
                [key],
                (
-                 x = %{key: :value}
-                 %{x | :foo => :baz, key => :bat}
+                 x = %{String.to_integer(key) => :old}
+                 %{x | String.to_atom(key) => :new}
                )
              ) == ~l"""
-             expected a map with key :foo in map update syntax:
+             expected a map with key of type atom() in map update syntax:
 
-                 %{x | :foo => :baz, key => :bat}
+                 %{x | String.to_atom(key) => :new}
 
              but got type:
 
-                 %{key: :value}
+                 %{integer() => if_set(:old)}
 
              where "key" was given the type:
 
-                 # type: dynamic()
-                 # from: types_test.ex:LINE-5
-                 key
+                 # type: binary()
+                 # from: types_test.ex:LINE-3
+                 String.to_integer(key)
 
              where "x" was given the type:
 
-                 # type: %{key: :value}
+                 # type: %{integer() => if_set(:old)}
                  # from: types_test.ex:LINE-3
-                 x = %{key: :value}
+                 x = %{String.to_integer(key) => :old}
+             """
+
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :old}
+                 %{x | String.to_atom(key) => :new}
+               )
+             ) == ~l"""
+             expected a map with key of type atom() in map update syntax:
+
+                 %{x | String.to_atom(key) => :new}
+
+             but got type:
+
+                 %{key: :old}
+
+             where "key" was given the type:
+
+                 # type: binary()
+                 # from: types_test.ex:LINE-2
+                 String.to_atom(key)
+
+             where "x" was given the type:
+
+                 # type: %{key: :old}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :old}
              """
     end
 

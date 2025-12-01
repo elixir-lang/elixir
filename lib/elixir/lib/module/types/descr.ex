@@ -2987,7 +2987,7 @@ defmodule Module.Types.Descr do
 
         map_update_static_keys(dnf, required_keys, optional_keys, type, missing_fun, acc)
 
-      {_, [missing_domain | _], _} ->
+      {_, _, [missing_domain | _], _} ->
         {:baddomain, domain_key_to_descr(missing_domain)}
     end
   end
