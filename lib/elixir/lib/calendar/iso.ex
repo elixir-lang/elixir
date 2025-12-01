@@ -897,8 +897,14 @@ defmodule Calendar.ISO do
   @doc false
   def date_from_iso_days(days) do
     {year, day_of_year} = days_to_year(days)
-    extra_day = if leap_year?(year), do: 1, else: 0
-    {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
+
+    {month, day_in_month} =
+      if leap_year?(year) do
+        year_day_to_year_date_leap(day_of_year)
+      else
+        year_day_to_year_date(day_of_year)
+      end
+
     {year, month, day_in_month + 1}
   end
 
@@ -912,6 +918,9 @@ defmodule Calendar.ISO do
       {div - 1, rem + int2}
     end
   end
+
+  defp floor_div_positive_divisor(int1, int2) when int1 >= 0, do: div(int1, int2)
+  defp floor_div_positive_divisor(int1, int2), do: -div(-int1 - 1, int2) - 1
 
   @doc """
   Returns how many days there are in the given year-month.
@@ -1848,7 +1857,7 @@ defmodule Calendar.ISO do
     months_in_year = 12
     total_months = year * months_in_year + month + months - 1
 
-    new_year = Integer.floor_div(total_months, months_in_year)
+    new_year = floor_div_positive_divisor(total_months, months_in_year)
 
     new_month =
       case rem(total_months, months_in_year) + 1 do
@@ -1971,7 +1980,7 @@ defmodule Calendar.ISO do
 
     if total in @unix_range_microseconds do
       microseconds = Integer.mod(total, @microseconds_per_second)
-      seconds = @unix_epoch + Integer.floor_div(total, @microseconds_per_second)
+      seconds = @unix_epoch + floor_div_positive_divisor(total, @microseconds_per_second)
       precision = precision_for_unit(unit)
       {date, time} = iso_seconds_to_datetime(seconds)
       {:ok, date, time, {microseconds, precision}}
@@ -2093,22 +2102,6 @@ defmodule Calendar.ISO do
     end
   end
 
-  # Note that this function does not add the extra leap day for a leap year.
-  # If you want to add that leap day when appropriate,
-  # add the result of leap_day_offset/2 to the result of days_before_month/1.
-  defp days_before_month(1), do: 0
-  defp days_before_month(2), do: 31
-  defp days_before_month(3), do: 59
-  defp days_before_month(4), do: 90
-  defp days_before_month(5), do: 120
-  defp days_before_month(6), do: 151
-  defp days_before_month(7), do: 181
-  defp days_before_month(8), do: 212
-  defp days_before_month(9), do: 243
-  defp days_before_month(10), do: 273
-  defp days_before_month(11), do: 304
-  defp days_before_month(12), do: 334
-
   defp leap_day_offset(_year, month) when month < 3, do: 0
 
   defp leap_day_offset(year, _month) do
@@ -2116,41 +2109,64 @@ defmodule Calendar.ISO do
   end
 
   defp days_to_year(days) when days < 0 do
-    year_estimate = -div(-days, @days_per_nonleap_year) - 1
+    y_min = floor_div_positive_divisor(days, @days_per_nonleap_year)
+    y_max = floor_div_positive_divisor(days, @days_per_leap_year)
 
-    {year, days_before_year} =
-      days_to_year(year_estimate, days, days_to_end_of_epoch(year_estimate))
+    {year, day_start} =
+      days_to_year_interpolated(
+        y_min,
+        y_max,
+        days,
+        days_in_previous_years(y_min),
+        days_in_previous_years(y_max)
+      )
 
-    leap_year_pad = if leap_year?(year), do: 1, else: 0
-    {year, leap_year_pad + @days_per_nonleap_year + days - days_before_year}
+    {year, days - day_start}
   end
 
   defp days_to_year(days) do
-    year_estimate = div(days, @days_per_nonleap_year)
+    y_min = floor_div_positive_divisor(days, @days_per_leap_year)
+    y_max = floor_div_positive_divisor(days, @days_per_nonleap_year)
 
-    {year, days_before_year} =
-      days_to_year(year_estimate, days, days_in_previous_years(year_estimate))
+    {year, day_start} =
+      days_to_year_interpolated(
+        y_min,
+        y_max,
+        days,
+        days_in_previous_years(y_min),
+        days_in_previous_years(y_max)
+      )
 
-    {year, days - days_before_year}
+    {year, days - day_start}
   end
 
-  defp days_to_year(year, days1, days2) when year < 0 and days1 >= days2 do
-    days_to_year(year + 1, days1, days_to_end_of_epoch(year + 1))
+  defp days_to_year_interpolated(min, max, _days, d_min, _d_max) when min >= max do
+    {min, d_min}
   end
 
-  defp days_to_year(year, days1, days2) when year >= 0 and days1 < days2 do
-    days_to_year(year - 1, days1, days_in_previous_years(year - 1))
-  end
+  defp days_to_year_interpolated(min, max, days, d_min, d_max) do
+    diff = max - min
+    d_diff = d_max - d_min
 
-  defp days_to_year(year, _days1, days2) do
-    {year, days2}
-  end
+    numerator = diff * (days - d_min)
+    offset = floor_div_positive_divisor(numerator, d_diff)
 
-  defp days_to_end_of_epoch(year) when year < 0 do
-    previous_year = year + 1
+    mid = min + max(0, min(offset, diff))
+    d_mid = days_in_previous_years(mid)
+    mid_length = if leap_year?(mid), do: @days_per_leap_year, else: @days_per_nonleap_year
 
-    div(previous_year, 4) - div(previous_year, 100) + div(previous_year, 400) +
-      previous_year * @days_per_nonleap_year
+    cond do
+      days < d_mid ->
+        new_max = mid - 1
+        days_to_year_interpolated(min, new_max, days, d_min, days_in_previous_years(new_max))
+
+      days - d_mid >= mid_length ->
+        new_min = mid + 1
+        days_to_year_interpolated(new_min, max, days, days_in_previous_years(new_min), d_max)
+
+      true ->
+        {mid, d_mid}
+    end
   end
 
   defp days_in_previous_years(0), do: 0
@@ -2174,54 +2190,48 @@ defmodule Calendar.ISO do
       @days_per_leap_year
   end
 
+  # Note that this function does not add the extra leap day for a leap year.
+  # If you want to add that leap day when appropriate,
+  # add the result of leap_day_offset/2 to the result of days_before_month/1.
+  defp days_before_month(1), do: 0
+  defp days_before_month(2), do: 31
+  defp days_before_month(3), do: 59
+  defp days_before_month(4), do: 90
+  defp days_before_month(5), do: 120
+  defp days_before_month(6), do: 151
+  defp days_before_month(7), do: 181
+  defp days_before_month(8), do: 212
+  defp days_before_month(9), do: 243
+  defp days_before_month(10), do: 273
+  defp days_before_month(11), do: 304
+  defp days_before_month(12), do: 334
+
   # Note that 0 is the first day of the month.
-  defp year_day_to_year_date(_extra_day, day_of_year) when day_of_year < 31 do
-    {1, day_of_year}
-  end
+  defp year_day_to_year_date(day_of_year) when day_of_year < 31, do: {1, day_of_year}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 59, do: {2, day_of_year - 31}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 90, do: {3, day_of_year - 59}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 120, do: {4, day_of_year - 90}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 151, do: {5, day_of_year - 120}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 181, do: {6, day_of_year - 151}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 212, do: {7, day_of_year - 181}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 243, do: {8, day_of_year - 212}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 273, do: {9, day_of_year - 243}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 304, do: {10, day_of_year - 273}
+  defp year_day_to_year_date(day_of_year) when day_of_year < 334, do: {11, day_of_year - 304}
+  defp year_day_to_year_date(day_of_year), do: {12, day_of_year - 334}
 
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 59 + extra_day do
-    {2, day_of_year - 31}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 90 + extra_day do
-    {3, day_of_year - (59 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 120 + extra_day do
-    {4, day_of_year - (90 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 151 + extra_day do
-    {5, day_of_year - (120 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 181 + extra_day do
-    {6, day_of_year - (151 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 212 + extra_day do
-    {7, day_of_year - (181 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 243 + extra_day do
-    {8, day_of_year - (212 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 273 + extra_day do
-    {9, day_of_year - (243 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 304 + extra_day do
-    {10, day_of_year - (273 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < 334 + extra_day do
-    {11, day_of_year - (304 + extra_day)}
-  end
-
-  defp year_day_to_year_date(extra_day, day_of_year) do
-    {12, day_of_year - (334 + extra_day)}
-  end
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 31, do: {1, day_of_year}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 60, do: {2, day_of_year - 31}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 91, do: {3, day_of_year - 60}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 121, do: {4, day_of_year - 91}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 152, do: {5, day_of_year - 121}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 182, do: {6, day_of_year - 152}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 213, do: {7, day_of_year - 182}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 244, do: {8, day_of_year - 213}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 274, do: {9, day_of_year - 244}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 305, do: {10, day_of_year - 274}
+  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 335, do: {11, day_of_year - 305}
+  defp year_day_to_year_date_leap(day_of_year), do: {12, day_of_year - 335}
 
   defp iso_seconds_to_datetime(seconds) do
     {days, rest_seconds} = div_rem(seconds, @seconds_per_day)
