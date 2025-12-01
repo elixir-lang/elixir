@@ -919,6 +919,9 @@ defmodule Calendar.ISO do
     end
   end
 
+  defp floor_div_positive_divisor(int1, int2) when int1 >= 0, do: div(int1, int2)
+  defp floor_div_positive_divisor(int1, int2), do: -div(-int1 - 1, int2) - 1
+
   @doc """
   Returns how many days there are in the given year-month.
 
@@ -1854,7 +1857,7 @@ defmodule Calendar.ISO do
     months_in_year = 12
     total_months = year * months_in_year + month + months - 1
 
-    new_year = Integer.floor_div(total_months, months_in_year)
+    new_year = floor_div_positive_divisor(total_months, months_in_year)
 
     new_month =
       case rem(total_months, months_in_year) + 1 do
@@ -1977,7 +1980,7 @@ defmodule Calendar.ISO do
 
     if total in @unix_range_microseconds do
       microseconds = Integer.mod(total, @microseconds_per_second)
-      seconds = @unix_epoch + Integer.floor_div(total, @microseconds_per_second)
+      seconds = @unix_epoch + floor_div_positive_divisor(total, @microseconds_per_second)
       precision = precision_for_unit(unit)
       {date, time} = iso_seconds_to_datetime(seconds)
       {:ok, date, time, {microseconds, precision}}
@@ -2106,9 +2109,8 @@ defmodule Calendar.ISO do
   end
 
   defp days_to_year(days) when days < 0 do
-    # floor_div(days, n) = -div(-days - 1, n) - 1 for negative days
-    y_min = -div(-days - 1, @days_per_nonleap_year) - 1
-    y_max = -div(-days - 1, @days_per_leap_year) - 1
+    y_min = floor_div_positive_divisor(days, @days_per_nonleap_year)
+    y_max = floor_div_positive_divisor(days, @days_per_leap_year)
 
     {year, day_start} =
       days_to_year_interpolated(
@@ -2123,8 +2125,8 @@ defmodule Calendar.ISO do
   end
 
   defp days_to_year(days) do
-    y_max = div(days, @days_per_nonleap_year)
-    y_min = div(days, @days_per_leap_year)
+    y_min = floor_div_positive_divisor(days, @days_per_leap_year)
+    y_max = floor_div_positive_divisor(days, @days_per_nonleap_year)
 
     {year, day_start} =
       days_to_year_interpolated(
@@ -2147,13 +2149,7 @@ defmodule Calendar.ISO do
     d_diff = d_max - d_min
 
     numerator = diff * (days - d_min)
-
-    offset =
-      if numerator >= 0 do
-        div(numerator, d_diff)
-      else
-        -div(-numerator - 1, d_diff) - 1
-      end
+    offset = floor_div_positive_divisor(numerator, d_diff)
 
     mid = min + max(0, min(offset, diff))
     d_mid = days_in_previous_years(mid)
