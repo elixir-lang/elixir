@@ -27,21 +27,20 @@ defmodule Module.Types.Descr do
   @bit_number @bit_integer ||| @bit_float
 
   defmacro bdd_leaf(arg1, arg2), do: {arg1, arg2}
-  defmacro domain_key(key), do: {:domain_key, key}
 
   @domain_key_types [
-    {:domain_key, :binary},
-    {:domain_key, :empty_list},
-    {:domain_key, :integer},
-    {:domain_key, :float},
-    {:domain_key, :pid},
-    {:domain_key, :port},
-    {:domain_key, :reference},
-    {:domain_key, :fun},
-    {:domain_key, :atom},
-    {:domain_key, :tuple},
-    {:domain_key, :map},
-    {:domain_key, :list}
+    :binary,
+    :empty_list,
+    :integer,
+    :float,
+    :pid,
+    :port,
+    :reference,
+    :fun,
+    :atom,
+    :tuple,
+    :map,
+    :list
   ]
 
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
@@ -2294,35 +2293,35 @@ defmodule Module.Types.Descr do
         cond do
           type_kind == :atom and match?({:union, _}, type) -> acc
           type_kind == :bitmap -> bitmap_to_domain_keys(type, acc)
-          not empty?(%{type_kind => type}) -> [domain_key(type_kind) | acc]
+          not empty?(%{type_kind => type}) -> [type_kind | acc]
           true -> acc
         end
     end
   end
 
   defp bitmap_to_domain_keys(bitmap, acc) do
-    acc = if (bitmap &&& @bit_binary) != 0, do: [domain_key(:binary) | acc], else: acc
-    acc = if (bitmap &&& @bit_empty_list) != 0, do: [domain_key(:empty_list) | acc], else: acc
-    acc = if (bitmap &&& @bit_integer) != 0, do: [domain_key(:integer) | acc], else: acc
-    acc = if (bitmap &&& @bit_float) != 0, do: [domain_key(:float) | acc], else: acc
-    acc = if (bitmap &&& @bit_pid) != 0, do: [domain_key(:pid) | acc], else: acc
-    acc = if (bitmap &&& @bit_port) != 0, do: [domain_key(:port) | acc], else: acc
-    acc = if (bitmap &&& @bit_reference) != 0, do: [domain_key(:reference) | acc], else: acc
+    acc = if (bitmap &&& @bit_binary) != 0, do: [:binary | acc], else: acc
+    acc = if (bitmap &&& @bit_empty_list) != 0, do: [:empty_list | acc], else: acc
+    acc = if (bitmap &&& @bit_integer) != 0, do: [:integer | acc], else: acc
+    acc = if (bitmap &&& @bit_float) != 0, do: [:float | acc], else: acc
+    acc = if (bitmap &&& @bit_pid) != 0, do: [:pid | acc], else: acc
+    acc = if (bitmap &&& @bit_port) != 0, do: [:port | acc], else: acc
+    acc = if (bitmap &&& @bit_reference) != 0, do: [:reference | acc], else: acc
     acc
   end
 
-  defp domain_key_to_descr(domain_key(:atom)), do: atom()
-  defp domain_key_to_descr(domain_key(:binary)), do: binary()
-  defp domain_key_to_descr(domain_key(:empty_list)), do: empty_list()
-  defp domain_key_to_descr(domain_key(:integer)), do: integer()
-  defp domain_key_to_descr(domain_key(:float)), do: float()
-  defp domain_key_to_descr(domain_key(:pid)), do: pid()
-  defp domain_key_to_descr(domain_key(:port)), do: port()
-  defp domain_key_to_descr(domain_key(:reference)), do: reference()
-  defp domain_key_to_descr(domain_key(:fun)), do: fun()
-  defp domain_key_to_descr(domain_key(:tuple)), do: tuple()
-  defp domain_key_to_descr(domain_key(:map)), do: open_map()
-  defp domain_key_to_descr(domain_key(:list)), do: non_empty_list(term(), term())
+  defp domain_key_to_descr(:atom), do: atom()
+  defp domain_key_to_descr(:binary), do: binary()
+  defp domain_key_to_descr(:empty_list), do: empty_list()
+  defp domain_key_to_descr(:integer), do: integer()
+  defp domain_key_to_descr(:float), do: float()
+  defp domain_key_to_descr(:pid), do: pid()
+  defp domain_key_to_descr(:port), do: port()
+  defp domain_key_to_descr(:reference), do: reference()
+  defp domain_key_to_descr(:fun), do: fun()
+  defp domain_key_to_descr(:tuple), do: tuple()
+  defp domain_key_to_descr(:map), do: open_map()
+  defp domain_key_to_descr(:list), do: non_empty_list(term(), term())
 
   defp map_descr(tag, pairs, default, force_domains?) do
     {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
@@ -2347,15 +2346,10 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # TODO: Unwrap domain keys when storing them, use a list wrapping instead
   defp map_put_domain(domain, domain_keys, value) when is_list(domain_keys) do
-    Enum.reduce(domain_keys, domain, fn key, acc ->
+    Enum.reduce(domain_keys, domain, fn key, acc when is_atom(key) ->
       Map.update(acc, key, if_set(value), &union(&1, value))
     end)
-  end
-
-  defp map_put_domain(domain, domain_key(_) = domain_key, value) do
-    Map.update(domain, domain_key, if_set(value), &union(&1, value))
   end
 
   defp map_descr_pairs([{key, :term} | rest], fields, domain, dynamic?) do
@@ -2388,7 +2382,7 @@ defmodule Module.Types.Descr do
   # Gets the default type associated to atom keys in a map.
   defp map_key_tag_to_type(:open), do: term_or_optional()
   defp map_key_tag_to_type(:closed), do: not_set()
-  defp map_key_tag_to_type(domains = %{}), do: Map.get(domains, domain_key(:atom), not_set())
+  defp map_key_tag_to_type(domains = %{}), do: Map.get(domains, :atom, not_set())
 
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
@@ -2619,7 +2613,7 @@ defmodule Module.Types.Descr do
 
   defp map_domain_intersection(domains1 = %{}, domains2 = %{}) do
     new_domains =
-      for {domain_key(_) = domain_key, type1} <- domains1, reduce: %{} do
+      for {domain_key, type1} <- domains1, reduce: %{} do
         acc_domains ->
           case domains2 do
             %{^domain_key => type2} ->
@@ -3077,7 +3071,7 @@ defmodule Module.Types.Descr do
         not empty_or_optional?(value) ->
           {true, [domain_key | valid], invalid, union(acc, value)}
 
-        domain_key == domain_key(:atom) and any_atom_key.() ->
+        domain_key == :atom and any_atom_key.() ->
           {true, valid, [domain_key | invalid], acc}
 
         true ->
@@ -3250,7 +3244,7 @@ defmodule Module.Types.Descr do
   end
 
   # Take a map bdd and return the union of types for the given key domain.
-  defp map_get_domain(dnf, domain_key(_) = domain_key, acc) do
+  defp map_get_domain(dnf, domain_key, acc) when is_atom(domain_key) do
     Enum.reduce(dnf, acc, fn
       {:open, _fields, []}, acc ->
         union(term_or_optional(), acc)
@@ -3446,17 +3440,17 @@ defmodule Module.Types.Descr do
   # An open map is a subtype iff the negative domains are all present as term_or_optional()
   defp map_check_domain_keys(:open, neg_domains) do
     map_size(neg_domains) == length(@domain_key_types) and
-      Enum.all?(neg_domains, fn {domain_key(_), type} -> subtype?(term_or_optional(), type) end)
+      Enum.all?(neg_domains, fn {_domain_key, type} -> subtype?(term_or_optional(), type) end)
   end
 
   # A positive domains is smaller than a closed map iff all its keys are empty or optional
   defp map_check_domain_keys(pos_domains, :closed) do
-    Enum.all?(pos_domains, fn {domain_key(_), type} -> empty_or_optional?(type) end)
+    Enum.all?(pos_domains, fn {_domain_key, type} -> empty_or_optional?(type) end)
   end
 
   # Component-wise comparison of domains
   defp map_check_domain_keys(pos_domains, neg_domains) do
-    Enum.all?(pos_domains, fn {domain_key(_) = domain_key, type} ->
+    Enum.all?(pos_domains, fn {domain_key, type} ->
       subtype?(type, Map.get(neg_domains, domain_key, not_set()))
     end)
   end
@@ -3635,8 +3629,8 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({domains = %{}, fields}, opts) do
     domain_fields =
-      for {domain_key(domain_type), value_type} <- domains do
-        {{domain_type, [], []}, map_value_to_quoted(value_type, opts)}
+      for {domain_key, value_type} <- domains do
+        {{domain_key, [], []}, map_value_to_quoted(value_type, opts)}
       end
 
     regular_fields_quoted = map_fields_to_quoted(:closed, Enum.sort(fields), opts)

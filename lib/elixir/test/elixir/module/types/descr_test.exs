@@ -15,6 +15,7 @@ defmodule Module.Types.DescrTest do
   use ExUnit.Case, async: true
 
   import Module.Types.Descr, except: [fun: 1]
+  defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defp number(), do: union(integer(), float())
   defp empty_tuple(), do: tuple([])

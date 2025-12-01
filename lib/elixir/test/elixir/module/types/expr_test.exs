@@ -9,6 +9,7 @@ defmodule Module.Types.ExprTest do
 
   import TypeHelper
   import Module.Types.Descr
+  defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defmacro generated(x) do
     quote generated: true do
@@ -885,11 +886,24 @@ defmodule Module.Types.ExprTest do
     end
 
     test "creating open maps" do
-      assert typecheck!(%{123 => 456}) == dynamic(open_map())
+      assert typecheck!(%{123 => 456}) == closed_map([{domain_key(:integer), integer()}])
+
       # Since key cannot override :foo, we preserve it
-      assert typecheck!([key], %{key => 456, foo: :bar}) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([key], %{key => 456, foo: :bar}) ==
+               dynamic(
+                 closed_map([
+                   {to_domain_keys(:term), integer()},
+                   {:foo, atom([:bar])}
+                 ])
+               )
+
       # Since key can override :foo, we do not preserve it
-      assert typecheck!([key], %{:foo => :bar, key => :baz}) == dynamic(open_map())
+      assert typecheck!([key], %{:foo => :bar, key => :baz}) ==
+               dynamic(
+                 closed_map([
+                   {to_domain_keys(:term), atom([:baz])}
+                 ])
+               )
     end
 
     test "creating structs" do
