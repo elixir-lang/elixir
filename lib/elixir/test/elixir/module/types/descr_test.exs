@@ -1750,77 +1750,6 @@ defmodule Module.Types.DescrTest do
       assert map_get(map, list(integer())) == {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
     end
 
-    test "map_update" do
-      assert map_update(open_map(key: atom([:value])), atom([:key]), atom([:new_value])) ==
-               {:ok, open_map(key: atom([:new_value]))}
-
-      assert map_update(dynamic(open_map(key: atom([:value]))), atom([:key]), atom([:new_value])) ==
-               {:ok, dynamic(open_map(key: atom([:new_value])))}
-
-      assert map_update(closed_map(key: atom([:value])), dynamic(), atom([:new_value])) ==
-               {:ok, closed_map(key: atom([:value, :new_value]))}
-
-      assert map_update(dynamic(closed_map(key: atom([:value]))), dynamic(), atom([:new_value])) ==
-               {:ok, dynamic(closed_map(key: atom([:value, :new_value])))}
-    end
-
-    test "map_take_key" do
-      assert map_take_key(term(), :a) == :badmap
-      assert map_take_key(integer(), :a) == :badmap
-      assert map_take_key(union(open_map(), integer()), :a) == :badmap
-
-      {took, rest} = map_take_key(closed_map(a: integer(), b: atom()), :a)
-      assert equal?(took, integer()) and equal?(rest, closed_map(b: atom()))
-
-      # Deleting a non-existent key
-      assert map_take_key(empty_map(), :a) == :badkey
-      assert map_take_key(closed_map(a: integer(), b: atom()), :c) == :badkey
-      assert map_take_key(closed_map(a: if_set(integer()), b: atom()), :a) == :badkey
-
-      # Deleting from a dynamic map
-      assert map_take_key(dynamic(), :a) == {dynamic(), dynamic(open_map(a: not_set()))}
-
-      # Deleting from an open map
-      {value, type} = map_take_key(open_map(a: integer(), b: atom()), :a)
-      assert value == integer()
-      assert equal?(type, open_map(a: not_set(), b: atom()))
-
-      # Deleting from a union of maps
-      union = union(closed_map(a: integer()), closed_map(b: atom()))
-      assert map_take_key(union, :a) == :badkey
-      {value, type} = map_take_key(dynamic(union), :a)
-      assert value == dynamic(integer())
-      assert equal?(type, dynamic(union(empty_map(), closed_map(b: atom()))))
-
-      # Deleting from a gradual map
-      {value, type} = map_take_key(union(dynamic(), closed_map(a: integer())), :a)
-      assert value == union(dynamic(), integer())
-      assert equal?(type, union(dynamic(open_map(a: not_set())), empty_map()))
-
-      {value, type} = map_take_key(dynamic(open_map(a: not_set())), :b)
-      assert equal?(value, dynamic())
-      assert equal?(type, dynamic(open_map(a: not_set(), b: not_set())))
-
-      # Deleting from an intersection of maps
-      {value, type} = map_take_key(intersection(open_map(a: integer()), open_map(b: atom())), :a)
-      assert value == integer()
-      assert equal?(type, open_map(a: not_set(), b: atom()))
-
-      # Deleting from a difference of maps
-      {value, type} =
-        map_take_key(
-          difference(closed_map(a: integer(), b: atom()), closed_map(a: integer())),
-          :b
-        )
-
-      assert value == atom()
-      assert equal?(type, closed_map(a: integer()))
-
-      {value, type} = map_take_key(difference(open_map(), open_map(a: not_set())), :a)
-      assert equal?(value, term())
-      assert equal?(type, open_map(a: not_set()))
-    end
-
     test "map_put_key" do
       assert map_put_key(term(), :a, integer()) == :badmap
       assert map_put_key(integer(), :a, integer()) == :badmap
@@ -1888,6 +1817,167 @@ defmodule Module.Types.DescrTest do
       {:ok, map} = map_put_key(union(dynamic(), empty_map()), :a, atom())
       {false, type} = map_fetch_key(map, :a)
       assert equal?(type, atom())
+    end
+  end
+
+  describe "map_update" do
+    test "with static atom keys" do
+      assert map_update(open_map(key: binary()), atom([:key]), integer()) ==
+               {:ok, open_map(key: integer())}
+
+      assert map_update(dynamic(open_map(key: binary())), atom([:key]), integer()) ==
+               {:ok, dynamic(open_map(key: integer()))}
+
+      # Optional fail for static maps
+      assert map_update(open_map(key: if_set(atom([:value]))), atom([:key]), integer()) ==
+               {:badkey, :key}
+
+      # But optional does not fail for dynamic ones
+      assert map_update(dynamic(open_map(key: if_set(atom([:value])))), atom([:key]), integer()) ==
+               {:ok, dynamic(open_map(key: integer()))}
+
+      assert map_update(dynamic(), atom([:key]), integer()) ==
+               {:ok, dynamic(open_map(key: integer()))}
+
+      # Empty value fails for static maps
+      assert map_update(closed_map(key: none()), atom([:key]), integer()) ==
+               {:badkey, :key}
+
+      # When putting multiple keys, we don't know which one will be set
+      assert map_update(open_map(key1: atom(), key2: binary()), atom([:key1, :key2]), integer()) ==
+               {:ok,
+                union(
+                  open_map(key1: atom(), key2: integer()),
+                  open_map(key1: integer(), key2: binary())
+                )}
+
+      # When putting multiple keys, all have to be set
+      assert map_update(open_map(key1: atom(), key2: binary()), atom([:key1, :key3]), integer()) ==
+               {:badkey, :key3}
+
+      assert map_update(dynamic(open_map()), atom([:key1, :key2]), integer()) ==
+               {:ok, dynamic(union(open_map(key1: integer()), open_map(key2: integer())))}
+    end
+
+    test "with dynamic atom keys" do
+      assert map_update(closed_map(key: atom([:value])), dynamic(), atom([:new_value])) ==
+               {:ok, closed_map(key: atom([:value, :new_value]))}
+
+      assert map_update(dynamic(closed_map(key: atom([:value]))), dynamic(), atom([:new_value])) ==
+               {:ok, dynamic(closed_map(key: atom([:value, :new_value])))}
+
+      # When precise dynamic keys are given, at least one must succeed
+      assert map_update(
+               open_map(key1: atom(), key2: binary()),
+               dynamic(atom([:key1, :key3])),
+               integer()
+             ) == {:ok, open_map(key1: integer(), key2: binary())}
+
+      assert map_update(
+               open_map(key1: atom(), key2: binary()),
+               dynamic(atom([:key3, :key4])),
+               integer()
+             ) == {:baddomain, dynamic(atom([:key3, :key4]))}
+    end
+
+    test "with domain keys" do
+      map =
+        closed_map([
+          {domain_key(:integer), binary()},
+          {domain_key(:pid), binary()},
+          {domain_key(:port), binary()}
+        ])
+
+      assert map_update(map, none(), integer()) ==
+               {:baddomain, none()}
+
+      assert map_update(map, integer(), integer()) ==
+               {:ok,
+                closed_map([
+                  {domain_key(:integer), union(integer(), binary())},
+                  {domain_key(:pid), binary()},
+                  {domain_key(:port), binary()}
+                ])}
+
+      assert map_update(map, union(pid(), integer()), integer()) ==
+               {:ok,
+                closed_map([
+                  {domain_key(:integer), union(integer(), binary())},
+                  {domain_key(:pid), union(integer(), binary())},
+                  {domain_key(:port), binary()}
+                ])}
+
+      assert map_update(map, union(pid(), reference()), integer()) ==
+               {:baddomain, reference()}
+
+      assert map_update(map, union(pid(), dynamic(union(reference(), integer()))), integer()) ==
+               {:ok,
+                closed_map([
+                  {domain_key(:integer), union(integer(), binary())},
+                  {domain_key(:pid), union(integer(), binary())},
+                  {domain_key(:port), binary()}
+                ])}
+
+      assert map_update(map, union(pid(), dynamic(union(reference(), binary()))), integer()) ==
+               {:ok,
+                closed_map([
+                  {domain_key(:integer), binary()},
+                  {domain_key(:pid), union(integer(), binary())},
+                  {domain_key(:port), binary()}
+                ])}
+
+      assert map_update(map, dynamic(union(reference(), binary())), integer()) ==
+               {:baddomain, dynamic(union(reference(), binary()))}
+
+      # Putting dynamic atom over record keys
+      assert map_update(closed_map(key1: binary(), key2: binary()), atom(), integer()) ==
+               {:baddomain, atom()}
+
+      assert map_update(closed_map(key1: binary(), key2: binary()), dynamic(atom()), integer()) ==
+               {:ok,
+                closed_map(key1: union(integer(), binary()), key2: union(integer(), binary()))}
+    end
+
+    test "with mixed keys" do
+      assert map_update(dynamic(), union(atom([:key]), binary()), integer()) ==
+               {:ok, dynamic(open_map())}
+
+      # When precise dynamic keys are given, at least one must succeed
+      assert map_update(
+               closed_map([{:key, atom()}, {domain_key(:integer), binary()}]),
+               dynamic(union(atom([:key]), integer())),
+               integer()
+             ) ==
+               {:ok,
+                union(
+                  closed_map([{:key, integer()}, {domain_key(:integer), binary()}]),
+                  closed_map([{:key, atom()}, {domain_key(:integer), union(binary(), integer())}])
+                )}
+
+      assert map_update(
+               closed_map([{:key, atom()}, {domain_key(:integer), binary()}]),
+               dynamic(union(atom([:other_key]), pid())),
+               integer()
+             ) == {:baddomain, dynamic(union(atom([:other_key]), pid()))}
+
+      # Negated keys
+      assert map_update(
+               closed_map(key1: binary(), key2: binary()),
+               difference(atom(), atom([:key1])),
+               integer()
+             ) ==
+               {:baddomain, atom()}
+
+      assert map_update(
+               closed_map([key1: binary(), key2: binary()] ++ [{domain_key(:atom), pid()}]),
+               difference(atom(), atom([:key1])),
+               integer()
+             ) ==
+               {:ok,
+                closed_map(
+                  [key1: binary(), key2: union(integer(), binary())] ++
+                    [{domain_key(:atom), union(integer(), pid())}]
+                )}
     end
   end
 
