@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
-name: CI
+name: Elixir Building and Testing
 
 on:
   push:
@@ -53,47 +53,55 @@ jobs:
     # when using warnings_as_errors. So we only set ERLC_OPTS
     # from Erlang/OTP 27+.
     env:
-      ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
+      ERLC_OPTS: ${{ matrix.erlc_opts }}
+
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          fetch-depth: 50
       - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
+
       - name: Set ERL_COMPILER_OPTIONS
         if: ${{ matrix.deterministic }}
         run: echo "ERL_COMPILER_OPTIONS=deterministic" >> $GITHUB_ENV
+
       - name: Compile Elixir
         run: |
           make compile
           echo "$PWD/bin" >> $GITHUB_PATH
+
       - name: Build info
         run: bin/elixir --version
+
       - name: Check format
-        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+        run: |
+          make test_formatted && \
+            echo "All Elixir source code files are properly formatted."
+
       - name: Erlang test suite
         run: make test_erlang
         continue-on-error: ${{ matrix.development }}
+
       - name: Elixir test suite
         run: make test_elixir
         continue-on-error: ${{ matrix.development }}
         env:
-          COVER: "${{ matrix.coverage }}"
-
-      - name: "Calculate Coverage"
-        run: make cover | tee "$GITHUB_STEP_SUMMARY"
-        if: "${{ matrix.coverage }}"
+          COVER: ${{ matrix.coverage }}
 
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
         run: |
           rm -rf .git
+
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
-      - name: "Upload Coverage Artifact"
-        if: "${{ matrix.coverage }}"
+
+      - name: Calculate Coverage
+        if: ${{ matrix.coverage }}
+        run: make cover | tee "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Coverage Artifact
+        if: ${{ matrix.coverage }}
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: TestCoverage
@@ -113,22 +121,29 @@ jobs:
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
+
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          fetch-depth: 50
+
       - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
+
       - name: Compile Elixir
         run: |
           Remove-Item -Recurse -Force '.git'
           make compile
+
       - name: Build info
         run: bin/elixir --version
+
       - name: Check format
-        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+        run: |
+          make test_formatted && \
+            echo "All Elixir source code files are properly formatted."
+
       - name: Erlang test suite
         run: make test_erlang
+
       - name: Elixir test suite
         run: |
           Remove-Item 'c:/Windows/System32/drivers/etc/hosts'
