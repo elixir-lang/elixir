@@ -7,7 +7,7 @@ name: POSIX Compliance
 on:
   push:
     paths: &paths-filter
-      - .github/workflows/ci-posix-compliance.yml
+      - .github/workflows/posix_compliance.yml
       - bin/elixir
       - bin/elixirc
       - bin/iex
