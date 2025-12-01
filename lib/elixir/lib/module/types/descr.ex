@@ -964,7 +964,7 @@ defmodule Module.Types.Descr do
       case static_or_dynamic do
         :term -> {:infinite, []}
         %{atom: {:union, set}} -> {:finite, :sets.to_list(set)}
-        %{atom: {:negation, _}} -> {:infinite, []}
+        %{atom: {:negation, set}} -> {:infinite, :sets.to_list(set)}
         %{} -> :error
       end
     else
@@ -3641,7 +3641,7 @@ defmodule Module.Types.Descr do
     case tag do
       :closed ->
         with %{__struct__: struct_descr} <- fields,
-             {_, [struct]} <- atom_fetch(struct_descr),
+             {:finite, [struct]} <- atom_fetch(struct_descr),
              info when is_list(info) <- maybe_struct(struct),
              true <- map_size(fields) == length(info) + 1,
              true <- Enum.all?(info, &is_map_key(fields, &1.field)) do

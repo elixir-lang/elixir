@@ -853,12 +853,12 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
-    test "creating closed maps" do
+    test "creating maps as records" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
     end
 
-    test "creating closed maps with dynamic keys" do
+    test "creating maps as records with dynamic keys" do
       assert typecheck!(
                (
                  foo = :foo
@@ -885,10 +885,10 @@ defmodule Module.Types.ExprTest do
              )
     end
 
-    test "creating open maps" do
+    test "creating maps as dictionaries" do
       assert typecheck!(%{123 => 456}) == closed_map([{domain_key(:integer), integer()}])
 
-      # Since key cannot override :foo, we preserve it
+      # Since key cannot override :foo based on position, we preserve it
       assert typecheck!([key], %{key => 456, foo: :bar}) ==
                dynamic(
                  closed_map([
@@ -897,11 +897,45 @@ defmodule Module.Types.ExprTest do
                  ])
                )
 
-      # Since key can override :foo, we do not preserve it
+      # Since key can override :foo based on position, we union it
       assert typecheck!([key], %{:foo => :bar, key => :baz}) ==
                dynamic(
                  closed_map([
-                   {to_domain_keys(:term), atom([:baz])}
+                   {to_domain_keys(:term), atom([:baz])},
+                   {:foo, atom([:bar, :baz])}
+                 ])
+               )
+
+      # Since key cannot override :foo based on domain, we preserve it
+      assert typecheck!(
+               [arg],
+               (
+                 key = String.to_integer(arg)
+                 %{:foo => :bar, key => :baz}
+               )
+             ) ==
+               closed_map([
+                 {domain_key(:integer), atom([:baz])},
+                 {:foo, atom([:bar])}
+               ])
+
+      # Multiple keys are fully overridden for simplicity
+      assert typecheck!(
+               [arg],
+               (
+                 foo_or_bar = if String.starts_with?(arg, "0"), do: :foo, else: :bar
+                 key = String.to_integer(arg)
+                 %{foo_or_bar => :old, key => :new}
+               )
+             ) ==
+               union(
+                 closed_map([
+                   {domain_key(:integer), atom([:new])},
+                   {:foo, atom([:old])}
+                 ]),
+                 closed_map([
+                   {domain_key(:integer), atom([:new])},
+                   {:bar, atom([:old])}
                  ])
                )
     end
@@ -924,7 +958,7 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "updating to closed maps" do
+    test "updating to maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: atom([:zero])))
 
@@ -1107,32 +1141,23 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "updating to open maps" do
+    test "updating to maps as dictionaries" do
       assert typecheck!(
                [key],
                (
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == dynamic(open_map())
+             ) == closed_map(foo: atom([:bar, :baz]))
 
-      # Since key cannot override :foo, we preserve it
+      # Override based on position
       assert typecheck!(
                [key],
                (
-                 x = %{foo: :bar}
-                 %{x | key => :baz, foo: :bat}
+                 x = %{foo: :bar, baz: :bat}
+                 %{x | key => :old, foo: :new}
                )
-             ) == dynamic(open_map(foo: atom([:bat])))
-
-      # Since key can override :foo, we do not preserve it
-      assert typecheck!(
-               [key],
-               (
-                 x = %{foo: :bar}
-                 %{x | :foo => :baz, key => :bat}
-               )
-             ) == dynamic(open_map())
+             ) == closed_map(foo: atom([:new]), baz: atom([:old, :bat]))
 
       # The goal of this assertion is to verify we assert keys,
       # even if they may be overridden later.

@@ -191,20 +191,55 @@ defmodule Module.Types.Of do
 
     {dynamic?, domain, single, multiple} =
       Enum.reduce(pairs_types, {false, [], [], []}, fn
-        {key_tagged_type, dynamic_pair?, value_type}, {dynamic?, domain, single, multiple} ->
+        {pos_neg_domain, dynamic_pair?, value_type}, {dynamic?, domain, single, multiple} ->
           dynamic? = dynamic? or dynamic_pair?
 
-          case key_tagged_type do
-            # Because a multiple key may override single keys, we can only
-            # collect single keys while there are no multiples.
-            {:keys, [key]} when multiple == [] ->
-              {dynamic?, domain, [{key, value_type} | single], multiple}
+          case pos_neg_domain do
+            # If atom is included in domain keys, it unions all previous
+            # single and multiple, except the ones negated:
+            #
+            #     %{foo: :bar, term() => :baz}
+            #     #=> %{foo: :bar or :baz, term() => :baz}
+            #
+            #     %{foo: :bar, not :foo => :baz}
+            #     #=> %{foo: :bar, term() => :baz}
+            #
+            # In case the negated term does not appear, we set it to none():
+            #
+            #     %{foo: :bar, term() => :baz}
+            #     #=> %{term() => :baz, foo: :bar or :baz}
+            #
+            #     %{not :foo => :baz}
+            #     #=> %{term() => :baz, foo: none()}
+            #
+            # In case we are dealing with multiple keys, we always merge the
+            # domain. A more precise approach would be to postpone doing so
+            # until the cartesian map is distributed but those should be very
+            # uncommon.
+            {[], negs, domain_keys} ->
+              if :atom in domain_keys do
+                {single, multiple} = union_negated(negs, value_type, single, multiple)
+                {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
+              else
+                {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
+              end
 
-            {:keys, keys} ->
-              {dynamic?, domain, single, [{keys, value_type} | multiple]}
+            {pos, [], domain_keys} ->
+              domain =
+                case domain_keys do
+                  [] -> domain
+                  _ -> [{domain_keys, value_type} | domain]
+                end
 
-            {:domain, keys} ->
-              {dynamic?, [{keys, value_type} | domain], single, multiple}
+              case pos do
+                # Because a multiple key may override single keys, we can only
+                # collect single keys while there are no multiples.
+                [key] when multiple == [] ->
+                  {dynamic?, domain, [{key, value_type} | single], multiple}
+
+                _ ->
+                  {dynamic?, domain, single, [{pos, value_type} | multiple]}
+              end
           end
       end)
 
@@ -225,12 +260,36 @@ defmodule Module.Types.Of do
     {if(dynamic?, do: dynamic(map), else: map), context}
   end
 
+  defp union_negated([], new_type, single, multiple) do
+    single = Enum.map(single, fn {key, old_type} -> {key, union(old_type, new_type)} end)
+    multiple = Enum.map(multiple, fn {keys, old_type} -> {keys, union(old_type, new_type)} end)
+    {single, multiple}
+  end
+
+  defp union_negated(negated, new_type, single, multiple) do
+    {single, matched} =
+      Enum.map_reduce(single, [], fn {key, old_type}, matched ->
+        if key in negated do
+          {{key, old_type}, [key | matched]}
+        else
+          {{key, union(old_type, new_type)}, matched}
+        end
+      end)
+
+    multiple =
+      Enum.map(multiple, fn {keys, old_type} ->
+        {keys, union(old_type, new_type)}
+      end)
+
+    {Enum.map(negated -- matched, fn key -> {key, none()} end) ++ single, multiple}
+  end
+
   defp pairs(pairs, expected, stack, context, of_fun) do
     Enum.map_reduce(pairs, context, fn {key, value}, context ->
-      {key_tagged_type, dynamic_key?, context} = map_key_type(key, stack, context, of_fun)
+      {pos_neg_domain, dynamic_key?, context} = map_key_type(key, stack, context, of_fun)
 
       expected_value_type =
-        with {:keys, [key]} <- key_tagged_type,
+        with {[key], [], []} <- pos_neg_domain,
              {_, expected_value_type} <- map_fetch_key(expected, key) do
           expected_value_type
         else
@@ -238,24 +297,26 @@ defmodule Module.Types.Of do
         end
 
       {value_type, context} = of_fun.(value, expected_value_type, stack, context)
-      {{key_tagged_type, dynamic_key? or gradual?(value_type), value_type}, context}
+      {{pos_neg_domain, dynamic_key? or gradual?(value_type), value_type}, context}
     end)
   end
 
   defp map_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {{:keys, [key]}, false, context}
+    {{[key], [], []}, false, context}
   end
 
   defp map_key_type(key, stack, context, of_fun) do
     {key_type, context} = of_fun.(key, term(), stack, context)
+    domain_keys = to_domain_keys(key_type)
 
-    # TODO: Deal with negations such that
-    # `%{not :key => value}` => `%{atom() => value, key: none()}`
-    # `%{:key => value, not :key => value}` => `%{atom() => value, key: value}`
-    case atom_fetch(key_type) do
-      {:finite, list} -> {{:keys, list}, gradual?(key_type), context}
-      _ -> {{:domain, to_domain_keys(key_type)}, gradual?(key_type), context}
-    end
+    pos_neg_domain =
+      case atom_fetch(key_type) do
+        {:finite, list} -> {list, [], List.delete(domain_keys, :atom)}
+        {:infinite, list} -> {[], list, domain_keys}
+        :error -> {[], [], domain_keys}
+      end
+
+    {pos_neg_domain, gradual?(key_type), context}
   end
 
   defp cartesian_map(lists) do
@@ -457,8 +518,11 @@ defmodule Module.Types.Of do
   """
   def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
     case atom_fetch(type) do
-      {_, mods} ->
+      {:finite, mods} ->
         {mods, context}
+
+      {:infinite, _} ->
+        {[], context}
 
       :error ->
         warning = {:badmodule, expr, type, fun, arity, hints, context}
