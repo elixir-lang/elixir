@@ -25,8 +25,7 @@ env:
 
 jobs:
   license_compliance:
-    name: Check Licence Compliance
-
+    name: Check License Compliance
     runs-on: ubuntu-24.04
 
     steps:
@@ -39,7 +38,7 @@ jobs:
         id: checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
-      - name: "Run OSS Review Toolkit"
+      - name: Run OSS Review Toolkit
         id: ort
         uses: ./.github/workflows/ort
         with:
