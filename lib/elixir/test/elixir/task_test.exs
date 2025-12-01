@@ -1130,8 +1130,8 @@ defmodule TaskTest do
                send(pid, :go)
                receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
              end) =~ ~r"""
-             \[error\] \*\* Task #PID<\d+\.\d+\.\d+> terminating
-             \*\* Started from #PID<\d+\.\d+\.\d+>
+             \[error\] \*\* Task #{inspect(pid)} terminating
+             \*\* Started from #{inspect(parent)}
              \*\* When function  == &TaskTest.task/1
              \*\*      arguments == \[#PID<\d+\.\d+\.\d+>\]
              \*\* Reason for termination ==\s
