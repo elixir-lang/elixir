@@ -10,7 +10,7 @@ on:
 
     paths: &paths-filter
       - "**/*.md"
-      - .github/workflows/ci-markdown.yml
+      - .github/workflows/markdown.yml
       - .markdownlint-cli2.jsonc
 
   pull_request:
