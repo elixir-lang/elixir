@@ -2286,10 +2286,10 @@ defmodule Module.Types.DescrTest do
 
     test "maps as dictionaries" do
       assert closed_map([{domain_key(:integer), integer()}])
-             |> to_quoted_string() == "%{integer() => if_set(integer())}"
+             |> to_quoted_string() == "%{integer() => integer()}"
 
-      assert closed_map([{domain_key(:integer), integer()}, {:float, float()}])
-             |> to_quoted_string() == "%{integer() => if_set(integer()), float: float()}"
+      assert closed_map([{domain_key(:integer), not_set()}, {:float, float()}])
+             |> to_quoted_string() == "%{integer() => not_set(), float: float()}"
     end
 
     test "structs" do

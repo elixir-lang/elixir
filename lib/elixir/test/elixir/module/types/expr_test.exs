@@ -1202,7 +1202,7 @@ defmodule Module.Types.ExprTest do
 
              but got type:
 
-                 %{integer() => if_set(:old)}
+                 %{integer() => :old}
 
              where "key" was given the type:
 
@@ -1212,7 +1212,7 @@ defmodule Module.Types.ExprTest do
 
              where "x" was given the type:
 
-                 # type: %{integer() => if_set(:old)}
+                 # type: %{integer() => :old}
                  # from: types_test.ex:LINE-3
                  x = %{String.to_integer(key) => :old}
              """

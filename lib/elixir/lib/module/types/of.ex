@@ -281,7 +281,7 @@ defmodule Module.Types.Of do
         {keys, union(old_type, new_type)}
       end)
 
-    {Enum.map(negated -- matched, fn key -> {key, none()} end) ++ single, multiple}
+    {Enum.map(negated -- matched, fn key -> {key, not_set()} end) ++ single, multiple}
   end
 
   defp pairs(pairs, expected, stack, context, of_fun) do
