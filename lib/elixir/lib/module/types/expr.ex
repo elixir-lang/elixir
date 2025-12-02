@@ -199,7 +199,7 @@ defmodule Module.Types.Expr do
 
     try do
       Enum.reduce(pairs_types, map_type, fn {key_type, value_type}, acc ->
-        case map_update(acc, key_type, value_type) do
+        case literal_map_update(acc, key_type, value_type) do
           {:ok, descr} -> descr
           {:badkey, key} -> throw({:badkey, map_type, key, update, context})
           {:baddomain, domain} -> throw({:baddomain, map_type, domain, update, context})
@@ -793,6 +793,16 @@ defmodule Module.Types.Expr do
 
   defp add_inferred([], args, return),
     do: [{args, return}]
+
+  defp literal_map_update(descr, key_descr, value_descr) do
+    case map_update(descr, key_descr, value_descr, false) do
+      {_type, descr, []} -> {:ok, descr}
+      {_, _, [error | _]} -> error
+      :badmap -> :badmap
+      {:error, [error | _]} -> error
+      {:error, []} -> {:baddomain, key_descr}
+    end
+  end
 
   ## Warning formatting
 
