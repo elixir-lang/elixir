@@ -8,6 +8,7 @@ on:
   push:
     paths-ignore:
       - "lib/**/*.md"
+
   pull_request:
     paths-ignore:
       - "lib/**/*.md"
@@ -22,7 +23,7 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
+    name: Ubuntu 24.04, OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
     runs-on: ubuntu-24.04
 
     strategy:
@@ -33,10 +34,8 @@ jobs:
             deterministic: true
           - otp_version: "28.1"
             erlc_opts: "warnings_as_errors"
+            docs: true
             coverage: true
-          - otp_version: "28.1"
-            otp_latest: true
-            erlc_opts: "warnings_as_errors"
           - otp_version: "27.3"
             erlc_opts: "warnings_as_errors"
           - otp_version: "27.0"
@@ -54,35 +53,38 @@ jobs:
       ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          fetch-depth: 50
+
       - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
+
       - name: Set ERL_COMPILER_OPTIONS
         if: ${{ matrix.deterministic }}
         run: echo "ERL_COMPILER_OPTIONS=deterministic" >> $GITHUB_ENV
+
       - name: Compile Elixir
         run: |
           make compile
           echo "$PWD/bin" >> $GITHUB_PATH
+
       - name: Build info
         run: bin/elixir --version
+
       - name: Check format
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
+
       - name: Erlang test suite
         run: make test_erlang
         continue-on-error: ${{ matrix.development }}
+
       - name: Elixir test suite
         run: make test_elixir
         continue-on-error: ${{ matrix.development }}
         env:
           COVER: "${{ matrix.coverage }}"
-      - name: "Calculate Coverage"
-        run: make cover | tee "$GITHUB_STEP_SUMMARY"
-        if: "${{ matrix.coverage }}"
+
       - name: Build docs (ExDoc main)
-        if: ${{ matrix.otp_latest }}
+        if: ${{ matrix.docs }}
         run: |
           cd ..
           git clone https://github.com/elixir-lang/ex_doc.git --depth 1
@@ -91,6 +93,18 @@ jobs:
           cd ../elixir/
           git fetch --tags
           DOCS_OPTIONS="--warnings-as-errors" make docs
+
+      - name: "Calculate Coverage"
+        if: ${{ matrix.coverage }}
+        run: make cover | tee "$GITHUB_STEP_SUMMARY"
+
+      - name: "Upload Coverage Artifact"
+        if: ${{ matrix.coverage }}
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: TestCoverage
+          path: cover/*
+
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
         run: |
@@ -98,15 +112,9 @@ jobs:
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
-      - name: "Upload Coverage Artifact"
-        if: "${{ matrix.coverage }}"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: TestCoverage
-          path: cover/*
 
   test_windows:
-    name: Windows Server 2022, Erlang/OTP ${{ matrix.otp_version }}
+    name: Windows Server 2022, OTP ${{ matrix.otp_version }}
     runs-on: windows-2022
 
     strategy:
@@ -119,22 +127,27 @@ jobs:
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
+
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          fetch-depth: 50
+
       - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
+
       - name: Compile Elixir
         run: |
           Remove-Item -Recurse -Force '.git'
           make compile
+
       - name: Build info
         run: bin/elixir --version
+
       - name: Check format
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
+
       - name: Erlang test suite
         run: make test_erlang
+
       - name: Elixir test suite
         run: |
           Remove-Item 'c:/Windows/System32/drivers/etc/hosts'
