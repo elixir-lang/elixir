@@ -114,7 +114,7 @@ jobs:
           taskset 1 make check_reproducible
 
   test_windows:
-    name: Windows Server 2022, Erlang/OTP ${{ matrix.otp_version }}
+    name: Windows Server 2022, OTP ${{ matrix.otp_version }}
     runs-on: windows-2022
 
     strategy:
