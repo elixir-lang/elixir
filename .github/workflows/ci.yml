@@ -103,12 +103,12 @@ jobs:
       - name: Erlang test suite
         if: ${{ !matrix.skip_tests }}
         run: make test_erlang
-        continue-on-error: ${{ matrix.development }}
+        continue-on-error: ${{ matrix.development == true }}
 
       - name: Elixir test suite
         if: ${{ matrix.coverage || !matrix.skip_tests }}
         run: make test_elixir
-        continue-on-error: ${{ matrix.development }}
+        continue-on-error: ${{ matrix.development == true }}
         env:
           COVER: ${{ matrix.coverage }}
 
