@@ -566,6 +566,11 @@ extract_bit_type({'-', _, [L, R]}, Acc) ->
 extract_bit_type({unit, _, [Arg]}, Acc) ->
   [{unit, Arg} | Acc];
 extract_bit_type({Other, _, nil}, Acc) ->
+  [Other | Acc];
+%% TODO: Remove me on Elixir v2.0.
+%% Elixir v1.14 and earlier emitted an empty list
+%% and may still be processed via debug_info.
+extract_bit_type({Other, _, []}, Acc) ->
   [Other | Acc].
 
 %% Optimizations that are specific to Erlang and change

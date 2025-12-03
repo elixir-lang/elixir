@@ -27,8 +27,9 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   {Args, Guards} = elixir_utils:extract_splat_guards(Raw),
 
   Match =
+    %% TODO: Remove me on Elixir v2.0.
     %% Elixir v1.17 and earlier emitted single argument
-    %% and may still be processed via debug_info
+    %% and may still be processed via debug_info.
     case Args of
       [X] -> [throw, X];
       [X, Y] -> [X, Y]
