@@ -69,9 +69,10 @@ defmodule IEx.Evaluator do
   """
   def parse(input, opts, parser_state)
 
-  def parse(input, opts, []), do: parse(input, opts, :other)
+  def parse(input, opts, []), do: parse(input, opts, {[], :other})
 
-  def parse(input, opts, last_op) do
+  def parse(input, opts, {buffer, last_op}) do
+    input = buffer ++ input
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
@@ -106,10 +107,10 @@ defmodule IEx.Evaluator do
 
       case result do
         {:ok, forms, last_op} ->
-          {:ok, forms, last_op}
+          {:ok, forms, {[], last_op}}
 
         {:error, {_, _, ""}} ->
-          {:incomplete, last_op}
+          {:incomplete, {input, last_op}}
 
         {:error, {location, error, token}} ->
           :elixir_errors.parse_error(
