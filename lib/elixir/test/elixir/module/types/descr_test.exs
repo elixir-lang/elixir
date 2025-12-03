@@ -23,7 +23,6 @@ defmodule Module.Types.DescrTest do
   defp tuple_of_size(n) when is_integer(n) and n >= 0, do: tuple(List.duplicate(term(), n))
   defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
   defp map_with_default(descr), do: open_map([], if_set(descr))
-  defp nil_or_type(type), do: union(type, atom([nil]))
 
   describe "union" do
     test "bitmap" do
@@ -1655,12 +1654,14 @@ defmodule Module.Types.DescrTest do
              |> difference(closed_map(b: if_set(integer())))
              |> map_fetch_key(:a) == :badkey
     end
+  end
 
-    test "map_get with domain keys" do
+  describe "map_get" do
+    test "with domain keys" do
       assert map_get(term(), term()) == :badmap
 
       map_type = closed_map([{domain_key(:tuple), binary()}])
-      assert map_get(map_type, tuple()) == {:ok, nil_or_type(binary())}
+      assert map_get(map_type, tuple()) == {true, binary()}
 
       # Type with all domain types
       # %{:bar => :ok, integer() => :int, float() => :float, atom() => binary(), binary() => integer(), tuple() => float(), map() => pid(), reference() => port(), pid() => boolean()}
@@ -1678,76 +1679,88 @@ defmodule Module.Types.DescrTest do
           {domain_key(:port), boolean()}
         ])
 
-      assert map_get(all_domains, atom([:bar])) == {:ok_present, atom([:ok])}
+      assert map_get(all_domains, atom([:bar])) == {false, atom([:ok])}
 
-      assert map_get(all_domains, integer()) == {:ok, atom([:int]) |> nil_or_type()}
-      assert map_get(all_domains, number()) == {:ok, atom([:int, :float]) |> nil_or_type()}
+      assert map_get(all_domains, integer()) == {true, atom([:int])}
+      assert map_get(all_domains, number()) == {true, atom([:int, :float])}
 
-      assert map_get(all_domains, empty_list()) == {:ok_absent, atom([nil])}
-      assert map_get(all_domains, atom([:foo])) == {:ok, binary() |> nil_or_type()}
-      assert map_get(all_domains, binary()) == {:ok, integer() |> nil_or_type()}
-      assert map_get(all_domains, tuple([integer(), atom()])) == {:ok, nil_or_type(float())}
-      assert map_get(all_domains, empty_map()) == {:ok, pid() |> nil_or_type()}
+      assert map_get(all_domains, empty_list()) == :error
+      assert map_get(all_domains, atom([:foo])) == {true, binary()}
+      assert map_get(all_domains, binary()) == {true, integer()}
+      assert map_get(all_domains, tuple([integer(), atom()])) == {true, float()}
+      assert map_get(all_domains, empty_map()) == {true, pid()}
 
       # Union
       assert map_get(all_domains, union(tuple(), empty_map())) ==
-               {:ok, union(float(), pid() |> nil_or_type())}
+               {true, union(float(), pid())}
 
       # Removing all maps with tuple keys
       t_no_tuple = difference(all_domains, closed_map([{domain_key(:tuple), float()}]))
       t_really_no_tuple = difference(all_domains, open_map([{domain_key(:tuple), float()}]))
       assert subtype?(all_domains, open_map())
       # It's only closed maps, so it should not change
-      assert map_get(t_no_tuple, tuple()) == {:ok, float() |> nil_or_type()}
+      assert map_get(t_no_tuple, tuple()) == {true, float()}
       # This time we actually removed all tuple to float keys
-      assert map_get(t_really_no_tuple, tuple()) == {:ok_absent, atom([nil])}
+      assert map_get(t_really_no_tuple, tuple()) == :error
 
       t1 = closed_map([{domain_key(:tuple), integer()}])
       t2 = closed_map([{domain_key(:tuple), float()}])
       t3 = union(t1, t2)
-      assert map_get(t3, tuple()) == {:ok, number() |> nil_or_type()}
+      assert map_get(t3, tuple()) == {true, number()}
     end
 
-    test "map_get with dynamic" do
+    test "with dynamic" do
       {_answer, type_selected} = map_get(dynamic(), term())
-      assert equal?(type_selected, dynamic() |> nil_or_type())
+      assert equal?(type_selected, dynamic())
     end
 
-    test "map_get with atom fall back" do
+    test "with atom fall back" do
       map = closed_map([{:a, atom([:a])}, {:b, atom([:b])}, {domain_key(:atom), pid()}])
-      assert map_get(map, atom([:a, :b])) == {:ok_present, atom([:a, :b])}
-      assert map_get(map, atom([:a, :c])) == {:ok, union(atom([:a]), pid() |> nil_or_type())}
-      assert map_get(map, atom() |> difference(atom([:a, :b]))) == {:ok, pid() |> nil_or_type()}
+
+      assert map_get(map, atom([:a, :b])) ==
+               {false, atom([:a, :b])}
+
+      assert map_get(map, atom([:a, :c])) ==
+               {true, union(atom([:a]), pid())}
+
+      assert map_get(map, atom() |> difference(atom([:a, :b]))) ==
+               {true, pid()}
 
       assert map_get(map, atom() |> difference(atom([:a]))) ==
-               {:ok, union(atom([:b]), pid() |> nil_or_type())}
+               {true, union(atom([:b]), pid())}
+
+      assert map_get(closed_map(a: atom([:a]), b: atom([:b])), atom()) ==
+               {true, atom([:a, :b])}
+
+      assert map_get(closed_map([{domain_key(:atom), integer()}]), atom([:a, :b])) ==
+               {true, integer()}
     end
 
-    test "map_get with lists" do
+    test "with lists" do
       # Verify that empty_list() bitmap type maps to :list domain (not :empty_list domain)
       map_with_list_domain = closed_map([{domain_key(:list), atom([:empty])}])
 
       # empty_list() should access the :list domain
-      assert map_get(map_with_list_domain, empty_list()) == {:ok, atom([:empty]) |> nil_or_type()}
+      assert map_get(map_with_list_domain, empty_list()) == {true, atom([:empty])}
 
       # non_empty_list() should also access the :list domain
       assert map_get(map_with_list_domain, non_empty_list(integer())) ==
-               {:ok, atom([:empty]) |> nil_or_type()}
+               {true, atom([:empty])}
 
       # list() should also access the :list domain
       assert map_get(map_with_list_domain, list(integer())) ==
-               {:ok, atom([:empty]) |> nil_or_type()}
+               {true, atom([:empty])}
 
       # If I create a map and instantiate both empty_list() and non_empty_list(integer()), it should return the union of the two types
       map =
         closed_map([{domain_key(:list), atom([:empty])}, {domain_key(:list), atom([:non_empty])}])
 
-      assert map_get(map, empty_list()) == {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
+      assert map_get(map, empty_list()) == {true, atom([:empty, :non_empty])}
 
       assert map_get(map, non_empty_list(integer())) ==
-               {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
+               {true, atom([:empty, :non_empty])}
 
-      assert map_get(map, list(integer())) == {:ok, atom([:empty, :non_empty]) |> nil_or_type()}
+      assert map_get(map, list(integer())) == {true, atom([:empty, :non_empty])}
     end
   end
 
