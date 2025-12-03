@@ -9,11 +9,6 @@ on:
       - main
 
   pull_request:
-    paths:
-      - project.spdx.yml
-      - .github/workflows/license_compliance.yml
-      - .github/workflows/ort/**/*
-      - .ort/**/*
 
   workflow_dispatch:
 
