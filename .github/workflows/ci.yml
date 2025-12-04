@@ -28,20 +28,16 @@ jobs:
       matrix:
         include:
           - otp_version: "28.1"
-            erlc_opts: "warnings_as_errors"
             deterministic: true
             skip_format_and_tests: true
 
           - otp_version: "28.1"
-            erlc_opts: "warnings_as_errors"
             docs: true
             coverage: true
 
           - otp_version: "27.3"
-            erlc_opts: "warnings_as_errors"
 
           - otp_version: "27.0"
-            erlc_opts: "warnings_as_errors"
 
           - otp_version: "26.0"
 
@@ -54,8 +50,9 @@ jobs:
     # Earlier Erlang/OTP versions ignored compiler directives
     # when using warnings_as_errors. So we only set ERLC_OPTS
     # from Erlang/OTP 27+.
+    # Additionally, we do not set warnings_as_errors for development branches.
     env:
-      ERLC_OPTS: ${{ matrix.erlc_opts }}
+      ERLC_OPTS: ${{ !(startsWith(matrix.otp_version, '26') || matrix.development) && 'warnings_as_errors' || '' }}
 
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
