@@ -508,13 +508,11 @@ defmodule Macro do
   Generates AST nodes for a given number of required argument
   variables using `Macro.unique_var/2`.
 
+  The second argument is generally the macro caller's module.
+
   ## Examples
 
-      iex> [var1, var2] = Macro.generate_unique_arguments(2, __MODULE__)
-      iex> {:arg1, [counter: c1], __MODULE__} = var1
-      iex> {:arg2, [counter: c2], __MODULE__} = var2
-      iex> is_integer(c1) and is_integer(c2)
-      true
+      [var1, var2] = Macro.generate_unique_arguments(2, __CALLER__.module)
 
   """
   @doc since: "1.11.3"
@@ -570,11 +568,11 @@ defmodule Macro do
   generate another variable, with its own unique counter.
   See `var/2` for an alternative.
 
+  The second argument is generally the macro caller's module.
+
   ## Examples
 
-      iex> {:foo, [counter: c], __MODULE__} = Macro.unique_var(:foo, __MODULE__)
-      iex> is_integer(c)
-      true
+      var = Macro.unique_var(:foo, __CALLER__.module)
 
   """
   @doc since: "1.11.3"
