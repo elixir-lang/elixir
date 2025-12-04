@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
+name: POSIX Compliance
+
+on:
+  push:
+    paths: &paths-filter
+      - .github/workflows/posix_compliance.yml
+      - bin/elixir
+      - bin/elixirc
+      - bin/iex
+
+  pull_request:
+    paths: *paths-filter
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LANG: C.UTF-8
+
+jobs:
+  check_posix_compliance:
+    name: Check POSIX compliance
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt update
+          sudo apt install -y shellcheck
+
+      - name: Run ShellCheck on bin/ dir
+        run: |
+          shellcheck -e SC2039,2086 bin/elixir && \
+            echo "bin/elixir is POSIX compliant"
+
+          shellcheck bin/elixirc && \
+            echo "bin/elixirc is POSIX compliant"
+
+          shellcheck bin/iex && \
+            echo "bin/iex is POSIX compliant"

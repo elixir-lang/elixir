@@ -78,6 +78,7 @@ introduced behavior, especially for bug fixes and major changes:
     *fails* before your change and *passes* afterward. This makes it easier to
     confirm that the fix addresses the underlying issue and helps prevent
     regressions in the future.
+
   * **New Features or Major Changes:** If you are adding a new feature or making
     major changes to existing functionality, please add tests that cover the
     major parts of that functionality. Aim to have the best code coverage possible.
@@ -88,7 +89,9 @@ We have saved some excellent pull requests we have received in the past in
 case you are looking for some examples:
 
   * [Implement Enum.member? - Pull request](https://github.com/elixir-lang/elixir/pull/992)
+
   * [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
+
   * [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
 
 ## Reviewing changes
@@ -121,30 +124,34 @@ Please review our [Open Source Policy](OPEN_SOURCE_POLICY.md) for complete
 guidelines on licensing and compliance. Below is a summary of the key points
 affecting **all external contributors**:
 
-- Accepted Licenses: Any code contributed must be licensed under the
-  `Apache-2.0` license.
-- SPDX License Headers: With the exception of approved test fixture files,
-  all new or modified files in a pull request must include correct SPDX
-  headers. If you are creating a new file under the `Apache-2.0` license, for
-  instance, please use:
-    
+  * Accepted Licenses: Any code contributed must be licensed under the
+    `Apache-2.0` license.
+
+  * SPDX License Headers: With the exception of approved test fixture files,
+    all new or modified files in a pull request must include correct SPDX
+    headers. If you are creating a new file under the `Apache-2.0` license, for
+    instance, please use:
+
     ```elixir
     # SPDX-License-Identifier: Apache-2.0
     # SPDX-FileCopyrightText: 2021 The Elixir Team
     ```
-    
-- No Executable Binaries: Contributions must **not** include any executable
-  binary files. If you require an exception (for example, certain test artifacts),
-  please see the policy on how to request approval and document exceptions.
-- Preserving Copyright and License Info: If you copy code from elsewhere,
-  ensure that **all original copyright and license notices remain intact**. If
-  they are missing or incomplete, you must add them.
-- Failure to Comply: Pull requests that do not meet these licensing and
-  compliance standards will be rejected or require modifications before merging.
-- Developer Certificate of Origin: All contributions are subject to the
-  Developer Certificate of Origin.
 
-    ```
+  * No Executable Binaries: Contributions must **not** include any executable
+    binary files. If you require an exception (for example, certain test artifacts),
+    please see the policy on how to request approval and document exceptions.
+
+  * Preserving Copyright and License Info: If you copy code from elsewhere,
+    ensure that **all original copyright and license notices remain intact**. If
+    they are missing or incomplete, you must add them.
+
+  * Failure to Comply: Pull requests that do not meet these licensing and
+    compliance standards will be rejected or require modifications before merging.
+
+  * Developer Certificate of Origin: All contributions are subject to the
+    Developer Certificate of Origin.
+
+    ```text
     By making a contribution to this project, I certify that:
 
     (a) The contribution was created in whole or in part by me and I
@@ -171,25 +178,26 @@ affecting **all external contributors**:
         involved.
     ```
 
-    See http://developercertificate.org/ for a copy of the Developer Certificate
+    See <http://developercertificate.org/> for a copy of the Developer Certificate
     of Origin license.
 
 ## Building documentation
 
 Building the documentation requires that [ExDoc](https://github.com/elixir-lang/ex_doc)
-is installed and built alongside Elixir:
+is installed and built alongside Elixir.
+
+After cloning and compiling Elixir, run:
 
 ```sh
-# After cloning and compiling Elixir, in its parent directory:
-git clone https://github.com/elixir-lang/ex_doc.git
-cd ex_doc && ../elixir/bin/elixir ../elixir/bin/mix do deps.get + compile
-```
+elixir_dir=$(pwd)
+cd .. && git clone https://github.com/elixir-lang/ex_doc.git
+cd ex_doc && "${elixir_dir}/bin/elixir" "${elixir_dir}/bin/mix" do deps.get + compile
 
-Now go back to Elixir's root directory and run:
+# Now we will go back to Elixir's root directory,
+cd "${elixir_dir}"
 
-```sh
-make docs                  # to generate HTML pages
-make docs DOCS_FORMAT=epub # to generate EPUB documents
+# and generate HTML and EPUB documents:
+make docs
 ```
 
 This will produce documentation sets for `elixir`, `eex`, `ex_unit`, `iex`, `logger`,

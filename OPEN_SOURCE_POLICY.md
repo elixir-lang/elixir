@@ -20,7 +20,7 @@ ensuring that Elixir remains a trusted and innovative open source project.
 ## 2. Scope
 
 This policy applies to the Elixir Programming language, located at
-https://github.com/elixir-lang/elixir. It covers every file, and contribution
+<https://github.com/elixir-lang/elixir>. It covers every file, and contribution
 made, including documentation and any associated assets.
 
 ## 3. Licensing
@@ -29,18 +29,19 @@ All code released by the Elixir team is licensed under the
 [Apache-2.0](./LICENSES/Apache-2.0.txt) license. Additionally, the following
 licenses are recognized as permissible in this project:
 
-- The Unicode license, as documented at
-  [LicenseRef-scancode-unicode](./LICENSES/LicenseRef-scancode-unicode.txt)
-- The Elixir Trademark Policy, as documented at
-  [LicenseRef-elixir-trademark-policy](./LICENSES/LicenseRef-elixir-trademark-policy.txt)
+  - The Unicode license, as documented at
+    [LicenseRef-scancode-unicode](./LICENSES/LicenseRef-scancode-unicode.txt)
+
+  - The Elixir Trademark Policy, as documented at
+    [LicenseRef-elixir-trademark-policy](./LICENSES/LicenseRef-elixir-trademark-policy.txt)
 
 These licenses are considered acceptable for any files or code that form part of
 an Elixir repository. If a contribution requires a different license, it must
 either be rejected or prompt an update to this policy.
 
-## 4. Contributing to Elixir Projects
+## 4. Contributing to the Elixir repository
 
-Any code contributed to Elixir repositories must fall under one of the accepted
+Any code contributed to the Elixir repository must fall under one of the accepted
 licenses (Apache-2.0, Unicode, or Elixir Trademark). Contributions under any
 other license will be rejected unless this policy is formally revised to include
 that license. All files except those specifically exempted (e.g., certain test
@@ -51,13 +52,9 @@ configuration and undergo review.
 
 Contributions must not introduce executable binary files into the codebase.
 
-Every Elixir project within the organization will have an automated GitHub
-Action to enforce these rules. This mechanism aids in detecting non-compliant
-licenses or files early in the review process.
-
 ## 5. Preservation of Copyright and License Information
 
-Any third-party code incorporated into Elixir projects must retain original
+Any third-party code incorporated into the Elixir repository must retain original
 copyright and license headers. If no such headers exist in the source, they must
 be added. This practice ensures that original authors receive proper credit and
 that the licensing lineage is preserved.
@@ -165,4 +162,4 @@ necessary, by the EEF CISO. Any significant changes will be communicated to
 contributors and made publicly available.
 
 *Effective Date: 2025-02-20*  
-*Last Reviewed: 2025-02-20*
+*Last Reviewed: 2025-11-20*

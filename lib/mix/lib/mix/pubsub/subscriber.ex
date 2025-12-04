@@ -21,8 +21,15 @@ defmodule Mix.PubSub.Subscriber do
   @impl true
   def init({}) do
     build_path = Mix.Project.build_path()
-    Mix.Sync.PubSub.subscribe(build_path)
-    {:ok, %{acc: []}}
+
+    case Mix.Sync.PubSub.subscribe(build_path) do
+      :ok ->
+        {:ok, %{acc: []}}
+
+      {:error, message} ->
+        IO.warn(message, [])
+        :ignore
+    end
   end
 
   @impl true

@@ -112,6 +112,7 @@ defmodule Mix.Tasks.Help do
 
   def run(["app:" <> app]) do
     loadpaths!()
+
     app = String.to_atom(app)
 
     # If the application is not available, attempt to load it from Erlang/Elixir
@@ -119,7 +120,11 @@ defmodule Mix.Tasks.Help do
       try do
         Mix.ensure_application!(app)
       rescue
-        _ -> :ok
+        _ ->
+          # Otherwise, it may be a dep or the current project not yet compiled
+          if Mix.Project.get() do
+            Mix.Task.run("compile")
+          end
       end
     end
 

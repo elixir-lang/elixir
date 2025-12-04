@@ -1,33 +1,41 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 
-name: "Release pre built"
-description: "Builds elixir release, ExDoc and generates docs"
+name: Release Pre-build
+description: "Builds Elixir release, ExDoc and generates docs"
+
 inputs:
   otp:
     description: "The major OTP version"
+
   otp_version:
     description: "The exact OTP version (major.minor[.patch])"
+
   build_docs:
-    description: "If docs have to be built or not"
+    description: "Whether docs have to be built"
+
 runs:
   using: "composite"
+
   steps:
     - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
       with:
         otp-version: ${{ inputs.otp_version }}
         version-type: strict
+
     - name: Build Elixir Release
       shell: bash
       run: |
         make Precompiled.zip
         mv Precompiled.zip elixir-otp-${{ inputs.otp }}.zip
         echo "$PWD/bin" >> $GITHUB_PATH
+
     - name: Install NSIS
       shell: bash
       run: |
         sudo apt update
         sudo apt install -y nsis
+
     - name: Build Elixir Windows Installer
       shell: bash
       run: |

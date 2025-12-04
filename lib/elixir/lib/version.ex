@@ -44,6 +44,11 @@ defmodule Version do
       # Anything later than 2.0.0
       "> 2.0.0"
 
+  You can skip the operator, which is equivalent to `==`:
+
+      # Only version 2.0.0
+      "2.0.0"
+
   Requirements also support `and` and `or` for complex conditions:
 
       # 2.0.0 and later until 2.1.0

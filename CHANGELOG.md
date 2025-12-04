@@ -41,8 +41,18 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 #### Elixir
 
   * [Enum] Add `Enum.min_max` sorter
+  * [Integer] Add `Integer.ceil_div/2`
   * [Kernel] Print intermediate results of `dbg` for pipes
   * [Kernel] Warn on unused requires
+  * [Regex] Add `Regex.import/1` to import regexes defined with `/E`
+
+#### ExUnit
+
+  * [ExUnit.CaptureLog] Add `:formatter` option for custom log formatting
+
+#### Mix
+
+  * [mix test] Add `mix test --dry-run`
 
 ### 2. Bug fixes
 

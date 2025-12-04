@@ -10,9 +10,10 @@
 /lib/elixir/test/ebin/
 /man/elixir.1
 /man/iex.1
-/Docs-v*.zip
-/Precompiled-v*.zip
+/Docs.zip
+/Precompiled.zip
 /.eunit
 .elixir.plt
 erl_crash.dump
 /cover/
+.tool-versions

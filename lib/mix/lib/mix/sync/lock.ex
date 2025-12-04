@@ -153,9 +153,7 @@ defmodule Mix.Sync.Lock do
         end
 
       {:error, reason} ->
-        Mix.raise(
-          "failed to open a TCP socket while acquiring a lock, reason: #{inspect(reason)}"
-        )
+        Mix.raise("failed to acquire filesystem lock using TCP, reason: #{inspect(reason)}")
     end
   end
 

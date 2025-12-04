@@ -66,7 +66,7 @@ defmodule MapTest do
              try do
                1
              rescue
-               _exception -> :exception
+               _exception -> flunk("should not be invoked")
              else
                a -> a
              end => 1

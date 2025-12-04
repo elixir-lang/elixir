@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Run do
 
       $ mix run --no-halt
 
-  The `--no-start` option can also be given and the current application,
+  The `--no-start` option can also be given and neither the current application
   nor its dependencies will be started. Alternatively, you may use
   `mix eval` to evaluate a single expression without starting the current
   application.

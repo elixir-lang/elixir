@@ -402,8 +402,9 @@ defmodule NaiveDateTime do
 
   Accepts an `amount_to_add` in any `unit`. `unit` can be `:day`,
   `:hour`, `:minute`, `:second` or any subsecond precision from
-  `t:System.time_unit/0`. It defaults to `:second`. Negative values
-  will move backwards in time.
+  `t:System.time_unit/0` for convenience but ultimately they are
+  all converted to microseconds. Negative values will move backwards
+  in time and the default precision is `:second`.
 
   ## Examples
 

@@ -364,6 +364,7 @@ defmodule EEx do
   ### Helpers
 
   defp do_eval(compiled, bindings, options) do
+    options = Keyword.take(options, [:file, :line, :module, :prune_binding])
     {result, _} = Code.eval_quoted(compiled, bindings, options)
     result
   end

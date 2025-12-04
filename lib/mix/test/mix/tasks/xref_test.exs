@@ -501,7 +501,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(["--format", "cycles"], """
       1 cycles found. Showing them in decreasing size:
 
-      Cycle of length 2:
+      Cycle of length 2 (1 compile):
 
           lib/a.ex (compile)
           lib/b.ex
@@ -513,7 +513,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(["--format", "cycles", "--label", "compile"], """
       1 cycles found. Showing them in decreasing size:
 
-      Cycle of length 2:
+      Cycle of length 2 (1 compile):
 
           lib/a.ex (compile)
           lib/b.ex
@@ -525,7 +525,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(["--format", "cycles", "--label", "compile-connected"], """
       1 cycles found. Showing them in decreasing size:
 
-      Cycle of length 2:
+      Cycle of length 2 (1 compile):
 
           lib/a.ex (compile)
           lib/b.ex
@@ -540,7 +540,7 @@ defmodule Mix.Tasks.XrefTest do
         assert_graph(["--format", "cycles", "--fail-above", "0"], """
         1 cycles found. Showing them in decreasing size:
 
-        Cycle of length 2:
+        Cycle of length 2 (1 compile):
 
             lib/a.ex (compile)
             lib/b.ex
@@ -549,15 +549,33 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
-    test "cycles with min_cycle_size matching actual length" do
-      assert_graph(["--format", "cycles", "--min-cycle-size", "2"], """
+    test "cycles with min_cycle_label matching actual length" do
+      assert_graph(["--format", "cycles", "--label", "compile", "--min-cycle-label", "1"], """
       1 cycles found. Showing them in decreasing size:
 
-      Cycle of length 2:
+      Cycle of length 2 (1 compile):
 
           lib/a.ex (compile)
           lib/b.ex
 
+      """)
+    end
+
+    test "cycles with min_cycle_size matching actual length" do
+      assert_graph(["--format", "cycles", "--min-cycle-size", "2"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2 (1 compile):
+
+          lib/a.ex (compile)
+          lib/b.ex
+
+      """)
+    end
+
+    test "cycles with min_cycle_label greater than actual length" do
+      assert_graph(["--format", "cycles", "--label", "compile", "--min-cycle-label", "2"], """
+      No cycles found
       """)
     end
 

@@ -42,12 +42,9 @@ defmodule Mix.Sync.PubSub do
 
   The messages are delivered to the caller's message queue.
   """
-  @spec subscribe(String.t()) :: :ok
+  @spec subscribe(String.t()) :: :ok | {:error, String.t()}
   def subscribe(key) do
-    case GenServer.call(@name, {:subscribe, self(), key}, :infinity) do
-      :ok -> :ok
-      {:error, message} -> Mix.raise(message)
-    end
+    GenServer.call(@name, {:subscribe, self(), key}, :infinity)
   end
 
   @doc """
@@ -201,8 +198,7 @@ defmodule Mix.Sync.PubSub do
         {:ok, %{state | port: port}}
 
       {:error, reason} ->
-        {:error,
-         "failed to open a TCP socket in #{inspect(__MODULE__)}.subscribe/1, reason: #{inspect(reason)}"}
+        {:error, "failed to subscribe to Mix events using TCP, reason: #{inspect(reason)}"}
     end
   end
 

@@ -172,57 +172,38 @@ defmodule Module.Types.Expr do
     # allow variables defined on the left side of | to be available
     # on the right side, this is safe.
     {pairs_types, context} =
-      Of.pairs(args, expected, stack, context, &of_expr(&1, &2, expr, &3, &4))
+      Enum.map_reduce(args, context, fn {key, value}, context ->
+        {key_type, context} = of_expr(key, term(), expr, stack, context)
+        {value_type, context} = of_expr(value, term(), expr, stack, context)
+        {{key_type, value_type}, context}
+      end)
 
     expected =
       if stack.mode == :traversal do
         expected
       else
-        # TODO: Once we introduce domain keys, if we ever find a domain
-        # that overlaps atoms, we can only assume optional(atom()) => term(),
-        # which is what the `open_map()` below falls back into anyway.
-        Enum.reduce_while(pairs_types, expected, fn
-          {_, [key], _}, acc ->
-            case map_fetch_and_put(acc, key, term()) do
-              {_value, acc} -> {:cont, acc}
-              _ -> {:halt, open_map()}
+        # The only information we can attach to the expected types is that
+        # certain keys are expected.
+        expected_pairs =
+          Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
+            case atom_fetch(key_type) do
+              {:finite, [key]} -> [{key, term()}]
+              _ -> []
             end
+          end)
 
-          _, _ ->
-            {:halt, open_map()}
-        end)
+        intersection(expected, open_map(expected_pairs))
       end
 
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
-      Of.permutate_map(pairs_types, stack, fn fallback, keys_to_assert, pairs ->
-        # Ensure all keys to assert and all type pairs exist in map
-        keys_to_assert = Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert
-
-        Enum.each(Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert, fn key ->
-          case map_fetch(map_type, key) do
-            {_, _} -> :ok
-            :badkey -> throw({:badkey, map_type, key, update, context})
-            :badmap -> throw({:badmap, map_type, update, context})
-          end
-        end)
-
-        # If all keys are known is no fallback (i.e. we know all keys being updated),
-        # we can update the existing map.
-        if fallback == none() do
-          Enum.reduce(pairs, map_type, fn {key, type}, acc ->
-            case map_fetch_and_put(acc, key, type) do
-              {_value, descr} -> descr
-              :badkey -> throw({:badkey, map_type, key, update, context})
-              :badmap -> throw({:badmap, map_type, update, context})
-            end
-          end)
-        else
-          # TODO: Use the fallback type to actually indicate if open or closed.
-          # The fallback must be unioned with the result of map_values with all
-          # `keys` deleted.
-          dynamic(open_map(pairs))
+      Enum.reduce(pairs_types, map_type, fn {key_type, value_type}, acc ->
+        case literal_map_update(acc, key_type, value_type) do
+          {:ok, descr} -> descr
+          {:badkey, key} -> throw({:badkey, map_type, key, update, context})
+          {:baddomain, domain} -> throw({:baddomain, map_type, domain, update, context})
+          :badmap -> throw({:badmap, map_type, update, context})
         end
       end)
     catch
@@ -240,13 +221,15 @@ defmodule Module.Types.Expr do
         stack,
         context
       ) do
+    # We pass the expected type as `term()` because the struct update
+    # operator already expects it to be a map at this point.
     {map_type, context} = of_expr(map, term(), struct, stack, context)
 
     context =
       if stack.mode == :traversal do
         context
       else
-        with {false, struct_key_type} <- map_fetch(map_type, :__struct__),
+        with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
              {:finite, [^module]} <- atom_fetch(struct_key_type) do
           context
         else
@@ -259,8 +242,8 @@ defmodule Module.Types.Expr do
       # TODO: Once we support typed structs, we need to type check them here
       {type, context} = of_expr(value, term(), expr, stack, context)
 
-      case map_fetch_and_put(acc, key, type) do
-        {_value, acc} -> {acc, context}
+      case map_put_key(acc, key, type) do
+        {:ok, acc} -> {acc, context}
         _ -> {acc, context}
       end
     end)
@@ -811,6 +794,16 @@ defmodule Module.Types.Expr do
   defp add_inferred([], args, return),
     do: [{args, return}]
 
+  defp literal_map_update(descr, key_descr, value_descr) do
+    case map_update(descr, key_descr, value_descr, false) do
+      {_type, descr, []} -> {:ok, descr}
+      {_, _, [error | _]} -> error
+      :badmap -> :badmap
+      {:error, [error | _]} -> error
+      {:error, []} -> {:baddomain, key_descr}
+    end
+  end
+
   ## Warning formatting
 
   def format_diagnostic({:badupdate, type, expr, context}) do
@@ -894,6 +887,27 @@ defmodule Module.Types.Expr do
         IO.iodata_to_binary([
           """
           expected a map with key #{inspect(key)} in map update syntax:
+
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type, collapse_structs: false) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:baddomain, type, key_type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map with key of type #{to_quoted_string(key_type)} in map update syntax:
 
               #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
 

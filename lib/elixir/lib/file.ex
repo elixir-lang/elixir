@@ -1224,7 +1224,13 @@ defmodule File do
   defp do_cp_r(src, dest, on_conflict, dereference?, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
-        do_cp_file(src, dest, on_conflict, acc)
+        case do_cp_file(src, dest, on_conflict, acc) do
+          # we don't have a way to make a distinction between a non-existing src
+          # or dest being a non-existing dir in the case of :enoent,
+          # but we already know that src exists here.
+          {:error, :enoent, _} -> {:error, :enoent, dest}
+          other -> other
+        end
 
       {:ok, :symlink} ->
         case :file.read_link(src) do

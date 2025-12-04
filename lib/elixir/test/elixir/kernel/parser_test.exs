@@ -6,6 +6,14 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.ParserTest do
   use ExUnit.Case, async: true
 
+  test "empty" do
+    assert Code.string_to_quoted!("") == {:__block__, [line: 1], []}
+    assert Code.string_to_quoted!("", columns: true) == {:__block__, [line: 1, column: 1], []}
+
+    assert Code.string_to_quoted!("  \n") == {:__block__, [line: 1], []}
+    assert Code.string_to_quoted!("  \n", columns: true) == {:__block__, [line: 1, column: 1], []}
+  end
+
   describe "nullary ops" do
     test "in expressions" do
       assert parse!("..") == {:.., [line: 1], []}

@@ -11,7 +11,7 @@
 -define(typespecs, 'Elixir.Kernel.Typespec').
 
 checker_version() ->
-  elixir_checker_v3.
+  elixir_checker_v4.
 
 %% debug_info callback
 

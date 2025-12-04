@@ -36,6 +36,7 @@ defmodule Kernel.DialyzerTest do
       ArgumentError,
       Atom,
       Code,
+      EEx,
       Enum,
       Exception,
       ExUnit.AssertionError,
@@ -182,6 +183,11 @@ defmodule Kernel.DialyzerTest do
 
   test "no warning due to opaqueness edge cases", context do
     copy_beam!(context, Dialyzer.Opaqueness)
+    assert_dialyze_no_warnings!(context)
+  end
+
+  test "no warning in various non-regression cases", context do
+    copy_beam!(context, Dialyzer.Regressions)
     assert_dialyze_no_warnings!(context)
   end
 
