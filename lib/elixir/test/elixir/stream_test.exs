@@ -183,6 +183,24 @@ defmodule StreamTest do
     assert Stream.chunk_while([1, 2, 3, 4, 5], [], chunk_fun, after_fun) |> Enum.at(0) == [1]
   end
 
+  test "chunk_while/4 regression case with concat" do
+    result =
+      ["WrongHeader\nJohn Doe", "skipped"]
+      |> Stream.take(1)
+      |> Stream.chunk_while(
+        "",
+        fn element, acc ->
+          {acc, elements} = String.split(acc <> element, "\n") |> List.pop_at(-1)
+          {:cont, elements, acc}
+        end,
+        &{:cont, [&1], []}
+      )
+      |> Stream.concat()
+      |> Enum.to_list()
+
+    assert result == ["WrongHeader", "John Doe"]
+  end
+
   test "concat/1" do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)
