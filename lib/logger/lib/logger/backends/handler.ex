@@ -47,7 +47,13 @@ defmodule Logger.Backends.Handler do
         %{truncate: truncate, utc_log: utc_log?} = config
         level = erlang_level_to_elixir_level(erl_level)
         message = Logger.Formatter.format_event(event, truncate)
-        timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
+
+        timestamp =
+          case metadata do
+            %{time: time} when is_integer(time) and time >= 0 -> time
+            _ -> :os.system_time(:microsecond)
+          end
+
         date_time_ms = Logger.Formatter.system_time_to_date_time_ms(timestamp, utc_log?)
         metadata = [erl_level: erl_level] ++ erlang_metadata_to_elixir_metadata(metadata)
         event = {level, gl, {Logger, message, date_time_ms, metadata}}
