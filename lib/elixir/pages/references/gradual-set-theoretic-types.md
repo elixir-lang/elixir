@@ -118,13 +118,29 @@ Currently, the type system only tracks the top of each individial type as the do
 %{list(integer()) => integer(), list(binary()) => binary()}
 ```
 
-That's the same as:
+That's the same as specifying all lists:
 
 ```elixir
-%{list(term()) => integer() or binary()}
+%{list() => integer() or binary()}
 ```
 
+The supported domain keys are `atom()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, and `tuple()`.
+
 Furthermore, it is important to note that domain keys are, by definition, optional. Whenever you have a `%{integer() => integer()}`and you try to fetch a key, we must assume the key may not exist (after all, it is not possible to store all integers as map keys as they are infinite).
+
+#### Mixed keys
+
+It is also possible to mix domain and atom keys. For example, the following map says that all atom keys are of type `binary()`, except the `:root` key, which has type `integer()`:
+
+```elixir
+# Closed map
+%{atom() => binary(), root: integer()}
+
+# Open map
+%{..., atom() => binary(), root: integer()}
+```
+
+The order of the keys is of increasing precision. `:root` is more precise than `atom()`, therefore it comes later. This mirrors the runtime semantics of maps, where duplicate keys override the value of earlier ones.
 
 ### Functions
 

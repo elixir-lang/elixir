@@ -82,6 +82,9 @@ empty_map()
 
 # Has the keys name and age and may have other keys (open map)
 %{..., name: binary(), age: integer()}
+
+# Has the key name, may have other keys, but age is not set
+%{..., name: binary(), age: not_set()}
 ```
 
 #### Maps with domain keys (domain keys are always treated as optional)
@@ -93,6 +96,18 @@ empty_map()
 # Has atom and binary keys and may have other keys (open map)
 %{..., atom() => binary(), binary() => binary()}
 ```
+
+#### Maps with mixed keys
+
+```elixir
+# Has atom keys with binary values but a `:root` key of type integer
+%{atom() => binary(), root: integer()}
+
+# Has atom keys with binary values but a `:root` key of type integer, and may have other keys
+%{..., atom() => binary(), root: integer()}
+```
+
+#### Domain keys are `atom()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, `tuple()`
 
 ### Non-empty lists
 
