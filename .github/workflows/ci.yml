@@ -127,11 +127,19 @@ jobs:
     runs-on: windows-2022
 
     strategy:
+      fail-fast: false
+
       matrix:
         otp_version:
           - "28.1"
           - "27.3"
           - "26.2"
+
+    # Earlier Erlang/OTP versions ignored compiler directives
+    # when using warnings_as_errors. So we only set ERLC_OPTS
+    # from Erlang/OTP 27+.
+    env:
+      ERLC_OPTS: ${{ !startsWith(matrix.otp_version, '26') && 'warnings_as_errors' || '' }}
 
     steps:
       - name: Configure Git
