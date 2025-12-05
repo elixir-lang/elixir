@@ -6,12 +6,7 @@ name: CI
 
 on:
   push:
-    paths-ignore:
-      - "lib/**/*.md"
-
   pull_request:
-    paths-ignore:
-      - "lib/**/*.md"
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
@@ -77,6 +72,7 @@ jobs:
         run: echo "ERL_COMPILER_OPTIONS=deterministic" >> $GITHUB_ENV
 
       - name: Compile Elixir
+        if: steps.changes.outputs.elixir == 'true'
         run: |
           make compile
           echo "$PWD/bin" >> $GITHUB_PATH
@@ -85,20 +81,23 @@ jobs:
         run: bin/elixir --version
 
       - name: Check format
+        if: steps.changes.outputs.elixir == 'true'
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
 
       - name: Erlang test suite
+        if: steps.changes.outputs.elixir == 'true'
         run: make test_erlang
         continue-on-error: ${{ matrix.development == true }}
 
       - name: Elixir test suite
+        if: steps.changes.outputs.elixir == 'true'
         run: make test_elixir
         continue-on-error: ${{ matrix.development == true }}
         env:
           COVER: "${{ matrix.coverage }}"
 
       - name: Build docs (ExDoc main)
-        if: ${{ matrix.docs }}
+        if: matrix.docs && steps.changes.outputs.docs == 'true'
         run: |
           cd ..
           git clone https://github.com/elixir-lang/ex_doc.git --depth 1
@@ -109,18 +108,18 @@ jobs:
           DOCS_OPTIONS="--warnings-as-errors" make docs
 
       - name: "Calculate Coverage"
-        if: ${{ matrix.coverage }}
+        if: matrix.coverage && steps.changes.outputs.elixir == 'true'
         run: make cover | tee "$GITHUB_STEP_SUMMARY"
 
       - name: "Upload Coverage Artifact"
-        if: ${{ matrix.coverage }}
+        if: matrix.coverage && steps.changes.outputs.elixir == 'true'
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: TestCoverage
           path: cover/*
 
       - name: Check reproducible builds
-        if: ${{ matrix.deterministic }}
+        if: matrix.deterministic && steps.changes.outputs.elixir == 'true'
         run: |
           rm -rf .git
           # Recompile System without .git
@@ -145,12 +144,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
+      - name: Detect changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: .github/file-filters.yml
+
       - name: Setup BEAM
         uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
 
       - name: Compile Elixir
+        if: steps.changes.outputs.elixir == 'true'
         run: |
           Remove-Item -Recurse -Force '.git'
           make compile
@@ -159,12 +165,15 @@ jobs:
         run: bin/elixir --version
 
       - name: Check format
+        if: steps.changes.outputs.elixir == 'true'
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
 
       - name: Erlang test suite
+        if: steps.changes.outputs.elixir == 'true'
         run: make test_erlang
 
       - name: Elixir test suite
+        if: steps.changes.outputs.elixir == 'true'
         run: |
           Remove-Item 'c:/Windows/System32/drivers/etc/hosts'
           make test_elixir

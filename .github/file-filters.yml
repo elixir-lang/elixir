@@ -1,0 +1,16 @@
+# Used by GitHub Action https://github.com/dorny/paths-filter
+
+elixir:
+  - "**/*"
+  # Ignore
+  - "!*.md"
+  - "!lib/*/pages/**/*.md"
+
+docs:
+  - ".github/workflows/ci.yml"
+  - "CHANGELOG.md"
+  - "Makefile"
+  - "VERSION"
+  - "lib/**/*"
+  # Ignore
+  - "!lib/*/test/**/*"
