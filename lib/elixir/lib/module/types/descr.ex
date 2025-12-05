@@ -2750,22 +2750,24 @@ defmodule Module.Types.Descr do
   @doc """
   Returns the map converted into a list.
   """
-  def map_to_list(:term), do: :badmap
+  def map_to_list(descr, fun \\ &tuple([&1, &2]))
 
-  def map_to_list(descr) do
+  def map_to_list(:term, _fun), do: :badmap
+
+  def map_to_list(descr, fun) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if descr_key?(descr, :map) and map_only?(descr) do
-          map_to_list_static(descr.map)
+        if map_only?(descr) do
+          map_to_list_static(descr, fun)
         else
           :badmap
         end
 
       {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          with {:ok, dynamic_type} <- map_to_list_static(dynamic.map) do
+        if map_only?(static) do
+          with {:ok, dynamic_type} <- map_to_list_static(dynamic, fun) do
             if descr_key?(static, :map) do
-              with {:ok, static_type} <- map_to_list_static(static.map) do
+              with {:ok, static_type} <- map_to_list_static(static, fun) do
                 {:ok, union(static_type, dynamic(dynamic_type))}
               end
             else
@@ -2778,13 +2780,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_to_list_static(bdd) do
+  defp map_to_list_static(%{map: bdd}, fun) do
     case map_bdd_to_dnf(bdd) do
       [] ->
         :badmap
 
       dnf ->
-        case map_to_list_static(bdd, dnf) do
+        case map_to_list_static(bdd, dnf, fun) do
           value when value == @none ->
             {:ok, empty_list()}
 
@@ -2798,6 +2800,14 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp map_to_list_static(%{}, _fun) do
+    :badmap
+  end
+
+  defp map_to_list_static(:term, fun) do
+    {:ok, list(fun.(term(), term()))}
+  end
+
   defp has_empty_map?(dnf) do
     Enum.any?(dnf, fn {_, fields, negs} ->
       Enum.all?(fields, fn {_key, value} -> optional_static?(value) end) and
@@ -2807,7 +2817,7 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp map_to_list_static(bdd, dnf) do
+  defp map_to_list_static(bdd, dnf, fun) do
     try do
       # Check if any line in the DNF represents an open map or compute the union of domain keys types
       Enum.reduce(dnf, none(), fn
@@ -2825,7 +2835,7 @@ defmodule Module.Types.Descr do
                 if empty?(value) do
                   acc
                 else
-                  union(acc, tuple([domain_key_to_descr(domain_key), value]))
+                  union(acc, fun.(domain_key_to_descr(domain_key), value))
                 end
               end)
 
@@ -2834,7 +2844,7 @@ defmodule Module.Types.Descr do
           end
       end)
     catch
-      :open -> tuple([term(), term()])
+      :open -> fun.(term(), term())
     else
       domain_keys_type ->
         {_seen, acc} =
@@ -2849,7 +2859,7 @@ defmodule Module.Types.Descr do
                 if empty?(value) do
                   {seen, acc}
                 else
-                  {seen, union(acc, tuple([atom([key]), value]))}
+                  {seen, union(acc, fun.(atom([key]), value))}
                 end
               end
             end)

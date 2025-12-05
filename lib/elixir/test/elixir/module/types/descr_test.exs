@@ -1514,6 +1514,7 @@ defmodule Module.Types.DescrTest do
       assert map_to_list(integer()) == :badmap
       assert map_to_list(union(open_map(), integer())) == :badmap
       assert map_to_list(none()) == :badmap
+      assert map_to_list(dynamic()) == {:ok, dynamic(list(tuple([term(), term()])))}
 
       # A non existent map type is refused
       assert open_map()

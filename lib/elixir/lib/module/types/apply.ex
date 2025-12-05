@@ -241,7 +241,12 @@ defmodule Module.Types.Apply do
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
         {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
-        {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]}
+        {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
+
+        ## Map
+        {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
+        {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
+        {:maps, :values, [{[open_map()], dynamic(list(term()))}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
@@ -314,14 +319,6 @@ defmodule Module.Types.Apply do
     {{:make_tuple, size}, [integer(), term()], context}
   end
 
-  def remote_domain(:erlang, :hd, [_list], expected, _meta, _stack, context) do
-    {:hd, [non_empty_list(expected, term())], context}
-  end
-
-  def remote_domain(:erlang, :tl, [_list], _expected, _meta, _stack, context) do
-    {:tl, [non_empty_list(term(), term())], context}
-  end
-
   def remote_domain(:erlang, name, [_left, _right], _expected, _meta, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     {{:ordered_compare, name, is_warning(stack)}, [term(), term()], context}
@@ -350,7 +347,7 @@ defmodule Module.Types.Apply do
   Applies a previously collected domain from `remote_domain/7`.
   """
   def remote_apply(info, mod, fun, args_types, expr, stack, context) do
-    case remote_apply(info, args_types, stack) do
+    case remote_apply(mod, fun, info, args_types, stack) do
       {:ok, type} ->
         {type, context}
 
@@ -359,6 +356,45 @@ defmodule Module.Types.Apply do
         error = {error, args_types, mfac, expr, context}
         {error_type(), error(error, elem(expr, 1), stack, context)}
     end
+  end
+
+  defp remote_apply(:erlang, :hd, _info, [list], _stack) do
+    case list_hd(list) do
+      {_, value_type} -> {:ok, value_type}
+      :badnonemptylist -> {:error, badremote(:erlang, :hd, 1)}
+    end
+  end
+
+  defp remote_apply(:erlang, :tl, _info, [list], _stack) do
+    case list_tl(list) do
+      {_, value_type} -> {:ok, value_type}
+      :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :keys, _info, [map], _stack) do
+    case map_to_list(map, fn key, _value -> key end) do
+      {:ok, list_type} -> {:ok, list_type}
+      :badmap -> {:error, badremote(:maps, :keys, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :values, _info, [map], _stack) do
+    case map_to_list(map, fn _key, value -> value end) do
+      {:ok, list_type} -> {:ok, list_type}
+      :badmap -> {:error, badremote(:maps, :keys, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :to_list, _info, [map], _stack) do
+    case map_to_list(map) do
+      {:ok, list_type} -> {:ok, list_type}
+      :badmap -> {:error, badremote(:maps, :to_list, 1)}
+    end
+  end
+
+  defp remote_apply(_mod, _fun, info, args_types, stack) do
+    remote_apply(info, args_types, stack)
   end
 
   defp remote_apply(:none, _args_types, _stack) do
@@ -405,20 +441,6 @@ defmodule Module.Types.Apply do
 
   defp remote_apply({:make_tuple, size}, [_size, elem], _stack) do
     {:ok, tuple(List.duplicate(elem, size))}
-  end
-
-  defp remote_apply(:hd, [list], _stack) do
-    case list_hd(list) do
-      {_, value_type} -> {:ok, value_type}
-      :badnonemptylist -> {:error, badremote(:erlang, :hd, 1)}
-    end
-  end
-
-  defp remote_apply(:tl, [list], _stack) do
-    case list_tl(list) do
-      {_, value_type} -> {:ok, value_type}
-      :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
-    end
   end
 
   defp remote_apply({:ordered_compare, name, check?}, [left, right], stack) do
