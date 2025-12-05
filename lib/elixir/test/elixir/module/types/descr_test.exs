@@ -1246,12 +1246,12 @@ defmodule Module.Types.DescrTest do
       assert list_hd(term()) == :badnonemptylist
       assert list_hd(list(term())) == :badnonemptylist
       assert list_hd(empty_list()) == :badnonemptylist
-      assert list_hd(non_empty_list(term())) == {false, term()}
-      assert list_hd(non_empty_list(integer())) == {false, integer()}
-      assert list_hd(difference(list(number()), list(integer()))) == {false, number()}
+      assert list_hd(non_empty_list(term())) == {:ok, term()}
+      assert list_hd(non_empty_list(integer())) == {:ok, integer()}
+      assert list_hd(difference(list(number()), list(integer()))) == {:ok, number()}
 
-      assert list_hd(dynamic()) == {true, dynamic()}
-      assert list_hd(dynamic(list(integer()))) == {true, dynamic(integer())}
+      assert list_hd(dynamic()) == {:ok, dynamic()}
+      assert list_hd(dynamic(list(integer()))) == {:ok, dynamic(integer())}
       assert list_hd(union(dynamic(), atom())) == :badnonemptylist
       assert list_hd(union(dynamic(), list(term()))) == :badnonemptylist
 
@@ -1259,12 +1259,12 @@ defmodule Module.Types.DescrTest do
       assert list_hd(dynamic(difference(list(number()), list(number())))) == :badnonemptylist
 
       assert list_hd(union(dynamic(list(float())), non_empty_list(atom()))) ==
-               {true, union(dynamic(float()), atom())}
+               {:ok, union(dynamic(float()), atom())}
 
       # If term() is in the tail, it means list(term()) is in the tail
       # and therefore any term can be returned from hd.
-      assert list_hd(non_empty_list(atom(), term())) == {false, term()}
-      assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {false, atom()}
+      assert list_hd(non_empty_list(atom(), term())) == {:ok, term()}
+      assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {:ok, atom()}
     end
 
     test "list_tl" do
@@ -1274,27 +1274,27 @@ defmodule Module.Types.DescrTest do
       assert list_tl(list(integer())) == :badnonemptylist
       assert list_tl(difference(list(number()), list(number()))) == :badnonemptylist
 
-      assert list_tl(non_empty_list(integer())) == {false, list(integer())}
+      assert list_tl(non_empty_list(integer())) == {:ok, list(integer())}
 
       assert list_tl(non_empty_list(integer(), atom())) ==
-               {false, union(atom(), non_empty_list(integer(), atom()))}
+               {:ok, union(atom(), non_empty_list(integer(), atom()))}
 
       # The tail of either a (non empty) list of integers with an atom tail or a (non empty) list
       # of tuples with a float tail is either an atom, or a float, or a (possibly empty) list of
       # integers with an atom tail, or a (possibly empty) list of tuples with a float tail.
       assert list_tl(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))) ==
-               {false,
+               {:ok,
                 atom()
                 |> union(float())
                 |> union(
                   union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))
                 )}
 
-      assert list_tl(dynamic()) == {true, dynamic()}
-      assert list_tl(dynamic(list(integer()))) == {true, dynamic(list(integer()))}
+      assert list_tl(dynamic()) == {:ok, dynamic()}
+      assert list_tl(dynamic(list(integer()))) == {:ok, dynamic(list(integer()))}
 
       assert list_tl(dynamic(list(integer(), atom()))) ==
-               {true, dynamic(union(atom(), list(integer(), atom())))}
+               {:ok, dynamic(union(atom(), list(integer(), atom())))}
     end
 
     test "tuple_fetch" do
@@ -2373,9 +2373,6 @@ defmodule Module.Types.DescrTest do
 
       assert list(term(), term()) |> to_quoted_string() ==
                "empty_list() or non_empty_list(term(), term())"
-
-      assert non_empty_list(term(), difference(term(), list(term()))) |> to_quoted_string() ==
-               "improper_list()"
 
       # Test normalization
 

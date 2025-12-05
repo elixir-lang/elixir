@@ -360,14 +360,14 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(:erlang, :hd, _info, [list], _stack) do
     case list_hd(list) do
-      {_, value_type} -> {:ok, value_type}
+      {:ok, value_type} -> {:ok, value_type}
       :badnonemptylist -> {:error, badremote(:erlang, :hd, 1)}
     end
   end
 
   defp remote_apply(:erlang, :tl, _info, [list], _stack) do
     case list_tl(list) do
-      {_, value_type} -> {:ok, value_type}
+      {:ok, value_type} -> {:ok, value_type}
       :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
     end
   end

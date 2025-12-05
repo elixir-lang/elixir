@@ -94,7 +94,7 @@ defmodule Module.Types.Expr do
     else
       hd_type =
         case list_hd(expected) do
-          {_, type} -> type
+          {:ok, type} -> type
           _ -> term()
         end
 
@@ -106,8 +106,8 @@ defmodule Module.Types.Expr do
         else
           tl_type =
             case list_tl(expected) do
-              {_, type} -> type
-              _ -> term()
+              {:ok, type} -> type
+              :badnonemptylist -> term()
             end
 
           of_expr(suffix, tl_type, expr, stack, context)

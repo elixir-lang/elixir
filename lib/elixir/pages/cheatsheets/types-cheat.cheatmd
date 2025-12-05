@@ -5,6 +5,32 @@
 
 # Set-theoretic types cheatsheet
 
+## Set operators
+
+#### Union
+
+```elixir
+type1 or type2
+```
+
+#### Intersection
+
+```elixir
+type1 and type2
+```
+
+#### Difference
+
+```elixir
+type1 and not type2
+```
+
+#### Negation
+
+```elixir
+not type
+```
+
 ## Data types
 
 ### Indivisible types

@@ -305,7 +305,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_var([{:head, counter} | rest], type, _reachable_var?, info, context) do
     case list_hd(type) do
-      {_, head} ->
+      {:ok, head} ->
         tree = Map.fetch!(info, -counter)
         type = intersection(of_pattern_tree(tree, context), head)
         of_pattern_var(rest, type, false, info, context)
@@ -317,8 +317,8 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_var([:tail | rest], type, reachable_var?, info, context) do
     case list_tl(type) do
-      {_, tail} -> of_pattern_var(rest, tail, reachable_var?, info, context)
-      _ -> :error
+      {:ok, tail} -> of_pattern_var(rest, tail, reachable_var?, info, context)
+      :badnonemptylist -> :error
     end
   end
 

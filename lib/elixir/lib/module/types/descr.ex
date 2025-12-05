@@ -54,7 +54,6 @@ defmodule Module.Types.Descr do
   @list_top %{bitmap: @bit_empty_list, list: @non_empty_list_top}
   @empty_list %{bitmap: @bit_empty_list}
   @not_non_empty_list Map.delete(@term, :list)
-  @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
   @not_set %{optional: 1}
   @term_or_optional Map.put(@term, :optional, 1)
@@ -1972,7 +1971,7 @@ defmodule Module.Types.Descr do
         static_value = list_hd_static(descr)
 
         if non_empty_list_only?(descr) and not empty?(static_value) do
-          {false, static_value}
+          {:ok, static_value}
         else
           :badnonemptylist
         end
@@ -1981,7 +1980,7 @@ defmodule Module.Types.Descr do
         dynamic_value = list_hd_static(dynamic)
 
         if non_empty_list_only?(static) and not empty?(dynamic_value) do
-          {true, union(dynamic(dynamic_value), list_hd_static(static))}
+          {:ok, union(dynamic(dynamic_value), list_hd_static(static))}
         else
           :badnonemptylist
         end
@@ -2015,7 +2014,7 @@ defmodule Module.Types.Descr do
         static_value = list_tl_static(descr)
 
         if non_empty_list_only?(descr) and not empty?(static_value) do
-          {false, static_value}
+          {:ok, static_value}
         else
           :badnonemptylist
         end
@@ -2024,7 +2023,7 @@ defmodule Module.Types.Descr do
         dynamic_value = list_tl_static(dynamic)
 
         if non_empty_list_only?(static) and not empty?(dynamic_value) do
-          {true, union(dynamic(dynamic_value), list_tl_static(static))}
+          {:ok, union(dynamic(dynamic_value), list_tl_static(static))}
         else
           :badnonemptylist
         end
@@ -2048,10 +2047,6 @@ defmodule Module.Types.Descr do
 
   defp list_tl_static(%{}), do: none()
 
-  defp list_improper_static?(:term), do: false
-  defp list_improper_static?(%{bitmap: bitmap}) when (bitmap &&& @bit_empty_list) != 0, do: false
-  defp list_improper_static?(term), do: equal?(term, @not_list)
-
   defp list_to_quoted(bdd, empty?, opts) do
     dnf = list_normalize(bdd)
 
@@ -2059,17 +2054,12 @@ defmodule Module.Types.Descr do
       dnf
       |> Enum.reduce({[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
         {name, arguments, list_rendered?} =
-          cond do
-            list_type == term() and list_improper_static?(last_type) ->
-              {:improper_list, [], list_rendered?}
-
-            subtype?(last_type, @empty_list) ->
-              name = if empty?, do: :list, else: :non_empty_list
-              {name, [to_quoted(list_type, opts)], empty?}
-
-            true ->
-              args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
-              {:non_empty_list, args, list_rendered?}
+          if subtype?(last_type, @empty_list) do
+            name = if empty?, do: :list, else: :non_empty_list
+            {name, [to_quoted(list_type, opts)], empty?}
+          else
+            args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
+            {:non_empty_list, args, list_rendered?}
           end
 
         acc =
