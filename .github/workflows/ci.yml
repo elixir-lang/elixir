@@ -23,7 +23,12 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 24.04, OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
+    name: >-
+      Ubuntu 24.04, OTP ${{ matrix.otp_version }}
+      ${{ matrix.docs && ' (docs)' || '' }}
+      ${{ matrix.coverage && ' (coverage)' || '' }}
+      ${{ matrix.deterministic && ' (deterministic)' || '' }}
+
     runs-on: ubuntu-24.04
 
     strategy:
@@ -51,10 +56,19 @@ jobs:
     # from Erlang/OTP 27+.
     env:
       ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
-    steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
-      - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Detect changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: .github/file-filters.yml
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
 
@@ -128,9 +142,11 @@ jobs:
       - name: Configure Git
         run: git config --global core.autocrlf input
 
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
-      - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
+      - name: Setup BEAM
+        uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
         with:
           otp-version: ${{ matrix.otp_version }}
 
