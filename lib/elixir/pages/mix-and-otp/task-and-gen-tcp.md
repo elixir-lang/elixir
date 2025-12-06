@@ -200,7 +200,7 @@ Or does it? For example, what happens when you exit one telnet session? The othe
 
 2. Because each server task is linked to the acceptor process, if one task crashes, the acceptor process will also crash, taking down all other tasks and clients
 
-An important rule thumb throughout this guide is to always start processes as children of supervisors. The code above is an excellent example of what happens when we don't. If we don't isolate the different parts of our systems, failures can now cascade through our system, as it would happen in other languages.
+An important rule of thumb throughout this guide is to always start processes as children of supervisors. The code above is an excellent example of what happens when we don't. If we don't isolate the different parts of our systems, failures can now cascade through our system, as it would happen in other languages.
 
 To fix this, we could use a `DynamicSupervisor`, but tasks also provide a specialized `Task.Supervisor` which has better ergonomics and is optimized for supervising tasks themselves. Let's give it a try.
 
