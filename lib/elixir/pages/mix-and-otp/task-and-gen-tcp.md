@@ -278,7 +278,7 @@ Notice that a task says `:restart` is `:temporary`. `KV.Bucket` says nothing, wh
 
 Now we must ask ourselves, are those the correct settings?
 
-For `KV.Bucket`, using `:permanent` seem logical, as should not request the user to recreate a bucket they have previous created. Although currently we would lose the bucket data, in actual system we would add mechanisms to recover it on initialization. However, for tasks, we have used them in two opposing ways in this chapter, which means at least one of them is wrong.
+For `KV.Bucket`, using `:permanent` seems logical, as we should not require the user to recreate a bucket they have previously created. Although currently we would lose the bucket data, in an actual system we would add mechanisms to recover it on initialization. However, for tasks, we have used them in two opposing ways in this chapter, which means at least one of them is wrong.
 
 We use a task to start the acceptor. The acceptor is a critical component of our infrastructure. If it crashes, it means we won't accept further requests, and our server would then be useless as no one can connect to it. On the other hand, we also use `Task.Supervisor` to start tasks that deal with each connection. In this case, restarting may not be useful at all, given the reason we crashed could just as well be a connection issue, and attempting to restart over the same connection would lead to further failures.
 
