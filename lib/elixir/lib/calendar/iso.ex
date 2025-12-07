@@ -203,6 +203,8 @@ defmodule Calendar.ISO do
 
   # Constants for date calculations using 400-year era cycles.
   # The algorithm uses a March-based year where March 1 is day 0.
+  # Reference: Neri C, Schneider L. "Euclidean Affine Functions and
+  # their Application to Calendar Algorithms". Softw Pract Exper. 2022.
   @days_per_year 365
   @years_per_era 400
   @days_per_era @years_per_era * @days_per_year + 97
