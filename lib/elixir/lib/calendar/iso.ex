@@ -196,13 +196,27 @@ defmodule Calendar.ISO do
   @ext_date_sep ?-
   @ext_time_sep ?:
 
-  @days_per_nonleap_year 365
-  @days_per_leap_year 366
-
   # The ISO epoch starts, in this implementation,
   # with ~D[0000-01-01]. Era "1" starts
   # on ~D[0001-01-01] which is 366 days later.
   @iso_epoch 366
+
+  # Constants for date calculations using 400-year era cycles.
+  # The algorithm uses a March-based year where March 1 is day 0.
+  # Reference: Neri C, Schneider L. "Euclidean Affine Functions and
+  # their Application to Calendar Algorithms". Softw Pract Exper. 2022.
+  @days_per_year 365
+  @years_per_era 400
+  @days_per_era @years_per_era * @days_per_year + 97
+  @days_per_4_years 4 * @days_per_year
+  @days_per_100_years 100 * @days_per_year + 24
+  @march_1_offset 31 + 29
+  @unix_epoch_days 719_528
+
+  # Month calculation constants: in a March-based year, each 5-month
+  # cycle has exactly 153 days (31+30+31+30+31 or 31+30+31+30+31).
+  @days_per_5_months 153
+  @months_per_cycle 5
 
   [match_basic_date, match_ext_date, guard_date, read_date] =
     quote do
@@ -878,34 +892,49 @@ defmodule Calendar.ISO do
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
-  def date_to_iso_days(0, 1, 1) do
-    0
-  end
-
-  def date_to_iso_days(1970, 1, 1) do
-    719_528
-  end
+  def date_to_iso_days(0, 1, 1), do: 0
+  def date_to_iso_days(1970, 1, 1), do: @unix_epoch_days
 
   def date_to_iso_days(year, month, day) do
     ensure_day_in_month!(year, month, day)
 
-    days_in_previous_years(year) + days_before_month(month) + leap_day_offset(year, month) + day -
-      1
+    y = if month <= 2, do: year - 1, else: year
+    era = if y >= 0, do: div(y, @years_per_era), else: div(y - 399, @years_per_era)
+    year_of_era = y - era * @years_per_era
+    month_prime = if month > 2, do: month - 3, else: month + 9
+    day_of_year = div(@days_per_5_months * month_prime + 2, @months_per_cycle) + day - 1
+
+    day_of_era =
+      @days_per_year * year_of_era + div(year_of_era, 4) - div(year_of_era, 100) + day_of_year
+
+    era * @days_per_era + day_of_era + @march_1_offset
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
   def date_from_iso_days(days) do
-    {year, day_of_year} = days_to_year(days)
+    z = days - @march_1_offset
+    era = if z >= 0, do: div(z, @days_per_era), else: div(z - @days_per_era + 1, @days_per_era)
+    day_of_era = z - era * @days_per_era
 
-    {month, day_in_month} =
-      if leap_year?(year) do
-        year_day_to_year_date_leap(day_of_year)
-      else
-        year_day_to_year_date(day_of_year)
-      end
+    year_of_era =
+      div(
+        day_of_era - div(day_of_era, @days_per_4_years) + div(day_of_era, @days_per_100_years) -
+          div(day_of_era, @days_per_era - 1),
+        @days_per_year
+      )
 
-    {year, month, day_in_month + 1}
+    day_of_year =
+      day_of_era -
+        (@days_per_year * year_of_era + div(year_of_era, 4) - div(year_of_era, 100))
+
+    month_prime = div(@months_per_cycle * day_of_year + 2, @days_per_5_months)
+    day = day_of_year - div(@days_per_5_months * month_prime + 2, @months_per_cycle) + 1
+    month = if month_prime < 10, do: month_prime + 3, else: month_prime - 9
+    year = year_of_era + era * @years_per_era
+    year = if month <= 2, do: year + 1, else: year
+
+    {year, month, day}
   end
 
   defp div_rem(int1, int2) do
@@ -2108,91 +2137,6 @@ defmodule Calendar.ISO do
     if leap_year?(year), do: 1, else: 0
   end
 
-  defp days_to_year(days) when days < 0 do
-    y_min = floor_div_positive_divisor(days, @days_per_nonleap_year)
-    y_max = floor_div_positive_divisor(days, @days_per_leap_year)
-
-    {year, day_start} =
-      days_to_year_interpolated(
-        y_min,
-        y_max,
-        days,
-        days_in_previous_years(y_min),
-        days_in_previous_years(y_max)
-      )
-
-    {year, days - day_start}
-  end
-
-  defp days_to_year(days) do
-    y_min = floor_div_positive_divisor(days, @days_per_leap_year)
-    y_max = floor_div_positive_divisor(days, @days_per_nonleap_year)
-
-    {year, day_start} =
-      days_to_year_interpolated(
-        y_min,
-        y_max,
-        days,
-        days_in_previous_years(y_min),
-        days_in_previous_years(y_max)
-      )
-
-    {year, days - day_start}
-  end
-
-  defp days_to_year_interpolated(min, max, _days, d_min, _d_max) when min >= max do
-    {min, d_min}
-  end
-
-  defp days_to_year_interpolated(min, max, days, d_min, d_max) do
-    diff = max - min
-    d_diff = d_max - d_min
-
-    numerator = diff * (days - d_min)
-    offset = floor_div_positive_divisor(numerator, d_diff)
-
-    mid = min + max(0, min(offset, diff))
-    d_mid = days_in_previous_years(mid)
-    mid_length = if leap_year?(mid), do: @days_per_leap_year, else: @days_per_nonleap_year
-
-    cond do
-      days < d_mid ->
-        new_max = mid - 1
-        days_to_year_interpolated(min, new_max, days, d_min, days_in_previous_years(new_max))
-
-      days - d_mid >= mid_length ->
-        new_min = mid + 1
-        days_to_year_interpolated(new_min, max, days, days_in_previous_years(new_min), d_max)
-
-      true ->
-        {mid, d_mid}
-    end
-  end
-
-  defp days_in_previous_years(0), do: 0
-
-  # A concise version of the algorithm would use floor_div instead of div.
-  # However, floor_div would check the operands on every operation.
-  # We optimize this by providing a positive and negative version of each algorithm.
-  defp days_in_previous_years(year) when year > 0 do
-    previous_year = year - 1
-
-    div(previous_year, 4) - div(previous_year, 100) +
-      div(previous_year, 400) + previous_year * @days_per_nonleap_year +
-      @days_per_leap_year
-  end
-
-  defp days_in_previous_years(year) when year < 0 do
-    previous_year = year - 1
-
-    div(year, 4) - div(year, 100) +
-      div(year, 400) - 1 + previous_year * @days_per_nonleap_year +
-      @days_per_leap_year
-  end
-
-  # Note that this function does not add the extra leap day for a leap year.
-  # If you want to add that leap day when appropriate,
-  # add the result of leap_day_offset/2 to the result of days_before_month/1.
   defp days_before_month(1), do: 0
   defp days_before_month(2), do: 31
   defp days_before_month(3), do: 59
@@ -2205,33 +2149,6 @@ defmodule Calendar.ISO do
   defp days_before_month(10), do: 273
   defp days_before_month(11), do: 304
   defp days_before_month(12), do: 334
-
-  # Note that 0 is the first day of the month.
-  defp year_day_to_year_date(day_of_year) when day_of_year < 31, do: {1, day_of_year}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 59, do: {2, day_of_year - 31}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 90, do: {3, day_of_year - 59}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 120, do: {4, day_of_year - 90}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 151, do: {5, day_of_year - 120}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 181, do: {6, day_of_year - 151}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 212, do: {7, day_of_year - 181}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 243, do: {8, day_of_year - 212}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 273, do: {9, day_of_year - 243}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 304, do: {10, day_of_year - 273}
-  defp year_day_to_year_date(day_of_year) when day_of_year < 334, do: {11, day_of_year - 304}
-  defp year_day_to_year_date(day_of_year), do: {12, day_of_year - 334}
-
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 31, do: {1, day_of_year}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 60, do: {2, day_of_year - 31}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 91, do: {3, day_of_year - 60}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 121, do: {4, day_of_year - 91}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 152, do: {5, day_of_year - 121}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 182, do: {6, day_of_year - 152}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 213, do: {7, day_of_year - 182}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 244, do: {8, day_of_year - 213}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 274, do: {9, day_of_year - 244}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 305, do: {10, day_of_year - 274}
-  defp year_day_to_year_date_leap(day_of_year) when day_of_year < 335, do: {11, day_of_year - 305}
-  defp year_day_to_year_date_leap(day_of_year), do: {12, day_of_year - 335}
 
   defp iso_seconds_to_datetime(seconds) do
     {days, rest_seconds} = div_rem(seconds, @seconds_per_day)
