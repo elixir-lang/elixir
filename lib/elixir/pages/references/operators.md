@@ -8,6 +8,68 @@
 
 This document is a complete reference of operators in Elixir, how they are parsed, how they can be defined, and how they can be overridden.
 
+## General operators
+
+Elixir provides the following built-in operators:
+
+  * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
+  * [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), and [`/`](`//2`) - basic arithmetic operations
+  * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and subtraction
+  * [`and`](`and/2`) and [`&&`](`&&/2`) - strict and relaxed boolean "and"
+  * [`or`](`or/2`) and [`||`](`||/2`) - strict and relaxed boolean "or"
+  * [`not`](`not/1`) and [`!`](`!/1`) - strict and relaxed boolean "not"
+  * [`in`](`in/2`) and [`not in`](`in/2`) - membership
+  * [`@`](`@/1`) - module attribute
+  * [`..`](`../0`), [`..`](`../2`), and [`..//`](`..///3`) - range creation
+  * [`<>`](`<>/2`) - binary concatenation
+  * [`|>`](`|>/2`) - pipeline
+  * [`=~`](`=~/2`) - text-based match
+
+Many of those can be used in guards. Consult the [list of allowed guard functions and operators](patterns-and-guards.md#list-of-allowed-functions-and-operators).
+
+Additionally, there are a few other operators that Elixir parses but doesn't actually use.
+See [Custom and overridden operators](#custom-and-overridden-operators) below for a list and for guidelines about their use.
+
+Some other operators are special forms and cannot be overridden:
+
+  * [`^`](`^/1`) - pin operator
+  * [`.`](`./2`) - dot operator
+  * [`=`](`=/2`) - match operator
+  * [`&`](`&/1`) - capture operator
+  * [`::`](`::/2`) - type operator
+
+Finally, these operators appear in the precedence table below but are only meaningful within certain constructs:
+
+  * `=>` - see [`%{}`](`%{}/1`)
+  * `when` - see [Guards](patterns-and-guards.md#guards)
+  * `<-` - see [`for`](`for/1`) and [`with`](`with/1`)
+  * `\\` - see [Default arguments](`Kernel#def/2-default-arguments`)
+
+## Comparison operators
+
+Elixir provides the following built-in comparison operators (all of which can be used in guards):
+
+  * [`==`](`==/2`) - equal to
+  * [`===`](`===/2`) - strictly equal to
+  * [`!=`](`!=/2`) - not equal to
+  * [`!==`](`!==/2`) - strictly not equal to
+  * [`<`](`</2`) - less-than
+  * [`>`](`>/2`) - greater-than
+  * [`<=`](`<=/2`) - less-than or equal to
+  * [`>=`](`>=/2`) - greater-than or equal to
+
+The only difference between [`==`](`==/2`) and [`===`](`===/2`) is that [`===`](`===/2`) is strict when it comes to comparing integers and floats:
+
+```elixir
+iex> 1 == 1.0
+true
+iex> 1 === 1.0
+false
+```
+
+[`!=`](`!=/2`) and [`!==`](`!==/2`) act as the negation of [`==`](`==/2`) and [`===`](`===/2`), respectively.
+
+
 ## Operator precedence and associativity
 
 The following is a list of all operators that Elixir is capable of parsing, ordered from higher to lower precedence, alongside their associativity:
@@ -43,70 +105,11 @@ Operator                                       | Associativity
 `first..last//step`                            | Right
 `%{map \| key => value, ...}`                  | None
 
-## General operators
-
-Elixir provides the following built-in operators:
-
-  * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
-  * [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), and [`/`](`//2`) - basic arithmetic operations
-  * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and subtraction
-  * [`and`](`and/2`) and [`&&`](`&&/2`) - strict and relaxed boolean "and"
-  * [`or`](`or/2`) and [`||`](`||/2`) - strict and relaxed boolean "or"
-  * [`not`](`not/1`) and [`!`](`!/1`) - strict and relaxed boolean "not"
-  * [`in`](`in/2`) and [`not in`](`in/2`) - membership
-  * [`@`](`@/1`) - module attribute
-  * [`..`](`../0`), [`..`](`../2`), and [`..//`](`..///3`) - range creation
-  * [`<>`](`<>/2`) - binary concatenation
-  * [`|>`](`|>/2`) - pipeline
-  * [`=~`](`=~/2`) - text-based match
-
-Many of those can be used in guards; consult the [list of allowed guard functions and operators](patterns-and-guards.md#list-of-allowed-functions-and-operators).
-
-Additionally, there are a few other operators that Elixir parses but doesn't actually use.
-See [Custom and overridden operators](#custom-and-overridden-operators) below for a list and for guidelines about their use.
-
-Some other operators are special forms and cannot be overridden:
-
-  * [`^`](`^/1`) - pin operator
-  * [`.`](`./2`) - dot operator
-  * [`=`](`=/2`) - match operator
-  * [`&`](`&/1`) - capture operator
-  * [`::`](`::/2`) - type operator
-
-Finally, these operators appear in the precedence table above but are only meaningful within certain constructs:
-
-  * `=>` - see [`%{}`](`%{}/1`)
-  * `when` - see [Guards](patterns-and-guards.md#guards)
-  * `<-` - see [`for`](`for/1`) and [`with`](`with/1`)
-  * `\\` - see [Default arguments](`Kernel#def/2-default-arguments`)
-
-## Comparison operators
-
-Elixir provides the following built-in comparison operators (all of which can be used in guards):
-
-  * [`==`](`==/2`) - equal to
-  * [`===`](`===/2`) - strictly equal to
-  * [`!=`](`!=/2`) - not equal to
-  * [`!==`](`!==/2`) - strictly not equal to
-  * [`<`](`</2`) - less-than
-  * [`>`](`>/2`) - greater-than
-  * [`<=`](`<=/2`) - less-than or equal to
-  * [`>=`](`>=/2`) - greater-than or equal to
-
-The only difference between [`==`](`==/2`) and [`===`](`===/2`) is that [`===`](`===/2`) is strict when it comes to comparing integers and floats:
-
-```elixir
-iex> 1 == 1.0
-true
-iex> 1 === 1.0
-false
-```
-
-[`!=`](`!=/2`) and [`!==`](`!==/2`) act as the negation of [`==`](`==/2`) and [`===`](`===/2`), respectively.
+> #### Deprecated operator precedence {: .info}
+>
+> Elixir parses `not left in right` as `not(left in right)` and `!left in right` as `!(left in right)`, which mismatches the precedence table above, but such behaviour is deprecated and emits a warning. Both constructs must be written as `left not in right` instead. In future major versions, the parser will match the table above.
 
 ## Custom and overridden operators
-
-### Defining custom operators
 
 Elixir is capable of parsing a predefined set of operators. It's not possible to define new operators (as supported by some languages). However, not all operators that Elixir can parse are *used* by Elixir: for example, `+` and `||` are used by Elixir for addition and boolean *or*, but `<~>` is not used (but valid).
 
