@@ -1270,13 +1270,23 @@ defmodule Module.Types.DescrTest do
 
     test "list_proper?" do
       assert list_proper?(term()) == false
-      assert list_proper?(none()) == false
+      assert list_proper?(none()) == true
       assert list_proper?(empty_list()) == true
       assert list_proper?(non_empty_list(integer())) == true
       assert list_proper?(non_empty_list(integer(), atom())) == false
       assert list_proper?(non_empty_list(integer(), term())) == false
       assert list_proper?(non_empty_list(integer(), list(term()))) == true
       assert list_proper?(list(integer()) |> union(list(integer(), integer()))) == false
+      assert list_proper?(dynamic(list(integer()))) == true
+      assert list_proper?(dynamic(list(integer(), atom()))) == false
+
+      # An empty list
+      list_with_tail =
+        non_empty_list(atom(), union(integer(), empty_list()))
+        |> difference(non_empty_list(atom([:ok]), integer()))
+        |> difference(non_empty_list(atom(), term()))
+
+      assert list_proper?(list_with_tail) == true
     end
 
     test "list_tl" do

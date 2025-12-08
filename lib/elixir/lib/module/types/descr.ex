@@ -1844,34 +1844,19 @@ defmodule Module.Types.Descr do
           acc
 
         {list, last} ->
-          if empty?(list) or empty?(last) do
-            acc
-          else
-            Enum.reduce_while(negs, {list_tail_unfold(last), []}, fn {neg_type, neg_last},
-                                                                     {acc_last, acc_negs} ->
-              if subtype?(list, neg_type) do
-                difference = difference(acc_last, neg_last)
-                if empty?(difference), do: {:halt, nil}, else: {:cont, {difference, acc_negs}}
-              else
-                {:cont, {acc_last, [{neg_type, neg_last} | acc_negs]}}
-              end
-            end)
-            |> case do
-              {:halt, nil} -> acc
-              {last, negs} -> [{list, last, Enum.reverse(negs)} | acc]
+          Enum.reduce_while(negs, {list_tail_unfold(last), []}, fn {neg_type, neg_last},
+                                                                   {acc_last, acc_negs} ->
+            if subtype?(list, neg_type) do
+              difference = difference(acc_last, neg_last)
+              if empty?(difference), do: {:halt, nil}, else: {:cont, {difference, acc_negs}}
+            else
+              {:cont, {acc_last, [{neg_type, neg_last} | acc_negs]}}
             end
+          end)
+          |> case do
+            nil -> acc
+            {last, negs} -> [{list, last, Enum.reverse(negs)} | acc]
           end
-      end
-    end)
-  end
-
-  # Compute the head of a list (faster because we discard computations on the last type).
-  defp list_bdd_to_hd(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.reduce(none(), fn {pos_list, neg_list}, acc ->
-      case non_empty_list_literals_intersection(pos_list) do
-        :empty -> acc
-        {list, last} -> if list_line_empty?(list, last, neg_list), do: acc, else: union(acc, list)
       end
     end)
   end
@@ -1898,16 +1883,7 @@ defmodule Module.Types.Descr do
   Checks if a list type is a proper list (terminated by empty list).
   """
   def list_proper?(:term), do: false
-
-  def list_proper?(%{} = descr) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        list_proper_static?(descr)
-
-      {dynamic, static} ->
-        list_proper_static?(static) and (list_proper_static?(dynamic) or empty?(dynamic))
-    end
-  end
+  def list_proper?(%{} = descr), do: Map.get(descr, :dynamic, descr) |> list_proper_static?()
 
   defp list_proper_static?(:term), do: false
 
@@ -1926,7 +1902,7 @@ defmodule Module.Types.Descr do
         empty?(Map.delete(descr, :list)) and list_bdd_proper?(bdd)
 
       %{} ->
-        false
+        empty?(descr)
     end
   end
 
@@ -2045,20 +2021,19 @@ defmodule Module.Types.Descr do
 
   defp list_hd_static(:term), do: :term
 
-  defp list_hd_static(%{list: bdd}), do: list_bdd_to_hd(bdd)
+  defp list_hd_static(%{list: bdd}) do
+    list_bdd_to_pos_dnf(bdd)
+    |> Enum.reduce(none(), fn {list, _last, _negs}, acc -> union(acc, list) end)
+  end
 
   defp list_hd_static(%{}), do: none()
 
   @doc """
-  Computes the type of the tail of a non-empty list type.
+   Returns the tail of a list.
 
-  Returns `{dynamic?, type}` on success, where `dynamic?` indicates whether
-  the result contains a dynamic component. Returns `:badnonemptylist` if the
-  input type is not guaranteed to be a non-empty list.
-
-  For a `non_empty_list(t)`, the tail type is `list(t)` (possibly empty).
+   For a `non_empty_list(t)`, the tail type is `list(t)`.
   For an improper list `non_empty_list(t, s)`, the tail type is
-  `list(t, s) or s` (either the rest of the list or the terminator).
+  `list(t, s) or s` (either the rest of the list or the terminator)
   """
   def list_tl(:term), do: :badnonemptylist
 
@@ -2097,8 +2072,7 @@ defmodule Module.Types.Descr do
       end
 
     list_bdd_to_pos_dnf(bdd)
-    |> Enum.reduce(none(), fn {_list, last, _negs}, acc -> union(acc, last) end)
-    |> union(initial)
+    |> Enum.reduce(initial, fn {_list, last, _negs}, acc -> union(acc, last) end)
   end
 
   defp list_tl_static(%{}), do: none()
@@ -2126,6 +2100,7 @@ defmodule Module.Types.Descr do
               name = if empty?, do: :list, else: :non_empty_list
               {name, [to_quoted(list_type, opts)], empty?}
 
+            # Sugar: print the last type as term() if it only misses non empty lists.
             subtype?(@not_non_empty_list, last_type) ->
               args = [to_quoted(list_type, opts), {:term, [], []}]
               {:non_empty_list, args, list_rendered?}
