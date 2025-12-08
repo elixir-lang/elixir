@@ -2083,19 +2083,8 @@ defmodule Module.Types.Descr do
     {unions, list_rendered?} =
       dnf
       |> Enum.reduce({[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
-        # <<<<<<< HEAD
-        #           if subtype?(last_type, @empty_list) do
-        #             name = if empty?, do: :list, else: :non_empty_list
-        #             {name, [to_quoted(list_type, opts)], empty?}
-        #           else
-        #             args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
-        #             {:non_empty_list, args, list_rendered?}
-        # =======
         {name, arguments, list_rendered?} =
           cond do
-            # list_type == term() and list_improper_static?(last_type) ->
-            # {:improper_list, [], list_rendered?}
-
             subtype?(last_type, @empty_list) ->
               name = if empty?, do: :list, else: :non_empty_list
               {name, [to_quoted(list_type, opts)], empty?}
@@ -2108,7 +2097,6 @@ defmodule Module.Types.Descr do
             true ->
               args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
               {:non_empty_list, args, list_rendered?}
-              # >>>>>>> 4e5179dd6 (Enhance list type handling and add list_proper? function)
           end
 
         acc =
