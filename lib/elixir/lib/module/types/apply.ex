@@ -358,37 +358,37 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:erlang, :hd, _info, [list], _stack) do
+  defp remote_apply(:erlang, :hd, _info, [list], stack) do
     case list_hd(list) do
-      {:ok, value_type} -> {:ok, value_type}
+      {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
       :badnonemptylist -> {:error, badremote(:erlang, :hd, 1)}
     end
   end
 
-  defp remote_apply(:erlang, :tl, _info, [list], _stack) do
+  defp remote_apply(:erlang, :tl, _info, [list], stack) do
     case list_tl(list) do
-      {:ok, value_type} -> {:ok, value_type}
+      {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
       :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
     end
   end
 
-  defp remote_apply(:maps, :keys, _info, [map], _stack) do
+  defp remote_apply(:maps, :keys, _info, [map], stack) do
     case map_to_list(map, fn key, _value -> key end) do
-      {:ok, list_type} -> {:ok, list_type}
+      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :keys, 1)}
     end
   end
 
-  defp remote_apply(:maps, :values, _info, [map], _stack) do
+  defp remote_apply(:maps, :values, _info, [map], stack) do
     case map_to_list(map, fn _key, value -> value end) do
-      {:ok, list_type} -> {:ok, list_type}
+      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :keys, 1)}
     end
   end
 
-  defp remote_apply(:maps, :to_list, _info, [map], _stack) do
+  defp remote_apply(:maps, :to_list, _info, [map], stack) do
     case map_to_list(map) do
-      {:ok, list_type} -> {:ok, list_type}
+      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :to_list, 1)}
     end
   end
@@ -415,32 +415,32 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply({:element, index}, [_index, tuple], _stack) do
+  defp remote_apply({:element, index}, [_, tuple] = args_types, stack) do
     case tuple_fetch(tuple, index - 1) do
-      {_optional?, value_type} -> {:ok, value_type}
+      {_optional?, value_type} -> {:ok, return(value_type, args_types, stack)}
       :badtuple -> {:error, badremote(:erlang, :element, 2)}
       :badindex -> {:error, {:badindex, index, tuple}}
     end
   end
 
-  defp remote_apply({:insert_element, index}, [_index, tuple, value], _stack) do
+  defp remote_apply({:insert_element, index}, [_, tuple, value] = args_types, stack) do
     case tuple_insert_at(tuple, index - 1, value) do
-      value_type when is_descr(value_type) -> {:ok, value_type}
+      value_type when is_descr(value_type) -> {:ok, return(value_type, args_types, stack)}
       :badtuple -> {:error, badremote(:erlang, :insert_element, 3)}
       :badindex -> {:error, {:badindex, index - 1, tuple}}
     end
   end
 
-  defp remote_apply({:delete_element, index}, [_index, tuple], _stack) do
+  defp remote_apply({:delete_element, index}, [_, tuple] = args_types, stack) do
     case tuple_delete_at(tuple, index - 1) do
-      value_type when is_descr(value_type) -> {:ok, value_type}
+      value_type when is_descr(value_type) -> {:ok, return(value_type, args_types, stack)}
       :badtuple -> {:error, badremote(:erlang, :delete_element, 2)}
       :badindex -> {:error, {:badindex, index, tuple}}
     end
   end
 
-  defp remote_apply({:make_tuple, size}, [_size, elem], _stack) do
-    {:ok, tuple(List.duplicate(elem, size))}
+  defp remote_apply({:make_tuple, size}, [_, elem] = args_types, stack) do
+    {:ok, return(tuple(List.duplicate(elem, size)), args_types, stack)}
   end
 
   defp remote_apply({:ordered_compare, name, check?}, [left, right], stack) do
