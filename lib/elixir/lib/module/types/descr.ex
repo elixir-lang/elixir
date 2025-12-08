@@ -315,7 +315,7 @@ defmodule Module.Types.Descr do
   end
 
   defp optional_static?(%{optional: 1}), do: true
-  defp optional_static?(%{}), do: false
+  defp optional_static?(_term_or_descr), do: false
 
   defp pop_optional_static(:term), do: {false, :term}
 
