@@ -1844,8 +1844,7 @@ defmodule Module.Types.Descr do
           acc
 
         {list, last} ->
-          Enum.reduce_while(negs, {list_tail_unfold(last), []}, fn {neg_type, neg_last},
-                                                                   {acc_last, acc_negs} ->
+          Enum.reduce_while(negs, {last, []}, fn {neg_type, neg_last}, {acc_last, acc_negs} ->
             if subtype?(list, neg_type) do
               difference = difference(acc_last, neg_last)
               if empty?(difference), do: {:halt, nil}, else: {:cont, {difference, acc_negs}}
