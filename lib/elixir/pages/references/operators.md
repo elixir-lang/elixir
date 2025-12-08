@@ -69,7 +69,6 @@ false
 
 [`!=`](`!=/2`) and [`!==`](`!==/2`) act as the negation of [`==`](`==/2`) and [`===`](`===/2`), respectively.
 
-
 ## Operator precedence and associativity
 
 The following is a list of all operators that Elixir is capable of parsing, ordered from higher to lower precedence, alongside their associativity:
