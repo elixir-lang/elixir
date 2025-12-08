@@ -1795,13 +1795,12 @@ defmodule Module.Types.Descr do
             #
             # A negation only matters when the negated list type is a supertype of the
             # corresponding positive list type; in that case we subtract the negated
-            # variant from the positive one.
+            # variant from the positive one. This is done in list_bdd_to_pos_dnf/1.
             {list_type, last_type} =
               list_bdd_to_pos_dnf(bdd)
               |> Enum.reduce({list_type, last_type_no_list}, fn
-                {head, tail}, {acc_head, acc_tail} ->
-                  tail = list_tail_unfold(tail)
-                  {union(head, acc_head), union(tail, acc_tail)}
+                {list, last, _negs}, {acc_list, acc_last} ->
+                  {union(list, acc_list), union(last, acc_last)}
               end)
 
             list_new(list_type, last_type)
@@ -1830,39 +1829,49 @@ defmodule Module.Types.Descr do
   end
 
   # Takes all the lines from the root to the leaves finishing with a 1,
-  # and compile into tuples of positive and negative nodes. Positive nodes are
-  # those followed by a left path, negative nodes are those followed by a right path.
-  defp list_bdd_to_dnf(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {pos_list, neg_list}, acc ->
-      case non_empty_list_literals_intersection(pos_list) do
-        :empty ->
-          acc
-
-        {list, last} ->
-          if list_line_empty?(list, last, neg_list),
-            do: acc,
-            else: [{{list, last}, neg_list} | acc]
-      end
-    end)
-  end
-
-  # Takes all the lines from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Keep only the non-empty positives,
   # and include the impact of negations on the last type.
   # To see if a negation changes the last type or the list type, we just need to check
   # if the negative list type is a supertype of the positive list type. In that case,
   # we can remove the negative last type from the positive one.
+
   # (If this subtracted type was empty, the whole type would be empty)
   defp list_bdd_to_pos_dnf(bdd) do
     bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {pos_list, neg_list}, acc ->
+    |> Enum.reduce([], fn {pos_list, negs}, acc ->
       case non_empty_list_literals_intersection(pos_list) do
         :empty ->
           acc
 
         {list, last} ->
-          if list_line_empty?(list, last, neg_list), do: acc, else: [{list, last} | acc]
+          if empty?(list) or empty?(last) do
+            acc
+          else
+            Enum.reduce_while(negs, {list_tail_unfold(last), []}, fn {neg_type, neg_last},
+                                                                     {acc_last, acc_negs} ->
+              if subtype?(list, neg_type) do
+                difference = difference(acc_last, neg_last)
+                if empty?(difference), do: {:halt, nil}, else: {:cont, {difference, acc_negs}}
+              else
+                {:cont, {acc_last, [{neg_type, neg_last} | acc_negs]}}
+              end
+            end)
+            |> case do
+              {:halt, nil} -> acc
+              {last, negs} -> [{list, last, Enum.reverse(negs)} | acc]
+            end
+          end
+      end
+    end)
+  end
+
+  # Compute the head of a list (faster because we discard computations on the last type).
+  defp list_bdd_to_hd(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce(none(), fn {pos_list, neg_list}, acc ->
+      case non_empty_list_literals_intersection(pos_list) do
+        :empty -> acc
+        {list, last} -> if list_line_empty?(list, last, neg_list), do: acc, else: union(acc, list)
       end
     end)
   end
@@ -1884,6 +1893,47 @@ defmodule Module.Types.Descr do
 
   defp list_top?(bdd_leaf(:term, :term)), do: true
   defp list_top?(_), do: false
+
+  @doc """
+  Checks if a list type is a proper list (terminated by empty list).
+  """
+  def list_proper?(:term), do: false
+
+  def list_proper?(%{} = descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        list_proper_static?(descr)
+
+      {dynamic, static} ->
+        list_proper_static?(static) and (list_proper_static?(dynamic) or empty?(dynamic))
+    end
+  end
+
+  defp list_proper_static?(:term), do: false
+
+  defp list_proper_static?(%{} = descr) do
+    # A list is proper if it's either the empty list alone, or all non-empty
+    # list types have tails that are subtypes of empty list
+    case descr do
+      %{bitmap: bitmap, list: bdd} ->
+        (bitmap &&& @bit_empty_list) != 0 and empty?(Map.drop(descr, [:list, :bitmap])) and
+          list_bdd_proper?(bdd)
+
+      %{bitmap: bitmap} ->
+        (bitmap &&& @bit_empty_list) != 0 and empty?(Map.delete(descr, :bitmap))
+
+      %{list: bdd} ->
+        empty?(Map.delete(descr, :list)) and list_bdd_proper?(bdd)
+
+      %{} ->
+        false
+    end
+  end
+
+  defp list_bdd_proper?(bdd) do
+    list_bdd_to_pos_dnf(bdd)
+    |> Enum.all?(fn {_list, last, _negs} -> subtype?(last, @empty_list) end)
+  end
 
   defp list_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
     try do
@@ -1914,10 +1964,16 @@ defmodule Module.Types.Descr do
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
   defp list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2) do
     cond do
-      disjoint?(list1, list2) or disjoint?(last1, last2) -> bdd_leaf(list1, last1)
-      subtype?(list1, list2) and subtype?(last1, last2) -> :bdd_bot
-      equal?(list1, list2) -> bdd_leaf(list1, difference(last1, last2))
-      true -> bdd_difference(bdd1, bdd2)
+      disjoint?(list1, list2) or disjoint?(last1, last2) ->
+        bdd_leaf(list1, last1)
+
+      subtype?(list1, list2) ->
+        if subtype?(last1, last2),
+          do: :bdd_bot,
+          else: bdd_leaf(list1, difference(last1, last2))
+
+      true ->
+        bdd_difference(bdd1, bdd2)
     end
   end
 
@@ -1989,22 +2045,20 @@ defmodule Module.Types.Descr do
 
   defp list_hd_static(:term), do: :term
 
-  defp list_hd_static(%{list: bdd}) do
-    list_bdd_to_pos_dnf(bdd)
-    |> Enum.reduce(none(), fn {list, _}, acc ->
-      union(list, acc)
-    end)
-  end
+  defp list_hd_static(%{list: bdd}), do: list_bdd_to_hd(bdd)
 
   defp list_hd_static(%{}), do: none()
 
   @doc """
-  Returns the tail of a list.
+  Computes the type of the tail of a non-empty list type.
 
-  Errors on a possibly empty list.
-  On a non empty list of integers, it returns a (possibly empty) list of integers.
-  On a non empty list of integers, with an atom tail element, it returns either an atom,
-  or a (possibly empty) list of integers with an atom tail element.
+  Returns `{dynamic?, type}` on success, where `dynamic?` indicates whether
+  the result contains a dynamic component. Returns `:badnonemptylist` if the
+  input type is not guaranteed to be a non-empty list.
+
+  For a `non_empty_list(t)`, the tail type is `list(t)` (possibly empty).
+  For an improper list `non_empty_list(t, s)`, the tail type is
+  `list(t, s) or s` (either the rest of the list or the terminator).
   """
   def list_tl(:term), do: :badnonemptylist
 
@@ -2042,7 +2096,9 @@ defmodule Module.Types.Descr do
           %{list: bdd}
       end
 
-    list_bdd_to_pos_dnf(bdd) |> Enum.reduce(initial, fn {_, tail}, acc -> union(tail, acc) end)
+    list_bdd_to_pos_dnf(bdd)
+    |> Enum.reduce(none(), fn {_list, last, _negs}, acc -> union(acc, last) end)
+    |> union(initial)
   end
 
   defp list_tl_static(%{}), do: none()
@@ -2053,13 +2109,31 @@ defmodule Module.Types.Descr do
     {unions, list_rendered?} =
       dnf
       |> Enum.reduce({[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
+        # <<<<<<< HEAD
+        #           if subtype?(last_type, @empty_list) do
+        #             name = if empty?, do: :list, else: :non_empty_list
+        #             {name, [to_quoted(list_type, opts)], empty?}
+        #           else
+        #             args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
+        #             {:non_empty_list, args, list_rendered?}
+        # =======
         {name, arguments, list_rendered?} =
-          if subtype?(last_type, @empty_list) do
-            name = if empty?, do: :list, else: :non_empty_list
-            {name, [to_quoted(list_type, opts)], empty?}
-          else
-            args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
-            {:non_empty_list, args, list_rendered?}
+          cond do
+            # list_type == term() and list_improper_static?(last_type) ->
+            # {:improper_list, [], list_rendered?}
+
+            subtype?(last_type, @empty_list) ->
+              name = if empty?, do: :list, else: :non_empty_list
+              {name, [to_quoted(list_type, opts)], empty?}
+
+            subtype?(@not_non_empty_list, last_type) ->
+              args = [to_quoted(list_type, opts), {:term, [], []}]
+              {:non_empty_list, args, list_rendered?}
+
+            true ->
+              args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
+              {:non_empty_list, args, list_rendered?}
+              # >>>>>>> 4e5179dd6 (Enhance list type handling and add list_proper? function)
           end
 
         acc =
@@ -2096,27 +2170,19 @@ defmodule Module.Types.Descr do
   end
 
   # Eliminate empty lists from the union, and redundant types (that are subtypes of others,
-  # or that can be merged with others).
+  # or that can be merged with others). List_bdd_to_pos_dnf already takes into account the
+  # impact of negations on the last type.
   defp list_normalize(bdd) do
-    list_bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {{list, last}, negs}, acc ->
-      # First, try to eliminate the negations from the existing type.
-      {list, last, negs} =
+    list_bdd_to_pos_dnf(bdd)
+    |> Enum.reduce([], fn {list, last, negs}, acc ->
+      # Prune negations from those with empty intersections.
+      negs =
         Enum.uniq(negs)
-        |> Enum.reduce({list, last, []}, fn {nlist, nlast}, {acc_list, acc_last, acc_negs} ->
-          last = list_tail_unfold(last)
-          new_list = intersection(list, nlist)
-          new_last = intersection(last, nlast)
-
-          cond do
-            # No intersection between the list and the negative
-            empty?(new_list) or empty?(new_last) -> {acc_list, acc_last, acc_negs}
-            subtype?(list, nlist) -> {acc_list, difference(acc_last, nlast), acc_negs}
-            true -> {acc_list, acc_last, [{nlist, nlast} | acc_negs]}
-          end
+        |> Enum.filter(fn {nlist, nlast} ->
+          not empty?(intersection(list, nlist)) and not empty?(intersection(last, nlast))
         end)
 
-      add_to_list_normalize(acc, list, last, negs |> Enum.reverse())
+      add_to_list_normalize(acc, list, last, negs)
     end)
   end
 
