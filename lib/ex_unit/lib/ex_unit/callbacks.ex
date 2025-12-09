@@ -169,11 +169,7 @@ defmodule ExUnit.Callbacks do
       end
   """
 
-  @type child_spec_overrides :: [
-          restart: :permanent | :transient | :temporary,
-          shutdown: :brutal_kill | timeout(),
-          type: :worker | :supervisor
-        ]
+  @type child_spec_overrides :: Supervisor.child_spec_overrides()
 
   @doc false
   def __register__(module) do
