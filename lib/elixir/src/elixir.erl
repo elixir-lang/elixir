@@ -64,6 +64,11 @@ start(_Type, _Args) ->
       application:set_env(elixir, ansi_enabled, prim_tty:isatty(stdout) == true)
   end,
 
+  %% Store the initial dbg_callback value before any runtime modifications.
+  %% This allows Mix compiler to detect config changes vs runtime changes
+  %% (e.g., Kino wrapping dbg_callback at runtime should not trigger recompilation).
+  {ok, InitialDbgCallback} = application:get_env(elixir, dbg_callback),
+
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
     {module, Mod} -> Mod;
     _ -> elixir_tokenizer
@@ -90,6 +95,7 @@ start(_Type, _Args) ->
     {docs, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
+    {initial_dbg_callback, InitialDbgCallback},
     {infer_signatures, [elixir]},
     {on_undefined_variable, raise},
     {parser_options, [{columns, true}]},
