@@ -244,6 +244,8 @@ defmodule Module.Types.Apply do
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
         ## Map
+        {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
+        {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
         {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
         {:maps, :values, [{[open_map()], dynamic(list(term()))}]}
@@ -369,6 +371,40 @@ defmodule Module.Types.Apply do
     case list_tl(list) do
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
       :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :from_keys, _info, [list, value_type] = args_types, stack) do
+    case list_of(list) do
+      {true, nil} ->
+        {:ok, return(empty_map(), args_types, stack)}
+
+      {empty_list?, key_type} ->
+        if key_type == dynamic() or key_type == term() do
+          {:ok, return(open_map(), args_types, stack)}
+        else
+          value_type = if_set(value_type)
+          domain_keys = to_domain_keys(key_type)
+
+          keys =
+            case atom_fetch(key_type) do
+              {:finite, atom_keys} -> [List.delete(domain_keys, :atom) | atom_keys]
+              _ -> [domain_keys]
+            end
+
+          map = closed_map(Enum.map(keys, &{&1, value_type}))
+
+          map_and_maybe_empty_map =
+            case empty_list? do
+              true -> map
+              false -> difference(map, empty_map())
+            end
+
+          {:ok, return(map_and_maybe_empty_map, args_types, stack)}
+        end
+
+      :badproperlist ->
+        {:error, badremote(:maps, :from_keys, 2)}
     end
   end
 

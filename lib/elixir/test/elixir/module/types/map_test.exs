@@ -69,6 +69,52 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.from_keys/2" do
+    test "checking" do
+      assert typecheck!([], Map.from_keys([], :value)) ==
+               empty_map()
+
+      assert typecheck!([x], Map.from_keys(x, :value)) ==
+               open_map()
+
+      assert typecheck!(
+               (
+                 x = [:key1, :key2]
+                 Map.from_keys(x, 123)
+               )
+             ) ==
+               closed_map(key1: if_set(integer()), key2: if_set(integer()))
+               |> difference(empty_map())
+
+      assert typecheck!(
+               [condition?],
+               (
+                 x = if condition?, do: [123, "123"], else: []
+                 Map.from_keys(x, 123)
+               )
+             ) ==
+               closed_map([
+                 {domain_key(:integer), if_set(integer())},
+                 {domain_key(:binary), if_set(integer())}
+               ])
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.from_keys(x, :value)
+                 x
+               )
+             ) == dynamic(list(term()))
+    end
+
+    test "errors" do
+      assert typeerror!([x = %{}], Map.from_keys(x, :value)) =~
+               "incompatible types given to Map.from_keys/2"
+    end
+  end
+
   describe "Map.keys/1" do
     test "checking" do
       assert typecheck!([x = %{}], Map.keys(x)) == dynamic(list(term()))

@@ -1271,18 +1271,18 @@ defmodule Module.Types.DescrTest do
     test "list_of" do
       assert list_of(term()) == :badproperlist
       assert list_of(none()) == :badproperlist
-      assert list_of(empty_list()) == {:static, none()}
+      assert list_of(empty_list()) == {true, none()}
       assert list_of(union(empty_list(), integer())) == :badproperlist
-      assert list_of(non_empty_list(integer())) == {nil, integer()}
+      assert list_of(non_empty_list(integer())) == {false, integer()}
       assert list_of(non_empty_list(integer(), atom())) == :badproperlist
       assert list_of(non_empty_list(integer(), term())) == :badproperlist
-      assert list_of(non_empty_list(integer(), list(term()))) == {nil, term()}
+      assert list_of(non_empty_list(integer(), list(term()))) == {false, term()}
       assert list_of(list(integer()) |> union(list(integer(), integer()))) == :badproperlist
       assert list_of(list(integer()) |> union(integer())) == :badproperlist
-      assert list_of(dynamic(list(integer()))) == {:dynamic, dynamic(integer())}
-      assert list_of(dynamic(list(integer(), atom()))) == {:dynamic, nil}
+      assert list_of(dynamic(list(integer()))) == {true, dynamic(integer())}
+      assert list_of(dynamic(list(integer(), atom()))) == {true, nil}
       assert list_of(dynamic(non_empty_list(integer(), atom()))) == :badproperlist
-      assert list_of(dynamic(union(empty_list(), integer()))) == {:dynamic, nil}
+      assert list_of(dynamic(union(empty_list(), integer()))) == {true, nil}
 
       # A list that the difference resolves to nothing
       list_with_tail =

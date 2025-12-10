@@ -1884,32 +1884,33 @@ defmodule Module.Types.Descr do
   It returns a two-element tuple. The first element dictates the
   empty list type. The second element returns the value type.
 
-      {:static or :dynamic or nil, t() or nil}
+      {boolean(), t() or nil}
 
   If the value is `nil`, it means that component is missing.
-  However, both cannot be `nil` together. In such cases,
-  we return `:badproperlist`.
+  Note `{false, nil}` is not a valid return type, instead it
+  returns `:badproperlist`.
   """
   def list_of(:term), do: :badproperlist
 
   def list_of(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        with {empty_list, value} <- list_of_static(descr) do
-          if empty?(value) and empty_list == nil do
+        with {empty_list?, value} <- list_of_static(descr) do
+          if empty?(value) and empty_list? == false do
             :badproperlist
           else
-            {empty_list, value}
+            {empty_list?, value}
           end
         end
 
       {dynamic, static} ->
-        with {empty_list, static_value} <- list_of_static(static) do
-          empty_list =
-            case dynamic do
-              %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 -> :dynamic
-              _ -> empty_list
-            end
+        with {empty_list?, static_value} <- list_of_static(static) do
+          empty_list? =
+            empty_list? or
+              match?(
+                %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0,
+                dynamic
+              )
 
           dynamic_value =
             case dynamic do
@@ -1932,13 +1933,12 @@ defmodule Module.Types.Descr do
           if empty?(dynamic_value) do
             # list_bdd_to_pos_dnf guarantees the lists actually exists,
             # so we can match on none() rather than empty.
-            if empty_list == nil do
-              :badproperlist
-            else
-              {empty_list, nil}
+            case empty_list? do
+              false -> :badproperlist
+              true -> {empty_list?, nil}
             end
           else
-            {empty_list, union(static_value, dynamic(dynamic_value))}
+            {empty_list?, union(static_value, dynamic(dynamic_value))}
           end
         end
     end
@@ -1948,7 +1948,7 @@ defmodule Module.Types.Descr do
     case descr do
       %{bitmap: @bit_empty_list} ->
         case empty?(Map.drop(descr, [:bitmap, :list])) do
-          true -> list_of_static(descr, :static)
+          true -> list_of_static(descr, true)
           false -> :badproperlist
         end
 
@@ -1957,7 +1957,7 @@ defmodule Module.Types.Descr do
 
       %{} ->
         case empty?(Map.delete(descr, :list)) do
-          true -> list_of_static(descr, nil)
+          true -> list_of_static(descr, false)
           false -> :badproperlist
         end
     end
