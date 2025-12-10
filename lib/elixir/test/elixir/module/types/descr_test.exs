@@ -1268,26 +1268,29 @@ defmodule Module.Types.DescrTest do
       assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {:ok, atom()}
     end
 
-    test "list_proper?" do
-      refute list_proper?(term())
-      refute list_proper?(none())
-      assert list_proper?(empty_list())
-      assert list_proper?(non_empty_list(integer()))
-      refute list_proper?(non_empty_list(integer(), atom()))
-      refute list_proper?(non_empty_list(integer(), term()))
-      assert list_proper?(non_empty_list(integer(), list(term())))
-      refute list_proper?(list(integer()) |> union(list(integer(), integer())))
-      assert list_proper?(dynamic(list(integer())))
-      assert list_proper?(dynamic(list(integer(), atom())))
-      refute list_proper?(dynamic(non_empty_list(integer(), atom())))
+    test "list_of" do
+      assert list_of(term()) == :badproperlist
+      assert list_of(none()) == :badproperlist
+      assert list_of(empty_list()) == {:static, none()}
+      assert list_of(union(empty_list(), integer())) == :badproperlist
+      assert list_of(non_empty_list(integer())) == {nil, integer()}
+      assert list_of(non_empty_list(integer(), atom())) == :badproperlist
+      assert list_of(non_empty_list(integer(), term())) == :badproperlist
+      assert list_of(non_empty_list(integer(), list(term()))) == {nil, term()}
+      assert list_of(list(integer()) |> union(list(integer(), integer()))) == :badproperlist
+      assert list_of(list(integer()) |> union(integer())) == :badproperlist
+      assert list_of(dynamic(list(integer()))) == {:dynamic, dynamic(integer())}
+      assert list_of(dynamic(list(integer(), atom()))) == {:dynamic, nil}
+      assert list_of(dynamic(non_empty_list(integer(), atom()))) == :badproperlist
+      assert list_of(dynamic(union(empty_list(), integer()))) == {:dynamic, nil}
 
-      # An empty list
+      # A list that the difference resolves to nothing
       list_with_tail =
         non_empty_list(atom(), union(integer(), empty_list()))
         |> difference(non_empty_list(atom([:ok]), integer()))
         |> difference(non_empty_list(atom(), term()))
 
-      assert list_proper?(list_with_tail)
+      assert list_of(list_with_tail) == :badproperlist
     end
 
     test "list_tl" do

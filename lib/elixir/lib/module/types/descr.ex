@@ -1879,43 +1879,111 @@ defmodule Module.Types.Descr do
   defp list_top?(_), do: false
 
   @doc """
-  Checks if a list type is a proper list (terminated by empty list).
+  Returns the element type of a list, assuming the list is proper.
+
+  It returns a two-element tuple. The first element dictates the
+  empty list type. The second element returns the value type.
+
+      {:static or :dynamic or nil, t() or nil}
+
+  If the value is `nil`, it means that component is missing.
+  However, both cannot be `nil` together. In such cases,
+  we return `:badproperlist`.
   """
-  def list_proper?(:term), do: false
+  def list_of(:term), do: :badproperlist
 
-  def list_proper?(descr) do
-    {dynamic, static} = Map.pop(descr, :dynamic, descr)
+  def list_of(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        with {empty_list, value} <- list_of_static(descr) do
+          if empty?(value) and empty_list == nil do
+            :badproperlist
+          else
+            {empty_list, value}
+          end
+        end
 
-    # A list is proper if it's either the empty list alone, or all non-empty
-    # list types have tails that are subtypes of empty list.
-    case static do
-      %{list: bdd} ->
-        Map.get(static, :bitmap, @bit_empty_list) == @bit_empty_list and
-          empty?(Map.drop(static, [:list, :bitmap])) and
-          list_bdd_to_pos_dnf(bdd)
-          |> Enum.all?(fn {_list, last, _negs} -> subtype?(last, @empty_list) end)
+      {dynamic, static} ->
+        with {empty_list, static_value} <- list_of_static(static) do
+          empty_list =
+            case dynamic do
+              %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 -> :dynamic
+              _ -> empty_list
+            end
 
-      _ when static == %{bitmap: @bit_empty_list} ->
-        true
+          dynamic_value =
+            case dynamic do
+              :term ->
+                dynamic()
+
+              %{list: bdd} ->
+                Enum.reduce(list_bdd_to_pos_dnf(bdd), none(), fn {list, last, _negs}, acc ->
+                  if last == @empty_list or subtype?(last, @empty_list) do
+                    union(acc, list)
+                  else
+                    acc
+                  end
+                end)
+
+              %{} ->
+                none()
+            end
+
+          if empty?(dynamic_value) do
+            # list_bdd_to_pos_dnf guarantees the lists actually exists,
+            # so we can match on none() rather than empty.
+            if empty_list == nil do
+              :badproperlist
+            else
+              {empty_list, nil}
+            end
+          else
+            {empty_list, union(static_value, dynamic(dynamic_value))}
+          end
+        end
+    end
+  end
+
+  defp list_of_static(descr) do
+    case descr do
+      %{bitmap: @bit_empty_list} ->
+        case empty?(Map.drop(descr, [:bitmap, :list])) do
+          true -> list_of_static(descr, :static)
+          false -> :badproperlist
+        end
+
+      %{bitmap: _} ->
+        :badproperlist
 
       %{} ->
-        # Dynamic requires only the empty list or a single proper list
-        empty?(static) and
-          case dynamic do
-            :term ->
-              true
-
-            %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
-              true
-
-            %{list: bdd} ->
-              list_bdd_to_pos_dnf(bdd)
-              |> Enum.any?(fn {_list, last, _negs} -> subtype?(last, @empty_list) end)
-
-            %{} ->
-              false
-          end
+        case empty?(Map.delete(descr, :list)) do
+          true -> list_of_static(descr, nil)
+          false -> :badproperlist
+        end
     end
+  end
+
+  # A list is proper if it's either the empty list alone, or all non-empty
+  # list types have tails that are subtypes of empty list.
+  defp list_of_static(%{list: bdd}, empty_list) do
+    try do
+      result =
+        Enum.reduce(list_bdd_to_pos_dnf(bdd), none(), fn {list, last, _negs}, acc ->
+          if last == @empty_list or subtype?(last, @empty_list) do
+            union(acc, list)
+          else
+            throw(:badproperlist)
+          end
+        end)
+
+      {empty_list, result}
+    catch
+      :badproperlist -> :badproperlist
+    end
+  end
+
+  defp list_of_static(%{}, empty_list) do
+    {empty_list, none()}
   end
 
   defp list_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
