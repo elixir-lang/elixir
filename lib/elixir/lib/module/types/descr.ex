@@ -2970,7 +2970,7 @@ defmodule Module.Types.Descr do
   The gradual aspect of `key_descr` does not impact the return type.
 
   It returns `{type, descr, errors}`, `:badmap`, `{:error, errors}`.
-  The list of `errors` may be empty, which implies the a bad domain.
+  The list of `errors` may be empty, which implies a bad domain.
   The `return_type?` flag is used for optimizations purposes. If set to false,
   the returned `type` should not be used, as it will be imprecise.
   """
@@ -3023,6 +3023,8 @@ defmodule Module.Types.Descr do
               empty?(type)
             end)
 
+          # We can exceptionally check for none() here because
+          # we already check for empty downstream
           if dynamic_descr == none() do
             {:error, static_errors ++ dynamic_errors}
           else

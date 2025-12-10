@@ -11,6 +11,97 @@ defmodule Module.Types.MapTest do
   import Module.Types.Descr
   defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
+  describe ":maps.take/2" do
+    test "checking" do
+      assert typecheck!(:maps.take(:key, %{})) == atom([:error])
+
+      assert typecheck!(:maps.take(:key, %{key: 123})) |> equal?(tuple([integer(), empty_map()]))
+
+      assert typecheck!([x], :maps.take(:key, x))
+             |> equal?(
+               union(
+                 dynamic(tuple([term(), open_map(key: not_set())])),
+                 atom([:error])
+               )
+             )
+
+      assert typecheck!([condition?, x], :maps.take(if(condition?, do: :foo, else: :bar), x))
+             |> equal?(
+               union(
+                 dynamic(
+                   tuple([
+                     term(),
+                     union(
+                       open_map(foo: not_set()),
+                       open_map(bar: not_set())
+                     )
+                   ])
+                 ),
+                 atom([:error])
+               )
+             )
+
+      assert typecheck!([x], :maps.take(integer(), x))
+             |> equal?(
+               union(
+                 dynamic(tuple([term(), open_map()])),
+                 atom([:error])
+               )
+             )
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = :maps.take(:key, x)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], :maps.take(:foo, x)) =~
+               "incompatible types given to :maps.take/2"
+    end
+  end
+
+  describe "Map.fetch!/2" do
+    test "errors" do
+      assert typeerror!(Map.fetch!(%{}, :foo)) =~
+               """
+               incompatible types given to Map.fetch!/2:
+
+                   Map.fetch!(%{}, :foo)
+
+               the map:
+
+                   empty_map()
+
+               does not have the given keys:
+
+                   :foo
+
+               """
+
+      assert typeerror!(Map.fetch!(%{}, 123)) =~
+               """
+               incompatible types given to Map.fetch!/2:
+
+                   Map.fetch!(%{}, 123)
+
+               the map:
+
+                   empty_map()
+
+               does not have the given keys:
+
+                   integer()
+
+               """
+    end
+  end
+
   describe "Map.to_list/1" do
     test "checking" do
       assert typecheck!([x = %{}], Map.to_list(x)) == dynamic(list(tuple([term(), term()])))

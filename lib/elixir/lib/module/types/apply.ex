@@ -245,8 +245,11 @@ defmodule Module.Types.Apply do
 
         ## Map
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
+        {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
+        {:maps, :take,
+         [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
         {:maps, :values, [{[open_map()], dynamic(list(term()))}]}
       ] do
@@ -419,6 +422,43 @@ defmodule Module.Types.Apply do
     case map_to_list(map, fn _key, value -> value end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :keys, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :get, _info, [key, map] = args_types, stack) do
+    case map_get(map, key) do
+      {_, value} ->
+        {:ok, return(value, args_types, stack)}
+
+      :badmap ->
+        {:error, badremote(:maps, :get, 2)}
+
+      :error ->
+        {:error, {:badkeydomain, map, key, []}}
+    end
+  end
+
+  defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
+    case map_update(map, key, not_set()) do
+      # We could suggest to use :maps.delete if the key always exists
+      # but :maps.take/2 means calling Erlang directly, so we are fine.
+      {value, descr, errors} ->
+        result = tuple([value, descr])
+
+        result =
+          if errors == [] and not gradual?(map) do
+            result
+          else
+            union(result, atom([:error]))
+          end
+
+        {:ok, return(result, args_types, stack)}
+
+      :badmap ->
+        {:error, badremote(:maps, :take, 2)}
+
+      {:error, _errors} ->
+        {:ok, return(atom([:error]), args_types, stack)}
     end
   end
 
@@ -1028,6 +1068,58 @@ defmodule Module.Types.Apply do
 
               #{to_quoted_string(type) |> indent(4)}
           """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({{:badkeydomain, map, key, errors}, _args_types, mfac, expr, context}) do
+    {mod, fun, arity, _converter} = mfac
+    traces = collect_traces(expr, context)
+    mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+
+    error_key =
+      Enum.reduce(errors, none(), fn
+        {:badkey, key}, acc -> union(atom([key]), acc)
+        {:baddomain, domain}, acc -> union(domain, acc)
+      end)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types given to #{mfa_or_fa}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          """,
+          if errors == [] do
+            """
+            the map:
+
+                #{to_quoted_string(map) |> indent(4)}
+
+            does not have the given keys:
+
+                #{to_quoted_string(key) |> indent(4)}
+
+            """
+          else
+            """
+            expected the map:
+
+                #{to_quoted_string(map) |> indent(4)}
+
+            to have the keys:
+
+                #{to_quoted_string(key) |> indent(4)}
+
+            but the following keys are missing:
+
+                #{to_quoted_string(error_key) |> indent(4)}
+            """
+          end,
           format_traces(traces)
         ])
     }
