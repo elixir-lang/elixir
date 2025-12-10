@@ -1528,7 +1528,7 @@ defmodule Module.Types.DescrTest do
                {:ok, non_empty_list(tuple([atom([:a]), integer()]))}
 
       assert map_to_list(closed_map(a: term())) ==
-               {:ok, non_empty_list(tuple([atom([:a]), integer()]))}
+               {:ok, non_empty_list(tuple([atom([:a]), term()]))}
 
       assert map_to_list(closed_map(a: integer(), b: atom())) ==
                {:ok,
