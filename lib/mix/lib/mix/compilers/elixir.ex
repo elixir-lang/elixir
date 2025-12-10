@@ -287,7 +287,13 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp deps_config_compile_env_apps(deps_config) do
-    if deps_config[:dbg] != Application.fetch_env!(:elixir, :dbg_callback) do
+    # Use dbg_callback_initial instead of dbg_callback to ignore runtime modifications.
+    # Tools like Kino modify dbg_callback at runtime to customize dbg/2 behavior,
+    # but this should not trigger recompilation since the config hasn't actually changed.
+    # dbg_callback_initial is set when :elixir app starts, before any runtime modifications.
+    initial_dbg = Application.fetch_env!(:elixir, :dbg_callback_initial)
+
+    if deps_config[:dbg] != initial_dbg do
       [:elixir]
     else
       []

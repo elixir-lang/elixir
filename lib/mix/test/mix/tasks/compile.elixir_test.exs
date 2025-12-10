@@ -278,9 +278,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      # Change the dbg_callback at runtime
+      # Simulate a config change by updating both dbg_callback and dbg_callback_initial.
+      # This represents the case where the user actually changed the config file.
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       Application.put_env(:elixir, :dbg_callback, {__MODULE__, :dbg, []})
+      Application.put_env(:elixir, :dbg_callback_initial, {__MODULE__, :dbg, []})
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -289,6 +291,35 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     Application.put_env(:elixir, :dbg_callback, {Macro, :dbg, []})
+    Application.put_env(:elixir, :dbg_callback_initial, {Macro, :dbg, []})
+  end
+
+  test "does not recompile when dbg_callback is modified at runtime but initial is unchanged" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def a, do: dbg(:ok)
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      # Simulate a tool like Kino modifying dbg_callback at runtime.
+      # Since dbg_callback_initial remains unchanged, this should NOT trigger recompilation.
+      original_dbg = Application.fetch_env!(:elixir, :dbg_callback)
+      Application.put_env(:elixir, :dbg_callback_initial, original_dbg)
+      Application.put_env(:elixir, :dbg_callback, {SomeDebugTool, :dbg, [original_dbg]})
+
+      # Should NOT trigger recompilation since dbg_callback_initial is unchanged
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  after
+    Application.put_env(:elixir, :dbg_callback, {Macro, :dbg, []})
+    Application.put_env(:elixir, :dbg_callback_initial, {Macro, :dbg, []})
   end
 
   test "recompiles files when config changes export dependencies" do
