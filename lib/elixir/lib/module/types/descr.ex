@@ -1882,32 +1882,40 @@ defmodule Module.Types.Descr do
   Checks if a list type is a proper list (terminated by empty list).
   """
   def list_proper?(:term), do: false
-  def list_proper?(%{} = descr), do: Map.get(descr, :dynamic, descr) |> list_proper_static?()
 
-  defp list_proper_static?(:term), do: false
+  def list_proper?(descr) do
+    {dynamic, static} = Map.pop(descr, :dynamic, descr)
 
-  defp list_proper_static?(%{} = descr) do
     # A list is proper if it's either the empty list alone, or all non-empty
-    # list types have tails that are subtypes of empty list
-    case descr do
-      %{bitmap: bitmap, list: bdd} ->
-        (bitmap &&& @bit_empty_list) != 0 and empty?(Map.drop(descr, [:list, :bitmap])) and
-          list_bdd_proper?(bdd)
-
-      %{bitmap: bitmap} ->
-        (bitmap &&& @bit_empty_list) != 0 and empty?(Map.delete(descr, :bitmap))
-
+    # list types have tails that are subtypes of empty list.
+    case static do
       %{list: bdd} ->
-        empty?(Map.delete(descr, :list)) and list_bdd_proper?(bdd)
+        Map.get(static, :bitmap, @bit_empty_list) == @bit_empty_list and
+          empty?(Map.drop(static, [:list, :bitmap])) and
+          list_bdd_to_pos_dnf(bdd)
+          |> Enum.all?(fn {_list, last, _negs} -> subtype?(last, @empty_list) end)
+
+      _ when static == %{bitmap: @bit_empty_list} ->
+        true
 
       %{} ->
-        empty?(descr)
-    end
-  end
+        # Dynamic requires only the empty list or a single proper list
+        empty?(static) and
+          case dynamic do
+            :term ->
+              true
 
-  defp list_bdd_proper?(bdd) do
-    list_bdd_to_pos_dnf(bdd)
-    |> Enum.all?(fn {_list, last, _negs} -> subtype?(last, @empty_list) end)
+            %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
+              true
+
+            %{list: bdd} ->
+              list_bdd_to_pos_dnf(bdd)
+              |> Enum.any?(fn {_list, last, _negs} -> subtype?(last, @empty_list) end)
+
+            %{} ->
+              false
+          end
+    end
   end
 
   defp list_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
