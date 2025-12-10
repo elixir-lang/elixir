@@ -1249,6 +1249,7 @@ defmodule Module.Types.DescrTest do
       assert list_hd(non_empty_list(term())) == {:ok, term()}
       assert list_hd(non_empty_list(integer())) == {:ok, integer()}
       assert list_hd(difference(list(number()), list(integer()))) == {:ok, number()}
+      assert list_hd(non_empty_list(atom(), float())) == {:ok, atom()}
 
       assert list_hd(dynamic()) == {:ok, dynamic()}
       assert list_hd(dynamic(list(integer()))) == {:ok, dynamic(integer())}
@@ -1265,6 +1266,27 @@ defmodule Module.Types.DescrTest do
       # and therefore any term can be returned from hd.
       assert list_hd(non_empty_list(atom(), term())) == {:ok, term()}
       assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {:ok, atom()}
+    end
+
+    test "list_proper?" do
+      assert list_proper?(term()) == false
+      assert list_proper?(none()) == true
+      assert list_proper?(empty_list()) == true
+      assert list_proper?(non_empty_list(integer())) == true
+      assert list_proper?(non_empty_list(integer(), atom())) == false
+      assert list_proper?(non_empty_list(integer(), term())) == false
+      assert list_proper?(non_empty_list(integer(), list(term()))) == true
+      assert list_proper?(list(integer()) |> union(list(integer(), integer()))) == false
+      assert list_proper?(dynamic(list(integer()))) == true
+      assert list_proper?(dynamic(list(integer(), atom()))) == false
+
+      # An empty list
+      list_with_tail =
+        non_empty_list(atom(), union(integer(), empty_list()))
+        |> difference(non_empty_list(atom([:ok]), integer()))
+        |> difference(non_empty_list(atom(), term()))
+
+      assert list_proper?(list_with_tail) == true
     end
 
     test "list_tl" do
@@ -1284,11 +1306,9 @@ defmodule Module.Types.DescrTest do
       # integers with an atom tail, or a (possibly empty) list of tuples with a float tail.
       assert list_tl(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))) ==
                {:ok,
-                atom()
-                |> union(float())
-                |> union(
-                  union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))
-                )}
+                union(atom(), float())
+                |> union(non_empty_list(integer(), atom()))
+                |> union(non_empty_list(tuple(), float()))}
 
       assert list_tl(dynamic()) == {:ok, dynamic()}
       assert list_tl(dynamic(list(integer()))) == {:ok, dynamic(list(integer()))}
@@ -2394,6 +2414,14 @@ defmodule Module.Types.DescrTest do
       assert union(dynamic(list(integer(), float())), dynamic(list(integer(), pid())))
              |> to_quoted_string() ==
                "dynamic(empty_list() or non_empty_list(integer(), float() or pid()))"
+
+      list_with_tail =
+        non_empty_list(atom(), union(integer(), empty_list()))
+        |> difference(non_empty_list(atom([:ok]), integer()))
+        |> difference(non_empty_list(atom(), integer()))
+
+      # Check that simplifications occur.
+      assert to_quoted_string(list_with_tail) == "non_empty_list(atom())"
     end
 
     test "tuples" do
