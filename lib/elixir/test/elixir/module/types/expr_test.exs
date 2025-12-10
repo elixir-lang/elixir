@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2021 The Elixir Team
-# SPDX-FileCopyrightText: 2012 Plataformatec
 
 Code.require_file("type_helper.exs", __DIR__)
 
