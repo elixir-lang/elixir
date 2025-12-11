@@ -455,19 +455,14 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(:maps, :get, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
-      {_, value} ->
-        {:ok, return(value, args_types, stack)}
-
-      :badmap ->
-        {:error, badremote(:maps, :get, 2)}
-
-      :error ->
-        {:error, {:badkeydomain, map, key, nil}}
+      {:ok, value} -> {:ok, return(value, args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :get, 2)}
+      :error -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    case map_update(map, key, value, false) do
+    case map_update(map, key, value, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :update, 3)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
@@ -475,7 +470,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, not_set()) do
+    case map_update(map, key, not_set(), true, false) do
       # We could suggest to use :maps.delete if the key always exists
       # but :maps.take/2 means calling Erlang directly, so we are fine.
       {value, descr, errors} ->

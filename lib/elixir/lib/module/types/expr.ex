@@ -795,7 +795,7 @@ defmodule Module.Types.Expr do
     do: [{args, return}]
 
   defp literal_map_update(descr, key_descr, value_descr) do
-    case map_update(descr, key_descr, value_descr, false) do
+    case map_update(descr, key_descr, value_descr, false, false) do
       {_type, descr, []} -> {:ok, descr}
       {_, _, [error | _]} -> error
       :badmap -> :badmap
