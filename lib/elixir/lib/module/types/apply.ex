@@ -253,6 +253,7 @@ defmodule Module.Types.Apply do
         {:maps, :take,
          [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
+        {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :values, [{[open_map()], dynamic(list(term()))}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
@@ -340,6 +341,12 @@ defmodule Module.Types.Apply do
   def remote_domain(:maps, :get, [key, _], expected, _meta, _stack, context) when is_atom(key) do
     domain = [term(), open_map([{key, expected}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
+  end
+
+  def remote_domain(:maps, :update, [key, _, _], _expected, _meta, _stack, context)
+      when is_atom(key) do
+    domain = [term(), term(), open_map([{key, term()}])]
+    {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
   def remote_domain(mod, fun, args, expected, meta, stack, context) do
@@ -456,6 +463,14 @@ defmodule Module.Types.Apply do
 
       :error ->
         {:error, {:badkeydomain, map, key, nil}}
+    end
+  end
+
+  defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
+    case map_update(map, key, value, false) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :update, 3)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
 

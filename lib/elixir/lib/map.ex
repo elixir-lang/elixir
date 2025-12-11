@@ -372,9 +372,7 @@ defmodule Map do
       end
   """
   @spec fetch!(map, key) :: value
-  def fetch!(map, key) do
-    :maps.get(key, map)
-  end
+  def fetch!(map, key), do: :maps.get(key, map)
 
   @doc """
   Puts the given `value` under `key` unless the entry `key`
@@ -432,7 +430,11 @@ defmodule Map do
   @doc """
   Puts a value under `key` only if the `key` already exists in `map`.
 
-  If `key` is not present in `map`, a `KeyError` exception is raised.
+  The exclamation mark (`!`) implies this function can raise a `KeyError`
+  exception at runtime if `map` doesn't contain `key`. If the type system
+  can verify this function will always raise (which means the key is never
+  available), then it will emit a warning at compile-time. See the "Type
+  checking" section in `Map.fetch!/2` for more information.
 
   Inlined by the compiler.
 

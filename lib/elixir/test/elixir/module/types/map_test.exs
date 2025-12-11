@@ -190,6 +190,53 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.replace!/3" do
+    test "checking" do
+      assert typecheck!(Map.replace!(%{key: 123}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!([x], Map.replace!(x, :key, :value)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.replace!(%{foo: 123}, if(condition?, do: :foo, else: :bar), :value)
+             ) == closed_map(foo: atom([:value]))
+
+      assert typecheck!([x], Map.replace!(x, 123, 456)) == dynamic(open_map())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.replace!(x, :key, :value)
+                 x
+               )
+             ) == dynamic(open_map(key: term()))
+    end
+
+    test "errors" do
+      assert typeerror!(Map.replace!(%{}, :key, :value)) =~
+               """
+               incompatible types given to Map.replace!/3:
+
+                   Map.replace!(%{}, :key, :value)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :key
+
+               therefore this function will always raise
+               """
+    end
+  end
+
   describe "Map.to_list/1" do
     test "checking" do
       assert typecheck!([x = %{}], Map.to_list(x)) == dynamic(list(tuple([term(), term()])))
