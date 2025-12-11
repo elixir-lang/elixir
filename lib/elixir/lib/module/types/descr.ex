@@ -3525,7 +3525,7 @@ defmodule Module.Types.Descr do
 
   defp map_materialize_negated_set(set, bdd) do
     all_fields = bdd_reduce(bdd, %{}, fn {_, fields}, acc -> Map.merge(fields, acc) end)
-    for {atom, _} <- all_fields, not :sets.is_element(atom, set), do: atom
+    for {atom, _} <- :maps.to_list(all_fields), not :sets.is_element(atom, set), do: atom
   end
 
   # Compute which keys are optional, which ones are required, as well as domain keys

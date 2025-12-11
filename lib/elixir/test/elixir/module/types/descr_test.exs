@@ -1895,6 +1895,11 @@ defmodule Module.Types.DescrTest do
 
       assert map_get(closed_map([{domain_key(:atom), integer()}]), atom([:a, :b])) ==
                {true, integer()}
+
+      # Have one of the keys be a __struct__
+      map = closed_map([{:a, atom([:a])}, {:__struct__, term()}, {domain_key(:atom), pid()}])
+      {true, term} = map_get(map, atom() |> difference(atom([:a])))
+      assert equal?(term, term())
     end
 
     test "with lists" do
