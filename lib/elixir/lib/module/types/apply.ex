@@ -245,6 +245,8 @@ defmodule Module.Types.Apply do
 
         ## Map
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
+        {:maps, :find,
+         [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
         {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
@@ -333,6 +335,11 @@ defmodule Module.Types.Apply do
       when name in [:==, :"/=", :"=:=", :"=/="] do
     check? = is_warning(stack) and not Macro.quoted_literal?(args)
     {{:compare, name, check?}, [term(), term()], context}
+  end
+
+  def remote_domain(:maps, :get, [key, _], expected, _meta, _stack, context) when is_atom(key) do
+    domain = [term(), open_map([{key, expected}])]
+    {{:strong, nil, [{domain, term()}]}, domain, context}
   end
 
   def remote_domain(mod, fun, args, expected, meta, stack, context) do
@@ -425,6 +432,20 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:maps, :find, _info, [key, map] = args_types, stack) do
+    case map_get(map, key) do
+      {_, value} ->
+        result = tuple([atom([:ok]), value]) |> union(atom([:error]))
+        {:ok, return(result, args_types, stack)}
+
+      :badmap ->
+        {:error, badremote(:maps, :find, 2)}
+
+      :error ->
+        {:error, {:badkeydomain, map, key, atom([:error])}}
+    end
+  end
+
   defp remote_apply(:maps, :get, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {_, value} ->
@@ -434,7 +455,7 @@ defmodule Module.Types.Apply do
         {:error, badremote(:maps, :get, 2)}
 
       :error ->
-        {:error, {:badkeydomain, map, key, []}}
+        {:error, {:badkeydomain, map, key, nil}}
     end
   end
 
@@ -458,7 +479,7 @@ defmodule Module.Types.Apply do
         {:error, badremote(:maps, :take, 2)}
 
       {:error, _errors} ->
-        {:ok, return(atom([:error]), args_types, stack)}
+        {:error, {:badkeydomain, map, key, atom([:error])}}
     end
   end
 
@@ -1073,16 +1094,10 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({{:badkeydomain, map, key, errors}, _args_types, mfac, expr, context}) do
+  def format_diagnostic({{:badkeydomain, map, key, error}, _args_types, mfac, expr, context}) do
     {mod, fun, arity, _converter} = mfac
     traces = collect_traces(expr, context)
     mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
-
-    error_key =
-      Enum.reduce(errors, none(), fn
-        {:badkey, key}, acc -> union(atom([key]), acc)
-        {:baddomain, domain}, acc -> union(domain, acc)
-      end)
 
     %{
       details: %{typing_traces: traces},
@@ -1093,33 +1108,20 @@ defmodule Module.Types.Apply do
 
               #{expr_to_string(expr) |> indent(4)}
 
-          """,
-          if errors == [] do
-            """
-            the map:
+          the map:
 
-                #{to_quoted_string(map) |> indent(4)}
+              #{to_quoted_string(map) |> indent(4)}
 
-            does not have the given keys:
+          does not have all required keys:
 
-                #{to_quoted_string(key) |> indent(4)}
+              #{to_quoted_string(key) |> indent(4)}
 
-            """
+          therefore this function will always #{if error do
+            "return #{to_quoted_string(error)}"
           else
-            """
-            expected the map:
-
-                #{to_quoted_string(map) |> indent(4)}
-
-            to have the keys:
-
-                #{to_quoted_string(key) |> indent(4)}
-
-            but the following keys are missing:
-
-                #{to_quoted_string(error_key) |> indent(4)}
-            """
-          end,
+            "raise"
+          end}
+          """,
           format_traces(traces)
         ])
     }

@@ -287,8 +287,13 @@ defmodule Map do
   @doc """
   Fetches the value for a specific `key` in the given `map`.
 
-  If `map` contains the given `key` then its value is returned in the shape of `{:ok, value}`.
-  If `map` doesn't contain `key`, `:error` is returned.
+  If `map` contains the given `key` then its value is returned
+  in the shape of `{:ok, value}`. If `map` doesn't contain `key`,
+  `:error` is returned.
+
+  If the type system can verify `:error` is always returned
+  (which means key is never available in the map), it will emit
+  an error.
 
   Inlined by the compiler.
 
@@ -307,8 +312,11 @@ defmodule Map do
   Fetches the value for a specific `key` in the given `map`, erroring out if
   `map` doesn't contain `key`.
 
-  If `map` contains `key`, the corresponding value is returned. If
-  `map` doesn't contain `key`, a `KeyError` exception is raised.
+  The exclamation mark (`!`) implies this function can raise a `KeyError`
+  exception at runtime if `map` doesn't contain `key`. If the type system
+  can verify this function will always raise (which means the key is never
+  available), then it will emit a warning at compile-time. See the "Type
+  checking" section below.
 
   Inlined by the compiler.
 
@@ -318,10 +326,50 @@ defmodule Map do
       1
 
   When the key is missing, an exception is raised:
-      
+
       Map.fetch!(%{a: 1}, :b)
       ** (KeyError) key :b not found in: %{a: 1}
 
+  ## Type checking
+
+  The compiler will emit a warning if it can verify that
+  none of the keys given are available in the map.
+
+  When the key is an atom, because only single key is given,
+  a warning will be emitted in case the type system proves
+  the key is not present.
+
+  However, this behaviour matters when the type of the key
+  represents multiple values. For example:
+
+      key = returns_foo_or_bar() #=> :foo or :bar
+      Map.fetch!(%{foo: 123}, key)
+
+  Although the key can be `:foo` or `:bar`, there is no
+  warning emitted, as `:foo` will succeed. This is by design:
+  the exclamation mark in Elixir denotes precisely that a
+  runtime exception may be raised.
+
+  In case you are looking up multiple keys and you don't know
+  if they may be present, you can use `Map.fetch/2` instead
+  and deal with the error case accordingly:
+
+      case Map.fetch(%{foo: 123}, key) do
+        {:ok, value} -> ...
+        :error -> ...
+      end
+
+  Both `Map.fetch!/2` and `Map.fetch/2` will emit a warning if
+  it proves that both `:foo` or `:bar` are absent in the map.
+
+  Alternatively, if you want to statically prove that all of keys
+  are in the map, you can match on the possible values and access
+  them directly:
+
+      case returns_foo_or_bar() do
+        :foo -> map.foo
+        :bar -> map.bar
+      end
   """
   @spec fetch!(map, key) :: value
   def fetch!(map, key) do

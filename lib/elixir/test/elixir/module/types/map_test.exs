@@ -13,8 +13,6 @@ defmodule Module.Types.MapTest do
 
   describe ":maps.take/2" do
     test "checking" do
-      assert typecheck!(:maps.take(:key, %{})) == atom([:error])
-
       assert typecheck!(:maps.take(:key, %{key: 123})) |> equal?(tuple([integer(), empty_map()]))
 
       assert typecheck!([x], :maps.take(:key, x))
@@ -41,7 +39,7 @@ defmodule Module.Types.MapTest do
                )
              )
 
-      assert typecheck!([x], :maps.take(integer(), x))
+      assert typecheck!([x], :maps.take(123, x))
              |> equal?(
                union(
                  dynamic(tuple([term(), open_map()])),
@@ -63,10 +61,98 @@ defmodule Module.Types.MapTest do
     test "errors" do
       assert typeerror!([x = []], :maps.take(:foo, x)) =~
                "incompatible types given to :maps.take/2"
+
+      assert typeerror!(:maps.take(:key, %{})) =~ """
+             incompatible types given to :maps.take/2:
+
+                 :maps.take(:key, %{})
+
+             the map:
+
+                 empty_map()
+
+             does not have all required keys:
+
+                 :key
+
+             therefore this function will always return :error
+             """
+    end
+  end
+
+  describe "Map.fetch/2" do
+    test "checking" do
+      assert typecheck!(Map.fetch(%{key: 123}, :key)) ==
+               tuple([atom([:ok]), integer()]) |> union(atom([:error]))
+
+      assert typecheck!([x], Map.fetch(x, :key))
+             |> equal?(dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.fetch(%{foo: 123}, if(condition?, do: :foo, else: :bar))
+             ) == tuple([atom([:ok]), integer()]) |> union(atom([:error]))
+
+      assert typecheck!([x], Map.fetch(x, 123))
+             |> equal?(dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error])))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.fetch(x, :key)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.fetch(%{}, :foo)) =~
+               """
+               incompatible types given to Map.fetch/2:
+
+                   Map.fetch(%{}, :foo)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :foo
+
+               therefore this function will always return :error
+               """
     end
   end
 
   describe "Map.fetch!/2" do
+    test "checking" do
+      assert typecheck!(Map.fetch!(%{key: 123}, :key)) == integer()
+
+      assert typecheck!([x], Map.fetch!(x, :key)) == dynamic()
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.fetch!(%{foo: 123}, if(condition?, do: :foo, else: :bar))
+             ) == integer()
+
+      assert typecheck!([x], Map.fetch!(x, 123)) |> equal?(dynamic())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 y = Integer.to_string(Map.fetch!(x, :key))
+                 {x, y}
+               )
+             ) == dynamic(tuple([open_map(key: integer()), binary()]))
+    end
+
     test "errors" do
       assert typeerror!(Map.fetch!(%{}, :foo)) =~
                """
@@ -78,10 +164,11 @@ defmodule Module.Types.MapTest do
 
                    empty_map()
 
-               does not have the given keys:
+               does not have all required keys:
 
                    :foo
 
+               therefore this function will always raise
                """
 
       assert typeerror!(Map.fetch!(%{}, 123)) =~
@@ -94,10 +181,11 @@ defmodule Module.Types.MapTest do
 
                    empty_map()
 
-               does not have the given keys:
+               does not have all required keys:
 
                    integer()
 
+               therefore this function will always raise
                """
     end
   end
