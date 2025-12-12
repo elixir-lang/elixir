@@ -663,8 +663,9 @@ Erlang code.
 
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).
--define(exprs(Token), element(3, Token)).
+-define(op(Token), element(3, Token)).
 -define(meta(Node), element(2, Node)).
+-define(exprs(Node), element(3, Node)).
 -define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
 
 -compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
@@ -1295,20 +1296,12 @@ warn_pipe(_Token, _) ->
   ok.
 
 %% TODO: Make this an error on v2.0
-warn_no_parens_after_do_op({{in_op, Location, Op, _InLocation}, _}) ->
-  {Line, _, _} = Location,
+warn_no_parens_after_do_op({Token, _}) ->
+  {Line, _, _} = ?location(Token),
 
   warn(
     Line,
-    "missing parentheses on expression following operator \"" ++ atom_to_list(Op) ++ "\", "
-    "you must add parentheses to avoid ambiguities"
-  );
-warn_no_parens_after_do_op({{_Type, Location, Op}, _}) ->
-  {Line, _, _} = Location,
-
-  warn(
-    Line,
-    "missing parentheses on expression following operator \"" ++ atom_to_list(Op) ++ "\", "
+    "missing parentheses on expression following operator \"" ++ atom_to_list(?op(Token)) ++ "\", "
     "you must add parentheses to avoid ambiguities"
   ).
 
