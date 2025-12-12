@@ -11,6 +11,17 @@ defmodule Module.Types.MapTest do
   import Module.Types.Descr
   defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
+  describe "inferred" do
+    test "Map.new/0" do
+      assert typecheck!(Map.new()) == dynamic(empty_map())
+    end
+
+    test "Map.equal?/2" do
+      assert typecheck!([x, y], {Map.equal?(x, y), x, y}) ==
+               dynamic(tuple([boolean(), open_map(), open_map()]))
+    end
+  end
+
   describe ":maps.take/2" do
     test "checking" do
       assert typecheck!(:maps.take(:key, %{key: 123})) |> equal?(tuple([integer(), empty_map()]))

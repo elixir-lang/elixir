@@ -1124,11 +1124,7 @@ defmodule Map do
 
   """
   @spec equal?(map, map) :: boolean
-  def equal?(map1, map2)
-
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
-  def equal?(%{} = map1, map2), do: :erlang.error({:badmap, map2}, [map1, map2])
-  def equal?(term, other), do: :erlang.error({:badmap, term}, [term, other])
 
   @doc false
   @deprecated "Use Kernel.map_size/1 instead"
