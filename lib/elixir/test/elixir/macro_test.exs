@@ -867,7 +867,7 @@ defmodule MacroTest do
     end
 
     test "with/1 (all clauses match)" do
-      opts = %{width: 10, height: 15}
+      opts = Process.get(:unused, %{width: 10, height: 15})
 
       {result, formatted} =
         dbg_format(
@@ -900,7 +900,7 @@ defmodule MacroTest do
     end
 
     test "with/1 (no else)" do
-      opts = %{width: 10}
+      opts = Process.get(:unused, %{width: 10})
 
       {result, formatted} =
         dbg_format(
@@ -928,7 +928,7 @@ defmodule MacroTest do
     end
 
     test "with/1 (else clause)" do
-      opts = %{width: 10}
+      opts = Process.get(:unused, %{width: 10})
 
       {result, formatted} =
         dbg_format(
@@ -959,7 +959,7 @@ defmodule MacroTest do
     end
 
     test "with/1 (guard)" do
-      opts = %{width: 10, height: 0.0}
+      opts = Process.get(:unused, %{width: 10, height: 0.0})
 
       {result, formatted} =
         dbg_format(
@@ -990,7 +990,7 @@ defmodule MacroTest do
     end
 
     test "with/1 (guard in else)" do
-      opts = %{}
+      opts = Process.get(:unused, %{})
 
       {result, _formatted} =
         dbg_format(

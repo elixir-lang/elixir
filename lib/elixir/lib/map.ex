@@ -301,7 +301,7 @@ defmodule Map do
 
       iex> Map.fetch(%{a: 1}, :a)
       {:ok, 1}
-      iex> Map.fetch(%{a: 1}, :b)
+      iex> Map.fetch(%{"foo" => "bar"}, "unknown")
       :error
 
   """
@@ -443,8 +443,8 @@ defmodule Map do
       iex> Map.replace!(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
 
-      iex> Map.replace!(%{a: 1}, :b, 2)
-      ** (KeyError) key :b not found in:
+      iex> Map.replace!(%{"foo" => "bar"}, "unknown", "new_bar")
+      ** (KeyError) key "unknown" not found in:
       ...
 
   """
