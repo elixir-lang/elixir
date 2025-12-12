@@ -244,12 +244,14 @@ defmodule Module.Types.Apply do
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
         ## Map
+        {:maps, :remove, [{[term(), open_map()], open_map()}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
         {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
+        {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :take,
          [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
@@ -425,17 +427,11 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:maps, :keys, _info, [map], stack) do
-    case map_to_list(map, fn key, _value -> key end) do
-      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :keys, 1)}
-    end
-  end
-
-  defp remote_apply(:maps, :values, _info, [map], stack) do
-    case map_to_list(map, fn _key, value -> value end) do
-      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :keys, 1)}
+  defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
+    case map_update(map, key, not_set(), false, true) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :remove, 2)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
 
@@ -461,10 +457,17 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    case map_update(map, key, value, false, false) do
+  defp remote_apply(:maps, :keys, _info, [map], stack) do
+    case map_to_list(map, fn key, _value -> key end) do
+      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
+      :badmap -> {:error, badremote(:maps, :keys, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :put, _info, [key, value, map] = args_types, stack) do
+    case map_update(map, key, value, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :update, 3)}
+      :badmap -> {:error, badremote(:maps, :put, 3)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
@@ -497,6 +500,21 @@ defmodule Module.Types.Apply do
     case map_to_list(map) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :to_list, 1)}
+    end
+  end
+
+  defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
+    case map_update(map, key, value, false, false) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :update, 3)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+    end
+  end
+
+  defp remote_apply(:maps, :values, _info, [map], stack) do
+    case map_to_list(map, fn _key, value -> value end) do
+      {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
+      :badmap -> {:error, badremote(:maps, :keys, 1)}
     end
   end
 

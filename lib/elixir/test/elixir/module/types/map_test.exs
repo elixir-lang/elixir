@@ -80,6 +80,54 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.delete/2" do
+    test "checking" do
+      assert typecheck!(Map.delete(%{}, :key)) ==
+               closed_map(key: not_set())
+
+      assert typecheck!(Map.delete(%{key: 123}, :key)) ==
+               closed_map(key: not_set())
+
+      assert typecheck!([x], Map.delete(x, :key)) ==
+               dynamic(open_map(key: not_set()))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.delete(%{foo: 123}, if(condition?, do: :foo, else: :bar))
+             ) ==
+               union(
+                 closed_map(foo: not_set()),
+                 closed_map(foo: integer(), bar: not_set())
+               )
+
+      assert typecheck!([x], Map.delete(x, 123)) == dynamic(open_map())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.delete(x, :key)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.delete(x, :key)) =~
+               "incompatible types given to Map.delete/2"
+    end
+
+    test "combined with put" do
+      assert typecheck!([x], x |> Map.delete(:key) |> Map.put(:key, "123")) ==
+               dynamic(open_map(key: binary()))
+
+      assert typecheck!([x, y], x |> Map.delete(:key) |> Map.put(String.to_atom(y), "123")) ==
+               dynamic(open_map(key: if_set(binary())))
+    end
+  end
+
   describe "Map.fetch/2" do
     test "checking" do
       assert typecheck!(Map.fetch(%{key: 123}, :key)) ==
@@ -190,6 +238,46 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.put/3" do
+    test "checking" do
+      assert typecheck!(Map.put(%{}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!(Map.put(%{key: 123}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!([x], Map.put(x, :key, :value)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.put(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
+             ) ==
+               union(
+                 closed_map(foo: binary()),
+                 closed_map(foo: integer(), bar: binary())
+               )
+
+      assert typecheck!([x], Map.put(x, 123, 456)) == dynamic(open_map())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.put(x, :key, :value)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.put(x, :key, :value)) =~
+               "incompatible types given to Map.put/3"
+    end
+  end
+
   describe "Map.replace!/3" do
     test "checking" do
       assert typecheck!(Map.replace!(%{key: 123}, :key, :value)) ==
@@ -201,8 +289,8 @@ defmodule Module.Types.MapTest do
       # If one of them succeeds, we are still fine!
       assert typecheck!(
                [condition?],
-               Map.replace!(%{foo: 123}, if(condition?, do: :foo, else: :bar), :value)
-             ) == closed_map(foo: atom([:value]))
+               Map.replace!(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
+             ) == closed_map(foo: binary())
 
       assert typecheck!([x], Map.replace!(x, 123, 456)) == dynamic(open_map())
     end
