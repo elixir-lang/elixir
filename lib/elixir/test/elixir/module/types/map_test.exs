@@ -24,18 +24,16 @@ defmodule Module.Types.MapTest do
 
   describe ":maps.take/2" do
     test "checking" do
-      assert typecheck!(:maps.take(:key, %{key: 123})) |> equal?(tuple([integer(), empty_map()]))
+      assert typecheck!(:maps.take(:key, %{key: 123})) ==
+               tuple([integer(), empty_map()]) |> union(atom([:error]))
 
-      assert typecheck!([x], :maps.take(:key, x))
-             |> equal?(
+      assert typecheck!([x], :maps.take(:key, x)) ==
                union(
                  dynamic(tuple([term(), open_map(key: not_set())])),
                  atom([:error])
                )
-             )
 
-      assert typecheck!([condition?, x], :maps.take(if(condition?, do: :foo, else: :bar), x))
-             |> equal?(
+      assert typecheck!([condition?, x], :maps.take(if(condition?, do: :foo, else: :bar), x)) ==
                union(
                  dynamic(
                    tuple([
@@ -48,15 +46,12 @@ defmodule Module.Types.MapTest do
                  ),
                  atom([:error])
                )
-             )
 
-      assert typecheck!([x], :maps.take(123, x))
-             |> equal?(
+      assert typecheck!([x], :maps.take(123, x)) ==
                union(
                  dynamic(tuple([term(), open_map()])),
                  atom([:error])
                )
-             )
     end
 
     test "inference" do
@@ -144,8 +139,8 @@ defmodule Module.Types.MapTest do
       assert typecheck!(Map.fetch(%{key: 123}, :key)) ==
                tuple([atom([:ok]), integer()]) |> union(atom([:error]))
 
-      assert typecheck!([x], Map.fetch(x, :key))
-             |> equal?(dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error])))
+      assert typecheck!([x], Map.fetch(x, :key)) ==
+               dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error]))
 
       # If one of them succeeds, we are still fine!
       assert typecheck!(
@@ -153,8 +148,8 @@ defmodule Module.Types.MapTest do
                Map.fetch(%{foo: 123}, if(condition?, do: :foo, else: :bar))
              ) == tuple([atom([:ok]), integer()]) |> union(atom([:error]))
 
-      assert typecheck!([x], Map.fetch(x, 123))
-             |> equal?(dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error])))
+      assert typecheck!([x], Map.fetch(x, 123)) ==
+               dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error]))
     end
 
     test "inference" do
@@ -199,7 +194,7 @@ defmodule Module.Types.MapTest do
                Map.fetch!(%{foo: 123}, if(condition?, do: :foo, else: :bar))
              ) == integer()
 
-      assert typecheck!([x], Map.fetch!(x, 123)) |> equal?(dynamic())
+      assert typecheck!([x], Map.fetch!(x, 123)) == dynamic()
     end
 
     test "inference" do
@@ -531,6 +526,187 @@ defmodule Module.Types.MapTest do
 
     test "errors" do
       assert typeerror!([x = []], Map.keys(x)) =~ "incompatible types given to Map.keys/1"
+    end
+  end
+
+  describe "Map.pop/2" do
+    test "checking" do
+      assert typecheck!(Map.pop(%{key: 123}, :key)) ==
+               tuple([union(integer(), atom([nil])), empty_map()])
+
+      assert typecheck!([x], Map.pop(x, :key)) ==
+               dynamic(tuple([term(), open_map(key: not_set())]))
+
+      assert typecheck!([condition?, x], Map.pop(x, if(condition?, do: :foo, else: :bar))) ==
+               dynamic(
+                 tuple([
+                   term(),
+                   union(
+                     open_map(foo: not_set()),
+                     open_map(bar: not_set())
+                   )
+                 ])
+               )
+
+      assert typecheck!(
+               [x],
+               (
+                 x = %{String.to_integer(x) => :before}
+                 Map.pop(x, 123)
+               )
+             ) ==
+               tuple([
+                 atom([:before, nil]),
+                 closed_map([{domain_key(:integer), atom([:before])}])
+               ])
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.pop(x, :key)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.pop(x, :foo)) =~
+               "incompatible types given to Map.pop/2"
+
+      assert typeerror!(Map.pop(%{}, :key)) =~ """
+             incompatible types given to Map.pop/2:
+
+                 Map.pop(%{}, :key)
+
+             the map:
+
+                 empty_map()
+
+             does not have all required keys:
+
+                 :key
+
+             """
+    end
+  end
+
+  describe "Map.pop/3" do
+    test "checking" do
+      assert typecheck!(Map.pop(%{key: 123}, :key, :error)) ==
+               tuple([union(integer(), atom([:error])), empty_map()])
+
+      assert typecheck!([x], Map.pop(x, :key, :error)) ==
+               dynamic(tuple([term(), open_map(key: not_set())]))
+
+      assert typecheck!([condition?, x], Map.pop(x, if(condition?, do: :foo, else: :bar), :error)) ==
+               dynamic(
+                 tuple([
+                   term(),
+                   union(
+                     open_map(foo: not_set()),
+                     open_map(bar: not_set())
+                   )
+                 ])
+               )
+
+      assert typecheck!(
+               [x],
+               (
+                 x = %{String.to_integer(x) => :before}
+                 Map.pop(x, 123, :after)
+               )
+             ) ==
+               tuple([
+                 atom([:before, :after]),
+                 closed_map([{domain_key(:integer), atom([:before])}])
+               ])
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.pop(x, :key, :error)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.pop(x, :foo, :error)) =~
+               "incompatible types given to Map.pop/3"
+
+      assert typeerror!(Map.pop(%{}, :key, :error)) =~ """
+             incompatible types given to Map.pop/3:
+
+                 Map.pop(%{}, :key, :error)
+
+             the map:
+
+                 empty_map()
+
+             does not have all required keys:
+
+                 :key
+
+             """
+    end
+  end
+
+  describe "Map.pop!/2" do
+    test "checking" do
+      assert typecheck!(Map.pop!(%{key: 123}, :key)) ==
+               tuple([integer(), empty_map()])
+
+      assert typecheck!([x], Map.pop!(x, :key)) ==
+               dynamic(tuple([term(), open_map(key: not_set())]))
+
+      assert typecheck!([condition?, x], Map.pop!(x, if(condition?, do: :foo, else: :bar))) ==
+               dynamic(
+                 tuple([
+                   term(),
+                   union(
+                     open_map(foo: not_set()),
+                     open_map(bar: not_set())
+                   )
+                 ])
+               )
+
+      assert typecheck!([x], Map.pop!(x, 123)) ==
+               dynamic(tuple([term(), open_map()]))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.pop!(x, :key)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.pop!(x, :foo)) =~
+               "incompatible types given to Map.pop!/2"
+
+      assert typeerror!(Map.pop!(%{}, :key)) =~ """
+             incompatible types given to Map.pop!/2:
+
+                 Map.pop!(%{}, :key)
+
+             the map:
+
+                 empty_map()
+
+             does not have all required keys:
+
+                 :key
+
+             therefore this function will always raise
+             """
     end
   end
 

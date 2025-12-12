@@ -245,6 +245,9 @@ defmodule Module.Types.Apply do
 
         ## Map
         {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
+        {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
+        {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
+        {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
@@ -429,12 +432,41 @@ defmodule Module.Types.Apply do
   end
 
   @struct_key atom([:__struct__])
+  @nil_atom atom([nil])
 
   defp remote_apply(Map, :from_struct, _info, [map] = args_types, stack) do
     case map_update(map, @struct_key, not_set(), false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :from_struct, 1)}
       {:error, _errors} -> {:error, {:badkeydomain, map, @struct_key, nil}}
+    end
+  end
+
+  defp remote_apply(Map, :pop, _info, args_types, stack) do
+    [map, key, default] =
+      case args_types do
+        [map, key] -> [map, key, @nil_atom]
+        _ -> args_types
+      end
+
+    case map_update(map, key, not_set(), true, false) do
+      {value, descr, _errors} ->
+        value = union(value, default)
+        {:ok, return(tuple([value, descr]), args_types, stack)}
+
+      :badmap ->
+        {:error, badremote(Map, :pop, length(args_types))}
+
+      {:error, _errors} ->
+        {:error, {:badkeydomain, map, key, tuple([default, map])}}
+    end
+  end
+
+  defp remote_apply(Map, :pop!, _info, [map, key] = args_types, stack) do
+    case map_update(map, key, not_set(), true, false) do
+      {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
+      :badmap -> {:error, badremote(Map, :pop!, 2)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
 
@@ -485,18 +517,8 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
     case map_update(map, key, not_set(), true, false) do
-      # We could suggest to use :maps.delete if the key always exists
-      # but :maps.take/2 means calling Erlang directly, so we are fine.
-      {value, descr, errors} ->
-        result = tuple([value, descr])
-
-        result =
-          if errors == [] and not gradual?(map) do
-            result
-          else
-            union(result, atom([:error]))
-          end
-
+      {value, descr, _errors} ->
+        result = union(tuple([value, descr]), atom([:error]))
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
