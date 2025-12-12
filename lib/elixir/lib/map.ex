@@ -1088,6 +1088,7 @@ defmodule Map do
       #=> %{name: "john"}
 
   """
+  # TODO: implement this using row polymorphism
   @spec from_struct(atom | struct) :: map
   def from_struct(struct) when is_atom(struct) do
     IO.warn("Map.from_struct/1 with a module is deprecated, please pass a struct instead")

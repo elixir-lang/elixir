@@ -249,6 +249,47 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.from_struct/1" do
+    test "checking" do
+      assert typecheck!(Map.from_struct(%{})) ==
+               closed_map(__struct__: not_set())
+
+      assert typecheck!(Map.from_struct(%{key: 123})) ==
+               closed_map(key: integer(), __struct__: not_set())
+
+      assert typecheck!(Map.from_struct(%URI{})) ==
+               closed_map(
+                 __struct__: not_set(),
+                 authority: atom([nil]),
+                 fragment: atom([nil]),
+                 host: atom([nil]),
+                 path: atom([nil]),
+                 port: atom([nil]),
+                 query: atom([nil]),
+                 scheme: atom([nil]),
+                 userinfo: atom([nil])
+               )
+
+      assert typecheck!([x], Map.from_struct(x)) ==
+               dynamic(open_map(__struct__: not_set()))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.from_struct(x)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.from_struct(x)) =~
+               "incompatible types given to Map.from_struct/1"
+    end
+  end
+
   describe "Map.put/3" do
     test "checking" do
       assert typecheck!(Map.put(%{}, :key, :value)) ==

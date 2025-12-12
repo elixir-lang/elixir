@@ -196,6 +196,7 @@ bootstrap_files() ->
     [
      <<"list/chars.ex">>,
      <<"bitwise.ex">>,
+     <<"map.ex">>,
      <<"module/parallel_checker.ex">>,
      <<"module/behaviour.ex">>,
      <<"module/types/helpers.ex">>,
@@ -208,7 +209,6 @@ bootstrap_files() ->
      <<"exception.ex">>,
      <<"path.ex">>,
      <<"file.ex">>,
-     <<"map.ex">>,
      <<"access.ex">>,
      <<"io.ex">>,
      <<"system.ex">>,

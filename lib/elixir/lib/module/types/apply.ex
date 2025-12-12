@@ -244,7 +244,7 @@ defmodule Module.Types.Apply do
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
         ## Map
-        {:maps, :remove, [{[term(), open_map()], open_map()}]},
+        {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
@@ -252,6 +252,7 @@ defmodule Module.Types.Apply do
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
         {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
+        {:maps, :remove, [{[term(), open_map()], open_map()}]},
         {:maps, :take,
          [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
@@ -427,11 +428,13 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, not_set(), false, true) do
+  @struct_key atom([:__struct__])
+
+  defp remote_apply(Map, :from_struct, _info, [map] = args_types, stack) do
+    case map_update(map, @struct_key, not_set(), false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :remove, 2)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+      :badmap -> {:error, badremote(Map, :from_struct, 1)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, @struct_key, nil}}
     end
   end
 
@@ -468,6 +471,14 @@ defmodule Module.Types.Apply do
     case map_update(map, key, value, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :put, 3)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+    end
+  end
+
+  defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
+    case map_update(map, key, not_set(), false, true) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :remove, 2)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
