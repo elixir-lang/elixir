@@ -1953,6 +1953,18 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "do+end with not in operator without explicit parentheses" do
+    assert_warn_eval(
+      ["nofile:3\n", "missing parentheses on expression following operator \"not in\""],
+      """
+      quote do
+        case do
+        end not in no_parens 1, 2
+      end
+      """
+    )
+  end
+
   test "variable is being expanded to function call (on_undefined_variable: warn)" do
     capture_io(:stderr, fn ->
       Code.put_compiler_option(:on_undefined_variable, :warn)

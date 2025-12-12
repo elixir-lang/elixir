@@ -1298,6 +1298,14 @@ warn_pipe(_Token, _) ->
   ok.
 
 %% TODO: Make this an error on v2.0
+warn_no_parens_after_do_op({{in_op, Location, Op, _InLocation}, _}) ->
+  {Line, _, _} = Location,
+
+  warn(
+    Line,
+    "missing parentheses on expression following operator \"" ++ atom_to_list(Op) ++ "\", "
+    "you must add parentheses to avoid ambiguities"
+  );
 warn_no_parens_after_do_op({{_Type, Location, Op}, _}) ->
   {Line, _, _} = Location,
 
