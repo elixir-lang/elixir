@@ -3167,7 +3167,12 @@ defmodule Module.Types.Descr do
 
   # Directly inserts a key of a given type into every positive and negative map.
   defp map_put_key_static(%{map: bdd} = descr, key, type) do
-    bdd = bdd_map(bdd, fn {tag, fields} -> {tag, Map.put(fields, key, type)} end)
+    bdd =
+      bdd_map(bdd, fn
+        {:closed, fields} when type == @not_set -> {:closed, fields}
+        {tag, fields} -> {tag, Map.put(fields, key, type)}
+      end)
+
     %{descr | map: bdd}
   end
 

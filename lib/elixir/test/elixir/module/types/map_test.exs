@@ -94,10 +94,10 @@ defmodule Module.Types.MapTest do
   describe "Map.delete/2" do
     test "checking" do
       assert typecheck!(Map.delete(%{}, :key)) ==
-               closed_map(key: not_set())
+               empty_map()
 
       assert typecheck!(Map.delete(%{key: 123}, :key)) ==
-               closed_map(key: not_set())
+               empty_map()
 
       assert typecheck!([x], Map.delete(x, :key)) ==
                dynamic(open_map(key: not_set()))
@@ -108,8 +108,8 @@ defmodule Module.Types.MapTest do
                Map.delete(%{foo: 123}, if(condition?, do: :foo, else: :bar))
              ) ==
                union(
-                 closed_map(foo: not_set()),
-                 closed_map(foo: integer(), bar: not_set())
+                 empty_map(),
+                 closed_map(foo: integer())
                )
 
       assert typecheck!([x], Map.delete(x, 123)) == dynamic(open_map())
@@ -252,14 +252,13 @@ defmodule Module.Types.MapTest do
   describe "Map.from_struct/1" do
     test "checking" do
       assert typecheck!(Map.from_struct(%{})) ==
-               closed_map(__struct__: not_set())
+               empty_map()
 
       assert typecheck!(Map.from_struct(%{key: 123})) ==
-               closed_map(key: integer(), __struct__: not_set())
+               closed_map(key: integer())
 
       assert typecheck!(Map.from_struct(%URI{})) ==
                closed_map(
-                 __struct__: not_set(),
                  authority: atom([nil]),
                  fragment: atom([nil]),
                  host: atom([nil]),
