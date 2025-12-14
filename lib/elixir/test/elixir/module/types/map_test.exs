@@ -428,6 +428,86 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.update!/3" do
+    test "checking" do
+      assert typecheck!(Map.update!(%{key: 123}, :key, fn _ -> :value end)) ==
+               dynamic(closed_map(key: atom([:value])))
+
+      assert typecheck!([x], Map.update!(x, :key, fn _ -> :value end)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.update!(%{foo: 123}, if(condition?, do: :foo, else: :bar), fn _ -> "123" end)
+             ) == dynamic(closed_map(foo: binary()))
+
+      # Both succeed but different clauses
+      assert typecheck!(
+               [condition?],
+               Map.update!(%{key1: :foo, key2: :bar}, if(condition?, do: :key1, else: :key2), fn
+                 :foo -> 123
+                 :bar -> 123.0
+               end)
+             ) ==
+               dynamic(
+                 union(
+                   closed_map(key1: atom([:foo]), key2: float()),
+                   closed_map(key1: integer(), key2: atom([:bar]))
+                 )
+               )
+
+      assert typecheck!([x], Map.update!(x, 123, fn _ -> 456 end)) == dynamic(open_map())
+
+      assert typecheck!([], Map.update!(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
+               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.update!(x, :key, fn _ -> :value end)
+                 x
+               )
+             ) == dynamic(open_map(key: term()))
+    end
+
+    test "errors" do
+      assert typeerror!(Map.update!(%{}, :key, fn _ -> :value end)) =~
+               """
+               incompatible types given to Map.update!/3:
+
+                   Map.update!(%{}, :key, fn _ -> :value end)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :key
+
+               therefore this function will always raise
+               """
+
+      assert typeerror!(Map.update!(%{key: :foo}, :key, fn :bar -> :value end)) |> strip_ansi() =~
+               """
+               incompatible types given on function call within Map.update!/3:
+
+                   Map.update!(%{key: :foo}, :key, fn :bar -> :value end)
+
+               given types:
+
+                   dynamic(:foo)
+
+               but function has type:
+
+                   (:bar -> dynamic(:value))
+               """
+    end
+  end
+
   describe "Map.from_keys/2" do
     test "checking" do
       assert typecheck!([], Map.from_keys([], :value)) ==
@@ -685,7 +765,7 @@ defmodule Module.Types.MapTest do
                  _ = Map.pop!(x, :key)
                  x
                )
-             ) == dynamic(open_map())
+             ) == dynamic(open_map(key: term()))
     end
 
     test "errors" do

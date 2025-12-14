@@ -755,10 +755,10 @@ defmodule Map do
 
       iex> Map.pop(%{a: 1}, :a)
       {1, %{}}
-      iex> Map.pop(%{a: 1}, :b)
-      {nil, %{a: 1}}
-      iex> Map.pop(%{a: 1}, :b, 3)
-      {3, %{a: 1}}
+      iex> Map.pop(%{"a" => 1}, "b")
+      {nil, %{"a" => 1}}
+      iex> Map.pop(%{"a" => 1}, "b", 3)
+      {3, %{"a" => 1}}
 
   """
   @spec pop(map, key, default) :: {value, updated_map :: map} | {default, map} when default: value
@@ -781,8 +781,8 @@ defmodule Map do
       {1, %{}}
       iex> Map.pop!(%{a: 1, b: 2}, :a)
       {1, %{b: 2}}
-      iex> Map.pop!(%{a: 1}, :b)
-      ** (KeyError) key :b not found in:
+      iex> Map.pop!(%{"a" => 1}, "b")
+      ** (KeyError) key "b" not found in:
       ...
 
   """
@@ -968,8 +968,8 @@ defmodule Map do
       iex> Map.update!(%{a: 1}, :a, &(&1 * 2))
       %{a: 2}
 
-      iex> Map.update!(%{a: 1}, :b, &(&1 * 2))
-      ** (KeyError) key :b not found in:
+      iex> Map.update!(%{"a" => 1}, "b", &(&1 * 2))
+      ** (KeyError) key "b" not found in:
       ...
 
   """

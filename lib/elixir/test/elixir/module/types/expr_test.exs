@@ -183,7 +183,7 @@ defmodule Module.Types.ExprTest do
 
     test "bad function" do
       assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
-             expected a 2-arity function on call:
+             expected a 2-arity function on function call:
 
                  x.(a1, a2)
 
@@ -201,7 +201,7 @@ defmodule Module.Types.ExprTest do
 
     test "bad arity" do
       assert typeerror!([a1, a2], (&String.to_integer/1).(a1, a2)) == ~l"""
-             expected a 2-arity function on call:
+             expected a 2-arity function on function call:
 
                  (&String.to_integer/1).(a1, a2)
 
@@ -214,7 +214,7 @@ defmodule Module.Types.ExprTest do
     test "bad argument" do
       assert typeerror!([], (&String.to_integer/1).(:foo))
              |> strip_ansi() == ~l"""
-             incompatible types given on function application:
+             incompatible types given on function call:
 
                  (&String.to_integer/1).(:foo)
 
@@ -236,7 +236,7 @@ defmodule Module.Types.ExprTest do
                 end).(:foo)
              )
              |> strip_ansi() == ~l"""
-             incompatible types given on function application:
+             incompatible types given on function call:
 
                  (if x do
                     &String.to_integer/1
@@ -266,7 +266,7 @@ defmodule Module.Types.ExprTest do
                )
              )
              |> strip_ansi() == """
-             incompatible types given on function application:
+             incompatible types given on function call:
 
                  fun.(:error)
 

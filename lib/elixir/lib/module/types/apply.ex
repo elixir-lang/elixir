@@ -248,6 +248,7 @@ defmodule Module.Types.Apply do
         {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
         {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
+        {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
@@ -355,6 +356,17 @@ defmodule Module.Types.Apply do
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
+  def remote_domain(Map, :pop!, [_, key], expected, _meta, _stack, context) when is_atom(key) do
+    domain = [open_map([{key, expected}]), term()]
+    {{:strong, nil, [{domain, open_map()}]}, domain, context}
+  end
+
+  def remote_domain(Map, :update!, [_, key, _], expected, _meta, _stack, context)
+      when is_atom(key) do
+    domain = [open_map([{key, expected}]), term(), fun(1)]
+    {{:strong, nil, [{domain, open_map()}]}, domain, context}
+  end
+
   def remote_domain(mod, fun, args, expected, meta, stack, context) do
     arity = length(args)
 
@@ -378,7 +390,7 @@ defmodule Module.Types.Apply do
 
       {:error, error} ->
         mfac = mfac(expr, mod, fun, length(args_types))
-        error = {error, args_types, mfac, expr, context}
+        error = {error, mfac, expr, context}
         {error_type(), error(error, elem(expr, 1), stack, context)}
     end
   end
@@ -386,14 +398,14 @@ defmodule Module.Types.Apply do
   defp remote_apply(:erlang, :hd, _info, [list], stack) do
     case list_hd(list) do
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
-      :badnonemptylist -> {:error, badremote(:erlang, :hd, 1)}
+      :badnonemptylist -> {:error, badremote(:erlang, :hd, [list])}
     end
   end
 
   defp remote_apply(:erlang, :tl, _info, [list], stack) do
     case list_tl(list) do
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
-      :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
+      :badnonemptylist -> {:error, badremote(:erlang, :tl, [list])}
     end
   end
 
@@ -427,7 +439,7 @@ defmodule Module.Types.Apply do
         end
 
       :badproperlist ->
-        {:error, badremote(:maps, :from_keys, 2)}
+        {:error, badremote(:maps, :from_keys, args_types)}
     end
   end
 
@@ -437,7 +449,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :from_struct, _info, [map] = args_types, stack) do
     case map_update(map, @struct_key, not_set(), false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(Map, :from_struct, 1)}
+      :badmap -> {:error, badremote(Map, :from_struct, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, @struct_key, nil}}
     end
   end
@@ -455,7 +467,7 @@ defmodule Module.Types.Apply do
         {:ok, return(tuple([value, descr]), args_types, stack)}
 
       :badmap ->
-        {:error, badremote(Map, :pop, length(args_types))}
+        {:error, badremote(Map, :pop, args_types)}
 
       {:error, _errors} ->
         {:error, {:badkeydomain, map, key, tuple([default, map])}}
@@ -465,7 +477,33 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :pop!, _info, [map, key] = args_types, stack) do
     case map_update(map, key, not_set(), true, false) do
       {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
-      :badmap -> {:error, badremote(Map, :pop!, 2)}
+      :badmap -> {:error, badremote(Map, :pop!, args_types)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+    end
+  end
+
+  defp remote_apply(Map, :update!, _info, [map, key, fun] = args_types, stack) do
+    try do
+      {map, fun} =
+        case fun do
+          %{dynamic: fun} -> {dynamic(map), fun}
+          _ -> {map, fun}
+        end
+
+      fun_apply = fn arg_type ->
+        case fun_apply(fun, [arg_type]) do
+          {:ok, res} -> res
+          reason -> throw({:badapply, reason, [arg_type]})
+        end
+      end
+
+      map_update_fun(map, key, fun_apply, false, false)
+    catch
+      {:badapply, reason, args_types} ->
+        {:error, {:badapply, fun, args_types, reason}}
+    else
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :update!, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
@@ -477,7 +515,7 @@ defmodule Module.Types.Apply do
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
-        {:error, badremote(:maps, :find, 2)}
+        {:error, badremote(:maps, :find, args_types)}
 
       :error ->
         {:error, {:badkeydomain, map, key, atom([:error])}}
@@ -487,7 +525,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :get, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(value, args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :get, 2)}
+      :badmap -> {:error, badremote(:maps, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
@@ -495,14 +533,14 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :keys, _info, [map], stack) do
     case map_to_list(map, fn key, _value -> key end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :keys, 1)}
+      :badmap -> {:error, badremote(:maps, :keys, [map])}
     end
   end
 
   defp remote_apply(:maps, :put, _info, [key, value, map] = args_types, stack) do
     case map_update(map, key, value, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :put, 3)}
+      :badmap -> {:error, badremote(:maps, :put, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
@@ -510,7 +548,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
     case map_update(map, key, not_set(), false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :remove, 2)}
+      :badmap -> {:error, badremote(:maps, :remove, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
@@ -522,7 +560,7 @@ defmodule Module.Types.Apply do
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
-        {:error, badremote(:maps, :take, 2)}
+        {:error, badremote(:maps, :take, args_types)}
 
       {:error, _errors} ->
         {:error, {:badkeydomain, map, key, atom([:error])}}
@@ -532,14 +570,14 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :to_list, _info, [map], stack) do
     case map_to_list(map) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :to_list, 1)}
+      :badmap -> {:error, badremote(:maps, :to_list, [map])}
     end
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
     case map_update(map, key, value, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :update, 3)}
+      :badmap -> {:error, badremote(:maps, :update, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
     end
   end
@@ -547,7 +585,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :values, _info, [map], stack) do
     case map_to_list(map, fn _key, value -> value end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :keys, 1)}
+      :badmap -> {:error, badremote(:maps, :keys, [map])}
     end
   end
 
@@ -562,21 +600,21 @@ defmodule Module.Types.Apply do
   defp remote_apply({:infer, _domain, clauses} = sig, args_types, _stack) do
     case apply_infer(clauses, args_types) do
       {_used, type} -> {:ok, type}
-      :error -> {:error, {:badremote, sig}}
+      :error -> {:error, {:badremote, sig, args_types}}
     end
   end
 
   defp remote_apply({:strong, domain, clauses} = sig, args_types, stack) do
     case apply_strong(domain, clauses, args_types, stack) do
       {_used, type} -> {:ok, type}
-      :error -> {:error, {:badremote, sig}}
+      :error -> {:error, {:badremote, sig, args_types}}
     end
   end
 
   defp remote_apply({:element, index}, [_, tuple] = args_types, stack) do
     case tuple_fetch(tuple, index - 1) do
       {_optional?, value_type} -> {:ok, return(value_type, args_types, stack)}
-      :badtuple -> {:error, badremote(:erlang, :element, 2)}
+      :badtuple -> {:error, badremote(:erlang, :element, args_types)}
       :badindex -> {:error, {:badindex, index, tuple}}
     end
   end
@@ -584,7 +622,7 @@ defmodule Module.Types.Apply do
   defp remote_apply({:insert_element, index}, [_, tuple, value] = args_types, stack) do
     case tuple_insert_at(tuple, index - 1, value) do
       value_type when is_descr(value_type) -> {:ok, return(value_type, args_types, stack)}
-      :badtuple -> {:error, badremote(:erlang, :insert_element, 3)}
+      :badtuple -> {:error, badremote(:erlang, :insert_element, args_types)}
       :badindex -> {:error, {:badindex, index - 1, tuple}}
     end
   end
@@ -592,7 +630,7 @@ defmodule Module.Types.Apply do
   defp remote_apply({:delete_element, index}, [_, tuple] = args_types, stack) do
     case tuple_delete_at(tuple, index - 1) do
       value_type when is_descr(value_type) -> {:ok, return(value_type, args_types, stack)}
-      :badtuple -> {:error, badremote(:erlang, :delete_element, 2)}
+      :badtuple -> {:error, badremote(:erlang, :delete_element, args_types)}
       :badindex -> {:error, {:badindex, index, tuple}}
     end
   end
@@ -616,10 +654,10 @@ defmodule Module.Types.Apply do
 
       cond do
         empty?(common) and not (number_type?(left) and number_type?(right)) ->
-          {:error, :mismatched_comparison}
+          {:error, {:mismatched_comparison, left, right}}
 
         match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
-          {:error, :struct_comparison}
+          {:error, {:struct_comparison, left, right}}
 
         true ->
           {:ok, result}
@@ -638,15 +676,15 @@ defmodule Module.Types.Apply do
         {:ok, result}
 
       disjoint?(left, right) ->
-        {:error, :mismatched_comparison}
+        {:error, {:mismatched_comparison, left, right}}
 
       true ->
         {:ok, result}
     end
   end
 
-  defp badremote(mod, fun, arity) do
-    {:badremote, signature(mod, fun, arity)}
+  defp badremote(mod, fun, args) do
+    {:badremote, signature(mod, fun, length(args)), args}
   end
 
   @doc """
@@ -805,7 +843,7 @@ defmodule Module.Types.Apply do
         {res, context}
 
       reason ->
-        error = {{:badapply, reason}, args_types, fun_type, call, context}
+        error = {{:badapply, fun_type, args_types, reason}, nil, call, context}
         {error_type(), error(__MODULE__, error, elem(call, 1), stack, context)}
     end
   end
@@ -1017,12 +1055,21 @@ defmodule Module.Types.Apply do
 
   ## Diagnostics
 
-  def format_diagnostic({{:badapply, reason}, args_types, fun_type, expr, context}) do
+  def format_diagnostic({{:badapply, fun_type, args_types, reason}, mfac, expr, context}) do
+    mfa_or_call =
+      case mfac do
+        {mod, fun, arity, _converter} ->
+          "function call within #{Exception.format_mfa(mod, fun, arity)}"
+
+        nil ->
+          "function call"
+      end
+
     {message, to_trace, hints} =
       case reason do
         {:badarg, domain} ->
           message = """
-          incompatible types given on function application:
+          incompatible types given on #{mfa_or_call}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -1053,7 +1100,7 @@ defmodule Module.Types.Apply do
             end
 
           message = """
-          expected a #{length(args_types)}-arity function on call:
+          expected a #{length(args_types)}-arity function on #{mfa_or_call}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -1066,7 +1113,7 @@ defmodule Module.Types.Apply do
 
         :badfun ->
           message = """
-          expected a #{length(args_types)}-arity function on call:
+          expected a #{length(args_types)}-arity function on #{mfa_or_call}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -1132,7 +1179,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({{:badindex, index, type}, _args_types, mfac, expr, context}) do
+  def format_diagnostic({{:badindex, index, type}, mfac, expr, context}) do
     traces = collect_traces(expr, context)
     {mod, fun, arity, _converter} = mfac
     mfa = Exception.format_mfa(mod, fun, arity)
@@ -1155,17 +1202,17 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({{:badkeydomain, map, key, error}, _args_types, mfac, expr, context}) do
+  def format_diagnostic({{:badkeydomain, map, key, error}, mfac, expr, context}) do
     {mod, fun, arity, _converter} = mfac
+    mfa = Exception.format_mfa(mod, fun, arity)
     traces = collect_traces(expr, context)
-    mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
 
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
-          incompatible types given to #{mfa_or_fa}:
+          incompatible types given to #{mfa}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -1188,7 +1235,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({{:badremote, {_, domain, clauses}}, args_types, mfac, expr, context}) do
+  def format_diagnostic({{:badremote, {_, domain, clauses}, args_types}, mfac, expr, context}) do
     domain = domain(domain, clauses)
     {mod, fun, arity, converter} = mfac
     meta = elem(expr, 1)
@@ -1316,7 +1363,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:mismatched_comparison, [left, right], mfac, expr, context}) do
+  def format_diagnostic({{:mismatched_comparison, left, right}, mfac, expr, context}) do
     {_, name, _, _} = mfac
     traces = collect_traces(expr, context)
 
@@ -1344,7 +1391,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:struct_comparison, [left, right], mfac, expr, context}) do
+  def format_diagnostic({{:struct_comparison, left, right}, mfac, expr, context}) do
     {_, name, _, _} = mfac
     traces = collect_traces(expr, context)
 
