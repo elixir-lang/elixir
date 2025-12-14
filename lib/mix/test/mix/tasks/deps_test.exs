@@ -75,28 +75,27 @@ defmodule Mix.Tasks.DepsTest do
 
   ## deps
 
-  test "prints list of dependencies and their status" do
+  test "prints list of dependencies and their status alphabetically" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(DepsApp)
-
       Mix.Tasks.Deps.run([])
 
-      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      msg = "  the dependency is not available, run \"mix deps.get\""
-      assert_received {:mix_shell, :info, [^msg]}
+      invalid_app_file =
+        "  the app file at \"_build/dev/lib/invalidapp/ebin/invalidapp.app\" is invalid"
 
-      assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
-      assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
-
-      assert_received {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]}
-      msg = "  the app file at \"_build/dev/lib/invalidapp/ebin/invalidapp.app\" is invalid"
-      assert_received {:mix_shell, :info, [^msg]}
-
-      assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
-      assert_received {:mix_shell, :info, ["  could not find an app file at" <> _]}
-
-      assert_received {:mix_shell, :info, ["* nosemver (deps/nosemver)"]}
-      assert_received {:mix_shell, :info, ["  the app file specified a non-Semantic" <> _]}
+      assert {:messages,
+              [
+                {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]},
+                {:mix_shell, :info, [^invalid_app_file]},
+                {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]},
+                {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]},
+                {:mix_shell, :info, ["* noappfile (deps/noappfile)"]},
+                {:mix_shell, :info, ["  could not find an app file at " <> _]},
+                {:mix_shell, :info, ["* nosemver (deps/nosemver)"]},
+                {:mix_shell, :info, ["  the app file specified a non-Semantic" <> _]},
+                {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]},
+                {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]}
+              ]} = Process.info(self(), :messages)
     end)
   end
 
@@ -125,51 +124,31 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "filters dependencies preserving argument order" do
+  test "filters dependencies and deals with duplicates" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(DepsApp)
 
-      Mix.Tasks.Deps.run(["nosemver", "unknowndep2", "ok", "unknowndep1", "invalidapp"])
-
-      assert_output_order([
-        {:info, "nosemver"},
-        {:info, "ok"},
-        {:info, "invalidapp"},
-        {:error, "unknowndep2"},
-        {:error, "unknowndep1"}
+      Mix.Tasks.Deps.run([
+        "nosemver",
+        "unknowndep2",
+        "ok",
+        "ok",
+        "unknowndep1",
+        "invalidapp",
+        "ok"
       ])
-    end)
-  end
 
-  test "deduplicates arguments preserving first occurrence order" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsApp)
-
-      Mix.Tasks.Deps.run(["ok", "ok", "nosemver", "unknowndep", "ok", "unknowndep"])
-
-      messages = receive_shell_messages()
-
-      assert_output_once(messages, "ok")
-      assert_output_once(messages, "nosemver")
-      assert_output_once(messages, "unknowndep")
-
-      assert_output_order(messages, [{:info, "ok"}, {:info, "nosemver"}, {:error, "unknowndep"}])
-    end)
-  end
-
-  test "lists all dependencies in alphabetical order when no filter is given" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsApp)
-
-      Mix.Tasks.Deps.run([])
-
-      assert_output_order([
-        {:info, "invalidapp"},
-        {:info, "invalidvsn"},
-        {:info, "noappfile"},
-        {:info, "nosemver"},
-        {:info, "ok"}
-      ])
+      assert {:messages,
+              [
+                {:mix_shell, :info, ["* nosemver (deps/nosemver)"]},
+                {:mix_shell, :info, ["  the app file specified a non-Semantic" <> _]},
+                {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]},
+                {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]},
+                {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]},
+                {:mix_shell, :info, ["  the app file at " <> _]},
+                {:mix_shell, :error, ["warning: unknown dependency unknowndep2"]},
+                {:mix_shell, :error, ["warning: unknown dependency unknowndep1"]}
+              ]} = Process.info(self(), :messages)
     end)
   end
 
@@ -1050,75 +1029,4 @@ defmodule Mix.Tasks.DepsTest do
       assert File.exists?("deps/ok")
     end)
   end
-
-  ## Helpers
-
-  defp assert_output_once(messages, dep) do
-    matches = Enum.count(messages, &(info_message?(&1, dep) or warning_message?(&1, dep)))
-
-    if matches != 1 do
-      flunk("""
-      Expected output for #{dep} to appear only once!
-
-      Output:
-      #{inspect(messages)}
-      """)
-    end
-  end
-
-  defp assert_output_order(expected) do
-    assert_output_order(receive_shell_messages(), expected)
-  end
-
-  defp assert_output_order(output, expected) do
-    # Find the index of each expected output line
-    indices =
-      Enum.map(expected, fn
-        {:info, dep} -> Enum.find_index(output, &info_message?(&1, dep))
-        {:error, dep} -> Enum.find_index(output, &warning_message?(&1, dep))
-      end)
-
-    if not Enum.all?(indices) do
-      flunk("""
-      Expected output not found!
-
-      Expected:
-      #{inspect(expected)}
-
-      Output:
-      #{inspect(output)}
-      """)
-    end
-
-    if not strictly_increasing?(indices) do
-      flunk("""
-      Output not in expected order!
-
-      Expected:
-      #{inspect(expected)}
-
-      Output:
-      #{inspect(output)}
-      """)
-    end
-  end
-
-  defp receive_shell_messages(acc \\ []) do
-    receive do
-      {:mix_shell, level, [line]} when level in [:info, :error] ->
-        receive_shell_messages([{level, line} | acc])
-    after
-      0 -> Enum.reverse(acc)
-    end
-  end
-
-  defp info_message?({:info, line}, dep), do: line =~ ~r/^\* #{dep} /
-  defp info_message?(_message, _dep), do: false
-
-  defp warning_message?({:error, line}, dep), do: line =~ ~r/^warning: .* #{dep}/
-  defp warning_message?(_message, _dep), do: false
-
-  defp strictly_increasing?([]), do: true
-  defp strictly_increasing?([_]), do: true
-  defp strictly_increasing?([a, b | rest]), do: a < b and strictly_increasing?([b | rest])
 end
