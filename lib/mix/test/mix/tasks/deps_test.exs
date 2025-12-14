@@ -100,6 +100,79 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  test "filters dependencies by name" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      Mix.Tasks.Deps.run(["ok"])
+
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
+      refute_received {:mix_shell, :info, ["* invalidvsn" <> _]}
+      refute_received {:mix_shell, :info, ["* invalidapp" <> _]}
+      refute_received {:mix_shell, :info, ["* noappfile" <> _]}
+      refute_received {:mix_shell, :info, ["* nosemver" <> _]}
+    end)
+  end
+
+  test "warns when filtering for unknown dependencies" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      Mix.Tasks.Deps.run(["ok", "unknowndep"])
+
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
+      assert_received {:mix_shell, :error, ["warning: unknown dependency unknowndep"]}
+    end)
+  end
+
+  test "filters dependencies preserving argument order" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      Mix.Tasks.Deps.run(["nosemver", "unknowndep2", "ok", "unknowndep1", "invalidapp"])
+
+      assert_output_order([
+        {:info, "nosemver"},
+        {:info, "ok"},
+        {:info, "invalidapp"},
+        {:error, "unknowndep2"},
+        {:error, "unknowndep1"}
+      ])
+    end)
+  end
+
+  test "deduplicates arguments preserving first occurrence order" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      Mix.Tasks.Deps.run(["ok", "ok", "nosemver", "unknowndep", "ok", "unknowndep"])
+
+      messages = receive_shell_messages()
+
+      assert_output_once(messages, "ok")
+      assert_output_once(messages, "nosemver")
+      assert_output_once(messages, "unknowndep")
+
+      assert_output_order(messages, [{:info, "ok"}, {:info, "nosemver"}, {:error, "unknowndep"}])
+    end)
+  end
+
+  test "lists all dependencies in alphabetical order when no filter is given" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      Mix.Tasks.Deps.run([])
+
+      assert_output_order([
+        {:info, "invalidapp"},
+        {:info, "invalidvsn"},
+        {:info, "noappfile"},
+        {:info, "nosemver"},
+        {:info, "ok"}
+      ])
+    end)
+  end
+
   test "prints list of dependencies and their status, including req mismatches and custom apps" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(ReqDepsApp)
@@ -977,4 +1050,75 @@ defmodule Mix.Tasks.DepsTest do
       assert File.exists?("deps/ok")
     end)
   end
+
+  ## Helpers
+
+  defp assert_output_once(messages, dep) do
+    matches = Enum.count(messages, &(info_message?(&1, dep) or warning_message?(&1, dep)))
+
+    if matches != 1 do
+      flunk("""
+      Expected output for #{dep} to appear only once!
+
+      Output:
+      #{inspect(messages)}
+      """)
+    end
+  end
+
+  defp assert_output_order(expected) do
+    assert_output_order(receive_shell_messages(), expected)
+  end
+
+  defp assert_output_order(output, expected) do
+    # Find the index of each expected output line
+    indices =
+      Enum.map(expected, fn
+        {:info, dep} -> Enum.find_index(output, &info_message?(&1, dep))
+        {:error, dep} -> Enum.find_index(output, &warning_message?(&1, dep))
+      end)
+
+    if not Enum.all?(indices) do
+      flunk("""
+      Expected output not found!
+
+      Expected:
+      #{inspect(expected)}
+
+      Output:
+      #{inspect(output)}
+      """)
+    end
+
+    if not strictly_increasing?(indices) do
+      flunk("""
+      Output not in expected order!
+
+      Expected:
+      #{inspect(expected)}
+
+      Output:
+      #{inspect(output)}
+      """)
+    end
+  end
+
+  defp receive_shell_messages(acc \\ []) do
+    receive do
+      {:mix_shell, level, [line]} when level in [:info, :error] ->
+        receive_shell_messages([{level, line} | acc])
+    after
+      0 -> Enum.reverse(acc)
+    end
+  end
+
+  defp info_message?({:info, line}, dep), do: line =~ ~r/^\* #{dep} /
+  defp info_message?(_message, _dep), do: false
+
+  defp warning_message?({:error, line}, dep), do: line =~ ~r/^warning: .* #{dep}/
+  defp warning_message?(_message, _dep), do: false
+
+  defp strictly_increasing?([]), do: true
+  defp strictly_increasing?([_]), do: true
+  defp strictly_increasing?([a, b | rest]), do: a < b and strictly_increasing?([b | rest])
 end

@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Deps do
   @shortdoc "Lists dependencies and their status"
 
   @moduledoc ~S"""
-  Lists all dependencies and their status.
+  Lists dependencies and their status.
 
   Dependencies must be specified in the `mix.exs` file in one of
   the following formats:
@@ -171,7 +171,7 @@ defmodule Mix.Tasks.Deps do
 
   ## Deps task
 
-  `mix deps` task lists all dependencies in the following format:
+  The `mix deps` task lists dependencies in the following format:
 
       APP VERSION (SCM) (MANAGER)
       [locked at REF]
@@ -186,19 +186,40 @@ defmodule Mix.Tasks.Deps do
 
     * `--all` - lists all dependencies, regardless of specified environment
 
+  ### Listing specific dependencies (since v1.20.0)
+
+  Pass dependency names as arguments to filter the output:
+
+      $ mix deps phoenix phoenix_live_view
+
+  This is particularly useful when you need to quickly check versions for
+  bug reports or similar tasks.
   """
 
   @impl true
   def run(args) do
     Mix.Project.get!()
-    {opts, _, _} = OptionParser.parse(args, switches: [all: :boolean])
+    {opts, apps, _} = OptionParser.parse(args, switches: [all: :boolean])
     loaded_opts = if opts[:all], do: [], else: [env: Mix.env(), target: Mix.target()]
+
+    deps = Mix.Dep.Converger.converge(loaded_opts)
+
+    apps =
+      apps
+      |> Enum.map(&String.to_atom/1)
+      |> Enum.uniq()
+
+    # Sort deps when showing all or preserve input order when filtering
+    {deps, unknown} =
+      if apps == [] do
+        {Enum.sort_by(deps, & &1.app), []}
+      else
+        filter(deps, apps)
+      end
 
     shell = Mix.shell()
 
-    Mix.Dep.Converger.converge(loaded_opts)
-    |> Enum.sort_by(& &1.app)
-    |> Enum.each(fn dep ->
+    Enum.each(deps, fn dep ->
       %Mix.Dep{scm: scm, manager: manager} = dep
       dep = check_lock(dep)
       extra = if manager, do: " (#{manager})", else: ""
@@ -211,5 +232,19 @@ defmodule Mix.Tasks.Deps do
 
       shell.info("  #{format_status(dep)}")
     end)
+
+    # Warnings are displayed at the end for visibility
+    for app <- unknown do
+      shell.error("warning: unknown dependency #{app}")
+    end
+  end
+
+  defp filter(deps, apps) do
+    selected_deps =
+      Enum.flat_map(apps, fn app -> List.wrap(Enum.find(deps, &(&1.app == app))) end)
+
+    unknown_apps = apps -- Enum.map(selected_deps, & &1.app)
+
+    {selected_deps, unknown_apps}
   end
 end
