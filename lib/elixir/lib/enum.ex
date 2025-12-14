@@ -4183,6 +4183,11 @@ defmodule Enum do
       iex> Enum.zip_with([[1, 2], [3, 4]], fn [x, y] -> x + y end)
       [4, 6]
 
+  `zip_with/2` can be used to transpose lists of lists:
+
+      iex> Enum.zip_with([[1, 2,], [3, 4]], & &1)
+      [[1, 3], [2, 4]]
+
   """
   @doc since: "1.12.0"
   @spec zip_with(t, ([term] -> term)) :: [term]
