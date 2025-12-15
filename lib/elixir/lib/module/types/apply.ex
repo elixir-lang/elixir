@@ -251,6 +251,8 @@ defmodule Module.Types.Apply do
         {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
         {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
+        {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
+        {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
         {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
@@ -419,14 +421,14 @@ defmodule Module.Types.Apply do
     case map_update(map, @struct_key, not_set(), false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :from_struct, args_types)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, @struct_key, nil}}
+      {:error, _errors} -> {:error, {:badkeydomain, map, @struct_key, "raise"}}
     end
   end
 
   defp remote_apply(Map, :get, _info, [map, key] = args_types, stack) do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(union(value, @nil_atom), args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :get, args_types)}
+      :badmap -> {:error, badremote(Map, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, @nil_atom}}
     end
   end
@@ -434,7 +436,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :get, _info, [map, key, default] = args_types, stack) do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
-      :badmap -> {:error, badremote(:maps, :get, args_types)}
+      :badmap -> {:error, badremote(Map, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, default}}
     end
   end
@@ -444,7 +446,7 @@ defmodule Module.Types.Apply do
       {:ok, default} ->
         case map_get(map, key) do
           {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
-          :badmap -> {:error, badremote(:maps, :get, args_types)}
+          :badmap -> {:error, badremote(Map, :get_lazy, args_types)}
           :error -> {:error, {:badkeydomain, map, key, default}}
         end
 
@@ -477,34 +479,24 @@ defmodule Module.Types.Apply do
     case map_update(map, key, not_set(), true, false) do
       {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
       :badmap -> {:error, badremote(Map, :pop!, args_types)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
-  defp remote_apply(Map, :update!, _info, [map, key, fun] = args_types, stack) do
-    try do
-      {map, fun} =
-        case fun do
-          %{dynamic: fun} -> {dynamic(map), fun}
-          _ -> {map, fun}
-        end
-
-      fun_apply = fn arg_type ->
-        case fun_apply(fun, [arg_type]) do
-          {:ok, res} -> res
-          reason -> throw({:badapply, reason, [arg_type]})
-        end
-      end
-
-      map_update_fun(map, key, fun_apply, false, false)
-    catch
-      {:badapply, reason, args_types} ->
-        {:error, {:badapply, fun, args_types, reason}}
-    else
+  defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
+    case map_update(map, key, value, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(Map, :update!, args_types)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+      :badmap -> {:error, badremote(Map, :replace, args_types)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "do nothing"}}
     end
+  end
+
+  defp remote_apply(Map, :replace_lazy, _info, args_types, stack) do
+    map_update_or_replace_lazy(:replace_lazy, args_types, stack, "do nothing")
+  end
+
+  defp remote_apply(Map, :update!, _info, args_types, stack) do
+    map_update_or_replace_lazy(:update!, args_types, stack, "raise")
   end
 
   defp remote_apply(:maps, :find, _info, [key, map] = args_types, stack) do
@@ -559,7 +551,7 @@ defmodule Module.Types.Apply do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(value, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :get, args_types)}
-      :error -> {:error, {:badkeydomain, map, key, nil}}
+      :error -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
@@ -574,7 +566,7 @@ defmodule Module.Types.Apply do
     case map_update(map, key, value, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :put, args_types)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
@@ -582,7 +574,7 @@ defmodule Module.Types.Apply do
     case map_update(map, key, not_set(), false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :remove, args_types)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
@@ -611,7 +603,7 @@ defmodule Module.Types.Apply do
     case map_update(map, key, value, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :update, args_types)}
-      {:error, _errors} -> {:error, {:badkeydomain, map, key, nil}}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
@@ -975,6 +967,34 @@ defmodule Module.Types.Apply do
     end
   end
 
+  ## Map helpers
+
+  def map_update_or_replace_lazy(name, [map, key, fun] = args_types, stack, error) do
+    try do
+      {map, fun} =
+        case fun do
+          %{dynamic: fun} -> {dynamic(map), fun}
+          _ -> {map, fun}
+        end
+
+      fun_apply = fn arg_type ->
+        case fun_apply(fun, [arg_type]) do
+          {:ok, res} -> res
+          reason -> throw({:badapply, reason, [arg_type]})
+        end
+      end
+
+      map_update_fun(map, key, fun_apply, false, false)
+    catch
+      {:badapply, reason, args_types} ->
+        {:error, {:badapply, fun, args_types, reason}}
+    else
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, name, args_types)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, error}}
+    end
+  end
+
   ## Application helpers
 
   defp return(type, args_types, stack) do
@@ -1257,10 +1277,10 @@ defmodule Module.Types.Apply do
 
               #{to_quoted_string(key) |> indent(4)}
 
-          therefore this function will always #{if error do
-            "return #{to_quoted_string(error)}"
+          therefore this function will always #{if is_binary(error) do
+            error
           else
-            "raise"
+            "return #{to_quoted_string(error)}"
           end}
           """,
           format_traces(traces)

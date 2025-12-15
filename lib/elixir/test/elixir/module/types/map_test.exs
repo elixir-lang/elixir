@@ -756,6 +756,140 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.replace/3" do
+    test "checking" do
+      assert typecheck!(Map.replace(%{key: 123}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!([x], Map.replace(x, :key, :value)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.replace(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
+             ) == closed_map(foo: binary())
+
+      assert typecheck!([x], Map.replace(x, 123, 456)) == dynamic(open_map())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.replace(x, :key, :value)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.replace(%{}, :key, :value)) =~
+               """
+               incompatible types given to Map.replace/3:
+
+                   Map.replace(%{}, :key, :value)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :key
+
+               therefore this function will always do nothing
+               """
+    end
+  end
+
+  describe "Map.replace_lazy/3" do
+    test "checking" do
+      assert typecheck!(Map.replace_lazy(%{key: 123}, :key, fn _ -> :value end)) ==
+               dynamic(closed_map(key: atom([:value])))
+
+      assert typecheck!([x], Map.replace_lazy(x, :key, fn _ -> :value end)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.replace_lazy(%{foo: 123}, if(condition?, do: :foo, else: :bar), fn _ ->
+                 "123"
+               end)
+             ) == dynamic(closed_map(foo: binary()))
+
+      # Both succeed but different clauses
+      assert typecheck!(
+               [condition?],
+               Map.replace_lazy(
+                 %{key1: :foo, key2: :bar},
+                 if(condition?, do: :key1, else: :key2),
+                 fn
+                   :foo -> 123
+                   :bar -> 123.0
+                 end
+               )
+             ) ==
+               dynamic(
+                 union(
+                   closed_map(key1: atom([:foo]), key2: float()),
+                   closed_map(key1: integer(), key2: atom([:bar]))
+                 )
+               )
+
+      assert typecheck!([x], Map.replace_lazy(x, 123, fn _ -> 456 end)) == dynamic(open_map())
+
+      assert typecheck!([], Map.replace_lazy(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
+               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.replace_lazy(x, :key, fn _ -> :value end)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.replace_lazy(%{}, :key, fn _ -> :value end)) =~
+               """
+               incompatible types given to Map.replace_lazy/3:
+
+                   Map.replace_lazy(%{}, :key, fn _ -> :value end)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :key
+
+               therefore this function will always do nothing
+               """
+
+      assert typeerror!(Map.replace_lazy(%{key: :foo}, :key, fn :bar -> :value end))
+             |> strip_ansi() =~
+               """
+               incompatible types given on function call within Map.replace_lazy/3:
+
+                   Map.replace_lazy(%{key: :foo}, :key, fn :bar -> :value end)
+
+               given types:
+
+                   dynamic(:foo)
+
+               but function has type:
+
+                   (:bar -> dynamic(:value))
+               """
+    end
+  end
+
   describe "Map.replace!/3" do
     test "checking" do
       assert typecheck!(Map.replace!(%{key: 123}, :key, :value)) ==
