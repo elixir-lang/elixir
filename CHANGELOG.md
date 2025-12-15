@@ -95,7 +95,7 @@ end
 
 The code above has a type violation, which is now caught by the type system:
 
-```
+```text
     warning: incompatible types given to User.name/1:
 
         User.name(%{})
