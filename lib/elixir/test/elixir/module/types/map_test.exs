@@ -598,6 +598,85 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.pop_lazy/3" do
+    test "checking" do
+      assert typecheck!(Map.pop_lazy(%{key: 123}, :key, fn -> :error end)) ==
+               dynamic(tuple([union(integer(), atom([:error])), empty_map()]))
+
+      assert typecheck!([x], Map.pop_lazy(x, :key, fn -> :error end)) ==
+               dynamic(tuple([term(), open_map(key: not_set())]))
+
+      assert typecheck!(
+               [condition?, x],
+               Map.pop_lazy(x, if(condition?, do: :foo, else: :bar), fn -> :error end)
+             ) ==
+               dynamic(
+                 tuple([
+                   term(),
+                   union(
+                     open_map(foo: not_set()),
+                     open_map(bar: not_set())
+                   )
+                 ])
+               )
+
+      assert typecheck!(
+               [x],
+               (
+                 x = %{String.to_integer(x) => :before}
+                 Map.pop_lazy(x, 123, fn -> :after end)
+               )
+             ) ==
+               dynamic(
+                 tuple([
+                   atom([:before, :after]),
+                   closed_map([{domain_key(:integer), atom([:before])}])
+                 ])
+               )
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.pop_lazy(x, :key, fn -> :error end)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.pop_lazy(x, :foo, fn -> :error end)) =~
+               "incompatible types given to Map.pop_lazy/3"
+
+      assert typeerror!(Map.pop_lazy(%{}, :key, fn -> :error end)) =~ """
+             incompatible types given to Map.pop_lazy/3:
+
+                 Map.pop_lazy(%{}, :key, fn -> :error end)
+
+             the map:
+
+                 empty_map()
+
+             does not have all required keys:
+
+                 :key
+
+             """
+
+      assert typeerror!(Map.pop_lazy(%{}, :foo, 123)) =~
+               """
+               expected a 0-arity function on function call within Map.pop_lazy/3:
+
+                   Map.pop_lazy(%{}, :foo, 123)
+
+               but got type:
+
+                   integer()
+               """
+    end
+  end
+
   describe "Map.pop/3" do
     test "checking" do
       assert typecheck!(Map.pop(%{key: 123}, :key, :error)) ==

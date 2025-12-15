@@ -251,6 +251,7 @@ defmodule Module.Types.Apply do
         {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
         {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
+        {Map, :pop_lazy, [{[open_map(), term(), fun(0)], tuple([term(), open_map()])}]},
         {Map, :put_new, [{[open_map(), term(), term()], open_map()}]},
         {Map, :put_new_lazy, [{[open_map(), term(), fun(0)], open_map()}]},
         {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
@@ -485,6 +486,26 @@ defmodule Module.Types.Apply do
 
       {:error, _errors} ->
         {:error, {:badkeydomain, map, key, tuple([default, map])}}
+    end
+  end
+
+  defp remote_apply(Map, :pop_lazy, _info, [map, key, fun] = args_types, stack) do
+    case fun_apply(fun, []) do
+      {:ok, default} ->
+        case map_update(map, key, not_set(), true, false) do
+          {value, descr, _errors} ->
+            value = union(value, default)
+            {:ok, return(tuple([value, descr]), args_types, stack)}
+
+          :badmap ->
+            {:error, badremote(Map, :pop_lazy, args_types)}
+
+          {:error, _errors} ->
+            {:error, {:badkeydomain, map, key, tuple([default, map])}}
+        end
+
+      reason ->
+        {:error, {:badapply, fun, [], reason}}
     end
   end
 
