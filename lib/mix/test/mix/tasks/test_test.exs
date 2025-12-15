@@ -835,4 +835,223 @@ defmodule Mix.Tasks.TestTest do
   defp assert_run_output(opts \\ [], expected) do
     assert mix(["test" | opts]) =~ expected
   end
+
+  describe "--where" do
+    test "flag is recognized by the CLI" do
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--where", "slow"])
+        refute output =~ "unknown option"
+      end)
+    end
+
+    test "cannot be combined with --only" do
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--where", "slow", "--only", "fast"])
+        assert output =~ "--where cannot be combined with --only, --include, or --exclude"
+      end)
+    end
+
+    test "cannot be combined with --include" do
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--where", "slow", "--include", "fast"])
+        assert output =~ "--where cannot be combined with --only, --include, or --exclude"
+      end)
+    end
+
+    test "cannot be combined with --exclude" do
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--where", "slow", "--exclude", "fast"])
+        assert output =~ "--where cannot be combined with --only, --include, or --exclude"
+      end)
+    end
+
+    test "filters tests by simple tag" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/where_test.exs", """
+        defmodule WhereTest do
+          use ExUnit.Case
+
+          @tag :slow
+          test "slow test" do
+            assert true
+          end
+
+          @tag :fast
+          test "fast test" do
+            assert true
+          end
+
+          test "untagged test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--where", "slow", "test/where_test.exs"])
+        assert output =~ "1 test, 0 failures"
+        assert output =~ "2 excluded"
+      end)
+    end
+
+    test "filters tests with 'and' operator" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/where_test.exs", """
+        defmodule WhereAndTest do
+          use ExUnit.Case
+
+          @tag :slow
+          @tag :integration
+          test "slow integration test" do
+            assert true
+          end
+
+          @tag :slow
+          test "slow unit test" do
+            assert true
+          end
+
+          @tag :integration
+          test "fast integration test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--where", "slow and integration", "test/where_test.exs"])
+        assert output =~ "1 test, 0 failures"
+        assert output =~ "2 excluded"
+      end)
+    end
+
+    test "filters tests with 'or' operator" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/where_test.exs", """
+        defmodule WhereOrTest do
+          use ExUnit.Case
+
+          @tag :slow
+          test "slow test" do
+            assert true
+          end
+
+          @tag :integration
+          test "integration test" do
+            assert true
+          end
+
+          @tag :unit
+          test "unit test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--where", "slow or integration", "test/where_test.exs"])
+        assert output =~ "2 tests, 0 failures"
+        assert output =~ "1 excluded"
+      end)
+    end
+
+    test "filters tests with 'not' operator" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/where_test.exs", """
+        defmodule WhereNotTest do
+          use ExUnit.Case
+
+          @tag :slow
+          test "slow test" do
+            assert true
+          end
+
+          @tag :fast
+          test "fast test" do
+            assert true
+          end
+
+          test "untagged test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--where", "not slow", "test/where_test.exs"])
+        assert output =~ "2 tests, 0 failures"
+        assert output =~ "1 excluded"
+      end)
+    end
+
+    test "filters tests with parentheses for grouping" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/where_test.exs", """
+        defmodule WhereParensTest do
+          use ExUnit.Case
+
+          @tag :slow
+          @tag :integration
+          test "slow integration" do
+            assert true
+          end
+
+          @tag :fast
+          @tag :integration
+          test "fast integration" do
+            assert true
+          end
+
+          @tag :slow
+          @tag :unit
+          test "slow unit" do
+            assert true
+          end
+
+          @tag :fast
+          @tag :unit
+          test "fast unit" do
+            assert true
+          end
+        end
+        """)
+
+        # (slow or fast) and integration = integration tests only
+        output = mix(["test", "--where", "(slow or fast) and integration", "test/where_test.exs"])
+        assert output =~ "2 tests, 0 failures"
+        assert output =~ "2 excluded"
+      end)
+    end
+
+    test "filters tests with tag:value syntax" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/where_test.exs", """
+        defmodule WhereValueTest do
+          use ExUnit.Case
+
+          @tag interface: "ui"
+          test "ui test" do
+            assert true
+          end
+
+          @tag interface: "api"
+          test "api test" do
+            assert true
+          end
+
+          test "no interface test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--where", "interface:ui", "test/where_test.exs"])
+        assert output =~ "1 test, 0 failures"
+        assert output =~ "2 excluded"
+      end)
+    end
+
+    test "prints where filter in output" do
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--where", "slow and not flaky"])
+        assert output =~ "Where: (slow and not flaky)"
+      end)
+    end
+  end
 end

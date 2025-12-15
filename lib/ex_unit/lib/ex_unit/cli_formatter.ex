@@ -15,6 +15,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts("Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}")
     print_filters(opts, :exclude)
     print_filters(opts, :include)
+    print_where(opts)
     IO.puts("")
 
     config = %{
@@ -394,6 +395,19 @@ defmodule ExUnit.CLIFormatter do
       filters -> IO.puts(format_filters(filters, key))
     end
   end
+
+  defp print_where(opts) do
+    case opts[:where] do
+      nil -> :ok
+      where -> IO.puts("Where: #{format_where(where)}")
+    end
+  end
+
+  defp format_where({:tag, key}) when is_atom(key), do: to_string(key)
+  defp format_where({:tag, {key, value}}), do: "#{key}:#{value}"
+  defp format_where({:not, expr}), do: "not #{format_where(expr)}"
+  defp format_where({:and, left, right}), do: "(#{format_where(left)} and #{format_where(right)})"
+  defp format_where({:or, left, right}), do: "(#{format_where(left)} or #{format_where(right)})"
 
   defp print_failure(formatted, config) do
     cond do

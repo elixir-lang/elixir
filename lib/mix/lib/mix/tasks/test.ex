@@ -232,6 +232,31 @@ defmodule Mix.Tasks.Test do
       during tests, run:
           MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors
 
+    * `--where` *(since v1.19.0)* - filters tests using a boolean expression on tags.
+      This is an alternative to `--only`, `--include`, and `--exclude` that provides
+      full boolean logic with `and`, `or`, `not`, and parentheses. Cannot be combined
+      with `--only`, `--include`, or `--exclude`.
+
+      Examples:
+
+          # Run only slow tests
+          mix test --where slow
+
+          # Run slow integration tests (must have both tags)
+          mix test --where "slow and integration"
+
+          # Run slow or integration tests (either tag)
+          mix test --where "slow or integration"
+
+          # Run tests that are not flaky
+          mix test --where "not flaky"
+
+          # Complex expression with grouping
+          mix test --where "(slow or integration) and not flaky"
+
+          # Filter by tag value
+          mix test --where "interface:ui"
+
   ## Configuration
 
   These configurations can be set in the `def project` section of your `mix.exs`:
@@ -490,6 +515,7 @@ defmodule Mix.Tasks.Test do
     seed: :integer,
     name_pattern: :regex,
     only: :keep,
+    where: :string,
     compile: :boolean,
     start: :boolean,
     timeout: :integer,
@@ -884,6 +910,7 @@ defmodule Mix.Tasks.Test do
     :max_failures,
     :include,
     :exclude,
+    :where,
     :seed,
     :timeout,
     :formatters,
@@ -900,6 +927,7 @@ defmodule Mix.Tasks.Test do
 
   @doc false
   def process_ex_unit_opts(opts) do
+    validate_where_exclusivity!(opts)
     {opts, allowed_files} = manifest_opts(opts)
 
     opts =
@@ -907,6 +935,7 @@ defmodule Mix.Tasks.Test do
       |> filter_opts(:include)
       |> filter_opts(:exclude)
       |> filter_only_and_name_pattern()
+      |> where_opts()
       |> formatter_opts()
       |> color_opts()
       |> exit_status_opts()
@@ -914,6 +943,17 @@ defmodule Mix.Tasks.Test do
       |> default_opts()
 
     {opts, allowed_files}
+  end
+
+  defp validate_where_exclusivity!(opts) do
+    has_where = Keyword.has_key?(opts, :where)
+    has_legacy = Keyword.has_key?(opts, :only) or
+                 Keyword.has_key?(opts, :include) or
+                 Keyword.has_key?(opts, :exclude)
+
+    if has_where and has_legacy do
+      Mix.raise("--where cannot be combined with --only, --include, or --exclude")
+    end
   end
 
   defp merge_helper_opts(opts) do
@@ -957,6 +997,19 @@ defmodule Mix.Tasks.Test do
     case parse_filters(opts, key) do
       [] -> opts
       filters -> Keyword.put(opts, key, filters)
+    end
+  end
+
+  defp where_opts(opts) do
+    case Keyword.fetch(opts, :where) do
+      {:ok, where_string} ->
+        case ExUnit.Filters.Where.parse(where_string) do
+          {:ok, ast} -> Keyword.put(opts, :where, ast)
+          {:error, reason} -> Mix.raise("invalid --where expression: #{reason}")
+        end
+
+      :error ->
+        opts
     end
   end
 

@@ -79,6 +79,7 @@ defmodule ExUnit.Runner do
       capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
+      where: opts[:where],
       manager: manager,
       max_cases: opts[:max_cases],
       max_failures: opts[:max_failures],
@@ -282,6 +283,7 @@ defmodule ExUnit.Runner do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
+    where = config.where
     test_ids = config.only_test_ids
 
     {to_run, to_skip} =
@@ -295,13 +297,25 @@ defmodule ExUnit.Runner do
               test_group: group
             })
 
-          case ExUnit.Filters.eval(include, exclude, tags, tests) do
+          case eval_filters(include, exclude, where, tags, tests) do
             :ok -> {[%{test | tags: tags} | to_run], to_skip}
             excluded_or_skipped -> {to_run, [%{test | state: excluded_or_skipped} | to_skip]}
           end
       end
 
     {Enum.reverse(to_run), Enum.reverse(to_skip)}
+  end
+
+  defp eval_filters(include, exclude, nil, tags, tests) do
+    ExUnit.Filters.eval(include, exclude, tags, tests)
+  end
+
+  defp eval_filters(_include, _exclude, where, tags, _tests) do
+    if ExUnit.Filters.Where.eval(where, tags) do
+      :ok
+    else
+      {:excluded, "due to where filter"}
+    end
   end
 
   defp include_test?(test_ids, test) do
