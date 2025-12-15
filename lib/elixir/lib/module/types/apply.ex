@@ -256,6 +256,7 @@ defmodule Module.Types.Apply do
         {Map, :put_new_lazy, [{[open_map(), term(), fun(0)], open_map()}]},
         {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
         {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
+        {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
         {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
@@ -527,6 +528,42 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(Map, :replace_lazy, _info, args_types, stack) do
     map_update_or_replace_lazy(:replace_lazy, args_types, stack, "do nothing")
+  end
+
+  defp remote_apply(Map, :update, _info, [map, key, default, fun] = args_types, stack) do
+    try do
+      {map, default} =
+        case default do
+          %{dynamic: default} -> {dynamic(map), default}
+          _ -> {map, default}
+        end
+
+      {map, fun} =
+        case fun do
+          %{dynamic: fun} -> {dynamic(map), fun}
+          _ -> {map, fun}
+        end
+
+      fun_apply = fn optional?, arg_type ->
+        if empty?(arg_type) do
+          default
+        else
+          case fun_apply(fun, [arg_type]) do
+            {:ok, res} -> if optional?, do: union(res, default), else: res
+            reason -> throw({:badapply, reason, [arg_type]})
+          end
+        end
+      end
+
+      map_update_fun(map, key, fun_apply, false, true)
+    catch
+      {:badapply, reason, args_types} ->
+        {:error, {:badapply, fun, args_types, reason}}
+    else
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :update, args_types)}
+      {:error, _errors} -> {:ok, map}
+    end
   end
 
   defp remote_apply(Map, :update!, _info, args_types, stack) do

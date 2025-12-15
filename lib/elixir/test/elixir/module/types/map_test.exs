@@ -1186,6 +1186,96 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  describe "Map.update/4" do
+    test "checking" do
+      assert typecheck!(Map.update(%{}, :key, :default, fn _ -> :value end)) ==
+               dynamic(closed_map(key: atom([:default])))
+
+      assert typecheck!(Map.update(%{key: 123}, :key, :default, fn _ -> :value end)) ==
+               dynamic(closed_map(key: atom([:value])))
+
+      assert typecheck!([x], Map.update(x, :key, :default, fn _ -> :value end)) ==
+               dynamic(open_map(key: atom([:value, :default])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.update(%{foo: 123}, if(condition?, do: :foo, else: :bar), :default, fn _ ->
+                 "123"
+               end)
+             ) ==
+               dynamic(
+                 union(
+                   closed_map(foo: binary()),
+                   closed_map(foo: integer(), bar: atom([:default]))
+                 )
+               )
+
+      # Both succeed but different clauses
+      assert typecheck!(
+               [condition?],
+               Map.update(
+                 %{key1: :foo, key2: :bar},
+                 if(condition?, do: :key1, else: :key2),
+                 :default,
+                 fn
+                   :foo -> 123
+                   :bar -> 123.0
+                 end
+               )
+             ) ==
+               dynamic(
+                 union(
+                   closed_map(key1: atom([:foo]), key2: float()),
+                   closed_map(key1: integer(), key2: atom([:bar]))
+                 )
+               )
+
+      assert typecheck!([x], Map.update(x, 123, :default, fn _ -> 456 end)) == dynamic(open_map())
+
+      integer_to_integer_float_atom =
+        dynamic(
+          closed_map([
+            {domain_key(:integer), integer() |> union(float()) |> union(atom([:default]))}
+          ])
+        )
+
+      assert typecheck!([], Map.update(%{123 => 456}, 123, :default, fn x -> x * 1.0 end)) ==
+               integer_to_integer_float_atom
+
+      assert typecheck!([], Map.update(%{123 => 456}, 456, :default, fn x -> x * 1.0 end)) ==
+               integer_to_integer_float_atom
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.update(x, :key, :default, fn _ -> :value end)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.update(%{key: :foo}, :key, :default, fn :bar -> :value end))
+             |> strip_ansi() =~
+               """
+               incompatible types given on function call within Map.update/4:
+
+                   Map.update(%{key: :foo}, :key, :default, fn :bar -> :value end)
+
+               given types:
+
+                   dynamic(:foo)
+
+               but function has type:
+
+                   (:bar -> dynamic(:value))
+               """
+    end
+  end
+
   describe "Map.update!/3" do
     test "checking" do
       assert typecheck!(Map.update!(%{key: 123}, :key, fn _ -> :value end)) ==
@@ -1218,6 +1308,9 @@ defmodule Module.Types.MapTest do
       assert typecheck!([x], Map.update!(x, 123, fn _ -> 456 end)) == dynamic(open_map())
 
       assert typecheck!([], Map.update!(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
+               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+
+      assert typecheck!([], Map.update!(%{123 => 456}, 456, fn x -> x * 1.0 end)) ==
                dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
     end
 
