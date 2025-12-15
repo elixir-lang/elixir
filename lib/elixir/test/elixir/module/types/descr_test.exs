@@ -795,6 +795,7 @@ defmodule Module.Types.DescrTest do
       refute subtype?(if_set(none()), term())
       refute subtype?(if_set(term()), term())
       assert subtype?(if_set(term()), if_set(term()))
+      refute subtype?(if_set(term()), if_set(dynamic(term())))
     end
 
     test "list" do

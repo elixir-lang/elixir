@@ -954,7 +954,7 @@ defmodule Module.Types.MapTest do
                closed_map(key: atom([:value]))
 
       assert typecheck!([x], Map.replace(x, :key, :value)) ==
-               dynamic(open_map(key: atom([:value])))
+               dynamic(open_map(key: if_set(atom([:value]))))
 
       # If one of them succeeds, we are still fine!
       assert typecheck!(
@@ -1001,7 +1001,7 @@ defmodule Module.Types.MapTest do
                dynamic(closed_map(key: atom([:value])))
 
       assert typecheck!([x], Map.replace_lazy(x, :key, fn _ -> :value end)) ==
-               dynamic(open_map(key: atom([:value])))
+               dynamic(open_map(key: if_set(atom([:value]))))
 
       # If one of them succeeds, we are still fine!
       assert typecheck!(

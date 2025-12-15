@@ -408,8 +408,8 @@ defmodule Map do
       iex> Map.replace(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
 
-      iex> Map.replace(%{a: 1}, :b, 2)
-      %{a: 1}
+      iex> Map.replace(%{"a" => 1}, "b", 2)
+      %{"a" => 1}
 
   """
   @doc since: "1.11.0"
@@ -467,8 +467,8 @@ defmodule Map do
       iex> Map.replace_lazy(%{a: 1, b: 2}, :a, fn v -> v * 4 end)
       %{a: 4, b: 2}
 
-      iex> Map.replace_lazy(%{a: 1, b: 2}, :c, fn v -> v * 4 end)
-      %{a: 1, b: 2}
+      iex> Map.replace_lazy(%{"a" => 1, "b" => 2}, "c", fn v -> v * 4 end)
+      %{"a" => 1, "b" => 2}
 
   """
   @doc since: "1.14.0"
@@ -571,15 +571,13 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.get(%{}, :a)
-      nil
-      iex> Map.get(%{a: 1}, :a)
+      iex> Map.get(%{"a" => 1}, "a")
       1
-      iex> Map.get(%{a: 1}, :b)
+      iex> Map.get(%{"a" => 1}, "b")
       nil
-      iex> Map.get(%{a: 1}, :b, 3)
+      iex> Map.get(%{"a" => 1}, "b", 3)
       3
-      iex> Map.get(%{a: nil}, :a, 1)
+      iex> Map.get(%{"a" => nil}, "a", 1)
       nil
 
   """
@@ -608,15 +606,11 @@ defmodule Map do
 
   ## Examples
 
-      iex> map = %{a: 1}
-      iex> fun = fn ->
-      ...>   # some expensive operation here
-      ...>   13
-      ...> end
-      iex> Map.get_lazy(map, :a, fun)
+      iex> Map.get_lazy(%{a: 1}, :a, fn -> :expensive_value end)
       1
-      iex> Map.get_lazy(map, :b, fun)
-      13
+
+      iex> Map.get_lazy(%{"a" => 1}, "b", fn -> :expensive_value end)
+      :expensive_value
 
   """
   @spec get_lazy(map, key, (-> value)) :: value
@@ -808,15 +802,11 @@ defmodule Map do
 
   ## Examples
 
-      iex> map = %{a: 1}
-      iex> fun = fn ->
-      ...>   # some expensive operation here
-      ...>   13
-      ...> end
-      iex> Map.pop_lazy(map, :a, fun)
+      iex> Map.pop_lazy(%{a: 1}, :a, fn -> :expensive_value end)
       {1, %{}}
-      iex> Map.pop_lazy(map, :b, fun)
-      {13, %{a: 1}}
+
+      iex> Map.pop_lazy(%{"a" => 1}, "b", fn -> :expensive_value end)
+      {:expensive_value, %{"a" => 1}}
 
   """
   @spec pop_lazy(map, key, (-> value)) :: {value, map}

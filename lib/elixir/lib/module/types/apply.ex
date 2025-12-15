@@ -519,7 +519,9 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
-    case map_update(map, key, value, false, false) do
+    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+
+    case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "do nothing"}}
@@ -671,7 +673,9 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    case map_update(map, key, value, false, false) do
+    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+
+    case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :update, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1061,9 +1065,9 @@ defmodule Module.Types.Apply do
           _ -> {map, fun}
         end
 
-      fun_apply = fn _optional?, arg_type ->
+      fun_apply = fn optional?, arg_type ->
         case fun_apply(fun, [arg_type]) do
-          {:ok, res} -> res
+          {:ok, res} -> if optional?, do: if_set(res), else: res
           reason -> throw({:badapply, reason, [arg_type]})
         end
       end

@@ -272,6 +272,7 @@ defmodule Module.Types.Descr do
   # If type contains a :dynamic part, :optional gets added there.
   def if_set(type) do
     case type do
+      %{dynamic: :term} -> %{dynamic: term_or_optional()}
       %{dynamic: dyn} -> Map.put(%{type | dynamic: Map.put(dyn, :optional, 1)}, :optional, 1)
       _ -> Map.put(type, :optional, 1)
     end

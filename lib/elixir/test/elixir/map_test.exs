@@ -216,8 +216,7 @@ defmodule MapTest do
     map = %{c: 3, b: 2, a: 1}
     assert Map.replace(map, :b, 10) == %{c: 3, b: 10, a: 1}
     assert Map.replace(map, :a, 1) == map
-    assert Map.replace(map, :x, 1) == map
-    assert Map.replace(%{}, :x, 1) == %{}
+    assert Map.replace(Process.get(:unused, map), :x, 1) == map
   end
 
   test "replace!/3" do
