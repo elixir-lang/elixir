@@ -2999,10 +2999,12 @@ defmodule Module.Types.Descr do
   def map_update(descr, key_descr, type, return_type?, force?) do
     case type do
       %{dynamic: dynamic} ->
-        map_update_unchecked(dynamic(descr), key_descr, fn _ -> dynamic end, return_type?, force?)
+        fun = fn _, _ -> dynamic end
+        map_update_unchecked(dynamic(descr), key_descr, fun, return_type?, force?)
 
       %{} ->
-        map_update_unchecked(descr, key_descr, fn _ -> type end, return_type?, force?)
+        fun = fn _, _ -> type end
+        map_update_unchecked(descr, key_descr, fun, return_type?, force?)
     end
   end
 
@@ -3020,12 +3022,19 @@ defmodule Module.Types.Descr do
   def map_update_fun(descr, key_descr, type_fun, return_type? \\ true, force? \\ false) do
     gradual? = gradual?(descr)
 
-    type_fun = fn value ->
-      value = remove_optional(value)
+    type_fun = fn optional?, value ->
+      if is_function(type_fun, 1) do
+        case type_fun.(if gradual?, do: dynamic(value), else: value) do
+          %{dynamic: dynamic} -> dynamic
+          descr -> descr
+        end
+      else
+        value = if gradual?, do: dynamic(value), else: value
 
-      case type_fun.(if gradual?, do: dynamic(value), else: value) do
-        %{dynamic: dynamic} -> dynamic
-        descr -> descr
+        case type_fun.(optional?, value) do
+          %{dynamic: dynamic} -> dynamic
+          descr -> descr
+        end
       end
     end
 
@@ -3176,7 +3185,7 @@ defmodule Module.Types.Descr do
         {acc_value, acc_descr, acc_errors, acc_found?}
       else
         acc_value = union(value, acc_value)
-        acc_descr = union(map_put_key_static(descr, key, type_fun.(value)), acc_descr)
+        acc_descr = union(map_put_key_static(descr, key, type_fun.(optional?, value)), acc_descr)
 
         # The field will be missing if we are not forcing,
         # we are in static mode and the value is optional.
@@ -3253,7 +3262,8 @@ defmodule Module.Types.Descr do
           if :sets.is_element(key, negated) do
             {key, value}
           else
-            {key, union(value, type_fun.(value))}
+            {optional?, call_value} = pop_optional_static(value)
+            {key, union(value, type_fun.(optional?, call_value))}
           end
         end)
 
@@ -3364,13 +3374,16 @@ defmodule Module.Types.Descr do
         :open
 
       :closed ->
-        Map.from_keys(domain_keys, if_set(type_fun.(none())))
+        Map.from_keys(domain_keys, if_set(type_fun.(true, none())))
 
       domains = %{} ->
         Enum.reduce(domain_keys, domains, fn domain_key, acc ->
           case acc do
-            %{^domain_key => value} -> %{acc | domain_key => union(value, type_fun.(value))}
-            %{} -> Map.put(acc, domain_key, if_set(type_fun.(none())))
+            %{^domain_key => value} ->
+              %{acc | domain_key => union(value, type_fun.(true, remove_optional(value)))}
+
+            %{} ->
+              Map.put(acc, domain_key, if_set(type_fun.(true, none())))
           end
         end)
     end
@@ -3438,7 +3451,7 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    type_fun = fn _ -> type end
+    type_fun = fn _, _ -> type end
     bdd = map_update_put_negated(bdd, maybe_negated_set, type_fun)
 
     descr =
