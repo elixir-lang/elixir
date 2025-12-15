@@ -161,30 +161,21 @@ defmodule Mix.ProjectTest do
   end
 
   test "warns when project app name matches a dependency" do
-    in_tmp("duplicate_app_name", fn ->
-      File.write!("mix.exs", """
-      defmodule DuplicateAppName.MixProject do
-        use Mix.Project
+    Mix.shell(Mix.Shell.Process)
 
-        def project do
-          [
-            app: :foo,
-            version: "0.1.0",
-            deps: [{:foo, "~> 0.1.0"}]
-          ]
-        end
-      end
-      """)
+    app = :clash_app
 
-      Mix.Project.in_project(:foo, ".", fn _ ->
-        :ok
-      end)
+    deps = [
+      %Mix.Dep{app: :clash_app},
+      %Mix.Dep{app: :other_dep}
+    ]
 
-      assert_receive {:mix_shell, :error,
-                      [
-                        "warning: the application name :foo is the same as one of its dependencies"
-                      ]}
-    end)
+    Mix.Dep.Loader.warn_on_duplicate_app_name(app, deps)
+
+    assert_received {:mix_shell, :error,
+                     [
+                       "warning: the application name :clash_app is the same as one of its dependencies"
+                     ]}
   end
 
   test "in_project prints nice error message if fails to load file", context do

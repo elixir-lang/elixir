@@ -19,7 +19,23 @@ defmodule Mix.Dep.Loader do
   current environment, behavior can be overridden via options.
   """
   def children(locked?) do
-    mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()
+    deps = mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()
+    # warn if project app matches a dep
+    warn_on_duplicate_app_name(Mix.Project.config()[:app], deps)
+
+    deps
+  end
+
+  def warn_on_duplicate_app_name(nil, _deps), do: :ok
+
+  def warn_on_duplicate_app_name(app, deps) do
+    dep_apps = Enum.map(deps, & &1.app)
+
+    if app in dep_apps do
+      Mix.shell().error(
+        "warning: the application name #{inspect(app)} is the same as one of its dependencies"
+      )
+    end
   end
 
   @doc """
