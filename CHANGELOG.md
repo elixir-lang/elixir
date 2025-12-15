@@ -52,7 +52,7 @@ It is also possible to mix domain keys, as above, with atom keys, yielding the f
 %{integer() => integer(), root: integer()}
 ```
 
-This system is an implementation of [Polymorphic Records for Dynamic Languages, by Giuseppe Castagna and Loïc Peyrot (2024)](https://arxiv.org/abs/2404.00338).
+This system is an implementation of [Typing Records, Maps, and Structs, by Giuseppe Castagna (2023)](https://www.irif.fr/~gc/papers/icfp23.pdf).
 
 ### Typing of map operations
 

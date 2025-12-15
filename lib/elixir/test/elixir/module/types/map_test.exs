@@ -1357,6 +1357,11 @@ defmodule Module.Types.MapTest do
                    (:bar -> dynamic(:value))
                """
     end
+
+    test "with unknown function type" do
+      assert typecheck!([x], Map.update!(x, :body, &:zlib.gunzip/1)) ==
+               dynamic(open_map(body: term()))
+    end
   end
 
   describe "Map.values/1" do

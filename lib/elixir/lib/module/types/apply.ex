@@ -365,14 +365,14 @@ defmodule Module.Types.Apply do
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
-  def remote_domain(Map, :pop!, [_, key], expected, _meta, _stack, context) when is_atom(key) do
-    domain = [open_map([{key, expected}]), term()]
-    {{:strong, nil, [{domain, open_map()}]}, domain, context}
+  def remote_domain(Map, :pop!, [_, key], _expected, _meta, _stack, context) when is_atom(key) do
+    domain = [open_map([{key, term()}]), term()]
+    {{:strong, nil, [{domain, tuple([term(), open_map()])}]}, domain, context}
   end
 
-  def remote_domain(Map, :update!, [_, key, _], expected, _meta, _stack, context)
+  def remote_domain(Map, :update!, [_, key, _], _expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [open_map([{key, expected}]), term(), fun(1)]
+    domain = [open_map([{key, term()}]), term(), fun(1)]
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
@@ -540,10 +540,10 @@ defmodule Module.Types.Apply do
           _ -> {map, default}
         end
 
-      {map, fun} =
+      map =
         case fun do
-          %{dynamic: fun} -> {dynamic(map), fun}
-          _ -> {map, fun}
+          %{dynamic: _} -> dynamic(map)
+          _ -> map
         end
 
       fun_apply = fn optional?, arg_type ->
@@ -1059,10 +1059,10 @@ defmodule Module.Types.Apply do
 
   def map_update_or_replace_lazy(name, [map, key, fun] = args_types, stack, error) do
     try do
-      {map, fun} =
+      map =
         case fun do
-          %{dynamic: fun} -> {dynamic(map), fun}
-          _ -> {map, fun}
+          %{dynamic: _} -> dynamic(map)
+          _ -> map
         end
 
       fun_apply = fn optional?, arg_type ->
