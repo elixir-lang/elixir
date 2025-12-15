@@ -259,7 +259,10 @@ defmodule Mix.Project do
         true -> "nofile"
       end
 
-    case Mix.ProjectStack.push(module, push_config(module, app), file) do
+    config = push_config(module, app)
+    warn_on_duplicate_app_name(config)
+
+    case Mix.ProjectStack.push(module, config, file) do
       :ok ->
         :ok
 
@@ -1067,6 +1070,24 @@ defmodule Mix.Project do
 
       Mix.State.write_cache({:app, app}, {new_proj, file})
       new_proj
+    end
+  end
+
+  defp warn_on_duplicate_app_name(config) do
+    app = config[:app]
+    deps = Keyword.get(config, :deps, [])
+
+    dep_apps =
+      Enum.map(deps, fn
+        {dep_app, _opts} -> dep_app
+        dep_app -> dep_app
+      end)
+
+    if app in dep_apps do
+      # Use Mix.shell().error to print to stderr
+      Mix.shell().error(
+        "warning: the application name #{inspect(app)} is the same as one of its dependencies"
+      )
     end
   end
 
