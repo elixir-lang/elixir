@@ -244,270 +244,6 @@ defmodule Module.Types.MapTest do
     end
   end
 
-  describe "Map.from_struct/1" do
-    test "checking" do
-      assert typecheck!(Map.from_struct(%{})) ==
-               empty_map()
-
-      assert typecheck!(Map.from_struct(%{key: 123})) ==
-               closed_map(key: integer())
-
-      assert typecheck!(Map.from_struct(%URI{})) ==
-               closed_map(
-                 authority: atom([nil]),
-                 fragment: atom([nil]),
-                 host: atom([nil]),
-                 path: atom([nil]),
-                 port: atom([nil]),
-                 query: atom([nil]),
-                 scheme: atom([nil]),
-                 userinfo: atom([nil])
-               )
-
-      assert typecheck!([x], Map.from_struct(x)) ==
-               dynamic(open_map(__struct__: not_set()))
-    end
-
-    test "inference" do
-      assert typecheck!(
-               [x],
-               (
-                 _ = Map.from_struct(x)
-                 x
-               )
-             ) == dynamic(open_map())
-    end
-
-    test "errors" do
-      assert typeerror!([x = []], Map.from_struct(x)) =~
-               "incompatible types given to Map.from_struct/1"
-    end
-  end
-
-  describe "Map.put/3" do
-    test "checking" do
-      assert typecheck!(Map.put(%{}, :key, :value)) ==
-               closed_map(key: atom([:value]))
-
-      assert typecheck!(Map.put(%{key: 123}, :key, :value)) ==
-               closed_map(key: atom([:value]))
-
-      assert typecheck!([x], Map.put(x, :key, :value)) ==
-               dynamic(open_map(key: atom([:value])))
-
-      # If one of them succeeds, we are still fine!
-      assert typecheck!(
-               [condition?],
-               Map.put(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
-             ) ==
-               union(
-                 closed_map(foo: binary()),
-                 closed_map(foo: integer(), bar: binary())
-               )
-
-      assert typecheck!([x], Map.put(x, 123, 456)) == dynamic(open_map())
-    end
-
-    test "inference" do
-      assert typecheck!(
-               [x],
-               (
-                 _ = Map.put(x, :key, :value)
-                 x
-               )
-             ) == dynamic(open_map())
-    end
-
-    test "errors" do
-      assert typeerror!([x = []], Map.put(x, :key, :value)) =~
-               "incompatible types given to Map.put/3"
-    end
-  end
-
-  describe "Map.replace!/3" do
-    test "checking" do
-      assert typecheck!(Map.replace!(%{key: 123}, :key, :value)) ==
-               closed_map(key: atom([:value]))
-
-      assert typecheck!([x], Map.replace!(x, :key, :value)) ==
-               dynamic(open_map(key: atom([:value])))
-
-      # If one of them succeeds, we are still fine!
-      assert typecheck!(
-               [condition?],
-               Map.replace!(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
-             ) == closed_map(foo: binary())
-
-      assert typecheck!([x], Map.replace!(x, 123, 456)) == dynamic(open_map())
-    end
-
-    test "inference" do
-      assert typecheck!(
-               [x],
-               (
-                 _ = Map.replace!(x, :key, :value)
-                 x
-               )
-             ) == dynamic(open_map(key: term()))
-    end
-
-    test "errors" do
-      assert typeerror!(Map.replace!(%{}, :key, :value)) =~
-               """
-               incompatible types given to Map.replace!/3:
-
-                   Map.replace!(%{}, :key, :value)
-
-               the map:
-
-                   empty_map()
-
-               does not have all required keys:
-
-                   :key
-
-               therefore this function will always raise
-               """
-    end
-  end
-
-  describe "Map.to_list/1" do
-    test "checking" do
-      assert typecheck!([x = %{}], Map.to_list(x)) == dynamic(list(tuple([term(), term()])))
-
-      assert typecheck!(
-               (
-                 x = %{}
-                 Map.to_list(x)
-               )
-             ) == empty_list()
-
-      assert typecheck!(
-               (
-                 x = %{"c" => :three}
-                 Map.to_list(x)
-               )
-             ) ==
-               list(tuple([binary(), atom([:three])]))
-
-      assert typecheck!(
-               (
-                 x = %{a: 1, b: "two"}
-                 Map.to_list(x)
-               )
-             ) ==
-               non_empty_list(
-                 union(tuple([atom([:a]), integer()]), tuple([atom([:b]), binary()]))
-               )
-
-      assert typecheck!(
-               (
-                 x = %{"c" => :three, a: 1, b: "two"}
-                 Map.to_list(x)
-               )
-             ) ==
-               non_empty_list(
-                 tuple([atom([:a]), integer()])
-                 |> union(tuple([atom([:b]), binary()]))
-                 |> union(tuple([binary(), atom([:three])]))
-               )
-    end
-
-    test "inference" do
-      assert typecheck!(
-               [x],
-               (
-                 _ = Map.to_list(x)
-                 x
-               )
-             ) == dynamic(open_map())
-    end
-
-    test "errors" do
-      assert typeerror!([x = []], Map.to_list(x)) =~ "incompatible types given to Map.to_list/1"
-    end
-  end
-
-  describe "Map.update!/3" do
-    test "checking" do
-      assert typecheck!(Map.update!(%{key: 123}, :key, fn _ -> :value end)) ==
-               dynamic(closed_map(key: atom([:value])))
-
-      assert typecheck!([x], Map.update!(x, :key, fn _ -> :value end)) ==
-               dynamic(open_map(key: atom([:value])))
-
-      # If one of them succeeds, we are still fine!
-      assert typecheck!(
-               [condition?],
-               Map.update!(%{foo: 123}, if(condition?, do: :foo, else: :bar), fn _ -> "123" end)
-             ) == dynamic(closed_map(foo: binary()))
-
-      # Both succeed but different clauses
-      assert typecheck!(
-               [condition?],
-               Map.update!(%{key1: :foo, key2: :bar}, if(condition?, do: :key1, else: :key2), fn
-                 :foo -> 123
-                 :bar -> 123.0
-               end)
-             ) ==
-               dynamic(
-                 union(
-                   closed_map(key1: atom([:foo]), key2: float()),
-                   closed_map(key1: integer(), key2: atom([:bar]))
-                 )
-               )
-
-      assert typecheck!([x], Map.update!(x, 123, fn _ -> 456 end)) == dynamic(open_map())
-
-      assert typecheck!([], Map.update!(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
-               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
-    end
-
-    test "inference" do
-      assert typecheck!(
-               [x],
-               (
-                 _ = Map.update!(x, :key, fn _ -> :value end)
-                 x
-               )
-             ) == dynamic(open_map(key: term()))
-    end
-
-    test "errors" do
-      assert typeerror!(Map.update!(%{}, :key, fn _ -> :value end)) =~
-               """
-               incompatible types given to Map.update!/3:
-
-                   Map.update!(%{}, :key, fn _ -> :value end)
-
-               the map:
-
-                   empty_map()
-
-               does not have all required keys:
-
-                   :key
-
-               therefore this function will always raise
-               """
-
-      assert typeerror!(Map.update!(%{key: :foo}, :key, fn :bar -> :value end)) |> strip_ansi() =~
-               """
-               incompatible types given on function call within Map.update!/3:
-
-                   Map.update!(%{key: :foo}, :key, fn :bar -> :value end)
-
-               given types:
-
-                   dynamic(:foo)
-
-               but function has type:
-
-                   (:bar -> dynamic(:value))
-               """
-    end
-  end
-
   describe "Map.from_keys/2" do
     test "checking" do
       assert typecheck!([], Map.from_keys([], :value)) ==
@@ -551,6 +287,196 @@ defmodule Module.Types.MapTest do
     test "errors" do
       assert typeerror!([x = %{}], Map.from_keys(x, :value)) =~
                "incompatible types given to Map.from_keys/2"
+    end
+  end
+
+  describe "Map.from_struct/1" do
+    test "checking" do
+      assert typecheck!(Map.from_struct(%{})) ==
+               empty_map()
+
+      assert typecheck!(Map.from_struct(%{key: 123})) ==
+               closed_map(key: integer())
+
+      assert typecheck!(Map.from_struct(%URI{})) ==
+               closed_map(
+                 authority: atom([nil]),
+                 fragment: atom([nil]),
+                 host: atom([nil]),
+                 path: atom([nil]),
+                 port: atom([nil]),
+                 query: atom([nil]),
+                 scheme: atom([nil]),
+                 userinfo: atom([nil])
+               )
+
+      assert typecheck!([x], Map.from_struct(x)) ==
+               dynamic(open_map(__struct__: not_set()))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.from_struct(x)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.from_struct(x)) =~
+               "incompatible types given to Map.from_struct/1"
+    end
+  end
+
+  describe "Map.get/2" do
+    test "checking" do
+      assert typecheck!(Map.get(%{key: 123}, :key)) == integer() |> union(atom([nil]))
+
+      assert typecheck!([x], Map.get(x, :key)) == dynamic(term()) |> union(atom([nil]))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.get(%{foo: 123}, if(condition?, do: :foo, else: :bar))
+             ) == integer() |> union(atom([nil]))
+
+      assert typecheck!([x], Map.get(x, 123)) == dynamic(term()) |> union(atom([nil]))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.get(x, :key)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.get(%{}, :foo)) =~
+               """
+               incompatible types given to Map.get/2:
+
+                   Map.get(%{}, :foo)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :foo
+
+               therefore this function will always return nil
+               """
+    end
+  end
+
+  describe "Map.get/3" do
+    test "checking" do
+      assert typecheck!(Map.get(%{key: 123}, :key, 123)) == integer()
+
+      assert typecheck!([x], Map.get(x, :key, 123)) == dynamic(term()) |> union(integer())
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.get(%{foo: 123}, if(condition?, do: :foo, else: :bar), 123)
+             ) == integer()
+
+      assert typecheck!([x], Map.get(x, 123, 123)) == dynamic(term()) |> union(integer())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.get(x, :key, 123)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.get(%{}, :foo, 123)) =~
+               """
+               incompatible types given to Map.get/3:
+
+                   Map.get(%{}, :foo, 123)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :foo
+
+               therefore this function will always return integer()
+               """
+    end
+  end
+
+  describe "Map.get_lazy/3" do
+    test "checking" do
+      assert typecheck!(Map.get_lazy(%{key: 123}, :key, fn -> 123 end))
+             |> equal?(integer())
+
+      assert typecheck!([x], Map.get_lazy(x, :key, fn -> 123 end)) ==
+               dynamic(term())
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.get_lazy(%{foo: 123}, if(condition?, do: :foo, else: :bar), fn -> 123 end)
+             )
+             |> equal?(integer())
+
+      assert typecheck!([x], Map.get_lazy(x, 123, fn -> 123 end)) ==
+               dynamic(term())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.get_lazy(x, :key, fn -> 123 end)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!(Map.get_lazy(%{}, :foo, fn -> 123 end)) =~
+               """
+               incompatible types given to Map.get_lazy/3:
+
+                   Map.get_lazy(%{}, :foo, fn -> 123 end)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :foo
+
+               therefore this function will always return integer()
+               """
+
+      assert typeerror!(Map.get_lazy(%{}, :foo, 123)) =~
+               """
+               expected a 0-arity function on function call within Map.get_lazy/3:
+
+                   Map.get_lazy(%{}, :foo, 123)
+
+               but got type:
+
+                   integer()
+               """
     end
   end
 
@@ -787,6 +713,230 @@ defmodule Module.Types.MapTest do
 
              therefore this function will always raise
              """
+    end
+  end
+
+  describe "Map.put/3" do
+    test "checking" do
+      assert typecheck!(Map.put(%{}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!(Map.put(%{key: 123}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!([x], Map.put(x, :key, :value)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.put(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
+             ) ==
+               union(
+                 closed_map(foo: binary()),
+                 closed_map(foo: integer(), bar: binary())
+               )
+
+      assert typecheck!([x], Map.put(x, 123, 456)) == dynamic(open_map())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.put(x, :key, :value)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.put(x, :key, :value)) =~
+               "incompatible types given to Map.put/3"
+    end
+  end
+
+  describe "Map.replace!/3" do
+    test "checking" do
+      assert typecheck!(Map.replace!(%{key: 123}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!([x], Map.replace!(x, :key, :value)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.replace!(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
+             ) == closed_map(foo: binary())
+
+      assert typecheck!([x], Map.replace!(x, 123, 456)) == dynamic(open_map())
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.replace!(x, :key, :value)
+                 x
+               )
+             ) == dynamic(open_map(key: term()))
+    end
+
+    test "errors" do
+      assert typeerror!(Map.replace!(%{}, :key, :value)) =~
+               """
+               incompatible types given to Map.replace!/3:
+
+                   Map.replace!(%{}, :key, :value)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :key
+
+               therefore this function will always raise
+               """
+    end
+  end
+
+  describe "Map.to_list/1" do
+    test "checking" do
+      assert typecheck!([x = %{}], Map.to_list(x)) == dynamic(list(tuple([term(), term()])))
+
+      assert typecheck!(
+               (
+                 x = %{}
+                 Map.to_list(x)
+               )
+             ) == empty_list()
+
+      assert typecheck!(
+               (
+                 x = %{"c" => :three}
+                 Map.to_list(x)
+               )
+             ) ==
+               list(tuple([binary(), atom([:three])]))
+
+      assert typecheck!(
+               (
+                 x = %{a: 1, b: "two"}
+                 Map.to_list(x)
+               )
+             ) ==
+               non_empty_list(
+                 union(tuple([atom([:a]), integer()]), tuple([atom([:b]), binary()]))
+               )
+
+      assert typecheck!(
+               (
+                 x = %{"c" => :three, a: 1, b: "two"}
+                 Map.to_list(x)
+               )
+             ) ==
+               non_empty_list(
+                 tuple([atom([:a]), integer()])
+                 |> union(tuple([atom([:b]), binary()]))
+                 |> union(tuple([binary(), atom([:three])]))
+               )
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.to_list(x)
+                 x
+               )
+             ) == dynamic(open_map())
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.to_list(x)) =~ "incompatible types given to Map.to_list/1"
+    end
+  end
+
+  describe "Map.update!/3" do
+    test "checking" do
+      assert typecheck!(Map.update!(%{key: 123}, :key, fn _ -> :value end)) ==
+               dynamic(closed_map(key: atom([:value])))
+
+      assert typecheck!([x], Map.update!(x, :key, fn _ -> :value end)) ==
+               dynamic(open_map(key: atom([:value])))
+
+      # If one of them succeeds, we are still fine!
+      assert typecheck!(
+               [condition?],
+               Map.update!(%{foo: 123}, if(condition?, do: :foo, else: :bar), fn _ -> "123" end)
+             ) == dynamic(closed_map(foo: binary()))
+
+      # Both succeed but different clauses
+      assert typecheck!(
+               [condition?],
+               Map.update!(%{key1: :foo, key2: :bar}, if(condition?, do: :key1, else: :key2), fn
+                 :foo -> 123
+                 :bar -> 123.0
+               end)
+             ) ==
+               dynamic(
+                 union(
+                   closed_map(key1: atom([:foo]), key2: float()),
+                   closed_map(key1: integer(), key2: atom([:bar]))
+                 )
+               )
+
+      assert typecheck!([x], Map.update!(x, 123, fn _ -> 456 end)) == dynamic(open_map())
+
+      assert typecheck!([], Map.update!(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
+               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+    end
+
+    test "inference" do
+      assert typecheck!(
+               [x],
+               (
+                 _ = Map.update!(x, :key, fn _ -> :value end)
+                 x
+               )
+             ) == dynamic(open_map(key: term()))
+    end
+
+    test "errors" do
+      assert typeerror!(Map.update!(%{}, :key, fn _ -> :value end)) =~
+               """
+               incompatible types given to Map.update!/3:
+
+                   Map.update!(%{}, :key, fn _ -> :value end)
+
+               the map:
+
+                   empty_map()
+
+               does not have all required keys:
+
+                   :key
+
+               therefore this function will always raise
+               """
+
+      assert typeerror!(Map.update!(%{key: :foo}, :key, fn :bar -> :value end)) |> strip_ansi() =~
+               """
+               incompatible types given on function call within Map.update!/3:
+
+                   Map.update!(%{key: :foo}, :key, fn :bar -> :value end)
+
+               given types:
+
+                   dynamic(:foo)
+
+               but function has type:
+
+                   (:bar -> dynamic(:value))
+               """
     end
   end
 

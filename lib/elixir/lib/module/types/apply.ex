@@ -245,6 +245,9 @@ defmodule Module.Types.Apply do
 
         ## Map
         {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
+        {Map, :get, [{[open_map(), term()], term()}]},
+        {Map, :get, [{[open_map(), term(), term()], term()}]},
+        {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
         {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
         {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
@@ -409,40 +412,6 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:maps, :from_keys, _info, [list, value_type] = args_types, stack) do
-    case list_of(list) do
-      {true, nil} ->
-        {:ok, return(empty_map(), args_types, stack)}
-
-      {empty_list?, key_type} ->
-        if key_type == dynamic() or key_type == term() do
-          {:ok, return(open_map(), args_types, stack)}
-        else
-          value_type = if_set(value_type)
-          domain_keys = to_domain_keys(key_type)
-
-          keys =
-            case atom_fetch(key_type) do
-              {:finite, atom_keys} -> [List.delete(domain_keys, :atom) | atom_keys]
-              _ -> [domain_keys]
-            end
-
-          map = closed_map(Enum.map(keys, &{&1, value_type}))
-
-          map_and_maybe_empty_map =
-            case empty_list? do
-              true -> map
-              false -> difference(map, empty_map())
-            end
-
-          {:ok, return(map_and_maybe_empty_map, args_types, stack)}
-        end
-
-      :badproperlist ->
-        {:error, badremote(:maps, :from_keys, args_types)}
-    end
-  end
-
   @struct_key atom([:__struct__])
   @nil_atom atom([nil])
 
@@ -451,6 +420,36 @@ defmodule Module.Types.Apply do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :from_struct, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, @struct_key, nil}}
+    end
+  end
+
+  defp remote_apply(Map, :get, _info, [map, key] = args_types, stack) do
+    case map_get(map, key) do
+      {:ok, value} -> {:ok, return(union(value, @nil_atom), args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :get, args_types)}
+      :error -> {:error, {:badkeydomain, map, key, @nil_atom}}
+    end
+  end
+
+  defp remote_apply(Map, :get, _info, [map, key, default] = args_types, stack) do
+    case map_get(map, key) do
+      {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
+      :badmap -> {:error, badremote(:maps, :get, args_types)}
+      :error -> {:error, {:badkeydomain, map, key, default}}
+    end
+  end
+
+  defp remote_apply(Map, :get_lazy, _info, [map, key, fun] = args_types, stack) do
+    case fun_apply(fun, []) do
+      {:ok, default} ->
+        case map_get(map, key) do
+          {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
+          :badmap -> {:error, badremote(:maps, :get, args_types)}
+          :error -> {:error, {:badkeydomain, map, key, default}}
+        end
+
+      reason ->
+        {:error, {:badapply, fun, [], reason}}
     end
   end
 
@@ -519,6 +518,40 @@ defmodule Module.Types.Apply do
 
       :error ->
         {:error, {:badkeydomain, map, key, atom([:error])}}
+    end
+  end
+
+  defp remote_apply(:maps, :from_keys, _info, [list, value_type] = args_types, stack) do
+    case list_of(list) do
+      {true, nil} ->
+        {:ok, return(empty_map(), args_types, stack)}
+
+      {empty_list?, key_type} ->
+        if key_type == dynamic() or key_type == term() do
+          {:ok, return(open_map(), args_types, stack)}
+        else
+          value_type = if_set(value_type)
+          domain_keys = to_domain_keys(key_type)
+
+          keys =
+            case atom_fetch(key_type) do
+              {:finite, atom_keys} -> [List.delete(domain_keys, :atom) | atom_keys]
+              _ -> [domain_keys]
+            end
+
+          map = closed_map(Enum.map(keys, &{&1, value_type}))
+
+          map_and_maybe_empty_map =
+            case empty_list? do
+              true -> map
+              false -> difference(map, empty_map())
+            end
+
+          {:ok, return(map_and_maybe_empty_map, args_types, stack)}
+        end
+
+      :badproperlist ->
+        {:error, badremote(:maps, :from_keys, args_types)}
     end
   end
 
