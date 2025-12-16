@@ -189,7 +189,7 @@ defmodule Mix.Dep.Loader do
     {scm, opts} = get_scm(app, opts)
 
     {scm, opts} =
-      if is_nil(scm) and locked? and Mix.Hex.ensure_installed?(locked?) do
+      if is_nil(scm) and Mix.Hex.ensure_installed?(locked?) do
         _ = Mix.Hex.start()
         get_scm(app, opts)
       else
