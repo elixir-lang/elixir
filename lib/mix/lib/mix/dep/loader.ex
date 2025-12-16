@@ -19,23 +19,7 @@ defmodule Mix.Dep.Loader do
   current environment, behavior can be overridden via options.
   """
   def children(locked?) do
-    deps = mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()
-    # warn if project app matches a dep
-    warn_on_duplicate_app_name(Mix.Project.config()[:app], deps)
-
-    deps
-  end
-
-  def warn_on_duplicate_app_name(nil, _deps), do: :ok
-
-  def warn_on_duplicate_app_name(app, deps) do
-    dep_apps = Enum.map(deps, & &1.app)
-
-    if app in dep_apps do
-      Mix.shell().error(
-        "warning: the application name #{inspect(app)} is the same as one of its dependencies"
-      )
-    end
+    mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()
   end
 
   @doc """
@@ -205,7 +189,7 @@ defmodule Mix.Dep.Loader do
     {scm, opts} = get_scm(app, opts)
 
     {scm, opts} =
-      if is_nil(scm) and Mix.Hex.ensure_installed?(locked?) do
+      if is_nil(scm) and locked? and Mix.Hex.ensure_installed?(locked?) do
         _ = Mix.Hex.start()
         get_scm(app, opts)
       else
@@ -215,6 +199,14 @@ defmodule Mix.Dep.Loader do
     if !scm do
       Mix.raise(
         "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
+      )
+    end
+
+    project_app = Mix.Project.config()[:app]
+
+    if project_app && project_app == app do
+      Mix.shell().error(
+        "warning: the application name #{inspect(app)} is the same as one of its dependencies"
       )
     end
 
