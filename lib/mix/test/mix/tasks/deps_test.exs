@@ -870,45 +870,31 @@ defmodule Mix.Tasks.DepsTest do
     Application.delete_env(:raw_repo, :compile_env, persistent: true)
   end
 
-  defmodule NonCompilingDeps do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
+  test "does not compile deps that have explicit option" do
+    in_fixture("deps_status", fn ->
+      Mix.ProjectStack.post_config(
         deps: [
           {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: false}
         ]
-      ]
-    end
-  end
+      )
 
-  test "does not compile deps that have explicit option" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(NonCompilingDeps)
-
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Deps.Compile.run([])
       refute_received {:mix_shell, :info, ["==> git_repo"]}
     end)
   end
 
-  defmodule DupDeps do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
+  test "warns and converges duplicated deps at the same level" do
+    in_fixture("deps_status", fn ->
+      Mix.ProjectStack.post_config(
         deps: [
           # Simulate dependencies gathered together from umbrella
           {:ok, "0.1.0", path: "deps/ok"},
           {:ok, "0.1.0", path: "deps/ok"}
         ]
-      ]
-    end
-  end
+      )
 
-  test "warns and converges duplicated deps at the same level" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DupDeps)
-
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Deps.run([])
 
       msg =
@@ -922,22 +908,14 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  defmodule AppNameClashesWithDep do
-    def project do
-      [
-        app: :ok,
-        version: "0.1.0",
-        deps: [
-          {:ok, "0.1.0", path: "deps/ok"}
-        ]
-      ]
-    end
-  end
-
   test "warns when project app name matches a dependency" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(AppNameClashesWithDep)
+      Mix.ProjectStack.post_config(
+        app: :ok,
+        deps: [{:ok, "0.1.0", path: "deps/ok"}]
+      )
 
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Deps.Get.run([])
 
       msg =

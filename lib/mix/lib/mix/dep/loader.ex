@@ -177,8 +177,9 @@ defmodule Mix.Dep.Loader do
 
     bin_app = Atom.to_string(app)
 
-    dest = Path.join(Mix.Project.deps_path(), bin_app)
-    build = Path.join([Mix.Project.build_path(), "lib", bin_app])
+    config = Mix.Project.config()
+    dest = Path.join(Mix.Project.deps_path(config), bin_app)
+    build = Path.join([Mix.Project.build_path(config), "lib", bin_app])
 
     opts =
       opts
@@ -202,9 +203,7 @@ defmodule Mix.Dep.Loader do
       )
     end
 
-    project_app = Mix.Project.config()[:app]
-
-    if project_app && project_app == app do
+    if config[:app] == app do
       Mix.shell().error(
         "warning: the application name #{inspect(app)} is the same as one of its dependencies"
       )
