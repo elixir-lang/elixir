@@ -202,6 +202,14 @@ defmodule Mix.Dep.Loader do
       )
     end
 
+    project_app = Mix.Project.config()[:app]
+
+    if project_app && project_app == app do
+      Mix.shell().error(
+        "warning: the application name #{inspect(app)} is the same as one of its dependencies"
+      )
+    end
+
     %Mix.Dep{
       scm: scm,
       app: app,

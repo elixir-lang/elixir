@@ -922,6 +922,31 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  defmodule AppNameClashesWithDep do
+    def project do
+      [
+        app: :ok,
+        version: "0.1.0",
+        deps: [
+          {:ok, "0.1.0", path: "deps/ok"}
+        ]
+      ]
+    end
+  end
+
+  test "warns when project app name matches a dependency" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(AppNameClashesWithDep)
+
+      Mix.Tasks.Deps.Get.run([])
+
+      msg =
+        "warning: the application name :ok is the same as one of its dependencies"
+
+      assert_received {:mix_shell, :error, [^msg]}
+    end)
+  end
+
   ## deps.clean
 
   defmodule CleanDepsApp do
