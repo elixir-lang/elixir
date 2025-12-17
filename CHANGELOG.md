@@ -79,7 +79,7 @@ Map.replace(map, :key, 123)
 
 In other words, if the key exists, it would have been replaced by an integer value. Furthermore, whenever calling a function in the `Map` module and the given key is statically proven to never exist in the map, an error is emitted.
 
-By combining full type inference with bang operations like `Map.fetch!/2`, `Map.pop!/2`, `Map.replace!/2`, and `Map.update!/3`, Elixir is able to propagate information about the desired keys. Take this module:
+By combining full type inference with bang operations like `Map.fetch!/2`, `Map.pop!/2`, `Map.replace!/3`, and `Map.update!/3`, Elixir is able to propagate information about the desired keys. Take this module:
 
 ```elixir
 defmodule User do
