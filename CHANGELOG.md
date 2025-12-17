@@ -68,7 +68,7 @@ Map.delete(map, :key)
 #=> returns type %{..., key: not_set()}
 ```
 
-As you can see, when track when keys are set and also when they are removed.
+As you can see, we track when keys are set and also when they are removed.
 
 Some operations, like `Map.replace/3`, only replace the key if it exists, and that is also propagated by the type system:
 
