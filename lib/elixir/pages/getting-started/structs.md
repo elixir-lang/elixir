@@ -74,6 +74,32 @@ iex> %User{} = %{}
 ** (MatchError) no match of right hand side value: %{}
 ```
 
+Pattern matching within functions involving structures is also very important. It protects us from errors in field names. 
+Let's look at the approach traditional for versions prior to 1.19:
+
+```elixir
+defmodule User do
+  defstruct address: nil
+
+  def set_address(user, address) do
+    %User{user | address: address}
+  end
+end
+```
+In this example, the function doesn't know the type of the input argument, user, which the compiler will inform you of.
+Simple pattern matching will allow you to more effectively find errors in structure field names, if they exist. 
+The syntax for updating a structure can also optionally be simplified:
+
+```elixir
+defmodule User do
+  defstruct address: nil
+
+  def set_address(%User{} = user, address) do
+    %{user | address: address}
+  end
+end
+```
+
 For more details on creating, updating, and pattern matching structs, see the documentation for `%/2`.
 
 ## Dynamic struct updates
