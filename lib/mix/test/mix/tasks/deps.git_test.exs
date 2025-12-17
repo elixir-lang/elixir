@@ -72,6 +72,27 @@ defmodule Mix.Tasks.DepsGitTest do
     end)
   end
 
+  test "gets Git repos with git trace enabled" do
+    on_exit(fn ->
+      System.delete_env("GIT_TRACE")
+      :ets.delete(Mix.State, :git_version)
+    end)
+
+    System.put_env("GIT_TRACE", "1")
+    :ets.delete(Mix.State, :git_version)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(GitApp)
+
+      Mix.Tasks.Deps.Get.run([])
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
+
+      assert File.read!("mix.lock") =~
+               ~r/"git_repo": {:git, #{inspect(fixture_path("git_repo"))}, "[a-f0-9]+", \[\]}/
+    end)
+  end
+
   test "gets and updates Git repos with submodules" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(GitSubmodulesApp)
