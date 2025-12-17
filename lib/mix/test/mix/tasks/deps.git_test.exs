@@ -73,21 +73,9 @@ defmodule Mix.Tasks.DepsGitTest do
   end
 
   test "gets Git repos with git trace enabled" do
-    previous_trace = System.get_env("GIT_TRACE")
-    git_version_cache = :ets.lookup(Mix.State, :git_version)
-
     on_exit(fn ->
-      case previous_trace do
-        nil -> System.delete_env("GIT_TRACE")
-        value -> System.put_env("GIT_TRACE", value)
-      end
-
+      System.delete_env("GIT_TRACE")
       :ets.delete(Mix.State, :git_version)
-
-      case git_version_cache do
-        [] -> :ok
-        [{:git_version, value}] -> :ets.insert(Mix.State, {:git_version, value})
-      end
     end)
 
     System.put_env("GIT_TRACE", "1")
