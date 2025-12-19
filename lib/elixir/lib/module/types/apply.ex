@@ -1469,6 +1469,17 @@ defmodule Module.Types.Apply do
                   """
               end
 
+            # The protocol has, at the moment, simplified clauses, so we build the complete one
+            clauses =
+              case mod.__protocol__(:impls) do
+                {:consolidated, mods} ->
+                  domain = mods |> Enum.map(&Module.Types.Of.impl/1) |> Enum.reduce(&union/2)
+                  [{[domain], dynamic()}]
+
+                _ ->
+                  clauses
+              end
+
             {"""
              but expected a type that implements the #{inspect(mod)} protocol.
              #{fix}\

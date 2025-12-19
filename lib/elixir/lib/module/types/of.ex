@@ -142,16 +142,25 @@ defmodule Module.Types.Of do
     {Any, term()}
   ]
 
+  @doc """
+  Currently, for protocol implementations, we only store
+  the open struct definition. This is because we don't want
+  to reconsolidate whenever the struct changes, but at the
+  moment we can't store references either. Ideally struct
+  types on protocol dispatches would be lazily resolved.
+  """
+  def impl(for, mode \\ :closed)
+
   for {for, type} <- impls do
-    def impl(unquote(for)), do: unquote(Macro.escape(type))
+    def impl(unquote(for), _mode), do: unquote(Macro.escape(type))
   end
 
-  def impl(struct) do
+  def impl(struct, mode) do
     # Elixir did not strictly require the implementation to be available,
     # so we need to deal with such cases accordingly.
     # TODO: Assume implementation is available on Elixir v2.0.
     # A warning is emitted since v1.19+.
-    if info = Code.ensure_loaded?(struct) && struct.__info__(:struct) do
+    if info = mode == :closed && Code.ensure_loaded?(struct) && struct.__info__(:struct) do
       struct_type(struct, info)
     else
       open_map(__struct__: atom([struct]))

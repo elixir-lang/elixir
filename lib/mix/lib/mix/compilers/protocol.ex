@@ -126,11 +126,16 @@ defmodule Mix.Compilers.Protocol do
   end
 
   defp consolidation_paths do
-    filter_otp(:code.get_path(), :code.lib_dir())
-  end
+    otp = :code.lib_dir()
 
-  defp filter_otp(paths, otp) do
-    Enum.filter(paths, &(not :lists.prefix(otp, &1)))
+    # Pre-list the paths in each directory for performance
+    for path <- :code.get_path(), not :lists.prefix(otp, path) do
+      {path,
+       case :file.list_dir(path) do
+         {:ok, files} -> files
+         _ -> []
+       end}
+    end
   end
 
   defp consolidate([], _paths, output, _opts) do
