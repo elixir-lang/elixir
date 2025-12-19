@@ -187,9 +187,11 @@ defmodule Protocol.ConsolidationTest do
       assert domain == [term()]
 
       assert clauses == [
-               {[Of.impl(Map)], atom([WithAny.Map])},
-               {[Of.impl(ImplStruct)], atom([WithAny.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(union(Of.impl(ImplStruct), Of.impl(Map)))], atom([WithAny.Any])}
+               {[Of.impl(Map, :open)], atom([WithAny.Map])},
+               {[Of.impl(ImplStruct, :open)],
+                atom([WithAny.Protocol.ConsolidationTest.ImplStruct])},
+               {[negation(union(Of.impl(ImplStruct, :open), Of.impl(Map, :open)))],
+                atom([WithAny.Any])}
              ]
 
       assert %{{:ok, 2} => %{sig: {:strong, nil, clauses}}} = exports
@@ -256,18 +258,34 @@ defmodule Protocol.ConsolidationTest do
       assert Inspect in protos
     end
 
+    test "protocols with expanded path" do
+      path = to_charlist(Application.app_dir(:elixir, "ebin"))
+      {:ok, mods} = :file.list_dir(path)
+      protos = Protocol.extract_protocols([{path, mods}])
+      assert Enumerable in protos
+      assert Inspect in protos
+    end
+
     test "implementations with charlist path" do
-      protos =
+      impls =
         Protocol.extract_impls(Enumerable, [to_charlist(Application.app_dir(:elixir, "ebin"))])
 
-      assert List in protos
-      assert Function in protos
+      assert List in impls
+      assert Function in impls
     end
 
     test "implementations with binary path" do
-      protos = Protocol.extract_impls(Enumerable, [Application.app_dir(:elixir, "ebin")])
-      assert List in protos
-      assert Function in protos
+      impls = Protocol.extract_impls(Enumerable, [Application.app_dir(:elixir, "ebin")])
+      assert List in impls
+      assert Function in impls
+    end
+
+    test "implementations with expanded path" do
+      path = to_charlist(Application.app_dir(:elixir, "ebin"))
+      {:ok, mods} = :file.list_dir(path)
+      impls = Protocol.extract_impls(Enumerable, [{path, mods}])
+      assert List in impls
+      assert Function in impls
     end
   end
 end

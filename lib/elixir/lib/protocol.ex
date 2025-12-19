@@ -453,7 +453,7 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_protocols([charlist | String.t()]) :: [atom]
+  @spec extract_protocols([charlist | String.t() | {charlist, [charlist]}]) :: [atom]
   def extract_protocols(paths) do
     extract_matching_by_attribute(paths, [?E, ?l, ?i, ?x, ?i, ?r, ?.], fn module, attributes ->
       case attributes[:__protocol__] do
@@ -482,7 +482,7 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_impls(module, [charlist | String.t()]) :: [atom]
+  @spec extract_impls(module, [charlist | String.t() | {charlist, [charlist]}]) :: [atom]
   def extract_impls(protocol, paths) when is_atom(protocol) do
     prefix = Atom.to_charlist(protocol) ++ [?.]
 
@@ -496,17 +496,25 @@ defmodule Protocol do
 
   defp extract_matching_by_attribute(paths, prefix, callback) do
     for path <- paths,
-        # Do not use protocols as they may be consolidating
-        path = if(is_list(path), do: path, else: String.to_charlist(path)),
-        file <- list_dir(path),
+        {path, files} = list_dir(path),
+        file <- files,
         mod = extract_from_file(path, file, prefix, callback),
         do: mod
   end
 
+  # Do not use protocols as they may be consolidating
+  defp list_dir({path, files}) when is_list(path) and is_list(files) do
+    {path, files}
+  end
+
+  defp list_dir(path) when is_binary(path) do
+    list_dir(String.to_charlist(path))
+  end
+
   defp list_dir(path) when is_list(path) do
     case :file.list_dir(path) do
-      {:ok, files} -> files
-      _ -> []
+      {:ok, files} -> {path, files}
+      _ -> {path, []}
     end
   end
 
@@ -633,7 +641,7 @@ defmodule Protocol do
         checker =
           if checker do
             update_in(checker.exports, fn exports ->
-              signatures = new_signatures(definitions, protocol_funs, protocol, types)
+              signatures = new_signatures(definitions, protocol_funs, protocol, types, structs)
 
               for {fun, info} <- exports do
                 if sig = Map.get(signatures, fun) do
@@ -652,14 +660,13 @@ defmodule Protocol do
     end
   end
 
-  defp new_signatures(definitions, protocol_funs, protocol, types) do
+  defp new_signatures(definitions, protocol_funs, protocol, types, structs) do
     alias Module.Types.Descr
+    types_minus_any = List.delete(types, Any)
 
     clauses =
-      types
-      |> List.delete(Any)
-      |> Enum.map(fn impl ->
-        {[Module.Types.Of.impl(impl)], Descr.atom([__concat__(protocol, impl)])}
+      Enum.map(types_minus_any, fn impl ->
+        {[Module.Types.Of.impl(impl, :open)], Descr.atom([__concat__(protocol, impl)])}
       end)
 
     {domain, impl_for, impl_for!} =
@@ -674,10 +681,16 @@ defmodule Protocol do
           end
 
         _ ->
+          structs_domain =
+            case structs do
+              [] -> Descr.none()
+              _ -> Descr.open_map(__struct__: Descr.atom(structs))
+            end
+
           domain =
-            clauses
-            |> Enum.map(fn {[domain], _} -> domain end)
-            |> Enum.reduce(&Descr.union/2)
+            Enum.reduce(types_minus_any -- structs, structs_domain, fn impl, acc ->
+              Descr.union(Module.Types.Of.impl(impl, :open), acc)
+            end)
 
           not_domain = Descr.negation(domain)
 
