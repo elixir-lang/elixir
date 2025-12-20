@@ -1981,21 +1981,24 @@ defmodule Module.Types.Descr do
     {empty_list, none()}
   end
 
-  defp list_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
-    try do
-      list = non_empty_intersection!(list1, list2)
-      last = non_empty_intersection!(last1, last2)
-      bdd_leaf(list, last)
-    catch
-      :empty -> :bdd_bot
-    end
-  end
-
   defp list_intersection(bdd1, bdd2) do
     cond do
-      list_top?(bdd1) and is_tuple(bdd2) -> bdd2
-      list_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> bdd_intersection(bdd1, bdd2)
+      list_top?(bdd1) and is_tuple(bdd2) ->
+        bdd2
+
+      list_top?(bdd2) and is_tuple(bdd1) ->
+        bdd1
+
+      true ->
+        bdd_intersection(bdd1, bdd2, fn bdd_leaf(list1, last1), bdd_leaf(list2, last2) ->
+          try do
+            list = non_empty_intersection!(list1, list2)
+            last = non_empty_intersection!(last1, last2)
+            bdd_leaf(list, last)
+          catch
+            :empty -> :bdd_bot
+          end
+        end)
     end
   end
 
@@ -2594,21 +2597,23 @@ defmodule Module.Types.Descr do
   defp map_top?(bdd_leaf(:open, fields)) when map_size(fields) == 0, do: true
   defp map_top?(_), do: false
 
-  defp map_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
-    try do
-      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
-      bdd_leaf(tag, fields)
-    catch
-      :empty -> :bdd_bot
-    end
-  end
-
   defp map_intersection(bdd1, bdd2) do
-    # If intersecting with the top map type, no-op
     cond do
-      map_top?(bdd1) and is_tuple(bdd2) -> bdd2
-      map_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> bdd_intersection(bdd1, bdd2)
+      map_top?(bdd1) and is_tuple(bdd2) ->
+        bdd2
+
+      map_top?(bdd2) and is_tuple(bdd1) ->
+        bdd1
+
+      true ->
+        bdd_intersection(bdd1, bdd2, fn bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2) ->
+          try do
+            {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
+            bdd_leaf(tag, fields)
+          catch
+            :empty -> :bdd_bot
+          end
+        end)
     end
   end
 
@@ -4083,14 +4088,14 @@ defmodule Module.Types.Descr do
 
   defp tuple_new(tag, elements), do: bdd_leaf(tag, elements)
 
-  defp tuple_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-      {tag, elements} -> bdd_leaf(tag, elements)
-      :empty -> :bdd_bot
-    end
+  defp tuple_intersection(bdd1, bdd2) do
+    bdd_intersection(bdd1, bdd2, fn bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2) ->
+      case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+        {tag, elements} -> bdd_leaf(tag, elements)
+        :empty -> :bdd_bot
+      end
+    end)
   end
-
-  defp tuple_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
   defp tuple_literal_intersection(:open, [], tag, elements), do: {tag, elements}
 
@@ -4974,6 +4979,50 @@ defmodule Module.Types.Descr do
 
   defp bdd_intersection_union(i, u1, u2),
     do: bdd_intersection(i, bdd_union(u1, u2))
+
+  # Intersections are great because they allow us to cut down
+  # the number of nodes in the tree. So whenever we have a leaf,
+  # we actually propagate it throughout the whole tree, cutting
+  # down nodes.
+  defp bdd_intersection(bdd_leaf(_, _) = leaf, bdd, leaf_intersection) do
+    bdd_leaf_intersection(leaf, bdd, leaf_intersection)
+  end
+
+  defp bdd_intersection(bdd, bdd_leaf(_, _) = leaf, leaf_intersection) do
+    bdd_leaf_intersection(leaf, bdd, leaf_intersection)
+  end
+
+  defp bdd_intersection(bdd1, bdd2, _leaf_intersection) do
+    bdd_intersection(bdd1, bdd2)
+  end
+
+  defp bdd_leaf_intersection(leaf, bdd, intersection) do
+    case bdd do
+      :bdd_top ->
+        leaf
+
+      :bdd_bot ->
+        :bdd_bot
+
+      bdd_leaf(_, _) ->
+        intersection.(leaf, bdd)
+
+      {lit, _, _, _} when lit == leaf ->
+        bdd
+
+      {lit, c, u, d} ->
+        rest =
+          bdd_union(
+            bdd_leaf_intersection(leaf, u, intersection),
+            bdd_difference(bdd_leaf_intersection(leaf, d, intersection), lit)
+          )
+
+        case intersection.(leaf, lit) do
+          :bdd_bot -> rest
+          new_leaf -> bdd_union(bdd_leaf_intersection(new_leaf, c, intersection), rest)
+        end
+    end
+  end
 
   # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
   def bdd_negation(:bdd_top), do: :bdd_bot
