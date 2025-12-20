@@ -4836,8 +4836,7 @@ defmodule Module.Types.Descr do
             #
             #     b1 and not (c2 or u2) : bdd_bot : b1 and not (d2 or u2)
             #
-            # Both extremes have (b1 and not u2),
-            # so we compute it first and only once.
+            # Both extremes have (b1 and not u2), so we compute it once.
             bdd1_minus_u2 = bdd_difference(bdd1, u2)
             {lit2, bdd_difference(bdd1_minus_u2, c2), :bdd_bot, bdd_difference(bdd1_minus_u2, d2)}
 
@@ -5017,9 +5016,12 @@ defmodule Module.Types.Descr do
             bdd_difference(bdd_leaf_intersection(leaf, d, intersection), lit)
           )
 
-        case intersection.(leaf, lit) do
-          :bdd_bot -> rest
-          new_leaf -> bdd_union(bdd_leaf_intersection(new_leaf, c, intersection), rest)
+        with true <- c != :bdd_bot,
+             new_leaf = intersection.(leaf, lit),
+             true <- new_leaf != :bdd_bot do
+          bdd_union(bdd_leaf_intersection(new_leaf, c, intersection), rest)
+        else
+          _ -> rest
         end
     end
   end
