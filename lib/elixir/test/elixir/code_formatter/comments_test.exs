@@ -1215,6 +1215,48 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
+    test "with comments inside tuple keywords before and after" do
+      bad = ~S"""
+      {
+        :tuple,
+
+        # before 1
+        one: 1, # after 1
+
+        # before 2
+        two: 2, # after 2
+
+        # before 3
+        three: 3 # after 3
+
+        # final
+      }
+      """
+
+      good = ~S"""
+
+      {
+        :tuple,
+
+        # before 1
+        # after 1
+        one: 1,
+
+        # before 2
+        # after 2
+        two: 2,
+
+        # before 3
+        # after 3
+        three: 3
+
+        # final
+      }
+      """
+
+      assert_format bad, good
+    end
+
     test "with comments inside bitstrings before and after" do
       bad = ~S"""
       <<

@@ -1648,6 +1648,7 @@ defmodule Code.Formatter do
   defp tuple_to_algebra(meta, args, join, state) do
     join = if eol?(meta, state), do: :line, else: join
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    args = flatten_last_keyword_arg(args)
 
     {args_doc, join, state} =
       args_to_algebra_with_comments(args, meta, false, :none, join, state, fun)
@@ -2473,6 +2474,17 @@ defmodule Code.Formatter do
 
   defp keyword_key?(_),
     do: false
+
+  # for {foo, bar: baz} tuples which are {foo, [bar: baz]}, returns [foo, bar: baz]
+  defp flatten_last_keyword_arg([last]) do
+    if keyword?(last), do: last, else: [last]
+  end
+
+  defp flatten_last_keyword_arg([]), do: []
+
+  defp flatten_last_keyword_arg([h | t]) do
+    [h | flatten_last_keyword_arg(t)]
+  end
 
   defp eol?(_meta, %{skip_eol: true}), do: false
   defp eol?(meta, _state), do: Keyword.get(meta, :newlines, 0) > 0
