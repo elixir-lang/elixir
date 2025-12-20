@@ -3200,10 +3200,7 @@ defmodule String do
 
   ## Helpers
 
-  @compile {:inline,
-            codepoint_byte_size: 1,
-            grapheme_byte_size: 1,
-            grapheme_to_binary: 1,
+  @compile {:inline, codepoint_byte_size: 1, grapheme_byte_size: 1, grapheme_to_binary: 1,
             reverse_characters_to_binary: 1}
 
   defp byte_size_unicode(binary) when is_binary(binary), do: byte_size(binary)

@@ -65,10 +65,7 @@ defmodule Module.Types.Apply do
       {:behaviour_info, callbacks: fas, optional_callbacks: fas},
       {:module_info, module_info},
       # TODO: Move this to a type signature declared by `defprotocol` (or perhaps part of the behaviour)
-      {:__protocol__,
-       module: atom(),
-       functions: fas,
-       consolidated?: boolean(),
+      {:__protocol__, module: atom(), functions: fas, consolidated?: boolean(),
        impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))}
     ]
 

@@ -350,9 +350,7 @@ defmodule Mix.ReleaseTest do
           "my_sample_mode/ebin/my_sample_mode.app",
           {:application, :my_sample_mode,
            applications: [:kernel, :stdlib, :elixir, :runtime_tools, :compiler],
-           description: ~c"my_sample_mode",
-           modules: [],
-           vsn: ~c"1.0.0"}
+           description: ~c"my_sample_mode", modules: [], vsn: ~c"1.0.0"}
         )
 
         apps = [my_sample_mode: :temporary]
@@ -799,11 +797,8 @@ defmodule Mix.ReleaseTest do
       in_tmp(context.test, fn ->
         write_app!(
           "my_sample1/ebin/my_sample1.app",
-          {:application, :my_sample1,
-           applications: [:kernel, :stdlib, :elixir],
-           description: ~c"my_sample1",
-           modules: [],
-           vsn: ~c"1.0.0",
+          {:application, :my_sample1, applications: [:kernel, :stdlib, :elixir],
+           description: ~c"my_sample1", modules: [], vsn: ~c"1.0.0",
            included_applications: [:runtime_tools]}
         )
 
@@ -819,11 +814,8 @@ defmodule Mix.ReleaseTest do
       in_tmp(context.test, fn ->
         write_app!(
           "my_sample2/ebin/my_sample2.app",
-          {:application, :my_sample2,
-           applications: [:kernel, :stdlib, :elixir, :runtime_tools],
-           description: ~c"my_sample",
-           modules: [],
-           vsn: ~c"1.0.0",
+          {:application, :my_sample2, applications: [:kernel, :stdlib, :elixir, :runtime_tools],
+           description: ~c"my_sample", modules: [], vsn: ~c"1.0.0",
            included_applications: [:runtime_tools]}
         )
 
@@ -839,11 +831,8 @@ defmodule Mix.ReleaseTest do
       in_tmp(context.test, fn ->
         write_app!(
           "my_sample3/ebin/my_sample3.app",
-          {:application, :my_sample3,
-           applications: [:kernel, :stdlib, :elixir, :unknown],
-           optional_applications: [:unknown],
-           description: ~c"my_sample3",
-           modules: [],
+          {:application, :my_sample3, applications: [:kernel, :stdlib, :elixir, :unknown],
+           optional_applications: [:unknown], description: ~c"my_sample3", modules: [],
            vsn: ~c"1.0.0"}
         )
 
@@ -856,11 +845,8 @@ defmodule Mix.ReleaseTest do
       in_tmp(context.test, fn ->
         write_app!(
           "has_optional/ebin/has_optional.app",
-          {:application, :has_optional,
-           applications: [:kernel, :stdlib, :elixir, :unknown],
-           optional_applications: [:unknown],
-           description: ~c"has_optional",
-           modules: [],
+          {:application, :has_optional, applications: [:kernel, :stdlib, :elixir, :unknown],
+           optional_applications: [:unknown], description: ~c"has_optional", modules: [],
            vsn: ~c"1.0.0"}
         )
 
@@ -868,9 +854,7 @@ defmodule Mix.ReleaseTest do
           "points_as_permanent/ebin/points_as_permanent.app",
           {:application, :points_as_permanent,
            applications: [:kernel, :stdlib, :elixir, :has_optional],
-           optional_applications: [:unknown],
-           description: ~c"points_as_permanent",
-           modules: [],
+           optional_applications: [:unknown], description: ~c"points_as_permanent", modules: [],
            vsn: ~c"1.0.0"}
         )
 
@@ -878,9 +862,7 @@ defmodule Mix.ReleaseTest do
           "points_as_temporary/ebin/points_as_temporary.app",
           {:application, :points_as_temporary,
            applications: [:kernel, :stdlib, :elixir, :has_optional],
-           optional_applications: [:unknown],
-           description: ~c"points_as_temporary",
-           modules: [],
+           optional_applications: [:unknown], description: ~c"points_as_temporary", modules: [],
            vsn: ~c"1.0.0"}
         )
 

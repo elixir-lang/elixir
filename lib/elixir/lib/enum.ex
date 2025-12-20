@@ -4271,13 +4271,8 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline,
-            entry_to_string: 1,
-            reduce: 3,
-            reduce_by: 3,
-            reduce_enumerable: 3,
-            reduce_range: 5,
-            map_range: 4}
+  @compile {:inline, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3,
+            reduce_range: 5, map_range: 4}
 
   defp entry_to_string(entry) when is_binary(entry), do: entry
   defp entry_to_string(entry), do: String.Chars.to_string(entry)

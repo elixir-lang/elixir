@@ -47,7 +47,8 @@ defmodule Mix.RebarTest do
         deps: [
           {
             :rebar_override,
-            path: MixTest.Case.tmp_path("rebar_override"), app: false
+            path: MixTest.Case.tmp_path("rebar_override"),
+            app: false
           }
         ]
       ]

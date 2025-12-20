@@ -677,17 +677,8 @@ defmodule Inspect.Algebra do
 
   # Algebra API
 
-  @compile {:inline,
-            empty: 0,
-            concat: 2,
-            break: 0,
-            break: 1,
-            glue: 2,
-            glue: 3,
-            flex_break: 0,
-            flex_break: 1,
-            flex_glue: 2,
-            flex_glue: 3}
+  @compile {:inline, empty: 0, concat: 2, break: 0, break: 1, glue: 2, glue: 3, flex_break: 0,
+            flex_break: 1, flex_glue: 2, flex_glue: 3}
 
   @doc """
   Returns a document entity used to represent nothingness.

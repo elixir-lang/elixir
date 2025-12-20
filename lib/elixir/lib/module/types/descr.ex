@@ -280,8 +280,8 @@ defmodule Module.Types.Descr do
 
   defp term_or_optional(), do: @term_or_optional
 
-  @compile {:inline,
-            keep_optional: 1, remove_optional: 1, remove_optional_static: 1, optional_to_term: 1}
+  @compile {:inline, keep_optional: 1, remove_optional: 1, remove_optional_static: 1,
+            optional_to_term: 1}
   defp keep_optional(descr) do
     case descr do
       %{dynamic: %{optional: 1}} -> %{dynamic: %{optional: 1}}

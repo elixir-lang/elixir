@@ -42,8 +42,8 @@ defmodule Task.SupervisorTest do
     children = [
       {Task.Supervisor, strategy: :one_for_one, name: :simple_name},
       {Task.Supervisor, strategy: :one_for_one, name: {:global, :global_name}},
-      {Task.Supervisor,
-       strategy: :one_for_one, name: {:via, Registry, {TaskSup.Registry, "via_name"}}}
+      {Task.Supervisor, strategy: :one_for_one,
+       name: {:via, Registry, {TaskSup.Registry, "via_name"}}}
     ]
 
     assert {:ok, supsup} = Supervisor.start_link(children, strategy: :one_for_one)
