@@ -677,6 +677,14 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
           Token = {kw_identifier, {Line, Column, Unencoded}, Atom},
           tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
+        [$: | T] when hd(T) =:= $,; hd(T) =:= $]; hd(T) =:= $}; hd(T) =:= $) ->
+          Token = {kw_identifier_shorthand, {Line, Column, Unencoded}, Atom},
+          tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
+
+        [$:] ->
+          Token = {kw_identifier_shorthand, {Line, Column, Unencoded}, Atom},
+          tokenize([], Line, Column + Length + 1, Scope, [Token | Tokens]);
+
         [$: | T] when hd(T) =/= $: ->
           AtomName = atom_to_list(Atom) ++ [$:],
           Reason = {?LOC(Line, Column), "keyword argument must be followed by space after: ", AtomName},

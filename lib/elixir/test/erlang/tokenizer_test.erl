@@ -89,6 +89,22 @@ kw_test() ->
   [{kw_identifier, {1, 1, _}, foo}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("foo: \"bar\""),
   [{kw_identifier, {1, 1, _}, '+'}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("\"+\": \"bar\"").
 
+kw_shorthand_test() ->
+  [{'[', _}, {kw_identifier_shorthand, {1, 2, _}, x}, {']', _}] = tokenize("[x:]"),
+  [{'[', _},
+   {kw_identifier_shorthand, {1, 2, _}, foo},
+   {',', _},
+   {kw_identifier_shorthand, {1, 8, _}, bar},
+   {']', _}] = tokenize("[foo:, bar:]"),
+  [{'[', _},
+   {kw_identifier_shorthand, {1, 2, _}, x},
+   {',', _},
+   {kw_identifier, {1, 6, _}, y},
+   {int, _, "1"},
+   {']', _}] = tokenize("[x:, y: 1]"),
+  [{'{', _}, {kw_identifier_shorthand, {1, 2, _}, x}, {'}', _}] = tokenize("{x:}"),
+  [{'(', _}, {kw_identifier_shorthand, {1, 2, _}, x}, {')', _}] = tokenize("(x:)").
+
 int_test() ->
   [{int, {1, 1, 123}, "123"}] = tokenize("123"),
   [{int, {1, 1, 123}, "123"}, {';', {1, 4, 0}}] = tokenize("123;"),

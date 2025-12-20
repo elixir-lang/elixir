@@ -593,39 +593,50 @@ defmodule Code.Formatter do
   # keyword: :list
   # key => value
   defp quoted_to_algebra({left_arg, right_arg}, context, state) do
-    {left, op, right, state} =
-      if keyword_key?(left_arg) do
-        {left, state} =
-          case left_arg do
-            {:__block__, _, [atom]} when is_atom(atom) ->
-              formatted = Macro.inspect_atom(:key, atom, escape: &escape_atom/2)
+    if keyword_key?(left_arg) do
+      {left, state} =
+        case left_arg do
+          {:__block__, _, [atom]} when is_atom(atom) ->
+            formatted = Macro.inspect_atom(:key, atom, escape: &escape_atom/2)
 
-              {formatted
-               |> string()
-               |> color_doc(:atom, state.inspect_opts), state}
+            {formatted
+             |> string()
+             |> color_doc(:atom, state.inspect_opts), state}
 
-            {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
-              interpolation_to_algebra(entries, @double_quote, state, "\"", "\":")
-          end
+          {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
+            interpolation_to_algebra(entries, @double_quote, state, "\"", "\":")
+        end
 
-        {right, state} = quoted_to_algebra(right_arg, context, state)
-        {left, "", right, state}
+      if shorthand_keyword?(left_arg, right_arg) do
+        {group(left), state}
       else
-        {left, state} = quoted_to_algebra(left_arg, context, state)
         {right, state} = quoted_to_algebra(right_arg, context, state)
-        left = wrap_in_parens_if_binary_operator(left, left_arg)
-        {left, " =>", right, state}
+
+        doc =
+          concat(
+            group(left),
+            with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
+              nest(glue("", right), 2, :break)
+            end)
+          )
+
+        {doc, state}
       end
+    else
+      {left, state} = quoted_to_algebra(left_arg, context, state)
+      {right, state} = quoted_to_algebra(right_arg, context, state)
+      left = wrap_in_parens_if_binary_operator(left, left_arg)
 
-    doc =
-      concat(
-        group(left),
-        with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
-          nest(glue(op, right), 2, :break)
-        end)
-      )
+      doc =
+        concat(
+          group(left),
+          with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
+            nest(glue(" =>", right), 2, :break)
+          end)
+        )
 
-    {doc, state}
+      {doc, state}
+    end
   end
 
   # #PID's and #Ref's may appear on regular AST
@@ -2472,6 +2483,13 @@ defmodule Code.Formatter do
     do: meta[:format] == :keyword
 
   defp keyword_key?(_),
+    do: false
+
+  defp shorthand_keyword?({:__block__, meta, [key]}, {var, _, context})
+       when is_atom(key) and is_atom(var) and is_atom(context),
+       do: key == var and meta[:shorthand] == true
+
+  defp shorthand_keyword?(_, _),
     do: false
 
   defp eol?(_meta, %{skip_eol: true}), do: false

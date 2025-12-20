@@ -131,6 +131,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
   * [Calendar] Optimize `date_from_iso_days` by using the Neri-Schneider algorithm
   * [Enum] Add `Enum.min_max` sorter
   * [Integer] Add `Integer.ceil_div/2`
+  * [Kernel] Add shorthand syntax for keywords and maps, where `%{x:, y:}` is equivalent to `%{x: x, y: y}`
   * [Kernel] Print intermediate results of `dbg` for pipes
   * [Kernel] Warn on unused requires
   * [Regex] Add `Regex.import/1` to import regexes defined with `/E`

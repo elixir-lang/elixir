@@ -1657,6 +1657,44 @@ defmodule Kernel.ParserTest do
 
   defp parse!(string), do: Code.string_to_quoted!(string)
 
+  describe "shorthand keywords" do
+    test "in keyword lists" do
+      assert parse!("[x:]") == [x: {:x, [line: 1], nil}]
+      assert parse!("[x:, y:]") == [x: {:x, [line: 1], nil}, y: {:y, [line: 1], nil}]
+    end
+
+    test "in maps" do
+      assert parse!("%{x:}") == {:%{}, [line: 1], [x: {:x, [line: 1], nil}]}
+
+      assert parse!("%{x:, y:}") ==
+               {:%{}, [line: 1], [x: {:x, [line: 1], nil}, y: {:y, [line: 1], nil}]}
+    end
+
+    test "in function calls" do
+      assert parse!("f(x:)") == {:f, [line: 1], [[x: {:x, [line: 1], nil}]]}
+
+      assert parse!("f(x:, y:)") ==
+               {:f, [line: 1], [[x: {:x, [line: 1], nil}, y: {:y, [line: 1], nil}]]}
+    end
+
+    test "in function calls without parentheses" do
+      assert parse!("f x:") == {:f, [line: 1], [[x: {:x, [line: 1], nil}]]}
+
+      assert parse!("f x:, y:") ==
+               {:f, [line: 1], [[x: {:x, [line: 1], nil}, y: {:y, [line: 1], nil}]]}
+    end
+
+    test "mixed with full keywords" do
+      assert parse!("[x:, y: 1]") == [x: {:x, [line: 1], nil}, y: 1]
+      assert parse!("[a: 1, x:]") == [a: 1, x: {:x, [line: 1], nil}]
+      assert parse!("[a: 1, x:, b: 2]") == [a: 1, x: {:x, [line: 1], nil}, b: 2]
+    end
+
+    test "with trailing comma" do
+      assert parse!("[x:,]") == [x: {:x, [line: 1], nil}]
+    end
+  end
+
   defp assert_syntax_error(given_messages, source) do
     e = assert_raise SyntaxError, fn -> parse!(source) end
     assert_exception_msg(e, given_messages)

@@ -30,14 +30,14 @@ Nonterminals
   call_args_no_parens_comma_expr call_args_no_parens_all call_args_no_parens_many
   call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_op_eol_and_expr stab_parens_many
-  kw_eol kw_base kw_data kw_call call_args_no_parens_kw_expr call_args_no_parens_kw
+  kw_eol kw_shorthand kw_base kw_data kw_call call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
   do_block fn_eoe do_eoe block_eoe block_item block_list
   .
 
 Terminals
-  identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
+  identifier kw_identifier kw_identifier_safe kw_identifier_unsafe kw_identifier_shorthand bracket_identifier
   paren_identifier do_identifier block_identifier op_identifier
   fn 'end' alias
   atom atom_quoted atom_safe atom_unsafe bin_string list_string sigil
@@ -570,8 +570,13 @@ kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, kw_identifier_m
 kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, kw_identifier_meta('$1')).
 kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, kw_identifier_meta('$1')).
 
+kw_shorthand -> kw_identifier_shorthand : build_kw_shorthand('$1').
+kw_shorthand -> kw_identifier_shorthand eol : build_kw_shorthand('$1').
+
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
+kw_base -> kw_shorthand : ['$1'].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
+kw_base -> kw_base ',' kw_shorthand : ['$3' | '$1'].
 
 kw_call -> kw_base : reverse('$1').
 kw_call -> kw_base ',' : warn_trailing_comma('$2'), reverse('$1').
@@ -585,8 +590,11 @@ call_args_no_parens_kw_expr -> kw_eol matched_expr : {'$1', '$2'}.
 call_args_no_parens_kw_expr -> kw_eol no_parens_expr : warn_nested_no_parens_keyword('$1', '$2'), {'$1', '$2'}.
 
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
+call_args_no_parens_kw -> kw_shorthand : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1' | '$3'].
+call_args_no_parens_kw -> kw_shorthand ',' call_args_no_parens_kw : ['$1' | '$3'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' matched_expr : maybe_bad_keyword_call_follow_up('$2', ['$1'], '$3').
+call_args_no_parens_kw -> kw_shorthand ',' matched_expr : maybe_bad_keyword_call_follow_up('$2', ['$1'], '$3').
 
 % Lists
 
@@ -1063,6 +1071,13 @@ kw_identifier_meta({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
     true when is_integer(Delimiter) -> [{delimiter, <<Delimiter>>} | Meta];
     _ -> Meta
   end.
+
+build_kw_shorthand({kw_identifier_shorthand, Location, Atom}) ->
+  KeyMeta = [{shorthand, true} | kw_identifier_meta({kw_identifier_shorthand, Location, Atom})],
+  Key = handle_literal(Atom, {kw_identifier_shorthand, Location, Atom}, KeyMeta),
+  VarMeta = meta_from_location(Location),
+  Value = {Atom, VarMeta, nil},
+  {Key, Value}.
 
 charlist_parts(Parts) ->
   [charlist_part(Part) || Part <- Parts].
