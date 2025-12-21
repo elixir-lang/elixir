@@ -4991,6 +4991,25 @@ defmodule Module.Types.Descr do
     bdd_leaf_intersection(leaf, bdd, leaf_intersection)
   end
 
+  # Take two BDDs, B1 = {a1, C1, U2, D2} and B2.
+  # We can treat a1 as a leaf if C1 = :bdd_top.
+  # Then we have:
+  #
+  #     ((a1 and C1) or U2 or (not a1 and D2)) and B2
+  #
+  # Which is equivalent to:
+  #
+  #     (a1 and B2) or (B2 and (U2 or not a1 and D2))
+  defp bdd_intersection({leaf, :bdd_top, u, d}, bdd, leaf_intersection) do
+    bdd_leaf_intersection(leaf, bdd, leaf_intersection)
+    |> bdd_union(bdd_intersection(bdd, {leaf, :bdd_bot, u, d}))
+  end
+
+  defp bdd_intersection(bdd, {leaf, :bdd_top, u, d}, leaf_intersection) do
+    bdd_leaf_intersection(leaf, bdd, leaf_intersection)
+    |> bdd_union(bdd_intersection(bdd, {leaf, :bdd_bot, u, d}))
+  end
+
   defp bdd_intersection(bdd1, bdd2, _leaf_intersection) do
     bdd_intersection(bdd1, bdd2)
   end
