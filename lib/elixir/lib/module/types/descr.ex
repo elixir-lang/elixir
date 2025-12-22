@@ -1983,22 +1983,19 @@ defmodule Module.Types.Descr do
 
   defp list_intersection(bdd1, bdd2) do
     cond do
-      list_top?(bdd1) and is_tuple(bdd2) ->
-        bdd2
+      list_top?(bdd1) and is_tuple(bdd2) -> bdd2
+      list_top?(bdd2) and is_tuple(bdd1) -> bdd1
+      true -> bdd_intersection(bdd1, bdd2, &list_leaf_intersection/2)
+    end
+  end
 
-      list_top?(bdd2) and is_tuple(bdd1) ->
-        bdd1
-
-      true ->
-        bdd_intersection(bdd1, bdd2, fn bdd_leaf(list1, last1), bdd_leaf(list2, last2) ->
-          try do
-            list = non_empty_intersection!(list1, list2)
-            last = non_empty_intersection!(last1, last2)
-            bdd_leaf(list, last)
-          catch
-            :empty -> :bdd_bot
-          end
-        end)
+  defp list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
+    try do
+      list = non_empty_intersection!(list1, list2)
+      last = non_empty_intersection!(last1, last2)
+      bdd_leaf(list, last)
+    catch
+      :empty -> :bdd_bot
     end
   end
 
@@ -2026,7 +2023,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
+  defp list_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2, &list_leaf_intersection/2)
 
   defp list_empty?(@non_empty_list_top), do: false
 
@@ -2599,21 +2596,18 @@ defmodule Module.Types.Descr do
 
   defp map_intersection(bdd1, bdd2) do
     cond do
-      map_top?(bdd1) and is_tuple(bdd2) ->
-        bdd2
+      map_top?(bdd1) and is_tuple(bdd2) -> bdd2
+      map_top?(bdd2) and is_tuple(bdd1) -> bdd1
+      true -> bdd_intersection(bdd1, bdd2, &map_leaf_intersection/2)
+    end
+  end
 
-      map_top?(bdd2) and is_tuple(bdd1) ->
-        bdd1
-
-      true ->
-        bdd_intersection(bdd1, bdd2, fn bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2) ->
-          try do
-            {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
-            bdd_leaf(tag, fields)
-          catch
-            :empty -> :bdd_bot
-          end
-        end)
+  defp map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
+    try do
+      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
+      bdd_leaf(tag, fields)
+    catch
+      :empty -> :bdd_bot
     end
   end
 
@@ -2636,12 +2630,12 @@ defmodule Module.Types.Descr do
           bdd_leaf(tag, Map.update!(fields, diff_key, &difference(&1, neg_fields[diff_key])))
 
         _ ->
-          bdd_difference(map1, map2)
+          bdd_difference(map1, map2, &map_leaf_intersection/2)
       end
     end
   end
 
-  defp map_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
+  defp map_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2, &map_leaf_intersection/2)
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
@@ -4089,12 +4083,14 @@ defmodule Module.Types.Descr do
   defp tuple_new(tag, elements), do: bdd_leaf(tag, elements)
 
   defp tuple_intersection(bdd1, bdd2) do
-    bdd_intersection(bdd1, bdd2, fn bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2) ->
-      case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-        {tag, elements} -> bdd_leaf(tag, elements)
-        :empty -> :bdd_bot
-      end
-    end)
+    bdd_intersection(bdd1, bdd2, &tuple_leaf_intersection/2)
+  end
+
+  defp tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
+    case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+      {tag, elements} -> bdd_leaf(tag, elements)
+      :empty -> :bdd_bot
+    end
   end
 
   defp tuple_literal_intersection(:open, [], tag, elements), do: {tag, elements}
@@ -4135,7 +4131,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
+  defp tuple_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2, &tuple_leaf_intersection/2)
 
   defp non_empty_tuple_literals_intersection(tuples) do
     try do
@@ -4910,6 +4906,25 @@ defmodule Module.Types.Descr do
 
   defp bdd_difference_union(i, u1, u2),
     do: bdd_difference(i, bdd_union(u1, u2))
+
+  # Optimize differences when D2 != :bottom
+  # to use the same optimization as bdd_leaf_intersection.
+  #
+  # (B1) and not (B2)
+  # (B1) and not (B2_no_D2 or (not a2 and D2))
+  # (B1) and (not B2_no_D2 and (a2 or not D2))
+  # (B1) and (a2 or not D2) and not B2_no_D2
+  # ((B1 and a2) or (B1 and not D2)) and not B2_no_D2
+  #
+  defp bdd_difference(bdd, {leaf, c, u, d}, leaf_intersection) when d != :bdd_bottom do
+    bdd_leaf_intersection(leaf, bdd, leaf_intersection)
+    |> bdd_union(bdd_difference(bdd, d, leaf_intersection))
+    |> bdd_difference({leaf, c, u, :bdd_bot})
+  end
+
+  defp bdd_difference(bdd1, bdd2, _leaf_intersection) do
+    bdd_difference(bdd1, bdd2)
+  end
 
   def bdd_intersection(bdd1, bdd2) do
     case {bdd1, bdd2} do
