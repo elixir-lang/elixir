@@ -304,6 +304,21 @@ defmodule Module.Types.DescrTest do
              )
 
       assert empty?(intersection(closed_map(a: integer()), closed_map(a: atom())))
+
+      # Maps leaves are actually optimize, so some of the code branches
+      # can only be tested through negations. This is the intersection between
+      # open_map(a: integer()) and open_map(b: integer())
+      a_and_b =
+        negation(union(negation(open_map(a: integer())), negation(open_map(b: integer()))))
+
+      assert equal?(
+               # The additional parts we are intersecting are empty
+               intersection(
+                 union(a_and_b, closed_map(c: float())),
+                 union(a_and_b, closed_map(d: float()))
+               ),
+               a_and_b
+             )
     end
 
     test "map with domain keys" do

@@ -4950,26 +4950,25 @@ defmodule Module.Types.Descr do
             {lit2, bdd_intersection(bdd1, c2), bdd_intersection(bdd1, u2),
              bdd_intersection(bdd1, d2)}
 
-          # Notice that (l ? c1, u1, d1) and (l ? c2, u2, d2) is, on paper, equivalent to
-          # [(l and c1) or u1 or (not l and d1)] and [(l and c2) or u2 or (not l and d2)].
+          # Notice that (a, c1, u1, d1) and (a, c2, u2, d2) is described as:
           #
-          # which is equivalent, by distributivity of intersection over union, to
+          #     {a, (C1 or U1) and (C2 or U2), :bottom, (D1 or U1) and (D2 or U2)}
           #
-          # l and [(c1 and c2) or (c1 and u2) or (u1 and c2)]
-          #      or (u1 and u2)
-          #      or [(not l) and ((d1 and u2) or (d1 and d2) or (u1 and d2))]
+          # However, if we distribute the intersection over the unions, we find a
+          # common term, U1 and U2, leading to:
           #
-          # which is equivalent, by factoring out c1 in the first disjunct, and d1 in the third, to
+          #     {a1,
+          #      (C1 and (C2 or U2)) or (U1 and C2),
+          #      (U1 and U2),
+          #      (D1 and (D2 or U2)) or (U1 and D2)}
           #
-          # l and [c1 and (c2 or u2)] or (u1 and c2)
-          #     or (u1 and u2)
-          #     or (not l) and [d1 and (u2 or d2) or (u1 and d2)]
-          #
-          # This last expression gives the following implementation:
+          # This formula is longer, meaning more operations, but it does preserve
+          # unions in place whenever possible. This change has reduced the algorithmic
+          # complexity in the past, but perhaps it is rendered less useful now due to
+          # the eager literal intersections.
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
-            {lit, bdd_union(bdd_intersection_union(c1, c2, u2), bdd_intersection(u1, c2)),
-             bdd_intersection(u1, u2),
-             bdd_union(bdd_intersection_union(d1, u2, d2), bdd_intersection(u1, d2))}
+            {lit, bdd_intersection_eq(c1, c2, u1, u2), bdd_intersection(u1, u2),
+             bdd_intersection_eq(d1, d2, u1, u2)}
 
           {:eq, {lit, c1, u1, _}, _} ->
             {lit, bdd_union(c1, u1), :bdd_bot, :bdd_bot}
@@ -4987,12 +4986,26 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Version of i ^ (u1 v u2) that only computes the union if i is not bottom
-  defp bdd_intersection_union(:bdd_bot, _u1, _u2),
-    do: :bdd_bot
+  # The arms of bdd_intersect equal have shape:
+  #
+  # (C1 and C2) or (C1 and U2) or (U1 and C2)
+  # (D1 and D2) or (D1 and U2) or (U1 and D2)
+  #
+  # They are symmetrical, so we optimize it using the formula below,
+  # which also deals with cases that lead to large eliminations.
+  #
+  # The final clause reduces the amount of operations by rewriting it to:
+  # (C1 and (C2 or U2)) or (U1 and C2)
+  defp bdd_intersection_eq(:bdd_top, :bdd_top, _u1, _u2), do: :bdd_top
 
-  defp bdd_intersection_union(i, u1, u2),
-    do: bdd_intersection(i, bdd_union(u1, u2))
+  defp bdd_intersection_eq(:bdd_bot, cd2, u1, _u2), do: bdd_intersection(u1, cd2)
+  defp bdd_intersection_eq(cd1, :bdd_bot, _u1, u2), do: bdd_intersection(u2, cd1)
+  defp bdd_intersection_eq(cd1, cd2, :bdd_bot, u2), do: bdd_intersection(cd1, bdd_union(cd2, u2))
+  defp bdd_intersection_eq(cd1, cd2, u1, :bdd_bot), do: bdd_intersection(cd2, bdd_union(cd1, u1))
+
+  defp bdd_intersection_eq(cd1, cd2, u1, u2) do
+    bdd_union(bdd_intersection(cd1, bdd_union(cd2, u2)), bdd_intersection(u1, cd2))
+  end
 
   # Intersections are great because they allow us to cut down
   # the number of nodes in the tree. So whenever we have a leaf,
