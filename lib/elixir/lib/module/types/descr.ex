@@ -4916,7 +4916,7 @@ defmodule Module.Types.Descr do
   # (B1) and (a2 or not D2) and not B2_no_D2
   # ((B1 and a2) or (B1 and not D2)) and not B2_no_D2
   #
-  defp bdd_difference(bdd, {leaf, c, u, d}, leaf_intersection) when d != :bdd_bottom do
+  defp bdd_difference(bdd, {leaf, c, u, d}, leaf_intersection) when d != :bdd_bot do
     bdd_leaf_intersection(leaf, bdd, leaf_intersection)
     |> bdd_union(bdd_difference(bdd, d, leaf_intersection))
     |> bdd_difference({leaf, c, u, :bdd_bot})
