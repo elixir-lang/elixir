@@ -5593,8 +5593,8 @@ defmodule Kernel do
   ## Types
 
   It is recommended to define types for structs. By convention, such a type
-  is called `t`. To define a struct inside a type, the struct literal syntax
-  is used:
+  is called `t`. To define a type for a struct, the struct literal syntax is
+  used:
 
       defmodule User do
         defstruct name: "John", age: 25
