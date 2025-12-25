@@ -534,7 +534,7 @@ defmodule Process do
   If the process is already dead when calling `Process.monitor/1`, a
   `:DOWN` message is delivered immediately.
 
-  See ["The need for monitoring"](genservers.md#the-need-for-monitoring)
+  See ["Links and monitors"](genservers.md#links-and-monitors)
   for an example. See `:erlang.monitor/2` for more information.
 
   Inlined by the compiler.
