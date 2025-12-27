@@ -2,16 +2,12 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
-name: CI
+name: Elixir Building and Testing
 
 on:
   push:
-    paths-ignore:
-      - "lib/**/*.md"
-
   pull_request:
-    paths-ignore:
-      - "lib/**/*.md"
+  workflow_dispatch:
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
@@ -28,29 +24,36 @@ jobs:
 
     strategy:
       fail-fast: false
+
       matrix:
         include:
           - otp_version: "28.1"
             deterministic: true
+            skip_format_and_tests: true
+
           - otp_version: "28.1"
-            erlc_opts: "warnings_as_errors"
             docs: true
             coverage: true
+
           - otp_version: "27.3"
-            erlc_opts: "warnings_as_errors"
+
           - otp_version: "27.0"
-            erlc_opts: "warnings_as_errors"
+
           - otp_version: "26.0"
+
           - otp_version: master
             development: true
+
           - otp_version: maint
             development: true
 
     # Earlier Erlang/OTP versions ignored compiler directives
     # when using warnings_as_errors. So we only set ERLC_OPTS
     # from Erlang/OTP 27+.
+    # Additionally, we do not set warnings_as_errors for development branches.
     env:
-      ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
+      ERLC_OPTS: ${{ !(startsWith(matrix.otp_version, '26') || matrix.development) && 'warnings_as_errors' || '' }}
+
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
@@ -71,17 +74,22 @@ jobs:
         run: bin/elixir --version
 
       - name: Check format
-        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+        if: ${{ !matrix.skip_format_and_tests }}
+        run: |
+          make test_formatted && \
+            echo "All Elixir source code files are properly formatted."
 
       - name: Erlang test suite
+        if: ${{ !matrix.skip_format_and_tests }}
         run: make test_erlang
         continue-on-error: ${{ matrix.development == true }}
 
       - name: Elixir test suite
+        if: ${{ !matrix.skip_format_and_tests || matrix.coverage }}
         run: make test_elixir
         continue-on-error: ${{ matrix.development == true }}
         env:
-          COVER: "${{ matrix.coverage }}"
+          COVER: ${{ matrix.coverage }}
 
       - name: Build docs (ExDoc main)
         if: ${{ matrix.docs }}
@@ -94,11 +102,11 @@ jobs:
           git fetch --tags
           DOCS_OPTIONS="--warnings-as-errors" make docs
 
-      - name: "Calculate Coverage"
+      - name: Calculate Coverage
         if: ${{ matrix.coverage }}
         run: make cover | tee "$GITHUB_STEP_SUMMARY"
 
-      - name: "Upload Coverage Artifact"
+      - name: Upload Coverage Artifact
         if: ${{ matrix.coverage }}
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
@@ -109,6 +117,7 @@ jobs:
         if: ${{ matrix.deterministic }}
         run: |
           rm -rf .git
+
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
@@ -118,11 +127,19 @@ jobs:
     runs-on: windows-2022
 
     strategy:
+      fail-fast: false
+
       matrix:
         otp_version:
           - "28.1"
           - "27.3"
           - "26.2"
+
+    # Earlier Erlang/OTP versions ignored compiler directives
+    # when using warnings_as_errors. So we only set ERLC_OPTS
+    # from Erlang/OTP 27+.
+    env:
+      ERLC_OPTS: ${{ !startsWith(matrix.otp_version, '26') && 'warnings_as_errors' || '' }}
 
     steps:
       - name: Configure Git
@@ -143,7 +160,10 @@ jobs:
         run: bin/elixir --version
 
       - name: Check format
-        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+        shell: bash
+        run: |
+          make test_formatted && \
+            echo "All Elixir source code files are properly formatted."
 
       - name: Erlang test suite
         run: make test_erlang
