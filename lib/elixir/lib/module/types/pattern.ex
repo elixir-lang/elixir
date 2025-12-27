@@ -63,9 +63,13 @@ defmodule Module.Types.Pattern do
     {pattern_info, context} = pop_pattern_info(context)
 
     {_, context} =
-      of_pattern_recur(expected, tag, pattern_info, stack, context, fn types, changed, context ->
-        of_pattern_args_tree(trees, types, changed, 0, [], tag, stack, context)
-      end)
+      case of_pattern_args_tree(trees, expected, 0, [], tag, stack, context) do
+        {:ok, types, context} ->
+          of_pattern_recur(types, tag, pattern_info, stack, context)
+
+        {:error, context} ->
+          {expected, error_vars(pattern_info, context)}
+      end
 
     {trees, context}
   end
@@ -82,7 +86,6 @@ defmodule Module.Types.Pattern do
   defp of_pattern_args_tree(
          [{pattern, tree} | tail],
          [type | expected_types],
-         [index | changed],
          index,
          acc,
          tag,
@@ -92,25 +95,11 @@ defmodule Module.Types.Pattern do
     with {:ok, type, context} <-
            of_pattern_intersect(tree, type, pattern, index, tag, stack, context) do
       acc = [type | acc]
-      of_pattern_args_tree(tail, expected_types, changed, index + 1, acc, tag, stack, context)
+      of_pattern_args_tree(tail, expected_types, index + 1, acc, tag, stack, context)
     end
   end
 
-  defp of_pattern_args_tree(
-         [_ | tail],
-         [type | expected_types],
-         changed,
-         index,
-         acc,
-         tag,
-         stack,
-         context
-       ) do
-    acc = [type | acc]
-    of_pattern_args_tree(tail, expected_types, changed, index + 1, acc, tag, stack, context)
-  end
-
-  defp of_pattern_args_tree([], [], [], _index, acc, _tag, _stack, context) do
+  defp of_pattern_args_tree([], [], _index, acc, _tag, _stack, context) do
     {:ok, Enum.reverse(acc), context}
   end
 
@@ -158,65 +147,54 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context) do
-    of_pattern_recur([expected], tag, pattern_info, stack, context, fn [type], [0], context ->
-      with {:ok, type, context} <-
-             of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
-        {:ok, [type], context}
-      end
-    end)
+    case of_pattern_intersect(tree, expected, expr, 0, tag, stack, context) do
+      {:ok, type, context} ->
+        of_pattern_recur([type], tag, pattern_info, stack, context)
+
+      {:error, context} ->
+        {[expected], error_vars(pattern_info, context)}
+    end
   end
 
-  defp of_pattern_recur(types, tag, pattern_info, stack, context, callback) do
+  defp of_pattern_recur(types, tag, pattern_info, stack, context) do
     {args_paths, vars_paths, vars_deps} = pattern_info
-    changed = :lists.seq(0, length(types) - 1)
 
     try do
-      # TODO: Remove this callback
-      case callback.(types, changed, context) do
-        {:ok, types, context} ->
-          {changed, context} =
-            Enum.reduce(args_paths, {[], context}, fn {version, paths}, {changed, context} ->
-              {var_changed?, context} =
-                Enum.reduce(paths, {false, context}, fn
-                  [var, {:arg, index, expr} | path], {var_changed?, context} ->
-                    actual = Enum.fetch!(types, index)
+      {changed, context} =
+        Enum.reduce(args_paths, {[], context}, fn {version, paths}, {changed, context} ->
+          {var_changed?, context} =
+            Enum.reduce(paths, {false, context}, fn
+              [var, {:arg, index, expr} | path], {var_changed?, context} ->
+                actual = Enum.fetch!(types, index)
 
-                    case of_pattern_var(path, actual, context) do
-                      {:ok, type} ->
-                        # Optimization: if current type is already a subtype, there is nothing to refine.
-                        with %{^version => %{type: current_type}} <- context.vars,
-                             true <- subtype?(current_type, type) do
-                          {var_changed?, context}
-                        else
-                          _ ->
-                            case Of.refine_head_var(var, type, expr, stack, context) do
-                              {:ok, _type, context} -> {true, context}
-                              {:error, _type, context} -> throw({types, context})
-                            end
+                case of_pattern_var(path, actual, context) do
+                  {:ok, type} ->
+                    # Optimization: if current type is already a subtype, there is nothing to refine.
+                    with %{^version => %{type: current_type}} <- context.vars,
+                         true <- subtype?(current_type, type) do
+                      {var_changed?, context}
+                    else
+                      _ ->
+                        case Of.refine_head_var(var, type, expr, stack, context) do
+                          {:ok, _type, context} -> {true, context}
+                          {:error, _type, context} -> throw({types, context})
                         end
-
-                      :error ->
-                        throw({types, badpattern_error(expr, index, tag, stack, context)})
                     end
-                end)
 
-              case var_changed? do
-                true -> {[version | changed], context}
-                false -> {changed, context}
-              end
+                  :error ->
+                    throw({types, badpattern_error(expr, index, tag, stack, context)})
+                end
             end)
 
-          try do
-            {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
-          catch
-            {:error, context} -> {types, error_vars(vars_paths, context)}
+          case var_changed? do
+            true -> {[version | changed], context}
+            false -> {changed, context}
           end
+        end)
 
-        {:error, context} ->
-          {types, error_vars(vars_paths, context)}
-      end
+      {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
     catch
-      {types, context} -> {types, error_vars(vars_paths, context)}
+      {types, context} -> {types, error_vars(pattern_info, context)}
     end
   end
 
@@ -270,11 +248,10 @@ defmodule Module.Types.Pattern do
       end
     end)
     |> Map.keys()
-    |> Kernel.--(previous_changed)
     |> of_pattern_var_deps(vars_paths, vars_deps, tag, stack, context)
   end
 
-  defp error_vars(vars_paths, context) do
+  defp error_vars({_args_paths, vars_paths, _vars_deps}, context) do
     Enum.reduce(vars_paths, context, fn {version, [[var | _path] | _paths]}, context ->
       # TODO: ew
       if is_integer(version) do
