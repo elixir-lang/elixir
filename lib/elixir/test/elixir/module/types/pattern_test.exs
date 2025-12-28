@@ -54,21 +54,19 @@ defmodule Module.Types.PatternTest do
     test "errors on conflicting refinements" do
       assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
                ~l"""
-               the following pattern will never match:
+               incompatible types assigned to "a":
 
-                   a = b
+                   dynamic(:foo) !~ dynamic(:bar)
 
-               where "a" was given the type:
+               where "a" was given the types:
 
                    # type: dynamic(:foo)
-                   # from: types_test.ex:LINE-1
+                   # from: types_test.ex:55
                    a = :foo
 
-               where "b" was given the type:
-
                    # type: dynamic(:bar)
-                   # from: types_test.ex:LINE-1
-                   b = :bar
+                   # from: types_test.ex:55
+                   a = b
                """
     end
 
@@ -120,17 +118,31 @@ defmodule Module.Types.PatternTest do
       assert typeerror!([x = {:ok, _} = {:error, _, _}], x) == ~l"""
              the following pattern will never match:
 
-                 [_ | _] = x
+                 x = {:ok, _} = {:error, _, _}
+             """
 
-             because the right-hand side has type:
+      assert typeerror!([x = {:ok, y} = {:error, z, w}], {x, y, z, w}) == ~l"""
+             incompatible types assigned to "x":
 
-                 dynamic({:ok, term()})
+                 dynamic() !~ none()
 
              where "x" was given the type:
 
-                 # type: dynamic({:ok, term()})
-                 # from: types_test.ex:LINE
-                 x = {:ok, _}
+                 # type: none()
+                 # from: types_test.ex:124
+                 x = {:ok, y} = {:error, z, w}
+             """
+
+      assert typeerror!([{:ok, y} = {:error, z, w}], {y, z, w}) == ~l"""
+             incompatible types assigned to "match" (context Module.Types.Pattern):
+
+                 dynamic() !~ none()
+
+             where "match" (context Module.Types.Pattern) was given the type:
+
+                 # type: none()
+                 # from: types_test.ex:136
+                 {:ok, y} = {:error, z, w}
              """
 
       assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""

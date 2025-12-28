@@ -188,7 +188,7 @@ defmodule Module.Types.Pattern do
       try do
         {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
       catch
-        {:error, context} -> {types, context}
+        {:error, context} -> {types, error_vars(pattern_info, context)}
       end
     catch
       {types, context} -> {types, error_vars(pattern_info, context)}
@@ -250,15 +250,16 @@ defmodule Module.Types.Pattern do
   end
 
   defp error_vars({args_paths, vars_paths, _vars_deps}, context) do
-    callback = fn {_, [%{var: var} | _paths]}, context ->
+    callback = fn [%{var: var} | _paths], context ->
       Of.error_var(var, context)
     end
 
-    context = Enum.reduce(args_paths, context, callback)
-    context = Enum.reduce(vars_paths, context, callback)
+    context = Enum.reduce(Map.values(args_paths), context, callback)
+    context = Enum.reduce(Map.values(vars_paths), context, callback)
     context
   end
 
+  # TODO: May pass the expression as well for more context
   defp refine_error({_, meta, _} = var, old_type, type, stack, context) do
     error(__MODULE__, {:badvar, old_type, type, var, context}, meta, stack, context)
   end
@@ -799,6 +800,7 @@ defmodule Module.Types.Pattern do
     {pattern_info, %{context | pattern_info: nil}}
   end
 
+  # TODO: Deal when new_type is none()
   def format_diagnostic({:badvar, old_type, new_type, var, context}) do
     traces = collect_traces(var, context)
 
