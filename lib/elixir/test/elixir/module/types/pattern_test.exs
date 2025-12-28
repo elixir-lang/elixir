@@ -117,6 +117,22 @@ defmodule Module.Types.PatternTest do
     end
 
     test "reports incompatible types" do
+      assert typeerror!([x = {:ok, _} = {:error, _, _}], x) == ~l"""
+             the following pattern will never match:
+
+                 [_ | _] = x
+
+             because the right-hand side has type:
+
+                 dynamic({:ok, term()})
+
+             where "x" was given the type:
+
+                 # type: dynamic({:ok, term()})
+                 # from: types_test.ex:LINE
+                 x = {:ok, _}
+             """
+
       assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
              the following pattern will never match:
 
