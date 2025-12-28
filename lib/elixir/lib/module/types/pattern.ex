@@ -437,15 +437,20 @@ defmodule Module.Types.Pattern do
         end
       end)
 
-    intersection =
-      cond do
-        static == [] -> {:intersection, dynamic}
-        dynamic == [] -> Enum.reduce(static, &intersection/2)
-        true -> {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}
-      end
+    if dynamic == [] do
+      {Enum.reduce(static, &intersection/2), context}
+    else
+      # The dynamic parts have to be recomputed whenever they change
+      {var, context} =
+        of_pattern(var, [%{root: {:intersection, dynamic}, expr: expr}], stack, context)
 
-    # But also build the new path with the intersection
-    of_pattern(var, [%{root: intersection, expr: expr}], stack, context)
+      # But the static parts we push down as part of the argument intersection
+      if static == [] do
+        {var, context}
+      else
+        {{:intersection, [var, Enum.reduce(static, &intersection/2)]}, context}
+      end
+    end
   end
 
   # %Struct{...}
