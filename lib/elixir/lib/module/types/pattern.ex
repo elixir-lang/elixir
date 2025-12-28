@@ -170,8 +170,11 @@ defmodule Module.Types.Pattern do
                 case of_pattern_var(path, actual, context) do
                   {:ok, type} ->
                     case Of.refine_head_var(var, type, expr, stack, context) do
-                      {:ok, _type, context} -> context
-                      {:error, _type, context} -> throw({types, context})
+                      {:ok, _type, context} ->
+                        context
+
+                      {:error, old_type, context} ->
+                        throw({types, refine_error(var, old_type, type, stack, context)})
                     end
 
                   :error ->
@@ -182,7 +185,11 @@ defmodule Module.Types.Pattern do
           {version, context}
         end)
 
-      {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
+      try do
+        {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
+      catch
+        {:error, context} -> {types, context}
+      end
     catch
       {types, context} -> {types, error_vars(pattern_info, context)}
     end
@@ -212,8 +219,11 @@ defmodule Module.Types.Pattern do
                   else
                     _ ->
                       case Of.refine_head_var(var, type, expr, stack, context) do
-                        {:ok, _type, context} -> {true, context}
-                        {:error, _type, context} -> throw({:error, context})
+                        {:ok, _type, context} ->
+                          {true, context}
+
+                        {:error, old_type, context} ->
+                          throw({:error, refine_error(var, old_type, type, stack, context)})
                       end
                   end
 
@@ -247,6 +257,10 @@ defmodule Module.Types.Pattern do
     context = Enum.reduce(args_paths, context, callback)
     context = Enum.reduce(vars_paths, context, callback)
     context
+  end
+
+  defp refine_error({_, meta, _} = var, old_type, type, stack, context) do
+    error(__MODULE__, {:badvar, old_type, type, var, context}, meta, stack, context)
   end
 
   defp badpattern_error(expr, index, tag, stack, context) do
@@ -361,8 +375,13 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
-    {_ok?, type, context} = Of.refine_head_var(var, expected, expr, stack, context)
-    {type, context}
+    case Of.refine_head_var(var, expected, expr, stack, context) do
+      {:ok, type, context} ->
+        {type, context}
+
+      {:error, old_type, context} ->
+        {error_type(), refine_error(var, old_type, expected, stack, context)}
+    end
   end
 
   def of_match_var({:<<>>, _meta, args}, _expected, _expr, stack, context) do
@@ -415,7 +434,7 @@ defmodule Module.Types.Pattern do
       |> case do
         {match, []} ->
           version = make_ref()
-          {match, version, {:temp, [version: version], __MODULE__}}
+          {match, version, {:match, [version: version], __MODULE__}}
 
         {pre, [{_, meta, _} = var | post]} ->
           version = Keyword.fetch!(meta, :version)
@@ -454,7 +473,6 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  # TODO: Once we support typed structs, we need to type check them here.
   defp of_pattern({:%, meta, [struct, {:%{}, _, args}]}, path, stack, context)
        when is_atom(struct) do
     {info, context} = Of.struct_info(struct, meta, stack, context)
@@ -779,6 +797,23 @@ defmodule Module.Types.Pattern do
 
   defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
     {pattern_info, %{context | pattern_info: nil}}
+  end
+
+  def format_diagnostic({:badvar, old_type, new_type, var, context}) do
+    traces = collect_traces(var, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types assigned to #{format_var(var)}:
+
+              #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
   def format_diagnostic({:badstruct, type, expr, context}) do

@@ -100,8 +100,7 @@ defmodule Module.Types.Of do
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error, error_type(),
-           error({:refine_head_var, old_type, type, var, context}, meta, stack, context)}
+          {:error, old_type, context}
         else
           {:ok, new_type, context}
         end
@@ -544,23 +543,6 @@ defmodule Module.Types.Of do
 
   defp error(warning, meta, stack, context) do
     error(__MODULE__, warning, meta, stack, context)
-  end
-
-  def format_diagnostic({:refine_head_var, old_type, new_type, var, context}) do
-    traces = collect_traces(var, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          incompatible types assigned to #{format_var(var)}:
-
-              #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
-          """,
-          format_traces(traces)
-        ])
-    }
   end
 
   def format_diagnostic({:badbinary, kind, meta, expr, expected_type, actual_type, context}) do
