@@ -114,6 +114,13 @@ defmodule Module.Types.PatternTest do
              ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
+    test "parallel match with map" do
+      assert typecheck!(
+               [%{key: value} = context = %{key: %{}}],
+               {context, value}
+             ) == dynamic(tuple([atom([:foo]), integer()]))
+    end
+
     test "reports incompatible types" do
       assert typeerror!([x = {:ok, _} = {:error, _, _}], x) == ~l"""
              the following pattern will never match:
@@ -129,7 +136,7 @@ defmodule Module.Types.PatternTest do
              where "x" was given the type:
 
                  # type: none()
-                 # from: types_test.ex:124
+                 # from: types_test.ex:LINE
                  x = {:ok, y} = {:error, z, w}
              """
 
@@ -141,7 +148,7 @@ defmodule Module.Types.PatternTest do
              where "match" (context Module.Types.Pattern) was given the type:
 
                  # type: none()
-                 # from: types_test.ex:136
+                 # from: types_test.ex:LINE
                  {:ok, y} = {:error, z, w}
              """
 
