@@ -133,14 +133,8 @@ defmodule Module.Types.PatternTest do
              """
 
       assert typeerror!([{:ok, y} = {:error, z, w}], {y, z, w}) == ~l"""
-             incompatible types assigned to "match" (context Module.Types.Pattern):
+             incompatible types in expression:
 
-                 dynamic() !~ none()
-
-             where "match" (context Module.Types.Pattern) was given the type:
-
-                 # type: none()
-                 # from: types_test.ex:LINE
                  {:ok, y} = {:error, z, w}
              """
 

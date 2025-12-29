@@ -31,18 +31,36 @@ defmodule Module.Types.Of do
   @doc """
   Marks a variable with error.
   """
-  def error_var(var, context) do
+  def error_var({_var_name, meta, _var_context}, context) do
+    version = Keyword.fetch!(meta, :version)
+
+    update_in(context.vars[version], fn
+      %{errored: true} = data -> data
+      data -> Map.put(%{data | type: error_type()}, :errored, true)
+    end)
+  end
+
+  @doc """
+  Declares a variable.
+  """
+  def declare_var(var, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
-    data = %{
-      type: error_type(),
-      name: var_name,
-      context: var_context,
-      off_traces: []
-    }
+    case context.vars do
+      %{^version => _} ->
+        context
 
-    put_in(context.vars[version], data)
+      vars ->
+        data = %{
+          type: term(),
+          name: var_name,
+          context: var_context,
+          off_traces: []
+        }
+
+        %{context | vars: Map.put(vars, version, data)}
+    end
   end
 
   @doc """
@@ -56,7 +74,7 @@ defmodule Module.Types.Of do
     version = Keyword.fetch!(meta, :version)
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
-    if gradual?(old_type) and type not in [term(), dynamic()] do
+    if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
       case compatible_intersection(old_type, type) do
         {:ok, new_type} when new_type != old_type ->
           data = %{
@@ -87,6 +105,9 @@ defmodule Module.Types.Of do
     version = Keyword.fetch!(meta, :version)
 
     case context.vars do
+      %{^version => %{errored: true}} ->
+        {:ok, error_type(), context}
+
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
         new_type = intersection(type, old_type)
 
@@ -96,12 +117,11 @@ defmodule Module.Types.Of do
             off_traces: new_trace(expr, type, stack, off_traces)
         }
 
-        context = %{context | vars: %{vars | version => data}}
-
-        # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
+          context = %{context | vars: %{vars | version => Map.put(data, :errored, true)}}
           {:error, old_type, context}
         else
+          context = %{context | vars: %{vars | version => data}}
           {:ok, new_type, context}
         end
 
