@@ -6,12 +6,8 @@ name: CI
 
 on:
   push:
-    paths-ignore:
-      - "lib/**/*.md"
-
   pull_request:
-    paths-ignore:
-      - "lib/**/*.md"
+  workflow_dispatch:
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
