@@ -103,8 +103,7 @@ defmodule Module.Types.Of do
   because we want to refine types. Otherwise we should
   use compatibility.
   """
-  def refine_head_var(var, type, expr, stack, context) do
-    {var_name, meta, var_context} = var
+  def refine_head_var({_, meta, _}, type, expr, stack, context) do
     version = Keyword.fetch!(meta, :version)
 
     case context.vars do
@@ -128,17 +127,6 @@ defmodule Module.Types.Of do
           context = %{context | vars: %{vars | version => data}}
           {:ok, new_type, context}
         end
-
-      %{} = vars ->
-        data = %{
-          type: type,
-          name: var_name,
-          context: var_context,
-          off_traces: new_trace(expr, type, stack, [])
-        }
-
-        context = %{context | vars: Map.put(vars, version, data)}
-        {:ok, type, context}
     end
   end
 

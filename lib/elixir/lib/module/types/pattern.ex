@@ -406,6 +406,8 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
+    context = Of.declare_var(var, context)
+
     case Of.refine_head_var(var, expected, expr, stack, context) do
       {:ok, type, context} ->
         {type, context}
