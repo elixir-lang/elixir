@@ -185,12 +185,15 @@ defmodule Module.Types.Pattern do
           {version, context}
         end)
 
-      try do
-        {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
-      catch
-        {:error, context} -> {types, error_vars(pattern_info, context)}
-      end
+      context =
+        Enum.reduce(changed, context, fn version, context ->
+          {_, context} = of_pattern_var_dep(vars_paths, version, tag, stack, context)
+          context
+        end)
+
+      {types, of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)}
     catch
+      {:error, context} -> {types, error_vars(pattern_info, context)}
       {types, context} -> {types, error_vars(pattern_info, context)}
     end
   end
@@ -201,36 +204,16 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_var_deps(previous_changed, vars_paths, vars_deps, tag, stack, context) do
     {changed, context} =
-      Enum.reduce(previous_changed, {[], context}, fn version, {changed, context} ->
-        paths = Map.get(vars_paths, version, [])
-
-        {var_changed?, context} =
-          Enum.reduce(paths, {false, context}, fn
-            %{var: var, expr: expr, root: root, path: path}, {var_changed?, context} ->
-              index = 0
-              actual = of_pattern_tree(root, context)
-
-              case of_pattern_var(path, actual, context) do
-                {:ok, type} ->
-                  # Optimization: if current type is already a subtype, there is nothing to refine.
-                  with %{^version => %{type: current_type}} <- context.vars,
-                       true <- subtype?(current_type, type) do
-                    {var_changed?, context}
-                  else
-                    _ ->
-                      case Of.refine_head_var(var, type, expr, stack, context) do
-                        {:ok, _type, context} ->
-                          {true, context}
-
-                        {:error, old_type, context} ->
-                          throw({:error, refine_error(var, old_type, type, stack, context)})
-                      end
-                  end
-
-                :error ->
-                  throw({:error, badpattern_error(expr, index, tag, stack, context)})
-              end
-          end)
+      previous_changed
+      |> Enum.reduce(%{}, fn version, acc ->
+        case vars_deps do
+          %{^version => deps} -> Map.merge(acc, deps)
+          %{} -> acc
+        end
+      end)
+      |> Map.keys()
+      |> Enum.reduce({[], context}, fn version, {changed, context} ->
+        {var_changed?, context} = of_pattern_var_dep(vars_paths, version, tag, stack, context)
 
         case var_changed? do
           false -> {changed, context}
@@ -238,15 +221,38 @@ defmodule Module.Types.Pattern do
         end
       end)
 
-    changed
-    |> Enum.reduce(%{}, fn version, acc ->
-      case vars_deps do
-        %{^version => deps} -> Map.merge(acc, deps)
-        %{} -> acc
-      end
+    of_pattern_var_deps(changed, vars_paths, vars_deps, tag, stack, context)
+  end
+
+  defp of_pattern_var_dep(vars_paths, version, tag, stack, context) do
+    paths = Map.get(vars_paths, version, [])
+
+    Enum.reduce(paths, {false, context}, fn
+      %{var: var, expr: expr, root: root, path: path}, {var_changed?, context} ->
+        index = 0
+        actual = of_pattern_tree(root, context)
+
+        case of_pattern_var(path, actual, context) do
+          {:ok, type} ->
+            # Optimization: if current type is already a subtype, there is nothing to refine.
+            with %{^version => %{type: current_type}} <- context.vars,
+                 true <- subtype?(current_type, type) do
+              {var_changed?, context}
+            else
+              _ ->
+                case Of.refine_head_var(var, type, expr, stack, context) do
+                  {:ok, _type, context} ->
+                    {true, context}
+
+                  {:error, old_type, context} ->
+                    throw({:error, refine_error(var, old_type, type, stack, context)})
+                end
+            end
+
+          :error ->
+            throw({:error, badpattern_error(expr, index, tag, stack, context)})
+        end
     end)
-    |> Map.keys()
-    |> of_pattern_var_deps(vars_paths, vars_deps, tag, stack, context)
   end
 
   defp error_vars({args_paths, vars_paths, _vars_deps}, context) do
@@ -431,7 +437,7 @@ defmodule Module.Types.Pattern do
     {match, version, var} =
       match
       |> unpack_match([])
-      |> Enum.split_while(&(not is_var(&1)))
+      |> Enum.split_while(&(not is_versioned_var(&1)))
       |> case do
         {match, []} ->
           version = make_ref()
@@ -574,6 +580,11 @@ defmodule Module.Types.Pattern do
     {_, context} = of_var(var, version, path, context)
     {{:var, version}, context}
   end
+
+  defp is_versioned_var({name, _meta, ctx}) when is_atom(name) and is_atom(ctx) and name != :_,
+    do: true
+
+  defp is_versioned_var(_), do: false
 
   defp of_var(var, version, reverse_path, context) do
     {args_paths, vars_paths, vars_deps} = context.pattern_info

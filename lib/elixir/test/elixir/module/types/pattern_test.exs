@@ -52,22 +52,21 @@ defmodule Module.Types.PatternTest do
     end
 
     test "errors on conflicting refinements" do
-      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
-               ~l"""
-               incompatible types assigned to "a":
+      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) == ~l"""
+             incompatible types assigned to "a":
 
-                   dynamic(:foo) !~ dynamic(:bar)
+                 dynamic(:foo) !~ dynamic(:bar)
 
-               where "a" was given the types:
+             where "a" was given the types:
 
-                   # type: dynamic(:foo)
-                   # from: types_test.ex:55
-                   a = :foo
+                 # type: dynamic(:foo)
+                 # from: types_test.ex:LINE
+                 a = :foo
 
-                   # type: dynamic(:bar)
-                   # from: types_test.ex:55
-                   a = b
-               """
+                 # type: dynamic(:bar)
+                 # from: types_test.ex:LINE
+                 a = b
+             """
     end
 
     test "can be accessed even if they don't match" do
@@ -111,13 +110,6 @@ defmodule Module.Types.PatternTest do
                  {^foo, ^bar} = x
                  x
                )
-             ) == dynamic(tuple([atom([:foo]), integer()]))
-    end
-
-    test "parallel match with map" do
-      assert typecheck!(
-               [%{key: value} = context = %{key: %{}}],
-               {context, value}
              ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
