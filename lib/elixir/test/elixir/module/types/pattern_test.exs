@@ -114,6 +114,12 @@ defmodule Module.Types.PatternTest do
     end
 
     test "reports incompatible types" do
+      assert typeerror!([x = 123 = "123"], x) == ~l"""
+             the following pattern will never match:
+
+                 x = 123 = "123"
+             """
+
       assert typeerror!([x = {:ok, _} = {:error, _, _}], x) == ~l"""
              the following pattern will never match:
 
@@ -121,19 +127,13 @@ defmodule Module.Types.PatternTest do
              """
 
       assert typeerror!([x = {:ok, y} = {:error, z, w}], {x, y, z, w}) == ~l"""
-             incompatible types assigned to "x":
+             this match will never succeed due to incompatible types:
 
-                 dynamic() !~ none()
-
-             where "x" was given the type:
-
-                 # type: none()
-                 # from: types_test.ex:LINE
                  x = {:ok, y} = {:error, z, w}
              """
 
       assert typeerror!([{:ok, y} = {:error, z, w}], {y, z, w}) == ~l"""
-             incompatible types in expression:
+             this match will never succeed due to incompatible types:
 
                  {:ok, y} = {:error, z, w}
              """

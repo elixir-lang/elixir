@@ -62,13 +62,13 @@ defmodule Module.Types.Pattern do
     {trees, context} = of_pattern_args_index(patterns, 0, [], stack, context)
     {pattern_info, context} = pop_pattern_info(context)
 
-    {_, context} =
+    context =
       case of_pattern_args_tree(trees, expected, 0, [], tag, stack, context) do
         {:ok, types, context} ->
           of_pattern_recur(types, tag, pattern_info, stack, context)
 
         {:error, context} ->
-          {expected, error_vars(pattern_info, context)}
+          error_vars(pattern_info, context)
       end
 
     {trees, context}
@@ -149,7 +149,7 @@ defmodule Module.Types.Pattern do
   defp of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context) do
     case of_pattern_intersect(tree, expected, expr, 0, tag, stack, context) do
       {:ok, type, context} ->
-        of_pattern_recur([type], tag, pattern_info, stack, context)
+        {[type], of_pattern_recur([type], tag, pattern_info, stack, context)}
 
       {:error, context} ->
         {[expected], error_vars(pattern_info, context)}
@@ -160,40 +160,44 @@ defmodule Module.Types.Pattern do
     {args_paths, vars_paths, vars_deps} = pattern_info
 
     try do
-      {changed, context} =
-        Enum.map_reduce(args_paths, context, fn {version, paths}, context ->
-          context =
-            Enum.reduce(paths, context, fn
-              %{var: var, expr: expr, root: {:arg, index}, path: path}, context ->
-                actual = Enum.fetch!(types, index)
+      Enum.map_reduce(args_paths, context, fn {version, paths}, context ->
+        context =
+          Enum.reduce(paths, context, fn
+            %{var: var, expr: expr, root: {:arg, index}, path: path}, context ->
+              actual = Enum.fetch!(types, index)
 
-                case of_pattern_var(path, actual, context) do
-                  {:ok, type} ->
-                    case Of.refine_head_var(var, type, expr, stack, context) do
-                      {:ok, _type, context} ->
-                        context
+              case of_pattern_var(path, actual, context) do
+                {:ok, new_type} ->
+                  case Of.refine_head_var(var, new_type, expr, stack, context) do
+                    {:ok, _type, context} ->
+                      context
 
-                      {:error, old_type, context} ->
-                        throw({types, badvar_error(var, old_type, type, expr, stack, context)})
-                    end
+                    {:error, old_type, error_context} ->
+                      if match_error?(var, new_type) do
+                        throw(badpattern_error(expr, index, tag, stack, context))
+                      else
+                        throw(badvar_error(var, old_type, new_type, stack, error_context))
+                      end
+                  end
 
-                  :error ->
-                    throw({types, badpattern_error(expr, index, tag, stack, context)})
-                end
-            end)
+                :error ->
+                  throw(badpattern_error(expr, index, tag, stack, context))
+              end
+          end)
 
-          {version, context}
-        end)
-
-      context =
-        Enum.reduce(changed, context, fn version, context ->
-          {_, context} = of_pattern_var_dep(vars_paths, version, stack, context)
-          context
-        end)
-
-      {types, of_pattern_var_deps(changed, vars_paths, vars_deps, stack, context)}
+        {version, context}
+      end)
     catch
-      {types, context} -> {types, error_vars(pattern_info, context)}
+      context -> error_vars(pattern_info, context)
+    else
+      {changed, context} ->
+        context =
+          Enum.reduce(changed, context, fn version, context ->
+            {_, context} = of_pattern_var_dep(vars_paths, version, stack, context)
+            context
+          end)
+
+        of_pattern_var_deps(changed, vars_paths, vars_deps, stack, context)
     end
   end
 
@@ -227,29 +231,33 @@ defmodule Module.Types.Pattern do
     paths = Map.get(vars_paths, version, [])
 
     case context.vars do
-      %{^version => %{type: current_type} = data} when not is_map_key(data, :errored) ->
+      %{^version => %{type: old_type} = data} when not is_map_key(data, :errored) ->
         try do
           Enum.reduce(paths, {false, context}, fn
             %{var: var, expr: expr, root: root, path: path}, {var_changed?, context} ->
               actual = of_pattern_tree(root, context)
 
               case of_pattern_var(path, actual, context) do
-                {:ok, type} ->
+                {:ok, new_type} ->
                   # Optimization: if current type is already a subtype, there is nothing to refine.
-                  if current_type != term() and subtype?(current_type, type) do
+                  if old_type != term() and subtype?(old_type, new_type) do
                     {var_changed?, context}
                   else
-                    case Of.refine_head_var(var, type, expr, stack, context) do
+                    case Of.refine_head_var(var, new_type, expr, stack, context) do
                       {:ok, _type, context} ->
                         {true, context}
 
-                      {:error, _, context} ->
-                        throw(badvar_error(var, current_type, type, expr, stack, context))
+                      {:error, _old_type, error_context} ->
+                        if match_error?(var, new_type) do
+                          throw(badmatch_error(var, expr, stack, context))
+                        else
+                          throw(badvar_error(var, old_type, new_type, stack, error_context))
+                        end
                     end
                   end
 
                 :error ->
-                  throw(badmatch_error(expr, stack, Of.error_var(var, context)))
+                  throw(badmatch_error(var, expr, stack, context))
               end
           end)
         catch
@@ -271,18 +279,16 @@ defmodule Module.Types.Pattern do
     context
   end
 
-  defp badmatch_error(expr, stack, context) do
+  defp match_error?({:match, _, __MODULE__}, _type), do: true
+  defp match_error?(_var, type), do: empty?(type)
+
+  defp badmatch_error(var, expr, stack, context) do
+    context = Of.error_var(var, context)
     error(__MODULE__, {:badmatch, expr, context}, error_meta(expr, stack), stack, context)
   end
 
-  defp badvar_error({var_name, _, var_context} = var, old_type, new_type, expr, stack, context) do
-    error =
-      if var_name == :match and var_context == __MODULE__ do
-        {:badmatch, expr, context}
-      else
-        {:badvar, old_type, new_type, var, context}
-      end
-
+  defp badvar_error(var, old_type, new_type, stack, context) do
+    error = {:badvar, old_type, new_type, var, context}
     error(__MODULE__, error, error_meta(var, stack), stack, context)
   end
 
@@ -404,8 +410,8 @@ defmodule Module.Types.Pattern do
       {:ok, type, context} ->
         {type, context}
 
-      {:error, old_type, context} ->
-        {error_type(), badvar_error(var, old_type, expected, expr, stack, context)}
+      {:error, old_type, error_context} ->
+        {error_type(), badvar_error(var, old_type, expected, stack, error_context)}
     end
   end
 
@@ -838,7 +844,7 @@ defmodule Module.Types.Pattern do
       message:
         IO.iodata_to_binary([
           """
-          incompatible types in expression:
+          this match will never succeed due to incompatible types:
 
               #{expr_to_string(expr) |> indent(4)}
           """,

@@ -30,13 +30,16 @@ defmodule Module.Types.Of do
 
   @doc """
   Marks a variable with error.
+
+  This purposedly deletes all traces of the variable,
+  as it is often invoked when the cause for error is elsewhere.
   """
   def error_var({_var_name, meta, _var_context}, context) do
     version = Keyword.fetch!(meta, :version)
 
     update_in(context.vars[version], fn
       %{errored: true} = data -> data
-      data -> Map.put(%{data | type: error_type()}, :errored, true)
+      data -> Map.put(%{data | type: error_type(), off_traces: []}, :errored, true)
     end)
   end
 
@@ -118,7 +121,8 @@ defmodule Module.Types.Of do
         }
 
         if empty?(new_type) do
-          context = %{context | vars: %{vars | version => Map.put(data, :errored, true)}}
+          data = Map.put(%{data | type: error_type()}, :errored, true)
+          context = %{context | vars: %{vars | version => data}}
           {:error, old_type, context}
         else
           context = %{context | vars: %{vars | version => data}}
