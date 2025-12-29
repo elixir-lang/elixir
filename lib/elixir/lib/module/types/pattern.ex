@@ -458,14 +458,14 @@ defmodule Module.Types.Pattern do
 
   # left = right
   defp of_pattern({:=, _meta, [_, _]} = match, path, stack, context) do
-    {match, version, var} =
+    {matches, version, var} =
       match
       |> unpack_match([])
       |> Enum.split_while(&(not is_versioned_var(&1)))
       |> case do
-        {match, []} ->
+        {matches, []} ->
           version = make_ref()
-          {match, version, {:match, [version: version], __MODULE__}}
+          {matches, version, {:match, [version: version], __MODULE__}}
 
         {pre, [{_, meta, _} = var | post]} ->
           version = Keyword.fetch!(meta, :version)
@@ -473,11 +473,11 @@ defmodule Module.Types.Pattern do
       end
 
     # Pass the current path to build the current var
-    {expr, context} = of_var(var, version, path, context)
-    root = %{root: {:var, version}, expr: expr}
+    context = of_var(var, version, path, context)
+    root = %{root: {:var, version}, expr: match}
 
     {static, dynamic, context} =
-      Enum.reduce(match, {[], [], context}, fn pattern, {static, dynamic, context} ->
+      Enum.reduce(matches, {[], [], context}, fn pattern, {static, dynamic, context} ->
         {type, context} = of_pattern(pattern, [root], stack, context)
 
         if is_descr(type) do
@@ -491,14 +491,13 @@ defmodule Module.Types.Pattern do
       {Enum.reduce(static, &intersection/2), context}
     else
       # The dynamic parts have to be recomputed whenever they change
-      {var, context} =
-        of_pattern(var, [%{root: {:intersection, dynamic}, expr: expr}], stack, context)
+      context = of_var(var, version, [%{root: {:intersection, dynamic}, expr: match}], context)
 
-      # But the static parts we push down as part of the argument intersection
+      # And everything else is also pushed as part of the argument intersection
       if static == [] do
-        {var, context}
+        {{:intersection, dynamic}, context}
       else
-        {{:intersection, [var, Enum.reduce(static, &intersection/2)]}, context}
+        {{:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
       end
     end
   end
@@ -601,8 +600,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern({name, meta, ctx} = var, path, _stack, context)
        when is_atom(name) and is_atom(ctx) do
     version = Keyword.fetch!(meta, :version)
-    {_, context} = of_var(var, version, path, context)
-    {{:var, version}, context}
+    {{:var, version}, of_var(var, version, path, context)}
   end
 
   defp is_versioned_var({name, _meta, ctx}) when is_atom(name) and is_atom(ctx) and name != :_,
@@ -636,7 +634,7 @@ defmodule Module.Types.Pattern do
           {args_paths, vars_paths, vars_deps}
       end
 
-    {expr, %{context | pattern_info: pattern_info}}
+    %{context | pattern_info: pattern_info}
   end
 
   # TODO: Properly traverse domain keys

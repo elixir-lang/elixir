@@ -51,24 +51,6 @@ defmodule Module.Types.PatternTest do
                """
     end
 
-    test "errors on conflicting refinements" do
-      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) == ~l"""
-             incompatible types assigned to "a":
-
-                 dynamic(:foo) !~ dynamic(:bar)
-
-             where "a" was given the types:
-
-                 # type: dynamic(:foo)
-                 # from: types_test.ex:LINE
-                 a = :foo
-
-                 # type: dynamic(:bar)
-                 # from: types_test.ex:LINE
-                 a = b
-             """
-    end
-
     test "can be accessed even if they don't match" do
       assert typeerror!(
                (
@@ -126,32 +108,44 @@ defmodule Module.Types.PatternTest do
                  x = {:ok, _} = {:error, _, _}
              """
 
-      assert typeerror!([x = {:ok, y} = {:error, z, w}], {x, y, z, w}) == ~l"""
-             this match will never succeed due to incompatible types:
-
-                 x = {:ok, y} = {:error, z, w}
-             """
-
-      assert typeerror!([{:ok, y} = {:error, z, w}], {y, z, w}) == ~l"""
-             this match will never succeed due to incompatible types:
-
-                 {:ok, y} = {:error, z, w}
-             """
-
-      assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
+      assert typeerror!([{x = {:ok, y} = {:error, z, w}}], {x, y, z, w}) == ~l"""
              the following pattern will never match:
 
-                 [_ | _] = x
+                 {x = {:ok, y} = {:error, z, w}}
+             """
 
-             because the right-hand side has type:
+      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) == ~l"""
+             incompatible types assigned to "a":
 
-                 dynamic({:ok, term()})
+                 dynamic(:foo) !~ dynamic(:bar)
+
+             where "a" was given the types:
+
+                 # type: dynamic(:foo)
+                 # from: types_test.ex:LINE
+                 a = :foo
+
+                 # type: dynamic(:bar)
+                 # from: types_test.ex:LINE
+                 a = b
+             """
+
+      assert typeerror!([{x, _} = {y, _}, x = :foo, y = :bar], {x, y}) == ~l"""
+             this match will never succeed due to incompatible types:
+
+                 {x, _} = {y, _}
 
              where "x" was given the type:
 
-                 # type: dynamic({:ok, term()})
+                 # type: dynamic(:foo)
                  # from: types_test.ex:LINE
-                 x = {:ok, _}
+                 x = :foo
+
+             where "y" was given the type:
+
+                 # type: dynamic(:bar)
+                 # from: types_test.ex:LINE
+                 y = :bar
              """
     end
   end
