@@ -579,6 +579,12 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "bad min_cycle_label" do
+      assert_raise Mix.Error, "--min-cycle-label must be greater than 0", fn ->
+        assert_graph(["--format", "cycles", "--label", "compile", "--min-cycle-label", "0"], "")
+      end
+    end
+
     test "cycles with min_cycle_size greater than actual length" do
       assert_graph(["--format", "cycles", "--min-cycle-size", "3"], """
       No cycles found

@@ -1238,6 +1238,10 @@ defmodule Mix.Tasks.Xref do
           Mix.raise("--min-cycle-label requires the --label option to be given")
         end
 
+        if integer <= 0 do
+          Mix.raise("--min-cycle-label must be greater than 0")
+        end
+
         integer
       else
         1
