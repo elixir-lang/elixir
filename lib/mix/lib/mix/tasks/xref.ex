@@ -997,7 +997,7 @@ defmodule Mix.Tasks.Xref do
 
                dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
 
-            For more options see http://www.graphviz.org/.
+            For more options see https://www.graphviz.org/.
             """
             |> String.trim_trailing()
             |> Mix.shell().info()

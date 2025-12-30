@@ -23,7 +23,7 @@ iex> "bat" =~ regex
 false
 ```
 
-Elixir provides Perl-compatible regular expressions (regexes), as implemented by the [PCRE](http://www.pcre.org/) library. Regexes also support modifiers. For example, the `i` modifier makes a regular expression case insensitive:
+Elixir provides Perl-compatible regular expressions (regexes), as implemented by the [PCRE](https://www.pcre.org/) library. Regexes also support modifiers. For example, the `i` modifier makes a regular expression case insensitive:
 
 ```elixir
 iex> "HELLO" =~ ~r/hello/

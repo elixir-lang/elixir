@@ -324,6 +324,6 @@ end
 
 Besides having a deterministic order in which processes are started, supervision trees also guarantee they are terminated in reverse order, allowing you to perform any necessary clean up during shut down. Furthermore, supervision strategies allows us to configure exactly how process should act in case of unexpected failures.
 
-Finally, applications and supervision trees can be introspected through applications like the [Phoenix.LiveDashboard](http://github.com/phoenixframework/phoenix_live_dashboard) and [Erlang's built-in observer](https://www.erlang.org/doc/apps/observer/observer_ug):
+Finally, applications and supervision trees can be introspected through applications like the [Phoenix.LiveDashboard](https://github.com/phoenixframework/phoenix_live_dashboard) and [Erlang's built-in observer](https://www.erlang.org/doc/apps/observer/observer_ug):
 
 <img src="assets/kv-observer.png" alt="Observer GUI screenshot" />
