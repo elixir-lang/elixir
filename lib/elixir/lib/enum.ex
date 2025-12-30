@@ -780,6 +780,10 @@ defmodule Enum do
     end
   end
 
+  def count_until(_enumerable, limit) do
+    raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
+  end
+
   @doc """
   Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
 
@@ -799,6 +803,10 @@ defmodule Enum do
       list when is_list(list) -> count_until_list(list, fun, limit, 0)
       _ -> count_until_enum(enumerable, fun, limit)
     end
+  end
+
+  def count_until(_enumerable, _fun, limit) do
+    raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
   end
 
   @doc """

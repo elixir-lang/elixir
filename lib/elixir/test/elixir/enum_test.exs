@@ -225,6 +225,16 @@ defmodule EnumTest do
     assert count_until_stream.([1, 2], 2) == 2
   end
 
+  test "count_until/2 with invalid limit" do
+    assert_raise ArgumentError, "expected limit to be greater than 0, got: 0", fn ->
+      Enum.count_until([1, 2, 3], 0)
+    end
+
+    assert_raise ArgumentError, "expected limit to be greater than 0, got: -22", fn ->
+      Enum.count_until([1, 2, 3], -22)
+    end
+  end
+
   test "count_until/3" do
     assert Enum.count_until([1, 2, 3, 4, 5, 6], fn x -> rem(x, 2) == 0 end, 2) == 2
     assert Enum.count_until([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
@@ -241,6 +251,16 @@ defmodule EnumTest do
     assert count_until_stream.([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
     assert count_until_stream.([1, 2, 3, 4], fn x -> rem(x, 2) == 0 end, 2) == 2
     assert count_until_stream.([], fn x -> rem(x, 2) == 0 end, 2) == 0
+  end
+
+  test "count_until/3 with invalid limit" do
+    assert_raise ArgumentError, "expected limit to be greater than 0, got: 0", fn ->
+      Enum.count_until([1, 2, 3], fn x -> rem(x, 2) == 0 end, 0)
+    end
+
+    assert_raise ArgumentError, "expected limit to be greater than 0, got: -22", fn ->
+      Enum.count_until([1, 2, 3], fn x -> rem(x, 2) == 0 end, -22)
+    end
   end
 
   test "dedup/1" do
