@@ -160,67 +160,61 @@ defmodule Module.Types.Pattern do
     {args_paths, vars_paths, vars_deps} = pattern_info
 
     try do
-      Enum.map_reduce(args_paths, context, fn {version, paths}, context ->
+      args_paths
+      |> Enum.reverse()
+      |> Enum.reduce({%{}, context}, fn {version, node}, {changed, context} ->
+        %{var: var, expr: expr, root: root, path: path} = node
+
+        {actual, index} =
+          case root do
+            {:arg, index} -> {Enum.fetch!(types, index), index}
+            _ -> {of_pattern_tree(root, context), nil}
+          end
+
         context =
-          Enum.reduce(paths, context, fn
-            %{var: var, expr: expr, root: {:arg, index}, path: path}, context ->
-              actual = Enum.fetch!(types, index)
+          case of_pattern_var(path, actual, context) do
+            {:ok, new_type} ->
+              case Of.refine_head_var(var, new_type, expr, stack, context) do
+                {:ok, _type, context} ->
+                  context
 
-              case of_pattern_var(path, actual, context) do
-                {:ok, new_type} ->
-                  case Of.refine_head_var(var, new_type, expr, stack, context) do
-                    {:ok, _type, context} ->
-                      context
-
-                    {:error, old_type, error_context} ->
-                      if match_error?(var, new_type) do
-                        throw(badpattern_error(expr, index, tag, stack, context))
-                      else
-                        throw(badvar_error(var, old_type, new_type, stack, error_context))
-                      end
+                {:error, old_type, error_context} ->
+                  if match_error?(var, new_type) do
+                    throw(badpattern_error(expr, index, tag, stack, context))
+                  else
+                    throw(badvar_error(var, old_type, new_type, stack, error_context))
                   end
-
-                :error ->
-                  throw(badpattern_error(expr, index, tag, stack, context))
               end
-          end)
 
-        {version, context}
+            :error ->
+              throw(badpattern_error(expr, index, tag, stack, context))
+          end
+
+        {Map.merge(changed, Map.get(vars_deps, version, %{})), context}
       end)
     catch
       context -> error_vars(pattern_info, context)
     else
       {changed, context} ->
-        context =
-          Enum.reduce(changed, context, fn version, context ->
-            {_, context} = of_pattern_var_dep(vars_paths, version, stack, context)
-            context
-          end)
-
         of_pattern_var_deps(changed, vars_paths, vars_deps, stack, context)
     end
   end
 
-  defp of_pattern_var_deps([], _vars_paths, _vars_deps, _stack, context) do
+  defp of_pattern_var_deps(changed, _vars_paths, _vars_deps, _stack, context)
+       when changed == %{} do
     context
   end
 
   defp of_pattern_var_deps(previous_changed, vars_paths, vars_deps, stack, context) do
     {changed, context} =
       previous_changed
-      |> Enum.reduce(%{}, fn version, acc ->
-        case vars_deps do
-          %{^version => deps} -> Map.merge(acc, deps)
-          %{} -> acc
-        end
-      end)
       |> Map.keys()
-      |> Enum.reduce({[], context}, fn version, {changed, context} ->
+      |> Enum.reduce({%{}, context}, fn version, {changed, context} ->
         {var_changed?, context} = of_pattern_var_dep(vars_paths, version, stack, context)
 
         case var_changed? do
           false -> {changed, context}
-          true -> {[version | changed], context}
+          true -> {Map.merge(changed, Map.get(vars_deps, version, %{})), context}
         end
       end)
 
@@ -269,32 +263,36 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp error_vars({args_paths, vars_paths, _vars_deps}, context) do
-    callback = fn [%{var: var} | _paths], context ->
+  defp error_vars({args_paths, _vars_paths, _vars_deps}, context) do
+    Enum.reduce(args_paths, context, fn {_version, %{var: var}}, context ->
       Of.error_var(var, context)
-    end
-
-    context = Enum.reduce(Map.values(args_paths), context, callback)
-    context = Enum.reduce(Map.values(vars_paths), context, callback)
-    context
+    end)
   end
 
   defp match_error?({:match, _, __MODULE__}, _type), do: true
   defp match_error?(_var, type), do: empty?(type)
-
-  defp badmatch_error(var, expr, stack, context) do
-    context = Of.error_var(var, context)
-    error(__MODULE__, {:badmatch, expr, context}, error_meta(expr, stack), stack, context)
-  end
 
   defp badvar_error(var, old_type, new_type, stack, context) do
     error = {:badvar, old_type, new_type, var, context}
     error(__MODULE__, error, error_meta(var, stack), stack, context)
   end
 
+  defp badmatch_error(var, expr, stack, context) do
+    context = Of.error_var(var, context)
+    error(__MODULE__, {:badmatch, expr, context}, error_meta(expr, stack), stack, context)
+  end
+
   defp badpattern_error(expr, index, tag, stack, context) do
     meta = error_meta(expr, stack)
-    error(__MODULE__, {:badpattern, meta, expr, index, tag, context}, meta, stack, context)
+
+    error =
+      if index do
+        {:badpattern, meta, expr, index, tag, context}
+      else
+        {:badmatch, expr, context}
+      end
+
+    error(__MODULE__, error, meta, stack, context)
   end
 
   defp error_meta(expr, stack) do
@@ -630,21 +628,19 @@ defmodule Module.Types.Pattern do
     pattern_info =
       case root do
         {:arg, _} ->
-          paths = [node | Map.get(args_paths, version, [])]
-          args_paths = Map.put(args_paths, version, paths)
-          {args_paths, vars_paths, vars_deps}
+          {[{version, node} | args_paths], vars_paths, vars_deps}
 
         {:var, other} ->
           paths = [node | Map.get(vars_paths, version, [])]
           vars_paths = Map.put(vars_paths, version, paths)
           vars_deps = Map.update(vars_deps, version, %{other => []}, &Map.put(&1, other, []))
           vars_deps = Map.update(vars_deps, other, %{version => []}, &Map.put(&1, version, []))
-          {args_paths, vars_paths, vars_deps}
+          {[{version, node} | args_paths], vars_paths, vars_deps}
 
         _ ->
           paths = [node | Map.get(vars_paths, version, [])]
           vars_paths = Map.put(vars_paths, version, paths)
-          {args_paths, vars_paths, vars_deps}
+          {[{version, node} | args_paths], vars_paths, vars_deps}
       end
 
     %{context | pattern_info: pattern_info}
@@ -837,7 +833,7 @@ defmodule Module.Types.Pattern do
   # the number of list heads.
   # TODO: Consider moving pattern_info into context.vars.
   defp init_pattern_info(context) do
-    %{context | pattern_info: {%{}, %{}, %{}}}
+    %{context | pattern_info: {[], %{}, %{}}}
   end
 
   defp pop_pattern_info(%{pattern_info: pattern_info} = context) do

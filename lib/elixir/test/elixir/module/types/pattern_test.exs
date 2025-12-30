@@ -209,6 +209,36 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
       assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
       assert typecheck!([%{foo: :bar = x}], x) == dynamic(atom([:bar]))
+
+      assert typecheck!(
+               [
+                 {:message, %{slug: slug}},
+                 %{assigns: %{app: %{slug: slug} = app}} = root
+               ],
+               {root, app, slug}
+             ) ==
+               dynamic(
+                 tuple([
+                   open_map(assigns: open_map(app: open_map(slug: term()))),
+                   open_map(slug: term()),
+                   term()
+                 ])
+               )
+
+      assert typecheck!(
+               [
+                 %{assigns: %{app: %{slug: slug} = app}} = root,
+                 {:message, %{slug: slug}}
+               ],
+               {root, app, slug}
+             ) ==
+               dynamic(
+                 tuple([
+                   open_map(assigns: open_map(app: open_map(slug: term()))),
+                   open_map(slug: term()),
+                   term()
+                 ])
+               )
     end
 
     test "atom keys in guards" do
