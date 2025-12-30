@@ -828,6 +828,7 @@ defmodule Module.Types.Pattern do
   # additional information about the number of variables in
   # arguments and list heads, and a counter used to compute
   # the number of list heads.
+  # TODO: Consider moving pattern_info into context.vars.
   defp init_pattern_info(context) do
     %{context | pattern_info: {%{}, %{}, %{}}}
   end
