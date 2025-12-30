@@ -336,9 +336,11 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # TODO: Implement domain key types
-  defp of_pattern_var([{:key, _key} | rest], _type, context) do
-    of_pattern_var(rest, dynamic(), context)
+  defp of_pattern_var([{:domain, domain} | rest], type, context) do
+    case map_get(type, domain) do
+      {:ok, type} -> of_pattern_var(rest, type, context)
+      _ -> :error
+    end
   end
 
   defp of_pattern_var([:head | rest], type, context) do
@@ -489,18 +491,27 @@ defmodule Module.Types.Pattern do
         end
       end)
 
-    if dynamic == [] do
-      {Enum.reduce(static, &intersection/2), context}
-    else
-      # The dynamic parts have to be recomputed whenever they change
-      context = of_var(var, version, [%{root: {:intersection, dynamic}, expr: match}], context)
-
-      # And everything else is also pushed as part of the argument intersection
-      if static == [] do
-        {{:intersection, dynamic}, context}
-      else
-        {{:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
+    return =
+      cond do
+        dynamic == [] -> Enum.reduce(static, &intersection/2)
+        static == [] -> {:intersection, dynamic}
+        true -> {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}
       end
+
+    # If the path has domain keys or head, then it is imprecise,
+    # and we need to keep filtering the match variable itself.
+    imprecise? =
+      Enum.any?(path, fn
+        {:domain, _} -> true
+        :head -> true
+        _ -> false
+      end)
+
+    if dynamic == [] and not imprecise? do
+      {return, context}
+    else
+      context = of_var(var, version, [%{root: return, expr: match}], context)
+      {return, context}
     end
   end
 
@@ -643,20 +654,27 @@ defmodule Module.Types.Pattern do
   # TODO: Properly handle pin operator in keys
   defp of_open_map(args, static, dynamic, path, stack, context) do
     {static, dynamic, context} =
-      Enum.reduce(args, {static, dynamic, context}, fn {key, value}, {static, dynamic, context} ->
-        {value_type, context} = of_pattern(value, [{:key, key} | path], stack, context)
+      Enum.reduce(args, {static, dynamic, context}, fn
+        {key, value}, {static, dynamic, context} when is_atom(key) ->
+          {value_type, context} = of_pattern(value, [{:key, key} | path], stack, context)
 
-        cond do
-          # Only atom keys become part of the type because the other keys are divisible
-          not is_atom(key) ->
-            {static, dynamic, context}
-
-          is_descr(value_type) ->
+          if is_descr(value_type) do
             {[{key, value_type} | static], dynamic, context}
-
-          true ->
+          else
             {static, [{key, value_type} | dynamic], context}
-        end
+          end
+
+        {key, value}, {static, dynamic, context} ->
+          # Keys are always static and won't use the path
+          {key_type, context} = of_pattern(key, path, stack, context)
+          true = is_descr(key_type)
+
+          {_value_type, context} = of_pattern(value, [{:domain, key_type} | path], stack, context)
+
+          # A domain key cannot restrict the map in any way,
+          # because we are matching only on one possible value
+          # and we cannot assert anything about any of the others.
+          {static, dynamic, context}
       end)
 
     case dynamic do

@@ -204,14 +204,31 @@ defmodule Module.Types.PatternTest do
   end
 
   describe "maps" do
-    test "fields in patterns" do
+    test "atom keys in patterns" do
       assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
       assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
       assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([%{foo: :bar = x}], x) == dynamic(atom([:bar]))
     end
 
-    test "fields in guards" do
+    test "atom keys in guards" do
       assert typecheck!([x = %{foo: :bar}], x.bar, x) == dynamic(open_map(foo: atom([:bar])))
+    end
+
+    test "domain keys in patterns" do
+      assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([%{"123" => :bar = x}], x) == dynamic(atom([:bar]))
+    end
+
+    test "pinned variable key in patterns" do
+      assert typecheck!(
+               (
+                 key = 123
+                 %{^key => value} = %{123 => :value}
+                 value
+               )
+             ) == atom([:value])
     end
   end
 
@@ -235,6 +252,11 @@ defmodule Module.Types.PatternTest do
 
       assert typecheck!([x = [:ok | z]], {x, z}) ==
                dynamic(tuple([non_empty_list(term(), term()), term()]))
+
+      assert typecheck!([x = [a = :a, b = :b, c = :c]], {x, a, b, c}) ==
+               dynamic(
+                 tuple([non_empty_list(atom([:a, :b, :c])), atom([:a]), atom([:b]), atom([:c])])
+               )
 
       assert typecheck!([x = [y | z]], {x, y, z}) ==
                dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
