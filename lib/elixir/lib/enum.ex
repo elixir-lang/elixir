@@ -780,7 +780,7 @@ defmodule Enum do
     end
   end
 
-  def count_until(_enumerable, limit) do
+  def count_until(_enumerable, limit) when is_integer(limit) do
     raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
   end
 
@@ -805,7 +805,7 @@ defmodule Enum do
     end
   end
 
-  def count_until(_enumerable, _fun, limit) do
+  def count_until(_enumerable, _fun, limit) when is_integer(limit) do
     raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
   end
 
