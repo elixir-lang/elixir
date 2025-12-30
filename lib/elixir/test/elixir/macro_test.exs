@@ -285,7 +285,7 @@ defmodule MacroTest do
     end
 
     defp expand_once_and_clean(quoted, env) do
-      cleaner = &Keyword.drop(&1, [:counter, :type_check])
+      cleaner = &Keyword.drop(&1, [:counter, :type_check, :generated])
 
       quoted
       |> Macro.expand_once(env)
@@ -298,8 +298,15 @@ defmodule MacroTest do
       quoted =
         quote context: Kernel do
           case 1 do
-            unquote(temp_var) when :"Elixir.Kernel".in(unquote(temp_var), [false, nil]) -> false
-            unquote(temp_var) -> unquote(temp_var)
+            unquote(temp_var)
+            when :erlang.orelse(
+                   :erlang."=:="(unquote(temp_var), false),
+                   :erlang."=:="(unquote(temp_var), nil)
+                 ) ->
+              false
+
+            unquote(temp_var) ->
+              unquote(temp_var)
           end
         end
 
@@ -312,8 +319,15 @@ defmodule MacroTest do
       quoted =
         quote context: Kernel do
           case 1 do
-            unquote(temp_var) when :"Elixir.Kernel".in(unquote(temp_var), [false, nil]) -> false
-            unquote(temp_var) -> unquote(temp_var)
+            unquote(temp_var)
+            when :erlang.orelse(
+                   :erlang."=:="(unquote(temp_var), false),
+                   :erlang."=:="(unquote(temp_var), nil)
+                 ) ->
+              false
+
+            unquote(temp_var) ->
+              unquote(temp_var)
           end
         end
 
@@ -382,7 +396,7 @@ defmodule MacroTest do
   end
 
   defp expand_and_clean(quoted, env) do
-    cleaner = &Keyword.drop(&1, [:counter, :type_check])
+    cleaner = &Keyword.drop(&1, [:counter, :type_check, :generated])
 
     quoted
     |> Macro.expand(env)
@@ -395,8 +409,15 @@ defmodule MacroTest do
     quoted =
       quote context: Kernel do
         case 1 do
-          unquote(temp_var) when :"Elixir.Kernel".in(unquote(temp_var), [false, nil]) -> false
-          unquote(temp_var) -> unquote(temp_var)
+          unquote(temp_var)
+          when :erlang.orelse(
+                 :erlang."=:="(unquote(temp_var), false),
+                 :erlang."=:="(unquote(temp_var), nil)
+               ) ->
+            false
+
+          unquote(temp_var) ->
+            unquote(temp_var)
         end
       end
 

@@ -812,15 +812,6 @@ defmodule Module.Types.Pattern do
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
-  # Comparison operators
-  def of_guard({{:., _, [:erlang, function]}, _, args}, _expected, expr, stack, context)
-      when function in [:==, :"/=", :"=:=", :"=/="] do
-    {_args_type, context} =
-      Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
-
-    {boolean(), context}
-  end
-
   # Remote
   def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _expr, stack, context)
       when is_atom(fun) do

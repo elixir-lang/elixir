@@ -6,6 +6,7 @@
 -export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
 -import(elixir_errors, [file_error/4, module_error/4, function_error/4]).
 -include("elixir.hrl").
+-define(kernel, 'Elixir.Kernel').
 
 %% =
 
@@ -794,7 +795,10 @@ expand_case(Meta, Expr, Opts, S, E) ->
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, ['Elixir.Kernel', 'in']}, _, [Var, [false, nil]]}]}],
+    [{'when', _, [{Var, _, ?kernel}, {{'.', _, ['erlang', 'orelse']}, _, [
+      {{'.', _, ['erlang', '=:=']}, _, [{Var, _, ?kernel}, false]},
+      {{'.', _, ['erlang', '=:=']}, _, [{Var, _, ?kernel}, nil]}
+    ]}]}],
     FalseExpr
   ]},
   {'->', TrueMeta, [

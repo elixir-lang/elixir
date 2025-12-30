@@ -1999,6 +1999,12 @@ defmodule Kernel do
     {:case, extra ++ meta, args}
   end
 
+  defp x_is_false_or_nil do
+    quote generated: true do
+      :erlang.orelse(:erlang."=:="(x, false), :erlang."=:="(x, nil))
+    end
+  end
+
   @doc """
   Strictly boolean "or" operator.
 
@@ -2101,7 +2107,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: :expr],
       quote do
         case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> false
+          x when unquote(x_is_false_or_nil()) -> false
           _ -> true
         end
       end
@@ -2115,7 +2121,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: :expr],
       quote do
         case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> true
+          x when unquote(x_is_false_or_nil()) -> true
           _ -> false
         end
       end
@@ -4046,7 +4052,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: :expr],
       quote do
         case unquote(condition) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)
+          x when unquote(x_is_false_or_nil()) -> unquote(else_clause)
           _ -> unquote(do_clause)
         end
       end
@@ -4367,7 +4373,7 @@ defmodule Kernel do
       [type_check: :expr],
       quote do
         case unquote(left) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) ->
+          x when unquote(x_is_false_or_nil()) ->
             x
 
           _ ->
@@ -4410,7 +4416,7 @@ defmodule Kernel do
       [type_check: :expr],
       quote do
         case unquote(left) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) ->
+          x when unquote(x_is_false_or_nil()) ->
             unquote(right)
 
           x ->

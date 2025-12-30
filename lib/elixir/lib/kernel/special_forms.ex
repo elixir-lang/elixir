@@ -1975,13 +1975,13 @@ defmodule Kernel.SpecialForms do
   While it is not possible to match against multiple patterns in a single
   clause, it's possible to match against multiple values by using guards:
 
-      iex> case :two do
-      ...>   value when value in [:one, :two] ->
+      iex> case 2 do
+      ...>   value when value in [1, 2] ->
       ...>     "#{value} has been matched"
-      ...>   :three ->
-      ...>     "three has been matched"
+      ...>   3 ->
+      ...>     "3 has been matched"
       ...> end
-      "two has been matched"
+      "2 has been matched"
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
 
