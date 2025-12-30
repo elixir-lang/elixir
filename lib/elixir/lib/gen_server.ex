@@ -523,7 +523,7 @@ defmodule GenServer do
     * [GenServer - Elixir's Getting Started Guide](genservers.md)
     * [`:gen_server` module documentation](`:gen_server`)
     * [gen_server Behaviour - OTP Design Principles](https://www.erlang.org/doc/design_principles/gen_server_concepts.html)
-    * [Clients and Servers - Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
+    * [Clients and Servers - Learn You Some Erlang for Great Good!](https://learnyousomeerlang.com/clients-and-servers)
 
   """
 

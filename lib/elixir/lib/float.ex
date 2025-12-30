@@ -42,7 +42,7 @@ defmodule Float do
 
   To learn more about floating-point arithmetic visit:
 
-    * [0.30000000000000004.com](http://0.30000000000000004.com/)
+    * [0.30000000000000004.com](https://0.30000000000000004.com/)
     * [What Every Programmer Should Know About Floating-Point Arithmetic](https://floating-point-gui.de/)
 
   """
