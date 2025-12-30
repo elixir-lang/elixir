@@ -580,6 +580,7 @@ defmodule Module.Types.Expr do
         _ ->
           expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
           expr = {:__block__, [type_check: info], [expr]}
+          context = Of.declare_var(var, context)
           {_ok?, _type, context} = Of.refine_head_var(var, expected, expr, stack, context)
           context
       end

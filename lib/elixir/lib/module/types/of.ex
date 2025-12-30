@@ -30,19 +30,40 @@ defmodule Module.Types.Of do
 
   @doc """
   Marks a variable with error.
+
+  This purposedly deletes all traces of the variable,
+  as it is often invoked when the cause for error is elsewhere.
   """
-  def error_var(var, context) do
+  def error_var({_var_name, meta, _var_context}, context) do
+    version = Keyword.fetch!(meta, :version)
+
+    update_in(context.vars[version], fn
+      %{errored: true} = data -> data
+      data -> Map.put(%{data | type: error_type(), off_traces: []}, :errored, true)
+    end)
+  end
+
+  @doc """
+  Declares a variable.
+  """
+  def declare_var(var, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
-    data = %{
-      type: error_type(),
-      name: var_name,
-      context: var_context,
-      off_traces: []
-    }
+    case context.vars do
+      %{^version => _} ->
+        context
 
-    put_in(context.vars[version], data)
+      vars ->
+        data = %{
+          type: term(),
+          name: var_name,
+          context: var_context,
+          off_traces: []
+        }
+
+        %{context | vars: Map.put(vars, version, data)}
+    end
   end
 
   @doc """
@@ -56,7 +77,7 @@ defmodule Module.Types.Of do
     version = Keyword.fetch!(meta, :version)
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
-    if gradual?(old_type) and type not in [term(), dynamic()] do
+    if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
       case compatible_intersection(old_type, type) do
         {:ok, new_type} when new_type != old_type ->
           data = %{
@@ -82,11 +103,13 @@ defmodule Module.Types.Of do
   because we want to refine types. Otherwise we should
   use compatibility.
   """
-  def refine_head_var(var, type, expr, stack, context) do
-    {var_name, meta, var_context} = var
+  def refine_head_var({_, meta, _}, type, expr, stack, context) do
     version = Keyword.fetch!(meta, :version)
 
     case context.vars do
+      %{^version => %{errored: true}} ->
+        {:ok, error_type(), context}
+
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
         new_type = intersection(type, old_type)
 
@@ -96,26 +119,14 @@ defmodule Module.Types.Of do
             off_traces: new_trace(expr, type, stack, off_traces)
         }
 
-        context = %{context | vars: %{vars | version => data}}
-
-        # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error, error_type(),
-           error({:refine_head_var, old_type, type, var, context}, meta, stack, context)}
+          data = Map.put(%{data | type: error_type()}, :errored, true)
+          context = %{context | vars: %{vars | version => data}}
+          {:error, old_type, context}
         else
+          context = %{context | vars: %{vars | version => data}}
           {:ok, new_type, context}
         end
-
-      %{} = vars ->
-        data = %{
-          type: type,
-          name: var_name,
-          context: var_context,
-          off_traces: new_trace(expr, type, stack, [])
-        }
-
-        context = %{context | vars: Map.put(vars, version, data)}
-        {:ok, type, context}
     end
   end
 
@@ -544,23 +555,6 @@ defmodule Module.Types.Of do
 
   defp error(warning, meta, stack, context) do
     error(__MODULE__, warning, meta, stack, context)
-  end
-
-  def format_diagnostic({:refine_head_var, old_type, new_type, var, context}) do
-    traces = collect_traces(var, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          incompatible types assigned to #{format_var(var)}:
-
-              #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
-          """,
-          format_traces(traces)
-        ])
-    }
   end
 
   def format_diagnostic({:badbinary, kind, meta, expr, expected_type, actual_type, context}) do

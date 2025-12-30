@@ -2099,9 +2099,9 @@ defmodule Module.Types.Descr do
   defp list_hd_static(%{}), do: none()
 
   @doc """
-   Returns the tail of a list.
+  Returns the tail of a list.
 
-   For a `non_empty_list(t)`, the tail type is `list(t)`.
+  For a `non_empty_list(t)`, the tail type is `list(t)`.
   For an improper list `non_empty_list(t, s)`, the tail type is
   `list(t, s) or s` (either the rest of the list or the terminator)
   """
