@@ -324,7 +324,7 @@ defmodule Module.Types do
               if stack.mode == :traversal do
                 expected
               else
-                Pattern.of_domain(trees, expected, context)
+                Pattern.of_domain(trees, context)
               end
 
             {type_index, inferred} =
