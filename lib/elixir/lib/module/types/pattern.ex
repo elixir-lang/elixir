@@ -650,8 +650,6 @@ defmodule Module.Types.Pattern do
     %{context | pattern_info: pattern_info}
   end
 
-  # TODO: Properly traverse domain keys
-  # TODO: Properly handle pin operator in keys
   defp of_open_map(args, static, dynamic, path, stack, context) do
     {static, dynamic, context} =
       Enum.reduce(args, {static, dynamic, context}, fn
