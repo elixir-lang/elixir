@@ -780,8 +780,8 @@ defmodule Enum do
     end
   end
 
-  def count_until(_enumerable, _limit) do
-    raise ArgumentError, "Enum.count_until/2 only accepts limits greater than 0"
+  def count_until(_enumerable, limit) do
+    raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
   end
 
   @doc """
@@ -805,8 +805,8 @@ defmodule Enum do
     end
   end
 
-  def count_until(_enumerable, _fun, _limit) do
-    raise ArgumentError, "Enum.count_until/3 only accepts limits greater than 0"
+  def count_until(_enumerable, _fun, limit) do
+    raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
   end
 
   @doc """
