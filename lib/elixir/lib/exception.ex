@@ -1930,8 +1930,8 @@ defmodule FunctionClauseError do
 
   For example:
 
-      iex> URI.parse(:wrong_argument)
-      ** (FunctionClauseError) no function clause matching in URI.parse/1
+      iex> List.duplicate(:ok, -3)
+      ** (FunctionClauseError) no function clause matching in List.duplicate/2
 
   The following fields of this exception are public and can be accessed freely:
 

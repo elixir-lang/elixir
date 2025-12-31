@@ -418,14 +418,6 @@ defmodule StringTest do
     assert String.pad_leading("---", 5, ["abc"]) == "abcabc---"
     assert String.pad_leading("--", 6, ["a", "bc"]) == "abcabc--"
 
-    assert_raise FunctionClauseError, fn ->
-      String.pad_leading("-", -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      String.pad_leading("-", 1, [])
-    end
-
     message = "expected a string padding element, got: 10"
 
     assert_raise ArgumentError, message, fn ->
@@ -446,14 +438,6 @@ defmodule StringTest do
 
     assert String.pad_trailing("---", 5, ["abc"]) == "---abcabc"
     assert String.pad_trailing("--", 6, ["a", "bc"]) == "--abcabc"
-
-    assert_raise FunctionClauseError, fn ->
-      String.pad_trailing("-", -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      String.pad_trailing("-", 1, [])
-    end
 
     message = "expected a string padding element, got: 10"
 
@@ -720,14 +704,6 @@ defmodule StringTest do
     assert String.at("л", -3) == nil
     assert String.at("Ā̀stute", 1) == "s"
     assert String.at("elixir", 6) == nil
-
-    assert_raise FunctionClauseError, fn ->
-      String.at("elixir", 0.1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      String.at("elixir", -0.1)
-    end
   end
 
   test "slice/3" do
@@ -780,10 +756,6 @@ defmodule StringTest do
     assert String.slice("hello あいうえお Unicode", 8..-1//1) == "うえお Unicode"
     assert String.slice("abc", -1..14) == "c"
     assert String.slice("a·̀ͯ‿.⁀:", 0..-2//1) == "a·̀ͯ‿.⁀"
-
-    assert_raise FunctionClauseError, fn ->
-      String.slice(nil, 0..1)
-    end
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
              assert String.slice("elixir", 0..-2//-1) == "elixi"

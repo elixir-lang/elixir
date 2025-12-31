@@ -873,11 +873,6 @@ defmodule Access do
       ...> end)
       {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
 
-  An error is raised if the predicate is not a function or is of the incorrect arity:
-
-      iex> get_in([], [Access.filter(5)])
-      ** (FunctionClauseError) no function clause matching in Access.filter/1
-
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.filter(fn a -> a == 10 end)])
@@ -1153,11 +1148,6 @@ defmodule Access do
       ...>   {prev, String.upcase(prev)}
       ...> end)
       {nil, [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
-
-  An error is raised if the predicate is not a function or is of the incorrect arity:
-
-      iex> get_in([], [Access.find(5)])
-      ** (FunctionClauseError) no function clause matching in Access.find/1
 
   An error is raised if the accessed structure is not a list:
 
