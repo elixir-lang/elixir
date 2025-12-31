@@ -913,26 +913,13 @@ defmodule Module.Types.Descr do
     descr = Map.get(descr, :dynamic, descr)
 
     case descr do
-      %{atom: {:union, %{true => _, false => _}}} ->
-        :undefined
-
-      %{atom: {:union, %{true => _}}} ->
-        :always_true
-
-      %{atom: {:union, %{false => _}}} ->
-        :always_false
-
-      %{atom: {:negation, %{true => _, false => _}}} ->
-        :undefined
-
-      %{atom: {:negation, %{true => _}}} ->
-        :always_false
-
-      %{atom: {:negation, %{false => _}}} ->
-        :always_true
-
-      _ ->
-        :undefined
+      %{atom: {:union, %{true => _, false => _}}} -> :undefined
+      %{atom: {:union, %{true => _}}} -> :always_true
+      %{atom: {:union, %{false => _}}} -> :always_false
+      %{atom: {:negation, %{true => _, false => _}}} -> :undefined
+      %{atom: {:negation, %{true => _}}} -> :always_false
+      %{atom: {:negation, %{false => _}}} -> :always_true
+      _ -> :undefined
     end
   end
 
