@@ -182,25 +182,6 @@ defmodule Module.Types.PatternTest do
                    m = 123
                """
     end
-
-    test "fields in guards" do
-      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
-               ~l"""
-               unknown key .foo_bar in expression:
-
-                   x.foo_bar
-
-               the given type does not have the given key:
-
-                   dynamic(%Point{x: term(), y: term(), z: term()})
-
-               where "x" was given the type:
-
-                   # type: dynamic(%Point{})
-                   # from: types_test.ex:LINE-1
-                   x = %Point{}
-               """
-    end
   end
 
   describe "maps" do
@@ -239,11 +220,6 @@ defmodule Module.Types.PatternTest do
                    term()
                  ])
                )
-    end
-
-    test "atom keys in guards" do
-      assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
-               dynamic(open_map(foo: atom([:bar]), bar: atom([true, false, :fail])))
     end
 
     test "domain keys in patterns" do
@@ -413,6 +389,71 @@ defmodule Module.Types.PatternTest do
   end
 
   describe "guards" do
+    test "not" do
+      assert typecheck!([x], not x, x) == dynamic(atom([false]))
+
+      assert typecheck!([x], not x.foo, x) == dynamic(open_map(foo: atom([false])))
+
+      assert typeerror!([x], not length(x), x) |> strip_ansi() == ~l"""
+             incompatible types given to Kernel.not/1:
+
+                 not length(x)
+
+             given types:
+
+                 integer()
+
+             but expected one of:
+
+                 #1
+                 true
+
+                 #2
+                 false
+
+             where "x" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE
+                 x
+             """
+    end
+
+    test "is_function/2" do
+      assert typecheck!([x], is_function(x, 3), x) == dynamic(fun(3))
+      assert typecheck!([x], not is_function(x, 3), x) == dynamic(negation(fun(3)))
+    end
+
+    test "elem" do
+      assert typecheck!([x], elem(x, 1), x) ==
+               dynamic(open_tuple([term(), atom([true, false, :fail])]))
+
+      assert typecheck!([x], not elem(x, 1), x) ==
+               dynamic(open_tuple([term(), atom([false])]))
+    end
+
+    test "map.field" do
+      assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
+               dynamic(open_map(foo: atom([:bar]), bar: atom([true, false, :fail])))
+
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
+               ~l"""
+               unknown key .foo_bar in expression:
+
+                   x.foo_bar
+
+               the given type does not have the given key:
+
+                   dynamic(%Point{x: term(), y: term(), z: term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic(%Point{})
+                   # from: types_test.ex:LINE-1
+                   x = %Point{}
+               """
+    end
+
     test "domain checks propagate across all operations except 'orelse'" do
       assert typecheck!([x], [length(x) == 3], x) == dynamic(list(term()))
 

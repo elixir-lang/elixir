@@ -119,6 +119,11 @@ defmodule Module.Types.Apply do
       |> union(tuple([fun(), args_or_arity]))
     )
 
+  not_signature =
+    for bool <- [true, false] do
+      {[atom([bool])], atom([not bool])}
+    end
+
   and_signature =
     for left <- [true, false], right <- [true, false] do
       {[atom([left]), atom([right])], atom([left and right])}
@@ -206,7 +211,7 @@ defmodule Module.Types.Apply do
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
         {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
-        {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
+        {:erlang, :not, not_signature},
         {:erlang, :or, or_signature},
         {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
@@ -263,14 +268,14 @@ defmodule Module.Types.Apply do
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
         {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
-        {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
+        {:maps, :keys, [{[open_map()], list(term())}]},
         {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :remove, [{[term(), open_map()], open_map()}]},
         {:maps, :take,
          [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
-        {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
+        {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
-        {:maps, :values, [{[open_map()], dynamic(list(term()))}]}
+        {:maps, :values, [{[open_map()], list(term())}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
@@ -318,6 +323,20 @@ defmodule Module.Types.Apply do
   """
   def remote_domain(_module, _fun, args, _expected, _meta, %{mode: :traversal}, context) do
     {:none, Enum.map(args, fn _ -> term() end), context}
+  end
+
+  @is_function_info {:strong, nil, [{[term(), integer()], boolean()}]}
+
+  def remote_domain(:erlang, :is_function, [_, arity], expected, _meta, _stack, context)
+      when is_integer(arity) and arity >= 0 do
+    arg =
+      case booleaness(expected) do
+        :always_true -> fun(arity)
+        :always_false -> negation(fun(arity))
+        :undefined -> term()
+      end
+
+    {@is_function_info, [arg, integer()], context}
   end
 
   def remote_domain(:erlang, :element, [index, _], expected, _meta, _stack, context)

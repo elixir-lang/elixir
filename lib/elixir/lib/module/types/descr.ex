@@ -903,6 +903,40 @@ defmodule Module.Types.Descr do
   ]
 
   @doc """
+  Compute the booleaness of an element.
+
+  It is either :undefined, :always_true, or :always_false.
+  """
+  def booleaness(:term), do: :undefined
+
+  def booleaness(%{} = descr) do
+    descr = Map.get(descr, :dynamic, descr)
+
+    case descr do
+      %{atom: {:union, %{true => _, false => _}}} ->
+        :undefined
+
+      %{atom: {:union, %{true => _}}} ->
+        :always_true
+
+      %{atom: {:union, %{false => _}}} ->
+        :always_false
+
+      %{atom: {:negation, %{true => _, false => _}}} ->
+        :undefined
+
+      %{atom: {:negation, %{true => _}}} ->
+        :always_false
+
+      %{atom: {:negation, %{false => _}}} ->
+        :always_true
+
+      _ ->
+        :undefined
+    end
+  end
+
+  @doc """
   Compute the truthiness of an element.
 
   It is either :undefined, :always_true, or :always_false.
@@ -1687,7 +1721,16 @@ defmodule Module.Types.Descr do
   defp pivot([], _acc, _fun), do: :error
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation
-  defp fun_to_quoted({:negation, _bdds}, _opts), do: [{:fun, [], []}]
+  defp fun_to_quoted({:negation, bdds}, opts) do
+    case fun_to_quoted({:union, bdds}, opts) do
+      [] ->
+        [{:fun, [], []}]
+
+      parts ->
+        ors = Enum.reduce(parts, &{:or, [], [&2, &1]})
+        [{:and, [], [{:fun, [], []}, {:not, [], [ors]}]}]
+    end
+  end
 
   defp fun_to_quoted({:union, bdds}, opts) do
     for {arity, bdd} <- bdds,

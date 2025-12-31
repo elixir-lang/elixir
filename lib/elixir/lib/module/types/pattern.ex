@@ -34,7 +34,6 @@ defmodule Module.Types.Pattern do
 
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
-
     {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
     {_, context} = of_guards(guards, stack, context)
     {trees, context}
@@ -762,6 +761,7 @@ defmodule Module.Types.Pattern do
   #    the environment vars.
 
   @guard atom([true, false, :fail])
+  @atom_true atom([true])
 
   defp of_guards([], _stack, context) do
     {[], context}
@@ -913,7 +913,16 @@ defmodule Module.Types.Pattern do
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
-  defp of_remote(fun, meta, args, call, {_root, expected}, stack, context) do
+  defp of_remote(fun, meta, args, call, {root, expected}, stack, context) do
+    # If we are the root, we are only interested in positive results,
+    # except for the operations that can return :fail.
+    expected =
+      if root and fun not in [:element, :hd, :map_get, :max, :min, :tl] do
+        @atom_true
+      else
+        expected
+      end
+
     {info, domain, context} =
       Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
 
