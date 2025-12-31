@@ -892,6 +892,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # TODO: Move orelse and andalso handling here
   defp of_remote(fun, meta, [left, right], call, {_root, expected}, stack, context)
        when fun in [:or, :orelse] do
     {info, [left_domain, right_domain], context} =
