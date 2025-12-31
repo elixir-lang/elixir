@@ -459,7 +459,7 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
-          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+          Module.Types.Pattern.of_guard(left, {false, type}, expr, stack, context)
 
         :expr ->
           left = annotate_interpolation(left, right)
@@ -511,9 +511,9 @@ defmodule Module.Types.Of do
     compatible_size(actual, expr, stack, context)
   end
 
-  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
+  defp specifier_size(match_or_guard, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
-    {actual, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
+    {actual, context} = Module.Types.Pattern.of_size(match_or_guard, arg, expr, stack, context)
     compatible_size(actual, expr, stack, context)
   end
 

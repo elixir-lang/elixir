@@ -242,7 +242,8 @@ defmodule Module.Types.PatternTest do
     end
 
     test "atom keys in guards" do
-      assert typecheck!([x = %{foo: :bar}], x.bar, x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
+               dynamic(open_map(foo: atom([:bar]), bar: atom([true, false, :fail])))
     end
 
     test "domain keys in patterns" do
@@ -408,6 +409,18 @@ defmodule Module.Types.PatternTest do
                  x
                )
              ) == dynamic(integer())
+    end
+  end
+
+  describe "guards" do
+    test "domain checks propagate across all operations except 'orelse'" do
+      assert typecheck!([x], [length(x) == 3], x) == dynamic(list(term()))
+
+      assert typecheck!([x, y], [:erlang.or(length(x) == 3, map_size(y) == 1)], {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      assert typecheck!([x, y], [length(x) == 3 or map_size(y) == 1], {x, y}) ==
+               dynamic(tuple([list(term()), term()]))
     end
   end
 end

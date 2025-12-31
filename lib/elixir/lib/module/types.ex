@@ -442,7 +442,9 @@ defmodule Module.Types do
       warnings: [],
       # All vars and their types
       vars: %{},
-      # Variables and arguments from patterns
+      # Variables that are specific to the current environment/conditional
+      conditional_vars: nil,
+      # Track metadata specific to matches and guards
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,

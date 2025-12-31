@@ -8,8 +8,6 @@ defmodule Module.Types.Pattern do
   alias Module.Types.{Apply, Of}
   import Module.Types.{Helpers, Descr}
 
-  @guard atom([true, false, :fail])
-
   @doc """
   Handles patterns and guards at once.
 
@@ -38,7 +36,7 @@ defmodule Module.Types.Pattern do
     stack = %{stack | meta: meta}
 
     {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
-    {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
+    {_, context} = of_guards(guards, stack, context)
     {trees, context}
   end
 
@@ -58,9 +56,9 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
-    context = init_pattern_info(context)
+    context = init_match_info(context)
     {trees, context} = of_pattern_args_zip(patterns, expected, 0, [], stack, context)
-    {pattern_info, context} = pop_pattern_info(context)
+    {pattern_info, context} = pop_match_info(context)
 
     context =
       case of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context) do
@@ -90,9 +88,9 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match(pattern, expected_fun, expr, stack, context) do
-    context = init_pattern_info(context)
+    context = init_match_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
-    {pattern_info, context} = pop_pattern_info(context)
+    {pattern_info, context} = pop_match_info(context)
     {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
 
     args = [{tree, expected, expr}]
@@ -114,9 +112,9 @@ defmodule Module.Types.Pattern do
   end
 
   def of_generator(pattern, guards, expected, tag, expr, stack, context) do
-    context = init_pattern_info(context)
+    context = init_match_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
-    {pattern_info, context} = pop_pattern_info(context)
+    {pattern_info, context} = pop_match_info(context)
     args = [{tree, expected, pattern}]
 
     context =
@@ -125,7 +123,7 @@ defmodule Module.Types.Pattern do
         {:error, context} -> context
       end
 
-    {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
+    {_, context} = of_guards(guards, stack, context)
     context
   end
 
@@ -290,6 +288,19 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # pattern_info stores the variables defined in patterns,
+  # additional information about the number of variables in
+  # arguments and list heads, and a counter used to compute
+  # the number of list heads.
+  # TODO: Move vars_deps and vars_paths into context.vars.
+  defp init_match_info(context) do
+    %{context | pattern_info: {[], %{}, %{}}}
+  end
+
+  defp pop_match_info(%{pattern_info: pattern_info} = context) do
+    {pattern_info, %{context | pattern_info: nil}}
+  end
+
   defp of_pattern_var([], type, _context) do
     {:ok, type}
   end
@@ -397,8 +408,39 @@ defmodule Module.Types.Pattern do
     {binary(), Of.binary(args, :match, stack, context)}
   end
 
-  def of_match_var(ast, expected, expr, stack, context) do
-    of_guard(ast, expected, expr, stack, context)
+  def of_match_var({:^, _meta, [var]}, expected, expr, stack, context) do
+    Of.refine_body_var(var, expected, expr, stack, context)
+  end
+
+  def of_match_var(atom, _expected, _expr, _stack, context) when is_atom(atom) do
+    {atom(), context}
+  end
+
+  def of_match_var(binary, _expected, _expr, _stack, context) when is_binary(binary) do
+    {binary(), context}
+  end
+
+  def of_match_var(integer, _expected, _expr, _stack, context) when is_integer(integer) do
+    {integer(), context}
+  end
+
+  def of_match_var(float, _expected, _expr, _stack, context) when is_float(float) do
+    {float(), context}
+  end
+
+  @doc """
+  Handle `size` in binary modifiers.
+
+  They behave like guards, so we need to take into account their scope.
+  """
+  def of_size(:match, arg, expr, stack, %{pattern_info: pattern_info} = context) do
+    context = init_guard_info(context)
+    {type, context} = of_guard(arg, {false, integer()}, expr, stack, context)
+    {type, %{context | pattern_info: pattern_info}}
+  end
+
+  def of_size(:guard, arg, expr, stack, context) do
+    of_guard(arg, {false, integer()}, expr, stack, context)
   end
 
   ## Patterns
@@ -704,117 +746,184 @@ defmodule Module.Types.Pattern do
   end
 
   ## Guards
-  # This function is public as it is invoked from Of.binary/4.
+  #
+  # Whenever we have a or/orelse, we need to build multiple environments
+  # and we only preserve intersections of those environments. However,
+  # when building those environments, domain checks are always passed
+  # upstream, except when they are on the right-side of `orelse`.
+  #
+  # Therefore, in addition to `conditional_vars`, we have to track:
+  #
+  # 1. Should we process type checks? We always do so at the root of guards.
+  #    Inside or/orelse, we also need to check the environments.
+  #
+  # 2. Should we process domain checks? We always process it, except that, if
+  #    on the right-side of orelse, it is only kept if it is shared across
+  #    the environment vars.
+
+  @guard atom([true, false, :fail])
+
+  defp of_guards([], _stack, context) do
+    {[], context}
+  end
+
+  defp of_guards(guards, stack, context) do
+    # TODO: This match? is temporary until we support multiple guards
+    context = init_guard_info(context, match?([_], guards))
+
+    {types, context} =
+      Enum.map_reduce(guards, context, &of_guard(&1, {true, @guard}, &1, stack, &2))
+
+    {_, context} = pop_guard_info(context)
+    {types, context}
+  end
+
+  defp init_guard_info(context, check_domain? \\ true) do
+    %{context | pattern_info: {check_domain?}}
+  end
+
+  defp pop_guard_info(%{pattern_info: pattern_info} = context) do
+    {pattern_info, %{context | pattern_info: nil}}
+  end
 
   # :atom
-  def of_guard(atom, _expected, _expr, _stack, context) when is_atom(atom) do
+  def of_guard(atom, _root_expected, _expr, _stack, context) when is_atom(atom) do
     {atom([atom]), context}
   end
 
   # 12
-  def of_guard(literal, _expected, _expr, _stack, context) when is_integer(literal) do
+  def of_guard(literal, _root_expected, _expr, _stack, context) when is_integer(literal) do
     {integer(), context}
   end
 
   # 1.2
-  def of_guard(literal, _expected, _expr, _stack, context) when is_float(literal) do
+  def of_guard(literal, _root_expected, _expr, _stack, context) when is_float(literal) do
     {float(), context}
   end
 
   # "..."
-  def of_guard(literal, _expected, _expr, _stack, context) when is_binary(literal) do
+  def of_guard(literal, _root_expected, _expr, _stack, context) when is_binary(literal) do
     {binary(), context}
   end
 
   # []
-  def of_guard([], _expected, _expr, _stack, context) do
+  def of_guard([], _root_expected, _expr, _stack, context) do
     {empty_list(), context}
   end
 
   # [expr, ...]
-  def of_guard(list, _expected, expr, stack, context) when is_list(list) do
+  def of_guard(list, _root_expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
 
     {prefix, context} =
-      Enum.map_reduce(prefix, context, &of_guard(&1, term(), expr, stack, &2))
+      Enum.map_reduce(prefix, context, &of_guard(&1, {false, term()}, expr, stack, &2))
 
-    {suffix, context} = of_guard(suffix, term(), expr, stack, context)
+    {suffix, context} = of_guard(suffix, {false, term()}, expr, stack, context)
     {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
   # {left, right}
-  def of_guard({left, right}, expected, expr, stack, context) do
-    of_guard({:{}, [], [left, right]}, expected, expr, stack, context)
+  def of_guard({left, right}, root_expected, expr, stack, context) do
+    of_guard({:{}, [], [left, right]}, root_expected, expr, stack, context)
   end
 
   # %Struct{...}
-  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, expected, _expr, stack, context)
+  def of_guard(
+        {:%, meta, [module, {:%{}, _, args}]} = struct,
+        {_root, expected},
+        _expr,
+        stack,
+        context
+      )
       when is_atom(module) do
-    fun = &of_guard(&1, &2, struct, &3, &4)
+    fun = &of_guard(&1, {false, &2}, struct, &3, &4)
     Of.struct_instance(module, args, expected, meta, stack, context, fun)
   end
 
   # %{...}
-  def of_guard({:%{}, _meta, args}, expected, expr, stack, context) do
-    Of.closed_map(args, expected, stack, context, &of_guard(&1, &2, expr, &3, &4))
+  def of_guard({:%{}, _meta, args}, {_root, expected}, expr, stack, context) do
+    Of.closed_map(args, expected, stack, context, &of_guard(&1, {false, &2}, expr, &3, &4))
   end
 
   # <<>>
-  def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
+  def of_guard({:<<>>, _meta, args}, _root_expected, _expr, stack, context) do
     context = Of.binary(args, :guard, stack, context)
     {binary(), context}
   end
 
   # ^var
-  def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
+  def of_guard({:^, _meta, [var]}, {_root, expected}, expr, stack, context) do
     # This is used by binary size, which behaves as a mixture of match and guard
     Of.refine_body_var(var, expected, expr, stack, context)
   end
 
   # {...}
-  def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
-    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
+  def of_guard({:{}, _meta, args}, _root_expected, expr, stack, context) do
+    {types, context} =
+      Enum.map_reduce(args, context, &of_guard(&1, {false, term()}, expr, stack, &2))
+
     {tuple(types), context}
   end
 
   # var.field
-  def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
+  def of_guard(
+        {{:., _, [callee, key]}, _, []} = map_fetch,
+        {_root, expected},
+        expr,
+        stack,
+        context
+      )
       when not is_atom(callee) do
-    {type, context} = of_guard(callee, term(), expr, stack, context)
+    {type, context} = of_guard(callee, {false, open_map([{key, expected}])}, expr, stack, context)
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _expr, stack, context)
+  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, root_expected, _, stack, context)
       when is_atom(fun) do
+    of_remote(fun, meta, args, call, root_expected, stack, context)
+  end
+
+  # var
+  def of_guard(var, {_root, expected}, expr, stack, context) when is_var(var) do
+    case context.pattern_info do
+      {true} -> Of.refine_body_var(var, expected, expr, stack, context)
+      {false} -> {Of.var(var, context), context}
+    end
+  end
+
+  defp of_remote(fun, meta, [left, right], call, {_root, expected}, stack, context)
+       when fun in [:or, :orelse] do
+    {info, [left_domain, right_domain], context} =
+      Apply.remote_domain(:erlang, fun, [left, right], expected, meta, stack, context)
+
+    {left_type, context} = of_guard(left, {false, left_domain}, call, stack, context)
+
+    {right_type, context} =
+      if fun == :or do
+        of_guard(right, {false, right_domain}, call, stack, context)
+      else
+        %{pattern_info: pattern_info} = context
+        context = %{context | pattern_info: {false}}
+        {type, context} = of_guard(right, {false, right_domain}, call, stack, context)
+        {type, %{context | pattern_info: pattern_info}}
+      end
+
+    args_types = [left_type, right_type]
+    Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
+  end
+
+  defp of_remote(fun, meta, args, call, {_root, expected}, stack, context) do
     {info, domain, context} =
       Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
 
     {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_guard(&1, &2, call, stack, &3))
+      zip_map_reduce(args, domain, context, &of_guard(&1, {false, &2}, call, stack, &3))
 
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
-  # var
-  def of_guard(var, _expected, _expr, _stack, context) when is_var(var) do
-    {Of.var(var, context), context}
-  end
-
   ## Helpers
-
-  # pattern_info stores the variables defined in patterns,
-  # additional information about the number of variables in
-  # arguments and list heads, and a counter used to compute
-  # the number of list heads.
-  # TODO: Consider moving pattern_info into context.vars.
-  defp init_pattern_info(context) do
-    %{context | pattern_info: {[], %{}, %{}}}
-  end
-
-  defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
-    {pattern_info, %{context | pattern_info: nil}}
-  end
 
   def format_diagnostic({:badmatch, expr, context}) do
     traces = collect_traces(expr, context)
