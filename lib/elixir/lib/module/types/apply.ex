@@ -105,28 +105,6 @@ defmodule Module.Types.Apply do
     {[float(), float()], float()}
   ]
 
-  is_guards = [
-    is_atom: atom(),
-    is_binary: binary(),
-    is_bitstring: binary(),
-    is_boolean: boolean(),
-    is_float: float(),
-    is_function: fun(),
-    is_integer: integer(),
-    is_list: union(empty_list(), non_empty_list(term(), term())),
-    is_map: open_map(),
-    is_number: union(float(), integer()),
-    is_pid: pid(),
-    is_port: port(),
-    is_reference: reference(),
-    is_tuple: tuple()
-  ]
-
-  mod_fun_clauses_is_guards =
-    for {guard, _type} <- is_guards do
-      {:erlang, guard, [{[term()], boolean()}]}
-    end
-
   args_or_arity = union(list(term()), integer())
   args_or_none = union(list(term()), atom([:none]))
   extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
@@ -154,139 +132,135 @@ defmodule Module.Types.Apply do
       {[atom([left]), atom([right])], atom([left or right])}
     end
 
-  for {mod, fun, clauses} <-
-        mod_fun_clauses_is_guards ++
-          [
-            # :binary
-            {:binary, :copy, [{[binary(), integer()], binary()}]},
+  for {mod, fun, clauses} <- [
+        # :binary
+        {:binary, :copy, [{[binary(), integer()], binary()}]},
 
-            # :erlang
-            {:erlang, :+, [{[integer()], integer()}, {[float()], float()}]},
-            {:erlang, :+, basic_arith_2_args_clauses},
-            {:erlang, :-, [{[integer()], integer()}, {[float()], float()}]},
-            {:erlang, :-, basic_arith_2_args_clauses},
-            {:erlang, :*, basic_arith_2_args_clauses},
-            {:erlang, :/, [{[union(integer(), float()), union(integer(), float())], float()}]},
-            {:erlang, :"/=", [{[term(), term()], boolean()}]},
-            {:erlang, :"=/=", [{[term(), term()], boolean()}]},
-            {:erlang, :<, [{[term(), term()], boolean()}]},
-            {:erlang, :"=<", [{[term(), term()], boolean()}]},
-            {:erlang, :==, [{[term(), term()], boolean()}]},
-            {:erlang, :"=:=", [{[term(), term()], boolean()}]},
-            {:erlang, :>, [{[term(), term()], boolean()}]},
-            {:erlang, :>=, [{[term(), term()], boolean()}]},
-            {:erlang, :abs, [{[integer()], integer()}, {[float()], float()}]},
-            # TODO: Decide if it returns dynamic() or term()
-            {:erlang, :apply, [{[fun(), list(term())], dynamic()}]},
-            {:erlang, :apply, [{[atom(), atom(), list(term())], dynamic()}]},
-            {:erlang, :and, and_signature},
-            {:erlang, :atom_to_binary, [{[atom()], binary()}]},
-            {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
-            {:erlang, :band, [{[integer(), integer()], integer()}]},
-            {:erlang, :binary_part, [{[binary(), integer(), integer()], binary()}]},
-            {:erlang, :binary_to_atom, [{[binary()], atom()}]},
-            {:erlang, :binary_to_existing_atom, [{[binary()], atom()}]},
-            {:erlang, :binary_to_integer, [{[binary()], integer()}]},
-            {:erlang, :binary_to_integer, [{[binary(), integer()], integer()}]},
-            {:erlang, :binary_to_float, [{[binary()], float()}]},
-            {:erlang, :bit_size, [{[binary()], integer()}]},
-            {:erlang, :bnot, [{[integer()], integer()}]},
-            {:erlang, :bor, [{[integer(), integer()], integer()}]},
-            {:erlang, :bsl, [{[integer(), integer()], integer()}]},
-            {:erlang, :bsr, [{[integer(), integer()], integer()}]},
-            {:erlang, :bxor, [{[integer(), integer()], integer()}]},
-            {:erlang, :byte_size, [{[binary()], integer()}]},
-            {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
-            {:erlang, :div, [{[integer(), integer()], integer()}]},
-            {:erlang, :error, [{[term()], none()}]},
-            {:erlang, :error, [{[term(), args_or_none], none()}]},
-            {:erlang, :error, [{[term(), args_or_none, kw.(error_info: open_map())], none()}]},
-            {:erlang, :floor, [{[union(integer(), float())], integer()}]},
-            {:erlang, :function_exported, [{[atom(), atom(), integer()], boolean()}]},
-            {:erlang, :integer_to_binary, [{[integer()], binary()}]},
-            {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
-            {:erlang, :integer_to_list, [{[integer()], non_empty_list(integer())}]},
-            {:erlang, :integer_to_list, [{[integer(), integer()], non_empty_list(integer())}]},
-            {:erlang, :is_function, [{[term(), integer()], boolean()}]},
-            {:erlang, :is_map_key, [{[term(), open_map()], boolean()}]},
-            {:erlang, :length, [{[list(term())], integer()}]},
-            {:erlang, :list_to_atom, [{[list(integer())], atom()}]},
-            {:erlang, :list_to_existing_atom, [{[list(integer())], atom()}]},
-            {:erlang, :list_to_float, [{[non_empty_list(integer())], float()}]},
-            {:erlang, :list_to_integer, [{[non_empty_list(integer())], integer()}]},
-            {:erlang, :list_to_integer, [{[non_empty_list(integer()), integer()], integer()}]},
-            {:erlang, :make_ref, [{[], reference()}]},
-            {:erlang, :map_size, [{[open_map()], integer()}]},
-            {:erlang, :node, [{[], atom()}]},
-            {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
-            {:erlang, :not, not_signature},
-            {:erlang, :or, or_signature},
-            {:erlang, :raise,
-             [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
-            {:erlang, :rem, [{[integer(), integer()], integer()}]},
-            {:erlang, :round, [{[union(integer(), float())], integer()}]},
-            {:erlang, :self, [{[], pid()}]},
-            {:erlang, :spawn, [{[fun(0)], pid()}]},
-            {:erlang, :spawn, [{mfargs, pid()}]},
-            {:erlang, :spawn_link, [{[fun(0)], pid()}]},
-            {:erlang, :spawn_link, [{mfargs, pid()}]},
-            {:erlang, :spawn_monitor, [{[fun(0)], tuple([pid(), reference()])}]},
-            {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
-            {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
-            {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
+        # :erlang
+        {:erlang, :+, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :+, basic_arith_2_args_clauses},
+        {:erlang, :-, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :-, basic_arith_2_args_clauses},
+        {:erlang, :*, basic_arith_2_args_clauses},
+        {:erlang, :/, [{[union(integer(), float()), union(integer(), float())], float()}]},
+        {:erlang, :"/=", [{[term(), term()], boolean()}]},
+        {:erlang, :"=/=", [{[term(), term()], boolean()}]},
+        {:erlang, :<, [{[term(), term()], boolean()}]},
+        {:erlang, :"=<", [{[term(), term()], boolean()}]},
+        {:erlang, :==, [{[term(), term()], boolean()}]},
+        {:erlang, :"=:=", [{[term(), term()], boolean()}]},
+        {:erlang, :>, [{[term(), term()], boolean()}]},
+        {:erlang, :>=, [{[term(), term()], boolean()}]},
+        {:erlang, :abs, [{[integer()], integer()}, {[float()], float()}]},
+        # TODO: Decide if it returns dynamic() or term()
+        {:erlang, :apply, [{[fun(), list(term())], dynamic()}]},
+        {:erlang, :apply, [{[atom(), atom(), list(term())], dynamic()}]},
+        {:erlang, :and, and_signature},
+        {:erlang, :atom_to_binary, [{[atom()], binary()}]},
+        {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
+        {:erlang, :band, [{[integer(), integer()], integer()}]},
+        {:erlang, :binary_part, [{[binary(), integer(), integer()], binary()}]},
+        {:erlang, :binary_to_atom, [{[binary()], atom()}]},
+        {:erlang, :binary_to_existing_atom, [{[binary()], atom()}]},
+        {:erlang, :binary_to_integer, [{[binary()], integer()}]},
+        {:erlang, :binary_to_integer, [{[binary(), integer()], integer()}]},
+        {:erlang, :binary_to_float, [{[binary()], float()}]},
+        {:erlang, :bit_size, [{[binary()], integer()}]},
+        {:erlang, :bnot, [{[integer()], integer()}]},
+        {:erlang, :bor, [{[integer(), integer()], integer()}]},
+        {:erlang, :bsl, [{[integer(), integer()], integer()}]},
+        {:erlang, :bsr, [{[integer(), integer()], integer()}]},
+        {:erlang, :bxor, [{[integer(), integer()], integer()}]},
+        {:erlang, :byte_size, [{[binary()], integer()}]},
+        {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
+        {:erlang, :div, [{[integer(), integer()], integer()}]},
+        {:erlang, :error, [{[term()], none()}]},
+        {:erlang, :error, [{[term(), args_or_none], none()}]},
+        {:erlang, :error, [{[term(), args_or_none, kw.(error_info: open_map())], none()}]},
+        {:erlang, :floor, [{[union(integer(), float())], integer()}]},
+        {:erlang, :function_exported, [{[atom(), atom(), integer()], boolean()}]},
+        {:erlang, :integer_to_binary, [{[integer()], binary()}]},
+        {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
+        {:erlang, :integer_to_list, [{[integer()], non_empty_list(integer())}]},
+        {:erlang, :integer_to_list, [{[integer(), integer()], non_empty_list(integer())}]},
+        {:erlang, :is_function, [{[term(), integer()], boolean()}]},
+        {:erlang, :is_map_key, [{[term(), open_map()], boolean()}]},
+        {:erlang, :length, [{[list(term())], integer()}]},
+        {:erlang, :list_to_atom, [{[list(integer())], atom()}]},
+        {:erlang, :list_to_existing_atom, [{[list(integer())], atom()}]},
+        {:erlang, :list_to_float, [{[non_empty_list(integer())], float()}]},
+        {:erlang, :list_to_integer, [{[non_empty_list(integer())], integer()}]},
+        {:erlang, :list_to_integer, [{[non_empty_list(integer()), integer()], integer()}]},
+        {:erlang, :make_ref, [{[], reference()}]},
+        {:erlang, :map_size, [{[open_map()], integer()}]},
+        {:erlang, :node, [{[], atom()}]},
+        {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
+        {:erlang, :not, not_signature},
+        {:erlang, :or, or_signature},
+        {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
+        {:erlang, :rem, [{[integer(), integer()], integer()}]},
+        {:erlang, :round, [{[union(integer(), float())], integer()}]},
+        {:erlang, :self, [{[], pid()}]},
+        {:erlang, :spawn, [{[fun(0)], pid()}]},
+        {:erlang, :spawn, [{mfargs, pid()}]},
+        {:erlang, :spawn_link, [{[fun(0)], pid()}]},
+        {:erlang, :spawn_link, [{mfargs, pid()}]},
+        {:erlang, :spawn_monitor, [{[fun(0)], tuple([pid(), reference()])}]},
+        {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
+        {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
+        {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
 
-            # TODO: Replace term()/dynamic() by parametric types
-            {:erlang, :++,
-             [
-               {[empty_list(), term()], dynamic(term())},
-               {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
-             ]},
-            {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
-            {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
-            {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
-            {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
-            {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
-            {:erlang, :insert_element,
-             [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
-            {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
-            {:erlang, :max, [{[term(), term()], dynamic()}]},
-            {:erlang, :min, [{[term(), term()], dynamic()}]},
-            {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
-            {:erlang, :send, [{[send_destination, term()], dynamic()}]},
-            {:erlang, :setelement,
-             [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
-            {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
-            {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
+        # TODO: Replace term()/dynamic() by parametric types
+        {:erlang, :++,
+         [
+           {[empty_list(), term()], dynamic(term())},
+           {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
+         ]},
+        {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
+        {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
+        {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
+        {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
+        {:erlang, :insert_element,
+         [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
+        {:erlang, :max, [{[term(), term()], dynamic()}]},
+        {:erlang, :min, [{[term(), term()], dynamic()}]},
+        {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
+        {:erlang, :send, [{[send_destination, term()], dynamic()}]},
+        {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
-            ## Map
-            {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
-            {Map, :get, [{[open_map(), term()], term()}]},
-            {Map, :get, [{[open_map(), term(), term()], term()}]},
-            {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
-            {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
-            {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
-            {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
-            {Map, :pop_lazy, [{[open_map(), term(), fun(0)], tuple([term(), open_map()])}]},
-            {Map, :put_new, [{[open_map(), term(), term()], open_map()}]},
-            {Map, :put_new_lazy, [{[open_map(), term(), fun(0)], open_map()}]},
-            {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
-            {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
-            {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
-            {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
-            {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
-            {:maps, :find,
-             [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
-            {:maps, :get, [{[term(), open_map()], term()}]},
-            {:maps, :is_key, [{[term(), open_map()], boolean()}]},
-            {:maps, :keys, [{[open_map()], list(term())}]},
-            {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
-            {:maps, :remove, [{[term(), open_map()], open_map()}]},
-            {:maps, :take,
-             [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
-            {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
-            {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
-            {:maps, :values, [{[open_map()], list(term())}]}
-          ] do
+        ## Map
+        {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
+        {Map, :get, [{[open_map(), term()], term()}]},
+        {Map, :get, [{[open_map(), term(), term()], term()}]},
+        {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
+        {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
+        {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
+        {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
+        {Map, :pop_lazy, [{[open_map(), term(), fun(0)], tuple([term(), open_map()])}]},
+        {Map, :put_new, [{[open_map(), term(), term()], open_map()}]},
+        {Map, :put_new_lazy, [{[open_map(), term(), fun(0)], open_map()}]},
+        {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
+        {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
+        {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
+        {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
+        {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
+        {:maps, :find,
+         [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
+        {:maps, :get, [{[term(), open_map()], term()}]},
+        {:maps, :is_key, [{[term(), open_map()], boolean()}]},
+        {:maps, :keys, [{[open_map()], list(term())}]},
+        {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
+        {:maps, :remove, [{[term(), open_map()], open_map()}]},
+        {:maps, :take,
+         [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
+        {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
+        {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
+        {:maps, :values, [{[open_map()], list(term())}]}
+      ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
     true =
@@ -308,6 +282,38 @@ defmodule Module.Types.Apply do
       end
 
     def signature(unquote(mod), unquote(fun), unquote(arity)),
+      do: unquote(Macro.escape(domain_clauses))
+  end
+
+  is_guards = [
+    is_atom: atom(),
+    is_binary: binary(),
+    is_bitstring: binary(),
+    is_boolean: boolean(),
+    is_float: float(),
+    is_function: fun(),
+    is_integer: integer(),
+    is_list: union(empty_list(), non_empty_list(term(), term())),
+    is_map: open_map(),
+    is_number: union(float(), integer()),
+    is_pid: pid(),
+    is_port: port(),
+    is_reference: reference(),
+    is_tuple: tuple()
+  ]
+
+  for {guard, type} <- is_guards do
+    # is_binary can actually fail for binaries if they are bitstrings
+    return = if guard == :is_binary, do: boolean(), else: atom([true])
+
+    domain_clauses =
+      {:strong, [term()],
+       [
+         {[type], return},
+         {[negation(type)], atom([false])}
+       ]}
+
+    def signature(:erlang, unquote(guard), 1),
       do: unquote(Macro.escape(domain_clauses))
   end
 
@@ -335,50 +341,30 @@ defmodule Module.Types.Apply do
     {:none, Enum.map(args, fn _ -> term() end), context}
   end
 
-  @guard_info {:strong, nil, [{[term()], boolean()}]}
-
-  for {guard, type} <- is_guards do
-    @true_type type
-    @false_type negation(type)
-
-    def remote_domain(:erlang, unquote(guard), [_], expected, _meta, _stack, context) do
-      arg =
-        case booleaness(expected) do
-          :always_true -> @true_type
-          :always_false -> @false_type
-          :undefined -> term()
-        end
-
-      {@guard_info, [arg], context}
-    end
-  end
-
-  @is_function_info {:strong, nil, [{[term(), integer()], boolean()}]}
-
   def remote_domain(:erlang, :is_function, [_, arity], expected, _meta, _stack, context)
       when is_integer(arity) and arity >= 0 do
-    arg =
-      case booleaness(expected) do
-        :always_true -> fun(arity)
-        :always_false -> negation(fun(arity))
-        :undefined -> term()
-      end
+    type = fun(arity)
 
-    {@is_function_info, [arg, integer()], context}
+    info =
+      {:strong, [term(), integer()],
+       [
+         {[type, integer()], atom([true])},
+         {[negation(type), integer()], atom([false])}
+       ]}
+
+    {info, filter_domain(info, expected, 2), context}
   end
-
-  @is_map_key_info {:strong, nil, [{[term(), open_map()], boolean()}]}
 
   def remote_domain(:erlang, :is_map_key, [key, _map], expected, _meta, _stack, context)
       when is_atom(key) do
-    arg =
-      case booleaness(expected) do
-        :always_true -> open_map([{key, term()}])
-        :always_false -> open_map([{key, not_set()}])
-        :undefined -> open_map()
-      end
+    info =
+      {:strong, [term(), open_map()],
+       [
+         {[term(), open_map([{key, term()}])], atom([true])},
+         {[term(), open_map([{key, not_set()}])], atom([false])}
+       ]}
 
-    {@is_map_key_info, [term(), arg], context}
+    {info, filter_domain(info, expected, 2), context}
   end
 
   def remote_domain(:erlang, :element, [index, _], expected, _meta, _stack, context)

@@ -1225,20 +1225,21 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "projections" do
-    test "booleaness" do
-      for type <- [term(), none(), atom(), boolean(), integer()] do
-        assert booleaness(type) == :undefined
-        assert booleaness(dynamic(type)) == :undefined
+    test "never_true?" do
+      for type <- [
+            none(),
+            integer(),
+            atom([false]),
+            atom([:other, false]),
+            negation(atom([true]))
+          ] do
+        assert never_true?(type)
+        assert never_true?(dynamic(type))
       end
 
-      for type <- [atom([false]), atom([:other, false]), negation(atom([true]))] do
-        assert booleaness(type) == :always_false
-        assert booleaness(dynamic(type)) == :always_false
-      end
-
-      for type <- [atom([true]), atom([:other, true]), negation(atom([false]))] do
-        assert booleaness(type) == :always_true
-        assert booleaness(dynamic(type)) == :always_true
+      for type <- [atom([true]), boolean(), atom(), term(), negation(atom([false]))] do
+        refute never_true?(type)
+        refute never_true?(dynamic(type))
       end
     end
 

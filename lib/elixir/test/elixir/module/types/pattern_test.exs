@@ -431,15 +431,21 @@ defmodule Module.Types.PatternTest do
 
     test "elem" do
       assert typecheck!([x], elem(x, 1), x) ==
-               dynamic(open_tuple([term(), atom([true, false, :fail])]))
+               dynamic(open_tuple([term(), term()]))
 
       assert typecheck!([x], not elem(x, 1), x) ==
                dynamic(open_tuple([term(), atom([false])]))
+
+      assert typecheck!([x], is_integer(elem(x, 1)), x) ==
+               dynamic(open_tuple([term(), integer()]))
     end
 
     test "map.field" do
       assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
-               dynamic(open_map(foo: atom([:bar]), bar: atom([true, false, :fail])))
+               dynamic(open_map(foo: atom([:bar]), bar: term()))
+
+      assert typecheck!([x = %{foo: :bar}], not x.bar, x) ==
+               dynamic(open_map(foo: atom([:bar]), bar: atom([false])))
 
       assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
                ~l"""
@@ -460,13 +466,31 @@ defmodule Module.Types.PatternTest do
     end
 
     test "domain checks propagate across all operations except 'orelse'" do
-      assert typecheck!([x], [length(x) == 3], x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) == 3, x) == dynamic(list(term()))
 
-      assert typecheck!([x, y], [:erlang.or(length(x) == 3, map_size(y) == 1)], {x, y}) ==
+      assert typecheck!([x, y], :erlang.or(length(x) == 3, map_size(y) == 1), {x, y}) ==
                dynamic(tuple([list(term()), open_map()]))
 
-      assert typecheck!([x, y], [length(x) == 3 or map_size(y) == 1], {x, y}) ==
+      assert typecheck!([x, y], length(x) == 3 or map_size(y) == 1, {x, y}) ==
                dynamic(tuple([list(term()), term()]))
+    end
+
+    test "errors in guards" do
+      assert typeerror!([x = {}], is_integer(x), x) == ~l"""
+             this guard will never succeed:
+
+                 is_integer(x)
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: dynamic({})
+                 # from: types_test.ex:479
+                 x = {}
+             """
     end
   end
 end

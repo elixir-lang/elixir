@@ -35,7 +35,7 @@ defmodule Module.Types.Pattern do
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
     {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
-    {_, context} = of_guards(guards, stack, context)
+    context = of_guards(guards, stack, context)
     {trees, context}
   end
 
@@ -122,8 +122,7 @@ defmodule Module.Types.Pattern do
         {:error, context} -> context
       end
 
-    {_, context} = of_guards(guards, stack, context)
-    context
+    of_guards(guards, stack, context)
   end
 
   defp of_pattern_intersect([head | tail], index, acc, pattern_info, tag, stack, context) do
@@ -760,22 +759,30 @@ defmodule Module.Types.Pattern do
   #    on the right-side of orelse, it is only kept if it is shared across
   #    the environment vars.
 
-  @guard atom([true, false, :fail])
   @atom_true atom([true])
 
   defp of_guards([], _stack, context) do
-    {[], context}
+    context
   end
 
   defp of_guards(guards, stack, context) do
     # TODO: This match? is temporary until we support multiple guards
     context = init_guard_info(context, match?([_], guards))
 
-    {types, context} =
-      Enum.map_reduce(guards, context, &of_guard(&1, {true, @guard}, &1, stack, &2))
+    context =
+      Enum.reduce(guards, context, fn guard, context ->
+        {type, context} = of_guard(guard, {true, term()}, guard, stack, context)
+
+        if never_true?(type) do
+          error = {:badguard, type, guard, context}
+          error(__MODULE__, error, error_meta(guard, stack), stack, context)
+        else
+          context
+        end
+      end)
 
     {_, context} = pop_guard_info(context)
-    {types, context}
+    context
   end
 
   defp init_guard_info(context, check_domain? \\ true) do
@@ -934,6 +941,27 @@ defmodule Module.Types.Pattern do
   end
 
   ## Helpers
+
+  def format_diagnostic({:badguard, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          this guard will never succeed:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          because it returns type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
 
   def format_diagnostic({:badmatch, expr, context}) do
     traces = collect_traces(expr, context)

@@ -903,23 +903,20 @@ defmodule Module.Types.Descr do
   ]
 
   @doc """
-  Compute the booleaness of an element.
-
-  It is either :undefined, :always_true, or :always_false.
+  Returns true if the type can never be true.
   """
-  def booleaness(:term), do: :undefined
+  def never_true?(:term), do: false
 
-  def booleaness(%{} = descr) do
+  def never_true?(%{} = descr) do
     descr = Map.get(descr, :dynamic, descr)
 
     case descr do
-      %{atom: {:union, %{true => _, false => _}}} -> :undefined
-      %{atom: {:union, %{true => _}}} -> :always_true
-      %{atom: {:union, %{false => _}}} -> :always_false
-      %{atom: {:negation, %{true => _, false => _}}} -> :undefined
-      %{atom: {:negation, %{true => _}}} -> :always_false
-      %{atom: {:negation, %{false => _}}} -> :always_true
-      _ -> :undefined
+      :term -> false
+      %{atom: {:union, %{true => _}}} -> false
+      %{atom: {:union, _}} -> true
+      %{atom: {:negation, %{true => _}}} -> true
+      %{atom: {:negation, _}} -> false
+      _ -> true
     end
   end
 
