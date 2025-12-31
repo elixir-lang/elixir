@@ -339,6 +339,20 @@ defmodule Module.Types.Apply do
     {@is_function_info, [arg, integer()], context}
   end
 
+  @is_map_key_info {:strong, nil, [{[term(), open_map()], boolean()}]}
+
+  def remote_domain(:erlang, :is_map_key, [key, _map], expected, _meta, _stack, context)
+      when is_atom(key) do
+    arg =
+      case booleaness(expected) do
+        :always_true -> open_map([{key, term()}])
+        :always_false -> open_map([{key, not_set()}])
+        :undefined -> open_map()
+      end
+
+    {@is_map_key_info, [term(), arg], context}
+  end
+
   def remote_domain(:erlang, :element, [index, _], expected, _meta, _stack, context)
       when is_integer(index) do
     tuple = open_tuple(List.duplicate(term(), max(index - 1, 0)) ++ [expected])

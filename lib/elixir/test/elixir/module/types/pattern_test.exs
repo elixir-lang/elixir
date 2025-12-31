@@ -424,6 +424,11 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not is_function(x, 3), x) == dynamic(negation(fun(3)))
     end
 
+    test "is_map_key/2" do
+      assert typecheck!([x], is_map_key(x, :foo), x) == dynamic(open_map(foo: term()))
+      assert typecheck!([x], not is_map_key(x, :foo), x) == dynamic(open_map(foo: not_set()))
+    end
+
     test "elem" do
       assert typecheck!([x], elem(x, 1), x) ==
                dynamic(open_tuple([term(), atom([true, false, :fail])]))
