@@ -973,8 +973,8 @@ defmodule Enum do
   ## Examples
 
       Enum.each(["some", "example"], fn x -> IO.puts(x) end)
-      "some"
-      "example"
+      some
+      example
       #=> :ok
 
   """
