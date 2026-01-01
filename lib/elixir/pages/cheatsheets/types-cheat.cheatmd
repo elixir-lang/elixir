@@ -173,11 +173,16 @@ tuple()
 
 ## Additional types for convenience
 
-#### Booleans
+#### Aliases
 
 ```elixir
+bitstring() = binary()
 boolean() = true or false
+number() = integer() or float()
 ```
+
+The type system currently does not distinguish between
+binaries and bitstrings.
 
 #### Lists
 
