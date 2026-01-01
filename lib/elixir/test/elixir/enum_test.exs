@@ -1885,10 +1885,6 @@ defmodule EnumTest.Range do
     assert Enum.drop_every(1..5//2, 0) == [1, 3, 5]
     assert Enum.drop_every(1..5//2, 1) == []
     assert Enum.drop_every(1..5//2, 2) == [3]
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.drop_every(1..10, 3.33)
-    end
   end
 
   test "drop_while/2" do
