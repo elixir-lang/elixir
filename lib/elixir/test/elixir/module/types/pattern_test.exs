@@ -431,7 +431,7 @@ defmodule Module.Types.PatternTest do
 
     test "elem" do
       assert typecheck!([x], elem(x, 1), x) ==
-               dynamic(open_tuple([term(), term()]))
+               dynamic(open_tuple([term(), atom([true])]))
 
       assert typecheck!([x], not elem(x, 1), x) ==
                dynamic(open_tuple([term(), atom([false])]))
@@ -442,7 +442,7 @@ defmodule Module.Types.PatternTest do
 
     test "map.field" do
       assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
-               dynamic(open_map(foo: atom([:bar]), bar: term()))
+               dynamic(open_map(foo: atom([:bar]), bar: atom([true])))
 
       assert typecheck!([x = %{foo: :bar}], not x.bar, x) ==
                dynamic(open_map(foo: atom([:bar]), bar: atom([false])))

@@ -771,7 +771,7 @@ defmodule Module.Types.Pattern do
 
     context =
       Enum.reduce(guards, context, fn guard, context ->
-        {type, context} = of_guard(guard, {true, term()}, guard, stack, context)
+        {type, context} = of_guard(guard, {true, @atom_true}, guard, stack, context)
 
         if never_true?(type) do
           error = {:badguard, type, guard, context}
@@ -899,7 +899,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # TODO: Move orelse and andalso handling here
+  # TODO: Move orelse and andalso handling here, both may never be executed
   defp of_remote(fun, meta, [left, right], call, {_root, expected}, stack, context)
        when fun in [:or, :orelse] do
     {info, [left_domain, right_domain], context} =
