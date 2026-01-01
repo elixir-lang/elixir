@@ -163,14 +163,6 @@ defmodule StringTest do
     assert String.split_at("abc", -3) == {"", "abc"}
     assert String.split_at("abc", -4) == {"", "abc"}
     assert String.split_at("abc", -1000) == {"", "abc"}
-
-    assert_raise FunctionClauseError, fn ->
-      String.split_at("abc", 0.1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      String.split_at("abc", -0.1)
-    end
   end
 
   test "split_at/2 with malformed" do
@@ -517,14 +509,6 @@ defmodule StringTest do
       assert String.replace("a,b,c", ~r/,(.)/, fn x -> [x, x] end) == "a,b,b,c,c"
       assert String.replace("a,b,c", ~r/,(.)/, fn x -> "#{x}#{x}" end, global: false) == "a,b,b,c"
       assert String.replace("a,b,c", ~r/,(.)/, fn x -> [x, x] end, global: false) == "a,b,b,c"
-    end
-  end
-
-  describe "replace/4" do
-    test "with incorrect params" do
-      assert_raise FunctionClauseError, "no function clause matching in String.replace/4", fn ->
-        String.replace("a,b,c", "a,b,c", ",", "")
-      end
     end
   end
 

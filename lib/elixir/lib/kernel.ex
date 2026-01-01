@@ -4764,8 +4764,8 @@ defmodule Kernel do
   defp in_range(left, first, last, step) do
     quoted =
       quote do
-        :erlang.is_integer(unquote(left)) and :erlang.is_integer(unquote(first)) and
-          :erlang.is_integer(unquote(last)) and
+        unquote(generated_is_integer(left)) and unquote(generated_is_integer(first)) and
+          unquote(generated_is_integer(last)) and
           ((:erlang.>(unquote(step), 0) and
               unquote(increasing_compare(left, first, last))) or
              (:erlang.<(unquote(step), 0) and
@@ -4782,8 +4782,8 @@ defmodule Kernel do
   defp in_range_literal(left, first, last, step) when step > 0 do
     quoted =
       quote do
-        :erlang.andalso(
-          :erlang.is_integer(unquote(left)),
+        Kernel.and(
+          unquote(generated_is_integer(left)),
           unquote(increasing_compare(left, first, last))
         )
       end
@@ -4794,8 +4794,8 @@ defmodule Kernel do
   defp in_range_literal(left, first, last, step) when step < 0 do
     quoted =
       quote do
-        :erlang.andalso(
-          :erlang.is_integer(unquote(left)),
+        Kernel.and(
+          unquote(generated_is_integer(left)),
           unquote(decreasing_compare(left, first, last))
         )
       end
@@ -4809,7 +4809,7 @@ defmodule Kernel do
 
   defp in_range_step(quoted, left, first, step) do
     quote do
-      :erlang.andalso(
+      Kernel.and(
         unquote(quoted),
         :erlang."=:="(:erlang.rem(unquote(left) - unquote(first), unquote(step)), 0)
       )
@@ -4818,7 +4818,7 @@ defmodule Kernel do
 
   defp in_list(left, head, tail, expand, right, in_body?) do
     [head | tail] = :lists.map(&comp(left, &1, expand, right, in_body?), [head | tail])
-    :lists.foldl(&quote(do: :erlang.orelse(unquote(&2), unquote(&1))), head, tail)
+    :lists.foldl(&quote(do: Kernel.or(unquote(&2), unquote(&1))), head, tail)
   end
 
   defp comp(left, {:|, _, [head, tail]}, expand, right, in_body?) do
@@ -4828,7 +4828,7 @@ defmodule Kernel do
 
       [tail_head | tail] ->
         quote do
-          :erlang.orelse(
+          Kernel.or(
             :erlang."=:="(unquote(left), unquote(head)),
             unquote(in_list(left, tail_head, tail, expand, right, in_body?))
           )
@@ -4836,7 +4836,7 @@ defmodule Kernel do
 
       tail when in_body? ->
         quote do
-          :erlang.orelse(
+          Kernel.or(
             :erlang."=:="(unquote(left), unquote(head)),
             :lists.member(unquote(left), unquote(tail))
           )
@@ -4851,9 +4851,13 @@ defmodule Kernel do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
   end
 
+  defp generated_is_integer(arg) do
+    quote generated: true, do: :erlang.is_integer(unquote(arg))
+  end
+
   defp increasing_compare(var, first, last) do
     quote do
-      :erlang.andalso(
+      Kernel.and(
         :erlang.>=(unquote(var), unquote(first)),
         :erlang."=<"(unquote(var), unquote(last))
       )
@@ -4862,7 +4866,7 @@ defmodule Kernel do
 
   defp decreasing_compare(var, first, last) do
     quote do
-      :erlang.andalso(
+      Kernel.and(
         :erlang."=<"(unquote(var), unquote(first)),
         :erlang.>=(unquote(var), unquote(last))
       )

@@ -370,13 +370,9 @@ defmodule StreamTest do
            |> Enum.to_list() == []
   end
 
-  test "drop_every/2 without non-negative integer" do
+  test "drop_every/2 with negative integer" do
     assert_raise FunctionClauseError, fn ->
       Stream.drop_every(1..10, -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Stream.drop_every(1..10, 3.33)
     end
   end
 
@@ -683,10 +679,6 @@ defmodule StreamTest do
 
     assert_raise FunctionClauseError, fn ->
       Stream.map_every(1..10, -1, &(&1 * 2))
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Stream.map_every(1..10, 3.33, &(&1 * 2))
     end
   end
 
@@ -1193,13 +1185,9 @@ defmodule StreamTest do
            |> Enum.to_list() == []
   end
 
-  test "take_every/2 without non-negative integer" do
+  test "take_every/2 with negative integer" do
     assert_raise FunctionClauseError, fn ->
       Stream.take_every(1..10, -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Stream.take_every(1..10, 3.33)
     end
   end
 

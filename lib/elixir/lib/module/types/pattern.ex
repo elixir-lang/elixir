@@ -760,6 +760,7 @@ defmodule Module.Types.Pattern do
   #    the environment vars.
 
   @atom_true atom([true])
+  @atom_false atom([false])
 
   defp of_guards([], _stack, context) do
     context
@@ -885,16 +886,28 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # TODO: Move orelse and andalso handling here, both may never be executed
-  defp of_remote(fun, meta, [left, right], call, expected, stack, context)
-       when fun in [:or, :orelse] do
-    {info, [left_domain, right_domain], context} =
-      Apply.remote_domain(:erlang, fun, [left, right], expected, meta, stack, context)
+  defp of_remote(fun, _meta, [left, right], call, expected, stack, context)
+       when fun in [:andalso, :orelse] do
+    {both_domain, abort_domain} =
+      case fun do
+        :andalso -> {@atom_true, @atom_false}
+        :orelse -> {@atom_false, @atom_true}
+      end
+
+    # For example, if the expected type is true for andalso, then it can
+    # only be true if both clauses are executed, so we know the first
+    # argument has to be true and the second has to be expected.
+    {left_domain, right_domain, surely_rhs?} =
+      if subtype?(expected, both_domain) do
+        {both_domain, expected, true}
+      else
+        {boolean(), term(), false}
+      end
 
     {left_type, context} = of_guard(left, left_domain, call, stack, context)
 
     {right_type, context} =
-      if fun == :or do
+      if surely_rhs? do
         of_guard(right, right_domain, call, stack, context)
       else
         %{pattern_info: pattern_info} = context
@@ -903,8 +916,11 @@ defmodule Module.Types.Pattern do
         {type, %{context | pattern_info: pattern_info}}
       end
 
-    args_types = [left_type, right_type]
-    Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
+    if compatible?(left_type, abort_domain) do
+      {union(abort_domain, right_type), context}
+    else
+      {right_type, context}
+    end
   end
 
   defp of_remote(fun, meta, args, call, expected, stack, context) do

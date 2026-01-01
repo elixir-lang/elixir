@@ -465,13 +465,32 @@ defmodule Module.Types.PatternTest do
                """
     end
 
-    test "domain checks propagate across all operations except 'orelse'" do
+    test "domain checks" do
+      # Regular domain check
       assert typecheck!([x], length(x) == 3, x) == dynamic(list(term()))
 
+      # erlang-or propagates
       assert typecheck!([x, y], :erlang.or(length(x) == 3, map_size(y) == 1), {x, y}) ==
                dynamic(tuple([list(term()), open_map()]))
 
+      # erlang-and propagates
+      assert typecheck!([x, y], :erlang.and(length(x) == 3, map_size(y) == 1), {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # or does not propagate
       assert typecheck!([x, y], length(x) == 3 or map_size(y) == 1, {x, y}) ==
+               dynamic(tuple([list(term()), term()]))
+
+      # and propagates
+      assert typecheck!([x, y], length(x) == 3 and map_size(y) == 1, {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # not or does propagate
+      assert typecheck!([x, y], not (length(x) == 3 or map_size(y) == 1), {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # not and does not propagate
+      assert typecheck!([x, y], not (length(x) == 3 and map_size(y) == 1), {x, y}) ==
                dynamic(tuple([list(term()), term()]))
     end
 
@@ -488,7 +507,7 @@ defmodule Module.Types.PatternTest do
              where "x" was given the type:
 
                  # type: dynamic({})
-                 # from: types_test.ex:479
+                 # from: types_test.ex:LINE
                  x = {}
              """
     end

@@ -312,10 +312,17 @@ defmodule Module.Types.Expr do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
     info = {:case, meta, case_type, case_expr}
 
-    # If we are only type checking the expression and the expression is a literal,
-    # let's mark it as generated, as it is most likely a macro code. However, if
-    # no clause is matched, we should still check for that.
-    if Macro.quoted_literal?(case_expr) do
+    added_meta =
+      if Macro.quoted_literal?(case_expr) do
+        [generated: true]
+      else
+        case_expr |> get_meta() |> Keyword.take([:generated])
+      end
+
+    # If the expression is generated or the construct is a literal,
+    # it is most likely a macro code. However, if no clause is matched,
+    # we should still check for that.
+    if added_meta != [] do
       for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
     else
       clauses

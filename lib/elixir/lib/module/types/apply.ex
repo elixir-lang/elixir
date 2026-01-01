@@ -217,7 +217,6 @@ defmodule Module.Types.Apply do
            {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
          ]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
-        {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
         {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
         {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
@@ -226,7 +225,6 @@ defmodule Module.Types.Apply do
         {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
-        {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
         {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
@@ -263,9 +261,7 @@ defmodule Module.Types.Apply do
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
-    true =
-      Code.ensure_loaded?(mod) and
-        (function_exported?(mod, fun, arity) or fun in [:orelse, :andalso])
+    true = Code.ensure_loaded?(mod)
 
     domain_clauses =
       case clauses do

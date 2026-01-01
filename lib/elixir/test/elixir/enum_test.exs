@@ -302,10 +302,6 @@ defmodule EnumTest do
     assert Enum.drop([1, 2, 3], -2) == [1]
     assert Enum.drop([1, 2, 3], -4) == []
     assert Enum.drop([], 3) == []
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.drop([1, 2, 3], 0.0)
-    end
   end
 
   test "drop/2 with streams" do
@@ -540,10 +536,6 @@ defmodule EnumTest do
 
     assert_raise FunctionClauseError, fn ->
       Enum.map_every([1, 2, 3], -1, fn x -> x * 2 end)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.map_every(1..10, 3.33, fn x -> x * 2 end)
     end
 
     assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 9, fn x -> x + 1000 end) ==
@@ -1204,10 +1196,6 @@ defmodule EnumTest do
     assert_raise FunctionClauseError, fn ->
       Enum.slice(list, 0.99, 0)
     end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(list, 0, 0.99)
-    end
   end
 
   test "slice on infinite streams" do
@@ -1432,10 +1420,6 @@ defmodule EnumTest do
     assert Enum.split([1, 2, 3], -2) == {[1], [2, 3]}
     assert Enum.split([1, 2, 3], -3) == {[], [1, 2, 3]}
     assert Enum.split([1, 2, 3], -10) == {[], [1, 2, 3]}
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.split([1, 2, 3], 0.0)
-    end
   end
 
   test "split_while/2" do
@@ -1537,10 +1521,6 @@ defmodule EnumTest do
     assert Enum.take([1, 2, 3], -2) == [2, 3]
     assert Enum.take([1, 2, 3], -4) == [1, 2, 3]
     assert Enum.take([], 3) == []
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.take([1, 2, 3], 0.0)
-    end
   end
 
   test "take_every/2" do
@@ -1553,10 +1533,6 @@ defmodule EnumTest do
 
     assert_raise FunctionClauseError, fn ->
       Enum.take_every([1, 2, 3], -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.take_every(1..10, 3.33)
     end
   end
 
@@ -1596,14 +1572,6 @@ defmodule EnumTest do
 
     assert_raise FunctionClauseError, fn ->
       Enum.take_random(1..10, -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.take_random(1..10, 10.0)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.take_random(1..10, 128.1)
     end
   end
 
@@ -2404,14 +2372,6 @@ defmodule EnumTest.Range do
 
     assert_raise FunctionClauseError, fn ->
       Enum.slice(1..5, 0, -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(1..5, 0.99, 0)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(1..5, 0, 0.99)
     end
 
     assert Enum.slice(5..1//-1, 0, 0) == []
