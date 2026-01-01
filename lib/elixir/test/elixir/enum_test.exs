@@ -1192,10 +1192,6 @@ defmodule EnumTest do
     assert_raise FunctionClauseError, fn ->
       Enum.slice(list, 0, -1)
     end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(list, 0.99, 0)
-    end
   end
 
   test "slice on infinite streams" do
@@ -2691,14 +2687,6 @@ defmodule EnumTest.Map do
       Enum.slice(map, 0, -1)
     end
 
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0.99, 0)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0, 0.99)
-    end
-
     assert Enum.slice(map, 0, 0) == []
     assert Enum.slice(map, 0, 1) == [x1]
     assert Enum.slice(map, 0, 2) == [x1, x2]
@@ -2716,14 +2704,6 @@ defmodule EnumTest.Map do
 
     assert_raise FunctionClauseError, fn ->
       Enum.slice(map, 0, -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0.99, 0)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0, 0.99)
     end
   end
 

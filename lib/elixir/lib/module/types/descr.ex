@@ -99,6 +99,23 @@ defmodule Module.Types.Descr do
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
 
+  @doc """
+  Gets the upper bound of a gradual type.
+
+  This is the same as removing the gradual type.
+  """
+  def upper_bound(%{dynamic: dynamic}), do: dynamic
+  def upper_bound(static), do: static
+
+  @doc """
+  Gets the lower bound of a gradual type.
+
+  This is the same as getting the static part.
+  Note this is not generally safe and changes the representation of the type.
+  """
+  def lower_bound(:term), do: :term
+  def lower_bound(type), do: Map.delete(type, :dynamic)
+
   ## Function constructors
 
   @doc """
@@ -1119,14 +1136,6 @@ defmodule Module.Types.Descr do
       %{fun: fun_new(arity, args, output)}
     end
   end
-
-  # Gets the upper bound of a gradual type.
-  defp upper_bound(%{dynamic: dynamic}), do: dynamic
-  defp upper_bound(static), do: static
-
-  # Gets the lower bound of a gradual type.
-  defp lower_bound(:term), do: :term
-  defp lower_bound(type), do: Map.delete(type, :dynamic)
 
   @doc """
   Applies a function type to a list of argument types.
