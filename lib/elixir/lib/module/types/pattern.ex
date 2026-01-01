@@ -433,12 +433,12 @@ defmodule Module.Types.Pattern do
   """
   def of_size(:match, arg, expr, stack, %{pattern_info: pattern_info} = context) do
     context = init_guard_info(context)
-    {type, context} = of_guard(arg, {false, integer()}, expr, stack, context)
+    {type, context} = of_guard(arg, integer(), expr, stack, context)
     {type, %{context | pattern_info: pattern_info}}
   end
 
   def of_size(:guard, arg, expr, stack, context) do
-    of_guard(arg, {false, integer()}, expr, stack, context)
+    of_guard(arg, integer(), expr, stack, context)
   end
 
   ## Patterns
@@ -771,7 +771,7 @@ defmodule Module.Types.Pattern do
 
     context =
       Enum.reduce(guards, context, fn guard, context ->
-        {type, context} = of_guard(guard, {true, @atom_true}, guard, stack, context)
+        {type, context} = of_guard(guard, @atom_true, guard, stack, context)
 
         if never_true?(type) do
           error = {:badguard, type, guard, context}
@@ -794,105 +794,91 @@ defmodule Module.Types.Pattern do
   end
 
   # :atom
-  def of_guard(atom, _root_expected, _expr, _stack, context) when is_atom(atom) do
+  def of_guard(atom, _expected, _expr, _stack, context) when is_atom(atom) do
     {atom([atom]), context}
   end
 
   # 12
-  def of_guard(literal, _root_expected, _expr, _stack, context) when is_integer(literal) do
+  def of_guard(literal, _expected, _expr, _stack, context) when is_integer(literal) do
     {integer(), context}
   end
 
   # 1.2
-  def of_guard(literal, _root_expected, _expr, _stack, context) when is_float(literal) do
+  def of_guard(literal, _expected, _expr, _stack, context) when is_float(literal) do
     {float(), context}
   end
 
   # "..."
-  def of_guard(literal, _root_expected, _expr, _stack, context) when is_binary(literal) do
+  def of_guard(literal, _expected, _expr, _stack, context) when is_binary(literal) do
     {binary(), context}
   end
 
   # []
-  def of_guard([], _root_expected, _expr, _stack, context) do
+  def of_guard([], _expected, _expr, _stack, context) do
     {empty_list(), context}
   end
 
   # [expr, ...]
-  def of_guard(list, _root_expected, expr, stack, context) when is_list(list) do
+  def of_guard(list, _expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
 
     {prefix, context} =
-      Enum.map_reduce(prefix, context, &of_guard(&1, {false, term()}, expr, stack, &2))
+      Enum.map_reduce(prefix, context, &of_guard(&1, term(), expr, stack, &2))
 
-    {suffix, context} = of_guard(suffix, {false, term()}, expr, stack, context)
+    {suffix, context} = of_guard(suffix, term(), expr, stack, context)
     {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
   # {left, right}
-  def of_guard({left, right}, root_expected, expr, stack, context) do
-    of_guard({:{}, [], [left, right]}, root_expected, expr, stack, context)
+  def of_guard({left, right}, expected, expr, stack, context) do
+    of_guard({:{}, [], [left, right]}, expected, expr, stack, context)
   end
 
   # %Struct{...}
-  def of_guard(
-        {:%, meta, [module, {:%{}, _, args}]} = struct,
-        {_root, expected},
-        _expr,
-        stack,
-        context
-      )
+  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, expected, _expr, stack, context)
       when is_atom(module) do
-    fun = &of_guard(&1, {false, &2}, struct, &3, &4)
+    fun = &of_guard(&1, &2, struct, &3, &4)
     Of.struct_instance(module, args, expected, meta, stack, context, fun)
   end
 
   # %{...}
-  def of_guard({:%{}, _meta, args}, {_root, expected}, expr, stack, context) do
-    Of.closed_map(args, expected, stack, context, &of_guard(&1, {false, &2}, expr, &3, &4))
+  def of_guard({:%{}, _meta, args}, expected, expr, stack, context) do
+    Of.closed_map(args, expected, stack, context, &of_guard(&1, &2, expr, &3, &4))
   end
 
   # <<>>
-  def of_guard({:<<>>, _meta, args}, _root_expected, _expr, stack, context) do
+  def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
     context = Of.binary(args, :guard, stack, context)
     {binary(), context}
   end
 
   # ^var
-  def of_guard({:^, _meta, [var]}, {_root, expected}, expr, stack, context) do
+  def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
     # This is used by binary size, which behaves as a mixture of match and guard
     Of.refine_body_var(var, expected, expr, stack, context)
   end
 
   # {...}
-  def of_guard({:{}, _meta, args}, _root_expected, expr, stack, context) do
-    {types, context} =
-      Enum.map_reduce(args, context, &of_guard(&1, {false, term()}, expr, stack, &2))
-
+  def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
+    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
     {tuple(types), context}
   end
 
   # var.field
-  def of_guard(
-        {{:., _, [callee, key]}, _, []} = map_fetch,
-        {_root, expected},
-        expr,
-        stack,
-        context
-      )
+  def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, expected, expr, stack, context)
       when not is_atom(callee) do
-    {type, context} = of_guard(callee, {false, open_map([{key, expected}])}, expr, stack, context)
+    {type, context} = of_guard(callee, open_map([{key, expected}]), expr, stack, context)
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, root_expected, _, stack, context)
+  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _, stack, context)
       when is_atom(fun) do
-    of_remote(fun, meta, args, call, root_expected, stack, context)
+    of_remote(fun, meta, args, call, expected, stack, context)
   end
 
   # var
-  def of_guard(var, {_root, expected}, expr, stack, context) when is_var(var) do
+  def of_guard(var, expected, expr, stack, context) when is_var(var) do
     case context.pattern_info do
       {true} -> Of.refine_body_var(var, expected, expr, stack, context)
       {false} -> {Of.var(var, context), context}
@@ -900,20 +886,20 @@ defmodule Module.Types.Pattern do
   end
 
   # TODO: Move orelse and andalso handling here, both may never be executed
-  defp of_remote(fun, meta, [left, right], call, {_root, expected}, stack, context)
+  defp of_remote(fun, meta, [left, right], call, expected, stack, context)
        when fun in [:or, :orelse] do
     {info, [left_domain, right_domain], context} =
       Apply.remote_domain(:erlang, fun, [left, right], expected, meta, stack, context)
 
-    {left_type, context} = of_guard(left, {false, left_domain}, call, stack, context)
+    {left_type, context} = of_guard(left, left_domain, call, stack, context)
 
     {right_type, context} =
       if fun == :or do
-        of_guard(right, {false, right_domain}, call, stack, context)
+        of_guard(right, right_domain, call, stack, context)
       else
         %{pattern_info: pattern_info} = context
         context = %{context | pattern_info: {false}}
-        {type, context} = of_guard(right, {false, right_domain}, call, stack, context)
+        {type, context} = of_guard(right, right_domain, call, stack, context)
         {type, %{context | pattern_info: pattern_info}}
       end
 
@@ -921,21 +907,12 @@ defmodule Module.Types.Pattern do
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
-  defp of_remote(fun, meta, args, call, {root, expected}, stack, context) do
-    # If we are the root, we are only interested in positive results,
-    # except for the operations that can return :fail.
-    expected =
-      if root and fun not in [:element, :hd, :map_get, :max, :min, :tl] do
-        @atom_true
-      else
-        expected
-      end
-
+  defp of_remote(fun, meta, args, call, expected, stack, context) do
     {info, domain, context} =
       Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
 
     {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_guard(&1, {false, &2}, call, stack, &3))
+      zip_map_reduce(args, domain, context, &of_guard(&1, &2, call, stack, &3))
 
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
