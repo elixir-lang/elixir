@@ -127,7 +127,8 @@ defmodule RegexTest do
   test "compile!/1" do
     assert %Regex{} = Regex.compile!("foo")
 
-    assert_raise Regex.CompileError, ~r/position 0$/, fn ->
+    # The exact position changed between Erlang/OTP 28.1 and 28.3
+    assert_raise Regex.CompileError, ~r/at position/, fn ->
       Regex.compile!("*foo")
     end
   end
