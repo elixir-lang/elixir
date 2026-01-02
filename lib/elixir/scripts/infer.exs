@@ -1,6 +1,10 @@
 parent = self()
 {:ok, checker} = Module.ParallelChecker.start_link()
 
+# Validate we are loading Elixir modules and that they are all in place
+[:elixir] = Code.get_compiler_option(:infer_signatures)
+true = URI in Application.spec(:elixir, :modules)
+
 {time, modules} =
   :timer.tc(fn ->
     [_ | _] = paths = Path.wildcard(Path.join(__DIR__, "../ebin/Elixir.*.beam"))
