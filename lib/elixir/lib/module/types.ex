@@ -34,7 +34,7 @@ defmodule Module.Types do
   @no_infer [behaviour_info: 1]
 
   @doc false
-  def infer(module, file, attrs, defs, private, used_private, env, {_, cache}) do
+  def infer(module, file, attrs, defs, used_private, env, {_, cache}) do
     # We don't care about inferring signatures for protocols,
     # those will be replaced anyway. There is also nothing to
     # infer if there is no cache system, we only do traversals.
@@ -72,11 +72,10 @@ defmodule Module.Types do
 
     stack = stack(:infer, file, module, {:__info__, 1}, env, cache, handler)
 
-    {types, %{local_sigs: reachable_sigs} = context} =
+    {types, private, %{local_sigs: reachable_sigs} = context} =
       for {fun_arity, kind, meta, _clauses} = def <- defs,
-          kind in [:def, :defmacro],
-          reduce: {[], context()} do
-        {types, context} ->
+          reduce: {[], [], context()} do
+        {types, private, context} when kind in [:def, :defmacro] ->
           # Optimized version of finder, since we already have the definition
           finder = fn _ ->
             default_domain(infer_mode(kind, infer_signatures?), def, fun_arity, impl)
@@ -85,10 +84,13 @@ defmodule Module.Types do
           {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
 
           if infer_signatures? and kind == :def and fun_arity not in @no_infer do
-            {[{fun_arity, inferred} | types], context}
+            {[{fun_arity, inferred} | types], private, context}
           else
-            {types, context}
+            {types, private, context}
           end
+
+        {types, private, context} ->
+          {types, [def | private], context}
       end
 
     # Now traverse all used privates to find any other private that have been used by them.
@@ -102,8 +104,8 @@ defmodule Module.Types do
 
     {unreachable, _context} =
       Enum.reduce(private, {[], context}, fn
-        {fun_arity, kind, _meta, _defaults} = info, {unreachable, context} ->
-          warn_unused_def(info, used_sigs, env)
+        {fun_arity, kind, meta, _clauses}, {unreachable, context} ->
+          warn_unused_def(fun_arity, kind, meta, used_sigs, env)
 
           # Find anything undefined within unused functions
           {_kind, _inferred, context} = local_handler([], fun_arity, stack, context, finder)
@@ -170,29 +172,30 @@ defmodule Module.Types do
     :elixir_errors.module_error(Helpers.with_span(meta, fun), env, __MODULE__, tuple)
   end
 
-  defp warn_unused_def({_fun_arity, _kind, false, _}, _used, _env) do
-    :ok
-  end
+  defp warn_unused_def(fun_arity, kind, meta, used, env) do
+    default = Keyword.get(meta, :defaults, 0)
 
-  defp warn_unused_def({fun_arity, kind, meta, 0}, used, env) do
-    case is_map_key(used, fun_arity) do
-      true -> :ok
-      false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
-    end
+    cond do
+      Keyword.get(meta, :context) != nil ->
+        :ok
 
-    :ok
-  end
+      default == 0 ->
+        case is_map_key(used, fun_arity) do
+          true -> :ok
+          false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
+        end
 
-  defp warn_unused_def({tuple, kind, meta, default}, used, env) when default > 0 do
-    {name, arity} = tuple
-    min = arity - default
-    max = arity
+      default > 0 ->
+        {name, arity} = fun_arity
+        min = arity - default
+        max = arity
 
-    case min_reachable_default(max, min, :none, name, used) do
-      :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, tuple, kind})
-      ^min -> :ok
-      ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple})
-      diff -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple, diff})
+        case min_reachable_default(max, min, :none, name, used) do
+          :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
+          ^min -> :ok
+          ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, fun_arity})
+          diff -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, fun_arity, diff})
+        end
     end
 
     :ok

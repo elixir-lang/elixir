@@ -168,7 +168,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
       elixir_erl_compiler:spawn(fun() ->
         PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
         Attributes = attributes(DataSet, DataBag, PersistedAttributes),
-        {AllDefinitions, Private} = elixir_def:fetch_definitions(Module, E),
+        AllDefinitions = elixir_def:fetch_definitions(Module, E),
 
         OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
         validate_on_load_attribute(OnLoadAttribute, AllDefinitions, DataBag, Line, E),
@@ -196,7 +196,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
             true -> {#{}, []};
             false ->
               UsedPrivate = bag_lookup_element(DataBag, used_private, 2),
-              'Elixir.Module.Types':infer(Module, File, Attributes, AllDefinitions, Private, UsedPrivate, E, CheckerInfo)
+              'Elixir.Module.Types':infer(Module, File, Attributes, AllDefinitions, UsedPrivate, E, CheckerInfo)
           end,
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
