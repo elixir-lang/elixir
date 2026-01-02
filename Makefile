@@ -107,6 +107,7 @@ $(KERNEL): lib/elixir/src/* lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir
 	fi
 	@ echo "==> elixir (compile)";
 	$(Q) cd lib/elixir && ../../$(ELIXIRC_MIN_SIG) "lib/**/*.ex" -o ebin;
+	$(Q) bin/elixir lib/elixir/scripts/infer.exs;
 
 $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
 	$(Q) $(GENERATE_APP) $(VERSION)
