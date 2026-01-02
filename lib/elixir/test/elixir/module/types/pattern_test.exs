@@ -419,6 +419,14 @@ defmodule Module.Types.PatternTest do
              """
     end
 
+    test "is_binary/1" do
+      assert typecheck!([x], is_binary(x), x) == dynamic(binary())
+      assert typecheck!([x], not is_binary(x), x) == dynamic(term())
+
+      assert typecheck!([x], is_bitstring(x), x) == dynamic(binary())
+      assert typecheck!([x], not is_bitstring(x), x) == dynamic(negation(binary()))
+    end
+
     test "is_function/2" do
       assert typecheck!([x], is_function(x, 3), x) == dynamic(fun(3))
       assert typecheck!([x], not is_function(x, 3), x) == dynamic(negation(fun(3)))

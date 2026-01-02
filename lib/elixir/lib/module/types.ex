@@ -72,8 +72,10 @@ defmodule Module.Types do
 
     stack = stack(:infer, file, module, {:__info__, 1}, env, cache, handler)
 
+    # In case there are loops, the other we traverse matters,
+    # so we sort the definitions for determinism
     {types, private, %{local_sigs: reachable_sigs} = context} =
-      for {fun_arity, kind, meta, _clauses} = def <- defs,
+      for {fun_arity, kind, meta, _clauses} = def <- Enum.sort(defs),
           reduce: {[], [], context()} do
         {types, private, context} when kind in [:def, :defmacro] ->
           # Optimized version of finder, since we already have the definition
