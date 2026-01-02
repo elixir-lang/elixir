@@ -20,13 +20,16 @@ defmodule Diff do
     labeled_locals
   )a
 
+  @term_chunks ~w(
+    ExCk
+    Docs
+  )c
+
   @binary_chunks ~w(
     Attr
     AtU8
     CInf
     Dbgi
-    Docs
-    ExCk
     ExpT
     ImpT
     LocT
@@ -95,8 +98,13 @@ defmodule Diff do
     end
   end
 
+  defp inspect_all(data) do
+    inspect(data, pretty: true, limit: :infinity)
+  end
+
   defp beam_diff(file1, content1, file2, content2) do
-    chunk_diff(content1, content2, @atom_chunks, &inspect(&1, pretty: true, limit: :infinity)) ||
+    chunk_diff(content1, content2, @atom_chunks, &inspect_all(&1)) ||
+      chunk_diff(content1, content2, @term_chunks, &inspect_all(:erlang.binary_to_term(&1))) ||
       chunk_diff(content1, content2, @binary_chunks, &(&1 |> write_tmp() |> xxd_dump())) ||
       (
         tmp_file1 =
