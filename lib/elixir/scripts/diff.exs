@@ -158,7 +158,7 @@ defmodule Diff do
   end
 
   defp file_diff(file1, file2) do
-    {diff, _} = System.cmd("diff", ["--suppress-common-lines", file1, file2])
+    {diff, _} = System.cmd("diff", ["-U3", file1, file2])
     diff
   end
 
