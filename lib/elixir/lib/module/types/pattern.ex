@@ -757,11 +757,13 @@ defmodule Module.Types.Pattern do
 
   defp of_guards(guards, stack, context) do
     # TODO: This match? is temporary until we support multiple guards
-    context = init_guard_info(context, match?([_], guards))
+    single? = match?([_], guards)
+    context = init_guard_info(context, single?)
+    return = if single?, do: @atom_true, else: term()
 
     context =
       Enum.reduce(guards, context, fn guard, context ->
-        {type, context} = of_guard(guard, @atom_true, guard, stack, context)
+        {type, context} = of_guard(guard, return, guard, stack, context)
 
         if never_true?(type) do
           error = {:badguard, type, guard, context}
