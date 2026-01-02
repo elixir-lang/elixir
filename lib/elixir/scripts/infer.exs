@@ -1,3 +1,8 @@
+# We disable type inference across modules by setting
+# infer_signatures to [] when compiling Elixir for
+# deterministic reasons. Now we do one additional pass
+# using the locally inferred types to infer all types
+# for stdlib itself.
 parent = self()
 {:ok, checker} = Module.ParallelChecker.start_link()
 
