@@ -141,9 +141,6 @@ install: compile
 	done
 	"$(MAKE)" install_man
 
-recompile_system:
-	$(Q) cd lib/elixir && ../../$(ELIXIRC_MIN_SIG) "lib/system.ex" -o ebin;
-
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
 	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
