@@ -50,7 +50,7 @@ defmodule Inspect.AlgebraTest do
     # Consistent with definitions
     assert break("break") == {:doc_break, "break", :strict}
     assert break("") == {:doc_break, "", :strict}
-    Fun
+
     # Consistent formatting
     assert render(break("_"), 80) == "_"
     assert render(glue("foo", " ", glue("bar", " ", "baz")), 10) == "foo\nbar\nbaz"
