@@ -4,20 +4,31 @@
 # using the locally inferred types to infer all types
 # for stdlib itself.
 parent = self()
+ebin = Path.expand("../ebin", __DIR__)
 {:ok, checker} = Module.ParallelChecker.start_link()
 
 # Validate we are loading Elixir modules and that they are all in place
 [:elixir] = Code.get_compiler_option(:infer_signatures)
-true = URI in Application.spec(:elixir, :modules)
+
+# Now we prefill all exports so the cache is prebuilt instead of depending
+# on the concurrency of the async stream below
+[_ | _] =
+  modules =
+  for module <- Application.spec(:elixir, :modules),
+      match?("Elixir." <> _, Atom.to_string(module)) do
+    Enum.each(module.__info__(:functions), fn {fun, arity} ->
+      Module.ParallelChecker.fetch_export(checker, module, fun, arity, true)
+    end)
+
+    module
+  end
 
 {time, modules} =
   :timer.tc(fn ->
-    [_ | _] = paths = Path.wildcard(Path.join(__DIR__, "../ebin/Elixir.*.beam"))
-
-    paths
+    modules
     |> Task.async_stream(
-      fn path ->
-        path = Path.expand(path)
+      fn module ->
+        path = Path.join(ebin, "#{module}.beam")
         Module.ParallelChecker.put(parent, checker)
         cache = Module.ParallelChecker.get()
         binary = File.read!(path)
