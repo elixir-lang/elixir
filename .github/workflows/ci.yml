@@ -106,8 +106,7 @@ jobs:
         run: |
           rm -rf .git
           # Recompile System without .git
-          cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
-          taskset 1 make check_reproducible
+          taskset 1 make recompile_system check_reproducible
 
   test_windows:
     name: Windows Server 2022, OTP ${{ matrix.otp_version }}
