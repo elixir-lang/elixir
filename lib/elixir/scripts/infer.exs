@@ -73,7 +73,6 @@ true = URI in modules and Version.Requirement in modules
       # while we are still doing inference
       |> Enum.to_list()
       |> Enum.map(fn {:ok, {module, path, new_binary}} ->
-
         File.write!(path, new_binary)
         {module, path}
       end)
