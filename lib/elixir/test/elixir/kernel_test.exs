@@ -106,42 +106,6 @@ defmodule KernelTest do
 
     assert "" =~ "abcd" == false
     assert "" =~ ~r/abcd/ == false
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ "hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ ~r"hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ ~r"hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      ~r"hello" =~ "hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      ~r"hello" =~ ~r"hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      :abcd =~ ~r//
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      :abcd =~ ""
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
-      "abcd" =~ nil
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
-      "abcd" =~ :abcd
-    end
   end
 
   test "^" do

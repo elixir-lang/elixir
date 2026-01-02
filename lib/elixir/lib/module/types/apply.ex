@@ -1144,9 +1144,9 @@ defmodule Module.Types.Apply do
   end
 
   defp filter_domain([{args, return} | clauses], expected, acc, all_compatible?) do
-    case compatible?(expected, return) do
-      true -> filter_domain(clauses, expected, [args | acc], all_compatible?)
-      false -> filter_domain(clauses, expected, acc, false)
+    case disjoint?(return, expected) do
+      false -> filter_domain(clauses, expected, [args | acc], all_compatible?)
+      true -> filter_domain(clauses, expected, acc, false)
     end
   end
 
