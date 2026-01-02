@@ -47,7 +47,7 @@ true = URI in Application.spec(:elixir, :modules)
             end
           end)
 
-        [{"ExCk", checker_chunk}] = :elixir_erl.checker_chunk(checker, [])
+        [{"ExCk", checker_chunk}] = :elixir_erl.checker_chunk(checker, [:deterministic])
         {:ok, ^module, chunks} = :beam_lib.all_chunks(binary)
 
         {:ok, new_binary} =
