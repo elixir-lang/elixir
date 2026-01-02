@@ -137,7 +137,14 @@ defmodule Diff do
             chunk1 != chunk2 do
           tmp_file1 = chunk1 |> formatter.() |> write_tmp()
           tmp_file2 = chunk2 |> formatter.() |> write_tmp()
-          [to_string(name1), ?\n, file_diff(tmp_file1, tmp_file2)]
+
+          message =
+            case file_diff(tmp_file1, tmp_file2) do
+              "" -> "DIFF IS EMPTY: most likely non-deterministic term_to_binary/2"
+              diff -> diff
+            end
+
+          [to_string(name1), ?\n, message]
         end
       end
     else
