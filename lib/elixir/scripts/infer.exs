@@ -69,9 +69,11 @@ true = URI in modules and Version.Requirement in modules
         end,
         timeout: :infinity
       )
+      # Get all results first to avoid writing files
+      # while we are still doing inference
+      |> Enum.to_list()
       |> Enum.map(fn {:ok, {module, path, new_binary}} ->
-        # Only write to files once we are done to avoid the result
-        # of one task affecting other ones
+
         File.write!(path, new_binary)
         {module, path}
       end)
