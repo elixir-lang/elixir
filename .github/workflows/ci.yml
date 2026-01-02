@@ -103,11 +103,14 @@ jobs:
 
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
+        run: taskset 1 make check_reproducible
+
+      - name: Check git is not required
+        if: ${{ matrix.deterministic }}
         run: |
           rm -rf .git
-          # Recompile System without .git
-          cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
-          taskset 1 make check_reproducible
+          cd lib/elixir
+          elixirc --ignore-module-conflict -o ebin "lib/**/*.ex"
 
   test_windows:
     name: Windows Server 2022, OTP ${{ matrix.otp_version }}

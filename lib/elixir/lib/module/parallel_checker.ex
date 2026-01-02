@@ -221,14 +221,6 @@ defmodule Module.ParallelChecker do
   end
 
   @doc """
-  Test cache.
-  """
-  def test_cache do
-    {:ok, cache} = start_link()
-    cache
-  end
-
-  @doc """
   Returns the export kind and deprecation reason for the given MFA from
   the cache. If the module does not exist return `:badmodule`,
   or if the function does not exist return `{:badfunction, mode}`.

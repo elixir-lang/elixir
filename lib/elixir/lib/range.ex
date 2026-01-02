@@ -207,12 +207,6 @@ defmodule Range do
     %Range{first: first, last: last, step: step}
   end
 
-  def new(first, last) do
-    raise ArgumentError,
-          "ranges (first..last) expect both sides to be integers, " <>
-            "got: #{inspect(first)}..#{inspect(last)}"
-  end
-
   @doc """
   Creates a new range with `step`.
 

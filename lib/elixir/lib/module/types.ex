@@ -24,20 +24,17 @@ defmodule Module.Types do
   #
   #   * :infer - Same as :dynamic but skips remote calls.
   #
-  #   * :traversal - Focused mostly on traversing AST, skips most type system
-  #     operations. Used by macros and when skipping inference.
-  #
   # The mode may also control exhaustiveness checks in the future (to be decided).
   # We may also want for applications with subtyping in dynamic mode to always
   # intersect with dynamic, but this mode may be too lax (to be decided based on
   # feedback).
-  @modes [:static, :dynamic, :infer, :traversal]
+  @modes [:static, :dynamic, :infer]
 
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [behaviour_info: 1]
 
   @doc false
-  def infer(module, file, attrs, defs, private, used_private, env, {_, cache}) do
+  def infer(module, file, attrs, defs, used_private, env, {_, cache}) do
     # We don't care about inferring signatures for protocols,
     # those will be replaced anyway. There is also nothing to
     # infer if there is no cache system, we only do traversals.
@@ -75,11 +72,12 @@ defmodule Module.Types do
 
     stack = stack(:infer, file, module, {:__info__, 1}, env, cache, handler)
 
-    {types, %{local_sigs: reachable_sigs} = context} =
-      for {fun_arity, kind, meta, _clauses} = def <- defs,
-          kind in [:def, :defmacro],
-          reduce: {[], context()} do
-        {types, context} ->
+    # In case there are loops, the other we traverse matters,
+    # so we sort the definitions for determinism
+    {types, private, %{local_sigs: reachable_sigs} = context} =
+      for {fun_arity, kind, meta, _clauses} = def <- Enum.sort(defs),
+          reduce: {[], [], context()} do
+        {types, private, context} when kind in [:def, :defmacro] ->
           # Optimized version of finder, since we already have the definition
           finder = fn _ ->
             default_domain(infer_mode(kind, infer_signatures?), def, fun_arity, impl)
@@ -88,10 +86,13 @@ defmodule Module.Types do
           {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
 
           if infer_signatures? and kind == :def and fun_arity not in @no_infer do
-            {[{fun_arity, inferred} | types], context}
+            {[{fun_arity, inferred} | types], private, context}
           else
-            {types, context}
+            {types, private, context}
           end
+
+        {types, private, context} ->
+          {types, [def | private], context}
       end
 
     # Now traverse all used privates to find any other private that have been used by them.
@@ -105,8 +106,8 @@ defmodule Module.Types do
 
     {unreachable, _context} =
       Enum.reduce(private, {[], context}, fn
-        {fun_arity, kind, _meta, _defaults} = info, {unreachable, context} ->
-          warn_unused_def(info, used_sigs, env)
+        {fun_arity, kind, meta, _clauses}, {unreachable, context} ->
+          warn_unused_def(fun_arity, kind, meta, used_sigs, env)
 
           # Find anything undefined within unused functions
           {_kind, _inferred, context} = local_handler([], fun_arity, stack, context, finder)
@@ -125,7 +126,7 @@ defmodule Module.Types do
   end
 
   defp infer_mode(kind, infer_signatures?) do
-    if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traversal
+    if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traverse
   end
 
   defp protocol?(attrs) do
@@ -154,7 +155,7 @@ defmodule Module.Types do
         | List.duplicate(Descr.dynamic(), arity - 1)
       ]
 
-      {fun_arity, kind, meta, clauses} = def
+      {_fun_arity, kind, meta, clauses} = def
 
       clauses =
         for {meta, args, guards, body} <- clauses do
@@ -173,29 +174,30 @@ defmodule Module.Types do
     :elixir_errors.module_error(Helpers.with_span(meta, fun), env, __MODULE__, tuple)
   end
 
-  defp warn_unused_def({_fun_arity, _kind, false, _}, _used, _env) do
-    :ok
-  end
+  defp warn_unused_def(fun_arity, kind, meta, used, env) do
+    default = Keyword.get(meta, :defaults, 0)
 
-  defp warn_unused_def({fun_arity, kind, meta, 0}, used, env) do
-    case is_map_key(used, fun_arity) do
-      true -> :ok
-      false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
-    end
+    cond do
+      Keyword.get(meta, :context) != nil ->
+        :ok
 
-    :ok
-  end
+      default == 0 ->
+        case is_map_key(used, fun_arity) do
+          true -> :ok
+          false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
+        end
 
-  defp warn_unused_def({tuple, kind, meta, default}, used, env) when default > 0 do
-    {name, arity} = tuple
-    min = arity - default
-    max = arity
+      default > 0 ->
+        {name, arity} = fun_arity
+        min = arity - default
+        max = arity
 
-    case min_reachable_default(max, min, :none, name, used) do
-      :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, tuple, kind})
-      ^min -> :ok
-      ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple})
-      diff -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple, diff})
+        case min_reachable_default(max, min, :none, name, used) do
+          :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
+          ^min -> :ok
+          ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, fun_arity})
+          diff -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, fun_arity, diff})
+        end
     end
 
     :ok
@@ -291,7 +293,7 @@ defmodule Module.Types do
             context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
             {inferred, mapping, context} =
-              local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context)
+              local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context)
 
             context =
               update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
@@ -304,7 +306,17 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context) do
+  defp local_handler(:traverse, {_, arity}, _kind, _meta, clauses, _expected, stack, context) do
+    context =
+      Enum.reduce(clauses, context, fn {_meta, _args, _guards, body}, context ->
+        Module.Types.Traverse.of_expr(body, stack, context)
+      end)
+
+    inferred = {:infer, nil, [{List.duplicate(Descr.term(), arity), Descr.dynamic()}]}
+    {inferred, [{0, 0}], context}
+  end
+
+  defp local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context) do
     {fun, _arity} = fun_arity
     stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
 
@@ -320,12 +332,7 @@ defmodule Module.Types do
             {return_type, context} =
               Expr.of_expr(body, Descr.term(), body, stack, context)
 
-            args_types =
-              if stack.mode == :traversal do
-                expected
-              else
-                Pattern.of_domain(trees, context)
-              end
+            args_types = Pattern.of_domain(trees, context)
 
             {type_index, inferred} =
               add_inferred(inferred, args_types, return_type, total - 1, [])
@@ -442,7 +449,9 @@ defmodule Module.Types do
       warnings: [],
       # All vars and their types
       vars: %{},
-      # Variables and arguments from patterns
+      # Variables that are specific to the current environment/conditional
+      conditional_vars: nil,
+      # Track metadata specific to matches and guards
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,

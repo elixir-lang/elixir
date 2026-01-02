@@ -232,10 +232,11 @@ defmodule Module.Types.IntegrationTest do
       refute stderr =~ "this_wont_warn"
 
       itself_arg = fn mod ->
-        {_, %{sig: {:infer, nil, [{[value], value}]}}} =
+        {_, %{sig: {:infer, nil, [{[domain], return}]}}} =
           List.keyfind(read_chunk(modules[mod]).exports, {:itself, 1}, 0)
 
-        value
+        assert equal?(dynamic(domain), return)
+        return
       end
 
       assert itself_arg.(Itself.Atom) == dynamic(atom())
@@ -295,10 +296,10 @@ defmodule Module.Types.IntegrationTest do
             but expected one of:
 
                 #1
-                dynamic(:ok)
+                :ok
 
                 #2
-                dynamic(:error)
+                :error
         """,
         """
             warning: the following pattern will never match:
@@ -710,7 +711,7 @@ defmodule Module.Types.IntegrationTest do
 
             but expected one of:
 
-                dynamic(:ok)
+                :ok
 
             typing violation found at:
             │

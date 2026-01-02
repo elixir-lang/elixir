@@ -8,8 +8,6 @@ defmodule Module.Types.Pattern do
   alias Module.Types.{Apply, Of}
   import Module.Types.{Helpers, Descr}
 
-  @guard atom([true, false, :fail])
-
   @doc """
   Handles patterns and guards at once.
 
@@ -29,24 +27,24 @@ defmodule Module.Types.Pattern do
      is refined, we restart at step 2.
 
   """
-  def of_head(patterns, _guards, expected, _tag, _meta, %{mode: :traversal}, context) do
-    term = term()
-    {Enum.zip_with(patterns, expected, &{term, &2, &1}), context}
-  end
-
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
-
     {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
-    {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
+    context = of_guards(guards, stack, context)
     {trees, context}
   end
 
   @doc """
   Computes the domain from the pattern tree and expected types.
+
+  Note we use `upper_bound` because the user of dynamic in the signature
+  won't make a difference.
   """
   def of_domain([{tree, expected, _pattern} | trees], context) do
-    [intersection(of_pattern_tree(tree, context), expected) | of_domain(trees, context)]
+    [
+      intersection(of_pattern_tree(tree, context), expected) |> upper_bound()
+      | of_domain(trees, context)
+    ]
   end
 
   def of_domain([], _context) do
@@ -58,9 +56,9 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
-    context = init_pattern_info(context)
+    context = init_match_info(context)
     {trees, context} = of_pattern_args_zip(patterns, expected, 0, [], stack, context)
-    {pattern_info, context} = pop_pattern_info(context)
+    {pattern_info, context} = pop_match_info(context)
 
     context =
       case of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context) do
@@ -83,16 +81,10 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles the match operator.
   """
-  def of_match(pattern, expected_fun, expr, stack, context)
-
-  def of_match(_pattern, expected_fun, _expr, %{mode: :traversal}, context) do
-    expected_fun.(dynamic(), context)
-  end
-
   def of_match(pattern, expected_fun, expr, stack, context) do
-    context = init_pattern_info(context)
+    context = init_match_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
-    {pattern_info, context} = pop_pattern_info(context)
+    {pattern_info, context} = pop_match_info(context)
     {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
 
     args = [{tree, expected, expr}]
@@ -107,16 +99,10 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles matches in generators.
   """
-  def of_generator(pattern, guards, expected, tag, expr, stack, context)
-
-  def of_generator(_pattern, _guards, _expected, _tag, _expr, %{mode: :traversal}, context) do
-    context
-  end
-
   def of_generator(pattern, guards, expected, tag, expr, stack, context) do
-    context = init_pattern_info(context)
+    context = init_match_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
-    {pattern_info, context} = pop_pattern_info(context)
+    {pattern_info, context} = pop_match_info(context)
     args = [{tree, expected, pattern}]
 
     context =
@@ -125,8 +111,7 @@ defmodule Module.Types.Pattern do
         {:error, context} -> context
       end
 
-    {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-    context
+    of_guards(guards, stack, context)
   end
 
   defp of_pattern_intersect([head | tail], index, acc, pattern_info, tag, stack, context) do
@@ -290,6 +275,19 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # pattern_info stores the variables defined in patterns,
+  # additional information about the number of variables in
+  # arguments and list heads, and a counter used to compute
+  # the number of list heads.
+  # TODO: Move vars_deps and vars_paths into context.vars.
+  defp init_match_info(context) do
+    %{context | pattern_info: {[], %{}, %{}}}
+  end
+
+  defp pop_match_info(%{pattern_info: pattern_info} = context) do
+    {pattern_info, %{context | pattern_info: nil}}
+  end
+
   defp of_pattern_var([], type, _context) do
     {:ok, type}
   end
@@ -397,8 +395,39 @@ defmodule Module.Types.Pattern do
     {binary(), Of.binary(args, :match, stack, context)}
   end
 
-  def of_match_var(ast, expected, expr, stack, context) do
-    of_guard(ast, expected, expr, stack, context)
+  def of_match_var({:^, _meta, [var]}, expected, expr, stack, context) do
+    Of.refine_body_var(var, expected, expr, stack, context)
+  end
+
+  def of_match_var(atom, _expected, _expr, _stack, context) when is_atom(atom) do
+    {atom(), context}
+  end
+
+  def of_match_var(binary, _expected, _expr, _stack, context) when is_binary(binary) do
+    {binary(), context}
+  end
+
+  def of_match_var(integer, _expected, _expr, _stack, context) when is_integer(integer) do
+    {integer(), context}
+  end
+
+  def of_match_var(float, _expected, _expr, _stack, context) when is_float(float) do
+    {float(), context}
+  end
+
+  @doc """
+  Handle `size` in binary modifiers.
+
+  They behave like guards, so we need to take into account their scope.
+  """
+  def of_size(:match, arg, expr, stack, %{pattern_info: pattern_info} = context) do
+    context = init_guard_info(context)
+    {type, context} = of_guard(arg, integer(), expr, stack, context)
+    {type, %{context | pattern_info: pattern_info}}
+  end
+
+  def of_size(:guard, arg, expr, stack, context) do
+    of_guard(arg, integer(), expr, stack, context)
   end
 
   ## Patterns
@@ -704,7 +733,57 @@ defmodule Module.Types.Pattern do
   end
 
   ## Guards
-  # This function is public as it is invoked from Of.binary/4.
+  #
+  # Whenever we have a or/orelse, we need to build multiple environments
+  # and we only preserve intersections of those environments. However,
+  # when building those environments, domain checks are always passed
+  # upstream, except when they are on the right-side of `orelse`.
+  #
+  # Therefore, in addition to `conditional_vars`, we have to track:
+  #
+  # 1. Should we process type checks? We always do so at the root of guards.
+  #    Inside or/orelse, we also need to check the environments.
+  #
+  # 2. Should we process domain checks? We always process it, except that, if
+  #    on the right-side of orelse, it is only kept if it is shared across
+  #    the environment vars.
+
+  @atom_true atom([true])
+  @atom_false atom([false])
+
+  defp of_guards([], _stack, context) do
+    context
+  end
+
+  defp of_guards(guards, stack, context) do
+    # TODO: This match? is temporary until we support multiple guards
+    single? = match?([_], guards)
+    context = init_guard_info(context, single?)
+    return = if single?, do: @atom_true, else: term()
+
+    context =
+      Enum.reduce(guards, context, fn guard, context ->
+        {type, context} = of_guard(guard, return, guard, stack, context)
+
+        if never_true?(type) do
+          error = {:badguard, type, guard, context}
+          error(__MODULE__, error, error_meta(guard, stack), stack, context)
+        else
+          context
+        end
+      end)
+
+    {_, context} = pop_guard_info(context)
+    context
+  end
+
+  defp init_guard_info(context, check_domain? \\ true) do
+    %{context | pattern_info: {check_domain?}}
+  end
+
+  defp pop_guard_info(%{pattern_info: pattern_info} = context) do
+    {pattern_info, %{context | pattern_info: nil}}
+  end
 
   # :atom
   def of_guard(atom, _expected, _expr, _stack, context) when is_atom(atom) do
@@ -778,15 +857,64 @@ defmodule Module.Types.Pattern do
   end
 
   # var.field
-  def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
+  def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, expected, expr, stack, context)
       when not is_atom(callee) do
-    {type, context} = of_guard(callee, term(), expr, stack, context)
+    {type, context} = of_guard(callee, open_map([{key, expected}]), expr, stack, context)
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _expr, stack, context)
+  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _, stack, context)
       when is_atom(fun) do
+    of_remote(fun, meta, args, call, expected, stack, context)
+  end
+
+  # var
+  def of_guard(var, expected, expr, stack, context) when is_var(var) do
+    case context.pattern_info do
+      {true} -> Of.refine_body_var(var, expected, expr, stack, context)
+      {false} -> {Of.var(var, context), context}
+    end
+  end
+
+  defp of_remote(fun, _meta, [left, right], call, expected, stack, context)
+       when fun in [:andalso, :orelse] do
+    {both_domain, abort_domain} =
+      case fun do
+        :andalso -> {@atom_true, @atom_false}
+        :orelse -> {@atom_false, @atom_true}
+      end
+
+    # For example, if the expected type is true for andalso, then it can
+    # only be true if both clauses are executed, so we know the first
+    # argument has to be true and the second has to be expected.
+    {left_domain, right_domain, surely_rhs?} =
+      if subtype?(expected, both_domain) do
+        {both_domain, expected, true}
+      else
+        {boolean(), term(), false}
+      end
+
+    {left_type, context} = of_guard(left, left_domain, call, stack, context)
+
+    {right_type, context} =
+      if surely_rhs? do
+        of_guard(right, right_domain, call, stack, context)
+      else
+        %{pattern_info: pattern_info} = context
+        context = %{context | pattern_info: {false}}
+        {type, context} = of_guard(right, right_domain, call, stack, context)
+        {type, %{context | pattern_info: pattern_info}}
+      end
+
+    if compatible?(left_type, abort_domain) do
+      {union(abort_domain, right_type), context}
+    else
+      {right_type, context}
+    end
+  end
+
+  defp of_remote(fun, meta, args, call, expected, stack, context) do
     {info, domain, context} =
       Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
 
@@ -796,24 +924,27 @@ defmodule Module.Types.Pattern do
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
-  # var
-  def of_guard(var, _expected, _expr, _stack, context) when is_var(var) do
-    {Of.var(var, context), context}
-  end
-
   ## Helpers
 
-  # pattern_info stores the variables defined in patterns,
-  # additional information about the number of variables in
-  # arguments and list heads, and a counter used to compute
-  # the number of list heads.
-  # TODO: Consider moving pattern_info into context.vars.
-  defp init_pattern_info(context) do
-    %{context | pattern_info: {[], %{}, %{}}}
-  end
+  def format_diagnostic({:badguard, type, expr, context}) do
+    traces = collect_traces(expr, context)
 
-  defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
-    {pattern_info, %{context | pattern_info: nil}}
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          this guard will never succeed:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          because it returns type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
   def format_diagnostic({:badmatch, expr, context}) do

@@ -221,7 +221,7 @@ defmodule Kernel.RaiseTest do
     test "named function clause (stacktrace) or runtime (no stacktrace) error" do
       result =
         try do
-          Access.get("foo", 0)
+          Access.get(Process.get(:unused, "foo"), 0)
         rescue
           x in [FunctionClauseError, CaseClauseError] -> Exception.message(x)
         end
@@ -353,7 +353,7 @@ defmodule Kernel.RaiseTest do
     test "function clause error" do
       result =
         try do
-          Access.get(:ok, :error)
+          Access.get(Process.get(:unused, :ok), :error)
         rescue
           x in [FunctionClauseError] -> Exception.message(x)
         end

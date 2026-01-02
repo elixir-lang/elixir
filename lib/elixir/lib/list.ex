@@ -187,9 +187,10 @@ defmodule List do
   """
   @spec duplicate(any, 0) :: []
   @spec duplicate(elem, pos_integer) :: [elem, ...] when elem: var
-  def duplicate(elem, n) do
-    :lists.duplicate(n, elem)
-  end
+  def duplicate(elem, n) when is_integer(n) and n >= 0, do: duplicate(n, elem, [])
+
+  defp duplicate(0, _elem, acc), do: acc
+  defp duplicate(n, elem, acc), do: duplicate(n - 1, elem, [elem | acc])
 
   @doc """
   Flattens the given `list` of nested lists.

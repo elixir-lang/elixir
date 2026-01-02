@@ -14,7 +14,7 @@ end
 defmodule Module.Types.DescrTest do
   use ExUnit.Case, async: true
 
-  import Module.Types.Descr, except: [fun: 1]
+  import Module.Types.Descr
   defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defp number(), do: union(integer(), float())
@@ -1225,6 +1225,24 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "projections" do
+    test "never_true?" do
+      for type <- [
+            none(),
+            integer(),
+            atom([false]),
+            atom([:other, false]),
+            negation(atom([true]))
+          ] do
+        assert never_true?(type)
+        assert never_true?(dynamic(type))
+      end
+
+      for type <- [atom([true]), boolean(), atom(), term(), negation(atom([false]))] do
+        refute never_true?(type)
+        refute never_true?(dynamic(type))
+      end
+    end
+
     test "truthiness" do
       for type <- [term(), none(), atom(), boolean(), union(atom([false]), integer())] do
         assert truthiness(type) == :undefined
@@ -2710,6 +2728,13 @@ defmodule Module.Types.DescrTest do
              |> union(fun([pid()], pid()))
              |> to_quoted_string() ==
                "(integer() -> integer()) or (float() -> float()) or (pid() -> pid())"
+
+      assert fun(3) |> to_quoted_string() == "(none(), none(), none() -> term())"
+
+      assert intersection(fun(), negation(fun())) |> to_quoted_string() == "none()"
+
+      assert intersection(fun(), negation(fun(3))) |> to_quoted_string() ==
+               "fun() and not (none(), none(), none() -> term())"
     end
 
     test "function with optimized intersections" do

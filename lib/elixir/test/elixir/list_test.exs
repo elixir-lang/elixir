@@ -386,10 +386,6 @@ defmodule ListTest do
     refute List.improper?([[1]])
     refute List.improper?([1, 2])
     refute List.improper?([1, 2, 3])
-
-    assert_raise FunctionClauseError, fn ->
-      List.improper?(%{})
-    end
   end
 
   describe "ascii_printable?/2" do

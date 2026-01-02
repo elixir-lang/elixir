@@ -99,6 +99,23 @@ defmodule Module.Types.Descr do
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
 
+  @doc """
+  Gets the upper bound of a gradual type.
+
+  This is the same as removing the gradual type.
+  """
+  def upper_bound(%{dynamic: dynamic}), do: dynamic
+  def upper_bound(static), do: static
+
+  @doc """
+  Gets the lower bound of a gradual type.
+
+  This is the same as getting the static part.
+  Note this is not generally safe and changes the representation of the type.
+  """
+  def lower_bound(:term), do: :term
+  def lower_bound(type), do: Map.delete(type, :dynamic)
+
   ## Function constructors
 
   @doc """
@@ -903,6 +920,24 @@ defmodule Module.Types.Descr do
   ]
 
   @doc """
+  Returns true if the type can never be true.
+  """
+  def never_true?(:term), do: false
+
+  def never_true?(%{} = descr) do
+    descr = Map.get(descr, :dynamic, descr)
+
+    case descr do
+      :term -> false
+      %{atom: {:union, %{true => _}}} -> false
+      %{atom: {:union, _}} -> true
+      %{atom: {:negation, %{true => _}}} -> true
+      %{atom: {:negation, _}} -> false
+      _ -> true
+    end
+  end
+
+  @doc """
   Compute the truthiness of an element.
 
   It is either :undefined, :always_true, or :always_false.
@@ -1101,14 +1136,6 @@ defmodule Module.Types.Descr do
       %{fun: fun_new(arity, args, output)}
     end
   end
-
-  # Gets the upper bound of a gradual type.
-  defp upper_bound(%{dynamic: dynamic}), do: dynamic
-  defp upper_bound(static), do: static
-
-  # Gets the lower bound of a gradual type.
-  defp lower_bound(:term), do: :term
-  defp lower_bound(type), do: Map.delete(type, :dynamic)
 
   @doc """
   Applies a function type to a list of argument types.
@@ -1687,7 +1714,16 @@ defmodule Module.Types.Descr do
   defp pivot([], _acc, _fun), do: :error
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation
-  defp fun_to_quoted({:negation, _bdds}, _opts), do: [{:fun, [], []}]
+  defp fun_to_quoted({:negation, bdds}, opts) do
+    case fun_to_quoted({:union, bdds}, opts) do
+      [] ->
+        [{:fun, [], []}]
+
+      parts ->
+        ors = Enum.reduce(parts, &{:or, [], [&2, &1]})
+        [{:and, [], [{:fun, [], []}, {:not, [], [ors]}]}]
+    end
+  end
 
   defp fun_to_quoted({:union, bdds}, opts) do
     for {arity, bdd} <- bdds,

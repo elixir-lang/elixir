@@ -105,8 +105,6 @@ defmodule Module.Types.Apply do
     {[float(), float()], float()}
   ]
 
-  is_clauses = [{[term()], boolean()}]
-
   args_or_arity = union(list(term()), integer())
   args_or_none = union(list(term()), atom([:none]))
   extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
@@ -118,6 +116,11 @@ defmodule Module.Types.Apply do
       |> union(tuple([fun(), args_or_arity, extra_info]))
       |> union(tuple([fun(), args_or_arity]))
     )
+
+  not_signature =
+    for bool <- [true, false] do
+      {[atom([bool])], atom([not bool])}
+    end
 
   and_signature =
     for left <- [true, false], right <- [true, false] do
@@ -180,22 +183,8 @@ defmodule Module.Types.Apply do
         {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
         {:erlang, :integer_to_list, [{[integer()], non_empty_list(integer())}]},
         {:erlang, :integer_to_list, [{[integer(), integer()], non_empty_list(integer())}]},
-        {:erlang, :is_atom, is_clauses},
-        {:erlang, :is_binary, is_clauses},
-        {:erlang, :is_bitstring, is_clauses},
-        {:erlang, :is_boolean, is_clauses},
-        {:erlang, :is_float, is_clauses},
-        {:erlang, :is_function, is_clauses},
         {:erlang, :is_function, [{[term(), integer()], boolean()}]},
-        {:erlang, :is_integer, is_clauses},
-        {:erlang, :is_list, is_clauses},
-        {:erlang, :is_map, is_clauses},
         {:erlang, :is_map_key, [{[term(), open_map()], boolean()}]},
-        {:erlang, :is_number, is_clauses},
-        {:erlang, :is_pid, is_clauses},
-        {:erlang, :is_port, is_clauses},
-        {:erlang, :is_reference, is_clauses},
-        {:erlang, :is_tuple, is_clauses},
         {:erlang, :length, [{[list(term())], integer()}]},
         {:erlang, :list_to_atom, [{[list(integer())], atom()}]},
         {:erlang, :list_to_existing_atom, [{[list(integer())], atom()}]},
@@ -206,7 +195,7 @@ defmodule Module.Types.Apply do
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
         {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
-        {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
+        {:erlang, :not, not_signature},
         {:erlang, :or, or_signature},
         {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
@@ -216,8 +205,8 @@ defmodule Module.Types.Apply do
         {:erlang, :spawn, [{mfargs, pid()}]},
         {:erlang, :spawn_link, [{[fun(0)], pid()}]},
         {:erlang, :spawn_link, [{mfargs, pid()}]},
-        {:erlang, :spawn_monitor, [{[fun(0)], tuple([reference(), pid()])}]},
-        {:erlang, :spawn_monitor, [{mfargs, tuple([reference(), pid()])}]},
+        {:erlang, :spawn_monitor, [{[fun(0)], tuple([pid(), reference()])}]},
+        {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
         {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
 
@@ -228,7 +217,6 @@ defmodule Module.Types.Apply do
            {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
          ]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
-        {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
         {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
         {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
@@ -237,7 +225,6 @@ defmodule Module.Types.Apply do
         {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
-        {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
         {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
@@ -263,20 +250,18 @@ defmodule Module.Types.Apply do
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
         {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
-        {:maps, :keys, [{[open_map()], dynamic(list(term()))}]},
+        {:maps, :keys, [{[open_map()], list(term())}]},
         {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :remove, [{[term(), open_map()], open_map()}]},
         {:maps, :take,
          [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
-        {:maps, :to_list, [{[open_map()], dynamic(list(tuple([term(), term()])))}]},
+        {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
-        {:maps, :values, [{[open_map()], dynamic(list(term()))}]}
+        {:maps, :values, [{[open_map()], list(term())}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
-    true =
-      Code.ensure_loaded?(mod) and
-        (function_exported?(mod, fun, arity) or fun in [:orelse, :andalso])
+    true = Code.ensure_loaded?(mod)
 
     domain_clauses =
       case clauses do
@@ -296,6 +281,38 @@ defmodule Module.Types.Apply do
       do: unquote(Macro.escape(domain_clauses))
   end
 
+  is_guards = [
+    is_atom: atom(),
+    is_binary: binary(),
+    is_bitstring: binary(),
+    is_boolean: boolean(),
+    is_float: float(),
+    is_function: fun(),
+    is_integer: integer(),
+    is_list: union(empty_list(), non_empty_list(term(), term())),
+    is_map: open_map(),
+    is_number: union(float(), integer()),
+    is_pid: pid(),
+    is_port: port(),
+    is_reference: reference(),
+    is_tuple: tuple()
+  ]
+
+  for {guard, type} <- is_guards do
+    # is_binary can actually fail for binaries if they are bitstrings
+    return = if guard == :is_binary, do: boolean(), else: atom([true])
+
+    domain_clauses =
+      {:strong, [term()],
+       [
+         {[type], return},
+         {[negation(type)], atom([false])}
+       ]}
+
+    def signature(:erlang, unquote(guard), 1),
+      do: unquote(Macro.escape(domain_clauses))
+  end
+
   def signature(_mod, _fun, _arity), do: :none
 
   @doc """
@@ -303,10 +320,6 @@ defmodule Module.Types.Apply do
 
   Used only by info functions.
   """
-  def remote_domain(_fun, args, _expected, %{mode: :traversal}) do
-    {:none, Enum.map(args, fn _ -> term() end)}
-  end
-
   def remote_domain(fun, args, expected, _stack) do
     arity = length(args)
     info = signature(fun, arity)
@@ -316,8 +329,30 @@ defmodule Module.Types.Apply do
   @doc """
   Returns the domain of a remote function with info to apply it.
   """
-  def remote_domain(_module, _fun, args, _expected, _meta, %{mode: :traversal}, context) do
-    {:none, Enum.map(args, fn _ -> term() end), context}
+  def remote_domain(:erlang, :is_function, [_, arity], expected, _meta, _stack, context)
+      when is_integer(arity) and arity >= 0 do
+    type = fun(arity)
+
+    info =
+      {:strong, [term(), integer()],
+       [
+         {[type, integer()], atom([true])},
+         {[negation(type), integer()], atom([false])}
+       ]}
+
+    {info, filter_domain(info, expected, 2), context}
+  end
+
+  def remote_domain(:erlang, :is_map_key, [key, _map], expected, _meta, _stack, context)
+      when is_atom(key) do
+    info =
+      {:strong, [term(), open_map()],
+       [
+         {[term(), open_map([{key, term()}])], atom([true])},
+         {[term(), open_map([{key, not_set()}])], atom([false])}
+       ]}
+
+    {info, filter_domain(info, expected, 2), context}
   end
 
   def remote_domain(:erlang, :element, [index, _], expected, _meta, _stack, context)
@@ -791,14 +826,11 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    cond do
-      stack.mode == :traversal ->
-        {dynamic(), context}
-
-      modules == [] ->
+    case modules do
+      [] ->
         {dynamic(fun(arity)), context}
 
-      true ->
+      [_ | _] ->
         {type, fallback?, context} =
           Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
             case signature(module, fun, arity, meta, stack, context) do
@@ -855,7 +887,7 @@ defmodule Module.Types.Apply do
 
   defp export(module, fun, arity, meta, %{cache: cache} = stack, context) do
     cond do
-      cache == nil or stack.mode == :traversal ->
+      cache == nil ->
         {:none, context}
 
       stack.mode == :infer ->
@@ -960,7 +992,7 @@ defmodule Module.Types.Apply do
       {kind, info, context} ->
         update_used? = is_warning(stack) and kind == :defp
 
-        if stack.mode == :traversal or info == :none do
+        if info == :none do
           {{update_used?, :none}, List.duplicate(term(), arity), context}
         else
           {{update_used?, info}, filter_domain(info, expected, arity), context}
@@ -1015,9 +1047,6 @@ defmodule Module.Types.Apply do
 
     case stack.local_handler.(meta, fun_arity, stack, context) do
       false ->
-        {dynamic(fun(arity)), context}
-
-      {_kind, _info, context} when stack.mode == :traversal ->
         {dynamic(fun(arity)), context}
 
       {kind, info, context} ->
@@ -1115,9 +1144,9 @@ defmodule Module.Types.Apply do
   end
 
   defp filter_domain([{args, return} | clauses], expected, acc, all_compatible?) do
-    case compatible?(return, expected) do
-      true -> filter_domain(clauses, expected, [args | acc], all_compatible?)
-      false -> filter_domain(clauses, expected, acc, false)
+    case disjoint?(return, expected) do
+      false -> filter_domain(clauses, expected, [args | acc], all_compatible?)
+      true -> filter_domain(clauses, expected, acc, false)
     end
   end
 

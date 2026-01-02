@@ -205,6 +205,7 @@ bootstrap_files() ->
      <<"module/types/pattern.ex">>,
      <<"module/types/apply.ex">>,
      <<"module/types/expr.ex">>,
+     <<"module/types/traverse.ex">>,
      <<"module/types.ex">>,
      <<"exception.ex">>,
      <<"path.ex">>,

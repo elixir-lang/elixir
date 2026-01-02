@@ -87,34 +87,28 @@ defmodule Module.Types.Expr do
   def of_expr(list, expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
 
-    if stack.mode == :traversal do
-      {_, context} = Enum.map_reduce(prefix, context, &of_expr(&1, term(), expr, stack, &2))
-      {_, context} = of_expr(suffix, term(), expr, stack, context)
-      {dynamic(), context}
-    else
-      hd_type =
-        case list_hd(expected) do
-          {:ok, type} -> type
-          _ -> term()
-        end
+    hd_type =
+      case list_hd(expected) do
+        {:ok, type} -> type
+        _ -> term()
+      end
 
-      {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, hd_type, expr, stack, &2))
+    {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, hd_type, expr, stack, &2))
 
-      {suffix, context} =
-        if suffix == [] do
-          {empty_list(), context}
-        else
-          tl_type =
-            case list_tl(expected) do
-              {:ok, type} -> type
-              :badnonemptylist -> term()
-            end
+    {suffix, context} =
+      if suffix == [] do
+        {empty_list(), context}
+      else
+        tl_type =
+          case list_tl(expected) do
+            {:ok, type} -> type
+            :badnonemptylist -> term()
+          end
 
-          of_expr(suffix, tl_type, expr, stack, context)
-        end
+        of_expr(suffix, tl_type, expr, stack, context)
+      end
 
-      {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
-    end
+    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
   # {left, right}
@@ -178,23 +172,17 @@ defmodule Module.Types.Expr do
         {{key_type, value_type}, context}
       end)
 
-    expected =
-      if stack.mode == :traversal do
-        expected
-      else
-        # The only information we can attach to the expected types is that
-        # certain keys are expected.
-        expected_pairs =
-          Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
-            case atom_fetch(key_type) do
-              {:finite, [key]} -> [{key, term()}]
-              _ -> []
-            end
-          end)
+    # The only information we can attach to the expected types is that
+    # certain keys are expected.
+    expected_pairs =
+      Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
+        case atom_fetch(key_type) do
+          {:finite, [key]} -> [{key, term()}]
+          _ -> []
+        end
+      end)
 
-        intersection(expected, open_map(expected_pairs))
-      end
-
+    expected = intersection(expected, open_map(expected_pairs))
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
@@ -226,16 +214,12 @@ defmodule Module.Types.Expr do
     {map_type, context} = of_expr(map, term(), struct, stack, context)
 
     context =
-      if stack.mode == :traversal do
+      with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
+           {:finite, [^module]} <- atom_fetch(struct_key_type) do
         context
       else
-        with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
-             {:finite, [^module]} <- atom_fetch(struct_key_type) do
-          context
-        else
-          _ ->
-            error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
-        end
+        _ ->
+          error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
       end
 
     Enum.reduce(pairs, {map_type, context}, fn {key, value}, {acc, context} ->
@@ -312,10 +296,17 @@ defmodule Module.Types.Expr do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
     info = {:case, meta, case_type, case_expr}
 
-    # If we are only type checking the expression and the expression is a literal,
-    # let's mark it as generated, as it is most likely a macro code. However, if
-    # no clause is matched, we should still check for that.
-    if Macro.quoted_literal?(case_expr) do
+    added_meta =
+      if Macro.quoted_literal?(case_expr) do
+        [generated: true]
+      else
+        case_expr |> get_meta() |> Keyword.take([:generated])
+      end
+
+    # If the expression is generated or the construct is a literal,
+    # it is most likely a macro code. However, if no clause is matched,
+    # we should still check for that.
+    if added_meta != [] do
       for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
     else
       clauses
@@ -330,19 +321,14 @@ defmodule Module.Types.Expr do
     {patterns, _guards} = extract_head(head)
     domain = Enum.map(patterns, fn _ -> dynamic() end)
 
-    if stack.mode == :traversal do
-      {_acc, context} = of_clauses(clauses, domain, @pending, nil, :fn, stack, context, none())
-      {dynamic(), context}
-    else
-      {acc, context} =
-        of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
-          trees, body, context, acc ->
-            args = Pattern.of_domain(trees, context)
-            add_inferred(acc, args, body)
-        end)
+    {acc, context} =
+      of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
+        trees, body, context, acc ->
+          args = Pattern.of_domain(trees, context)
+          add_inferred(acc, args, body)
+      end)
 
-      {fun_from_inferred_clauses(acc), context}
-    end
+    {fun_from_inferred_clauses(acc), context}
   end
 
   def of_expr({:try, _meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
@@ -462,11 +448,7 @@ defmodule Module.Types.Expr do
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 
-    if stack.mode == :traversal do
-      {dynamic(), context}
-    else
-      Apply.fun_apply(fun_type, args_types, call, stack, context)
-    end
+    Apply.fun_apply(fun_type, args_types, call, stack, context)
   end
 
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)
@@ -521,18 +503,12 @@ defmodule Module.Types.Expr do
   # var
   def of_expr(var, expected, expr, stack, context) when is_var(var) do
     case stack do
-      %{mode: :traversal} -> {dynamic(), context}
       %{refine_vars: false} -> {Of.var(var, context), context}
       %{} -> Of.refine_body_var(var, expected, expr, stack, context)
     end
   end
 
   ## Tuples
-
-  defp of_tuple(elems, _expected, expr, %{mode: :traversal} = stack, context) do
-    {_types, context} = Enum.map_reduce(elems, context, &of_expr(&1, term(), expr, stack, &2))
-    {dynamic(), context}
-  end
 
   defp of_tuple(elems, expected, expr, stack, context) do
     of_tuple(elems, 0, [], expected, expr, stack, context)
@@ -734,14 +710,8 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, domain, expected, expr, info, %{mode: mode} = stack, context, acc) do
-    fun =
-      if mode == :traversal do
-        fn _, _, _, _ -> dynamic() end
-      else
-        fn _trees, result, _context, acc -> union(result, acc) end
-      end
-
+  defp of_clauses(clauses, domain, expected, expr, info, stack, context, acc) do
+    fun = fn _trees, result, _context, acc -> union(result, acc) end
     of_clauses_fun(clauses, domain, expected, expr, info, stack, context, acc, fun)
   end
 
