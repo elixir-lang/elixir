@@ -320,10 +320,6 @@ defmodule Module.Types.Apply do
 
   Used only by info functions.
   """
-  def remote_domain(_fun, args, _expected, %{mode: :traversal}) do
-    {:none, Enum.map(args, fn _ -> term() end)}
-  end
-
   def remote_domain(fun, args, expected, _stack) do
     arity = length(args)
     info = signature(fun, arity)
@@ -333,10 +329,6 @@ defmodule Module.Types.Apply do
   @doc """
   Returns the domain of a remote function with info to apply it.
   """
-  def remote_domain(_module, _fun, args, _expected, _meta, %{mode: :traversal}, context) do
-    {:none, Enum.map(args, fn _ -> term() end), context}
-  end
-
   def remote_domain(:erlang, :is_function, [_, arity], expected, _meta, _stack, context)
       when is_integer(arity) and arity >= 0 do
     type = fun(arity)
@@ -834,14 +826,11 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    cond do
-      stack.mode == :traversal ->
-        {dynamic(), context}
-
-      modules == [] ->
+    case modules do
+      [] ->
         {dynamic(fun(arity)), context}
 
-      true ->
+      [_ | _] ->
         {type, fallback?, context} =
           Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
             case signature(module, fun, arity, meta, stack, context) do
@@ -898,7 +887,7 @@ defmodule Module.Types.Apply do
 
   defp export(module, fun, arity, meta, %{cache: cache} = stack, context) do
     cond do
-      cache == nil or stack.mode == :traversal ->
+      cache == nil ->
         {:none, context}
 
       stack.mode == :infer ->
@@ -1003,7 +992,7 @@ defmodule Module.Types.Apply do
       {kind, info, context} ->
         update_used? = is_warning(stack) and kind == :defp
 
-        if stack.mode == :traversal or info == :none do
+        if info == :none do
           {{update_used?, :none}, List.duplicate(term(), arity), context}
         else
           {{update_used?, info}, filter_domain(info, expected, arity), context}
@@ -1058,9 +1047,6 @@ defmodule Module.Types.Apply do
 
     case stack.local_handler.(meta, fun_arity, stack, context) do
       false ->
-        {dynamic(fun(arity)), context}
-
-      {_kind, _info, context} when stack.mode == :traversal ->
         {dynamic(fun(arity)), context}
 
       {kind, info, context} ->

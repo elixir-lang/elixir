@@ -27,11 +27,6 @@ defmodule Module.Types.Pattern do
      is refined, we restart at step 2.
 
   """
-  def of_head(patterns, _guards, expected, _tag, _meta, %{mode: :traversal}, context) do
-    term = term()
-    {Enum.zip_with(patterns, expected, &{term, &2, &1}), context}
-  end
-
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
     {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
@@ -86,12 +81,6 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles the match operator.
   """
-  def of_match(pattern, expected_fun, expr, stack, context)
-
-  def of_match(_pattern, expected_fun, _expr, %{mode: :traversal}, context) do
-    expected_fun.(dynamic(), context)
-  end
-
   def of_match(pattern, expected_fun, expr, stack, context) do
     context = init_match_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
@@ -110,12 +99,6 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles matches in generators.
   """
-  def of_generator(pattern, guards, expected, tag, expr, stack, context)
-
-  def of_generator(_pattern, _guards, _expected, _tag, _expr, %{mode: :traversal}, context) do
-    context
-  end
-
   def of_generator(pattern, guards, expected, tag, expr, stack, context) do
     context = init_match_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)

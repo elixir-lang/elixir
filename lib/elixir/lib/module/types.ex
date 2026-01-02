@@ -24,14 +24,11 @@ defmodule Module.Types do
   #
   #   * :infer - Same as :dynamic but skips remote calls.
   #
-  #   * :traversal - Focused mostly on traversing AST, skips most type system
-  #     operations. Used by macros and when skipping inference.
-  #
   # The mode may also control exhaustiveness checks in the future (to be decided).
   # We may also want for applications with subtyping in dynamic mode to always
   # intersect with dynamic, but this mode may be too lax (to be decided based on
   # feedback).
-  @modes [:static, :dynamic, :infer, :traversal]
+  @modes [:static, :dynamic, :infer]
 
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [behaviour_info: 1]
@@ -125,7 +122,7 @@ defmodule Module.Types do
   end
 
   defp infer_mode(kind, infer_signatures?) do
-    if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traversal
+    if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traverse
   end
 
   defp protocol?(attrs) do
@@ -154,7 +151,7 @@ defmodule Module.Types do
         | List.duplicate(Descr.dynamic(), arity - 1)
       ]
 
-      {fun_arity, kind, meta, clauses} = def
+      {_fun_arity, kind, meta, clauses} = def
 
       clauses =
         for {meta, args, guards, body} <- clauses do
@@ -291,7 +288,7 @@ defmodule Module.Types do
             context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
             {inferred, mapping, context} =
-              local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context)
+              local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context)
 
             context =
               update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
@@ -304,7 +301,17 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context) do
+  defp local_handler(:traverse, {_, arity}, _kind, _meta, clauses, _expected, stack, context) do
+    context =
+      Enum.reduce(clauses, context, fn {_meta, _args, _guards, body}, context ->
+        Module.Types.Traverse.of_expr(body, stack, context)
+      end)
+
+    inferred = {:infer, nil, [{List.duplicate(Descr.term(), arity), Descr.dynamic()}]}
+    {inferred, [{0, 0}], context}
+  end
+
+  defp local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context) do
     {fun, _arity} = fun_arity
     stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
 
@@ -320,12 +327,7 @@ defmodule Module.Types do
             {return_type, context} =
               Expr.of_expr(body, Descr.term(), body, stack, context)
 
-            args_types =
-              if stack.mode == :traversal do
-                expected
-              else
-                Pattern.of_domain(trees, context)
-              end
+            args_types = Pattern.of_domain(trees, context)
 
             {type_index, inferred} =
               add_inferred(inferred, args_types, return_type, total - 1, [])

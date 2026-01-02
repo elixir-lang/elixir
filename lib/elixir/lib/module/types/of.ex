@@ -196,17 +196,6 @@ defmodule Module.Types.Of do
   @doc """
   Builds a closed map.
   """
-  def closed_map(pairs, _expected, %{mode: :traversal} = stack, context, of_fun) do
-    context =
-      Enum.reduce(pairs, context, fn {key, value}, context ->
-        {_key_type, context} = of_fun.(key, term(), stack, context)
-        {_, context} = of_fun.(value, term(), stack, context)
-        context
-      end)
-
-    {dynamic(), context}
-  end
-
   def closed_map(pairs, expected, stack, context, of_fun) do
     {pairs_types, context} = pairs(pairs, expected, stack, context, of_fun)
 
@@ -354,7 +343,7 @@ defmodule Module.Types.Of do
   Handles instantiation of a new struct.
   """
   # TODO: Type check the fields match the struct
-  def struct_instance(struct, args, expected, meta, %{mode: mode} = stack, context, of_fun)
+  def struct_instance(struct, args, expected, meta, stack, context, of_fun)
       when is_atom(struct) do
     {_info, context} = struct_info(struct, meta, stack, context)
 
@@ -362,10 +351,8 @@ defmodule Module.Types.Of do
     {args_types, context} =
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
         value_type =
-          with true <- mode != :traversal,
-               {_, expected_value_type} <- map_fetch_key(expected, key) do
-            expected_value_type
-          else
+          case map_fetch_key(expected, key) do
+            {_, expected_value_type} -> expected_value_type
             _ -> term()
           end
 
