@@ -873,7 +873,7 @@ defmodule Module.Types.Pattern do
     Of.refine_body_var(var, expected, expr, stack, context)
   end
 
-  defp of_remote(fun, _meta, [left, right], call, expected, stack, context)
+  defp of_remote(fun, _meta, _args, call, expected, stack, context)
        when fun in [:and, :or, :andalso, :orelse] do
     {both_domain, abort_domain, always_rhs?} =
       case fun do
@@ -883,29 +883,39 @@ defmodule Module.Types.Pattern do
         :or -> {@atom_false, @atom_true, true}
       end
 
+    # If we have multiple operations in a row,
+    # we unpack them into a single pass, to avoid
+    # building nested conditional environments.
+    [left | right] = unpack_op(call, fun, [])
+
     # For example, if the expected type is true for andalso, then it can
     # only be true if both clauses are executed, so we know the first
     # argument has to be true and the second has to be expected.
     if subtype?(expected, both_domain) do
-      of_logical_both(left, both_domain, right, expected, abort_domain, call, stack, context)
+      of_logical_all([left | right], true, both_domain, abort_domain, stack, context)
     else
       cond_context = %{context | conditional_vars: %{}}
 
       # Compute the sure types, which are stored directly in the context
-      {_type, context} = of_guard(left, boolean(), call, stack, context)
+      {_type, context} = of_guard(left, boolean(), left, stack, context)
 
       # andalso/orelse may not execute the rhs, so we cannot get sure types from it
       context =
         case always_rhs? do
           true ->
-            {_, context} = of_guard(right, boolean(), call, stack, context)
-            context
+            Enum.reduce(right, context, fn expr, context ->
+              {_, context} = of_guard(expr, boolean(), expr, stack, context)
+              context
+            end)
 
           false ->
             context
         end
 
-      of_logical_cond(left, right, expected, abort_domain, call, stack, context, cond_context)
+      {type, vars_conds} =
+        of_logical_cond([left | right], true, expected, abort_domain, stack, cond_context, [])
+
+      {type, of_cond_vars(vars_conds, call, stack, context)}
     end
   end
 
@@ -919,31 +929,48 @@ defmodule Module.Types.Pattern do
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
-  defp of_logical_both(left, left_domain, right, right_domain, to_abort, call, stack, context) do
-    {left_type, context} = of_guard(left, left_domain, call, stack, context)
-    {right_type, context} = of_guard(right, right_domain, call, stack, context)
+  defp unpack_op({{:., _, [:erlang, fun]}, _, [left, right]}, fun, acc) do
+    unpack_op(left, fun, unpack_op(right, fun, acc))
+  end
 
-    if disjoint?(left_type, to_abort) do
-      {right_type, context}
-    else
-      {union(to_abort, right_type), context}
+  defp unpack_op(other, _fun, acc) do
+    [other | acc]
+  end
+
+  defp of_logical_all([head], disjoint?, expected, to_abort, stack, context) do
+    {type, context} = of_guard(head, expected, head, stack, context)
+
+    case disjoint? do
+      true -> {type, context}
+      false -> {union(to_abort, type), context}
     end
   end
 
-  defp of_logical_cond(left, right, expected, to_abort, call, stack, context, cond_context) do
-    {left_type, left_context} = of_guard(left, expected, call, stack, cond_context)
-    {right_type, right_context} = of_guard(right, expected, call, stack, cond_context)
+  defp of_logical_all([head | tail], disjoint?, expected, to_abort, stack, context) do
+    {type, context} = of_guard(head, expected, head, stack, context)
+    disjoint? = disjoint? and disjoint?(type, to_abort)
+    of_logical_all(tail, disjoint?, expected, to_abort, stack, context)
+  end
 
-    %{vars: left_vars, conditional_vars: left_cond} = left_context
-    %{vars: right_vars, conditional_vars: right_cond} = right_context
-    vars_conds = [{left_vars, left_cond}, {right_vars, right_cond}]
-    context = of_cond_vars(vars_conds, call, stack, context)
+  defp of_logical_cond([head], disjoint?, expected, to_abort, stack, context, acc) do
+    {type, %{vars: vars, conditional_vars: cond_vars}} =
+      of_guard(head, expected, head, stack, context)
 
-    if disjoint?(left_type, to_abort) do
-      {right_type, context}
-    else
-      {union(to_abort, right_type), context}
+    acc = [{vars, cond_vars} | acc]
+
+    case disjoint? do
+      true -> {type, acc}
+      false -> {union(to_abort, type), acc}
     end
+  end
+
+  defp of_logical_cond([head | tail], disjoint?, expected, to_abort, stack, context, acc) do
+    {type, %{vars: vars, conditional_vars: cond_vars}} =
+      of_guard(head, expected, head, stack, context)
+
+    disjoint? = disjoint? and disjoint?(type, to_abort)
+    acc = [{vars, cond_vars} | acc]
+    of_logical_cond(tail, disjoint?, expected, to_abort, stack, context, acc)
   end
 
   defp of_cond_vars([{vars, cond} | vars_conds], expr, stack, context) do
