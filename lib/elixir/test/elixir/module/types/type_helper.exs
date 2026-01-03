@@ -136,9 +136,12 @@ defmodule TypeHelper do
 
     {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
     {:fn, _, [{:->, _, [[{:when, _, args}], body]}]} = ast
-    {patterns, guards} = Enum.split(args, -1)
-    {patterns, guards, body}
+    {patterns, [guards]} = Enum.split(args, -1)
+    {patterns, flatten_when(guards), body}
   end
+
+  defp flatten_when({:when, _meta, [left, right]}), do: [left | flatten_when(right)]
+  defp flatten_when(other), do: [other]
 
   defp new_stack(mode) do
     cache =

@@ -473,6 +473,67 @@ defmodule Module.Types.PatternTest do
                """
     end
 
+    test "when checks" do
+      assert typecheck!([x], is_binary(x) when is_atom(x), x) == dynamic(union(binary(), atom()))
+
+      assert typecheck!([x], is_binary(x) when map_size(x) >= 0, x) ==
+               dynamic(union(binary(), open_map()))
+
+      assert typecheck!([x], tuple_size(x) >= 0 when map_size(x) >= 0, x) ==
+               dynamic(union(tuple(), open_map()))
+
+      assert typecheck!([x, y], is_binary(x) when is_atom(y), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+    end
+
+    test "conditional checks" do
+      assert typecheck!([x], is_binary(x) or is_atom(x), x) == dynamic(union(binary(), atom()))
+
+      assert typecheck!([x], is_binary(x) or map_size(x) >= 0, x) ==
+               dynamic(union(binary(), open_map()))
+
+      assert typecheck!([x, y], is_binary(x) or is_atom(y), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x], not (is_pid(x) and is_atom(x)), x) |> equal?(dynamic(term()))
+
+      assert typecheck!([x, y], not (is_pid(x) and is_atom(y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      # Error
+      assert typeerror!([x], is_pid(x) and is_atom(x), x) == ~l"""
+             this guard will never succeed:
+
+                 is_pid(x) and is_atom(x)
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: pid()
+                 # from: types_test.ex:LINE
+                 is_pid(x)
+             """
+
+      assert typeerror!([x], (is_binary(x) or is_atom(x)) and is_pid(x), x) == ~l"""
+             this guard will never succeed:
+
+                 (is_binary(x) or is_atom(x)) and is_pid(x)
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: dynamic(atom() or binary())
+                 # from: types_test.ex:LINE
+                 is_binary(x) or is_atom(x)
+             """
+    end
+
     test "domain checks" do
       # Regular domain check
       assert typecheck!([x], length(x) == 3, x) == dynamic(list(term()))

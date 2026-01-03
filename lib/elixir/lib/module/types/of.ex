@@ -74,8 +74,21 @@ defmodule Module.Types.Of do
   Returns `true` if there was a refinement, `false` otherwise.
   """
   def refine_body_var({_, meta, _}, type, expr, stack, context) do
-    version = Keyword.fetch!(meta, :version)
+    refine_body_var(Keyword.fetch!(meta, :version), type, expr, stack, context)
+  end
+
+  def refine_body_var(version, type, expr, stack, context)
+      when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
+
+    context =
+      case context.conditional_vars do
+        %{} = conditional_vars ->
+          %{context | conditional_vars: Map.put(conditional_vars, version, true)}
+
+        nil ->
+          context
+      end
 
     if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
       case compatible_intersection(old_type, type) do
@@ -104,8 +117,11 @@ defmodule Module.Types.Of do
   use compatibility.
   """
   def refine_head_var({_, meta, _}, type, expr, stack, context) do
-    version = Keyword.fetch!(meta, :version)
+    refine_head_var(Keyword.fetch!(meta, :version), type, expr, stack, context)
+  end
 
+  def refine_head_var(version, type, expr, stack, context)
+      when is_integer(version) or is_reference(version) do
     case context.vars do
       %{^version => %{errored: true}} ->
         {:ok, error_type(), context}

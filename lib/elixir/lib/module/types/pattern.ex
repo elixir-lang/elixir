@@ -420,10 +420,8 @@ defmodule Module.Types.Pattern do
 
   They behave like guards, so we need to take into account their scope.
   """
-  def of_size(:match, arg, expr, stack, %{pattern_info: pattern_info} = context) do
-    context = init_guard_info(context)
-    {type, context} = of_guard(arg, integer(), expr, stack, context)
-    {type, %{context | pattern_info: pattern_info}}
+  def of_size(:match, arg, expr, stack, context) do
+    of_guard(arg, integer(), expr, stack, context)
   end
 
   def of_size(:guard, arg, expr, stack, context) do
@@ -755,34 +753,35 @@ defmodule Module.Types.Pattern do
     context
   end
 
+  defp of_guards([guard], stack, context) do
+    {type, context} = of_guard(guard, stack, context)
+    maybe_badguard(type, guard, stack, context)
+  end
+
   defp of_guards(guards, stack, context) do
-    # TODO: This match? is temporary until we support multiple guards
-    single? = match?([_], guards)
-    context = init_guard_info(context, single?)
-    return = if single?, do: @atom_true, else: term()
+    cond_context = %{context | conditional_vars: %{}}
 
-    context =
-      Enum.reduce(guards, context, fn guard, context ->
-        {type, context} = of_guard(guard, return, guard, stack, context)
-
-        if never_true?(type) do
-          error = {:badguard, type, guard, context}
-          error(__MODULE__, error, error_meta(guard, stack), stack, context)
-        else
-          context
-        end
+    {vars_conds, context} =
+      Enum.map_reduce(guards, context, fn guard, context ->
+        {type, %{vars: vars, conditional_vars: cond_vars}} = of_guard(guard, stack, cond_context)
+        {{vars, cond_vars}, maybe_badguard(type, guard, stack, context)}
       end)
 
-    {_, context} = pop_guard_info(context)
-    context
+    when_expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
+    of_cond_vars(vars_conds, when_expr, stack, context)
   end
 
-  defp init_guard_info(context, check_domain? \\ true) do
-    %{context | pattern_info: {check_domain?}}
+  defp maybe_badguard(type, guard, stack, context) do
+    if never_true?(type) do
+      error = {:badguard, type, guard, context}
+      error(__MODULE__, error, error_meta(guard, stack), stack, context)
+    else
+      context
+    end
   end
 
-  defp pop_guard_info(%{pattern_info: pattern_info} = context) do
-    {pattern_info, %{context | pattern_info: nil}}
+  defp of_guard(guard, stack, context) do
+    of_guard(guard, @atom_true, guard, stack, context)
   end
 
   # :atom
@@ -871,10 +870,7 @@ defmodule Module.Types.Pattern do
 
   # var
   def of_guard(var, expected, expr, stack, context) when is_var(var) do
-    case context.pattern_info do
-      {true} -> Of.refine_body_var(var, expected, expr, stack, context)
-      {false} -> {Of.var(var, context), context}
-    end
+    Of.refine_body_var(var, expected, expr, stack, context)
   end
 
   defp of_remote(fun, _meta, [left, right], call, expected, stack, context)
@@ -888,29 +884,10 @@ defmodule Module.Types.Pattern do
     # For example, if the expected type is true for andalso, then it can
     # only be true if both clauses are executed, so we know the first
     # argument has to be true and the second has to be expected.
-    {left_domain, right_domain, surely_rhs?} =
-      if subtype?(expected, both_domain) do
-        {both_domain, expected, true}
-      else
-        {boolean(), term(), false}
-      end
-
-    {left_type, context} = of_guard(left, left_domain, call, stack, context)
-
-    {right_type, context} =
-      if surely_rhs? do
-        of_guard(right, right_domain, call, stack, context)
-      else
-        %{pattern_info: pattern_info} = context
-        context = %{context | pattern_info: {false}}
-        {type, context} = of_guard(right, right_domain, call, stack, context)
-        {type, %{context | pattern_info: pattern_info}}
-      end
-
-    if compatible?(left_type, abort_domain) do
-      {union(abort_domain, right_type), context}
+    if subtype?(expected, both_domain) do
+      of_logical_both(left, both_domain, right, expected, abort_domain, call, stack, context)
     else
-      {right_type, context}
+      of_logical_cond(left, right, expected, abort_domain, call, stack, context)
     end
   end
 
@@ -922,6 +899,58 @@ defmodule Module.Types.Pattern do
       zip_map_reduce(args, domain, context, &of_guard(&1, &2, call, stack, &3))
 
     Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
+  end
+
+  defp of_logical_both(left, left_domain, right, right_domain, to_abort, call, stack, context) do
+    {left_type, context} = of_guard(left, left_domain, call, stack, context)
+    {right_type, context} = of_guard(right, right_domain, call, stack, context)
+
+    if disjoint?(left_type, to_abort) do
+      {right_type, context}
+    else
+      {union(to_abort, right_type), context}
+    end
+  end
+
+  defp of_logical_cond(left, right, expected, to_abort, call, stack, context) do
+    cond_context = %{context | conditional_vars: %{}}
+
+    # First we do pass to find the surely types, which are stored directly in the context
+    {_left_type, context} = of_guard(left, boolean(), call, stack, context)
+
+    # Now we find the conditional ones
+    {left_type, left_context} = of_guard(left, expected, call, stack, cond_context)
+    {right_type, right_context} = of_guard(right, expected, call, stack, cond_context)
+
+    %{vars: left_vars, conditional_vars: left_cond} = left_context
+    %{vars: right_vars, conditional_vars: right_cond} = right_context
+    vars_conds = [{left_vars, left_cond}, {right_vars, right_cond}]
+    context = of_cond_vars(vars_conds, call, stack, context)
+
+    if disjoint?(left_type, to_abort) do
+      {right_type, context}
+    else
+      {union(to_abort, right_type), context}
+    end
+  end
+
+  defp of_cond_vars([{vars, cond} | vars_conds], expr, stack, context) do
+    Enum.reduce(Map.keys(cond), context, fn version, context ->
+      if Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
+        %{^version => %{type: type}} = vars
+
+        type =
+          Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
+            %{^version => %{type: type}} = vars
+            union(acc, type)
+          end)
+
+        {_, context} = Of.refine_body_var(version, type, expr, stack, context)
+        context
+      else
+        context
+      end
+    end)
   end
 
   ## Helpers
