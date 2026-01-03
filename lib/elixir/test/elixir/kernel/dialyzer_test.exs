@@ -113,6 +113,11 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
+  test "no warnings on in range", context do
+    copy_beam!(context, Dialyzer.InRange)
+    assert_dialyze_no_warnings!(context)
+  end
+
   test "no warnings on macrocallback", context do
     copy_beam!(context, Dialyzer.Macrocallback)
     copy_beam!(context, Dialyzer.Macrocallback.Impl)

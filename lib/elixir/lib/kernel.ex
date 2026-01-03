@@ -4781,7 +4781,7 @@ defmodule Kernel do
 
   defp in_range_literal(left, first, last, step) when step > 0 do
     quoted =
-      quote do
+      quote generated: true do
         Kernel.and(
           unquote(generated_is_integer(left)),
           unquote(increasing_compare(left, first, last))
@@ -4793,7 +4793,7 @@ defmodule Kernel do
 
   defp in_range_literal(left, first, last, step) when step < 0 do
     quoted =
-      quote do
+      quote generated: true do
         Kernel.and(
           unquote(generated_is_integer(left)),
           unquote(decreasing_compare(left, first, last))
