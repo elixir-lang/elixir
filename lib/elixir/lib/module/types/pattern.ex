@@ -874,11 +874,13 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_remote(fun, _meta, [left, right], call, expected, stack, context)
-       when fun in [:andalso, :orelse] do
-    {both_domain, abort_domain} =
+       when fun in [:and, :or, :andalso, :orelse] do
+    {both_domain, abort_domain, always_rhs?} =
       case fun do
-        :andalso -> {@atom_true, @atom_false}
-        :orelse -> {@atom_false, @atom_true}
+        :andalso -> {@atom_true, @atom_false, false}
+        :orelse -> {@atom_false, @atom_true, false}
+        :and -> {@atom_true, @atom_false, true}
+        :or -> {@atom_false, @atom_true, true}
       end
 
     # For example, if the expected type is true for andalso, then it can
@@ -887,7 +889,23 @@ defmodule Module.Types.Pattern do
     if subtype?(expected, both_domain) do
       of_logical_both(left, both_domain, right, expected, abort_domain, call, stack, context)
     else
-      of_logical_cond(left, right, expected, abort_domain, call, stack, context)
+      cond_context = %{context | conditional_vars: %{}}
+
+      # Compute the sure types, which are stored directly in the context
+      {_type, context} = of_guard(left, boolean(), call, stack, context)
+
+      # andalso/orelse may not execute the rhs, so we cannot get sure types from it
+      context =
+        case always_rhs? do
+          true ->
+            {_, context} = of_guard(right, boolean(), call, stack, context)
+            context
+
+          false ->
+            context
+        end
+
+      of_logical_cond(left, right, expected, abort_domain, call, stack, context, cond_context)
     end
   end
 
@@ -912,13 +930,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_logical_cond(left, right, expected, to_abort, call, stack, context) do
-    cond_context = %{context | conditional_vars: %{}}
-
-    # First we do pass to find the surely types, which are stored directly in the context
-    {_left_type, context} = of_guard(left, boolean(), call, stack, context)
-
-    # Now we find the conditional ones
+  defp of_logical_cond(left, right, expected, to_abort, call, stack, context, cond_context) do
     {left_type, left_context} = of_guard(left, expected, call, stack, cond_context)
     {right_type, right_context} = of_guard(right, expected, call, stack, cond_context)
 

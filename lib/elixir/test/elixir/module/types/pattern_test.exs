@@ -486,13 +486,16 @@ defmodule Module.Types.PatternTest do
                dynamic(tuple([term(), term()]))
     end
 
-    test "conditional checks" do
+    test "conditional checks (andalso/orelse)" do
       assert typecheck!([x], is_binary(x) or is_atom(x), x) == dynamic(union(binary(), atom()))
 
       assert typecheck!([x], is_binary(x) or map_size(x) >= 0, x) ==
                dynamic(union(binary(), open_map()))
 
       assert typecheck!([x, y], is_binary(x) or is_atom(y), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x, y], is_binary(x) or map_size(y) >= 0, {x, y}) ==
                dynamic(tuple([term(), term()]))
 
       assert typecheck!([x], not (is_pid(x) and is_atom(x)), x) |> equal?(dynamic(term()))
@@ -532,6 +535,59 @@ defmodule Module.Types.PatternTest do
                  # from: types_test.ex:LINE
                  is_binary(x) or is_atom(x)
              """
+    end
+
+    test "conditional checks (and/or)" do
+      assert typecheck!([x], :erlang.or(is_binary(x), is_atom(x)), x) ==
+               dynamic(union(binary(), atom()))
+
+      assert typecheck!([x], :erlang.or(is_binary(x), map_size(x) >= 0), x) ==
+               dynamic(open_map())
+
+      assert typecheck!([x, y], :erlang.or(is_binary(x), is_atom(y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x, y], :erlang.or(is_binary(x), map_size(y) >= 0), {x, y}) ==
+               dynamic(tuple([term(), open_map()]))
+
+      assert typecheck!([x], not :erlang.and(is_pid(x), is_atom(x)), x) |> equal?(dynamic(term()))
+
+      assert typecheck!([x, y], not :erlang.and(is_pid(x), is_atom(y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      # Error
+      assert typeerror!([x], :erlang.and(is_pid(x), is_atom(x)), x) == ~l"""
+             this guard will never succeed:
+
+                 :erlang.and(is_pid(x), is_atom(x))
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: pid()
+                 # from: types_test.ex:LINE
+                 is_pid(x)
+             """
+
+      assert typeerror!([x], :erlang.and(:erlang.or(is_binary(x), is_atom(x)), is_pid(x)), x) ==
+               ~l"""
+               this guard will never succeed:
+
+                   :erlang.and(:erlang.or(is_binary(x), is_atom(x)), is_pid(x))
+
+               because it returns type:
+
+                   false
+
+               where "x" was given the type:
+
+                   # type: dynamic(atom() or binary())
+                   # from: types_test.ex:LINE-1
+                   :erlang.or(is_binary(x), is_atom(x))
+               """
     end
 
     test "domain checks" do
