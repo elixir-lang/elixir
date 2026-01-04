@@ -56,9 +56,9 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
-    context = init_match_info(context)
+    context = init_pattern_info(context)
     {trees, context} = of_pattern_args_zip(patterns, expected, 0, [], stack, context)
-    {pattern_info, context} = pop_match_info(context)
+    {pattern_info, context} = pop_pattern_info(context)
 
     context =
       case of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context) do
@@ -82,9 +82,9 @@ defmodule Module.Types.Pattern do
   Handles the match operator.
   """
   def of_match(pattern, expected_fun, expr, stack, context) do
-    context = init_match_info(context)
+    context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
-    {pattern_info, context} = pop_match_info(context)
+    {pattern_info, context} = pop_pattern_info(context)
     {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
 
     args = [{tree, expected, expr}]
@@ -100,9 +100,9 @@ defmodule Module.Types.Pattern do
   Handles matches in generators.
   """
   def of_generator(pattern, guards, expected, tag, expr, stack, context) do
-    context = init_match_info(context)
+    context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
-    {pattern_info, context} = pop_match_info(context)
+    {pattern_info, context} = pop_pattern_info(context)
     args = [{tree, expected, pattern}]
 
     context =
@@ -128,11 +128,11 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_intersect([], _index, acc, pattern_info, tag, stack, context) do
-    {args_paths, vars_paths, vars_deps} = pattern_info
+    %{vars: context_vars} = context
     types = Enum.reverse(acc)
 
     try do
-      args_paths
+      pattern_info
       |> Enum.reverse()
       |> Enum.reduce({%{}, context}, fn {version, node}, {changed, context} ->
         %{var: var, expr: expr, root: root, path: path} = node
@@ -162,56 +162,54 @@ defmodule Module.Types.Pattern do
               throw(badpattern_error(expr, index, tag, stack, context))
           end
 
-        {Map.merge(changed, Map.get(vars_deps, version, %{})), context}
+        %{^version => %{deps: deps}} = context_vars
+        {Map.merge(changed, deps), context}
       end)
     catch
       context -> {:error, error_vars(pattern_info, context)}
     else
       {changed, context} ->
-        {:ok, types, of_pattern_recur(changed, vars_paths, vars_deps, stack, context)}
+        {:ok, types, of_pattern_recur(changed, stack, context)}
     end
   end
 
-  defp of_pattern_recur(changed, _vars_paths, _vars_deps, _stack, context)
+  defp of_pattern_recur(changed, _stack, context)
        when changed == %{} do
     context
   end
 
-  defp of_pattern_recur(previous_changed, vars_paths, vars_deps, stack, context) do
+  defp of_pattern_recur(previous_changed, stack, context) do
     {changed, context} =
       previous_changed
       |> Map.keys()
       |> Enum.reduce({%{}, context}, fn version, {changed, context} ->
-        {var_changed?, context} = of_pattern_recur_var(vars_paths, version, stack, context)
-
-        case var_changed? do
-          false -> {changed, context}
-          true -> {Map.merge(changed, Map.get(vars_deps, version, %{})), context}
-        end
+        {new_deps, context} = of_pattern_recur_var(version, stack, context)
+        {Map.merge(changed, new_deps), context}
       end)
 
-    of_pattern_recur(changed, vars_paths, vars_deps, stack, context)
+    of_pattern_recur(changed, stack, context)
   end
 
-  defp of_pattern_recur_var(vars_paths, version, stack, context) do
-    paths = Map.get(vars_paths, version, [])
-
+  defp of_pattern_recur_var(version, stack, context) do
     case context.vars do
-      %{^version => %{type: old_type} = data} when not is_map_key(data, :errored) ->
+      %{^version => %{type: old_type, deps: deps, paths: paths} = data}
+      when not is_map_key(data, :errored) ->
         try do
-          Enum.reduce(paths, {false, context}, fn
-            %{var: var, expr: expr, root: root, path: path}, {var_changed?, context} ->
+          Enum.reduce(paths, {%{}, context}, fn
+            %{var: var, expr: expr, root: root, path: path}, {new_deps, context} ->
               actual = of_pattern_tree(root, context)
 
               case of_pattern_var(path, actual, context) do
                 {:ok, new_type} ->
-                  # Optimization: if current type is already a subtype, there is nothing to refine.
+                  # Optimization: if current type is already a subtype,
+                  # there is nothing to refine
                   if old_type != term() and subtype?(old_type, new_type) do
-                    {var_changed?, context}
+                    {new_deps, context}
                   else
                     case Of.refine_head_var(var, new_type, expr, stack, context) do
                       {:ok, _type, context} ->
-                        {true, context}
+                        # Return the actual deps to be recomputed
+                        {deps, context}
 
                       {:error, _old_type, error_context} ->
                         if match_error?(var, new_type) do
@@ -227,16 +225,16 @@ defmodule Module.Types.Pattern do
               end
           end)
         catch
-          context -> {false, context}
+          context -> {%{}, context}
         end
 
       _ ->
-        {false, context}
+        {%{}, context}
     end
   end
 
-  defp error_vars({args_paths, _vars_paths, _vars_deps}, context) do
-    Enum.reduce(args_paths, context, fn {_version, %{var: var}}, context ->
+  defp error_vars(pattern_info, context) do
+    Enum.reduce(pattern_info, context, fn {_version, %{var: var}}, context ->
       Of.error_var(var, context)
     end)
   end
@@ -275,16 +273,12 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # pattern_info stores the variables defined in patterns,
-  # additional information about the number of variables in
-  # arguments and list heads, and a counter used to compute
-  # the number of list heads.
-  # TODO: Move vars_deps and vars_paths into context.vars.
-  defp init_match_info(context) do
-    %{context | pattern_info: {[], %{}, %{}}}
+  # pattern_info stores the paths defined from patterns.
+  defp init_pattern_info(context) do
+    %{context | pattern_info: []}
   end
 
-  defp pop_match_info(%{pattern_info: pattern_info} = context) do
+  defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
     {pattern_info, %{context | pattern_info: nil}}
   end
 
@@ -623,30 +617,22 @@ defmodule Module.Types.Pattern do
   defp is_versioned_var(_), do: false
 
   defp of_var(var, version, reverse_path, context) do
-    context = Of.declare_var(var, context)
-    {args_paths, vars_paths, vars_deps} = context.pattern_info
     [%{root: root, expr: expr} | path] = Enum.reverse(reverse_path)
     node = %{root: root, var: var, expr: expr, path: path}
+    context = Of.declare_var(var, context)
+    context = %{context | pattern_info: [{version, node} | context.pattern_info]}
 
-    pattern_info =
-      case root do
-        {:arg, _} ->
-          {[{version, node} | args_paths], vars_paths, vars_deps}
+    case root do
+      {:arg, _} ->
+        context
 
-        {:var, other} ->
-          paths = [node | Map.get(vars_paths, version, [])]
-          vars_paths = Map.put(vars_paths, version, paths)
-          vars_deps = Map.update(vars_deps, version, %{other => []}, &Map.put(&1, other, []))
-          vars_deps = Map.update(vars_deps, other, %{version => []}, &Map.put(&1, version, []))
-          {[{version, node} | args_paths], vars_paths, vars_deps}
+      {:var, other} ->
+        context = Of.track_var(version, [other], [node], context)
+        Of.track_var(other, [version], [], context)
 
-        _ ->
-          paths = [node | Map.get(vars_paths, version, [])]
-          vars_paths = Map.put(vars_paths, version, paths)
-          {[{version, node} | args_paths], vars_paths, vars_deps}
-      end
-
-    %{context | pattern_info: pattern_info}
+      _ ->
+        Of.track_var(version, [], [node], context)
+    end
   end
 
   defp of_open_map(args, static, dynamic, path, stack, context) do

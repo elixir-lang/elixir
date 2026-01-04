@@ -59,11 +59,22 @@ defmodule Module.Types.Of do
           type: term(),
           name: var_name,
           context: var_context,
-          off_traces: []
+          off_traces: [],
+          paths: [],
+          deps: %{}
         }
 
         %{context | vars: Map.put(vars, version, data)}
     end
+  end
+
+  @doc """
+  Tracks metadata about variables dependencies and paths.
+  """
+  def track_var(version, new_deps, new_paths, context) do
+    update_in(context.vars[version], fn %{paths: paths, deps: deps} = data ->
+      %{data | paths: new_paths ++ paths, deps: Enum.reduce(new_deps, deps, &Map.put(&2, &1, []))}
+    end)
   end
 
   @doc """
