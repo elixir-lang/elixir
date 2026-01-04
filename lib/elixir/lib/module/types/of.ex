@@ -34,9 +34,11 @@ defmodule Module.Types.Of do
   This purposedly deletes all traces of the variable,
   as it is often invoked when the cause for error is elsewhere.
   """
-  def error_var({_var_name, meta, _var_context}, context) do
-    version = Keyword.fetch!(meta, :version)
+  def error_var({_, meta, _}, context) do
+    error_var(Keyword.fetch!(meta, :version), context)
+  end
 
+  def error_var(version, context) do
     update_in(context.vars[version], fn
       %{errored: true} = data -> data
       data -> Map.put(%{data | type: error_type(), off_traces: []}, :errored, true)
@@ -496,10 +498,10 @@ defmodule Module.Types.Of do
   end
 
   # If the segment is a literal, the compiler has already checked its validity,
-  # so we just skip it.
-  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context)
+  # so we just check the size.
+  defp binary_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
-    context
+    specifier_size(kind, right, stack, context)
   end
 
   defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do

@@ -501,8 +501,10 @@ defmodule Module.Types.Expr do
   end
 
   # var
-  def of_expr(var, expected, expr, stack, context) when is_var(var) do
-    Of.refine_body_var(var, expected, expr, stack, context)
+  def of_expr({_, meta, _} = var, expected, expr, stack, context) when is_var(var) do
+    version = Keyword.fetch!(meta, :version)
+    {type, context} = Of.refine_body_var(version, expected, expr, stack, context)
+    {type, Pattern.of_changed([version], stack, context)}
   end
 
   ## Tuples

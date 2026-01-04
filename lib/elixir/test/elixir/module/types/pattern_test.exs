@@ -95,6 +95,20 @@ defmodule Module.Types.PatternTest do
              ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
+    test "match propagation" do
+      assert typecheck!([x = {:ok, y}], is_integer(y), x) ==
+               dynamic(tuple([atom([:ok]), integer()]))
+
+      assert typecheck!(
+               [x = {:ok, y}],
+               (
+                 _ = Integer.to_string(y)
+                 x
+               )
+             ) ==
+               dynamic(tuple([atom([:ok]), integer()]))
+    end
+
     test "reports incompatible types" do
       assert typeerror!([x = 123 = "123"], x) == ~l"""
              the following pattern will never match:
@@ -236,6 +250,24 @@ defmodule Module.Types.PatternTest do
                  value
                )
              ) == atom([:value])
+
+      assert typecheck!(
+               [size, map],
+               (
+                 %{<<123::size(^size)>> => _} = map
+                 {size, map}
+               )
+             ) == dynamic(tuple([integer(), open_map()]))
+
+      assert(
+        typecheck!(
+          [key, map],
+          (
+            %{{:module, ^key} => _} = map
+            {key, map}
+          )
+        ) == dynamic(tuple([term(), open_map()]))
+      )
     end
   end
 
@@ -384,6 +416,105 @@ defmodule Module.Types.PatternTest do
                  <<_::size(^x)>> = y
                  x
                )
+             ) == dynamic(integer())
+    end
+  end
+
+  describe "pin" do
+    test "propagates across matches" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case 123 do
+                     ^y -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case 123 do
+                     ^x -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across guards" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y when is_integer(y) -> x
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across matches and guards" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case true do
+                     true when is_integer(y) -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case true do
+                     true when is_integer(x) -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across binary size in match" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     <<_::size(^y)>> -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     <<_::size(^x)>> -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across binary size in match inside a key" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     %{<<32::size(^y)>> => _} -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     %{<<32::size(^x)>> => _} -> y
+                   end
+               end
              ) == dynamic(integer())
     end
   end
@@ -621,11 +752,6 @@ defmodule Module.Types.PatternTest do
       # not and does not propagate
       assert typecheck!([x, y], not (length(x) == 3 and map_size(y) == 1), {x, y}) ==
                dynamic(tuple([list(term()), term()]))
-    end
-
-    test "match propagation" do
-      assert typecheck!([x = {:ok, y}], is_integer(y), x) ==
-               dynamic(tuple([atom([:ok]), integer()]))
     end
 
     test "errors in guards" do
