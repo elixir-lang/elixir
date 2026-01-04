@@ -163,6 +163,45 @@ defmodule Module.Types.Of do
   defp new_trace(expr, type, stack, traces),
     do: [{expr, stack.file, type} | traces]
 
+  @doc """
+  Executes the args with acc using conditional variables.
+  """
+  def with_conditional_vars(args, acc, expr, stack, context, fun) do
+    %{vars: vars, conditional_vars: conditional_vars} = context
+
+    {vars_conds, {acc, context}} =
+      Enum.map_reduce(args, {acc, context}, fn arg, {acc, context} ->
+        {acc, context} = fun.(arg, acc, %{context | vars: vars, conditional_vars: %{}})
+        %{vars: vars, conditional_vars: cond_vars} = context
+        {{vars, cond_vars}, {acc, context}}
+      end)
+
+    context = %{context | vars: vars, conditional_vars: conditional_vars}
+    {acc, reduce_conditional_vars(vars_conds, expr, stack, context)}
+  end
+
+  @doc """
+  Reduces conditional variables collected separately.
+  """
+  def reduce_conditional_vars([{vars, cond} | vars_conds], expr, stack, context) do
+    Enum.reduce(Map.keys(cond), context, fn version, context ->
+      if Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
+        %{^version => %{type: type}} = vars
+
+        type =
+          Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
+            %{^version => %{type: type}} = vars
+            union(acc, type)
+          end)
+
+        {_, context} = refine_body_var(version, type, expr, stack, context)
+        context
+      else
+        context
+      end
+    end)
+  end
+
   ## Implementations
 
   impls = [

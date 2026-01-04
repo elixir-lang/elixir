@@ -745,16 +745,15 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_guards(guards, stack, context) do
-    cond_context = %{context | conditional_vars: %{}}
+    expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
 
-    {vars_conds, context} =
-      Enum.map_reduce(guards, context, fn guard, context ->
-        {type, %{vars: vars, conditional_vars: cond_vars}} = of_guard(guard, stack, cond_context)
-        {{vars, cond_vars}, maybe_badguard(type, guard, stack, context)}
+    {:ok, context} =
+      Of.with_conditional_vars(guards, :ok, expr, stack, context, fn guard, :ok, context ->
+        {type, context} = of_guard(guard, stack, context)
+        {:ok, maybe_badguard(type, guard, stack, context)}
       end)
 
-    when_expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
-    of_cond_vars(vars_conds, when_expr, stack, context)
+    context
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -901,7 +900,7 @@ defmodule Module.Types.Pattern do
       {type, vars_conds} =
         of_logical_cond([left | right], true, expected, abort_domain, stack, cond_context, [])
 
-      {type, of_cond_vars(vars_conds, call, stack, context)}
+      {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
     end
   end
 
@@ -957,25 +956,6 @@ defmodule Module.Types.Pattern do
     disjoint? = disjoint? and disjoint?(type, to_abort)
     acc = [{vars, cond_vars} | acc]
     of_logical_cond(tail, disjoint?, expected, to_abort, stack, context, acc)
-  end
-
-  defp of_cond_vars([{vars, cond} | vars_conds], expr, stack, context) do
-    Enum.reduce(Map.keys(cond), context, fn version, context ->
-      if Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
-        %{^version => %{type: type}} = vars
-
-        type =
-          Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
-            %{^version => %{type: type}} = vars
-            union(acc, type)
-          end)
-
-        {_, context} = Of.refine_body_var(version, type, expr, stack, context)
-        context
-      else
-        context
-      end
-    end)
   end
 
   ## Helpers
