@@ -435,10 +435,7 @@ defmodule Module.Types do
       # The mode to be used, see the @modes attribute
       mode: mode,
       # The function for handling local calls
-      local_handler: handler,
-      # Control if variable refinement is enabled.
-      # It is disabled only on dynamic dispatches.
-      refine_vars: true
+      local_handler: handler
     }
   end
 

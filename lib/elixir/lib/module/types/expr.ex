@@ -502,10 +502,7 @@ defmodule Module.Types.Expr do
 
   # var
   def of_expr(var, expected, expr, stack, context) when is_var(var) do
-    case stack do
-      %{refine_vars: false} -> {Of.var(var, context), context}
-      %{} -> Of.refine_body_var(var, expected, expr, stack, context)
-    end
+    Of.refine_body_var(var, expected, expr, stack, context)
   end
 
   ## Tuples
@@ -691,14 +688,14 @@ defmodule Module.Types.Expr do
     apply_one(mod, fun, args, expected, expr, stack, context)
   end
 
-  defp apply_many(mods, fun, args, expected, {remote, meta, args}, stack, context) do
-    {returns, context} =
-      Enum.map_reduce(mods, context, fn mod, context ->
-        expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
-        apply_one(mod, fun, args, expected, expr, %{stack | refine_vars: false}, context)
-      end)
+  defp apply_many(mods, fun, args, expected, call, stack, context) do
+    {remote, meta, _} = call
 
-    {Enum.reduce(returns, &union/2), context}
+    Of.with_conditional_vars(mods, none(), call, stack, context, fn mod, acc, context ->
+      expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
+      {type, context} = apply_one(mod, fun, args, expected, expr, stack, context)
+      {union(acc, type), context}
+    end)
   end
 
   defp reduce_non_empty([last], acc, fun),

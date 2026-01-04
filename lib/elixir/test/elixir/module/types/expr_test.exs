@@ -528,18 +528,15 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "requires all combinations to be compatible (except refinements)" do
+    test "computes union of all combinations" do
       assert typecheck!(
                [condition, arg],
                (
-                 # While the code below may raise, it may also always succeed
-                 # if condition and arg are passed in tandem. Therefore, we
-                 # turn off refinement on dynamic calls.
                  mod = if condition, do: String, else: List
                  res = mod.to_integer(arg)
                  {arg, res}
                )
-             ) == tuple([dynamic(), integer()])
+             ) == dynamic(tuple([union(binary(), non_empty_list(integer())), integer()]))
 
       assert typeerror!(
                [condition],
