@@ -602,6 +602,10 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x, y], :erlang.and(length(x) == 3, map_size(y) == 1), {x, y}) ==
                dynamic(tuple([list(term()), open_map()]))
 
+      # or with mixed checks
+      assert typecheck!([x], length(x) == 3 or is_map(x), x) ==
+               dynamic(list(term()))
+
       # or does not propagate
       assert typecheck!([x, y], length(x) == 3 or map_size(y) == 1, {x, y}) ==
                dynamic(tuple([list(term()), term()]))
@@ -617,6 +621,11 @@ defmodule Module.Types.PatternTest do
       # not and does not propagate
       assert typecheck!([x, y], not (length(x) == 3 and map_size(y) == 1), {x, y}) ==
                dynamic(tuple([list(term()), term()]))
+    end
+
+    test "match propagation" do
+      assert typecheck!([x = {:ok, y}], is_integer(y), x) ==
+               dynamic(tuple([atom([:ok]), integer()]))
     end
 
     test "errors in guards" do

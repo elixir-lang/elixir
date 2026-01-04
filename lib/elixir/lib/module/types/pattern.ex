@@ -29,9 +29,14 @@ defmodule Module.Types.Pattern do
   """
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
-    {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
-    context = of_guards(guards, stack, context)
-    {trees, context}
+
+    case of_pattern_args(patterns, expected, tag, stack, context) do
+      {trees, changed, context} ->
+        {trees, of_changed(changed, stack, of_guards(guards, stack, context))}
+
+      {trees, context} ->
+        {trees, context}
+    end
   end
 
   @doc """
@@ -52,7 +57,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args([], [], _tag, _stack, context) do
-    {[], context}
+    {[], %{}, context}
   end
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
@@ -60,13 +65,10 @@ defmodule Module.Types.Pattern do
     {trees, context} = of_pattern_args_zip(patterns, expected, 0, [], stack, context)
     {pattern_info, context} = pop_pattern_info(context)
 
-    context =
-      case of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context) do
-        {:ok, _types, context} -> context
-        {:error, context} -> context
-      end
-
-    {trees, context}
+    case of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context) do
+      {_types, changed, context} -> {trees, changed, context}
+      {:error, context} -> {trees, context}
+    end
   end
 
   defp of_pattern_args_zip([pattern | tail], [expected | types], index, acc, stack, context) do
@@ -91,7 +93,7 @@ defmodule Module.Types.Pattern do
     tag = {:match, expected}
 
     case of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
-      {:ok, [type], context} -> {type, context}
+      {[type], changed, context} -> {type, of_changed(changed, stack, context)}
       {:error, context} -> {expected, context}
     end
   end
@@ -105,13 +107,10 @@ defmodule Module.Types.Pattern do
     {pattern_info, context} = pop_pattern_info(context)
     args = [{tree, expected, pattern}]
 
-    context =
-      case of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
-        {:ok, _types, context} -> context
-        {:error, context} -> context
-      end
-
-    of_guards(guards, stack, context)
+    case of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
+      {_types, changed, context} -> of_changed(changed, stack, of_guards(guards, stack, context))
+      {:error, context} -> context
+    end
   end
 
   defp of_pattern_intersect([head | tail], index, acc, pattern_info, tag, stack, context) do
@@ -169,28 +168,27 @@ defmodule Module.Types.Pattern do
       context -> {:error, error_vars(pattern_info, context)}
     else
       {changed, context} ->
-        {:ok, types, of_pattern_recur(changed, stack, context)}
+        {types, changed, context}
     end
   end
 
-  defp of_pattern_recur(changed, _stack, context)
-       when changed == %{} do
+  defp of_changed(changed, _stack, context) when changed == %{} do
     context
   end
 
-  defp of_pattern_recur(previous_changed, stack, context) do
+  defp of_changed(previous_changed, stack, context) do
     {changed, context} =
       previous_changed
       |> Map.keys()
       |> Enum.reduce({%{}, context}, fn version, {changed, context} ->
-        {new_deps, context} = of_pattern_recur_var(version, stack, context)
+        {new_deps, context} = of_changed_var(version, stack, context)
         {Map.merge(changed, new_deps), context}
       end)
 
-    of_pattern_recur(changed, stack, context)
+    of_changed(changed, stack, context)
   end
 
-  defp of_pattern_recur_var(version, stack, context) do
+  defp of_changed_var(version, stack, context) do
     case context.vars do
       %{^version => %{type: old_type, deps: deps, paths: paths} = data}
       when not is_map_key(data, :errored) ->
