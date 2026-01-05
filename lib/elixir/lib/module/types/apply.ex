@@ -374,35 +374,43 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp do_remote(:erlang, name, [left, right], _expected, expr, stack, context, of_fun)
+  defp do_remote(:erlang, name, [left, right], expected, expr, stack, context, of_fun)
        when name in [:>=, :"=<", :>, :<, :min, :max] do
-    {left_type, context} = of_fun.(left, term(), expr, stack, context)
-    {right_type, context} = of_fun.(right, term(), expr, stack, context)
+    case sized_order(name, left, right, expected) do
+      {arg, expected, return} ->
+        {actual, context} = of_fun.(arg, expected, expr, stack, context)
+        result = if compatible?(actual, expected), do: return, else: boolean()
+        {result, context}
 
-    result =
-      if name in [:min, :max] do
-        union(left_type, right_type)
-      else
-        return(boolean(), [left_type, right_type], stack)
-      end
+      :none ->
+        {left_type, context} = of_fun.(left, term(), expr, stack, context)
+        {right_type, context} = of_fun.(right, term(), expr, stack, context)
 
-    if is_warning(stack) do
-      common = intersection(left_type, right_type)
+        result =
+          if name in [:min, :max] do
+            union(left_type, right_type)
+          else
+            return(boolean(), [left_type, right_type], stack)
+          end
 
-      cond do
-        empty?(common) and not (number_type?(left_type) and number_type?(right_type)) ->
-          error = {:mismatched_comparison, left_type, right_type}
-          remote_error(error, :erlang, name, 2, expr, stack, context)
+        if is_warning(stack) do
+          common = intersection(left_type, right_type)
 
-        match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
-          error = {:struct_comparison, left_type, right_type}
-          remote_error(error, :erlang, name, 2, expr, stack, context)
+          cond do
+            empty?(common) and not (number_type?(left_type) and number_type?(right_type)) ->
+              error = {:mismatched_comparison, left_type, right_type}
+              remote_error(error, :erlang, name, 2, expr, stack, context)
 
-        true ->
+            match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
+              error = {:struct_comparison, left_type, right_type}
+              remote_error(error, :erlang, name, 2, expr, stack, context)
+
+            true ->
+              {result, context}
+          end
+        else
           {result, context}
-      end
-    else
-      {result, context}
+        end
     end
   end
 
@@ -539,6 +547,74 @@ defmodule Module.Types.Apply do
         {result, context}
     end
   end
+
+  defp sized_order(name, left, right, expected) do
+    if name in [:>=, :"=<", :>, :<] do
+      case {left, right} do
+        {{{:., _, [:erlang, fun]}, _, [arg]}, size}
+        when is_integer(size) and size >= 0 and fun in [:length, :map_size, :tuple_size] ->
+          case booleaness(expected) do
+            :always_true -> sized_order(name, fun, size, arg, @atom_true)
+            :always_false -> sized_order(invert_order(name), fun, size, arg, @atom_false)
+            :undefined -> :none
+          end
+
+        {size, {{:., _, [:erlang, fun]}, _, [arg]}}
+        when is_integer(size) and size >= 0 and fun in [:length, :map_size, :tuple_size] ->
+          case booleaness(expected) do
+            :always_true -> sized_order(invert_order(name), fun, size, arg, @atom_true)
+            :always_false -> sized_order(name, fun, size, arg, @atom_false)
+            :undefined -> :none
+          end
+
+        _ ->
+          :none
+      end
+    else
+      :none
+    end
+  end
+
+  defp sized_order(name, fun, size, arg, return) do
+    case expected_order(fun, name, size) do
+      :none -> :none
+      expected -> {arg, expected, return}
+    end
+  end
+
+  defp expected_order(_, :<, 0), do: :none
+
+  defp expected_order(:tuple_size, :<, size),
+    do: difference(open_tuple([]), open_tuple(List.duplicate(term(), size)))
+
+  defp expected_order(:tuple_size, :"=<", 0),
+    do: tuple([])
+
+  defp expected_order(:tuple_size, :"=<", size),
+    do: difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1)))
+
+  defp expected_order(:tuple_size, :>, size),
+    do: open_tuple(List.duplicate(term(), size + 1))
+
+  defp expected_order(:tuple_size, :>=, size),
+    do: open_tuple(List.duplicate(term(), size))
+
+  defp expected_order(:map_size, :<, 1), do: @empty_map
+  defp expected_order(:map_size, :"=<", 0), do: @empty_map
+  defp expected_order(:map_size, :>, _), do: @non_empty_map
+  defp expected_order(:map_size, :>=, size) when size > 0, do: @non_empty_map
+
+  defp expected_order(:length, :<, 1), do: @empty_list
+  defp expected_order(:length, :"=<", 0), do: @empty_list
+  defp expected_order(:length, :>, _), do: @non_empty_list
+  defp expected_order(:length, :>=, size) when size > 0, do: @non_empty_list
+
+  defp expected_order(_, _, _), do: :none
+
+  defp invert_order(:>=), do: :<
+  defp invert_order(:"=<"), do: :>
+  defp invert_order(:>), do: :"=<"
+  defp invert_order(:<), do: :>=
 
   @doc """
   Returns the domain of an unknown module.

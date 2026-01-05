@@ -773,8 +773,8 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  describe "equality in guards" do
-    test "length" do
+  describe "comparison in guards" do
+    test "length equality" do
       assert typecheck!([x], length(x) != 0, x) == dynamic(non_empty_list(term()))
       assert typecheck!([x], not (length(x) != 0), x) == dynamic(empty_list())
 
@@ -782,9 +782,42 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (0 != length(x)), x) == dynamic(empty_list())
     end
 
+    test "length ordered" do
+      assert typecheck!([x], length(x) < 0, x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) >= 0, x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) <= 0, x) == dynamic(empty_list())
+
+      assert typecheck!([x], 0 <= length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 0 >= length(x), x) == dynamic(list(term()))
+      assert typecheck!([x], 0 < length(x), x) == dynamic(list(term()))
+      assert typecheck!([x], 0 > length(x), x) == dynamic(empty_list())
+
+      assert typecheck!([x], not (length(x) > 0), x) == dynamic(empty_list())
+      assert typecheck!([x], not (length(x) < 0), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) >= 0), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) <= 0), x) == dynamic(non_empty_list(term()))
+
+      assert typecheck!([x], length(x) < 1, x) == dynamic(empty_list())
+
+      assert typecheck!([x], length(x) > 2, x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], length(x) < 2, x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) >= 2, x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], length(x) <= 2, x) == dynamic(list(term()))
+
+      assert typecheck!([x], 2 <= length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 2 >= length(x), x) == dynamic(list(term()))
+      assert typecheck!([x], 2 < length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 2 > length(x), x) == dynamic(list(term()))
+
+      assert typecheck!([x], not (length(x) > 2), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) < 2), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], not (length(x) >= 2), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) <= 2), x) == dynamic(non_empty_list(term()))
+    end
+
     @non_empty_map difference(open_map(), empty_map())
 
-    test "map_size" do
+    test "map_size equality" do
       assert typecheck!([x], map_size(x) == 0, x) == dynamic(empty_map())
       assert typecheck!([x], map_size(x) != 0, x) == dynamic(@non_empty_map)
       assert typecheck!([x], not (map_size(x) == 0), x) == dynamic(@non_empty_map)
@@ -796,10 +829,49 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (0 != map_size(x)), x) == dynamic(empty_map())
     end
 
-    @non_empty_tuple difference(open_tuple([]), tuple([]))
-    @non_empty_binary_tuple difference(open_tuple([]), tuple([term(), term()]))
+    test "map_size ordered" do
+      assert typecheck!([x], map_size(x) > 0, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], map_size(x) < 0, x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) >= 0, x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) <= 0, x) == dynamic(empty_map())
 
-    test "tuple_size" do
+      assert typecheck!([x], 0 <= map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 0 >= map_size(x), x) == dynamic(open_map())
+      assert typecheck!([x], 0 < map_size(x), x) == dynamic(open_map())
+      assert typecheck!([x], 0 > map_size(x), x) == dynamic(empty_map())
+
+      assert typecheck!([x], not (map_size(x) > 0), x) == dynamic(empty_map())
+      assert typecheck!([x], not (map_size(x) < 0), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) >= 0), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) <= 0), x) == dynamic(@non_empty_map)
+
+      assert typecheck!([x], map_size(x) < 1, x) == dynamic(empty_map())
+
+      assert typecheck!([x], map_size(x) > 2, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], map_size(x) < 2, x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) >= 2, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], map_size(x) <= 2, x) == dynamic(open_map())
+
+      assert typecheck!([x], 2 <= map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 2 >= map_size(x), x) == dynamic(open_map())
+      assert typecheck!([x], 2 < map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 2 > map_size(x), x) == dynamic(open_map())
+
+      assert typecheck!([x], not (map_size(x) > 2), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) < 2), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (map_size(x) >= 2), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) <= 2), x) == dynamic(@non_empty_map)
+    end
+
+    @non_empty_tuple difference(open_tuple([]), tuple([]))
+    @non_binary_tuple difference(open_tuple([]), tuple([term(), term()]))
+
+    @open_binary_tuple open_tuple([term(), term()])
+    @open_ternary_tuple open_tuple([term(), term(), term()])
+    @non_open_binary_tuple difference(open_tuple([]), open_tuple([term(), term()]))
+    @non_open_ternary_tuple difference(open_tuple([]), open_tuple([term(), term(), term()]))
+
+    test "tuple_size equality" do
       assert typecheck!([x], tuple_size(x) == 0, x) == dynamic(tuple([]))
       assert typecheck!([x], tuple_size(x) != 0, x) == dynamic(@non_empty_tuple)
       assert typecheck!([x], not (tuple_size(x) == 0), x) == dynamic(@non_empty_tuple)
@@ -811,14 +883,46 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (0 != tuple_size(x)), x) == dynamic(tuple([]))
 
       assert typecheck!([x], tuple_size(x) == 2, x) == dynamic(tuple([term(), term()]))
-      assert typecheck!([x], tuple_size(x) != 2, x) == dynamic(@non_empty_binary_tuple)
-      assert typecheck!([x], not (tuple_size(x) == 2), x) == dynamic(@non_empty_binary_tuple)
+      assert typecheck!([x], tuple_size(x) != 2, x) == dynamic(@non_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) == 2), x) == dynamic(@non_binary_tuple)
       assert typecheck!([x], not (tuple_size(x) != 2), x) == dynamic(tuple([term(), term()]))
 
       assert typecheck!([x], 2 == tuple_size(x), x) == dynamic(tuple([term(), term()]))
-      assert typecheck!([x], 2 != tuple_size(x), x) == dynamic(@non_empty_binary_tuple)
-      assert typecheck!([x], not (2 == tuple_size(x)), x) == dynamic(@non_empty_binary_tuple)
+      assert typecheck!([x], 2 != tuple_size(x), x) == dynamic(@non_binary_tuple)
+      assert typecheck!([x], not (2 == tuple_size(x)), x) == dynamic(@non_binary_tuple)
       assert typecheck!([x], not (2 != tuple_size(x)), x) == dynamic(tuple([term(), term()]))
+    end
+
+    test "tuple_size ordered" do
+      assert typecheck!([x], tuple_size(x) > 0, x) == dynamic(open_tuple([term()]))
+      assert typecheck!([x], tuple_size(x) < 0, x) == dynamic(open_tuple([]))
+      assert typecheck!([x], tuple_size(x) >= 0, x) == dynamic(open_tuple([]))
+      assert typecheck!([x], tuple_size(x) <= 0, x) == dynamic(tuple([]))
+
+      assert typecheck!([x], 0 <= tuple_size(x), x) == dynamic(open_tuple([term()]))
+      assert typecheck!([x], 0 >= tuple_size(x), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], 0 < tuple_size(x), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], 0 > tuple_size(x), x) == dynamic(tuple([]))
+
+      assert typecheck!([x], not (tuple_size(x) > 0), x) == dynamic(tuple([]))
+      assert typecheck!([x], not (tuple_size(x) < 0), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], not (tuple_size(x) >= 0), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], not (tuple_size(x) <= 0), x) == dynamic(open_tuple([term()]))
+
+      assert typecheck!([x], tuple_size(x) > 2, x) == dynamic(@open_ternary_tuple)
+      assert typecheck!([x], tuple_size(x) < 2, x) == dynamic(@non_open_binary_tuple)
+      assert typecheck!([x], tuple_size(x) >= 2, x) == dynamic(@open_binary_tuple)
+      assert typecheck!([x], tuple_size(x) <= 2, x) == dynamic(@non_open_ternary_tuple)
+
+      assert typecheck!([x], 2 <= tuple_size(x), x) == dynamic(@open_ternary_tuple)
+      assert typecheck!([x], 2 >= tuple_size(x), x) == dynamic(@non_open_binary_tuple)
+      assert typecheck!([x], 2 < tuple_size(x), x) == dynamic(@open_binary_tuple)
+      assert typecheck!([x], 2 > tuple_size(x), x) == dynamic(@non_open_ternary_tuple)
+
+      assert typecheck!([x], not (tuple_size(x) > 2), x) == dynamic(@non_open_ternary_tuple)
+      assert typecheck!([x], not (tuple_size(x) < 2), x) == dynamic(@open_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) >= 2), x) == dynamic(@non_open_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) <= 2), x) == dynamic(@open_ternary_tuple)
     end
   end
 end
