@@ -877,9 +877,9 @@ defmodule Module.Types.Pattern do
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _, stack, context)
+  def of_guard({{:., _, [:erlang, fun]}, _meta, args} = call, expected, _, stack, context)
       when is_atom(fun) do
-    of_remote(fun, meta, args, call, expected, stack, context)
+    of_remote(fun, args, call, expected, stack, context)
   end
 
   # var
@@ -897,7 +897,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_remote(fun, _meta, _args, call, expected, stack, context)
+  defp of_remote(fun, _args, call, expected, stack, context)
        when fun in [:and, :or, :andalso, :orelse] do
     {both_domain, abort_domain, always_rhs?} =
       case fun do
@@ -943,14 +943,8 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_remote(fun, meta, args, call, expected, stack, context) do
-    {info, domain, context} =
-      Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_guard(&1, &2, call, stack, &3))
-
-    Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
+  defp of_remote(fun, args, call, expected, stack, context) do
+    Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
   end
 
   defp unpack_op({{:., _, [:erlang, fun]}, _, [left, right]}, fun, acc) do

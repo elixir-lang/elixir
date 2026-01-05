@@ -448,7 +448,7 @@ defmodule Module.Types.Expr do
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 
-    Apply.fun_apply(fun_type, args_types, call, stack, context)
+    Apply.fun(fun_type, args_types, call, stack, context)
   end
 
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)
@@ -491,13 +491,13 @@ defmodule Module.Types.Expr do
   # Super
   def of_expr({:super, meta, args} = call, expected, _expr, stack, context) when is_list(args) do
     {_kind, fun} = Keyword.fetch!(meta, :super)
-    apply_local(fun, args, expected, call, stack, context)
+    Apply.local(fun, args, expected, call, stack, context, &of_expr/5)
   end
 
   # Local calls
   def of_expr({fun, _meta, args} = call, expected, _expr, stack, context)
       when is_atom(fun) and is_list(args) do
-    apply_local(fun, args, expected, call, stack, context)
+    Apply.local(fun, args, expected, call, stack, context, &of_expr/5)
   end
 
   # var
@@ -571,7 +571,7 @@ defmodule Module.Types.Expr do
     {pattern, guards} = extract_head([left])
 
     {_type, context} =
-      apply_one(Enumerable, :count, [right], dynamic(), expr, stack, context)
+      Apply.remote(Enumerable, :count, [right], dynamic(), expr, stack, context, &of_expr/5)
 
     Pattern.of_generator(pattern, guards, dynamic(), :for, expr, stack, context)
   end
@@ -658,36 +658,12 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_local(fun, args, expected, {_, meta, _} = expr, stack, context) do
-    {local_info, domain, context} = Apply.local_domain(fun, args, expected, meta, stack, context)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
-
-    Apply.local_apply(local_info, fun, args_types, expr, stack, context)
-  end
-
-  defp apply_one(mod, fun, args, expected, expr, stack, context) do
-    {info, domain, context} =
-      Apply.remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
-
-    Apply.remote_apply(info, mod, fun, args_types, expr, stack, context)
-  end
-
   defp apply_many([], fun, args, expected, expr, stack, context) do
-    {info, domain} = Apply.remote_domain(fun, args, expected, stack)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
-
-    Apply.remote_apply(info, nil, fun, args_types, expr, stack, context)
+    Apply.remote(fun, args, expected, expr, stack, context, &of_expr/5)
   end
 
   defp apply_many([mod], fun, args, expected, expr, stack, context) do
-    apply_one(mod, fun, args, expected, expr, stack, context)
+    Apply.remote(mod, fun, args, expected, expr, stack, context, &of_expr/5)
   end
 
   defp apply_many(mods, fun, args, expected, call, stack, context) do
@@ -695,7 +671,7 @@ defmodule Module.Types.Expr do
 
     Of.with_conditional_vars(mods, none(), call, stack, context, fn mod, acc, context ->
       expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
-      {type, context} = apply_one(mod, fun, args, expected, expr, stack, context)
+      {type, context} = Apply.remote(mod, fun, args, expected, expr, stack, context, &of_expr/5)
       {union(acc, type), context}
     end)
   end
