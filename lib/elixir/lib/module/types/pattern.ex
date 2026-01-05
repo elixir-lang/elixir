@@ -786,7 +786,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp maybe_badguard(type, guard, stack, context) do
-    if never_true?(type) do
+    if booleaness(type) in [:maybe_false, :none] do
       error = {:badguard, type, guard, context}
       error(__MODULE__, error, error_meta(guard, stack), stack, context)
     else

@@ -913,56 +913,39 @@ defmodule Module.Types.Descr do
   # an empty list of atoms. It is simplified to `0` in set operations, and the key
   # is removed from the map.
 
-  @false_or_nil_atoms [
-    :sets.from_list([false, nil], version: 2),
-    :sets.from_list([nil], version: 2),
-    :sets.from_list([false], version: 2)
-  ]
-
-  @false_atoms :sets.from_list([false], version: 2)
-  @true_atoms :sets.from_list([true], version: 2)
-
-  @doc """
-  Returns true if the type can never be true.
-  """
-  def never_true?(:term), do: false
-
-  def never_true?(%{} = descr) do
-    descr = Map.get(descr, :dynamic, descr)
-
-    case descr do
-      :term -> false
-      %{atom: {:union, %{true => _}}} -> false
-      %{atom: {:union, _}} -> true
-      %{atom: {:negation, %{true => _}}} -> true
-      %{atom: {:negation, _}} -> false
-      _ -> true
-    end
-  end
-
   @doc """
   Compute the booleaness of an element.
 
-  It is either :undefined, :always_true, or :always_false.
+  It is either `:none`, `:maybe_true` (therefore never false),
+  `:maybe_false` (therefore never true), or `:maybe_both`.
+
+  This is an optimization against checking if a term is
+  not disjoint on either true or false.
   """
-  def booleaness(:term), do: :undefined
+  def booleaness(:term), do: :maybe_both
 
   def booleaness(%{} = descr) do
     descr = Map.get(descr, :dynamic, descr)
 
     case descr do
-      %{atom: {:union, set}}
-      when map_size(descr) == 1 and set == @false_atoms ->
-        :always_false
-
-      %{atom: {:union, set}}
-      when map_size(descr) == 1 and set == @true_atoms ->
-        :always_true
-
-      _ ->
-        :undefined
+      :term -> :maybe_both
+      %{atom: {:union, %{true: _, false: _}}} -> :maybe_both
+      %{atom: {:union, %{true: _}}} -> :maybe_true
+      %{atom: {:union, %{false: _}}} -> :maybe_false
+      %{atom: {:union, _}} -> :none
+      %{atom: {:negation, %{true: _, false: _}}} -> :none
+      %{atom: {:negation, %{true: _}}} -> :maybe_false
+      %{atom: {:negation, %{false: _}}} -> :maybe_true
+      %{atom: {:negation, _}} -> :maybe_both
+      _ -> :none
     end
   end
+
+  @false_or_nil_atoms [
+    :sets.from_list([false, nil], version: 2),
+    :sets.from_list([nil], version: 2),
+    :sets.from_list([false], version: 2)
+  ]
 
   @doc """
   Compute the truthiness of an element.
