@@ -485,6 +485,12 @@ defmodule Module.Types.Apply do
   @empty_map empty_map()
   @non_empty_map difference(open_map(), empty_map())
 
+  # Limit the size of tuples to 16 entries
+  # as otherwise we may create large nodes
+  defguardp is_data_size(fun, literal)
+            when (fun in [:length, :map_size] and is_integer(literal) and literal >= 0) or
+                   (fun in [:tuple_size] and literal in 0..15)
+
   defp custom_compare(
          name,
          {{:., _, [:erlang, fun]}, _, [arg]} = left,
@@ -495,7 +501,7 @@ defmodule Module.Types.Apply do
          context,
          of_fun
        )
-       when fun in [:length, :map_size, :tuple_size] and is_integer(literal) and literal >= 0 do
+       when is_data_size(fun, literal) do
     case booleaness(expected) do
       :undefined ->
         compare(name, left, literal, false, expr, stack, context, of_fun)
@@ -551,16 +557,14 @@ defmodule Module.Types.Apply do
   defp sized_order(name, left, right, expected) do
     if name in [:>=, :"=<", :>, :<] do
       case {left, right} do
-        {{{:., _, [:erlang, fun]}, _, [arg]}, size}
-        when is_integer(size) and size >= 0 and fun in [:length, :map_size, :tuple_size] ->
+        {{{:., _, [:erlang, fun]}, _, [arg]}, size} when is_data_size(fun, size) ->
           case booleaness(expected) do
             :always_true -> sized_order(name, fun, size, arg, @atom_true)
             :always_false -> sized_order(invert_order(name), fun, size, arg, @atom_false)
             :undefined -> :none
           end
 
-        {size, {{:., _, [:erlang, fun]}, _, [arg]}}
-        when is_integer(size) and size >= 0 and fun in [:length, :map_size, :tuple_size] ->
+        {size, {{:., _, [:erlang, fun]}, _, [arg]}} when is_data_size(fun, size) ->
           case booleaness(expected) do
             :always_true -> sized_order(invert_order(name), fun, size, arg, @atom_true)
             :always_false -> sized_order(name, fun, size, arg, @atom_false)
