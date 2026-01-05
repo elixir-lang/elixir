@@ -15,6 +15,9 @@ defmodule Module.Types.Apply do
   # reduce the computation cost of inferred code.
   @max_clauses 16
 
+  @atom_true atom([true])
+  @atom_false atom([false])
+
   ## Signatures
 
   # Define strong arrows found in the standard library.
@@ -359,25 +362,15 @@ defmodule Module.Types.Apply do
 
   # The functions implemented with custom do_remote functions work on values,
   # rather on types, hence the custom behaviour.
-  defp do_remote(:erlang, name, [left, right] = args, _expected, expr, stack, context, of_fun)
+  defp do_remote(:erlang, name, [left, right], expected, expr, stack, context, of_fun)
        when name in [:==, :"/=", :"=:=", :"=/="] do
-    {left_type, context} = of_fun.(left, term(), expr, stack, context)
-    {right_type, context} = of_fun.(right, term(), expr, stack, context)
-    result = return(boolean(), [left_type, right_type], stack)
+    left_literal? = Macro.quoted_literal?(left)
+    right_literal? = Macro.quoted_literal?(right)
 
-    cond do
-      not is_warning(stack) or Macro.quoted_literal?(args) ->
-        {result, context}
-
-      name in [:==, :"/="] and number_type?(left_type) and number_type?(right_type) ->
-        {result, context}
-
-      disjoint?(left_type, right_type) ->
-        error = {:mismatched_comparison, left_type, right_type}
-        remote_error(error, :erlang, name, 2, expr, stack, context)
-
-      true ->
-        {result, context}
+    case {left_literal?, right_literal?} do
+      {true, false} -> custom_compare(name, right, left, expected, expr, stack, context, of_fun)
+      {false, true} -> custom_compare(name, left, right, expected, expr, stack, context, of_fun)
+      {literal?, _} -> compare(name, left, right, literal?, expr, stack, context, of_fun)
     end
   end
 
@@ -477,6 +470,74 @@ defmodule Module.Types.Apply do
 
   defp do_remote(mod, fun, args, expected, expr, stack, context, _of_fun) do
     remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
+  end
+
+  @empty_list empty_list()
+  @non_empty_list non_empty_list(term())
+  @empty_map empty_map()
+  @non_empty_map difference(open_map(), empty_map())
+
+  defp custom_compare(
+         name,
+         {{:., _, [:erlang, fun]}, _, [arg]} = left,
+         literal,
+         expected,
+         expr,
+         stack,
+         context,
+         of_fun
+       )
+       when fun in [:length, :map_size, :tuple_size] and is_integer(literal) and literal >= 0 do
+    case booleaness(expected) do
+      :undefined ->
+        compare(name, left, literal, false, expr, stack, context, of_fun)
+
+      boolean ->
+        {polarity, return} =
+          case boolean do
+            :always_true -> {name in [:==, :"=:="], @atom_true}
+            :always_false -> {name in [:"/=", :"=/="], @atom_false}
+          end
+
+        expected =
+          case fun do
+            :length when :erlang.xor(polarity, literal > 0) -> @empty_list
+            :length -> @non_empty_list
+            :map_size when :erlang.xor(polarity, literal > 0) -> @empty_map
+            :map_size -> @non_empty_map
+            :tuple_size when polarity -> tuple(List.duplicate(term(), literal))
+            :tuple_size -> difference(open_tuple([]), tuple(List.duplicate(term(), literal)))
+          end
+
+        {actual, context} = of_fun.(arg, expected, expr, stack, context)
+        result = if compatible?(actual, expected), do: return, else: boolean()
+        {result, context}
+    end
+  end
+
+  defp custom_compare(name, left, right, _expected, expr, stack, context, of_fun) do
+    compare(name, left, right, false, expr, stack, context, of_fun)
+  end
+
+  defp compare(name, left, right, literal?, expr, stack, context, of_fun) do
+    {left_type, context} = of_fun.(left, term(), expr, stack, context)
+    {right_type, context} = of_fun.(right, term(), expr, stack, context)
+    result = return(boolean(), [left_type, right_type], stack)
+
+    cond do
+      literal? or not is_warning(stack) ->
+        {result, context}
+
+      name in [:==, :"/="] and number_type?(left_type) and number_type?(right_type) ->
+        {result, context}
+
+      disjoint?(left_type, right_type) ->
+        error = {:mismatched_comparison, left_type, right_type}
+        remote_error(error, :erlang, name, 2, expr, stack, context)
+
+      true ->
+        {result, context}
+    end
   end
 
   @doc """

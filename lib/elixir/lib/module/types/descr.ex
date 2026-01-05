@@ -919,6 +919,9 @@ defmodule Module.Types.Descr do
     :sets.from_list([false], version: 2)
   ]
 
+  @false_atoms :sets.from_list([false], version: 2)
+  @true_atoms :sets.from_list([true], version: 2)
+
   @doc """
   Returns true if the type can never be true.
   """
@@ -934,6 +937,30 @@ defmodule Module.Types.Descr do
       %{atom: {:negation, %{true => _}}} -> true
       %{atom: {:negation, _}} -> false
       _ -> true
+    end
+  end
+
+  @doc """
+  Compute the booleaness of an element.
+
+  It is either :undefined, :always_true, or :always_false.
+  """
+  def booleaness(:term), do: :undefined
+
+  def booleaness(%{} = descr) do
+    descr = Map.get(descr, :dynamic, descr)
+
+    case descr do
+      %{atom: {:union, set}}
+      when map_size(descr) == 1 and set == @false_atoms ->
+        :always_false
+
+      %{atom: {:union, set}}
+      when map_size(descr) == 1 and set == @true_atoms ->
+        :always_true
+
+      _ ->
+        :undefined
     end
   end
 
