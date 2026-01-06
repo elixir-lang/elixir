@@ -36,6 +36,7 @@ not type
 ### Indivisible types
 
 ```elixir
+bitstring()
 binary()
 empty_list()
 integer()
@@ -44,6 +45,8 @@ pid()
 port()
 reference()
 ```
+
+`binary()` is a subtype of `bitstring()`.
 
 ### Atoms
 
@@ -167,24 +170,20 @@ tuple()
 
 #### At least n-element tuples
 
-```
+```elixir
 {binary(), binary(), ...}
 ```
 
 ## Additional types for convenience
 
-#### Aliases
+#### Common aliases
 
 ```elixir
-bitstring() = binary()
 boolean() = true or false
 number() = integer() or float()
 ```
 
-The type system currently does not distinguish between
-binaries and bitstrings.
-
-#### Lists
+#### List aliases
 
 ```elixir
 list() = empty_list() or non_empty_list(term())

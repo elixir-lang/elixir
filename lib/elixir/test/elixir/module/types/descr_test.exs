@@ -54,7 +54,7 @@ defmodule Module.Types.DescrTest do
         atom(),
         integer(),
         float(),
-        binary(),
+        bitstring(),
         open_map(),
         non_empty_list(term(), term()),
         empty_list(),
@@ -182,7 +182,6 @@ defmodule Module.Types.DescrTest do
              ) == closed_map(a: union(float(), integer()), b: atom())
 
       # Optimization two: we can tell that one map is a subtype of the other:
-
       assert union(
                closed_map(a: term(), b: term()),
                closed_map(a: float(), b: binary())
@@ -216,8 +215,7 @@ defmodule Module.Types.DescrTest do
                tuple([integer(), atom()])
              ) == tuple([union(float(), integer()), atom()])
 
-      # Optimization two: we can tell that one tuple is a subtype of the other:
-
+      # Optimization two: we can tell that one tuple is a subtype of the other
       assert union(
                tuple([term(), term()]),
                tuple([float(), binary()])
@@ -2489,8 +2487,14 @@ defmodule Module.Types.DescrTest do
 
   describe "to_quoted" do
     test "bitmap" do
+      assert union(pid(), bitstring()) |> to_quoted_string() ==
+               "bitstring() or pid()"
+
       assert union(integer(), union(float(), binary())) |> to_quoted_string() ==
                "binary() or float() or integer()"
+
+      assert difference(bitstring(), binary()) |> union(integer()) |> to_quoted_string() ==
+               "(bitstring() and not binary()) or integer()"
     end
 
     test "none" do

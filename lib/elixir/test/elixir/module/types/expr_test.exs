@@ -2040,10 +2040,10 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "comprehensions" do
-    test "binary generators" do
+    test "bitstring generators" do
       assert typeerror!([<<x>>], for(<<y <- x>>, do: y)) ==
                ~l"""
-               expected the right side of <- in a binary generator to be a binary:
+               expected the right side of <- in a binary generator to be a binary (or bitstring):
 
                    x
 
@@ -2066,7 +2066,7 @@ defmodule Module.Types.ExprTest do
                for(<<i <- if(:rand.uniform() > 0.5, do: x, else: y)>>, do: i)
              ) =~
                ~l"""
-               expected the right side of <- in a binary generator to be a binary:
+               expected the right side of <- in a binary generator to be a binary (or bitstring):
 
                    if :rand.uniform() > 0.5 do
                      x
@@ -2092,14 +2092,14 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "infers binary generators" do
+    test "infers bitstring generators" do
       assert typecheck!(
                [x],
                (
                  for <<_ <- x>>, do: :ok
                  x
                )
-             ) == dynamic(binary())
+             ) == dynamic(bitstring())
     end
 
     test ":into" do

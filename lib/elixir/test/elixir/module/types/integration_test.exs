@@ -240,7 +240,7 @@ defmodule Module.Types.IntegrationTest do
       end
 
       assert itself_arg.(Itself.Atom) == dynamic(atom())
-      assert itself_arg.(Itself.BitString) == dynamic(binary())
+      assert itself_arg.(Itself.BitString) == dynamic(bitstring())
       assert itself_arg.(Itself.Float) == dynamic(float())
       assert itself_arg.(Itself.Function) == dynamic(fun())
       assert itself_arg.(Itself.Integer) == dynamic(integer())
@@ -583,7 +583,8 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
+                ) or atom() or bitstring() or empty_list() or float() or integer() or
+                  non_empty_list(term(), term())
         """,
         """
             warning: incompatible value given to string interpolation:
@@ -667,7 +668,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: the Collectable protocol is implemented for the following types:
 
-                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or bitstring() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """,
         """
@@ -684,7 +685,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: the Collectable protocol is implemented for the following types:
 
-                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or bitstring() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """
       ]
@@ -1567,7 +1568,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v4, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v5, map} = :erlang.binary_to_term(chunk)
     map
   end
 
