@@ -123,8 +123,7 @@ defmodule Module.Types.Expr do
 
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    context = Of.binary(args, :expr, stack, context)
-    {binary(), context}
+    Of.bitstring(args, :expr, stack, context)
   end
 
   def of_expr({:__CALLER__, _meta, var_context}, _expected, _expr, _stack, context)
@@ -315,7 +314,7 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  # TODO: fn pat -> expr end
+  # fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, _expected, _expr, stack, context) do
     [{:->, _, [head, _]} | _] = clauses
     {patterns, _guards} = extract_head(head)
@@ -416,18 +415,14 @@ defmodule Module.Types.Expr do
     else
       # TODO: Use the collectable protocol for the output
       into = Keyword.get(opts, :into, [])
-      {into_wrapper, gradual?, context} = for_into(into, meta, stack, context)
+      {into_type, into_extra, gradual?, context} = for_into(into, meta, stack, context)
       {block_type, context} = of_expr(block, @pending, block, stack, context)
 
       for_type =
-        for type <- into_wrapper do
-          case type do
-            :binary -> binary()
-            :list -> list(block_type)
-            :term -> term()
-          end
-        end
-        |> Enum.reduce(&union/2)
+        Enum.reduce(into_extra, into_type, fn
+          :block, acc -> union(acc, block_type)
+          :non_empty_list, acc -> union(acc, non_empty_list(block_type))
+        end)
 
       {if(gradual?, do: dynamic(for_type), else: for_type), context}
     end
@@ -469,7 +464,7 @@ defmodule Module.Types.Expr do
     apply_many(mods, name, args, expected, call, stack, context)
   end
 
-  # TODO: &Foo.bar/1
+  # &Foo.bar/1
   def of_expr(
         {:&, _, [{:/, _, [{{:., _, [remote, name]}, meta, []}, arity]}]} = call,
         _expected,
@@ -483,7 +478,7 @@ defmodule Module.Types.Expr do
     Apply.remote_capture(mods, name, arity, meta, stack, context)
   end
 
-  # TODO: &foo/1
+  # &foo/1
   def of_expr({:&, _meta, [{:/, _, [{fun, meta, _}, arity]}]}, _expected, _expr, stack, context) do
     Apply.local_capture(fun, arity, meta, stack, context)
   end
@@ -577,13 +572,13 @@ defmodule Module.Types.Expr do
   end
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]} = expr, stack, context) do
-    {right_type, context} = of_expr(right, binary(), expr, stack, context)
-    context = Pattern.of_generator(left, [], binary(), :for, expr, stack, context)
+    {right_type, context} = of_expr(right, bitstring(), expr, stack, context)
+    context = Pattern.of_generator(left, [], bitstring(), :for, expr, stack, context)
 
-    if compatible?(right_type, binary()) do
+    if compatible?(right_type, bitstring()) do
       context
     else
-      error = {:badbinary, right_type, right, context}
+      error = {:badbitstring, right_type, right, context}
       error(__MODULE__, error, meta, stack, context)
     end
   end
@@ -593,13 +588,13 @@ defmodule Module.Types.Expr do
     context
   end
 
-  @into_compile union(binary(), empty_list())
+  @into_compile union(bitstring(), empty_list())
 
   defp for_into([], _meta, _stack, context),
-    do: {[:list], false, context}
+    do: {empty_list(), [:non_empty_list], false, context}
 
   defp for_into(binary, _meta, _stack, context) when is_binary(binary),
-    do: {[:binary], false, context}
+    do: {binary(), [:block], false, context}
 
   defp for_into(into, meta, stack, context) do
     meta =
@@ -616,18 +611,21 @@ defmodule Module.Types.Expr do
     {type, context} = of_expr(into, domain, expr, stack, context)
 
     # We use subtype? instead of compatible because we want to handle
-    # only binary/list, even if a dynamic with something else is given.
+    # only bitstring/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
-      case {binary_type?(type), empty_list_type?(type)} do
-        {false, true} -> {[:list], gradual?(type), context}
-        {true, false} -> {[:binary], gradual?(type), context}
-        {_, _} -> {[:binary, :list], gradual?(type), context}
-      end
+      list =
+        case {bitstring_type?(type), empty_list_type?(type)} do
+          {false, true} -> [:non_empty_list]
+          {true, false} -> [:block]
+          {_, _} -> [:block, :non_empty_list]
+        end
+
+      {type, list, gradual?(type), context}
     else
       {_type, context} =
         Apply.remote_apply(info, Collectable, :into, [type], expr, stack, context)
 
-      {[:term], true, context}
+      {term(), [], true, context}
     end
   end
 
@@ -866,7 +864,7 @@ defmodule Module.Types.Expr do
     }
   end
 
-  def format_diagnostic({:badbinary, type, expr, context}) do
+  def format_diagnostic({:badbitstring, type, expr, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -874,7 +872,7 @@ defmodule Module.Types.Expr do
       message:
         IO.iodata_to_binary([
           """
-          expected the right side of <- in a binary generator to be a binary:
+          expected the right side of <- in a binary generator to be a binary (or bitstring):
 
               #{expr_to_string(expr) |> indent(4)}
 

@@ -168,7 +168,7 @@ defmodule Module.Types.Apply do
         {:erlang, :binary_to_integer, [{[binary()], integer()}]},
         {:erlang, :binary_to_integer, [{[binary(), integer()], integer()}]},
         {:erlang, :binary_to_float, [{[binary()], float()}]},
-        {:erlang, :bit_size, [{[binary()], integer()}]},
+        {:erlang, :bit_size, [{[bitstring()], integer()}]},
         {:erlang, :bnot, [{[integer()], integer()}]},
         {:erlang, :bor, [{[integer(), integer()], integer()}]},
         {:erlang, :bsl, [{[integer(), integer()], integer()}]},
@@ -288,7 +288,7 @@ defmodule Module.Types.Apply do
   is_guards = [
     is_atom: atom(),
     is_binary: binary(),
-    is_bitstring: binary(),
+    is_bitstring: bitstring(),
     is_boolean: boolean(),
     is_float: float(),
     is_function: fun(),
@@ -303,13 +303,10 @@ defmodule Module.Types.Apply do
   ]
 
   for {guard, type} <- is_guards do
-    # is_binary can actually fail for binaries if they are bitstrings
-    return = if guard == :is_binary, do: boolean(), else: atom([true])
-
     domain_clauses =
       {:strong, [term()],
        [
-         {[type], return},
+         {[type], atom([true])},
          {[negation(type)], atom([false])}
        ]}
 

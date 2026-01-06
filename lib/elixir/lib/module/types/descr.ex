@@ -16,14 +16,23 @@ defmodule Module.Types.Descr do
 
   import Bitwise
 
-  @bit_binary 1 <<< 0
-  @bit_empty_list 1 <<< 1
-  @bit_integer 1 <<< 2
-  @bit_float 1 <<< 3
-  @bit_pid 1 <<< 4
-  @bit_port 1 <<< 5
-  @bit_reference 1 <<< 6
-  @bit_top (1 <<< 7) - 1
+  @bit_binary 0b1
+  @bit_bitstring_no_binary 0b10
+  @bit_empty_list 0b100
+  @bit_integer 0b1000
+  @bit_float 0b10000
+  @bit_pid 0b100000
+  @bit_port 0b1000000
+  @bit_reference 0b10000000
+  @bit_top 0b11111111
+
+  # We use two bits to represent bitstrings and binaries,
+  # which must be looked at together
+  # bitstring = 0b11
+  # bitstring and not binary = 0b10
+  # binary = 0b01
+  # none = 0b00
+  @bit_bitstring @bit_binary ||| @bit_bitstring_no_binary
   @bit_number @bit_integer ||| @bit_float
 
   defmacro bdd_leaf(arg1, arg2), do: {arg1, arg2}
@@ -80,6 +89,8 @@ defmodule Module.Types.Descr do
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
+  def bitstring(), do: %{bitmap: @bit_bitstring}
+  def bitstring_no_binary(), do: %{bitmap: @bit_bitstring_no_binary}
   def closed_map(pairs), do: map_descr(:closed, pairs)
   def empty_list(), do: %{bitmap: @bit_empty_list}
   def empty_map(), do: %{map: @map_empty}
@@ -843,29 +854,14 @@ defmodule Module.Types.Descr do
   @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.
   """
-  def binary_type?(:term), do: true
-  def binary_type?(%{dynamic: :term}), do: true
-  def binary_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_binary) != 0, do: true
-  def binary_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_binary) != 0, do: true
-  def binary_type?(_), do: false
+  def bitstring_type?(:term), do: true
+  def bitstring_type?(%{dynamic: :term}), do: true
 
-  @doc """
-  Optimized version of `not empty?(intersection(integer(), type))`.
-  """
-  def integer_type?(:term), do: true
-  def integer_type?(%{dynamic: :term}), do: true
-  def integer_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_integer) != 0, do: true
-  def integer_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_integer) != 0, do: true
-  def integer_type?(_), do: false
+  def bitstring_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_bitstring) != 0,
+    do: true
 
-  @doc """
-  Optimized version of `not empty?(intersection(float(), type))`.
-  """
-  def float_type?(:term), do: true
-  def float_type?(%{dynamic: :term}), do: true
-  def float_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_float) != 0, do: true
-  def float_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_float) != 0, do: true
-  def float_type?(_), do: false
+  def bitstring_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_bitstring) != 0, do: true
+  def bitstring_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(integer() or float(), type))`.
@@ -881,7 +877,6 @@ defmodule Module.Types.Descr do
   defp bitmap_to_quoted(val) do
     pairs =
       [
-        binary: @bit_binary,
         empty_list: @bit_empty_list,
         integer: @bit_integer,
         float: @bit_float,
@@ -890,9 +885,17 @@ defmodule Module.Types.Descr do
         reference: @bit_reference
       ]
 
-    for {type, mask} <- pairs,
-        (mask &&& val) !== 0,
-        do: {type, [], []}
+    quoted =
+      for {type, mask} <- pairs,
+          (mask &&& val) !== 0,
+          do: {type, [], []}
+
+    case val &&& @bit_bitstring do
+      0 -> quoted
+      1 -> [{:binary, [], []} | quoted]
+      2 -> [{:and, [], [{:bitstring, [], []}, {:not, [], [{:binary, [], []}]}]} | quoted]
+      3 -> [{:bitstring, [], []} | quoted]
+    end
   end
 
   ## Atoms
@@ -2423,6 +2426,7 @@ defmodule Module.Types.Descr do
 
   defp bitmap_to_domain_keys(bitmap, acc) do
     acc = if (bitmap &&& @bit_binary) != 0, do: [:binary | acc], else: acc
+    acc = if (bitmap &&& @bit_bitstring_no_binary) != 0, do: [:bitstring | acc], else: acc
     acc = if (bitmap &&& @bit_empty_list) != 0, do: [:list | acc], else: acc
     acc = if (bitmap &&& @bit_integer) != 0, do: [:integer | acc], else: acc
     acc = if (bitmap &&& @bit_float) != 0, do: [:float | acc], else: acc
@@ -2433,6 +2437,7 @@ defmodule Module.Types.Descr do
   end
 
   defp domain_key_to_descr(:atom), do: atom()
+  defp domain_key_to_descr(:bitstring), do: bitstring_no_binary()
   defp domain_key_to_descr(:binary), do: binary()
   defp domain_key_to_descr(:integer), do: integer()
   defp domain_key_to_descr(:float), do: float()

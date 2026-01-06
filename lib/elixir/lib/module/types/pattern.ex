@@ -402,7 +402,7 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    {binary(), Of.binary(args, :match, stack, context)}
+    Of.bitstring(args, :match, stack, context)
   end
 
   def of_match_var({:^, _meta, [{_, meta, _}]}, expected, expr, stack, context) do
@@ -593,8 +593,7 @@ defmodule Module.Types.Pattern do
 
   # <<...>>>
   defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
-    context = Of.binary(args, :match, stack, context)
-    {binary(), context}
+    Of.bitstring(args, :match, stack, context)
   end
 
   # left ++ right
@@ -853,8 +852,7 @@ defmodule Module.Types.Pattern do
 
   # <<>>
   def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    context = Of.binary(args, :guard, stack, context)
-    {binary(), context}
+    Of.bitstring(args, :guard, stack, context)
   end
 
   # ^var
