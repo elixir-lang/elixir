@@ -24,6 +24,7 @@ The basic types are:
 ```elixir
 atom()
 binary()
+bitstring()
 empty_list()
 integer()
 float()
@@ -54,9 +55,13 @@ You can find a complete reference in the [set-theoretic types cheatsheet](../che
 
 In this section we will cover the syntax of all data types. At the moment, developers will interact with those types mostly through compiler warnings and diagnostics.
 
-### Indivisible types
+### Broad types
 
-These types are indivisibile and have no further representation. They are: `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()`.  For example, the numbers `1` and `42` are both represented by the type `integer()`.
+These types are broad in that they cannot represent individual elements, only the whole set. For example, the numbers `1` and `42` are both represented by the type `integer()`.
+
+They are: `binary()`, `bitstring()`, `integer()`, `float()`, `pid()`, `port()`, `reference()`.
+
+The `binary()` type is a subtype of the less frequently used `bitstring()` type, as binaries are bitstrings where the number of bits is divisible by 8.
 
 ### Atoms
 
@@ -148,7 +153,7 @@ That's the same as specifying all lists:
 %{list() => integer() or binary()}
 ```
 
-The supported domain keys are `atom()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, and `tuple()`.
+The supported domain keys are `atom()`, `bitstring()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, and `tuple()`. In the case of maps, the `bitstring()` domain stores exclusively keys which are not binary. The ones which are `binary()` are stored under the `binary()` domain.
 
 Furthermore, it is important to note that domain keys are, by definition, optional. Whenever you have a `%{integer() => integer()}`and you try to fetch a key, we must assume the key may not exist (after all, it is not possible to store all integers as map keys as they are infinite).
 

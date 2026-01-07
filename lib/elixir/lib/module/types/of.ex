@@ -16,6 +16,7 @@ defmodule Module.Types.Of do
   @integer integer()
   @float float()
   @binary binary()
+  @bitstring bitstring()
 
   ## Variables
 
@@ -208,7 +209,7 @@ defmodule Module.Types.Of do
 
   impls = [
     {Atom, atom()},
-    {BitString, binary()},
+    {BitString, bitstring()},
     {Float, float()},
     {Function, fun()},
     {Integer, integer()},
@@ -467,44 +468,54 @@ defmodule Module.Types.Of do
     closed_map(pairs)
   end
 
-  ## Binary
+  ## Bitstrings
 
   @doc """
-  Handles binaries.
+  Handles bitstrings.
 
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _kind, _stack, context) do
+  def bitstring(meta, parts, kind, stack, context) do
+    context = bitstring(parts, kind, stack, context)
+
+    case Keyword.get(meta, :alignment, :unknown) do
+      :unknown -> {bitstring(), context}
+      0 -> {binary(), context}
+      _ -> {bitstring_no_binary(), context}
+    end
+  end
+
+  defp bitstring([], _kind, _stack, context) do
     context
   end
 
-  def binary([head], kind, stack, context) do
-    binary_segment(head, kind, [head], stack, context)
+  defp bitstring([head], kind, stack, context) do
+    bitstring_segment(head, kind, [head], stack, context)
   end
 
-  def binary([head | tail], kind, stack, context) do
-    context = binary_segment(head, kind, [head, @suffix], stack, context)
-    binary_many(tail, kind, stack, context)
+  defp bitstring([head | tail], kind, stack, context) do
+    context = bitstring_segment(head, kind, [head, @suffix], stack, context)
+    bitstring_tail(tail, kind, stack, context)
   end
 
-  defp binary_many([last], kind, stack, context) do
-    binary_segment(last, kind, [@prefix, last], stack, context)
+  defp bitstring_tail([last], kind, stack, context) do
+    bitstring_segment(last, kind, [@prefix, last], stack, context)
   end
 
-  defp binary_many([head | tail], kind, stack, context) do
-    context = binary_segment(head, kind, [@prefix, head, @suffix], stack, context)
-    binary_many(tail, kind, stack, context)
+  defp bitstring_tail([head | tail], kind, stack, context) do
+    context = bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
+    bitstring_tail(tail, kind, stack, context)
   end
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just check the size.
-  defp binary_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
+  defp bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
     specifier_size(kind, right, stack, context)
   end
 
-  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
+  defp bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
     type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
@@ -550,8 +561,8 @@ defmodule Module.Types.Of do
   defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
   defp specifier_type(_kind, {:utf32, _, _}), do: @integer_or_binary
   defp specifier_type(_kind, {:integer, _, _}), do: @integer
-  defp specifier_type(_kind, {:bits, _, _}), do: @binary
-  defp specifier_type(_kind, {:bitstring, _, _}), do: @binary
+  defp specifier_type(_kind, {:bits, _, _}), do: @bitstring
+  defp specifier_type(_kind, {:bitstring, _, _}), do: @bitstring
   defp specifier_type(_kind, {:bytes, _, _}), do: @binary
   defp specifier_type(_kind, {:binary, _, _}), do: @binary
   defp specifier_type(_kind, _specifier), do: @integer

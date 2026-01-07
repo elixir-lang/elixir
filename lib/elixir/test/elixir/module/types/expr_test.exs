@@ -31,6 +31,15 @@ defmodule Module.Types.ExprTest do
     assert typecheck!([x = 1], generated(x)) == dynamic()
   end
 
+  describe "bitstrings" do
+    test "alignment" do
+      assert typecheck!(<<round(:rand.uniform())>>) == binary()
+      assert typecheck!(<<round(:rand.uniform())::1>>) == difference(bitstring(), binary())
+      assert typecheck!(<<round(:rand.uniform())::4, round(:rand.uniform())::4>>) == binary()
+      assert typecheck!([size], <<round(:rand.uniform())::size(size)>>) == bitstring()
+    end
+  end
+
   describe "lists" do
     test "creating lists" do
       assert typecheck!([1, 2]) == non_empty_list(integer())
@@ -678,7 +687,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "size ok" do
-      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == binary()
+      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == bitstring()
     end
 
     test "size error" do
@@ -2040,10 +2049,10 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "comprehensions" do
-    test "binary generators" do
+    test "bitstring generators" do
       assert typeerror!([<<x>>], for(<<y <- x>>, do: y)) ==
                ~l"""
-               expected the right side of <- in a binary generator to be a binary:
+               expected the right side of <- in a binary generator to be a binary (or bitstring):
 
                    x
 
@@ -2066,7 +2075,7 @@ defmodule Module.Types.ExprTest do
                for(<<i <- if(:rand.uniform() > 0.5, do: x, else: y)>>, do: i)
              ) =~
                ~l"""
-               expected the right side of <- in a binary generator to be a binary:
+               expected the right side of <- in a binary generator to be a binary (or bitstring):
 
                    if :rand.uniform() > 0.5 do
                      x
@@ -2092,25 +2101,29 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "infers binary generators" do
+    test "infers bitstring generators" do
       assert typecheck!(
                [x],
                (
                  for <<_ <- x>>, do: :ok
                  x
                )
-             ) == dynamic(binary())
+             ) == dynamic(bitstring())
     end
 
     test ":into" do
       assert typecheck!([binary], for(<<x <- binary>>, do: x)) == list(integer())
       assert typecheck!([binary], for(<<x <- binary>>, do: x, into: [])) == list(integer())
-      assert typecheck!([binary], for(<<x <- binary>>, do: x, into: "")) == binary()
+      assert typecheck!([binary], for(<<x <- binary>>, do: <<x>>, into: "")) |> equal?(binary())
       assert typecheck!([binary, other], for(<<x <- binary>>, do: x, into: other)) == dynamic()
 
-      assert typecheck!([enum], for(x <- enum, do: x)) == list(dynamic())
-      assert typecheck!([enum], for(x <- enum, do: x, into: [])) == list(dynamic())
-      assert typecheck!([enum], for(x <- enum, do: x, into: "")) == binary()
+      assert typecheck!([enum], for(x <- enum, do: x)) ==
+               union(list(dynamic()), empty_list())
+
+      assert typecheck!([enum], for(x <- enum, do: x, into: [])) ==
+               union(list(dynamic()), empty_list())
+
+      assert typecheck!([enum], for(x <- enum, do: <<x>>, into: "")) |> equal?(binary())
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
 
       assert typecheck!(
@@ -2119,7 +2132,7 @@ defmodule Module.Types.ExprTest do
                  into = if :rand.uniform() > 0.5, do: [], else: "0"
                  for(<<x::float <- binary>>, do: x, into: into)
                )
-             ) == union(binary(), list(float()))
+             ) == union(bitstring(), list(term()))
 
       assert typecheck!(
                [binary, empty_list = []],
@@ -2127,7 +2140,25 @@ defmodule Module.Types.ExprTest do
                  into = if :rand.uniform() > 0.5, do: empty_list, else: "0"
                  for(<<x::float <- binary>>, do: x, into: into)
                )
-             ) == dynamic(union(binary(), list(float())))
+             ) == union(bitstring(), list(term()))
+    end
+
+    test ":into incompatibility" do
+      assert typeerror!([binary], for(<<x <- binary>>, do: x, into: "")) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 x
+
+             but got type:
+
+                 integer()
+
+             where "x" was given the type:
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 <<x>>
+             """
     end
 
     test ":reduce checks" do
