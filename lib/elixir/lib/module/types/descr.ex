@@ -852,7 +852,7 @@ defmodule Module.Types.Descr do
   def empty_list_type?(_), do: false
 
   @doc """
-  Optimized version of `not empty?(intersection(binary(), type))`.
+  Optimized version of `not empty?(intersection(bitstring(), type))`.
   """
   def bitstring_type?(:term), do: true
   def bitstring_type?(%{dynamic: :term}), do: true
