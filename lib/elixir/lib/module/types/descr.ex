@@ -2371,7 +2371,7 @@ defmodule Module.Types.Descr do
 
   defp indivisible_bitmap(descr, opts) do
     with true <- Keyword.get(opts, :skip_dynamic_for_indivisible, true),
-         %{bitmap: bitmap} when map_size(descr) == 1 <- descr,
+         %{bitmap: bitmap} when map_size(descr) == 1 and bitmap != @bit_bitstring <- descr,
          [single] <- bitmap_to_quoted(bitmap) do
       single
     else

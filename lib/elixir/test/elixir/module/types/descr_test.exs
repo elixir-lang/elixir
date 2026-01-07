@@ -2528,15 +2528,22 @@ defmodule Module.Types.DescrTest do
     test "dynamic" do
       assert dynamic() |> to_quoted_string() == "dynamic()"
 
+      assert intersection(atom(), dynamic()) |> to_quoted_string() == "dynamic(atom())"
+
       assert dynamic(union(atom(), integer())) |> union(integer()) |> to_quoted_string() ==
                "dynamic(atom()) or integer()"
 
-      assert intersection(binary(), dynamic()) |> to_quoted_string() == "binary()"
+      assert intersection(binary(), dynamic()) |> to_quoted_string() ==
+               "binary()"
+
+      assert intersection(bitstring(), dynamic()) |> to_quoted_string() ==
+               "dynamic(bitstring())"
+
+      assert intersection(bitstring_no_binary(), dynamic()) |> to_quoted_string() ==
+               "bitstring() and not binary()"
 
       assert intersection(union(binary(), pid()), dynamic()) |> to_quoted_string() ==
                "dynamic(binary() or pid())"
-
-      assert intersection(atom(), dynamic()) |> to_quoted_string() == "dynamic(atom())"
 
       assert union(atom([:foo, :bar]), dynamic()) |> to_quoted_string() ==
                "dynamic() or :bar or :foo"

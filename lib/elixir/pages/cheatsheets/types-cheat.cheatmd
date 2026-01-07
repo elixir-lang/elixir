@@ -33,7 +33,7 @@ not type
 
 ## Data types
 
-### Indivisible types
+### Broad types
 
 ```elixir
 bitstring()
