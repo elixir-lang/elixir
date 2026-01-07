@@ -174,7 +174,7 @@ defmodule Module.Types.Apply do
         {:erlang, :bsl, [{[integer(), integer()], integer()}]},
         {:erlang, :bsr, [{[integer(), integer()], integer()}]},
         {:erlang, :bxor, [{[integer(), integer()], integer()}]},
-        {:erlang, :byte_size, [{[binary()], integer()}]},
+        {:erlang, :byte_size, [{[bitstring()], integer()}]},
         {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
         {:erlang, :div, [{[integer(), integer()], integer()}]},
         {:erlang, :error, [{[term()], none()}]},

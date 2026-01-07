@@ -31,6 +31,15 @@ defmodule Module.Types.ExprTest do
     assert typecheck!([x = 1], generated(x)) == dynamic()
   end
 
+  describe "bitstrings" do
+    test "alignment" do
+      assert typecheck!(<<round(:rand.uniform())>>) == binary()
+      assert typecheck!(<<round(:rand.uniform())::1>>) == difference(bitstring(), binary())
+      assert typecheck!(<<round(:rand.uniform())::4, round(:rand.uniform())::4>>) == binary()
+      assert typecheck!([size], <<round(:rand.uniform())::size(size)>>) == bitstring()
+    end
+  end
+
   describe "lists" do
     test "creating lists" do
       assert typecheck!([1, 2]) == non_empty_list(integer())
@@ -678,7 +687,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "size ok" do
-      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == binary()
+      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == bitstring()
     end
 
     test "size error" do

@@ -328,7 +328,14 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  describe "binaries" do
+  describe "bitstrings" do
+    test "alignment" do
+      assert typecheck!([<<_>> = x], x) == dynamic(binary())
+      assert typecheck!([<<_::1>> = x], x) == dynamic(difference(bitstring(), binary()))
+      assert typecheck!([<<_::4, _::4>> = x], x) == dynamic(binary())
+      assert typecheck!([<<size, _::size(size)>> = x], x) == dynamic(bitstring())
+    end
+
     test "ok" do
       assert typecheck!([<<x>>], x) == integer()
       assert typecheck!([<<x::float>>], x) == float()
@@ -337,7 +344,27 @@ defmodule Module.Types.PatternTest do
     end
 
     test "nested" do
-      assert typecheck!([<<0, <<x::bitstring>>::binary>>], x) == binary()
+      assert typecheck!([<<0, <<x::binary>>::binary>>], x) == binary()
+
+      assert typeerror!([<<0, <<x::bitstring>>::binary>>], x) == ~l"""
+             incompatible types in binary matching:
+
+                 <<..., <<x::bitstring>>::binary>>
+
+             got type:
+
+                 bitstring()
+
+             but expected type:
+
+                 binary()
+
+             where "x" was given the type:
+
+                 # type: bitstring()
+                 # from: types_test.ex:LINE
+                 <<x::bitstring>>
+             """
     end
 
     test "error" do

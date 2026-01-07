@@ -476,27 +476,36 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  # TODO: Return binary, bitstring or bitstring_no_binary
-  def bitstring([], _kind, _stack, context) do
-    {binary(), context}
+  def bitstring(meta, parts, kind, stack, context) do
+    context = bitstring(parts, kind, stack, context)
+
+    case Keyword.get(meta, :alignment, :unknown) do
+      :unknown -> {bitstring(), context}
+      0 -> {binary(), context}
+      _ -> {bitstring_no_binary(), context}
+    end
   end
 
-  def bitstring([head], kind, stack, context) do
-    {binary(), bitstring_segment(head, kind, [head], stack, context)}
+  defp bitstring([], _kind, _stack, context) do
+    context
   end
 
-  def bitstring([head | tail], kind, stack, context) do
+  defp bitstring([head], kind, stack, context) do
+    bitstring_segment(head, kind, [head], stack, context)
+  end
+
+  defp bitstring([head | tail], kind, stack, context) do
     context = bitstring_segment(head, kind, [head, @suffix], stack, context)
-    {binary(), bitstring_many(tail, kind, stack, context)}
+    bitstring_tail(tail, kind, stack, context)
   end
 
-  defp bitstring_many([last], kind, stack, context) do
+  defp bitstring_tail([last], kind, stack, context) do
     bitstring_segment(last, kind, [@prefix, last], stack, context)
   end
 
-  defp bitstring_many([head | tail], kind, stack, context) do
+  defp bitstring_tail([head | tail], kind, stack, context) do
     context = bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
-    bitstring_many(tail, kind, stack, context)
+    bitstring_tail(tail, kind, stack, context)
   end
 
   # If the segment is a literal, the compiler has already checked its validity,

@@ -122,8 +122,8 @@ defmodule Module.Types.Expr do
   end
 
   # <<...>>>
-  def of_expr({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    Of.bitstring(args, :expr, stack, context)
+  def of_expr({:<<>>, meta, args}, _expected, _expr, stack, context) do
+    Of.bitstring(meta, args, :expr, stack, context)
   end
 
   def of_expr({:__CALLER__, _meta, var_context}, _expected, _expr, _stack, context)
