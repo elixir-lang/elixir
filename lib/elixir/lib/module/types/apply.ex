@@ -1279,6 +1279,17 @@ defmodule Module.Types.Apply do
     end
   end
 
+  @doc """
+  Computes the return type of an application.
+  """
+  def return(type, args_types, stack) do
+    cond do
+      stack.mode == :static -> type
+      Enum.any?(args_types, &gradual?/1) -> dynamic(type)
+      true -> type
+    end
+  end
+
   ## Map helpers
 
   defp map_put_new(map, key, value, name, args_types, stack) do
@@ -1321,14 +1332,6 @@ defmodule Module.Types.Apply do
   end
 
   ## Application helpers
-
-  defp return(type, args_types, stack) do
-    cond do
-      stack.mode == :static -> type
-      Enum.any?(args_types, &gradual?/1) -> dynamic(type)
-      true -> type
-    end
-  end
 
   defp domain(nil, [{domain, _}]), do: domain
   defp domain(domain, _clauses), do: domain
