@@ -818,6 +818,64 @@ defmodule Module.Types.PatternTest do
     end
   end
 
+  describe "equality in guards" do
+    test "with non-singleton literals" do
+      assert typecheck!([x], x == "foo", x) == dynamic(binary())
+      assert typecheck!([x], x === "foo", x) == dynamic(binary())
+      assert typecheck!([x], not (x == "foo"), x) == dynamic()
+      assert typecheck!([x], not (x === "foo"), x) == dynamic()
+
+      assert typecheck!([x], x != "foo", x) == dynamic()
+      assert typecheck!([x], x !== "foo", x) == dynamic()
+      assert typecheck!([x], not (x != "foo"), x) == dynamic(binary())
+      assert typecheck!([x], not (x !== "foo"), x) == dynamic(binary())
+    end
+
+    test "with number literals" do
+      assert typecheck!([x], x == 1, x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], x === 1, x) == dynamic(integer())
+      assert typecheck!([x], not (x == 1), x) == dynamic()
+      assert typecheck!([x], not (x === 1), x) == dynamic()
+
+      assert typecheck!([x], x != 1, x) == dynamic()
+      assert typecheck!([x], x !== 1, x) == dynamic()
+      assert typecheck!([x], not (x != 1), x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], not (x !== 1), x) == dynamic(integer())
+
+      assert typecheck!([x], x == 1.0, x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], x === 1.0, x) == dynamic(float())
+      assert typecheck!([x], not (x == 1.0), x) == dynamic()
+      assert typecheck!([x], not (x === 1.0), x) == dynamic()
+
+      assert typecheck!([x], x != 1.0, x) == dynamic()
+      assert typecheck!([x], x !== 1.0, x) == dynamic()
+      assert typecheck!([x], not (x != 1.0), x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], not (x !== 1.0), x) == dynamic(float())
+    end
+
+    test "with singleton literals" do
+      assert typecheck!([x], x == :foo, x) == dynamic(atom([:foo]))
+      assert typecheck!([x], x === :foo, x) == dynamic(atom([:foo]))
+      assert typecheck!([x], not (x == :foo), x) == dynamic(negation(atom([:foo])))
+      assert typecheck!([x], not (x === :foo), x) == dynamic(negation(atom([:foo])))
+
+      assert typecheck!([x], x != :foo, x) == dynamic(negation(atom([:foo])))
+      assert typecheck!([x], x !== :foo, x) == dynamic(negation(atom([:foo])))
+      assert typecheck!([x], not (x != :foo), x) == dynamic(atom([:foo]))
+      assert typecheck!([x], not (x !== :foo), x) == dynamic(atom([:foo]))
+
+      assert typecheck!([x], x == [], x) == dynamic(empty_list())
+      assert typecheck!([x], x === [], x) == dynamic(empty_list())
+      assert typecheck!([x], not (x == []), x) == dynamic(negation(empty_list()))
+      assert typecheck!([x], not (x === []), x) == dynamic(negation(empty_list()))
+
+      assert typecheck!([x], x != [], x) == dynamic(negation(empty_list()))
+      assert typecheck!([x], x !== [], x) == dynamic(negation(empty_list()))
+      assert typecheck!([x], not (x != []), x) == dynamic(empty_list())
+      assert typecheck!([x], not (x !== []), x) == dynamic(empty_list())
+    end
+  end
+
   describe "comparison in guards" do
     test "length equality" do
       assert typecheck!([x], length(x) != 0, x) == dynamic(non_empty_list(term()))

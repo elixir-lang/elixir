@@ -477,6 +477,7 @@ defmodule Module.Types.Apply do
     remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
   end
 
+  @number union(integer(), float())
   @empty_list empty_list()
   @non_empty_list non_empty_list(term())
   @empty_map empty_map()
@@ -526,8 +527,41 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp custom_compare(name, left, right, _expected, expr, stack, context, of_fun) do
-    compare(name, left, right, false, expr, stack, context, of_fun)
+  defp custom_compare(name, arg, literal, expected, expr, stack, context, of_fun) do
+    {literal_type, context} = of_fun.(literal, term(), expr, stack, context)
+
+    case booleaness(expected) do
+      booleaness when booleaness in [:maybe_both, :none] ->
+        compare(name, arg, literal, false, expr, stack, context, of_fun)
+
+      booleaness ->
+        {polarity, return} =
+          case booleaness do
+            :maybe_true -> {name in [:==, :"=:="], @atom_true}
+            :maybe_false -> {name in [:"/=", :"=/="], @atom_false}
+          end
+
+        # If it is a singleton, we can always be precise
+        if singleton?(literal_type) do
+          expected = if polarity, do: literal_type, else: negation(literal_type)
+          {actual, context} = of_fun.(arg, expected, expr, stack, context)
+          result = if compatible?(actual, expected), do: return, else: boolean()
+          {result, context}
+        else
+          expected =
+            cond do
+              # We are checking for `not x == 1` or similar, we can't say anything about x
+              polarity == false -> term()
+              # We are checking for `x == 1`, make sure x is integer or float
+              number_type?(literal_type) and name in [:==, :"/="] -> union(literal_type, @number)
+              # Otherwise we have the literal type as is
+              true -> literal_type
+            end
+
+          {_, context} = of_fun.(arg, expected, expr, stack, context)
+          {boolean(), context}
+        end
+    end
   end
 
   defp compare(name, left, right, literal?, expr, stack, context, of_fun) do
