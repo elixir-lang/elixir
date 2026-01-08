@@ -63,7 +63,7 @@ defmodule Module.Types.Pattern do
 
                       {:error, _old_type, error_context} ->
                         if match_error?(var, new_type) do
-                          throw(badmatch_error(var, expr, stack, context))
+                          throw(badpattern_error(var, expr, stack, context))
                         else
                           throw(badvar_error(var, old_type, new_type, stack, error_context))
                         end
@@ -71,7 +71,7 @@ defmodule Module.Types.Pattern do
                   end
 
                 :error ->
-                  throw(badmatch_error(var, expr, stack, context))
+                  throw(badpattern_error(var, expr, stack, context))
               end
           end)
         catch
@@ -260,9 +260,9 @@ defmodule Module.Types.Pattern do
     error(__MODULE__, error, error_meta(var, stack), stack, context)
   end
 
-  defp badmatch_error(var, expr, stack, context) do
+  defp badpattern_error(var, expr, stack, context) do
     context = Of.error_var(var, context)
-    error(__MODULE__, {:badmatch, expr, context}, error_meta(expr, stack), stack, context)
+    error(__MODULE__, {:badpattern, expr, context}, error_meta(expr, stack), stack, context)
   end
 
   defp badpattern_error(expr, index, tag, stack, context) do
@@ -272,7 +272,7 @@ defmodule Module.Types.Pattern do
       if index do
         {:badpattern, meta, expr, index, tag, context}
       else
-        {:badmatch, expr, context}
+        {:badpattern, expr, context}
       end
 
     error(__MODULE__, error, meta, stack, context)
@@ -1012,7 +1012,7 @@ defmodule Module.Types.Pattern do
     }
   end
 
-  def format_diagnostic({:badmatch, expr, context}) do
+  def format_diagnostic({:badpattern, expr, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -1020,7 +1020,7 @@ defmodule Module.Types.Pattern do
       message:
         IO.iodata_to_binary([
           """
-          this match will never succeed due to incompatible types:
+          the following pattern will never match:
 
               #{expr_to_string(expr) |> indent(4)}
           """,
@@ -1146,7 +1146,7 @@ defmodule Module.Types.Pattern do
      """}
   end
 
-  defp badpattern({:infer, types}, pattern_or_expr, index) do
+  defp badpattern({:infer, types}, pattern_or_expr, index) when is_integer(index) do
     type = Enum.fetch!(types, index)
 
     if type == dynamic() do

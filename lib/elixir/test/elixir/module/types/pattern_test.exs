@@ -145,7 +145,7 @@ defmodule Module.Types.PatternTest do
              """
 
       assert typeerror!([{x, _} = {y, _}, x = :foo, y = :bar], {x, y}) == ~l"""
-             this match will never succeed due to incompatible types:
+             the following pattern will never match:
 
                  {x, _} = {y, _}
 
@@ -160,6 +160,24 @@ defmodule Module.Types.PatternTest do
                  # type: dynamic(:bar)
                  # from: types_test.ex:LINE
                  y = :bar
+             """
+
+      assert typeerror!([{:ok, x} = {:ok, y}], is_integer(x) and is_atom(y), {x, y}) == ~l"""
+             the following pattern will never match:
+
+                 {:ok, x} = {:ok, y}
+
+             where "x" was given the type:
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 is_integer(x)
+
+             where "y" was given the type:
+
+                 # type: dynamic(atom())
+                 # from: types_test.ex:LINE
+                 is_atom(y)
              """
     end
   end
