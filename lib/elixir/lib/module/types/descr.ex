@@ -270,7 +270,7 @@ defmodule Module.Types.Descr do
   end
 
   defp unwrap_domain_tuple(%{tuple: bdd} = descr, transform) when map_size(descr) == 1 do
-    tuple_normalize(bdd) |> Enum.map(transform)
+    tuple_bdd_to_dnf(bdd) |> Enum.map(transform)
   end
 
   defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
@@ -603,6 +603,56 @@ defmodule Module.Types.Descr do
   defp empty_key?(:list, value), do: list_empty?(value)
   defp empty_key?(:tuple, value), do: tuple_empty?(value)
   defp empty_key?(_, _value), do: false
+
+  @doc """
+  Returns if the type is a singleton.
+  """
+  def singleton?(:term), do: false
+  def singleton?(descr), do: static_singleton?(Map.get(descr, :dynamic, descr))
+
+  defp static_singleton?(:term), do: false
+  defp static_singleton?(%{optional: _}), do: false
+  defp static_singleton?(%{list: _}), do: false
+  defp static_singleton?(%{fun: _}), do: false
+  defp static_singleton?(descr), do: each_singleton?(descr, [:atom, :bitmap, :map, :tuple], false)
+
+  defp each_singleton?(descr, [key | keys], acc) do
+    case descr do
+      %{^key => value} ->
+        case each_singleton?(key, value) do
+          true when acc == true -> false
+          true -> each_singleton?(descr, keys, true)
+          false -> false
+          :empty -> each_singleton?(descr, keys, acc)
+        end
+
+      %{} ->
+        each_singleton?(descr, keys, acc)
+    end
+  end
+
+  defp each_singleton?(_descr, [], acc), do: acc
+
+  # Implement for each type
+  defp each_singleton?(:bitmap, bitmap), do: bitmap == @bit_empty_list
+
+  defp each_singleton?(:atom, atoms), do: match?({:union, set} when map_size(set) == 1, atoms)
+
+  defp each_singleton?(:tuple, bdd) do
+    case tuple_bdd_to_dnf(bdd) do
+      [] -> :empty
+      [{:closed, entries}] -> Enum.all?(entries, &static_singleton?/1)
+      _ -> false
+    end
+  end
+
+  defp each_singleton?(:map, bdd) do
+    case map_bdd_to_dnf(bdd) do
+      [] -> :empty
+      [{:closed, fields, _negs}] -> Enum.all?(fields, fn {_, v} -> static_singleton?(v) end)
+      _ -> false
+    end
+  end
 
   @doc """
   Converts a descr to its quoted representation.
@@ -3850,15 +3900,6 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Use heuristics to normalize a map bdd for pretty printing.
-  defp map_normalize(bdd) do
-    map_bdd_to_dnf(bdd)
-    |> Enum.map(fn {tag, fields, negs} ->
-      map_eliminate_while_negs_decrease(tag, fields, negs)
-    end)
-    |> map_fusion()
-  end
-
   # Continue to eliminate negations while length of list of negs decreases
   defp map_eliminate_while_negs_decrease(tag, fields, []), do: {tag, fields, []}
 
@@ -3950,7 +3991,12 @@ defmodule Module.Types.Descr do
   end
 
   defp map_to_quoted(bdd, opts) do
-    map_normalize(bdd)
+    bdd
+    |> map_bdd_to_dnf()
+    |> Enum.map(fn {tag, fields, negs} ->
+      map_eliminate_while_negs_decrease(tag, fields, negs)
+    end)
+    |> map_fusion()
     |> Enum.map(&map_each_to_quoted(&1, opts))
   end
 
@@ -4472,14 +4518,14 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_to_quoted(bdd, opts) do
-    tuple_normalize(bdd)
+    tuple_bdd_to_dnf(bdd)
     |> tuple_fusion()
     |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
 
   # Transforms a bdd into a union of tuples with no negations.
   # Note: it is important to compose the results with tuple_dnf_union/2 to avoid duplicates
-  defp tuple_normalize(bdd) do
+  defp tuple_bdd_to_dnf(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {positive_tuples, negative_tuples}, acc ->
       case non_empty_tuple_literals_intersection(positive_tuples) do
@@ -4639,7 +4685,7 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_get(bdd, index) do
-    tuple_normalize(bdd)
+    tuple_bdd_to_dnf(bdd)
     |> Enum.reduce(none(), fn
       {tag, elements}, acc -> Enum.at(elements, index, tuple_tag_to_type(tag)) |> union(acc)
     end)
@@ -4670,7 +4716,7 @@ defmodule Module.Types.Descr do
   end
 
   defp process_tuples_values(bdd) do
-    tuple_normalize(bdd)
+    tuple_bdd_to_dnf(bdd)
     |> Enum.reduce(none(), fn {tag, elements}, acc ->
       cond do
         Enum.any?(elements, &empty?/1) -> none()
@@ -4808,7 +4854,7 @@ defmodule Module.Types.Descr do
   defp tuple_of_size_at_least_static?(descr, index) do
     case descr do
       %{tuple: bdd} ->
-        tuple_normalize(bdd)
+        tuple_bdd_to_dnf(bdd)
         |> Enum.all?(fn {_, elements} -> length(elements) >= index end)
 
       %{} ->
