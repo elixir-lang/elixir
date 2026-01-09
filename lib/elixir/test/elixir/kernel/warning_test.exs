@@ -2287,6 +2287,14 @@ defmodule Kernel.WarningTest do
 
   test "unused require" do
     assert_warn_compile(
+      ["nofile:1:1", "unused require Logger"],
+      """
+      require Logger
+      """
+    )
+
+    # Within a module
+    assert_warn_compile(
       ["nofile:2:3", "unused require Application"],
       """
       defmodule Sample do
@@ -2296,10 +2304,25 @@ defmodule Kernel.WarningTest do
       """
     )
 
+    # Unused require and alias
     assert_warn_compile(
-      ["nofile:1:1", "unused require Logger"],
+      ["nofile:2:3", "unused require Application (the alias is also unused)"],
       """
-      require Logger
+      defmodule Sample do
+        require Application, as: A
+        def a, do: nil
+      end
+      """
+    )
+
+    # Unused require but used alias
+    assert_warn_compile(
+      ["nofile:2:3", "unused require Application (convert it to an alias instead)"],
+      """
+      defmodule Sample do
+        require Application, as: A
+        def a, do: A.started_applications()
+      end
       """
     )
   after

@@ -97,8 +97,8 @@ warn_unused_imports(Pid, E) ->
   ok.
 
 warn_unused_requires(Pid, E) ->
-  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module})
-   || {Module, Meta} <- ?tracker:collect_unused_requires(Pid)],
+  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_require, Module, Alias, AliasUsed})
+   || {Module, Meta, Alias, AliasUsed} <- ?tracker:collect_unused_requires(Pid)],
   ok.
 
 unused_imports_for_module(Module, Imports) ->
@@ -118,5 +118,10 @@ format_error({unused_import, {Module, Function, Arity}}) ->
   io_lib:format("unused import ~ts.~ts/~w", [elixir_aliases:inspect(Module), Function, Arity]);
 format_error({unused_import, Module}) ->
   io_lib:format("unused import ~ts", [elixir_aliases:inspect(Module)]);
-format_error({unused_require, Module}) ->
-  io_lib:format("unused require ~ts", [elixir_aliases:inspect(Module)]).
+format_error({unused_require, Module, Alias, AliasUsed}) ->
+  Message = if
+    Alias == false -> "unused require ~ts";
+    AliasUsed -> "unused require ~ts (convert it to an alias instead)";
+    true -> "unused require ~ts (the alias is also unused)"
+  end,
+  io_lib:format(Message, [elixir_aliases:inspect(Module)]).
