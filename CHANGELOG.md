@@ -158,7 +158,7 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
-## v1.20.0-dev
+## v1.20.0-rc.0 (2026-01-09)
 
 ### 1. Enhancements
 

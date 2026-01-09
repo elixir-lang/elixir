@@ -24,7 +24,7 @@
 
 8. Update `_data/elixir-versions.yml` (except for RCs) in `elixir-lang/elixir-lang.github.com`
 
-## Creating a new vMAJOR.MINOR branch (before first rc)
+## Creating a new vMAJOR.MINOR branch (usually before first rc)
 
 ### In the new branch
 
