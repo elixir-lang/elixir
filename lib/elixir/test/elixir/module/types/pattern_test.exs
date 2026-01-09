@@ -874,6 +874,52 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (x != []), x) == dynamic(empty_list())
       assert typecheck!([x], not (x !== []), x) == dynamic(empty_list())
     end
+
+    test "warnings" do
+      assert typeerror!([x = {}], x == 0, x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x == 0
+
+             given types:
+
+                 dynamic({}) == integer()
+             """
+
+      assert typeerror!([x = {}], x != 0, x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x != 0
+
+             given types:
+
+                 dynamic({}) != integer()
+             """
+
+      assert typeerror!([x = {}], x == :foo, x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x == :foo
+
+             given types:
+
+                 dynamic({}) == :foo
+             """
+
+      assert typeerror!([x = {}], not (x != :foo), x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x != :foo
+
+             given types:
+
+                 dynamic({}) != :foo
+             """
+
+      # We cannot warn in this case because the inference itself will lead to disjoint types
+      assert typecheck!([x = {}], not (x == :foo), x) == dynamic(tuple([]))
+      assert typecheck!([x = {}], x != :foo, x) == dynamic(tuple([]))
+    end
   end
 
   describe "comparison in guards" do

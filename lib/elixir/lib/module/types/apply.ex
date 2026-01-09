@@ -523,18 +523,21 @@ defmodule Module.Types.Apply do
 
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
         result = if compatible?(actual, expected), do: return, else: boolean()
+
+        # We can skip return compare because literal is always an integer,
+        # so it cannot be a disjoint comparison
         {result, context}
     end
   end
 
   defp custom_compare(name, arg, literal, expected, expr, stack, context, of_fun) do
-    {literal_type, context} = of_fun.(literal, term(), expr, stack, context)
-
     case booleaness(expected) do
       booleaness when booleaness in [:maybe_both, :none] ->
         compare(name, arg, literal, false, expr, stack, context, of_fun)
 
       booleaness ->
+        {literal_type, context} = of_fun.(literal, term(), expr, stack, context)
+
         {polarity, return} =
           case booleaness do
             :maybe_true -> {name in [:==, :"=:="], @atom_true}
@@ -544,9 +547,13 @@ defmodule Module.Types.Apply do
         # If it is a singleton, we can always be precise
         if singleton?(literal_type) do
           expected = if polarity, do: literal_type, else: negation(literal_type)
-          {actual, context} = of_fun.(arg, expected, expr, stack, context)
-          result = if compatible?(actual, expected), do: return, else: boolean()
-          {result, context}
+          {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
+          result = if compatible?(arg_type, expected), do: return, else: boolean()
+
+          # Because reverse polarity means we will infer negated types
+          # (which are naturally disjoint), we skip checks in such cases
+          skip_check? = not polarity
+          return_compare(name, arg_type, literal_type, result, skip_check?, expr, stack, context)
         else
           expected =
             cond do
@@ -558,19 +565,23 @@ defmodule Module.Types.Apply do
               true -> literal_type
             end
 
-          {_, context} = of_fun.(arg, expected, expr, stack, context)
-          {boolean(), context}
+          {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
+          return_compare(name, arg_type, literal_type, boolean(), false, expr, stack, context)
         end
     end
   end
 
-  defp compare(name, left, right, literal?, expr, stack, context, of_fun) do
+  defp compare(name, left, right, both_literal?, expr, stack, context, of_fun) do
     {left_type, context} = of_fun.(left, term(), expr, stack, context)
     {right_type, context} = of_fun.(right, term(), expr, stack, context)
-    result = return(boolean(), [left_type, right_type], stack)
+    return_compare(name, left_type, right_type, boolean(), both_literal?, expr, stack, context)
+  end
+
+  defp return_compare(name, left_type, right_type, result, skip_check?, expr, stack, context) do
+    result = return(result, [left_type, right_type], stack)
 
     cond do
-      literal? or not is_warning(stack) ->
+      skip_check? or not is_warning(stack) ->
         {result, context}
 
       name in [:==, :"/="] and number_type?(left_type) and number_type?(right_type) ->
