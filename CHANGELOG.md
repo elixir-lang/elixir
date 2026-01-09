@@ -234,6 +234,32 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.5 (2026-01-09)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Protocol] Optimize protocol consolidation to no longer load structs
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix unnecessary recompilation when `dbg_callback` is modified at runtime
+  * [Kernel] Fix parser crash on missing parentheses on expression following operator `not in`
+  * [Kernel] Support fetching abstract code for modules compiled with Elixir v1.14 and earlier
+  * [Protocol] Ensure protocol consolidation no longer stores outdated struct types. As a consequence, protocols types only track struct names at the moment
+  * [Stream] Revert optimization which caused nested streams in `Stream.flat_map/2` to crash
+
+#### IEx
+
+  * [IEx] Fix usage of `#iex:break` as part of multi-line prompts
+
+#### Logger
+
+  * [Logger.Backends] Do not crash on invalid metadata
+
 ## v1.19.4 (2025-11-27)
 
 ### 1. Enhancements
