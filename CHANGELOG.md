@@ -8,7 +8,9 @@
 
 ## Type system improvements
 
-### Full type inference
+This release includes type inference of all constructs.
+
+### Type inference of function calls
 
 Elixir now performs inference of whole functions. The best way to show the new capabilities are with examples. Take the following code:
 
@@ -29,6 +31,42 @@ end
 ```
 
 Even though the `+` operator works with both integers and floats, Elixir infers that `a` and `b` must be both integers, as the result of `+` is given to a function that expects an integer. The inferred type information is then used during type checking to find possible typing errors.
+
+### Type inference of guards
+
+This release also performs inference of guards! Let's see some examples:
+
+```elixir
+def example(x, y) when is_list(x) and is_integer(y)
+```
+
+The code above correctly infers `x` is a list and `y` is an integer.
+
+```elixir
+def example({:ok, x} = y) when is_binary(x) or is_integer(x)
+```
+
+The one above infers x is a binary or an integer, and `y` is a two element tuple with `:ok` as first element and a binary or integer as second.
+
+```elixir
+def example(x) when is_map_key(x, :foo)
+```
+
+The code above infers `x` is a map which has the `:foo` key, represented as `%{..., foo: dynamic()}`. Remember the leading `...` indicates the map may have other keys.
+
+```elixir
+def example(x) when not is_map_key(x, :foo)
+```
+
+And the code above infers `x` does not have the `:foo` key (hence `x.foo` will raise a typing violation), which has the type: `%{..., foo: not_set()}`.
+
+You can also have expressions that assert on the size of data structures:
+
+```elixir
+def example(x) when tuple_size(x) < 3
+```
+
+Elixir will correctly track the tuple has at most two elements, and therefore accessing `elem(x, 3)` will emit a typing violation. In other words, Elixir can look at complex guards, infer types, and use this information to find bugs in our code, without a need to introduce type signatures (yet).
 
 ### Complete typing of maps keys
 
@@ -116,8 +154,6 @@ The code above has a type violation, which is now caught by the type system:
     └─ lib/calls_user.ex:7:5: CallsUser.calls_name/0
 ```
 
-Once again, our goal is to propagate type information and help developers find bugs in their code, without a need to introduce type signatures (yet).
-
 ### Acknowledgements
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
@@ -131,6 +167,8 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
   * [Calendar] Optimize `date_from_iso_days` by using the Neri-Schneider algorithm
   * [Enum] Add `Enum.min_max` sorter
   * [Integer] Add `Integer.ceil_div/2`
+  * [IO] Add `IO.iodata_empty?/1`
+  * [File] Skip device, named pipes, etc in `File.cp_r/3` instead of erroring with reason `:eio`
   * [Kernel] Print intermediate results of `dbg` for pipes
   * [Kernel] Warn on unused requires
   * [Regex] Add `Regex.import/1` to import regexes defined with `/E`
@@ -144,11 +182,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
   * [mix deps] Support filtering `mix deps` output
   * [mix test] Add `mix test --dry-run`
 
-### 2. Bug fixes
-
-### 3. Soft deprecations (no warnings emitted)
-
-### 4. Hard deprecations
+### 2. Hard deprecations
 
 #### Elixir
 
