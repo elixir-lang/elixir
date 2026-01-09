@@ -283,6 +283,18 @@ defmodule String do
   @type grapheme :: t
 
   @typedoc """
+  A description of how to indent the start of a line in a string.
+
+  Spaces, tabs, or arbitrary binaries can all be used in some `amount`,
+  or a literal `binary` can be applied as-is to indent.
+  """
+  @type indentation ::
+          {:spaces, amount :: non_neg_integer}
+          | {:tabs, amount :: non_neg_integer}
+          | {binary, amount :: non_neg_integer}
+          | binary
+
+  @typedoc """
   Pattern used in functions like `replace/4` and `split/3`.
 
   It must be one of:
@@ -308,6 +320,8 @@ defmodule String do
   @type replace_opts :: [global: boolean()]
 
   @conditional_mappings [:greek, :turkic]
+  @space " "
+  @tab "\t"
 
   @doc """
   Checks if a string contains only printable characters up to `character_limit`.
@@ -3198,6 +3212,47 @@ defmodule String do
   @spec to_char_list(t) :: charlist
   def to_char_list(string), do: String.to_charlist(string)
 
+  @doc """
+  Returns a string with indentation applied at the start of every line.
+
+  Accepts an `t:indentation/0` specifier to apply:
+
+  - `{:spaces, amount}`: an `amount` of spaces
+  - `{:tabs, amount}`: an `amount` of tabs
+  - `{string, times}`: some `string` multiple `times`
+  - `string`: an arbitrary string
+
+  ## Examples
+
+      iex> string = "every\\nwhich\\nway"
+      iex> String.indent(string, {:spaces, 2})
+      "  every\\n  which\\n  way"
+
+      iex> string = "every\\nwhich\\nway"
+      iex> String.indent(string, {:tabs, 1})
+      "\tevery\\n\twhich\\n\tway"
+
+      iex> string = "every\\nwhich\\nway"
+      iex> String.indent(string, "+ ")
+      "+ every\\n+ which\\n+ way"
+
+  """
+  @doc since: "1.20.0"
+  @spec indent(t, indentation) :: t
+  def indent(string, indentation) do
+    indent = indentation_to_binary(indentation)
+
+    [start | newlines] = split(string, ~r/\r\n|\r|\n/, include_captures: true)
+
+    [
+      [indent, start]
+      | newlines
+        |> Enum.chunk_every(2)
+        |> Enum.map(&[hd(&1), indent | tl(&1)])
+    ]
+    |> IO.iodata_to_binary()
+  end
+
   ## Helpers
 
   @compile {:inline,
@@ -3242,4 +3297,15 @@ defmodule String do
 
   defp reverse_characters_to_binary(acc),
     do: acc |> :lists.reverse() |> :unicode.characters_to_binary()
+
+  defp indentation_to_binary({:spaces, amount}) when amount >= 0,
+    do: :binary.copy(@space, amount)
+
+  defp indentation_to_binary({:tabs, amount}) when amount >= 0,
+    do: :binary.copy(@tab, amount)
+
+  defp indentation_to_binary({binary, amount}) when is_binary(binary) and amount >= 0,
+    do: :binary.copy(binary, amount)
+
+  defp indentation_to_binary(binary) when is_binary(binary), do: binary
 end

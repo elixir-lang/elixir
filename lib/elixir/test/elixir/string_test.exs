@@ -974,6 +974,200 @@ defmodule StringTest do
     assert String.myers_difference("aйbc", "abc") == [eq: "a", del: "й", eq: "bc"]
   end
 
+  describe "indent/1" do
+    test "with spaces" do
+      assert String.indent("", {:spaces, 0}) == ""
+      assert String.indent("", {:spaces, 1}) == " "
+      assert String.indent("", {:spaces, 2}) == "  "
+      assert String.indent("", {:spaces, 3}) == "   "
+
+      assert String.indent("\n", {:spaces, 2}) == "  \n  "
+      assert String.indent("\r", {:spaces, 2}) == "  \r  "
+      assert String.indent("\r\n", {:spaces, 2}) == "  \r\n  "
+      assert String.indent("\n\r", {:spaces, 2}) == "  \n  \r  "
+
+      assert String.indent(" foo\n  bar\n   baz", {:spaces, 0}) ==  " foo\n  bar\n   baz"
+      assert String.indent(" foo\n  bar\n   baz", {:spaces, 1}) == "  foo\n   bar\n    baz"
+      assert String.indent(" foo\n  bar\n   baz", {:spaces, 2}) == "   foo\n    bar\n     baz"
+      assert String.indent(" foo\n  bar\n   baz", {:spaces, 3}) == "    foo\n     bar\n      baz"
+
+      assert String.indent("""
+      mortals)
+      climbi
+           ng i
+           nto eachness begi
+           n
+      dizzily
+          swingthings
+      of speeds of
+      trapeze gush somersaults
+      open ing
+             hes shes
+      &meet&
+             swoop
+                  fully is are ex
+                                 quisite theys of re
+      turn
+           a
+           n
+           d
+      fall which now drop all who dreamlike
+      im)
+      """, {:spaces, 2}) == "  mortals)
+  climbi
+       ng i
+       nto eachness begi
+       n
+  dizzily
+      swingthings
+  of speeds of
+  trapeze gush somersaults
+  open ing
+         hes shes
+  &meet&
+         swoop
+              fully is are ex
+                             quisite theys of re
+  turn
+       a
+       n
+       d
+  fall which now drop all who dreamlike
+  im)
+  "
+    end
+
+    test "with tabs" do
+      assert String.indent("", {:tabs, 0}) == ""
+      assert String.indent("", {:tabs, 1}) == "\t"
+      assert String.indent("", {:tabs, 2}) == "\t\t"
+      assert String.indent("", {:tabs, 3}) == "\t\t\t"
+
+      assert String.indent("\n", {:tabs, 1}) == "\t\n\t"
+      assert String.indent("\r", {:tabs, 1}) == "\t\r\t"
+      assert String.indent("\r\n", {:tabs, 1}) == "\t\r\n\t"
+      assert String.indent("\n\r", {:tabs, 1}) == "\t\n\t\r\t"
+
+      assert String.indent(" foo\n  bar\n   baz", {:tabs, 0}) ==  " foo\n  bar\n   baz"
+      assert String.indent(" foo\n  bar\n   baz", {:tabs, 1}) == "\t foo\n\t  bar\n\t   baz"
+      assert String.indent(" foo\n  bar\n   baz", {:tabs, 2}) == "\t\t foo\n\t\t  bar\n\t\t   baz"
+      assert String.indent(" foo\n  bar\n   baz", {:tabs, 3}) == "\t\t\t foo\n\t\t\t  bar\n\t\t\t   baz"
+
+      assert String.indent("""
+      float Q_rsqrt( float number )
+      {
+          int i;
+          float x2, y;
+          const float threehalfs = 1.5F;
+          x2 = number * 0.5F;
+          y  = number;
+          i  = * ( long * ) &y;                      /* float to int */
+          i  = 0x5f3759df - ( i >> 1 );              /* int arithmetic */
+          y  = * ( float * ) &i;                     /* int back to float */
+          y  = y * ( threehalfs - ( x2 * y * y ) );  /* Newton's method */
+          return y;
+      }
+      """, {:tabs, 1}) == "\tfloat Q_rsqrt( float number )
+\t{
+\t    int i;
+\t    float x2, y;
+\t    const float threehalfs = 1.5F;
+\t    x2 = number * 0.5F;
+\t    y  = number;
+\t    i  = * ( long * ) &y;                      /* float to int */
+\t    i  = 0x5f3759df - ( i >> 1 );              /* int arithmetic */
+\t    y  = * ( float * ) &i;                     /* int back to float */
+\t    y  = y * ( threehalfs - ( x2 * y * y ) );  /* Newton's method */
+\t    return y;
+\t}
+\t"
+    end
+
+    test "with binaries" do
+      assert String.indent("", {"~~~", 0}) == ""
+      assert String.indent("", {"~~~", 1}) == "~~~"
+      assert String.indent("", {"~~~", 2}) == "~~~~~~"
+      assert String.indent("", {"~~~", 3}) == "~~~~~~~~~"
+
+      assert String.indent("\n", {"~~~", 1}) == "~~~\n~~~"
+      assert String.indent("\r", {"~~~", 1}) == "~~~\r~~~"
+      assert String.indent("\r\n", {"~~~", 1}) == "~~~\r\n~~~"
+      assert String.indent("\n\r", {"~~~", 1}) == "~~~\n~~~\r~~~"
+
+      assert String.indent(" foo\n  bar\n   baz", {"~~~", 0}) ==  " foo\n  bar\n   baz"
+      assert String.indent(" foo\n  bar\n   baz", {"~~~", 1}) == "~~~ foo\n~~~  bar\n~~~   baz"
+      assert String.indent(" foo\n  bar\n   baz", {"~~~", 2}) == "~~~~~~ foo\n~~~~~~  bar\n~~~~~~   baz"
+      assert String.indent(" foo\n  bar\n   baz", {"~~~", 3}) == "~~~~~~~~~ foo\n~~~~~~~~~  bar\n~~~~~~~~~   baz"
+
+      assert String.indent("""
+      float Q_rsqrt( float number )
+      {
+          int i;
+          float x2, y;
+          const float threehalfs = 1.5F;
+          x2 = number * 0.5F;
+          y  = number;
+          i  = * ( long * ) &y;                      /* float to int */
+          i  = 0x5f3759df - ( i >> 1 );              /* int arithmetic */
+          y  = * ( float * ) &i;                     /* int back to float */
+          y  = y * ( threehalfs - ( x2 * y * y ) );  /* Newton's method */
+          return y;
+      }
+      """, {"~~~", 1}) == "~~~float Q_rsqrt( float number )
+~~~{
+~~~    int i;
+~~~    float x2, y;
+~~~    const float threehalfs = 1.5F;
+~~~    x2 = number * 0.5F;
+~~~    y  = number;
+~~~    i  = * ( long * ) &y;                      /* float to int */
+~~~    i  = 0x5f3759df - ( i >> 1 );              /* int arithmetic */
+~~~    y  = * ( float * ) &i;                     /* int back to float */
+~~~    y  = y * ( threehalfs - ( x2 * y * y ) );  /* Newton's method */
+~~~    return y;
+~~~}
+~~~"
+    end
+
+    test "with binary" do
+      assert String.indent("", "+ ") == "+ "
+      assert String.indent("\n", "+ ") == "+ \n+ "
+      assert String.indent("\r", "+ ") == "+ \r+ "
+      assert String.indent("\r\n", "+ ") == "+ \r\n+ "
+      assert String.indent("\n\r", "+ ") == "+ \n+ \r+ "
+      assert String.indent(" foo\n  bar\n   baz", "+ ") == "+  foo\n+   bar\n+    baz"
+
+      assert String.indent("""
+      float Q_rsqrt( float number )
+      {
+          int i;
+          float x2, y;
+          const float threehalfs = 1.5F;
+          x2 = number * 0.5F;
+          y  = number;
+          i  = * ( long * ) &y;                      /* float to int */
+          i  = 0x5f3759df - ( i >> 1 );              /* int arithmetic */
+          y  = * ( float * ) &i;                     /* int back to float */
+          y  = y * ( threehalfs - ( x2 * y * y ) );  /* Newton's method */
+          return y;
+      }
+      """, "+ ") == "+ float Q_rsqrt( float number )
++ {
++     int i;
++     float x2, y;
++     const float threehalfs = 1.5F;
++     x2 = number * 0.5F;
++     y  = number;
++     i  = * ( long * ) &y;                      /* float to int */
++     i  = 0x5f3759df - ( i >> 1 );              /* int arithmetic */
++     y  = * ( float * ) &i;                     /* int back to float */
++     y  = y * ( threehalfs - ( x2 * y * y ) );  /* Newton's method */
++     return y;
++ }
++ "
+    end
+  end
+
   test "normalize/2" do
     assert String.normalize("ŝ", :nfd) == "ŝ"
     assert String.normalize("ḇravô", :nfd) == "ḇravô"
