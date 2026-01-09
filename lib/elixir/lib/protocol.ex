@@ -21,7 +21,7 @@ defmodule Protocol do
   the data structure.
 
   Although Elixir includes specific functions such as `tuple_size`,
-  `binary_size` and `map_size`, sometimes we want to be able to
+  `byte_size` and `map_size`, sometimes we want to be able to
   retrieve the size of a data structure regardless of its type.
   In Elixir we can write polymorphic code, i.e. code that works
   with different shapes/types, by using protocols. A size protocol
