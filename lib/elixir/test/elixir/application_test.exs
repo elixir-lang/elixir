@@ -163,9 +163,11 @@ defmodule ApplicationTest do
     assert is_list(Application.spec(:elixir))
     assert Application.spec(:unknown) == nil
     assert Application.spec(:unknown, :description) == nil
-
     assert Application.spec(:elixir, :description) == ~c"elixir"
-    assert_raise FunctionClauseError, fn -> Application.spec(:elixir, :unknown) end
+
+    assert_raise FunctionClauseError, fn ->
+      Application.spec(:elixir, Process.get(:unknown, :unknown))
+    end
   end
 
   test "application module" do

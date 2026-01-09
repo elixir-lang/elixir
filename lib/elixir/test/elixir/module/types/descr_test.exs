@@ -1222,6 +1222,57 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "singleton?" do
+    test "non-singleton?" do
+      refute singleton?(term())
+      refute singleton?(none())
+      refute singleton?(dynamic())
+      refute singleton?(integer())
+      refute singleton?(float())
+      refute singleton?(pid())
+      refute singleton?(reference())
+      refute singleton?(fun(1))
+      refute singleton?(non_empty_list(atom([:foo])))
+    end
+
+    @disguised_empty_map closed_map(key: atom([:value]))
+                         |> difference(open_map(key: atom(), optional: if_set(atom())))
+
+    test "atoms" do
+      assert singleton?(atom([:foo]))
+      refute singleton?(atom([:foo, :bar]))
+      assert singleton?(atom([:foo]) |> union(@disguised_empty_map))
+      refute singleton?(atom() |> difference(atom([:foo])))
+    end
+
+    test "empty list" do
+      assert singleton?(empty_list())
+      refute singleton?(non_empty_list(term()))
+      refute singleton?(union(empty_list(), atom([:foo])))
+      assert singleton?(union(empty_list(), @disguised_empty_map))
+    end
+
+    test "maps" do
+      assert singleton?(empty_map())
+      assert singleton?(closed_map(key: atom([:value])))
+      assert singleton?(closed_map(key: atom([:value])) |> union(@disguised_empty_map))
+      refute singleton?(closed_map(key: binary()))
+      refute singleton?(closed_map(key: if_set(atom([:value]))))
+      refute singleton?(open_map())
+      refute singleton?(open_map(key: atom([:value])))
+      refute singleton?(union(closed_map(key: atom([:value])), closed_map(other: atom([:value]))))
+    end
+
+    test "tuples" do
+      assert singleton?(tuple([]))
+      assert singleton?(tuple([atom([:foo])]))
+      refute singleton?(tuple([binary()]))
+      refute singleton?(open_tuple([]))
+      refute singleton?(union(tuple([atom([:value])]), tuple([atom([:other_value])])))
+      refute singleton?(union(tuple([atom([:value])]), closed_map(other: atom([:value]))))
+    end
+  end
+
   describe "projections" do
     test "booleaness" do
       for type <- [none(), open_map(), negation(boolean()), difference(atom(), boolean())] do

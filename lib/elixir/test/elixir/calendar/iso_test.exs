@@ -142,16 +142,6 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_date("20150123", :extended) == {:error, :invalid_format}
       assert Calendar.ISO.parse_date("2015-01-23", :extended) == {:ok, {2015, 1, 23}}
     end
-
-    test "errors on other format names" do
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_date("20150123", :other)
-      end
-
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_date("2015-01-23", :other)
-      end
-    end
   end
 
   describe "parse_time/1" do
@@ -224,16 +214,6 @@ defmodule Calendar.ISOTest do
     test "allows enforcing extended formats" do
       assert Calendar.ISO.parse_time("235007", :extended) == {:error, :invalid_format}
       assert Calendar.ISO.parse_time("23:50:07", :extended) == {:ok, {23, 50, 7, {0, 0}}}
-    end
-
-    test "errors on other format names" do
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_time("235007", :other)
-      end
-
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_time("23:50:07", :other)
-      end
     end
   end
 
@@ -312,16 +292,6 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.123", :extended) ==
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}}
     end
-
-    test "errors on other format names" do
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_naive_datetime("20150123 235007.123", :other)
-      end
-
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.123", :other)
-      end
-    end
   end
 
   describe "parse_utc_datetime/1" do
@@ -398,16 +368,6 @@ defmodule Calendar.ISOTest do
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z", :extended) ==
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
-    end
-
-    test "errors on other format names" do
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_naive_datetime("20150123 235007.123Z", :other)
-      end
-
-      assert_raise FunctionClauseError, fn ->
-        Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.123Z", :other)
-      end
     end
 
     test "errors on mixed basic and extended formats" do
