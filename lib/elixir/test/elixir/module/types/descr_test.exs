@@ -1258,6 +1258,7 @@ defmodule Module.Types.DescrTest do
       assert singleton?(closed_map(key: atom([:value])) |> union(@disguised_empty_map))
       refute singleton?(closed_map(key: binary()))
       refute singleton?(closed_map(key: if_set(atom([:value]))))
+      refute singleton?(closed_map(__struct__: :term))
       refute singleton?(open_map())
       refute singleton?(open_map(key: atom([:value])))
       refute singleton?(union(closed_map(key: atom([:value])), closed_map(other: atom([:value]))))
@@ -1654,6 +1655,10 @@ defmodule Module.Types.DescrTest do
                   tuple([atom([:a]), float()])
                   |> union(tuple([atom([:b]), pid()]))
                 )}
+
+      # Test with struct-like descrs
+      assert map_to_list(closed_map(__struct__: term())) ==
+               {:ok, non_empty_list(tuple([atom([:__struct__]), term()]))}
 
       # Test with domain keys
       assert map_to_list(closed_map([{domain_key(:integer), binary()}])) ==

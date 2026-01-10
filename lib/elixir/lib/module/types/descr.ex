@@ -648,9 +648,14 @@ defmodule Module.Types.Descr do
 
   defp each_singleton?(:map, bdd) do
     case map_bdd_to_dnf(bdd) do
-      [] -> :empty
-      [{:closed, fields, _negs}] -> Enum.all?(fields, fn {_, v} -> static_singleton?(v) end)
-      _ -> false
+      [] ->
+        :empty
+
+      [{:closed, fields, _negs}] ->
+        Enum.all?(Map.to_list(fields), fn {_, v} -> static_singleton?(v) end)
+
+      _ ->
+        false
     end
   end
 
@@ -3026,9 +3031,9 @@ defmodule Module.Types.Descr do
 
   defp has_empty_map?(dnf) do
     Enum.any?(dnf, fn {_, fields, negs} ->
-      Enum.all?(fields, fn {_key, value} -> optional_static?(value) end) and
+      Enum.all?(Map.to_list(fields), fn {_key, value} -> optional_static?(value) end) and
         Enum.all?(negs, fn {_, fields} ->
-          not Enum.all?(fields, fn {_key, value} -> optional_static?(value) end)
+          not Enum.all?(Map.to_list(fields), fn {_key, value} -> optional_static?(value) end)
         end)
     end)
   end
@@ -3065,7 +3070,9 @@ defmodule Module.Types.Descr do
       domain_keys_type ->
         {_seen, acc} =
           bdd_reduce(bdd, {%{}, domain_keys_type}, fn {_tag, fields}, seen_acc ->
-            Enum.reduce(fields, seen_acc, fn {key, _type}, {seen, acc} ->
+            fields
+            |> Map.to_list()
+            |> Enum.reduce(seen_acc, fn {key, _type}, {seen, acc} ->
               if Map.has_key?(seen, key) do
                 {seen, acc}
               else
@@ -3379,7 +3386,9 @@ defmodule Module.Types.Descr do
   defp map_update_merge_atom_key(bdd, dnf) do
     {_seen, acc} =
       bdd_reduce(bdd, {%{}, none()}, fn {_tag, fields}, seen_acc ->
-        Enum.reduce(fields, seen_acc, fn {key, _type}, {seen, acc} ->
+        fields
+        |> Map.to_list()
+        |> Enum.reduce(seen_acc, fn {key, _type}, {seen, acc} ->
           if Map.has_key?(seen, key) do
             {seen, acc}
           else
@@ -3394,7 +3403,9 @@ defmodule Module.Types.Descr do
 
   defp map_update_any_atom_key?(bdd, dnf) do
     bdd_reduce(bdd, %{}, fn {_tag, fields}, acc ->
-      Enum.reduce(fields, acc, fn {key, _type}, acc ->
+      fields
+      |> Map.to_list()
+      |> Enum.reduce(acc, fn {key, _type}, acc ->
         if Map.has_key?(acc, key) do
           acc
         else
@@ -4051,7 +4062,8 @@ defmodule Module.Types.Descr do
         {{domain_key, [], []}, value_quoted}
       end
 
-    regular_fields_quoted = map_fields_to_quoted(:closed, Enum.sort(fields), opts)
+    sorted_fields = fields |> Enum.to_list() |> Enum.sort()
+    regular_fields_quoted = map_fields_to_quoted(:closed, sorted_fields, opts)
     {:%{}, [], domain_fields ++ regular_fields_quoted}
   end
 
@@ -4079,12 +4091,13 @@ defmodule Module.Types.Descr do
            ]}
         else
           _ ->
-            {:%{}, [], map_fields_to_quoted(tag, Enum.sort(fields), opts)}
+            sorted_fields = fields |> Enum.to_list() |> Enum.sort()
+            {:%{}, [], map_fields_to_quoted(tag, sorted_fields, opts)}
         end
 
       :open ->
-        fields = Map.to_list(fields)
-        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, Enum.sort(fields), opts)]}
+        sorted_fields = fields |> Enum.to_list() |> Enum.sort()
+        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, sorted_fields, opts)]}
     end
   end
 
