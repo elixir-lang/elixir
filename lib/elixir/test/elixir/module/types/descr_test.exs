@@ -500,7 +500,6 @@ defmodule Module.Types.DescrTest do
       refute tuple([term(), term()]) |> difference(tuple([atom()])) |> empty?()
       assert tuple([term(), term()]) |> difference(tuple([term(), term()])) |> empty?()
 
-      # {term(), term(), ...} and not ({term(), term(), term(), ...} or {term(), term()})
       assert tuple_of_size_at_least(2)
              |> difference(tuple_of_size(2))
              |> difference(tuple_of_size_at_least(3))
@@ -520,18 +519,14 @@ defmodule Module.Types.DescrTest do
              |> difference(tuple([term()]))
              |> empty?()
 
-      assert open_tuple([atom()])
-             |> difference(tuple([integer(), integer()]))
-             |> equal?(open_tuple([atom()]))
-
-      assert tuple([union(atom(), integer()), term()])
-             |> difference(open_tuple([atom(), term()]))
-             |> equal?(tuple([integer(), term()]))
-
       assert tuple([union(atom(), integer()), term()])
              |> difference(open_tuple([atom(), term()]))
              |> difference(open_tuple([integer(), term()]))
              |> empty?()
+
+      assert tuple([union(atom(), integer()), term()])
+             |> difference(open_tuple([atom(), term()]))
+             |> equal?(tuple([integer(), term()]))
 
       assert tuple([term(), union(atom(), integer()), term()])
              |> difference(open_tuple([term(), integer()]))
@@ -539,6 +534,16 @@ defmodule Module.Types.DescrTest do
 
       assert difference(tuple(), open_tuple([term(), term()]))
              |> equal?(union(tuple([term()]), tuple([])))
+    end
+
+    test "tuple optimizations" do
+      # We do direct assertions because we want to check how it works underneath
+      assert difference(tuple([]), tuple([atom()])) == tuple([])
+      assert difference(tuple([]), open_tuple([atom()])) == tuple([])
+      assert difference(open_tuple([atom()]), tuple([])) == open_tuple([atom()])
+      assert difference(tuple([atom([:ok])]), tuple([atom([:error])])) == tuple([atom([:ok])])
+      assert difference(tuple([atom([:ok])]), tuple([integer()])) == tuple([atom([:ok])])
+      assert difference(tuple([integer()]), tuple([atom()])) == tuple([integer()])
     end
 
     test "map" do

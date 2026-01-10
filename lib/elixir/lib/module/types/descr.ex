@@ -4277,8 +4277,22 @@ defmodule Module.Types.Descr do
     do: bdd_difference(bdd1, bdd2, &tuple_leaf_intersection/2, &tuple_leaf_disjoint?/2)
 
   defp tuple_leaf_disjoint?(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    mismatched_tuple_sizes?(tag1, elements1, tag2, elements2)
+    mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) or
+      disjoint_tagged_tuples?(elements1, elements2)
   end
+
+  # A very cheap check for tagged tuples
+  defp disjoint_tagged_tuples?([%{atom: atom} = d1 | _], [d2 | _]) when map_size(d1) == 1,
+    do: disjoint_tagged_atom?(atom, d2)
+
+  defp disjoint_tagged_tuples?([d1 | _], [%{atom: atom} = d2 | _]) when map_size(d2) == 1,
+    do: disjoint_tagged_atom?(atom, d1)
+
+  defp disjoint_tagged_tuples?(_, _), do: false
+
+  defp disjoint_tagged_atom?(_atom, :term), do: false
+  defp disjoint_tagged_atom?(atom1, %{atom: atom2}), do: atom_intersection(atom1, atom2) === 0
+  defp disjoint_tagged_atom?(_atom, %{}), do: true
 
   defp non_empty_tuple_literals_intersection(tuples) do
     try do
