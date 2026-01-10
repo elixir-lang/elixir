@@ -44,10 +44,12 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
     _ -> required
   end,
 
-  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL#elixir_ex{vars=BeforeVars}, OriginalS, EL, ExpectSize),
+  {ERight, EAlignment, SS, ES} =
+    expand_specs(EType, Meta, Right, SL#elixir_ex{vars=BeforeVars}, OriginalS, EL, ExpectSize),
 
   EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
-  expand(BitstrMeta, Fun, T, EAcc, {SS#elixir_ex{vars=AfterVars}, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
+  PairS = {SS#elixir_ex{vars=AfterVars}, OriginalS},
+  expand(BitstrMeta, Fun, T, EAcc, PairS, ES, alignment(Alignment, EAlignment), RequireSize);
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
   {ELeft, {SS, OriginalS}, ES} = expand_expr(H, Fun, S, E),
@@ -123,12 +125,11 @@ concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, _E, _RequireSize) ->
 alignment(Left, Right) when is_integer(Left), is_integer(Right) -> (Left + Right) rem 8;
 alignment(_, _) -> unknown.
 
-compute_alignment(_, Size, Unit) when is_integer(Size), is_integer(Unit) -> (Size * Unit) rem 8;
+compute_alignment(_, Size, Unit) when is_integer(Size), is_integer(Unit) -> (Size * Unit);
 compute_alignment(default, Size, Unit) -> compute_alignment(integer, Size, Unit);
 compute_alignment(integer, default, Unit) -> compute_alignment(integer, 8, Unit);
 compute_alignment(integer, Size, default) -> compute_alignment(integer, Size, 1);
 compute_alignment(bitstring, Size, default) -> compute_alignment(bitstring, Size, 1);
-compute_alignment(binary, Size, default) -> compute_alignment(binary, Size, 8);
 compute_alignment(binary, _, _) -> 0;
 compute_alignment(float, _, _) -> 0;
 compute_alignment(utf32, _, _) -> 0;

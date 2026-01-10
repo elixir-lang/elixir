@@ -483,47 +483,58 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def bitstring(meta, parts, kind, stack, context) do
-    context = bitstring(parts, kind, stack, context)
-
-    case Keyword.get(meta, :alignment, :unknown) do
-      :unknown -> {bitstring(), context}
-      0 -> {binary(), context}
-      _ -> {bitstring_no_binary(), context}
-    end
+  def bitstring([], _kind, _stack, context) do
+    {binary(), context}
   end
 
-  defp bitstring([], _kind, _stack, context) do
-    context
+  def bitstring([head], kind, stack, context) do
+    {alignment, context} = bitstring_segment(head, kind, [head], stack, context)
+    {alignment_to_type(alignment), context}
   end
 
-  defp bitstring([head], kind, stack, context) do
-    bitstring_segment(head, kind, [head], stack, context)
+  def bitstring([head | tail], kind, stack, context) do
+    {alignment, context} = bitstring_segment(head, kind, [head, @suffix], stack, context)
+    bitstring_tail(tail, alignment, kind, stack, context)
   end
 
-  defp bitstring([head | tail], kind, stack, context) do
-    context = bitstring_segment(head, kind, [head, @suffix], stack, context)
-    bitstring_tail(tail, kind, stack, context)
+  defp bitstring_tail([last], alignment, kind, stack, context) do
+    {seg_alignment, context} = bitstring_segment(last, kind, [@prefix, last], stack, context)
+    {alignment_to_type(alignment(seg_alignment, alignment)), context}
   end
 
-  defp bitstring_tail([last], kind, stack, context) do
-    bitstring_segment(last, kind, [@prefix, last], stack, context)
+  defp bitstring_tail([head | tail], alignment, kind, stack, context) do
+    {seg_alignment, context} =
+      bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
+
+    bitstring_tail(tail, alignment(seg_alignment, alignment), kind, stack, context)
   end
 
-  defp bitstring_tail([head | tail], kind, stack, context) do
-    context = bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
-    bitstring_tail(tail, kind, stack, context)
-  end
+  defp alignment(left, right) when is_integer(left) and is_integer(right), do: left + right
+  defp alignment(_left, _right), do: :unknown
+
+  defp alignment_to_type(:unknown), do: bitstring()
+  defp alignment_to_type(integer) when rem(integer, 8) == 0, do: binary()
+  defp alignment_to_type(_integer), do: bitstring_no_binary()
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just check the size.
   defp bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
-    specifier_size(kind, right, stack, context)
+    {_type, alignment_type} = specifier_type(kind, right)
+    {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+
+    # We don't need to check for bitstrings because the left side
+    # is either a binary (aligned), float (aligned), or integer
+    # (which we check below).
+    if alignment_type == :integer and alignment_value != :default do
+      {alignment_value, context}
+    else
+      {0, context}
+    end
   end
 
   defp bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    type = specifier_type(kind, right)
+    {type, alignment_type} = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
     {actual, context} =
@@ -540,10 +551,26 @@ defmodule Module.Types.Of do
       end
 
     if compatible?(actual, type) do
-      specifier_size(kind, right, stack, context)
+      {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+
+      case alignment_type do
+        :aligned ->
+          {0, context}
+
+        :integer when alignment_value == :default ->
+          {0, context}
+
+        # There is no size, so the aligment depends on the type.
+        # If the type is exclusively a binary, then it is aligned.
+        :bitstring when alignment_value == :default ->
+          if bitstring_no_binary_type?(actual), do: {:unknown, context}, else: {0, context}
+
+        _ ->
+          {alignment_value, context}
+      end
     else
       error = {:badbinary, kind, meta, expr, type, actual, context}
-      error(error, meta, stack, context)
+      {:unknown, error(error, meta, stack, context)}
     end
   end
 
@@ -559,39 +586,48 @@ defmodule Module.Types.Of do
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:match, {:utf8, _, _}), do: @integer
-  defp specifier_type(:match, {:utf16, _, _}), do: @integer
-  defp specifier_type(:match, {:utf32, _, _}), do: @integer
-  defp specifier_type(:match, {:float, _, _}), do: @float
-  defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
-  defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
-  defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
-  defp specifier_type(_kind, {:utf32, _, _}), do: @integer_or_binary
-  defp specifier_type(_kind, {:integer, _, _}), do: @integer
-  defp specifier_type(_kind, {:bits, _, _}), do: @bitstring
-  defp specifier_type(_kind, {:bitstring, _, _}), do: @bitstring
-  defp specifier_type(_kind, {:bytes, _, _}), do: @binary
-  defp specifier_type(_kind, {:binary, _, _}), do: @binary
-  defp specifier_type(_kind, _specifier), do: @integer
+  defp specifier_type(:match, {:utf8, _, _}), do: {@integer, :aligned}
+  defp specifier_type(:match, {:utf16, _, _}), do: {@integer, :aligned}
+  defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned}
+  defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned}
+  defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned}
+  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer_or_binary, :aligned}
+  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer_or_binary, :aligned}
+  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer_or_binary, :aligned}
+  defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer}
+  defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring}
+  defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring}
+  defp specifier_type(_kind, {:bytes, _, _}), do: {@binary, :aligned}
+  defp specifier_type(_kind, {:binary, _, _}), do: {@binary, :aligned}
+  defp specifier_type(_kind, _specifier), do: {@integer, :integer}
 
-  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
-    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
+  defp specifier_size(kind, {:-, _, [left, right]}, stack, align_context) do
+    specifier_size(kind, right, stack, specifier_size(kind, left, stack, align_context))
   end
 
-  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
-       when not is_integer(arg) do
+  defp specifier_size(_, {:size, _, [arg]}, _stack, {unit, context})
+       when is_integer(arg) do
+    size = if unit == :default, do: arg, else: arg * unit
+    {size, context}
+  end
+
+  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, {_, context}) do
     {actual, context} = Module.Types.Expr.of_expr(arg, integer(), expr, stack, context)
-    compatible_size(actual, expr, stack, context)
+    {:unknown, compatible_size(actual, expr, stack, context)}
   end
 
-  defp specifier_size(match_or_guard, {:size, _, [arg]} = expr, stack, context)
-       when not is_integer(arg) do
+  defp specifier_size(match_or_guard, {:size, _, [arg]} = expr, stack, {_, context}) do
     {actual, context} = Module.Types.Pattern.of_size(match_or_guard, arg, expr, stack, context)
-    compatible_size(actual, expr, stack, context)
+    {:unknown, compatible_size(actual, expr, stack, context)}
   end
 
-  defp specifier_size(_kind, _specifier, _stack, context) do
-    context
+  # We currently assume the unit always comes before size
+  defp specifier_size(_, {:unit, _, [unit]}, _stack, {:default, context}) do
+    {unit, context}
+  end
+
+  defp specifier_size(_kind, _specifier, _stack, align_context) do
+    align_context
   end
 
   defp compatible_size(actual, expr, stack, context) do

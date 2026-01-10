@@ -32,11 +32,23 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "bitstrings" do
-    test "alignment" do
+    test "integer alignment" do
       assert typecheck!(<<round(:rand.uniform())>>) == binary()
       assert typecheck!(<<round(:rand.uniform())::1>>) == difference(bitstring(), binary())
       assert typecheck!(<<round(:rand.uniform())::4, round(:rand.uniform())::4>>) == binary()
       assert typecheck!([size], <<round(:rand.uniform())::size(size)>>) == bitstring()
+    end
+
+    test "bitstring alignment" do
+      assert typecheck!(
+               [coef, sign, exp],
+               <<Integer.to_string(coef * sign)::bitstring, ".0e"::bitstring,
+                 Integer.to_string(exp)::bitstring>>
+             ) == binary()
+
+      # This will be truncated to size, so it is a bitstring
+      assert typecheck!([exp], <<Integer.to_string(exp)::bitstring-size(20)>>) ==
+               bitstring_no_binary()
     end
   end
 

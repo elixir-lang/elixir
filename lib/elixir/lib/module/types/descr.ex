@@ -919,6 +919,23 @@ defmodule Module.Types.Descr do
   def bitstring_type?(_), do: false
 
   @doc """
+  Optimized version of `not empty?(intersection(difference(bitstring(), binary()), type))`.
+
+  Notice that this does not mean it is not a binary.
+  It only means the bitstring bit is up, regardless of the binary bit.
+  """
+  def bitstring_no_binary_type?(:term), do: true
+  def bitstring_no_binary_type?(%{dynamic: :term}), do: true
+
+  def bitstring_no_binary_type?(%{dynamic: %{bitmap: bitmap}})
+      when (bitmap &&& @bit_bitstring_no_binary) != 0, do: true
+
+  def bitstring_no_binary_type?(%{bitmap: bitmap})
+      when (bitmap &&& @bit_bitstring_no_binary) != 0, do: true
+
+  def bitstring_no_binary_type?(_), do: false
+
+  @doc """
   Optimized version of `not empty?(intersection(integer() or float(), type))`.
   """
   def number_type?(:term), do: true
