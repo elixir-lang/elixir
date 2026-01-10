@@ -16,28 +16,54 @@ defmodule Module.Types.Pattern do
   end
 
   def of_changed([_ | _] = versions, stack, %{vars: vars} = context) do
-    versions
-    |> Enum.reduce(%{}, fn version, changed ->
-      %{^version => %{deps: deps}} = vars
-      Map.merge(changed, deps)
-    end)
-    |> of_changed_deps(stack, context)
+    {changed, seen} =
+      Enum.reduce(versions, {[], []}, fn version, changed_seen ->
+        %{^version => %{deps: deps}} = vars
+
+        # An optimized version for of_changed_seen for the first pass
+        deps
+        |> Map.keys()
+        |> Enum.reduce(changed_seen, fn dep_version, {changed, seen} ->
+          {[{dep_version, version} | changed], [[version | dep_version] | seen]}
+        end)
+      end)
+
+    of_changed_deps(:maps.from_list(changed), Map.from_keys(seen, true), stack, context)
   end
 
-  defp of_changed_deps(changed, _stack, context) when changed == %{} do
+  defp of_changed_seen(deps, version, source_version, changed_seen) do
+    deps
+    |> Map.keys()
+    |> Enum.reduce(changed_seen, fn
+      # We don't point back to the thing that caused us to change.
+      # In case both changed at once, the other side will be pointed
+      # to naturally. Otherwise it has to be pointed to through other nodes.
+      ^source_version, {changed, seen} ->
+        {changed, seen}
+
+      dep_version, {changed, seen} ->
+        edge = [version | dep_version]
+
+        case seen do
+          %{^edge => _} -> {changed, seen}
+          %{} -> {Map.put(changed, dep_version, version), Map.put(seen, edge, true)}
+        end
+    end)
+  end
+
+  defp of_changed_deps(changed, _seen, _stack, context) when changed == %{} do
     context
   end
 
-  defp of_changed_deps(previous_changed, stack, context) do
-    {changed, context} =
-      previous_changed
-      |> Map.keys()
-      |> Enum.reduce({%{}, context}, fn version, {changed, context} ->
-        {new_deps, context} = of_changed_var(version, stack, context)
-        {Map.merge(changed, new_deps), context}
+  defp of_changed_deps(previous_changed, seen, stack, context) do
+    {{changed, seen}, context} =
+      Enum.reduce(previous_changed, {{%{}, seen}, context}, fn
+        {version, source_version}, {changed_seen, context} ->
+          {deps, context} = of_changed_var(version, stack, context)
+          {of_changed_seen(deps, version, source_version, changed_seen), context}
       end)
 
-    of_changed_deps(changed, stack, context)
+    of_changed_deps(changed, seen, stack, context)
   end
 
   defp of_changed_var(version, stack, context) do
