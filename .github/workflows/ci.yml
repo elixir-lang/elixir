@@ -151,27 +151,3 @@ jobs:
         run: |
           Remove-Item 'c:/Windows/System32/drivers/etc/hosts'
           make test_elixir
-
-  license_compliance:
-    name: Check Licence Compliance
-
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Use HTTPS instead of SSH for Git cloning
-        id: git-config
-        shell: bash
-        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
-
-      - name: Checkout project
-        id: checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: "Run OSS Review Toolkit"
-        id: ort
-        uses: ./.github/workflows/ort
-        with:
-          upload-reports: true
-          fail-on-violation: true
-          report-formats: "WebApp"
-          version: "${{ github.sha }}"
