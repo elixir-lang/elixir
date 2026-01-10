@@ -1119,6 +1119,6 @@ defmodule ExUnit.Assertions do
   @spec flunk :: no_return
   @spec flunk(String.t()) :: no_return
   def flunk(message \\ "Flunked!") when is_binary(message) do
-    assert false, message: message
+    raise ExUnit.AssertionError, message
   end
 end

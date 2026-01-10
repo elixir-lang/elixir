@@ -165,7 +165,7 @@ defmodule Protocol.ConsolidationTest do
 
     defp exports(binary) do
       {:ok, {_, [{~c"ExCk", check_bin}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-      assert {:elixir_checker_v4, contents} = :erlang.binary_to_term(check_bin)
+      assert {:elixir_checker_v5, contents} = :erlang.binary_to_term(check_bin)
       Map.new(contents.exports)
     end
 
@@ -183,21 +183,23 @@ defmodule Protocol.ConsolidationTest do
       assert domain == [term()]
 
       assert clauses == [
-               {[Of.impl(ImplStruct)], atom([Sample.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(Of.impl(ImplStruct))], atom([nil])}
+               {[Of.impl(ImplStruct, :open)],
+                atom([Sample.Protocol.ConsolidationTest.ImplStruct])},
+               {[negation(Of.impl(ImplStruct, :open))], atom([nil])}
              ]
 
       assert %{{:impl_for!, 1} => %{sig: {:strong, domain, clauses}}} = exports
-      assert domain == [Of.impl(ImplStruct)]
+      assert domain == [Of.impl(ImplStruct, :open)]
 
       assert clauses == [
-               {[Of.impl(ImplStruct)], atom([Sample.Protocol.ConsolidationTest.ImplStruct])}
+               {[Of.impl(ImplStruct, :open)],
+                atom([Sample.Protocol.ConsolidationTest.ImplStruct])}
              ]
 
       assert %{{:ok, 1} => %{sig: {:strong, nil, clauses}}} = exports
 
       assert clauses == [
-               {[Of.impl(ImplStruct)], dynamic()}
+               {[Of.impl(ImplStruct, :open)], dynamic()}
              ]
     end
 
@@ -212,9 +214,11 @@ defmodule Protocol.ConsolidationTest do
       assert domain == [term()]
 
       assert clauses == [
-               {[Of.impl(Map)], atom([WithAny.Map])},
-               {[Of.impl(ImplStruct)], atom([WithAny.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(union(Of.impl(ImplStruct), Of.impl(Map)))], atom([WithAny.Any])}
+               {[Of.impl(Map, :open)], atom([WithAny.Map])},
+               {[Of.impl(ImplStruct, :open)],
+                atom([WithAny.Protocol.ConsolidationTest.ImplStruct])},
+               {[negation(union(Of.impl(ImplStruct, :open), Of.impl(Map, :open)))],
+                atom([WithAny.Any])}
              ]
 
       assert %{{:ok, 2} => %{sig: {:strong, nil, clauses}}} = exports
@@ -275,18 +279,34 @@ defmodule Protocol.ConsolidationTest do
       assert Inspect in protos
     end
 
+    test "protocols with expanded path" do
+      path = to_charlist(Application.app_dir(:elixir, "ebin"))
+      {:ok, mods} = :file.list_dir(path)
+      protos = Protocol.extract_protocols([{path, mods}])
+      assert Enumerable in protos
+      assert Inspect in protos
+    end
+
     test "implementations with charlist path" do
-      protos =
+      impls =
         Protocol.extract_impls(Enumerable, [to_charlist(Application.app_dir(:elixir, "ebin"))])
 
-      assert List in protos
-      assert Function in protos
+      assert List in impls
+      assert Function in impls
     end
 
     test "implementations with binary path" do
-      protos = Protocol.extract_impls(Enumerable, [Application.app_dir(:elixir, "ebin")])
-      assert List in protos
-      assert Function in protos
+      impls = Protocol.extract_impls(Enumerable, [Application.app_dir(:elixir, "ebin")])
+      assert List in impls
+      assert Function in impls
+    end
+
+    test "implementations with expanded path" do
+      path = to_charlist(Application.app_dir(:elixir, "ebin"))
+      {:ok, mods} = :file.list_dir(path)
+      impls = Protocol.extract_impls(Enumerable, [{path, mods}])
+      assert List in impls
+      assert Function in impls
     end
   end
 end

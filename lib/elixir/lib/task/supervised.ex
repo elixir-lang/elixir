@@ -162,7 +162,7 @@ defmodule Task.Supervised do
         ~c"** When function  == ~p~n" ++
         ~c"**      arguments == ~p~n" ++ ~c"** Reason for termination == ~n" ++ ~c"** ~p~n"
 
-    terms = [name, fun, args, get_reason(reason)]
+    terms = [starter, fun, args, get_reason(reason)]
 
     {message, terms} =
       case process_label do
@@ -173,7 +173,7 @@ defmodule Task.Supervised do
     message =
       ~c"** Task ~p terminating~n" ++ message
 
-    {message, [starter | terms]}
+    {message, [name | terms]}
   end
 
   defp get_from({node, pid_or_name, _pid}) when node == node(), do: pid_or_name

@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2021 The Elixir Team
-# SPDX-FileCopyrightText: 2012 Plataformatec
 
 Code.require_file("type_helper.exs", __DIR__)
 
@@ -9,6 +8,7 @@ defmodule Module.Types.ExprTest do
 
   import TypeHelper
   import Module.Types.Descr
+  defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defmacro generated(x) do
     quote generated: true do
@@ -29,6 +29,15 @@ defmodule Module.Types.ExprTest do
 
   test "generated" do
     assert typecheck!([x = 1], generated(x)) == dynamic()
+  end
+
+  describe "bitstrings" do
+    test "alignment" do
+      assert typecheck!(<<round(:rand.uniform())>>) == binary()
+      assert typecheck!(<<round(:rand.uniform())::1>>) == difference(bitstring(), binary())
+      assert typecheck!(<<round(:rand.uniform())::4, round(:rand.uniform())::4>>) == binary()
+      assert typecheck!([size], <<round(:rand.uniform())::size(size)>>) == bitstring()
+    end
   end
 
   describe "lists" do
@@ -183,7 +192,7 @@ defmodule Module.Types.ExprTest do
 
     test "bad function" do
       assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
-             expected a 2-arity function on call:
+             expected a 2-arity function on function call:
 
                  x.(a1, a2)
 
@@ -201,7 +210,7 @@ defmodule Module.Types.ExprTest do
 
     test "bad arity" do
       assert typeerror!([a1, a2], (&String.to_integer/1).(a1, a2)) == ~l"""
-             expected a 2-arity function on call:
+             expected a 2-arity function on function call:
 
                  (&String.to_integer/1).(a1, a2)
 
@@ -214,7 +223,7 @@ defmodule Module.Types.ExprTest do
     test "bad argument" do
       assert typeerror!([], (&String.to_integer/1).(:foo))
              |> strip_ansi() == ~l"""
-             incompatible types given on function application:
+             incompatible types given on function call:
 
                  (&String.to_integer/1).(:foo)
 
@@ -236,7 +245,7 @@ defmodule Module.Types.ExprTest do
                 end).(:foo)
              )
              |> strip_ansi() == ~l"""
-             incompatible types given on function application:
+             incompatible types given on function call:
 
                  (if x do
                     &String.to_integer/1
@@ -266,7 +275,7 @@ defmodule Module.Types.ExprTest do
                )
              )
              |> strip_ansi() == """
-             incompatible types given on function application:
+             incompatible types given on function call:
 
                  fun.(:error)
 
@@ -528,18 +537,15 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "requires all combinations to be compatible (except refinements)" do
+    test "computes union of all combinations" do
       assert typecheck!(
                [condition, arg],
                (
-                 # While the code below may raise, it may also always succeed
-                 # if condition and arg are passed in tandem. Therefore, we
-                 # turn off refinement on dynamic calls.
                  mod = if condition, do: String, else: List
                  res = mod.to_integer(arg)
                  {arg, res}
                )
-             ) == tuple([dynamic(), integer()])
+             ) == dynamic(tuple([union(binary(), non_empty_list(integer())), integer()]))
 
       assert typeerror!(
                [condition],
@@ -681,7 +687,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "size ok" do
-      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == binary()
+      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == bitstring()
     end
 
     test "size error" do
@@ -852,12 +858,12 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
-    test "creating closed maps" do
+    test "creating maps as records" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
     end
 
-    test "creating closed maps with dynamic keys" do
+    test "creating maps as records with dynamic keys" do
       assert typecheck!(
                (
                  foo = :foo
@@ -884,12 +890,59 @@ defmodule Module.Types.ExprTest do
              )
     end
 
-    test "creating open maps" do
-      assert typecheck!(%{123 => 456}) == dynamic(open_map())
-      # Since key cannot override :foo, we preserve it
-      assert typecheck!([key], %{key => 456, foo: :bar}) == dynamic(open_map(foo: atom([:bar])))
-      # Since key can override :foo, we do not preserve it
-      assert typecheck!([key], %{:foo => :bar, key => :baz}) == dynamic(open_map())
+    test "creating maps as dictionaries" do
+      assert typecheck!(%{123 => 456}) == closed_map([{domain_key(:integer), integer()}])
+
+      # Since key cannot override :foo based on position, we preserve it
+      assert typecheck!([key], %{key => 456, foo: :bar}) ==
+               dynamic(
+                 closed_map([
+                   {to_domain_keys(:term), integer()},
+                   {:foo, atom([:bar])}
+                 ])
+               )
+
+      # Since key can override :foo based on position, we union it
+      assert typecheck!([key], %{:foo => :bar, key => :baz}) ==
+               dynamic(
+                 closed_map([
+                   {to_domain_keys(:term), atom([:baz])},
+                   {:foo, atom([:bar, :baz])}
+                 ])
+               )
+
+      # Since key cannot override :foo based on domain, we preserve it
+      assert typecheck!(
+               [arg],
+               (
+                 key = String.to_integer(arg)
+                 %{:foo => :bar, key => :baz}
+               )
+             ) ==
+               closed_map([
+                 {domain_key(:integer), atom([:baz])},
+                 {:foo, atom([:bar])}
+               ])
+
+      # Multiple keys are fully overridden for simplicity
+      assert typecheck!(
+               [arg],
+               (
+                 foo_or_bar = if String.starts_with?(arg, "0"), do: :foo, else: :bar
+                 key = String.to_integer(arg)
+                 %{foo_or_bar => :old, key => :new}
+               )
+             ) ==
+               union(
+                 closed_map([
+                   {domain_key(:integer), atom([:new])},
+                   {:foo, atom([:old])}
+                 ]),
+                 closed_map([
+                   {domain_key(:integer), atom([:new])},
+                   {:bar, atom([:old])}
+                 ])
+               )
     end
 
     test "creating structs" do
@@ -910,7 +963,7 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "updating to closed maps" do
+    test "updating to maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: atom([:zero])))
 
@@ -1010,6 +1063,36 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-3
                  x = %{foo: :baz}
              """
+
+      # The goal of this assertion is to verify we assert keys,
+      # even if they may be overridden later.
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :value}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :foo in map update syntax:
+
+                 %{x | :foo => :baz, key => :bat}
+
+             but got type:
+
+                 %{key: :value}
+
+             where "key" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE-5
+                 key
+
+             where "x" was given the type:
+
+                 # type: %{key: :value}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :value}
+             """
     end
 
     test "updating structs" do
@@ -1093,61 +1176,78 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "updating to open maps" do
+    test "updating to maps as dictionaries" do
       assert typecheck!(
                [key],
                (
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == dynamic(open_map())
+             ) == closed_map(foo: atom([:bar, :baz]))
 
-      # Since key cannot override :foo, we preserve it
+      # Override based on position
       assert typecheck!(
                [key],
                (
-                 x = %{foo: :bar}
-                 %{x | key => :baz, foo: :bat}
+                 x = %{foo: :bar, baz: :bat}
+                 %{x | key => :old, foo: :new}
                )
-             ) == dynamic(open_map(foo: atom([:bat])))
+             ) == closed_map(foo: atom([:new]), baz: atom([:old, :bat]))
 
-      # Since key can override :foo, we do not preserve it
-      assert typecheck!(
-               [key],
-               (
-                 x = %{foo: :bar}
-                 %{x | :foo => :baz, key => :bat}
-               )
-             ) == dynamic(open_map())
-
-      # The goal of this assertion is to verify we assert keys,
-      # even if they may be overridden later.
       assert typeerror!(
                [key],
                (
-                 x = %{key: :value}
-                 %{x | :foo => :baz, key => :bat}
+                 x = %{String.to_integer(key) => :old}
+                 %{x | String.to_atom(key) => :new}
                )
              ) == ~l"""
-             expected a map with key :foo in map update syntax:
+             expected a map with key of type atom() in map update syntax:
 
-                 %{x | :foo => :baz, key => :bat}
+                 %{x | String.to_atom(key) => :new}
 
              but got type:
 
-                 %{key: :value}
+                 %{integer() => :old}
 
              where "key" was given the type:
 
-                 # type: dynamic()
-                 # from: types_test.ex:LINE-5
-                 key
+                 # type: binary()
+                 # from: types_test.ex:LINE-3
+                 String.to_integer(key)
 
              where "x" was given the type:
 
-                 # type: %{key: :value}
+                 # type: %{integer() => :old}
                  # from: types_test.ex:LINE-3
-                 x = %{key: :value}
+                 x = %{String.to_integer(key) => :old}
+             """
+
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :old}
+                 %{x | String.to_atom(key) => :new}
+               )
+             ) == ~l"""
+             expected a map with key of type atom() in map update syntax:
+
+                 %{x | String.to_atom(key) => :new}
+
+             but got type:
+
+                 %{key: :old}
+
+             where "key" was given the type:
+
+                 # type: binary()
+                 # from: types_test.ex:LINE-2
+                 String.to_atom(key)
+
+             where "x" was given the type:
+
+                 # type: %{key: :old}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :old}
              """
     end
 
@@ -1949,10 +2049,10 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "comprehensions" do
-    test "binary generators" do
+    test "bitstring generators" do
       assert typeerror!([<<x>>], for(<<y <- x>>, do: y)) ==
                ~l"""
-               expected the right side of <- in a binary generator to be a binary:
+               expected the right side of <- in a binary generator to be a binary (or bitstring):
 
                    x
 
@@ -1975,7 +2075,7 @@ defmodule Module.Types.ExprTest do
                for(<<i <- if(:rand.uniform() > 0.5, do: x, else: y)>>, do: i)
              ) =~
                ~l"""
-               expected the right side of <- in a binary generator to be a binary:
+               expected the right side of <- in a binary generator to be a binary (or bitstring):
 
                    if :rand.uniform() > 0.5 do
                      x
@@ -2001,25 +2101,29 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "infers binary generators" do
+    test "infers bitstring generators" do
       assert typecheck!(
                [x],
                (
                  for <<_ <- x>>, do: :ok
                  x
                )
-             ) == dynamic(binary())
+             ) == dynamic(bitstring())
     end
 
     test ":into" do
       assert typecheck!([binary], for(<<x <- binary>>, do: x)) == list(integer())
       assert typecheck!([binary], for(<<x <- binary>>, do: x, into: [])) == list(integer())
-      assert typecheck!([binary], for(<<x <- binary>>, do: x, into: "")) == binary()
+      assert typecheck!([binary], for(<<x <- binary>>, do: <<x>>, into: "")) |> equal?(binary())
       assert typecheck!([binary, other], for(<<x <- binary>>, do: x, into: other)) == dynamic()
 
-      assert typecheck!([enum], for(x <- enum, do: x)) == list(dynamic())
-      assert typecheck!([enum], for(x <- enum, do: x, into: [])) == list(dynamic())
-      assert typecheck!([enum], for(x <- enum, do: x, into: "")) == binary()
+      assert typecheck!([enum], for(x <- enum, do: x)) ==
+               union(list(dynamic()), empty_list())
+
+      assert typecheck!([enum], for(x <- enum, do: x, into: [])) ==
+               union(list(dynamic()), empty_list())
+
+      assert typecheck!([enum], for(x <- enum, do: <<x>>, into: "")) |> equal?(binary())
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
 
       assert typecheck!(
@@ -2028,7 +2132,7 @@ defmodule Module.Types.ExprTest do
                  into = if :rand.uniform() > 0.5, do: [], else: "0"
                  for(<<x::float <- binary>>, do: x, into: into)
                )
-             ) == union(binary(), list(float()))
+             ) == union(bitstring(), list(term()))
 
       assert typecheck!(
                [binary, empty_list = []],
@@ -2036,7 +2140,25 @@ defmodule Module.Types.ExprTest do
                  into = if :rand.uniform() > 0.5, do: empty_list, else: "0"
                  for(<<x::float <- binary>>, do: x, into: into)
                )
-             ) == dynamic(union(binary(), list(float())))
+             ) == union(bitstring(), list(term()))
+    end
+
+    test ":into incompatibility" do
+      assert typeerror!([binary], for(<<x <- binary>>, do: x, into: "")) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 x
+
+             but got type:
+
+                 integer()
+
+             where "x" was given the type:
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 <<x>>
+             """
     end
 
     test ":reduce checks" do

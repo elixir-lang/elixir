@@ -71,61 +71,56 @@ defmodule IEx.Evaluator do
 
   def parse(input, opts, []), do: parse(input, opts, {[], :other})
 
-  def parse(@break_trigger, opts, _parser_state) do
-    :elixir_errors.parse_error(
-      [line: opts[:line]],
-      opts[:file],
-      "incomplete expression",
-      "",
-      {~c"", Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1), 0}
-    )
-  end
-
   def parse(input, opts, {buffer, last_op}) do
     input = buffer ++ input
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
 
-    result =
-      with {:ok, tokens} <- :elixir.string_to_tokens(input, line, column, file, opts),
-           {:ok, adjusted_tokens, adjusted_op} <-
-             adjust_operator(tokens, line, column, file, opts, last_op),
-           {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
-        last_op =
-          case forms do
-            {:=, _, [_, _]} -> :match
-            _ -> :other
-          end
-
-        forms =
-          if adjusted_op != nil do
-            quote do
-              IEx.Evaluator.assert_no_error!()
-              unquote(forms)
+    if List.ends_with?(input, @break_trigger) do
+      triplet = {~c"", line, column, 0}
+      :elixir_errors.parse_error([line: line], file, "incomplete expression", "", triplet)
+    else
+      result =
+        with {:ok, tokens} <- :elixir.string_to_tokens(input, line, column, file, opts),
+             {:ok, adjusted_tokens, adjusted_op} <-
+               adjust_operator(tokens, line, column, file, opts, last_op),
+             {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
+          last_op =
+            case forms do
+              {:=, _, [_, _]} -> :match
+              _ -> :other
             end
-          else
-            forms
-          end
 
-        {:ok, forms, last_op}
+          forms =
+            if adjusted_op != nil do
+              quote do
+                IEx.Evaluator.assert_no_error!()
+                unquote(forms)
+              end
+            else
+              forms
+            end
+
+          {:ok, forms, last_op}
+        end
+
+      case result do
+        {:ok, forms, last_op} ->
+          {:ok, forms, {[], last_op}}
+
+        {:error, {_, _, ""}} ->
+          {:incomplete, {input, last_op}}
+
+        {:error, {location, error, token}} ->
+          :elixir_errors.parse_error(
+            location,
+            file,
+            error,
+            token,
+            {input, line, column, 0}
+          )
       end
-
-    case result do
-      {:ok, forms, last_op} ->
-        {:ok, forms, {[], last_op}}
-
-      {:error, {_, _, ""}} ->
-        {:incomplete, {input, last_op}}
-
-      {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(
-          location,
-          file,
-          error,
-          token,
-          {input, line, column, 0}
-        )
     end
   end
 

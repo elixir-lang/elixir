@@ -1953,6 +1953,18 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "do+end with not in operator without explicit parentheses" do
+    assert_warn_eval(
+      ["nofile:3\n", "missing parentheses on expression following operator \"not in\""],
+      """
+      quote do
+        case do
+        end not in no_parens 1, 2
+      end
+      """
+    )
+  end
+
   test "variable is being expanded to function call (on_undefined_variable: warn)" do
     capture_io(:stderr, fn ->
       Code.put_compiler_option(:on_undefined_variable, :warn)
@@ -2275,6 +2287,14 @@ defmodule Kernel.WarningTest do
 
   test "unused require" do
     assert_warn_compile(
+      ["nofile:1:1", "unused require Logger"],
+      """
+      require Logger
+      """
+    )
+
+    # Within a module
+    assert_warn_compile(
       ["nofile:2:3", "unused require Application"],
       """
       defmodule Sample do
@@ -2284,10 +2304,25 @@ defmodule Kernel.WarningTest do
       """
     )
 
+    # Unused require and alias
     assert_warn_compile(
-      ["nofile:1:1", "unused require Logger"],
+      ["nofile:2:3", "unused require Application (the alias is also unused)"],
       """
-      require Logger
+      defmodule Sample do
+        require Application, as: A
+        def a, do: nil
+      end
+      """
+    )
+
+    # Unused require but used alias
+    assert_warn_compile(
+      ["nofile:2:3", "unused require Application (convert it to an alias instead)"],
+      """
+      defmodule Sample do
+        require Application, as: A
+        def a, do: A.started_applications()
+      end
       """
     )
   after

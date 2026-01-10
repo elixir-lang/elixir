@@ -177,8 +177,9 @@ defmodule Mix.Dep.Loader do
 
     bin_app = Atom.to_string(app)
 
-    dest = Path.join(Mix.Project.deps_path(), bin_app)
-    build = Path.join([Mix.Project.build_path(), "lib", bin_app])
+    config = Mix.Project.config()
+    dest = Path.join(Mix.Project.deps_path(config), bin_app)
+    build = Path.join([Mix.Project.build_path(config), "lib", bin_app])
 
     opts =
       opts
@@ -199,6 +200,12 @@ defmodule Mix.Dep.Loader do
     if !scm do
       Mix.raise(
         "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
+      )
+    end
+
+    if config[:app] == app do
+      Mix.shell().error(
+        "warning: the application name #{inspect(app)} is the same as one of its dependencies"
       )
     end
 

@@ -7,7 +7,7 @@
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
 %%
-%%     http://www.apache.org/licenses/LICENSE-2.0
+%%     httpss://www.apache.org/licenses/LICENSE-2.0
 %%
 %% Unless required by applicable law or agreed to in writing, software
 %% distributed under the License is distributed on an "AS IS" BASIS,
@@ -506,7 +506,7 @@ escape($\\) -> <<"\\\\">>;
 escape(_) -> no.
 
 %% This is an adapted table from "Flexible and Economical UTF-8 Decoding" by Bjoern Hoehrmann.
-%% http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
+%% https://bjoern.hoehrmann.de/utf-8/decoder/dfa/
 
 %% Map character to character class
 utf8t() ->

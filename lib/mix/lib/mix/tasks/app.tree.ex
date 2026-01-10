@@ -74,7 +74,7 @@ defmodule Mix.Tasks.App.Tree do
 
          dot -Tpng app_tree.dot -o app_tree.png
 
-      For more options see http://www.graphviz.org/.
+      For more options see https://www.graphviz.org/.
       """
       |> String.trim_trailing()
       |> Mix.shell().info()

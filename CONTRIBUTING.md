@@ -178,7 +178,7 @@ affecting **all external contributors**:
         involved.
     ```
 
-    See <http://developercertificate.org/> for a copy of the Developer Certificate
+    See <https://developercertificate.org/> for a copy of the Developer Certificate
     of Origin license.
 
 ## Building documentation

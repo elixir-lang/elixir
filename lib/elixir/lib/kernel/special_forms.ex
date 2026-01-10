@@ -1593,9 +1593,9 @@ defmodule Kernel.SpecialForms do
 
   Let's give it a try on IEx:
 
-      iex> opts = %{width: 10, height: 15}
-      iex> with {:ok, width} <- Map.fetch(opts, :width),
-      ...>      {:ok, height} <- Map.fetch(opts, :height) do
+      iex> opts = %{"width" => 10, "height" => 15}
+      iex> with {:ok, width} <- Map.fetch(opts, "width"),
+      ...>      {:ok, height} <- Map.fetch(opts, "height") do
       ...>   {:ok, width * height}
       ...> end
       {:ok, 150}
@@ -1603,20 +1603,12 @@ defmodule Kernel.SpecialForms do
   If all clauses match, the `do` block is executed, returning its result.
   Otherwise the chain is aborted and the non-matched value is returned:
 
-      iex> opts = %{width: 10}
-      iex> with {:ok, width} <- Map.fetch(opts, :width),
-      ...>      {:ok, height} <- Map.fetch(opts, :height) do
+      iex> opts = %{"width" => 10}
+      iex> with {:ok, width} <- Map.fetch(opts, "width"),
+      ...>      {:ok, height} <- Map.fetch(opts, "height") do
       ...>   {:ok, width * height}
       ...> end
       :error
-
-  Guards can be used in patterns as well:
-
-      iex> users = %{"melany" => "guest", "bob" => :admin}
-      iex> with {:ok, role} when not is_binary(role) <- Map.fetch(users, "bob") do
-      ...>   {:ok, to_string(role)}
-      ...> end
-      {:ok, "admin"}
 
   As in `for/1`, variables bound inside `with/1` won't be accessible
   outside of `with/1`.
@@ -1661,22 +1653,18 @@ defmodule Kernel.SpecialForms do
   An `else` option can be given to modify what is being returned from
   `with` in the case of a failed match:
 
-      iex> opts = %{width: 10}
-      iex> with {:ok, width} <- Map.fetch(opts, :width),
-      ...>      {:ok, height} <- Map.fetch(opts, :height) do
-      ...>   {:ok, width * height}
-      ...> else
-      ...>   :error ->
-      ...>     {:error, :wrong_data}
-      ...>
-      ...>   _other_error ->
-      ...>     :unexpected_error
-      ...> end
-      {:error, :wrong_data}
+      with {:ok, content} <- File.read(path),
+           :ok <- File.write(path, [content, "!"]) do
+        :ok
+      else
+        {:error, reason} ->
+          Logger.error("could not append ! to \#{path} with reason: \#{reason}")
+          :error
+      end
 
   The `else` block works like a `case`: it can have multiple clauses,
-  and the first match will be used. Variables bound inside `with` (such as
-  `width` in this example) are not available in the `else` block.
+  and the first match will be used. Variables bound inside `with`
+  (such as `content` in this example) are not available in the `else` block.
 
   If an `else` block is used and there are no matching clauses, a `WithClauseError`
   exception is raised.
@@ -1987,13 +1975,13 @@ defmodule Kernel.SpecialForms do
   While it is not possible to match against multiple patterns in a single
   clause, it's possible to match against multiple values by using guards:
 
-      iex> case :two do
-      ...>   value when value in [:one, :two] ->
+      iex> case 2 do
+      ...>   value when value in [1, 2] ->
       ...>     "#{value} has been matched"
-      ...>   :three ->
-      ...>     "three has been matched"
+      ...>   3 ->
+      ...>     "3 has been matched"
       ...> end
-      "two has been matched"
+      "2 has been matched"
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
 

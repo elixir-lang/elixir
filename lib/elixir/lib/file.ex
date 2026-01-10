@@ -1114,6 +1114,8 @@ defmodule File do
   explicitly disallow this behavior. If `source` is a `file` and `destination`
   is a directory, `{:error, :eisdir}` will be returned.
 
+  Special files such as device files, sockets, and named pipes are not copied.
+
   ## Options
 
     * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
@@ -1262,7 +1264,7 @@ defmodule File do
         end
 
       {:ok, _} ->
-        {:error, :eio, src}
+        acc
 
       {:error, reason} ->
         {:error, reason, src}

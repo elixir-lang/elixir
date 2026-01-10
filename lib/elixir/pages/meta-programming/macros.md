@@ -61,7 +61,7 @@ Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 Our `macro_unless` macro received the following:
 
 ```elixir
-macro_unless(true, [do: {{:., [], [{:__aliases__, [alias: false], [:IO]}, :puts]}, [], ["this should never be printed"]}])
+macro_unless(true, [do: {{:., [], [{:__aliases__, [], [:IO]}, :puts]}, [], ["this should never be printed"]}])
 ```
 
 and it then returned a quoted expression as follows:

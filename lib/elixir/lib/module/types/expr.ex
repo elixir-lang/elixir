@@ -87,34 +87,28 @@ defmodule Module.Types.Expr do
   def of_expr(list, expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
 
-    if stack.mode == :traversal do
-      {_, context} = Enum.map_reduce(prefix, context, &of_expr(&1, term(), expr, stack, &2))
-      {_, context} = of_expr(suffix, term(), expr, stack, context)
-      {dynamic(), context}
-    else
-      hd_type =
-        case list_hd(expected) do
-          {_, type} -> type
-          _ -> term()
-        end
+    hd_type =
+      case list_hd(expected) do
+        {:ok, type} -> type
+        _ -> term()
+      end
 
-      {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, hd_type, expr, stack, &2))
+    {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, hd_type, expr, stack, &2))
 
-      {suffix, context} =
-        if suffix == [] do
-          {empty_list(), context}
-        else
-          tl_type =
-            case list_tl(expected) do
-              {_, type} -> type
-              _ -> term()
-            end
+    {suffix, context} =
+      if suffix == [] do
+        {empty_list(), context}
+      else
+        tl_type =
+          case list_tl(expected) do
+            {:ok, type} -> type
+            :badnonemptylist -> term()
+          end
 
-          of_expr(suffix, tl_type, expr, stack, context)
-        end
+        of_expr(suffix, tl_type, expr, stack, context)
+      end
 
-      {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
-    end
+    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
   # {left, right}
@@ -128,9 +122,8 @@ defmodule Module.Types.Expr do
   end
 
   # <<...>>>
-  def of_expr({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    context = Of.binary(args, :expr, stack, context)
-    {binary(), context}
+  def of_expr({:<<>>, meta, args}, _expected, _expr, stack, context) do
+    Of.bitstring(meta, args, :expr, stack, context)
   end
 
   def of_expr({:__CALLER__, _meta, var_context}, _expected, _expr, _stack, context)
@@ -172,57 +165,32 @@ defmodule Module.Types.Expr do
     # allow variables defined on the left side of | to be available
     # on the right side, this is safe.
     {pairs_types, context} =
-      Of.pairs(args, expected, stack, context, &of_expr(&1, &2, expr, &3, &4))
+      Enum.map_reduce(args, context, fn {key, value}, context ->
+        {key_type, context} = of_expr(key, term(), expr, stack, context)
+        {value_type, context} = of_expr(value, term(), expr, stack, context)
+        {{key_type, value_type}, context}
+      end)
 
-    expected =
-      if stack.mode == :traversal do
-        expected
-      else
-        # TODO: Once we introduce domain keys, if we ever find a domain
-        # that overlaps atoms, we can only assume optional(atom()) => term(),
-        # which is what the `open_map()` below falls back into anyway.
-        Enum.reduce_while(pairs_types, expected, fn
-          {_, [key], _}, acc ->
-            case map_fetch_and_put(acc, key, term()) do
-              {_value, acc} -> {:cont, acc}
-              _ -> {:halt, open_map()}
-            end
+    # The only information we can attach to the expected types is that
+    # certain keys are expected.
+    expected_pairs =
+      Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
+        case atom_fetch(key_type) do
+          {:finite, [key]} -> [{key, term()}]
+          _ -> []
+        end
+      end)
 
-          _, _ ->
-            {:halt, open_map()}
-        end)
-      end
-
+    expected = intersection(expected, open_map(expected_pairs))
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
-      Of.permutate_map(pairs_types, stack, fn fallback, keys_to_assert, pairs ->
-        # Ensure all keys to assert and all type pairs exist in map
-        keys_to_assert = Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert
-
-        Enum.each(Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert, fn key ->
-          case map_fetch(map_type, key) do
-            {_, _} -> :ok
-            :badkey -> throw({:badkey, map_type, key, update, context})
-            :badmap -> throw({:badmap, map_type, update, context})
-          end
-        end)
-
-        # If all keys are known is no fallback (i.e. we know all keys being updated),
-        # we can update the existing map.
-        if fallback == none() do
-          Enum.reduce(pairs, map_type, fn {key, type}, acc ->
-            case map_fetch_and_put(acc, key, type) do
-              {_value, descr} -> descr
-              :badkey -> throw({:badkey, map_type, key, update, context})
-              :badmap -> throw({:badmap, map_type, update, context})
-            end
-          end)
-        else
-          # TODO: Use the fallback type to actually indicate if open or closed.
-          # The fallback must be unioned with the result of map_values with all
-          # `keys` deleted.
-          dynamic(open_map(pairs))
+      Enum.reduce(pairs_types, map_type, fn {key_type, value_type}, acc ->
+        case literal_map_update(acc, key_type, value_type) do
+          {:ok, descr} -> descr
+          {:badkey, key} -> throw({:badkey, map_type, key, update, context})
+          {:baddomain, domain} -> throw({:baddomain, map_type, domain, update, context})
+          :badmap -> throw({:badmap, map_type, update, context})
         end
       end)
     catch
@@ -240,27 +208,25 @@ defmodule Module.Types.Expr do
         stack,
         context
       ) do
+    # We pass the expected type as `term()` because the struct update
+    # operator already expects it to be a map at this point.
     {map_type, context} = of_expr(map, term(), struct, stack, context)
 
     context =
-      if stack.mode == :traversal do
+      with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
+           {:finite, [^module]} <- atom_fetch(struct_key_type) do
         context
       else
-        with {false, struct_key_type} <- map_fetch(map_type, :__struct__),
-             {:finite, [^module]} <- atom_fetch(struct_key_type) do
-          context
-        else
-          _ ->
-            error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
-        end
+        _ ->
+          error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
       end
 
     Enum.reduce(pairs, {map_type, context}, fn {key, value}, {acc, context} ->
       # TODO: Once we support typed structs, we need to type check them here
       {type, context} = of_expr(value, term(), expr, stack, context)
 
-      case map_fetch_and_put(acc, key, type) do
-        {_value, acc} -> {acc, context}
+      case map_put_key(acc, key, type) do
+        {:ok, acc} -> {acc, context}
         _ -> {acc, context}
       end
     end)
@@ -329,10 +295,17 @@ defmodule Module.Types.Expr do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
     info = {:case, meta, case_type, case_expr}
 
-    # If we are only type checking the expression and the expression is a literal,
-    # let's mark it as generated, as it is most likely a macro code. However, if
-    # no clause is matched, we should still check for that.
-    if Macro.quoted_literal?(case_expr) do
+    added_meta =
+      if Macro.quoted_literal?(case_expr) do
+        [generated: true]
+      else
+        case_expr |> get_meta() |> Keyword.take([:generated])
+      end
+
+    # If the expression is generated or the construct is a literal,
+    # it is most likely a macro code. However, if no clause is matched,
+    # we should still check for that.
+    if added_meta != [] do
       for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
     else
       clauses
@@ -341,25 +314,20 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  # TODO: fn pat -> expr end
+  # fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, _expected, _expr, stack, context) do
     [{:->, _, [head, _]} | _] = clauses
     {patterns, _guards} = extract_head(head)
     domain = Enum.map(patterns, fn _ -> dynamic() end)
 
-    if stack.mode == :traversal do
-      {_acc, context} = of_clauses(clauses, domain, @pending, nil, :fn, stack, context, none())
-      {dynamic(), context}
-    else
-      {acc, context} =
-        of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
-          trees, body, context, acc ->
-            args = Pattern.of_domain(trees, domain, context)
-            add_inferred(acc, args, body)
-        end)
+    {acc, context} =
+      of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
+        trees, body, context, acc ->
+          args = Pattern.of_domain(trees, context)
+          add_inferred(acc, args, body)
+      end)
 
-      {fun_from_inferred_clauses(acc), context}
-    end
+    {fun_from_inferred_clauses(acc), context}
   end
 
   def of_expr({:try, _meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
@@ -447,20 +415,26 @@ defmodule Module.Types.Expr do
     else
       # TODO: Use the collectable protocol for the output
       into = Keyword.get(opts, :into, [])
-      {into_wrapper, gradual?, context} = for_into(into, meta, stack, context)
+      {into_type, into_kind, context} = for_into(into, meta, stack, context)
       {block_type, context} = of_expr(block, @pending, block, stack, context)
 
-      for_type =
-        for type <- into_wrapper do
-          case type do
-            :binary -> binary()
-            :list -> list(block_type)
-            :term -> term()
-          end
-        end
-        |> Enum.reduce(&union/2)
+      case into_kind do
+        :bitstring ->
+          case compatible_intersection(block_type, bitstring()) do
+            {:ok, intersection} ->
+              {return_union(into_type, intersection, stack), context}
 
-      {if(gradual?, do: dynamic(for_type), else: for_type), context}
+            {:error, _} ->
+              error = {:badbitbody, block_type, block, context}
+              {error_type(), error(__MODULE__, error, meta, stack, context)}
+          end
+
+        :non_empty_list ->
+          {return_union(into_type, non_empty_list(block_type), stack), context}
+
+        :none ->
+          {into_type, context}
+      end
     end
   end
 
@@ -479,11 +453,7 @@ defmodule Module.Types.Expr do
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 
-    if stack.mode == :traversal do
-      {dynamic(), context}
-    else
-      Apply.fun_apply(fun_type, args_types, call, stack, context)
-    end
+    Apply.fun(fun_type, args_types, call, stack, context)
   end
 
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)
@@ -504,7 +474,7 @@ defmodule Module.Types.Expr do
     apply_many(mods, name, args, expected, call, stack, context)
   end
 
-  # TODO: &Foo.bar/1
+  # &Foo.bar/1
   def of_expr(
         {:&, _, [{:/, _, [{{:., _, [remote, name]}, meta, []}, arity]}]} = call,
         _expected,
@@ -518,7 +488,7 @@ defmodule Module.Types.Expr do
     Apply.remote_capture(mods, name, arity, meta, stack, context)
   end
 
-  # TODO: &foo/1
+  # &foo/1
   def of_expr({:&, _meta, [{:/, _, [{fun, meta, _}, arity]}]}, _expected, _expr, stack, context) do
     Apply.local_capture(fun, arity, meta, stack, context)
   end
@@ -526,30 +496,23 @@ defmodule Module.Types.Expr do
   # Super
   def of_expr({:super, meta, args} = call, expected, _expr, stack, context) when is_list(args) do
     {_kind, fun} = Keyword.fetch!(meta, :super)
-    apply_local(fun, args, expected, call, stack, context)
+    Apply.local(fun, args, expected, call, stack, context, &of_expr/5)
   end
 
   # Local calls
   def of_expr({fun, _meta, args} = call, expected, _expr, stack, context)
       when is_atom(fun) and is_list(args) do
-    apply_local(fun, args, expected, call, stack, context)
+    Apply.local(fun, args, expected, call, stack, context, &of_expr/5)
   end
 
   # var
-  def of_expr(var, expected, expr, stack, context) when is_var(var) do
-    case stack do
-      %{mode: :traversal} -> {dynamic(), context}
-      %{refine_vars: false} -> {Of.var(var, context), context}
-      %{} -> Of.refine_body_var(var, expected, expr, stack, context)
-    end
+  def of_expr({_, meta, _} = var, expected, expr, stack, context) when is_var(var) do
+    version = Keyword.fetch!(meta, :version)
+    {type, context} = Of.refine_body_var(version, expected, expr, stack, context)
+    {type, Pattern.of_changed([version], stack, context)}
   end
 
   ## Tuples
-
-  defp of_tuple(elems, _expected, expr, %{mode: :traversal} = stack, context) do
-    {_types, context} = Enum.map_reduce(elems, context, &of_expr(&1, term(), expr, stack, &2))
-    {dynamic(), context}
-  end
 
   defp of_tuple(elems, expected, expr, stack, context) do
     of_tuple(elems, 0, [], expected, expr, stack, context)
@@ -597,6 +560,7 @@ defmodule Module.Types.Expr do
         _ ->
           expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
           expr = {:__block__, [type_check: info], [expr]}
+          context = Of.declare_var(var, context)
           {_ok?, _type, context} = Of.refine_head_var(var, expected, expr, stack, context)
           context
       end
@@ -612,19 +576,19 @@ defmodule Module.Types.Expr do
     {pattern, guards} = extract_head([left])
 
     {_type, context} =
-      apply_one(Enumerable, :count, [right], dynamic(), expr, stack, context)
+      Apply.remote(Enumerable, :count, [right], dynamic(), expr, stack, context, &of_expr/5)
 
     Pattern.of_generator(pattern, guards, dynamic(), :for, expr, stack, context)
   end
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]} = expr, stack, context) do
-    {right_type, context} = of_expr(right, binary(), expr, stack, context)
-    context = Pattern.of_generator(left, [], binary(), :for, expr, stack, context)
+    {right_type, context} = of_expr(right, bitstring(), expr, stack, context)
+    context = Pattern.of_generator(left, [], bitstring(), :for, expr, stack, context)
 
-    if compatible?(right_type, binary()) do
+    if compatible?(right_type, bitstring()) do
       context
     else
-      error = {:badbinary, right_type, right, context}
+      error = {:badbitgenerator, right_type, right, context}
       error(__MODULE__, error, meta, stack, context)
     end
   end
@@ -634,13 +598,13 @@ defmodule Module.Types.Expr do
     context
   end
 
-  @into_compile union(binary(), empty_list())
+  @into_compile union(bitstring(), empty_list())
 
   defp for_into([], _meta, _stack, context),
-    do: {[:list], false, context}
+    do: {empty_list(), :non_empty_list, context}
 
   defp for_into(binary, _meta, _stack, context) when is_binary(binary),
-    do: {[:binary], false, context}
+    do: {binary(), :bitstring, context}
 
   defp for_into(into, meta, stack, context) do
     meta =
@@ -657,19 +621,31 @@ defmodule Module.Types.Expr do
     {type, context} = of_expr(into, domain, expr, stack, context)
 
     # We use subtype? instead of compatible because we want to handle
-    # only binary/list, even if a dynamic with something else is given.
+    # only bitstring/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
-      case {binary_type?(type), empty_list_type?(type)} do
-        {false, true} -> {[:list], gradual?(type), context}
-        {true, false} -> {[:binary], gradual?(type), context}
-        {_, _} -> {[:binary, :list], gradual?(type), context}
+      case {bitstring_type?(type), empty_list_type?(type)} do
+        # If they can be both be true, then we don't know
+        # what the contents of the block are for
+        {true, true} ->
+          type = union(bitstring(), list(term()))
+          {if(gradual?(type), do: dynamic(type), else: type), :none, context}
+
+        {false, true} ->
+          {type, :non_empty_list, context}
+
+        {true, false} ->
+          {type, :bitstring, context}
       end
     else
       {_type, context} =
         Apply.remote_apply(info, Collectable, :into, [type], expr, stack, context)
 
-      {[:term], true, context}
+      {dynamic(), :none, context}
     end
+  end
+
+  defp return_union(left, right, stack) do
+    Apply.return(union(left, right), [left, right], stack)
   end
 
   ## With
@@ -699,46 +675,22 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_local(fun, args, expected, {_, meta, _} = expr, stack, context) do
-    {local_info, domain, context} = Apply.local_domain(fun, args, expected, meta, stack, context)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
-
-    Apply.local_apply(local_info, fun, args_types, expr, stack, context)
-  end
-
-  defp apply_one(mod, fun, args, expected, expr, stack, context) do
-    {info, domain, context} =
-      Apply.remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
-
-    Apply.remote_apply(info, mod, fun, args_types, expr, stack, context)
-  end
-
   defp apply_many([], fun, args, expected, expr, stack, context) do
-    {info, domain} = Apply.remote_domain(fun, args, expected, stack)
-
-    {args_types, context} =
-      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
-
-    Apply.remote_apply(info, nil, fun, args_types, expr, stack, context)
+    Apply.remote(fun, args, expected, expr, stack, context, &of_expr/5)
   end
 
   defp apply_many([mod], fun, args, expected, expr, stack, context) do
-    apply_one(mod, fun, args, expected, expr, stack, context)
+    Apply.remote(mod, fun, args, expected, expr, stack, context, &of_expr/5)
   end
 
-  defp apply_many(mods, fun, args, expected, {remote, meta, args}, stack, context) do
-    {returns, context} =
-      Enum.map_reduce(mods, context, fn mod, context ->
-        expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
-        apply_one(mod, fun, args, expected, expr, %{stack | refine_vars: false}, context)
-      end)
+  defp apply_many(mods, fun, args, expected, call, stack, context) do
+    {remote, meta, _} = call
 
-    {Enum.reduce(returns, &union/2), context}
+    Of.with_conditional_vars(mods, none(), call, stack, context, fn mod, acc, context ->
+      expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
+      {type, context} = Apply.remote(mod, fun, args, expected, expr, stack, context, &of_expr/5)
+      {union(acc, type), context}
+    end)
   end
 
   defp reduce_non_empty([last], acc, fun),
@@ -750,14 +702,8 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, domain, expected, expr, info, %{mode: mode} = stack, context, acc) do
-    fun =
-      if mode == :traversal do
-        fn _, _, _, _ -> dynamic() end
-      else
-        fn _trees, result, _context, acc -> union(result, acc) end
-      end
-
+  defp of_clauses(clauses, domain, expected, expr, info, stack, context, acc) do
+    fun = fn _trees, result, _context, acc -> union(result, acc) end
     of_clauses_fun(clauses, domain, expected, expr, info, stack, context, acc, fun)
   end
 
@@ -810,6 +756,16 @@ defmodule Module.Types.Expr do
 
   defp add_inferred([], args, return),
     do: [{args, return}]
+
+  defp literal_map_update(descr, key_descr, value_descr) do
+    case map_update(descr, key_descr, value_descr, false, false) do
+      {_type, descr, []} -> {:ok, descr}
+      {_, _, [error | _]} -> error
+      :badmap -> :badmap
+      {:error, [error | _]} -> error
+      {:error, []} -> {:baddomain, key_descr}
+    end
+  end
 
   ## Warning formatting
 
@@ -906,7 +862,7 @@ defmodule Module.Types.Expr do
     }
   end
 
-  def format_diagnostic({:badbinary, type, expr, context}) do
+  def format_diagnostic({:baddomain, type, key_type, expr, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -914,7 +870,49 @@ defmodule Module.Types.Expr do
       message:
         IO.iodata_to_binary([
           """
-          expected the right side of <- in a binary generator to be a binary:
+          expected a map with key of type #{to_quoted_string(key_type)} in map update syntax:
+
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type, collapse_structs: false) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badbitgenerator, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected the right side of <- in a binary generator to be a binary (or bitstring):
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badbitbody, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
 
               #{expr_to_string(expr) |> indent(4)}
 

@@ -997,7 +997,7 @@ defmodule Mix.Tasks.Xref do
 
                dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
 
-            For more options see http://www.graphviz.org/.
+            For more options see https://www.graphviz.org/.
             """
             |> String.trim_trailing()
             |> Mix.shell().info()
@@ -1236,6 +1236,10 @@ defmodule Mix.Tasks.Xref do
       if integer = opts[:min_cycle_label] do
         if filter == :all do
           Mix.raise("--min-cycle-label requires the --label option to be given")
+        end
+
+        if integer <= 0 do
+          Mix.raise("--min-cycle-label must be greater than 0")
         end
 
         integer

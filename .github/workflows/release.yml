@@ -1,15 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 
-name: Release
+name: Releases
 
 on:
   push:
     branches:
       - main
       - v*.*
+
     tags:
       - v*
+
+  workflow_dispatch:
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
@@ -20,11 +23,15 @@ permissions:
 
 jobs:
   create_draft_release:
+    name: Create draft release
     runs-on: ubuntu-24.04
+
     permissions:
       contents: write
+
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - name: Create draft release
         if: github.ref_type != 'branch'
@@ -36,10 +43,8 @@ jobs:
             --draft \
             ${{ github.ref_name }}
 
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         if: github.ref_type == 'branch'
-        with:
-          fetch-depth: 50
 
       - name: Update ${{ github.ref_name }}-latest
         if: github.ref_type == 'branch'
@@ -58,7 +63,8 @@ jobs:
           git push origin $ref_name --force
 
   build:
-    name: "Build Elixir"
+    name: Ubuntu 24.04, OTP ${{ matrix.otp_version }}${{ matrix.build_docs && ' (build docs)' || '' }}
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: true
@@ -66,18 +72,16 @@ jobs:
         include:
           - otp: 26
             otp_version: "26.0"
+
           - otp: 27
             otp_version: "27.0"
+
           - otp: 28
             otp_version: "28.0"
             build_docs: build_docs
 
-    runs-on: ubuntu-24.04
-
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          fetch-depth: 50
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: "Build Release"
         uses: ./.github/workflows/release_pre_built
@@ -92,26 +96,27 @@ jobs:
           shasum -a 1   Docs.zip > Docs.zip.sha1sum
           shasum -a 256 Docs.zip > Docs.zip.sha256sum
 
-      - name: "Upload linux release artifacts"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - name: "Upload Linux release artifacts"
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: build-linux-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.zip
 
-      - name: "Upload windows release artifacts"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - name: "Upload Windows release artifacts"
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: build-windows-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.exe
 
       - name: "Upload doc artifacts"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: matrix.build_docs
         with:
           name: Docs
           path: Docs.zip*
 
   sign:
+    name: Sign files, ${{ matrix.flavor == 'windows' && 'Windows' || matrix.flavor == 'linux' && 'Linux' || matrix.flavor }}, OTP ${{ matrix.otp }}
     needs: [build]
     environment: release
     strategy:
@@ -131,7 +136,7 @@ jobs:
 
     steps:
       - name: "Download build"
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
 
@@ -142,8 +147,9 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: "Sign files with Trusted Signing"
-        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
+        uses: azure/trusted-signing-action@1d365fec12862c4aa68fcac418143d73f0cea293 # v0.5.11
         if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
         with:
           endpoint: https://eus.codesigning.azure.net/
@@ -172,17 +178,15 @@ jobs:
           shasum -a 1   "$RELEASE_FILE" > "${RELEASE_FILE}.sha1sum"
           shasum -a 256 "$RELEASE_FILE" > "${RELEASE_FILE}.sha256sum"
 
-      - name: "Upload linux release artifacts"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - name: "Upload Linux release artifacts"
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
           path: ${{ env.RELEASE_FILE }}*
 
   sbom:
     name: Generate SBoM
-
     needs: [build, sign]
-
     runs-on: ubuntu-24.04
 
     permissions:
@@ -198,11 +202,11 @@ jobs:
 
       - name: Checkout project
         id: checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: "Download Build Artifacts"
         id: download-build-artifacts
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
@@ -245,7 +249,7 @@ jobs:
           ATTESTATION: "${{ steps.attest-sbom.outputs.bundle-path }}"
 
       - name: "Assemble Release SBoM Artifacts"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "SBoM"
           path: |
@@ -255,12 +259,13 @@ jobs:
             ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
 
       - name: "Assemble Distribution Attestations"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: "Attestations"
           path: "attestations/*.sigstore"
 
   upload-release:
+    name: Upload release
     needs: [create_draft_release, build, sign, sbom]
     runs-on: ubuntu-24.04
 
@@ -268,12 +273,12 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs,SBoM,Attestations}"
           merge-multiple: true
 
-      - name: Upload Pre-built
+      - name: Upload Pre-build
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -300,15 +305,18 @@ jobs:
             bom.*
 
   upload-builds-hex-pm:
-    needs: [build, sign]
+    name: Upload builds to hex.pm
     runs-on: ubuntu-24.04
+    needs: [build, sign]
     concurrency: builds-hex-pm
     environment: release
+
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ vars.HEX_AWS_REGION }}
       AWS_S3_BUCKET: ${{ vars.HEX_AWS_S3_BUCKET }}
+
     steps:
       - name: "Check if variables are set up"
         if: "${{ ! vars.HEX_AWS_REGION }}"
@@ -316,7 +324,7 @@ jobs:
           echo "Required variables for uploading to hex.pm are not set up, skipping..."
           exit 1
 
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
@@ -424,6 +432,7 @@ jobs:
           for key in $(cat purge_keys.txt); do
             purge "${key}"
           done
+
         env:
           FASTLY_REPO_SERVICE_ID: ${{ secrets.HEX_FASTLY_REPO_SERVICE_ID }}
           FASTLY_BUILDS_SERVICE_ID: ${{ secrets.HEX_FASTLY_BUILDS_SERVICE_ID }}

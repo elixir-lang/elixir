@@ -815,6 +815,35 @@ defmodule FileTest do
       %File.Stat{mode: dest_mode} = File.stat!(dest)
       assert src_mode == dest_mode
     end
+
+    @tag :unix
+    test "cp_r skips sockets and other special files" do
+      src = tmp_path("src_with_socket")
+      dest = tmp_path("dest_with_socket")
+      socket_path = Path.join(src, "test.sock")
+      regular_file = Path.join(src, "regular.txt")
+
+      File.mkdir_p!(src)
+      File.write!(regular_file, "content")
+
+      {:ok, socket} = :gen_tcp.listen(0, [:local, {:ifaddr, {:local, socket_path}}])
+
+      try do
+        assert File.exists?(socket_path)
+        assert :elixir_utils.read_link_type(socket_path) == {:ok, :other}
+
+        {:ok, copied_files} = File.cp_r(src, dest)
+
+        assert Path.join(dest, "regular.txt") in copied_files
+
+        refute File.exists?(Path.join(dest, "test.sock"))
+        refute Path.join(dest, "test.sock") in copied_files
+      after
+        :gen_tcp.close(socket)
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
   end
 
   defmodule Queries do

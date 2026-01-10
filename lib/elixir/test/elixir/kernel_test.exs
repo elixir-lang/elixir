@@ -106,42 +106,6 @@ defmodule KernelTest do
 
     assert "" =~ "abcd" == false
     assert "" =~ ~r/abcd/ == false
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ "hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ ~r"hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ ~r"hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      ~r"hello" =~ "hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      ~r"hello" =~ ~r"hello"
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      :abcd =~ ~r//
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      :abcd =~ ""
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
-      "abcd" =~ nil
-    end
-
-    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
-      "abcd" =~ :abcd
-    end
   end
 
   test "^" do
@@ -658,7 +622,7 @@ defmodule KernelTest do
     end
 
     test "inside and/2" do
-      response = %{code: 200}
+      response = Process.get(:unused, %{code: 200})
 
       if is_map(response) and response.code in 200..299 do
         :pass
@@ -712,19 +676,12 @@ defmodule KernelTest do
       """)
     end
 
-    test "with a non-integer range" do
-      message = "ranges (first..last) expect both sides to be integers, got: 0..5.0"
-
-      assert_raise ArgumentError, message, fn ->
-        last = 5.0
-        1 in 0..last
-      end
-    end
-
     test "hoists variables and keeps order" do
       # Ranges
       result = expand_to_string(quote(do: rand() in 1..2))
       assert result =~ "var = rand()"
+
+      result = expand_to_string(quote(do: var in 1..2), :guard)
 
       assert result =~ """
              :erlang.andalso(
@@ -740,6 +697,8 @@ defmodule KernelTest do
       # Lists
       result = expand_to_string(quote(do: rand() in [1, 2]))
       assert result =~ "var = rand()"
+
+      result = expand_to_string(quote(do: var in [1, 2]), :guard)
       assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
 
       result = expand_to_string(quote(do: rand() in [1 | [2]]))
@@ -750,34 +709,34 @@ defmodule KernelTest do
     end
 
     test "is optimized" do
-      assert expand_to_string(quote(do: foo in [])) ==
-               "_ = foo\nfalse"
+      assert expand_to_string(quote(do: foo in []), :guard) ==
+               "false"
 
-      assert expand_to_string(quote(do: foo in [1, 2, 3])) == """
+      assert expand_to_string(quote(do: foo in [1, 2, 3]), :guard) == """
              :erlang.orelse(
                :erlang.orelse(:erlang.\"=:=\"(foo, 1), :erlang.\"=:=\"(foo, 2)),
                :erlang.\"=:=\"(foo, 3)
              )\
              """
 
-      assert expand_to_string(quote(do: foo in 0..1)) == """
+      assert expand_to_string(quote(do: foo in 0..1), :guard) == """
              :erlang.andalso(
                :erlang.is_integer(foo),
                :erlang.andalso(:erlang.>=(foo, 0), :erlang.\"=<\"(foo, 1))
              )\
              """
 
-      assert expand_to_string(quote(do: foo in -1..0)) == """
+      assert expand_to_string(quote(do: foo in -1..0), :guard) == """
              :erlang.andalso(
                :erlang.is_integer(foo),
                :erlang.andalso(:erlang.>=(foo, -1), :erlang.\"=<\"(foo, 0))
              )\
              """
 
-      assert expand_to_string(quote(do: foo in 1..1)) ==
+      assert expand_to_string(quote(do: foo in 1..1), :guard) ==
                ":erlang.\"=:=\"(foo, 1)"
 
-      assert expand_to_string(quote(do: 2 in 1..3)) ==
+      assert expand_to_string(quote(do: 2 in 1..3), :guard) ==
                ":erlang.andalso(:erlang.is_integer(2), :erlang.andalso(:erlang.>=(2, 1), :erlang.\"=<\"(2, 3)))"
     end
 

@@ -11,7 +11,7 @@ defmodule Module.Types.Helpers do
   @doc """
   Returns true if the mode cares about warnings.
   """
-  defguard is_warning(stack) when stack.mode not in [:traversal, :infer]
+  defguard is_warning(stack) when stack.mode != :infer
 
   @doc """
   Guard function to check if an AST node is a variable.
@@ -148,7 +148,7 @@ defmodule Module.Types.Helpers do
           version = meta[:version]
 
           case vars do
-            %{^version => %{off_traces: off_traces, name: name, context: context}} ->
+            %{^version => %{off_traces: [_ | _] = off_traces, name: name, context: context}} ->
               {:ok,
                Map.put(versions, version, %{
                  type: :variable,

@@ -346,7 +346,8 @@ defmodule Registry do
 
   The registry requires the following keys:
 
-    * `:keys` - chooses if keys are `:unique`, `:duplicate`, `{:duplicate, :key}`, or `{:duplicate, :pid}`
+    * `:keys` - chooses if keys are `:unique`, `:duplicate`,
+      `{:duplicate, :key}`, or `{:duplicate, :pid}`
     * `:name` - the name of the registry and its tables
 
   The following keys are optional:
@@ -358,17 +359,17 @@ defmodule Registry do
       crashes. Messages sent to listeners are of type `t:listener_message/0`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
-      For `:duplicate` registries, you can specify the partitioning strategy
-      directly in the `:keys` option:
+  For `:duplicate` registries, you can specify the partitioning strategy
+  directly in the `:keys` option:
 
-      * `:duplicate` or `{:duplicate, :pid}` - Use `:pid` partitioning (default)
-        when you have keys with many entries (e.g., one topic with many subscribers).
-        This is the traditional behavior and groups all entries from the same process together.
+    * `:duplicate` or `{:duplicate, :pid}` - Use `:pid` partitioning (default)
+      when you have keys with many entries (e.g., one topic with many subscribers).
+      This is the traditional behavior and groups all entries from the same process together.
 
-      * `{:duplicate, :key}` - Use `:key` partitioning when entries are spread across
-        many different keys (e.g., many topics with few subscribers each). This makes
-        key-based lookups more efficient as they only need to check a single partition
-        instead of all partitions.
+    * `{:duplicate, :key}` - Use `:key` partitioning when entries are spread across
+      many different keys (e.g., many topics with few subscribers each). This makes
+      key-based lookups more efficient as they only need to check a single partition
+      instead of all partitions.
 
   """
   @doc since: "1.5.0"

@@ -663,8 +663,9 @@ Erlang code.
 
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).
--define(exprs(Token), element(3, Token)).
+-define(op(Token), element(3, Token)).
 -define(meta(Node), element(2, Node)).
+-define(exprs(Node), element(3, Node)).
 -define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
 
 -compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
@@ -745,11 +746,14 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
       return_error(Location, "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
   end;
 
-build_op({UOp, _, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
+build_op({UOp, UMeta, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Remove "not left in right" rearrangement on v2.0
-  warn({Line, Column}, "\"not expr1 in expr2\" is deprecated, use \"expr1 not in expr2\" instead"),
+  warn({Line, Column}, case UOp of
+    '!' -> "\"!expr1 in expr2\" is deprecated, use \"expr1 not in expr2\" instead";
+    'not' -> "\"not expr1 in expr2\" is deprecated, use \"expr1 not in expr2\" instead"
+  end),
   Meta = meta_from_location(Location),
-  {UOp, Meta, [{'in', Meta, [Left, Right]}]};
+  {UOp, UMeta, [{'in', Meta, [Left, Right]}]};
 
 build_op(Left, {in_op, NotLocation, 'not in', InLocation}, Right) ->
   NotMeta = newlines_op(NotLocation) ++ meta_from_location(NotLocation),
@@ -1292,12 +1296,12 @@ warn_pipe(_Token, _) ->
   ok.
 
 %% TODO: Make this an error on v2.0
-warn_no_parens_after_do_op({{_Type, Location, Op}, _}) ->
-  {Line, _, _} = Location,
+warn_no_parens_after_do_op({Token, _}) ->
+  {Line, _, _} = ?location(Token),
 
   warn(
     Line,
-    "missing parentheses on expression following operator \"" ++ atom_to_list(Op) ++ "\", "
+    "missing parentheses on expression following operator \"" ++ atom_to_list(?op(Token)) ++ "\", "
     "you must add parentheses to avoid ambiguities"
   ).
 

@@ -96,7 +96,7 @@ store(Set, Module, Tuple, {_, Count, Def, Overridden}, Hidden) ->
   case Overridden of
     false ->
       ets:update_element(Set, {overridable, Tuple}, {?overridden_pos, true}),
-      elixir_def:store_definition(none, FinalKind, Meta, FinalName, FinalArity,
+      elixir_def:store_definition(false, FinalKind, Meta, FinalName, FinalArity,
                                   File, Module, Defaults, FinalClauses);
     true ->
       ok

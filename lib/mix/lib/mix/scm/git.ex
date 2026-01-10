@@ -420,11 +420,19 @@ defmodule Mix.SCM.Git do
         version =
           ["--version"]
           |> git!("")
-          |> parse_version()
+          |> parse_version_output()
 
         Mix.State.put(:git_version, version)
         version
     end
+  end
+
+  defp parse_version_output(output) do
+    output
+    |> String.trim()
+    |> String.split("\n")
+    |> List.last()
+    |> parse_version()
   end
 
   defp parse_version("git version " <> version) do
@@ -433,6 +441,10 @@ defmodule Mix.SCM.Git do
     |> Enum.take(3)
     |> Enum.map(&to_integer/1)
     |> List.to_tuple()
+  end
+
+  defp parse_version(other) do
+    Mix.raise("Unable to parse Git version from: #{inspect(other)}")
   end
 
   defp format_version(version) do

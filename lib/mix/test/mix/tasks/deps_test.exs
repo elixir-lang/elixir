@@ -75,28 +75,80 @@ defmodule Mix.Tasks.DepsTest do
 
   ## deps
 
-  test "prints list of dependencies and their status" do
+  test "prints list of dependencies and their status alphabetically" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+      Mix.Tasks.Deps.run([])
+
+      invalid_app_file =
+        "  the app file at \"_build/dev/lib/invalidapp/ebin/invalidapp.app\" is invalid"
+
+      assert {:messages,
+              [
+                {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]},
+                {:mix_shell, :info, [^invalid_app_file]},
+                {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]},
+                {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]},
+                {:mix_shell, :info, ["* noappfile (deps/noappfile)"]},
+                {:mix_shell, :info, ["  could not find an app file at " <> _]},
+                {:mix_shell, :info, ["* nosemver (deps/nosemver)"]},
+                {:mix_shell, :info, ["  the app file specified a non-Semantic" <> _]},
+                {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]},
+                {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]}
+              ]} = Process.info(self(), :messages)
+    end)
+  end
+
+  test "filters dependencies by name" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(DepsApp)
 
-      Mix.Tasks.Deps.run([])
+      Mix.Tasks.Deps.run(["ok"])
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      msg = "  the dependency is not available, run \"mix deps.get\""
-      assert_received {:mix_shell, :info, [^msg]}
+      refute_received {:mix_shell, :info, ["* invalidvsn" <> _]}
+      refute_received {:mix_shell, :info, ["* invalidapp" <> _]}
+      refute_received {:mix_shell, :info, ["* noappfile" <> _]}
+      refute_received {:mix_shell, :info, ["* nosemver" <> _]}
+    end)
+  end
 
-      assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
-      assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
+  test "warns when filtering for unknown dependencies" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
 
-      assert_received {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]}
-      msg = "  the app file at \"_build/dev/lib/invalidapp/ebin/invalidapp.app\" is invalid"
-      assert_received {:mix_shell, :info, [^msg]}
+      Mix.Tasks.Deps.run(["ok", "unknowndep"])
 
-      assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
-      assert_received {:mix_shell, :info, ["  could not find an app file at" <> _]}
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
+      assert_received {:mix_shell, :error, ["warning: unknown dependency unknowndep"]}
+    end)
+  end
 
-      assert_received {:mix_shell, :info, ["* nosemver (deps/nosemver)"]}
-      assert_received {:mix_shell, :info, ["  the app file specified a non-Semantic" <> _]}
+  test "filters dependencies and deals with duplicates" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      Mix.Tasks.Deps.run([
+        "nosemver",
+        "unknowndep2",
+        "ok",
+        "ok",
+        "unknowndep1",
+        "invalidapp",
+        "ok"
+      ])
+
+      assert {:messages,
+              [
+                {:mix_shell, :info, ["* nosemver (deps/nosemver)"]},
+                {:mix_shell, :info, ["  the app file specified a non-Semantic" <> _]},
+                {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]},
+                {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]},
+                {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]},
+                {:mix_shell, :info, ["  the app file at " <> _]},
+                {:mix_shell, :error, ["warning: unknown dependency unknowndep2"]},
+                {:mix_shell, :error, ["warning: unknown dependency unknowndep1"]}
+              ]} = Process.info(self(), :messages)
     end)
   end
 
@@ -818,45 +870,31 @@ defmodule Mix.Tasks.DepsTest do
     Application.delete_env(:raw_repo, :compile_env, persistent: true)
   end
 
-  defmodule NonCompilingDeps do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
+  test "does not compile deps that have explicit option" do
+    in_fixture("deps_status", fn ->
+      Mix.ProjectStack.post_config(
         deps: [
           {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: false}
         ]
-      ]
-    end
-  end
+      )
 
-  test "does not compile deps that have explicit option" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(NonCompilingDeps)
-
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Deps.Compile.run([])
       refute_received {:mix_shell, :info, ["==> git_repo"]}
     end)
   end
 
-  defmodule DupDeps do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
+  test "warns and converges duplicated deps at the same level" do
+    in_fixture("deps_status", fn ->
+      Mix.ProjectStack.post_config(
         deps: [
           # Simulate dependencies gathered together from umbrella
           {:ok, "0.1.0", path: "deps/ok"},
           {:ok, "0.1.0", path: "deps/ok"}
         ]
-      ]
-    end
-  end
+      )
 
-  test "warns and converges duplicated deps at the same level" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DupDeps)
-
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Deps.run([])
 
       msg =
@@ -867,6 +905,23 @@ defmodule Mix.Tasks.DepsTest do
       msg = "* ok 0.1.0 (deps/ok) (mix)"
       assert_received {:mix_shell, :info, [^msg]}
       refute_received {:mix_shell, :info, [^msg]}
+    end)
+  end
+
+  test "warns when project app name matches a dependency" do
+    in_fixture("deps_status", fn ->
+      Mix.ProjectStack.post_config(
+        app: :ok,
+        deps: [{:ok, "0.1.0", path: "deps/ok"}]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+      Mix.Tasks.Deps.Get.run([])
+
+      msg =
+        "warning: the application name :ok is the same as one of its dependencies"
+
+      assert_received {:mix_shell, :error, [^msg]}
     end)
   end
 

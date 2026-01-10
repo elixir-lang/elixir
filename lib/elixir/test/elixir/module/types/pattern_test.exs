@@ -45,30 +45,9 @@ defmodule Module.Types.PatternTest do
 
                where "name" was given the type:
 
-                   # type: dynamic()
-                   # from: types_test.ex
-                   {name, arity}
-               """
-    end
-
-    test "errors on conflicting refinements" do
-      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
-               ~l"""
-               the following pattern will never match:
-
-                   a = b
-
-               where "a" was given the type:
-
-                   # type: dynamic(:foo)
+                   # type: dynamic(atom())
                    # from: types_test.ex:LINE-1
-                   a = :foo
-
-               where "b" was given the type:
-
-                   # type: dynamic(:bar)
-                   # from: types_test.ex:LINE-1
-                   b = :bar
+                   Atom.to_charlist(name)
                """
     end
 
@@ -116,21 +95,89 @@ defmodule Module.Types.PatternTest do
              ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
+    test "match propagation" do
+      assert typecheck!([x = {:ok, y}], is_integer(y), x) ==
+               dynamic(tuple([atom([:ok]), integer()]))
+
+      assert typecheck!(
+               [x = {:ok, y}],
+               (
+                 _ = Integer.to_string(y)
+                 x
+               )
+             ) ==
+               dynamic(tuple([atom([:ok]), integer()]))
+    end
+
     test "reports incompatible types" do
-      assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
+      assert typeerror!([x = 123 = "123"], x) == ~l"""
              the following pattern will never match:
 
-                 [_ | _] = x
+                 x = 123 = "123"
+             """
 
-             because the right-hand side has type:
+      assert typeerror!([x = {:ok, _} = {:error, _, _}], x) == ~l"""
+             the following pattern will never match:
 
-                 dynamic({:ok, term()})
+                 x = {:ok, _} = {:error, _, _}
+             """
+
+      assert typeerror!([{x = {:ok, y} = {:error, z, w}}], {x, y, z, w}) == ~l"""
+             the following pattern will never match:
+
+                 {x = {:ok, y} = {:error, z, w}}
+             """
+
+      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) == ~l"""
+             incompatible types assigned to "a":
+
+                 dynamic(:foo) !~ dynamic(:bar)
+
+             where "a" was given the types:
+
+                 # type: dynamic(:foo)
+                 # from: types_test.ex:LINE
+                 a = :foo
+
+                 # type: dynamic(:bar)
+                 # from: types_test.ex:LINE
+                 a = b
+             """
+
+      assert typeerror!([{x, _} = {y, _}, x = :foo, y = :bar], {x, y}) == ~l"""
+             the following pattern will never match:
+
+                 {x, _} = {y, _}
 
              where "x" was given the type:
 
-                 # type: dynamic({:ok, term()})
+                 # type: dynamic(:foo)
                  # from: types_test.ex:LINE
-                 x = {:ok, _}
+                 x = :foo
+
+             where "y" was given the type:
+
+                 # type: dynamic(:bar)
+                 # from: types_test.ex:LINE
+                 y = :bar
+             """
+
+      assert typeerror!([{:ok, x} = {:ok, y}], is_integer(x) and is_atom(y), {x, y}) == ~l"""
+             the following pattern will never match:
+
+                 {:ok, x} = {:ok, y}
+
+             where "x" was given the type:
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 is_integer(x)
+
+             where "y" was given the type:
+
+                 # type: dynamic(atom())
+                 # from: types_test.ex:LINE
+                 is_atom(y)
              """
     end
   end
@@ -167,36 +214,78 @@ defmodule Module.Types.PatternTest do
                    m = 123
                """
     end
-
-    test "fields in guards" do
-      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
-               ~l"""
-               unknown key .foo_bar in expression:
-
-                   x.foo_bar
-
-               the given type does not have the given key:
-
-                   dynamic(%Point{x: term(), y: term(), z: term()})
-
-               where "x" was given the type:
-
-                   # type: dynamic(%Point{})
-                   # from: types_test.ex:LINE-1
-                   x = %Point{}
-               """
-    end
   end
 
   describe "maps" do
-    test "fields in patterns" do
+    test "atom keys in patterns" do
       assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
       assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
       assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([%{foo: :bar = x}], x) == dynamic(atom([:bar]))
+
+      assert typecheck!(
+               [
+                 {:message, %{slug: slug}},
+                 %{assigns: %{app: %{slug: slug} = app}} = root
+               ],
+               {root, app, slug}
+             ) ==
+               dynamic(
+                 tuple([
+                   open_map(assigns: open_map(app: open_map(slug: term()))),
+                   open_map(slug: term()),
+                   term()
+                 ])
+               )
+
+      assert typecheck!(
+               [
+                 %{assigns: %{app: %{slug: slug} = app}} = root,
+                 {:message, %{slug: slug}}
+               ],
+               {root, app, slug}
+             ) ==
+               dynamic(
+                 tuple([
+                   open_map(assigns: open_map(app: open_map(slug: term()))),
+                   open_map(slug: term()),
+                   term()
+                 ])
+               )
     end
 
-    test "fields in guards" do
-      assert typecheck!([x = %{foo: :bar}], x.bar, x) == dynamic(open_map(foo: atom([:bar])))
+    test "domain keys in patterns" do
+      assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([%{"123" => :bar = x}], x) == dynamic(atom([:bar]))
+    end
+
+    test "pinned variable key in patterns" do
+      assert typecheck!(
+               (
+                 key = 123
+                 %{^key => value} = %{123 => :value}
+                 value
+               )
+             ) == atom([:value])
+
+      assert typecheck!(
+               [size, map],
+               (
+                 %{<<123::size(^size)>> => _} = map
+                 {size, map}
+               )
+             ) == dynamic(tuple([integer(), open_map()]))
+
+      assert(
+        typecheck!(
+          [key, map],
+          (
+            %{{:module, ^key} => _} = map
+            {key, map}
+          )
+        ) == dynamic(tuple([term(), open_map()]))
+      )
     end
   end
 
@@ -220,6 +309,11 @@ defmodule Module.Types.PatternTest do
 
       assert typecheck!([x = [:ok | z]], {x, z}) ==
                dynamic(tuple([non_empty_list(term(), term()), term()]))
+
+      assert typecheck!([x = [a = :a, b = :b, c = :c]], {x, a, b, c}) ==
+               dynamic(
+                 tuple([non_empty_list(atom([:a, :b, :c])), atom([:a]), atom([:b]), atom([:c])])
+               )
 
       assert typecheck!([x = [y | z]], {x, y, z}) ==
                dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
@@ -252,7 +346,14 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  describe "binaries" do
+  describe "bitstrings" do
+    test "alignment" do
+      assert typecheck!([<<_>> = x], x) == dynamic(binary())
+      assert typecheck!([<<_::1>> = x], x) == dynamic(difference(bitstring(), binary()))
+      assert typecheck!([<<_::4, _::4>> = x], x) == dynamic(binary())
+      assert typecheck!([<<size, _::size(size)>> = x], x) == dynamic(bitstring())
+    end
+
     test "ok" do
       assert typecheck!([<<x>>], x) == integer()
       assert typecheck!([<<x::float>>], x) == float()
@@ -261,7 +362,27 @@ defmodule Module.Types.PatternTest do
     end
 
     test "nested" do
-      assert typecheck!([<<0, <<x::bitstring>>::binary>>], x) == binary()
+      assert typecheck!([<<0, <<x::binary>>::binary>>], x) == binary()
+
+      assert typeerror!([<<0, <<x::bitstring>>::binary>>], x) == ~l"""
+             incompatible types in binary matching:
+
+                 <<..., <<x::bitstring>>::binary>>
+
+             got type:
+
+                 bitstring()
+
+             but expected type:
+
+                 binary()
+
+             where "x" was given the type:
+
+                 # type: bitstring()
+                 # from: types_test.ex:LINE
+                 <<x::bitstring>>
+             """
     end
 
     test "error" do
@@ -341,6 +462,616 @@ defmodule Module.Types.PatternTest do
                  x
                )
              ) == dynamic(integer())
+    end
+  end
+
+  describe "pin" do
+    test "propagates across matches" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case 123 do
+                     ^y -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case 123 do
+                     ^x -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across guards" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y when is_integer(y) -> x
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across matches and guards" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case true do
+                     true when is_integer(y) -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case true do
+                     true when is_integer(x) -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across binary size in match" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     <<_::size(^y)>> -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     <<_::size(^x)>> -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+
+    test "propagates across binary size in match inside a key" do
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     %{<<32::size(^y)>> => _} -> x
+                   end
+               end
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x],
+               case Process.get(:unused) do
+                 ^x = y ->
+                   case Process.get(:another) do
+                     %{<<32::size(^x)>> => _} -> y
+                   end
+               end
+             ) == dynamic(integer())
+    end
+  end
+
+  describe "guards" do
+    test "not" do
+      assert typecheck!([x], not x, x) == dynamic(atom([false]))
+
+      assert typecheck!([x], not x.foo, x) == dynamic(open_map(foo: atom([false])))
+
+      assert typeerror!([x], not length(x), x) |> strip_ansi() == ~l"""
+             incompatible types given to Kernel.not/1:
+
+                 not length(x)
+
+             given types:
+
+                 integer()
+
+             but expected one of:
+
+                 #1
+                 true
+
+                 #2
+                 false
+
+             where "x" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE
+                 x
+             """
+    end
+
+    test "is_binary/1" do
+      assert typecheck!([x], is_binary(x), x) == dynamic(binary())
+      assert typecheck!([x], not is_binary(x), x) == dynamic(negation(binary()))
+
+      assert typecheck!([x], is_bitstring(x), x) == dynamic(bitstring())
+      assert typecheck!([x], not is_bitstring(x), x) == dynamic(negation(bitstring()))
+    end
+
+    test "is_function/2" do
+      assert typecheck!([x], is_function(x, 3), x) == dynamic(fun(3))
+      assert typecheck!([x], not is_function(x, 3), x) == dynamic(negation(fun(3)))
+    end
+
+    test "is_map_key/2" do
+      assert typecheck!([x], is_map_key(x, :foo), x) == dynamic(open_map(foo: term()))
+      assert typecheck!([x], not is_map_key(x, :foo), x) == dynamic(open_map(foo: not_set()))
+    end
+
+    test "elem" do
+      assert typecheck!([x], elem(x, 1), x) ==
+               dynamic(open_tuple([term(), atom([true])]))
+
+      assert typecheck!([x], not elem(x, 1), x) ==
+               dynamic(open_tuple([term(), atom([false])]))
+
+      assert typecheck!([x], is_integer(elem(x, 1)), x) ==
+               dynamic(open_tuple([term(), integer()]))
+    end
+
+    test "map.field" do
+      assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
+               dynamic(open_map(foo: atom([:bar]), bar: atom([true])))
+
+      assert typecheck!([x = %{foo: :bar}], not x.bar, x) ==
+               dynamic(open_map(foo: atom([:bar]), bar: atom([false])))
+
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
+               ~l"""
+               unknown key .foo_bar in expression:
+
+                   x.foo_bar
+
+               the given type does not have the given key:
+
+                   dynamic(%Point{x: term(), y: term(), z: term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic(%Point{})
+                   # from: types_test.ex:LINE-1
+                   x = %Point{}
+               """
+    end
+
+    test "when checks" do
+      assert typecheck!([x], is_binary(x) when is_atom(x), x) == dynamic(union(binary(), atom()))
+
+      assert typecheck!([x], is_binary(x) when map_size(x) >= 0, x) ==
+               dynamic(union(binary(), open_map()))
+
+      assert typecheck!([x], tuple_size(x) >= 0 when map_size(x) >= 0, x) ==
+               dynamic(union(tuple(), open_map()))
+
+      assert typecheck!([x, y], is_binary(x) when is_atom(y), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+    end
+
+    test "conditional checks (andalso/orelse)" do
+      assert typecheck!([x], is_binary(x) or is_atom(x), x) == dynamic(union(binary(), atom()))
+
+      assert typecheck!([x], is_binary(x) or map_size(x) >= 0, x) ==
+               dynamic(union(binary(), open_map()))
+
+      assert typecheck!([x, y], is_binary(x) or is_atom(y), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x, y], is_binary(x) or map_size(y) >= 0, {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x], not (is_pid(x) and is_atom(x)), x) |> equal?(dynamic(term()))
+
+      assert typecheck!([x, y], not (is_pid(x) and is_atom(y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      # Error
+      assert typeerror!([x], is_pid(x) and is_atom(x), x) == ~l"""
+             this guard will never succeed:
+
+                 is_pid(x) and is_atom(x)
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: pid()
+                 # from: types_test.ex:LINE
+                 is_pid(x)
+             """
+
+      assert typeerror!([x], (is_binary(x) or is_atom(x)) and is_pid(x), x) == ~l"""
+             this guard will never succeed:
+
+                 (is_binary(x) or is_atom(x)) and is_pid(x)
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: dynamic(atom() or binary())
+                 # from: types_test.ex:LINE
+                 is_binary(x) or is_atom(x)
+             """
+    end
+
+    test "conditional checks (and/or)" do
+      assert typecheck!([x], :erlang.or(is_binary(x), is_atom(x)), x) ==
+               dynamic(union(binary(), atom()))
+
+      assert typecheck!([x], :erlang.or(is_binary(x), map_size(x) >= 0), x) ==
+               dynamic(open_map())
+
+      assert typecheck!([x, y], :erlang.or(is_binary(x), is_atom(y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x, y], :erlang.or(is_binary(x), map_size(y) >= 0), {x, y}) ==
+               dynamic(tuple([term(), open_map()]))
+
+      assert typecheck!([x], not :erlang.and(is_pid(x), is_atom(x)), x) |> equal?(dynamic(term()))
+
+      assert typecheck!([x, y], not :erlang.and(is_pid(x), is_atom(y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      # Error
+      assert typeerror!([x], :erlang.and(is_pid(x), is_atom(x)), x) == ~l"""
+             this guard will never succeed:
+
+                 :erlang.and(is_pid(x), is_atom(x))
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: pid()
+                 # from: types_test.ex:LINE
+                 is_pid(x)
+             """
+
+      assert typeerror!([x], :erlang.and(:erlang.or(is_binary(x), is_atom(x)), is_pid(x)), x) ==
+               ~l"""
+               this guard will never succeed:
+
+                   :erlang.and(:erlang.or(is_binary(x), is_atom(x)), is_pid(x))
+
+               because it returns type:
+
+                   false
+
+               where "x" was given the type:
+
+                   # type: dynamic(atom() or binary())
+                   # from: types_test.ex:LINE-1
+                   :erlang.or(is_binary(x), is_atom(x))
+               """
+    end
+
+    test "domain checks" do
+      # Regular domain check
+      assert typecheck!([x, z], length(x) == z, x) == dynamic(list(term()))
+
+      # erlang-or propagates
+      assert typecheck!([x, y, z], :erlang.or(length(x) == z, map_size(y) == z), {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # erlang-and propagates
+      assert typecheck!([x, y, z], :erlang.and(length(x) == z, map_size(y) == z), {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # or with mixed checks
+      assert typecheck!([x, z], length(x) == z or is_map(x), x) ==
+               dynamic(list(term()))
+
+      # or does not propagate
+      assert typecheck!([x, y, z], length(x) == z or map_size(y) == z, {x, y}) ==
+               dynamic(tuple([list(term()), term()]))
+
+      # and propagates
+      assert typecheck!([x, y, z], length(x) == z and map_size(y) == z, {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # not or does propagate
+      assert typecheck!([x, y, z], not (length(x) == z or map_size(y) == z), {x, y}) ==
+               dynamic(tuple([list(term()), open_map()]))
+
+      # not and does not propagate
+      assert typecheck!([x, y, z], not (length(x) == z and map_size(y) == z), {x, y}) ==
+               dynamic(tuple([list(term()), term()]))
+    end
+
+    test "errors in guards" do
+      assert typeerror!([x = {}], is_integer(x), x) == ~l"""
+             this guard will never succeed:
+
+                 is_integer(x)
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the type:
+
+                 # type: dynamic({})
+                 # from: types_test.ex:LINE
+                 x = {}
+             """
+    end
+  end
+
+  describe "equality in guards" do
+    test "with non-singleton literals" do
+      assert typecheck!([x], x == "foo", x) == dynamic(binary())
+      assert typecheck!([x], x === "foo", x) == dynamic(binary())
+      assert typecheck!([x], not (x == "foo"), x) == dynamic()
+      assert typecheck!([x], not (x === "foo"), x) == dynamic()
+
+      assert typecheck!([x], x != "foo", x) == dynamic()
+      assert typecheck!([x], x !== "foo", x) == dynamic()
+      assert typecheck!([x], not (x != "foo"), x) == dynamic(binary())
+      assert typecheck!([x], not (x !== "foo"), x) == dynamic(binary())
+    end
+
+    test "with number literals" do
+      assert typecheck!([x], x == 1, x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], x === 1, x) == dynamic(integer())
+      assert typecheck!([x], not (x == 1), x) == dynamic()
+      assert typecheck!([x], not (x === 1), x) == dynamic()
+
+      assert typecheck!([x], x != 1, x) == dynamic()
+      assert typecheck!([x], x !== 1, x) == dynamic()
+      assert typecheck!([x], not (x != 1), x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], not (x !== 1), x) == dynamic(integer())
+
+      assert typecheck!([x], x == 1.0, x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], x === 1.0, x) == dynamic(float())
+      assert typecheck!([x], not (x == 1.0), x) == dynamic()
+      assert typecheck!([x], not (x === 1.0), x) == dynamic()
+
+      assert typecheck!([x], x != 1.0, x) == dynamic()
+      assert typecheck!([x], x !== 1.0, x) == dynamic()
+      assert typecheck!([x], not (x != 1.0), x) == dynamic(union(integer(), float()))
+      assert typecheck!([x], not (x !== 1.0), x) == dynamic(float())
+    end
+
+    test "with singleton literals" do
+      assert typecheck!([x], x == :foo, x) == dynamic(atom([:foo]))
+      assert typecheck!([x], x === :foo, x) == dynamic(atom([:foo]))
+      assert typecheck!([x], not (x == :foo), x) == dynamic(negation(atom([:foo])))
+      assert typecheck!([x], not (x === :foo), x) == dynamic(negation(atom([:foo])))
+
+      assert typecheck!([x], x != :foo, x) == dynamic(negation(atom([:foo])))
+      assert typecheck!([x], x !== :foo, x) == dynamic(negation(atom([:foo])))
+      assert typecheck!([x], not (x != :foo), x) == dynamic(atom([:foo]))
+      assert typecheck!([x], not (x !== :foo), x) == dynamic(atom([:foo]))
+
+      assert typecheck!([x], x == [], x) == dynamic(empty_list())
+      assert typecheck!([x], x === [], x) == dynamic(empty_list())
+      assert typecheck!([x], not (x == []), x) == dynamic(negation(empty_list()))
+      assert typecheck!([x], not (x === []), x) == dynamic(negation(empty_list()))
+
+      assert typecheck!([x], x != [], x) == dynamic(negation(empty_list()))
+      assert typecheck!([x], x !== [], x) == dynamic(negation(empty_list()))
+      assert typecheck!([x], not (x != []), x) == dynamic(empty_list())
+      assert typecheck!([x], not (x !== []), x) == dynamic(empty_list())
+    end
+
+    test "warnings" do
+      assert typeerror!([x = {}], x == 0, x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x == 0
+
+             given types:
+
+                 dynamic({}) == integer()
+             """
+
+      assert typeerror!([x = {}], x != 0, x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x != 0
+
+             given types:
+
+                 dynamic({}) != integer()
+             """
+
+      assert typeerror!([x = {}], x == :foo, x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x == :foo
+
+             given types:
+
+                 dynamic({}) == :foo
+             """
+
+      assert typeerror!([x = {}], not (x != :foo), x) =~ ~l"""
+             comparison between distinct types found:
+
+                 x != :foo
+
+             given types:
+
+                 dynamic({}) != :foo
+             """
+
+      # We cannot warn in this case because the inference itself will lead to disjoint types
+      assert typecheck!([x = {}], not (x == :foo), x) == dynamic(tuple([]))
+      assert typecheck!([x = {}], x != :foo, x) == dynamic(tuple([]))
+    end
+  end
+
+  describe "comparison in guards" do
+    test "length equality" do
+      assert typecheck!([x], length(x) != 0, x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], not (length(x) != 0), x) == dynamic(empty_list())
+
+      assert typecheck!([x], 0 != length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], not (0 != length(x)), x) == dynamic(empty_list())
+    end
+
+    test "length ordered" do
+      assert typecheck!([x], length(x) < 0, x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) >= 0, x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) <= 0, x) == dynamic(empty_list())
+
+      assert typecheck!([x], 0 <= length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 0 >= length(x), x) == dynamic(list(term()))
+      assert typecheck!([x], 0 < length(x), x) == dynamic(list(term()))
+      assert typecheck!([x], 0 > length(x), x) == dynamic(empty_list())
+
+      assert typecheck!([x], not (length(x) > 0), x) == dynamic(empty_list())
+      assert typecheck!([x], not (length(x) < 0), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) >= 0), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) <= 0), x) == dynamic(non_empty_list(term()))
+
+      assert typecheck!([x], length(x) < 1, x) == dynamic(empty_list())
+
+      assert typecheck!([x], length(x) > 2, x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], length(x) < 2, x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) >= 2, x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], length(x) <= 2, x) == dynamic(list(term()))
+
+      assert typecheck!([x], 2 <= length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 2 >= length(x), x) == dynamic(list(term()))
+      assert typecheck!([x], 2 < length(x), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 2 > length(x), x) == dynamic(list(term()))
+
+      assert typecheck!([x], not (length(x) > 2), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) < 2), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], not (length(x) >= 2), x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) <= 2), x) == dynamic(non_empty_list(term()))
+    end
+
+    @non_empty_map difference(open_map(), empty_map())
+
+    test "map_size equality" do
+      assert typecheck!([x], map_size(x) == 0, x) == dynamic(empty_map())
+      assert typecheck!([x], map_size(x) != 0, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (map_size(x) == 0), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (map_size(x) != 0), x) == dynamic(empty_map())
+
+      assert typecheck!([x], 0 == map_size(x), x) == dynamic(empty_map())
+      assert typecheck!([x], 0 != map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (0 == map_size(x)), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (0 != map_size(x)), x) == dynamic(empty_map())
+    end
+
+    test "map_size ordered" do
+      assert typecheck!([x], map_size(x) > 0, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], map_size(x) < 0, x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) >= 0, x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) <= 0, x) == dynamic(empty_map())
+
+      assert typecheck!([x], 0 <= map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 0 >= map_size(x), x) == dynamic(open_map())
+      assert typecheck!([x], 0 < map_size(x), x) == dynamic(open_map())
+      assert typecheck!([x], 0 > map_size(x), x) == dynamic(empty_map())
+
+      assert typecheck!([x], not (map_size(x) > 0), x) == dynamic(empty_map())
+      assert typecheck!([x], not (map_size(x) < 0), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) >= 0), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) <= 0), x) == dynamic(@non_empty_map)
+
+      assert typecheck!([x], map_size(x) < 1, x) == dynamic(empty_map())
+
+      assert typecheck!([x], map_size(x) > 2, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], map_size(x) < 2, x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) >= 2, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], map_size(x) <= 2, x) == dynamic(open_map())
+
+      assert typecheck!([x], 2 <= map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 2 >= map_size(x), x) == dynamic(open_map())
+      assert typecheck!([x], 2 < map_size(x), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 2 > map_size(x), x) == dynamic(open_map())
+
+      assert typecheck!([x], not (map_size(x) > 2), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) < 2), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (map_size(x) >= 2), x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) <= 2), x) == dynamic(@non_empty_map)
+    end
+
+    @non_empty_tuple difference(open_tuple([]), tuple([]))
+    @non_binary_tuple difference(open_tuple([]), tuple([term(), term()]))
+
+    @open_binary_tuple open_tuple([term(), term()])
+    @open_ternary_tuple open_tuple([term(), term(), term()])
+    @non_open_binary_tuple difference(open_tuple([]), open_tuple([term(), term()]))
+    @non_open_ternary_tuple difference(open_tuple([]), open_tuple([term(), term(), term()]))
+
+    test "tuple_size equality" do
+      assert typecheck!([x], tuple_size(x) == 0, x) == dynamic(tuple([]))
+      assert typecheck!([x], tuple_size(x) != 0, x) == dynamic(@non_empty_tuple)
+      assert typecheck!([x], not (tuple_size(x) == 0), x) == dynamic(@non_empty_tuple)
+      assert typecheck!([x], not (tuple_size(x) != 0), x) == dynamic(tuple([]))
+
+      assert typecheck!([x], 0 == tuple_size(x), x) == dynamic(tuple([]))
+      assert typecheck!([x], 0 != tuple_size(x), x) == dynamic(@non_empty_tuple)
+      assert typecheck!([x], not (0 == tuple_size(x)), x) == dynamic(@non_empty_tuple)
+      assert typecheck!([x], not (0 != tuple_size(x)), x) == dynamic(tuple([]))
+
+      assert typecheck!([x], tuple_size(x) == 2, x) == dynamic(tuple([term(), term()]))
+      assert typecheck!([x], tuple_size(x) != 2, x) == dynamic(@non_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) == 2), x) == dynamic(@non_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) != 2), x) == dynamic(tuple([term(), term()]))
+
+      assert typecheck!([x], 2 == tuple_size(x), x) == dynamic(tuple([term(), term()]))
+      assert typecheck!([x], 2 != tuple_size(x), x) == dynamic(@non_binary_tuple)
+      assert typecheck!([x], not (2 == tuple_size(x)), x) == dynamic(@non_binary_tuple)
+      assert typecheck!([x], not (2 != tuple_size(x)), x) == dynamic(tuple([term(), term()]))
+    end
+
+    test "tuple_size ordered" do
+      assert typecheck!([x], tuple_size(x) > 0, x) == dynamic(open_tuple([term()]))
+      assert typecheck!([x], tuple_size(x) < 0, x) == dynamic(open_tuple([]))
+      assert typecheck!([x], tuple_size(x) >= 0, x) == dynamic(open_tuple([]))
+      assert typecheck!([x], tuple_size(x) <= 0, x) == dynamic(tuple([]))
+
+      assert typecheck!([x], 0 <= tuple_size(x), x) == dynamic(open_tuple([term()]))
+      assert typecheck!([x], 0 >= tuple_size(x), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], 0 < tuple_size(x), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], 0 > tuple_size(x), x) == dynamic(tuple([]))
+
+      assert typecheck!([x], not (tuple_size(x) > 0), x) == dynamic(tuple([]))
+      assert typecheck!([x], not (tuple_size(x) < 0), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], not (tuple_size(x) >= 0), x) == dynamic(open_tuple([]))
+      assert typecheck!([x], not (tuple_size(x) <= 0), x) == dynamic(open_tuple([term()]))
+
+      assert typecheck!([x], tuple_size(x) > 2, x) == dynamic(@open_ternary_tuple)
+      assert typecheck!([x], tuple_size(x) < 2, x) == dynamic(@non_open_binary_tuple)
+      assert typecheck!([x], tuple_size(x) >= 2, x) == dynamic(@open_binary_tuple)
+      assert typecheck!([x], tuple_size(x) <= 2, x) == dynamic(@non_open_ternary_tuple)
+
+      assert typecheck!([x], 2 <= tuple_size(x), x) == dynamic(@open_ternary_tuple)
+      assert typecheck!([x], 2 >= tuple_size(x), x) == dynamic(@non_open_binary_tuple)
+      assert typecheck!([x], 2 < tuple_size(x), x) == dynamic(@open_binary_tuple)
+      assert typecheck!([x], 2 > tuple_size(x), x) == dynamic(@non_open_ternary_tuple)
+
+      assert typecheck!([x], not (tuple_size(x) > 2), x) == dynamic(@non_open_ternary_tuple)
+      assert typecheck!([x], not (tuple_size(x) < 2), x) == dynamic(@open_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) >= 2), x) == dynamic(@non_open_binary_tuple)
+      assert typecheck!([x], not (tuple_size(x) <= 2), x) == dynamic(@open_ternary_tuple)
     end
   end
 end

@@ -22,7 +22,7 @@ defmodule String do
       "hello world"
 
   The functions in this module act according to
-  [The Unicode Standard, Version 17.0.0](http://www.unicode.org/versions/Unicode17.0.0/).
+  [The Unicode Standard, Version 17.0.0](https://www.unicode.org/versions/Unicode17.0.0/).
 
   ## Interpolation
 

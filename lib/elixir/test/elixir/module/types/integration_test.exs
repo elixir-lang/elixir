@@ -106,8 +106,8 @@ defmodule Module.Types.IntegrationTest do
             x
           end
 
-          def map_update_with_unknown_keys(x, y) do
-            infer(%{x | y => 123})
+          def map_update_with_unknown_keys(x, key) do
+            infer(%{x | key => 123})
             x
           end
 
@@ -147,13 +147,20 @@ defmodule Module.Types.IntegrationTest do
                  closed_map(
                    __struct__: atom([A]),
                    x: binary(),
-                   y: term(),
+                   y: atom([nil]),
                    z: term()
                  )
                )
 
       assert return.(:map_update_with_unknown_keys, 2) ==
-               dynamic(open_map())
+               dynamic(
+                 closed_map(
+                   __struct__: atom([A]),
+                   x: binary(),
+                   y: atom([nil]),
+                   z: term()
+                 )
+               )
     end
 
     test "writes exports with inferred function types" do
@@ -225,14 +232,15 @@ defmodule Module.Types.IntegrationTest do
       refute stderr =~ "this_wont_warn"
 
       itself_arg = fn mod ->
-        {_, %{sig: {:infer, nil, [{[value], value}]}}} =
+        {_, %{sig: {:infer, nil, [{[domain], return}]}}} =
           List.keyfind(read_chunk(modules[mod]).exports, {:itself, 1}, 0)
 
-        value
+        assert equal?(dynamic(domain), return)
+        return
       end
 
       assert itself_arg.(Itself.Atom) == dynamic(atom())
-      assert itself_arg.(Itself.BitString) == dynamic(binary())
+      assert itself_arg.(Itself.BitString) == dynamic(bitstring())
       assert itself_arg.(Itself.Float) == dynamic(float())
       assert itself_arg.(Itself.Function) == dynamic(fun())
       assert itself_arg.(Itself.Integer) == dynamic(integer())
@@ -288,10 +296,10 @@ defmodule Module.Types.IntegrationTest do
             but expected one of:
 
                 #1
-                dynamic(:ok)
+                :ok
 
                 #2
-                dynamic(:error)
+                :error
         """,
         """
             warning: the following pattern will never match:
@@ -575,7 +583,8 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
+                ) or atom() or bitstring() or empty_list() or float() or integer() or
+                  non_empty_list(term(), term())
         """,
         """
             warning: incompatible value given to string interpolation:
@@ -659,7 +668,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: the Collectable protocol is implemented for the following types:
 
-                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or bitstring() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """,
         """
@@ -676,7 +685,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: the Collectable protocol is implemented for the following types:
 
-                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or bitstring() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """
       ]
@@ -703,7 +712,7 @@ defmodule Module.Types.IntegrationTest do
 
             but expected one of:
 
-                dynamic(:ok)
+                :ok
 
             typing violation found at:
             │
@@ -1559,7 +1568,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v4, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v5, map} = :erlang.binary_to_term(chunk)
     map
   end
 

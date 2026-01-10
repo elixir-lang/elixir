@@ -1,0 +1,192 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2025 The Elixir Team
+-->
+
+# Set-theoretic types cheatsheet
+
+## Set operators
+
+#### Union
+
+```elixir
+type1 or type2
+```
+
+#### Intersection
+
+```elixir
+type1 and type2
+```
+
+#### Difference
+
+```elixir
+type1 and not type2
+```
+
+#### Negation
+
+```elixir
+not type
+```
+
+## Data types
+
+### Broad types
+
+```elixir
+bitstring()
+binary()
+empty_list()
+integer()
+float()
+pid()
+port()
+reference()
+```
+
+`binary()` is a subtype of `bitstring()`.
+
+### Atoms
+
+#### All atoms
+
+```elixir
+atom()
+```
+
+#### Individual atoms
+
+```elixir
+:ok
+:error
+SomeModule
+```
+
+### Functions
+
+#### All functions
+
+```elixir
+function()
+```
+
+#### `n`-arity functions
+
+```elixir
+(-> :ok)
+(integer() -> boolean())
+(binary(), binary() -> binary())
+```
+
+#### Multiple clauses
+
+```elixir
+(integer() -> binary()) and (binary() -> atom())
+```
+
+### Maps
+
+#### All maps
+
+```elixir
+map()
+```
+
+#### Empty map
+
+```elixir
+empty_map()
+```
+
+#### Maps with atom keys
+
+```elixir
+# Only has the keys name and age
+%{name: binary(), age: integer()}
+
+# Has the name key and age is optional
+%{name: binary(), age: if_set(integer())}
+
+# Has the keys name and age and may have other keys (open map)
+%{..., name: binary(), age: integer()}
+
+# Has the key name, may have other keys, but age is not set
+%{..., name: binary(), age: not_set()}
+```
+
+#### Maps with domain keys (domain keys are always treated as optional)
+
+```elixir
+# Has atom and binary keys
+%{atom() => binary(), binary() => binary()}
+
+# Has atom and binary keys and may have other keys (open map)
+%{..., atom() => binary(), binary() => binary()}
+```
+
+#### Maps with mixed keys
+
+```elixir
+# Has atom keys with binary values but a `:root` key of type integer
+%{atom() => binary(), root: integer()}
+
+# Has atom keys with binary values but a `:root` key of type integer, and may have other keys
+%{..., atom() => binary(), root: integer()}
+```
+
+#### Domain keys are `atom()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, `tuple()`
+
+### Non-empty lists
+
+#### Proper lists
+
+```elixir
+non_empty_list(elem_type)
+```
+
+#### Improper lists (as long as `tail_type` does not include lists)
+
+```elixir
+non_empty_list(elem_type, tail_type)
+```
+
+### Tuples
+
+#### All tuples
+
+```elixir
+tuple()
+```
+
+#### n-element tuples
+
+```elixir
+{:ok, binary()}
+{:error, binary(), term()}
+{pid(), reference()}
+```
+
+#### At least n-element tuples
+
+```elixir
+{binary(), binary(), ...}
+```
+
+## Additional types for convenience
+
+#### Common aliases
+
+```elixir
+boolean() = true or false
+number() = integer() or float()
+```
+
+#### List aliases
+
+```elixir
+list() = empty_list() or non_empty_list(term())
+list(a) = empty_list() or non_empty_list(a)
+list(a, b) = empty_list() or non_empty_list(a, b)
+```

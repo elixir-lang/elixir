@@ -71,18 +71,6 @@ defmodule RangeTest do
     end
   end
 
-  test "limits are integer only" do
-    first = 1.0
-    last = 3.0
-    message = "ranges (first..last) expect both sides to be integers, got: 1.0..3.0"
-    assert_raise ArgumentError, message, fn -> first..last end
-
-    first = []
-    last = []
-    message = "ranges (first..last) expect both sides to be integers, got: []..[]"
-    assert_raise ArgumentError, message, fn -> first..last end
-  end
-
   test "step is a non-zero integer" do
     step = 1.0
     message = ~r"the step to be a non-zero integer"

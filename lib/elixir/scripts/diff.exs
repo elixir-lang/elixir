@@ -20,13 +20,16 @@ defmodule Diff do
     labeled_locals
   )a
 
+  @term_chunks ~w(
+    ExCk
+    Docs
+  )c
+
   @binary_chunks ~w(
     Attr
     AtU8
     CInf
     Dbgi
-    Docs
-    ExCk
     ExpT
     ImpT
     LocT
@@ -95,8 +98,13 @@ defmodule Diff do
     end
   end
 
+  defp inspect_all(data) do
+    inspect(data, pretty: true, limit: :infinity)
+  end
+
   defp beam_diff(file1, content1, file2, content2) do
-    chunk_diff(content1, content2, @atom_chunks, &inspect(&1, pretty: true, limit: :infinity)) ||
+    chunk_diff(content1, content2, @atom_chunks, &inspect_all(&1)) ||
+      chunk_diff(content1, content2, @term_chunks, &inspect_all(:erlang.binary_to_term(&1))) ||
       chunk_diff(content1, content2, @binary_chunks, &(&1 |> write_tmp() |> xxd_dump())) ||
       (
         tmp_file1 =
@@ -129,7 +137,14 @@ defmodule Diff do
             chunk1 != chunk2 do
           tmp_file1 = chunk1 |> formatter.() |> write_tmp()
           tmp_file2 = chunk2 |> formatter.() |> write_tmp()
-          [to_string(name1), ?\n, file_diff(tmp_file1, tmp_file2)]
+
+          message =
+            case file_diff(tmp_file1, tmp_file2) do
+              "" -> "DIFF IS EMPTY: most likely non-deterministic term_to_binary/2"
+              diff -> diff
+            end
+
+          [to_string(name1), ?\n, message]
         end
       end
     else
@@ -143,7 +158,7 @@ defmodule Diff do
   end
 
   defp file_diff(file1, file2) do
-    {diff, _} = System.cmd("diff", ["--suppress-common-lines", file1, file2])
+    {diff, _} = System.cmd("diff", ["-U3", file1, file2])
     diff
   end
 

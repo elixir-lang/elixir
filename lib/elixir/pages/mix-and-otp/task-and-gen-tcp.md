@@ -200,7 +200,7 @@ Or does it? For example, what happens when you exit one telnet session? The othe
 
 2. Because each server task is linked to the acceptor process, if one task crashes, the acceptor process will also crash, taking down all other tasks and clients
 
-An important rule thumb throughout this guide is to always start processes as children of supervisors. The code above is an excellent example of what happens when we don't. If we don't isolate the different parts of our systems, failures can now cascade through our system, as it would happen in other languages.
+An important rule of thumb throughout this guide is to always start processes as children of supervisors. The code above is an excellent example of what happens when we don't. If we don't isolate the different parts of our systems, failures can now cascade through our system, as it would happen in other languages.
 
 To fix this, we could use a `DynamicSupervisor`, but tasks also provide a specialized `Task.Supervisor` which has better ergonomics and is optimized for supervising tasks themselves. Let's give it a try.
 
@@ -278,7 +278,7 @@ Notice that a task says `:restart` is `:temporary`. `KV.Bucket` says nothing, wh
 
 Now we must ask ourselves, are those the correct settings?
 
-For `KV.Bucket`, using `:permanent` seem logical, as should not request the user to recreate a bucket they have previous created. Although currently we would lose the bucket data, in actual system we would add mechanisms to recover it on initialization. However, for tasks, we have used them in two opposing ways in this chapter, which means at least one of them is wrong.
+For `KV.Bucket`, using `:permanent` seems logical, as we should not require the user to recreate a bucket they have previously created. Although currently we would lose the bucket data, in an actual system we would add mechanisms to recover it on initialization. However, for tasks, we have used them in two opposing ways in this chapter, which means at least one of them is wrong.
 
 We use a task to start the acceptor. The acceptor is a critical component of our infrastructure. If it crashes, it means we won't accept further requests, and our server would then be useless as no one can connect to it. On the other hand, we also use `Task.Supervisor` to start tasks that deal with each connection. In this case, restarting may not be useful at all, given the reason we crashed could just as well be a connection issue, and attempting to restart over the same connection would lead to further failures.
 
