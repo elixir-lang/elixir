@@ -73,7 +73,7 @@ defmodule Module.Types.InferTest do
 
     assert types[{:parse, 1}] ==
              {:infer, nil,
-              [{[term()], dynamic(union(atom([:error]), tuple([integer(), term()])))}]}
+              [{[term()], dynamic(union(atom([:error]), tuple([integer(), binary()])))}]}
   end
 
   test "merges patterns", config do
