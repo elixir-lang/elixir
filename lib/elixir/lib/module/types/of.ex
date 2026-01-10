@@ -167,6 +167,13 @@ defmodule Module.Types.Of do
     do: [{expr, stack.file, type} | traces]
 
   @doc """
+  Preserves `context` in first argument while
+  resetting it to the vars in the second argument.
+  """
+  def reset_vars(context, %{vars: vars, conditional_vars: conditional_vars}),
+    do: %{context | vars: vars, conditional_vars: conditional_vars}
+
+  @doc """
   Executes the args with acc using conditional variables.
   """
   def with_conditional_vars(args, acc, expr, stack, context, fun) do

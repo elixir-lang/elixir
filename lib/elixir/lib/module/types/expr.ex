@@ -286,7 +286,7 @@ defmodule Module.Types.Expr do
           end
 
         {body_type, context} = of_expr(body, expected, expr, stack, context)
-        {union(body_type, acc), reset_vars(context, original)}
+        {union(body_type, acc), Of.reset_vars(context, original)}
     end)
     |> dynamic_unless_static(stack)
   end
@@ -345,7 +345,7 @@ defmodule Module.Types.Expr do
 
     {type, context} =
       blocks
-      |> Enum.reduce({type, reset_vars(context, original)}, fn
+      |> Enum.reduce({type, Of.reset_vars(context, original)}, fn
         {:rescue, clauses}, acc_context ->
           Enum.reduce(clauses, acc_context, fn
             {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, {acc, context} ->
@@ -391,7 +391,7 @@ defmodule Module.Types.Expr do
         {body_type, context} = of_expr(body, expected, expr, stack, context)
 
         if compatible?(timeout_type, @timeout_type) do
-          {union(body_type, acc), reset_vars(context, original)}
+          {union(body_type, acc), Of.reset_vars(context, original)}
         else
           error = {:badtimeout, timeout_type, timeout, context}
           {union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
@@ -566,7 +566,7 @@ defmodule Module.Types.Expr do
       end
 
     {type, context} = of_expr(body, @pending, body, stack, context)
-    {type, reset_vars(context, original)}
+    {type, Of.reset_vars(context, original)}
   end
 
   ## Comprehensions
@@ -663,7 +663,7 @@ defmodule Module.Types.Expr do
 
   defp with_option({:do, body}, stack, context, original) do
     {_type, context} = of_expr(body, @pending, body, stack, context)
-    reset_vars(context, original)
+    Of.reset_vars(context, original)
   end
 
   defp with_option({:else, clauses}, stack, context, _original) do
@@ -716,7 +716,9 @@ defmodule Module.Types.Expr do
       {trees, context} = Pattern.of_head(patterns, guards, domain, info, meta, stack, context)
 
       {result, context} = of_expr(body, expected, expr || body, stack, context)
-      {fun.(trees, result, context, acc), context |> set_failed(failed?) |> reset_vars(original)}
+
+      {fun.(trees, result, context, acc),
+       context |> set_failed(failed?) |> Of.reset_vars(original)}
     end)
   end
 
@@ -725,8 +727,6 @@ defmodule Module.Types.Expr do
 
   defp set_failed(%{failed: false} = context, true), do: %{context | failed: true}
   defp set_failed(context, _bool), do: context
-
-  defp reset_vars(context, %{vars: vars}), do: %{context | vars: vars}
 
   defp extract_head([{:when, _meta, args}]) do
     case Enum.split(args, -1) do

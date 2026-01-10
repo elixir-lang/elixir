@@ -2875,6 +2875,10 @@ defmodule Module.Types.Descr do
   It returns a two element tuple or `:error`. The first element says
   if the type is dynamically optional or not, the second element is
   the type. In static mode, optional keys are not allowed.
+
+  Being dynamically optional means that the field may be present
+  (while statically optional means we need to consider the field as
+  both present and absent).
   """
   def map_fetch_key(:term, _key), do: :badmap
 

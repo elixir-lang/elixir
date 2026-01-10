@@ -2235,4 +2235,29 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(GenServer.module_info()) |> subtype?(list(tuple([atom(), term()])))
     end
   end
+
+  describe "regressions" do
+    test "clauses within multi-module apply" do
+      assert typecheck!(
+               [value, format, debug?],
+               (
+                 module =
+                   case format do
+                     ".integer" -> Integer
+                     ".float" -> Float
+                   end
+
+                 value
+                 |> then(
+                   if debug? do
+                     &IO.inspect/1
+                   else
+                     &Function.identity/1
+                   end
+                 )
+                 |> module.to_string()
+               )
+             ) == dynamic() or binary()
+    end
+  end
 end
