@@ -3089,22 +3089,24 @@ defmodule Module.Types.Descr do
       domain_keys_type ->
         {_seen, acc} =
           bdd_reduce(bdd, {%{}, domain_keys_type}, fn {_tag, fields}, seen_acc ->
-            fields
-            |> Map.to_list()
-            |> Enum.reduce(seen_acc, fn {key, _type}, {seen, acc} ->
-              if Map.has_key?(seen, key) do
-                {seen, acc}
-              else
-                {_, value} = map_dnf_fetch_static(dnf, key)
-                seen = Map.put(seen, key, [])
-
-                if empty?(value) do
+            :maps.fold(
+              fn key, _type, {seen, acc} ->
+                if Map.has_key?(seen, key) do
                   {seen, acc}
                 else
-                  {seen, union(acc, fun.(atom([key]), value))}
+                  {_, value} = map_dnf_fetch_static(dnf, key)
+                  seen = Map.put(seen, key, [])
+
+                  if empty?(value) do
+                    {seen, acc}
+                  else
+                    {seen, union(acc, fun.(atom([key]), value))}
+                  end
                 end
-              end
-            end)
+              end,
+              seen_acc,
+              fields
+            )
           end)
 
         acc
@@ -3389,14 +3391,17 @@ defmodule Module.Types.Descr do
   defp map_update_put_negated(bdd, negated, type_fun) do
     bdd_map(bdd, fn {tag, fields} ->
       fields =
-        Map.new(fields, fn {key, value} ->
-          if :sets.is_element(key, negated) do
-            {key, value}
-          else
-            {optional?, call_value} = pop_optional_static(value)
-            {key, union(value, type_fun.(optional?, call_value))}
-          end
-        end)
+        :maps.map(
+          fn key, value ->
+            if :sets.is_element(key, negated) do
+              value
+            else
+              {optional?, call_value} = pop_optional_static(value)
+              union(value, type_fun.(optional?, call_value))
+            end
+          end,
+          fields
+        )
 
       {tag, fields}
     end)
@@ -3405,16 +3410,18 @@ defmodule Module.Types.Descr do
   defp map_update_merge_atom_key(bdd, dnf) do
     {_seen, acc} =
       bdd_reduce(bdd, {%{}, none()}, fn {_tag, fields}, seen_acc ->
-        fields
-        |> Map.to_list()
-        |> Enum.reduce(seen_acc, fn {key, _type}, {seen, acc} ->
-          if Map.has_key?(seen, key) do
-            {seen, acc}
-          else
-            {_, value} = map_dnf_fetch_static(dnf, key)
-            {Map.put(seen, key, []), union(acc, value)}
-          end
-        end)
+        :maps.fold(
+          fn key, _type, {seen, acc} ->
+            if Map.has_key?(seen, key) do
+              {seen, acc}
+            else
+              {_, value} = map_dnf_fetch_static(dnf, key)
+              {Map.put(seen, key, []), union(acc, value)}
+            end
+          end,
+          seen_acc,
+          fields
+        )
       end)
 
     acc
@@ -3422,17 +3429,19 @@ defmodule Module.Types.Descr do
 
   defp map_update_any_atom_key?(bdd, dnf) do
     bdd_reduce(bdd, %{}, fn {_tag, fields}, acc ->
-      fields
-      |> Map.to_list()
-      |> Enum.reduce(acc, fn {key, _type}, acc ->
-        if Map.has_key?(acc, key) do
-          acc
-        else
-          {_, value} = map_dnf_fetch_static(dnf, key)
-          not empty?(value) and throw(:found_key)
-          Map.put(acc, key, [])
-        end
-      end)
+      :maps.fold(
+        fn key, _type, acc ->
+          if Map.has_key?(acc, key) do
+            acc
+          else
+            {_, value} = map_dnf_fetch_static(dnf, key)
+            not empty?(value) and throw(:found_key)
+            Map.put(acc, key, [])
+          end
+        end,
+        acc,
+        fields
+      )
     end)
   catch
     :found_key -> true

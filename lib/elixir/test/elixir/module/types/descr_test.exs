@@ -2116,6 +2116,10 @@ defmodule Module.Types.DescrTest do
       assert map_update(dynamic(closed_map(key: atom([:value]))), dynamic(), atom([:new_value])) ==
                {dynamic(atom([:value])), dynamic(closed_map(key: atom([:value, :new_value]))), []}
 
+      # Check struct fields
+      assert map_update(open_map(__struct__: term()), dynamic(atom()), integer()) ==
+               {term(), open_map(__struct__: term()), []}
+
       # When precise dynamic keys are given, at least one must succeed
       assert map_update(
                closed_map(key1: atom(), key2: binary()),
