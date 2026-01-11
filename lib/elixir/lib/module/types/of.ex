@@ -12,7 +12,6 @@ defmodule Module.Types.Of do
   @suffix quote(do: ...)
 
   @integer_or_float union(integer(), float())
-  @integer_or_binary union(integer(), binary())
   @integer integer()
   @float float()
   @binary binary()
@@ -543,7 +542,7 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
-          Module.Types.Pattern.of_guard(left, {false, type}, expr, stack, context)
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
 
         :expr ->
           left = annotate_interpolation(left, right)
@@ -591,9 +590,9 @@ defmodule Module.Types.Of do
   defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned}
   defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned}
   defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned}
-  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer_or_binary, :aligned}
-  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer_or_binary, :aligned}
-  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer_or_binary, :aligned}
+  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer, :aligned}
+  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer, :aligned}
+  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer, :aligned}
   defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer}
   defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring}
   defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring}

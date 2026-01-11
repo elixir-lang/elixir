@@ -831,6 +831,11 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (x !== "foo"), x) == dynamic(binary())
     end
 
+    test "with binaries" do
+      assert typecheck!([sep, token], token == <<sep::utf8>>, {sep, token}) ==
+               dynamic(tuple([integer(), term()]))
+    end
+
     test "with number literals" do
       assert typecheck!([x], x == 1, x) == dynamic(union(integer(), float()))
       assert typecheck!([x], x === 1, x) == dynamic(integer())
