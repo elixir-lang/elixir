@@ -2750,8 +2750,8 @@ defmodule Module.Types.Descr do
     else
       # Case 2: the maps have all but one key in common. Do the difference of that key.
       case map_all_but_one(tag, fields, neg_tag, neg_fields) do
-        {:one, diff_key} ->
-          bdd_leaf(tag, Map.update!(fields, diff_key, &difference(&1, neg_fields[diff_key])))
+        {diff_key, type1, type2} ->
+          bdd_leaf(tag, Map.replace!(fields, diff_key, difference(type1, type2)))
 
         _ ->
           bdd_difference(map1, map2, &map_leaf_intersection/2, nil)
@@ -3972,8 +3972,8 @@ defmodule Module.Types.Descr do
         {acc_fields, acc_negs}
       else
         case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
-          {:one, diff_key} ->
-            {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])), acc_negs}
+          {diff_key, type1, type2} ->
+            {Map.replace!(acc_fields, diff_key, difference(type1, type2)), acc_negs}
 
           _ ->
             {acc_fields, [neg | acc_negs]}
@@ -4019,19 +4019,28 @@ defmodule Module.Types.Descr do
   defp map_all_but_one(tag1, fields1, tag2, fields2) do
     with true <- {tag1, tag2} != {:open, :closed},
          true <- map_size(fields1) == map_size(fields2),
-         keys = :maps.keys(fields1),
-         true <- Enum.all?(keys, fn key -> is_map_key(fields2, key) end),
-         1 <-
-           Enum.count_until(
-             keys,
-             fn key -> Map.fetch!(fields1, key) != Map.fetch!(fields2, key) end,
-             _limit = 2
-           ) do
-      {:one, Enum.find(keys, &(Map.fetch!(fields1, &1) != Map.fetch!(fields2, &1)))}
+         [triplet] <- map_all_but_one_find(:maps.keys(fields1), fields1, fields2, []) do
+      triplet
     else
-      _ -> :no
+      _ -> :error
     end
   end
+
+  defp map_all_but_one_find([key | keys], fields1, fields2, found) do
+    case {fields1, fields2} do
+      {%{^key => type1}, %{^key => type2}} ->
+        cond do
+          type1 == type2 -> map_all_but_one_find(keys, fields1, fields2, found)
+          found == [] -> map_all_but_one_find(keys, fields1, fields2, [{key, type1, type2}])
+          true -> []
+        end
+
+      {_, _} ->
+        []
+    end
+  end
+
+  defp map_all_but_one_find([], _fields1, _fields2, found), do: found
 
   defp map_to_quoted(bdd, opts) do
     bdd
