@@ -568,6 +568,30 @@ defmodule Module.Types.DescrTest do
              |> equal?(open_map(a: integer()))
     end
 
+    test "map (struct optimizations)" do
+      # We do direct assertions because we want to check how it works underneath
+      atom_foo = atom([:foo])
+      atom_bar = atom([:bar])
+
+      assert difference(open_map(__struct__: atom_foo), open_map(__struct__: atom_bar)) ==
+               open_map(__struct__: atom_foo)
+
+      assert difference(closed_map(__struct__: atom_foo), open_map(__struct__: atom_bar)) ==
+               closed_map(__struct__: atom_foo)
+
+      assert difference(open_map(__struct__: atom_foo), closed_map(__struct__: atom_bar)) ==
+               open_map(__struct__: atom_foo)
+
+      assert difference(closed_map(__struct__: atom_foo), closed_map(__struct__: atom_bar)) ==
+               closed_map(__struct__: atom_foo)
+
+      refute difference(closed_map(__struct__: atom_foo), closed_map(__struct__: term())) ==
+               closed_map(__struct__: atom_foo)
+
+      refute difference(closed_map(__struct__: atom()), closed_map(__struct__: atom_bar)) ==
+               closed_map(__struct__: atom())
+    end
+
     test "map with domain keys" do
       # Non-overlapping domain keys
       t1 = closed_map([{domain_key(:integer), atom()}])
