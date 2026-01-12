@@ -2140,12 +2140,12 @@ defmodule Module.Types.Descr do
           else: bdd_leaf(list1, difference(last1, last2))
 
       true ->
-        bdd_difference(bdd1, bdd2, &list_leaf_intersection/2, nil)
+        bdd_difference(bdd1, bdd2)
     end
   end
 
   defp list_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &list_leaf_intersection/2, nil)
+    do: bdd_difference(bdd1, bdd2)
 
   defp list_empty?(@non_empty_list_top), do: false
 
@@ -2754,13 +2754,13 @@ defmodule Module.Types.Descr do
           bdd_leaf(tag, Map.replace!(fields, diff_key, difference(type1, type2)))
 
         _ ->
-          bdd_difference(map1, map2, &map_leaf_intersection/2, &map_leaf_disjoint?/2)
+          bdd_difference(map1, map2, &map_leaf_disjoint?/2)
       end
     end
   end
 
   defp map_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &map_leaf_intersection/2, &map_leaf_disjoint?/2)
+    do: bdd_difference(bdd1, bdd2, &map_leaf_disjoint?/2)
 
   defp map_leaf_disjoint?(bdd_leaf(_tag1, fields1), bdd_leaf(_tag2, fields2)) do
     disjoint_structs?(fields1, fields2)
@@ -4308,7 +4308,7 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &tuple_leaf_intersection/2, &tuple_leaf_disjoint?/2)
+    do: bdd_difference(bdd1, bdd2, &tuple_leaf_disjoint?/2)
 
   defp tuple_leaf_disjoint?(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
     mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) or
@@ -5125,7 +5125,9 @@ defmodule Module.Types.Descr do
   #
   # ## When D2 != :bottom
   #
-  # We rewrite it to use the same optimization as bdd_leaf_intersection:
+  # We could rewrite it to use the same optimization as bdd_leaf_intersection.
+  # However, given differences of negations are not common and because
+  # bdd_leaf_intersection can be expensive for open maps, we skip this step for now.
   #
   # (B1) and not (B2)
   # (B1) and not (B2_no_D2 or (not a2 and D2))
@@ -5133,19 +5135,11 @@ defmodule Module.Types.Descr do
   # (B1) and (a2 or not D2) and not B2_no_D2
   # ((B1 and a2) or (B1 and not D2)) and not B2_no_D2
 
-  defp bdd_difference(bdd, {leaf, c, u, d}, leaf_intersection, leaf_disjoint)
-       when d != :bdd_bot do
-    bdd_leaf_intersection(leaf, bdd, leaf_intersection)
-    |> bdd_union(bdd_difference(bdd, d, leaf_intersection, leaf_disjoint))
-    |> bdd_difference({leaf, c, u, :bdd_bot}, leaf_intersection, leaf_disjoint)
-  end
-
-  defp bdd_difference(bdd1, bdd2, _leaf_intersection, leaf_disjoint)
-       when leaf_disjoint == nil do
+  defp bdd_difference(bdd1, {_, _, _, d} = bdd2, _leaf_disjoint) when d != :bdd_bot do
     bdd_difference(bdd1, bdd2)
   end
 
-  defp bdd_difference(bdd_leaf(_, _) = bdd1, bdd2, _leaf_intersection, leaf_disjoint)
+  defp bdd_difference(bdd_leaf(_, _) = bdd1, bdd2, leaf_disjoint)
        when is_tuple(bdd2) do
     {leaf, _, u, :bdd_bot} = bdd_expand(bdd2)
 
@@ -5156,22 +5150,21 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp bdd_difference({a1, c1, u1, d1} = bdd1, bdd2, leaf_intersection, leaf_disjoint)
+  defp bdd_difference({a1, c1, u1, d1} = bdd1, bdd2, leaf_disjoint)
        when is_tuple(bdd2) do
     {a2, _c2, u2, :bdd_bot} = bdd_expand(bdd2)
 
     case leaf_disjoint.(a1, a2) do
       true ->
-        {a1, bdd_difference(c1, u2, leaf_intersection, leaf_disjoint),
-         bdd_difference(u1, bdd2, leaf_intersection, leaf_disjoint),
-         bdd_difference(d1, bdd2, leaf_intersection, leaf_disjoint)}
+        {a1, bdd_difference(c1, u2, leaf_disjoint), bdd_difference(u1, bdd2, leaf_disjoint),
+         bdd_difference(d1, bdd2, leaf_disjoint)}
 
       false ->
         bdd_difference(bdd1, bdd2)
     end
   end
 
-  defp bdd_difference(bdd1, bdd2, _leaf_intersection, _leaf_disjoint) do
+  defp bdd_difference(bdd1, bdd2, _leaf_disjoint) do
     bdd_difference(bdd1, bdd2)
   end
 
