@@ -180,6 +180,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 #### Mix
 
   * [mix deps] Support filtering `mix deps` output
+  * [mix compile] Enforce `:elixirc_paths` to be a list of strings to avoid paths from being discarded (the only documented type was lists of strings)
   * [mix test] Add `mix test --dry-run`
 
 ### 2. Hard deprecations
