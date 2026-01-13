@@ -792,6 +792,41 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
+  describe "performance regressions" do
+    test "unions and intersections of open maps" do
+      files = %{
+        "large_head.ex" => """
+        defmodule LargeHead do
+          def id(%{node_id: id}) when is_binary(id), do: id
+          def id(%{node: %{id: id}}) when is_binary(id), do: id
+          def id(%{cluster: %{node_id: id}}) when is_binary(id), do: id
+          def id(%{graph: %{node_id: id}}) when is_binary(id), do: id
+          def id(%{vertex: %{node_id: id}}) when is_binary(id), do: id
+          def id(%{collection: %{graph_id: id} = collection}) when is_binary(id), do: id(collection)
+          def id(%{element: %{} = element}), do: id(element)
+          def id(%{cluster_id: id}) when is_binary(id), do: id
+          def id(%{region_id: id}) when is_binary(id), do: id
+          def id(%{graph_id: id}) when is_binary(id), do: id
+          def id(%{vertex_id: id}) when is_binary(id), do: id
+          def id(%{path_id: id}) when is_binary(id), do: id
+          def id(%{tree_id: id}) when is_binary(id), do: id
+          def id(%{collection_id: id}) when is_binary(id), do: id
+          def id(%{segment_id: id}) when is_binary(id), do: id
+          def id(%{edge_id: id}) when is_binary(id), do: id
+          def nested_access(%{graph: graph} = collection) do
+            <<_::binary>> = id(graph)
+            if collection.graph.cluster_id do
+              {graph.id, graph.node_id, collection.graph.cluster_id}
+            end
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+  end
+
   describe "undefined warnings" do
     test "handles Erlang modules" do
       files = %{

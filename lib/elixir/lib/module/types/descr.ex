@@ -2722,8 +2722,50 @@ defmodule Module.Types.Descr do
     cond do
       map_top?(bdd1) and is_tuple(bdd2) -> bdd2
       map_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> bdd_intersection(bdd1, bdd2, &map_leaf_intersection/2)
+      true -> map_bdd_intersection(bdd1, bdd2)
     end
+  end
+
+  # A variant of bdd_intersection/3 that only continues if the maps are closed
+  # or both sides are leafs.
+  #
+  # This is necessary because the intersection of open maps end-up accumulating
+  # fields and it is unlikely to eliminate, which would lead to explosions.
+  # However, note this optimization only works because closed nodes come first
+  # in the BDD representation. If that was not the case, open nodes would come
+  # first and this optimization would not happen if they were mixed.
+  defp map_bdd_intersection(bdd_leaf(_, _) = leaf1, bdd_leaf(_, _) = leaf2) do
+    map_leaf_intersection(leaf1, leaf2)
+  end
+
+  defp map_bdd_intersection(bdd_leaf(:closed, _) = leaf, bdd) do
+    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
+  end
+
+  defp map_bdd_intersection(bdd, bdd_leaf(:closed, _) = leaf) do
+    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
+  end
+
+  defp map_bdd_intersection({bdd_leaf(:closed, _) = leaf, :bdd_top, u, d}, bdd) do
+    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
+    |> bdd_union(map_bdd_intersection(u, bdd))
+    |> case do
+      result when d == :bdd_bot -> result
+      result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
+    end
+  end
+
+  defp map_bdd_intersection(bdd, {bdd_leaf(:closed, _) = leaf, :bdd_top, u, d}) do
+    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
+    |> bdd_union(map_bdd_intersection(u, bdd))
+    |> case do
+      result when d == :bdd_bot -> result
+      result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
+    end
+  end
+
+  defp map_bdd_intersection(bdd1, bdd2) do
+    bdd_intersection(bdd1, bdd2)
   end
 
   defp map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
