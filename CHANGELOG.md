@@ -158,6 +158,18 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
+## v1.20.0-rc.1 (2026-01-13)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Improve the performance of the type system when working with large unions of open maps
+  * [Kernel] Do not crash on map types with struct keys when performing type operations
+  * [Kernel] Mark the outcome of bitstring types as dynamic
+  * [Kernel] `<<expr::bitstring>>` will have type `binary` instead of `bitstring` if `expr` is a binary
+  * [Kernel] Do not crash on conditional variables when calling a function on a module which is represented by a variable
+
 ## v1.20.0-rc.0 (2026-01-09)
 
 ### 1. Enhancements
