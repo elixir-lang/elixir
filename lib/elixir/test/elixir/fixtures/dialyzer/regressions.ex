@@ -15,4 +15,10 @@ defmodule Dialyzer.Regressions do
   def eex_eval_opts do
     EEx.eval_string("foo <%= bar %>", [bar: "baz"], trim: true)
   end
+
+  @spec inlined_map_set :: MapSet.t(integer())
+  def inlined_map_set, do: MapSet.new([1, 2])
+
+  @spec inlined_uri :: URI.t()
+  def inlined_uri, do: URI.new!("example.com")
 end
