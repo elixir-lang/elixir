@@ -32,6 +32,13 @@ defmodule URI do
   @derive {Inspect, optional: [:authority]}
   defstruct [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
 
+  # We don't use opaque because URIs can be inlined,
+  # either via module attributes or by the compiler.
+  @typep opaque_authority :: nil | binary
+
+  @typedoc deprecated: "The authority field is deprecated"
+  @type authority :: opaque_authority()
+
   @type t :: %__MODULE__{
           scheme: nil | binary,
           authority: authority,
@@ -42,9 +49,6 @@ defmodule URI do
           query: nil | binary,
           fragment: nil | binary
         }
-
-  @typedoc deprecated: "The authority field is deprecated"
-  @opaque authority :: nil | binary
 
   defmodule Error do
     @moduledoc """
