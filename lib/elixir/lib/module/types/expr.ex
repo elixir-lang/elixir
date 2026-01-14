@@ -804,19 +804,7 @@ defmodule Module.Types.Expr do
           format_traces(traces),
           """
 
-          #{fix}.
-
-          #{hint()} given pattern matching is enough to catch typing errors, \
-          you may optionally convert the struct update into a map update. For \
-          example, instead of:
-
-              user = some_function()
-              %User{user | name: "John Doe"}
-
-          it is enough to write:
-
-              %User{} = user = some_function()
-              %{user | name: "John Doe"}
+          #{fix}
           """
         ])
     }
