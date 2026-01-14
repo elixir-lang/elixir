@@ -55,9 +55,9 @@ defmodule MapSet do
 
   @type value :: term
 
-  # We don't use opaque because MapSets can be inlined,
+  # We don't use @opaque (or `:sets.set` which is opaque) because MapSets can be inlined,
   # either via module attributes or by the compiler.
-  @typep internal(value) :: :sets.set(value)
+  @typep internal(value) :: %{optional(value) => term()}
 
   @type t(value) :: %__MODULE__{map: internal(value)}
   @type t :: t(term)
