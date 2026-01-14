@@ -34,10 +34,8 @@ defmodule URI do
 
   # We don't use opaque because URIs can be inlined,
   # either via module attributes or by the compiler.
-  @typep opaque_authority :: nil | binary
-
-  @typedoc deprecated: "The authority field is deprecated"
-  @type authority :: opaque_authority()
+  @doc deprecated: "The authority field is deprecated"
+  @type authority :: nil | binary
 
   @type t :: %__MODULE__{
           scheme: nil | binary,
