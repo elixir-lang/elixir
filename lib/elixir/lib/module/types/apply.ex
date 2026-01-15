@@ -228,6 +228,7 @@ defmodule Module.Types.Apply do
         {:erlang, :insert_element,
          [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
+        {:erlang, :map_get, [{[term(), open_map()], term()}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
@@ -705,6 +706,12 @@ defmodule Module.Types.Apply do
     {info, filter_domain(info, expected, 2), context}
   end
 
+  def remote_domain(:erlang, :map_get, [key, _], expected, _meta, _stack, context)
+      when is_atom(key) do
+    domain = [term(), open_map([{key, expected}])]
+    {{:strong, nil, [{domain, term()}]}, domain, context}
+  end
+
   def remote_domain(:maps, :get, [key, _], expected, _meta, _stack, context) when is_atom(key) do
     domain = [term(), open_map([{key, expected}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
@@ -760,6 +767,14 @@ defmodule Module.Types.Apply do
     case list_hd(list) do
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
       :badnonemptylist -> {:error, badremote(:erlang, :hd, [list])}
+    end
+  end
+
+  defp remote_apply(:erlang, :map_get, _info, [key, map] = args_types, stack) do
+    case map_get(map, key) do
+      {:ok, value} -> {:ok, return(value, args_types, stack)}
+      :badmap -> {:error, badremote(:erlang, :map_get, args_types)}
+      :error -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
