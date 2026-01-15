@@ -3017,6 +3017,9 @@ defmodule Module.Types.DescrTest do
     end
 
     test "structs" do
+      assert open_map(__struct__: term()) |> to_quoted_string() ==
+               "%{..., __struct__: term()}"
+
       assert open_map(__struct__: atom([URI])) |> to_quoted_string() ==
                "%{..., __struct__: URI}"
 

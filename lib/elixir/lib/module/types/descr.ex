@@ -4157,7 +4157,7 @@ defmodule Module.Types.Descr do
         {{domain_key, [], []}, value_quoted}
       end
 
-    sorted_fields = fields |> Enum.to_list() |> Enum.sort()
+    sorted_fields = fields |> Map.to_list() |> Enum.sort()
     regular_fields_quoted = map_fields_to_quoted(:closed, sorted_fields, opts)
     {:%{}, [], domain_fields ++ regular_fields_quoted}
   end
@@ -4186,12 +4186,12 @@ defmodule Module.Types.Descr do
            ]}
         else
           _ ->
-            sorted_fields = fields |> Enum.to_list() |> Enum.sort()
+            sorted_fields = fields |> Map.to_list() |> Enum.sort()
             {:%{}, [], map_fields_to_quoted(tag, sorted_fields, opts)}
         end
 
       :open ->
-        sorted_fields = fields |> Enum.to_list() |> Enum.sort()
+        sorted_fields = fields |> Map.to_list() |> Enum.sort()
         {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, sorted_fields, opts)]}
     end
   end
