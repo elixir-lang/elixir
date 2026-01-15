@@ -159,6 +159,18 @@ defmodule Kernel.Overridable do
   def private_macro_call(val \\ 11) do
     private_macro(val)
   end
+
+  ## Defaults
+
+  def with_default(a, b \\ 1) do
+    a + b
+  end
+
+  defoverridable with_default: 2
+
+  def with_default(a, b) do
+    super(a + b, a + b)
+  end
 end
 
 defmodule Kernel.OverridableExampleBehaviour do
@@ -171,7 +183,7 @@ end
 
 defmodule Kernel.OverridableTest do
   require Kernel.Overridable, as: Overridable
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defp purge(module) do
     :code.purge(module)
@@ -284,6 +296,11 @@ defmodule Kernel.OverridableTest do
 
   test "multiple overrides" do
     assert Overridable.multiple_overrides() == [3, 2, 1]
+  end
+
+  test "with defaults" do
+    assert Overridable.with_default(5) == 12
+    assert Overridable.with_default(5, 2) == 14
   end
 
   test "overridable macros" do

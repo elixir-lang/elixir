@@ -178,7 +178,7 @@ defmodule Module.Types do
     default = Keyword.get(meta, :defaults, 0)
 
     cond do
-      Keyword.get(meta, :context) != nil ->
+      Keyword.get(meta, :context) != nil or Keyword.get(meta, :from_super) == true ->
         :ok
 
       default == 0 ->
