@@ -1610,7 +1610,7 @@ defmodule Registry do
   def __unregister__(table, match, pos) do
     key = :erlang.element(pos, match)
 
-    # We need to perform an element comparison if we have an special atom key.
+    # We need to perform an element comparison if we have a special atom key.
     if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
       match = :erlang.setelement(pos, match, :_)
       guard = {:"=:=", {:element, pos, :"$_"}, {:const, key}}

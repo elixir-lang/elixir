@@ -1253,7 +1253,7 @@ defmodule Enum do
       iex> Enum.flat_map([:a, :b, :c], fn x -> [[x]] end)
       [[:a], [:b], [:c]]
 
-  This is frequently used to to transform and filter in one pass, returning empty
+  This is frequently used to transform and filter in one pass, returning empty
   lists to exclude results:
 
       iex> Enum.flat_map([4, 0, 2, 0], fn x ->

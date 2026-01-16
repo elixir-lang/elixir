@@ -284,7 +284,7 @@ defmodule Module.Types.Descr do
 
   ## Optional
 
-  # `not_set()` is a special base type that represents an not_set field in a map.
+  # `not_set()` is a special base type that represents a not_set field in a map.
   # E.g., `%{a: integer(), b: not_set(), ...}` represents a map with an integer
   # field `a` and an not_set field `b`, and possibly other fields.
   #
