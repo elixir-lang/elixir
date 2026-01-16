@@ -1743,7 +1743,7 @@ defmodule Module.Types.Apply do
              but the #{inspect(mod)} protocol was not yet implemented \
              for any type and therefore will always fail.
 
-             This message will disappear once you define a implementation. \
+             This message will disappear once you define an implementation. \
              If the protocol is part of a library, you may define a dummy \
              implementation for development/test.
              """, ""}

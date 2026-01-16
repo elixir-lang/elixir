@@ -530,7 +530,7 @@ defmodule Module.Types.IntegrationTest do
 
             but the NoImplProtocol protocol was not yet implemented for any type and therefore will always fail.
 
-            This message will disappear once you define a implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
+            This message will disappear once you define an implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
 
             type warning found at:
             │
