@@ -31,6 +31,7 @@ defmodule Kernel.DialyzerTest do
       :elixir,
       :elixir_env,
       :elixir_erl_pass,
+      :inet,
       :maps,
       :sets,
       ArgumentError,
@@ -53,7 +54,8 @@ defmodule Kernel.DialyzerTest do
       String,
       String.Chars,
       Task,
-      Task.Supervisor
+      Task.Supervisor,
+      URI
     ]
 
     files = Enum.map(mods, &:code.which/1)
