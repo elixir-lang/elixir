@@ -61,6 +61,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/references/operators.md",
     "lib/elixir/pages/references/patterns-and-guards.md",
     "lib/elixir/pages/references/syntax-reference.md",
+    "lib/elixir/pages/references/sbom.md",
     "lib/elixir/pages/references/typespecs.md",
     "lib/elixir/pages/references/unicode-syntax.md",
     "lib/elixir/pages/mix-and-otp/introduction-to-mix.md",
