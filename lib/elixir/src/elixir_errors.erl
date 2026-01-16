@@ -184,7 +184,7 @@ format_snippet(Severity, Position, File, Message, Snippet, Diagnostic) ->
 
   unicode:characters_to_binary(Formatted).
 
-format_detail(#{details := #{typing_traces := _}}, Message) -> [Message | "\ntyping violation found at:"];
+format_detail(#{details := #{typing_traces := _}}, Message) -> [Message | "\ntype warning found at:"];
 format_detail(_, Message) -> Message.
 
 calculate_span_length({StartLine, StartCol}, #{span := {StartLine, EndCol}}) -> EndCol - StartCol;

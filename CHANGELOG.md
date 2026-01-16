@@ -146,7 +146,7 @@ The code above has a type violation, which is now caught by the type system:
 
         dynamic(%{..., name: term()})
 
-    typing violation found at:
+    type warning found at:
     │
  16 │     User.name(%{})
     │         ~

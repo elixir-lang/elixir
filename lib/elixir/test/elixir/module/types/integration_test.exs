@@ -335,7 +335,7 @@ defmodule Module.Types.IntegrationTest do
         """,
         "the 1st argument is empty (often represented as none())",
         """
-            typing violation found at:
+            type warning found at:
             │
           2 │   def error(), do: private(raise "oops")
             │                    ~
@@ -348,7 +348,7 @@ defmodule Module.Types.IntegrationTest do
                 private(List.to_tuple(x))
         """,
         """
-            typing violation found at:
+            type warning found at:
             │
           3 │   def public(x), do: private(List.to_tuple(x))
             │                      ~
@@ -489,7 +489,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: defimpl for Range requires its callbacks to match exclusively on %Range{}
 
-            typing violation found at:
+            type warning found at:
             │
           6 │   def itself(nil), do: nil
             │   ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -530,9 +530,9 @@ defmodule Module.Types.IntegrationTest do
 
             but the NoImplProtocol protocol was not yet implemented for any type and therefore will always fail.
 
-            This warning will disappear once you define a implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
+            This message will disappear once you define a implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
 
-            typing violation found at:
+            type warning found at:
             │
           3 │     NoImplProtocol.callback(:hello)
             │                    ~
@@ -714,7 +714,7 @@ defmodule Module.Types.IntegrationTest do
 
                 :ok
 
-            typing violation found at:
+            type warning found at:
             │
           2 │   def ok(x = :ok \\ nil) do
             │                  ~
