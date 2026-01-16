@@ -232,7 +232,7 @@ defmodule Duration do
   @doc """
   Adds units of given durations `d1` and `d2`.
 
-  Respects the the highest microsecond precision of the two.
+  Respects the highest microsecond precision of the two.
 
   ## Examples
 
@@ -262,7 +262,7 @@ defmodule Duration do
   @doc """
   Subtracts units of given durations `d1` and `d2`.
 
-  Respects the the highest microsecond precision of the two.
+  Respects the highest microsecond precision of the two.
 
   ## Examples
 
