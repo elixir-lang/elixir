@@ -347,52 +347,33 @@ defmodule ProtocolTest do
         capture_io(:stderr, fn ->
           defprotocol SampleWithCallbacks do
             @spec with_specs(any(), keyword()) :: tuple()
-            def with_specs(term, options \\ [])
+            def with_specs(term, options)
 
             @spec with_specs_and_when(any(), opts) :: tuple() when opts: keyword
-            def with_specs_and_when(term, options \\ [])
+            def with_specs_and_when(term, options)
 
             def without_specs(term, options \\ [])
 
             @callback foo :: {:ok, term}
-            @callback foo(term) :: {:ok, term}
-            @callback foo(term, keyword) :: {:ok, term, keyword}
-
-            @callback foo_when :: {:ok, x} when x: term
             @callback foo_when(x) :: {:ok, x} when x: term
-            @callback foo_when(x, opts) :: {:ok, x, opts} when x: term, opts: keyword
-
             @macrocallback bar(term) :: {:ok, term}
-            @macrocallback bar(term, keyword) :: {:ok, term, keyword}
 
-            @optional_callbacks [foo: 1, foo: 2]
+            @optional_callbacks [foo: 0]
             @optional_callbacks [without_specs: 2]
           end
         end)
 
       assert message =~
+               "default arguments in protocol definitions is deprecated"
+
+      assert message =~
                "cannot define @callback foo/0 inside protocol, use def/1 to outline your protocol definition"
-
-      assert message =~
-               "cannot define @callback foo/1 inside protocol, use def/1 to outline your protocol definition"
-
-      assert message =~
-               "cannot define @callback foo/2 inside protocol, use def/1 to outline your protocol definition"
-
-      assert message =~
-               "cannot define @callback foo_when/0 inside protocol, use def/1 to outline your protocol definition"
 
       assert message =~
                "cannot define @callback foo_when/1 inside protocol, use def/1 to outline your protocol definition"
 
       assert message =~
-               "cannot define @callback foo_when/2 inside protocol, use def/1 to outline your protocol definition"
-
-      assert message =~
                "cannot define @macrocallback bar/1 inside protocol, use def/1 to outline your protocol definition"
-
-      assert message =~
-               "cannot define @macrocallback bar/2 inside protocol, use def/1 to outline your protocol definition"
 
       assert message =~
                "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required"

@@ -287,6 +287,11 @@ defmodule Protocol do
     call_args = :lists.map(to_var, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
 
+    # TODO: Raise in Elixir v2.0
+    if :lists.any(&match?({:\\, _, [_, _]}, &1), args) do
+      IO.warn("default arguments in protocol definitions is deprecated", __CALLER__)
+    end
+
     quote generated: true do
       name = unquote(name)
       arity = unquote(arity)
