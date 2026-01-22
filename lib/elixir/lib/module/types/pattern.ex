@@ -354,15 +354,9 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_var([{:head, key} | rest], type, context) do
-    case list_hd(type) do
-      {:ok, head} ->
-        %{^key => tree} = context.heads
-        of_pattern_var(rest, intersection(head, of_pattern_tree(tree, context)), context)
-
-      _ ->
-        :error
-    end
+  defp of_pattern_var([{:subpattern, key} | rest], type, context) do
+    %{^key => subpattern} = context.subpatterns
+    of_pattern_var(rest, intersection(type, subpattern), context)
   end
 
   defp of_pattern_var([:tail | rest], type, context) do
@@ -463,15 +457,6 @@ defmodule Module.Types.Pattern do
     {float(), context}
   end
 
-  @doc """
-  Handle `size` in binary modifiers.
-
-  They behave like guards, so we need to take into account their scope.
-  """
-  def of_size(_match_or_guard, arg, expr, stack, context) do
-    of_guard(arg, integer(), expr, stack, context)
-  end
-
   ## Patterns
 
   # :atom
@@ -543,16 +528,7 @@ defmodule Module.Types.Pattern do
         true -> {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}
       end
 
-    # If the path has domain keys or head, then it is imprecise,
-    # and we need to keep filtering the match variable itself.
-    imprecise? =
-      Enum.any?(path, fn
-        {:domain, _} -> true
-        :head -> true
-        _ -> false
-      end)
-
-    if dynamic == [] and not imprecise? do
+    if dynamic == [] do
       {return, context}
     else
       context = of_var(var, version, [%{root: return, expr: match}], context)
@@ -714,7 +690,8 @@ defmodule Module.Types.Pattern do
           {key_type, context} = of_pattern(key, [%{root: :key, expr: key}], stack, context)
           true = is_descr(key_type)
 
-          {_value_type, context} = of_pattern(value, [{:domain, key_type} | path], stack, context)
+          {_value_type, context} =
+            of_subpattern(value, [{:domain, key_type} | path], stack, context)
 
           # A domain key cannot restrict the map in any way,
           # because we are matching only on one possible value
@@ -757,18 +734,7 @@ defmodule Module.Types.Pattern do
 
     result =
       Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
-        # These cases don't need to store head information because
-        # they have no intersection
-        {type, context} =
-          if is_number(arg) or is_binary(arg) or is_atom(arg) or arg == [] or is_var(arg) do
-            of_pattern(arg, [:head | path], stack, context)
-          else
-            %{heads: heads} = context
-            key = map_size(heads)
-            context = %{context | heads: Map.put(heads, key, nil)}
-            {type, context} = of_pattern(arg, [{:head, key} | path], stack, context)
-            {type, put_in(context.heads[key], type)}
-          end
+        {type, context} = of_subpattern(arg, [:head | path], stack, context)
 
         if is_descr(type) do
           {[type | static], dynamic, context}
@@ -787,6 +753,19 @@ defmodule Module.Types.Pattern do
       {static, dynamic, context} ->
         {{:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
     end
+  end
+
+  # These cases don't need to store information because they have no intersection
+  defp of_subpattern(arg, path, stack, context)
+       when is_number(arg) or is_binary(arg) or is_atom(arg) or arg == [] or is_var(arg) do
+    of_pattern(arg, path, stack, context)
+  end
+
+  defp of_subpattern(arg, path, stack, %{subpatterns: subpatterns} = context) do
+    key = map_size(subpatterns)
+    context = %{context | subpatterns: Map.put(subpatterns, key, nil)}
+    {type, context} = of_pattern(arg, [{:subpattern, key} | path], stack, context)
+    {type, put_in(context.subpatterns[key], of_pattern_tree(type, context))}
   end
 
   ## Guards
