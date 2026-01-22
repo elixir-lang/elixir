@@ -344,6 +344,32 @@ defmodule Module.Types.PatternTest do
                )
              )
     end
+
+    test "regressions" do
+      # This is a regression that happens because stacktrace may be
+      # either three-element or four-element tuples, and it was failing
+      # when we tried to access the fourth element
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 _ ->
+                   [{__MODULE__, fun, _args_or_arity, info} | _] = __STACKTRACE__
+                   {fun, length(info)}
+               end
+             ) == tuple([atom(), integer()])
+
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 _ ->
+                   [tuple | _] = __STACKTRACE__
+                   {__MODULE__, fun, _args_or_arity, info} = tuple
+                   {fun, length(info)}
+               end
+             ) == tuple([atom(), integer()])
+    end
   end
 
   describe "bitstrings" do

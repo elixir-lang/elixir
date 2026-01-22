@@ -169,8 +169,8 @@ defmodule Module.Types.Of do
   Preserves `context` in first argument while
   resetting it to the vars in the second argument.
   """
-  def reset_vars(context, %{vars: vars, conditional_vars: conditional_vars}),
-    do: %{context | vars: vars, conditional_vars: conditional_vars}
+  def reset_vars(context, %{heads: heads, vars: vars, conditional_vars: conditional_vars}),
+    do: %{context | heads: heads, vars: vars, conditional_vars: conditional_vars}
 
   @doc """
   Executes the args with acc using conditional variables.

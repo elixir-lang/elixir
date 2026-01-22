@@ -354,6 +354,17 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  defp of_pattern_var([{:head, key} | rest], type, context) do
+    case list_hd(type) do
+      {:ok, head} ->
+        %{^key => tree} = context.heads
+        of_pattern_var(rest, intersection(head, of_pattern_tree(tree, context)), context)
+
+      _ ->
+        :error
+    end
+  end
+
   defp of_pattern_var([:tail | rest], type, context) do
     case list_tl(type) do
       {:ok, tail} -> of_pattern_var(rest, tail, context)
@@ -746,7 +757,18 @@ defmodule Module.Types.Pattern do
 
     result =
       Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
-        {type, context} = of_pattern(arg, [:head | path], stack, context)
+        # These cases don't need to store head information because
+        # they have no intersection
+        {type, context} =
+          if is_number(arg) or is_binary(arg) or is_atom(arg) or arg == [] or is_var(arg) do
+            of_pattern(arg, [:head | path], stack, context)
+          else
+            %{heads: heads} = context
+            key = map_size(heads)
+            context = %{context | heads: Map.put(heads, key, nil)}
+            {type, context} = of_pattern(arg, [{:head, key} | path], stack, context)
+            {type, put_in(context.heads[key], type)}
+          end
 
         if is_descr(type) do
           {[type | static], dynamic, context}

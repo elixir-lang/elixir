@@ -446,6 +446,8 @@ defmodule Module.Types do
       warnings: [],
       # All vars and their types
       vars: %{},
+      # Stores special metadata need by heads in patterns
+      heads: %{},
       # Variables that are specific to the current environment/conditional
       conditional_vars: nil,
       # Track metadata specific to matches and guards
