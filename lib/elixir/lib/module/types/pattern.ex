@@ -73,7 +73,7 @@ defmodule Module.Types.Pattern do
         try do
           Enum.reduce(paths, {%{}, context}, fn
             %{var: var, expr: expr, root: root, path: path}, {new_deps, context} ->
-              actual = of_pattern_tree(root, context)
+              actual = of_pattern_tree(root, stack, context)
 
               case of_pattern_var(path, actual, context) do
                 {:ok, new_type} ->
@@ -146,14 +146,14 @@ defmodule Module.Types.Pattern do
   Note we use `upper_bound` because the user of dynamic in the signature
   won't make a difference.
   """
-  def of_domain([{tree, expected, _pattern} | trees], context) do
+  def of_domain([{tree, expected, _pattern} | trees], stack, context) do
     [
-      intersection(of_pattern_tree(tree, context), expected) |> upper_bound()
-      | of_domain(trees, context)
+      intersection(of_pattern_tree(tree, stack, context), expected) |> upper_bound()
+      | of_domain(trees, stack, context)
     ]
   end
 
-  def of_domain([], _context) do
+  def of_domain([], _stack, _context) do
     []
   end
 
@@ -188,7 +188,7 @@ defmodule Module.Types.Pattern do
     context = init_pattern_info(context, [])
     {tree, context} = of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
     {pattern_info, context} = pop_pattern_info(context)
-    {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
+    {expected, context} = expected_fun.(of_pattern_tree(tree, stack, context), context)
 
     args = [{tree, expected, expr}]
     tag = {:match, expected}
@@ -216,7 +216,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_intersect([head | tail], index, acc, pattern_info, tag, stack, context) do
     {tree, expected, pattern} = head
-    actual = of_pattern_tree(tree, context)
+    actual = of_pattern_tree(tree, stack, context)
     type = intersection(actual, expected)
 
     if empty?(type) do
@@ -239,7 +239,7 @@ defmodule Module.Types.Pattern do
         {actual, index} =
           case root do
             {:arg, index} -> {Enum.fetch!(types, index), index}
-            _ -> {of_pattern_tree(root, context), nil}
+            _ -> {of_pattern_tree(root, stack, context), nil}
           end
 
         context =
@@ -369,43 +369,66 @@ defmodule Module.Types.Pattern do
   @doc """
   Receives the pattern tree and the context and returns a concrete type.
   """
-  def of_pattern_tree(descr, _context) when is_descr(descr),
+  def of_pattern_tree(descr, _stack, _context) when is_descr(descr),
     do: descr
 
-  def of_pattern_tree({:tuple, entries}, context) do
-    tuple(Enum.map(entries, &of_pattern_tree(&1, context)))
+  def of_pattern_tree({:guard, name, polarity, guard, expr}, stack, context) do
+    {type, _context} = of_guard(guard, term(), expr, stack, context)
+
+    # This logic mirrors the code in `Apply.compare`
+    cond do
+      # If it is a singleton, we can always be precise
+      singleton?(type) -> if polarity, do: type, else: negation(type)
+      # We are checking for `not x == 1` or similar, we can't say anything about x
+      polarity == false -> term()
+      # We are checking for `x == 1`, make sure x is integer or float
+      name in [:==, :"/="] -> numberize(type)
+      # Otherwise we have the literal type as is
+      true -> type
+    end
   end
 
-  def of_pattern_tree({:open_map, static, dynamic}, context) do
-    dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
+  def of_pattern_tree({:tuple, entries}, stack, context) do
+    tuple(Enum.map(entries, &of_pattern_tree(&1, stack, context)))
+  end
+
+  def of_pattern_tree({:open_map, static, dynamic}, stack, context) do
+    dynamic =
+      Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, stack, context)} end)
+
     open_map(static ++ dynamic)
   end
 
-  def of_pattern_tree({:closed_map, static, dynamic}, context) do
-    dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
+  def of_pattern_tree({:closed_map, static, dynamic}, stack, context) do
+    dynamic =
+      Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, stack, context)} end)
+
     closed_map(static ++ dynamic)
   end
 
-  def of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
+  def of_pattern_tree({:non_empty_list, [head | tail], suffix}, stack, context) do
     tail
-    |> Enum.reduce(of_pattern_tree(head, context), &union(of_pattern_tree(&1, context), &2))
-    |> non_empty_list(of_pattern_tree(suffix, context))
+    |> Enum.reduce(
+      of_pattern_tree(head, stack, context),
+      &union(of_pattern_tree(&1, stack, context), &2)
+    )
+    |> non_empty_list(of_pattern_tree(suffix, stack, context))
   end
 
-  def of_pattern_tree({:intersection, entries}, context) do
+  def of_pattern_tree({:intersection, entries}, stack, context) do
     entries
-    |> Enum.map(&of_pattern_tree(&1, context))
+    |> Enum.map(&of_pattern_tree(&1, stack, context))
     |> Enum.reduce(&intersection/2)
   end
 
-  def of_pattern_tree({:var, version}, context) do
+  def of_pattern_tree({:var, version}, _stack, context) do
     case context do
       %{vars: %{^version => %{type: type}}} -> type
       _ -> term()
     end
   end
 
-  def of_pattern_tree(:key, _context) do
+  def of_pattern_tree(:key, _stack, _context) do
     term()
   end
 
@@ -765,7 +788,7 @@ defmodule Module.Types.Pattern do
     key = map_size(subpatterns)
     context = %{context | subpatterns: Map.put(subpatterns, key, nil)}
     {type, context} = of_pattern(arg, [{:subpattern, key} | path], stack, context)
-    {type, put_in(context.subpatterns[key], of_pattern_tree(type, context))}
+    {type, put_in(context.subpatterns[key], of_pattern_tree(type, stack, context))}
   end
 
   ## Guards
@@ -792,14 +815,15 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_guards([guard], changed, stack, context) do
-    context = init_pattern_info(context, Map.from_keys(changed, []))
+    context = init_pattern_info(context, {nil, Map.from_keys(changed, [])})
     {type, context} = of_guard(guard, stack, context)
     context = maybe_badguard(type, guard, stack, context)
-    of_changed(Map.keys(context.pattern_info), stack, context)
+    {{_, changed_map}, context} = pop_pattern_info(context)
+    of_changed(Map.keys(changed_map), stack, context)
   end
 
   defp of_guards(guards, changed, stack, context) do
-    context = init_pattern_info(context, Map.from_keys(changed, []))
+    context = init_pattern_info(context, {nil, Map.from_keys(changed, [])})
     expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
 
     {:ok, context} =
@@ -808,7 +832,15 @@ defmodule Module.Types.Pattern do
         {:ok, maybe_badguard(type, guard, stack, context)}
       end)
 
-    of_changed(Map.keys(context.pattern_info), stack, context)
+    {{_, changed_map}, context} = pop_pattern_info(context)
+    of_changed(Map.keys(changed_map), stack, context)
+  end
+
+  defp update_parent_version(
+         parent_version,
+         %{pattern_info: {old_version, changed_map}} = context
+       ) do
+    {old_version, %{context | pattern_info: {parent_version, changed_map}}}
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -911,14 +943,67 @@ defmodule Module.Types.Pattern do
   def of_guard({_, meta, _} = var, expected, expr, stack, context) when is_var(var) do
     version = Keyword.fetch!(meta, :version)
 
+    # of_guard is also invoked inside patterns in case of bitstrings,
+    # and also when vars change, so we need to deal with all possibilities
+    # for pattern_info.
     case context.pattern_info do
-      changed when is_map(changed) ->
-        context = %{context | pattern_info: Map.put(changed, version, [])}
+      {dep_version, changed} when is_map(changed) ->
+        context = %{context | pattern_info: {dep_version, Map.put(changed, version, [])}}
+
+        context =
+          if dep_version != nil,
+            do: Of.track_var(version, [dep_version], [], context),
+            else: context
+
         Of.refine_body_var(version, expected, expr, stack, context)
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
         {Of.var(var, context), %{context | pattern_info: [{version, false, node} | list]}}
+
+      nil ->
+        {Of.var(var, context), context}
+    end
+  end
+
+  defp of_compare(fun, polarity, {_, meta, _} = var, other_side, call, stack, context)
+       when is_var(var) do
+    version = Keyword.fetch!(meta, :version)
+
+    # Add a new path node to the current variable
+    node = path_node({:guard, fun, polarity, other_side, call}, var, call, [])
+    context = Of.track_var(version, [], [node], context)
+
+    # Make any variable on the other side propagate the change to this one
+    {parent_version, context} = update_parent_version(version, context)
+    {guard_type, context} = of_guard(other_side, term(), call, stack, context)
+
+    # Revert and return parent version
+    {^version, context} = update_parent_version(parent_version, context)
+    {guard_type, context}
+  end
+
+  defp of_compare(_fun, _polarity, _var, other_side, call, stack, context) do
+    of_guard(other_side, term(), call, stack, context)
+  end
+
+  defp of_remote(fun, [left, right] = args, call, expected, stack, context)
+       when fun in [:==, :"/=", :"=:=", :"=/="] do
+    with false <- Macro.quoted_literal?(left) or Macro.quoted_literal?(right),
+         true <- is_var(left) or is_var(right),
+         booleaness when booleaness in [:maybe_true, :maybe_false] <- booleaness(expected),
+         %{pattern_info: {_, _}} <- context do
+      polarity =
+        case booleaness do
+          :maybe_true -> fun in [:==, :"=:="]
+          :maybe_false -> fun in [:"/=", :"=/="]
+        end
+
+      {left_type, context} = of_compare(fun, polarity, right, left, call, stack, context)
+      {right_type, context} = of_compare(fun, polarity, left, right, call, stack, context)
+      Apply.return_compare(fun, left_type, right_type, boolean(), false, call, stack, context)
+    else
+      _ -> Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
     end
   end
 

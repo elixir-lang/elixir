@@ -864,7 +864,7 @@ defmodule Module.Types.PatternTest do
 
     test "with binaries" do
       assert typecheck!([sep, token], token == <<sep::utf8>>, {sep, token}) ==
-               dynamic(tuple([integer(), term()]))
+               dynamic(tuple([integer(), binary()]))
     end
 
     test "with number literals" do
@@ -909,6 +909,66 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], x !== [], x) == dynamic(negation(empty_list()))
       assert typecheck!([x], not (x != []), x) == dynamic(empty_list())
       assert typecheck!([x], not (x !== []), x) == dynamic(empty_list())
+    end
+
+    test "with expressions" do
+      # With numbers
+      assert typecheck!([x, y], x == y and y === 42, {x, y}) ==
+               dynamic(tuple([union(integer(), float()), integer()]))
+
+      assert typecheck!([x, y], x == y and x === 42, {x, y}) ==
+               dynamic(tuple([integer(), union(integer(), float())]))
+
+      assert typecheck!([x, y], x != y and y === 42, {x, y}) ==
+               dynamic(tuple([term(), integer()]))
+
+      assert typecheck!([x, y], x === y and y === 42, {x, y}) ==
+               dynamic(tuple([integer(), integer()]))
+
+      assert typecheck!([x, y], x === y and x === 42, {x, y}) ==
+               dynamic(tuple([integer(), integer()]))
+
+      assert typecheck!([x, y], x !== y and y === 42, {x, y}) ==
+               dynamic(tuple([term(), integer()]))
+
+      # With non-singleton
+      assert typecheck!([x, y], x == y and y === "42", {x, y}) ==
+               dynamic(tuple([binary(), binary()]))
+
+      assert typecheck!([x, y], x == y and x === "42", {x, y}) ==
+               dynamic(tuple([binary(), binary()]))
+
+      assert typecheck!([x, y], x != y and y === "42", {x, y}) ==
+               dynamic(tuple([term(), binary()]))
+
+      # With singleton
+      assert typecheck!([x, y], x == y and y === :ok, {x, y}) ==
+               dynamic(tuple([atom([:ok]), atom([:ok])]))
+
+      assert typecheck!([x, y], x == y and x === :ok, {x, y}) ==
+               dynamic(tuple([atom([:ok]), atom([:ok])]))
+
+      assert typecheck!([x, y], x != y and y === :ok, {x, y}) ==
+               dynamic(tuple([term(), atom([:ok])]))
+
+      # With composite types
+      assert typecheck!([x, y], x == {:ok, y} and y === 42, {x, y}) ==
+               dynamic(tuple([tuple([atom([:ok]), union(integer(), float())]), integer()]))
+
+      assert typecheck!([x, y], x != {:ok, y} and y === 42, {x, y}) ==
+               dynamic(tuple([term(), integer()]))
+
+      assert typecheck!([x, y], x == elem(y, 0) and y === {1, :ok}, {x, y}) ==
+               dynamic(tuple([union(integer(), float()), tuple([integer(), atom([:ok])])]))
+
+      assert typecheck!([x, y], x != elem(y, 0) and y === {1, :ok}, {x, y}) ==
+               dynamic(tuple([term(), tuple([integer(), atom([:ok])])]))
+
+      assert typecheck!([x, y], x == elem(y, 1) and y === {1, :ok}, {x, y}) ==
+               dynamic(tuple([atom([:ok]), tuple([integer(), atom([:ok])])]))
+
+      assert typecheck!([x, y], x != elem(y, 1) and y === {1, :ok}, {x, y}) ==
+               dynamic(tuple([term(), tuple([integer(), atom([:ok])])]))
     end
 
     test "warnings" do

@@ -332,7 +332,7 @@ defmodule Module.Types do
             {return_type, context} =
               Expr.of_expr(body, Descr.term(), body, stack, context)
 
-            args_types = Pattern.of_domain(trees, context)
+            args_types = Pattern.of_domain(trees, stack, context)
 
             {type_index, inferred} =
               add_inferred(inferred, args_types, return_type, total - 1, [])

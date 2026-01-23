@@ -381,6 +381,10 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @compile {:inline, pop_dynamic: 1}
+  defp pop_dynamic(:term), do: {:term, :term}
+  defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
+
   @compile {:inline, maybe_union: 2}
   defp maybe_union(nil, _fun), do: nil
   defp maybe_union(descr, fun), do: union(descr, fun.())
@@ -394,18 +398,16 @@ defmodule Module.Types.Descr do
   def union(other, none) when none == @none, do: other
 
   def union(left, right) do
-    left = unfold(left)
-    right = unfold(right)
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
+        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
         union_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
+        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
         union_static(left_with_dynamic, right)
 
       true ->
@@ -436,18 +438,16 @@ defmodule Module.Types.Descr do
   def intersection(other, %{dynamic: :term}), do: dynamic(remove_optional(other))
 
   def intersection(left, right) do
-    left = unfold(left)
-    right = unfold(right)
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
+        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
         intersection_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
+        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
         intersection_static(left_with_dynamic, right)
 
       true ->
@@ -480,12 +480,9 @@ defmodule Module.Types.Descr do
   def difference(left, :term), do: keep_optional(left)
 
   def difference(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-
     if gradual?(left) or gradual?(right) do
-      {left_dynamic, left_static} = Map.pop(left, :dynamic, left)
-      {right_dynamic, right_static} = Map.pop(right, :dynamic, right)
+      {left_dynamic, left_static} = pop_dynamic(left)
+      {right_dynamic, right_static} = pop_dynamic(right)
       dynamic_part = difference_static(left_dynamic, right_static)
 
       Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
@@ -494,7 +491,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # For static types, the difference is component-wise.
+  # For static types, the difference is component-wise
+  defp difference_static(left, descr) when descr == %{}, do: left
   defp difference_static(left, :term), do: keep_optional(left)
 
   defp difference_static(left, right) do
@@ -563,7 +561,7 @@ defmodule Module.Types.Descr do
   Compute the negation of a type.
   """
   def negation(:term), do: none()
-  def negation(%{} = descr), do: difference(unfolded_term(), descr)
+  def negation(%{} = descr), do: difference(term(), descr)
 
   @doc """
   Check if a type is empty.
@@ -603,6 +601,42 @@ defmodule Module.Types.Descr do
   defp empty_key?(:list, value), do: list_empty?(value)
   defp empty_key?(:tuple, value), do: tuple_empty?(value)
   defp empty_key?(_, _value), do: false
+
+  @doc """
+  Converts all floats or integers into numbers.
+  """
+  def numberize(:term), do: :term
+  def numberize(descr), do: numberize_each(descr, [:bitmap, :tuple, :map, :list, :dynamic])
+
+  defp numberize_each(descr, [key | keys]) do
+    case descr do
+      %{^key => val} -> %{descr | key => numberize(key, val)}
+      %{} -> descr
+    end
+    |> numberize_each(keys)
+  end
+
+  defp numberize_each(descr, []) do
+    descr
+  end
+
+  defp numberize(:dynamic, descr), do: numberize(descr)
+  defp numberize(:bitmap, bitmap) when (bitmap &&& @bit_number) != 0, do: bitmap ||| @bit_number
+  defp numberize(:bitmap, bitmap), do: bitmap
+
+  defp numberize(:map, bdd) do
+    bdd_map(bdd, fn {tag, fields} ->
+      {tag, fields |> Map.to_list() |> Map.new(fn {key, value} -> {key, numberize(value)} end)}
+    end)
+  end
+
+  defp numberize(:tuple, bdd) do
+    bdd_map(bdd, fn {tag, fields} -> {tag, Enum.map(fields, &numberize/1)} end)
+  end
+
+  defp numberize(:list, bdd) do
+    bdd_map(bdd, fn {head, tail} -> {numberize(head), numberize(tail)} end)
+  end
 
   @doc """
   Returns if the type is a singleton.
@@ -834,11 +868,7 @@ defmodule Module.Types.Descr do
   Incompatible subtypes include `integer() or list()`, `dynamic() and atom()`.
   """
   def compatible?(left, right) do
-    {left_dynamic, left_static} =
-      case left do
-        :term -> {:term, :term}
-        _ -> Map.pop(left, :dynamic, left)
-      end
+    {left_dynamic, left_static} = pop_dynamic(left)
 
     right_dynamic =
       case right do
@@ -862,11 +892,7 @@ defmodule Module.Types.Descr do
   as we traverse the program.
   """
   def compatible_intersection(left, right) do
-    {left_dynamic, left_static} =
-      case left do
-        :term -> {:term, :term}
-        _ -> Map.pop(left, :dynamic, left)
-      end
+    {left_dynamic, left_static} = pop_dynamic(left)
 
     right_dynamic =
       case right do
@@ -1068,7 +1094,7 @@ defmodule Module.Types.Descr do
   def atom_fetch(:term), do: :error
 
   def atom_fetch(%{} = descr) do
-    {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
+    {static_or_dynamic, static} = pop_dynamic(descr)
 
     if atom_only?(static) do
       case static_or_dynamic do

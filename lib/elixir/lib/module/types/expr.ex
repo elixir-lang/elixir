@@ -325,7 +325,7 @@ defmodule Module.Types.Expr do
     {acc, context} =
       of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
         trees, body, context, acc ->
-          args = Pattern.of_domain(trees, context)
+          args = Pattern.of_domain(trees, stack, context)
           add_inferred(acc, args, body)
       end)
 

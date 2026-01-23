@@ -396,6 +396,10 @@ defmodule Module.Types.Apply do
           common = intersection(left_type, right_type)
 
           cond do
+            # This check is incomplete. After all, we could have the number type nested
+            # inside a tuple or a list and the comparison would still be valid.
+            # However, nested comparison between distinct numbers is very uncommon,
+            # so we only check the direct value here.
             empty?(common) and not (number_type?(left_type) and number_type?(right_type)) ->
               error = {:mismatched_comparison, left_type, right_type}
               remote_error(error, :erlang, name, 2, expr, stack, context)
@@ -479,7 +483,6 @@ defmodule Module.Types.Apply do
     remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
   end
 
-  @number union(integer(), float())
   @empty_list empty_list()
   @non_empty_list non_empty_list(term())
   @empty_map empty_map()
@@ -546,6 +549,7 @@ defmodule Module.Types.Apply do
             :maybe_false -> {name in [:"/=", :"=/="], @atom_false}
           end
 
+        # This logic mirrors the code in `Pattern.of_pattern_tree`
         # If it is a singleton, we can always be precise
         if singleton?(literal_type) do
           expected = if polarity, do: literal_type, else: negation(literal_type)
@@ -562,7 +566,7 @@ defmodule Module.Types.Apply do
               # We are checking for `not x == 1` or similar, we can't say anything about x
               polarity == false -> term()
               # We are checking for `x == 1`, make sure x is integer or float
-              number_type?(literal_type) and name in [:==, :"/="] -> union(literal_type, @number)
+              name in [:==, :"/="] -> numberize(literal_type)
               # Otherwise we have the literal type as is
               true -> literal_type
             end
@@ -579,7 +583,10 @@ defmodule Module.Types.Apply do
     return_compare(name, left_type, right_type, boolean(), both_literal?, expr, stack, context)
   end
 
-  defp return_compare(name, left_type, right_type, result, skip_check?, expr, stack, context) do
+  @doc """
+  Computes the return type of the comparison application.
+  """
+  def return_compare(name, left_type, right_type, result, skip_check?, expr, stack, context) do
     result = return(result, [left_type, right_type], stack)
 
     cond do
@@ -589,6 +596,10 @@ defmodule Module.Types.Apply do
       name in [:==, :"/="] and number_type?(left_type) and number_type?(right_type) ->
         {result, context}
 
+      # This check is incomplete. After all, we could have the number type nested
+      # inside a tuple or a list and the comparison would still be valid.
+      # However, nested comparison between distinct numbers is very uncommon,
+      # so we only check the direct value here.
       disjoint?(left_type, right_type) ->
         error = {:mismatched_comparison, left_type, right_type}
         remote_error(error, :erlang, name, 2, expr, stack, context)

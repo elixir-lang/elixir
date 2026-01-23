@@ -1938,6 +1938,26 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "numberize" do
+    test "with static" do
+      assert numberize(term()) == term()
+
+      assert open_map(list: list(integer(), atom()), tuple: tuple([float(), binary(), integer()]))
+             |> numberize() ==
+               open_map(
+                 list: list(number(), atom()),
+                 tuple: tuple([number(), binary(), number()])
+               )
+    end
+
+    test "with dynamic" do
+      assert numberize(dynamic()) == dynamic()
+
+      assert dynamic(list(binary(), float())) |> numberize() ==
+               dynamic(list(binary(), number()))
+    end
+  end
+
   describe "map_get" do
     test "with domain keys" do
       assert map_get(term(), term()) == :badmap
