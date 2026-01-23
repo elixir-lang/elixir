@@ -530,25 +530,6 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "capture a function with non atoms" do
-      assert typeerror!([<<x::integer>>], &x.foo_bar/2) ==
-               ~l"""
-               expected a module (an atom) when invoking foo_bar/2 in expression:
-
-                   &x.foo_bar/2
-
-               but got type:
-
-                   integer()
-
-               where "x" was given the type:
-
-                   # type: integer()
-                   # from: types_test.ex:LINE-1
-                   <<x::integer>>
-               """
-    end
-
     test "computes union of all combinations" do
       assert typecheck!(
                [condition, arg],
@@ -604,6 +585,22 @@ defmodule Module.Types.ExprTest do
                    end
              """
     end
+
+    test "calling a function with conditional variables excluside to the application" do
+      assert typecheck!(
+               [condition, arg],
+               (
+                 mod = if condition, do: Integer, else: Float
+
+                 mod.parse(
+                   (
+                     query = "+" <> arg
+                     String.trim_trailing(query)
+                   )
+                 )
+               )
+             ) == dynamic()
+    end
   end
 
   describe "remote capture" do
@@ -615,6 +612,25 @@ defmodule Module.Types.ExprTest do
     test "unknown" do
       assert typecheck!(&Module.Types.ExprTest.__ex_unit__/1) == dynamic(fun(1))
       assert typecheck!([x], &x.something/1) == dynamic(fun(1))
+    end
+
+    test "capture a function with non atoms" do
+      assert typeerror!([<<x::integer>>], &x.foo_bar/2) ==
+               ~l"""
+               expected a module (an atom) when invoking foo_bar/2 in expression:
+
+                   &x.foo_bar/2
+
+               but got type:
+
+                   integer()
+
+               where "x" was given the type:
+
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
+               """
     end
   end
 

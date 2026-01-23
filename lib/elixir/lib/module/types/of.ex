@@ -197,8 +197,11 @@ defmodule Module.Types.Of do
   Reduces conditional variables collected separately.
   """
   def reduce_conditional_vars([{vars, cond} | vars_conds], expr, stack, context) do
+    %{vars: pre_vars} = context
+
     Enum.reduce(Map.keys(cond), context, fn version, context ->
-      if Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
+      if is_map_key(pre_vars, version) and
+           Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
         %{^version => %{type: type}} = vars
 
         type =
