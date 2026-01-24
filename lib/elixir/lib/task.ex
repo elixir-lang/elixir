@@ -165,7 +165,7 @@ defmodule Task do
         {Task, fn -> :some_work end}
       ], strategy: :one_for_one)
 
-  This is often useful when you need to execute some steps while
+  This is often useful when you need to execute code concurrently while
   setting up your supervision tree. For example: to warm up caches,
   log the initialization status, and such.
 
@@ -196,15 +196,17 @@ defmodule Task do
   and `Task.start_link/1` are for fire-and-forget tasks, where you don't
   care about the results or if it completes successfully or not.
 
+  Keep in mind the Supervisor will not wait for the task to finish running
+  before starting the next child or returning. If you need synchronous
+  initialization, then either use an `Agent` or a `GenServer`.
+
   > #### `use Task` {: .info}
   >
   > When you `use Task`, the `Task` module will define a
   > `child_spec/1` function, so your module can be used
   > as a child in a supervision tree.
 
-  `use Task` defines a `child_spec/1` function, allowing the
-  defined module to be put under a supervision tree. The generated
-  `child_spec/1` can be customized with the following options:
+  The generated `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification identifier, defaults to the current module
     * `:restart` - when the child should be restarted, defaults to `:temporary`
