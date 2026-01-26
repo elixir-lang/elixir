@@ -715,7 +715,9 @@ defmodule Module.Types.Expr do
     Enum.reduce(clauses, {acc, original}, fn {:->, meta, [head, body]}, {acc, context} ->
       {failed?, context} = reset_failed(context, failed?)
       {patterns, guards} = extract_head(head)
-      {trees, context} = Pattern.of_head(patterns, guards, domain, info, meta, stack, context)
+
+      {trees, _precise?, context} =
+        Pattern.of_head(patterns, guards, domain, info, meta, stack, context)
 
       {result, context} = of_expr(body, expected, expr || body, stack, context)
 

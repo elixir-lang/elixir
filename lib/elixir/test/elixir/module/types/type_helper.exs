@@ -13,7 +13,16 @@ defmodule TypeHelper do
   alias Module.Types.{Pattern, Expr, Descr}
 
   @doc """
-  Main helper for checking the given AST type checks without warnings.
+  Main helper for checking the precise of pattern plus guards.
+  """
+  defmacro precise?(patterns, guards \\ true) do
+    quote do
+      unquote(precise(patterns, guards, __CALLER__))
+    end
+  end
+
+  @doc """
+  Main helper for checking the given AST type checks without warnings in dynamic mode.
   """
   defmacro typedyn!(patterns \\ [], guards \\ true, body) do
     quote do
@@ -23,7 +32,7 @@ defmodule TypeHelper do
   end
 
   @doc """
-  Main helper for checking the given AST type checks without warnings.
+  Main helper for checking the given AST type checks without warnings in static mode.
   """
   defmacro typecheck!(patterns \\ [], guards \\ true, body) do
     quote do
@@ -118,11 +127,44 @@ defmodule TypeHelper do
     end
   end
 
+  defp precise(patterns, guards, env) do
+    {_, vars} =
+      Macro.prewalk(patterns, [], fn
+        {:"::", _, [left, _right]}, acc ->
+          {left, acc}
+
+        {name, _, ctx} = var, acc when is_atom(ctx) and name != :_ ->
+          {var, [var | acc]}
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    {patterns, guards, _body} = expand_and_unpack(patterns, guards, vars, env)
+
+    quote do
+      TypeHelper.__precise__?(
+        unquote(Macro.escape(patterns)),
+        unquote(Macro.escape(guards))
+      )
+    end
+  end
+
+  def __precise__?(patterns, guards) do
+    stack = new_stack(:static)
+    expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
+
+    {_trees, precise?, _context} =
+      Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
+
+    precise?
+  end
+
   def __typecheck__(mode, patterns, guards, body) do
     stack = new_stack(mode)
     expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
 
-    {_trees, context} =
+    {_trees, _precise?, context} =
       Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
 
     Expr.of_expr(body, Descr.term(), :ok, stack, context)

@@ -509,11 +509,11 @@ defmodule Module.Types.Apply do
       booleaness when booleaness in [:maybe_both, :none] ->
         compare(name, left, literal, false, expr, stack, context, of_fun)
 
-      booleaness ->
+      {boolean, _maybe_or_always} ->
         {polarity, return} =
-          case booleaness do
-            :maybe_true -> {name in [:==, :"=:="], @atom_true}
-            :maybe_false -> {name in [:"/=", :"=/="], @atom_false}
+          case boolean do
+            true -> {name in [:==, :"=:="], @atom_true}
+            false -> {name in [:"/=", :"=/="], @atom_false}
           end
 
         expected =
@@ -540,13 +540,13 @@ defmodule Module.Types.Apply do
       booleaness when booleaness in [:maybe_both, :none] ->
         compare(name, arg, literal, false, expr, stack, context, of_fun)
 
-      booleaness ->
+      {boolean, _maybe_or_always} ->
         {literal_type, context} = of_fun.(literal, term(), expr, stack, context)
 
         {polarity, return} =
-          case booleaness do
-            :maybe_true -> {name in [:==, :"=:="], @atom_true}
-            :maybe_false -> {name in [:"/=", :"=/="], @atom_false}
+          case boolean do
+            true -> {name in [:==, :"=:="], @atom_true}
+            false -> {name in [:"/=", :"=/="], @atom_false}
           end
 
         # This logic mirrors the code in `Pattern.of_pattern_tree`
@@ -614,15 +614,15 @@ defmodule Module.Types.Apply do
       case {left, right} do
         {{{:., _, [:erlang, fun]}, _, [arg]}, size} when is_data_size(fun, size) ->
           case booleaness(expected) do
-            :maybe_true -> sized_order(name, fun, size, arg, @atom_true)
-            :maybe_false -> sized_order(invert_order(name), fun, size, arg, @atom_false)
+            {true, _} -> sized_order(name, fun, size, arg, @atom_true)
+            {false, _} -> sized_order(invert_order(name), fun, size, arg, @atom_false)
             _ -> :none
           end
 
         {size, {{:., _, [:erlang, fun]}, _, [arg]}} when is_data_size(fun, size) ->
           case booleaness(expected) do
-            :maybe_true -> sized_order(invert_order(name), fun, size, arg, @atom_true)
-            :maybe_false -> sized_order(name, fun, size, arg, @atom_false)
+            {true, _} -> sized_order(invert_order(name), fun, size, arg, @atom_true)
+            {false, _} -> sized_order(name, fun, size, arg, @atom_false)
             _ -> :none
           end
 

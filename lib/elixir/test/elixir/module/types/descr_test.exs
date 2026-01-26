@@ -1315,15 +1315,15 @@ defmodule Module.Types.DescrTest do
         assert booleaness(dynamic(type)) == :maybe_both
       end
 
-      for type <- [atom([false]), negation(atom([true]))] do
-        assert booleaness(type) == :maybe_false
-        assert booleaness(dynamic(type)) == :maybe_false
-      end
+      assert booleaness(atom([false])) == {false, :always}
+      assert booleaness(dynamic(atom([false]))) == {false, :always}
+      assert booleaness(dynamic(atom([false, :other]))) == {false, :maybe}
+      assert booleaness(negation(atom([false]))) == {true, :maybe}
 
-      for type <- [atom([true]), negation(atom([false]))] do
-        assert booleaness(type) == :maybe_true
-        assert booleaness(dynamic(type)) == :maybe_true
-      end
+      assert booleaness(atom([true])) == {true, :always}
+      assert booleaness(dynamic(atom([true]))) == {true, :always}
+      assert booleaness(dynamic(atom([true, :other]))) == {true, :maybe}
+      assert booleaness(negation(atom([true]))) == {false, :maybe}
     end
 
     test "truthiness" do

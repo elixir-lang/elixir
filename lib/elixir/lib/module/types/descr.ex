@@ -1029,16 +1029,41 @@ defmodule Module.Types.Descr do
     descr = Map.get(descr, :dynamic, descr)
 
     case descr do
-      :term -> :maybe_both
-      %{atom: {:union, %{true: _, false: _}}} -> :maybe_both
-      %{atom: {:union, %{true: _}}} -> :maybe_true
-      %{atom: {:union, %{false: _}}} -> :maybe_false
-      %{atom: {:union, _}} -> :none
-      %{atom: {:negation, %{true: _, false: _}}} -> :none
-      %{atom: {:negation, %{true: _}}} -> :maybe_false
-      %{atom: {:negation, %{false: _}}} -> :maybe_true
-      %{atom: {:negation, _}} -> :maybe_both
-      _ -> :none
+      :term ->
+        :maybe_both
+
+      %{atom: {:union, %{true: _, false: _}}} ->
+        :maybe_both
+
+      %{atom: {:union, %{true: _} = union}} when map_size(descr) == 1 and map_size(union) == 1 ->
+        {true, :always}
+
+      %{atom: {:union, %{false: _} = union}} when map_size(descr) == 1 and map_size(union) == 1 ->
+        {false, :always}
+
+      %{atom: {:union, %{true: _}}} ->
+        {true, :maybe}
+
+      %{atom: {:union, %{false: _}}} ->
+        {false, :maybe}
+
+      %{atom: {:union, _}} ->
+        :none
+
+      %{atom: {:negation, %{true: _, false: _}}} ->
+        :none
+
+      %{atom: {:negation, %{true: _}}} ->
+        {false, :maybe}
+
+      %{atom: {:negation, %{false: _}}} ->
+        {true, :maybe}
+
+      %{atom: {:negation, _}} ->
+        :maybe_both
+
+      _ ->
+        :none
     end
   end
 

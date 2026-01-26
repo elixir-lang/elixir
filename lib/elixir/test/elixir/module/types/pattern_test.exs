@@ -1170,4 +1170,59 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (tuple_size(x) <= 2), x) == dynamic(@open_ternary_tuple)
     end
   end
+
+  describe "precision" do
+    test "literals in patterns" do
+      assert precise?([:ok])
+      refute precise?([123])
+      refute precise?([123.0])
+      refute precise?(["string"])
+    end
+
+    test "variables in patterns" do
+      assert precise?([x])
+      assert precise?([x, y])
+      refute precise?([x, x])
+    end
+
+    test "bitstrings in patterns" do
+      assert precise?([<<_::binary>>])
+      assert precise?([<<_::bytes>>])
+      assert precise?([<<_::bitstring>>])
+      assert precise?([<<_::bits>>])
+      assert precise?([<<(<<_::binary>>)::bits>>])
+
+      refute precise?([<<>>])
+      refute precise?([<<1, _::binary>>])
+      refute precise?([<<1, _::bitstring>>])
+      refute precise?([<<_::binary-size(8)>>])
+      refute precise?([<<_::bitstring-size(8)>>])
+      refute precise?([<<(<<123>>)::bits>>])
+    end
+
+    test "tuples in patterns" do
+      assert precise?([{:ok, _}])
+      refute precise?([{:ok, 123}])
+    end
+
+    test "maps in patterns" do
+      assert precise?([%{ok: _}])
+      assert precise?([%URI{path: _}])
+
+      refute precise?([%{ok: 123}])
+      refute precise?([%{"foo" => _}])
+    end
+
+    test "lists in patterns" do
+      assert precise?([[]])
+      assert precise?([[_ | _]])
+      assert precise?([x, [y | z]])
+
+      refute precise?([[x | x]])
+      refute precise?([x, [x | y]])
+
+      refute precise?([[:ok | _]])
+      refute precise?([[_ | :ok]])
+    end
+  end
 end

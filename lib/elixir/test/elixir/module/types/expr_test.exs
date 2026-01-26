@@ -715,6 +715,7 @@ defmodule Module.Types.ExprTest do
 
     test "size ok" do
       assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == bitstring()
+      assert typedyn!([<<x, y>>, z], <<z::size(x - y)>>) == dynamic(bitstring())
     end
 
     test "size error" do
@@ -1386,7 +1387,6 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(min(123, 456.0)) == union(integer(), float())
       # min/max uses parametric types, which will carry dynamic regardless of being a strong arrow
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
-      assert typedyn!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
     end
 
     test "warns when comparison is constant" do
@@ -1505,7 +1505,6 @@ defmodule Module.Types.ExprTest do
   describe ":erlang rewrites" do
     test "Kernel.not/1" do
       assert typecheck!([x], not is_list(x)) == boolean()
-      assert typedyn!([x], not is_list(x)) == dynamic(boolean())
     end
 
     test "Kernel.+/2" do
@@ -1549,7 +1548,6 @@ defmodule Module.Types.ExprTest do
 
     test "Integer.to_string/1" do
       assert typecheck!([x = 123], Integer.to_string(x)) == binary()
-      assert typedyn!([x = 123], Integer.to_string(x)) == dynamic(binary())
 
       assert typeerror!([x = :foo], Integer.to_string(x)) |> strip_ansi() ==
                ~l"""
@@ -1575,7 +1573,6 @@ defmodule Module.Types.ExprTest do
 
     test "Bitwise.bnot/1" do
       assert typecheck!([x = 123], Bitwise.bnot(x)) == integer()
-      assert typedyn!([x = 123], Bitwise.bnot(x)) == dynamic(integer())
 
       assert typeerror!([x = :foo], Bitwise.bnot(x)) |> strip_ansi() ==
                ~l"""

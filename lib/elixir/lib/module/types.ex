@@ -326,7 +326,7 @@ defmodule Module.Types do
           context = fresh_context(context)
 
           try do
-            {trees, context} =
+            {trees, _precise?, context} =
               Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
 
             {return_type, context} =
