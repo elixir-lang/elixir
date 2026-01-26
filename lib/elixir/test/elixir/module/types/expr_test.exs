@@ -495,8 +495,7 @@ defmodule Module.Types.ExprTest do
                    # from: types_test.ex:LINE-9
                    mod =
                      cond do
-                       z -> x
-                       true -> y
+                       ...
                      end
                """
     end
@@ -1081,8 +1080,7 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-9
                  foo_or_bar =
                    cond do
-                     :rand.uniform() > 0.5 -> :foo
-                     true -> :bar
+                     ...
                    end
 
              where "x" was given the type:
