@@ -43,7 +43,7 @@ jobs:
             --draft \
             ${{ github.ref_name }}
 
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: github.ref_type == 'branch'
 
       - name: Update ${{ github.ref_name }}-latest
@@ -81,7 +81,7 @@ jobs:
             build_docs: build_docs
 
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: "Build Release"
         uses: ./.github/workflows/release_pre_built
@@ -202,7 +202,7 @@ jobs:
 
       - name: Checkout project
         id: checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: "Download Build Artifacts"
         id: download-build-artifacts
