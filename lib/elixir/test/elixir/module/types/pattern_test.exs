@@ -1243,12 +1243,18 @@ defmodule Module.Types.PatternTest do
       assert precise?([x], not (x == :ok))
       assert precise?([x], x.key != :ok)
       assert precise?([x], not (x.key != :ok))
+      assert precise?([x, y], x == :ok and y == :error)
+      assert precise?([x, y], x == :ok or y == :error)
 
       refute precise?([x, y], x == y)
       refute precise?([x], x == 123)
       refute precise?([x], x == 123.0)
+      refute precise?([x], x > 123)
+      refute precise?([x], x > :ok)
       refute precise?([x, y], x == hd(y))
       refute precise?([x], hd(x) == :ok)
+      refute precise?([x, y], x == :ok and y == 123)
+      refute precise?([x, y], x == :ok or y == 123)
     end
 
     test "sized guards" do
