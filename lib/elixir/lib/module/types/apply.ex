@@ -376,9 +376,9 @@ defmodule Module.Types.Apply do
   defp do_remote(:erlang, name, [left, right], expected, expr, stack, context, of_fun)
        when name in [:>=, :"=<", :>, :<, :min, :max] do
     case sized_order(name, left, right, expected) do
-      {arg, expected, return} ->
+      {arg, expected, precise?, return} ->
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
-        result = if compatible?(actual, expected), do: return, else: boolean()
+        result = if precise? and subtype?(actual, expected), do: return, else: boolean()
         {result, context}
 
       :none ->
@@ -485,6 +485,7 @@ defmodule Module.Types.Apply do
 
   @empty_list empty_list()
   @non_empty_list non_empty_list(term())
+  @list union(empty_list(), non_empty_list(term()))
   @empty_map empty_map()
   @non_empty_map difference(open_map(), empty_map())
 
@@ -516,18 +517,29 @@ defmodule Module.Types.Apply do
             false -> {name in [:"/=", :"=/="], @atom_false}
           end
 
-        expected =
+        {expected, precise?} =
           case fun do
-            :length when :erlang.xor(polarity, literal > 0) -> @empty_list
-            :length -> @non_empty_list
-            :map_size when :erlang.xor(polarity, literal > 0) -> @empty_map
-            :map_size -> @non_empty_map
-            :tuple_size when polarity -> tuple(List.duplicate(term(), literal))
-            :tuple_size -> difference(open_tuple([]), tuple(List.duplicate(term(), literal)))
+            :length when :erlang.xor(polarity, literal > 0) ->
+              {@empty_list, literal == 0}
+
+            :length ->
+              {@non_empty_list, literal == 0}
+
+            :map_size when :erlang.xor(polarity, literal > 0) ->
+              {@empty_map, literal == 0}
+
+            :map_size ->
+              {@non_empty_map, literal == 0}
+
+            :tuple_size when polarity ->
+              {tuple(List.duplicate(term(), literal)), true}
+
+            :tuple_size ->
+              {difference(open_tuple([]), tuple(List.duplicate(term(), literal))), true}
           end
 
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
-        result = if compatible?(actual, expected), do: return, else: boolean()
+        result = if precise? and subtype?(actual, expected), do: return, else: boolean()
 
         # We can skip return compare because literal is always an integer,
         # so it cannot be a disjoint comparison
@@ -554,7 +566,7 @@ defmodule Module.Types.Apply do
         if singleton?(literal_type) do
           expected = if polarity, do: literal_type, else: negation(literal_type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
-          result = if compatible?(arg_type, expected), do: return, else: boolean()
+          result = if subtype?(arg_type, expected), do: return, else: boolean()
 
           # Because reverse polarity means we will infer negated types
           # (which are naturally disjoint), we skip checks in such cases
@@ -637,36 +649,38 @@ defmodule Module.Types.Apply do
   defp sized_order(name, fun, size, arg, return) do
     case expected_order(fun, name, size) do
       :none -> :none
-      expected -> {arg, expected, return}
+      {expected, precise?} -> {arg, expected, precise?, return}
     end
   end
 
   defp expected_order(_, :<, 0), do: :none
 
   defp expected_order(:tuple_size, :<, size),
-    do: difference(open_tuple([]), open_tuple(List.duplicate(term(), size)))
+    do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size))), true}
 
   defp expected_order(:tuple_size, :"=<", 0),
-    do: tuple([])
+    do: {tuple([]), true}
 
   defp expected_order(:tuple_size, :"=<", size),
-    do: difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1)))
+    do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1))), true}
 
   defp expected_order(:tuple_size, :>, size),
-    do: open_tuple(List.duplicate(term(), size + 1))
+    do: {open_tuple(List.duplicate(term(), size + 1)), true}
 
   defp expected_order(:tuple_size, :>=, size),
-    do: open_tuple(List.duplicate(term(), size))
+    do: {open_tuple(List.duplicate(term(), size)), true}
 
-  defp expected_order(:map_size, :<, 1), do: @empty_map
-  defp expected_order(:map_size, :"=<", 0), do: @empty_map
-  defp expected_order(:map_size, :>, _), do: @non_empty_map
-  defp expected_order(:map_size, :>=, size) when size > 0, do: @non_empty_map
+  defp expected_order(:map_size, :<, 1), do: {@empty_map, true}
+  defp expected_order(:map_size, :"=<", 0), do: {@empty_map, true}
+  defp expected_order(:map_size, :>, size), do: {@non_empty_map, size == 0}
+  defp expected_order(:map_size, :>=, 0), do: {open_map(), true}
+  defp expected_order(:map_size, :>=, _), do: {@non_empty_map, false}
 
-  defp expected_order(:length, :<, 1), do: @empty_list
-  defp expected_order(:length, :"=<", 0), do: @empty_list
-  defp expected_order(:length, :>, _), do: @non_empty_list
-  defp expected_order(:length, :>=, size) when size > 0, do: @non_empty_list
+  defp expected_order(:length, :<, 1), do: {@empty_list, true}
+  defp expected_order(:length, :"=<", 0), do: {@empty_list, true}
+  defp expected_order(:length, :>, size), do: {@non_empty_list, size == 0}
+  defp expected_order(:length, :>=, 0), do: {@list, true}
+  defp expected_order(:length, :>=, _), do: {@non_empty_list, false}
 
   defp expected_order(_, _, _), do: :none
 

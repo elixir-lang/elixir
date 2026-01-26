@@ -911,6 +911,12 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (x !== []), x) == dynamic(empty_list())
     end
 
+    test "with singleton literals and composite types" do
+      assert typecheck!([x], x.key == :ok, x) == dynamic(open_map(key: atom([:ok])))
+      assert typecheck!([x], hd(x) == :ok, x) == dynamic(non_empty_list(term(), term()))
+      assert typecheck!([x], elem(x, 0) == :ok, x) == dynamic(open_tuple([atom([:ok])]))
+    end
+
     test "with expressions" do
       # With numbers
       assert typecheck!([x, y], x == y and y === 42, {x, y}) ==
@@ -1223,6 +1229,60 @@ defmodule Module.Types.PatternTest do
 
       refute precise?([[:ok | _]])
       refute precise?([[_ | :ok]])
+    end
+
+    test "guards" do
+      assert precise?([x], is_integer(x))
+      assert precise?([x], not is_integer(x))
+      assert precise?([x], is_integer(x) or is_boolean(x))
+      assert precise?([x], x == :ok or x == :error)
+      assert precise?([x], x.key == :ok)
+      assert precise?([x], elem(x, 0) == :ok)
+      assert precise?([x], :erlang.map_get(:key, x) == :ok)
+      assert precise?([x], x != :ok)
+      assert precise?([x], not (x == :ok))
+      assert precise?([x], x.key != :ok)
+      assert precise?([x], not (x.key != :ok))
+
+      refute precise?([x, y], x == y)
+      refute precise?([x], x == 123)
+      refute precise?([x], x == 123.0)
+      refute precise?([x, y], x == hd(y))
+      refute precise?([x], hd(x) == :ok)
+    end
+
+    test "sized guards" do
+      # Tuples: everything goes
+      assert precise?([x], tuple_size(x) == 0)
+      assert precise?([x], tuple_size(x) != 0)
+      assert precise?([x], tuple_size(x) > 0)
+      assert precise?([x], tuple_size(x) >= 0)
+      assert precise?([x], tuple_size(x) > 10)
+      assert precise?([x], tuple_size(x) < 10)
+
+      # Lists: only when compared to 0
+      assert precise?([x], not (length(x) == 0))
+      assert precise?([x], length(x) != 0)
+      assert precise?([x], not (length(x) > 0))
+      assert precise?([x], length(x) >= 0)
+      assert precise?([x], length(x) < 1)
+
+      refute precise?([x], length(x) == 1)
+      refute precise?([x], length(x) != 1)
+      refute precise?([x], length(x) > 1)
+      refute precise?([x], length(x) <= 3)
+
+      # Maps: only when compared to 0
+      assert precise?([x], map_size(x) == 0)
+      assert precise?([x], map_size(x) != 0)
+      assert precise?([x], map_size(x) > 0)
+      assert precise?([x], map_size(x) >= 0)
+      assert precise?([x], map_size(x) < 1)
+
+      refute precise?([x], map_size(x) == 1)
+      refute precise?([x], map_size(x) != 1)
+      refute precise?([x], map_size(x) > 1)
+      refute precise?([x], map_size(x) <= 3)
     end
   end
 end
