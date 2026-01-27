@@ -127,12 +127,12 @@ defmodule Module.Types.Pattern do
   4. Then we propagate all dependencies to refine variables
 
   """
-  def of_head(patterns, guards, expected, tag, meta, stack, context) do
+  def of_head(patterns, guards, expected, tag, meta, stack, %{vars: vars} = context) do
     stack = %{stack | meta: meta}
 
     case of_pattern_args(patterns, expected, tag, stack, context) do
       {trees, pattern_precise?, changed, context} ->
-        {guard_precise?, context} = of_guards(guards, changed, stack, context)
+        {guard_precise?, context} = of_guards(guards, changed, vars, stack, context)
         {trees, pattern_precise? and guard_precise?, context}
 
       {trees, context} ->
@@ -219,7 +219,7 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles matches in generators.
   """
-  def of_generator(pattern, guards, expected, tag, expr, stack, context) do
+  def of_generator(pattern, guards, expected, tag, expr, stack, %{vars: vars} = context) do
     context = init_pattern_info(context, [])
 
     {tree, _precise?, context} =
@@ -230,7 +230,7 @@ defmodule Module.Types.Pattern do
 
     case of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
       {_types, changed, context} ->
-        {_precise?, context} = of_guards(guards, changed, stack, context)
+        {_precise?, context} = of_guards(guards, changed, vars, stack, context)
         context
 
       {:error, context} ->
@@ -857,20 +857,20 @@ defmodule Module.Types.Pattern do
   @atom_true atom([true])
   @atom_false atom([false])
 
-  defp of_guards([], changed, stack, context) do
+  defp of_guards([], changed, _vars, stack, context) do
     {true, of_changed(changed, stack, context)}
   end
 
-  defp of_guards([guard], changed, stack, context) do
-    context = init_pattern_info(context, {false, nil, Map.from_keys(changed, [])})
+  defp of_guards([guard], changed, vars, stack, context) do
+    context = init_pattern_info(context, {false, nil, true, vars, Map.from_keys(changed, [])})
     {type, context} = of_guard(guard, stack, context)
     {precise?, context} = maybe_badguard(type, guard, stack, context)
-    {{_, _, changed_map}, context} = pop_pattern_info(context)
-    {precise?, of_changed(Map.keys(changed_map), stack, context)}
+    {{_, _, pattern_vars?, _, changed_map}, context} = pop_pattern_info(context)
+    {precise? and pattern_vars?, of_changed(Map.keys(changed_map), stack, context)}
   end
 
-  defp of_guards(guards, changed, stack, context) do
-    context = init_pattern_info(context, {false, nil, Map.from_keys(changed, [])})
+  defp of_guards(guards, changed, vars, stack, context) do
+    context = init_pattern_info(context, {false, nil, true, vars, Map.from_keys(changed, [])})
     expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
 
     {precise?, context} =
@@ -880,19 +880,26 @@ defmodule Module.Types.Pattern do
         {guard_precise? and precise?, context}
       end)
 
-    {{_, _, changed_map}, context} = pop_pattern_info(context)
-    {precise?, of_changed(Map.keys(changed_map), stack, context)}
+    {{_, _, pattern_vars?, _, changed_map}, context} = pop_pattern_info(context)
+    {precise? and pattern_vars?, of_changed(Map.keys(changed_map), stack, context)}
   end
 
   defp update_parent_version(
          parent_version,
-         %{pattern_info: {fail_mode?, old_version, changed_map}} = context
+         %{pattern_info: {fail_mode?, old_version, pattern_vars?, vars, changed_map}} = context
        ) do
-    {old_version, %{context | pattern_info: {fail_mode?, parent_version, changed_map}}}
+    {old_version,
+     %{context | pattern_info: {fail_mode?, parent_version, pattern_vars?, vars, changed_map}}}
   end
 
-  defp enable_conditional_mode(%{pattern_info: {_fail_mode?, version, changed_map}} = context) do
-    %{context | pattern_info: {true, version, changed_map}, conditional_vars: %{}}
+  defp enable_conditional_mode(
+         %{pattern_info: {_fail_mode?, version, pattern_vars?, vars, changed_map}} = context
+       ) do
+    %{
+      context
+      | pattern_info: {true, version, pattern_vars?, vars, changed_map},
+        conditional_vars: %{}
+    }
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -1004,9 +1011,11 @@ defmodule Module.Types.Pattern do
     # and also when vars change, so we need to deal with all possibilities
     # for pattern_info.
     case context.pattern_info do
-      {fail_mode?, dep_version, changed} when is_map(changed) ->
+      {fail_mode?, dep_version, pattern_vars?, vars, changed} when is_map(changed) ->
+        pattern_vars? = pattern_vars? and not is_map_key(vars, version)
         changed = Map.put(changed, version, [])
-        context = %{context | pattern_info: {fail_mode?, dep_version, changed}}
+        pattern_info = {fail_mode?, dep_version, pattern_vars?, vars, changed}
+        context = %{context | pattern_info: pattern_info}
 
         context =
           if dep_version != nil,
@@ -1050,7 +1059,7 @@ defmodule Module.Types.Pattern do
     with false <- Macro.quoted_literal?(left) or Macro.quoted_literal?(right),
          true <- is_var(left) or is_var(right),
          {boolean, _maybe_or_always} <- booleaness(expected),
-         %{pattern_info: {_, _, _}} <- context do
+         %{pattern_info: {_, _, _, _, _}} <- context do
       polarity =
         case boolean do
           true -> fun in [:==, :"=:="]
