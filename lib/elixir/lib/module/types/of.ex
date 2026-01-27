@@ -86,11 +86,13 @@ defmodule Module.Types.Of do
   or if we are doing a guard analysis or occurrence typing.
   Returns `true` if there was a refinement, `false` otherwise.
   """
-  def refine_body_var({_, meta, _}, type, expr, stack, context) do
-    refine_body_var(Keyword.fetch!(meta, :version), type, expr, stack, context)
+  def refine_body_var(var_or_version, type, expr, stack, context, allow_empty? \\ false)
+
+  def refine_body_var({_, meta, _}, type, expr, stack, context, allow_empty?) do
+    refine_body_var(Keyword.fetch!(meta, :version), type, expr, stack, context, allow_empty?)
   end
 
-  def refine_body_var(version, type, expr, stack, context)
+  def refine_body_var(version, type, expr, stack, context, allow_empty?)
       when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
@@ -105,6 +107,15 @@ defmodule Module.Types.Of do
 
     if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
       case compatible_intersection(old_type, type) do
+        {:error, _} when allow_empty? ->
+          data = %{
+            data
+            | type: none(),
+              off_traces: new_trace(expr, none(), stack, off_traces)
+          }
+
+          {none(), %{context | vars: %{vars | version => data}}}
+
         {:ok, new_type} when new_type != old_type ->
           data = %{
             data

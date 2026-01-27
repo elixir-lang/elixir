@@ -10,7 +10,7 @@ defmodule Module.Types.ExprTest do
   import Module.Types.Descr
   defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
-  defmacro generated(x) do
+  defmacro generated_foo_call(x) do
     quote generated: true do
       unquote(x).foo()
     end
@@ -28,7 +28,7 @@ defmodule Module.Types.ExprTest do
   end
 
   test "generated" do
-    assert typecheck!([x = 1], generated(x)) == dynamic()
+    assert typecheck!([x = 1], generated_foo_call(x)) == dynamic()
   end
 
   describe "bitstrings" do
@@ -1637,6 +1637,26 @@ defmodule Module.Types.ExprTest do
                  :error -> :error
                end
              ) == dynamic(atom([:ok, :error]))
+    end
+
+    defmacrop generated(op) do
+      Macro.update_meta(op, &([generated: true] ++ &1))
+    end
+
+    test "ignores always failing guards" do
+      assert typecheck!(
+               case System.get_env("foo") do
+                 x when generated(x == false) or byte_size(x) >= 0 -> :binary
+                 _ -> nil
+               end
+             ) == atom([nil, :binary])
+
+      assert typecheck!(
+               case System.get_env("foo") do
+                 x when generated(x == false) or x == nil -> nil
+                 _ -> :binary
+               end
+             ) == atom([nil, :binary])
     end
 
     test "computes types based on previous branches" do

@@ -862,15 +862,15 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_guards([guard], changed, stack, context) do
-    context = init_pattern_info(context, {nil, Map.from_keys(changed, [])})
+    context = init_pattern_info(context, {false, nil, Map.from_keys(changed, [])})
     {type, context} = of_guard(guard, stack, context)
     {precise?, context} = maybe_badguard(type, guard, stack, context)
-    {{_, changed_map}, context} = pop_pattern_info(context)
+    {{_, _, changed_map}, context} = pop_pattern_info(context)
     {precise?, of_changed(Map.keys(changed_map), stack, context)}
   end
 
   defp of_guards(guards, changed, stack, context) do
-    context = init_pattern_info(context, {nil, Map.from_keys(changed, [])})
+    context = init_pattern_info(context, {false, nil, Map.from_keys(changed, [])})
     expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
 
     {precise?, context} =
@@ -880,15 +880,19 @@ defmodule Module.Types.Pattern do
         {guard_precise? and precise?, context}
       end)
 
-    {{_, changed_map}, context} = pop_pattern_info(context)
+    {{_, _, changed_map}, context} = pop_pattern_info(context)
     {precise?, of_changed(Map.keys(changed_map), stack, context)}
   end
 
   defp update_parent_version(
          parent_version,
-         %{pattern_info: {old_version, changed_map}} = context
+         %{pattern_info: {fail_mode?, old_version, changed_map}} = context
        ) do
-    {old_version, %{context | pattern_info: {parent_version, changed_map}}}
+    {old_version, %{context | pattern_info: {fail_mode?, parent_version, changed_map}}}
+  end
+
+  defp enable_conditional_mode(%{pattern_info: {_fail_mode?, version, changed_map}} = context) do
+    %{context | pattern_info: {true, version, changed_map}, conditional_vars: %{}}
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -1000,15 +1004,16 @@ defmodule Module.Types.Pattern do
     # and also when vars change, so we need to deal with all possibilities
     # for pattern_info.
     case context.pattern_info do
-      {dep_version, changed} when is_map(changed) ->
-        context = %{context | pattern_info: {dep_version, Map.put(changed, version, [])}}
+      {fail_mode?, dep_version, changed} when is_map(changed) ->
+        changed = Map.put(changed, version, [])
+        context = %{context | pattern_info: {fail_mode?, dep_version, changed}}
 
         context =
           if dep_version != nil,
             do: Of.track_var(version, [dep_version], [], context),
             else: context
 
-        Of.refine_body_var(version, expected, expr, stack, context)
+        Of.refine_body_var(version, expected, expr, stack, context, fail_mode?)
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
@@ -1045,7 +1050,7 @@ defmodule Module.Types.Pattern do
     with false <- Macro.quoted_literal?(left) or Macro.quoted_literal?(right),
          true <- is_var(left) or is_var(right),
          {boolean, _maybe_or_always} <- booleaness(expected),
-         %{pattern_info: {_, _}} <- context do
+         %{pattern_info: {_, _, _}} <- context do
       polarity =
         case boolean do
           true -> fun in [:==, :"=:="]
@@ -1081,7 +1086,7 @@ defmodule Module.Types.Pattern do
     if subtype?(expected, both_domain) do
       of_logical_all([left | right], true, both_domain, abort_domain, stack, context)
     else
-      cond_context = %{context | conditional_vars: %{}}
+      cond_context = enable_conditional_mode(context)
 
       # Compute the sure types, which are stored directly in the context
       {_type, context} = of_guard(left, boolean(), left, stack, context)
