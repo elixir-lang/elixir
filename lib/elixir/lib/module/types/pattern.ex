@@ -784,18 +784,40 @@ defmodule Module.Types.Pattern do
     of_pattern(suffix, path, stack, context)
   end
 
+  # [prefix | suffix]
+  defp of_list([prefix], suffix, path, stack, context) when is_var(prefix) and is_var(suffix) do
+    {suffix_type, suffix_precise?, context} =
+      of_pattern(suffix, [:tail | path], stack, context)
+
+    context = annotate_list_subpattern(suffix, context)
+
+    {prefix_type, prefix_precise?, context} =
+      of_subpattern(prefix, [:head | path], stack, context)
+
+    context = annotate_list_subpattern(prefix, context)
+
+    type =
+      if is_descr(prefix_type) and is_descr(suffix_type) do
+        non_empty_list(prefix_type, suffix_type)
+      else
+        {:non_empty_list, [prefix_type], suffix_type}
+      end
+
+    {type, prefix_precise? and suffix_precise?, context}
+  end
+
   # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
   defp of_list(prefix, suffix, path, stack, context) do
-    {suffix_type, tail_precise?, context} = of_pattern(suffix, [:tail | path], stack, context)
+    {suffix_type, _precise?, context} = of_pattern(suffix, [:tail | path], stack, context)
 
-    {head_precise?, static, dynamic, context} =
-      Enum.reduce(prefix, {true, [], [], context}, fn arg, {_, static, dynamic, context} ->
-        {type, precise?, context} = of_subpattern(arg, [:head | path], stack, context)
+    {static, dynamic, context} =
+      Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
+        {type, _precise?, context} = of_subpattern(arg, [:head | path], stack, context)
 
         if is_descr(type) do
-          {precise?, [type | static], dynamic, context}
+          {[type | static], dynamic, context}
         else
-          {precise?, static, [type | dynamic], context}
+          {static, [type | dynamic], context}
         end
       end)
 
@@ -811,11 +833,19 @@ defmodule Module.Types.Pattern do
           {:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix_type}
       end
 
-    precise? =
-      head_precise? and tail_precise? and is_var(suffix) and
-        match?([head] when is_var(head), prefix)
+    {type, false, context}
+  end
 
-    {type, precise?, context}
+  defp list_subpattern?(version, context) do
+    is_map_key(context.subpatterns, {:list, version})
+  end
+
+  defp annotate_list_subpattern({name, meta, _}, context) do
+    if name != :_ do
+      put_in(context.subpatterns[{:list, Keyword.fetch!(meta, :version)}], true)
+    else
+      context
+    end
   end
 
   # These cases don't need to store information because they have no intersection
@@ -861,45 +891,43 @@ defmodule Module.Types.Pattern do
     {true, of_changed(changed, stack, context)}
   end
 
-  defp of_guards([guard], changed, vars, stack, context) do
-    context = init_pattern_info(context, {false, nil, true, vars, Map.from_keys(changed, [])})
-    {type, context} = of_guard(guard, stack, context)
-    {precise?, context} = maybe_badguard(type, guard, stack, context)
-    {{_, _, pattern_vars?, _, changed_map}, context} = pop_pattern_info(context)
-    {precise? and pattern_vars?, of_changed(Map.keys(changed_map), stack, context)}
+  defp of_guards(guards, changed, vars, stack, context) do
+    context =
+      init_pattern_info(context, %{
+        allow_empty?: false,
+        parent_version: nil,
+        precise?: true,
+        vars: vars,
+        changed: Map.from_keys(changed, [])
+      })
+
+    {guard_precise?, context} = of_guards(guards, stack, context)
+    {%{precise?: precise?, changed: changed}, context} = pop_pattern_info(context)
+    {precise? and guard_precise?, of_changed(Map.keys(changed), stack, context)}
   end
 
-  defp of_guards(guards, changed, vars, stack, context) do
-    context = init_pattern_info(context, {false, nil, true, vars, Map.from_keys(changed, [])})
+  defp of_guards([guard], stack, context) do
+    {type, context} = of_guard(guard, stack, context)
+    maybe_badguard(type, guard, stack, context)
+  end
+
+  defp of_guards(guards, stack, context) do
     expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
 
-    {precise?, context} =
-      Of.with_conditional_vars(guards, true, expr, stack, context, fn guard, precise?, context ->
-        {type, context} = of_guard(guard, stack, context)
-        {guard_precise?, context} = maybe_badguard(type, guard, stack, context)
-        {guard_precise? and precise?, context}
-      end)
-
-    {{_, _, pattern_vars?, _, changed_map}, context} = pop_pattern_info(context)
-    {precise? and pattern_vars?, of_changed(Map.keys(changed_map), stack, context)}
+    Of.with_conditional_vars(guards, true, expr, stack, context, fn guard, precise?, context ->
+      {type, context} = of_guard(guard, stack, context)
+      {guard_precise?, context} = maybe_badguard(type, guard, stack, context)
+      {guard_precise? and precise?, context}
+    end)
   end
 
-  defp update_parent_version(
-         parent_version,
-         %{pattern_info: {fail_mode?, old_version, pattern_vars?, vars, changed_map}} = context
-       ) do
-    {old_version,
-     %{context | pattern_info: {fail_mode?, parent_version, pattern_vars?, vars, changed_map}}}
+  defp update_parent_version(parent_version, %{pattern_info: pattern_info} = context) do
+    {pattern_info.parent_version,
+     %{context | pattern_info: %{pattern_info | parent_version: parent_version}}}
   end
 
-  defp enable_conditional_mode(
-         %{pattern_info: {_fail_mode?, version, pattern_vars?, vars, changed_map}} = context
-       ) do
-    %{
-      context
-      | pattern_info: {true, version, pattern_vars?, vars, changed_map},
-        conditional_vars: %{}
-    }
+  defp enable_conditional_mode(%{pattern_info: pattern_info} = context) do
+    %{context | pattern_info: %{pattern_info | allow_empty?: true}, conditional_vars: %{}}
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -1011,18 +1039,26 @@ defmodule Module.Types.Pattern do
     # and also when vars change, so we need to deal with all possibilities
     # for pattern_info.
     case context.pattern_info do
-      {fail_mode?, dep_version, pattern_vars?, vars, changed} when is_map(changed) ->
-        pattern_vars? = pattern_vars? and not is_map_key(vars, version)
+      %{
+        allow_empty?: allow_empty?,
+        precise?: precise?,
+        vars: vars,
+        parent_version: parent_version,
+        changed: changed
+      } = pattern_info ->
+        precise? =
+          precise? and not is_map_key(vars, version) and not list_subpattern?(version, context)
+
         changed = Map.put(changed, version, [])
-        pattern_info = {fail_mode?, dep_version, pattern_vars?, vars, changed}
+        pattern_info = %{pattern_info | precise?: precise?, changed: changed}
         context = %{context | pattern_info: pattern_info}
 
         context =
-          if dep_version != nil,
-            do: Of.track_var(version, [dep_version], [], context),
+          if parent_version != nil,
+            do: Of.track_var(version, [parent_version], [], context),
             else: context
 
-        Of.refine_body_var(version, expected, expr, stack, context, fail_mode?)
+        Of.refine_body_var(version, expected, expr, stack, context, allow_empty?)
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
@@ -1054,12 +1090,14 @@ defmodule Module.Types.Pattern do
     of_guard(other_side, term(), call, stack, context)
   end
 
+  @comp_op [:==, :"/=", :"=:=", :"=/="]
+
   defp of_remote(fun, [left, right] = args, call, expected, stack, context)
-       when fun in [:==, :"/=", :"=:=", :"=/="] do
+       when fun in @comp_op do
     with false <- Macro.quoted_literal?(left) or Macro.quoted_literal?(right),
          true <- is_var(left) or is_var(right),
          {boolean, _maybe_or_always} <- booleaness(expected),
-         %{pattern_info: {_, _, _, _, _}} <- context do
+         %{pattern_info: %{}} <- context do
       polarity =
         case boolean do
           true -> fun in [:==, :"=:="]
@@ -1089,6 +1127,27 @@ defmodule Module.Types.Pattern do
     # building nested conditional environments.
     [left | right] = unpack_op(call, fun, [])
 
+    # In case the right side is a sequence of comparisons with imprecise literals, collapse them.
+    right =
+      with {{:., _, [:erlang, comp_op]}, _, [{var_name, _, var_ctx}, literal]}
+           when comp_op in @comp_op and is_atom(var_name) and is_atom(var_ctx) and
+                  (is_number(literal) or is_binary(literal)) <- left,
+           true <-
+             Enum.all?(right, fn
+               {{:., _, [:erlang, ^comp_op]}, _, [{^var_name, _, ^var_ctx}, other_literal]}
+               when is_integer(literal) and is_integer(other_literal)
+               when is_float(literal) and is_float(other_literal)
+               when is_binary(literal) and is_binary(other_literal) ->
+                 true
+
+               _ ->
+                 false
+             end) do
+        []
+      else
+        _ -> right
+      end
+
     # For example, if the expected type is true for andalso, then it can
     # only be true if both clauses are executed, so we know the first
     # argument has to be true and the second has to be expected.
@@ -1115,6 +1174,17 @@ defmodule Module.Types.Pattern do
 
       {type, vars_conds} =
         of_logical_cond([left | right], true, expected, abort_domain, stack, cond_context, [])
+
+      # We will be precise if all branches changed the same variable
+      context =
+        update_in(context.pattern_info.precise?, fn
+          false ->
+            false
+
+          true ->
+            [{_, cond} | tail] = vars_conds
+            Enum.all?(tail, fn {_, tail_cond} -> cond == tail_cond end)
+        end)
 
       {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
     end

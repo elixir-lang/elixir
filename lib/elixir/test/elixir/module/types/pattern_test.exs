@@ -855,6 +855,7 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], x === "foo", x) == dynamic(binary())
       assert typecheck!([x], not (x == "foo"), x) == dynamic()
       assert typecheck!([x], not (x === "foo"), x) == dynamic()
+      assert typecheck!([x], x in ["foo", "bar", "baz"], x) == dynamic(binary())
 
       assert typecheck!([x], x != "foo", x) == dynamic()
       assert typecheck!([x], x !== "foo", x) == dynamic()
@@ -1024,7 +1025,7 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  describe "comparison in guards" do
+  describe "size comparison in guards" do
     test "length equality" do
       assert typecheck!([x], length(x) != 0, x) == dynamic(non_empty_list(term()))
       assert typecheck!([x], not (length(x) != 0), x) == dynamic(empty_list())
@@ -1224,6 +1225,7 @@ defmodule Module.Types.PatternTest do
       assert precise?([[_ | _]])
       assert precise?([x, [y | z]])
 
+      refute precise?([[x | y]], is_integer(x))
       refute precise?([[x | x]])
       refute precise?([x, [x | y]])
 
@@ -1244,7 +1246,6 @@ defmodule Module.Types.PatternTest do
       assert precise?([x], x.key != :ok)
       assert precise?([x], not (x.key != :ok))
       assert precise?([x, y], x == :ok and y == :error)
-      assert precise?([x, y], x == :ok or y == :error)
 
       refute precise?([x, y], x == y)
       refute precise?([x], x == 123)
@@ -1254,7 +1255,7 @@ defmodule Module.Types.PatternTest do
       refute precise?([x, y], x == hd(y))
       refute precise?([x], hd(x) == :ok)
       refute precise?([x, y], x == :ok and y == 123)
-      refute precise?([x, y], x == :ok or y == 123)
+      refute precise?([x, y], x == :ok or y == :error)
     end
 
     test "sized guards" do
