@@ -762,6 +762,7 @@ defmodule Module.Types.Expr do
 
               cond do
                 stack.mode != :infer and previous != none() and subtype?(clause_type, previous) ->
+                  stack = %{stack | meta: meta}
                   {previous, Pattern.badpattern_error(clause, 0, info, stack, context)}
 
                 precise? ->
