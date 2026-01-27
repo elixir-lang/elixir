@@ -650,6 +650,7 @@ defmodule LoggerTest do
     Logger.configure(translator_inspect_opts: [])
   end
 
+  @tag formatter: [metadata: [:module, :meta]]
   test "always evaluate messages" do
     Logger.configure(
       always_evaluate_messages: true,
@@ -664,6 +665,16 @@ defmodule LoggerTest do
 
       def runtime_purged do
         Logger.info(send(self(), "runtime purged"))
+      end
+
+      def runtime_purged_anonymous_function do
+        Logger.info(fn -> send(self(), "runtime purged anonymous function") end)
+      end
+
+      def runtime_purged_anonymous_tuple_function do
+        Logger.info(fn ->
+          {send(self(), "runtime purged anonymous tuple function"), meta: true}
+        end)
       end
 
       def not_purged do
@@ -687,6 +698,24 @@ defmodule LoggerTest do
            end) =~ "runtime purged"
 
     assert_received "runtime purged"
+
+    assert capture_log(fn ->
+             Logger.configure(level: :debug)
+             AlwaysEvaluate.runtime_purged_anonymous_function()
+           end) =~ "runtime purged anonymous function"
+
+    assert_received "runtime purged anonymous function"
+
+    log =
+      capture_log(fn ->
+        Logger.configure(level: :debug)
+        AlwaysEvaluate.runtime_purged_anonymous_tuple_function()
+      end)
+
+    assert log =~ "module=LoggerTest.AlwaysEvaluate meta=true"
+    assert log =~ "runtime purged anonymous tuple function"
+
+    assert_received "runtime purged anonymous tuple function"
 
     assert capture_log(fn ->
              Logger.configure(level: :error)
