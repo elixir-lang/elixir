@@ -816,6 +816,7 @@ defmodule Protocol do
         # Set up a clear slate to store defined functions
         @__functions__ []
         @fallback_to_any false
+        @undefined_impl_description ""
 
         # Invoke the user given block
         _ = unquote(block)
@@ -927,57 +928,101 @@ defmodule Protocol do
   end
 
   defp after_defprotocol do
-    quote bind_quoted: [built_in: built_in()] do
-      any_impl_for =
-        if @fallback_to_any do
-          __MODULE__.Any
-        else
-          nil
+    prefix =
+      quote bind_quoted: [built_in: built_in()] do
+        any_impl_for =
+          if @fallback_to_any do
+            __MODULE__.Any
+          else
+            nil
+          end
+
+        # Disable Dialyzer checks - before and after consolidation
+        # the types could be more strict
+        @dialyzer {:nowarn_function, __protocol__: 1, impl_for: 1, impl_for!: 1}
+
+        @doc false
+        @spec impl_for(term) :: atom | nil
+        Kernel.def(impl_for(data))
+
+        # Define the implementation for structs.
+        #
+        # It simply delegates to struct_impl_for which is then
+        # optimized during protocol consolidation.
+        Kernel.def impl_for(%struct{}) do
+          struct_impl_for(struct)
         end
 
-      # Disable Dialyzer checks - before and after consolidation
-      # the types could be more strict
-      @dialyzer {:nowarn_function, __protocol__: 1, impl_for: 1, impl_for!: 1}
+        # Define the implementation for built-ins
+        :lists.foreach(
+          fn {mod, guard} ->
+            target = Protocol.__concat__(__MODULE__, mod)
 
-      @doc false
-      @spec impl_for(term) :: atom | nil
-      Kernel.def(impl_for(data))
-
-      # Define the implementation for structs.
-      #
-      # It simply delegates to struct_impl_for which is then
-      # optimized during protocol consolidation.
-      Kernel.def impl_for(%struct{}) do
-        struct_impl_for(struct)
-      end
-
-      # Define the implementation for built-ins
-      :lists.foreach(
-        fn {mod, guard} ->
-          target = Protocol.__concat__(__MODULE__, mod)
-
-          Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-            case Code.ensure_compiled(unquote(target)) do
-              {:module, module} -> module
-              {:error, _} -> unquote(any_impl_for)
+            Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
+              case Code.ensure_compiled(unquote(target)) do
+                {:module, module} -> module
+                {:error, _} -> unquote(any_impl_for)
+              end
             end
-          end
-        end,
-        built_in
-      )
+          end,
+          built_in
+        )
 
-      # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
-      # destructuring opaque types is illegal, Dialyzer will think none of the
-      # previous clauses matches opaque types, and without this clause, will
-      # conclude that impl_for can't handle an opaque argument). This is a hack
-      # since it relies on Dialyzer not being smart enough to conclude that all
-      # opaque types will get the any_impl_for/0 implementation.
-      Kernel.def impl_for(_) do
-        unquote(any_impl_for)
+        # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
+        # destructuring opaque types is illegal, Dialyzer will think none of the
+        # previous clauses matches opaque types, and without this clause, will
+        # conclude that impl_for can't handle an opaque argument). This is a hack
+        # since it relies on Dialyzer not being smart enough to conclude that all
+        # opaque types will get the any_impl_for/0 implementation.
+        Kernel.def impl_for(_) do
+          unquote(any_impl_for)
+        end
+
+        # Internal handler for Structs
+        Kernel.defp struct_impl_for(struct) do
+          case Code.ensure_compiled(Protocol.__concat__(__MODULE__, struct)) do
+            {:module, module} -> module
+            {:error, _} -> unquote(any_impl_for)
+          end
+        end
+
+        # Inline struct implementation for performance
+        @compile {:inline, struct_impl_for: 1}
+
+        if not Module.defines_type?(__MODULE__, {:t, 0}) do
+          @typedoc """
+          All the types that implement this protocol.
+          """
+          @type t :: term
+        end
+
+        # Store information as an attribute so it
+        # can be read without loading the module.
+        Module.register_attribute(__MODULE__, :__protocol__, persist: true)
+        @__protocol__ [fallback_to_any: !!@fallback_to_any]
+
+        @doc false
+        @spec __protocol__(:module) :: __MODULE__
+        @spec __protocol__(:functions) :: [{atom(), arity()}]
+        @spec __protocol__(:consolidated?) :: boolean()
+        @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module()]}
+        Kernel.def(__protocol__(:module), do: __MODULE__)
+        Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@__functions__)))
+        Kernel.def(__protocol__(:consolidated?), do: false)
+        Kernel.def(__protocol__(:impls), do: :not_consolidated)
       end
 
-      undefined_impl_description =
-        Module.get_attribute(__MODULE__, :undefined_impl_description, "")
+    raise =
+      quote do
+        raise(Protocol.UndefinedError,
+          protocol: __MODULE__,
+          value: data,
+          description: @undefined_impl_description
+        )
+      end
+
+    quote generated: true do
+      unquote(prefix)
 
       @doc false
       @spec impl_for!(term) :: atom
@@ -987,47 +1032,9 @@ defmodule Protocol do
         end
       else
         Kernel.def impl_for!(data) do
-          impl_for(data) ||
-            raise(Protocol.UndefinedError,
-              protocol: __MODULE__,
-              value: data,
-              description: unquote(undefined_impl_description)
-            )
+          impl_for(data) || unquote(raise)
         end
       end
-
-      # Internal handler for Structs
-      Kernel.defp struct_impl_for(struct) do
-        case Code.ensure_compiled(Protocol.__concat__(__MODULE__, struct)) do
-          {:module, module} -> module
-          {:error, _} -> unquote(any_impl_for)
-        end
-      end
-
-      # Inline struct implementation for performance
-      @compile {:inline, struct_impl_for: 1}
-
-      if not Module.defines_type?(__MODULE__, {:t, 0}) do
-        @typedoc """
-        All the types that implement this protocol.
-        """
-        @type t :: term
-      end
-
-      # Store information as an attribute so it
-      # can be read without loading the module.
-      Module.register_attribute(__MODULE__, :__protocol__, persist: true)
-      @__protocol__ [fallback_to_any: !!@fallback_to_any]
-
-      @doc false
-      @spec __protocol__(:module) :: __MODULE__
-      @spec __protocol__(:functions) :: [{atom(), arity()}]
-      @spec __protocol__(:consolidated?) :: boolean()
-      @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module()]}
-      Kernel.def(__protocol__(:module), do: __MODULE__)
-      Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@__functions__)))
-      Kernel.def(__protocol__(:consolidated?), do: false)
-      Kernel.def(__protocol__(:impls), do: :not_consolidated)
     end
   end
 

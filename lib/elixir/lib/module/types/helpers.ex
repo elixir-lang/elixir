@@ -143,8 +143,9 @@ defmodule Module.Types.Helpers do
   """
   def collect_traces(expr, %{vars: vars}) do
     {_, versions} =
-      Macro.prewalk(expr, %{}, fn
-        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
+      Macro.prewalk(expr, %{}, fn node, versions ->
+        with {var_name, meta, var_context} when is_atom(var_name) and is_atom(var_context) <- node,
+             false <- String.starts_with?(Atom.to_string(var_name), "_") do
           version = meta[:version]
 
           case vars do
@@ -160,9 +161,9 @@ defmodule Module.Types.Helpers do
             _ ->
               {:ok, versions}
           end
-
-        node, versions ->
-          {node, versions}
+        else
+          _ -> {node, versions}
+        end
       end)
 
     versions

@@ -295,7 +295,6 @@ defmodule Module.Types.Expr do
 
   def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, expr, stack, context) do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
-    info = {:case, meta, case_type, case_expr}
 
     added_meta =
       if Macro.quoted_literal?(case_expr) do
@@ -312,7 +311,7 @@ defmodule Module.Types.Expr do
     else
       clauses
     end
-    |> of_clauses([case_type], expected, expr, info, stack, context, none())
+    |> of_case_clauses(case_type, expected, meta, case_expr, expr, stack, context)
     |> dynamic_unless_static(stack)
   end
 
@@ -726,6 +725,63 @@ defmodule Module.Types.Expr do
     end)
   end
 
+  defp of_case_clauses(clauses, domain, expected, case_meta, case_expr, expr, stack, original) do
+    %{failed: failed?} = original
+
+    {result, _previous, context} =
+      Enum.reduce(clauses, {none(), none(), original}, fn
+        {:->, meta, [[clause] = head, body]}, {acc, previous, context} ->
+          {failed?, context} = reset_failed(context, failed?)
+          {patterns, guards} = extract_head(head)
+
+          clause_domain = difference(domain, previous)
+          info = {:case, case_meta, clause_domain, case_expr, previous}
+
+          {trees, precise?, context} =
+            Pattern.of_head(patterns, guards, [clause_domain], info, meta, stack, context)
+
+          # It failed, let's try to detect if it was due a previous or current clause.
+          # The current clause will be easier to understand, so we prefer that
+          {[{clause_tree, _, _}], precise?, context} =
+            if context.failed and previous != none() do
+              info = {:case, case_meta, domain, case_expr, nil}
+
+              case Pattern.of_head(patterns, guards, [domain], info, meta, stack, context) do
+                {_, _, %{failed: true}} = result -> result
+                _ -> {trees, precise?, context}
+              end
+            else
+              {trees, precise?, context}
+            end
+
+          {previous, context} =
+            if context.failed do
+              {previous, context}
+            else
+              clause_type = Pattern.of_pattern_tree(clause_tree, stack, context) |> upper_bound()
+
+              cond do
+                stack.mode != :infer and previous != none() and subtype?(clause_type, previous) ->
+                  stack = %{stack | meta: meta}
+                  {previous, Pattern.badpattern_error(clause, 0, info, stack, context)}
+
+                precise? ->
+                  {union(previous, clause_type), context}
+
+                true ->
+                  {previous, context}
+              end
+            end
+
+          {result, context} = of_expr(body, expected, expr || body, stack, context)
+
+          {union(result, acc), previous,
+           context |> set_failed(failed?) |> Of.reset_vars(original)}
+      end)
+
+    {result, context}
+  end
+
   defp reset_failed(%{failed: true} = context, false), do: {true, %{context | failed: false}}
   defp reset_failed(context, _), do: {false, context}
 
@@ -772,6 +828,25 @@ defmodule Module.Types.Expr do
   end
 
   ## Warning formatting
+
+  def format_diagnostic({:badclause, {:case, meta, type, expr}, [head], context}) do
+    {expr, message} =
+      if meta[:type_check] == :expr do
+        {expr,
+         """
+         the following conditional expression will always evaluate to #{to_quoted_string(type)}:
+
+             #{expr_to_string(expr) |> indent(4)}
+         """}
+      else
+        {head, "the following clause has no effect because a previous clause will always match\n"}
+      end
+
+    %{
+      details: %{typing_traces: collect_traces(expr, context)},
+      message: message
+    }
+  end
 
   def format_diagnostic({:badupdate, type, expr, context}) do
     {:%, _, [module, {:%{}, _, [{:|, _, [map, _]}]}]} = expr
