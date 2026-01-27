@@ -1639,6 +1639,56 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(atom([:ok, :error]))
     end
 
+    test "computes types based on previous branches" do
+      assert typecheck!(
+               [condition],
+               case condition do
+                 x when is_binary(x) -> {:binary, x}
+                 x when is_bitstring(x) -> {:bitstring, x}
+               end
+             ) ==
+               dynamic(
+                 union(
+                   tuple([atom([:binary]), binary()]),
+                   tuple([atom([:bitstring]), bitstring_no_binary()])
+                 )
+               )
+    end
+
+    test "reports error from redundant clauses" do
+      assert typeerror!(
+               [x],
+               case String.to_atom(x) do
+                 :ok -> 1
+                 :ok -> 2
+               end
+             ) == ~l"""
+             the following clause cannot match because a previous clauses already matched this pattern:
+
+                 :ok ->
+
+             the following types have already been matched:
+
+                 :ok
+             """
+
+      assert typeerror!(
+               [a, b],
+               case {a, b} do
+                 {x, y} when is_integer(x) and is_integer(y) -> 1
+                 {x, y} when is_integer(x) and is_integer(y) -> 2
+               end
+             ) =~ ~l"""
+             the following clause cannot match because a previous clauses already matched this pattern:
+
+                 {x, y} when is_integer(x) and is_integer(y) ->
+
+             the following types have already been matched:
+
+                 {integer(), integer()}
+             """
+    end
+
     test "reports error from clause that will never match" do
       assert typeerror!(
                [x],
@@ -1649,7 +1699,7 @@ defmodule Module.Types.ExprTest do
              ) == ~l"""
              the following clause will never match:
 
-                 :error
+                 :error ->
 
              because it attempts to match on the result of:
 
@@ -1690,9 +1740,23 @@ defmodule Module.Types.ExprTest do
 
     test "and reports violations" do
       assert typeerror!([x = 123], x and true) =~ """
-             the following conditional expression will always evaluate to integer():
+             the following conditional expression:
 
                  x
+
+             will always evaluate to:
+
+                 integer()
+             """
+
+      assert typeerror!([x = false], x and true) =~ """
+             the following conditional expression:
+
+                 x
+
+             will always evaluate to:
+
+                 false
              """
     end
   end

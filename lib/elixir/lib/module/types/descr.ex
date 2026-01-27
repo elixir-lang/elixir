@@ -478,6 +478,7 @@ defmodule Module.Types.Descr do
   Computes the difference between two types.
   """
   def difference(left, :term), do: keep_optional(left)
+  def difference(left, none) when none == @none, do: left
 
   def difference(left, right) do
     if gradual?(left) or gradual?(right) do

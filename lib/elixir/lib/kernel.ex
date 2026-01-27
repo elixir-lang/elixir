@@ -2069,15 +2069,20 @@ defmodule Kernel do
   end
 
   defp build_boolean_check(operator, check, true_clause, false_clause) do
+    bools =
+      quote do
+        false -> unquote(false_clause)
+        true -> unquote(true_clause)
+      end
+
+    error =
+      quote generated: true do
+        other -> :erlang.error({:badbool, unquote(operator), other})
+      end
+
     annotate_case(
       [optimize_boolean: true, type_check: :expr],
-      quote do
-        case unquote(check) do
-          false -> unquote(false_clause)
-          true -> unquote(true_clause)
-          other -> :erlang.error({:badbool, unquote(operator), other})
-        end
-      end
+      {:case, [], [check, [do: bools ++ error]]}
     )
   end
 

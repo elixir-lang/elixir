@@ -311,20 +311,18 @@ defmodule Module.Types.Pattern do
   end
 
   defp badpattern_error(var, expr, stack, context) do
+    meta = error_meta(expr, stack)
     context = Of.error_var(var, context)
-    error(__MODULE__, {:badpattern, expr, context}, error_meta(expr, stack), stack, context)
+    error = {:badpattern, meta, expr, nil, :default, context}
+    error(__MODULE__, error, meta, stack, context)
   end
 
-  defp badpattern_error(expr, index, tag, stack, context) do
+  @doc """
+  Marks a badpattern error.
+  """
+  def badpattern_error(expr, index, tag, stack, context) do
     meta = error_meta(expr, stack)
-
-    error =
-      if index do
-        {:badpattern, meta, expr, index, tag, context}
-      else
-        {:badpattern, expr, context}
-      end
-
+    error = {:badpattern, meta, expr, index, tag, context}
     error(__MODULE__, error, meta, stack, context)
   end
 
@@ -1179,23 +1177,6 @@ defmodule Module.Types.Pattern do
     }
   end
 
-  def format_diagnostic({:badpattern, expr, context}) do
-    traces = collect_traces(expr, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          the following pattern will never match:
-
-              #{expr_to_string(expr) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
-    }
-  end
-
   def format_diagnostic({:badvar, old_type, new_type, var, context}) do
     traces = collect_traces(var, context)
 
@@ -1238,7 +1219,7 @@ defmodule Module.Types.Pattern do
   #
   # $ typep head_pattern =
   #     :for_reduce or :with_else or :receive or :try_catch or :fn or :default or
-  #       {:try_else, type} or {:case, meta, type, expr}
+  #       {:try_else, type} or {:case, meta, type, expr, previous_type}
   #
   # $ typep match_pattern =
   #     :with or :for or {:match, type}
@@ -1274,29 +1255,49 @@ defmodule Module.Types.Pattern do
      """}
   end
 
-  defp badpattern({:case, meta, type, expr}, pattern, _) do
-    if meta[:type_check] == :expr do
-      {expr,
-       """
-       the following conditional expression will always evaluate to #{to_quoted_string(type)}:
+  defp badpattern({:case, meta, type, expr, previous_type}, pattern, _) do
+    cond do
+      meta[:type_check] == :expr ->
+        error_type = if previous_type == none(), do: type, else: previous_type
 
-           #{expr_to_string(expr) |> indent(4)}
-       """}
-    else
-      {pattern,
-       """
-       the following clause will never match:
+        {expr,
+         """
+         the following conditional expression:
 
-           #{expr_to_string(pattern) |> indent(4)}
+             #{expr_to_string(expr) |> indent(4)}
 
-       because it attempts to match on the result of:
+         will always evaluate to:
 
-           #{expr_to_string(expr) |> indent(4)}
+             #{to_quoted_string(error_type) |> indent(4)}
+         """}
 
-       which has type:
+      previous_type == none() ->
+        {pattern,
+         """
+         the following clause will never match:
 
-           #{to_quoted_string(type) |> indent(4)}
-       """}
+             #{expr_to_string(pattern) |> indent(4)} ->
+
+         because it attempts to match on the result of:
+
+             #{expr_to_string(expr) |> indent(4)}
+
+         which has type:
+
+             #{to_quoted_string(type) |> indent(4)}
+         """}
+
+      true ->
+        {pattern,
+         """
+         the following clause cannot match because a previous clauses already matched this pattern:
+
+             #{expr_to_string(pattern) |> indent(4)} ->
+
+         the following types have already been matched:
+
+             #{to_quoted_string(previous_type) |> indent(4)}
+         """}
     end
   end
 
