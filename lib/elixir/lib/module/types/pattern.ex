@@ -556,7 +556,7 @@ defmodule Module.Types.Pattern do
     root = %{root: {:var, version}, expr: match}
 
     {precise?, static, dynamic, context} =
-      Enum.reduce(matches, {precise?, [], [], context}, fn
+      Enum.reduce(matches, {precise?, [], [{:var, version}], context}, fn
         pattern, {precise?, static, dynamic, context} ->
           {type, pattern_precise?, context} = of_pattern(pattern, [root], stack, context)
           precise? = precise? and pattern_precise?
@@ -569,18 +569,14 @@ defmodule Module.Types.Pattern do
       end)
 
     return =
-      cond do
-        dynamic == [] -> Enum.reduce(static, &intersection/2)
-        static == [] -> {:intersection, dynamic}
-        true -> {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}
+      if static == [] do
+        {:intersection, dynamic}
+      else
+        {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}
       end
 
-    if dynamic == [] do
-      {return, precise?, context}
-    else
-      context = of_var(var, version, [%{root: return, expr: match}], context)
-      {return, precise?, context}
-    end
+    context = of_var(var, version, [%{root: return, expr: match}], context)
+    {return, precise?, context}
   end
 
   # %Struct{...}

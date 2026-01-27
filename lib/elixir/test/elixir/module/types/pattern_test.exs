@@ -129,19 +129,15 @@ defmodule Module.Types.PatternTest do
              """
 
       assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) == ~l"""
-             incompatible types assigned to "a":
+             the following pattern will never match:
 
-                 dynamic(:foo) !~ dynamic(:bar)
+                 a = b
 
-             where "a" was given the types:
-
-                 # type: dynamic(:foo)
-                 # from: types_test.ex:LINE
-                 a = :foo
+             where "b" was given the type:
 
                  # type: dynamic(:bar)
                  # from: types_test.ex:LINE
-                 a = b
+                 b = :bar
              """
 
       assert typeerror!([{x, _} = {y, _}, x = :foo, y = :bar], {x, y}) == ~l"""
@@ -910,6 +906,9 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], x !== [], x) == dynamic(negation(empty_list()))
       assert typecheck!([x], not (x != []), x) == dynamic(empty_list())
       assert typecheck!([x], not (x !== []), x) == dynamic(empty_list())
+
+      assert typecheck!([x], x != %{}, x) == dynamic(negation(empty_map()))
+      assert typecheck!([x = %{}], x != %{}, x) == dynamic(difference(open_map(), empty_map()))
     end
 
     test "with singleton literals and composite types" do

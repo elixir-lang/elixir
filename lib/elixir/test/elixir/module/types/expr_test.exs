@@ -1673,6 +1673,15 @@ defmodule Module.Types.ExprTest do
                    tuple([atom([:bitstring]), bitstring_no_binary()])
                  )
                )
+
+      assert typecheck!(
+               [condition],
+               case condition do
+                 x = %{} when x != %{} -> :non_empty_map
+                 %{} -> :maybe_empty_map
+               end
+             ) ==
+               atom([:non_empty_map, :maybe_empty_map])
     end
 
     test "reports error from redundant clauses" do
