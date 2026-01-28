@@ -199,7 +199,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
 #### Elixir
 
-  * `require SomeModule` no longer expands to the given module at compile-time, but it still returns the module at runtime. Note that while Elixir does not guarantee macros will expand to certain constructs, but since this can break code relying on the previous behaviour, such as `require(SomeMod).some_macro()`, we are adding this note to the release notes
+  * `require SomeModule` no longer expands to the given module at compile-time, but it still returns the module at runtime. Note that while Elixir does not guarantee macros will expand to certain constructs, but since this can break code relying on the previous behaviour, such as `require(SomeMod).some_macro()`, we are adding this note to the CHANGELOG
 
 ### 3. Hard deprecations
 
