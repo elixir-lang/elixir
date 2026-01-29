@@ -892,14 +892,13 @@ defmodule Module.Types.Pattern do
       init_pattern_info(context, %{
         allow_empty?: false,
         parent_version: nil,
-        precise?: true,
         vars: vars,
         changed: Map.from_keys(changed, [])
       })
 
-    {guard_precise?, context} = of_guards(guards, stack, context)
-    {%{precise?: precise?, changed: changed}, context} = pop_pattern_info(context)
-    {precise? and guard_precise?, of_changed(Map.keys(changed), stack, context)}
+    {precise?, context} = of_guards(guards, stack, context)
+    {%{vars: vars, changed: changed}, context} = pop_pattern_info(context)
+    {is_map(vars) and precise?, of_changed(Map.keys(changed), stack, context)}
   end
 
   defp of_guards([guard], stack, context) do
@@ -1035,18 +1034,14 @@ defmodule Module.Types.Pattern do
     # and also when vars change, so we need to deal with all possibilities
     # for pattern_info.
     case context.pattern_info do
-      %{
-        allow_empty?: allow_empty?,
-        precise?: precise?,
-        vars: vars,
-        parent_version: parent_version,
-        changed: changed
-      } = pattern_info ->
-        precise? =
-          precise? and not is_map_key(vars, version) and not list_subpattern?(version, context)
+      %{allow_empty?: allow_empty?, vars: vars, parent_version: parent_version, changed: changed} =
+          pattern_info ->
+        vars =
+          is_map(vars) and not is_map_key(vars, version) and
+            not list_subpattern?(version, context) and vars
 
         changed = Map.put(changed, version, [])
-        pattern_info = %{pattern_info | precise?: precise?, changed: changed}
+        pattern_info = %{pattern_info | vars: vars, changed: changed}
         context = %{context | pattern_info: pattern_info}
 
         context =
@@ -1173,13 +1168,13 @@ defmodule Module.Types.Pattern do
 
       # We will be precise if all branches changed the same variable
       context =
-        update_in(context.pattern_info.precise?, fn
+        update_in(context.pattern_info.vars, fn
           false ->
             false
 
-          true ->
+          vars ->
             [{_, cond} | tail] = vars_conds
-            Enum.all?(tail, fn {_, tail_cond} -> cond == tail_cond end)
+            Enum.all?(tail, fn {_, tail_cond} -> cond == tail_cond end) and vars
         end)
 
       {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
