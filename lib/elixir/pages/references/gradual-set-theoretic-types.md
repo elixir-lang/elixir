@@ -141,7 +141,7 @@ In the examples above, all map keys were atoms, but we can also use other types 
 %{..., binary() or atom() => integer()}
 ```
 
-Currently, the type system only tracks the top of each individial type as the domain keys. For example, if you say:
+Currently, the type system only tracks the top of each individual type as the domain keys. For example, if you say:
 
 ```elixir
 %{list(integer()) => integer(), list(binary()) => binary()}

@@ -577,7 +577,7 @@ defmodule Module.Types.Of do
         :integer when alignment_value == :default ->
           {0, context}
 
-        # There is no size, so the aligment depends on the type.
+        # There is no size, so the alignment depends on the type.
         # If the type is exclusively a binary, then it is aligned.
         :bitstring when alignment_value == :default ->
           if bitstring_no_binary_type?(actual), do: {:unknown, context}, else: {0, context}
