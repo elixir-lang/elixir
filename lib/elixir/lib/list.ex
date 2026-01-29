@@ -312,7 +312,7 @@ defmodule List do
       1
 
       iex> List.first!([])
-      ** (ArgumentError) trying to get the first element of an empty list
+      ** (ArgumentError) attempted to get the first element of an empty list
 
   """
   @spec first!([elem, ...]) :: elem when elem: var
@@ -320,8 +320,7 @@ defmodule List do
   def first!([head | _]), do: head
 
   def first!([]) do
-    raise ArgumentError,
-      message: "trying to get the first element of an empty list"
+    raise ArgumentError, "attempted to get the first element of an empty list"
   end
 
   @doc """
@@ -366,7 +365,7 @@ defmodule List do
       3
 
       iex> List.last!([])
-      ** (ArgumentError) trying to get the last element of an empty list
+      ** (ArgumentError) attempted to get the last element of an empty list
 
   """
   @spec last!([elem, ...]) :: elem when elem: var
@@ -375,8 +374,7 @@ defmodule List do
   def last!([_ | tail]), do: last!(tail)
 
   def last!([]) do
-    raise ArgumentError,
-      message: "trying to get the last element of an empty list"
+    raise ArgumentError, "attempted to get the last element of an empty list"
   end
 
   @doc """

@@ -90,7 +90,7 @@ defmodule ListTest do
     assert List.first!([1]) == 1
     assert List.first!([1, 2, 3]) == 1
 
-    assert_raise ArgumentError, "trying to get the first element of an empty list", fn ->
+    assert_raise ArgumentError, "attempted to get the first element of an empty list", fn ->
       List.first!([])
     end
   end
@@ -111,7 +111,7 @@ defmodule ListTest do
     assert List.last!([1]) == 1
     assert List.last!([1, 2, 3]) == 3
 
-    assert_raise ArgumentError, "trying to get the last element of an empty list", fn ->
+    assert_raise ArgumentError, "attempted to get the last element of an empty list", fn ->
       List.last!([])
     end
   end
