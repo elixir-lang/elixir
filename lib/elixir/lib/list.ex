@@ -315,8 +315,10 @@ defmodule List do
       ** (ArgumentError) attempted to get the first element of an empty list
 
   """
+  @doc since: "1.20.0"
   @spec first!([elem, ...]) :: elem when elem: var
   def first!(list)
+
   def first!([head | _]), do: head
 
   def first!([]) do
@@ -368,8 +370,10 @@ defmodule List do
       ** (ArgumentError) attempted to get the last element of an empty list
 
   """
+  @doc since: "1.20.0"
   @spec last!([elem, ...]) :: elem when elem: var
   def last!(list)
+
   def last!([head]), do: head
   def last!([_ | tail]), do: last!(tail)
 
