@@ -630,8 +630,19 @@ defmodule System do
   operating systems. It also considers the proper executable
   extension for each operating system, so for Windows it will try to
   lookup files with `.com`, `.cmd` or similar extensions.
+
+  See also `find_executable!/1`.
+
+  ## Examples
+
+      System.find_executable("bash")
+      #=> "/bin/bash"
+
+      System.find_executable("unknown")
+      #=> nil
+
   """
-  @spec find_executable(binary) :: binary | nil
+  @spec find_executable(binary()) :: binary() | nil
   def find_executable(program) when is_binary(program) do
     assert_no_null_byte!(program, "System.find_executable/1")
 
@@ -639,6 +650,27 @@ defmodule System do
       false -> nil
       other -> List.to_string(other)
     end
+  end
+
+  @doc """
+  Locates an executable on the system or raises an error.
+
+  See also `find_executable/1`.
+
+  ## Examples
+
+      System.find_executable!("bash")
+      #=> "/bin/bash"
+
+      System.find_executable!("unknown")
+      ** (RuntimeError) could not find executable "unknown" in PATH
+
+  """
+  @doc since: "1.20.0"
+  @spec find_executable!(binary()) :: binary()
+  def find_executable!(program) when is_binary(program) do
+    find_executable(program) ||
+      raise "could not find executable #{inspect(program)} in PATH"
   end
 
   @doc """
