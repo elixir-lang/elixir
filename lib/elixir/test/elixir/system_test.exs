@@ -126,7 +126,7 @@ defmodule SystemTest do
     test "cmd/3 with absolute and relative paths", config do
       echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
-      File.ln_s!(System.find_executable("cmd"), echo)
+      File.ln_s!(System.find_executable!("cmd"), echo)
 
       File.cd!(Path.dirname(echo), fn ->
         # There is a bug in OTP where find_executable is finding
@@ -210,7 +210,7 @@ defmodule SystemTest do
     test "cmd/3 with absolute and relative paths", config do
       echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
-      File.ln_s!(System.find_executable("echo"), echo)
+      File.ln_s!(System.find_executable!("echo"), echo)
 
       File.cd!(Path.dirname(echo), fn ->
         # There is a bug in OTP where find_executable is finding

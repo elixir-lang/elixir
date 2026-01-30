@@ -124,9 +124,9 @@ defmodule Port do
 
   Spawn executable is a more restricted and explicit version of spawn. It expects
   full file paths to the executable you want to execute. If they are in your `$PATH`,
-  they can be retrieved by calling `System.find_executable/1`:
+  they can be retrieved by calling `System.find_executable!/1`:
 
-      iex> path = System.find_executable("echo")
+      iex> path = System.find_executable!("echo")
       iex> port = Port.open({:spawn_executable, path}, [:binary, args: ["hello world"]])
       iex> flush()
       {#Port<0.1380>, {:data, "hello world\n"}}
