@@ -39,29 +39,28 @@ end
 defmodule Kernel.CLITest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureIO
-
   defp run(argv) do
     {config, argv} = Kernel.CLI.parse_argv(Enum.map(argv, &String.to_charlist/1))
     assert Kernel.CLI.process_commands(config) == []
     Enum.map(argv, &IO.chardata_to_string/1)
   end
 
-  test "argv handling" do
-    assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
-           end) == "ok\n"
+  @tag :capture_io
+  test "argv handling", %{capture_io: io} do
+    assert run(["-e", "IO.puts :ok1", "sample.exs", "-o", "1", "2"]) ==
+             ["sample.exs", "-o", "1", "2"]
 
-    assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "--", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
-           end) == "ok\n"
+    assert StringIO.flush(io) == "ok1\n"
 
-    assert capture_io(fn ->
-             assert run(["-e", "", "--", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
-           end)
+    assert run(["-e", "IO.puts :ok2", "--", "sample.exs", "-o", "1", "2"]) ==
+             ["sample.exs", "-o", "1", "2"]
+
+    assert StringIO.flush(io) == "ok2\n"
+
+    assert run(["-e", "", "--", "sample.exs", "-o", "1", "2"]) ==
+             ["sample.exs", "-o", "1", "2"]
+
+    assert StringIO.flush(io) == ""
   end
 end
 
