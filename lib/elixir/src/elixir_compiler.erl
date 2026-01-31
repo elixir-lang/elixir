@@ -79,8 +79,7 @@ do_is_purgeable(<<_:4/binary, Size:32, Beam/binary>>) ->
 
 dispatch(Module, Fun, Args, Purgeable) ->
   Res = Module:Fun(Args),
-  code:delete(Module),
-  Purgeable andalso return_compiler_module(Module),
+  return_compiler_module(Module, Purgeable),
   Res.
 
 code_fun(nil) -> '__FILE__';
@@ -105,8 +104,8 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
 retrieve_compiler_module() ->
   elixir_code_server:call(retrieve_compiler_module).
 
-return_compiler_module(Module) ->
-  elixir_code_server:cast({return_compiler_module, Module}).
+return_compiler_module(Module, Purgeable) ->
+  elixir_code_server:cast({return_compiler_module, Module, Purgeable}).
 
 allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);

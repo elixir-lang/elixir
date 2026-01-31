@@ -803,23 +803,6 @@ defmodule Code.SyncTest do
     refute to_charlist(path) in :code.get_path()
   end
 
-  test "purges compiler modules" do
-    quoted = quote(do: :ok)
-    Code.compile_quoted(quoted)
-
-    {:ok, claimed} = Code.purge_compiler_modules()
-    assert claimed > 0
-
-    {:ok, claimed} = Code.purge_compiler_modules()
-    assert claimed == 0
-
-    quoted = quote(do: Agent.start_link(fn -> :ok end))
-    Code.compile_quoted(quoted)
-
-    {:ok, claimed} = Code.purge_compiler_modules()
-    assert claimed == 0
-  end
-
   test "returns previous options when setting compiler options" do
     Code.compiler_options(debug_info: false)
     assert Code.compiler_options(debug_info: true) == %{debug_info: false}
@@ -842,5 +825,16 @@ defmodule Code.SyncTest do
     Code.unrequire_files([fixture_path("compile_sample.ex")])
     :code.purge(CompileSample)
     :code.delete(CompileSample)
+  end
+
+  test "purges compiler modules" do
+    quoted = quote(do: :ok)
+    Code.compile_quoted(quoted)
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed > 0
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed == 0
   end
 end
