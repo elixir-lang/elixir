@@ -1362,10 +1362,26 @@ defmodule Module.Types.Pattern do
              #{to_quoted_string(type) |> indent(4)}
          """}
 
+      subtype?(type, previous_type) ->
+        {pattern,
+         """
+         the following clause cannot match because the previous clauses already matched all possible values:
+
+             #{expr_to_string(pattern) |> indent(4)} ->
+
+         it attempts to match on the result of:
+
+             #{expr_to_string(expr) |> indent(4)}
+
+         and the following types have already been matched:
+
+             #{to_quoted_string(previous_type) |> indent(4)}
+         """}
+
       true ->
         {pattern,
          """
-         the following clause cannot match because a previous clauses already matched this pattern:
+         the following clause cannot match because previous clauses already matched this pattern:
 
              #{expr_to_string(pattern) |> indent(4)} ->
 

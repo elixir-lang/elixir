@@ -1687,12 +1687,33 @@ defmodule Module.Types.ExprTest do
     test "reports error from redundant clauses" do
       assert typeerror!(
                [x],
+               case System.get_env(x) do
+                 nil -> 1
+                 b when is_binary(b) -> 2
+                 other -> other
+               end
+             ) == ~l"""
+             the following clause cannot match because the previous clauses already matched all possible values:
+
+                 other ->
+
+             it attempts to match on the result of:
+
+                 System.get_env(x)
+
+             and the following types have already been matched:
+
+                 nil or binary()
+             """
+
+      assert typeerror!(
+               [x],
                case String.to_atom(x) do
                  :ok -> 1
                  :ok -> 2
                end
              ) == ~l"""
-             the following clause cannot match because a previous clauses already matched this pattern:
+             the following clause cannot match because previous clauses already matched this pattern:
 
                  :ok ->
 
@@ -1708,7 +1729,7 @@ defmodule Module.Types.ExprTest do
                  {x, y} when is_integer(x) and is_integer(y) -> 2
                end
              ) =~ ~l"""
-             the following clause cannot match because a previous clauses already matched this pattern:
+             the following clause cannot match because previous clauses already matched this pattern:
 
                  {x, y} when is_integer(x) and is_integer(y) ->
 
