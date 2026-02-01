@@ -201,7 +201,7 @@ start_cli() ->
 
 %% EVAL HOOKS
 
-env_for_eval(#{lexical_tracker := Pid} = Env) ->
+env_for_eval(#{'__struct__' := 'Elixir.Macro.Env', lexical_tracker := Pid} = Env) when map_size(Env) == 15 ->
   NewEnv = Env#{
     context := nil,
     macro_aliases := [],
