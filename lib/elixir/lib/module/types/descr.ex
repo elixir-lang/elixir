@@ -5130,45 +5130,24 @@ defmodule Module.Types.Descr do
             {lit2, bdd_difference(bdd1_minus_u2, c2), :bdd_bot, bdd_difference(bdd1_minus_u2, d2)}
 
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
+            # The formula is:
+            # {a1, (C1 or U1) and not (C2 or U2), :bottom, (D1 or U1) and not (D2 or U2)} when a1 == a2
+            #
+            # Constrained: (C1 and not C2 and not U2) or (U1 and not C2 and not U2)
+            # Dual: (D1 and not D2 and not U2) or (U1 and not D2 and not U2)
+            #
+            # We can optimize the cases below.
             cond do
               c2 == :bdd_bot and d2 == :bdd_bot ->
+                # Constrained = (C1 and not U2) or (U1 and not U2)
+                # Dual = (D1 and not U2) or (U1 and not U2)
+                # Hence:
                 {lit, bdd_difference(c1, u2), bdd_difference(u1, u2), bdd_difference(d1, u2)}
 
-              u2 == :bdd_bot ->
-                cond do
-                  d2 == :bdd_bot ->
-                    {lit, bdd_difference(c1, c2), bdd_difference(u1, c2), bdd_union(u1, d1)}
-
-                  c2 == :bdd_bot ->
-                    {lit, bdd_union(u1, c1), bdd_difference(u1, d2), bdd_difference(c1, c2)}
-
-                  true ->
-                    # If d2 or c2 are bottom, we can remove one union.
-                    #
-                    # For example, if d2 is bottom, we have this BDD:
-                    #
-                    #   {l, (C1 or U1) and not C2, U1 and not C2, D1 or U1}
-                    #
-                    # Where the constrained part is:
-                    #
-                    #   (l and (C1 or U1) and not C2)
-                    #
-                    # Which expands to:
-                    #
-                    #   (l and C1 and not C2) or (l and U1 and not C2)
-                    #
-                    # Given (U1 and not C2) is already part of the uncertain/union,
-                    # we can skip (l and U1 and not C2), and we end up with:
-                    #
-                    #   {l, C1 and not C2, U1 and not C2, D1 or U1}
-                    #
-                    # Which are the formulas used above.
-                    {lit, bdd_difference(bdd_union(u1, c1), c2),
-                     bdd_difference(bdd_difference(u1, c2), d2),
-                     bdd_difference(bdd_union(u1, d1), d2)}
-                end
-
               u1 == :bdd_bot or u1 == u2 ->
+                # Constrained = (C1 and not C2 and not U2)
+                # Dual = (D1 and not D2 and not U2)
+                # Hence:
                 {lit, bdd_difference_union(c1, c2, u2), :bdd_bot,
                  bdd_difference_union(d1, d2, u2)}
 
