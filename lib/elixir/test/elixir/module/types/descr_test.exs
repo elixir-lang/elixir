@@ -303,7 +303,7 @@ defmodule Module.Types.DescrTest do
 
       assert empty?(intersection(closed_map(a: integer()), closed_map(a: atom())))
 
-      # Maps leaves are actually optimize, so some of the code branches
+      # Maps leaves are actually optimized, so some of the code branches
       # can only be tested through negations. This is the intersection between
       # open_map(a: integer()) and open_map(b: integer())
       a_and_b =
@@ -317,6 +317,16 @@ defmodule Module.Types.DescrTest do
                ),
                a_and_b
              )
+
+      # This is a regression triggered by an optimization
+      assert intersection(
+               closed_map(tag: atom([true]), halted: atom([true]), assigns: term()),
+               union(
+                 closed_map(tag: atom([true]), halted: atom([true]), assigns: term()),
+                 closed_map(tag: atom([true]), halted: term(), assigns: open_map())
+               )
+             )
+             |> equal?(closed_map(tag: atom([true]), halted: atom([true]), assigns: term()))
     end
 
     test "map with domain keys" do
@@ -367,13 +377,10 @@ defmodule Module.Types.DescrTest do
 
       t1 = closed_map([{domain_key(:integer), atom()}])
       t2 = closed_map([{domain_key(:integer), binary()}])
-
       assert equal?(intersection(t1, t2), empty_map())
 
       t1 = closed_map([{domain_key(:integer), atom()}])
       t2 = closed_map([{domain_key(:atom), term()}])
-
-      # their intersection is the empty map
       refute empty?(intersection(t1, t2))
       assert equal?(intersection(t1, t2), empty_map())
     end

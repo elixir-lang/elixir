@@ -5218,7 +5218,7 @@ defmodule Module.Types.Descr do
 
     case leaf_disjoint.(bdd1, leaf) do
       true when u == :bdd_bot -> bdd1
-      true -> {bdd1, bdd_negation(u), :bdd_bot, :bdd_bot}
+      true -> bdd_difference(bdd1, u, leaf_disjoint)
       false -> bdd_difference(bdd1, bdd2)
     end
   end
@@ -5376,8 +5376,11 @@ defmodule Module.Types.Descr do
       bdd_leaf(_, _) ->
         intersection.(leaf, bdd)
 
-      {lit, _, _, _} when lit == leaf ->
-        bdd
+      {lit, c, u, _} when lit == leaf ->
+        case bdd_union(c, u) do
+          :bdd_bot -> :bdd_bot
+          cu -> {lit, cu, :bdd_bot, :bdd_bot}
+        end
 
       {lit, c, u, d} ->
         rest =
