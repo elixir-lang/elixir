@@ -209,31 +209,38 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_mix(dep, _config) do
-    Mix.Dep.in_dependency(dep, fn _ ->
-      config = Mix.Project.config()
+    Mix.Dep.Loader.with_system_env(dep, fn ->
+      Mix.Dep.in_dependency(dep, fn _ ->
+        config = Mix.Project.config()
 
-      if req = old_elixir_req(config) do
-        Mix.shell().error(
-          "warning: the dependency #{inspect(dep.app)} requires Elixir #{inspect(req)} " <>
-            "but you are running on v#{System.version()}"
-        )
-      end
-
-      try do
-        options = ["--from-mix-deps-compile", "--no-warnings-as-errors", "--no-code-path-pruning"]
-        res = Mix.Task.run("compile", options)
-        match?({:ok, _}, res)
-      catch
-        kind, reason ->
-          app = dep.app
-
+        if req = old_elixir_req(config) do
           Mix.shell().error(
-            "could not compile dependency #{inspect(app)}, \"mix compile\" failed. " <>
-              deps_compile_feedback(app)
+            "warning: the dependency #{inspect(dep.app)} requires Elixir #{inspect(req)} " <>
+              "but you are running on v#{System.version()}"
           )
+        end
 
-          :erlang.raise(kind, reason, __STACKTRACE__)
-      end
+        try do
+          options = [
+            "--from-mix-deps-compile",
+            "--no-warnings-as-errors",
+            "--no-code-path-pruning"
+          ]
+
+          res = Mix.Task.run("compile", options)
+          match?({:ok, _}, res)
+        catch
+          kind, reason ->
+            app = dep.app
+
+            Mix.shell().error(
+              "could not compile dependency #{inspect(app)}, \"mix compile\" failed. " <>
+                deps_compile_feedback(app)
+            )
+
+            :erlang.raise(kind, reason, __STACKTRACE__)
+        end
+      end)
     end)
   end
 
