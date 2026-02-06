@@ -27,7 +27,7 @@ defmodule Mix.Dep do
     * `top_level` - true if dependency was defined in the top-level project
 
     * `manager` - the project management, possible values:
-      `:rebar3` | `:mix` | `:make` | `nil`
+      `:rebar3` | `:mix` | `:make` | `:gleam` | `nil`
 
     * `from` - path to the file where the dependency was defined
 
@@ -73,7 +73,7 @@ defmodule Mix.Dep do
           status: {:ok, String.t() | nil} | atom | tuple,
           opts: keyword,
           top_level: boolean,
-          manager: :rebar3 | :mix | :make | nil,
+          manager: :rebar3 | :mix | :make | :gleam | nil,
           from: String.t(),
           extra: term,
           system_env: keyword
@@ -553,6 +553,13 @@ defmodule Mix.Dep do
   """
   def make?(%Mix.Dep{manager: manager}) do
     manager == :make
+  end
+
+  @doc """
+  Returns `true` if dependency is a Gleam project; otherwise returns `false`.
+  """
+  def gleam?(%Mix.Dep{manager: manager}) do
+    manager == :gleam
   end
 
   ## Helpers
