@@ -680,11 +680,11 @@ defmodule Application do
   ## Examples
 
   `get_env/3` is commonly used to read the configuration of your OTP applications.
-  Since Mix configurations are commonly used to configure applications, we will use
+  Since Mix configurations are commonly used to configure applications and their dependencies, we will use
   this as a point of illustration.
 
-  Consider a new application `:my_app`. `:my_app` contains a database engine which
-  supports a pool of databases. The database engine needs to know the configuration for
+  Consider a new application `:my_app` depending on `:my_dep`. `:my_app` contains a database engine which
+  supports a pool of databases and `:my_dep` manages the log level. The database engine needs to know the configuration for
   each of those databases, and that configuration is supplied by key-value pairs in
   environment of `:my_app`.
 
@@ -700,6 +700,8 @@ defmodule Application do
 
       config :my_app, my_app_databases: [Databases.RepoOne, Databases.RepoTwo]
 
+      config :my_dep, :level, :warn
+
   Our database engine used by `:my_app` needs to know what databases exist, and
   what the database configurations are. The database engine can make a call to
   `Application.get_env(:my_app, :my_app_databases, [])` to retrieve the list of
@@ -713,6 +715,9 @@ defmodule Application do
 
       config = Application.get_env(:my_app, Databases.RepoOne)
       config[:ip]
+
+  `:my_dep` can likewise inspect the environment with
+  `Application.get_env(:my_dep, :level, :info)` and observe the level being overridden.
 
   """
   @spec get_env(app, key, value) :: value
