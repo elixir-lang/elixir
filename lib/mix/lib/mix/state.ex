@@ -45,8 +45,8 @@ defmodule Mix.State do
 
   ## Persistent term cache (persistent, cleared in tests)
 
-  def read_cache(key) do
-    :persistent_term.get({__MODULE__, key}, nil)
+  def read_cache(key, default \\ nil) do
+    :persistent_term.get({__MODULE__, key}, default)
   end
 
   def write_cache(key, value) do
