@@ -83,7 +83,6 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with compile config" do
     in_fixture("escript_test", fn ->
       push_project_with_config(Escript)
-
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", ~S"""
@@ -93,6 +92,7 @@ defmodule Mix.Tasks.EscriptTest do
 
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
+
       assert System.cmd("escript", ["escript_test"]) == {"COMPILE dev TARGET host\n", 0}
     end)
   end
@@ -100,7 +100,6 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with runtime config" do
     in_fixture("escript_test", fn ->
       push_project_with_config(Escript)
-
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", """
@@ -127,7 +126,6 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with debug information" do
     in_fixture("escript_test", fn ->
       push_project_with_config(Escript, escript: [main_module: EscriptTest, strip_beams: false])
-
       Mix.Tasks.Escript.Build.run([])
 
       msg = "Generated escript escript_test with MIX_ENV=dev"
@@ -211,7 +209,6 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with Erlang and deps" do
     in_fixture("escript_test", fn ->
       push_project_with_config(EscriptErlangWithDeps)
-
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test with MIX_ENV=dev"
@@ -261,7 +258,20 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "escript install and uninstall" do
-    File.rm_rf!(tmp_path(".mix/escripts"))
+    escripts = tmp_path(".mix/escripts")
+    File.rm_rf!(escripts)
+
+    # Configuration in the parent should not impact the escript
+    in_tmp("config", fn ->
+      File.mkdir_p!("config")
+
+      File.write!("config/config.exs", ~S"""
+      import Config
+      config :foobar, :parent, "SET_ON_PARENT"
+      """)
+
+      Mix.Tasks.Loadconfig.run([])
+    end)
 
     in_fixture("escript_test", fn ->
       push_project_with_config(Escript)
@@ -273,6 +283,10 @@ defmodule Mix.Tasks.EscriptTest do
       # build and install our escript
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Escript.Install.run([])
+
+      # execute the script
+      assert System.cmd("escript", [Path.join(escripts, "escript_test"), "--config"]) ==
+               {"VALUE=TEST\nPARENT=NIL\n", 0}
 
       # check that it shows in the list
       Mix.Tasks.Escript.run([])
@@ -400,7 +414,7 @@ defmodule Mix.Tasks.EscriptTest do
       end)
     after
       System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
-      purge([SourceRepo.Escript, SourceRepo.MixProject, Mix.Local.Installer.MixProject])
+      purge([GitRepo, SourceRepo.Escript, SourceRepo.MixProject, Mix.Local.Installer.MixProject])
     end
   end
 
