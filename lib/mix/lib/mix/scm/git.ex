@@ -75,15 +75,13 @@ defmodule Mix.SCM.Git do
 
     cond do
       lock_rev = get_lock_rev(lock, opts) ->
-        File.cd!(opts[:checkout], fn ->
-          %{origin: origin, rev: rev} = get_rev_info()
+        %{origin: origin, rev: rev} = get_rev_info(opts[:checkout])
 
-          if get_lock_repo(lock) == origin and lock_rev == rev do
-            :ok
-          else
-            :mismatch
-          end
-        end)
+        if get_lock_repo(lock) == origin and lock_rev == rev do
+          :ok
+        else
+          :mismatch
+        end
 
       is_nil(lock) ->
         :mismatch
@@ -333,11 +331,11 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp get_rev_info do
+  defp get_rev_info(dir \\ nil) do
     # These commands can fail and we don't want to raise.
     origin_command = ["--git-dir=.git", "config", "remote.origin.url"]
     rev_command = ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]
-    opts = cmd_opts([])
+    opts = if dir, do: cmd_opts(cd: dir), else: cmd_opts([])
 
     with {origin, 0} <- System.cmd("git", origin_command, opts),
          {rev, 0} <- System.cmd("git", rev_command, opts) do
@@ -391,13 +389,17 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  # Attempt to set the current working directory by default.
-  # This addresses an issue changing the working directory when executing from
-  # within a secondary node since file I/O is done through the main node.
   defp cmd_opts(opts) do
-    case File.cwd() do
-      {:ok, cwd} -> Keyword.put(opts, :cd, cwd)
-      _ -> opts
+    if Keyword.has_key?(opts, :cd) do
+      opts
+    else
+      # Attempt to set the current working directory by default.
+      # This addresses an issue changing the working directory when executing from
+      # within a secondary node since file I/O is done through the main node.
+      case File.cwd() do
+        {:ok, cwd} -> Keyword.put(opts, :cd, cwd)
+        _ -> opts
+      end
     end
   end
 

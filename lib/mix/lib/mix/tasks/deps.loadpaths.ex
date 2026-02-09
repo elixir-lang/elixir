@@ -123,7 +123,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   end
 
   defp deps_check(all, no_compile?) do
-    all = Enum.map(all, &check_lock/1)
+    all =
+      all
+      |> Task.async_stream(&check_lock/1, ordered: true, timeout: :infinity)
+      |> Enum.map(fn {:ok, dep} -> dep end)
+
     {not_ok, to_compile} = partition(all, [], [])
 
     cond do
