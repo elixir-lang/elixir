@@ -289,8 +289,8 @@ defmodule Integer do
       iex> Integer.parse("three")
       :error
 
-      iex> Integer.parse("37 war elephants")
-      {37, " war elephants"}
+      iex> Integer.parse("404 not found")
+      {404, " not found"}
 
       iex> Integer.parse("34", 10)
       {34, ""}
