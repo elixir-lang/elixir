@@ -450,16 +450,19 @@ defmodule ExUnit.Runner do
       generate_test_seed(seed, test, rand_algorithm)
       context = context |> Map.merge(test.tags) |> Map.put(:test_pid, self())
       capture_log = Map.get(context, :capture_log, capture_log)
+      capture_io = Map.get(context, :capture_io, false)
 
       {time, test} =
         :timer.tc(
           maybe_capture_log(capture_log, test, fn ->
-            context = maybe_create_tmp_dir(context, test)
+            maybe_capture_io(capture_io, context, fn context ->
+              context = maybe_create_tmp_dir(context, test)
 
-            case exec_test_setup(test, context) do
-              {:ok, context} -> exec_test(test, context)
-              {:error, test} -> test
-            end
+              case exec_test_setup(test, context) do
+                {:ok, context} -> exec_test(test, context)
+                {:error, test} -> test
+              end
+            end)
           end)
         )
 
@@ -491,6 +494,32 @@ defmodule ExUnit.Runner do
         {test, logs} -> %{test | logs: logs}
       end
     end
+  end
+
+  defp maybe_capture_io(true, context, fun) do
+    {:ok, gl} = StringIO.open("")
+    Process.group_leader(self(), gl)
+    context = put_in(context.capture_io, gl)
+    test = fun.(context)
+    put_in(test.stdout, StringIO.flush(gl))
+  end
+
+  defp maybe_capture_io(false, context, fun) do
+    fun.(context)
+  end
+
+  defp maybe_capture_io(other, _context, _fun) do
+    raise ArgumentError, """
+    invalid value for @tag :capture_io, expected one of:
+
+        @tag :capture_io
+        @tag capture_io: true
+        @tag capture_io: false
+
+    got:
+
+        @tag capture_io: #{inspect(other)}
+    """
   end
 
   defp receive_test_reply(test, test_pid, test_ref, timeout) do

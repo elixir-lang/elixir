@@ -187,6 +187,8 @@ defmodule ExUnit.Case do
 
   The following tags customize how tests behave:
 
+    * `:capture_io` - (since v1.20.0) see the "IO Capture" section below
+
     * `:capture_log` - see the "Log Capture" section below
 
     * `:skip` - skips the test with the given reason
@@ -262,6 +264,34 @@ defmodule ExUnit.Case do
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.
 
+  ## IO Capture
+
+  ExUnit can optionally suppress printing of standard output messages generated
+  during a test. Messages generated while running a test are captured and
+  only if the test fails are they printed to aid with debugging.
+
+  The captured IO is available in the test context under `:capture_io`
+  key and can be read using `StringIO.flush/1`:
+
+      defmodule MyTest do
+        use ExUnit.Case, async: true
+
+        @tag :capture_io
+        test "with io", %{capture_io: io} do
+          IO.puts("Hello, World!")
+
+          assert StringIO.flush(io) == "Hello, World!\\n"
+        end
+      end
+
+  As with other tags, `:capture_io` can also be set as `@moduletag` and
+  `@describetag`.
+
+  Since `setup_all` blocks don't belong to a specific test, standard output
+  messages generated in them (or between tests) are never captured.
+
+  See also `ExUnit.CaptureIO`.
+
   ## Log Capture
 
   ExUnit can optionally suppress printing of log messages that are generated
@@ -281,6 +311,8 @@ defmodule ExUnit.Case do
   messages as well, remove the console backend globally by setting:
 
       config :logger, :default_handler, false
+
+  See also `ExUnit.CaptureLog`.
 
   ## Tmp Dir
 
