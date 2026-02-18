@@ -92,16 +92,17 @@ start(_Type, _Args) ->
     {no_halt, false},
 
     %% Compiler options
+    {debug_info, true},
     {docs, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
-    {initial_dbg_callback, InitialDbgCallback},
     {infer_signatures, [elixir]},
+    {initial_dbg_callback, InitialDbgCallback},
+    {module_definition, compiled},
+    {no_warn_undefined, []},
     {on_undefined_variable, raise},
     {parser_options, [{columns, true}]},
-    {debug_info, true},
     {relative_paths, true},
-    {no_warn_undefined, []},
     {tracers, []}
     | URIConfig
   ],
