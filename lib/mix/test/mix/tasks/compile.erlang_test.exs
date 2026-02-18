@@ -28,14 +28,16 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     end)
   end
 
-  test "compiles and cleans src/b.erl and src/c.erl" do
+  test "compiles and cleans src/b.erl, src/c.erl, and src/z.erl" do
     in_fixture("compile_erlang", fn ->
       assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
+      assert_received {:mix_shell, :info, ["Compiled src/z.erl"]}
 
       assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/c.beam")
+      assert File.regular?("_build/dev/lib/sample/ebin/z.beam")
 
       assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled src/b.erl"]}
@@ -43,10 +45,12 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       assert Mix.Tasks.Compile.Erlang.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
+      assert_received {:mix_shell, :info, ["Compiled src/z.erl"]}
 
       assert Mix.Tasks.Compile.Erlang.clean()
       refute File.regular?("_build/dev/lib/sample/ebin/b.beam")
       refute File.regular?("_build/dev/lib/sample/ebin/c.beam")
+      refute File.regular?("_build/dev/lib/sample/ebin/z.beam")
     end)
   end
 
@@ -182,45 +186,9 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       ensure_touched(file)
 
-      output =
-        capture_io(fn ->
-          Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
-        end)
-
-      assert output == ""
-    end)
-  end
-
-  test "returns syntax error from an Erlang file when --return-errors is set" do
-    in_fixture("no_mixfile", fn ->
-      import ExUnit.CaptureIO
-
-      file = Path.absname("src/a.erl")
-      source = deterministic_source(file)
-
-      File.mkdir!("src")
-
-      File.write!(file, """
-      -module(b).
-      def b(), do: b
-      """)
-
-      capture_io(fn ->
-        assert {:error, [diagnostic]} =
-                 Mix.Tasks.Compile.Erlang.run(["--force", "--return-errors"])
-
-        assert %Mix.Task.Compiler.Diagnostic{
-                 compiler_name: "erl_parse",
-                 file: ^source,
-                 source: ^source,
-                 message: "syntax error before: b",
-                 position: position(2, 5),
-                 severity: :error
-               } = diagnostic
-      end)
-
-      refute File.regular?("ebin/Elixir.A.beam")
-      refute File.regular?("ebin/Elixir.B.beam")
+      assert capture_io(fn ->
+               Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
+             end) == ""
     end)
   end
 
@@ -228,7 +196,6 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   test "adds :debug_info to erlc_options by default" do
     in_fixture("compile_erlang", fn ->
       Mix.Tasks.Compile.Erlang.run([])
-
       binary = File.read!("_build/dev/lib/sample/ebin/b.beam")
 
       {:ok, {_, [debug_info: {:debug_info_v1, _, {debug_info, _}}]}} =

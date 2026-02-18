@@ -1,7 +1,7 @@
 -module(c).
--export([c/0]).
+-export([b/0]).
 
 -include("r.hrl").
 -behaviour(b).
 
-c() -> #r{cell=specified}.
+b() -> #r{cell=specified}.

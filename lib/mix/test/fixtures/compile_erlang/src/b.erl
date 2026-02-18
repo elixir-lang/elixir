@@ -1,7 +1,7 @@
 -module(b).
--export([b/0]).
+-export([z/0]).
 
--callback c() -> term().
+-callback b() -> term().
 -record(br, {cell=undefined}).
 
-b() -> #br{cell=specified}.
+z() -> #br{cell=specified}.
