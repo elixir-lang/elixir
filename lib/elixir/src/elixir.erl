@@ -9,10 +9,10 @@
 -export([start_cli/0, start/0]).
 -export([start/2, stop/1, config_change/3]).
 -export([
-  string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
+  string_to_tokens/5, tokens_to_quoted/3, string_to_quoted/5, 'string_to_quoted!'/5,
   env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
   eval_quoted/4, eval_local_handler/2, eval_external_handler/3,
-  format_token_error/1
+  emit_warnings/3
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
@@ -445,37 +445,33 @@ quoted_to_erl(Quoted, ErlS, ExS, Env) ->
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
-    {ok, _Line, _Column, [], Tokens, []} ->
-      {ok, lists:reverse(Tokens)};
     {ok, _Line, _Column, Warnings, Tokens, Terminators} ->
-      (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
-        [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],
-      {ok, lists:reverse(Tokens, Terminators)};
+      {ok, lists:reverse(Tokens, Terminators), Warnings};
     {error, Info, _Rest, _Warnings, _SoFar} ->
-      {error, format_token_error(Info)}
+      {error, elixir_tokenizer:format_error(Info)}
   end.
 
-format_token_error({Location, {ErrorPrefix, ErrorSuffix}, Token}) ->
-  {Location, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)};
-format_token_error({Location, Error, Token}) ->
-  {Location, to_binary(Error), to_binary(Token)}.
-
-tokens_to_quoted(Tokens, WarningFile, Opts) ->
-  handle_parsing_opts(WarningFile, Opts),
+tokens_to_quoted(Tokens, _WarningFile, Opts) ->
+  put_parsing_state(Opts),
 
   try elixir_parser:parse(Tokens) of
     {ok, Forms} ->
-      {ok, Forms};
+      {ok, Forms, get(elixir_parser_warnings)};
     {error, {Line, _, [{ErrorPrefix, ErrorSuffix}, Token]}} ->
       {error, {parser_location(Line), {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
     {error, {Line, _, [Error, Token]}} ->
       {error, {parser_location(Line), to_binary(Error), to_binary(Token)}}
   after
-    erase(elixir_parser_warning_file),
+    erase(elixir_parser_warnings),
     erase(elixir_parser_columns),
     erase(elixir_token_metadata),
     erase(elixir_literal_encoder)
   end.
+
+emit_warnings(Warnings, File, Opts) ->
+  (Warnings /= []) andalso
+    (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
+    [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)].
 
 parser_location({Line, Column, _}) ->
   [{line, Line}, {column, Column}];
@@ -491,17 +487,28 @@ parser_location(Meta) ->
     false -> [{line, Line}]
   end.
 
-'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
+string_to_quoted(String, StartLine, StartColumn, File, Opts) ->
   case string_to_tokens(String, StartLine, StartColumn, File, Opts) of
-    {ok, Tokens} ->
+    {ok, Tokens, Warnings1} ->
+      emit_warnings(Warnings1, File, Opts),
+
       case tokens_to_quoted(Tokens, File, Opts) of
-        {ok, Forms} ->
-          Forms;
-        {error, {Meta, Error, Token}} ->
-          Indentation = proplists:get_value(indentation, Opts, 0),
-          Input = {String, StartLine, StartColumn, Indentation},
-          elixir_errors:parse_error(Meta, File, Error, Token, Input)
+        {ok, Forms, Warnings2} ->
+          emit_warnings(Warnings2, File, Opts),
+          {ok, Forms};
+
+        {error, Error} ->
+          {error, Error}
       end;
+
+    {error, Error} ->
+      {error, Error}
+  end.
+
+'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
+  case string_to_quoted(String, StartLine, StartColumn, File, Opts) of
+    {ok, Forms} ->
+      Forms;
     {error, {Meta, Error, Token}} ->
       Indentation = proplists:get_value(indentation, Opts, 0),
       Input = {String, StartLine, StartColumn, Indentation},
@@ -511,12 +518,7 @@ parser_location(Meta) ->
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom).
 
-handle_parsing_opts(File, Opts) ->
-  WarningFile =
-    case lists:keyfind(emit_warnings, 1, Opts) of
-      {emit_warnings, false} -> nil;
-      _ -> File
-    end,
+put_parsing_state(Opts) ->
   LiteralEncoder =
     case lists:keyfind(literal_encoder, 1, Opts) of
       {literal_encoder, Fun} -> Fun;
@@ -524,7 +526,7 @@ handle_parsing_opts(File, Opts) ->
     end,
   TokenMetadata = lists:keyfind(token_metadata, 1, Opts) == {token_metadata, true},
   Columns = lists:keyfind(columns, 1, Opts) == {columns, true},
-  put(elixir_parser_warning_file, WarningFile),
+  put(elixir_parser_warnings, []),
   put(elixir_parser_columns, Columns),
   put(elixir_token_metadata, TokenMetadata),
   put(elixir_literal_encoder, LiteralEncoder).

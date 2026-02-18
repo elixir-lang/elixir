@@ -1241,7 +1241,7 @@ defmodule Code.Fragment do
   def container_cursor_to_quoted(fragment, opts \\ []) do
     {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)
     opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
-    opts = [check_terminators: {:cursor, []}, emit_warnings: false] ++ opts
+    opts = [check_terminators: {:cursor, []}] ++ opts
 
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -1261,7 +1261,10 @@ defmodule Code.Fragment do
           end
 
         tokens = reverse_tokens(line, column, rev_tokens, rev_terminators)
-        :elixir.tokens_to_quoted(tokens, file, opts)
+
+        with {:ok, forms, _warnings} <- :elixir.tokens_to_quoted(tokens, file, opts) do
+          {:ok, forms}
+        end
 
       {:ok, line, column, _warnings, rev_tokens, rev_terminators} ->
         tokens =
@@ -1288,10 +1291,12 @@ defmodule Code.Fragment do
             _ -> reverse_tokens(line, column, rev_tokens, rev_terminators)
           end
 
-        :elixir.tokens_to_quoted(tokens, file, opts)
+        with {:ok, forms, _warnings} <- :elixir.tokens_to_quoted(tokens, file, opts) do
+          {:ok, forms}
+        end
 
       {:error, info, _rest, _warnings, _so_far} ->
-        {:error, :elixir.format_token_error(info)}
+        {:error, :elixir_tokenizer.format_error(info)}
     end
   end
 

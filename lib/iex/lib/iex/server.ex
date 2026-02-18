@@ -138,9 +138,9 @@ defmodule IEx.Server do
 
   defp wait_input(state, evaluator, evaluator_ref, input) do
     receive do
-      {:io_reply, ^input, {:ok, code, parser_state}} ->
+      {:io_reply, ^input, {:ok, code_fun, parser_state}} ->
         :io.setopts(expand_fun: fn _ -> {:yes, [], []} end)
-        send(evaluator, {:eval, self(), code, state.counter})
+        send(evaluator, {:eval, self(), code_fun.(), state.counter})
         wait_eval(%{state | parser_state: parser_state}, evaluator, evaluator_ref)
 
       {:io_reply, ^input, :eof} ->
@@ -400,8 +400,12 @@ defmodule IEx.Server do
     args = [chars, [line: counter, file: "iex"], parser_state | args]
 
     case apply(parser_module, parser_fun, args) do
-      {:ok, forms, parser_state} -> {:done, {:ok, forms, parser_state}, []}
-      {:incomplete, parser_state} -> {:more, {counter, parser_state, mfa}}
+      {:ok, forms, parser_state} ->
+        forms = if is_function(forms, 0), do: forms, else: fn -> forms end
+        {:done, {:ok, forms, parser_state}, []}
+
+      {:incomplete, parser_state} ->
+        {:more, {counter, parser_state, mfa}}
     end
   catch
     kind, error ->

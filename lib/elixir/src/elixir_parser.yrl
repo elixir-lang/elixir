@@ -1346,7 +1346,4 @@ warn_empty_stab_clause({stab_op, {Line, Column, _}, '->'}) ->
   ).
 
 warn(LineColumn, Message) ->
-  case get(elixir_parser_warning_file) of
-    nil -> ok;
-    File -> elixir_errors:erl_warn(LineColumn, File, Message)
-  end.
+  put(elixir_parser_warnings, [{LineColumn, Message} | get(elixir_parser_warnings)]).

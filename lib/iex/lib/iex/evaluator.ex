@@ -82,10 +82,10 @@ defmodule IEx.Evaluator do
       :elixir_errors.parse_error([line: line], file, "incomplete expression", "", triplet)
     else
       result =
-        with {:ok, tokens} <- :elixir.string_to_tokens(input, line, column, file, opts),
+        with {:ok, tokens, warnings1} <- :elixir.string_to_tokens(input, line, column, file, opts),
              {:ok, adjusted_tokens, adjusted_op} <-
                adjust_operator(tokens, line, column, file, opts, last_op),
-             {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
+             {:ok, forms, warnings2} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
           last_op =
             case forms do
               {:=, _, [_, _]} -> :match
@@ -102,7 +102,12 @@ defmodule IEx.Evaluator do
               forms
             end
 
-          {:ok, forms, last_op}
+          callback = fn ->
+            :elixir.emit_warnings(warnings1 ++ warnings2, file, opts)
+            forms
+          end
+
+          {:ok, callback, last_op}
         end
 
       case result do
@@ -134,7 +139,7 @@ defmodule IEx.Evaluator do
 
   defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do
-    {:ok, prefix} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
+    {:ok, prefix, _warnings} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
     {:ok, prefix ++ tokens, op_type}
   end
 
