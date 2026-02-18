@@ -185,9 +185,6 @@ defmodule Mix.Tasks.Compile.Erlang do
       {:attribute, _, :behavior, behaviour} ->
         %{erl | deps: [behaviour | erl.deps]}
 
-      {:attribute, _, :compile, value} when is_list(value) ->
-        %{erl | deps: Enum.reduce(value, erl.deps, &add_parse_transforms/2)}
-
       {:attribute, _, :compile, value} ->
         %{erl | deps: add_parse_transforms(value, erl.deps)}
 
@@ -232,7 +229,9 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp add_parse_transforms(compile, deps) do
-    Enum.reduce(compile, deps, fn
+    compile
+    |> List.wrap()
+    |> Enum.reduce(deps, fn
       {:parse_transform, transform}, deps -> [transform | deps]
       _, deps -> deps
     end)
