@@ -2767,16 +2767,9 @@ defmodule Module.Types.Descr do
     if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
-  defp map_top?(bdd_leaf(:open, fields)) when map_size(fields) == 0, do: true
-  defp map_top?(_), do: false
-
-  defp map_intersection(bdd1, bdd2) do
-    cond do
-      map_top?(bdd1) and is_tuple(bdd2) -> bdd2
-      map_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> map_bdd_intersection(bdd1, bdd2)
-    end
-  end
+  defp map_intersection(bdd_leaf(:open, []), bdd), do: bdd
+  defp map_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+  defp map_intersection(bdd1, bdd2), do: map_bdd_intersection(bdd1, bdd2)
 
   # A variant of bdd_intersection/3 that only continues if the maps are closed
   # or both sides are leafs.
@@ -2852,6 +2845,9 @@ defmodule Module.Types.Descr do
       end
     end
   end
+
+  defp map_difference(bdd_leaf(:open, []), bdd2),
+    do: bdd_negation(bdd2)
 
   defp map_difference(bdd1, bdd2),
     do: bdd_difference(bdd1, bdd2, &map_leaf_disjoint?/2)
@@ -4343,6 +4339,9 @@ defmodule Module.Types.Descr do
 
   defp tuple_new(tag, elements), do: bdd_leaf(tag, elements)
 
+  defp tuple_intersection(bdd_leaf(:open, []), bdd), do: bdd
+  defp tuple_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+
   defp tuple_intersection(bdd1, bdd2) do
     bdd_intersection(bdd1, bdd2, &tuple_leaf_intersection/2)
   end
@@ -4400,6 +4399,12 @@ defmodule Module.Types.Descr do
       false -> zip_empty_intersection?(rest1, rest2)
     end
   end
+
+  defp tuple_difference(bdd_leaf(:open, []), bdd_leaf(:open, [])),
+    do: :bdd_bot
+
+  defp tuple_difference(bdd_leaf(:open, []), bdd2),
+    do: bdd_negation(bdd2)
 
   defp tuple_difference(bdd1, bdd2),
     do: bdd_difference(bdd1, bdd2, &tuple_leaf_disjoint?/2)

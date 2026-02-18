@@ -1713,11 +1713,11 @@ defmodule Module.Types.ExprTest do
                  :ok -> 2
                end
              ) == ~l"""
-             the following clause cannot match because previous clauses already matched this pattern:
+             the following clause is redundant:
 
                  :ok ->
 
-             the following types have already been matched:
+             the following types are expected (and have already been matched):
 
                  :ok
              """
@@ -1729,11 +1729,11 @@ defmodule Module.Types.ExprTest do
                  {x, y} when is_integer(x) and is_integer(y) -> 2
                end
              ) =~ ~l"""
-             the following clause cannot match because previous clauses already matched this pattern:
+             the following clause is redundant:
 
                  {x, y} when is_integer(x) and is_integer(y) ->
 
-             the following types have already been matched:
+             the following types are expected (and have already been matched):
 
                  {integer(), integer()}
              """

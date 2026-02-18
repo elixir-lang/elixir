@@ -127,10 +127,11 @@ defmodule Module.Types.Pattern do
   4. Then we propagate all dependencies to refine variables
 
   """
-  def of_head(patterns, guards, expected, tag, meta, stack, %{vars: vars} = context) do
+  def of_head(patterns, guards, expected, previous \\ nil, tag, meta, stack, context) do
+    %{vars: vars} = context
     stack = %{stack | meta: meta}
 
-    case of_pattern_args(patterns, expected, tag, stack, context) do
+    case of_pattern_args(patterns, expected, previous, tag, stack, context) do
       {trees, pattern_precise?, changed, context} ->
         {guard_precise?, context} = of_guards(guards, changed, vars, stack, context)
         {trees, pattern_precise? and guard_precise?, context}
@@ -157,11 +158,11 @@ defmodule Module.Types.Pattern do
     []
   end
 
-  defp of_pattern_args([], [], _tag, _stack, context) do
+  defp of_pattern_args([], [], _previous, _tag, _stack, context) do
     {[], true, [], context}
   end
 
-  defp of_pattern_args(patterns, expected, tag, stack, context) do
+  defp of_pattern_args(patterns, expected, previous, tag, stack, context) do
     context = init_pattern_info(context, [])
 
     {trees, precise?, context} =
@@ -169,8 +170,11 @@ defmodule Module.Types.Pattern do
 
     {pattern_info, context} = pop_pattern_info(context)
 
-    case of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context) do
-      {_types, changed, context} -> {trees, precise?, changed, context}
+    with {:ok, types} <- of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context),
+         {_types, changed, context} <-
+           of_pattern_refine(types, previous, pattern_info, tag, stack, context) do
+      {trees, precise?, changed, context}
+    else
       {:error, context} -> {trees, context}
     end
   end
@@ -210,8 +214,11 @@ defmodule Module.Types.Pattern do
     args = [{tree, expected, expr}]
     tag = {:match, expected}
 
-    case of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
-      {[type], changed, context} -> {type, of_changed(changed, stack, context)}
+    with {:ok, types} <- of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
+         {[type], changed, context} <-
+           of_pattern_refine(types, nil, pattern_info, tag, stack, context) do
+      {type, of_changed(changed, stack, context)}
+    else
       {:error, context} -> {expected, context}
     end
   end
@@ -228,11 +235,12 @@ defmodule Module.Types.Pattern do
     {pattern_info, context} = pop_pattern_info(context)
     args = [{tree, expected, pattern}]
 
-    case of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
-      {_types, changed, context} ->
-        {_precise?, context} = of_guards(guards, changed, vars, stack, context)
-        context
-
+    with {:ok, types} <- of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
+         {_types, changed, context} <-
+           of_pattern_refine(types, nil, pattern_info, tag, stack, context) do
+      {_precise?, context} = of_guards(guards, changed, vars, stack, context)
+      context
+    else
       {:error, context} ->
         context
     end
@@ -251,8 +259,20 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_intersect([], _index, acc, pattern_info, tag, stack, context) do
-    types = Enum.reverse(acc)
+  defp of_pattern_intersect([], _index, acc, _pattern_info, _tag, _stack, _context) do
+    {:ok, Enum.reverse(acc)}
+  end
+
+  defp of_pattern_refine(types, previous, pattern_info, tag, stack, context) do
+    types =
+      case previous do
+        nil ->
+          types
+
+        [previous] ->
+          [type] = types
+          [difference(type, previous)]
+      end
 
     try do
       pattern_info
@@ -1381,11 +1401,11 @@ defmodule Module.Types.Pattern do
       true ->
         {pattern,
          """
-         the following clause cannot match because previous clauses already matched this pattern:
+         the following clause is redundant:
 
              #{expr_to_string(pattern) |> indent(4)} ->
 
-         the following types have already been matched:
+         the following types are expected (and have already been matched):
 
              #{to_quoted_string(previous_type) |> indent(4)}
          """}

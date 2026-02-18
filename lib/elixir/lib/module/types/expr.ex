@@ -734,11 +734,10 @@ defmodule Module.Types.Expr do
           {failed?, context} = reset_failed(context, failed?)
           {patterns, guards} = extract_head(head)
 
-          clause_domain = difference(domain, previous)
-          info = {:case, case_meta, clause_domain, case_expr, previous}
+          info = {:case, case_meta, domain, case_expr, previous}
 
           {trees, precise?, context} =
-            Pattern.of_head(patterns, guards, [clause_domain], info, meta, stack, context)
+            Pattern.of_head(patterns, guards, [domain], [previous], info, meta, stack, context)
 
           # It failed, let's try to detect if it was due a previous or current clause.
           # The current clause will be easier to understand, so we prefer that
