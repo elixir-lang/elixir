@@ -238,8 +238,9 @@ run_with_location_change(File, #{file := File} = E, Callback) ->
 run_with_location_change(File, E, Callback) ->
   elixir_lexical:with_file(File, E, Callback).
 
-def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
+def_to_clauses(_Kind, Meta, Args, Guards, nil, E) ->
   check_args_for_function_head(Meta, Args, E),
+  (Guards /= []) andalso elixir_errors:module_error(Meta, E, ?MODULE, {invalid_function_head, guards}),
   [];
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
@@ -374,7 +375,7 @@ check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredMeta, _Stored
 
 check_args_for_function_head(Meta, Args, E) ->
   [begin
-     elixir_errors:module_error(Meta, E, ?MODULE, invalid_args_for_function_head)
+     elixir_errors:module_error(Meta, E, ?MODULE, {invalid_function_head, patterns})
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -486,16 +487,17 @@ format_error({no_alias, Atom}) ->
 format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
-format_error(invalid_args_for_function_head) ->
-  "patterns are not allowed in function head, only variables and default arguments (using \\\\)\n"
+format_error({invalid_function_head, Prefix}) ->
+  atom_to_list(Prefix) ++ (
+  " are not allowed in function head, only variables and default arguments (using \\\\)\n"
   "\n"
   "If you did not intend to define a function head, make sure your function "
   "definition has the proper syntax by wrapping the arguments in parentheses "
-  "and using the do instruction accordingly:\n\n"
+  "and using the do keyword accordingly:\n\n"
   "    def add(a, b), do: a + b\n\n"
   "    def add(a, b) do\n"
   "      a + b\n"
-  "    end\n";
+  "    end\n");
 
 format_error({'__info__', Kind}) ->
   io_lib:format("cannot define ~ts __info__/1 as it is automatically defined by Elixir", [Kind]);

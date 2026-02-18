@@ -854,10 +854,36 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "function head with guard" do
+  test "invalid function head" do
+    assert_compile_error(
+      [
+        "nofile:2:7: ",
+        "patterns are not allowed in function head, only variables and default arguments (using \\\\)"
+      ],
+      ~c"""
+      defmodule Kernel.ErrorsTest.InvalidPatternsInFunctionHead do
+        def foo(nil)
+        def foo(_), do: :ok
+      end
+      """
+    )
+
+    assert_compile_error(
+      [
+        "nofile:2:7: ",
+        "guards are not allowed in function head, only variables and default arguments (using \\\\)"
+      ],
+      ~c"""
+      defmodule Kernel.ErrorsTest.InvalidGuardsInFunctionHead do
+        def foo(x) when x == nil
+        def foo(_), do: :ok
+      end
+      """
+    )
+
     assert_compile_error(["nofile:2:7: ", "missing :do option in \"def\""], ~c"""
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
-      def foo(n) when is_number(n)
+      def foo(n), true
     end
     """)
 
@@ -866,21 +892,6 @@ defmodule Kernel.ErrorsTest do
       def foo(n) when is_number(n), true
     end
     """)
-  end
-
-  test "invalid args for function head" do
-    assert_compile_error(
-      [
-        "nofile:2:7: ",
-        "patterns are not allowed in function head, only variables and default arguments (using \\\\)"
-      ],
-      ~c"""
-      defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
-        def foo(nil)
-        def foo(_), do: :ok
-      end
-      """
-    )
   end
 
   test "bad multi-call" do

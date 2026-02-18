@@ -151,6 +151,7 @@ defmodule Concat do
   # A function head declaring defaults
   def join(a, b, sep \\ " ")
 
+  # The separator is unused in this case, so we prefix it with underscore
   def join(a, b, _sep) when b == "" do
     a
   end
@@ -165,7 +166,7 @@ IO.puts(Concat.join("Hello", "world"))      #=> Hello world
 IO.puts(Concat.join("Hello", "world", "_")) #=> Hello_world
 ```
 
-When a variable is not used by a function or a clause, we add a leading underscore (`_`) to its name to signal this intent. This rule is also covered in our [Naming Conventions](../references/naming-conventions.md#underscore-_foo) document.
+Function heads cannot have patterns nor guards. They may only define the argument names and their default values.
 
 ## Understanding Aliases
 
@@ -182,8 +183,7 @@ true
 
 By using the `alias/2` directive, we are changing the atom the alias expands to.
 
-Aliases expand to atoms because in the Erlang Virtual Machine (and consequently Elixir) modules are always represented by atoms. By namespacing
-those atoms elixir modules avoid conflicting with existing erlang modules.
+Aliases expand to atoms because in the Erlang Virtual Machine (and consequently Elixir) modules are always represented by atoms. By namespacing those atoms, Elixir modules avoid conflicting with existing Erlang modules.
 
 ```elixir
 iex> List.flatten([1, [2], 3])
@@ -212,9 +212,7 @@ end
 
 The example above will define two modules: `Foo` and `Foo.Bar`. The second can be accessed as `Bar` inside `Foo` as long as they are in the same lexical scope.
 
-If, later, the `Bar` module is moved outside the `Foo` module definition, it must be referenced by its full name (`Foo.Bar`) or an alias must be set using the `alias` directive discussed above.
-
-**Note**: in Elixir, you don't have to define the `Foo` module before being able to define the `Foo.Bar` module, as they are effectively independent. The above could also be written as:
+If, later, the `Bar` module is moved outside the `Foo` module definition, it must be referenced by its full name (`Foo.Bar`) or an alias must be set using the `alias` directive discussed above:
 
 ```elixir
 defmodule Foo.Bar do
@@ -226,7 +224,11 @@ defmodule Foo do
 end
 ```
 
-Aliasing a nested module does not bring parent modules into scope. Consider the following example:
+> #### Module names are isolated {: .info}
+>
+> You don't have to define the `Foo` module before defining the `Foo.Bar` module, as they are effectively independent.
+
+Aliasing a module only alias a single module, it doesn't alias any of its parents. Consider the following example:
 
 ```elixir
 defmodule Foo do
@@ -241,4 +243,4 @@ alias Foo.Bar.Baz
 # However, the module `Foo.Bar` is *not* available as `Bar`
 ```
 
-As we will see in later chapters, aliases also play a crucial role in macros, to guarantee they are hygienic.
+As we will see in later chapters, aliases also work well with macros, to guarantee they are hygienic.
