@@ -818,13 +818,14 @@ defmodule FileTest do
 
     @tag :unix
     test "cp_r skips sockets and other special files" do
-      src = tmp_path("src_with_socket")
+      # We use tmpdir because macOS has a limit on socket paths
+      src = Path.join(System.tmp_dir(), "src_with_socket")
       dest = tmp_path("dest_with_socket")
       socket_path = Path.join(src, "test.sock")
-      regular_file = Path.join(src, "regular.txt")
+      regular_path = Path.join(src, "regular.txt")
 
       File.mkdir_p!(src)
-      File.write!(regular_file, "content")
+      File.write!(regular_path, "content")
 
       {:ok, socket} = :gen_tcp.listen(0, [:local, {:ifaddr, {:local, socket_path}}])
 
@@ -833,7 +834,6 @@ defmodule FileTest do
         assert :elixir_utils.read_link_type(socket_path) == {:ok, :other}
 
         {:ok, copied_files} = File.cp_r(src, dest)
-
         assert Path.join(dest, "regular.txt") in copied_files
 
         refute File.exists?(Path.join(dest, "test.sock"))
