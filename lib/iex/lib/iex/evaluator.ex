@@ -448,7 +448,7 @@ defmodule IEx.Evaluator do
   defp prune_stacktrace(stack) do
     stack
     |> Enum.reverse()
-    |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
+    |> Enum.drop_while(&(elem(&1, 0) != :elixir_compiler))
     |> Enum.reverse()
     |> case do
       [] -> stack
