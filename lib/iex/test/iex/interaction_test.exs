@@ -174,10 +174,9 @@ defmodule IEx.InteractionTest do
   test "exception" do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
 
-    assert capture_iex("1 + :atom\n:this_is_still_working") =~
-             ~r/^#{exception}.+\n:this_is_still_working$/s
-
-    refute capture_iex("1 + :atom\n:this_is_still_working") =~ ~r/erl_eval/s
+    result = capture_iex("1 + :atom\n:this_is_still_working")
+    assert result =~ ~r/^#{exception}.+\n:this_is_still_working$/s
+    refute result =~ ~r/erl_eval/s
   end
 
   test "exception while invoking conflicting helpers" do

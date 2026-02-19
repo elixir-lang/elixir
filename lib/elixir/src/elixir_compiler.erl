@@ -4,7 +4,7 @@
 
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([string/3, quoted/3, bootstrap/0, file/2, compile/4]).
+-export([string/3, quoted/3, bootstrap/0, file/2, compile/4, interpret/3]).
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
@@ -20,7 +20,7 @@ quoted(Forms, File, Callback) ->
 
     elixir_lexical:run(
       Env,
-      fun (LexicalEnv) -> maybe_fast_compile(Forms, LexicalEnv) end,
+      fun (LexicalEnv) -> optimize_defmodule(Forms, LexicalEnv) end,
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
@@ -33,16 +33,36 @@ file(File, Callback) ->
   {ok, Bin} = file:read_file(File),
   string(elixir_utils:characters_to_list(Bin), File, Callback).
 
-%% Evaluates the given code through the Erlang compiler.
-%% It may end-up evaluating the code if it is deemed a
-%% more efficient strategy depending on the code snippet.
-maybe_fast_compile(Forms, E) ->
-  case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
+%% In case the forms only holds defmodules, we optimize
+%% it by expanding them directly.
+optimize_defmodule(Forms, E) ->
+  case (?key(E, module) == nil) andalso only_defmodule(Forms) andalso
         (not elixir_config:is_bootstrap()) of
-    true  -> fast_compile(Forms, E);
+    true  -> expand_defmodule(Forms, E);
     false -> compile(Forms, [], [], E)
   end,
   ok.
+
+%% A version of compilation that uses eval (interpreted)
+interpret(Quoted, ArgsList, #{line := Line} = E) ->
+  {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
+  elixir_env:check_unused_vars(SE, EE),
+
+  {Vars, TS} = elixir_erl_var:from_env(E),
+  {ErlExprs, _} = elixir_erl_pass:translate(Expanded, erl_anno:new(Line), TS),
+
+  ListBinding = lists:zipwith(fun({_, Var}, Arg) -> {Var, Arg} end, Vars, ArgsList),
+  Binding = maps:from_list(ListBinding),
+
+  {value, Result, _} =
+    try
+      elixir:erl_eval(ErlExprs, Binding, E)
+    catch
+      Kind:Reason:Stacktrace ->
+        erlang:raise(Kind, Reason, Stacktrace ++ 'Elixir.Macro.Env':stacktrace(E))
+    end,
+
+  {Result, SE, EE}.
 
 compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->
   Block = no_tail_optimize([{line, Line}], Quoted),
@@ -107,16 +127,16 @@ retrieve_compiler_module() ->
 return_compiler_module(Module, Purgeable) ->
   elixir_code_server:cast({return_compiler_module, Module, Purgeable}).
 
-allows_fast_compilation({'__block__', _, Exprs}) ->
-  lists:all(fun allows_fast_compilation/1, Exprs);
-allows_fast_compilation({defmodule, _, [_, [{do, _}]]}) ->
+only_defmodule({'__block__', _, Exprs}) ->
+  lists:all(fun only_defmodule/1, Exprs);
+  only_defmodule({defmodule, _, [_, [{do, _}]]}) ->
   true;
-allows_fast_compilation(_) ->
+only_defmodule(_) ->
   false.
 
-fast_compile({'__block__', _, Exprs}, E) ->
-  lists:foldl(fun(Expr, _) -> fast_compile(Expr, E) end, nil, Exprs);
-fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
+expand_defmodule({'__block__', _, Exprs}, E) ->
+  lists:foldl(fun(Expr, _) -> expand_defmodule(Expr, E) end, nil, Exprs);
+expand_defmodule({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   E = NoLineE#{line := ?line(Meta)},
 
   Expanded = case Mod of

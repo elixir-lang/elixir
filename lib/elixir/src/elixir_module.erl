@@ -472,8 +472,12 @@ build(Module, Line, File, E) ->
 
 eval_form(Line, Module, DataBag, Block, Vars, Prune, E) ->
   %% Given Elixir modules can get very long to compile due to metaprogramming,
-  %% we disable expansions that take linear time to code size.
-  {Value, ExS, EE} = elixir_compiler:compile(Block, Vars, [no_bool_opt, no_ssa_opt], E),
+  %% we disable expansions that have linear time to code size.
+  {Value, ExS, EE} =
+    case elixir_config:get(module_definition) of
+      interpreted -> elixir_compiler:interpret(Block, Vars, E);
+      compiled -> elixir_compiler:compile(Block, Vars, [no_bool_opt, no_ssa_opt], E)
+    end,
   elixir_overridable:store_not_overridden(Module),
   EV = (elixir_env:reset_vars(EE))#{line := Line},
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
