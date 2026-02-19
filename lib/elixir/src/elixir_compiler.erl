@@ -54,7 +54,14 @@ interpret(Quoted, ArgsList, #{line := Line} = E) ->
   ListBinding = lists:zipwith(fun({_, Var}, Arg) -> {Var, Arg} end, Vars, ArgsList),
   Binding = maps:from_list(ListBinding),
 
-  {value, Result, _} = elixir:erl_eval(ErlExprs, Binding, E),
+  {value, Result, _} =
+    try
+      elixir:erl_eval(ErlExprs, Binding, E)
+    catch
+      Kind:Reason:Stacktrace ->
+        erlang:raise(Kind, Reason, Stacktrace ++ 'Elixir.Macro.Env':stacktrace(E))
+    end,
+
   {Result, SE, EE}.
 
 compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->

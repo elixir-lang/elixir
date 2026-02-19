@@ -401,10 +401,8 @@ eval_external_handler(Ann, FunOrModFun, Args) ->
       %% Add file+line information at the bottom
       Bottom =
         case erlang:get(?elixir_eval_env) of
-          #{file := File} ->
-            [{elixir_eval, '__FILE__', 1,
-             [{file, elixir_utils:characters_to_list(File)}, {line, erl_anno:line(Ann)}]}];
-
+          #{'__struct__' := 'Elixir.Macro.Env'} = E ->
+            'Elixir.Macro.Env':stacktrace(E#{line := erl_anno:line(Ann)});
           _ ->
             []
         end,
