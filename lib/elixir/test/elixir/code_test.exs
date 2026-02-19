@@ -751,6 +751,36 @@ defmodule Code.SyncTest do
     defp refute_cached(_path), do: :ok
   end
 
+  test "evaluates module definitions" do
+    Code.put_compiler_option(:module_definition, :interpreted)
+
+    defmodule CodeTest.EvalModule do
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      assert Enum.find(stacktrace, &(elem(&1, 0) == :erl_eval))
+    end
+  after
+    Code.put_compiler_option(:module_definition, :compiled)
+  end
+
+  test "evaluates module definitions with stacktraces" do
+    Code.put_compiler_option(:module_definition, :interpreted)
+
+    try do
+      defmodule CodeTest.EvalModuleRaise do
+        Enum.map(1..10, fn x -> x <> "example" end)
+      end
+    rescue
+      e ->
+        assert e.__struct__ == ArgumentError
+        assert Enum.find(__STACKTRACE__, &(elem(&1, 0) == Code.SyncTest.CodeTest.EvalModuleRaise))
+        assert Enum.find(__STACKTRACE__, &(elem(&1, 0) == :erl_eval))
+    else
+      _ -> flunk("defmodule should have failed")
+    end
+  after
+    Code.put_compiler_option(:module_definition, :compiled)
+  end
+
   test "prepend_path" do
     path = Path.join(__DIR__, "fixtures")
     true = Code.prepend_path(path)
