@@ -1747,7 +1747,8 @@ defmodule Code do
       be `:compiled` (the default) or `:interpreted`. Note this does not affect the
       `.beam` file written to disk, only how the contents inside `defmodule` are
       executed. Using the `:interpreted` mode may offer better compilation times for
-      large projects, however, it comes with some downsides:
+      large projects, especially on machines with high core count, however, it comes
+      with some downsides:
 
       * Errors during compilation may have less precise stacktraces
 
