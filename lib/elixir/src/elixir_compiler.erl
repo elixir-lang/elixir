@@ -20,7 +20,7 @@ quoted(Forms, File, Callback) ->
 
     elixir_lexical:run(
       Env,
-      fun (LexicalEnv) -> maybe_fast_compile(Forms, LexicalEnv) end,
+      fun (LexicalEnv) -> optimize_defmodule(Forms, LexicalEnv) end,
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
@@ -33,45 +33,103 @@ file(File, Callback) ->
   {ok, Bin} = file:read_file(File),
   string(elixir_utils:characters_to_list(Bin), File, Callback).
 
-%% Evaluates the given code through the Erlang compiler.
-%% It may end-up evaluating the code if it is deemed a
-%% more efficient strategy depending on the code snippet.
-maybe_fast_compile(Forms, E) ->
-  case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
+%% In case the forms only holds defmodules, we optimize
+%% it by expanding them directly.
+optimize_defmodule(Forms, E) ->
+  case (?key(E, module) == nil) andalso only_defmodule(Forms) andalso
         (not elixir_config:is_bootstrap()) of
-    true  -> fast_compile(Forms, E);
+    true  -> expand_defmodule(Forms, E);
     false -> compile(Forms, [], [], E)
   end,
   ok.
 
-compile(Quoted, ArgsList, _CompilerOpts, #{line := Line, file := File} = E) ->
-  Block = no_tail_optimize([{line, Line}], Quoted),
-  {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
+%% A version of compilation that uses eval (interpreted)
+interpret(Quoted, ArgsList, #{line := Line} = E) ->
+  {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
   elixir_env:check_unused_vars(SE, EE),
 
   {Vars, TS} = elixir_erl_var:from_env(E),
   {ErlExprs, _} = elixir_erl_pass:translate(Expanded, erl_anno:new(Line), TS),
-  Forms = code_eval(ErlExprs, Line, File, Vars),
 
-  {value, Fun, _} = erl_eval:expr(Forms, #{}),
+  ListBinding = lists:zipwith(fun({_, Var}, Arg) -> {Var, Arg} end, Vars, ArgsList),
+  Binding = maps:from_list(ListBinding),
+
+  {value, Result, _} = elixir:erl_eval(ErlExprs, Binding, E),
+  {Result, SE, EE}.
+
+compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->
+  Block = no_tail_optimize([{line, Line}], Quoted),
+  {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
+  elixir_env:check_unused_vars(SE, EE),
+
+  {Module, Fun, LabelledLocals} =
+    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, CompilerOpts, E) end),
+
   Args = list_to_tuple(ArgsList),
-  {Fun(Args), SE, EE}.
+  {dispatch(Module, Fun, Args, LabelledLocals), SE, EE}.
 
-code_eval(Expr, Line, File, Vars) when is_binary(File), is_integer(Line) ->
+spawned_compile(ExExprs, CompilerOpts, #{line := Line, file := File} = E) ->
+  {Vars, S} = elixir_erl_var:from_env(E),
+  {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, erl_anno:new(Line), S),
+
+  Module = retrieve_compiler_module(),
+  Fun = code_fun(?key(E, module)),
+  Forms = code_mod(Fun, ErlExprs, Line, File, Module, Vars),
+
+  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch | CompilerOpts]),
+  code:load_binary(Module, "", Binary),
+  {Module, Fun, is_purgeable(Binary)}.
+
+is_purgeable(<<"FOR1", _Size:32, "BEAM", Rest/binary>>) ->
+  do_is_purgeable(Rest).
+
+do_is_purgeable(<<>>) -> true;
+do_is_purgeable(<<"LocT", 4:32, 0:32, _/binary>>) -> true;
+do_is_purgeable(<<"LocT", _:32, _/binary>>) -> false;
+do_is_purgeable(<<_:4/binary, Size:32, Beam/binary>>) ->
+  <<_:(4 * trunc((Size+3) / 4))/binary, Rest/binary>> = Beam,
+  do_is_purgeable(Rest).
+
+dispatch(Module, Fun, Args, Purgeable) ->
+  Res = Module:Fun(Args),
+  return_compiler_module(Module, Purgeable),
+  Res.
+
+code_fun(nil) -> '__FILE__';
+code_fun(_)   -> '__MODULE__'.
+
+code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
   Ann = erl_anno:new(Line),
   Tuple = {tuple, Ann, [{var, Ann, Var} || {_, Var} <- Vars]},
-  {'fun', Ann, {clauses, [{clause, Ann, [Tuple], [], [Expr]}]}}.
+  Relative = elixir_utils:relative_to_cwd(File),
 
-allows_fast_compilation({'__block__', _, Exprs}) ->
-  lists:all(fun allows_fast_compilation/1, Exprs);
-allows_fast_compilation({defmodule, _, [_, [{do, _}]]}) ->
+  [{attribute, Ann, file, {elixir_utils:characters_to_list(Relative), 1}},
+   {attribute, Ann, module, Module},
+   {attribute, Ann, compile, no_auto_import},
+   {attribute, Ann, export, [{Fun, 1}, {'__RELATIVE__', 0}]},
+   {function, Ann, Fun, 1, [
+     {clause, Ann, [Tuple], [], [Expr]}
+   ]},
+   {function, Ann, '__RELATIVE__', 0, [
+     {clause, Ann, [], [], [elixir_erl:elixir_to_erl(Relative)]}
+   ]}].
+
+retrieve_compiler_module() ->
+  elixir_code_server:call(retrieve_compiler_module).
+
+return_compiler_module(Module, Purgeable) ->
+  elixir_code_server:cast({return_compiler_module, Module, Purgeable}).
+
+only_defmodule({'__block__', _, Exprs}) ->
+  lists:all(fun only_defmodule/1, Exprs);
+  only_defmodule({defmodule, _, [_, [{do, _}]]}) ->
   true;
-allows_fast_compilation(_) ->
+only_defmodule(_) ->
   false.
 
-fast_compile({'__block__', _, Exprs}, E) ->
-  lists:foldl(fun(Expr, _) -> fast_compile(Expr, E) end, nil, Exprs);
-fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
+expand_defmodule({'__block__', _, Exprs}, E) ->
+  lists:foldl(fun(Expr, _) -> expand_defmodule(Expr, E) end, nil, Exprs);
+expand_defmodule({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   E = NoLineE#{line := ?line(Meta)},
 
   Expanded = case Mod of
