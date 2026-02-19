@@ -312,7 +312,12 @@ defmodule Code do
 
   @available_compiler_options @boolean_compiler_options ++
                                 @list_compiler_options ++
-                                [:on_undefined_variable, :infer_signatures, :no_warn_undefined]
+                                [
+                                  :on_undefined_variable,
+                                  :infer_signatures,
+                                  :no_warn_undefined,
+                                  :module_definition
+                                ]
 
   @doc """
   Lists all required files.
