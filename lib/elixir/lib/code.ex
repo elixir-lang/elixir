@@ -1746,8 +1746,15 @@ defmodule Code do
     * `:module_definition` (since v1.20.0) - stores if the module definition should
       be `:compiled` (the default) or `:interpreted`. Note this does not affect the
       `.beam` file written to disk, only how the contents inside `defmodule` are
-      executed. Setting it to `:interpreted` may offer better compilation times for
-      large projects.
+      executed. Using the `:interpreted` mode may offer better compilation times for
+      large projects, however, it comes with some downsides:
+
+      * Errors during compilation may have less precise stacktraces
+
+      * Anonymous functions within `defmodule` can have only up to 20 arguments.
+        If this is an issue, you can use maps or tuples to group the data.
+        Note the functions themselves inside `defmodule`, such as the ones defined
+        inside `def` and friends, can still have up to 255 arguments
 
     * `:no_warn_undefined` (since v1.10.0) - list of modules and `{Mod, fun, arity}`
       tuples that will not emit warnings that the module or function does not exist
