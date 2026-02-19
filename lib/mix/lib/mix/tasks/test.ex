@@ -714,7 +714,8 @@ defmodule Mix.Tasks.Test do
         cover && cover.()
 
         cond do
-          warnings_as_errors? and (warnings? or helper_warned?) and failures == 0 ->
+          warnings_as_errors? and (warnings? or helper_warned? or warn_files != []) and
+              failures == 0 ->
             message =
               "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
 
