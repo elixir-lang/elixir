@@ -4,7 +4,7 @@
 
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([string/3, quoted/3, bootstrap/0, file/2, compile/4]).
+-export([string/3, quoted/3, bootstrap/0, file/2, compile/4, interpret/3]).
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
