@@ -1822,7 +1822,7 @@ defmodule Code do
       raise "compiler option :module_definition should be either :interpreted or :compiled, got: #{inspect(value)}"
     end
 
-    :elixir_config.put(:infer_signatures, value)
+    :elixir_config.put(:module_definition, value)
     :ok
   end
 
