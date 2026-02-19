@@ -10,9 +10,8 @@
 -export([start/2, stop/1, config_change/3]).
 -export([
   string_to_tokens/5, tokens_to_quoted/3, string_to_quoted/5, 'string_to_quoted!'/5,
-  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
-  eval_quoted/4, eval_local_handler/2, eval_external_handler/3,
-  emit_warnings/3
+  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3, eval_quoted/4,
+  erl_eval/3, eval_local_handler/2, eval_external_handler/3, emit_warnings/3
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
@@ -325,39 +324,35 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
       end;
 
     _  ->
-      Exprs =
-        case Erl of
-          {block, _, BlockExprs} -> BlockExprs;
-          _ -> [Erl]
-        end,
-
-      %% We use remote names so eval works across Elixir versions.
-      LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
-      ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
-
-      {value, Value, NewBinding} =
-        try
-          %% ?elixir_eval_env is used by the external handler.
-          %%
-          %% The reason why we use the process dictionary to pass the environment
-          %% is because we want to avoid passing closures to erl_eval, as that
-          %% would effectively tie the eval code to the Elixir version and it is
-          %% best if it depends solely on Erlang/OTP.
-          %%
-          %% The downside is that functions that escape the eval context will no
-          %% longer have the original environment they came from.
-          erlang:put(?elixir_eval_env, NewE),
-          erl_eval:exprs(Exprs, ErlBinding, LocalHandler, ExternalHandler)
-        after
-          erlang:erase(?elixir_eval_env)
-        end,
-
+      {value, Value, NewBinding} = erl_eval(Erl, ErlBinding, NewE),
       PruneBefore = if Prune -> length(Binding); true -> -1 end,
 
       {DumpedBinding, DumpedVars} =
         elixir_erl_var:dump_binding(NewBinding, NewErlS, NewExS, PruneBefore),
 
       {Value, DumpedBinding, NewE#{versioned_vars := DumpedVars}}
+  end.
+
+%% Evaluate Erlang code with careful handling of local and external functions
+erl_eval(Expr, Binding, Env) ->
+  %% We use remote names so eval works across Elixir versions
+  LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
+  ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
+
+  try
+    %% ?elixir_eval_env is used by the external handler.
+    %%
+    %% The reason why we use the process dictionary to pass the environment
+    %% is because we want to avoid passing closures to erl_eval, as that
+    %% would effectively tie the eval code to the Elixir version and it is
+    %% best if it depends solely on Erlang/OTP.
+    %%
+    %% The downside is that functions that escape the eval context will no
+    %% longer have the original environment they came from.
+    erlang:put(?elixir_eval_env, Env),
+    erl_eval:expr(Expr, Binding, LocalHandler, ExternalHandler)
+  after
+    erlang:erase(?elixir_eval_env)
   end.
 
 eval_local_handler(FunName, Args) ->
