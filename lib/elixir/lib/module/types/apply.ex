@@ -236,6 +236,9 @@ defmodule Module.Types.Apply do
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
+        ## Lists
+        {:lists, :member, [{[term(), list(term())], boolean()}]},
+
         ## Map
         {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
         {Map, :get, [{[open_map(), term()], term()}]},
@@ -367,8 +370,8 @@ defmodule Module.Types.Apply do
     right_literal? = Macro.quoted_literal?(right)
 
     case {left_literal?, right_literal?} do
-      {true, false} -> literal_compare(name, right, left, expected, expr, stack, context, of_fun)
-      {false, true} -> literal_compare(name, left, right, expected, expr, stack, context, of_fun)
+      {true, false} -> custom_compare(name, right, left, expected, expr, stack, context, of_fun)
+      {false, true} -> custom_compare(name, left, right, expected, expr, stack, context, of_fun)
       {literal?, _} -> compare(name, left, right, literal?, expr, stack, context, of_fun)
     end
   end
@@ -479,6 +482,54 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp do_remote(:lists, :member, [arg, list] = args, expected, expr, stack, context, of_fun)
+       when is_list(list) and list != [] do
+    case booleaness(expected) do
+      {polarity, _maybe_or_always} ->
+        {return, acc} =
+          case polarity do
+            true -> {@atom_true, none()}
+            false -> {@atom_false, term()}
+          end
+
+        {expected, singleton?, context} =
+          Enum.reduce(list, {acc, true, context}, fn literal, {acc, all_singleton?, context} ->
+            {type, context} = of_fun.(literal, term(), expr, stack, context)
+
+            if singleton?(type) do
+              acc = if polarity, do: union(acc, type), else: intersection(acc, negation(type))
+              {acc, all_singleton?, context}
+            else
+              acc = if polarity, do: union(acc, type), else: acc
+              {acc, false, context}
+            end
+          end)
+
+        {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
+
+        cond do
+          # Return a precise result
+          singleton? and subtype?(arg_type, expected) ->
+            {return(return, [arg_type, expected], stack), context}
+
+          # Singleton types with reverse polarity are negated, so we don't check for disjoint
+          (singleton? and not polarity) or not is_warning(stack) ->
+            {return(boolean(), [arg_type, expected], stack), context}
+
+          # Nothing in common between left and right, emit a warning
+          disjoint?(arg_type, expected) ->
+            error = {:mismatched_comparison, arg_type, list(expected)}
+            remote_error(error, :lists, :member, 2, expr, stack, context)
+
+          true ->
+            {return(boolean(), [arg_type, expected], stack), context}
+        end
+
+      _ ->
+        remote_domain(:lists, :member, args, expected, elem(expr, 1), stack, context)
+    end
+  end
+
   defp do_remote(mod, fun, args, expected, expr, stack, context, _of_fun) do
     remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
   end
@@ -495,7 +546,7 @@ defmodule Module.Types.Apply do
             when (fun in [:length, :map_size] and is_integer(literal) and literal >= 0) or
                    (fun in [:tuple_size] and literal in 0..15)
 
-  defp literal_compare(
+  defp custom_compare(
          name,
          {{:., _, [:erlang, fun]}, _, [arg]} = left,
          literal,
@@ -547,18 +598,14 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp literal_compare(name, arg, literal, expected, expr, stack, context, of_fun) do
-    {type, context} = of_fun.(literal, term(), expr, stack, context)
-    literal_compare(name, arg, type, singleton?(type), expected, expr, stack, context, of_fun)
-  end
-
-  def literal_compare(name, arg, type, singleton?, expected, expr, stack, context, of_fun) do
+  defp custom_compare(name, arg, literal, expected, expr, stack, context, of_fun) do
     case booleaness(expected) do
       booleaness when booleaness in [:maybe_both, :none] ->
-        {arg_type, context} = of_fun.(arg, term(), expr, stack, context)
-        return_compare(name, arg_type, type, boolean(), false, expr, stack, context)
+        compare(name, arg, literal, false, expr, stack, context, of_fun)
 
       {boolean, _maybe_or_always} ->
+        {type, context} = of_fun.(literal, term(), expr, stack, context)
+
         {polarity, return} =
           case boolean do
             true -> {name in [:==, :"=:="], @atom_true}
@@ -567,7 +614,7 @@ defmodule Module.Types.Apply do
 
         # This logic mirrors the code in `Pattern.of_pattern_tree`
         # If it is a singleton, we can always be precise
-        if singleton? do
+        if singleton?(type) do
           expected = if polarity, do: type, else: negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
           result = if subtype?(arg_type, expected), do: return, else: boolean()
@@ -1849,7 +1896,7 @@ defmodule Module.Types.Apply do
   end
 
   def format_diagnostic({{:mismatched_comparison, left, right}, mfac, expr, context}) do
-    {_, name, _, _} = mfac
+    {mod, name, _, _} = mfac
     traces = collect_traces(expr, context)
 
     %{
@@ -1863,7 +1910,7 @@ defmodule Module.Types.Apply do
 
           given types:
 
-              #{type_comparison_to_string(name, left, right) |> indent(4)}
+              #{type_comparison_to_string(mod, name, left, right) |> indent(4)}
           """,
           format_traces(traces),
           """
@@ -1877,7 +1924,7 @@ defmodule Module.Types.Apply do
   end
 
   def format_diagnostic({{:struct_comparison, left, right}, mfac, expr, context}) do
-    {_, name, _, _} = mfac
+    {mod, name, _, _} = mfac
     traces = collect_traces(expr, context)
 
     %{
@@ -1891,7 +1938,7 @@ defmodule Module.Types.Apply do
 
           given types:
 
-              #{type_comparison_to_string(name, left, right) |> indent(4)}
+              #{type_comparison_to_string(mod, name, left, right) |> indent(4)}
           """,
           format_traces(traces),
           """
@@ -1989,8 +2036,8 @@ defmodule Module.Types.Apply do
 
   alias Inspect.Algebra, as: IA
 
-  defp type_comparison_to_string(fun, left, right) do
-    {_, fun, _, _} = :elixir_rewrite.erl_to_ex(:erlang, fun, [left, right])
+  defp type_comparison_to_string(mod, fun, left, right) do
+    {_, fun, _, _} = :elixir_rewrite.erl_to_ex(mod, fun, [left, right])
 
     {fun, [], [to_quoted(left, collapse_structs: true), to_quoted(right, collapse_structs: true)]}
     |> Code.Formatter.to_algebra()

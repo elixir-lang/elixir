@@ -596,15 +596,17 @@ defmodule MacroTest do
     end
 
     test "left-associative operators" do
-      {result, formatted} = dbg_format(List.first([]) || "yes" || raise("foo"))
+      {result, formatted} =
+        dbg_format(List.first([]) || Process.get(:unknown, "yes") || raise("foo"))
+
       assert result == "yes"
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
              List.first([]) #=> nil
-             List.first([]) || "yes" #=> "yes"
-             List.first([]) || "yes" || raise "foo" #=> "yes"
+             List.first([]) || Process.get(:unknown, "yes") #=> "yes"
+             List.first([]) || Process.get(:unknown, "yes") || raise "foo" #=> "yes"
              """
     end
 

@@ -589,6 +589,44 @@ translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
     {[TKey, TValue, TMap], TS} ->
       {{map, Ann, TMap, [{map_field_assoc, Ann, TKey, TValue}]}, TS}
   end;
+translate_remote(lists, member, Meta, [Expr, [Head | Tail] = List], S) ->
+  Ann = ?ann(Meta),
+
+  case optimize_list_membership(List, 0) of
+    true ->
+      {TExpr, S1} = translate(Expr, Ann, S),
+
+      {TVar, TFun, S3} =
+        case TExpr of
+          {var, _, _} ->
+            {TExpr, fun(Orelse) -> Orelse end, S1};
+
+          _ ->
+            {VarName, S2} = elixir_erl_var:build('_', S1),
+            Generated = erl_anno:set_generated(true, Ann),
+            Var = {var, Generated, VarName},
+            Fun = fun(Orelse) -> {block, Generated, [{match, Generated, Var, TExpr}, Orelse]} end,
+            {Var, Fun, S2}
+        end,
+
+      {THead, _} = translate(Head, Ann, S),
+
+      TOrelse =
+        lists:foldl(
+          fun(X, Acc) ->
+            {TX, _} = translate(X, Ann, S),
+            {op, Ann, 'orelse', Acc, {op, Ann, '=:=', TVar, TX}}
+          end,
+          {op, Ann, '=:=', TVar, THead},
+          Tail
+        ),
+
+      {TFun(TOrelse), S3};
+
+    false ->
+      {TArgs, SA} = translate_args([Expr, List], Ann, S),
+      {{call, Ann, {remote, Ann, {atom, Ann, lists}, {atom, Ann, member}}, TArgs}, SA}
+  end;
 translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
   Ann = ?ann(Meta),
 
@@ -631,6 +669,14 @@ translate_remote(Left, Right, Meta, Args, S) ->
       TRight = {atom, Ann, Right},
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
   end.
+
+optimize_list_membership([Head | Tail], Count)
+    when Count =< 32, is_number(Head) orelse is_atom(Head) orelse is_binary(Head) ->
+  optimize_list_membership(Tail, Count + 1);
+optimize_list_membership([], _Count) ->
+  true;
+optimize_list_membership(_, _Count) ->
+  false.
 
 rewrite_strategy(erlang, Right, Args) ->
   Arity  = length(Args),

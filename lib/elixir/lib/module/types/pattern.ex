@@ -1046,24 +1046,10 @@ defmodule Module.Types.Pattern do
     of_remote(fun, args, call, expected, stack, context)
   end
 
-  # This is reconstructed as part of orelse
-  def of_guard({{:., _, [Kernel, :in]}, _meta, [left, right]} = call, expected, _, stack, context) do
-    {right, context} = Enum.map_reduce(right, context, &of_guard(&1, term(), call, stack, &2))
-    {singleton, non_singleton} = Enum.split_with(right, &singleton?/1)
-
-    fun = fn
-      [], _singleton?, context ->
-        {none(), context}
-
-      types, singleton?, context ->
-        type = Enum.reduce(types, &union/2)
-        fun = &of_guard/5
-        Apply.literal_compare(:"=:=", left, type, singleton?, expected, call, stack, context, fun)
-    end
-
-    {singleton_type, context} = fun.(singleton, true, context)
-    {non_singleton_type, context} = fun.(non_singleton, false, context)
-    {union(singleton_type, non_singleton_type), context}
+  # The only possible case right now is the rewritten :lists.member/2 checks
+  def of_guard({{:., _, [mod, fun]}, _meta, args} = call, expected, _, stack, context)
+      when is_atom(mod) and is_atom(fun) do
+    Apply.remote(mod, fun, args, expected, call, stack, context, &of_guard/5)
   end
 
   # var
@@ -1158,7 +1144,7 @@ defmodule Module.Types.Pattern do
     # building nested conditional environments.
     [left | right] =
       case unpack_op(call, fun, []) do
-        entries when fun == :orelse -> reconstruct_kernel_in(entries)
+        entries when fun == :orelse -> reconstruct_lists_member(entries)
         entries -> entries
       end
 
@@ -1216,24 +1202,27 @@ defmodule Module.Types.Pattern do
     [other | acc]
   end
 
-  defp reconstruct_kernel_in([head | tail]) do
+  # Reconstruct left in right operations but only when the right-side is a literal.
+  # When the right-side is not a literal, we need to track dependencies between
+  # left and right-side, which is currently not done for the `:lists.member/2` handling.
+  defp reconstruct_lists_member([head | tail]) do
     with {{:., dot_meta, [:erlang, :"=:="]}, meta, [left, right]} <- head,
          true <- Macro.quoted_literal?(right),
          false <- data_size_op?(left),
-         {[_ | _] = entries, tail} <- reconstruct_kernel_in(tail, left, []) do
+         {[_ | _] = entries, tail} <- reconstruct_lists_member(tail, left, []) do
       in_args = [left, [right | entries]]
-      [{{:., dot_meta, [Kernel, :in]}, meta, in_args} | reconstruct_kernel_in(tail)]
+      [{{:., dot_meta, [:lists, :member]}, meta, in_args} | reconstruct_lists_member(tail)]
     else
-      _ -> [head | reconstruct_kernel_in(tail)]
+      _ -> [head | reconstruct_lists_member(tail)]
     end
   end
 
-  defp reconstruct_kernel_in([]), do: []
+  defp reconstruct_lists_member([]), do: []
 
-  defp reconstruct_kernel_in(list, left, acc) do
+  defp reconstruct_lists_member(list, left, acc) do
     with [{{:., _, [:erlang, :"=:="]}, _, [^left, right]} | tail] <- list,
          true <- Macro.quoted_literal?(right) do
-      reconstruct_kernel_in(tail, left, [right | acc])
+      reconstruct_lists_member(tail, left, [right | acc])
     else
       _ -> {Enum.reverse(acc), list}
     end

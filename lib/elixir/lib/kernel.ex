@@ -4707,9 +4707,9 @@ defmodule Kernel do
       [head | tail] = list ->
         # We only expand lists in the body if they are relatively
         # short and it is made only of literal expressions.
-        case not in_body? or small_literal_list?(right) do
-          true -> in_var(in_body?, left, &in_list(&1, head, tail, expand, list, in_body?))
-          false -> quote(do: :lists.member(unquote(left), unquote(right)))
+        case in_body? do
+          false -> in_list(left, head, tail, expand, list, in_body?)
+          true -> quote(do: :lists.member(unquote(left), unquote(right)))
         end
 
       %{} = right ->
@@ -4755,12 +4755,6 @@ defmodule Kernel do
       unquote(fun.(quote(do: var)))
     end
   end
-
-  defp small_literal_list?(list) when is_list(list) and length(list) <= 32 do
-    :lists.all(fn x -> is_binary(x) or is_atom(x) or is_number(x) end, list)
-  end
-
-  defp small_literal_list?(_list), do: false
 
   defp in_range(left, first, last, step) when is_integer(step) do
     in_range_literal(left, first, last, step)

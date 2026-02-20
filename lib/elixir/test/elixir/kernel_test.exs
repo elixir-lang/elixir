@@ -696,16 +696,7 @@ defmodule KernelTest do
 
       # Lists
       result = expand_to_string(quote(do: rand() in [1, 2]))
-      assert result =~ "var = rand()"
-
-      result = expand_to_string(quote(do: var in [1, 2]), :guard)
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
-
-      result = expand_to_string(quote(do: rand() in [1 | [2]]))
-      assert result =~ ":lists.member(rand(), [1 | [2]]"
-
-      result = expand_to_string(quote(do: rand() in [1 | some_call()]))
-      assert result =~ ":lists.member(rand(), [1 | some_call()]"
+      assert result =~ ":lists.member(rand(), [1, 2]"
     end
 
     test "is optimized" do

@@ -1595,6 +1595,82 @@ defmodule Module.Types.ExprTest do
                    x = :foo
                """
     end
+
+    test "Kernel.in/2" do
+      assert typecheck!(
+               [x],
+               (
+                 true = x in [:foo, 1, :bar, 2.0, :baz]
+                 x
+               )
+             ) ==
+               dynamic(union(atom([:foo, :bar, :baz]), union(integer(), float())))
+
+      assert typecheck!(
+               [x],
+               (
+                 false = x in [:foo, 1, :bar, 2.0, :baz]
+                 x
+               )
+             ) ==
+               dynamic(negation(atom([:foo, :bar, :baz])))
+
+      assert typecheck!(
+               [x],
+               (
+                 true = x not in [:foo, 1, :bar, 2.0, :baz]
+                 x
+               )
+             ) ==
+               dynamic(negation(atom([:foo, :bar, :baz])))
+
+      assert typecheck!(
+               [x],
+               (
+                 false = x not in [:foo, 1, :bar, 2.0, :baz]
+                 x
+               )
+             ) ==
+               dynamic(union(atom([:foo, :bar, :baz]), union(integer(), float())))
+
+      assert typeerror!([x = :ok], true = x in [:foo, 1.0, :baz]) =~ ~l"""
+             comparison between distinct types found:
+
+                 x in [:foo, 1.0, :baz]
+
+             given types:
+
+                 dynamic(:ok) in list(:baz or :foo or float())
+
+             where "x" was given the type:
+
+                 # type: dynamic(:ok)
+                 # from: types_test.ex:1636
+                 x = :ok
+             """
+
+      assert typeerror!(
+               [x],
+               (
+                 true = x in [:foo, :bar]
+                 :baz = x
+               )
+             ) == ~l"""
+             the following pattern will never match:
+
+                 :baz = x
+
+             because the right-hand side has type:
+
+                 dynamic(:bar or :foo)
+
+             where "x" was given the type:
+
+                 # type: dynamic(:bar or :foo)
+                 # from: types_test.ex:LINE-3
+                 x in [:foo, :bar]
+             """
+    end
   end
 
   describe "case" do
