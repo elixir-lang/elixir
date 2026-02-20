@@ -1046,6 +1046,26 @@ defmodule Module.Types.Pattern do
     of_remote(fun, args, call, expected, stack, context)
   end
 
+  # This is reconstructed as part of orelse
+  def of_guard({{:., _, [Kernel, :in]}, _meta, [left, right]} = call, expected, _, stack, context) do
+    {right, context} = Enum.map_reduce(right, context, &of_guard(&1, term(), call, stack, &2))
+    {singleton, non_singleton} = Enum.split_with(right, &singleton?/1)
+
+    fun = fn
+      [], _singleton?, context ->
+        {none(), context}
+
+      types, singleton?, context ->
+        type = Enum.reduce(types, &union/2)
+        fun = &of_guard/5
+        Apply.literal_compare(:"=:=", left, type, singleton?, expected, call, stack, context, fun)
+    end
+
+    {singleton_type, context} = fun.(singleton, true, context)
+    {non_singleton_type, context} = fun.(non_singleton, false, context)
+    {union(singleton_type, non_singleton_type), context}
+  end
+
   # var
   def of_guard({_, meta, _} = var, expected, expr, stack, context) when is_var(var) do
     version = Keyword.fetch!(meta, :version)
@@ -1136,27 +1156,10 @@ defmodule Module.Types.Pattern do
     # If we have multiple operations in a row,
     # we unpack them into a single pass, to avoid
     # building nested conditional environments.
-    [left | right] = unpack_op(call, fun, [])
-
-    # In case the right side is a sequence of comparisons with imprecise literals, collapse them.
-    right =
-      with {{:., _, [:erlang, comp_op]}, _, [{var_name, _, var_ctx}, literal]}
-           when comp_op in @comp_op and is_atom(var_name) and is_atom(var_ctx) and
-                  (is_number(literal) or is_binary(literal)) <- left,
-           true <-
-             Enum.all?(right, fn
-               {{:., _, [:erlang, ^comp_op]}, _, [{^var_name, _, ^var_ctx}, other_literal]}
-               when is_integer(literal) and is_integer(other_literal)
-               when is_float(literal) and is_float(other_literal)
-               when is_binary(literal) and is_binary(other_literal) ->
-                 true
-
-               _ ->
-                 false
-             end) do
-        []
-      else
-        _ -> right
+    [left | right] =
+      case unpack_op(call, fun, []) do
+        entries when fun == :orelse -> reconstruct_kernel_in(entries)
+        entries -> entries
       end
 
     # For example, if the expected type is true for andalso, then it can
@@ -1212,6 +1215,36 @@ defmodule Module.Types.Pattern do
   defp unpack_op(other, _fun, acc) do
     [other | acc]
   end
+
+  defp reconstruct_kernel_in([head | tail]) do
+    with {{:., dot_meta, [:erlang, :"=:="]}, meta, [left, right]} <- head,
+         true <- Macro.quoted_literal?(right),
+         false <- data_size_op?(left),
+         {[_ | _] = entries, tail} <- reconstruct_kernel_in(tail, left, []) do
+      in_args = [left, [right | entries]]
+      [{{:., dot_meta, [Kernel, :in]}, meta, in_args} | reconstruct_kernel_in(tail)]
+    else
+      _ -> [head | reconstruct_kernel_in(tail)]
+    end
+  end
+
+  defp reconstruct_kernel_in([]), do: []
+
+  defp reconstruct_kernel_in(list, left, acc) do
+    with [{{:., _, [:erlang, :"=:="]}, _, [^left, right]} | tail] <- list,
+         true <- Macro.quoted_literal?(right) do
+      reconstruct_kernel_in(tail, left, [right | acc])
+    else
+      _ -> {Enum.reverse(acc), list}
+    end
+  end
+
+  defp data_size_op?({{:., _, [:erlang, op]}, _, [_]})
+       when op in [:length, :tuple_size, :map_size],
+       do: true
+
+  defp data_size_op?(_),
+    do: false
 
   defp of_logical_all([head], disjoint?, expected, to_abort, stack, context) do
     {type, context} = of_guard(head, expected, head, stack, context)

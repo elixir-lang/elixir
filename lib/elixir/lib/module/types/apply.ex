@@ -367,8 +367,8 @@ defmodule Module.Types.Apply do
     right_literal? = Macro.quoted_literal?(right)
 
     case {left_literal?, right_literal?} do
-      {true, false} -> custom_compare(name, right, left, expected, expr, stack, context, of_fun)
-      {false, true} -> custom_compare(name, left, right, expected, expr, stack, context, of_fun)
+      {true, false} -> literal_compare(name, right, left, expected, expr, stack, context, of_fun)
+      {false, true} -> literal_compare(name, left, right, expected, expr, stack, context, of_fun)
       {literal?, _} -> compare(name, left, right, literal?, expr, stack, context, of_fun)
     end
   end
@@ -495,7 +495,7 @@ defmodule Module.Types.Apply do
             when (fun in [:length, :map_size] and is_integer(literal) and literal >= 0) or
                    (fun in [:tuple_size] and literal in 0..15)
 
-  defp custom_compare(
+  defp literal_compare(
          name,
          {{:., _, [:erlang, fun]}, _, [arg]} = left,
          literal,
@@ -547,14 +547,18 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp custom_compare(name, arg, literal, expected, expr, stack, context, of_fun) do
+  defp literal_compare(name, arg, literal, expected, expr, stack, context, of_fun) do
+    {type, context} = of_fun.(literal, term(), expr, stack, context)
+    literal_compare(name, arg, type, singleton?(type), expected, expr, stack, context, of_fun)
+  end
+
+  def literal_compare(name, arg, type, singleton?, expected, expr, stack, context, of_fun) do
     case booleaness(expected) do
       booleaness when booleaness in [:maybe_both, :none] ->
-        compare(name, arg, literal, false, expr, stack, context, of_fun)
+        {arg_type, context} = of_fun.(arg, term(), expr, stack, context)
+        return_compare(name, arg_type, type, boolean(), false, expr, stack, context)
 
       {boolean, _maybe_or_always} ->
-        {literal_type, context} = of_fun.(literal, term(), expr, stack, context)
-
         {polarity, return} =
           case boolean do
             true -> {name in [:==, :"=:="], @atom_true}
@@ -563,28 +567,28 @@ defmodule Module.Types.Apply do
 
         # This logic mirrors the code in `Pattern.of_pattern_tree`
         # If it is a singleton, we can always be precise
-        if singleton?(literal_type) do
-          expected = if polarity, do: literal_type, else: negation(literal_type)
+        if singleton? do
+          expected = if polarity, do: type, else: negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
           result = if subtype?(arg_type, expected), do: return, else: boolean()
 
           # Because reverse polarity means we will infer negated types
           # (which are naturally disjoint), we skip checks in such cases
           skip_check? = not polarity
-          return_compare(name, arg_type, literal_type, result, skip_check?, expr, stack, context)
+          return_compare(name, arg_type, type, result, skip_check?, expr, stack, context)
         else
           expected =
             cond do
               # We are checking for `not x == 1` or similar, we can't say anything about x
               polarity == false -> term()
               # We are checking for `x == 1`, make sure x is integer or float
-              name in [:==, :"/="] -> numberize(literal_type)
+              name in [:==, :"/="] -> numberize(type)
               # Otherwise we have the literal type as is
-              true -> literal_type
+              true -> type
             end
 
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
-          return_compare(name, arg_type, literal_type, boolean(), false, expr, stack, context)
+          return_compare(name, arg_type, type, boolean(), false, expr, stack, context)
         end
     end
   end
