@@ -547,6 +547,8 @@ defmodule Map do
     :erlang.error({:badmap, non_map})
   end
 
+  defp take([], _map, []), do: %{}
+
   defp take([], _map, acc) do
     :maps.from_list(acc)
   end
