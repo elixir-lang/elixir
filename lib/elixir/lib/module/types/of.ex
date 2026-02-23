@@ -434,11 +434,17 @@ defmodule Module.Types.Of do
 
   @doc """
   Handles instantiation of a new struct.
+
+  This is expanded and validated by the compiler, so don't need to check the fields.
   """
   # TODO: Type check the fields match the struct
   def struct_instance(struct, args, expected, meta, stack, context, of_fun)
       when is_atom(struct) do
-    {_info, context} = struct_info(struct, meta, stack, context)
+    {info, context} = struct_info(struct, :expr, meta, stack, context)
+
+    if is_nil(info) do
+      raise "expected #{inspect(struct)} to return struct metadata, but got none"
+    end
 
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
@@ -459,23 +465,28 @@ defmodule Module.Types.Of do
   @doc """
   Returns `__info__(:struct)` information about a struct.
   """
-  def struct_info(struct, meta, stack, context) do
+  def struct_info(struct, kind, meta, stack, context) do
     case stack.no_warn_undefined do
       %Macro.Env{} = env ->
-        case :elixir_map.maybe_load_struct_info(meta, struct, [], false, env) do
+        case :elixir_map.maybe_load_struct_info(meta, struct, env) do
           {:ok, info} -> {info, context}
-          {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+          {:error, _desc} -> {nil, context}
         end
 
       _ ->
-        # Fetch the signature to validate for warnings.
-        {_, context} = Module.Types.Apply.signature(struct, :__struct__, 0, meta, stack, context)
-
         info =
-          struct.__info__(:struct) ||
-            raise "expected #{inspect(struct)} to return struct metadata, but got none"
+          Code.ensure_loaded?(struct) and function_exported?(struct, :__info__, 1) and
+            struct.__info__(:struct)
 
-        {info, context}
+        if info do
+          {_, context} =
+            Module.Types.Apply.signature(struct, :__struct__, 0, meta, stack, context)
+
+          {info, context}
+        else
+          error = {:unknown_struct, kind, struct}
+          {nil, error(error, meta, stack, context)}
+        end
     end
   end
 
@@ -490,6 +501,14 @@ defmodule Module.Types.Of do
     pairs = [{:__struct__, atom([struct])} | pairs]
     pairs = if args_types == [], do: pairs, else: pairs ++ args_types
     closed_map(pairs)
+  end
+
+  @doc """
+  Returns shared error for unknown struct field.
+  """
+  def unknown_struct_field(struct, field, kind, meta, stack, context) do
+    error = {:unknown_struct_field, kind, struct, field}
+    error(error, meta, stack, context)
   end
 
   ## Bitstrings
@@ -799,6 +818,30 @@ defmodule Module.Types.Of do
           """,
           format_traces(traces)
         ])
+    }
+  end
+
+  def format_diagnostic({:unknown_struct, kind, module}) do
+    message =
+      if Code.ensure_loaded?(module) do
+        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
+      else
+        "struct #{inspect(module)} is undefined " <>
+          "(module #{inspect(module)} is not available or is yet to be defined)"
+      end
+
+    %{
+      message: message,
+      group: true,
+      severity: if(kind == :pattern, do: :error, else: :warning)
+    }
+  end
+
+  def format_diagnostic({:unknown_struct_field, kind, module, field}) do
+    %{
+      message: "unknown key #{inspect(field)} for struct #{inspect(module)}",
+      group: true,
+      severity: if(kind == :pattern, do: :error, else: :warning)
     }
   end
 

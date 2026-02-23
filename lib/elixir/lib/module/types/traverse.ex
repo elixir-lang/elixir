@@ -35,8 +35,19 @@ defmodule Module.Types.Traverse do
     end)
   end
 
-  # Structs, map update, tail operator
-  def of_expr({op, _meta, [left, right]}, stack, context) when op in [:%, :|] do
+  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [map, pairs]}]}]}, stack, context) do
+    context = of_expr(map, stack, context)
+    context = of_expr(pairs, stack, context)
+    of_struct(module, pairs, :expr, meta, stack, context)
+  end
+
+  def of_expr({:%, meta, [module, {:%{}, _, pairs}]}, stack, context) do
+    context = of_expr(pairs, stack, context)
+    of_struct(module, pairs, :expr, meta, stack, context)
+  end
+
+  # Map update, tail operator
+  def of_expr({:|, _meta, [left, right]}, stack, context) do
     context = of_expr(left, stack, context)
     of_expr(right, stack, context)
   end
@@ -46,9 +57,9 @@ defmodule Module.Types.Traverse do
     Enum.reduce(exprs, context, &of_expr(&1, stack, &2))
   end
 
-  # left = right, left <_ right
-  def of_expr({op, _meta, [_left, right]}, stack, context) when op in [:=, :<-] do
-    # Skip the left side (pattern), only traverse right
+  # left = right, left <- right
+  def of_expr({op, _meta, [left, right]}, stack, context) when op in [:=, :<-] do
+    context = of_pattern(left, stack, context)
     of_expr(right, stack, context)
   end
 
@@ -65,8 +76,9 @@ defmodule Module.Types.Traverse do
     end)
   end
 
-  # Treat -> as patterns for simplicity
-  def of_expr({:->, _, [_head, body]}, stack, context) do
+  # All non-handled -> are patterns
+  def of_expr({:->, _, [head, body]}, stack, context) do
+    context = of_pattern(head, stack, context)
     of_expr(body, stack, context)
   end
 
@@ -148,6 +160,45 @@ defmodule Module.Types.Traverse do
   def of_expr({name, _meta, ctx}, _stack, context)
       when is_atom(name) and is_atom(ctx) do
     context
+  end
+
+  defp of_pattern({:%, meta, [module, {:%{}, _, pairs}]}, stack, context) when is_atom(module) do
+    context = of_pattern(pairs, stack, context)
+    of_struct(module, pairs, :expr, meta, stack, context)
+  end
+
+  defp of_pattern({left, _meta, right}, stack, context) do
+    context = of_pattern(left, stack, context)
+    of_pattern(right, stack, context)
+  end
+
+  defp of_pattern({left, right}, stack, context) do
+    context = of_pattern(left, stack, context)
+    of_pattern(right, stack, context)
+  end
+
+  defp of_pattern([_ | _] = list, stack, context) do
+    Enum.reduce(list, context, &of_pattern(&1, stack, &2))
+  end
+
+  defp of_pattern(_, _stack, context) do
+    context
+  end
+
+  defp of_struct(module, pairs, kind, meta, stack, context) do
+    {info, context} = Module.Types.Of.struct_info(module, kind, meta, stack, context)
+
+    if info do
+      Enum.reduce(pairs, context, fn {key, _value}, context ->
+        if Enum.any?(info, &(&1.field == key)) do
+          context
+        else
+          Module.Types.Of.unknown_struct_field(module, key, kind, meta, stack, context)
+        end
+      end)
+    else
+      context
+    end
   end
 
   defp local_fun(meta, fun, arity, stack, context) do

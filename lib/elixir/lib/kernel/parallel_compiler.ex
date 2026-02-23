@@ -460,7 +460,7 @@ defmodule Kernel.ParallelCompiler do
     modules = write_module_binaries(result, state.output, state)
     profile(state, "after compile callback", state.after_compile)
 
-    runtime_warnings =
+    {runtime_warnings, errors} =
       if state.verification? do
         profile(
           state,
@@ -471,11 +471,19 @@ defmodule Kernel.ParallelCompiler do
           fn -> Module.ParallelChecker.verify(state.checker, dependent_modules) end
         )
       else
-        []
+        {[], []}
       end
 
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
-    {{:ok, modules, info}, state}
+
+    case errors do
+      [] ->
+        {{:ok, modules, info}, state}
+
+      _ ->
+        IO.puts(:stderr, "== Type checking failed with errors ==")
+        {{:error, errors, info}, state}
+    end
   end
 
   defp profile_init(:time), do: {:time, System.monotonic_time(), 0}

@@ -3,7 +3,7 @@
 %% SPDX-FileCopyrightText: 2012 Plataformatec
 
 -module(elixir_map).
--export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/5]).
+-export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/3]).
 -import(elixir_errors, [function_error/4, file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
@@ -26,11 +26,12 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
     true when is_atom(ELeft) ->
       case ERight of
         {'%{}', MapMeta, [{'|', _, [_, Assocs]}]} ->
-          _ = load_struct_info(Meta, ELeft, Assocs, EE),
+          assert_and_trace_struct_assocs([{operation, update} | Meta], ELeft, Assocs, E),
+          assert_struct_info_if_not_function(Meta, ELeft, Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, SE, EE};
 
         {'%{}', MapMeta, Assocs} when Context /= match ->
-          AssocKeys = [K || {K, _} <- Assocs],
+          AssocKeys = assert_and_trace_struct_assocs(Meta, ELeft, Assocs, EE),
           Struct = load_struct(Meta, ELeft, Assocs, EE),
           Keys = ['__struct__'] ++ AssocKeys,
           WithoutKeys = lists:sort(maps:to_list(maps:without(Keys, Struct))),
@@ -38,7 +39,8 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, SE, EE};
 
         {'%{}', MapMeta, Assocs} ->
-          _ = load_struct_info(Meta, ELeft, Assocs, EE),
+          assert_and_trace_struct_assocs([{operation, match} | Meta], ELeft, Assocs, E),
+          assert_struct_info_if_not_function(Meta, ELeft, Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, SE, EE}
       end;
 
@@ -123,15 +125,21 @@ validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> tru
 validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
-load_struct_info(Meta, Name, Assocs, E) ->
-  assert_struct_assocs(Meta, Assocs, E),
+assert_struct_info_if_not_function(Meta, Name, Assocs, #{function := nil} = E) ->
+  case maybe_load_struct_info(Meta, Name, E) of
+    {ok, Info} ->
+      [lists:any(fun(Field) -> ?key(Field, field) =:= Key end, Info) orelse
+         function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
+       || {Key, _} <- Assocs],
+      ok;
 
-  case maybe_load_struct_info(Meta, Name, Assocs, true, E) of
-    {ok, Info} -> Info;
-    {error, Desc} -> file_error(Meta, E, ?MODULE, Desc)
-  end.
+    {error, Desc} ->
+      file_error(Meta, E, ?MODULE, Desc)
+  end;
+assert_struct_info_if_not_function(_Meta, _Name, _Assocs, _E) ->
+  ok.
 
-maybe_load_struct_info(Meta, Name, Assocs, Trace, E) ->
+maybe_load_struct_info(Meta, Name, E) ->
   try
     case is_open(Name, Meta, E) andalso lookup_struct_info_from_data_tables(Name) of
       %% If I am accessing myself and there is no attribute,
@@ -141,19 +149,10 @@ maybe_load_struct_info(Meta, Name, Assocs, Trace, E) ->
       InfoList -> InfoList
     end
   of
-    nil ->
-      {error, detail_undef(Name, E)};
-
-    Info ->
-      Keys = [begin
-        lists:any(fun(Field) -> ?key(Field, field) =:= Key end, Info) orelse
-          function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key}),
-        Key
-      end || {Key, _} <- Assocs],
-      Trace andalso elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
-      {ok, Info}
+    nil -> {error, struct_undef(Name, E)};
+    Info -> {ok, Info}
   catch
-    error:undef -> {error, detail_undef(Name, E)}
+    error:undef -> {error, struct_undef(Name, E)}
   end.
 
 lookup_struct_info_from_data_tables(Module) ->
@@ -165,8 +164,6 @@ lookup_struct_info_from_data_tables(Module) ->
   end.
 
 load_struct(Meta, Name, Assocs, E) ->
-  assert_struct_assocs(Meta, Assocs, E),
-
   try
     maybe_load_struct(Meta, Name, Assocs, E)
   of
@@ -207,12 +204,9 @@ maybe_load_struct(Meta, Name, Assocs, E) ->
     end
   of
     #{'__struct__' := Name} = Struct ->
-      Keys = [begin
-        maps:is_key(Key, Struct) orelse
-          function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key}),
-        Key
-      end || {Key, _} <- Assocs],
-      elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
+      [maps:is_key(Key, Struct) orelse
+          function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
+       || {Key, _} <- Assocs],
       {ok, Struct};
 
     #{'__struct__' := StructName} when is_atom(StructName) ->
@@ -221,12 +215,16 @@ maybe_load_struct(Meta, Name, Assocs, E) ->
     Other ->
       {error, {invalid_struct_return_value, Name, Other}}
   catch
-    error:undef -> {error, detail_undef(Name, E)}
+    error:undef -> {error, struct_undef(Name, E)}
   end.
 
-assert_struct_assocs(Meta, Assocs, E) ->
-  [function_error(Meta, E, ?MODULE, {invalid_key_for_struct, K})
-   || {K, _} <- Assocs, not is_atom(K)].
+assert_and_trace_struct_assocs(Meta, Name, Assocs, E) ->
+  Keys = [begin
+    is_atom(K) orelse function_error(Meta, E, ?MODULE, {invalid_key_for_struct, K}),
+    K
+  end || {K, _} <- Assocs],
+  elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
+  Keys.
 
 is_open(Name, Meta, E) ->
   in_context(Name, E) orelse ((code:ensure_loaded(Name) /= {module, Name}) andalso wait_for_struct(Name, Meta, E)).
@@ -240,7 +238,7 @@ wait_for_struct(Module, Meta, E) ->
   (erlang:get(elixir_compiler_info) /= undefined) andalso
     ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, hard, elixir_utils:get_line(Meta, E)) =:= found).
 
-detail_undef(Name, E) ->
+struct_undef(Name, E) ->
   case in_context(Name, E) andalso (?key(E, function) == nil) of
     true -> {inaccessible_struct, Name};
     false -> {undefined_struct, Name}

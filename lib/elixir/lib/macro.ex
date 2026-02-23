@@ -971,9 +971,15 @@ defmodule Macro do
             }
           ]
   def struct_info!(module, env) when is_atom(module) do
-    case :elixir_map.maybe_load_struct_info([line: env.line], module, [], true, env) do
-      {:ok, info} -> info
-      {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+    meta = [line: env.line]
+
+    case :elixir_map.maybe_load_struct_info(meta, module, env) do
+      {:ok, info} ->
+        :elixir_env.trace({:struct_expansion, meta, module, []}, env)
+        info
+
+      {:error, desc} ->
+        raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
     end
   end
 

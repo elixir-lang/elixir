@@ -179,6 +179,26 @@ defmodule Module.Types.PatternTest do
   end
 
   describe "structs" do
+    test "unknown struct" do
+      {_, [diagnostic]} = typediag!([%UNKNOWN.URI{} = x], x)
+      assert diagnostic.severity == :error
+
+      assert diagnostic.message ==
+               "struct UNKNOWN.URI is undefined (module UNKNOWN.URI is not available or is yet to be defined)"
+
+      {_, [diagnostic]} = typediag!([%Enumerable{} = x], x)
+      assert diagnostic.severity == :error
+
+      assert diagnostic.message ==
+               "struct Enumerable is undefined (there is such module but it does not define a struct)"
+    end
+
+    test "unknown field" do
+      {_, [diagnostic]} = typediag!([%URI{unknown: _} = x], x)
+      assert diagnostic.severity == :error
+      assert diagnostic.message == "unknown key :unknown for struct URI"
+    end
+
     test "variable name" do
       assert typecheck!([%x{}], x) == dynamic(atom())
     end

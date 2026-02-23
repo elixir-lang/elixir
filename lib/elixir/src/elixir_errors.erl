@@ -26,34 +26,6 @@ print_warning(Position, File, Message) ->
   Output = format_snippet(warning, Position, File, Message, nil, #{}),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
-read_snippet(nil, _Position) ->
-  nil;
-read_snippet(<<"nofile">>, _Position) ->
-  nil;
-read_snippet(File, Position) ->
-  LineNumber = extract_line(Position),
-  get_file_line(File, LineNumber).
-
-get_file_line(File, LineNumber) when is_integer(LineNumber), LineNumber > 0 ->
-  case file:open(File, [read, binary]) of
-    {ok, IoDevice} ->
-      Line = traverse_file_line(IoDevice, LineNumber),
-      ok = file:close(IoDevice),
-      Line;
-    {error, _} ->
-      nil
-  end;
-get_file_line(_, _) -> nil.
-
-traverse_file_line(IoDevice, 1) ->
-  case file:read_line(IoDevice) of
-    {ok, Line} -> binary:replace(Line, <<"\n">>, <<>>);
-    _ -> nil
-  end;
-traverse_file_line(IoDevice, N) ->
-  file:read_line(IoDevice),
-  traverse_file_line(IoDevice, N - 1).
-
 %% Used by Module.ParallelChecker.
 print_diagnostics([Diagnostic | Others]) ->
   #{file := File, position := Position, message := Message} = Diagnostic,
@@ -238,6 +210,34 @@ get_line_number_digits(Number, Acc) ->
   get_line_number_digits(Number div 10, Acc + 1).
 
 n_spaces(N) -> lists:duplicate(N, " ").
+
+read_snippet(nil, _Position) ->
+  nil;
+read_snippet(<<"nofile">>, _Position) ->
+  nil;
+read_snippet(File, Position) ->
+  LineNumber = extract_line(Position),
+  get_file_line(File, LineNumber).
+
+get_file_line(File, LineNumber) when is_integer(LineNumber), LineNumber > 0 ->
+  case file:open(File, [read, binary]) of
+    {ok, IoDevice} ->
+      Line = traverse_file_line(IoDevice, LineNumber),
+      ok = file:close(IoDevice),
+      Line;
+    {error, _} ->
+      nil
+  end;
+get_file_line(_, _) -> nil.
+
+traverse_file_line(IoDevice, 1) ->
+  case file:read_line(IoDevice) of
+    {ok, Line} -> binary:replace(Line, <<"\n">>, <<>>);
+    _ -> nil
+  end;
+traverse_file_line(IoDevice, N) ->
+  file:read_line(IoDevice),
+  traverse_file_line(IoDevice, N - 1).
 
 %% Compilation error/warn handling.
 

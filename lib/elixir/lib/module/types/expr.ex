@@ -210,28 +210,41 @@ defmodule Module.Types.Expr do
         stack,
         context
       ) do
-    # We pass the expected type as `term()` because the struct update
-    # operator already expects it to be a map at this point.
-    {map_type, context} = of_expr(map, term(), struct, stack, context)
+    {info, context} = Of.struct_info(module, :expr, meta, stack, context)
 
-    context =
-      with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
-           {:finite, [^module]} <- atom_fetch(struct_key_type) do
-        context
-      else
-        _ ->
-          error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
-      end
+    if info do
+      # We pass the expected type as `term()` because the struct update
+      # operator already expects it to be a map at this point.
+      {map_type, context} = of_expr(map, term(), struct, stack, context)
 
-    Enum.reduce(pairs, {map_type, context}, fn {key, value}, {acc, context} ->
-      # TODO: Once we support typed structs, we need to type check them here
-      {type, context} = of_expr(value, term(), expr, stack, context)
+      context =
+        with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
+             {:finite, [^module]} <- atom_fetch(struct_key_type) do
+          context
+        else
+          _ ->
+            error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
+        end
 
-      case map_put_key(acc, key, type) do
-        {:ok, acc} -> {acc, context}
-        _ -> {acc, context}
-      end
-    end)
+      Enum.reduce(pairs, {map_type, context}, fn {key, value}, {acc, context} ->
+        context =
+          if Enum.any?(info, &(&1.field == key)) do
+            context
+          else
+            Of.unknown_struct_field(module, key, :expr, meta, stack, context)
+          end
+
+        # TODO: Once we support typed structs, we need to type check them here
+        {type, context} = of_expr(value, term(), expr, stack, context)
+
+        case map_put_key(acc, key, type) do
+          {:ok, acc} -> {acc, context}
+          _ -> {acc, context}
+        end
+      end)
+    else
+      {error_type(), context}
+    end
   end
 
   # %{...}
@@ -543,12 +556,11 @@ defmodule Module.Types.Expr do
       Enum.map_reduce(exceptions, original, fn exception, context ->
         # Exceptions are not validated in the compiler,
         # to avoid export dependencies. So we do it here.
-        if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
-          {info, context} = Of.struct_info(exception, meta, stack, context)
+        {info, context} = Of.struct_info(exception, :expr, meta, stack, context)
+
+        if info do
           {Of.struct_type(exception, info, args), context}
         else
-          # If the exception cannot be found or is invalid, fetch the signature to emit warnings.
-          {_, context} = Apply.signature(exception, :__struct__, 0, meta, stack, context)
           {error_type(), context}
         end
       end)

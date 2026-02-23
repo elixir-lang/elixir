@@ -399,7 +399,7 @@ defmodule Kernel.LexicalTrackerTest do
       refute String in runtime
     end
 
-    test "structs are exports or compile time" do
+    test "structs are runtime/exports/compile time" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.StructRuntime do
@@ -433,7 +433,7 @@ defmodule Kernel.LexicalTrackerTest do
         """)
 
       refute URI in compile
-      assert URI in exports
+      refute URI in exports
       assert URI in runtime
     end
 

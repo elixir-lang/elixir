@@ -1953,30 +1953,15 @@ defmodule Module.Types.Apply do
   end
 
   def format_diagnostic({:undefined, :badmodule, module, fun, arity}) do
-    top =
-      if fun == :__struct__ and arity == 0 do
-        "struct #{inspect(module)}"
-      else
-        Exception.format_mfa(module, fun, arity)
-      end
-
     %{
       message:
         IO.iodata_to_binary([
-          top,
+          Exception.format_mfa(module, fun, arity),
           " is undefined (module ",
           inspect(module),
           " is not available or is yet to be defined)",
           UndefinedFunctionError.hint_for_missing_module(module, fun, arity)
         ]),
-      group: true
-    }
-  end
-
-  def format_diagnostic({:undefined, {:badfunction, _}, module, :__struct__, 0}) do
-    %{
-      message:
-        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)",
       group: true
     }
   end

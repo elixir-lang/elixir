@@ -602,40 +602,51 @@ defmodule Module.Types.Pattern do
   # %Struct{...}
   defp of_pattern({:%, meta, [struct, {:%{}, _, args}]}, path, stack, context)
        when is_atom(struct) do
-    {info, context} = Of.struct_info(struct, meta, stack, context)
+    {info, context} = Of.struct_info(struct, :pattern, meta, stack, context)
 
-    {pairs, {precise?, context}} =
-      Enum.map_reduce(args, {true, context}, fn {key, value}, {precise?, context} ->
-        {value_type, value_precise?, context} =
-          of_pattern(value, [{:key, key} | path], stack, context)
+    if info do
+      {pairs, {precise?, context}} =
+        Enum.map_reduce(args, {true, context}, fn {key, value}, {precise?, context} ->
+          {value_type, value_precise?, context} =
+            of_pattern(value, [{:key, key} | path], stack, context)
 
-        # TODO: We need to assume that these are dynamic until we have typed structs.
-        {{key, value_type}, {precise? and value_precise?, context}}
-      end)
+          context =
+            if Enum.any?(info, &(&1.field == key)) do
+              context
+            else
+              Of.unknown_struct_field(struct, key, :pattern, meta, stack, context)
+            end
 
-    pairs = Map.new(pairs)
-    term = term()
-    static = [__struct__: atom([struct])]
-    dynamic = []
+          # TODO: We need to assume that these are dynamic until we have typed structs.
+          {{key, value_type}, {precise? and value_precise?, context}}
+        end)
 
-    {static, dynamic} =
-      Enum.reduce(info, {static, dynamic}, fn %{field: field}, {static, dynamic} ->
-        case pairs do
-          %{^field => value_type} when is_descr(value_type) ->
-            {[{field, value_type} | static], dynamic}
+      pairs = Map.new(pairs)
+      term = term()
+      static = [__struct__: atom([struct])]
+      dynamic = []
 
-          %{^field => value_type} ->
-            {static, [{field, value_type} | dynamic]}
+      {static, dynamic} =
+        Enum.reduce(info, {static, dynamic}, fn %{field: field}, {static, dynamic} ->
+          case pairs do
+            %{^field => value_type} when is_descr(value_type) ->
+              {[{field, value_type} | static], dynamic}
 
-          _ ->
-            {[{field, term} | static], dynamic}
-        end
-      end)
+            %{^field => value_type} ->
+              {static, [{field, value_type} | dynamic]}
 
-    if dynamic == [] do
-      {closed_map(static), precise?, context}
+            _ ->
+              {[{field, term} | static], dynamic}
+          end
+        end)
+
+      if dynamic == [] do
+        {closed_map(static), precise?, context}
+      else
+        {{:closed_map, static, dynamic}, precise?, context}
+      end
     else
-      {{:closed_map, static, dynamic}, precise?, context}
+      {error_type(), false, context}
     end
   end
 

@@ -241,6 +241,8 @@ defmodule Mix.Tasks.XrefTest do
           def calls_macro, do: A.macro()
           def calls_fun, do: A.fun()
           def calls_struct, do: %A{}
+          def matches_struct(%A{}), do: :ok
+          match?(%A{}, List.flatten([]))
         end
         """
       }
@@ -256,6 +258,8 @@ defmodule Mix.Tasks.XrefTest do
       lib/b.ex:7: call A.macro/0 (compile)
       lib/b.ex:8: call A.fun/0 (runtime)
       lib/b.ex:9: struct A (export)
+      lib/b.ex:10: struct A (runtime)
+      lib/b.ex:11: struct A (export)
       """
 
       assert_trace("lib/b.ex", files, output)

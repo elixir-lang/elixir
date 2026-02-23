@@ -885,7 +885,7 @@ defmodule Module.Types.ExprTest do
     end
   end
 
-  describe "maps/structs" do
+  describe "maps" do
     test "creating maps as records" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
@@ -970,24 +970,6 @@ defmodule Module.Types.ExprTest do
                    {domain_key(:integer), atom([:new])},
                    {:bar, atom([:old])}
                  ])
-               )
-    end
-
-    test "creating structs" do
-      assert typecheck!(%Point{}) ==
-               closed_map(
-                 __struct__: atom([Point]),
-                 x: atom([nil]),
-                 y: atom([nil]),
-                 z: integer()
-               )
-
-      assert typecheck!(%Point{x: :zero}) ==
-               closed_map(
-                 __struct__: atom([Point]),
-                 x: atom([:zero]),
-                 y: atom([nil]),
-                 z: integer()
                )
     end
 
@@ -1122,77 +1104,6 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "updating structs" do
-      integer_date_type =
-        dynamic(
-          closed_map(
-            __struct__: atom([Date]),
-            day: integer(),
-            calendar: atom(),
-            month: term(),
-            year: term()
-          )
-        )
-
-      # When we know the type
-      assert typecheck!([], %Date{Date.new!(1, 1, 1) | day: 31}) ==
-               integer_date_type
-
-      assert typecheck!([], %Date{%Date{Date.new!(1, 1, 1) | day: 13} | day: 31}) ==
-               integer_date_type
-
-      # When we don't know the type of var
-      assert typeerror!([x], %Date{x | day: 31}) == ~l"""
-             a struct for Date is expected on struct update:
-
-                 %Date{x | day: 31}
-
-             but got type:
-
-                 dynamic()
-
-             where "x" was given the type:
-
-                 # type: dynamic()
-                 # from: types_test.ex:LINE
-                 x
-
-             when defining the variable "x", you must also pattern match on "%Date{}"
-             """
-
-      # When we don't know the type of capture
-      assert typeerror!([], &%Date{&1 | day: 31}) =~ ~l"""
-             a struct for Date is expected on struct update:
-
-                 %Date{&1 | day: 31}
-
-             but got type:
-
-                 dynamic()
-
-             where "capture" was given the type:
-
-                 # type: dynamic()
-                 # from: types_test.ex:LINE
-                 &1
-
-             instead of using &1, you must define an anonymous function, define a variable and pattern match on "%Date{}"
-             """
-
-      # When we don't know the type of expression
-      assert typeerror!([], %Date{SomeMod.fun() | day: 31}) =~ """
-             a struct for Date is expected on struct update:
-
-                 %Date{SomeMod.fun() | day: 31}
-
-             but got type:
-
-                 dynamic()
-
-             you must assign "SomeMod.fun()" to variable and pattern match on "%Date{}"
-             """
-    end
-
     test "updating to maps as dictionaries" do
       assert typecheck!(
                [key],
@@ -1287,6 +1198,117 @@ defmodule Module.Types.ExprTest do
 
                #{hints(:dot)}
                """
+    end
+  end
+
+  describe "structs" do
+    test "creating structs" do
+      assert typecheck!(%Point{}) ==
+               closed_map(
+                 __struct__: atom([Point]),
+                 x: atom([nil]),
+                 y: atom([nil]),
+                 z: integer()
+               )
+
+      assert typecheck!(%Point{x: :zero}) ==
+               closed_map(
+                 __struct__: atom([Point]),
+                 x: atom([:zero]),
+                 y: atom([nil]),
+                 z: integer()
+               )
+    end
+
+    test "updating unknown struct" do
+      {_, [diagnostic]} = typediag!([x], %UNKNOWN.URI{x | foo: 123})
+      assert diagnostic.severity == :warning
+
+      assert diagnostic.message ==
+               "struct UNKNOWN.URI is undefined (module UNKNOWN.URI is not available or is yet to be defined)"
+
+      {_, [diagnostic]} = typediag!([x], %Enumerable{x | foo: 123})
+      assert diagnostic.severity == :warning
+
+      assert diagnostic.message ==
+               "struct Enumerable is undefined (there is such module but it does not define a struct)"
+    end
+
+    test "updating unknown field" do
+      {_, [diagnostic]} = typediag!([%URI{} = x], %URI{x | unknown: 123})
+      assert diagnostic.severity == :warning
+      assert diagnostic.message == "unknown key :unknown for struct URI"
+    end
+
+    test "updating structs" do
+      integer_date_type =
+        dynamic(
+          closed_map(
+            __struct__: atom([Date]),
+            day: integer(),
+            calendar: atom(),
+            month: term(),
+            year: term()
+          )
+        )
+
+      # When we know the type
+      assert typecheck!([], %Date{Date.new!(1, 1, 1) | day: 31}) ==
+               integer_date_type
+
+      assert typecheck!([], %Date{%Date{Date.new!(1, 1, 1) | day: 13} | day: 31}) ==
+               integer_date_type
+
+      # When we don't know the type of var
+      assert typeerror!([x], %Date{x | day: 31}) == ~l"""
+             a struct for Date is expected on struct update:
+
+                 %Date{x | day: 31}
+
+             but got type:
+
+                 dynamic()
+
+             where "x" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE
+                 x
+
+             when defining the variable "x", you must also pattern match on "%Date{}"
+             """
+
+      # When we don't know the type of capture
+      assert typeerror!([], &%Date{&1 | day: 31}) =~ ~l"""
+             a struct for Date is expected on struct update:
+
+                 %Date{&1 | day: 31}
+
+             but got type:
+
+                 dynamic()
+
+             where "capture" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE
+                 &1
+
+             instead of using &1, you must define an anonymous function, define a variable and pattern match on "%Date{}"
+             """
+
+      # When we don't know the type of expression
+      assert typeerror!([], %Date{SomeMod.fun() | day: 31}) =~ """
+             a struct for Date is expected on struct update:
+
+                 %Date{SomeMod.fun() | day: 31}
+
+             but got type:
+
+                 dynamic()
+
+             you must assign "SomeMod.fun()" to variable and pattern match on "%Date{}"
+             """
     end
 
     test "accessing an unknown field on struct with diagnostic" do
@@ -1645,7 +1667,7 @@ defmodule Module.Types.ExprTest do
              where "x" was given the type:
 
                  # type: dynamic(:ok)
-                 # from: types_test.ex:1636
+                 # from: types_test.ex:LINE
                  x = :ok
              """
 
@@ -2044,27 +2066,24 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "warns on undefined exceptions" do
-      assert typewarn!(
+    test "errors on undefined exceptions" do
+      assert typeerror!(
                try do
                  :ok
                rescue
                  e in UnknownError -> e
                end
              ) ==
-               {dynamic() |> union(atom([:ok])),
-                "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined). " <>
-                  "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"}
+               "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined)"
 
-      assert typewarn!(
+      assert typeerror!(
                try do
                  :ok
                rescue
                  e in Enumerable -> e
                end
              ) ==
-               {dynamic() |> union(atom([:ok])),
-                "struct Enumerable is undefined (there is such module but it does not define a struct)"}
+               "struct Enumerable is undefined (there is such module but it does not define a struct)"
     end
 
     test "defines unions of exceptions in rescue" do
