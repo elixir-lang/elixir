@@ -4,6 +4,7 @@
 
 %% Module responsible for tracking lexical information.
 -module(elixir_lexical).
+-feature(maybe_expr, enable).
 -export([run/3, with_file/3, trace/2, format_error/1]).
 -include("elixir.hrl").
 
