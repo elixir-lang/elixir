@@ -4708,7 +4708,7 @@ defmodule Kernel do
         # We only expand lists in the body if they are relatively
         # short and it is made only of literal expressions.
         case in_body? do
-          false -> in_list(left, head, tail, expand, list, in_body?)
+          false -> in_list(left, head, tail, expand, list)
           true -> quote(do: :lists.member(unquote(left), unquote(right)))
         end
 
@@ -4815,12 +4815,12 @@ defmodule Kernel do
     end
   end
 
-  defp in_list(left, head, tail, expand, right, in_body?) do
-    [head | tail] = :lists.map(&comp(left, &1, expand, right, in_body?), [head | tail])
+  defp in_list(left, head, tail, expand, right) do
+    [head | tail] = :lists.map(&comp(left, &1, expand, right), [head | tail])
     :lists.foldl(&quote(do: Kernel.or(unquote(&2), unquote(&1))), head, tail)
   end
 
-  defp comp(left, {:|, _, [head, tail]}, expand, right, in_body?) do
+  defp comp(left, {:|, _, [head, tail]}, expand, right) do
     case expand.(tail) do
       [] ->
         quote(do: :erlang."=:="(unquote(left), unquote(head)))
@@ -4829,15 +4829,7 @@ defmodule Kernel do
         quote do
           Kernel.or(
             :erlang."=:="(unquote(left), unquote(head)),
-            unquote(in_list(left, tail_head, tail, expand, right, in_body?))
-          )
-        end
-
-      tail when in_body? ->
-        quote do
-          Kernel.or(
-            :erlang."=:="(unquote(left), unquote(head)),
-            :lists.member(unquote(left), unquote(tail))
+            unquote(in_list(left, tail_head, tail, expand, right))
           )
         end
 
@@ -4846,7 +4838,7 @@ defmodule Kernel do
     end
   end
 
-  defp comp(left, right, _expand, _right, _in_body?) do
+  defp comp(left, right, _expand, _right) do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
   end
 
