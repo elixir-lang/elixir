@@ -10,6 +10,7 @@ defmodule Module.ParallelChecker do
 
   @type cache() :: {pid(), :ets.tid()}
   @type warning() :: term()
+  @type error() :: term()
   @type mode() :: :erlang | :elixir | :protocol
 
   @typedoc """
@@ -184,7 +185,7 @@ defmodule Module.ParallelChecker do
 
   Returns the updated list of warnings from the verification.
   """
-  @spec verify(cache(), [{module(), Path.t()}]) :: [warning()]
+  @spec verify(cache(), [{module(), Path.t()}]) :: {[warning()], [error()]}
   def verify({checker, table}, runtime_files) do
     value = :erlang.get(:elixir_code_diagnostics)
     log? = not match?({_, false}, value)
