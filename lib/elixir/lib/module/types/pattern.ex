@@ -1347,7 +1347,7 @@ defmodule Module.Types.Pattern do
   #
   # $ typep head_pattern =
   #     :for_reduce or :with_else or :receive or :try_catch or :fn or :default or
-  #       {:try_else, type} or {:case, meta, type, expr, previous_type}
+  #       {:try_else, type} or {{:case, meta, expr}, [domain], [previous_type]}
   #
   # $ typep match_pattern =
   #     :with or :for or {:match, type}
@@ -1383,7 +1383,7 @@ defmodule Module.Types.Pattern do
      """}
   end
 
-  defp badpattern({:case, meta, type, expr, previous_type}, pattern, _) do
+  defp badpattern({{:case, meta, expr}, [type], [previous_type]}, pattern, _) do
     cond do
       meta[:type_check] == :expr ->
         error_type = if previous_type == none(), do: type, else: previous_type
@@ -1443,6 +1443,19 @@ defmodule Module.Types.Pattern do
              #{to_quoted_string(previous_type) |> indent(4)}
          """}
     end
+  end
+
+  defp badpattern({:receive, [_type], [previous_type]}, pattern, _) do
+    {pattern,
+     """
+     the following clause is redundant:
+
+         #{expr_to_string(pattern) |> indent(4)} ->
+
+     previous clauses have already matched on the following types:
+
+         #{to_quoted_string(previous_type) |> indent(4)}
+     """}
   end
 
   defp badpattern({:match, type}, expr, _) do

@@ -306,8 +306,9 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, expr, stack, context) do
+  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, context) do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
+    info = {:case, meta, case_expr}
 
     added_meta =
       if Macro.quoted_literal?(case_expr) do
@@ -324,7 +325,7 @@ defmodule Module.Types.Expr do
     else
       clauses
     end
-    |> of_case_clauses(case_type, expected, meta, case_expr, expr, stack, context)
+    |> of_redundant_clauses(case_type, expected, info, stack, context, none())
     |> dynamic_unless_static(stack)
   end
 
@@ -398,7 +399,7 @@ defmodule Module.Types.Expr do
         acc_context
 
       {:do, clauses}, {acc, context} ->
-        of_clauses(clauses, [dynamic()], expected, expr, :receive, stack, context, acc)
+        of_redundant_clauses(clauses, dynamic(), expected, :receive, stack, context, acc)
 
       {:after, [{:->, meta, [[timeout], body]}] = after_expr}, {acc, context} ->
         {timeout_type, context} = of_expr(timeout, @timeout_type, after_expr, stack, context)
@@ -737,16 +738,16 @@ defmodule Module.Types.Expr do
     end)
   end
 
-  defp of_case_clauses(clauses, domain, expected, case_meta, case_expr, expr, stack, original) do
+  defp of_redundant_clauses(clauses, domain, expected, clause_info, stack, original, acc) do
     %{failed: failed?} = original
 
     {result, _previous, context} =
-      Enum.reduce(clauses, {none(), none(), original}, fn
+      Enum.reduce(clauses, {acc, none(), original}, fn
         {:->, meta, [[clause] = head, body]}, {acc, previous, context} ->
           {failed?, context} = reset_failed(context, failed?)
           {patterns, guards} = extract_head(head)
 
-          info = {:case, case_meta, domain, case_expr, previous}
+          info = {clause_info, [domain], [previous]}
 
           {trees, precise?, context} =
             Pattern.of_head(patterns, guards, [domain], [previous], info, meta, stack, context)
@@ -755,7 +756,7 @@ defmodule Module.Types.Expr do
           # The current clause will be easier to understand, so we prefer that
           {[{clause_tree, _, _}], precise?, context} =
             if context.failed and previous != none() do
-              info = {:case, case_meta, domain, case_expr, nil}
+              info = {clause_info, [domain], [none()]}
 
               case Pattern.of_head(patterns, guards, [domain], info, meta, stack, context) do
                 {_, _, %{failed: true}} = result -> result
@@ -784,7 +785,7 @@ defmodule Module.Types.Expr do
               end
             end
 
-          {result, context} = of_expr(body, expected, expr || body, stack, context)
+          {result, context} = of_expr(body, expected, body, stack, context)
 
           {union(result, acc), previous,
            context |> set_failed(failed?) |> Of.reset_vars(original)}

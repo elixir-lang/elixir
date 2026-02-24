@@ -1956,6 +1956,32 @@ defmodule Module.Types.ExprTest do
              ) == dynamic()
     end
 
+    test "computess difference across clauses" do
+      assert typecheck!(
+               receive do
+                 x when is_binary(x) -> :ok
+                 y -> {:other, y}
+               end
+             ) == union(atom([:ok]), dynamic(tuple([atom([:other]), negation(binary())])))
+    end
+
+    test "errors on redundant clauses" do
+      assert typeerror!(
+               receive do
+                 x when is_binary(x) -> x
+                 "foo" -> "bar"
+               end
+             ) == """
+             the following clause is redundant:
+
+                 "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 binary()
+             """
+    end
+
     test "errors on bad timeout" do
       assert typeerror!(
                [x = :timeout],
