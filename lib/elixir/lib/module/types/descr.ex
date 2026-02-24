@@ -254,9 +254,6 @@ defmodule Module.Types.Descr do
   * For gradual tuple types: processes both dynamic and static components separately,
     then combines them.
 
-  The list of arguments can be flattened into a broad domain by calling:
-
-      |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
   """
   def domain_to_args(descr) do
     case :maps.take(:dynamic, descr) do
@@ -269,18 +266,22 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @doc """
+  Converts the domain to a flatten list of arguments.
+  """
+  def domain_to_flat_args(domain, arity_or_args) do
+    case domain_to_args(domain) do
+      [] when is_integer(arity_or_args) -> List.duplicate(none(), arity_or_args)
+      [] when is_list(arity_or_args) -> Enum.map(arity_or_args, fn _ -> none() end)
+      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
+    end
+  end
+
   defp unwrap_domain_tuple(%{tuple: bdd} = descr, transform) when map_size(descr) == 1 do
     tuple_bdd_to_dnf(bdd) |> Enum.map(transform)
   end
 
   defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
-
-  defp domain_to_flat_args(domain, arity) do
-    case domain_to_args(domain) do
-      [] -> List.duplicate(none(), arity)
-      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
-    end
-  end
 
   ## Optional
 

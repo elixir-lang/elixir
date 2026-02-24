@@ -1799,9 +1799,9 @@ defmodule Module.Types.ExprTest do
 
                  System.get_env(x)
 
-             and the following types have already been matched:
+             which has the already matched type:
 
-                 nil or binary()
+                 dynamic(nil or binary())
              """
 
       assert typeerror!(
@@ -1815,7 +1815,7 @@ defmodule Module.Types.ExprTest do
 
                  :ok ->
 
-             the following types are expected (and have already been matched):
+             previous clauses have already matched on the following types:
 
                  :ok
              """
@@ -1831,7 +1831,7 @@ defmodule Module.Types.ExprTest do
 
                  {x, y} when is_integer(x) and is_integer(y) ->
 
-             the following types are expected (and have already been matched):
+             previous clauses have already matched on the following types:
 
                  {integer(), integer()}
              """
@@ -1904,7 +1904,7 @@ defmodule Module.Types.ExprTest do
 
              will always evaluate to:
 
-                 false
+                 dynamic(false)
              """
     end
   end
@@ -1956,7 +1956,7 @@ defmodule Module.Types.ExprTest do
              ) == dynamic()
     end
 
-    test "computess difference across clauses" do
+    test "computes difference across clauses" do
       assert typecheck!(
                receive do
                  x when is_binary(x) -> :ok
@@ -2026,8 +2026,8 @@ defmodule Module.Types.ExprTest do
                rescue
                  _ -> :rescue
                catch
-                 :caught -> :caught1
-                 :throw, :caught -> :caught2
+                 :implicit_caught -> :caught1
+                 :throw, :explicit_caught -> :caught2
                after
                  :not_used
                end
@@ -2040,8 +2040,8 @@ defmodule Module.Types.ExprTest do
                rescue
                  _ -> :rescue
                catch
-                 :caught -> :caught1
-                 :throw, :caught -> :caught2
+                 :implicit_caught -> :caught1
+                 :throw, :explicit_caught -> :caught2
                after
                  :not_used
                else
@@ -2070,7 +2070,72 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(integer())
     end
 
-    test "reports error from clause that will never match" do
+    test "catch: computes difference across clauses" do
+      assert typecheck!(
+               try do
+                 flunk("whatever")
+               catch
+                 x when is_binary(x) -> :ok
+                 y -> {:other, y}
+               end
+             ) == union(atom([:ok]), dynamic(tuple([atom([:other]), negation(binary())])))
+    end
+
+    test "catch: errors on redundant clauses" do
+      assert typeerror!(
+               try do
+                 flunk("whatever")
+               catch
+                 x when is_binary(x) -> x
+                 "foo" -> "bar"
+               end
+             ) == """
+             the following clause is redundant:
+
+                 :throw, "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 :throw, binary()
+             """
+    end
+
+    test "else: computes difference across clauses" do
+      assert typecheck!(
+               try do
+                 Process.get(:x)
+               rescue
+                 _ -> :unused
+               else
+                 x when is_binary(x) -> :ok
+                 y -> {:other, y}
+               end
+             ) ==
+               union(atom([:ok, :unused]), dynamic(tuple([atom([:other]), negation(binary())])))
+    end
+
+    test "else: errors on redundant clauses" do
+      assert typeerror!(
+               try do
+                 Process.get(:x)
+               rescue
+                 _ -> :unused
+               else
+                 x when is_binary(x) -> x
+                 "foo" -> "bar"
+               end
+             ) == """
+             the following clause is redundant:
+
+                 "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 binary()
+             """
+    end
+
+    test "else: reports error from clause that will never match" do
       assert typeerror!(
                [x],
                try do
@@ -2084,35 +2149,19 @@ defmodule Module.Types.ExprTest do
              ) == ~l"""
              the following clause will never match:
 
-                 :error
+                 :error ->
 
-             it attempts to match on the result of the try do-block which has incompatible type:
+             because it attempts to match on the result of:
+
+                 Atom.to_string(x)
+
+             which has type:
 
                  binary()
              """
     end
 
-    test "errors on undefined exceptions" do
-      assert typeerror!(
-               try do
-                 :ok
-               rescue
-                 e in UnknownError -> e
-               end
-             ) ==
-               "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined)"
-
-      assert typeerror!(
-               try do
-                 :ok
-               rescue
-                 e in Enumerable -> e
-               end
-             ) ==
-               "struct Enumerable is undefined (there is such module but it does not define a struct)"
-    end
-
-    test "defines unions of exceptions in rescue" do
+    test "rescue: defines unions of exceptions" do
       assert typecheck!(
                try do
                  raise "oops"
@@ -2137,13 +2186,26 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "generates custom traces" do
+    test "rescue: defines an open map of two fields in anonymous rescue" do
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 e -> e
+               end
+             ) ==
+               open_map(
+                 __struct__: atom(),
+                 __exception__: atom([true])
+               )
+    end
+
+    test "rescue: generates custom traces" do
       assert typeerror!(
                try do
                  raise "oops"
                rescue
-                 e ->
-                   Integer.to_string(e)
+                 e -> Integer.to_string(e)
                end
              )
              |> strip_ansi() == ~l"""
@@ -2169,21 +2231,27 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "defines an open map of two fields in anonymous rescue" do
-      assert typecheck!(
+    test "rescue: errors on undefined exceptions" do
+      assert typeerror!(
                try do
-                 raise "oops"
+                 :ok
                rescue
-                 e -> e
+                 e in UnknownError -> e
                end
              ) ==
-               open_map(
-                 __struct__: atom(),
-                 __exception__: atom([true])
-               )
+               "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined)"
+
+      assert typeerror!(
+               try do
+                 :ok
+               rescue
+                 e in Enumerable -> e
+               end
+             ) ==
+               "struct Enumerable is undefined (there is such module but it does not define a struct)"
     end
 
-    test "matches on stacktrace" do
+    test "rescue: matches on stacktrace" do
       assert typeerror!(
                try do
                  :ok

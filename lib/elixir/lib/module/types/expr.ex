@@ -308,7 +308,7 @@ defmodule Module.Types.Expr do
 
   def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, context) do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
-    info = {:case, meta, case_expr}
+    info = {:case, meta, case_expr, case_type}
 
     added_meta =
       if Macro.quoted_literal?(case_expr) do
@@ -325,7 +325,7 @@ defmodule Module.Types.Expr do
     else
       clauses
     end
-    |> of_redundant_clauses(case_type, expected, info, stack, context, none())
+    |> of_redundant_clauses([case_type], expected, info, stack, context, none())
     |> dynamic_unless_static(stack)
   end
 
@@ -345,15 +345,15 @@ defmodule Module.Types.Expr do
     {fun_from_inferred_clauses(acc), context}
   end
 
-  def of_expr({:try, _meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
+  def of_expr({:try, meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
     {after_block, blocks} = Keyword.pop(blocks, :after)
     {else_block, blocks} = Keyword.pop(blocks, :else)
 
     {type, context} =
       if else_block do
         {type, context} = of_expr(body, @pending, body, stack, original)
-        info = {:try_else, type}
-        of_clauses(else_block, [type], expected, expr, info, stack, context, none())
+        info = {:try_else, meta, body, type}
+        of_redundant_clauses(else_block, [type], expected, info, stack, context, none())
       else
         of_expr(body, expected, expr, stack, original)
       end
@@ -378,7 +378,7 @@ defmodule Module.Types.Expr do
 
         {:catch, clauses}, {acc, context} ->
           args = [@try_catch, dynamic()]
-          of_clauses(clauses, args, expected, expr, :try_catch, stack, context, acc)
+          of_redundant_clauses(clauses, args, expected, :try_catch, stack, context, acc)
       end)
       |> dynamic_unless_static(stack)
 
@@ -399,7 +399,7 @@ defmodule Module.Types.Expr do
         acc_context
 
       {:do, clauses}, {acc, context} ->
-        of_redundant_clauses(clauses, dynamic(), expected, :receive, stack, context, acc)
+        of_redundant_clauses(clauses, [dynamic()], expected, :receive, stack, context, acc)
 
       {:after, [{:->, meta, [[timeout], body]}] = after_expr}, {acc, context} ->
         {timeout_type, context} = of_expr(timeout, @timeout_type, after_expr, stack, context)
@@ -742,23 +742,22 @@ defmodule Module.Types.Expr do
     %{failed: failed?} = original
 
     {result, _previous, context} =
-      Enum.reduce(clauses, {acc, none(), original}, fn
-        {:->, meta, [[clause] = head, body]}, {acc, previous, context} ->
+      Enum.reduce(clauses, {acc, [], original}, fn
+        {:->, meta, [head, body]} = clause, {acc, previous, context} ->
           {failed?, context} = reset_failed(context, failed?)
           {patterns, guards} = extract_head(head)
-
-          info = {clause_info, [domain], [previous]}
+          info = {clause_info, head, previous}
 
           {trees, precise?, context} =
-            Pattern.of_head(patterns, guards, [domain], [previous], info, meta, stack, context)
+            Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
           # It failed, let's try to detect if it was due a previous or current clause.
           # The current clause will be easier to understand, so we prefer that
-          {[{clause_tree, _, _}], precise?, context} =
-            if context.failed and previous != none() do
-              info = {clause_info, [domain], [none()]}
+          {trees, precise?, context} =
+            if context.failed and previous != [] do
+              info = {clause_info, head, []}
 
-              case Pattern.of_head(patterns, guards, [domain], info, meta, stack, context) do
+              case Pattern.of_head(patterns, guards, domain, info, meta, stack, context) do
                 {_, _, %{failed: true}} = result -> result
                 _ -> {trees, precise?, context}
               end
@@ -770,15 +769,21 @@ defmodule Module.Types.Expr do
             if context.failed do
               {previous, context}
             else
-              clause_type = Pattern.of_pattern_tree(clause_tree, stack, context) |> upper_bound()
+              clause_type =
+                Enum.map(trees, fn {tree, _, _} ->
+                  tree
+                  |> Pattern.of_pattern_tree(stack, context)
+                  |> upper_bound()
+                end)
 
               cond do
-                stack.mode != :infer and previous != none() and subtype?(clause_type, previous) ->
+                stack.mode != :infer and previous != [] and
+                    Pattern.args_subtype?(clause_type, previous) ->
                   stack = %{stack | meta: meta}
-                  {previous, Pattern.badpattern_error(clause, 0, info, stack, context)}
+                  {previous, Pattern.badpattern_error(clause, nil, info, stack, context)}
 
                 precise? ->
-                  {union(previous, clause_type), context}
+                  {[clause_type | previous], context}
 
                 true ->
                   {previous, context}
