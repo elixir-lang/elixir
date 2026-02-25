@@ -43,7 +43,7 @@ optimized_oror_test() ->
   {'case', _, _,
     [{clause, 1,
       [{var, 1, _}],
-      [[{op, 1, 'orelse', _, _}]],
+      [[{op, _, 'orelse', _, _}]],
       [{atom, 1, done}]},
     {clause, 1, [{var, 1, Var}], [], [{var, 1, Var}]}]
   } = to_erl("is_list([]) || :done").

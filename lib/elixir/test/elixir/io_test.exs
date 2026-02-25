@@ -273,6 +273,16 @@ defmodule IOTest do
     assert IO.binstream() == IO.binstream(:stdio, :line)
   end
 
+  test "iodata_empty?" do
+    assert IO.iodata_empty?([])
+    assert IO.iodata_empty?("")
+    assert IO.iodata_empty?([["", []] | ""])
+
+    refute IO.iodata_empty?([1])
+    refute IO.iodata_empty?("1")
+    refute IO.iodata_empty?([["", []] | "ok"])
+  end
+
   defp assert_emits(output, messages) do
     for m <- messages do
       assert output =~ m

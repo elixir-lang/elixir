@@ -51,9 +51,6 @@ defmodule Inspect.AlgebraTest do
     assert break("break") == {:doc_break, "break", :strict}
     assert break("") == {:doc_break, "", :strict}
 
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> break(42) end
-
     # Consistent formatting
     assert render(break("_"), 80) == "_"
     assert render(glue("foo", " ", glue("bar", " ", "baz")), 10) == "foo\nbar\nbaz"
@@ -64,9 +61,6 @@ defmodule Inspect.AlgebraTest do
     assert flex_break("break") == {:doc_break, "break", :flex}
     assert flex_break("") == {:doc_break, "", :flex}
 
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> flex_break(42) end
-
     # Consistent formatting
     assert render(flex_break("_"), 80) == "_"
     assert render(flex_glue("foo", " ", flex_glue("bar", " ", "baz")), 10) == "foo bar\nbaz"
@@ -76,9 +70,6 @@ defmodule Inspect.AlgebraTest do
     # Consistent with definitions
     assert glue("a", "->", "b") == ["a", {:doc_break, "->", :strict} | "b"]
     assert glue("a", "b") == glue("a", " ", "b")
-
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> glue("a", 42, "b") end
   end
 
   test "flex glue doc" do
@@ -87,9 +78,6 @@ defmodule Inspect.AlgebraTest do
              ["a", {:doc_break, "->", :flex} | "b"]
 
     assert flex_glue("a", "b") == flex_glue("a", " ", "b")
-
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> flex_glue("a", 42, "b") end
   end
 
   test "binary doc" do
@@ -115,9 +103,6 @@ defmodule Inspect.AlgebraTest do
     assert nest(empty(), 1) == {:doc_nest, empty(), 1, :always}
     assert nest(empty(), 0) == []
 
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> nest("foo", empty()) end
-
     # Consistent formatting
     assert render(nest("a", 1), 80) == "a"
     assert render(nest(glue("a", "b"), 1), 2) == "a\n b"
@@ -128,9 +113,6 @@ defmodule Inspect.AlgebraTest do
     # Consistent with definitions
     assert nest(empty(), 1, :break) == {:doc_nest, empty(), 1, :break}
     assert nest(empty(), 0, :break) == []
-
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> nest("foo", empty(), :break) end
 
     # Consistent formatting
     assert render(nest("a", 1, :break), 80) == "a"
@@ -230,10 +212,6 @@ defmodule Inspect.AlgebraTest do
   test "collapse lines" do
     # Consistent with definitions
     assert collapse_lines(3) == {:doc_collapse, 3}
-
-    # Wrong argument type
-    assert_raise FunctionClauseError, fn -> collapse_lines(0) end
-    assert_raise FunctionClauseError, fn -> collapse_lines(empty()) end
 
     # Consistent formatting
     doc = concat([collapse_lines(2), line(), line(), line()])

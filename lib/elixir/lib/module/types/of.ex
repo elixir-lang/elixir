@@ -12,10 +12,10 @@ defmodule Module.Types.Of do
   @suffix quote(do: ...)
 
   @integer_or_float union(integer(), float())
-  @integer_or_binary union(integer(), binary())
   @integer integer()
   @float float()
   @binary binary()
+  @bitstring bitstring()
 
   ## Variables
 
@@ -30,19 +30,53 @@ defmodule Module.Types.Of do
 
   @doc """
   Marks a variable with error.
+
+  This purposedly deletes all traces of the variable,
+  as it is often invoked when the cause for error is elsewhere.
   """
-  def error_var(var, context) do
+  def error_var({_, meta, _}, context) do
+    error_var(Keyword.fetch!(meta, :version), context)
+  end
+
+  def error_var(version, context) do
+    update_in(context.vars[version], fn
+      %{errored: true} = data -> data
+      data -> Map.put(%{data | type: error_type(), off_traces: []}, :errored, true)
+    end)
+  end
+
+  @doc """
+  Declares a variable.
+  """
+  def declare_var(var, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
-    data = %{
-      type: error_type(),
-      name: var_name,
-      context: var_context,
-      off_traces: []
-    }
+    case context.vars do
+      %{^version => _} ->
+        context
 
-    put_in(context.vars[version], data)
+      vars ->
+        data = %{
+          type: term(),
+          name: var_name,
+          context: var_context,
+          off_traces: [],
+          paths: [],
+          deps: %{}
+        }
+
+        %{context | vars: Map.put(vars, version, data)}
+    end
+  end
+
+  @doc """
+  Tracks metadata about variables dependencies and paths.
+  """
+  def track_var(version, new_deps, new_paths, context) do
+    update_in(context.vars[version], fn %{paths: paths, deps: deps} = data ->
+      %{data | paths: new_paths ++ paths, deps: Enum.reduce(new_deps, deps, &Map.put(&2, &1, []))}
+    end)
   end
 
   @doc """
@@ -52,12 +86,36 @@ defmodule Module.Types.Of do
   or if we are doing a guard analysis or occurrence typing.
   Returns `true` if there was a refinement, `false` otherwise.
   """
-  def refine_body_var({_, meta, _}, type, expr, stack, context) do
-    version = Keyword.fetch!(meta, :version)
+  def refine_body_var(var_or_version, type, expr, stack, context, allow_empty? \\ false)
+
+  def refine_body_var({_, meta, _}, type, expr, stack, context, allow_empty?) do
+    refine_body_var(Keyword.fetch!(meta, :version), type, expr, stack, context, allow_empty?)
+  end
+
+  def refine_body_var(version, type, expr, stack, context, allow_empty?)
+      when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
-    if gradual?(old_type) and type not in [term(), dynamic()] do
+    context =
+      case context.conditional_vars do
+        %{} = conditional_vars ->
+          %{context | conditional_vars: Map.put(conditional_vars, version, true)}
+
+        nil ->
+          context
+      end
+
+    if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
       case compatible_intersection(old_type, type) do
+        {:error, _} when allow_empty? ->
+          data = %{
+            data
+            | type: none(),
+              off_traces: new_trace(expr, none(), stack, off_traces)
+          }
+
+          {none(), %{context | vars: %{vars | version => data}}}
+
         {:ok, new_type} when new_type != old_type ->
           data = %{
             data
@@ -82,11 +140,16 @@ defmodule Module.Types.Of do
   because we want to refine types. Otherwise we should
   use compatibility.
   """
-  def refine_head_var(var, type, expr, stack, context) do
-    {var_name, meta, var_context} = var
-    version = Keyword.fetch!(meta, :version)
+  def refine_head_var({_, meta, _}, type, expr, stack, context) do
+    refine_head_var(Keyword.fetch!(meta, :version), type, expr, stack, context)
+  end
 
+  def refine_head_var(version, type, expr, stack, context)
+      when is_integer(version) or is_reference(version) do
     case context.vars do
+      %{^version => %{errored: true}} ->
+        {:ok, error_type(), context}
+
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
         new_type = intersection(type, old_type)
 
@@ -96,26 +159,14 @@ defmodule Module.Types.Of do
             off_traces: new_trace(expr, type, stack, off_traces)
         }
 
-        context = %{context | vars: %{vars | version => data}}
-
-        # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error, error_type(),
-           error({:refine_head_var, old_type, type, var, context}, meta, stack, context)}
+          data = Map.put(%{data | type: error_type()}, :errored, true)
+          context = %{context | vars: %{vars | version => data}}
+          {:error, old_type, context}
         else
+          context = %{context | vars: %{vars | version => data}}
           {:ok, new_type, context}
         end
-
-      %{} = vars ->
-        data = %{
-          type: type,
-          name: var_name,
-          context: var_context,
-          off_traces: new_trace(expr, type, stack, [])
-        }
-
-        context = %{context | vars: Map.put(vars, version, data)}
-        {:ok, type, context}
     end
   end
 
@@ -125,11 +176,64 @@ defmodule Module.Types.Of do
   defp new_trace(expr, type, stack, traces),
     do: [{expr, stack.file, type} | traces]
 
+  @doc """
+  Preserves `context` in first argument while
+  resetting it to the vars in the second argument.
+  """
+  def reset_vars(context, %{
+        subpatterns: subpatterns,
+        vars: vars,
+        conditional_vars: conditional_vars
+      }),
+      do: %{context | subpatterns: subpatterns, vars: vars, conditional_vars: conditional_vars}
+
+  @doc """
+  Executes the args with acc using conditional variables.
+  """
+  def with_conditional_vars(args, acc, expr, stack, context, fun) do
+    %{vars: vars, conditional_vars: conditional_vars} = context
+
+    {vars_conds, {acc, context}} =
+      Enum.map_reduce(args, {acc, context}, fn arg, {acc, context} ->
+        {acc, context} = fun.(arg, acc, %{context | vars: vars, conditional_vars: %{}})
+        %{vars: vars, conditional_vars: cond_vars} = context
+        {{vars, cond_vars}, {acc, context}}
+      end)
+
+    context = %{context | vars: vars, conditional_vars: conditional_vars}
+    {acc, reduce_conditional_vars(vars_conds, expr, stack, context)}
+  end
+
+  @doc """
+  Reduces conditional variables collected separately.
+  """
+  def reduce_conditional_vars([{vars, cond} | vars_conds], expr, stack, context) do
+    %{vars: pre_vars} = context
+
+    Enum.reduce(Map.keys(cond), context, fn version, context ->
+      if is_map_key(pre_vars, version) and
+           Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
+        %{^version => %{type: type}} = vars
+
+        type =
+          Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
+            %{^version => %{type: type}} = vars
+            union(acc, type)
+          end)
+
+        {_, context} = refine_body_var(version, type, expr, stack, context)
+        context
+      else
+        context
+      end
+    end)
+  end
+
   ## Implementations
 
   impls = [
     {Atom, atom()},
-    {BitString, binary()},
+    {BitString, bitstring()},
     {Float, float()},
     {Function, fun()},
     {Integer, integer()},
@@ -142,16 +246,25 @@ defmodule Module.Types.Of do
     {Any, term()}
   ]
 
+  @doc """
+  Currently, for protocol implementations, we only store
+  the open struct definition. This is because we don't want
+  to reconsolidate whenever the struct changes, but at the
+  moment we can't store references either. Ideally struct
+  types on protocol dispatches would be lazily resolved.
+  """
+  def impl(for, mode \\ :closed)
+
   for {for, type} <- impls do
-    def impl(unquote(for)), do: unquote(Macro.escape(type))
+    def impl(unquote(for), _mode), do: unquote(Macro.escape(type))
   end
 
-  def impl(struct) do
+  def impl(struct, mode) do
     # Elixir did not strictly require the implementation to be available,
     # so we need to deal with such cases accordingly.
     # TODO: Assume implementation is available on Elixir v2.0.
     # A warning is emitted since v1.19+.
-    if info = Code.ensure_loaded?(struct) && struct.__info__(:struct) do
+    if info = mode == :closed && Code.ensure_loaded?(struct) && struct.__info__(:struct) do
       struct_type(struct, info)
     else
       open_map(__struct__: atom([struct]))
@@ -176,17 +289,6 @@ defmodule Module.Types.Of do
   @doc """
   Builds a closed map.
   """
-  def closed_map(pairs, _expected, %{mode: :traversal} = stack, context, of_fun) do
-    context =
-      Enum.reduce(pairs, context, fn {key, value}, context ->
-        {_key_type, context} = of_fun.(key, term(), stack, context)
-        {_, context} = of_fun.(value, term(), stack, context)
-        context
-      end)
-
-    {dynamic(), context}
-  end
-
   def closed_map(pairs, expected, stack, context, of_fun) do
     {pairs_types, context} = pairs(pairs, expected, stack, context, of_fun)
 
@@ -332,20 +434,24 @@ defmodule Module.Types.Of do
 
   @doc """
   Handles instantiation of a new struct.
+
+  This is expanded and validated by the compiler, so don't need to check the fields.
   """
   # TODO: Type check the fields match the struct
-  def struct_instance(struct, args, expected, meta, %{mode: mode} = stack, context, of_fun)
+  def struct_instance(struct, args, expected, meta, stack, context, of_fun)
       when is_atom(struct) do
-    {_info, context} = struct_info(struct, meta, stack, context)
+    {info, context} = struct_info(struct, :expr, meta, stack, context)
+
+    if is_nil(info) do
+      raise "expected #{inspect(struct)} to return struct metadata, but got none"
+    end
 
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
         value_type =
-          with true <- mode != :traversal,
-               {_, expected_value_type} <- map_fetch_key(expected, key) do
-            expected_value_type
-          else
+          case map_fetch_key(expected, key) do
+            {_, expected_value_type} -> expected_value_type
             _ -> term()
           end
 
@@ -359,23 +465,28 @@ defmodule Module.Types.Of do
   @doc """
   Returns `__info__(:struct)` information about a struct.
   """
-  def struct_info(struct, meta, stack, context) do
+  def struct_info(struct, kind, meta, stack, context) do
     case stack.no_warn_undefined do
       %Macro.Env{} = env ->
-        case :elixir_map.maybe_load_struct_info(meta, struct, [], false, env) do
+        case :elixir_map.maybe_load_struct_info(meta, struct, env) do
           {:ok, info} -> {info, context}
-          {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+          {:error, _desc} -> {nil, context}
         end
 
       _ ->
-        # Fetch the signature to validate for warnings.
-        {_, context} = Module.Types.Apply.signature(struct, :__struct__, 0, meta, stack, context)
-
         info =
-          struct.__info__(:struct) ||
-            raise "expected #{inspect(struct)} to return struct metadata, but got none"
+          Code.ensure_loaded?(struct) and function_exported?(struct, :__info__, 1) and
+            struct.__info__(:struct)
 
-        {info, context}
+        if info do
+          {_, context} =
+            Module.Types.Apply.signature(struct, :__struct__, 0, meta, stack, context)
+
+          {info, context}
+        else
+          error = {:unknown_struct, kind, struct}
+          {nil, error(error, meta, stack, context)}
+        end
     end
   end
 
@@ -392,45 +503,74 @@ defmodule Module.Types.Of do
     closed_map(pairs)
   end
 
-  ## Binary
+  @doc """
+  Returns shared error for unknown struct field.
+  """
+  def unknown_struct_field(struct, field, kind, meta, stack, context) do
+    error = {:unknown_struct_field, kind, struct, field}
+    error(error, meta, stack, context)
+  end
+
+  ## Bitstrings
 
   @doc """
-  Handles binaries.
+  Handles bitstrings.
 
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _kind, _stack, context) do
-    context
+  def bitstring([], _kind, _stack, context) do
+    {binary(), context}
   end
 
-  def binary([head], kind, stack, context) do
-    binary_segment(head, kind, [head], stack, context)
+  def bitstring([head], kind, stack, context) do
+    {alignment, context} = bitstring_segment(head, kind, [head], stack, context)
+    {alignment_to_type(alignment), context}
   end
 
-  def binary([head | tail], kind, stack, context) do
-    context = binary_segment(head, kind, [head, @suffix], stack, context)
-    binary_many(tail, kind, stack, context)
+  def bitstring([head | tail], kind, stack, context) do
+    {alignment, context} = bitstring_segment(head, kind, [head, @suffix], stack, context)
+    bitstring_tail(tail, alignment, kind, stack, context)
   end
 
-  defp binary_many([last], kind, stack, context) do
-    binary_segment(last, kind, [@prefix, last], stack, context)
+  defp bitstring_tail([last], alignment, kind, stack, context) do
+    {seg_alignment, context} = bitstring_segment(last, kind, [@prefix, last], stack, context)
+    {alignment_to_type(alignment(seg_alignment, alignment)), context}
   end
 
-  defp binary_many([head | tail], kind, stack, context) do
-    context = binary_segment(head, kind, [@prefix, head, @suffix], stack, context)
-    binary_many(tail, kind, stack, context)
+  defp bitstring_tail([head | tail], alignment, kind, stack, context) do
+    {seg_alignment, context} =
+      bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
+
+    bitstring_tail(tail, alignment(seg_alignment, alignment), kind, stack, context)
   end
+
+  defp alignment(left, right) when is_integer(left) and is_integer(right), do: left + right
+  defp alignment(_left, _right), do: :unknown
+
+  defp alignment_to_type(:unknown), do: bitstring()
+  defp alignment_to_type(integer) when rem(integer, 8) == 0, do: binary()
+  defp alignment_to_type(_integer), do: bitstring_no_binary()
 
   # If the segment is a literal, the compiler has already checked its validity,
-  # so we just skip it.
-  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context)
+  # so we just check the size.
+  defp bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
-    context
+    {_type, alignment_type} = specifier_type(kind, right)
+    {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+
+    # We don't need to check for bitstrings because the left side
+    # is either a binary (aligned), float (aligned), or integer
+    # (which we check below).
+    if alignment_type == :integer and alignment_value != :default do
+      {alignment_value, context}
+    else
+      {0, context}
+    end
   end
 
-  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    type = specifier_type(kind, right)
+  defp bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
+    {type, alignment_type} = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
     {actual, context} =
@@ -447,10 +587,26 @@ defmodule Module.Types.Of do
       end
 
     if compatible?(actual, type) do
-      specifier_size(kind, right, stack, context)
+      {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+
+      case alignment_type do
+        :aligned ->
+          {0, context}
+
+        :integer when alignment_value == :default ->
+          {0, context}
+
+        # There is no size, so the alignment depends on the type.
+        # If the type is exclusively a binary, then it is aligned.
+        :bitstring when alignment_value == :default ->
+          if bitstring_no_binary_type?(actual), do: {:unknown, context}, else: {0, context}
+
+        _ ->
+          {alignment_value, context}
+      end
     else
       error = {:badbinary, kind, meta, expr, type, actual, context}
-      error(error, meta, stack, context)
+      {:unknown, error(error, meta, stack, context)}
     end
   end
 
@@ -466,39 +622,48 @@ defmodule Module.Types.Of do
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:match, {:utf8, _, _}), do: @integer
-  defp specifier_type(:match, {:utf16, _, _}), do: @integer
-  defp specifier_type(:match, {:utf32, _, _}), do: @integer
-  defp specifier_type(:match, {:float, _, _}), do: @float
-  defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
-  defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
-  defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
-  defp specifier_type(_kind, {:utf32, _, _}), do: @integer_or_binary
-  defp specifier_type(_kind, {:integer, _, _}), do: @integer
-  defp specifier_type(_kind, {:bits, _, _}), do: @binary
-  defp specifier_type(_kind, {:bitstring, _, _}), do: @binary
-  defp specifier_type(_kind, {:bytes, _, _}), do: @binary
-  defp specifier_type(_kind, {:binary, _, _}), do: @binary
-  defp specifier_type(_kind, _specifier), do: @integer
+  defp specifier_type(:match, {:utf8, _, _}), do: {@integer, :aligned}
+  defp specifier_type(:match, {:utf16, _, _}), do: {@integer, :aligned}
+  defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned}
+  defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned}
+  defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned}
+  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer, :aligned}
+  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer, :aligned}
+  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer, :aligned}
+  defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer}
+  defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring}
+  defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring}
+  defp specifier_type(_kind, {:bytes, _, _}), do: {@binary, :aligned}
+  defp specifier_type(_kind, {:binary, _, _}), do: {@binary, :aligned}
+  defp specifier_type(_kind, _specifier), do: {@integer, :integer}
 
-  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
-    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
+  defp specifier_size(kind, {:-, _, [left, right]}, stack, align_context) do
+    specifier_size(kind, right, stack, specifier_size(kind, left, stack, align_context))
   end
 
-  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
-       when not is_integer(arg) do
+  defp specifier_size(_, {:size, _, [arg]}, _stack, {unit, context})
+       when is_integer(arg) do
+    size = if unit == :default, do: arg, else: arg * unit
+    {size, context}
+  end
+
+  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, {_, context}) do
     {actual, context} = Module.Types.Expr.of_expr(arg, integer(), expr, stack, context)
-    compatible_size(actual, expr, stack, context)
+    {:unknown, compatible_size(actual, expr, stack, context)}
   end
 
-  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
-       when not is_integer(arg) do
+  defp specifier_size(_match_or_guard, {:size, _, [arg]} = expr, stack, {_, context}) do
     {actual, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
-    compatible_size(actual, expr, stack, context)
+    {:unknown, compatible_size(actual, expr, stack, context)}
   end
 
-  defp specifier_size(_kind, _specifier, _stack, context) do
-    context
+  # We currently assume the unit always comes before size
+  defp specifier_size(_, {:unit, _, [unit]}, _stack, {:default, context}) do
+    {unit, context}
+  end
+
+  defp specifier_size(_kind, _specifier, _stack, align_context) do
+    align_context
   end
 
   defp compatible_size(actual, expr, stack, context) do
@@ -535,23 +700,6 @@ defmodule Module.Types.Of do
 
   defp error(warning, meta, stack, context) do
     error(__MODULE__, warning, meta, stack, context)
-  end
-
-  def format_diagnostic({:refine_head_var, old_type, new_type, var, context}) do
-    traces = collect_traces(var, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          incompatible types assigned to #{format_var(var)}:
-
-              #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
-          """,
-          format_traces(traces)
-        ])
-    }
   end
 
   def format_diagnostic({:badbinary, kind, meta, expr, expected_type, actual_type, context}) do
@@ -670,6 +818,30 @@ defmodule Module.Types.Of do
           """,
           format_traces(traces)
         ])
+    }
+  end
+
+  def format_diagnostic({:unknown_struct, kind, module}) do
+    message =
+      if Code.ensure_loaded?(module) do
+        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
+      else
+        "struct #{inspect(module)} is undefined " <>
+          "(module #{inspect(module)} is not available or is yet to be defined)"
+      end
+
+    %{
+      message: message,
+      group: true,
+      severity: if(kind == :pattern, do: :error, else: :warning)
+    }
+  end
+
+  def format_diagnostic({:unknown_struct_field, kind, module, field}) do
+    %{
+      message: "unknown key #{inspect(field)} for struct #{inspect(module)}",
+      group: true,
+      severity: if(kind == :pattern, do: :error, else: :warning)
     }
   end
 

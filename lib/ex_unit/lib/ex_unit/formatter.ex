@@ -16,7 +16,7 @@ defmodule ExUnit.Formatter do
 
     * `{:suite_finished, times_us}` -
       the suite has finished. Returns several measurements in microseconds
-      for running the suite. See `t:times_us` for more information.
+      for running the suite. See `t:times_us/0` for more information.
 
     * `{:module_started, test_module}` -
       a test module has started. See `ExUnit.TestModule` for details.
@@ -36,7 +36,7 @@ defmodule ExUnit.Formatter do
 
     * `:max_failures_reached` -
       the test run has been aborted due to reaching max failures limit set
-      with `:max_failures` option
+      with `:max_failures` option.
 
   The formatter will also receive the following events but they are deprecated
   and should be ignored:

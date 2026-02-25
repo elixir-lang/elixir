@@ -79,7 +79,7 @@ defmodule ExUnit.FormatterTest do
   test "formats test exits with function clause mfa" do
     {error, stack} =
       try do
-        Access.fetch(:foo, :bar)
+        Access.fetch(Process.get(:unused, :foo), :bar)
       catch
         :error, error -> {error, __STACKTRACE__}
       end
@@ -161,7 +161,7 @@ defmodule ExUnit.FormatterTest do
   test "formats test EXITs with function clause errors" do
     {error, stack} =
       try do
-        Access.fetch(:foo, :bar)
+        Access.fetch(Process.get(:unused, :foo), :bar)
       catch
         :error, error -> {error, __STACKTRACE__}
       end
@@ -411,7 +411,7 @@ defmodule ExUnit.FormatterTest do
   test "blames function clause error" do
     {error, stack} =
       try do
-        Access.fetch(:foo, :bar)
+        Access.fetch(Process.get(:unused, :foo), :bar)
       rescue
         exception -> {exception, __STACKTRACE__}
       end

@@ -157,13 +157,13 @@ The `rel/vm.args.eex` allows you to specify low-level flags that control how the
     ## Tweak GC to run more often
     ##-env ERL_FULLSWEEP_AFTER 10
 
-You can see [a complete list of VM arguments and flags in the Erlang documentation](http://www.erlang.org/doc/man/erl.html).
+You can see [a complete list of VM arguments and flags in the Erlang documentation](https://www.erlang.org/doc/man/erl.html).
 
 ## Summing up
 
 Throughout the guide, we have built a very simple distributed key-value store as an opportunity to explore many constructs like generic servers, supervisors, tasks, agents, applications and more. Not only that, we have written tests for the whole application, got familiar with ExUnit, and learned how to use the Mix build tool to accomplish a wide range of tasks.
 
-If you are looking for a distributed key-value store to use in production, you should definitely look into [Riak](http://riak.com/products/riak-kv/), which also runs in the Erlang VM. In Riak, the buckets are replicated and stored across several nodes to avoid data loss.
+If you are looking for a distributed key-value store to use in production, you should definitely look into [Riak](https://riak.com/products/riak-kv/), which also runs in the Erlang VM. In Riak, the buckets are replicated and stored across several nodes to avoid data loss.
 
 Of course, Elixir can be used for much more than distributed key-value stores. Embedded systems, data-processing and data-ingestion, web applications, audio/video streaming systems, machine learning, and others are many of the different domains Elixir excels at. We hope this guide has prepared you to explore any of those domains or any future domain you may desire to bring Elixir into.
 

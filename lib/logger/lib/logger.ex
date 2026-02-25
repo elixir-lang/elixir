@@ -1016,12 +1016,15 @@ defmodule Logger do
   end
 
   @doc false
-  def __evaluate_log__(data) when is_function(data, 0) do
-    data.()
+  def __evaluate_log__(data, metadata) when is_function(data, 0) do
+    case data.() do
+      {msg, new_metadata} -> {msg, Enum.into(new_metadata, metadata)}
+      data -> {data, metadata}
+    end
   end
 
-  def __evaluate_log__(data) do
-    data
+  def __evaluate_log__(data, metadata) do
+    {data, metadata}
   end
 
   @doc false
@@ -1151,8 +1154,7 @@ defmodule Logger do
 
       Application.get_env(:logger, :always_evaluate_messages, false) ->
         quote do
-          data = Logger.__evaluate_log__(unquote(data))
-          metadata = unquote(quoted_metadata)
+          {data, metadata} = Logger.__evaluate_log__(unquote(data), unquote(quoted_metadata))
 
           case Logger.__should_log__(unquote(level), __MODULE__) do
             nil -> :ok
@@ -1259,8 +1261,7 @@ defmodule Logger do
   defp no_log(data, metadata) do
     if Application.get_env(:logger, :always_evaluate_messages, false) do
       quote do
-        Logger.__evaluate_log__(unquote(data))
-        unquote(metadata)
+        Logger.__evaluate_log__(unquote(data), unquote(metadata))
         :ok
       end
     else

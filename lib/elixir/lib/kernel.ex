@@ -1999,6 +1999,12 @@ defmodule Kernel do
     {:case, extra ++ meta, args}
   end
 
+  defp x_is_false_or_nil do
+    quote generated: true do
+      :erlang.orelse(:erlang."=:="(x, false), :erlang."=:="(x, nil))
+    end
+  end
+
   @doc """
   Strictly boolean "or" operator.
 
@@ -2063,15 +2069,20 @@ defmodule Kernel do
   end
 
   defp build_boolean_check(operator, check, true_clause, false_clause) do
+    bools =
+      quote do
+        false -> unquote(false_clause)
+        true -> unquote(true_clause)
+      end
+
+    error =
+      quote generated: true do
+        other -> :erlang.error({:badbool, unquote(operator), other})
+      end
+
     annotate_case(
       [optimize_boolean: true, type_check: :expr],
-      quote do
-        case unquote(check) do
-          false -> unquote(false_clause)
-          true -> unquote(true_clause)
-          other -> :erlang.error({:badbool, unquote(operator), other})
-        end
-      end
+      {:case, [], [check, [do: bools ++ error]]}
     )
   end
 
@@ -2101,7 +2112,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: :expr],
       quote do
         case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> false
+          x when unquote(x_is_false_or_nil()) -> false
           _ -> true
         end
       end
@@ -2115,7 +2126,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: :expr],
       quote do
         case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> true
+          x when unquote(x_is_false_or_nil()) -> true
           _ -> false
         end
       end
@@ -4046,7 +4057,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: :expr],
       quote do
         case unquote(condition) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)
+          x when unquote(x_is_false_or_nil()) -> unquote(else_clause)
           _ -> unquote(do_clause)
         end
       end
@@ -4367,7 +4378,7 @@ defmodule Kernel do
       [type_check: :expr],
       quote do
         case unquote(left) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) ->
+          x when unquote(x_is_false_or_nil()) ->
             x
 
           _ ->
@@ -4410,7 +4421,7 @@ defmodule Kernel do
       [type_check: :expr],
       quote do
         case unquote(left) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) ->
+          x when unquote(x_is_false_or_nil()) ->
             unquote(right)
 
           x ->
@@ -4696,9 +4707,9 @@ defmodule Kernel do
       [head | tail] = list ->
         # We only expand lists in the body if they are relatively
         # short and it is made only of literal expressions.
-        case not in_body? or small_literal_list?(right) do
-          true -> in_var(in_body?, left, &in_list(&1, head, tail, expand, list, in_body?))
-          false -> quote(do: :lists.member(unquote(left), unquote(right)))
+        case in_body? do
+          false -> in_list(left, head, tail, expand, list)
+          true -> quote(do: :lists.member(unquote(left), unquote(right)))
         end
 
       %{} = right ->
@@ -4745,12 +4756,6 @@ defmodule Kernel do
     end
   end
 
-  defp small_literal_list?(list) when is_list(list) and length(list) <= 32 do
-    :lists.all(fn x -> is_binary(x) or is_atom(x) or is_number(x) end, list)
-  end
-
-  defp small_literal_list?(_list), do: false
-
   defp in_range(left, first, last, step) when is_integer(step) do
     in_range_literal(left, first, last, step)
   end
@@ -4758,8 +4763,8 @@ defmodule Kernel do
   defp in_range(left, first, last, step) do
     quoted =
       quote do
-        :erlang.is_integer(unquote(left)) and :erlang.is_integer(unquote(first)) and
-          :erlang.is_integer(unquote(last)) and
+        unquote(generated_is_integer(left)) and unquote(generated_is_integer(first)) and
+          unquote(generated_is_integer(last)) and
           ((:erlang.>(unquote(step), 0) and
               unquote(increasing_compare(left, first, last))) or
              (:erlang.<(unquote(step), 0) and
@@ -4775,9 +4780,9 @@ defmodule Kernel do
 
   defp in_range_literal(left, first, last, step) when step > 0 do
     quoted =
-      quote do
-        :erlang.andalso(
-          :erlang.is_integer(unquote(left)),
+      quote generated: true do
+        Kernel.and(
+          unquote(generated_is_integer(left)),
           unquote(increasing_compare(left, first, last))
         )
       end
@@ -4787,9 +4792,9 @@ defmodule Kernel do
 
   defp in_range_literal(left, first, last, step) when step < 0 do
     quoted =
-      quote do
-        :erlang.andalso(
-          :erlang.is_integer(unquote(left)),
+      quote generated: true do
+        Kernel.and(
+          unquote(generated_is_integer(left)),
           unquote(decreasing_compare(left, first, last))
         )
       end
@@ -4803,36 +4808,28 @@ defmodule Kernel do
 
   defp in_range_step(quoted, left, first, step) do
     quote do
-      :erlang.andalso(
+      Kernel.and(
         unquote(quoted),
         :erlang."=:="(:erlang.rem(unquote(left) - unquote(first), unquote(step)), 0)
       )
     end
   end
 
-  defp in_list(left, head, tail, expand, right, in_body?) do
-    [head | tail] = :lists.map(&comp(left, &1, expand, right, in_body?), [head | tail])
-    :lists.foldl(&quote(do: :erlang.orelse(unquote(&2), unquote(&1))), head, tail)
+  defp in_list(left, head, tail, expand, right) do
+    [head | tail] = :lists.map(&comp(left, &1, expand, right), [head | tail])
+    :lists.foldl(&quote(do: Kernel.or(unquote(&2), unquote(&1))), head, tail)
   end
 
-  defp comp(left, {:|, _, [head, tail]}, expand, right, in_body?) do
+  defp comp(left, {:|, _, [head, tail]}, expand, right) do
     case expand.(tail) do
       [] ->
         quote(do: :erlang."=:="(unquote(left), unquote(head)))
 
       [tail_head | tail] ->
         quote do
-          :erlang.orelse(
+          Kernel.or(
             :erlang."=:="(unquote(left), unquote(head)),
-            unquote(in_list(left, tail_head, tail, expand, right, in_body?))
-          )
-        end
-
-      tail when in_body? ->
-        quote do
-          :erlang.orelse(
-            :erlang."=:="(unquote(left), unquote(head)),
-            :lists.member(unquote(left), unquote(tail))
+            unquote(in_list(left, tail_head, tail, expand, right))
           )
         end
 
@@ -4841,13 +4838,17 @@ defmodule Kernel do
     end
   end
 
-  defp comp(left, right, _expand, _right, _in_body?) do
+  defp comp(left, right, _expand, _right) do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
+  end
+
+  defp generated_is_integer(arg) do
+    quote generated: true, do: :erlang.is_integer(unquote(arg))
   end
 
   defp increasing_compare(var, first, last) do
     quote do
-      :erlang.andalso(
+      Kernel.and(
         :erlang.>=(unquote(var), unquote(first)),
         :erlang."=<"(unquote(var), unquote(last))
       )
@@ -4856,7 +4857,7 @@ defmodule Kernel do
 
   defp decreasing_compare(var, first, last) do
     quote do
-      :erlang.andalso(
+      Kernel.and(
         :erlang."=<"(unquote(var), unquote(first)),
         :erlang.>=(unquote(var), unquote(last))
       )
@@ -5593,8 +5594,8 @@ defmodule Kernel do
   ## Types
 
   It is recommended to define types for structs. By convention, such a type
-  is called `t`. To define a struct inside a type, the struct literal syntax
-  is used:
+  is called `t`. To define a type for a struct, the struct literal syntax is
+  used:
 
       defmodule User do
         defstruct name: "John", age: 25

@@ -287,8 +287,13 @@ defmodule Map do
   @doc """
   Fetches the value for a specific `key` in the given `map`.
 
-  If `map` contains the given `key` then its value is returned in the shape of `{:ok, value}`.
-  If `map` doesn't contain `key`, `:error` is returned.
+  If `map` contains the given `key` then its value is returned
+  in the shape of `{:ok, value}`. If `map` doesn't contain `key`,
+  `:error` is returned.
+
+  If the type system can verify `:error` is always returned
+  (which means key is never available in the map), it will emit
+  an error.
 
   Inlined by the compiler.
 
@@ -296,7 +301,7 @@ defmodule Map do
 
       iex> Map.fetch(%{a: 1}, :a)
       {:ok, 1}
-      iex> Map.fetch(%{a: 1}, :b)
+      iex> Map.fetch(%{"foo" => "bar"}, "unknown")
       :error
 
   """
@@ -307,8 +312,11 @@ defmodule Map do
   Fetches the value for a specific `key` in the given `map`, erroring out if
   `map` doesn't contain `key`.
 
-  If `map` contains `key`, the corresponding value is returned. If
-  `map` doesn't contain `key`, a `KeyError` exception is raised.
+  The exclamation mark (`!`) implies this function can raise a `KeyError`
+  exception at runtime if `map` doesn't contain `key`. If the type system
+  can verify this function will always raise (which means the key is never
+  available), then it will emit a warning at compile-time. See the "Type
+  checking" section below.
 
   Inlined by the compiler.
 
@@ -318,15 +326,53 @@ defmodule Map do
       1
 
   When the key is missing, an exception is raised:
-      
+
       Map.fetch!(%{a: 1}, :b)
       ** (KeyError) key :b not found in: %{a: 1}
 
+  ## Type checking
+
+  The compiler will emit a warning if it can verify that
+  none of the keys given are available in the map.
+
+  When the key is an atom, because only single key is given,
+  a warning will be emitted in case the type system proves
+  the key is not present.
+
+  However, this behaviour matters when the type of the key
+  represents multiple values. For example:
+
+      key = returns_foo_or_bar() #=> :foo or :bar
+      Map.fetch!(%{foo: 123}, key)
+
+  Although the key can be `:foo` or `:bar`, there is no
+  warning emitted, as `:foo` will succeed. This is by design:
+  the exclamation mark in Elixir denotes precisely that a
+  runtime exception may be raised.
+
+  In case you are looking up multiple keys and you don't know
+  if they may be present, you can use `Map.fetch/2` instead
+  and deal with the error case accordingly:
+
+      case Map.fetch(%{foo: 123}, key) do
+        {:ok, value} -> ...
+        :error -> ...
+      end
+
+  Both `Map.fetch!/2` and `Map.fetch/2` will emit a warning if
+  it proves that both `:foo` or `:bar` are absent in the map.
+
+  Alternatively, if you want to statically prove that all of keys
+  are in the map, you can match on the possible values and access
+  them directly:
+
+      case returns_foo_or_bar() do
+        :foo -> map.foo
+        :bar -> map.bar
+      end
   """
   @spec fetch!(map, key) :: value
-  def fetch!(map, key) do
-    :maps.get(key, map)
-  end
+  def fetch!(map, key), do: :maps.get(key, map)
 
   @doc """
   Puts the given `value` under `key` unless the entry `key`
@@ -362,8 +408,8 @@ defmodule Map do
       iex> Map.replace(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
 
-      iex> Map.replace(%{a: 1}, :b, 2)
-      %{a: 1}
+      iex> Map.replace(%{"a" => 1}, "b", 2)
+      %{"a" => 1}
 
   """
   @doc since: "1.11.0"
@@ -384,7 +430,11 @@ defmodule Map do
   @doc """
   Puts a value under `key` only if the `key` already exists in `map`.
 
-  If `key` is not present in `map`, a `KeyError` exception is raised.
+  The exclamation mark (`!`) implies this function can raise a `KeyError`
+  exception at runtime if `map` doesn't contain `key`. If the type system
+  can verify this function will always raise (which means the key is never
+  available), then it will emit a warning at compile-time. See the "Type
+  checking" section in `Map.fetch!/2` for more information.
 
   Inlined by the compiler.
 
@@ -393,8 +443,8 @@ defmodule Map do
       iex> Map.replace!(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
 
-      iex> Map.replace!(%{a: 1}, :b, 2)
-      ** (KeyError) key :b not found in:
+      iex> Map.replace!(%{"foo" => "bar"}, "unknown", "new_bar")
+      ** (KeyError) key "unknown" not found in:
       ...
 
   """
@@ -417,8 +467,8 @@ defmodule Map do
       iex> Map.replace_lazy(%{a: 1, b: 2}, :a, fn v -> v * 4 end)
       %{a: 4, b: 2}
 
-      iex> Map.replace_lazy(%{a: 1, b: 2}, :c, fn v -> v * 4 end)
-      %{a: 1, b: 2}
+      iex> Map.replace_lazy(%{"a" => 1, "b" => 2}, "c", fn v -> v * 4 end)
+      %{"a" => 1, "b" => 2}
 
   """
   @doc since: "1.14.0"
@@ -497,6 +547,8 @@ defmodule Map do
     :erlang.error({:badmap, non_map})
   end
 
+  defp take([], _map, []), do: %{}
+
   defp take([], _map, acc) do
     :maps.from_list(acc)
   end
@@ -521,15 +573,13 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.get(%{}, :a)
-      nil
-      iex> Map.get(%{a: 1}, :a)
+      iex> Map.get(%{"a" => 1}, "a")
       1
-      iex> Map.get(%{a: 1}, :b)
+      iex> Map.get(%{"a" => 1}, "b")
       nil
-      iex> Map.get(%{a: 1}, :b, 3)
+      iex> Map.get(%{"a" => 1}, "b", 3)
       3
-      iex> Map.get(%{a: nil}, :a, 1)
+      iex> Map.get(%{"a" => nil}, "a", 1)
       nil
 
   """
@@ -558,15 +608,11 @@ defmodule Map do
 
   ## Examples
 
-      iex> map = %{a: 1}
-      iex> fun = fn ->
-      ...>   # some expensive operation here
-      ...>   13
-      ...> end
-      iex> Map.get_lazy(map, :a, fun)
+      iex> Map.get_lazy(%{a: 1}, :a, fn -> :expensive_value end)
       1
-      iex> Map.get_lazy(map, :b, fun)
-      13
+
+      iex> Map.get_lazy(%{"a" => 1}, "b", fn -> :expensive_value end)
+      :expensive_value
 
   """
   @spec get_lazy(map, key, (-> value)) :: value
@@ -705,10 +751,10 @@ defmodule Map do
 
       iex> Map.pop(%{a: 1}, :a)
       {1, %{}}
-      iex> Map.pop(%{a: 1}, :b)
-      {nil, %{a: 1}}
-      iex> Map.pop(%{a: 1}, :b, 3)
-      {3, %{a: 1}}
+      iex> Map.pop(%{"a" => 1}, "b")
+      {nil, %{"a" => 1}}
+      iex> Map.pop(%{"a" => 1}, "b", 3)
+      {3, %{"a" => 1}}
 
   """
   @spec pop(map, key, default) :: {value, updated_map :: map} | {default, map} when default: value
@@ -731,8 +777,8 @@ defmodule Map do
       {1, %{}}
       iex> Map.pop!(%{a: 1, b: 2}, :a)
       {1, %{b: 2}}
-      iex> Map.pop!(%{a: 1}, :b)
-      ** (KeyError) key :b not found in:
+      iex> Map.pop!(%{"a" => 1}, "b")
+      ** (KeyError) key "b" not found in:
       ...
 
   """
@@ -758,15 +804,11 @@ defmodule Map do
 
   ## Examples
 
-      iex> map = %{a: 1}
-      iex> fun = fn ->
-      ...>   # some expensive operation here
-      ...>   13
-      ...> end
-      iex> Map.pop_lazy(map, :a, fun)
+      iex> Map.pop_lazy(%{a: 1}, :a, fn -> :expensive_value end)
       {1, %{}}
-      iex> Map.pop_lazy(map, :b, fun)
-      {13, %{a: 1}}
+
+      iex> Map.pop_lazy(%{"a" => 1}, "b", fn -> :expensive_value end)
+      {:expensive_value, %{"a" => 1}}
 
   """
   @spec pop_lazy(map, key, (-> value)) :: {value, map}
@@ -918,8 +960,8 @@ defmodule Map do
       iex> Map.update!(%{a: 1}, :a, &(&1 * 2))
       %{a: 2}
 
-      iex> Map.update!(%{a: 1}, :b, &(&1 * 2))
-      ** (KeyError) key :b not found in:
+      iex> Map.update!(%{"a" => 1}, "b", &(&1 * 2))
+      ** (KeyError) key "b" not found in:
       ...
 
   """
@@ -1038,6 +1080,7 @@ defmodule Map do
       #=> %{name: "john"}
 
   """
+  # TODO: implement this using row polymorphism
   @spec from_struct(atom | struct) :: map
   def from_struct(struct) when is_atom(struct) do
     IO.warn("Map.from_struct/1 with a module is deprecated, please pass a struct instead")
@@ -1074,11 +1117,7 @@ defmodule Map do
 
   """
   @spec equal?(map, map) :: boolean
-  def equal?(map1, map2)
-
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
-  def equal?(%{} = map1, map2), do: :erlang.error({:badmap, map2}, [map1, map2])
-  def equal?(term, other), do: :erlang.error({:badmap, term}, [term, other])
 
   @doc false
   @deprecated "Use Kernel.map_size/1 instead"

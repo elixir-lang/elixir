@@ -210,13 +210,14 @@ defmodule GenServer do
     * [`:restart`](`m:Supervisor#module-restart-values-restart`) - when the
       child should be restarted, defaults to `:permanent`
     * [`:shutdown`](`m:Supervisor#module-shutdown-values-shutdown`) - how to
-      shut down the child, either immediately or by giving it time to shut down
+      shut down the child, either immediately or by giving it time to shut down,
+      defaults to `5_000`
 
   For example:
 
       use GenServer, restart: :transient, shutdown: 10_000
 
-  See the ["Child specification"](`m:Supervisor#module-child_spec-1-function`) section in the `Supervisor` module for more
+  See the ["Child specification"](`m:Supervisor#module-child-specification`) section in the `Supervisor` module for more
   detailed information. The `@doc` annotation immediately preceding
   `use GenServer` will be attached to the generated `child_spec/1` function.
 
@@ -523,7 +524,7 @@ defmodule GenServer do
     * [GenServer - Elixir's Getting Started Guide](genservers.md)
     * [`:gen_server` module documentation](`:gen_server`)
     * [gen_server Behaviour - OTP Design Principles](https://www.erlang.org/doc/design_principles/gen_server_concepts.html)
-    * [Clients and Servers - Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
+    * [Clients and Servers - Learn You Some Erlang for Great Good!](https://learnyousomeerlang.com/clients-and-servers)
 
   """
 

@@ -9,7 +9,7 @@ Elixir is in the process of incorporating set-theoretic types into the compiler.
 
   * **sound** - the inferred and assigned by the type system align with the behaviour of the program
 
-  * **gradual** - Elixir's type system includes the `dynamic()` type, which can be used when the type of a variable or expression is checked at runtime. In the absence of `dynamic()`, Elixir's type system behaves as a static one
+  * **gradual** - Elixir's type system includes the `dynamic()` type, which can be used when the type of a variable or expression is checked at runtime. However, instead of simply discarding all typing information, Elixir's `dynamic()` type works as a range. For example, if you write `dynamic(integer() or binary())`, Elixir's type system will still emit violations if none of those types are accepted. Furthermore, in the absence of `dynamic()`, Elixir's type system behaves as a static one
 
   * **developer friendly** - the types are described, implemented, and composed using basic set operations: unions, intersections, and negation (hence it is a set-theoretic type system)
 
@@ -24,6 +24,7 @@ The basic types are:
 ```elixir
 atom()
 binary()
+bitstring()
 empty_list()
 integer()
 float()
@@ -54,9 +55,13 @@ You can find a complete reference in the [set-theoretic types cheatsheet](../che
 
 In this section we will cover the syntax of all data types. At the moment, developers will interact with those types mostly through compiler warnings and diagnostics.
 
-### Indivisible types
+### Broad types
 
-These types are indivisibile and have no further representation. They are: `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()`.  For example, the numbers `1` and `42` are both represented by the type `integer()`.
+These types are broad in that they cannot represent individual elements, only the whole set. For example, the numbers `1` and `42` are both represented by the type `integer()`.
+
+They are: `binary()`, `bitstring()`, `integer()`, `float()`, `pid()`, `port()`, `reference()`.
+
+The `binary()` type is a subtype of the less frequently used `bitstring()` type, as binaries are bitstrings where the number of bits is divisible by 8.
 
 ### Atoms
 
@@ -92,13 +97,37 @@ If you pass a list type as the tail, then the list type is merged into the eleme
 
 You can represent all maps as `map()`.
 
-Maps may also be written using their literal syntax, such as `%{name: binary(), age: integer()}`, which outlines a map with exactly two keys, `:name` and `:age`, and values of type `binary()` and `integer()` respectively.
+Maps may also be written using their literal syntax:
 
-A key may be marked as optional using the `if_set/1` operation on its value type. For example, `%{name: binary(), age: if_set(integer())}` is a map that certainly has the `:name` key but it may have the `:age` key (and if it has such key, its value type is `integer()`).
+```elixir
+%{name: binary(), age: integer()}
+```
 
-We say the maps above are "closed": they only support the keys explicitly defined. We can also mark a map as "open", by including `...` as its first element.
+which outlines a map with exactly two keys, `:name` and `:age`, and values of type `binary()` and `integer()` respectively. We say the map above is "closed": it only supports the keys explicitly defined. We can also mark a map as "open", by including `...` as its first element:
 
-For example, the type `%{..., name: binary(), age: integer()}` means the keys `:name` and `:age` must exist, with their respective types, but any other key may also be present. In other words, `map()` is the same as `%{...}`. For the empty map, you may write `%{}`, although we recommend using `empty_map()` for clarity.
+```elixir
+%{..., name: binary(), age: integer()}
+```
+
+The type above says the keys `:name` and `:age` must exist, with their respective types, but other keys may be present. The `map()` type is the same as `%{...}`. For the empty map, you may write `%{}`, although we recommend using `empty_map()` for clarity.
+
+#### Optional keys
+
+A key may be marked as optional using the `if_set/1` operation on its value type:
+
+```elixir
+%{name: binary(), age: if_set(integer())}
+```
+
+is a map that certainly has the `:name` key but it may have the `:age` key (and if it has such key, its value type is `integer()`).
+
+You can also use `not_set()` to denote a key cannot be present:
+
+```elixir
+%{..., age: not_set()}
+```
+
+The type above says the map may have any key, except the `:age` one. This is, for instance, the type returned by `Map.delete(map, :age)`.
 
 #### Domain types
 
@@ -112,19 +141,35 @@ In the examples above, all map keys were atoms, but we can also use other types 
 %{..., binary() or atom() => integer()}
 ```
 
-Currently, the type system only tracks the top of each individial type as the domain keys. For example, if you say:
+Currently, the type system only tracks the top of each individual type as the domain keys. For example, if you say:
 
 ```elixir
 %{list(integer()) => integer(), list(binary()) => binary()}
 ```
 
-That's the same as:
+That's the same as specifying all lists:
 
 ```elixir
-%{list(term()) => integer() or binary()}
+%{list() => integer() or binary()}
 ```
 
+The supported domain keys are `atom()`, `bitstring()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, and `tuple()`. In the case of maps, the `bitstring()` domain stores exclusively keys which are not binary. The ones which are `binary()` are stored under the `binary()` domain.
+
 Furthermore, it is important to note that domain keys are, by definition, optional. Whenever you have a `%{integer() => integer()}`and you try to fetch a key, we must assume the key may not exist (after all, it is not possible to store all integers as map keys as they are infinite).
+
+#### Mixed keys
+
+It is also possible to mix domain and atom keys. For example, the following map says that all atom keys are of type `binary()`, except the `:root` key, which has type `integer()`:
+
+```elixir
+# Closed map
+%{atom() => binary(), root: integer()}
+
+# Open map
+%{..., atom() => binary(), root: integer()}
+```
+
+The order of the keys is of increasing precision. `:root` is more precise than `atom()`, therefore it comes later. This mirrors the runtime semantics of maps, where duplicate keys override the value of earlier ones.
 
 ### Functions
 
@@ -174,7 +219,7 @@ If the user provides their own types, and those types are not `dynamic()`, then 
 
 ## Type inference
 
-Type inference (or reconstruction) is the ability of a type system automatically deduce, either partially or fully, the type of an expression at compile time. Type inference may occur at different levels. For example, many programming languages can automatically infer the types of variables, also known "local type inference", but not all can infer type signatures of functions.
+Type inference (or reconstruction) is the ability of a type system to automatically deduce, either partially or fully, the type of an expression at compile time. Type inference may occur at different levels. For example, many programming languages can automatically infer the types of variables, also known "local type inference", but not all can infer type signatures of functions.
 
 Inferring type signatures comes with a series of trade-offs:
 
@@ -186,7 +231,7 @@ Inferring type signatures comes with a series of trade-offs:
 
   * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide "module type inference": our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies (in the future). Calls to modules within the same project are assumed to be `dynamic()` as to reduce cyclic dependencies and the need for recompilations. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide "module type inference": our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies, while calls to modules within the same project are assumed to be `dynamic()`. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
 
 Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
 

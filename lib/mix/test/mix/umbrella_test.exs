@@ -444,7 +444,7 @@ defmodule Mix.UmbrellaTest do
         # Add struct dependency
         File.write!("lib/bar.ex", """
         defmodule Bar do
-          def foo_bar?(%Foo{bar: true}), do: true
+          def foo_bar(), do: %Foo{bar: true}
         end
         """)
 

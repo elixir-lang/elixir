@@ -526,6 +526,32 @@ defmodule Kernel.ParserTest do
                 ]}
     end
 
+    test "deprecated not/in" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.string_to_quoted!("not a in b", columns: true) ==
+                        {:not, [line: 1, column: 1],
+                         [
+                           {:in, [line: 1, column: 7],
+                            [
+                              {:a, [line: 1, column: 5], nil},
+                              {:b, [line: 1, column: 10], nil}
+                            ]}
+                         ]}
+             end) =~ "not expr1 in expr2"
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.string_to_quoted!("!a in b", columns: true) ==
+                        {:!, [line: 1, column: 1],
+                         [
+                           {:in, [line: 1, column: 4],
+                            [
+                              {:a, [line: 1, column: 2], nil},
+                              {:b, [line: 1, column: 7], nil}
+                            ]}
+                         ]}
+             end) =~ "!expr1 in expr2"
+    end
+
     test "handles maps and structs" do
       assert Code.string_to_quoted("%{}", columns: true) ==
                {:ok, {:%{}, [line: 1, column: 1], []}}

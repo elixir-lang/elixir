@@ -83,13 +83,12 @@ defmodule Mix.Tasks.Compile.Erlang do
       end)
 
     compile_path = Path.relative_to(compile_path, File.cwd!())
+    erls = scan_sources(files, include_path, source_paths, compile_path, opts)
 
-    {erls, tuples} =
-      Enum.unzip(scan_sources(files, include_path, source_paths, compile_path, opts))
+    {sorted, parallel} = topsort_and_parallelize(erls, compile_path)
+    opts = [parallel: MapSet.new(parallel)] ++ opts
 
-    opts = [parallel: MapSet.new(find_parallel(erls))] ++ opts
-
-    Erlang.compile_entries(manifest(), tuples, :erl, :beam, opts, fn input, _output ->
+    Erlang.compile_entries(manifest(), sorted, :erl, :beam, opts, fn input, _output ->
       # We're purging the module because a previous compiler (for example, Phoenix)
       # might have already loaded the previous version of it.
       module = input |> Path.basename(".erl") |> String.to_atom()
@@ -147,7 +146,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       ordered: false
     )
     |> Enum.flat_map(fn
-      {:ok, {:ok, erl_file, target_tuple}} -> [{erl_file, target_tuple}]
+      {:ok, {:ok, erl_file}} -> [erl_file]
       {:ok, :error} -> []
     end)
   end
@@ -156,17 +155,15 @@ defmodule Mix.Tasks.Compile.Erlang do
     erl_file = %{
       file: file,
       module: module_from_artifact(file),
-      behaviours: [],
-      compile: [],
+      deps: [],
       includes: [],
-      invalid: false
+      status: :ok
     }
 
     case :epp.parse_file(Erlang.to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
         erl_file = List.foldl(tl(forms), erl_file, &do_form(file, &1, &2))
-        target_tuple = annotate_target(erl_file, compile_path, opts[:force])
-        {:ok, erl_file, target_tuple}
+        {:ok, maybe_stale(erl_file, compile_path, opts[:force])}
 
       {:error, _error} ->
         :error
@@ -183,49 +180,70 @@ defmodule Mix.Tasks.Compile.Erlang do
         end
 
       {:attribute, _, :behaviour, behaviour} ->
-        %{erl | behaviours: [behaviour | erl.behaviours]}
+        %{erl | deps: [behaviour | erl.deps]}
 
       {:attribute, _, :behavior, behaviour} ->
-        %{erl | behaviours: [behaviour | erl.behaviours]}
-
-      {:attribute, _, :compile, value} when is_list(value) ->
-        %{erl | compile: value ++ erl.compile}
+        %{erl | deps: [behaviour | erl.deps]}
 
       {:attribute, _, :compile, value} ->
-        %{erl | compile: [value | erl.compile]}
+        %{erl | deps: add_parse_transforms(value, erl.deps)}
 
       _ ->
         erl
     end
   end
 
-  defp find_parallel(erls) do
-    serial = MapSet.new(find_dependencies(erls))
+  defp topsort_and_parallelize(erls, compile_path) do
+    graph = :digraph.new()
 
-    erls
-    |> Enum.reject(&(&1.module in serial))
-    |> Enum.map(& &1.file)
-  end
+    for %{module: module, status: status, file: file} <- erls do
+      :digraph.add_vertex(graph, module, {file, status})
+    end
 
-  defp find_dependencies(erls) do
-    Enum.flat_map(erls, fn erl ->
-      transforms =
-        Enum.flat_map(erl.compile, fn
-          {:parse_transform, transform} -> [transform]
-          _ -> []
+    for %{module: module, deps: deps} <- erls, dep <- deps do
+      # It may error if the behaviour/parse transform is not in the project,
+      # which is expected
+      :digraph.add_edge(graph, module, dep)
+    end
+
+    if vertices = :digraph_utils.topsort(graph) do
+      sorted =
+        Enum.reduce(vertices, [], fn module, acc ->
+          {_, {file, status}} = :digraph.vertex(graph, module)
+          [{status, file, Path.join(compile_path, "#{module}.beam")} | acc]
         end)
 
-      transforms ++ erl.behaviours
+      parallel =
+        for %{file: file, module: module} <- erls,
+            :digraph.in_neighbours(graph, module) == [],
+            do: file
+
+      {sorted, parallel}
+    else
+      Mix.raise(
+        "Could not compile Erlang. " <>
+          "The following modules form a cycle: " <>
+          Enum.join(Mix.Utils.find_cycle!(graph), ", ")
+      )
+    end
+  end
+
+  defp add_parse_transforms(compile, deps) do
+    compile
+    |> List.wrap()
+    |> Enum.reduce(deps, fn
+      {:parse_transform, transform}, deps -> [transform | deps]
+      _, deps -> deps
     end)
   end
 
-  defp annotate_target(erl, compile_path, force) do
+  defp maybe_stale(erl, compile_path, force) do
     beam = Path.join(compile_path, "#{erl.module}.beam")
 
     if force || Mix.Utils.stale?([erl.file | erl.includes], [beam]) do
-      {:stale, erl.file, beam}
+      %{erl | status: :stale}
     else
-      {:ok, erl.file, beam}
+      erl
     end
   end
 

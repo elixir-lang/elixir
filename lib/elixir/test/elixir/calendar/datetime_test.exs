@@ -764,7 +764,7 @@ defmodule DateTimeTest do
   end
 
   describe "diff" do
-    test "diff with invalid time unit" do
+    test "with invalid time unit" do
       dt = DateTime.utc_now()
 
       message =
@@ -773,7 +773,7 @@ defmodule DateTimeTest do
       assert_raise ArgumentError, message, fn -> DateTime.diff(dt, dt, "day") end
     end
 
-    test "diff with valid time unit" do
+    test "with valid time unit" do
       dt1 = %DateTime{
         year: 100,
         month: 2,
@@ -808,7 +808,7 @@ defmodule DateTimeTest do
       assert DateTime.diff(Map.from_struct(dt1), Map.from_struct(dt2)) == 3_281_904_000
     end
 
-    test "diff with microseconds" do
+    test "with microseconds" do
       datetime = ~U[2023-02-01 10:30:10.123456Z]
 
       in_almost_7_days =
@@ -819,7 +819,7 @@ defmodule DateTimeTest do
       assert DateTime.diff(in_almost_7_days, datetime, :day) == 6
     end
 
-    test "diff in microseconds" do
+    test "in microseconds" do
       datetime1 = ~U[2023-02-01 10:30:10.000000Z]
       datetime2 = DateTime.add(datetime1, 1234, :microsecond)
 
@@ -1003,16 +1003,7 @@ defmodule DateTimeTest do
   end
 
   describe "add" do
-    test "add with invalid time unit" do
-      dt = DateTime.utc_now()
-
-      message =
-        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
-
-      assert_raise ArgumentError, message, fn -> DateTime.add(dt, 1, "day") end
-    end
-
-    test "add with non-struct map that conforms to Calendar.datetime" do
+    test "with non-struct map that conforms to Calendar.datetime" do
       dt_map = DateTime.from_naive!(~N[2018-08-28 00:00:00], "Etc/UTC") |> Map.from_struct()
 
       assert DateTime.add(dt_map, 1, :second) == %DateTime{
@@ -1031,7 +1022,7 @@ defmodule DateTimeTest do
              }
     end
 
-    test "error with UTC only database and non UTC datetime" do
+    test "with UTC only database and non UTC datetime emits error" do
       dt =
         DateTime.from_naive!(~N[2018-08-28 00:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
 
@@ -1040,7 +1031,7 @@ defmodule DateTimeTest do
       end
     end
 
-    test "add/2 with other calendars" do
+    test "with other calendars" do
       assert ~N[2000-01-01 12:34:15.123456]
              |> NaiveDateTime.convert!(Calendar.Holocene)
              |> DateTime.from_naive!("Etc/UTC")

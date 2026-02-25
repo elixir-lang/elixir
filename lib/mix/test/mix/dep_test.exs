@@ -355,7 +355,29 @@ defmodule Mix.DepTest do
     end)
   end
 
-  test "deps with system_env set" do
+  @compile {:no_warn_undefined, [{A, :env, 0}]}
+  test "mix dep with system_env set" do
+    system_env = [{"CONTENTS_FROM_ENV", "contents dep test"}]
+    deps = [{:ok, "~> 0.1", path: "deps/ok", system_env: system_env}]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("deps/ok/lib")
+
+        File.write!("deps/ok/lib/a.ex", """
+        defmodule A do
+          def env, do: unquote(System.fetch_env!("CONTENTS_FROM_ENV"))
+        end
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+        assert A.env() == "contents dep test"
+      end)
+    end)
+  end
+
+  test "rebar dep with system_env set" do
     file_path = tmp_path("load dependency with env vars/dep-test")
     dep_path = tmp_path("rebar_dep")
 

@@ -34,34 +34,15 @@ defmodule Mix.Dep.Converger do
           Enum.find(deps, fn %Mix.Dep{app: other_app} -> app == other_app end)
         end)
       else
-        find_cycle(graph)
+        Mix.raise(
+          "Could not sort dependencies. " <>
+            "The following dependencies form a cycle: " <>
+            Enum.join(Mix.Utils.find_cycle!(graph), ", ")
+        )
       end
     after
       :digraph.delete(graph)
     end
-  end
-
-  @doc """
-  A Depth-First Search to find where is the dependency graph cycle
-  and then display the cyclic dependencies back to the developer.
-  """
-  def find_cycle(graph), do: find_cycle(graph, :digraph.vertices(graph), MapSet.new())
-
-  defp find_cycle(_, [], _visited), do: nil
-
-  defp find_cycle(graph, [v | vs], visited) do
-    if v in visited, do: cycle_found(visited)
-
-    find_cycle(graph, :digraph.out_neighbours(graph, v), MapSet.put(visited, v))
-    find_cycle(graph, vs, visited)
-  end
-
-  defp cycle_found(visited) do
-    Mix.raise(
-      "Could not sort dependencies. " <>
-        "The following dependencies form a cycle: " <>
-        Enum.join(visited, ", ")
-    )
   end
 
   @doc """

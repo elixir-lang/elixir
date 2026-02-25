@@ -187,9 +187,10 @@ defmodule List do
   """
   @spec duplicate(any, 0) :: []
   @spec duplicate(elem, pos_integer) :: [elem, ...] when elem: var
-  def duplicate(elem, n) do
-    :lists.duplicate(n, elem)
-  end
+  def duplicate(elem, n) when is_integer(n) and n >= 0, do: duplicate(n, elem, [])
+
+  defp duplicate(0, _elem, acc), do: acc
+  defp duplicate(n, elem, acc), do: duplicate(n - 1, elem, [elem | acc])
 
   @doc """
   Flattens the given `list` of nested lists.
@@ -298,6 +299,33 @@ defmodule List do
   def first([head | _], _default), do: head
 
   @doc """
+  Returns the first element in `list`.
+
+  If `list` is empty, an error is raised.
+
+  ## Examples
+
+      iex> List.first!([1])
+      1
+
+      iex> List.first!([1, 2, 3])
+      1
+
+      iex> List.first!([])
+      ** (ArgumentError) attempted to get the first element of an empty list
+
+  """
+  @doc since: "1.20.0"
+  @spec first!([elem, ...]) :: elem when elem: var
+  def first!(list)
+
+  def first!([head | _]), do: head
+
+  def first!([]) do
+    raise ArgumentError, "attempted to get the first element of an empty list"
+  end
+
+  @doc """
   Returns the last element in `list` or `default` if `list` is empty.
 
   `last/2` has been introduced in Elixir v1.12.0, while `last/1` has been available since v1.0.0.
@@ -324,6 +352,34 @@ defmodule List do
   def last([], default), do: default
   def last([head], _default), do: head
   def last([_ | tail], default), do: last(tail, default)
+
+  @doc """
+  Returns the last element in `list`.
+
+  If `list` is empty, an error is raised.
+
+  ## Examples
+
+      iex> List.last!([1])
+      1
+
+      iex> List.last!([1, 2, 3])
+      3
+
+      iex> List.last!([])
+      ** (ArgumentError) attempted to get the last element of an empty list
+
+  """
+  @doc since: "1.20.0"
+  @spec last!([elem, ...]) :: elem when elem: var
+  def last!(list)
+
+  def last!([head]), do: head
+  def last!([_ | tail]), do: last!(tail)
+
+  def last!([]) do
+    raise ArgumentError, "attempted to get the last element of an empty list"
+  end
 
   @doc """
   Receives a list of tuples and returns the first tuple

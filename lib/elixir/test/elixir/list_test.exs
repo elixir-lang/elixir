@@ -76,16 +76,44 @@ defmodule ListTest do
 
   test "first/1" do
     assert List.first([]) == nil
-    assert List.first([], 1) == 1
     assert List.first([1]) == 1
     assert List.first([1, 2, 3]) == 1
   end
 
+  test "first/2" do
+    assert List.first([], 1) == 1
+    assert List.first([2], 1) == 2
+    assert List.first([1, 2, 3], 1) == 1
+  end
+
+  test "first!/1" do
+    assert List.first!([1]) == 1
+    assert List.first!([1, 2, 3]) == 1
+
+    assert_raise ArgumentError, "attempted to get the first element of an empty list", fn ->
+      List.first!([])
+    end
+  end
+
   test "last/1" do
     assert List.last([]) == nil
-    assert List.last([], 1) == 1
     assert List.last([1]) == 1
     assert List.last([1, 2, 3]) == 3
+  end
+
+  test "last/2" do
+    assert List.last([], 1) == 1
+    assert List.last([2], 1) == 2
+    assert List.last([1, 2, 3], 1) == 3
+  end
+
+  test "last!/1" do
+    assert List.last!([1]) == 1
+    assert List.last!([1, 2, 3]) == 3
+
+    assert_raise ArgumentError, "attempted to get the last element of an empty list", fn ->
+      List.last!([])
+    end
   end
 
   test "keyfind/4" do
@@ -386,10 +414,6 @@ defmodule ListTest do
     refute List.improper?([[1]])
     refute List.improper?([1, 2])
     refute List.improper?([1, 2, 3])
-
-    assert_raise FunctionClauseError, fn ->
-      List.improper?(%{})
-    end
   end
 
   describe "ascii_printable?/2" do

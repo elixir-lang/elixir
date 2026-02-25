@@ -751,6 +751,36 @@ defmodule Code.SyncTest do
     defp refute_cached(_path), do: :ok
   end
 
+  test "evaluates module definitions" do
+    Code.put_compiler_option(:module_definition, :interpreted)
+
+    defmodule CodeTest.EvalModule do
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      assert Enum.find(stacktrace, &(elem(&1, 0) == :erl_eval))
+    end
+  after
+    Code.put_compiler_option(:module_definition, :compiled)
+  end
+
+  test "evaluates module definitions with stacktraces" do
+    Code.put_compiler_option(:module_definition, :interpreted)
+
+    try do
+      defmodule CodeTest.EvalModuleRaise do
+        Enum.map(1..10, fn x -> x <> "example" end)
+      end
+    rescue
+      e ->
+        assert e.__struct__ == ArgumentError
+        assert Enum.find(__STACKTRACE__, &(elem(&1, 0) == Code.SyncTest.CodeTest.EvalModuleRaise))
+        assert Enum.find(__STACKTRACE__, &(elem(&1, 0) == :erl_eval))
+    else
+      _ -> flunk("defmodule should have failed")
+    end
+  after
+    Code.put_compiler_option(:module_definition, :compiled)
+  end
+
   test "prepend_path" do
     path = Path.join(__DIR__, "fixtures")
     true = Code.prepend_path(path)
@@ -803,23 +833,6 @@ defmodule Code.SyncTest do
     refute to_charlist(path) in :code.get_path()
   end
 
-  test "purges compiler modules" do
-    quoted = quote(do: :ok)
-    Code.compile_quoted(quoted)
-
-    {:ok, claimed} = Code.purge_compiler_modules()
-    assert claimed > 0
-
-    {:ok, claimed} = Code.purge_compiler_modules()
-    assert claimed == 0
-
-    quoted = quote(do: Agent.start_link(fn -> :ok end))
-    Code.compile_quoted(quoted)
-
-    {:ok, claimed} = Code.purge_compiler_modules()
-    assert claimed == 0
-  end
-
   test "returns previous options when setting compiler options" do
     Code.compiler_options(debug_info: false)
     assert Code.compiler_options(debug_info: true) == %{debug_info: false}
@@ -842,5 +855,16 @@ defmodule Code.SyncTest do
     Code.unrequire_files([fixture_path("compile_sample.ex")])
     :code.purge(CompileSample)
     :code.delete(CompileSample)
+  end
+
+  test "purges compiler modules" do
+    quoted = quote(do: :ok)
+    Code.compile_quoted(quoted)
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed > 0
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed == 0
   end
 end

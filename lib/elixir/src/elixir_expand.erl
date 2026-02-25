@@ -6,6 +6,7 @@
 -export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
 -import(elixir_errors, [file_error/4, module_error/4, function_error/4]).
 -include("elixir.hrl").
+-define(kernel, 'Elixir.Kernel').
 
 %% =
 
@@ -120,7 +121,7 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
     false when is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       RE = elixir_aliases:require(Meta, ERef, EOpts, ET, true),
-      {ok, _, EU} = alias(Meta, ERef, false, EOpts, RE),
+      {ok, Alias, EU} = alias(Meta, ERef, false, EOpts, RE),
 
       Quoted =
         case should_warn(Meta, EOpts, EU) of
@@ -128,10 +129,10 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
             ERef;
 
           Pid when ?key(EU, function) /= nil ->
-            ?tracker:warn_require(Pid, Meta, ERef);
+            ?tracker:warn_require(Pid, Meta, ERef, Alias);
 
           Pid ->
-            {{'.', Meta, [?tracker, warn_require]}, Meta, [Pid, Meta, ERef]}
+            {{'.', Meta, [?tracker, warn_require]}, Meta, [Pid, Meta, ERef, Alias]}
         end,
 
       {Quoted, ST, EU};
@@ -794,7 +795,10 @@ expand_case(Meta, Expr, Opts, S, E) ->
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, ['Elixir.Kernel', 'in']}, _, [Var, [false, nil]]}]}],
+    [{'when', _, [{Var, _, ?kernel}, {{'.', _, ['erlang', 'orelse']}, _, [
+      {{'.', _, ['erlang', '=:=']}, _, [{Var, _, ?kernel}, false]},
+      {{'.', _, ['erlang', '=:=']}, _, [{Var, _, ?kernel}, nil]}
+    ]}]}],
     FalseExpr
   ]},
   {'->', TrueMeta, [

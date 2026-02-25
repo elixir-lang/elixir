@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+name: License Compliance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LANG: C.UTF-8
+
+jobs:
+  license_compliance:
+    name: Check License Compliance
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Use HTTPS instead of SSH for Git cloning
+        id: git-config
+        shell: bash
+        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+
+      - name: Checkout project
+        id: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run OSS Review Toolkit
+        id: ort
+        uses: ./.github/workflows/ort
+        with:
+          upload-reports: true
+          fail-on-violation: true
+          report-formats: "WebApp"
+          version: "${{ github.sha }}"

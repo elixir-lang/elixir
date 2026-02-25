@@ -116,6 +116,12 @@ defmodule Logger.Backends.HandlerTest do
     Logger.Backends.Internal.configure(Logger.Backends.Console, metadata: [])
   end
 
+  test "ignores invalid Erlang metadata" do
+    assert capture_log(fn -> :logger.info("ok", %{time: "bad"}) end) =~ "ok"
+  after
+    Logger.Backends.Internal.configure(Logger.Backends.Console, metadata: [])
+  end
+
   test "uses reporting callback with Elixir inspection" do
     assert capture_log(fn ->
              callback = fn %{hello: :world} -> {"~p~n", [:formatted]} end

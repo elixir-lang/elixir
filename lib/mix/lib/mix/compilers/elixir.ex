@@ -5,7 +5,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 29
+  @manifest_vsn 31
   @checkpoint_vsn 4
 
   import Record
@@ -287,7 +287,13 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp deps_config_compile_env_apps(deps_config) do
-    if deps_config[:dbg] != Application.fetch_env!(:elixir, :dbg_callback) do
+    # Use initial_dbg_callback instead of dbg_callback to ignore runtime modifications.
+    # Tools like Kino modify dbg_callback at runtime to customize dbg/2 behavior,
+    # but this should not trigger recompilation since the config hasn't actually changed.
+    # initial_dbg_callback is set when :elixir app starts, before any runtime modifications.
+    initial_dbg = :elixir_config.get(:initial_dbg_callback)
+
+    if deps_config[:dbg] != initial_dbg do
       [:elixir]
     else
       []
@@ -1033,9 +1039,9 @@ defmodule Mix.Compilers.Elixir do
     parent = self()
     compilation_threshold = opts[:long_compilation_threshold] || 10
     verification_threshold = opts[:long_verification_threshold] || 10
-    profile = opts[:profile]
     verbose = Keyword.get(opts, :verbose, false)
     verification = Keyword.get(opts, :verification, true)
+    extra_opts = Keyword.take(opts, [:profile, :purge_compiler_modules])
 
     if not verification and not Mix.debug?() do
       Mix.shell().error("--no-verification flag is only recommended with MIX_DEBUG=1")
@@ -1072,11 +1078,12 @@ defmodule Mix.Compilers.Elixir do
           long_verification_threshold: verification_threshold,
           beam_timestamp: timestamp,
           return_diagnostics: true,
-          profile: profile,
           verification: verification
         ]
 
-        response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
+        response =
+          Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts ++ extra_opts)
+
         send(parent, {ref, response})
       end)
 

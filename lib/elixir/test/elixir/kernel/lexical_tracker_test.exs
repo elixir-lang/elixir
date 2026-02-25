@@ -97,16 +97,24 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "unused requires", config do
-    D.warn_require(config[:pid], [], String)
-    D.warn_require(config[:pid], [], List)
+    D.warn_require(config[:pid], [], String, false)
+    D.warn_require(config[:pid], [], List, false)
     D.remote_dispatch(config[:pid], String, :compile)
-    assert D.collect_unused_requires(config[:pid]) == [{List, []}]
+    assert D.collect_unused_requires(config[:pid]) == [{List, [], false, false}]
   end
 
   test "function calls do not count as macro usage", config do
-    D.warn_require(config[:pid], [], String)
+    D.warn_require(config[:pid], [], String, false)
     D.remote_dispatch(config[:pid], String, :runtime)
-    assert D.collect_unused_requires(config[:pid]) == [{String, []}]
+    assert D.collect_unused_requires(config[:pid]) == [{String, [], false, false}]
+  end
+
+  test "track alias usage through require", config do
+    D.warn_require(config[:pid], [], String, S)
+    D.remote_dispatch(config[:pid], String, :runtime)
+    assert D.collect_unused_requires(config[:pid]) == [{String, [], S, false}]
+    D.alias_dispatch(config[:pid], S)
+    assert D.collect_unused_requires(config[:pid]) == [{String, [], S, true}]
   end
 
   test "unused aliases", config do
@@ -391,7 +399,7 @@ defmodule Kernel.LexicalTrackerTest do
       refute String in runtime
     end
 
-    test "structs are exports or compile time" do
+    test "structs are runtime/exports/compile time" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.StructRuntime do
@@ -425,7 +433,7 @@ defmodule Kernel.LexicalTrackerTest do
         """)
 
       refute URI in compile
-      assert URI in exports
+      refute URI in exports
       assert URI in runtime
     end
 

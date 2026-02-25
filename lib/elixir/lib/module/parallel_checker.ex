@@ -10,6 +10,7 @@ defmodule Module.ParallelChecker do
 
   @type cache() :: {pid(), :ets.tid()}
   @type warning() :: term()
+  @type error() :: term()
   @type mode() :: :erlang | :elixir | :protocol
 
   @typedoc """
@@ -120,14 +121,14 @@ defmodule Module.ParallelChecker do
                 # Set the compiler info so we can collect warnings
                 :erlang.put(:elixir_compiler_info, {pid, self()})
 
-                warnings =
+                {warnings, errors} =
                   if module_tuple do
                     check_module(module_tuple, {checker, table}, log?)
                   else
-                    []
+                    {[], []}
                   end
 
-                send(pid, {__MODULE__, module, warnings})
+                send(pid, {__MODULE__, module, warnings, errors})
                 send(checker, {__MODULE__, :done, module})
             end
 
@@ -184,7 +185,7 @@ defmodule Module.ParallelChecker do
 
   Returns the updated list of warnings from the verification.
   """
-  @spec verify(cache(), [{module(), Path.t()}]) :: [warning()]
+  @spec verify(cache(), [{module(), Path.t()}]) :: {[warning()], [error()]}
   def verify({checker, table}, runtime_files) do
     value = :erlang.get(:elixir_code_diagnostics)
     log? = not match?({_, false}, value)
@@ -194,38 +195,35 @@ defmodule Module.ParallelChecker do
     end
 
     count = :gen_server.call(checker, :start, :infinity)
-    diagnostics = collect_results(count, [])
+    {warnings, errors} = collect_results(count, [], [])
 
     case :erlang.get(:elixir_code_diagnostics) do
       :undefined -> :ok
-      {tail, log?} -> :erlang.put(:elixir_code_diagnostics, {diagnostics ++ tail, log?})
+      {tail, log?} -> :erlang.put(:elixir_code_diagnostics, {errors ++ warnings ++ tail, log?})
     end
 
-    diagnostics
+    {warnings, errors}
   end
 
-  defp collect_results(0, diagnostics) do
-    diagnostics
+  defp collect_results(0, warnings, errors) do
+    {warnings, errors}
   end
 
-  defp collect_results(count, diagnostics) do
+  defp collect_results(count, warnings, errors) do
     receive do
       {:diagnostic, %{file: file} = diagnostic, read_snippet} ->
         :elixir_errors.print_diagnostic(diagnostic, read_snippet)
         diagnostic = %{diagnostic | file: file && Path.absname(file)}
-        collect_results(count, [diagnostic | diagnostics])
 
-      {__MODULE__, _module, new_diagnostics} ->
-        collect_results(count - 1, new_diagnostics ++ diagnostics)
+        if Map.get(diagnostic, :severity, :warning) == :error do
+          collect_results(count, warnings, [diagnostic | errors])
+        else
+          collect_results(count, [diagnostic | warnings], errors)
+        end
+
+      {__MODULE__, _module, new_warnings, new_errors} ->
+        collect_results(count - 1, new_warnings ++ warnings, new_errors ++ errors)
     end
-  end
-
-  @doc """
-  Test cache.
-  """
-  def test_cache do
-    {:ok, cache} = start_link()
-    cache
   end
 
   @doc """
@@ -278,18 +276,19 @@ defmodule Module.ParallelChecker do
         definitions
       )
 
-    diagnostics =
+    {warnings, errors} =
       module
       |> Module.Types.warnings(file, attrs, definitions, no_warn_undefined, cache)
       |> Kernel.++(behaviour_warnings)
-      |> group_warnings()
-      |> emit_warnings(file, log?)
+      |> group_diagnostics()
+      |> emit_diagnostics(file, log?)
+      |> Enum.split_with(&(&1.severity == :warning))
 
     Enum.each(after_verify, fn {verify_mod, verify_fun} ->
       apply(verify_mod, verify_fun, [module])
     end)
 
-    diagnostics
+    {warnings, errors}
   end
 
   defp module_map_to_module_tuple(module_map) do
@@ -340,16 +339,16 @@ defmodule Module.ParallelChecker do
 
   ## Warning helpers
 
-  defp group_warnings(warnings) do
+  defp group_diagnostics(triplets) do
     {ungrouped, grouped} =
-      Enum.reduce(warnings, {[], %{}}, fn {module, warning, location}, {ungrouped, grouped} ->
-        %{message: _} = diagnostic = module.format_diagnostic(warning)
+      Enum.reduce(triplets, {[], %{}}, fn {module, term, location}, {ungrouped, grouped} ->
+        %{message: _} = diagnostic = module.format_diagnostic(term)
 
         if Map.get(diagnostic, :group, false) do
           locations = MapSet.new([location])
 
           grouped =
-            Map.update(grouped, warning, {locations, diagnostic}, fn
+            Map.update(grouped, term, {locations, diagnostic}, fn
               {locations, diagnostic} -> {MapSet.put(locations, location), diagnostic}
             end)
 
@@ -367,7 +366,7 @@ defmodule Module.ParallelChecker do
     Enum.sort(ungrouped ++ grouped)
   end
 
-  defp emit_warnings(warnings, file, log?) do
+  defp emit_diagnostics(warnings, file, log?) do
     Enum.flat_map(warnings, fn {locations, diagnostic} ->
       diagnostics = Enum.map(locations, &to_diagnostic(diagnostic, file, &1))
       log? and print_diagnostics(diagnostics)

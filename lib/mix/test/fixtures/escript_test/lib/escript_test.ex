@@ -30,6 +30,13 @@ defmodule EscriptTest do
     :erl_prim_loader.list_dir(~c"#{:code.lib_dir(app)}/priv") |> IO.inspect()
   end
 
+  @parent Application.compile_env(:foobar, :parent, "NIL")
+
+  def main(["--config"]) do
+    IO.puts(["VALUE=", Application.get_env(:foobar, :value, "TEST")])
+    IO.puts(["PARENT=", @parent])
+  end
+
   def main(_argv) do
     IO.puts(Application.get_env(:foobar, :value, "TEST"))
   end

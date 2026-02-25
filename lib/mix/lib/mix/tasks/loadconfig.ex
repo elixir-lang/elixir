@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Loadconfig do
 
   @doc false
   def read_compile() do
-    Mix.State.read_cache(__MODULE__) || []
+    Mix.State.read_cache(__MODULE__, [])
   end
 
   @doc false
@@ -68,6 +68,25 @@ defmodule Mix.Tasks.Loadconfig do
     config = Config.Reader.read!(file, env: Mix.env(), target: Mix.target(), imports: :disabled)
     Mix.ProjectStack.loaded_config(persist_apps(hydrate_apps(config), file), [])
     config
+  end
+
+  @doc false
+  def preserve_config(fun) do
+    config = read_compile()
+
+    try do
+      delete_all_config(config)
+      fun.()
+    after
+      delete_all_config(read_compile())
+      Application.put_all_env(config, persistent: true)
+    end
+  end
+
+  defp delete_all_config(config) do
+    for {app, kv} <- config, Application.spec(app, :vsn) == nil, {key, _} <- kv do
+      Application.delete_env(app, key, persistent: true)
+    end
   end
 
   defp hydrate_apps(config) do

@@ -232,14 +232,15 @@ defmodule Module.Types.IntegrationTest do
       refute stderr =~ "this_wont_warn"
 
       itself_arg = fn mod ->
-        {_, %{sig: {:infer, nil, [{[value], value}]}}} =
+        {_, %{sig: {:infer, nil, [{[domain], return}]}}} =
           List.keyfind(read_chunk(modules[mod]).exports, {:itself, 1}, 0)
 
-        value
+        assert equal?(dynamic(domain), return)
+        return
       end
 
       assert itself_arg.(Itself.Atom) == dynamic(atom())
-      assert itself_arg.(Itself.BitString) == dynamic(binary())
+      assert itself_arg.(Itself.BitString) == dynamic(bitstring())
       assert itself_arg.(Itself.Float) == dynamic(float())
       assert itself_arg.(Itself.Function) == dynamic(fun())
       assert itself_arg.(Itself.Integer) == dynamic(integer())
@@ -295,10 +296,10 @@ defmodule Module.Types.IntegrationTest do
             but expected one of:
 
                 #1
-                dynamic(:ok)
+                :ok
 
                 #2
-                dynamic(:error)
+                :error
         """,
         """
             warning: the following pattern will never match:
@@ -334,7 +335,7 @@ defmodule Module.Types.IntegrationTest do
         """,
         "the 1st argument is empty (often represented as none())",
         """
-            typing violation found at:
+            type warning found at:
             │
           2 │   def error(), do: private(raise "oops")
             │                    ~
@@ -347,7 +348,7 @@ defmodule Module.Types.IntegrationTest do
                 private(List.to_tuple(x))
         """,
         """
-            typing violation found at:
+            type warning found at:
             │
           3 │   def public(x), do: private(List.to_tuple(x))
             │                      ~
@@ -488,7 +489,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: defimpl for Range requires its callbacks to match exclusively on %Range{}
 
-            typing violation found at:
+            type warning found at:
             │
           6 │   def itself(nil), do: nil
             │   ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -529,9 +530,9 @@ defmodule Module.Types.IntegrationTest do
 
             but the NoImplProtocol protocol was not yet implemented for any type and therefore will always fail.
 
-            This warning will disappear once you define a implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
+            This message will disappear once you define an implementation. If the protocol is part of a library, you may define a dummy implementation for development/test.
 
-            typing violation found at:
+            type warning found at:
             │
           3 │     NoImplProtocol.callback(:hello)
             │                    ~
@@ -582,7 +583,8 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
+                ) or atom() or bitstring() or empty_list() or float() or integer() or
+                  non_empty_list(term(), term())
         """,
         """
             warning: incompatible value given to string interpolation:
@@ -666,7 +668,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: the Collectable protocol is implemented for the following types:
 
-                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or bitstring() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """,
         """
@@ -683,7 +685,7 @@ defmodule Module.Types.IntegrationTest do
 
             hint: the Collectable protocol is implemented for the following types:
 
-                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or bitstring() or
                   empty_list() or non_empty_list(term(), term()) or non_struct_map()
         """
       ]
@@ -710,9 +712,9 @@ defmodule Module.Types.IntegrationTest do
 
             but expected one of:
 
-                dynamic(:ok)
+                :ok
 
-            typing violation found at:
+            type warning found at:
             │
           2 │   def ok(x = :ok \\ nil) do
             │                  ~
@@ -787,6 +789,41 @@ defmodule Module.Types.IntegrationTest do
       }
 
       assert_no_warnings(files, consolidate_protocols: true)
+    end
+  end
+
+  describe "performance regressions" do
+    test "unions and intersections of open maps" do
+      files = %{
+        "large_head.ex" => """
+        defmodule LargeHead do
+          def id(%{node_id: id}) when is_binary(id), do: id
+          def id(%{node: %{id: id}}) when is_binary(id), do: id
+          def id(%{cluster: %{node_id: id}}) when is_binary(id), do: id
+          def id(%{graph: %{node_id: id}}) when is_binary(id), do: id
+          def id(%{vertex: %{node_id: id}}) when is_binary(id), do: id
+          def id(%{collection: %{graph_id: id} = collection}) when is_binary(id), do: id(collection)
+          def id(%{element: %{} = element}), do: id(element)
+          def id(%{cluster_id: id}) when is_binary(id), do: id
+          def id(%{region_id: id}) when is_binary(id), do: id
+          def id(%{graph_id: id}) when is_binary(id), do: id
+          def id(%{vertex_id: id}) when is_binary(id), do: id
+          def id(%{path_id: id}) when is_binary(id), do: id
+          def id(%{tree_id: id}) when is_binary(id), do: id
+          def id(%{collection_id: id}) when is_binary(id), do: id
+          def id(%{segment_id: id}) when is_binary(id), do: id
+          def id(%{edge_id: id}) when is_binary(id), do: id
+          def nested_access(%{graph: graph} = collection) do
+            <<_::binary>> = id(graph)
+            if collection.graph.cluster_id do
+              {graph.id, graph.node_id, collection.graph.cluster_id}
+            end
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
     end
   end
 
@@ -1566,7 +1603,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v4, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v5, map} = :erlang.binary_to_term(chunk)
     map
   end
 

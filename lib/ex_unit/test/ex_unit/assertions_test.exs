@@ -765,8 +765,8 @@ defmodule ExUnit.AssertionsTest do
   @compile {:no_warn_undefined, Not.Defined}
 
   test "assert raise with some other error" do
-    "This should never be tested" =
-      assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end
+    assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected exception ArgumentError but got UndefinedFunctionError " <>
@@ -775,8 +775,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert raise with some other error includes stacktrace from original error" do
-    "This should never be tested" =
-      assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end
+    assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end
+    flunk("This should never be tested")
   rescue
     ExUnit.AssertionError ->
       [{Not.Defined, :function, [1, 2, 3], _} | _] = __STACKTRACE__
@@ -1034,15 +1034,6 @@ defmodule ExUnit.AssertionsTest do
       "This should raise an error" = error.message
   end
 
-  test "flunk with wrong argument type" do
-    flunk(["flunk takes a binary, not a list"])
-    flunk("This should never be tested")
-  rescue
-    error ->
-      "no function clause matching in ExUnit.Assertions.flunk/1" =
-        FunctionClauseError.message(error)
-  end
-
   test "AssertionError.message/1 is nicely formatted" do
     assert :a = :b
   rescue
@@ -1057,7 +1048,7 @@ defmodule ExUnit.AssertionsTest do
       """ = Exception.message(error)
   end
 
-  defp ok(val), do: {:ok, val}
-  defp error(val), do: {:error, val}
+  defp ok(val), do: Process.get(:unused, {:ok, val})
+  defp error(val), do: Process.get(:unused, {:error, val})
   defp not_equal(left, right), do: left != right
 end

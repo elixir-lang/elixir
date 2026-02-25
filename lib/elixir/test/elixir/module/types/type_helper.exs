@@ -13,7 +13,16 @@ defmodule TypeHelper do
   alias Module.Types.{Pattern, Expr, Descr}
 
   @doc """
-  Main helper for checking the given AST type checks without warnings.
+  Main helper for checking the precise of pattern plus guards.
+  """
+  defmacro precise?(patterns, guards \\ true) do
+    quote do
+      unquote(precise(patterns, guards, __CALLER__))
+    end
+  end
+
+  @doc """
+  Main helper for checking the given AST type checks without warnings in dynamic mode.
   """
   defmacro typedyn!(patterns \\ [], guards \\ true, body) do
     quote do
@@ -23,7 +32,7 @@ defmodule TypeHelper do
   end
 
   @doc """
-  Main helper for checking the given AST type checks without warnings.
+  Main helper for checking the given AST type checks without warnings in static mode.
   """
   defmacro typecheck!(patterns \\ [], guards \\ true, body) do
     quote do
@@ -118,11 +127,44 @@ defmodule TypeHelper do
     end
   end
 
+  defp precise(patterns, guards, env) do
+    {_, vars} =
+      Macro.prewalk(patterns, [], fn
+        {:"::", _, [left, _right]}, acc ->
+          {left, acc}
+
+        {name, _, ctx} = var, acc when is_atom(ctx) and name != :_ ->
+          {var, [var | acc]}
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    {patterns, guards, _body} = expand_and_unpack(patterns, guards, vars, env)
+
+    quote do
+      TypeHelper.__precise__?(
+        unquote(Macro.escape(patterns)),
+        unquote(Macro.escape(guards))
+      )
+    end
+  end
+
+  def __precise__?(patterns, guards) do
+    stack = new_stack(:static)
+    expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
+
+    {_trees, precise?, _context} =
+      Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
+
+    precise?
+  end
+
   def __typecheck__(mode, patterns, guards, body) do
     stack = new_stack(mode)
     expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
 
-    {_trees, context} =
+    {_trees, _precise?, context} =
       Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
 
     Expr.of_expr(body, Descr.term(), :ok, stack, context)
@@ -136,12 +178,22 @@ defmodule TypeHelper do
 
     {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
     {:fn, _, [{:->, _, [[{:when, _, args}], body]}]} = ast
-    {patterns, guards} = Enum.split(args, -1)
-    {patterns, guards, body}
+    {patterns, [guards]} = Enum.split(args, -1)
+    {patterns, flatten_when(guards), body}
   end
 
+  defp flatten_when({:when, _meta, [left, right]}), do: [left | flatten_when(right)]
+  defp flatten_when(other), do: [other]
+
   defp new_stack(mode) do
-    cache = if mode == :infer, do: :none, else: Module.ParallelChecker.test_cache()
+    cache =
+      if mode == :infer do
+        :none
+      else
+        {:ok, cache} = Module.ParallelChecker.start_link()
+        cache
+      end
+
     handler = fn _, fun_arity, _, _ -> raise "no local lookup for: #{inspect(fun_arity)}" end
     Types.stack(mode, "types_test.ex", TypesTest, {:test, 0}, [], cache, handler)
   end

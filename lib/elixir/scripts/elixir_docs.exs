@@ -102,7 +102,7 @@ canonical = System.fetch_env!("CANONICAL")
     "Enumerable.List",
     "Inspect.MapSet"
   ],
-  formatters: ["html", "epub"],
+  formatters: ["html", "markdown", "epub"],
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 

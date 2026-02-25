@@ -680,13 +680,13 @@ defmodule Application do
   ## Examples
 
   `get_env/3` is commonly used to read the configuration of your OTP applications.
-  Since Mix configurations are commonly used to configure applications, we will use
-  this as a point of illustration.
+  Since Mix configurations are commonly used to configure applications (including
+  your dependencies), we will use this as a point of illustration.
 
   Consider a new application `:my_app`. `:my_app` contains a database engine which
   supports a pool of databases. The database engine needs to know the configuration for
   each of those databases, and that configuration is supplied by key-value pairs in
-  environment of `:my_app`.
+  environment of `:my_app`. For example, your `config/runtime.exs` file might have:
 
       config :my_app, Databases.RepoOne,
         # A database configuration
@@ -714,6 +714,11 @@ defmodule Application do
       config = Application.get_env(:my_app, Databases.RepoOne)
       config[:ip]
 
+  The sample `config/runtime.exs` above could be used both for `:my_app` to
+  configure itself but also to allow any application that depends on `:my_app`
+  to configure how it works. However, one should keep in mind the caveats described
+  in the `Application` module documentation: the application environment is global
+  state which should be avoided if possible.
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) when is_atom(app) do

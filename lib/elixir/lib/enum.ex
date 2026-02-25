@@ -780,6 +780,10 @@ defmodule Enum do
     end
   end
 
+  def count_until(_enumerable, limit) when is_integer(limit) do
+    raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
+  end
+
   @doc """
   Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
 
@@ -799,6 +803,10 @@ defmodule Enum do
       list when is_list(list) -> count_until_list(list, fun, limit, 0)
       _ -> count_until_enum(enumerable, fun, limit)
     end
+  end
+
+  def count_until(_enumerable, _fun, limit) when is_integer(limit) do
+    raise ArgumentError, "expected limit to be greater than 0, got: #{limit}"
   end
 
   @doc """
@@ -965,8 +973,8 @@ defmodule Enum do
   ## Examples
 
       Enum.each(["some", "example"], fn x -> IO.puts(x) end)
-      "some"
-      "example"
+      some
+      example
       #=> :ok
 
   """
@@ -1245,7 +1253,7 @@ defmodule Enum do
       iex> Enum.flat_map([:a, :b, :c], fn x -> [[x]] end)
       [[:a], [:b], [:c]]
 
-  This is frequently used to to transform and filter in one pass, returning empty
+  This is frequently used to transform and filter in one pass, returning empty
   lists to exclude results:
 
       iex> Enum.flat_map([4, 0, 2, 0], fn x ->
@@ -4182,6 +4190,11 @@ defmodule Enum do
 
       iex> Enum.zip_with([[1, 2], [3, 4]], fn [x, y] -> x + y end)
       [4, 6]
+
+  `zip_with/2` can be used to transpose lists of lists:
+
+      iex> Enum.zip_with([[1, 2,], [3, 4]], & &1)
+      [[1, 3], [2, 4]]
 
   """
   @doc since: "1.12.0"

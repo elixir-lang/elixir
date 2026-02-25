@@ -1049,4 +1049,22 @@ defmodule Mix.Utils do
   defp to_erl_tail([h | t]), do: [?,, to_erl_term(h) | to_erl_tail(t)]
   defp to_erl_tail([]), do: []
   defp to_erl_tail(other), do: [?|, to_erl_term(other)]
+
+  @doc """
+  A Depth-First Search to find where is the dependency graph cycle
+  and then display the cyclic dependencies back to the developer.
+  """
+  def find_cycle!(graph),
+    do: find_cycle(graph, :digraph.vertices(graph), MapSet.new()) || raise("no cycle found")
+
+  defp find_cycle(_, [], _visited), do: nil
+
+  defp find_cycle(graph, [v | vs], visited) do
+    if v in visited do
+      visited
+    else
+      find_cycle(graph, :digraph.out_neighbours(graph, v), MapSet.put(visited, v)) ||
+        find_cycle(graph, vs, visited)
+    end
+  end
 end

@@ -9,10 +9,9 @@
 -export([start_cli/0, start/0]).
 -export([start/2, stop/1, config_change/3]).
 -export([
-  string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
-  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
-  eval_quoted/4, eval_local_handler/2, eval_external_handler/3,
-  format_token_error/1
+  string_to_tokens/5, tokens_to_quoted/3, string_to_quoted/5, 'string_to_quoted!'/5,
+  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3, eval_quoted/4,
+  erl_eval/3, eval_local_handler/2, eval_external_handler/3, emit_warnings/3
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
@@ -64,6 +63,11 @@ start(_Type, _Args) ->
       application:set_env(elixir, ansi_enabled, prim_tty:isatty(stdout) == true)
   end,
 
+  %% Store the initial dbg_callback value before any runtime modifications.
+  %% This allows Mix compiler to detect config changes vs runtime changes
+  %% (e.g., Kino wrapping dbg_callback at runtime should not trigger recompilation).
+  {ok, InitialDbgCallback} = application:get_env(elixir, dbg_callback),
+
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
     {module, Mod} -> Mod;
     _ -> elixir_tokenizer
@@ -87,15 +91,17 @@ start(_Type, _Args) ->
     {no_halt, false},
 
     %% Compiler options
+    {debug_info, true},
     {docs, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {infer_signatures, [elixir]},
+    {initial_dbg_callback, InitialDbgCallback},
+    {module_definition, compiled},
+    {no_warn_undefined, []},
     {on_undefined_variable, raise},
     {parser_options, [{columns, true}]},
-    {debug_info, true},
     {relative_paths, true},
-    {no_warn_undefined, []},
     {tracers, []}
     | URIConfig
   ],
@@ -195,7 +201,7 @@ start_cli() ->
 
 %% EVAL HOOKS
 
-env_for_eval(#{lexical_tracker := Pid} = Env) ->
+env_for_eval(#{'__struct__' := 'Elixir.Macro.Env', lexical_tracker := Pid} = Env) when map_size(Env) == 15 ->
   NewEnv = Env#{
     context := nil,
     macro_aliases := [],
@@ -318,39 +324,35 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
       end;
 
     _  ->
-      Exprs =
-        case Erl of
-          {block, _, BlockExprs} -> BlockExprs;
-          _ -> [Erl]
-        end,
-
-      %% We use remote names so eval works across Elixir versions.
-      LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
-      ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
-
-      {value, Value, NewBinding} =
-        try
-          %% ?elixir_eval_env is used by the external handler.
-          %%
-          %% The reason why we use the process dictionary to pass the environment
-          %% is because we want to avoid passing closures to erl_eval, as that
-          %% would effectively tie the eval code to the Elixir version and it is
-          %% best if it depends solely on Erlang/OTP.
-          %%
-          %% The downside is that functions that escape the eval context will no
-          %% longer have the original environment they came from.
-          erlang:put(?elixir_eval_env, NewE),
-          erl_eval:exprs(Exprs, ErlBinding, LocalHandler, ExternalHandler)
-        after
-          erlang:erase(?elixir_eval_env)
-        end,
-
+      {value, Value, NewBinding} = erl_eval(Erl, ErlBinding, NewE),
       PruneBefore = if Prune -> length(Binding); true -> -1 end,
 
       {DumpedBinding, DumpedVars} =
         elixir_erl_var:dump_binding(NewBinding, NewErlS, NewExS, PruneBefore),
 
       {Value, DumpedBinding, NewE#{versioned_vars := DumpedVars}}
+  end.
+
+%% Evaluate Erlang code with careful handling of local and external functions
+erl_eval(Expr, Binding, Env) ->
+  %% We use remote names so eval works across Elixir versions
+  LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
+  ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
+
+  try
+    %% ?elixir_eval_env is used by the external handler.
+    %%
+    %% The reason why we use the process dictionary to pass the environment
+    %% is because we want to avoid passing closures to erl_eval, as that
+    %% would effectively tie the eval code to the Elixir version and it is
+    %% best if it depends solely on Erlang/OTP.
+    %%
+    %% The downside is that functions that escape the eval context will no
+    %% longer have the original environment they came from.
+    erlang:put(?elixir_eval_env, Env),
+    erl_eval:expr(Expr, Binding, LocalHandler, ExternalHandler)
+  after
+    erlang:erase(?elixir_eval_env)
   end.
 
 eval_local_handler(FunName, Args) ->
@@ -399,10 +401,8 @@ eval_external_handler(Ann, FunOrModFun, Args) ->
       %% Add file+line information at the bottom
       Bottom =
         case erlang:get(?elixir_eval_env) of
-          #{file := File} ->
-            [{elixir_eval, '__FILE__', 1,
-             [{file, elixir_utils:characters_to_list(File)}, {line, erl_anno:line(Ann)}]}];
-
+          #{'__struct__' := 'Elixir.Macro.Env'} = E ->
+            'Elixir.Macro.Env':stacktrace(E#{line := erl_anno:line(Ann)});
           _ ->
             []
         end,
@@ -439,37 +439,33 @@ quoted_to_erl(Quoted, ErlS, ExS, Env) ->
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
-    {ok, _Line, _Column, [], Tokens, []} ->
-      {ok, lists:reverse(Tokens)};
     {ok, _Line, _Column, Warnings, Tokens, Terminators} ->
-      (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
-        [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],
-      {ok, lists:reverse(Tokens, Terminators)};
+      {ok, lists:reverse(Tokens, Terminators), Warnings};
     {error, Info, _Rest, _Warnings, _SoFar} ->
-      {error, format_token_error(Info)}
+      {error, elixir_tokenizer:format_error(Info)}
   end.
 
-format_token_error({Location, {ErrorPrefix, ErrorSuffix}, Token}) ->
-  {Location, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)};
-format_token_error({Location, Error, Token}) ->
-  {Location, to_binary(Error), to_binary(Token)}.
-
-tokens_to_quoted(Tokens, WarningFile, Opts) ->
-  handle_parsing_opts(WarningFile, Opts),
+tokens_to_quoted(Tokens, _WarningFile, Opts) ->
+  put_parsing_state(Opts),
 
   try elixir_parser:parse(Tokens) of
     {ok, Forms} ->
-      {ok, Forms};
+      {ok, Forms, get(elixir_parser_warnings)};
     {error, {Line, _, [{ErrorPrefix, ErrorSuffix}, Token]}} ->
       {error, {parser_location(Line), {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
     {error, {Line, _, [Error, Token]}} ->
       {error, {parser_location(Line), to_binary(Error), to_binary(Token)}}
   after
-    erase(elixir_parser_warning_file),
+    erase(elixir_parser_warnings),
     erase(elixir_parser_columns),
     erase(elixir_token_metadata),
     erase(elixir_literal_encoder)
   end.
+
+emit_warnings(Warnings, File, Opts) ->
+  (Warnings /= []) andalso
+    (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
+    [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)].
 
 parser_location({Line, Column, _}) ->
   [{line, Line}, {column, Column}];
@@ -485,17 +481,28 @@ parser_location(Meta) ->
     false -> [{line, Line}]
   end.
 
-'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
+string_to_quoted(String, StartLine, StartColumn, File, Opts) ->
   case string_to_tokens(String, StartLine, StartColumn, File, Opts) of
-    {ok, Tokens} ->
+    {ok, Tokens, Warnings1} ->
+      emit_warnings(Warnings1, File, Opts),
+
       case tokens_to_quoted(Tokens, File, Opts) of
-        {ok, Forms} ->
-          Forms;
-        {error, {Meta, Error, Token}} ->
-          Indentation = proplists:get_value(indentation, Opts, 0),
-          Input = {String, StartLine, StartColumn, Indentation},
-          elixir_errors:parse_error(Meta, File, Error, Token, Input)
+        {ok, Forms, Warnings2} ->
+          emit_warnings(Warnings2, File, Opts),
+          {ok, Forms};
+
+        {error, Error} ->
+          {error, Error}
       end;
+
+    {error, Error} ->
+      {error, Error}
+  end.
+
+'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
+  case string_to_quoted(String, StartLine, StartColumn, File, Opts) of
+    {ok, Forms} ->
+      Forms;
     {error, {Meta, Error, Token}} ->
       Indentation = proplists:get_value(indentation, Opts, 0),
       Input = {String, StartLine, StartColumn, Indentation},
@@ -505,12 +512,7 @@ parser_location(Meta) ->
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom).
 
-handle_parsing_opts(File, Opts) ->
-  WarningFile =
-    case lists:keyfind(emit_warnings, 1, Opts) of
-      {emit_warnings, false} -> nil;
-      _ -> File
-    end,
+put_parsing_state(Opts) ->
   LiteralEncoder =
     case lists:keyfind(literal_encoder, 1, Opts) of
       {literal_encoder, Fun} -> Fun;
@@ -518,7 +520,7 @@ handle_parsing_opts(File, Opts) ->
     end,
   TokenMetadata = lists:keyfind(token_metadata, 1, Opts) == {token_metadata, true},
   Columns = lists:keyfind(columns, 1, Opts) == {columns, true},
-  put(elixir_parser_warning_file, WarningFile),
+  put(elixir_parser_warnings, []),
   put(elixir_parser_columns, Columns),
   put(elixir_token_metadata, TokenMetadata),
   put(elixir_literal_encoder, LiteralEncoder).

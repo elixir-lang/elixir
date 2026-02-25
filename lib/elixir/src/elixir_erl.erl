@@ -6,12 +6,12 @@
 
 -module(elixir_erl).
 -export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/2, consolidate/4,
-         get_ann/1, debug_info/4, scope/2, checker_version/0, format_error/1]).
+         get_ann/1, debug_info/4, scope/2, checker_chunk/2, checker_version/0, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
 
 checker_version() ->
-  elixir_checker_v4.
+  elixir_checker_v5.
 
 %% debug_info callback
 
@@ -139,6 +139,13 @@ consolidate(Map, Checker, TypeSpecs, DocsChunk) ->
   {Prefix, Forms, _Def, _Defmacro, _Macros} = dynamic_form(Map, nil),
   CheckerChunk = checker_chunk(Checker, chunk_opts(Map)),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
+
+%% Used for updating type checking chunks in Elixir
+
+checker_chunk(nil, _ChunkOpts) ->
+  [];
+checker_chunk(Contents, ChunkOpts) ->
+  [{<<"ExCk">>, term_to_binary({checker_version(), Contents}, ChunkOpts)}].
 
 %% Dynamic compilation hook, used in regular compiler
 
@@ -641,11 +648,6 @@ signature_to_binary(_, Name, Signature) ->
   Quoted = {Name, [{closing, []}], Signature},
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
-
-checker_chunk(nil, _ChunkOpts) ->
-  [];
-checker_chunk(Contents, ChunkOpts) ->
-  [{<<"ExCk">>, term_to_binary({checker_version(), Contents}, ChunkOpts)}].
 
 checker_chunk(Map, Def, Signatures, ChunkOpts) ->
   #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, attributes := Attributes} = Map,

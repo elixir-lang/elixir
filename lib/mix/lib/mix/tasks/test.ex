@@ -267,8 +267,19 @@ defmodule Mix.Tasks.Test do
       ignored will emit a warning.
 
       Mix ignores files ending in `_helper.exs` by default, as well as any file
-      included in the project's `:elixirc_paths`. You may choose to disable all
-      warnings by ignoring all files with `[fn _ -> true end]`.
+      included in the project's `:elixirc_paths`.
+
+      For example, to ignore all files in a `test/support/` folder:
+
+          def project do
+            [
+              ...,
+              test_ignore_filters: [&String.starts_with?(&1, "test/support/")]
+            ]
+          end
+
+      You may choose to disable all warnings by ignoring all files with
+      `[fn _ -> true end]`.
 
       Paths are relative to the project root and separated by `/`, even on Windows.
 
@@ -703,7 +714,8 @@ defmodule Mix.Tasks.Test do
         cover && cover.()
 
         cond do
-          warnings_as_errors? and (warnings? or helper_warned?) and failures == 0 ->
+          warnings_as_errors? and (warnings? or helper_warned? or warn_files != []) and
+              failures == 0 ->
             message =
               "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
 

@@ -714,7 +714,7 @@ defmodule Mix.Tasks.Xref do
     do: add_trace(require_mode(meta), :require, module, module, meta, env)
 
   def trace({:struct_expansion, meta, module, _keys}, env),
-    do: add_trace(:export, :struct, module, module, meta, env)
+    do: add_trace(struct_mode(meta, env), :struct, module, module, meta, env)
 
   def trace({:remote_function, meta, module, function, arity}, env),
     do: add_trace(mode(env), :call, module, {module, function, arity}, meta, env)
@@ -732,6 +732,14 @@ defmodule Mix.Tasks.Xref do
     do: :ok
 
   defp require_mode(meta), do: if(meta[:from_macro], do: :compile, else: :export)
+
+  defp struct_mode(meta, %{function: function}) do
+    if function != nil and meta[:operation] in [:match, :update] do
+      :runtime
+    else
+      :export
+    end
+  end
 
   defp mode(%{function: nil}), do: :compile
   defp mode(_), do: :runtime
@@ -997,7 +1005,7 @@ defmodule Mix.Tasks.Xref do
 
                dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
 
-            For more options see http://www.graphviz.org/.
+            For more options see https://www.graphviz.org/.
             """
             |> String.trim_trailing()
             |> Mix.shell().info()
@@ -1236,6 +1244,10 @@ defmodule Mix.Tasks.Xref do
       if integer = opts[:min_cycle_label] do
         if filter == :all do
           Mix.raise("--min-cycle-label requires the --label option to be given")
+        end
+
+        if integer <= 0 do
+          Mix.raise("--min-cycle-label must be greater than 0")
         end
 
         integer

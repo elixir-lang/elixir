@@ -78,6 +78,8 @@ defmodule Mix.Tasks.Compile.Elixir do
       the current working directory to be checked
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
+    * `--purge-compiler-modules` - automatically purge compilation modules
+      after compilation (see `Code.purge_compiler_modules/0`)
     * `--profile` - if set to `time`, outputs timing information of compilation steps
     * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs` file
     * `--verbose` - prints each file being compiled
@@ -110,6 +112,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     long_compilation_threshold: :integer,
     long_verification_threshold: :integer,
     purge_consolidation_path_if_stale: :string,
+    purge_compiler_modules: :boolean,
     profile: :string,
     all_warnings: :boolean,
     verification: :boolean,

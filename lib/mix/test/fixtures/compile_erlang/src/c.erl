@@ -1,7 +1,8 @@
 -module(c).
--export([c/0]).
+-export([b/0]).
+-compile([{nowarn_unused_function, []}]).
 
 -include("r.hrl").
 -behaviour(b).
 
-c() -> #r{cell=specified}.
+b() -> #r{cell=specified}.

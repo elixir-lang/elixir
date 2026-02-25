@@ -11,7 +11,7 @@ defmodule Module.Types.Helpers do
   @doc """
   Returns true if the mode cares about warnings.
   """
-  defguard is_warning(stack) when stack.mode not in [:traversal, :infer]
+  defguard is_warning(stack) when stack.mode != :infer
 
   @doc """
   Guard function to check if an AST node is a variable.
@@ -143,12 +143,13 @@ defmodule Module.Types.Helpers do
   """
   def collect_traces(expr, %{vars: vars}) do
     {_, versions} =
-      Macro.prewalk(expr, %{}, fn
-        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
+      Macro.prewalk(expr, %{}, fn node, versions ->
+        with {var_name, meta, var_context} when is_atom(var_name) and is_atom(var_context) <- node,
+             false <- String.starts_with?(Atom.to_string(var_name), "_") do
           version = meta[:version]
 
           case vars do
-            %{^version => %{off_traces: off_traces, name: name, context: context}} ->
+            %{^version => %{off_traces: [_ | _] = off_traces, name: name, context: context}} ->
               {:ok,
                Map.put(versions, version, %{
                  type: :variable,
@@ -160,9 +161,9 @@ defmodule Module.Types.Helpers do
             _ ->
               {:ok, versions}
           end
-
-        node, versions ->
-          {node, versions}
+        else
+          _ -> {node, versions}
+        end
       end)
 
     versions
@@ -261,7 +262,8 @@ defmodule Module.Types.Helpers do
   Converts the given expression to a string,
   translating inlined Erlang calls back to Elixir.
 
-  We also undo some macro expressions done by the Kernel module.
+  We also undo some macro expressions done by the Kernel module
+  and collapse complex expressions.
 
   ## Options
 
@@ -352,9 +354,69 @@ defmodule Module.Types.Helpers do
 
         {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]}
 
-      {:case, meta, [expr, [do: clauses]]} = case ->
+      {:case, meta, [expr, [do: clauses]]} ->
         if meta[:type_check] == :expr do
           case clauses do
+            [
+              {:->, _,
+               [
+                 [
+                   {:when, _,
+                    [
+                      {var, _, Kernel},
+                      {{:., _, [:erlang, :orelse]}, _,
+                       [
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                       ]}
+                    ]}
+                 ],
+                 true
+               ]},
+              {:->, _, [[{:_, _, Kernel}], false]}
+            ] ->
+              {:!, meta, [expr]}
+
+            [
+              {:->, _,
+               [
+                 [
+                   {:when, _,
+                    [
+                      {var, _, Kernel},
+                      {{:., _, [:erlang, :orelse]}, _,
+                       [
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                       ]}
+                    ]}
+                 ],
+                 right_side
+               ]},
+              {:->, _, [[{var, _, Kernel}], {var, _, Kernel}]}
+            ] ->
+              {:||, meta, [expr, right_side]}
+
+            [
+              {:->, _,
+               [
+                 [
+                   {:when, _,
+                    [
+                      {var, _, Kernel},
+                      {{:., _, [:erlang, :orelse]}, _,
+                       [
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                       ]}
+                    ]}
+                 ],
+                 {var, _, Kernel}
+               ]},
+              {:->, _, [[{:_, _, Kernel}], right_side]}
+            ] ->
+              {:&&, meta, [expr, right_side]}
+
             [
               {:->, _,
                [
@@ -382,11 +444,20 @@ defmodule Module.Types.Helpers do
               {:if, meta, [expr, [do: do_block, else: else_block]]}
 
             _ ->
-              case
+              {:case, meta, [expr, [do: {:..., [], []}]]}
           end
         else
-          case
+          {:case, meta, [expr, [do: {:..., [], []}]]}
         end
+
+      {:try, meta, [[do: _] ++ _]} ->
+        {:try, meta, [[do: {:..., [], []}]]}
+
+      {:cond, meta, [[do: _]]} ->
+        {:cond, meta, [[do: {:..., [], []}]]}
+
+      {:receive, meta, [[do: _] ++ _]} ->
+        {:receive, meta, [[do: {:..., [], []}]]}
 
       {var, meta, context} = expr when is_atom(var) and is_atom(context) ->
         if is_integer(meta[:capture]) do

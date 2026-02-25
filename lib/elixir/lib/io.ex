@@ -796,6 +796,29 @@ defmodule IO do
     :erlang.iolist_size(iodata)
   end
 
+  @doc """
+  Checks if an IO data (the length is zero).
+
+  For more information about IO data, see the ["IO data"](#module-io-data)
+  section in the module documentation.
+
+  ## Examples
+
+      iex> IO.iodata_empty?([])
+      true
+      iex> IO.iodata_empty?([""])
+      true
+      iex> IO.iodata_empty?([1, 2 | <<3, 4>>])
+      false
+
+  """
+  @doc since: "1.20.0"
+  @spec iodata_empty?(iodata) :: boolean
+  def iodata_empty?(""), do: true
+  def iodata_empty?([]), do: true
+  def iodata_empty?([head | tail]), do: iodata_empty?(head) and iodata_empty?(tail)
+  def iodata_empty?(_), do: false
+
   @doc false
   def each_stream(device, line_or_codepoints) do
     case read(device, line_or_codepoints) do

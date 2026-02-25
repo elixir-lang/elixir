@@ -69,8 +69,9 @@ handle_call(retrieve_compiler_module, _From, Config) ->
 
 handle_call(purge_compiler_modules, _From, Config) ->
   {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
-  _ = [code:purge(Module) || Module <- Used],
-  ModPool = {[], Used ++ Unused, Counter},
+  purge_used(Used),
+  Mods = lists:map(fun({Mod, _}) -> Mod end, Used),
+  ModPool = {[], Mods ++ Unused, Counter},
   {reply, {ok, length(Used)}, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_call(Request, _From, Config) ->
@@ -95,9 +96,9 @@ handle_cast({unrequire_files, Files}, Config) ->
   Unrequired = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{required=Unrequired}};
 
-handle_cast({return_compiler_module, Module}, Config) ->
+handle_cast({return_compiler_module, Module, Purgeable}, Config) ->
   {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
-  ModPool = {[Module | Used], Unused, Counter},
+  ModPool = {[{Module, Purgeable} | Used], Unused, Counter},
   {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_cast(purge_compiler_modules, Config) ->
@@ -111,11 +112,9 @@ handle_cast(purge_compiler_modules, Config) ->
       %% purge them asynchronously, especially because they can
       %% block the code server. Ideally we would purge them in
       %% batches, but that's not supported at the moment.
-      Opts = [{monitor, [{tag, {purged, Used}}]}],
-      erlang:spawn_opt(fun() ->
-        [code:purge(Module) || Module <- Used],
-        ok
-      end, Opts)
+      Mods = lists:map(fun({Mod, _}) -> Mod end, Used),
+      Opts = [{monitor, [{tag, {purged, Mods}}]}],
+      erlang:spawn_opt(fun() -> purge_used(Used) end, Opts)
   end,
 
   ModPool = {[], Unused, Counter},
@@ -143,6 +142,13 @@ code_change(_Old, Config, _Extra) ->
 
 compiler_module(I) ->
   list_to_atom("elixir_compiler_" ++ integer_to_list(I)).
+
+purge_used(Used) ->
+  [begin
+    code:delete(Module),
+    Purgeable andalso code:purge(Module)
+  end || {Module, Purgeable} <- Used],
+  ok.
 
 defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
   ets:insert(elixir_modules, Tuple),

@@ -1339,7 +1339,7 @@ defmodule Module do
   @doc """
   Returns all overridable definitions in `module`.
 
-  Note a definition is included even if it was was already overridden.
+  Note a definition is included even if it was already overridden.
   You can use `defines?/2` to see if a definition exists or one is pending.
 
   This function can only be used on modules that have not yet been compiled.

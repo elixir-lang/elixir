@@ -270,7 +270,7 @@ defmodule Integer do
   An optional `base` to the corresponding integer can be provided.
   If `base` is not given, 10 will be used.
 
-  If successful, returns a tuple in the form of `{integer, remainder_of_binary}`.
+  If successful, returns a tuple in the form of `{integer, remaining_string}`.
   Otherwise `:error`.
 
   Raises an error if `base` is less than 2 or more than 36.
@@ -288,6 +288,9 @@ defmodule Integer do
 
       iex> Integer.parse("three")
       :error
+
+      iex> Integer.parse("404 not found")
+      {404, " not found"}
 
       iex> Integer.parse("34", 10)
       {34, ""}

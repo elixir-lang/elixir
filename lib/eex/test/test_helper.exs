@@ -8,8 +8,13 @@
 Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
 CoverageRecorder.maybe_record("eex")
 
-ExUnit.start(
-  trace: !!System.get_env("TRACE"),
-  include: line_include,
-  exclude: line_exclude
-)
+maybe_seed_opt = if seed = System.get_env("SEED"), do: [seed: String.to_integer(seed)], else: []
+
+ex_unit_opts =
+  [
+    trace: !!System.get_env("TRACE"),
+    include: line_include,
+    exclude: line_exclude
+  ] ++ maybe_seed_opt
+
+ExUnit.start(ex_unit_opts)

@@ -14,10 +14,27 @@ defmodule IEx.Broker do
   ## Shell API
 
   @doc """
-  Finds the evaluator and server running inside `:user_drv`, on this node exclusively.
+  Finds the `:user_drv` backed shell on this node.
+
+  We don't use `:shell.whereis/0` because that uses the current group leader
+  and we want to find one regardless of the group leader.
+  """
+  def shell() do
+    case :user_drv.whereis_group() do
+      :undefined ->
+        nil
+
+      pid ->
+        {:dictionary, dictionary} = Process.info(pid, :dictionary)
+        dictionary[:shell]
+    end
+  end
+
+  @doc """
+  Finds the evaluator and server running on this node exclusively.
   """
   @spec evaluator(shell()) :: {evaluator :: pid, server :: pid} | nil
-  def evaluator(pid \\ :shell.whereis()) do
+  def evaluator(pid \\ shell()) do
     if pid do
       {:dictionary, dictionary} = Process.info(pid, :dictionary)
       {dictionary[:evaluator], pid}
@@ -148,23 +165,11 @@ defmodule IEx.Broker do
   end
 
   defp servers(state) do
-    if pid = local_or_remote_shell() do
-      [{Process.monitor(pid), pid} | Enum.to_list(state.servers)]
-    else
-      Enum.to_list(state.servers)
-    end
-  end
+    shells =
+      for node <- [node() | Node.list()],
+          pid = :erpc.call(node, IEx.Broker, :shell, []),
+          do: {Process.monitor(pid), pid}
 
-  defp local_or_remote_shell() do
-    Enum.find_value([node() | Node.list()], fn node ->
-      try do
-        case :erpc.call(node, :shell, :whereis, []) do
-          pid when is_pid(pid) -> pid
-          :undefined -> nil
-        end
-      catch
-        _, _ -> nil
-      end
-    end)
+    shells ++ Enum.to_list(state.servers)
   end
 end

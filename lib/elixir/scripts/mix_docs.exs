@@ -28,7 +28,7 @@ canonical = System.fetch_env!("CANONICAL")
     logger: "https://hexdocs.pm/logger/#{canonical}",
     mix: "https://hexdocs.pm/mix/#{canonical}"
   ],
-  formatters: ["html", "epub"],
+  formatters: ["html", "markdown", "epub"],
   before_closing_body_tag: fn
     :html ->
       """

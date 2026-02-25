@@ -5,7 +5,8 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
 -include("elixir_tokenizer.hrl").
--export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1, terminator/1]).
+-export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1,
+         format_error/1, terminator/1]).
 
 -define(at_op(T),
   T =:= $@).
@@ -1894,6 +1895,11 @@ maybe_unicode_lint_warnings(_Ascii=true, _Tokens, Warnings) ->
 
 error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
   {error, Reason, Rest, Warnings, Tokens}.
+
+format_error({Location, {ErrorPrefix, ErrorSuffix}, Token}) ->
+  {Location, {elixir_utils:characters_to_binary(ErrorPrefix), elixir_utils:characters_to_binary(ErrorSuffix)}, elixir_utils:characters_to_binary(Token)};
+format_error({Location, Error, Token}) ->
+  {Location, elixir_utils:characters_to_binary(Error), elixir_utils:characters_to_binary(Token)}.
 
 %% Cursor handling
 

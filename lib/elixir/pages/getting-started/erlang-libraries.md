@@ -20,7 +20,7 @@ iex> :binary.first("hello")
 104
 ```
 
-As you grow more proficient in Elixir, you may want to explore the Erlang [STDLIB Reference Manual](http://www.erlang.org/doc/apps/stdlib/index.html) in more detail.
+As you grow more proficient in Elixir, you may want to explore the Erlang [STDLIB Reference Manual](https://www.erlang.org/doc/apps/stdlib/index.html) in more detail.
 
 ## The binary module
 
@@ -188,6 +188,6 @@ If you want to get deeper into Erlang, here's a list of online resources that co
 
   * Erlang's official website has a short [tutorial](https://www.erlang.org/course). There is a chapter with pictures briefly describing Erlang's primitives for [concurrent programming](https://www.erlang.org/course/concurrent_programming.html).
 
-  * [Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/) is an excellent introduction to Erlang, its design principles, standard library, best practices, and much more. Once you have read through the crash course mentioned above, you'll be able to safely skip the first couple of chapters in the book that mostly deal with the syntax. When you reach [The Hitchhiker's Guide to Concurrency](http://learnyousomeerlang.com/the-hitchhikers-guide-to-concurrency) chapter, that's where the real fun starts.
+  * [Learn You Some Erlang for Great Good!](https://learnyousomeerlang.com/) is an excellent introduction to Erlang, its design principles, standard library, best practices, and much more. Once you have read through the crash course mentioned above, you'll be able to safely skip the first couple of chapters in the book that mostly deal with the syntax. When you reach [The Hitchhiker's Guide to Concurrency](https://learnyousomeerlang.com/the-hitchhikers-guide-to-concurrency) chapter, that's where the real fun starts.
 
 Our last step is to take a look at existing Elixir (and Erlang) libraries you might use while debugging.

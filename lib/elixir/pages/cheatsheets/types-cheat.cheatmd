@@ -5,11 +5,38 @@
 
 # Set-theoretic types cheatsheet
 
-## Data types
+## Set operators
 
-### Indivisible types
+#### Union
 
 ```elixir
+type1 or type2
+```
+
+#### Intersection
+
+```elixir
+type1 and type2
+```
+
+#### Difference
+
+```elixir
+type1 and not type2
+```
+
+#### Negation
+
+```elixir
+not type
+```
+
+## Data types
+
+### Broad types
+
+```elixir
+bitstring()
 binary()
 empty_list()
 integer()
@@ -18,6 +45,8 @@ pid()
 port()
 reference()
 ```
+
+`binary()` is a subtype of `bitstring()`.
 
 ### Atoms
 
@@ -82,6 +111,9 @@ empty_map()
 
 # Has the keys name and age and may have other keys (open map)
 %{..., name: binary(), age: integer()}
+
+# Has the key name, may have other keys, but age is not set
+%{..., name: binary(), age: not_set()}
 ```
 
 #### Maps with domain keys (domain keys are always treated as optional)
@@ -93,6 +125,18 @@ empty_map()
 # Has atom and binary keys and may have other keys (open map)
 %{..., atom() => binary(), binary() => binary()}
 ```
+
+#### Maps with mixed keys
+
+```elixir
+# Has atom keys with binary values but a `:root` key of type integer
+%{atom() => binary(), root: integer()}
+
+# Has atom keys with binary values but a `:root` key of type integer, and may have other keys
+%{..., atom() => binary(), root: integer()}
+```
+
+#### Domain keys are `atom()`, `binary()`, `integer()`, `float()`, `fun()`, `list()`, `map()`, `pid()`, `port()`, `reference()`, `tuple()`
 
 ### Non-empty lists
 
@@ -126,19 +170,20 @@ tuple()
 
 #### At least n-element tuples
 
-```
+```elixir
 {binary(), binary(), ...}
 ```
 
 ## Additional types for convenience
 
-#### Booleans
+#### Common aliases
 
 ```elixir
 boolean() = true or false
+number() = integer() or float()
 ```
 
-#### Lists
+#### List aliases
 
 ```elixir
 list() = empty_list() or non_empty_list(term())

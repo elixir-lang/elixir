@@ -109,6 +109,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?kernel, floor, 1, erlang, floor);
 ?inline(?kernel, 'function_exported?', 3, erlang, function_exported);
 ?inline(?kernel, hd, 1, erlang, hd);
+?inline(?kernel, in, 2, lists, member);
 ?inline(?kernel, is_atom, 1, erlang, is_atom);
 ?inline(?kernel, is_binary, 1, erlang, is_binary);
 ?inline(?kernel, is_bitstring, 1, erlang, is_bitstring);

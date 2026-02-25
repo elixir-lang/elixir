@@ -91,15 +91,21 @@ defmodule Mix.Local.Installer do
         end
 
         fetch(dep_spec, fn _ ->
-          local_install(module, module.build(install_spec, opts), opts)
+          local_install(module, build(module, install_spec, opts), opts)
         end)
 
       {path_or_url, src} when path_or_url in [:local, :url] ->
         local_install(module, src, opts)
 
       :project ->
-        local_install(module, module.build(install_spec, opts), opts)
+        local_install(module, build(module, install_spec, opts), opts)
     end
+  end
+
+  defp build(module, install_spec, opts) do
+    Mix.Tasks.Loadconfig.preserve_config(fn ->
+      module.build(install_spec, opts)
+    end)
   end
 
   defp task(module) do

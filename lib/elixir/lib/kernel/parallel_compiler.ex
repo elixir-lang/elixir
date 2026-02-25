@@ -35,7 +35,8 @@ defmodule Kernel.ParallelCompiler do
           dest: Path.t(),
           beam_timestamp: term(),
           return_diagnostics: boolean(),
-          max_concurrency: pos_integer()
+          max_concurrency: pos_integer(),
+          purge_compiler_modules: boolean()
         ]
 
   @typedoc """
@@ -200,6 +201,9 @@ defmodule Kernel.ParallelCompiler do
     * `:profile` - if set to `:time` measure the compilation time of each compilation cycle
        and group pass checker
 
+    * `:purge_compiler_modules` - if set to `true`, automatically purge compilation modules
+      after compilation (see `Code.purge_compiler_modules/0`)
+
     * `:dest` - the destination directory for the BEAM files. When using `compile/2`,
       this information is only used to properly annotate the BEAM files before
       they are loaded into memory. If you want a file to actually be written to
@@ -338,6 +342,13 @@ defmodule Kernel.ParallelCompiler do
     threshold = Keyword.get(options, :long_compilation_threshold, 10) * 1000
     timer_ref = Process.send_after(self(), :threshold_check, threshold)
 
+    purge_compiler_modules =
+      if Keyword.get(options, :purge_compiler_modules, false) do
+        fn -> :elixir_code_server.cast(:purge_compiler_modules) end
+      else
+        fn -> :ok end
+      end
+
     {outcome, state} =
       spawn_workers(files, %{}, %{}, [], %{}, [], [], %{
         beam_timestamp: Keyword.get(options, :beam_timestamp),
@@ -353,7 +364,8 @@ defmodule Kernel.ParallelCompiler do
         long_compilation_threshold: threshold,
         schedulers: schedulers,
         checker: checker,
-        verification?: Keyword.get(options, :verification, true)
+        verification?: Keyword.get(options, :verification, true),
+        purge_compiler_modules: purge_compiler_modules
       })
 
     Process.cancel_timer(state.timer_ref)
@@ -448,7 +460,7 @@ defmodule Kernel.ParallelCompiler do
     modules = write_module_binaries(result, state.output, state)
     profile(state, "after compile callback", state.after_compile)
 
-    runtime_warnings =
+    {runtime_warnings, errors} =
       if state.verification? do
         profile(
           state,
@@ -459,11 +471,19 @@ defmodule Kernel.ParallelCompiler do
           fn -> Module.ParallelChecker.verify(state.checker, dependent_modules) end
         )
       else
-        []
+        {[], []}
       end
 
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
-    {{:ok, modules, info}, state}
+
+    case errors do
+      [] ->
+        {{:ok, modules, info}, state}
+
+      _ ->
+        IO.puts(:stderr, "== Type checking failed with errors ==")
+        {{:error, errors, info}, state}
+    end
   end
 
   defp profile_init(:time), do: {:time, System.monotonic_time(), 0}
@@ -570,11 +590,11 @@ defmodule Kernel.ParallelCompiler do
 
     case cycle_return do
       {:runtime, dependent_modules, extra_warnings} ->
-        :elixir_code_server.cast(:purge_compiler_modules)
+        state.purge_compiler_modules.()
         verify_modules(result, extra_warnings ++ warnings, dependent_modules, state)
 
       {:compile, [], extra_warnings} ->
-        :elixir_code_server.cast(:purge_compiler_modules)
+        state.purge_compiler_modules.()
         verify_modules(result, extra_warnings ++ warnings, [], state)
 
       {:compile, more, extra_warnings} ->
@@ -879,8 +899,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp return_error(warnings, errors, state, fun) do
-    # Also prune compiler modules in case of errors
-    :elixir_code_server.cast(:purge_compiler_modules)
+    state.purge_compiler_modules.()
 
     errors =
       Enum.map(errors, fn {%{file: file} = diagnostic, read_snippet} ->

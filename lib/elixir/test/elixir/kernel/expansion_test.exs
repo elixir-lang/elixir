@@ -682,11 +682,7 @@ defmodule Kernel.ExpansionTest do
       message = ~r"unknown key :foo for struct Kernel\.ExpansionTest\.User"
 
       assert_compile_error(message, fn ->
-        expand(
-          quote do
-            %User{foo: :my_value} = %{}
-          end
-        )
+        expand_env(quote(do: %User{foo: :my_value} = %{}), %{__ENV__ | function: nil})
       end)
     end
   end

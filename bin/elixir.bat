@@ -4,7 +4,7 @@
 :: SPDX-FileCopyrightText: 2021 The Elixir Team
 :: SPDX-FileCopyrightText: 2012 Plataformatec
 
-set ELIXIR_VERSION=1.20.0-dev
+set ELIXIR_VERSION=1.20.0-rc.1
 
 if    ""%1""==""""                if ""%2""=="""" goto documentation
 if /I ""%1""==""--help""          if ""%2""=="""" goto documentation
