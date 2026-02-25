@@ -27,8 +27,10 @@ runs:
       shell: bash
       run: |
         make Precompiled.zip
-        mv Precompiled.zip elixir-otp-${{ inputs.otp }}.zip
+        mv Precompiled.zip "elixir-otp-${INPUT_OTP}.zip"
         echo "$PWD/bin" >> $GITHUB_PATH
+      env:
+        INPUT_OTP: ${{ inputs.otp }}
 
     - name: Install NSIS
       shell: bash
@@ -39,15 +41,18 @@ runs:
     - name: Build Elixir Windows Installer
       shell: bash
       run: |
-        export OTP_VERSION=${{ inputs.otp_version }}
-        export ELIXIR_ZIP=$PWD/elixir-otp-${{ inputs.otp }}.zip
+        export OTP_VERSION="$INPUT_OTP_VERSION"
+        export ELIXIR_ZIP="$PWD/elixir-otp-${INPUT_OTP}.zip"
         (cd lib/elixir/scripts/windows_installer && ./build.sh)
-        mv lib/elixir/scripts/windows_installer/tmp/elixir-otp-${{ inputs.otp }}.exe .
+        mv "lib/elixir/scripts/windows_installer/tmp/elixir-otp-${INPUT_OTP}.exe" .
+      env:
+        INPUT_OTP: ${{ inputs.otp }}
+        INPUT_OTP_VERSION: ${{ inputs.otp_version }}
     - name: Get ExDoc ref
       if: ${{ inputs.build_docs }}
       shell: bash
       run: |
-        if [ "${{ github.ref_name }}" = "main" ]; then
+        if [ "$GITHUB_REF_NAME" = "main" ]; then
           ref=main
         else
           ref=v$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
