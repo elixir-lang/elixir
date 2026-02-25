@@ -37,11 +37,11 @@ jobs:
         if: github.ref_type != 'branch'
         run: |
           gh release create \
-            --repo ${{ github.repository }} \
-            --title ${{ github.ref_name }} \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
             --notes '' \
             --draft \
-            ${{ github.ref_name }}
+            "$GITHUB_REF_NAME"
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: github.ref_type == 'branch'
@@ -51,18 +51,18 @@ jobs:
       - name: Update ${{ github.ref_name }}-latest
         if: github.ref_type == 'branch'
         run: |
-          ref_name=${{ github.ref_name }}-latest
+          ref_name="${GITHUB_REF_NAME}-latest"
 
-          if ! gh release view $ref_name; then
+          if ! gh release view "$ref_name"; then
             gh release create \
               --latest=false \
-              --title $ref_name \
-              --notes "Automated release for latest ${{ github.ref_name }}." \
-              $ref_name
+              --title "$ref_name" \
+              --notes "Automated release for latest ${GITHUB_REF_NAME}." \
+              "$ref_name"
           fi
 
-          git tag $ref_name --force
-          git push origin $ref_name --force
+          git tag "$ref_name" --force
+          git push origin "$ref_name" --force
 
   build:
     name: Ubuntu 24.04, OTP ${{ matrix.otp_version }}${{ matrix.build_docs && ' (build docs)' || '' }}
@@ -247,12 +247,16 @@ jobs:
             cp "$ATTESTATION" "attestations/$(basename "$FILE").sigstore"
           done
 
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}").sigstore"
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}").sigstore"
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}").sigstore"
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-json-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_CYCLONEDX_XML").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_CYCLONEDX_JSON").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_SPDX_YML").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_SPDX_JSON").sigstore"
         env:
           ATTESTATION: "${{ steps.attest-sbom.outputs.bundle-path }}"
+          SBOM_CYCLONEDX_XML: "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}"
+          SBOM_CYCLONEDX_JSON: "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}"
+          SBOM_SPDX_YML: "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}"
+          SBOM_SPDX_JSON: "${{ steps.ort.outputs.results-sbom-spdx-json-path }}"
 
       - name: "Assemble Release SBoM Artifacts"
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -289,14 +293,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ github.ref_type }}" == "branch" ]; then
-            tag=${{ github.ref_name }}-latest
+          if [ "$GITHUB_REF_TYPE" == "branch" ]; then
+            tag="${GITHUB_REF_NAME}-latest"
           else
-            tag="${{ github.ref_name }}"
+            tag="$GITHUB_REF_NAME"
           fi
 
           gh release upload \
-            --repo ${{ github.repository }} \
+            --repo "$GITHUB_REPOSITORY" \
             --clobber \
             "$tag" \
             elixir-otp-*.zip \
@@ -341,12 +345,10 @@ jobs:
 
       - name: Upload Precompiled to S3
         run: |
-          ref_name=${{ github.ref_name }}
-
           oldest_otp=$(find . -type f -name 'elixir-otp-*.zip' | sed -r 's/^.*elixir-otp-([[:digit:]]+)\.zip$/\1/' | sort -n | head -n 1)
 
           for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
-            dest=${zip/elixir/${ref_name}}
+            dest=${zip/elixir/${GITHUB_REF_NAME}}
             surrogate_key=${dest/.zip$/}
 
             aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
@@ -358,13 +360,13 @@ jobs:
               aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
-              echo builds/elixir/${ref_name} >> purge_keys.txt
+              echo builds/elixir/${GITHUB_REF_NAME} >> purge_keys.txt
             fi
           done
 
       - name: Upload Docs to S3
         run: |
-          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
+          version=$(echo "$GITHUB_REF_NAME" | sed -e 's/^v//g')
 
           unzip Docs.zip
 
@@ -385,7 +387,7 @@ jobs:
       - name: Update builds txt
         run: |
           date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          ref_name=${{ github.ref_name }}
+          ref_name="$GITHUB_REF_NAME"
 
           oldest_otp=$(find . -name 'elixir-otp-*.zip.sha256sum' | sed -r 's/^.*elixir-otp-([[:digit:]]+)\.zip\.sha256sum$/\1/' | sort -n | head -n 1)
 
