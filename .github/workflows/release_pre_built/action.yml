@@ -25,7 +25,7 @@ runs:
 
     - name: Build Elixir Release
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env]
         make Precompiled.zip
         mv Precompiled.zip "elixir-otp-${INPUT_OTP}.zip"
         echo "$PWD/bin" >> $GITHUB_PATH
@@ -51,7 +51,7 @@ runs:
     - name: Get ExDoc ref
       if: ${{ inputs.build_docs }}
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env]
         if [ "$GITHUB_REF_NAME" = "main" ]; then
           ref=main
         else
