@@ -59,6 +59,7 @@ runs:
         repository: elixir-lang/ex_doc
         ref: ${{ env.EX_DOC_REF }}
         path: ex_doc
+        persist-credentials: false
     - name: Build ex_doc
       if: ${{ inputs.build_docs }}
       shell: bash
