@@ -46,6 +46,7 @@ runs:
         repository: oss-review-toolkit/ort-config
         ref: "main"
         path: ".ort-config"
+        persist-credentials: false
 
     - name: Setup ORT Config
       id: setup-ort-config

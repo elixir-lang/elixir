@@ -45,6 +45,8 @@ jobs:
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: github.ref_type == 'branch'
+        with:
+          persist-credentials: false
 
       - name: Update ${{ github.ref_name }}-latest
         if: github.ref_type == 'branch'
@@ -82,6 +84,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: "Build Release"
         uses: ./.github/workflows/release_pre_built
@@ -203,6 +207,8 @@ jobs:
       - name: Checkout project
         id: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: "Download Build Artifacts"
         id: download-build-artifacts
