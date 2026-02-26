@@ -721,18 +721,42 @@ defmodule Module.Types.Descr do
           {:term, static, []}
 
         {dynamic, static} ->
-          # Computing term_type?(difference(dynamic, static)) can be
-          # expensive, so we check for term type before hand and check
-          # for :term exclusively in dynamic_to_quoted/2.
-          if term_type?(dynamic) do
-            {:term, static, []}
-          else
-            # Denormalize functions before we do the difference
-            {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
-            {difference(dynamic, static), static, extra}
+          cond do
+            # Computing term_type?(difference(dynamic, static)) can be
+            # expensive, so we check for term type before hand and check
+            # for :term exclusively in dynamic_to_quoted/2.
+            term_type?(dynamic) ->
+              {:term, static, []}
+
+            # We need to check for quoted here before we compute the difference below
+            quoted = maybe_negated_term_type_to_quoted(static, opts) ->
+              {dynamic, %{}, [quoted]}
+
+            # Denormalize functions (only unions) before we do the difference
+            true ->
+              {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+              {difference(dynamic, static), static, extra}
           end
       end
 
+    {static, extra} =
+      if quoted = maybe_negated_term_type_to_quoted(static, opts) do
+        {%{}, [quoted | extra]}
+      else
+        {static, extra}
+      end
+
+    # Dynamic always come first for visibility
+    unions =
+      to_quoted(:dynamic, dynamic, opts) ++ static_non_term_type_to_quoted(static, extra, opts)
+
+    case unions do
+      [] -> {:none, [], []}
+      unions -> Enum.reduce(unions, &{:or, [], [&2, &1]})
+    end
+  end
+
+  defp static_non_term_type_to_quoted(static, extra, opts) do
     # Merge empty list and list together if they both exist
     {extra, static} =
       case static do
@@ -748,17 +772,7 @@ defmodule Module.Types.Descr do
           {extra, static}
       end
 
-    # Dynamic always come first for visibility
-    unions =
-      to_quoted(:dynamic, dynamic, opts) ++
-        Enum.sort(
-          extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, opts) end)
-        )
-
-    case unions do
-      [] -> {:none, [], []}
-      unions -> Enum.reduce(unions, &{:or, [], [&2, &1]})
-    end
+    Enum.sort(extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, opts) end))
   end
 
   defp to_quoted(:atom, val, _opts), do: atom_to_quoted(val)
@@ -768,6 +782,54 @@ defmodule Module.Types.Descr do
   defp to_quoted(:list, bdd, opts), do: list_to_quoted(bdd, false, opts)
   defp to_quoted(:tuple, bdd, opts), do: tuple_to_quoted(bdd, opts)
   defp to_quoted(:fun, bdd, opts), do: fun_to_quoted(bdd, opts)
+
+  defp maybe_negated_term_type_to_quoted(static, opts) do
+    if print_as_negated_type?(static) do
+      static
+      |> negation()
+      |> unfold()
+      |> static_non_term_type_to_quoted([], opts)
+      |> case do
+        [] ->
+          nil
+
+        [head | tail] ->
+          Enum.reduce(tail, {:not, [], [head]}, &{:and, [], [&2, {:not, [], [&1]}]})
+      end
+    end
+  end
+
+  # Unions would be printed as negations within negations
+  defp print_as_negated_type?(%{atom: {:union, _}}), do: false
+  defp print_as_negated_type?(%{fun: {:union, _}}), do: false
+
+  defp print_as_negated_type?(descr) do
+    # In here we compute the score of negations.
+    # If we have more than 6, we print it as a negated type.
+    result =
+      Enum.sum_by(Map.to_list(descr), fn
+        {:tuple, bdd} -> print_as_negated_bdd(bdd, @tuple_top)
+        {:map, bdd} -> print_as_negated_bdd(bdd, @map_top)
+        {:list, bdd} -> print_as_negated_bdd(bdd, @non_empty_list_top)
+        {:bitmap, bitmap} -> Integer.popcount(bitmap)
+        {:atom, {:union, _}} -> -100
+        {:fun, {:union, _}} -> -100
+        {_, _} -> 1
+      end)
+
+    result > 8
+  end
+
+  # A bdd leaf can be trivially printed in negated format
+  # but we don't count it towards the amount of negatives.
+  defp print_as_negated_bdd(top, top), do: 1
+  defp print_as_negated_bdd(bdd_leaf(_, _), _top), do: 0
+  defp print_as_negated_bdd(bdd, top), do: if(negated_bdd?(bdd, top), do: 1, else: -100)
+
+  defp negated_bdd?({_, :bdd_bot, :bdd_bot, bdd}, top),
+    do: bdd in [:bdd_top, top] or negated_bdd?(bdd, top)
+
+  defp negated_bdd?(_, _), do: false
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -1738,7 +1800,7 @@ defmodule Module.Types.Descr do
   end
 
   # Converts the static and dynamic parts of descr to its quoted
-  # representation. The goal here is to the opposite of fun_descr
+  # representation. The goal here is to do the opposite of fun_descr
   # and put static and dynamic parts back together to improve
   # pretty printing.
   defp fun_denormalize(%{fun: {:union, static_repr}}, %{fun: {:union, dynamic_repr}}, opts) do
@@ -2173,6 +2235,12 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term)),
+    do: :bdd_bot
+
+  defp list_difference(bdd_leaf(:term, :term), bdd2),
+    do: bdd_negation(bdd2)
+
   # Computes the difference between two BDD (Binary Decision Diagram) list types.
   # It progressively subtracts each type in bdd2 from all types in bdd1.
   # The algorithm handles three cases:
@@ -2183,22 +2251,20 @@ defmodule Module.Types.Descr do
   # 3. Base case: adds bdd2 type to negations of bdd1 type
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
   defp list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2) do
-    cond do
-      disjoint?(list1, list2) or disjoint?(last1, last2) ->
-        bdd_leaf(list1, last1)
-
-      subtype?(list1, list2) ->
-        if subtype?(last1, last2),
-          do: :bdd_bot,
-          else: bdd_leaf(list1, difference(last1, last2))
-
-      true ->
-        bdd_difference(bdd1, bdd2)
+    if subtype?(list1, list2) do
+      if subtype?(last1, last2),
+        do: :bdd_bot,
+        else: bdd_leaf(list1, difference(last1, last2))
+    else
+      bdd_difference(bdd1, bdd2, &list_leaf_disjoint?/2)
     end
   end
 
   defp list_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2)
+    do: bdd_difference(bdd1, bdd2, &list_leaf_disjoint?/2)
+
+  defp list_leaf_disjoint?(bdd_leaf(list1, last1), bdd_leaf(list2, last2)),
+    do: disjoint?(list1, list2) or disjoint?(last1, last2)
 
   defp list_empty?(@non_empty_list_top), do: false
 

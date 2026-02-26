@@ -2602,6 +2602,11 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "to_quoted" do
+    test "none" do
+      assert none() |> to_quoted_string() == "none()"
+      assert dynamic(none()) |> to_quoted_string() == "none()"
+    end
+
     test "bitmap" do
       assert union(pid(), bitstring()) |> to_quoted_string() ==
                "bitstring() or pid()"
@@ -2613,15 +2618,15 @@ defmodule Module.Types.DescrTest do
                "(bitstring() and not binary()) or integer()"
     end
 
-    test "none" do
-      assert none() |> to_quoted_string() == "none()"
-      assert dynamic(none()) |> to_quoted_string() == "none()"
-    end
+    test "bitmap (negation)" do
+      assert union(pid(), bitstring()) |> negation() |> to_quoted_string() ==
+               "not bitstring() and not pid()"
 
-    test "negation" do
-      assert negation(negation(integer())) |> to_quoted_string() == "integer()"
-      assert negation(negation(atom([:foo, :bar]))) |> to_quoted_string() == ":bar or :foo"
-      assert negation(negation(list(term()))) |> to_quoted_string() == "list(term())"
+      assert difference(bitstring(), binary())
+             |> union(integer())
+             |> negation()
+             |> to_quoted_string() ==
+               "not (bitstring() and not binary()) and not integer()"
     end
 
     test "atom" do
@@ -2639,6 +2644,15 @@ defmodule Module.Types.DescrTest do
       assert atom([true, false, :a]) |> to_quoted_string() == ":a or boolean()"
       assert atom([true, :a]) |> to_quoted_string() == ":a or true"
       assert difference(atom(), boolean()) |> to_quoted_string() == "atom() and not boolean()"
+    end
+
+    test "atom/boolean (negation)" do
+      assert atom() |> negation() |> to_quoted_string() == "not atom()"
+      assert atom([:a, :b]) |> negation() |> to_quoted_string() == "not :a and not :b"
+      assert boolean() |> negation() |> to_quoted_string() == "not boolean()"
+
+      assert atom([true, false, :a]) |> negation() |> to_quoted_string() ==
+               "not :a and not boolean()"
     end
 
     test "dynamic" do
@@ -2668,7 +2682,21 @@ defmodule Module.Types.DescrTest do
                "dynamic(%{a: integer()})"
     end
 
-    test "lists" do
+    test "dynamic (negation)" do
+      assert dynamic(negation(integer())) |> to_quoted_string() == "dynamic(not integer())"
+      assert negation(dynamic(integer())) |> to_quoted_string() == "dynamic() or not integer()"
+
+      assert union(atom(), dynamic(integer())) |> negation() |> to_quoted_string() ==
+               "dynamic(not atom()) or (not atom() and not integer())"
+
+      assert dynamic(union(atom(), integer()))
+             |> negation()
+             |> union(integer())
+             |> to_quoted_string() ==
+               "dynamic() or not atom()"
+    end
+
+    test "list" do
       assert list(term()) |> to_quoted_string() == "list(term())"
       assert list(integer()) |> to_quoted_string() == "list(integer())"
 
@@ -2720,7 +2748,18 @@ defmodule Module.Types.DescrTest do
       assert to_quoted_string(list_with_tail) == "non_empty_list(atom())"
     end
 
-    test "tuples" do
+    test "list (negation)" do
+      assert list(term()) |> negation() |> to_quoted_string() == "not list(term())"
+      assert list(negation(integer())) |> to_quoted_string() == "list(not integer())"
+
+      assert list(term()) |> difference(empty_list()) |> negation() |> to_quoted_string() ==
+               "not non_empty_list(term())"
+
+      assert non_empty_list(integer(), integer()) |> negation() |> to_quoted_string() ==
+               "not non_empty_list(integer(), integer())"
+    end
+
+    test "tuple" do
       assert tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom()}"
 
       assert tuple([integer(), dynamic(atom())]) |> to_quoted_string() ==
@@ -2832,7 +2871,12 @@ defmodule Module.Types.DescrTest do
                """
     end
 
-    test "function" do
+    test "tuple (negation)" do
+      assert tuple([integer()]) |> negation() |> to_quoted_string() == "not {integer()}"
+      assert tuple([negation(integer())]) |> to_quoted_string() == "{not integer()}"
+    end
+
+    test "fun" do
       assert fun() |> to_quoted_string() == "fun()"
       assert none_fun(1) |> to_quoted_string() == "(none() -> term())"
 
@@ -2868,7 +2912,7 @@ defmodule Module.Types.DescrTest do
                "fun() and not (none(), none(), none() -> term())"
     end
 
-    test "function with optimized intersections" do
+    test "fun with optimized intersections" do
       assert fun([integer()], atom()) |> intersection(none_fun(1)) |> to_quoted_string() ==
                "(integer() -> atom())"
 
@@ -2879,7 +2923,7 @@ defmodule Module.Types.DescrTest do
                "(integer() -> atom())"
     end
 
-    test "function with dynamic signatures" do
+    test "fun with dynamic signatures" do
       assert fun([dynamic(integer())], float()) |> to_quoted_string() ==
                "(dynamic(integer()) -> float())"
 
@@ -2910,6 +2954,11 @@ defmodule Module.Types.DescrTest do
                (dynamic(atom()) or integer(), binary() -> float()) and
                  (pid(), float() -> dynamic(atom()) or integer())\
                """
+    end
+
+    test "fun (negation)" do
+      assert fun([integer()], atom()) |> negation() |> to_quoted_string() ==
+               "not (integer() -> atom())"
     end
 
     test "map as records" do
@@ -3035,12 +3084,26 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() == "%{..., a: float(), b: atom(), c: port()}"
     end
 
-    test "maps as dictionaries" do
+    test "map as dictionaries" do
       assert closed_map([{domain_key(:integer), integer()}])
              |> to_quoted_string() == "%{integer() => integer()}"
 
       assert closed_map([{domain_key(:integer), not_set()}, {:float, float()}])
              |> to_quoted_string() == "%{integer() => not_set(), float: float()}"
+    end
+
+    test "map (negation)" do
+      assert open_map(a: integer()) |> negation() |> to_quoted_string() ==
+               "not %{..., a: integer()}"
+
+      assert open_map(a: negation(integer())) |> to_quoted_string() ==
+               "%{..., a: not integer()}"
+
+      assert closed_map(a: integer()) |> negation() |> to_quoted_string() ==
+               "not %{a: integer()}"
+
+      assert closed_map(a: negation(integer())) |> to_quoted_string() ==
+               "%{a: not integer()}"
     end
 
     test "structs" do
