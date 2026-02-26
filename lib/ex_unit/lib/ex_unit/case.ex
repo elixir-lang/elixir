@@ -196,6 +196,37 @@ defmodule ExUnit.Case do
 
     * `:tmp_dir` - (since v1.11.0) see the "Tmp Dir" section below
 
+  ## Filters
+
+  Tags can also be used to identify specific tests, which can then
+  be included or excluded using filters. The most common functionality
+  is to exclude some particular tests from running, which can be done
+  via `ExUnit.configure/1`:
+
+      # Exclude all external tests from running
+      ExUnit.configure(exclude: [external: true])
+
+  From now on, ExUnit will not run any test that has the `:external` option
+  set to `true`. This behaviour can be reversed with the `:include` option
+  which is usually passed through the command line:
+
+      $ mix test --include external:true
+
+  Run `mix help test` for more information on how to run filters via Mix.
+
+  Another use case for tags and filters is to exclude all tests that have
+  a particular tag by default, regardless of its value, and include only
+  a certain subset:
+
+      ExUnit.configure(exclude: :os, include: [os: :unix])
+
+  A given include/exclude filter can be given more than once:
+
+      ExUnit.configure(exclude: [os: :unix, os: :windows])
+
+  Keep in mind that all tests are included by default, so unless they are
+  excluded first, the `include` option has no effect.
+
   ## Parameterized tests
 
   Sometimes you want to run the same tests but with different parameters.
@@ -230,37 +261,6 @@ defmodule ExUnit.Case do
       in your tests to deal with different parameters, then parameterized tests
       may be the wrong solution to your problem. Consider creating separated
       tests and sharing logic between them using regular functions
-
-  ## Filters
-
-  Tags can also be used to identify specific tests, which can then
-  be included or excluded using filters. The most common functionality
-  is to exclude some particular tests from running, which can be done
-  via `ExUnit.configure/1`:
-
-      # Exclude all external tests from running
-      ExUnit.configure(exclude: [external: true])
-
-  From now on, ExUnit will not run any test that has the `:external` option
-  set to `true`. This behaviour can be reversed with the `:include` option
-  which is usually passed through the command line:
-
-      $ mix test --include external:true
-
-  Run `mix help test` for more information on how to run filters via Mix.
-
-  Another use case for tags and filters is to exclude all tests that have
-  a particular tag by default, regardless of its value, and include only
-  a certain subset:
-
-      ExUnit.configure(exclude: :os, include: [os: :unix])
-
-  A given include/exclude filter can be given more than once:
-
-      ExUnit.configure(exclude: [os: :unix, os: :windows])
-
-  Keep in mind that all tests are included by default, so unless they are
-  excluded first, the `include` option has no effect.
 
   ## Log Capture
 
