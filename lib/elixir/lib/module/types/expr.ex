@@ -846,25 +846,6 @@ defmodule Module.Types.Expr do
 
   ## Warning formatting
 
-  def format_diagnostic({:badclause, {:case, meta, type, expr}, [head], context}) do
-    {expr, message} =
-      if meta[:type_check] == :expr do
-        {expr,
-         """
-         the following conditional expression will always evaluate to #{to_quoted_string(type)}:
-
-             #{expr_to_string(expr) |> indent(4)}
-         """}
-      else
-        {head, "the following clause has no effect because a previous clause will always match\n"}
-      end
-
-    %{
-      details: %{typing_traces: collect_traces(expr, context)},
-      message: message
-    }
-  end
-
   def format_diagnostic({:badupdate, type, expr, context}) do
     {:%, _, [module, {:%{}, _, [{:|, _, [map, _]}]}]} = expr
     traces = collect_traces(map, context)

@@ -1882,27 +1882,93 @@ defmodule Module.Types.ExprTest do
              ) == atom([:ok, nil])
     end
 
-    test "and does not report on literals" do
+    test "and/or does not report on literals" do
       assert typecheck!(false and true) == boolean()
+      assert typecheck!(false or true) == atom([true])
     end
 
     test "and reports violations" do
       assert typeerror!([x = 123], x and true) =~ """
-             the following conditional expression:
+             the following conditional expression will always fail:
 
                  x
 
-             will always evaluate to:
+             because it evaluates to:
 
                  integer()
              """
 
-      assert typeerror!([x = false], x and true) =~ """
-             the following conditional expression:
+      assert typeerror!([x = true], x and true) =~ """
+             the following conditional expression will always succeed:
 
                  x
 
-             will always evaluate to:
+             because it evaluates to:
+
+                 dynamic(true)
+             """
+
+      assert typeerror!([x = false], x and true) =~ """
+             the following conditional expression will never succeed:
+
+                 x
+
+             because it evaluates to:
+
+                 dynamic(false)
+             """
+    end
+
+    test "or reports violations" do
+      assert typeerror!([x = 123], x or true) =~ """
+             the following conditional expression will always fail:
+
+                 x
+
+             because it evaluates to:
+
+                 integer()
+             """
+
+      assert typeerror!([x = true], x or true) =~ """
+             the following conditional expression will always succeed:
+
+                 x
+
+             because it evaluates to:
+
+                 dynamic(true)
+             """
+
+      assert typeerror!([x = false], x or true) =~ """
+             the following conditional expression will never succeed:
+
+                 x
+
+             because it evaluates to:
+
+                 dynamic(false)
+             """
+    end
+
+    test "|| reports violations" do
+      assert typeerror!([x = 123], x || true) =~ """
+             the right-hand side of || will never be executed:
+
+                 x || ...
+
+             because the left-hand side always evaluates to:
+
+                 integer()
+
+             """
+
+      assert typeerror!([x = false], x || true) =~ """
+             the following conditional expression will never succeed:
+
+                 x
+
+             because it evaluates to:
 
                  dynamic(false)
              """

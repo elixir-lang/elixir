@@ -2081,7 +2081,7 @@ defmodule Kernel do
       end
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, operator}],
       {:case, [], [check, [do: bools ++ error]]}
     )
   end
@@ -2109,7 +2109,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, :!}],
       quote do
         case unquote(value) do
           x when unquote(x_is_false_or_nil()) -> false
@@ -2123,7 +2123,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, :!}],
       quote do
         case unquote(value) do
           x when unquote(x_is_false_or_nil()) -> true
@@ -4054,7 +4054,7 @@ defmodule Kernel do
 
   defp build_if(condition, do: do_clause, else: else_clause) do
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, :if}],
       quote do
         case unquote(condition) do
           x when unquote(x_is_false_or_nil()) -> unquote(else_clause)
@@ -4105,9 +4105,15 @@ defmodule Kernel do
   end
 
   defp build_unless(condition, do: do_clause, else: else_clause) do
-    quote do
-      if(unquote(condition), do: unquote(else_clause), else: unquote(do_clause))
-    end
+    annotate_case(
+      [optimize_boolean: true, type_check: {:case, :unless}],
+      quote do
+        case unquote(condition) do
+          x when unquote(x_is_false_or_nil()) -> unquote(do_clause)
+          _ -> unquote(else_clause)
+        end
+      end
+    )
   end
 
   defp build_unless(_condition, _arguments) do
@@ -4375,7 +4381,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "&&")
 
     annotate_case(
-      [type_check: :expr],
+      [type_check: {:case, :&&}],
       quote do
         case unquote(left) do
           x when unquote(x_is_false_or_nil()) ->
@@ -4418,7 +4424,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "||")
 
     annotate_case(
-      [type_check: :expr],
+      [type_check: {:case, :||}],
       quote do
         case unquote(left) do
           x when unquote(x_is_false_or_nil()) ->

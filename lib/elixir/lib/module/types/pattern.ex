@@ -1393,18 +1393,67 @@ defmodule Module.Types.Pattern do
   end
 
   defp badpattern({{op, meta, expr, type}, args, previous}, _, _) when op in [:case, :try_else] do
+    type_check = meta[:type_check]
+
     cond do
-      meta[:type_check] == :expr ->
-        {expr,
-         """
-         the following conditional expression:
+      match?({:case, _}, type_check) ->
+        message =
+          case type_check do
+            {:case, op} when op in [:and, :or] ->
+              {first_message, second_message} =
+                case booleaness(type) do
+                  {true, _} -> {" will always succeed", "because it evaluates to"}
+                  {false, _} -> {" will never succeed", "because it evaluates to"}
+                  :none -> {" will always fail", "because it evaluates to"}
+                  _ -> {"", "will always evaluate to"}
+                end
 
-             #{expr_to_string(expr) |> indent(4)}
+              """
+              the following conditional expression#{first_message}:
 
-         will always evaluate to:
+                  #{expr_to_string(expr) |> indent(4)}
 
-             #{to_quoted_string(type) |> indent(4)}
-         """}
+              #{second_message}:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            {:case, :||} ->
+              if subtype?(type, atom([false, nil])) do
+                """
+                the following conditional expression will never succeed:
+
+                    #{expr_to_string(expr) |> indent(4)}
+
+                because it evaluates to:
+
+                    #{to_quoted_string(type) |> indent(4)}
+                """
+              else
+                """
+                the right-hand side of || will never be executed:
+
+                    #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
+
+                because the left-hand side always evaluates to:
+
+                    #{to_quoted_string(type) |> indent(4)}
+                """
+              end
+
+            _ ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string(expr) |> indent(4)}
+
+              will always evaluate to:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+          end
+
+        {expr, message}
 
       previous == [] ->
         {args,

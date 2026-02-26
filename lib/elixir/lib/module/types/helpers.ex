@@ -355,99 +355,101 @@ defmodule Module.Types.Helpers do
         {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]}
 
       {:case, meta, [expr, [do: clauses]]} ->
-        if meta[:type_check] == :expr do
-          case clauses do
-            [
-              {:->, _,
-               [
+        case meta[:type_check] do
+          {:case, _} ->
+            case clauses do
+              [
+                {:->, _,
                  [
-                   {:when, _,
-                    [
-                      {var, _, Kernel},
-                      {{:., _, [:erlang, :orelse]}, _,
-                       [
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
-                       ]}
-                    ]}
-                 ],
-                 true
-               ]},
-              {:->, _, [[{:_, _, Kernel}], false]}
-            ] ->
-              {:!, meta, [expr]}
+                   [
+                     {:when, _,
+                      [
+                        {var, _, Kernel},
+                        {{:., _, [:erlang, :orelse]}, _,
+                         [
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                         ]}
+                      ]}
+                   ],
+                   true
+                 ]},
+                {:->, _, [[{:_, _, Kernel}], false]}
+              ] ->
+                {:!, meta, [expr]}
 
-            [
-              {:->, _,
-               [
+              [
+                {:->, _,
                  [
-                   {:when, _,
-                    [
-                      {var, _, Kernel},
-                      {{:., _, [:erlang, :orelse]}, _,
-                       [
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
-                       ]}
-                    ]}
-                 ],
-                 right_side
-               ]},
-              {:->, _, [[{var, _, Kernel}], {var, _, Kernel}]}
-            ] ->
-              {:||, meta, [expr, right_side]}
+                   [
+                     {:when, _,
+                      [
+                        {var, _, Kernel},
+                        {{:., _, [:erlang, :orelse]}, _,
+                         [
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                         ]}
+                      ]}
+                   ],
+                   right_side
+                 ]},
+                {:->, _, [[{var, _, Kernel}], {var, _, Kernel}]}
+              ] ->
+                {:||, meta, [expr, right_side]}
 
-            [
-              {:->, _,
-               [
+              [
+                {:->, _,
                  [
-                   {:when, _,
-                    [
-                      {var, _, Kernel},
-                      {{:., _, [:erlang, :orelse]}, _,
-                       [
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
-                       ]}
-                    ]}
-                 ],
-                 {var, _, Kernel}
-               ]},
-              {:->, _, [[{:_, _, Kernel}], right_side]}
-            ] ->
-              {:&&, meta, [expr, right_side]}
+                   [
+                     {:when, _,
+                      [
+                        {var, _, Kernel},
+                        {{:., _, [:erlang, :orelse]}, _,
+                         [
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                         ]}
+                      ]}
+                   ],
+                   {var, _, Kernel}
+                 ]},
+                {:->, _, [[{:_, _, Kernel}], right_side]}
+              ] ->
+                {:&&, meta, [expr, right_side]}
 
-            [
-              {:->, _,
-               [
+              [
+                {:->, _,
                  [
-                   {:when, _,
-                    [
-                      {var, _, Kernel},
-                      {{:., _, [:erlang, :orelse]}, _,
-                       [
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
-                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
-                       ]}
-                    ]}
-                 ],
-                 else_block
-               ]},
-              {:->, _, [[{:_, _, Kernel}], do_block]}
-            ] ->
-              {:if, meta, [expr, [do: do_block, else: else_block]]}
+                   [
+                     {:when, _,
+                      [
+                        {var, _, Kernel},
+                        {{:., _, [:erlang, :orelse]}, _,
+                         [
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                           {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                         ]}
+                      ]}
+                   ],
+                   else_block
+                 ]},
+                {:->, _, [[{:_, _, Kernel}], do_block]}
+              ] ->
+                {:if, meta, [expr, [do: do_block, else: else_block]]}
 
-            [
-              {:->, _, [[false], else_block]},
-              {:->, _, [[true], do_block]}
-            ] ->
-              {:if, meta, [expr, [do: do_block, else: else_block]]}
+              [
+                {:->, _, [[false], else_block]},
+                {:->, _, [[true], do_block]}
+              ] ->
+                {:if, meta, [expr, [do: do_block, else: else_block]]}
 
-            _ ->
-              {:case, meta, [expr, [do: {:..., [], []}]]}
-          end
-        else
-          {:case, meta, [expr, [do: {:..., [], []}]]}
+              _ ->
+                {:case, meta, [expr, [do: {:..., [], []}]]}
+            end
+
+          _ ->
+            {:case, meta, [expr, [do: {:..., [], []}]]}
         end
 
       {:try, meta, [[do: _] ++ _]} ->
