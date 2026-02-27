@@ -426,7 +426,8 @@ defmodule Module.Types.Expr do
       {reduce_type, context} = of_expr(reduce, expected, expr, stack, context)
       # TODO: We need to type check against dynamic() instead of using reduce_type
       # because this is recursive. We need to infer the block type first.
-      of_clauses(block, [dynamic()], expected, expr, :for_reduce, stack, context, reduce_type)
+      args = [dynamic()]
+      of_redundant_clauses(block, args, expected, :for_reduce, stack, context, reduce_type)
     else
       # TODO: Use the collectable protocol for the output
       into = Keyword.get(opts, :into, [])
@@ -779,8 +780,7 @@ defmodule Module.Types.Expr do
               cond do
                 stack.mode != :infer and previous != [] and
                     Pattern.args_subtype?(clause_type, previous) ->
-                  stack = %{stack | meta: meta}
-                  {previous, Pattern.badpattern_error(clause, nil, info, stack, context)}
+                  {previous, Pattern.badpattern_warn(clause, info, stack, context)}
 
                 precise? ->
                   {[clause_type | previous], context}

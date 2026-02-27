@@ -366,6 +366,15 @@ defmodule Module.Types.Pattern do
     error(__MODULE__, error, meta, stack, context)
   end
 
+  @doc """
+  Marks a badpattern warnings.
+  """
+  def badpattern_warn(expr, tag, stack, context) do
+    meta = error_meta(expr, stack)
+    error = {:badpattern, meta, expr, nil, tag, context}
+    warn(__MODULE__, error, meta, stack, context)
+  end
+
   defp error_meta(expr, stack) do
     if meta = get_meta(expr) do
       meta ++ Keyword.take(stack.meta, [:generated, :line, :type_check])
@@ -1366,15 +1375,12 @@ defmodule Module.Types.Pattern do
   # $ type tag = head_pattern() or match_pattern()
   #
   # $ typep head_pattern =
-  #     :for_reduce or :with_else or :fn or :default or
+  #     :with_else or :fn or :default or
   #       {{:case | :try_else, meta, expr, type}, [arg], [previous]} or
-  #       {:receive | :try_catch, [arg], [previous]}
+  #       {:for_reduce | :receive | :try_catch, [arg], [previous]}
   #
   # $ typep match_pattern =
   #     :with or :for or {:match, type}
-  #
-  # The match pattern ones have the whole expression instead
-  # of a single pattern.
   def format_diagnostic({:badpattern, meta, pattern_or_expr, index, tag, context}) do
     # TODO: stop passing pattern_or_expr as argument
     {to_trace, message} = badpattern(tag, pattern_or_expr, index)
@@ -1509,7 +1515,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp badpattern({op, args, previous}, _, _) when op in [:receive, :try_catch] do
+  defp badpattern({op, args, previous}, _, _) when op in [:receive, :try_catch, :for_reduce] do
     {args,
      """
      the following clause is redundant:

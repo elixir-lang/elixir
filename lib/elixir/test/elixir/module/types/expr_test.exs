@@ -1804,13 +1804,14 @@ defmodule Module.Types.ExprTest do
                  dynamic(nil or binary())
              """
 
-      assert typeerror!(
+      assert typewarn!(
                [x],
                case String.to_atom(x) do
                  :ok -> 1
                  :ok -> 2
                end
-             ) == ~l"""
+             )
+             |> elem(1) == ~l"""
              the following clause is redundant:
 
                  :ok ->
@@ -1820,13 +1821,14 @@ defmodule Module.Types.ExprTest do
                  :ok
              """
 
-      assert typeerror!(
+      assert typewarn!(
                [a, b],
                case {a, b} do
                  {x, y} when is_integer(x) and is_integer(y) -> 1
                  {x, y} when is_integer(x) and is_integer(y) -> 2
                end
-             ) =~ ~l"""
+             )
+             |> elem(1) =~ ~l"""
              the following clause is redundant:
 
                  {x, y} when is_integer(x) and is_integer(y) ->
@@ -2043,12 +2045,13 @@ defmodule Module.Types.ExprTest do
     end
 
     test "errors on redundant clauses" do
-      assert typeerror!(
+      assert typewarn!(
                receive do
                  x when is_binary(x) -> x
                  "foo" -> "bar"
                end
-             ) == """
+             )
+             |> elem(1) == """
              the following clause is redundant:
 
                  "foo" ->
@@ -2159,14 +2162,15 @@ defmodule Module.Types.ExprTest do
     end
 
     test "catch: errors on redundant clauses" do
-      assert typeerror!(
+      assert typewarn!(
                try do
                  flunk("whatever")
                catch
                  x when is_binary(x) -> x
                  "foo" -> "bar"
                end
-             ) == """
+             )
+             |> elem(1) == """
              the following clause is redundant:
 
                  :throw, "foo" ->
@@ -2192,7 +2196,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "else: errors on redundant clauses" do
-      assert typeerror!(
+      assert typewarn!(
                try do
                  Process.get(:x)
                rescue
@@ -2201,7 +2205,8 @@ defmodule Module.Types.ExprTest do
                  x when is_binary(x) -> x
                  "foo" -> "bar"
                end
-             ) == """
+             )
+             |> elem(1) == """
              the following clause is redundant:
 
                  "foo" ->
@@ -2576,6 +2581,25 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) == dynamic(integer())
+    end
+
+    test ":reduce errors on redundant clauses" do
+      assert typewarn!(
+               [list, x],
+               for _ <- list, reduce: x do
+                 x when is_binary(x) -> x
+                 "foo" -> "bar"
+               end
+             )
+             |> elem(1) == """
+             the following clause is redundant:
+
+                 "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 binary()
+             """
     end
   end
 
