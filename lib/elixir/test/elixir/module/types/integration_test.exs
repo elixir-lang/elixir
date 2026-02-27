@@ -379,7 +379,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         """
-            warning: this clause of defp private/1 is never used
+            warning: this clause of defp private/1 is never used (or it will always fail when invoked)
             │
           6 │   defp private(nil), do: nil
             │        ~
@@ -387,7 +387,7 @@ defmodule Module.Types.IntegrationTest do
             └─ a.ex:6:8: A.private/1
         """,
         """
-            warning: this clause of defp private/1 is never used
+            warning: this clause of defp private/1 is never used (or it will always fail when invoked)
             │
           7 │   defp private("foo"), do: "foo"
             │        ~
@@ -395,7 +395,7 @@ defmodule Module.Types.IntegrationTest do
             └─ a.ex:7:8: A.private/1
         """,
         """
-            warning: this clause of defp private/1 is never used
+            warning: this clause of defp private/1 is never used (or it will always fail when invoked)
             │
          10 │   defp private("bar"), do: "bar"
             │        ~

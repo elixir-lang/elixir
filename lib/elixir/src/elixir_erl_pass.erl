@@ -4,7 +4,7 @@
 
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 -module(elixir_erl_pass).
--export([translate/3, translate_args/3, no_parens_remote/2, parens_map_field/2]).
+-export([translate/3, translate_args/3, no_parens_remote/2]).
 -include("elixir.hrl").
 
 %% =
@@ -239,15 +239,13 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
   Ann = ?ann(Meta),
   {TLeft, SL} = translate(Left, Ann, S),
   TRight = {atom, Ann, Right},
-
   Generated = erl_anno:set_generated(true, Ann),
-  {InnerVar, SI} = elixir_erl_var:build('_', SL),
-  TInnerVar = {var, Generated, InnerVar},
-  {Var, SV} = elixir_erl_var:build('_', SI),
-  TVar = {var, Generated, Var},
 
   case proplists:get_value(no_parens, Meta, false) of
     true ->
+      {Var, SV} = elixir_erl_var:build('_', SL),
+      TVar = {var, Generated, Var},
+
       {{'case', Generated, TLeft, [
         {clause, Generated,
           [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
@@ -256,24 +254,13 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
         {clause, Generated,
           [TVar],
           [],
-          [{'case', Generated, ?remote(Generated, elixir_erl_pass, no_parens_remote, [TVar, TRight]), [
-            {clause, Generated,
-             [{tuple, Generated, [{atom, Generated, ok}, TInnerVar]}], [], [TInnerVar]},
-            {clause, Generated,
-             [{tuple, Generated, [{atom, Generated, error}, TInnerVar]}], [], [?remote(Ann, erlang, error, [TInnerVar])]}
-          ]}]}
+          [?remote(Ann, erlang, error, [
+            ?remote(Generated, elixir_erl_pass, no_parens_remote, [TVar, TRight])
+           ])]}
       ]}, SV};
+
     false ->
-      {{'case', Generated, TLeft, [
-        {clause, Generated,
-          [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
-          [],
-          [?remote(Generated, elixir_erl_pass, parens_map_field, [TRight, TVar])]},
-        {clause, Generated,
-          [TVar],
-          [],
-          [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
-      ]}, SV}
+      {{call, Generated, {remote, Generated, TLeft, TRight}, []}, SL}
     end;
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, _Ann, S)
@@ -751,32 +738,7 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
 generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
 
-%% TODO: Make this a runtime error on Elixir v2.0
-no_parens_remote(nil, _Key) -> {error, {badmap, nil}};
-no_parens_remote(false, _Key) -> {error, {badmap, false}};
-no_parens_remote(true, _Key) -> {error, {badmap, true}};
-no_parens_remote(Atom, Fun) when is_atom(Atom) ->
-  Message = fun() ->
-    io_lib:format(
-      "using map.field notation (without parentheses) to invoke function ~ts.~ts() is deprecated, "
-      "you must add parentheses instead: remote.function()",
-      [elixir_aliases:inspect(Atom), Fun]
-    )
-  end,
-  'Elixir.IO':warn_once(?MODULE, Message, 3),
-  {ok, apply(Atom, Fun, [])};
 no_parens_remote(#{} = Map, Key) ->
-  {error, {badkey, Key, Map}};
+  {badkey, Key, Map};
 no_parens_remote(Other, _Key) ->
-  {error, {badmap, Other}}.
-
-parens_map_field(Key, Value) ->
-  Message = fun() ->
-    io_lib:format(
-      "using module.function() notation (with parentheses) to fetch map field ~ts is deprecated, "
-      "you must remove the parentheses: map.field",
-      [elixir_aliases:inspect(Key)]
-    )
-  end,
-  'Elixir.IO':warn_once(?MODULE, Message, 3),
-  Value.
+  {badmap, Other}.
