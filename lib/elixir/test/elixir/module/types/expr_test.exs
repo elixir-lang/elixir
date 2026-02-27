@@ -1963,6 +1963,17 @@ defmodule Module.Types.ExprTest do
 
              """
 
+      assert typeerror!([x = 123], System.get_env("foo") || x || true) =~ """
+             the right-hand side of || (shown as ... below) will never be executed:
+
+                 System.get_env("foo") || x || ...
+
+             because the left-hand side always evaluates to:
+
+                 dynamic(binary() or integer())
+
+             """
+
       assert typeerror!([x = false], x || true) =~ """
              the following conditional expression will never succeed:
 

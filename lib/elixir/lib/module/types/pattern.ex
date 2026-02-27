@@ -1430,8 +1430,16 @@ defmodule Module.Types.Pattern do
                     #{to_quoted_string(type) |> indent(4)}
                 """
               else
+                additional =
+                  with {:case, meta, [_, _]} <- expr,
+                       {:case, :||} <- meta[:type_check] do
+                    "(shown as ... below) "
+                  else
+                    _ -> ""
+                  end
+
                 """
-                the right-hand side of || will never be executed:
+                the right-hand side of || #{additional}will never be executed:
 
                     #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
 
