@@ -77,6 +77,8 @@ defmodule Mix.Tasks.Format do
 
     * `--dry-run` - does not save files after formatting.
 
+    * `--verbose` - prints the names of files that were formatted.
+
     * `--dot-formatter` - path to the file with formatter configuration.
       Defaults to `.formatter.exs` if one is available. See the
       "Formatting options" section above for more information.
@@ -199,6 +201,7 @@ defmodule Mix.Tasks.Format do
     no_exit: :boolean,
     dot_formatter: :string,
     dry_run: :boolean,
+    verbose: :boolean,
     stdin_filename: :string,
     force: :boolean,
     migrate: :boolean
@@ -764,18 +767,27 @@ defmodule Mix.Tasks.Format do
         :ok
 
       true ->
-        write_or_print(file, input, output)
+        write_or_print(file, input, output, task_opts)
     end
   rescue
     exception ->
       {:exit, file, exception, __STACKTRACE__}
   end
 
-  defp write_or_print(file, input, output) do
+  defp write_or_print(file, input, output, task_opts) do
     cond do
-      file == :stdin -> IO.write(output)
-      input == output -> :ok
-      true -> File.write!(file, output)
+      file == :stdin ->
+        IO.write(output)
+
+      input == output ->
+        :ok
+
+      true ->
+        File.write!(file, output)
+
+        if task_opts[:verbose] do
+          Mix.shell().info([:green, "* formatting ", :reset, Path.relative_to_cwd(file)])
+        end
     end
 
     :ok
@@ -795,12 +807,18 @@ defmodule Mix.Tasks.Format do
     :ok
   end
 
-  defp check!({[{:exit, :stdin, exception, stacktrace} | _], _not_formatted}, _task_opts) do
+  defp check!(
+         {[{:exit, :stdin, exception, stacktrace} | _], _not_formatted},
+         _task_opts
+       ) do
     Mix.shell().error("mix format failed for stdin")
     reraise exception, stacktrace
   end
 
-  defp check!({[{:exit, file, exception, stacktrace} | _], _not_formatted}, _task_opts) do
+  defp check!(
+         {[{:exit, file, exception, stacktrace} | _], _not_formatted},
+         _task_opts
+       ) do
     Mix.shell().error("mix format failed for file: #{Path.relative_to_cwd(file)}")
     reraise exception, stacktrace
   end
