@@ -117,11 +117,11 @@ defmodule ExUnit do
                diff_delete: atom(),
                diff_delete_whitespace: IO.ANSI.ansidata()
              ]}
-          | {:exclude, keyword()}
+          | {:exclude, atom() | [atom() | {atom(), any()}]}
           | {:exit_status, non_neg_integer()}
           | {:failures_manifest_path, String.t()}
           | {:formatters, [module()]}
-          | {:include, keyword()}
+          | {:include, atom() | [atom() | {atom(), any()}]}
           | {:max_cases, pos_integer()}
           | {:max_failures, pos_integer() | :infinity}
           | {:only_test_ids, [test_id()]}
