@@ -324,10 +324,11 @@ defmodule Module.Types do
       Enum.reduce(clauses, {0, 0, [], [], context}, fn
         {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
           context = fresh_context(context)
+          info = {:def, kind, fun, args, guards, expected}
 
           try do
             {trees, _precise?, context} =
-              Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
+              Pattern.of_head(args, guards, expected, info, meta, stack, context)
 
             {return_type, context} =
               Expr.of_expr(body, Descr.term(), body, stack, context)

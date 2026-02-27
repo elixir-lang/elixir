@@ -105,7 +105,7 @@ defmodule Module.Types.Pattern do
 
                       {:error, _old_type, error_context} ->
                         if match_error?(var, new_type) do
-                          throw(badpattern_error(var, expr, stack, context))
+                          throw(badmatch_error(var, expr, stack, context))
                         else
                           throw(badvar_error(var, old_type, new_type, stack, error_context))
                         end
@@ -113,7 +113,7 @@ defmodule Module.Types.Pattern do
                   end
 
                 :error ->
-                  throw(badpattern_error(var, expr, stack, context))
+                  throw(badmatch_error(var, expr, stack, context))
               end
           end)
         catch
@@ -228,7 +228,7 @@ defmodule Module.Types.Pattern do
     {expected, context} = expected_fun.(of_pattern_tree(tree, stack, context), context)
 
     args = [{tree, expected, expr}]
-    tag = {:match, expected}
+    tag = {:match, expr, expected}
 
     with {:ok, types} <- of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
          {[type], changed, context} <-
@@ -350,29 +350,25 @@ defmodule Module.Types.Pattern do
     error(__MODULE__, error, error_meta(var, stack), stack, context)
   end
 
-  defp badpattern_error(var, expr, stack, context) do
+  defp badmatch_error(var, expr, stack, context) do
     meta = error_meta(expr, stack)
     context = Of.error_var(var, context)
-    error = {:badpattern, meta, expr, nil, :default, context}
+    error = {:badmatch, meta, expr, context}
+    error(__MODULE__, error, meta, stack, context)
+  end
+
+  defp badpattern_error(expr, index, tag, stack, context) do
+    meta = error_meta(expr, stack)
+    error = {:badpattern, meta, index, tag, context}
     error(__MODULE__, error, meta, stack, context)
   end
 
   @doc """
-  Marks a badpattern error.
+  Warns on redundant clause.
   """
-  def badpattern_error(expr, index, tag, stack, context) do
-    meta = error_meta(expr, stack)
-    error = {:badpattern, meta, expr, index, tag, context}
-    error(__MODULE__, error, meta, stack, context)
-  end
-
-  @doc """
-  Marks a badpattern warnings.
-  """
-  def badpattern_warn(expr, tag, stack, context) do
-    meta = error_meta(expr, stack)
-    error = {:badpattern, meta, expr, nil, tag, context}
-    warn(__MODULE__, error, meta, stack, context)
+  def redundant_warn({:->, meta, [head, _]}, previous, stack, context) do
+    warning = {:redundant_clause, head, previous, context}
+    warn(__MODULE__, warning, meta, stack, context)
   end
 
   defp error_meta(expr, stack) do
@@ -1313,6 +1309,27 @@ defmodule Module.Types.Pattern do
 
   ## Helpers
 
+  def format_diagnostic({:badstruct, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected an atom as struct name:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
   def format_diagnostic({:badguard, type, expr, context}) do
     traces = collect_traces(expr, context)
 
@@ -1351,39 +1368,54 @@ defmodule Module.Types.Pattern do
     }
   end
 
-  def format_diagnostic({:badstruct, type, expr, context}) do
-    traces = collect_traces(expr, context)
+  def format_diagnostic({:redundant_clause, args, previous, context}) do
+    traces = collect_traces(args, context)
 
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
-          expected an atom as struct name:
+          the following clause is redundant:
 
-              #{expr_to_string(expr) |> indent(4)}
+              #{args_to_string(args) |> indent(4)} ->
 
-          got type:
+          previous clauses have already matched on the following types:
 
-              #{to_quoted_string(type) |> indent(4)}
+              #{previous_to_string(previous)}
           """,
           format_traces(traces)
         ])
     }
   end
 
-  # $ type tag = head_pattern() or match_pattern()
+  def format_diagnostic({:badmatch, _meta, pattern, context}) do
+    traces = collect_traces(pattern, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          the following pattern will never match:
+
+              #{expr_to_string(pattern) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  # $ type tag = {:def, kind, fun, args, guards, types} or clause_pattern() or match_pattern()
   #
-  # $ typep head_pattern =
-  #     :fn or :default or
-  #       {{:case | :try_else, meta, expr, type}, [arg], [previous]} or
-  #       {:for_reduce | :receive | :try_catch | :with_else | :fn, [arg], [previous]}
+  # $ typep clause_pattern =
+  #     {{:case | :try_else, meta, expr, type}, [arg], [previous]} or
+  #     {:for_reduce | :receive | :try_catch | :with_else | :fn, [arg], [previous]}
   #
   # $ typep match_pattern =
-  #     :with or :for or {:match, type}
-  def format_diagnostic({:badpattern, meta, pattern_or_expr, index, tag, context}) do
-    # TODO: stop passing pattern_or_expr as argument
-    {to_trace, message} = badpattern(tag, pattern_or_expr, index)
+  #     {:with or :for or :match, pattern, type}
+  def format_diagnostic({:badpattern, meta, index, tag, context}) do
+    {to_trace, message} = badpattern(tag, index)
     traces = collect_traces(to_trace, context)
 
     hints =
@@ -1398,7 +1430,35 @@ defmodule Module.Types.Pattern do
     }
   end
 
-  defp badpattern({{op, meta, expr, type}, args, previous}, _, _) when op in [:case, :try_else] do
+  defp badpattern({:def, _kind, _fun, args, _guards, types}, index)
+       when is_integer(index) do
+    arg = Enum.fetch!(args, index)
+    type = Enum.fetch!(types, index)
+
+    if type == dynamic() do
+      {arg,
+       """
+       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+
+           #{expr_to_string(arg) |> indent(4)}
+       """}
+    else
+      # This can only happen in protocol implementations for now
+      {arg,
+       """
+       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+
+           #{expr_to_string(arg) |> indent(4)}
+
+       because it is expected to receive type:
+
+           #{to_quoted_string(type) |> indent(4)}
+       """}
+    end
+  end
+
+  defp badpattern({{op, meta, expr, type}, args, previous}, _index)
+       when op in [:case, :try_else] do
     type_check = meta[:type_check]
 
     cond do
@@ -1485,7 +1545,7 @@ defmodule Module.Types.Pattern do
              #{to_quoted_string(type) |> indent(4)}
          """}
 
-      args_subtype?([type], previous) ->
+      true ->
         {args,
          """
          the following clause cannot match because the previous clauses already matched all possible values:
@@ -1500,80 +1560,42 @@ defmodule Module.Types.Pattern do
 
              #{to_quoted_string(type) |> indent(4)}
          """}
-
-      true ->
-        {args,
-         """
-         the following clause is redundant:
-
-             #{args_to_string(args) |> indent(4)} ->
-
-         previous clauses have already matched on the following types:
-
-             #{previous_to_string(previous)}
-         """}
     end
   end
 
-  defp badpattern({op, args, previous}, _, _)
-       when op in [:receive, :try_catch, :for_reduce, :with_else, :fn] do
-    {args,
-     """
-     the following clause is redundant:
+  defp badpattern({op, args, _previous}, index)
+       when op in [:for_reduce, :receive, :try_catch, :with_else, :fn] do
+    arg = Enum.fetch!(args, index)
 
-         #{args_to_string(args) |> indent(4)} ->
-
-     previous clauses have already matched on the following types:
-
-         #{previous_to_string(previous)}
-     """}
-  end
-
-  defp badpattern({:match, type}, expr, _) do
-    {expr,
+    {arg,
      """
      the following pattern will never match:
 
-         #{expr_to_string(expr) |> indent(4)}
-
-     because the right-hand side has type:
-
-         #{to_quoted_string(type) |> indent(4)}
+         #{expr_to_string(arg) |> indent(4)}
      """}
   end
 
-  defp badpattern({:infer, types}, pattern_or_expr, index) when is_integer(index) do
-    type = Enum.fetch!(types, index)
+  defp badpattern({op, pattern, type}, _index) when op in [:match, :for, :with] do
+    message =
+      if type == dynamic() do
+        """
+        the following pattern will never match:
 
-    if type == dynamic() do
-      {pattern_or_expr,
-       """
-       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+            #{expr_to_string(pattern) |> indent(4)}
+        """
+      else
+        """
+        the following pattern will never match:
 
-           #{expr_to_string(pattern_or_expr) |> indent(4)}
-       """}
-    else
-      # This can only happen in protocol implementations
-      {pattern_or_expr,
-       """
-       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+            #{expr_to_string(pattern) |> indent(4)}
 
-           #{expr_to_string(pattern_or_expr) |> indent(4)}
+        because the right-hand side has type:
 
-       because it is expected to receive type:
+            #{to_quoted_string(type) |> indent(4)}
+        """
+      end
 
-           #{to_quoted_string(type) |> indent(4)}
-       """}
-    end
-  end
-
-  defp badpattern(_, pattern_or_expr, _) do
-    {pattern_or_expr,
-     """
-     the following pattern will never match:
-
-         #{expr_to_string(pattern_or_expr) |> indent(4)}
-     """}
+    {pattern, message}
   end
 
   defp args_to_string(args) do
