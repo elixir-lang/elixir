@@ -1375,9 +1375,9 @@ defmodule Module.Types.Pattern do
   # $ type tag = head_pattern() or match_pattern()
   #
   # $ typep head_pattern =
-  #     :with_else or :fn or :default or
+  #     :fn or :default or
   #       {{:case | :try_else, meta, expr, type}, [arg], [previous]} or
-  #       {:for_reduce | :receive | :try_catch, [arg], [previous]}
+  #       {:for_reduce | :receive | :try_catch | :with_else | :fn, [arg], [previous]}
   #
   # $ typep match_pattern =
   #     :with or :for or {:match, type}
@@ -1515,7 +1515,8 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp badpattern({op, args, previous}, _, _) when op in [:receive, :try_catch, :for_reduce] do
+  defp badpattern({op, args, previous}, _, _)
+       when op in [:receive, :try_catch, :for_reduce, :with_else, :fn] do
     {args,
      """
      the following clause is redundant:
