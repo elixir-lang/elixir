@@ -375,7 +375,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp gleam_dep(%Mix.Dep{opts: opts} = dep, _children = nil, manager, locked?) do
-    Mix.Gleam.require!()
+    Mix.Gleam.requirements!()
     dest = opts[:dest]
     config = File.cd!(dest, fn -> Mix.Gleam.load_config(".") end)
     from = Path.join(dest, "gleam.toml")

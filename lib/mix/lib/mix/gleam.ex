@@ -3,61 +3,77 @@
 
 defmodule Mix.Gleam do
   # Version that introduced `gleam export package-information` command
-  @required_gleam_version ">= 1.10.0"
+  @gleam_version_requirement ">= 1.10.0"
 
+  @spec load_config(Path.t()) :: config :: map()
   def load_config(dir) do
     File.cd!(dir, fn ->
-      gleam!(~W(export package-information --out /dev/stdout))
-      |> JSON.decode!()
-      |> Map.fetch!("gleam.toml")
-      |> parse_config()
+      with {:ok, output} <-
+             gleam(~W(export package-information --out /dev/stdout)),
+           json <- JSON.decode!(output),
+           {:ok, gleam_toml} <- Map.fetch(json, "gleam.toml") do
+        parse_config(gleam_toml)
+      else
+        :error ->
+          {:error, "\"gleam.toml\" key not found in \"gleam export package-information\" output"}
+
+        {:error, message} ->
+          {:error, message}
+      end
+      |> assert_ok_value!()
     end)
   end
 
-  def parse_config(json) do
+  @spec parse_config(map()) :: {:ok, config :: map()} | {:error, message :: binary()}
+  def parse_config(json) when is_map(json) do
     deps =
       Map.get(json, "dependencies", %{})
-      |> Enum.map(&parse_dep/1)
+      |> Enum.map(&parse_dep!/1)
 
     dev_deps =
       Map.get(json, "dev-dependencies", %{})
-      |> Enum.map(&parse_dep(&1, only: [:dev, :test]))
+      |> Enum.map(&parse_dep!(&1, only: [:dev, :test]))
 
-    %{
-      name: Map.fetch!(json, "name"),
-      version: Map.fetch!(json, "version"),
-      deps: deps ++ dev_deps
-    }
-    |> maybe_gleam_version(json)
-    |> maybe_erlang_opts(json["erlang"])
-  rescue
-    KeyError ->
-      Mix.raise("Command \"gleam export package-information\" unexpected format: \n" <> json)
-  end
+    with {:ok, name} <- Map.fetch(json, "name"),
+         {:ok, version} <- Map.fetch(json, "version") do
+      config =
+        %{
+          name: name,
+          version: version,
+          deps: deps ++ dev_deps
+        }
+        |> maybe_gleam_version(json)
+        |> maybe_erlang_opts(json["erlang"])
 
-  defp parse_dep({dep, requirement}, opts \\ []) do
-    dep = String.to_atom(dep)
-
-    spec =
-      case requirement do
-        %{"version" => version} ->
-          {dep, version, opts}
-
-        %{"path" => path} ->
-          {dep, Keyword.merge(opts, path: Path.expand(path))}
-
-        %{"git" => git, "ref" => ref} ->
-          {dep, git: git, ref: ref}
-
-        _ ->
-          Mix.raise("Gleam package #{dep} has unsupported requirement: #{inspect(requirement)}")
-      end
-
-    case spec do
-      {dep, version, []} -> {dep, version}
-      spec -> spec
+      {:ok, config}
+    else
+      :error ->
+        {:error,
+         "Command \"gleam export package-information\" unexpected format: \n" <>
+           inspect(json, pretty: true, limit: :infinity)}
     end
   end
+
+  defp parse_dep!({dep, requirement}, opts \\ []) do
+    String.to_atom(dep)
+    |> build_dep_spec(requirement, opts)
+    |> assert_ok_value!()
+  end
+
+  defp build_dep_spec(dep, %{"version" => version}, []),
+    do: {:ok, {dep, version}}
+
+  defp build_dep_spec(dep, %{"version" => version}, opts),
+    do: {:ok, {dep, version, opts}}
+
+  defp build_dep_spec(dep, %{"path" => path}, opts),
+    do: {:ok, {dep, Keyword.merge(opts, path: Path.expand(path))}}
+
+  defp build_dep_spec(dep, %{"git" => git, "ref" => ref}, _opts),
+    do: {:ok, {dep, git: git, ref: ref}}
+
+  defp build_dep_spec(dep, requirement, _opts),
+    do: {:error, "Gleam package #{dep} has unsupported requirement: #{inspect(requirement)}"}
 
   defp maybe_gleam_version(config, json) do
     case json["gleam"] do
@@ -86,37 +102,58 @@ defmodule Mix.Gleam do
     Map.put(config, :application, application)
   end
 
-  def require!() do
-    available_version()
-    |> Version.match?(@required_gleam_version)
-  end
+  @spec requirements!() :: :ok
+  def requirements!() do
+    case fetch_gleam_version() do
+      {:ok, gleam_version} ->
+        if Version.match?(gleam_version, @gleam_version_requirement) do
+          {:ok, :ok}
+        else
+          {:error,
+           "Current Gleam version does not meet minimum requirements " <>
+             "#{@gleam_version_requirement}),  got: #{gleam_version}"}
+        end
 
-  defp available_version do
-    case gleam!(["--version"]) do
-      "gleam " <> version -> Version.parse!(version) |> Version.to_string()
-      output -> Mix.raise("Command \"gleam --version\" unexpected format: #{output}")
+      {:error, message} ->
+        {:error, message}
     end
-  rescue
-    e in Version.InvalidVersionError ->
-      Mix.raise("Command \"gleam --version\" invalid version format: #{e.version}")
+    |> assert_ok_value!()
   end
 
-  defp gleam!(args) do
+  defp fetch_gleam_version() do
+    case gleam(["--version"]) do
+      {:ok, version} ->
+        case Version.parse(version) do
+          {:ok, parsed_version} ->
+            {:ok, Version.to_string(parsed_version)}
+
+          :error ->
+            {:error, "Command \"gleam --version\" invalid version format: #{version}"}
+        end
+
+      {:error, output} ->
+        {:error, "Command \"gleam --version\" unexpected format: #{output}"}
+    end
+  end
+
+  defp gleam(args) do
     System.cmd("gleam", args)
   catch
     :error, :enoent ->
-      Mix.raise(
-        "The \"gleam\" executable is not available in your PATH. " <>
-          "Please install it, as one of your dependencies requires it. "
-      )
+      {:error,
+       "The \"gleam\" executable is not available in your PATH. " <>
+         "Please install it, as one of your dependencies requires it"}
   else
     {response, 0} ->
-      String.trim(response)
+      {:ok, String.trim(response)}
 
     {response, _} when is_binary(response) ->
-      Mix.raise("Command \"gleam #{Enum.join(args, " ")}\" failed with reason: #{response}")
+      {:error, "Command \"gleam #{Enum.join(args, " ")}\" failed with reason: #{response}"}
 
     {_, _} ->
-      Mix.raise("Command \"gleam #{Enum.join(args, " ")}\" failed")
+      {:error, "Command \"gleam #{Enum.join(args, " ")}\" failed"}
   end
+
+  defp assert_ok_value!({:ok, term}), do: term
+  defp assert_ok_value!({:error, message}) when is_binary(message), do: Mix.raise(message)
 end

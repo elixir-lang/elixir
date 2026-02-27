@@ -314,7 +314,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_gleam(%Mix.Dep{opts: opts} = dep, config) do
-    Mix.Gleam.require!()
+    Mix.Gleam.requirements!()
     Mix.Project.ensure_structure()
 
     lib = Path.join(Mix.Project.build_path(), "lib")
