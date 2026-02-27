@@ -68,6 +68,21 @@ def example(x) when tuple_size(x) < 3
 
 Elixir will correctly track the tuple has at most two elements, and therefore accessing `elem(x, 3)` will emit a typing violation. In other words, Elixir can look at complex guards, infer types, and use this information to find bugs in our code, without a need to introduce type signatures (yet).
 
+### Typing across clauses
+
+Elixir now infers the type of a given clause based on previous clauses. Let's see an example:
+
+```elixir
+case System.get_env("SOME_VAR") do
+  nil -> :not_found
+  value -> {:ok, String.upcase(value)}
+end
+```
+
+`System.get_env("SOME_VAR")` returns either `nil` or a `binary()`. Because the first clause matches on `nil`, the type system now knows `value` can no longer be `nil`, and therefore it must only be a `binary()`, which allows the second clause to also type check without violations.
+
+This type inference across clauses also helps the type system find redundant clauses and dead code in existing codebases.
+
 ### Complete typing of maps keys
 
 Maps were one of the first data-structures we implemented within the Elixir type system however, up to this point, they only supported atom keys. If they had additional keys, those keys were simply marked as `dynamic()`.
@@ -157,6 +172,41 @@ The code above has a type violation, which is now caught by the type system:
 ### Acknowledgements
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
+
+## v1.20.0-rc.2
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
+  * [Code] Make module purging opt-in and move temporary module deletion to the background to speed up compilation times
+  * [Integer] Add `Integer.popcount/1`
+  * [Kernel] Move struct validation in patterns and updates to type checker, this means adding and remove struct fields will cause fewer files to be recompiled
+  * [List] Add `List.first!/1` and `List.last!/1`
+  * Add Software Bill of Materials guide to the Documentation
+
+#### Mix
+
+  * [mix compile] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
+  * [mix deps] Parallelize dep lock status checks during `deps.loadpaths`, improving boot times in projects with many git dependencies
+
+### 2. Potential breaking changes
+
+#### Elixir
+
+  * `map.foo()` (accessing a map field with parens) and `mod.foo` (invoking a function without parens) will now raise instead of emitting runtime warnings, aligning themselves with the type system behaviour
+
+### 3. Bug fixes
+
+#### IEx
+
+  * [IEx] Ensure warnings emitted during IEx parsing are properly displayed/printed
+  * [IEx] Ensure pry works across remote nodes
+
+#### Mix
+
+  * [mix compile.erlang] Topsort Erlang modules before compilation for proper dependency resolution
 
 ## v1.20.0-rc.1 (2026-01-13)
 
