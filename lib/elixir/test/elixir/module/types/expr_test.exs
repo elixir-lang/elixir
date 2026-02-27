@@ -180,6 +180,9 @@ defmodule Module.Types.ExprTest do
                  )
                )
              )
+
+      assert typecheck!(fn x -> Integer.to_string(x) end) ==
+               fun([integer()], dynamic(binary()))
     end
 
     test "application" do

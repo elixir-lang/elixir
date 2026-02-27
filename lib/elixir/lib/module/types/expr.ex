@@ -337,7 +337,8 @@ defmodule Module.Types.Expr do
 
     {acc, context} =
       of_clauses_fun(clauses, domain, @pending, :fn, stack, context, [], fn
-        args_types, body, acc ->
+        trees, body, context, acc ->
+          args_types = Pattern.of_domain(trees, stack, context)
           add_inferred(acc, args_types, body)
       end)
 
@@ -719,7 +720,7 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
   defp of_clauses(clauses, domain, expected, clause_info, stack, context, acc) do
-    fun = fn _args_types, result, acc -> union(result, acc) end
+    fun = fn _args_types, result, _context, acc -> union(result, acc) end
     of_clauses_fun(clauses, domain, expected, clause_info, stack, context, acc, fun)
   end
 
@@ -750,24 +751,24 @@ defmodule Module.Types.Expr do
               {trees, precise?, context}
             end
 
-          args_types =
-            Enum.map(trees, fn {tree, _, _} ->
-              Pattern.of_pattern_tree(tree, stack, context)
-            end)
-
           {previous, context} =
             if context.failed do
               {previous, context}
             else
-              upper_types = Enum.map(args_types, &upper_bound/1)
+              args_types =
+                Enum.map(trees, fn {tree, _, _} ->
+                  tree
+                  |> Pattern.of_pattern_tree(stack, context)
+                  |> upper_bound()
+                end)
 
               cond do
                 stack.mode != :infer and previous != [] and
-                    Pattern.args_subtype?(upper_types, previous) ->
+                    Pattern.args_subtype?(args_types, previous) ->
                   {previous, Pattern.redundant_warn(clause, previous, stack, context)}
 
                 precise? ->
-                  {[upper_types | previous], context}
+                  {[args_types | previous], context}
 
                 true ->
                   {previous, context}
@@ -776,7 +777,7 @@ defmodule Module.Types.Expr do
 
           {result, context} = of_expr(body, expected, body, stack, context)
 
-          {fun.(args_types, result, acc), previous,
+          {fun.(trees, result, context, acc), previous,
            context |> set_failed(failed?) |> Of.reset_vars(original)}
       end)
 
