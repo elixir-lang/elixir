@@ -141,7 +141,8 @@ defmodule Mix.Tasks.Test do
     * `--force` - forces compilation regardless of modification times
 
     * `--formatter` - sets the formatter module that will print the results.
-      Defaults to ExUnit's built-in CLI formatter
+      Defaults to ExUnit's built-in CLI formatter. Use `--formatter ExUnit.JSONFormatter`
+      for structured JSON output suitable for CI systems, editors, and other tools
 
     * `--include` - includes tests that match the filter. This option may be given
       several times to apply different filters, such as `--include ci --include slow`

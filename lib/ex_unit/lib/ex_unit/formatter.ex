@@ -9,6 +9,10 @@ defmodule ExUnit.Formatter do
   Formatters are `GenServer`s specified during ExUnit configuration
   that receive a series of events as casts.
 
+  Elixir ships with two built-in formatters: `ExUnit.CLIFormatter` (the
+  default, human-readable output) and `ExUnit.JSONFormatter` (structured
+  JSON output for programmatic consumption).
+
   The following events are possible:
 
     * `{:suite_started, opts}` -
