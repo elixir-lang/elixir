@@ -119,6 +119,8 @@ defmodule Mix.Dep.Fetcher do
     lock = Map.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock, opts)
 
+    evaluate_overrides(Enum.filter(deps, & &1.opts[:override_for]), deps)
+
     # See if any of the deps diverged and abort.
     show_diverged!(Enum.filter(all_deps, &Mix.Dep.diverged?/1))
 
@@ -163,6 +165,43 @@ defmodule Mix.Dep.Fetcher do
     Enum.map(given, fn app ->
       if is_binary(app), do: String.to_atom(app), else: app
     end)
+  end
+
+  defp evaluate_overrides([], _deps), do: :ok
+
+  defp evaluate_overrides(override_deps, deps) do
+    for override_dep <- override_deps,
+        dep <- deps,
+        dep_dependency <- dep.deps,
+        override_dep.app == dep_dependency.app do
+      overridden? = dep.app in override_dep.opts[:override_for]
+
+      {:ok, satisfied?} =
+        Mix.Dep.Loader.vsn_match(dep_dependency.requirement, override_dep.requirement, dep.app)
+
+      cond do
+        overridden? && satisfied? ->
+          show_expired_override(override_dep, dep.app)
+
+        not overridden? && not satisfied? ->
+          show_missing_override(override_dep, dep.app)
+
+        true ->
+          :ok
+      end
+    end
+
+    :ok
+  end
+
+  defp show_expired_override(dep, app) do
+    Mix.shell().info(
+      "Dependency #{Mix.Dep.format_dep(dep)} no longer requires override_for on #{app}"
+    )
+  end
+
+  defp show_missing_override(dep, app) do
+    Mix.shell().info("Dependency #{Mix.Dep.format_dep(dep)} requires override_for on #{app}")
   end
 
   defp show_diverged!([]), do: :ok
