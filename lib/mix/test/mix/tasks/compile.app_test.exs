@@ -310,6 +310,30 @@ defmodule Mix.Tasks.Compile.AppTest do
     end)
   end
 
+  test "dynamic project" do
+    in_fixture("no_mixfile", fn ->
+      config =
+        Mix.Project.config()
+        |> Keyword.merge(
+          app: :dynamic_project,
+          version: "0.1.0",
+          application: [
+            mod: {DynamicProject, []},
+            applications: [:example_app, mix: :optional],
+            extra_applications: [:logger]
+          ]
+        )
+
+      Mix.ProjectStack.push(DynamicProject, config, "nofile")
+      Mix.Tasks.Compile.Elixir.run([])
+      Mix.Tasks.Compile.App.run([])
+
+      properties = parse_resource_file(:dynamic_project)
+      assert properties[:mod] == {DynamicProject, []}
+      assert properties[:applications] == [:kernel, :stdlib, :elixir, :logger, :example_app, :mix]
+    end)
+  end
+
   defp parse_resource_file(app) do
     {:ok, [term]} = :file.consult("_build/dev/lib/#{app}/ebin/#{app}.app")
     {:application, ^app, properties} = term

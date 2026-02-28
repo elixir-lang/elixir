@@ -22,6 +22,7 @@ defmodule Mix.Tasks.Deps.Compile do
     * `Makefile.win`- invokes `nmake /F Makefile.win` (only on Windows)
     * `Makefile` - invokes `gmake` on DragonFlyBSD, FreeBSD, NetBSD, and OpenBSD,
       invokes `make` on any other operating system (except on Windows)
+    * `gleam.toml` - invokes `gleam compile-package`
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -143,9 +144,12 @@ defmodule Mix.Tasks.Deps.Compile do
         dep.manager == :rebar3 ->
           do_rebar3(dep, config)
 
+        dep.manager == :gleam ->
+          do_gleam(dep, config)
+
         true ->
           Mix.shell().error(
-            "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
+            "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\", \"Makefile\" or \"gleam.toml\" " <>
               "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
           )
 
@@ -309,6 +313,86 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
+  defp do_gleam(%Mix.Dep{opts: opts} = dep, config) do
+    Mix.Gleam.require!()
+    Mix.Project.ensure_structure()
+
+    lib = Path.join(Mix.Project.build_path(), "lib")
+    out = opts[:build]
+    package = opts[:dest]
+
+    command =
+      {"gleam",
+       [
+         "compile-package",
+         "--no-beam",
+         "--target",
+         "erlang",
+         "--package",
+         package,
+         "--out",
+         out,
+         "--lib",
+         lib
+       ]}
+
+    shell_cmd!(dep, config, command)
+
+    File.cd!(package, fn -> Mix.Gleam.load_config(".") end)
+    |> push_gleam_project(dep, Keyword.fetch!(config, :deps_path))
+
+    Code.prepend_path(Path.join(out, "ebin"), cache: true)
+  end
+
+  defp push_gleam_project(toml, dep, deps_path) do
+    build = Path.expand(dep.opts[:build])
+    src = Path.join(build, "_gleam_artefacts")
+    File.mkdir(Path.join(build, "ebin"))
+
+    # Remove per-environment segment from the path since ProjectStack.push below will append it
+    build_path =
+      Mix.Project.build_path()
+      |> Path.split()
+      |> Enum.drop(-1)
+      |> Path.join()
+
+    config =
+      Mix.Project.deps_config()
+      |> Keyword.merge(
+        app: dep.app,
+        version: toml.version,
+        deps: toml.deps,
+        build_per_environment: true,
+        lockfile: "mix.lock",
+        build_path: build_path,
+        build_scm: dep.scm,
+        deps_path: deps_path,
+        deps_app_path: build,
+        erlc_paths: [src],
+        elixirc_paths: [src],
+        erlc_include_path: Path.join(build, "include")
+      )
+
+    old_env = Mix.env()
+
+    try do
+      env = dep.opts[:env] || :prod
+      Mix.env(env)
+      Mix.ProjectStack.push(dep.app, config, "nofile")
+
+      options = ["--from-mix-deps-compile", "--no-warnings-as-errors", "--no-code-path-pruning"]
+
+      # Somehow running just `compile` task won't work (doesn't compile the .erl files)
+      Mix.Task.run("compile.erlang", options)
+      Mix.Task.run("compile.elixir", options)
+      Mix.Task.run("compile.app", options)
+
+      Mix.ProjectStack.pop()
+    after
+      Mix.env(old_env)
+    end
+  end
+
   defp make_command(dep) do
     makefile_win? = makefile_win?(dep)
 
@@ -344,7 +428,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
     if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
-        "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
+        "Could not compile dependency #{inspect(app)}, #{inspect(command)} command failed. " <>
           deps_compile_feedback(app)
       )
     end
