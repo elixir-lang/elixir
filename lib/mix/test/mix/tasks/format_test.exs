@@ -85,6 +85,35 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "prints formatted file names with --verbose", context do
+    in_tmp(context.test, fn ->
+      File.write!("a.ex", """
+      foo bar
+      """)
+
+      File.write!("b.ex", """
+      foo(bar)
+      """)
+
+      Mix.Tasks.Format.run(["a.ex", "b.ex", "--verbose"])
+
+      assert_received {:mix_shell, :info, ["* formatting a.ex"]}
+      refute_received {:mix_shell, :info, ["* formatting b.ex"]}
+    end)
+  end
+
+  test "does not print formatted file names by default", context do
+    in_tmp(context.test, fn ->
+      File.write!("a.ex", """
+      foo bar
+      """)
+
+      Mix.Tasks.Format.run(["a.ex"])
+
+      refute_received {:mix_shell, :info, ["* formatting a.ex"]}
+    end)
+  end
+
   test "does not try to format a directory that matches a given pattern", context do
     in_tmp(context.test, fn ->
       File.mkdir_p!("a.ex")
