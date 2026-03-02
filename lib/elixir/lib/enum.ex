@@ -5168,7 +5168,16 @@ defimpl Enumerable, for: Range do
   end
 
   # TODO: Remove me on v2.0
-  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
+  reduce =
+    quote generated: true do
+      reduce(
+        %{__struct__: Range, first: var!(first), last: var!(last)} = var!(range),
+        var!(acc),
+        var!(fun)
+      )
+    end
+
+  def unquote(reduce) do
     step = if first <= last, do: 1, else: -1
     reduce(Map.put(range, :step, step), acc, fun)
   end
@@ -5191,12 +5200,12 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
-  def member?(first..last//step, value) when is_integer(value) do
-    if step > 0 do
-      {:ok, first <= value and value <= last and rem(value - first, step) == 0}
-    else
-      {:ok, last <= value and value <= first and rem(value - first, step) == 0}
-    end
+  def member?(first..last//step, value) when is_integer(value) and step > 0 do
+    {:ok, first <= value and value <= last and rem(value - first, step) == 0}
+  end
+
+  def member?(first..last//step, value) when is_integer(value) and step < 0 do
+    {:ok, last <= value and value <= first and rem(value - first, step) == 0}
   end
 
   # TODO: Remove me on v2.0
@@ -5219,7 +5228,13 @@ defimpl Enumerable, for: Range do
   end
 
   # TODO: Remove me on v2.0
-  def slice(%{__struct__: Range, first: first, last: last} = range) do
+
+  slice =
+    quote generated: true do
+      slice(%{__struct__: Range, first: var!(first), last: var!(last)} = var!(range))
+    end
+
+  def unquote(slice) do
     step = if first <= last, do: 1, else: -1
     slice(Map.put(range, :step, step))
   end

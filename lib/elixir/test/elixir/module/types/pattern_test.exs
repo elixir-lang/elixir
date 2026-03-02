@@ -1290,6 +1290,12 @@ defmodule Module.Types.PatternTest do
       refute precise?([x], hd(x) == :ok)
       refute precise?([x, y], x == :ok and y == 123)
       refute precise?([x, y], x == :ok or y == :error)
+      refute precise?([x], x <= 0 or x == :infinity)
+    end
+
+    test "when guards" do
+      assert precise?([x, y], is_integer(x) when is_binary(x))
+      refute precise?([x, y], is_integer(x) when is_binary(y))
     end
 
     test "sized guards" do

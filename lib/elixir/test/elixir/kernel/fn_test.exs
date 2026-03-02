@@ -32,7 +32,7 @@ defmodule Kernel.FnTest do
 
   test "case function hoisting does not affect anonymous fns" do
     result =
-      if atom?(0) do
+      if Process.get(:unused, false) do
         user = :defined
         user
       else

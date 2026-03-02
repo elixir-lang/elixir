@@ -968,16 +968,6 @@ defmodule Protocol do
           built_in
         )
 
-        # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
-        # destructuring opaque types is illegal, Dialyzer will think none of the
-        # previous clauses matches opaque types, and without this clause, will
-        # conclude that impl_for can't handle an opaque argument). This is a hack
-        # since it relies on Dialyzer not being smart enough to conclude that all
-        # opaque types will get the any_impl_for/0 implementation.
-        Kernel.def impl_for(_) do
-          unquote(any_impl_for)
-        end
-
         # Internal handler for Structs
         Kernel.defp struct_impl_for(struct) do
           case Code.ensure_compiled(Protocol.__concat__(__MODULE__, struct)) do
@@ -1021,8 +1011,22 @@ defmodule Protocol do
         )
       end
 
+    # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
+    # destructuring opaque types is illegal, Dialyzer will think none of the
+    # previous clauses matches opaque types, and without this clause, will
+    # conclude that impl_for can't handle an opaque argument). This is a hack
+    # since it relies on Dialyzer not being smart enough to conclude that all
+    # opaque types will get the any_impl_for/0 implementation.
+    impl_for_fallback =
+      quote generated: true, bind_quoted: [] do
+        Kernel.def impl_for(_) do
+          unquote(any_impl_for)
+        end
+      end
+
     quote generated: true do
       unquote(prefix)
+      unquote(impl_for_fallback)
 
       @doc false
       @spec impl_for!(term) :: atom

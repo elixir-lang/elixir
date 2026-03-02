@@ -1802,14 +1802,15 @@ defmodule Module.Types.ExprTest do
     end
 
     test "warns on redundant clauses" do
-      assert typeerror!(
+      assert typewarn!(
                [x],
                case System.get_env(x) do
                  nil -> 1
                  b when is_binary(b) -> 2
                  other -> other
                end
-             ) == ~l"""
+             )
+             |> elem(1) =~ ~l"""
              the following clause cannot match because the previous clauses already matched all possible values:
 
                  other ->
@@ -1973,7 +1974,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "|| reports violations" do
-      assert typeerror!([x = 123], x || true) =~ """
+      assert typewarn!([x = 123], x || true) |> elem(1) =~ """
              the right-hand side of || will never be executed:
 
                  x || ...
@@ -1984,7 +1985,7 @@ defmodule Module.Types.ExprTest do
 
              """
 
-      assert typeerror!([x = 123], System.get_env("foo") || x || true) =~ """
+      assert typewarn!([x = 123], System.get_env("foo") || x || true) |> elem(1) =~ """
              the right-hand side of || (shown as ... below) will never be executed:
 
                  System.get_env("foo") || x || ...
@@ -1995,7 +1996,7 @@ defmodule Module.Types.ExprTest do
 
              """
 
-      assert typeerror!([x = false], x || true) =~ """
+      assert typewarn!([x = false], x || true) |> elem(1) =~ """
              the following conditional expression will never succeed:
 
                  x

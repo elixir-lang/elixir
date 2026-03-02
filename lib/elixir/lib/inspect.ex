@@ -696,7 +696,15 @@ defimpl Inspect, for: Range do
   end
 
   # TODO: Remove me on v2.0
-  def inspect(%{__struct__: Range, first: first, last: last} = range, opts) do
+  inspect =
+    quote generated: true do
+      inspect(
+        %{__struct__: Range, first: var!(first), last: var!(last)} = var!(range),
+        var!(opts)
+      )
+    end
+
+  def unquote(inspect) do
     step = if first <= last, do: 1, else: -1
     inspect(Map.put(range, :step, step), opts)
   end

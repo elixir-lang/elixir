@@ -319,16 +319,17 @@ defmodule Module.Types do
   defp local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context) do
     {fun, _arity} = fun_arity
     stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
+    base_info = {:def, kind, fun, expected}
 
-    {_, _, mapping, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {0, 0, [], [], context}, fn
-        {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
-          context = fresh_context(context)
-          info = {:def, kind, fun, args, guards, expected}
+    {_, _, _, mapping, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {0, 0, [], [], [], context}, fn
+        {meta, args, guards, body}, {index, total, previous, mapping, inferred, acc_context} ->
+          fresh_context = fresh_context(acc_context)
+          info = {base_info, args, guards}
 
           try do
-            {trees, _precise?, context} =
-              Pattern.of_head(args, guards, expected, info, meta, stack, context)
+            {trees, previous, context} =
+              Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
             {return_type, context} =
               Expr.of_expr(body, Descr.term(), body, stack, context)
@@ -339,9 +340,9 @@ defmodule Module.Types do
               add_inferred(inferred, args_types, return_type, total - 1, [])
 
             if type_index == -1 do
-              {index + 1, total + 1, [{index, total} | mapping], inferred, context}
+              {index + 1, total + 1, previous, [{index, total} | mapping], inferred, context}
             else
-              {index + 1, total, [{index, type_index} | mapping], inferred, context}
+              {index + 1, total, previous, [{index, type_index} | mapping], inferred, context}
             end
           rescue
             e ->
