@@ -1006,7 +1006,7 @@ defmodule Kernel.ErrorsTest do
   test "reserved word used at module top-level" do
     assert_eval_raise(
       ArgumentError,
-      ["unexpected reserved word at the top-level of the \"defmodule Foo\" block: catch"],
+      ["unexpected reserved word at the top-level of the \"defmodule Foo\" do-block: catch"],
       """
       defmodule Foo do
         def foo, do: :foo catch :bar

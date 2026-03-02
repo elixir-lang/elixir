@@ -5222,7 +5222,7 @@ defmodule Kernel do
 
   defmacro defmodule(alias, [{:do, _block}, {atom, _} | _]) when is_atom(atom) do
     raise ArgumentError,
-          "unexpected reserved word at the top-level of the \"defmodule #{Macro.to_string(alias)}\" block: #{atom}"
+          "unexpected reserved word at the top-level of the \"defmodule #{Macro.to_string(alias)}\" do-block: #{atom}"
   end
 
   defp module_meta({_, meta, _}), do: meta
