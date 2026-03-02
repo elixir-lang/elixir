@@ -12,9 +12,6 @@ defmodule Dialyzer.With do
       :other_error ->
         :other_error
 
-      {:error, msg} when is_list(msg) or is_tuple(msg) ->
-        :error
-
       {:error, msg} when is_list(msg) when is_tuple(msg) ->
         :error
 
