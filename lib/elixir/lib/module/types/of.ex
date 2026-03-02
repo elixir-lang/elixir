@@ -188,6 +188,13 @@ defmodule Module.Types.Of do
       do: %{context | subpatterns: subpatterns, vars: vars, conditional_vars: conditional_vars}
 
   @doc """
+  Returns true if all entries have the same conditional vars.
+  """
+  def all_same_conditional_vars?([{_, cond} | tail]) do
+    Enum.all?(tail, fn {_, tail_cond} -> cond == tail_cond end)
+  end
+
+  @doc """
   Executes the args with acc using conditional variables.
   """
   def with_conditional_vars(args, acc, expr, stack, context, fun) do

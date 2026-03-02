@@ -59,11 +59,20 @@ defmodule Date.Range do
     end
 
     # TODO: Remove me on v2.0
-    def member?(
-          %{__struct__: Date.Range, first_in_iso_days: first_days, last_in_iso_days: last_days} =
-            date_range,
-          date
-        ) do
+    member? =
+      quote generated: true do
+        member?(
+          %{
+            __struct__: Date.Range,
+            first_in_iso_days: var!(first_days),
+            last_in_iso_days: var!(last_days)
+          } =
+            var!(date_range),
+          var!(date)
+        )
+      end
+
+    def unquote(member?) do
       step = if first_days <= last_days, do: 1, else: -1
       member?(Map.put(date_range, :step, step), date)
     end
@@ -218,11 +227,11 @@ defmodule Date.Range do
   defimpl Inspect do
     import Kernel, except: [inspect: 2]
 
-    def inspect(%Date.Range{first: first, last: last, step: 1}, _) do
+    def inspect(%Date.Range{first: first, last: last, step: 1}, %Inspect.Opts{}) do
       "Date.range(" <> inspect(first) <> ", " <> inspect(last) <> ")"
     end
 
-    def inspect(%Date.Range{first: first, last: last, step: step}, _) do
+    def inspect(%Date.Range{first: first, last: last, step: step}, %Inspect.Opts{}) do
       "Date.range(" <> inspect(first) <> ", " <> inspect(last) <> ", #{step})"
     end
 

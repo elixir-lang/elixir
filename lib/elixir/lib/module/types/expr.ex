@@ -719,61 +719,23 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, domain, expected, clause_info, stack, context, acc) do
+  defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
     fun = fn _args_types, result, _context, acc -> union(result, acc) end
-    of_clauses_fun(clauses, domain, expected, clause_info, stack, context, acc, fun)
+    of_clauses_fun(clauses, domain, expected, base_info, stack, context, acc, fun)
   end
 
-  defp of_clauses_fun(clauses, domain, expected, clause_info, stack, original, acc, fun) do
+  defp of_clauses_fun(clauses, domain, expected, base_info, stack, original, acc, fun) do
     %{failed: failed?} = original
 
     {result, _previous, context} =
       Enum.reduce(clauses, {acc, [], original}, fn
-        {:->, meta, [head, body]} = clause, {acc, previous, context} ->
+        {:->, meta, [head, body]}, {acc, previous, context} ->
           {failed?, context} = reset_failed(context, failed?)
           {patterns, guards} = extract_head(head)
-          info = {clause_info, head, previous}
+          info = {base_info, head}
 
-          {trees, precise?, context} =
+          {trees, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
-
-          # It failed, let's try to detect if it was due a previous or current clause.
-          # The current clause will be easier to understand, so we prefer that
-          {trees, precise?, context} =
-            if context.failed and previous != [] do
-              info = {clause_info, head, []}
-
-              case Pattern.of_head(patterns, guards, domain, info, meta, stack, context) do
-                {_, _, %{failed: true}} = result -> result
-                _ -> {trees, precise?, context}
-              end
-            else
-              {trees, precise?, context}
-            end
-
-          {previous, context} =
-            if context.failed do
-              {previous, context}
-            else
-              args_types =
-                Enum.map(trees, fn {tree, _, _} ->
-                  tree
-                  |> Pattern.of_pattern_tree(stack, context)
-                  |> upper_bound()
-                end)
-
-              cond do
-                stack.mode != :infer and previous != [] and
-                    Pattern.args_subtype?(args_types, previous) ->
-                  {previous, Pattern.redundant_warn(clause, previous, stack, context)}
-
-                precise? ->
-                  {[args_types | previous], context}
-
-                true ->
-                  {previous, context}
-              end
-            end
 
           {result, context} = of_expr(body, expected, body, stack, context)
 

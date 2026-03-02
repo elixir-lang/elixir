@@ -125,7 +125,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert arguments are not kept for operators" do
     try do
-      assert !Value.truthy()
+      assert !Process.get(:unused, Value.truthy())
       flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->

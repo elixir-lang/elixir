@@ -224,7 +224,12 @@ defmodule TaskTest do
     end
 
     test "discards late replies" do
-      task = Task.async(fn -> assert_receive(:go) && :ok end)
+      task =
+        Task.async(fn ->
+          assert_receive(:go)
+          :ok
+        end)
+
       assert Task.ignore(task) == nil
       send(task.pid, :go)
       wait_until_down(task)
@@ -240,7 +245,12 @@ defmodule TaskTest do
     end
 
     test "discards late failures" do
-      task = Task.async(fn -> assert_receive(:go) && exit(:oops) end)
+      task =
+        Task.async(fn ->
+          assert_receive(:go)
+          exit(:oops)
+        end)
+
       assert Task.ignore(task) == nil
       send(task.pid, :go)
       wait_until_down(task)

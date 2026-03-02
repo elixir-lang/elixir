@@ -315,6 +315,43 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
+    test "redundant clauses" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def foo(x, _) when is_integer(x), do: :one
+          def foo(_, y) when is_integer(y), do: :two
+          def foo(x, y) when is_integer(x) and is_integer(y), do: :three
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: the following clause is redundant:
+
+                def foo(x, y) when is_integer(x) and is_integer(y)
+
+            it has type:
+
+                integer(), integer()
+
+            previous clauses have already matched on the following types:
+
+                term(), integer()
+                integer(), term()
+
+            │
+          4 │   def foo(x, y) when is_integer(x) and is_integer(y), do: :three
+            │       ~
+            │
+            └─ a.ex:4:7: A.foo/2
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
     test "mismatched locals" do
       files = %{
         "a.ex" => """
@@ -472,7 +509,8 @@ defmodule Module.Types.IntegrationTest do
 
         defimpl Itself, for: Range do
           def itself(nil), do: nil
-          def itself(range), do: range
+          def itself(%Range{} = range), do: range
+          def itself(%Range{}), do: raise "oops"
         end
         """
       }
@@ -495,6 +533,25 @@ defmodule Module.Types.IntegrationTest do
             │   ~~~~~~~~~~~~~~~~~~~~~~~~
             │
             └─ a.ex:6: Itself.Range.itself/1
+        """,
+        """
+            warning: the following clause is redundant:
+
+                def itself(%Range{})
+
+            it has type:
+
+                %Range{}
+
+            previous clauses have already matched on the following types:
+
+                %Range{}
+
+            │
+          8 │   def itself(%Range{}), do: raise "oops"
+            │       ~
+            │
+            └─ a.ex:8:7: Itself.Range.itself/1
         """
       ]
 
@@ -661,7 +718,7 @@ defmodule Module.Types.IntegrationTest do
 
             it has type:
 
-                -dynamic(%Date{})-
+                -dynamic(%Date{year: integer(), month: integer(), day: integer(), calendar: Calendar.ISO})-
 
             but expected a type that implements the Collectable protocol.
             You either passed the wrong value or you forgot to implement the protocol.
