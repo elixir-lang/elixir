@@ -1003,6 +1003,18 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "reserved word used at module top-level" do
+    assert_eval_raise(
+      ArgumentError,
+      ["unexpected reserved word at the top-level of the \"defmodule Foo\" do-block: catch"],
+      """
+      defmodule Foo do
+        def foo, do: :foo catch :bar
+      end
+      """
+    )
+  end
+
   defp bad_remote_call(x), do: x.foo()
 
   defmacro sample(0), do: 0
