@@ -4,7 +4,9 @@
 
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 -module(elixir_erl_pass).
--export([translate/3, translate_args/3, no_parens_remote/2]).
+-export([translate/3, translate_args/3, no_parens_error/2]).
+%% TODO: Remove me on Elixir v2.0.
+-export([parens_map_field/2, no_parens_remote/2]).
 -include("elixir.hrl").
 
 %% =
@@ -255,7 +257,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
           [TVar],
           [],
           [?remote(Ann, erlang, error, [
-            ?remote(Generated, elixir_erl_pass, no_parens_remote, [TVar, TRight])
+            ?remote(Generated, elixir_erl_pass, no_parens_error, [TVar, TRight])
            ])]}
       ]}, SV};
 
@@ -738,7 +740,38 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
 generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
 
-no_parens_remote(#{} = Map, Key) ->
+no_parens_error(#{} = Map, Key) ->
   {badkey, Key, Map};
-no_parens_remote(Other, _Key) ->
+no_parens_error(Other, _Key) ->
   {badmap, Other}.
+
+%% TODO: Previous Elixir code was compiled with these functions,
+%% so we have to keep them.
+no_parens_remote(nil, _Key) -> {error, {badmap, nil}};
+no_parens_remote(false, _Key) -> {error, {badmap, false}};
+no_parens_remote(true, _Key) -> {error, {badmap, true}};
+no_parens_remote(Atom, Fun) when is_atom(Atom) ->
+  Message = fun() ->
+    io_lib:format(
+      "using map.field notation (without parentheses) to invoke function ~ts.~ts() is deprecated, "
+      "you must add parentheses instead: remote.function()",
+      [elixir_aliases:inspect(Atom), Fun]
+    )
+  end,
+  'Elixir.IO':warn_once(?MODULE, Message, 3),
+  {ok, apply(Atom, Fun, [])};
+no_parens_remote(#{} = Map, Key) ->
+  {error, {badkey, Key, Map}};
+no_parens_remote(Other, _Key) ->
+  {error, {badmap, Other}}.
+
+parens_map_field(Key, Value) ->
+  Message = fun() ->
+    io_lib:format(
+      "using module.function() notation (with parentheses) to fetch map field ~ts is deprecated, "
+      "you must remove the parentheses: map.field",
+      [elixir_aliases:inspect(Key)]
+    )
+  end,
+  'Elixir.IO':warn_once(?MODULE, Message, 3),
+  Value.
