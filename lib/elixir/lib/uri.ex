@@ -795,7 +795,10 @@ defmodule URI do
     # Parts:    12                        3  4          5       6  7        8 9
     regex = ~r{^(([a-z][a-z0-9\+\-\.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i
 
-    parts = Regex.run(regex, string)
+    parts =
+      string
+      |> normalize_leading_backslashes()
+      |> then(&Regex.run(regex, &1))
 
     destructure [
                   _full,
@@ -839,6 +842,16 @@ defmodule URI do
       port: port
     }
   end
+
+  defp normalize_leading_backslashes(<<?\\, c, rest::binary>>) when c in [?/, ?\\] do
+    # Normalize leading backslashes to forward slashes so that URIs like
+    # `\/evil.com` are correctly parsed as protocol-relative (absolute) URIs
+    # per the WHATWG URL Standard, which treats `\` as equivalent to `/`.
+    # Do it recursively, to catch, e.g. "\\\\\/evil.com"
+    normalize_leading_backslashes("//" <> rest)
+  end
+
+  defp normalize_leading_backslashes(string), do: string
 
   defp nilify_query("?" <> query), do: query
   defp nilify_query(_other), do: nil
