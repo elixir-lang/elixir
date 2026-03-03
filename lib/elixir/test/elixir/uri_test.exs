@@ -1044,5 +1044,10 @@ defmodule URITest do
       assert URI.merge(base, "/foo") |> to_string() == "http://example.com/foo"
       assert URI.merge(base, "foo") |> to_string() == "http://example.com/foo"
     end
+
+    test "parses backslash-preceded URI as absolute" do
+      parsed = URI.parse("\\/evil.com")
+      assert parsed.host == "evil.com"
+    end
   end
 end
