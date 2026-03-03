@@ -70,7 +70,7 @@ handle_call(retrieve_compiler_module, _From, Config) ->
 handle_call(purge_compiler_modules, _From, Config) ->
   {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
   purge_used(Used),
-  Mods = lists:map(fun({Mod, _}) -> Mod end, Used),
+  Mods = [Mod || {Mod, Purgeable} <- Used, Purgeable],
   ModPool = {[], Mods ++ Unused, Counter},
   {reply, {ok, length(Used)}, Config#elixir_code_server{mod_pool=ModPool}};
 
@@ -112,7 +112,7 @@ handle_cast(purge_compiler_modules, Config) ->
       %% purge them asynchronously, especially because they can
       %% block the code server. Ideally we would purge them in
       %% batches, but that's not supported at the moment.
-      Mods = lists:map(fun({Mod, _}) -> Mod end, Used),
+      Mods = [Mod || {Mod, Purgeable} <- Used, Purgeable],
       Opts = [{monitor, [{tag, {purged, Mods}}]}],
       erlang:spawn_opt(fun() -> purge_used(Used) end, Opts)
   end,
