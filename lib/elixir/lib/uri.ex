@@ -805,7 +805,7 @@ defmodule URI do
         userinfo: nil
       }
 
-  Strictly speaking, square brackets are strictly valid even in the WHATWG
+  Generally speaking, square brackets are strictly invalid even in the WHATWG
   URL standard used by browsers, but browsers tend to be permissive and often
   allow invalid characters to pass through.
   """
