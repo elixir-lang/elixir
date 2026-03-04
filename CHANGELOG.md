@@ -10,7 +10,7 @@
 
 This release includes type inference of all constructs.
 
-### Type inference of function calls
+### Type inference of function definitions
 
 Elixir now performs inference of whole functions. The best way to show the new capabilities are with examples. Take the following code:
 
@@ -173,7 +173,7 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
-## v1.20.0-rc.2
+## v1.20.0-rc.2 (2026-03-04)
 
 ### 1. Enhancements
 
@@ -183,6 +183,8 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
   * [Code] Make module purging opt-in and move temporary module deletion to the background to speed up compilation times
   * [Integer] Add `Integer.popcount/1`
   * [Kernel] Move struct validation in patterns and updates to type checker, this means adding and remove struct fields will cause fewer files to be recompiled
+  * [Kernel] Add type inference across clauses. For example, if one clause says `x when is_integer(x)`, then the next clause may no longer be an integer
+  * [Kernel] Detect and warn on redundant clauses
   * [List] Add `List.first!/1` and `List.last!/1`
   * Add Software Bill of Materials guide to the Documentation
 
