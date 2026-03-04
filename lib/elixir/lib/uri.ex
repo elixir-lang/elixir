@@ -520,6 +520,16 @@ defmodule URI do
   for the URI's scheme is used for the `:port` field. The scheme is also
   normalized to lowercase.
 
+  > #### Browser compatibility {: .warning}
+  >
+  > This function does not follow the same parsing rules as browsers.
+  > Browsers adhere to the WHATWG URL standard, while this function
+  > implements RFC 3986. You should expect different behaviours between
+  > them and this function will often reject URLs that are accepted by
+  > browsers (as they tend to be permissive). Common examples include
+  > unencoded square brackets in query strings (such as `foo[bar]=baz`)
+  > and backslashes used as path separators.
+
   ## Examples
 
       iex> URI.new("https://elixir-lang.org/")
@@ -693,17 +703,25 @@ defmodule URI do
 
   This function can parse both absolute and relative URLs. You can check
   if a URI is absolute or relative by checking if the `scheme` field is
-  nil or not. Furthermore, this function expects both absolute and
-  relative URIs to be well-formed and does not perform any validation.
-  See the "Examples" section below. Use `new/1` if you want to validate
-  the URI fields after parsing.
+  nil or not.
+
+  This function expects both absolute and relative URIs to be well-formed
+  and does not perform any validation, it simply breaks the URL into parts.
+  Use `new/1` if you want to validate the URI fields after parsing.
 
   When a URI is given without a port, the value returned by `URI.default_port/1`
   for the URI's scheme is used for the `:port` field. The scheme is also
   normalized to lowercase.
 
-  If a `%URI{}` struct is given to this function, this function returns it
+  If a `URI` struct is given to this function, this function returns it
   unmodified.
+
+  > #### Browser compatibility {: .warning}
+  >
+  > This function does not follow the same parsing rules as browsers.
+  > Browsers adhere to the WHATWG URL standard, while this function
+  > implements RFC 3986. You should expect different behaviours between
+  > them, especially around corner cases.
 
   > #### `:authority` field {: .info}
   >
@@ -757,8 +775,9 @@ defmodule URI do
         userinfo: nil
       }
 
-  In contrast to `URI.new/1`, this function will parse poorly-formed
-  URIs, for example:
+  In contrast to `URI.new/1`, this function will accept poorly-formed
+  URIs and break them into components, as it does not perform validation.
+  For example:
 
       iex> URI.parse("/invalid_greater_than_in_path/>")
       %URI{
@@ -772,8 +791,8 @@ defmodule URI do
       }
 
   Another example is a URI with brackets in query strings. It is accepted
-  by `parse/1`, it is commonly accepted by browsers, but it will be refused
-  by `new/1`:
+  by `parse/1` for the same reasons as above (no validation), but it will
+  be refused by `new/1`:
 
       iex> URI.parse("/?foo[bar]=baz")
       %URI{
@@ -786,6 +805,9 @@ defmodule URI do
         userinfo: nil
       }
 
+  Strictly speaking, square brackets are strictly valid even in the WHATWG
+  URL standard used by browsers, but browsers tend to be permissive and often
+  allow invalid characters to pass through.
   """
   @spec parse(t | binary) :: t
   def parse(%URI{} = uri), do: uri
