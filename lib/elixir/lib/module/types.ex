@@ -322,7 +322,7 @@ defmodule Module.Types do
     base_info = {:def, kind, fun, expected}
 
     {_, _, _, mapping, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {0, 0, [], [], [], context}, fn
+      Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], context}, fn
         {meta, args, guards, body}, {index, total, previous, mapping, inferred, acc_context} ->
           fresh_context = fresh_context(acc_context)
           info = {base_info, args, guards}

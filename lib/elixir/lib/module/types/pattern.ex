@@ -9,6 +9,63 @@ defmodule Module.Types.Pattern do
   import Module.Types.{Helpers, Descr}
 
   @doc """
+  Returns the initial value for previous clause information.
+  """
+  def init_previous do
+    {[], none()}
+  end
+
+  defp empty_previous?({list, _descr}), do: list == []
+
+  defp previous_subtype?(_, {[], _}), do: false
+  defp previous_subtype?([], _), do: true
+  defp previous_subtype?([type], {_, descr}), do: subtype?(type, descr)
+  defp previous_subtype?(args, {_, descr}), do: subtype?(args_to_domain(args), descr)
+
+  defp concat_previous([], previous),
+    do: previous
+
+  defp concat_previous([type], {list, descr}),
+    do: {[[type] | list], union(type, descr)}
+
+  defp concat_previous(types, {list, descr}),
+    do: {[types | list], union(args_to_domain(types), descr)}
+
+  defp of_pattern_previous(types, {[], _}, _trees, _pattern_info, _tag, _stack, _context) do
+    {:ok, types}
+  end
+
+  defp of_pattern_previous(types, {_, descr}, trees, pattern_info, tag, stack, context) do
+    types =
+      case types do
+        [type] ->
+          [difference(type, descr)]
+
+        [_ | _] ->
+          types
+          |> args_to_domain()
+          |> difference(descr)
+          |> domain_to_flat_args(types)
+      end
+
+    if index = Enum.find_index(types, &empty?/1) do
+      {_, _, pattern} = Enum.fetch!(trees, index)
+      context = badpattern_error(pattern, index, tag, stack, context)
+      {:error, error_vars(pattern_info, context)}
+    else
+      {:ok, types}
+    end
+  end
+
+  defp previous_to_string({previous, _}) do
+    Enum.map_join(previous, "\n    ", fn types ->
+      types
+      |> Enum.map_join(", ", &to_quoted_string/1)
+      |> indent(4)
+    end)
+  end
+
+  @doc """
   Refine the dependencies of variables represented by version.
   """
   def of_changed([], _stack, context) do
@@ -129,16 +186,17 @@ defmodule Module.Types.Pattern do
   Every step we deduct previous clauses from the current ones and,
   in case of failures, we try to break down the root cause.
   """
-  def of_head(patterns, guards, expected, previous, tag, meta, stack, original_context) do
+  def of_head(patterns, guards, expected, previous, tag, meta, stack, original) do
     stack = %{stack | meta: meta}
 
     {trees, precise?, context} =
-      of_precise_head(patterns, guards, expected, previous, tag, stack, original_context)
+      of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
-    if context.failed and previous != [] and Keyword.get(meta, :generated, false) != true do
+    if context.failed and not empty_previous?(previous) and
+         Keyword.get(meta, :generated, false) != true do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
-      case of_precise_head(patterns, guards, expected, [], tag, stack, original_context) do
+      case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
         {other_trees, _, %{failed: true} = other_context} ->
           {other_trees, previous, other_context}
 
@@ -150,7 +208,7 @@ defmodule Module.Types.Pattern do
               |> upper_bound()
             end)
 
-          if args_subtype?(args_types, previous) do
+          if previous_subtype?(args_types, previous) do
             warning = {:redundant, tag, expected, args_types, previous, other_context}
             {other_trees, previous, warn(__MODULE__, warning, meta, stack, other_context)}
           else
@@ -166,12 +224,12 @@ defmodule Module.Types.Pattern do
         end)
 
       cond do
-        args_subtype?(args_types, previous) ->
+        previous_subtype?(args_types, previous) ->
           warning = {:redundant, tag, expected, args_types, previous, context}
           {trees, previous, warn(__MODULE__, warning, meta, stack, context)}
 
         precise? ->
-          {trees, [args_types | previous], context}
+          {trees, concat_previous(args_types, previous), context}
 
         true ->
           {trees, previous, context}
@@ -190,22 +248,6 @@ defmodule Module.Types.Pattern do
       {trees, context} ->
         {trees, false, context}
     end
-  end
-
-  defp args_subtype?(_, []),
-    do: false
-
-  defp args_subtype?([], _),
-    do: true
-
-  defp args_subtype?([type], previous),
-    do: subtype?(type, Enum.reduce(previous, none(), &union(&2, hd(&1))))
-
-  defp args_subtype?(args, previous) do
-    subtype?(
-      args_to_domain(args),
-      Enum.reduce(previous, none(), &union(&2, args_to_domain(&1)))
-    )
   end
 
   @doc """
@@ -333,31 +375,6 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_intersect([], _index, acc, _pattern_info, _tag, _stack, _context) do
     {:ok, Enum.reverse(acc)}
-  end
-
-  defp of_pattern_previous(types, [], _trees, _pattern_info, _tag, _stack, _context) do
-    {:ok, types}
-  end
-
-  defp of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context) do
-    types =
-      case types do
-        [type] ->
-          [Enum.reduce(previous, type, &difference(&2, hd(&1)))]
-
-        [_ | _] ->
-          previous
-          |> Enum.reduce(args_to_domain(types), &difference(&2, args_to_domain(&1)))
-          |> domain_to_flat_args(types)
-      end
-
-    if index = Enum.find_index(types, &empty?/1) do
-      {_, _, pattern} = Enum.fetch!(trees, index)
-      context = badpattern_error(pattern, index, tag, stack, context)
-      {:error, error_vars(pattern_info, context)}
-    else
-      {:ok, types}
-    end
   end
 
   defp of_pattern_refine(types, pattern_info, tag, stack, context) do
@@ -1490,7 +1507,7 @@ defmodule Module.Types.Pattern do
       else
         _ ->
           with {_op, _meta, expr, type} <- info,
-               true <- args_subtype?(expected, previous) do
+               true <- previous_subtype?(expected, previous) do
             """
             the following clause cannot match because the previous clauses already matched all possible values:
 
@@ -1689,13 +1706,5 @@ defmodule Module.Types.Pattern do
     args
     |> Enum.map_join(", ", &to_quoted_string/1)
     |> indent(4)
-  end
-
-  defp previous_to_string(previous) do
-    Enum.map_join(previous, "\n    ", fn types ->
-      types
-      |> Enum.map_join(", ", &to_quoted_string/1)
-      |> indent(4)
-    end)
   end
 end

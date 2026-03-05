@@ -728,7 +728,7 @@ defmodule Module.Types.Expr do
     %{failed: failed?} = original
 
     {result, _previous, context} =
-      Enum.reduce(clauses, {acc, [], original}, fn
+      Enum.reduce(clauses, {acc, Pattern.init_previous(), original}, fn
         {:->, meta, [head, body]}, {acc, previous, context} ->
           {failed?, context} = reset_failed(context, failed?)
           {patterns, guards} = extract_head(head)
