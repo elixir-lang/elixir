@@ -2894,12 +2894,17 @@ defmodule Module.Types.Descr do
     # Case 1: we are removing an open map with one field. Just do the difference of that field.
     if neg_tag == :open and map_size(neg_fields) == 1 do
       [{key, value}] = Map.to_list(neg_fields)
-      t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
 
-      if empty?(t_diff) do
-        :bdd_bot
+      if tag == :closed and not is_map_key(fields, key) and not optional_static?(value) do
+        map1
       else
-        bdd_leaf(tag, Map.put(fields, key, t_diff))
+        t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
+
+        if empty?(t_diff) do
+          :bdd_bot
+        else
+          bdd_leaf(tag, Map.put(fields, key, t_diff))
+        end
       end
     else
       # Case 2: the maps have all but one key in common. Do the difference of that key.
@@ -2948,25 +2953,20 @@ defmodule Module.Types.Descr do
 
   # Both closed: the result is closed.
   defp map_literal_intersection(:closed, map1, :closed, map2) do
-    new_fields =
-      symmetrical_intersection(map1, map2, fn _, type1, type2 ->
-        non_empty_intersection!(type1, type2)
-      end)
-
-    if map_size(new_fields) < map_size(map1) or map_size(new_fields) < map_size(map2) do
-      throw(:empty)
+    if map_size(map1) > map_size(map2) do
+      :maps.iterator(map1) |> :maps.next() |> map_literal_intersection_closed(map2, [])
+    else
+      :maps.iterator(map2) |> :maps.next() |> map_literal_intersection_closed(map1, [])
     end
-
-    {:closed, new_fields}
   end
 
   # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
   defp map_literal_intersection(:open, open, :closed, closed) do
-    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
+    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_open_closed(closed)
   end
 
   defp map_literal_intersection(:closed, closed, :open, open) do
-    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
+    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_open_closed(closed)
   end
 
   # At least one tag is a tag-domain pair.
@@ -3021,20 +3021,53 @@ defmodule Module.Types.Descr do
     if map_size(new_domains) == 0, do: :closed, else: new_domains
   end
 
-  defp map_literal_intersection_loop(:none, acc), do: {:closed, acc}
+  defp map_literal_intersection_open_closed(:none, acc), do: {:closed, acc}
 
-  defp map_literal_intersection_loop({key, type1, iterator}, acc) do
+  defp map_literal_intersection_open_closed({key, type1, iterator}, acc) do
     case acc do
       %{^key => type2} ->
         acc = %{acc | key => non_empty_intersection!(type1, type2)}
-        :maps.next(iterator) |> map_literal_intersection_loop(acc)
+        map_literal_intersection_open_closed(:maps.next(iterator), acc)
 
       _ ->
         # If the key is optional in the open map, we can ignore it
         case type1 do
-          %{optional: 1} -> :maps.next(iterator) |> map_literal_intersection_loop(acc)
+          %{optional: 1} -> map_literal_intersection_open_closed(:maps.next(iterator), acc)
           _ -> throw(:empty)
         end
+    end
+  end
+
+  defp map_literal_intersection_closed(:none, map, acc) do
+    fields = :maps.from_list(acc)
+
+    # If the number of fields match, then it is empty unless the mismatched fields are not set
+    if map_size(map) != map_size(fields) do
+      :maps.fold(
+        fn
+          key, value, _acc when is_map_key(fields, key) or value == @not_set -> :ok
+          _key, _value, _acc -> throw(:empty)
+        end,
+        :ok,
+        map
+      )
+    end
+
+    {:closed, fields}
+  end
+
+  defp map_literal_intersection_closed({key, type1, iterator}, map, acc) do
+    case map do
+      %{^key => type2} ->
+        acc = [{key, non_empty_intersection!(type1, type2)} | acc]
+        map_literal_intersection_closed(:maps.next(iterator), map, acc)
+
+      # If the field is literally not set, we are fine
+      _ when type1 == @not_set ->
+        map_literal_intersection_closed(:maps.next(iterator), map, acc)
+
+      _ ->
+        throw(:empty)
     end
   end
 

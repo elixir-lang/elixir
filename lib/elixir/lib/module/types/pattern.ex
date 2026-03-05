@@ -424,7 +424,14 @@ defmodule Module.Types.Pattern do
 
   defp badpattern_error(expr, index, tag, stack, context) do
     meta = error_meta(expr, stack)
-    error = {:badpattern, meta, index, tag, context}
+
+    error =
+      if is_integer(index) do
+        {:badpattern, meta, index, tag, context}
+      else
+        {:badmatch, meta, expr, context}
+      end
+
     error(__MODULE__, error, meta, stack, context)
   end
 

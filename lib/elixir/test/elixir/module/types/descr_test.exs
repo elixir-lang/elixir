@@ -329,6 +329,24 @@ defmodule Module.Types.DescrTest do
              |> equal?(closed_map(tag: atom([true]), halted: atom([true]), assigns: term()))
     end
 
+    # Closed maps with not set keys should have no impact
+    test "map closed with not set keys" do
+      assert intersection(closed_map(a: integer()), closed_map(a: integer(), b: not_set())) ==
+               closed_map(a: integer())
+
+      assert intersection(closed_map(a: integer(), b: not_set()), closed_map(a: integer())) ==
+               closed_map(a: integer())
+
+      assert intersection(closed_map(a: integer()), closed_map(a: not_set())) ==
+               none()
+
+      assert intersection(
+               closed_map(a: integer(), b: not_set()),
+               closed_map(a: integer(), c: not_set())
+             ) ==
+               closed_map(a: integer())
+    end
+
     test "map with domain keys" do
       # %{..., int => t1, atom => t2} and %{int => t3}
       # intersection is %{int => t1 and t3, atom => none}
@@ -554,25 +572,35 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map" do
-      assert empty?(difference(open_map(), open_map()))
-      assert empty?(difference(open_map(), term()))
-      assert equal?(difference(open_map(), none()), open_map())
+      assert difference(open_map(), open_map()) == none()
+      assert difference(open_map(), term()) == none()
+      assert difference(open_map(), none()) == open_map()
+
       assert empty?(difference(closed_map(a: integer()), open_map()))
-      assert empty?(difference(closed_map(a: integer()), closed_map(a: integer())))
-      assert empty?(difference(closed_map(a: integer()), open_map(a: integer())))
-      assert empty?(difference(closed_map(a: integer()), open_map(b: if_set(integer()))))
 
       assert difference(closed_map(a: integer(), b: if_set(atom())), closed_map(a: integer()))
              |> difference(closed_map(a: integer(), b: atom()))
              |> empty?()
 
+      refute empty?(difference(open_map(), empty_map()))
+
+      # Difference with single field closed map on rhs
+      assert difference(closed_map(a: integer()), closed_map(a: integer())) == none()
+
       assert difference(open_map(a: atom()), closed_map(b: integer()))
              |> equal?(open_map(a: atom()))
 
-      refute empty?(difference(open_map(), empty_map()))
-
       assert difference(open_map(a: integer()), closed_map(b: boolean()))
              |> equal?(open_map(a: integer()))
+
+      # Difference with single field open map on rhs (they are optimized)
+      assert difference(closed_map(a: integer()), open_map(a: integer())) == none()
+      assert difference(closed_map(a: integer()), open_map(a: if_set(integer()))) == none()
+
+      assert difference(closed_map(a: integer()), open_map(b: integer())) ==
+               closed_map(a: integer())
+
+      assert difference(closed_map(a: integer()), open_map(b: if_set(integer()))) == none()
     end
 
     test "map (struct optimizations)" do
