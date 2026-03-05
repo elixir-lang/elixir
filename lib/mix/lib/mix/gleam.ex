@@ -107,7 +107,7 @@ defmodule Mix.Gleam do
     :error, :enoent ->
       Mix.raise(
         "The \"gleam\" executable is not available in your PATH. " <>
-          "Please install it, as one of your dependencies requires it. "
+          "Please install it, as one of your dependencies requires it"
       )
   else
     {response, 0} ->
