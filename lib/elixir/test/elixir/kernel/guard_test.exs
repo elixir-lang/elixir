@@ -483,6 +483,14 @@ defmodule Kernel.GuardTest do
              """
     end
 
+    defguard in_list(a) when Kernel.in(a, [:test])
+
+    test "expands remote functions" do
+      assert expand_defguard_to_string(:in_list, [:not_test], :guard) == """
+             :erlang.\"=:=\"(:not_test, :test)
+             """
+    end
+
     defp expand_defguard_to_string(fun, args, context) do
       {{:., [], [__MODULE__, fun]}, [], args}
       |> Macro.expand(%{__ENV__ | context: context})

@@ -4711,8 +4711,6 @@ defmodule Kernel do
         end
 
       [head | tail] = list ->
-        # We only expand lists in the body if they are relatively
-        # short and it is made only of literal expressions.
         case in_body? do
           false -> in_list(left, head, tail, expand, list)
           true -> quote(do: :lists.member(unquote(left), unquote(right)))

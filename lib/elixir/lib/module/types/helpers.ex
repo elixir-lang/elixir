@@ -329,6 +329,13 @@ defmodule Module.Types.Helpers do
             end
         end
 
+      {{:., _, [:lists, :member]}, meta, [expr, [_ | _] = args]} = call ->
+        if Enum.any?(args, &match?({:|, _, [_, _]}, &1)) do
+          call
+        else
+          {:in, meta, [expr, args]}
+        end
+
       {{:., _, [Elixir.String.Chars, :to_string]}, meta, [arg]} ->
         {:to_string, meta, [arg]}
 

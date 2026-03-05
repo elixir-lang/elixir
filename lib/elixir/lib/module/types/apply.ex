@@ -2021,6 +2021,10 @@ defmodule Module.Types.Apply do
 
   alias Inspect.Algebra, as: IA
 
+  defp type_comparison_to_string(:lists, :member, left, right) do
+    type_comparison_to_string(Kernel, :in, left, right)
+  end
+
   defp type_comparison_to_string(mod, fun, left, right) do
     {_, fun, _, _} = :elixir_rewrite.erl_to_ex(mod, fun, [left, right])
 
