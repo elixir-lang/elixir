@@ -509,17 +509,23 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_elixir_modules(module, hint) do
-    name = Atom.to_string(module)
-    depth = length(String.split(name, ".")) + 1
-    base = name <> "." <> hint
+    prefix = Atom.to_string(module) <> "."
+    prefix_size = byte_size(prefix)
+    base = prefix <> hint
 
     for mod <- match_modules(base, module == Elixir),
-        parts = String.split(mod, "."),
-        depth <= length(parts),
-        name = Enum.at(parts, depth - 1),
+        rest = binary_part(mod, prefix_size, byte_size(mod) - prefix_size),
+        name = elixir_submodule_name(rest),
         valid_alias_piece?("." <> name),
         uniq: true,
         do: %{kind: :module, name: name}
+  end
+
+  defp elixir_submodule_name(rest) do
+    case :binary.match(rest, ".") do
+      {pos, _} -> binary_part(rest, 0, pos)
+      :nomatch -> rest
+    end
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
