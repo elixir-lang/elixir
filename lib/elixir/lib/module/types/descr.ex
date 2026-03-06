@@ -37,16 +37,22 @@ defmodule Module.Types.Descr do
 
   defmacro bdd_leaf(arg1, arg2), do: {arg1, arg2}
 
+  # Map fields are stored as orddicts (sorted key-value lists).
+  @fields_new []
+  defguardp is_fields(fields) when is_list(fields)
+  defguardp is_fields_empty(fields) when fields == []
+  defguardp fields_size(fields) when length(fields)
+
   @domain_key_types [:binary, :integer, :float, :pid, :port, :reference] ++
                       [:fun, :atom, :tuple, :map, :list]
 
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top {:open, %{}}
+  @map_top {:open, @fields_new}
   @non_empty_list_top {:term, :term}
   @tuple_top {:open, []}
-  @map_empty {:closed, %{}}
+  @map_empty {:closed, @fields_new}
 
   # The top BDD for each arity.
   @fun_bdd_top :bdd_top
@@ -628,7 +634,7 @@ defmodule Module.Types.Descr do
 
   defp numberize(:map, bdd) do
     bdd_map(bdd, fn {tag, fields} ->
-      {tag, fields |> Map.to_list() |> Map.new(fn {key, value} -> {key, numberize(value)} end)}
+      {tag, fields_map(fn _key, value -> numberize(value) end, fields)}
     end)
   end
 
@@ -688,7 +694,7 @@ defmodule Module.Types.Descr do
         :empty
 
       [{:closed, fields, _negs}] ->
-        Enum.all?(Map.to_list(fields), fn {_, v} -> static_singleton?(v) end)
+        Enum.all?(fields_to_list(fields), fn {_, v} -> static_singleton?(v) end)
 
       _ ->
         false
@@ -2692,7 +2698,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_descr_pairs([], fields, domain, dynamic?) do
-    {fields |> Enum.reverse() |> :maps.from_list(), domain, dynamic?}
+    {fields |> Enum.reverse() |> fields_from_list(), domain, dynamic?}
   end
 
   defp tuple_tag_to_type(:open), do: term_or_optional()
@@ -2720,7 +2726,7 @@ defmodule Module.Types.Descr do
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
 
-  defp map_new(tag, fields = %{}), do: bdd_leaf(tag, fields)
+  defp map_new(tag, fields), do: bdd_leaf(tag, fields)
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
@@ -2747,10 +2753,10 @@ defmodule Module.Types.Descr do
         map1
 
       :any_map ->
-        {:open, %{}, []}
+        {:open, @fields_new, []}
 
       {:one_key_difference, key, v1, v2} ->
-        new_pos = Map.put(pos1, key, union(v1, v2))
+        new_pos = fields_store(key, union(v1, v2), pos1)
         {tag1, new_pos, []}
 
       :left_subtype_of_right ->
@@ -2766,28 +2772,26 @@ defmodule Module.Types.Descr do
 
   defp map_union_optimization_strategy(tag1, pos1, tag2, pos2)
   defp map_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
-  defp map_union_optimization_strategy(:open, empty, _, _) when empty == %{}, do: :any_map
-  defp map_union_optimization_strategy(_, _, :open, empty) when empty == %{}, do: :any_map
+
+  defp map_union_optimization_strategy(:open, empty, _, _) when is_fields_empty(empty),
+    do: :any_map
+
+  defp map_union_optimization_strategy(_, _, :open, empty) when is_fields_empty(empty),
+    do: :any_map
 
   defp map_union_optimization_strategy(tag, pos1, tag, pos2)
-       when map_size(pos1) == map_size(pos2) do
-    :maps.iterator(pos1)
-    |> :maps.next()
-    |> do_map_union_optimization_strategy(pos2, :all_equal)
+       when fields_size(pos1) == fields_size(pos2) do
+    do_map_union_optimization_strategy(pos1, pos2, :all_equal)
   end
 
   defp map_union_optimization_strategy(:open, pos1, _, pos2)
-       when map_size(pos1) <= map_size(pos2) do
-    :maps.iterator(pos1)
-    |> :maps.next()
-    |> do_map_union_optimization_strategy(pos2, :right_subtype_of_left)
+       when fields_size(pos1) <= fields_size(pos2) do
+    do_map_union_optimization_strategy(pos1, pos2, :right_subtype_of_left)
   end
 
   defp map_union_optimization_strategy(_, pos1, :open, pos2)
-       when map_size(pos1) >= map_size(pos2) do
-    :maps.iterator(pos2)
-    |> :maps.next()
-    |> do_map_union_optimization_strategy(pos1, :right_subtype_of_left)
+       when fields_size(pos1) >= fields_size(pos2) do
+    do_map_union_optimization_strategy(pos2, pos1, :right_subtype_of_left)
     |> case do
       :right_subtype_of_left -> :left_subtype_of_right
       nil -> nil
@@ -2796,12 +2800,12 @@ defmodule Module.Types.Descr do
 
   defp map_union_optimization_strategy(_, _, _, _), do: nil
 
-  defp do_map_union_optimization_strategy(:none, _, status), do: status
+  defp do_map_union_optimization_strategy([], _, status), do: status
 
-  defp do_map_union_optimization_strategy({key, v1, iterator}, pos2, status) do
-    with %{^key => v2} <- pos2,
+  defp do_map_union_optimization_strategy([{key, v1} | rest], pos2, status) do
+    with {:ok, v2} <- fields_find(key, pos2),
          next_status when next_status != nil <- map_union_next_strategy(key, v1, v2, status) do
-      do_map_union_optimization_strategy(:maps.next(iterator), pos2, next_status)
+      do_map_union_optimization_strategy(rest, pos2, next_status)
     else
       _ -> nil
     end
@@ -2892,25 +2896,25 @@ defmodule Module.Types.Descr do
   # Optimizations on single maps.
   defp map_difference(bdd_leaf(tag, fields) = map1, bdd_leaf(neg_tag, neg_fields) = map2) do
     # Case 1: we are removing an open map with one field. Just do the difference of that field.
-    if neg_tag == :open and map_size(neg_fields) == 1 do
-      [{key, value}] = Map.to_list(neg_fields)
+    if neg_tag == :open and fields_size(neg_fields) == 1 do
+      [{key, value}] = fields_to_list(neg_fields)
 
-      if tag == :closed and not is_map_key(fields, key) and not optional_static?(value) do
+      if tag == :closed and not fields_is_key(key, fields) and not optional_static?(value) do
         map1
       else
-        t_diff = difference(Map.get(fields, key, map_key_tag_to_type(tag)), value)
+        t_diff = difference(fields_get(fields, key, map_key_tag_to_type(tag)), value)
 
         if empty?(t_diff) do
           :bdd_bot
         else
-          bdd_leaf(tag, Map.put(fields, key, t_diff))
+          bdd_leaf(tag, fields_store(key, t_diff, fields))
         end
       end
     else
       # Case 2: the maps have all but one key in common. Do the difference of that key.
       case map_all_but_one(tag, fields, neg_tag, neg_fields) do
         {diff_key, type1, type2} ->
-          bdd_leaf(tag, Map.replace!(fields, diff_key, difference(type1, type2)))
+          bdd_leaf(tag, fields_store(diff_key, difference(type1, type2), fields))
 
         _ ->
           bdd_difference(map1, map2, &map_leaf_disjoint?/2)
@@ -2928,45 +2932,50 @@ defmodule Module.Types.Descr do
     disjoint_structs?(fields1, fields2)
   end
 
-  defp disjoint_structs?(%{__struct__: %{atom: atom} = d1}, %{__struct__: d2})
-       when map_size(d1) == 1 do
-    disjoint_atom_descr?(atom, d2)
-  end
+  defp disjoint_structs?(fields1, fields2) do
+    case {fields_find(:__struct__, fields1), fields_find(:__struct__, fields2)} do
+      {{:ok, %{atom: atom} = d1}, {:ok, d2}} when map_size(d1) == 1 ->
+        disjoint_atom_descr?(atom, d2)
 
-  defp disjoint_structs?(%{__struct__: d1}, %{__struct__: %{atom: atom} = d2})
-       when map_size(d2) == 1 do
-    disjoint_atom_descr?(atom, d1)
-  end
+      {{:ok, d1}, {:ok, %{atom: atom} = d2}} when map_size(d2) == 1 ->
+        disjoint_atom_descr?(atom, d1)
 
-  defp disjoint_structs?(_, _), do: false
+      _ ->
+        false
+    end
+  end
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
   defp map_literal_intersection(:open, map1, :open, map2) do
     new_fields =
-      symmetrical_merge(map1, map2, fn _, type1, type2 ->
-        non_empty_intersection!(type1, type2)
-      end)
+      fields_merge(
+        fn _, type1, type2 ->
+          non_empty_intersection!(type1, type2)
+        end,
+        map1,
+        map2
+      )
 
     {:open, new_fields}
   end
 
   # Both closed: the result is closed.
   defp map_literal_intersection(:closed, map1, :closed, map2) do
-    if map_size(map1) > map_size(map2) do
-      :maps.iterator(map1) |> :maps.next() |> map_literal_intersection_closed(map2, [])
+    if fields_size(map1) > fields_size(map2) do
+      map_literal_intersection_closed(map1, map2, [])
     else
-      :maps.iterator(map2) |> :maps.next() |> map_literal_intersection_closed(map1, [])
+      map_literal_intersection_closed(map2, map1, [])
     end
   end
 
   # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
   defp map_literal_intersection(:open, open, :closed, closed) do
-    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_open_closed(closed)
+    map_literal_intersection_open_closed(open, closed)
   end
 
   defp map_literal_intersection(:closed, closed, :open, open) do
-    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_open_closed(closed)
+    map_literal_intersection_open_closed(open, closed)
   end
 
   # At least one tag is a tag-domain pair.
@@ -2987,7 +2996,7 @@ defmodule Module.Types.Descr do
     # We do that by computing intersection on all key labels in both map1 and map2,
     # using default values when a key is not present.
     {tag_or_domains,
-     symmetrical_merge(map1, default1, map2, default2, fn _key, v1, v2 ->
+     fields_merge_with_defaults(map1, default1, map2, default2, fn _key, v1, v2 ->
        non_empty_intersection!(v1, v2)
      end)}
   end
@@ -3021,52 +3030,49 @@ defmodule Module.Types.Descr do
     if map_size(new_domains) == 0, do: :closed, else: new_domains
   end
 
-  defp map_literal_intersection_open_closed(:none, acc), do: {:closed, acc}
+  defp map_literal_intersection_open_closed([], acc), do: {:closed, acc}
 
-  defp map_literal_intersection_open_closed({key, type1, iterator}, acc) do
-    case acc do
-      %{^key => type2} ->
-        acc = %{acc | key => non_empty_intersection!(type1, type2)}
-        map_literal_intersection_open_closed(:maps.next(iterator), acc)
+  defp map_literal_intersection_open_closed([{key, type1} | rest], acc) do
+    case fields_find(key, acc) do
+      {:ok, type2} ->
+        acc = fields_store(key, non_empty_intersection!(type1, type2), acc)
+        map_literal_intersection_open_closed(rest, acc)
 
-      _ ->
+      :error ->
         # If the key is optional in the open map, we can ignore it
         case type1 do
-          %{optional: 1} -> map_literal_intersection_open_closed(:maps.next(iterator), acc)
+          %{optional: 1} -> map_literal_intersection_open_closed(rest, acc)
           _ -> throw(:empty)
         end
     end
   end
 
-  defp map_literal_intersection_closed(:none, map, acc) do
-    fields = :maps.from_list(acc)
+  defp map_literal_intersection_closed([], map, acc) do
+    fields = fields_from_list(acc)
 
     # If the number of fields match, then it is empty unless the mismatched fields are not set
-    if map_size(map) != map_size(fields) do
-      :maps.fold(
-        fn
-          key, value, _acc when is_map_key(fields, key) or value == @not_set -> :ok
-          _key, _value, _acc -> throw(:empty)
-        end,
-        :ok,
-        map
-      )
+    if fields_size(map) != fields_size(fields) do
+      for {key, value} <- fields_to_list(map) do
+        unless fields_is_key(key, fields) or value == @not_set do
+          throw(:empty)
+        end
+      end
     end
 
     {:closed, fields}
   end
 
-  defp map_literal_intersection_closed({key, type1, iterator}, map, acc) do
-    case map do
-      %{^key => type2} ->
+  defp map_literal_intersection_closed([{key, type1} | rest], map, acc) do
+    case fields_find(key, map) do
+      {:ok, type2} ->
         acc = [{key, non_empty_intersection!(type1, type2)} | acc]
-        map_literal_intersection_closed(:maps.next(iterator), map, acc)
+        map_literal_intersection_closed(rest, map, acc)
 
       # If the field is literally not set, we are fine
-      _ when type1 == @not_set ->
-        map_literal_intersection_closed(:maps.next(iterator), map, acc)
+      :error when type1 == @not_set ->
+        map_literal_intersection_closed(rest, map, acc)
 
-      _ ->
+      :error ->
         throw(:empty)
     end
   end
@@ -3145,9 +3151,12 @@ defmodule Module.Types.Descr do
 
   # Optimization: if the key does not exist in the map, avoid building
   # if_set/not_set pairs and return the popped value directly.
-  defp map_fetch_key_static(%{map: bdd_leaf(tag_or_domains, fields)}, key)
-       when not is_map_key(fields, key) do
-    {true, map_domain_tag_to_type(tag_or_domains, :atom)}
+  defp map_fetch_key_static(%{map: bdd_leaf(tag_or_domains, fields) = bdd}, key) do
+    if fields_is_key(key, fields) do
+      bdd |> map_bdd_to_dnf() |> map_dnf_fetch_static(key)
+    else
+      {true, map_domain_tag_to_type(tag_or_domains, :atom)}
+    end
   end
 
   defp map_fetch_key_static(%{map: bdd}, key) do
@@ -3160,32 +3169,34 @@ defmodule Module.Types.Descr do
   # Takes a map DNF and returns the union of types it can take for a given key.
   # If the key may be undefined, it will contain the `not_set()` type.
   defp map_dnf_fetch_static(dnf, key) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives and key exists, return its value
-      {_tag, %{^key => value}, []}, acc ->
-        value |> union(acc)
+    Enum.reduce(dnf, none(), fn {tag, fields, negs}, acc ->
+      case {negs, fields_find(key, fields)} do
+        # Optimization: if there are no negatives and key exists, return its value
+        {[], {:ok, value}} ->
+          union(value, acc)
 
-      # Optimization: if there are no negatives, return the default one
-      {tag, %{}, []}, acc ->
-        if tag == :open do
-          throw(:open)
-        else
-          map_key_tag_to_type(tag) |> union(acc)
-        end
+        # Optimization: if there are no negatives and no fields, return the default one
+        {[], :error} when is_fields_empty(fields) ->
+          if tag == :open do
+            throw(:open)
+          else
+            map_key_tag_to_type(tag) |> union(acc)
+          end
 
-      {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_key(tag, fields, key)
+        _ ->
+          {fst, snd} = map_pop_key(tag, fields, key)
 
-        case map_split_negative_key(negs, key) do
-          :empty ->
-            acc
+          case map_split_negative_key(negs, key) do
+            :empty ->
+              acc
 
-          negative ->
-            negative
-            |> pair_make_disjoint()
-            |> pair_eliminate_negations_fst(fst, snd)
-            |> union(acc)
-        end
+            negative ->
+              negative
+              |> pair_make_disjoint()
+              |> pair_eliminate_negations_fst(fst, snd)
+              |> union(acc)
+          end
+      end
     end)
   catch
     :open -> {true, term()}
@@ -3256,9 +3267,9 @@ defmodule Module.Types.Descr do
 
   defp has_empty_map?(dnf) do
     Enum.any?(dnf, fn {_, fields, negs} ->
-      Enum.all?(Map.to_list(fields), fn {_key, value} -> optional_static?(value) end) and
+      Enum.all?(fields_to_list(fields), fn {_key, value} -> optional_static?(value) end) and
         Enum.all?(negs, fn {_, fields} ->
-          not Enum.all?(Map.to_list(fields), fn {_key, value} -> optional_static?(value) end)
+          not Enum.all?(fields_to_list(fields), fn {_key, value} -> optional_static?(value) end)
         end)
     end)
   end
@@ -3295,24 +3306,20 @@ defmodule Module.Types.Descr do
       domain_keys_type ->
         {_seen, acc} =
           bdd_reduce(bdd, {%{}, domain_keys_type}, fn {_tag, fields}, seen_acc ->
-            :maps.fold(
-              fn key, _type, {seen, acc} ->
-                if Map.has_key?(seen, key) do
+            fields_fold(fields, seen_acc, fn key, _type, {seen, acc} ->
+              if Map.has_key?(seen, key) do
+                {seen, acc}
+              else
+                {_, value} = map_dnf_fetch_static(dnf, key)
+                seen = Map.put(seen, key, [])
+
+                if empty?(value) do
                   {seen, acc}
                 else
-                  {_, value} = map_dnf_fetch_static(dnf, key)
-                  seen = Map.put(seen, key, [])
-
-                  if empty?(value) do
-                    {seen, acc}
-                  else
-                    {seen, union(acc, fun.(atom([key]), value))}
-                  end
+                  {seen, union(acc, fun.(atom([key]), value))}
                 end
-              end,
-              seen_acc,
-              fields
-            )
+              end
+            end)
           end)
 
         acc
@@ -3511,8 +3518,13 @@ defmodule Module.Types.Descr do
         case dnf do
           # This is just an optimization to avoid creating
           # term types when updating open maps
-          [{:open, fields, []}] when not is_map_key(fields, key) ->
-            {{true, term()}, %{map: map_new(:open, fields)}}
+          [{:open, fields, []}] ->
+            if fields_is_key(key, fields) do
+              {value, descr} = map_dnf_pop_key_static(dnf, key, none())
+              {pop_optional_static(value), descr}
+            else
+              {{true, term()}, %{map: map_new(:open, fields)}}
+            end
 
           _ ->
             {value, descr} = map_dnf_pop_key_static(dnf, key, none())
@@ -3544,7 +3556,7 @@ defmodule Module.Types.Descr do
     bdd =
       bdd_map(bdd, fn
         {:closed, fields} when type == @not_set -> {:closed, fields}
-        {tag, fields} -> {tag, Map.put(fields, key, type)}
+        {tag, fields} -> {tag, fields_store(key, type, fields)}
       end)
 
     %{descr | map: bdd}
@@ -3597,7 +3609,7 @@ defmodule Module.Types.Descr do
   defp map_update_put_negated(bdd, negated, type_fun) do
     bdd_map(bdd, fn {tag, fields} ->
       fields =
-        :maps.map(
+        fields_map(
           fn key, value ->
             if :sets.is_element(key, negated) do
               value
@@ -3616,18 +3628,14 @@ defmodule Module.Types.Descr do
   defp map_update_merge_atom_key(bdd, dnf) do
     {_seen, acc} =
       bdd_reduce(bdd, {%{}, none()}, fn {_tag, fields}, seen_acc ->
-        :maps.fold(
-          fn key, _type, {seen, acc} ->
-            if Map.has_key?(seen, key) do
-              {seen, acc}
-            else
-              {_, value} = map_dnf_fetch_static(dnf, key)
-              {Map.put(seen, key, []), union(acc, value)}
-            end
-          end,
-          seen_acc,
-          fields
-        )
+        fields_fold(fields, seen_acc, fn key, _type, {seen, acc} ->
+          if Map.has_key?(seen, key) do
+            {seen, acc}
+          else
+            {_, value} = map_dnf_fetch_static(dnf, key)
+            {Map.put(seen, key, []), union(acc, value)}
+          end
+        end)
       end)
 
     acc
@@ -3635,19 +3643,15 @@ defmodule Module.Types.Descr do
 
   defp map_update_any_atom_key?(bdd, dnf) do
     bdd_reduce(bdd, %{}, fn {_tag, fields}, acc ->
-      :maps.fold(
-        fn key, _type, acc ->
-          if Map.has_key?(acc, key) do
-            acc
-          else
-            {_, value} = map_dnf_fetch_static(dnf, key)
-            not empty?(value) and throw(:found_key)
-            Map.put(acc, key, [])
-          end
-        end,
-        acc,
-        fields
-      )
+      fields_fold(fields, acc, fn key, _type, acc ->
+        if Map.has_key?(acc, key) do
+          acc
+        else
+          {_, value} = map_dnf_fetch_static(dnf, key)
+          not empty?(value) and throw(:found_key)
+          Map.put(acc, key, [])
+        end
+      end)
     end)
   catch
     :found_key -> true
@@ -3936,8 +3940,12 @@ defmodule Module.Types.Descr do
   defp map_materialize_negated_set(nil, _bdd), do: []
 
   defp map_materialize_negated_set(set, bdd) do
-    all_fields = bdd_reduce(bdd, %{}, fn {_, fields}, acc -> Map.merge(fields, acc) end)
-    for {atom, _} <- :maps.to_list(all_fields), not :sets.is_element(atom, set), do: atom
+    all_fields =
+      bdd_reduce(bdd, [], fn {_, fields}, acc ->
+        fields_merge(fn _, v, _ -> v end, fields, acc)
+      end)
+
+    for {atom, _} <- all_fields, not :sets.is_element(atom, set), do: atom
   end
 
   # Compute which keys are optional, which ones are required, as well as domain keys
@@ -3992,7 +4000,7 @@ defmodule Module.Types.Descr do
 
   defp non_empty_map_literals_intersection(maps) do
     try do
-      Enum.reduce(maps, {:open, %{}}, fn {next_tag, next_fields}, {tag, fields} ->
+      Enum.reduce(maps, {:open, @fields_new}, fn {next_tag, next_fields}, {tag, fields} ->
         map_literal_intersection(tag, fields, next_tag, next_fields)
       end)
     catch
@@ -4010,7 +4018,7 @@ defmodule Module.Types.Descr do
         :empty ->
           true
 
-        {tag, fields} when is_map(fields) ->
+        {tag, fields} when is_fields(fields) ->
           # We check the emptiness of the fields because non_empty_map_literal_intersection
           # will not return :empty on fields that are set to none() and that exist
           # just in one map, but not the other.
@@ -4020,7 +4028,7 @@ defmodule Module.Types.Descr do
   end
 
   defp init_map_line_empty?(tag, fields, negs) do
-    Enum.any?(Map.to_list(fields), fn {_key, type} -> empty?(type) end) or
+    Enum.any?(fields_to_list(fields), fn {_key, type} -> empty?(type) end) or
       map_line_empty?(tag, fields, negs)
   end
 
@@ -4028,7 +4036,7 @@ defmodule Module.Types.Descr do
   # an intersection or difference is computed, its emptiness is checked again.
   # So they are all necessarily non-empty.
   defp map_line_empty?(_, _pos, []), do: false
-  defp map_line_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
+  defp map_line_empty?(_, _, [{:open, empty} | _]) when is_fields_empty(empty), do: true
   defp map_line_empty?(:open, fs, [{:closed, _} | negs]), do: map_line_empty?(:open, fs, negs)
 
   defp map_line_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
@@ -4036,10 +4044,10 @@ defmodule Module.Types.Descr do
       atom_default = map_key_tag_to_type(tag)
       neg_atom_default = map_key_tag_to_type(neg_tag)
 
-      Enum.all?(Map.to_list(neg_fields), fn {neg_key, neg_type} ->
+      Enum.all?(fields_to_list(neg_fields), fn {neg_key, neg_type} ->
         cond do
           # Ignore keys present in both maps; will be handled below
-          is_map_key(fields, neg_key) ->
+          fields_is_key(neg_key, fields) ->
             true
 
           # The keys is only in the negative map, and the positive map is closed
@@ -4050,16 +4058,16 @@ defmodule Module.Types.Descr do
 
           true ->
             diff = difference(atom_default, neg_type)
-            empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
+            empty?(diff) or map_line_empty?(tag, fields_store(neg_key, diff, fields), negs)
         end
       end) and
-        Enum.all?(Map.to_list(fields), fn {key, type} ->
-          case neg_fields do
-            %{^key => neg_type} ->
+        Enum.all?(fields_to_list(fields), fn {key, type} ->
+          case fields_find(key, neg_fields) do
+            {:ok, neg_type} ->
               diff = difference(type, neg_type)
-              empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
+              empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
 
-            %{} ->
+            :error ->
               cond do
                 # The key is only in the positive map, while the negative map is open
                 # so this key is absorbed (e.g. %{a: integer} and not %{...})
@@ -4072,7 +4080,7 @@ defmodule Module.Types.Descr do
                 true ->
                   # an absent key in a open negative map can be ignored
                   diff = difference(type, neg_atom_default)
-                  empty?(diff) or map_line_empty?(tag, Map.put(fields, key, diff), negs)
+                  empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
               end
           end
         end)
@@ -4108,8 +4116,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_pop_key(tag, fields, key) do
-    case :maps.take(key, fields) do
-      {value, fields} -> {value, %{map: map_new(tag, fields)}}
+    case fields_find(key, fields) do
+      {:ok, value} -> {value, %{map: map_new(tag, fields_erase(key, fields))}}
       :error -> {map_key_tag_to_type(tag), %{map: map_new(tag, fields)}}
     end
   end
@@ -4129,14 +4137,14 @@ defmodule Module.Types.Descr do
   defp map_split_negative_key(negs, key) do
     Enum.reduce_while(negs, [], fn
       # A negation with an open map means the whole thing is empty.
-      {:open, fields}, _acc when map_size(fields) == 0 -> {:halt, :empty}
+      {:open, empty}, _acc when is_fields_empty(empty) -> {:halt, :empty}
       {tag, fields}, neg_acc -> {:cont, [map_pop_key(tag, fields, key) | neg_acc]}
     end)
   end
 
   defp map_split_negative_domain(negs, domain_key) do
     Enum.reduce_while(negs, [], fn
-      {:open, fields}, _acc when map_size(fields) == 0 ->
+      {:open, empty}, _acc when is_fields_empty(empty) ->
         {:halt, :empty}
 
       {tag, fields}, neg_acc ->
@@ -4174,7 +4182,7 @@ defmodule Module.Types.Descr do
       else
         case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
           {diff_key, type1, type2} ->
-            {Map.replace!(acc_fields, diff_key, difference(type1, type2)), acc_negs}
+            {fields_store(diff_key, difference(type1, type2), acc_fields), acc_negs}
 
           _ ->
             {acc_fields, [neg | acc_negs]}
@@ -4194,7 +4202,7 @@ defmodule Module.Types.Descr do
 
     without_negs =
       without_negs
-      |> Enum.group_by(fn {tag, fields, _} -> {tag, Map.keys(fields)} end)
+      |> Enum.group_by(fn {tag, fields, _} -> {tag, fields_keys(fields)} end)
       |> Enum.flat_map(fn {_, maps} -> map_non_negated_fuse(maps) end)
 
     without_negs ++ with_negs
@@ -4219,8 +4227,8 @@ defmodule Module.Types.Descr do
   # If all fields are the same except one, we can optimize map difference.
   defp map_all_but_one(tag1, fields1, tag2, fields2) do
     with true <- {tag1, tag2} != {:open, :closed},
-         true <- map_size(fields1) == map_size(fields2),
-         [triplet] <- map_all_but_one_find(:maps.keys(fields1), fields1, fields2, []) do
+         true <- fields_size(fields1) == fields_size(fields2),
+         [triplet] <- map_all_but_one_find(fields_keys(fields1), fields1, fields2, []) do
       triplet
     else
       _ -> :error
@@ -4228,16 +4236,15 @@ defmodule Module.Types.Descr do
   end
 
   defp map_all_but_one_find([key | keys], fields1, fields2, found) do
-    case {fields1, fields2} do
-      {%{^key => type1}, %{^key => type2}} ->
-        cond do
-          type1 == type2 -> map_all_but_one_find(keys, fields1, fields2, found)
-          found == [] -> map_all_but_one_find(keys, fields1, fields2, [{key, type1, type2}])
-          true -> []
-        end
-
-      {_, _} ->
-        []
+    with {:ok, type1} <- fields_find(key, fields1),
+         {:ok, type2} <- fields_find(key, fields2) do
+      cond do
+        type1 == type2 -> map_all_but_one_find(keys, fields1, fields2, found)
+        found == [] -> map_all_but_one_find(keys, fields1, fields2, [{key, type1, type2}])
+        true -> []
+      end
+    else
+      :error -> []
     end
   end
 
@@ -4267,21 +4274,20 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_literal_to_quoted({:closed, fields}, _opts) when map_size(fields) == 0 do
+  def map_literal_to_quoted({:closed, empty}, _opts) when is_fields_empty(empty) do
     {:empty_map, [], []}
   end
 
-  def map_literal_to_quoted({:open, fields}, _opts) when map_size(fields) == 0 do
+  def map_literal_to_quoted({:open, empty}, _opts) when is_fields_empty(empty) do
     {:map, [], []}
   end
 
-  def map_literal_to_quoted({domains = %{}, fields}, _opts)
-      when map_size(domains) == 0 and map_size(fields) == 0 do
+  def map_literal_to_quoted({domains = %{}, empty}, _opts)
+      when map_size(domains) == 0 and is_fields_empty(empty) do
     {:empty_map, [], []}
   end
 
-  def map_literal_to_quoted({:open, %{__struct__: @not_atom_or_optional} = fields}, _opts)
-      when map_size(fields) == 1 do
+  def map_literal_to_quoted({:open, [{:__struct__, @not_atom_or_optional}]}, _opts) do
     {:non_struct_map, [], []}
   end
 
@@ -4300,24 +4306,23 @@ defmodule Module.Types.Descr do
         {{domain_key, [], []}, value_quoted}
       end
 
-    sorted_fields = fields |> Map.to_list() |> Enum.sort()
-    regular_fields_quoted = map_fields_to_quoted(:closed, sorted_fields, opts)
+    regular_fields_quoted = map_fields_to_quoted(:closed, fields, opts)
     {:%{}, [], domain_fields ++ regular_fields_quoted}
   end
 
   def map_literal_to_quoted({tag, fields}, opts) do
     case tag do
       :closed ->
-        with %{__struct__: struct_descr} <- fields,
+        with {:ok, struct_descr} <- fields_find(:__struct__, fields),
              {:finite, [struct]} <- atom_fetch(struct_descr),
              info when is_list(info) <- maybe_struct(struct),
-             true <- map_size(fields) == length(info) + 1,
-             true <- Enum.all?(info, &is_map_key(fields, &1.field)) do
+             true <- fields_size(fields) == length(info) + 1,
+             true <- Enum.all?(info, &fields_is_key(&1.field, fields)) do
           collapse? = Keyword.get(opts, :collapse_structs, true)
 
           fields =
             for %{field: field} <- info,
-                type = Map.fetch!(fields, field),
+                type = fields_fetch!(field, fields),
                 # TODO: This should consider the struct default type
                 not collapse? or type != term(),
                 do: {field, type}
@@ -4329,13 +4334,11 @@ defmodule Module.Types.Descr do
            ]}
         else
           _ ->
-            sorted_fields = fields |> Map.to_list() |> Enum.sort()
-            {:%{}, [], map_fields_to_quoted(tag, sorted_fields, opts)}
+            {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
         end
 
       :open ->
-        sorted_fields = fields |> Map.to_list() |> Enum.sort()
-        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, sorted_fields, opts)]}
+        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields, opts)]}
     end
   end
 
@@ -4370,6 +4373,80 @@ defmodule Module.Types.Descr do
       not optional? -> to_quoted(type, opts)
       empty?(type) -> {:not_set, [], []}
       true -> {:if_set, [], [to_quoted(type, opts)]}
+    end
+  end
+
+  ## Map fields helpers
+  #
+  # Map fields are stored as orddicts (sorted key-value lists).
+  # These helpers wrap :orddict operations so the representation
+  # can be changed without modifying every call site.
+
+  @compile {:inline,
+            fields_from_list: 1,
+            fields_to_list: 1,
+            fields_fold: 3,
+            fields_keys: 1,
+            fields_store: 3,
+            fields_find: 2,
+            fields_get: 3,
+            fields_fetch!: 2,
+            fields_is_key: 2,
+            fields_erase: 2,
+            fields_merge: 3,
+            fields_map: 2}
+
+  defp fields_from_list(list), do: :orddict.from_list(list)
+  defp fields_to_list(fields), do: fields
+  defp fields_fold(fields, acc, fun), do: :orddict.fold(fun, acc, fields)
+
+  defp fields_keys(fields), do: :orddict.fetch_keys(fields)
+  defp fields_store(key, value, fields), do: :orddict.store(key, value, fields)
+  defp fields_find(key, fields), do: :orddict.find(key, fields)
+
+  defp fields_get(fields, key, default) do
+    case :orddict.find(key, fields) do
+      {:ok, value} -> value
+      :error -> default
+    end
+  end
+
+  defp fields_fetch!(key, fields), do: :orddict.fetch(key, fields)
+  defp fields_is_key(key, fields), do: :orddict.is_key(key, fields)
+  defp fields_erase(key, fields), do: :orddict.erase(key, fields)
+
+  defp fields_merge(fun, fields1, fields2), do: :orddict.merge(fun, fields1, fields2)
+  defp fields_map(fun, fields), do: :orddict.map(fun, fields)
+
+  defp fields_merge_with_defaults(f1, d1, f2, d2, fun) do
+    fields_merge_with_defaults(f1, d1, f2, d2, fun, [])
+  end
+
+  defp fields_merge_with_defaults([], d1, f2, _d2, fun, acc) do
+    :lists.reverse(acc, Enum.map(f2, fn {k, v2} -> {k, fun.(k, d1, v2)} end))
+  end
+
+  defp fields_merge_with_defaults(f1, _d1, [], d2, fun, acc) do
+    :lists.reverse(acc, Enum.map(f1, fn {k, v1} -> {k, fun.(k, v1, d2)} end))
+  end
+
+  defp fields_merge_with_defaults(
+         [{k1, v1} | rest1] = f1,
+         d1,
+         [{k2, v2} | rest2] = f2,
+         d2,
+         fun,
+         acc
+       ) do
+    cond do
+      k1 < k2 ->
+        fields_merge_with_defaults(rest1, d1, f2, d2, fun, [{k1, fun.(k1, v1, d2)} | acc])
+
+      k1 > k2 ->
+        fields_merge_with_defaults(f1, d1, rest2, d2, fun, [{k2, fun.(k2, d1, v2)} | acc])
+
+      true ->
+        fields_merge_with_defaults(rest1, d1, rest2, d2, fun, [{k1, fun.(k1, v1, v2)} | acc])
     end
   end
 
