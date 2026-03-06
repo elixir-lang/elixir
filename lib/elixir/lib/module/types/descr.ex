@@ -3025,11 +3025,7 @@ defmodule Module.Types.Descr do
 
   # Both closed: the result is closed.
   defp map_literal_intersection(:closed, map1, :closed, map2) do
-    if fields_size(map1) > fields_size(map2) do
-      map_literal_intersection_closed(map1, map2, [])
-    else
-      map_literal_intersection_closed(map2, map1, [])
-    end
+    {:closed, map_literal_intersection_closed(map1, map2)}
   end
 
   # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
@@ -3110,34 +3106,33 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_literal_intersection_closed([], map, acc) do
-    fields = fields_from_list(acc)
-
-    # If the number of fields match, then it is empty unless the mismatched fields are not set
-    if fields_size(map) != fields_size(fields) do
-      for {key, value} <- fields_to_list(map) do
-        unless fields_is_key(key, fields) or value == @not_set do
-          throw(:empty)
-        end
-      end
+  defp map_literal_intersection_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+    if v1 == @not_set do
+      map_literal_intersection_closed(t1, l2)
+    else
+      throw(:empty)
     end
-
-    {:closed, fields}
   end
 
-  defp map_literal_intersection_closed([{key, type1} | rest], map, acc) do
-    case fields_find(key, map) do
-      {:ok, type2} ->
-        acc = [{key, non_empty_intersection!(type1, type2)} | acc]
-        map_literal_intersection_closed(rest, map, acc)
-
-      # If the field is literally not set, we are fine
-      :error when type1 == @not_set ->
-        map_literal_intersection_closed(rest, map, acc)
-
-      :error ->
-        throw(:empty)
+  defp map_literal_intersection_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
+    if v2 == @not_set do
+      map_literal_intersection_closed(l1, t2)
+    else
+      throw(:empty)
     end
+  end
+
+  defp map_literal_intersection_closed([{key, v1} | t1], [{_, v2} | t2]) do
+    [{key, non_empty_intersection!(v1, v2)} | map_literal_intersection_closed(t1, t2)]
+  end
+
+  defp map_literal_intersection_closed(t1, t2) do
+    if Enum.any?(t1, fn {_, v} -> v != @not_set end) or
+         Enum.any?(t2, fn {_, v} -> v != @not_set end) do
+      throw(:empty)
+    end
+
+    []
   end
 
   defp non_empty_intersection!(type1, type2) do
@@ -4446,7 +4441,6 @@ defmodule Module.Types.Descr do
   # can be changed without modifying every call site.
 
   @compile {:inline,
-            fields_from_list: 1,
             fields_from_reverse_list: 1,
             fields_to_list: 1,
             fields_fold: 3,
@@ -4460,7 +4454,6 @@ defmodule Module.Types.Descr do
             fields_merge: 3,
             fields_map: 2}
 
-  defp fields_from_list(list), do: :orddict.from_list(list)
   defp fields_from_reverse_list(list), do: :lists.ukeysort(1, list)
   defp fields_to_list(fields), do: fields
   defp fields_fold(fields, acc, fun), do: :orddict.fold(fun, acc, fields)
