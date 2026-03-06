@@ -4115,18 +4115,25 @@ defmodule Module.Types.Descr do
 
   defp map_line_meet_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, acc_meet, negs)
        when k1 < k2 do
-    # Key only exists in the positive map
-    if neg_tag == :closed and not is_optional_static(v1) do
-      throw(:closed)
-    else
-      v2 = map_key_tag_to_type(neg_tag)
-      map_line_meet_empty?(k1, v1, v2, t1, l2, tag, neg_tag, acc_meet, negs)
+    cond do
+      # The key is only in the positive map, which means the difference
+      # with a negative open tag (all possible types) tag will surely be empty.
+      neg_tag == :open ->
+        map_line_meet_empty?(t1, l2, tag, neg_tag, [{k1, v1} | acc_meet], negs)
+
+      # In this case the difference will never be empty, so we can skip ahead.
+      neg_tag == :closed and not is_optional_static(v1) ->
+        throw(:closed)
+
+      true ->
+        v2 = map_key_tag_to_type(neg_tag)
+        map_line_meet_empty?(k1, v1, v2, t1, l2, tag, neg_tag, acc_meet, negs)
     end
   end
 
   defp map_line_meet_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_tag, acc_meet, negs)
        when k1 > k2 do
-    # The keys is only in the negative map, and the positive map is closed
+    # The keys is only in the negative map and the positive map is closed,
     # in that case, this field is not_set(), and its difference with the
     # negative map type is empty iff the negative type is optional.
     if tag == :closed and not is_optional_static(v2) do
@@ -4166,11 +4173,12 @@ defmodule Module.Types.Descr do
   defp map_line_fields_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, fields, negs)
        when k1 < k2 do
     cond do
-      # The key is only in the positive map, while the negative map is open
-      # so this key is absorbed (e.g. %{a: integer} and not %{...})
+      # The key is only in the positive map, which means the difference
+      # with a negative open tag (all possible types) tag will surely be empty.
       neg_tag == :open ->
         map_line_fields_empty?(t1, l2, tag, neg_tag, fields, negs)
 
+      # In this case the difference will never be empty, so we can skip ahead.
       neg_tag == :closed and not is_optional_static(v1) ->
         throw(:closed)
 
@@ -4182,7 +4190,7 @@ defmodule Module.Types.Descr do
 
   defp map_line_fields_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_tag, fields, negs)
        when k1 > k2 do
-    # The keys is only in the negative map, and the positive map is closed
+    # The keys is only in the negative map and the positive map is closed,
     # in that case, this field is not_set(), and its difference with the
     # negative map type is empty iff the negative type is optional.
     if tag == :closed do
