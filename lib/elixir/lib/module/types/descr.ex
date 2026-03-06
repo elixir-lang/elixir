@@ -3030,11 +3030,11 @@ defmodule Module.Types.Descr do
 
   # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
   defp map_literal_intersection(:open, open, :closed, closed) do
-    map_literal_intersection_open_closed(open, closed)
+    {:closed, map_literal_intersection_open_closed(open, closed)}
   end
 
   defp map_literal_intersection(:closed, closed, :open, open) do
-    map_literal_intersection_open_closed(open, closed)
+    {:closed, map_literal_intersection_open_closed(open, closed)}
   end
 
   # At least one tag is a tag-domain pair.
@@ -3089,20 +3089,28 @@ defmodule Module.Types.Descr do
     if map_size(new_domains) == 0, do: :closed, else: new_domains
   end
 
-  defp map_literal_intersection_open_closed([], acc), do: {:closed, acc}
+  defp map_literal_intersection_open_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+    # If the type in the open map is optional, we continue
+    case v1 do
+      %{optional: 1} -> map_literal_intersection_open_closed(t1, l2)
+      _ -> throw(:empty)
+    end
+  end
 
-  defp map_literal_intersection_open_closed([{key, type1} | rest], acc) do
-    case fields_find(key, acc) do
-      {:ok, type2} ->
-        acc = fields_store(key, non_empty_intersection!(type1, type2), acc)
-        map_literal_intersection_open_closed(rest, acc)
+  defp map_literal_intersection_open_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
+    # Anything in the closed map not in open is preserved
+    [{k2, v2} | map_literal_intersection_open_closed(l1, t2)]
+  end
 
-      :error ->
-        # If the key is optional in the open map, we can ignore it
-        case type1 do
-          %{optional: 1} -> map_literal_intersection_open_closed(rest, acc)
-          _ -> throw(:empty)
-        end
+  defp map_literal_intersection_open_closed([{key, v1} | t1], [{_, v2} | t2]) do
+    [{key, non_empty_intersection!(v1, v2)} | map_literal_intersection_open_closed(t1, t2)]
+  end
+
+  defp map_literal_intersection_open_closed(t1, t2) do
+    if Enum.all?(t1, fn {_, v} -> match?(%{optional: 1}, v) end) do
+      t2
+    else
+      throw(:empty)
     end
   end
 
