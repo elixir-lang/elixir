@@ -356,9 +356,9 @@ jobs:
             echo "builds/elixir/${surrogate_key}" >> purge_keys.txt
 
             if [ "$zip" == "elixir-otp-${oldest_otp}.zip" ]; then
-              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
+              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${GITHUB_REF_NAME}.zip" \
                 --cache-control "public,max-age=3600" \
-                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
+                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${GITHUB_REF_NAME}\",\"surrogate-control\":\"public,max-age=604800\"}"
               echo builds/elixir/${GITHUB_REF_NAME} >> purge_keys.txt
             fi
           done
