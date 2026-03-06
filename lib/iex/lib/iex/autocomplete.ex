@@ -604,8 +604,7 @@ defmodule IEx.Autocomplete do
 
   defp match_modules(hint, elixir_root?) do
     get_modules(elixir_root?)
-    |> Enum.sort()
-    |> Enum.dedup()
+    |> :lists.usort()
     |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
     |> Enum.take_while(&String.starts_with?(&1, hint))
   end
@@ -615,7 +614,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_modules(false) do
-    modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+    modules = Enum.map(:erlang.loaded(), &Atom.to_string/1)
 
     case :code.get_mode() do
       :interactive -> modules ++ get_modules_from_applications()
