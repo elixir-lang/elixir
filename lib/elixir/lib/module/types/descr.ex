@@ -4100,54 +4100,66 @@ defmodule Module.Types.Descr do
 
   defp map_line_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
     if map_check_domain_keys?(tag, neg_tag) do
-      atom_default = map_key_tag_to_type(tag)
-      neg_atom_default = map_key_tag_to_type(neg_tag)
-
-      Enum.all?(fields_to_list(neg_fields), fn {neg_key, neg_type} ->
-        cond do
-          # Ignore keys present in both maps; will be handled below
-          fields_is_key(neg_key, fields) ->
-            true
-
-          # The keys is only in the negative map, and the positive map is closed
-          # in that case, this field is not_set(), and its difference with the
-          # negative map type is empty iff the negative type is optional.
-          tag == :closed ->
-            is_optional_static(neg_type) or throw(:closed)
-
-          true ->
-            diff = difference(atom_default, neg_type)
-            empty?(diff) or map_line_empty?(tag, fields_store(neg_key, diff, fields), negs)
-        end
-      end) and
-        Enum.all?(fields_to_list(fields), fn {key, type} ->
-          case fields_find(key, neg_fields) do
-            {:ok, neg_type} ->
-              diff = difference(type, neg_type)
-              empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
-
-            :error ->
-              cond do
-                # The key is only in the positive map, while the negative map is open
-                # so this key is absorbed (e.g. %{a: integer} and not %{...})
-                neg_tag == :open ->
-                  true
-
-                neg_tag == :closed and not is_optional_static(type) ->
-                  throw(:closed)
-
-                true ->
-                  # an absent key in a open negative map can be ignored
-                  diff = difference(type, neg_atom_default)
-                  empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
-              end
-          end
-        end)
+      map_line_fields_empty?(fields, neg_fields, tag, neg_tag, fields, negs)
     else
       map_line_empty?(tag, fields, negs)
     end
   catch
     :closed -> map_line_empty?(tag, fields, negs)
+  end
+
+  defp map_line_fields_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, fields, negs)
+       when k1 < k2 do
+    cond do
+      # The key is only in the positive map, while the negative map is open
+      # so this key is absorbed (e.g. %{a: integer} and not %{...})
+      neg_tag == :open ->
+        map_line_fields_empty?(t1, l2, tag, neg_tag, fields, negs)
+
+      neg_tag == :closed and not is_optional_static(v1) ->
+        throw(:closed)
+
+      true ->
+        diff = difference(v1, map_key_tag_to_type(neg_tag))
+
+        (empty?(diff) or map_line_empty?(tag, fields_store(k1, diff, fields), negs)) and
+          map_line_fields_empty?(t1, l2, tag, neg_tag, fields, negs)
+    end
+  end
+
+  defp map_line_fields_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_tag, fields, negs)
+       when k1 > k2 do
+    cond do
+      # The keys is only in the negative map, and the positive map is closed
+      # in that case, this field is not_set(), and its difference with the
+      # negative map type is empty iff the negative type is optional.
+      tag == :closed ->
+        is_optional_static(v2) or throw(:closed)
+
+      true ->
+        diff = difference(map_key_tag_to_type(tag), v2)
+
+        (empty?(diff) or map_line_empty?(tag, fields_store(k2, diff, fields), negs)) and
+          map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
+    end
+  end
+
+  defp map_line_fields_empty?([{key, v1} | t1], [{_, v2} | t2], tag, neg_tag, fields, negs) do
+    diff = difference(v1, v2)
+
+    (empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)) and
+      map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs)
+  end
+
+  defp map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs) do
+    Enum.all?(t1, fn {key, v1} ->
+      diff = difference(v1, map_key_tag_to_type(neg_tag))
+      empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
+    end) and
+      Enum.all?(t2, fn {key, v2} ->
+        diff = difference(map_key_tag_to_type(tag), v2)
+        empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
+      end)
   end
 
   # Verify the domain condition from equation (22) in paper ICFP'23 https://www.irif.fr/~gc/papers/icfp23.pdf
