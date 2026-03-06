@@ -4032,7 +4032,7 @@ defmodule Module.Types.Descr do
   defp map_line_empty?(:open, fs, [{:closed, _} | negs]), do: map_line_empty?(:open, fs, negs)
 
   defp map_line_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
-    if map_check_domain_keys(tag, neg_tag) do
+    if map_check_domain_keys?(tag, neg_tag) do
       atom_default = map_key_tag_to_type(tag)
       neg_atom_default = map_key_tag_to_type(neg_tag)
 
@@ -4047,11 +4047,6 @@ defmodule Module.Types.Descr do
           # negative map type is empty iff the negative type is optional.
           tag == :closed ->
             is_optional_static(neg_type) or throw(:closed)
-
-          # There may be value in common
-          tag == :open ->
-            diff = difference(term_or_optional(), neg_type)
-            empty?(diff) or map_line_empty?(tag, Map.put(fields, neg_key, diff), negs)
 
           true ->
             diff = difference(atom_default, neg_type)
@@ -4091,22 +4086,22 @@ defmodule Module.Types.Descr do
   # Verify the domain condition from equation (22) in paper ICFP'23 https://www.irif.fr/~gc/papers/icfp23.pdf
   # which is that every domain key type in the positive map is a subtype
   # of the corresponding domain key type in the negative map.
-  defp map_check_domain_keys(:closed, _), do: true
-  defp map_check_domain_keys(_, :open), do: true
+  defp map_check_domain_keys?(:closed, _), do: true
+  defp map_check_domain_keys?(_, :open), do: true
 
   # An open map is a subtype iff the negative domains are all present as term_or_optional()
-  defp map_check_domain_keys(:open, neg_domains) do
+  defp map_check_domain_keys?(:open, neg_domains) do
     map_size(neg_domains) == length(@domain_key_types) and
       Enum.all?(neg_domains, fn {_domain_key, type} -> subtype?(term_or_optional(), type) end)
   end
 
   # A positive domains is smaller than a closed map iff all its keys are empty or optional
-  defp map_check_domain_keys(pos_domains, :closed) do
+  defp map_check_domain_keys?(pos_domains, :closed) do
     Enum.all?(pos_domains, fn {_domain_key, type} -> empty_or_optional?(type) end)
   end
 
   # Component-wise comparison of domains
-  defp map_check_domain_keys(pos_domains, neg_domains) do
+  defp map_check_domain_keys?(pos_domains, neg_domains) do
     Enum.all?(pos_domains, fn {domain_key, type} ->
       subtype?(type, Map.get(neg_domains, domain_key, not_set()))
     end)
