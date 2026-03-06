@@ -4100,12 +4100,54 @@ defmodule Module.Types.Descr do
 
   defp map_line_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
     if map_check_domain_keys?(tag, neg_tag) do
-      map_line_fields_empty?(fields, neg_fields, tag, neg_tag, fields, negs)
+      if tag == :closed or neg_tag == :open do
+        # This implements the same map line check as tuples
+        map_line_meet_empty?(fields, neg_fields, tag, map_key_tag_to_type(neg_tag), [], negs)
+      else
+        map_line_fields_empty?(fields, neg_fields, tag, neg_tag, fields, negs)
+      end
     else
       map_line_empty?(tag, fields, negs)
     end
   catch
     :closed -> map_line_empty?(tag, fields, negs)
+  end
+
+  defp map_line_meet_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_default, acc_meet, negs)
+       when k1 < k2 do
+    map_line_meet_empty?(k1, v1, neg_default, t1, l2, tag, neg_default, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_default, acc_meet, negs)
+       when k1 > k2 do
+    v1 = map_key_tag_to_type(tag)
+    map_line_meet_empty?(k2, v1, v2, l1, t2, tag, neg_default, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([{k, v1} | t1], [{_, v2} | t2], tag, neg_default, acc_meet, negs) do
+    map_line_meet_empty?(k, v1, v2, t1, t2, tag, neg_default, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([{k1, v1} | t1], [], tag, neg_default, acc_meet, negs) do
+    map_line_meet_empty?(k1, v1, neg_default, t1, [], tag, neg_default, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([], [{k2, v2} | t2], tag, neg_default, acc_meet, negs) do
+    v1 = map_key_tag_to_type(tag)
+    map_line_meet_empty?(k2, v1, v2, [], t2, tag, neg_default, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([], [], _tag, _neg_default, _acc_meet, _negs) do
+    true
+  end
+
+  defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_default, acc_meet, negs) do
+    diff = difference(type, neg_type)
+    meet = intersection(type, neg_type)
+
+    (empty?(diff) or map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs)) and
+      (empty?(meet) or
+         map_line_meet_empty?(t1, t2, tag, neg_default, [{key, meet} | acc_meet], negs))
   end
 
   defp map_line_fields_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, fields, negs)
