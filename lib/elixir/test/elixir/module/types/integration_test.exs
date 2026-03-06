@@ -1697,7 +1697,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v5, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v6, map} = :erlang.binary_to_term(chunk)
     map
   end
 
