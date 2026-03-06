@@ -4286,28 +4286,23 @@ defmodule Module.Types.Descr do
   # If all fields are the same except one, we can optimize map difference.
   defp map_all_but_one(tag1, fields1, tag2, fields2) do
     with true <- {tag1, tag2} != {:open, :closed},
-         true <- fields_size(fields1) == fields_size(fields2),
-         [triplet] <- map_all_but_one_find(fields_keys(fields1), fields1, fields2, []) do
+         [triplet] <- map_all_but_one(fields1, fields2, []) do
       triplet
     else
       _ -> :error
     end
   end
 
-  defp map_all_but_one_find([key | keys], fields1, fields2, found) do
-    with {:ok, type1} <- fields_find(key, fields1),
-         {:ok, type2} <- fields_find(key, fields2) do
-      cond do
-        type1 == type2 -> map_all_but_one_find(keys, fields1, fields2, found)
-        found == [] -> map_all_but_one_find(keys, fields1, fields2, [{key, type1, type2}])
-        true -> []
-      end
-    else
-      :error -> []
+  defp map_all_but_one([{k, v1} | t1], [{k, v2} | t2], found) do
+    cond do
+      v1 == v2 -> map_all_but_one(t1, t2, found)
+      found == [] -> map_all_but_one(t1, t2, [{k, v1, v2}])
+      true -> []
     end
   end
 
-  defp map_all_but_one_find([], _fields1, _fields2, found), do: found
+  defp map_all_but_one([], [], found), do: found
+  defp map_all_but_one(_, _, _found), do: []
 
   defp map_to_quoted(bdd, opts) do
     bdd
