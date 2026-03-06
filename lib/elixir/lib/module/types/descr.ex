@@ -4102,7 +4102,7 @@ defmodule Module.Types.Descr do
     if map_check_domain_keys?(tag, neg_tag) do
       if tag == :closed or neg_tag == :open do
         # This implements the same map line check as tuples
-        map_line_meet_empty?(fields, neg_fields, tag, map_key_tag_to_type(neg_tag), [], negs)
+        map_line_meet_empty?(fields, neg_fields, tag, neg_tag, [], negs)
       else
         map_line_fields_empty?(fields, neg_fields, tag, neg_tag, fields, negs)
       end
@@ -4113,41 +4113,54 @@ defmodule Module.Types.Descr do
     :closed -> map_line_empty?(tag, fields, negs)
   end
 
-  defp map_line_meet_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_default, acc_meet, negs)
+  defp map_line_meet_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, acc_meet, negs)
        when k1 < k2 do
-    map_line_meet_empty?(k1, v1, neg_default, t1, l2, tag, neg_default, acc_meet, negs)
+    # Key only exists in the positive map
+    if neg_tag == :closed and not is_optional_static(v1) do
+      throw(:closed)
+    else
+      v2 = map_key_tag_to_type(neg_tag)
+      map_line_meet_empty?(k1, v1, v2, t1, l2, tag, neg_tag, acc_meet, negs)
+    end
   end
 
-  defp map_line_meet_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_default, acc_meet, negs)
+  defp map_line_meet_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_tag, acc_meet, negs)
        when k1 > k2 do
+    # The keys is only in the negative map, and the positive map is closed
+    # in that case, this field is not_set(), and its difference with the
+    # negative map type is empty iff the negative type is optional.
+    if tag == :closed and not is_optional_static(v2) do
+      throw(:closed)
+    else
+      v1 = map_key_tag_to_type(tag)
+      map_line_meet_empty?(k2, v1, v2, l1, t2, tag, neg_tag, acc_meet, negs)
+    end
+  end
+
+  defp map_line_meet_empty?([{k, v1} | t1], [{_, v2} | t2], tag, neg_tag, acc_meet, negs) do
+    map_line_meet_empty?(k, v1, v2, t1, t2, tag, neg_tag, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([{k1, v1} | t1], [], tag, neg_tag, acc_meet, negs) do
+    v2 = map_key_tag_to_type(neg_tag)
+    map_line_meet_empty?(k1, v1, v2, t1, [], tag, neg_tag, acc_meet, negs)
+  end
+
+  defp map_line_meet_empty?([], [{k2, v2} | t2], tag, neg_tag, acc_meet, negs) do
     v1 = map_key_tag_to_type(tag)
-    map_line_meet_empty?(k2, v1, v2, l1, t2, tag, neg_default, acc_meet, negs)
+    map_line_meet_empty?(k2, v1, v2, [], t2, tag, neg_tag, acc_meet, negs)
   end
 
-  defp map_line_meet_empty?([{k, v1} | t1], [{_, v2} | t2], tag, neg_default, acc_meet, negs) do
-    map_line_meet_empty?(k, v1, v2, t1, t2, tag, neg_default, acc_meet, negs)
-  end
-
-  defp map_line_meet_empty?([{k1, v1} | t1], [], tag, neg_default, acc_meet, negs) do
-    map_line_meet_empty?(k1, v1, neg_default, t1, [], tag, neg_default, acc_meet, negs)
-  end
-
-  defp map_line_meet_empty?([], [{k2, v2} | t2], tag, neg_default, acc_meet, negs) do
-    v1 = map_key_tag_to_type(tag)
-    map_line_meet_empty?(k2, v1, v2, [], t2, tag, neg_default, acc_meet, negs)
-  end
-
-  defp map_line_meet_empty?([], [], _tag, _neg_default, _acc_meet, _negs) do
+  defp map_line_meet_empty?([], [], _tag, _neg_tag, _acc_meet, _negs) do
     true
   end
 
-  defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_default, acc_meet, negs) do
+  defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_tag, acc_meet, negs) do
     diff = difference(type, neg_type)
     meet = intersection(type, neg_type)
 
     (empty?(diff) or map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs)) and
-      (empty?(meet) or
-         map_line_meet_empty?(t1, t2, tag, neg_default, [{key, meet} | acc_meet], negs))
+      (empty?(meet) or map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs))
   end
 
   defp map_line_fields_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, fields, negs)
@@ -4174,7 +4187,11 @@ defmodule Module.Types.Descr do
       # in that case, this field is not_set(), and its difference with the
       # negative map type is empty iff the negative type is optional.
       tag == :closed ->
-        is_optional_static(v2) or throw(:closed)
+        if is_optional_static(v2) do
+          map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
+        else
+          throw(:closed)
+        end
 
       true ->
         map_line_fields_empty_recur?(k2, map_key_tag_to_type(tag), v2, tag, fields, negs) and
