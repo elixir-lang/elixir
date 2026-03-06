@@ -39,7 +39,6 @@ defmodule Module.Types.Descr do
 
   # Map fields are stored as orddicts (sorted key-value lists).
   @fields_new []
-  defguardp is_fields(fields) when is_list(fields)
   defguardp is_fields_empty(fields) when fields == []
   defguardp fields_size(fields) when length(fields)
 
@@ -3999,12 +3998,13 @@ defmodule Module.Types.Descr do
   defp map_materialize_negated_set(nil, _bdd), do: []
 
   defp map_materialize_negated_set(set, bdd) do
-    all_fields =
-      bdd_reduce(bdd, [], fn {_, fields}, acc ->
-        fields_merge(fn _, v, _ -> v end, fields, acc)
+    bdd
+    |> bdd_reduce(%{}, fn {_, fields}, acc ->
+      fields_fold(fields, acc, fn atom, _, acc ->
+        if :sets.is_element(atom, set), do: acc, else: Map.put(acc, atom, true)
       end)
-
-    for {atom, _} <- all_fields, not :sets.is_element(atom, set), do: atom
+    end)
+    |> Map.keys()
   end
 
   # Compute which keys are optional, which ones are required, as well as domain keys
@@ -4077,7 +4077,7 @@ defmodule Module.Types.Descr do
         :empty ->
           true
 
-        {tag, fields} when is_fields(fields) ->
+        {tag, fields} ->
           # We check the emptiness of the fields because non_empty_map_literal_intersection
           # will not return :empty on fields that are set to none() and that exist
           # just in one map, but not the other.
@@ -4095,7 +4095,7 @@ defmodule Module.Types.Descr do
   # an intersection or difference is computed, its emptiness is checked again.
   # So they are all necessarily non-empty.
   defp map_line_empty?(_, _pos, []), do: false
-  defp map_line_empty?(_, _, [{:open, empty} | _]) when is_fields_empty(empty), do: true
+  defp map_line_empty?(_, _, [{:open, neg_fields} | _]) when is_fields_empty(neg_fields), do: true
   defp map_line_empty?(:open, fs, [{:closed, _} | negs]), do: map_line_empty?(:open, fs, negs)
 
   defp map_line_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
@@ -4175,8 +4175,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_pop_key(tag, fields, key) do
-    case fields_find(key, fields) do
-      {:ok, value} -> {value, %{map: map_new(tag, fields_erase(key, fields))}}
+    case fields_take(key, fields) do
+      {value, fields} -> {value, %{map: map_new(tag, fields)}}
       :error -> {map_key_tag_to_type(tag), %{map: map_new(tag, fields)}}
     end
   end
@@ -4448,10 +4448,10 @@ defmodule Module.Types.Descr do
             fields_keys: 1,
             fields_store: 3,
             fields_find: 2,
+            fields_take: 2,
             fields_get: 3,
             fields_fetch!: 2,
             fields_is_key: 2,
-            fields_erase: 2,
             fields_merge: 3,
             fields_map: 2}
 
@@ -4462,6 +4462,7 @@ defmodule Module.Types.Descr do
   defp fields_keys(fields), do: :orddict.fetch_keys(fields)
   defp fields_store(key, value, fields), do: :orddict.store(key, value, fields)
   defp fields_find(key, fields), do: :orddict.find(key, fields)
+  defp fields_take(key, fields), do: :orddict.take(key, fields)
 
   defp fields_get(fields, key, default) do
     case :orddict.find(key, fields) do
@@ -4472,8 +4473,6 @@ defmodule Module.Types.Descr do
 
   defp fields_fetch!(key, fields), do: :orddict.fetch(key, fields)
   defp fields_is_key(key, fields), do: :orddict.is_key(key, fields)
-  defp fields_erase(key, fields), do: :orddict.erase(key, fields)
-
   defp fields_merge(fun, fields1, fields2), do: :orddict.merge(fun, fields1, fields2)
   defp fields_map(fun, fields), do: :orddict.map(fun, fields)
 
