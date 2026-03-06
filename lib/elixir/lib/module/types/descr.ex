@@ -2698,7 +2698,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_descr_pairs([], fields, domain, dynamic?) do
-    {fields |> Enum.reverse() |> fields_from_list(), domain, dynamic?}
+    {fields_from_reverse_list(fields), domain, dynamic?}
   end
 
   defp tuple_tag_to_type(:open), do: term_or_optional()
@@ -2747,95 +2747,152 @@ defmodule Module.Types.Descr do
   @compile {:inline, map_union: 2}
   defp map_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2) do
-    case map_union_optimization_strategy(tag1, pos1, tag2, pos2) do
+  defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2)
+       when is_atom(tag1) and is_atom(tag2) do
+    case map_union_strategy(tag1, pos1, tag2, pos2) do
+      :all_equal when tag1 == :open -> map1
+      :all_equal -> map2
+      :any_map -> {:open, @fields_new, []}
+      {:one_key_difference, key, v1, v2} -> {tag1, fields_store(key, union(v1, v2), pos1), []}
+      :left_subtype_of_right -> map2
+      :right_subtype_of_left -> map1
+      :none -> nil
+    end
+  end
+
+  defp maybe_optimize_map_union(_, _), do: nil
+
+  defp map_union_strategy(:open, empty, _, _) when is_fields_empty(empty),
+    do: :any_map
+
+  defp map_union_strategy(_, _, :open, empty) when is_fields_empty(empty),
+    do: :any_map
+
+  defp map_union_strategy(tag1, fields1, tag2, fields2),
+    do: map_union_strategy(fields1, fields2, tag1, tag2, :all_equal)
+
+  defp map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
+       when k1 < k2 do
+    # Left side has a key the right side does not have,
+    # left can only be a subtype if the right side is open.
+    case status do
+      _ when tag2 != :open ->
+        :none
+
       :all_equal ->
-        map1
+        map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
 
-      :any_map ->
-        {:open, @fields_new, []}
-
-      {:one_key_difference, key, v1, v2} ->
-        new_pos = fields_store(key, union(v1, v2), pos1)
-        {tag1, new_pos, []}
+      {:one_key_difference, _, p1, p2} ->
+        if subtype?(p1, p2),
+          do: map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
+          else: :none
 
       :left_subtype_of_right ->
-        map2
+        map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      _ ->
+        :none
+    end
+  end
+
+  defp map_union_strategy([{k1, _} | _] = l1, [{k2, _} | t2], tag1, tag2, status)
+       when k1 > k2 do
+    # Right side has a key the left side does not have,
+    # right can only be a subtype if the left side is open.
+    case status do
+      _ when tag1 != :open ->
+        :none
+
+      :all_equal ->
+        map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
+
+      {:one_key_difference, _, p1, p2} ->
+        if subtype?(p2, p1),
+          do: map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left),
+          else: :none
 
       :right_subtype_of_left ->
-        map1
+        map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
 
-      nil ->
-        nil
+      _ ->
+        :none
     end
   end
 
-  defp map_union_optimization_strategy(tag1, pos1, tag2, pos2)
-  defp map_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
-
-  defp map_union_optimization_strategy(:open, empty, _, _) when is_fields_empty(empty),
-    do: :any_map
-
-  defp map_union_optimization_strategy(_, _, :open, empty) when is_fields_empty(empty),
-    do: :any_map
-
-  defp map_union_optimization_strategy(tag, pos1, tag, pos2)
-       when fields_size(pos1) == fields_size(pos2) do
-    do_map_union_optimization_strategy(pos1, pos2, :all_equal)
+  defp map_union_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
+    # Same key and same value, nothing changes
+    map_union_strategy(t1, t2, tag1, tag2, status)
   end
 
-  defp map_union_optimization_strategy(:open, pos1, _, pos2)
-       when fields_size(pos1) <= fields_size(pos2) do
-    do_map_union_optimization_strategy(pos1, pos2, :right_subtype_of_left)
-  end
+  defp map_union_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
+    # They have the same key but different values
+    case status do
+      :all_equal when k1 != :__struct__ ->
+        cond do
+          tag1 == tag2 ->
+            map_union_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
 
-  defp map_union_optimization_strategy(_, pos1, :open, pos2)
-       when fields_size(pos1) >= fields_size(pos2) do
-    do_map_union_optimization_strategy(pos2, pos1, :right_subtype_of_left)
-    |> case do
-      :right_subtype_of_left -> :left_subtype_of_right
-      nil -> nil
+          subtype?(v1, v2) ->
+            map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
+
+          subtype?(v2, v1) ->
+            map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
+
+          true ->
+            :none
+        end
+
+      :left_subtype_of_right ->
+        if subtype?(v1, v2), do: map_union_strategy(t1, t2, tag1, tag2, status), else: :none
+
+      :right_subtype_of_left ->
+        if subtype?(v2, v1), do: map_union_strategy(t1, t2, tag1, tag2, status), else: :none
+
+      {:one_key_difference, _key, p1, p2} ->
+        cond do
+          subtype?(p1, p2) and subtype?(v1, v2) ->
+            map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
+
+          subtype?(p2, p1) and subtype?(v2, v1) ->
+            map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
+
+          true ->
+            :none
+        end
+
+      _ ->
+        :none
     end
   end
 
-  defp map_union_optimization_strategy(_, _, _, _), do: nil
+  defp map_union_strategy([], [], _tag1, _tag2, status) do
+    status
+  end
 
-  defp do_map_union_optimization_strategy([], _, status), do: status
+  defp map_union_strategy(l1, l2, tag1, tag2, status) do
+    case status do
+      :all_equal when tag2 == :open and l2 == [] ->
+        :left_subtype_of_right
 
-  defp do_map_union_optimization_strategy([{key, v1} | rest], pos2, status) do
-    with {:ok, v2} <- fields_find(key, pos2),
-         next_status when next_status != nil <- map_union_next_strategy(key, v1, v2, status) do
-      do_map_union_optimization_strategy(rest, pos2, next_status)
-    else
-      _ -> nil
+      :all_equal when tag1 == :open and l1 == [] ->
+        :right_subtype_of_left
+
+      {:one_key_difference, _, p1, p2} ->
+        cond do
+          tag2 == :open and l2 == [] and subtype?(p1, p2) -> :left_subtype_of_right
+          tag1 == :open and l1 == [] and subtype?(p2, p1) -> :right_subtype_of_left
+          true -> :none
+        end
+
+      :left_subtype_of_right when tag2 == :open and l2 == [] ->
+        :left_subtype_of_right
+
+      :right_subtype_of_left when tag1 == :open and l1 == [] ->
+        :right_subtype_of_left
+
+      _ ->
+        :none
     end
-  end
-
-  defp map_union_next_strategy(key, v1, v2, status)
-
-  # structurally equal values do not impact the ongoing strategy
-  defp map_union_next_strategy(_key, same, same, status), do: status
-
-  defp map_union_next_strategy(key, v1, v2, :all_equal) do
-    if key != :__struct__, do: {:one_key_difference, key, v1, v2}
-  end
-
-  defp map_union_next_strategy(_key, v1, v2, {:one_key_difference, _, d1, d2}) do
-    # we have at least two key differences now, we switch strategy
-    # if both are subtypes in one direction, keep checking
-    cond do
-      subtype?(d1, d2) and subtype?(v1, v2) -> :left_subtype_of_right
-      subtype?(d2, d1) and subtype?(v2, v1) -> :right_subtype_of_left
-      true -> nil
-    end
-  end
-
-  defp map_union_next_strategy(_key, v1, v2, :left_subtype_of_right) do
-    if subtype?(v1, v2), do: :left_subtype_of_right
-  end
-
-  defp map_union_next_strategy(_key, v1, v2, :right_subtype_of_left) do
-    if subtype?(v2, v1), do: :right_subtype_of_left
   end
 
   defp map_intersection(bdd_leaf(:open, []), bdd), do: bdd
@@ -4384,6 +4441,7 @@ defmodule Module.Types.Descr do
 
   @compile {:inline,
             fields_from_list: 1,
+            fields_from_reverse_list: 1,
             fields_to_list: 1,
             fields_fold: 3,
             fields_keys: 1,
@@ -4397,6 +4455,7 @@ defmodule Module.Types.Descr do
             fields_map: 2}
 
   defp fields_from_list(list), do: :orddict.from_list(list)
+  defp fields_from_reverse_list(list), do: :lists.ukeysort(1, list)
   defp fields_to_list(fields), do: fields
   defp fields_fold(fields, acc, fun), do: :orddict.fold(fun, acc, fields)
 
