@@ -4120,9 +4120,7 @@ defmodule Module.Types.Descr do
         throw(:closed)
 
       true ->
-        diff = difference(v1, map_key_tag_to_type(neg_tag))
-
-        (empty?(diff) or map_line_empty?(tag, fields_store(k1, diff, fields), negs)) and
+        map_line_fields_empty_recur?(k1, v1, map_key_tag_to_type(neg_tag), tag, fields, negs) and
           map_line_fields_empty?(t1, l2, tag, neg_tag, fields, negs)
     end
   end
@@ -4137,29 +4135,28 @@ defmodule Module.Types.Descr do
         is_optional_static(v2) or throw(:closed)
 
       true ->
-        diff = difference(map_key_tag_to_type(tag), v2)
-
-        (empty?(diff) or map_line_empty?(tag, fields_store(k2, diff, fields), negs)) and
+        map_line_fields_empty_recur?(k2, map_key_tag_to_type(tag), v2, tag, fields, negs) and
           map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
     end
   end
 
   defp map_line_fields_empty?([{key, v1} | t1], [{_, v2} | t2], tag, neg_tag, fields, negs) do
-    diff = difference(v1, v2)
-
-    (empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)) and
+    map_line_fields_empty_recur?(key, v1, v2, tag, fields, negs) and
       map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs)
   end
 
   defp map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs) do
     Enum.all?(t1, fn {key, v1} ->
-      diff = difference(v1, map_key_tag_to_type(neg_tag))
-      empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
+      map_line_fields_empty_recur?(key, v1, map_key_tag_to_type(neg_tag), tag, fields, negs)
     end) and
       Enum.all?(t2, fn {key, v2} ->
-        diff = difference(map_key_tag_to_type(tag), v2)
-        empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
+        map_line_fields_empty_recur?(key, map_key_tag_to_type(tag), v2, tag, fields, negs)
       end)
+  end
+
+  defp map_line_fields_empty_recur?(key, v1, v2, tag, fields, negs) do
+    diff = difference(v1, v2)
+    empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
   end
 
   # Verify the domain condition from equation (22) in paper ICFP'23 https://www.irif.fr/~gc/papers/icfp23.pdf
