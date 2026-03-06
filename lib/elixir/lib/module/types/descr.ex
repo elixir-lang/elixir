@@ -4182,20 +4182,18 @@ defmodule Module.Types.Descr do
 
   defp map_line_fields_empty?([{k1, _} | _] = l1, [{k2, v2} | t2], tag, neg_tag, fields, negs)
        when k1 > k2 do
-    cond do
-      # The keys is only in the negative map, and the positive map is closed
-      # in that case, this field is not_set(), and its difference with the
-      # negative map type is empty iff the negative type is optional.
-      tag == :closed ->
-        if is_optional_static(v2) do
-          map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
-        else
-          throw(:closed)
-        end
-
-      true ->
-        map_line_fields_empty_recur?(k2, map_key_tag_to_type(tag), v2, tag, fields, negs) and
-          map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
+    # The keys is only in the negative map, and the positive map is closed
+    # in that case, this field is not_set(), and its difference with the
+    # negative map type is empty iff the negative type is optional.
+    if tag == :closed do
+      if is_optional_static(v2) do
+        map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
+      else
+        throw(:closed)
+      end
+    else
+      map_line_fields_empty_recur?(k2, map_key_tag_to_type(tag), v2, tag, fields, negs) and
+        map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs)
     end
   end
 
