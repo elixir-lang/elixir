@@ -2953,29 +2953,35 @@ defmodule Module.Types.Descr do
   # Optimizations on single maps.
   defp map_difference(bdd_leaf(tag, fields) = map1, bdd_leaf(neg_tag, neg_fields) = map2) do
     # Case 1: we are removing an open map with one field. Just do the difference of that field.
-    if neg_tag == :open and fields_size(neg_fields) == 1 do
-      [{key, value}] = fields_to_list(neg_fields)
+    case neg_fields do
+      [{key, value}] when neg_tag == :open ->
+        {found?, pos_value} =
+          case fields_find(key, fields) do
+            {:ok, value} -> {true, value}
+            :error -> {false, map_key_tag_to_type(tag)}
+          end
 
-      if tag == :closed and not fields_is_key(key, fields) and not optional_static?(value) do
-        map1
-      else
-        t_diff = difference(fields_get(fields, key, map_key_tag_to_type(tag)), value)
-
-        if empty?(t_diff) do
-          :bdd_bot
+        if tag == :closed and not found? and not optional_static?(value) do
+          map1
         else
-          bdd_leaf(tag, fields_store(key, t_diff, fields))
-        end
-      end
-    else
-      # Case 2: the maps have all but one key in common. Do the difference of that key.
-      case map_all_but_one(tag, fields, neg_tag, neg_fields) do
-        {diff_key, type1, type2} ->
-          bdd_leaf(tag, fields_store(diff_key, difference(type1, type2), fields))
+          t_diff = difference(fields_get(fields, key, pos_value), value)
 
-        _ ->
-          bdd_difference(map1, map2, &map_leaf_disjoint?/2)
-      end
+          if empty?(t_diff) do
+            :bdd_bot
+          else
+            bdd_leaf(tag, fields_store(key, t_diff, fields))
+          end
+        end
+
+      _ ->
+        # Case 2: the maps have all but one key in common. Do the difference of that key.
+        case map_all_but_one(tag, fields, neg_tag, neg_fields) do
+          {diff_key, type1, type2} ->
+            bdd_leaf(tag, fields_store(diff_key, difference(type1, type2), fields))
+
+          _ ->
+            bdd_difference(map1, map2, &map_leaf_disjoint?/2)
+        end
     end
   end
 
@@ -4477,37 +4483,24 @@ defmodule Module.Types.Descr do
   defp fields_merge(fun, fields1, fields2), do: :orddict.merge(fun, fields1, fields2)
   defp fields_map(fun, fields), do: :orddict.map(fun, fields)
 
-  defp fields_merge_with_defaults(f1, d1, f2, d2, fun) do
-    fields_merge_with_defaults(f1, d1, f2, d2, fun, [])
-  end
-
-  defp fields_merge_with_defaults([], d1, f2, _d2, fun, acc) do
-    :lists.reverse(acc, Enum.map(f2, fn {k, v2} -> {k, fun.(k, d1, v2)} end))
-  end
-
-  defp fields_merge_with_defaults(f1, _d1, [], d2, fun, acc) do
-    :lists.reverse(acc, Enum.map(f1, fn {k, v1} -> {k, fun.(k, v1, d2)} end))
-  end
-
-  defp fields_merge_with_defaults(
-         [{k1, v1} | rest1] = f1,
-         d1,
-         [{k2, v2} | rest2] = f2,
-         d2,
-         fun,
-         acc
-       ) do
+  defp fields_merge_with_defaults([{k1, v1} | rest1] = f1, d1, [{k2, v2} | rest2] = f2, d2, fun) do
     cond do
       k1 < k2 ->
-        fields_merge_with_defaults(rest1, d1, f2, d2, fun, [{k1, fun.(k1, v1, d2)} | acc])
+        [{k1, fun.(k1, v1, d2)} | fields_merge_with_defaults(rest1, d1, f2, d2, fun)]
 
       k1 > k2 ->
-        fields_merge_with_defaults(f1, d1, rest2, d2, fun, [{k2, fun.(k2, d1, v2)} | acc])
+        [{k2, fun.(k2, d1, v2)} | fields_merge_with_defaults(f1, d1, rest2, d2, fun)]
 
       true ->
-        fields_merge_with_defaults(rest1, d1, rest2, d2, fun, [{k1, fun.(k1, v1, v2)} | acc])
+        [{k1, fun.(k1, v1, v2)} | fields_merge_with_defaults(rest1, d1, rest2, d2, fun)]
     end
   end
+
+  defp fields_merge_with_defaults([], d1, f2, _d2, fun),
+    do: Enum.map(f2, fn {k, v2} -> {k, fun.(k, d1, v2)} end)
+
+  defp fields_merge_with_defaults(f1, _d1, [], d2, fun),
+    do: Enum.map(f1, fn {k, v1} -> {k, fun.(k, v1, d2)} end)
 
   ## Tuple
 
@@ -5858,41 +5851,6 @@ defmodule Module.Types.Descr do
   end
 
   defp iterator_merge(:none, map, _fun), do: map
-
-  # Perform a symmetrical merge with default values
-  defp symmetrical_merge(left, left_default, right, right_default, fun) do
-    iterator = :maps.next(:maps.iterator(left))
-    iterator_merge_left(iterator, left_default, right, right_default, %{}, fun)
-  end
-
-  defp iterator_merge_left({key, v1, iterator}, v1_default, map, v2_default, acc, fun) do
-    value =
-      case map do
-        %{^key => v2} -> fun.(key, v1, v2)
-        %{} -> fun.(key, v1, v2_default)
-      end
-
-    acc = Map.put(acc, key, value)
-    iterator_merge_left(:maps.next(iterator), v1_default, map, v2_default, acc, fun)
-  end
-
-  defp iterator_merge_left(:none, v1_default, map, _v2_default, acc, fun) do
-    iterator_merge_right(:maps.next(:maps.iterator(map)), v1_default, acc, fun)
-  end
-
-  defp iterator_merge_right({key, v2, iterator}, v1_default, acc, fun) do
-    acc =
-      case acc do
-        %{^key => _} -> acc
-        %{} -> Map.put(acc, key, fun.(key, v1_default, v2))
-      end
-
-    iterator_merge_right(:maps.next(iterator), v1_default, acc, fun)
-  end
-
-  defp iterator_merge_right(:none, _v1_default, acc, _fun) do
-    acc
-  end
 
   # Erlang maps:intersect_with/3 has to preserve the order in combiner.
   # We don't care about the order, so we have a faster implementation.
