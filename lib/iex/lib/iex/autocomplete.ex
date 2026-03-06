@@ -610,20 +610,15 @@ defmodule IEx.Autocomplete do
 
   defp match_modules(hint, elixir_root?) do
     modules =
-      if elixir_root? do
-        acc =
-          for mod <- :erlang.loaded(),
-              str = Atom.to_string(mod),
-              String.starts_with?(str, hint),
-              do: str
+      for mod <- :erlang.loaded(),
+          str = Atom.to_string(mod),
+          String.starts_with?(str, hint),
+          do: str
 
-        if String.starts_with?("Elixir.Elixir", hint), do: ["Elixir.Elixir" | acc], else: acc
-      else
-        for mod <- :erlang.loaded(),
-            str = Atom.to_string(mod),
-            String.starts_with?(str, hint),
-            do: str
-      end
+    modules =
+      if elixir_root? and String.starts_with?("Elixir.Elixir", hint),
+        do: ["Elixir.Elixir" | modules],
+        else: modules
 
     modules =
       case :code.get_mode() do
