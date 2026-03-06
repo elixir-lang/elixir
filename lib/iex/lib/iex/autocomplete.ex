@@ -509,17 +509,23 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_elixir_modules(module, hint) do
-    name = Atom.to_string(module)
-    depth = length(String.split(name, ".")) + 1
-    base = name <> "." <> hint
+    prefix = Atom.to_string(module) <> "."
+    prefix_size = byte_size(prefix)
+    base = prefix <> hint
 
     for mod <- match_modules(base, module == Elixir),
-        parts = String.split(mod, "."),
-        depth <= length(parts),
-        name = Enum.at(parts, depth - 1),
+        rest = binary_part(mod, prefix_size, byte_size(mod) - prefix_size),
+        name = elixir_submodule_name(rest),
         valid_alias_piece?("." <> name),
         uniq: true,
         do: %{kind: :module, name: name}
+  end
+
+  defp elixir_submodule_name(rest) do
+    case :binary.match(rest, ".") do
+      {pos, _} -> binary_part(rest, 0, pos)
+      :nomatch -> rest
+    end
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -604,8 +610,7 @@ defmodule IEx.Autocomplete do
 
   defp match_modules(hint, elixir_root?) do
     get_modules(elixir_root?)
-    |> Enum.sort()
-    |> Enum.dedup()
+    |> :lists.usort()
     |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
     |> Enum.take_while(&String.starts_with?(&1, hint))
   end
@@ -615,7 +620,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_modules(false) do
-    modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+    modules = Enum.map(:erlang.loaded(), &Atom.to_string/1)
 
     case :code.get_mode() do
       :interactive -> modules ++ get_modules_from_applications()
