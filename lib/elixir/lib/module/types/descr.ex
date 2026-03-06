@@ -3215,13 +3215,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Optimization: if the key does not exist in the map, avoid building
-  # if_set/not_set pairs and return the popped value directly.
-  defp map_fetch_key_static(%{map: bdd_leaf(tag_or_domains, fields) = bdd}, key) do
-    if fields_is_key(key, fields) do
-      bdd |> map_bdd_to_dnf() |> map_dnf_fetch_static(key)
-    else
-      {true, map_domain_tag_to_type(tag_or_domains, :atom)}
+  # Optimization for bdd leafs
+  defp map_fetch_key_static(%{map: bdd_leaf(tag, fields)}, key) do
+    case fields_find(key, fields) do
+      {:ok, value} -> pop_optional_static(value)
+      :error when tag == :open -> {true, term()}
+      :error when tag == :closed -> {true, none()}
+      :error -> tag |> map_key_tag_to_type() |> pop_optional_static()
     end
   end
 
@@ -3235,34 +3235,28 @@ defmodule Module.Types.Descr do
   # Takes a map DNF and returns the union of types it can take for a given key.
   # If the key may be undefined, it will contain the `not_set()` type.
   defp map_dnf_fetch_static(dnf, key) do
-    Enum.reduce(dnf, none(), fn {tag, fields, negs}, acc ->
-      case {negs, fields_find(key, fields)} do
-        # Optimization: if there are no negatives and key exists, return its value
-        {[], {:ok, value}} ->
-          union(value, acc)
+    Enum.reduce(dnf, none(), fn
+      # Optimization: if there are no negatives
+      {tag, fields, []}, acc ->
+        case fields_find(key, fields) do
+          {:ok, value} -> union(value, acc)
+          :error when tag == :open -> throw(:open)
+          :error -> map_key_tag_to_type(tag) |> union(acc)
+        end
 
-        # Optimization: if there are no negatives and no fields, return the default one
-        {[], :error} when is_fields_empty(fields) ->
-          if tag == :open do
-            throw(:open)
-          else
-            map_key_tag_to_type(tag) |> union(acc)
-          end
+      {tag, fields, negs}, acc ->
+        {fst, snd} = map_pop_key(tag, fields, key)
 
-        _ ->
-          {fst, snd} = map_pop_key(tag, fields, key)
+        case map_split_negative_key(negs, key) do
+          :empty ->
+            acc
 
-          case map_split_negative_key(negs, key) do
-            :empty ->
-              acc
-
-            negative ->
-              negative
-              |> pair_make_disjoint()
-              |> pair_eliminate_negations_fst(fst, snd)
-              |> union(acc)
-          end
-      end
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_fst(fst, snd)
+            |> union(acc)
+        end
     end)
   catch
     :open -> {true, term()}
@@ -3582,8 +3576,7 @@ defmodule Module.Types.Descr do
     Enum.reduce(keys, acc, fn key, {acc_value, acc_descr, acc_errors, acc_found?} ->
       {{optional?, value}, descr} =
         case dnf do
-          # This is just an optimization to avoid creating
-          # term types when updating open maps
+          # Optimization: avoid creating term types when updating open maps
           [{:open, fields, []}] ->
             if fields_is_key(key, fields) do
               {value, descr} = map_dnf_pop_key_static(dnf, key, none())
