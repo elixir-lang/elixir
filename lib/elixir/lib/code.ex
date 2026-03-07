@@ -621,11 +621,17 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    validated_eval_string(string, binding, env)
+    validated_eval_string(string, validate_binding(binding), env)
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
-    validated_eval_string(string, binding, opts)
+    validated_eval_string(string, validate_binding(binding), opts)
+  end
+
+  defp validate_binding(binding) when is_list(binding), do: binding
+
+  defp validate_binding(binding) do
+    raise ArgumentError, "binding must be a list, got: #{inspect(binding)}"
   end
 
   defp validated_eval_string(string, binding, opts_or_env) do
