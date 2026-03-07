@@ -799,6 +799,42 @@ defmodule FileTest do
       end
     end
 
+    test "cp_r with destination inside source returns error" do
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/src/subdir/dest")
+
+      File.mkdir_p!(src)
+      File.write!(Path.join(src, "file.txt"), "hello")
+
+      try do
+        assert File.cp_r(src, dest) == {:error, :einval, dest}
+        refute File.exists?(dest)
+      after
+        File.rm_rf(src)
+      end
+    end
+
+    test "cp_r! with destination inside source raises" do
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/src/subdir/dest")
+
+      File.mkdir_p!(src)
+      File.write!(Path.join(src, "file.txt"), "hello")
+
+      try do
+        message =
+          "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{dest}: invalid argument"
+
+        assert_raise File.CopyError, message, fn ->
+          File.cp_r!(src, dest)
+        end
+
+        refute File.exists?(dest)
+      after
+        File.rm_rf(src)
+      end
+    end
+
     test "cp preserves mode" do
       File.mkdir_p!(tmp_path("tmp"))
       src = fixture_path("cp_mode")
