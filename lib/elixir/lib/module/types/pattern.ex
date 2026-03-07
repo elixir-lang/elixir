@@ -12,39 +12,44 @@ defmodule Module.Types.Pattern do
   Returns the initial value for previous clause information.
   """
   def init_previous do
-    {[], none()}
+    []
   end
 
-  defp empty_previous?({list, _descr}), do: list == []
+  defp empty_previous?([]), do: true
+  defp empty_previous?([_ | _]), do: false
 
-  defp previous_subtype?(_, {[], _}), do: false
+  defp previous_subtype?(_, []), do: false
   defp previous_subtype?([], _), do: true
-  defp previous_subtype?([type], {_, descr}), do: subtype?(type, descr)
-  defp previous_subtype?(args, {_, descr}), do: subtype?(args_to_domain(args), descr)
+
+  defp previous_subtype?([type], previous),
+    do: subtype?(type, Enum.reduce(previous, none(), &union(&2, hd(&1))))
+
+  defp previous_subtype?(args, previous) do
+    subtype?(
+      args_to_domain(args),
+      Enum.reduce(previous, none(), &union(&2, args_to_domain(&1)))
+    )
+  end
 
   defp concat_previous([], previous),
     do: previous
 
-  defp concat_previous([type], {list, descr}),
-    do: {[[type] | list], union(type, descr)}
+  defp concat_previous(types, previous),
+    do: [types | previous]
 
-  defp concat_previous(types, {list, descr}),
-    do: {[types | list], union(args_to_domain(types), descr)}
-
-  defp of_pattern_previous(types, {[], _}, _trees, _pattern_info, _tag, _stack, _context) do
+  defp of_pattern_previous(types, [], _trees, _pattern_info, _tag, _stack, _context) do
     {:ok, types}
   end
 
-  defp of_pattern_previous(types, {_, descr}, trees, pattern_info, tag, stack, context) do
+  defp of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context) do
     types =
       case types do
         [type] ->
-          [difference(type, descr)]
+          [Enum.reduce(previous, type, &difference(&2, hd(&1)))]
 
         [_ | _] ->
-          types
-          |> args_to_domain()
-          |> difference(descr)
+          previous
+          |> Enum.reduce(args_to_domain(types), &difference(&2, args_to_domain(&1)))
           |> domain_to_flat_args(types)
       end
 
@@ -57,7 +62,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp previous_to_string({previous, _}) do
+  defp previous_to_string(previous) do
     Enum.map_join(previous, "\n    ", fn types ->
       types
       |> Enum.map_join(", ", &to_quoted_string/1)
