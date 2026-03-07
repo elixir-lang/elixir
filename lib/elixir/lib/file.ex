@@ -1116,6 +1116,12 @@ defmodule File do
 
   Special files such as device files, sockets, and named pipes are not copied.
 
+  Typical error reasons are:
+
+    * `:enoent`  - `source` does not exist
+    * `:eisdir`  - `source` is a file and `destination` is a directory
+    * `:einval`  - `destination` is the same as or a subdirectory of `source`
+
   ## Options
 
     * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
@@ -1146,7 +1152,11 @@ defmodule File do
       #=> {:ok, ["z.txt", "y.txt", "x.txt]}
 
       File.cp_r("non_existing.txt", "copy.txt")
-      #=> {:error, :enoent}
+      #=> {:error, :enoent, "non_existing.txt"}
+
+      # Copying into a subdirectory of source is not allowed
+      File.cp_r("src", "src/dest")
+      #=> {:error, :einval, "src/dest"}
   """
   @spec cp_r(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
@@ -1183,9 +1193,16 @@ defmodule File do
       |> IO.chardata_to_string()
       |> assert_no_null_byte!("File.cp_r/3")
 
-    case do_cp_r(source, destination, on_conflict, dereference?, []) do
-      {:error, _, _} = error -> error
-      res -> {:ok, res}
+    source_parts = source |> Path.expand() |> Path.split()
+    dest_parts = destination |> Path.expand() |> Path.split()
+
+    if List.starts_with?(dest_parts, source_parts) do
+      {:error, :einval, destination}
+    else
+      case do_cp_r(source, destination, on_conflict, dereference?, []) do
+        {:error, _, _} = error -> error
+        res -> {:ok, res}
+      end
     end
   end
 
