@@ -269,6 +269,24 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
+  @type_guards [
+    is_atom: "an atom",
+    is_binary: "a binary",
+    is_bitstring: "a bitstring",
+    is_boolean: "a boolean",
+    is_float: "a float",
+    is_function: "a function",
+    is_integer: "an integer",
+    is_list: "a list",
+    is_map: "a map",
+    is_nil: "nil",
+    is_number: "a number",
+    is_pid: "a PID",
+    is_port: "a port",
+    is_reference: "a reference",
+    is_tuple: "a tuple"
+  ]
+
   defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, caller)
        when operator in @operator do
     if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
@@ -290,6 +308,20 @@ defmodule ExUnit.Assertions do
       equality_check? = operator in [:<=, :>=, :===, :==, :=~]
       message = "Refute with #{operator} failed"
       translate_operator(:refute, expr, call, message, equality_check?, caller)
+    end
+  end
+
+  defp translate_assertion(:assert, {guard, _meta, [_]} = expr, caller)
+       when guard in unquote(Keyword.keys(@type_guards)) do
+    if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {guard, 1})) do
+      translate_bool_guard(:assert, expr, "Assertion with #{guard}/1 failed", caller)
+    end
+  end
+
+  defp translate_assertion(:refute, {guard, _meta, [_]} = expr, caller)
+       when guard in unquote(Keyword.keys(@type_guards)) do
+    if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {guard, 1})) do
+      translate_bool_guard(:refute, expr, "Refute with #{guard}/1 failed", caller)
     end
   end
 
@@ -341,6 +373,32 @@ defmodule ExUnit.Assertions do
         context: unquote(context)
       )
     end
+  end
+
+  defp translate_bool_guard(kind, {guard, meta, [arg]} = expr, message, _caller) do
+    expr = escape_quoted(kind, meta, expr)
+    call = {guard, meta, [arg]}
+    call = if kind == :assert, do: call, else: {:not, meta, [call]}
+
+    human_type =
+      case kind do
+        :assert -> "not #{type_guard_to_human_readable(guard)}"
+        :refute -> type_guard_to_human_readable(guard)
+      end
+
+    quote do
+      arg = unquote(arg)
+
+      ExUnit.Assertions.assert(unquote(call),
+        left: arg,
+        expr: unquote(expr),
+        message: unquote(message) <> ", the given expression is #{unquote(human_type)}"
+      )
+    end
+  end
+
+  for {guard_name, human_name} <- @type_guards do
+    defp type_guard_to_human_readable(unquote(guard_name)), do: unquote(human_name)
   end
 
   @doc false
