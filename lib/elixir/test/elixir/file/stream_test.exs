@@ -65,6 +65,34 @@ defmodule File.StreamTest do
         assert Enum.count(stream) == 2
       end
 
+      test "counts lines without trailing newline" do
+        no_trailing = tmp_path("no_trailing.txt")
+        single_line = tmp_path("single_line.txt")
+        empty_file = tmp_path("empty.txt")
+
+        try do
+          File.write!(no_trailing, "line1\nline2\nline3")
+          File.write!(single_line, "hello")
+          File.write!(empty_file, "")
+
+          # 3 lines, no trailing newline
+          stream = stream!(@node, no_trailing)
+          assert Enum.count(stream) == 3
+
+          # 1 line, no newline at all
+          stream = stream!(@node, single_line)
+          assert Enum.count(stream) == 1
+
+          # empty file
+          stream = stream!(@node, empty_file)
+          assert Enum.count(stream) == 0
+        after
+          File.rm(no_trailing)
+          File.rm(single_line)
+          File.rm(empty_file)
+        end
+      end
+
       test "reads and writes lines" do
         src = fixture_path("file.txt")
         dest = tmp_path("tmp_test.txt")
