@@ -609,31 +609,33 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_modules(hint, elixir_root?) do
-    get_modules(elixir_root?)
-    |> :lists.usort()
-    |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
-    |> Enum.take_while(&String.starts_with?(&1, hint))
+    modules =
+      for mod <- :erlang.loaded(),
+          str = Atom.to_string(mod),
+          String.starts_with?(str, hint),
+          do: str
+
+    modules =
+      if elixir_root? and String.starts_with?("Elixir.Elixir", hint),
+        do: ["Elixir.Elixir" | modules],
+        else: modules
+
+    modules =
+      case :code.get_mode() do
+        :interactive -> modules ++ match_modules_from_applications(hint)
+        _otherwise -> modules
+      end
+
+    :lists.usort(modules)
   end
 
-  defp get_modules(true) do
-    ["Elixir.Elixir"] ++ get_modules(false)
-  end
-
-  defp get_modules(false) do
-    modules = Enum.map(:erlang.loaded(), &Atom.to_string/1)
-
-    case :code.get_mode() do
-      :interactive -> modules ++ get_modules_from_applications()
-      _otherwise -> modules
-    end
-  end
-
-  defp get_modules_from_applications do
+  defp match_modules_from_applications(hint) do
     for [app] <- loaded_applications(),
         {:ok, modules} = :application.get_key(app, :modules),
-        module <- modules do
-      Atom.to_string(module)
-    end
+        module <- modules,
+        str = Atom.to_string(module),
+        String.starts_with?(str, hint),
+        do: str
   end
 
   defp loaded_applications do
