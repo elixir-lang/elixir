@@ -685,7 +685,7 @@ defmodule Module.Types.Descr do
   end
 
   defp each_singleton?(:map, bdd) do
-    case map_bdd_to_dnf(bdd) do
+    case map_bdd_to_dnf_no_negations(bdd) do
       [] ->
         :empty
 
@@ -3157,10 +3157,7 @@ defmodule Module.Types.Descr do
     if empty?(type), do: throw(:empty), else: type
   end
 
-  # Takes all the lines from the root to the leaves finishing with a 1,
-  # and compile into tuples of positive and negative nodes. Positive nodes are
-  # those followed by a left path, negative nodes are those followed by a right path.
-  defp map_bdd_to_dnf(bdd) do
+  defp map_bdd_to_dnf_no_negations(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {pos, negs}, acc ->
       case non_empty_map_literals_intersection(pos) do
@@ -3173,6 +3170,16 @@ defmodule Module.Types.Descr do
           else
             [{tag, fields, negs} | acc]
           end
+      end
+    end)
+  end
+
+  defp map_bdd_to_dnf_with_negations(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce([], fn {pos, negs}, acc ->
+      case non_empty_map_literals_intersection(pos) do
+        :empty -> acc
+        {tag, fields} -> [{tag, fields, negs} | acc]
       end
     end)
   end
@@ -3235,7 +3242,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_fetch_key_static(%{map: bdd}, key) do
-    bdd |> map_bdd_to_dnf() |> map_dnf_fetch_static(key)
+    bdd |> map_bdd_to_dnf_with_negations() |> map_dnf_fetch_static(key)
   end
 
   defp map_fetch_key_static(%{}, _key), do: {false, none()}
@@ -3370,7 +3377,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_to_list_static(%{map: bdd}, fun) do
-    case map_bdd_to_dnf(bdd) do
+    case map_bdd_to_dnf_no_negations(bdd) do
       [] ->
         :badmap
 
@@ -3414,7 +3421,7 @@ defmodule Module.Types.Descr do
           case tag_or_domains do
             :open ->
               # A negation cannot make an open map closed without cancelling it completely,
-              # which is filtered by `map_bdd_to_dnf/1`.
+              # which is filtered by `map_bdd_to_dnf_*/1`.
               throw(:open)
 
             domains = %{} ->
@@ -3565,7 +3572,7 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    dnf = map_bdd_to_dnf(bdd)
+    dnf = map_bdd_to_dnf_with_negations(bdd)
     bdd = map_update_put_negated(bdd, maybe_negated_set, type_fun)
 
     {found?, value, domains, errors} =
@@ -3633,7 +3640,7 @@ defmodule Module.Types.Descr do
       {term(), open_map(), [], true}
     else
       acc = {none(), none(), [], false}
-      dnf = map_bdd_to_dnf(@map_top)
+      dnf = map_bdd_to_dnf_with_negations(@map_top)
       map_update_keys_static(dnf, required_keys, optional_keys, type_fun, force?, static?, acc)
     end
   end
@@ -3942,7 +3949,7 @@ defmodule Module.Types.Descr do
         domains -> map_update_put_domains(bdd, domains, type_fun)
       end
 
-    dnf = map_bdd_to_dnf(bdd)
+    dnf = map_bdd_to_dnf_with_negations(bdd)
     map_put_keys_static(dnf, required_keys ++ optional_keys, type, descr)
   end
 
@@ -3960,7 +3967,7 @@ defmodule Module.Types.Descr do
     if required_domains != [] or optional_domains != [] do
       open_map()
     else
-      dnf = map_bdd_to_dnf(@map_top)
+      dnf = map_bdd_to_dnf_with_negations(@map_top)
       map_put_keys_static(dnf, required_keys ++ optional_keys, type, none())
     end
   end
@@ -4020,7 +4027,7 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    dnf = map_bdd_to_dnf(bdd)
+    dnf = map_bdd_to_dnf_with_negations(bdd)
 
     acc = none()
     acc = map_get_keys(dnf, required_keys, acc)
@@ -4408,7 +4415,7 @@ defmodule Module.Types.Descr do
 
   defp map_to_quoted(bdd, opts) do
     bdd
-    |> map_bdd_to_dnf()
+    |> map_bdd_to_dnf_no_negations()
     |> Enum.map(fn {tag, fields, negs} ->
       map_eliminate_while_negs_decrease(tag, fields, negs)
     end)
