@@ -3254,23 +3254,86 @@ defmodule Module.Types.Descr do
         end
 
       {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_key(tag, fields, key)
+        {value, bdd} = map_pop_key_bdd(tag, fields, key)
 
-        case map_split_negative_key(negs, key) do
-          :empty ->
-            acc
-
-          negative ->
-            negative
-            |> pair_make_disjoint()
-            |> pair_eliminate_negations_fst(fst, snd)
-            |> union(acc)
-        end
+        negs
+        |> map_split_negative_key(key, value, bdd)
+        |> Enum.reduce(acc, fn {value, _}, acc -> union(value, acc) end)
     end)
   catch
     :open -> {true, term()}
   else
     value -> pop_optional_static(value)
+  end
+
+  defp map_split_negative_key(negs, key, value, bdd) do
+    map_split_negative(negs, value, bdd, fn neg_tag, neg_fields ->
+      case fields_take(key, neg_fields) do
+        {neg_value, neg_fields} -> {true, neg_value, map_new(neg_tag, neg_fields)}
+        :error -> {false, map_key_tag_to_type(neg_tag), map_new(neg_tag, neg_fields)}
+      end
+    end)
+  end
+
+  # Remove negatives:
+  # {t, s} \ {t₁, s₁} = {t \ t₁, s} ∪ {t ∩ t₁, s \ s₁}
+  defp map_split_negative(negs, value, bdd, take_fun) do
+    Enum.reduce(negs, [{value, bdd}], fn
+      {:open, empty}, _acc when is_fields_empty(empty) ->
+        throw(:empty)
+
+      {neg_tag, neg_fields}, acc ->
+        {found?, neg_value, neg_bdd} = take_fun.(neg_tag, neg_fields)
+
+        if not found? and neg_tag == :open do
+          # In case the map is open, t \ t₁ is always empty,
+          # so we just need to deal with the bdd.
+          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+            diff_bdd = map_difference(bdd, neg_bdd)
+
+            if map_empty?(diff_bdd) do
+              acc
+            else
+              [{value, diff_bdd} | acc]
+            end
+          end)
+        else
+          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+            # If the negative tag is closed, then they are likely disjoint,
+            # so we can drastically cut down the amount of operations.
+            if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd)) do
+              [{value, bdd} | acc]
+            else
+              diff_bdd = map_difference(bdd, neg_bdd)
+
+              cond do
+                value == neg_value or subtype?(value, neg_value) ->
+                  if map_empty?(diff_bdd), do: acc, else: [{value, diff_bdd} | acc]
+
+                map_empty?(diff_bdd) ->
+                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+
+                true ->
+                  prepend_pair_unless_empty_diff(value, neg_value, bdd, [{value, diff_bdd} | acc])
+              end
+            end
+          end)
+        end
+    end)
+  catch
+    :empty -> []
+  end
+
+  defp map_pop_key_bdd(tag, fields, key) do
+    case fields_take(key, fields) do
+      {value, fields} -> {value, map_new(tag, fields)}
+      :error -> {map_key_tag_to_type(tag), map_new(tag, fields)}
+    end
+  end
+
+  defp prepend_pair_unless_empty_diff(value, neg_value, bdd, acc) do
+    diff_value = difference(value, neg_value)
+    if empty?(diff_value), do: acc, else: [{diff_value, bdd} | acc]
   end
 
   @doc """
@@ -3645,29 +3708,26 @@ defmodule Module.Types.Descr do
   # Note: if initial is nil, it means the value is not required.
   # So we don't compute it for performance.
   defp map_dnf_pop_key_static(dnf, key, initial) do
-    {value, descr} =
-      Enum.reduce(dnf, {initial, none()}, fn
+    {value, bdd} =
+      Enum.reduce(dnf, {initial, :bdd_bot}, fn
         # Optimization: if there are no negatives, we can directly remove the key.
-        {tag, fields, []}, {value, map} ->
-          {fst, snd} = map_pop_key(tag, fields, key)
-          {maybe_union(value, fn -> fst end), union(map, snd)}
+        {tag, fields, []}, {value, bdd} ->
+          {fst, snd} = map_pop_key_bdd(tag, fields, key)
+          {maybe_union(value, fn -> fst end), map_union(bdd, snd)}
 
-        {tag, fields, negs}, {value, map} ->
-          {fst, snd} = map_pop_key(tag, fields, key)
+        {tag, fields, negs}, {value, bdd} ->
+          {fst, snd} = map_pop_key_bdd(tag, fields, key)
+          pairs = map_split_negative_key(negs, key, fst, snd)
 
-          case map_split_negative_key(negs, key) do
-            :empty ->
-              {value, map}
-
-            negative ->
-              disjoint = pair_make_disjoint(negative)
-
-              {maybe_union(value, fn -> pair_eliminate_negations_fst(disjoint, fst, snd) end),
-               disjoint |> pair_eliminate_negations_snd(fst, snd) |> union(map)}
-          end
+          {maybe_union(value, fn -> Enum.reduce(pairs, none(), &union(elem(&1, 0), &2)) end),
+           Enum.reduce(pairs, bdd, &map_union(elem(&1, 1), &2))}
       end)
 
-    {value, descr}
+    if bdd == :bdd_bot do
+      {value, %{}}
+    else
+      {value, %{map: bdd}}
+    end
   end
 
   # For keys with `not :foo`, we generate an approximation
@@ -3990,18 +4050,13 @@ defmodule Module.Types.Descr do
         map_domain_tag_to_type(tag, domain_key) |> union(acc)
 
       {tag_or_domains, fields, negs}, acc ->
-        {fst, snd} = map_pop_domain_no_optional(tag_or_domains, fields, domain_key)
+        {_found, value, bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
 
-        case map_split_negative_domain(negs, domain_key) do
-          :empty ->
-            acc
-
-          negative ->
-            negative
-            |> pair_make_disjoint()
-            |> pair_eliminate_negations_fst(fst, snd)
-            |> union(acc)
-        end
+        negs
+        |> map_split_negative(value, bdd, fn neg_tag, neg_fields ->
+          map_pop_domain_bdd(neg_tag, neg_fields, domain_key)
+        end)
+        |> Enum.reduce(acc, fn {value, _}, acc -> union(value, acc) end)
     end)
   end
 
@@ -4258,42 +4313,17 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp map_pop_key(tag, fields, key) do
-    case fields_take(key, fields) do
-      {value, fields} -> {value, %{map: map_new(tag, fields)}}
-      :error -> {map_key_tag_to_type(tag), %{map: map_new(tag, fields)}}
-    end
-  end
-
   # Pop a domain type, already removing non optional.
-  defp map_pop_domain_no_optional(domains = %{}, fields, domain_key) do
+  defp map_pop_domain_bdd(domains = %{}, fields, domain_key) do
     case :maps.take(domain_key, domains) do
-      {value, domains} -> {value, %{map: map_new(domains, fields)}}
-      :error -> {none(), %{map: map_new(domains, fields)}}
+      {value, domains} -> {true, value, map_new(domains, fields)}
+      :error -> {false, none(), map_new(domains, fields)}
     end
   end
 
   # Open/close key
-  defp map_pop_domain_no_optional(tag, fields, _domain_key),
-    do: {map_domain_tag_to_type(tag), %{map: map_new(tag, fields)}}
-
-  defp map_split_negative_key(negs, key) do
-    Enum.reduce_while(negs, [], fn
-      # A negation with an open map means the whole thing is empty.
-      {:open, empty}, _acc when is_fields_empty(empty) -> {:halt, :empty}
-      {tag, fields}, neg_acc -> {:cont, [map_pop_key(tag, fields, key) | neg_acc]}
-    end)
-  end
-
-  defp map_split_negative_domain(negs, domain_key) do
-    Enum.reduce_while(negs, [], fn
-      {:open, empty}, _acc when is_fields_empty(empty) ->
-        {:halt, :empty}
-
-      {tag, fields}, neg_acc ->
-        {:cont, [map_pop_domain_no_optional(tag, fields, domain_key) | neg_acc]}
-    end)
-  end
+  defp map_pop_domain_bdd(tag, fields, _domain_key),
+    do: {false, map_domain_tag_to_type(tag), map_new(tag, fields)}
 
   # Continue to eliminate negations while length of list of negs decreases
   defp map_eliminate_while_negs_decrease(tag, fields, []), do: {tag, fields, []}
@@ -5766,127 +5796,6 @@ defmodule Module.Types.Descr do
 
   defp bdd_head({lit, _, _, _}), do: lit
   defp bdd_head(pair), do: pair
-
-  ## Pairs
-
-  # To simplify disjunctive normal forms of e.g., map types, it is useful to
-  # convert them into disjunctive normal forms of pairs of types, and define
-  # normalization algorithms on pairs.
-  #
-  # The algorithms take a line, a list of pairs `{positive, negative}` where
-  # `positive` is a list of literals and `negative` is a list of negated literals.
-  # Positive pairs can all be intersected component-wise. Negative ones are
-  # eliminated iteratively.
-
-  # Eliminates negations from `{t, s} and not negative` where `negative` is a
-  # union of pairs disjoint on their first component.
-  #
-  # Formula:
-  #   {t, s} and not (union<i=1..n> {t_i, s_i})
-  #       = union<i=1..n> {t and t_i, s and not s_i}
-  #            or {t and not (union{i=1..n} t_i), s}
-  #
-  # This eliminates all top-level negations and produces a union of pairs that
-  # are disjoint on their first component. The function `pair_eliminate_negations_fst`
-  # is optimized to only keep the first component out of those pairs.
-  defp pair_eliminate_negations_fst(negative, t, s) do
-    {pair_union, diff_of_t_i} =
-      Enum.reduce(negative, {none(), t}, fn {t_i, s_i}, {accu, diff_of_t_i} ->
-        i = intersection(t, t_i)
-
-        if empty?(i) do
-          {accu, diff_of_t_i}
-        else
-          diff_of_t_i = difference(diff_of_t_i, t_i)
-          s_diff = difference(s, s_i)
-
-          if empty?(s_diff),
-            do: {accu, diff_of_t_i},
-            else: {union(i, accu), diff_of_t_i}
-        end
-      end)
-
-    union(pair_union, diff_of_t_i)
-  end
-
-  # The formula above is symmetric with respect to the first and second components.
-  # Hence the following also holds true:
-  #
-  #    {t, s} and not (union<i=1..n> {t_i, s_i})
-  #           = union<i=1..n> {t and not t_i, s and s_i}
-  #            or {t, s and not (union{i=1..n} s_i)}
-  #
-  # which is used to in the following function, optimized to keep the second component.
-  defp pair_eliminate_negations_snd(negative, t, s) do
-    {pair_union, diff_of_s_i} =
-      Enum.reduce(negative, {none(), s}, fn {t_i, s_i}, {accu, diff_of_s_i} ->
-        i = intersection(s, s_i)
-
-        if empty?(i) do
-          {accu, diff_of_s_i}
-        else
-          diff_of_s_i = difference(diff_of_s_i, s_i)
-          t_diff = difference(t, t_i)
-
-          if empty?(t_diff),
-            do: {accu, diff_of_s_i},
-            else: {union(i, accu), diff_of_s_i}
-        end
-      end)
-
-    union(diff_of_s_i, pair_union)
-  end
-
-  # Makes a union of pairs into an equivalent union of disjoint pairs.
-  #
-  # Inserts a pair of types {fst, snd} into a list of pairs that are disjoint
-  # on their first component. The invariant on `acc` is that its elements are
-  # two-to-two disjoint with the first argument's `pairs`.
-  #
-  # To insert {fst, snd} into a disjoint pairs list, we go through the list to find
-  # each pair whose first element has a non-empty intersection with `fst`. Then
-  # we decompose {fst, snd} over each such pair to produce disjoint ones, and add
-  # the decompositions into the accumulator.
-  defp pair_make_disjoint(pairs) do
-    Enum.reduce(pairs, [], fn {t1, t2}, acc -> add_pair_to_disjoint_list(acc, t1, t2, []) end)
-  end
-
-  defp add_pair_to_disjoint_list([], fst, snd, acc), do: [{fst, snd} | acc]
-
-  defp add_pair_to_disjoint_list([{s1, s2} | pairs], fst, snd, acc) do
-    x = intersection(fst, s1)
-
-    if empty?(x) do
-      add_pair_to_disjoint_list(pairs, fst, snd, [{s1, s2} | acc])
-    else
-      fst_diff = difference(fst, s1)
-      s1_diff = difference(s1, fst)
-      empty_fst_diff = empty?(fst_diff)
-      empty_s1_diff = empty?(s1_diff)
-
-      cond do
-        # if fst is a subtype of s1, the disjointedness invariant ensures we can
-        # add those two pairs and end the recursion
-        empty_fst_diff and empty_s1_diff ->
-          [{x, union(snd, s2)} | pairs ++ acc]
-
-        empty_fst_diff ->
-          [{s1_diff, s2}, {x, union(snd, s2)} | pairs ++ acc]
-
-        empty_s1_diff ->
-          add_pair_to_disjoint_list(pairs, fst_diff, snd, [{x, union(snd, s2)} | acc])
-
-        true ->
-          # case where, when comparing {fst, snd} and {s1, s2}, both (fst and not s1)
-          # and (s1 and not fst) are non empty. that is, there is something in fst
-          # that is not in s1, and something in s1 that is not in fst
-          add_pair_to_disjoint_list(pairs, fst_diff, snd, [
-            {s1_diff, s2},
-            {x, union(snd, s2)} | acc
-          ])
-      end
-    end
-  end
 
   ## Map helpers
 
