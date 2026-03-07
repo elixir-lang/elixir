@@ -119,7 +119,7 @@ defmodule File.Stream do
 
       counter = fn device ->
         device = skip_bom_and_offset(device, raw, modes)
-        count_lines(device, path, pattern, read_function(stream), 0)
+        count_lines(device, path, pattern, read_function(stream), 0, :empty)
       end
 
       {:ok, open!(stream, modes, counter)}
@@ -229,20 +229,27 @@ defmodule File.Stream do
       for mode <- modes, mode not in [:write, :append, :trim_bom], do: mode
     end
 
-    defp count_lines(device, path, pattern, read, count) do
+    defp count_lines(device, path, pattern, read, count, last_byte) do
       case read.(device) do
+        data when is_binary(data) and byte_size(data) > 0 ->
+          newlines = length(:binary.matches(data, pattern))
+          last = :binary.last(data)
+          count_lines(device, path, pattern, read, count + newlines, last)
+
         data when is_binary(data) ->
-          count_lines(device, path, pattern, read, count + count_lines(data, pattern))
+          count_lines(device, path, pattern, read, count, last_byte)
 
         :eof ->
-          count
+          case last_byte do
+            :empty -> 0
+            ?\n -> count
+            _ -> count + 1
+          end
 
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
     end
-
-    defp count_lines(data, pattern), do: length(:binary.matches(data, pattern))
 
     defp read_function(%{raw: true}), do: &IO.binread(&1, @read_ahead_size)
     defp read_function(%{raw: false}), do: &IO.read(&1, @read_ahead_size)
