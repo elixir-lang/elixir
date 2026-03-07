@@ -887,6 +887,47 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
+    test "redundant clause checking with nested open maps" do
+      files = %{
+        "nested_maps.ex" => """
+        defmodule NestedMapsIssue do
+          def foo(%{a: nil, b: %{c: true}}), do: :ok
+          def foo(%{a: nil, b: %{c: false}}), do: :ok
+          def foo(%{a: nil, b: %{d: x}}) when is_list(x), do: :ok
+          def foo(%{a: nil, b: %{e: x}}) when is_list(x), do: :ok
+          def foo(%{a: nil, b: %{f: x}}) when is_list(x), do: :ok
+          def foo(%{a: nil}), do: :ok
+          def foo(%{b: %{g: :one, h: x}}) when is_map(x), do: :ok
+          def foo(%{b: %{g: _, i: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{g: _, j: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{g: _, k: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{g: :one}}), do: :ok
+          def foo(%{b: %{g: :two}}), do: :ok
+          def foo(%{b: %{g: :three}}), do: :ok
+          def foo(%{b: %{g: :four}}), do: :ok
+          def foo(%{b: %{g: :five}}), do: :ok
+          def foo(%{b: %{g: :six}}), do: :ok
+          def foo(%{b: %{l: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{m: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{n: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{o: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{p: x, q: y}}) when is_number(x) and is_number(y), do: :ok
+          def foo(%{b: %{p: x}}) when is_number(x), do: :ok
+          def foo(%{b: %{q: x}}) when is_number(x), do: :ok
+          def foo(%{b: %{r: x}}) when is_integer(x), do: :ok
+          def foo(%{b: %{s: x}}) when is_integer(x), do: :ok
+          def foo(%{b: %{t: x}}) when is_binary(x), do: :ok
+          def foo(%{b: %{u: x}}) when is_atom(x), do: :ok
+          def foo(%{b: %{v: x}}) when is_integer(x), do: :ok
+          def foo(%{b: %{w: x}}) when is_integer(x), do: :ok
+          def foo(_), do: :ok
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "unions and intersections of open maps" do
       files = %{
         "large_head.ex" => """

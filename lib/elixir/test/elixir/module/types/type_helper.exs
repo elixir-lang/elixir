@@ -156,10 +156,10 @@ defmodule TypeHelper do
     previous = Pattern.init_previous()
     tag = {:fn, patterns}
 
-    {_trees, {previous, _}, _context} =
+    {_trees, previous, _context} =
       Pattern.of_head(patterns, guards, expected, previous, tag, [], stack, new_context())
 
-    previous != []
+    not match?([], previous)
   end
 
   def __typecheck__(mode, patterns, guards, body) do
