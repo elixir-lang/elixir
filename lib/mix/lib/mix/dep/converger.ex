@@ -284,7 +284,7 @@ defmodule Mix.Dep.Converger do
         end
 
         cond do
-          in_upper? && other_opts[:override] ->
+          in_upper? && (other_opts[:override] || override_for?(other_opts, app)) ->
             {:match, list}
 
           not converge?(other, dep) ->
@@ -314,6 +314,10 @@ defmodule Mix.Dep.Converger do
             {:match, pre ++ [other | pos]}
         end
     end
+  end
+
+  defp override_for?(opts, app) do
+    !!opts[:override_for] && app in opts[:override_for]
   end
 
   defp with_matching_only_and_targets(other, dep, in_upper?) do
