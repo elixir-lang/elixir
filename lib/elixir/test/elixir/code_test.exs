@@ -176,6 +176,16 @@ defmodule CodeTest do
                {"1", [{:c, 2}, {:b, "1"}, {:a, 1}]}
     end
 
+    test "raises on invalid binding type" do
+      assert_raise ArgumentError, "binding must be a list, got: :not_a_list", fn ->
+        Code.eval_string("1 + 1", :not_a_list)
+      end
+
+      assert_raise ArgumentError, "binding must be a list, got: %{}", fn ->
+        Code.eval_string("1 + 1", %{}, __ENV__)
+      end
+    end
+
     test "keeps caller in stacktrace" do
       try do
         Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
