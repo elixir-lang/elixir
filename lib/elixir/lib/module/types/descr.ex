@@ -2258,15 +2258,20 @@ defmodule Module.Types.Descr do
         do: :bdd_bot,
         else: bdd_leaf(list1, difference(last1, last2))
     else
-      bdd_difference(bdd1, bdd2, &list_leaf_disjoint?/2)
+      bdd_difference(bdd1, bdd2, &list_leaf_compare/2)
     end
   end
 
   defp list_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &list_leaf_disjoint?/2)
+    do: bdd_difference(bdd1, bdd2, &list_leaf_compare/2)
 
-  defp list_leaf_disjoint?(bdd_leaf(list1, last1), bdd_leaf(list2, last2)),
-    do: disjoint?(list1, list2) or disjoint?(last1, last2)
+  defp list_leaf_compare(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
+    if disjoint?(list1, list2) or disjoint?(last1, last2) do
+      :disjoint
+    else
+      :none
+    end
+  end
 
   defp list_empty?(@non_empty_list_top), do: false
 
@@ -2969,12 +2974,12 @@ defmodule Module.Types.Descr do
         end
 
       _ when is_atom(tag) and is_atom(neg_tag) ->
-        case map_difference_strategy(fields, neg_fields, tag, neg_tag, :all_equal) do
-          :all_equal when tag == neg_tag or neg_tag == :open ->
-            :bdd_bot
-
+        case map_difference_strategy(fields, neg_fields, tag, neg_tag) do
           :disjoint ->
             bdd_leaf(tag, fields)
+
+          :left_subtype_of_right ->
+            :bdd_bot
 
           {:one_key_difference, key, v1, v2} ->
             t_diff = difference(fields_get(fields, key, v1), v2)
@@ -2985,38 +2990,28 @@ defmodule Module.Types.Descr do
               bdd_leaf(tag, fields_store(key, t_diff, fields))
             end
 
-          :left_subtype_of_right ->
-            :bdd_bot
-
           _ ->
             bdd_difference(map1, map2)
         end
 
       _ ->
-        bdd_difference(map1, map2, &map_leaf_disjoint?/2)
+        bdd_difference(map1, map2, &map_leaf_compare/2)
     end
   end
 
   defp map_difference(bdd_leaf(:open, []), bdd2),
     do: bdd_negation(bdd2)
 
-  defp map_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &map_leaf_disjoint?/2)
-
-  defp map_leaf_disjoint?(bdd_leaf(_tag1, fields1), bdd_leaf(_tag2, fields2)) do
-    disjoint_structs?(fields1, fields2)
+  defp map_difference(bdd1, bdd2) do
+    bdd_difference(bdd1, bdd2, &map_leaf_compare/2)
   end
 
-  defp disjoint_structs?(fields1, fields2) do
-    case {fields_find(:__struct__, fields1), fields_find(:__struct__, fields2)} do
-      {{:ok, %{atom: atom} = d1}, {:ok, d2}} when map_size(d1) == 1 ->
-        disjoint_atom_descr?(atom, d2)
-
-      {{:ok, d1}, {:ok, %{atom: atom} = d2}} when map_size(d2) == 1 ->
-        disjoint_atom_descr?(atom, d1)
-
-      _ ->
-        false
+  defp map_leaf_compare(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields)) do
+    case map_difference_strategy(fields, neg_fields, tag, neg_tag) do
+      :disjoint -> :disjoint
+      :left_subtype_of_right -> :subtype
+      {:one_key_difference, _, v1, v2} -> if subtype?(v1, v2), do: :subtype, else: :none
+      _ -> :none
     end
   end
 
@@ -4361,10 +4356,7 @@ defmodule Module.Types.Descr do
       if empty_intersection? do
         {acc_fields, acc_negs}
       else
-        case map_difference_strategy(acc_fields, neg_fields, tag, neg_tag, :all_equal) do
-          :all_equal when tag == neg_tag or neg_tag == :open ->
-            {acc_fields, acc_negs}
-
+        case map_difference_strategy(acc_fields, neg_fields, tag, neg_tag) do
           {:one_key_difference, key, v1, v2} ->
             {fields_store(key, difference(v1, v2), acc_fields), acc_negs}
 
@@ -4378,13 +4370,27 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp map_difference_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
+  defp map_difference_strategy(fields1, fields2, tag1, tag2) do
+    if is_atom(tag1) and is_atom(tag2) do
+      status = if tag1 == tag2 or tag2 == :open, do: :all_equal, else: :none
+      map_difference_strategy(fields1, fields2, tag1, tag2, status)
+    else
+      :none
+    end
+  end
+
+  defp map_difference_strategy([{k1, value} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
        when k1 < k2 do
     # Left side has a key the right side does not have,
     # left can only be a subtype if the right side is open.
+    # If the right side is closed and the key is not optional, they are disjoint.
     case status do
-      _ when tag2 != :open ->
-        :none
+      _ when tag2 == :closed ->
+        if not is_optional_static(value) do
+          :disjoint
+        else
+          map_difference_strategy(t1, l2, tag1, tag2, :none)
+        end
 
       :all_equal ->
         map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
@@ -4402,11 +4408,15 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_difference_strategy([{k1, _} | _], [{k2, value} | _], tag1, _tag2, _status)
+  defp map_difference_strategy([{k1, _} | _] = l1, [{k2, value} | t2], tag1, tag2, _status)
        when k1 > k2 do
     # Right side has a key the left side does not have,
     # if left-side is closed, they are disjoint.
-    if tag1 == :closed and not is_optional_static(value), do: :disjoint, else: :none
+    if tag1 == :closed and not is_optional_static(value) do
+      :disjoint
+    else
+      map_difference_strategy(l1, t2, tag1, tag2, :none)
+    end
   end
 
   defp map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
@@ -4430,20 +4440,19 @@ defmodule Module.Types.Descr do
             :none
           end
 
-        # all_equal or left_subtype_of_right
         _ ->
-          if subtype?(v1, v2),
+          if status in [:all_equal, :left_subtype_of_right] and subtype?(v1, v2),
             do: map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
-            else: :none
+            else: map_difference_strategy(t1, t2, tag1, tag2, :none)
       end
     end
   end
 
   defp map_difference_strategy([], [], _tag1, _tag2, status) do
-    status
+    if status == :all_equal, do: :left_subtype_of_right, else: status
   end
 
-  defp map_difference_strategy(_l1, l2, tag1, tag2, status) do
+  defp map_difference_strategy(l1, l2, tag1, tag2, status) do
     cond do
       tag2 == :open and l2 == [] ->
         case status do
@@ -4455,9 +4464,15 @@ defmodule Module.Types.Descr do
 
           :left_subtype_of_right ->
             :left_subtype_of_right
+
+          :none ->
+            :none
         end
 
       tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, v} -> not is_optional_static(v) end) ->
+        :disjoint
+
+      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, v} -> not is_optional_static(v) end) ->
         :disjoint
 
       true ->
@@ -4816,11 +4831,15 @@ defmodule Module.Types.Descr do
     do: bdd_negation(bdd2)
 
   defp tuple_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &tuple_leaf_disjoint?/2)
+    do: bdd_difference(bdd1, bdd2, &tuple_leaf_compare?/2)
 
-  defp tuple_leaf_disjoint?(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) or
-      disjoint_tagged_tuples?(elements1, elements2)
+  defp tuple_leaf_compare?(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
+    if mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) or
+         disjoint_tagged_tuples?(elements1, elements2) do
+      :disjoint
+    else
+      :none
+    end
   end
 
   # A very cheap check for tagged tuples
@@ -5593,65 +5612,87 @@ defmodule Module.Types.Descr do
   defp bdd_difference_union(i, u1, u2),
     do: bdd_difference(i, bdd_union(u1, u2))
 
-  # Optimize differences
-  #
-  # ## When D2 == :bottom
-  #
-  # We can rewrite the BDD format:
-  #
-  # B1 and not B2
-  # ((a1 and C1) or B1_no_C1) and not B2
-  # ((a1 and C1) and not B2) or (B1_no_C1 and not B2)
-  # (a1 and C1 and not ((a2 and C2) or U2)) or (B1_no_C1 and not B2)
-  # (a1 and C1 and not (a2 and C2) and not U2) or (B1_no_C1 and not B2)
-  # (a1 and C1 and not U2) or (B1_no_C1 and not B2)
-  # (a1 and C1 and not U2) or (U1 and not B2) or (not a1 and D1 and not B2)
-  #
-  # The last line is equivalent to the BDD:
-  # {a1, C1 and not U2, U1 and not B2, D1 and not B2}
-  #
-  # ## When D2 != :bottom
-  #
-  # We could rewrite it to use the same optimization as bdd_leaf_intersection.
-  # However, given differences of negations are not common and because
-  # bdd_leaf_intersection can be expensive for open maps, we skip this step for now.
-  #
-  # (B1) and not (B2)
-  # (B1) and not (B2_no_D2 or (not a2 and D2))
-  # (B1) and (not B2_no_D2 and (a2 or not D2))
-  # (B1) and (a2 or not D2) and not B2_no_D2
-  # ((B1 and a2) or (B1 and not D2)) and not B2_no_D2
+  ## Optimize differences
 
-  defp bdd_difference(bdd1, {_, _, _, d} = bdd2, _leaf_disjoint) when d != :bdd_bot do
-    bdd_difference(bdd1, bdd2)
-  end
-
-  defp bdd_difference(bdd_leaf(_, _) = bdd1, bdd2, leaf_disjoint)
+  # For the right-side being a leaf, we have:
+  #
+  #     ((a1 and C1) or U1 or (not a1 and D1)) and not a2
+  #
+  # If disjoint?(a1, a2), we end up with:
+  #
+  #     (a1 and C1) or (U1 and not d2) or (not a1 and D1 and not a2)
+  #
+  # If subtype?(a1, a2), we end up with:
+  #
+  #     (U1 and not d2) or (D1 and not a2)
+  defp bdd_difference({a1, c1, u1, d1} = bdd1, bdd_leaf(_, _) = bdd2, leaf_compare)
        when is_tuple(bdd2) do
-    {leaf, _, u, :bdd_bot} = bdd_expand(bdd2)
+    case leaf_compare.(a1, bdd2) do
+      :disjoint ->
+        bdd_union(
+          bdd_difference(u1, bdd2, leaf_compare),
+          bdd_difference({a1, :bdd_bot, :bdd_bot, d1}, bdd2)
+        )
+        |> bdd_union({a1, c1, :bdd_bot, :bdd_bot})
 
-    case leaf_disjoint.(bdd1, leaf) do
-      true when u == :bdd_bot -> bdd1
-      true -> bdd_difference(bdd1, u, leaf_disjoint)
-      false -> bdd_difference(bdd1, bdd2)
-    end
-  end
+      :subtype ->
+        bdd_union(bdd_difference(u1, bdd2, leaf_compare), bdd_difference(d1, bdd2, leaf_compare))
 
-  defp bdd_difference({a1, c1, u1, d1} = bdd1, bdd2, leaf_disjoint)
-       when is_tuple(bdd2) do
-    {a2, _c2, u2, :bdd_bot} = bdd_expand(bdd2)
+      :none when a1 < bdd2 ->
+        {a1, bdd_difference(c1, bdd2, leaf_compare), bdd_difference(u1, bdd2, leaf_compare),
+         bdd_difference(d1, bdd2, leaf_compare)}
+        |> case do
+          {_, :bdd_bot, u, :bdd_bot} -> u
+          other -> other
+        end
 
-    case leaf_disjoint.(a1, a2) do
-      true ->
-        {a1, bdd_difference(c1, u2, leaf_disjoint), bdd_difference(u1, bdd2, leaf_disjoint),
-         bdd_difference(d1, bdd2, leaf_disjoint)}
-
-      false ->
+      :none ->
         bdd_difference(bdd1, bdd2)
     end
   end
 
-  defp bdd_difference(bdd1, bdd2, _leaf_disjoint) do
+  # For the left-side being a leaf, we have:
+  #
+  #     a1 and not ((a2 and C2) or U2 or (not a2 and D2))
+  #     a1 and not (a2 and C2) and not U2 and (a2 or not D2)
+  #
+  # If disjoint?(a1, a2):
+  #
+  #     a1 and not (a2 and C2) = a1            (a2 and C2 is subset of a2, disjoint from a1)
+  #     a1 and (a2 or not D2) = a1 and not D2  (a1 and a2 = bottom)
+  #
+  # Result: a1 and not D2 and not U2
+  #
+  # If subtype?(a1, a2):
+  #
+  #     a1 and not (a2 and C2) = a1 and not C2 (a1 and not a2 = bottom)
+  #     a1 and (a2 or not D2) = a1             (a1 and a2 = a1)
+  #
+  # Result: a1 and not C2 and not U2
+  defp bdd_difference(bdd_leaf(_, _) = bdd1, bdd2, leaf_compare) when is_tuple(bdd2) do
+    {a2, c2, u2, d2} = bdd_expand(bdd2)
+
+    case leaf_compare.(bdd1, a2) do
+      :disjoint ->
+        bdd1 |> bdd_difference(u2, leaf_compare) |> bdd_difference(d2, leaf_compare)
+
+      :subtype ->
+        bdd1 |> bdd_difference(u2, leaf_compare) |> bdd_difference(c2, leaf_compare)
+
+      :none when a2 < bdd1 ->
+        {a2, bdd_difference(bdd1, bdd_union(c2, u2), leaf_compare), :bdd_bot,
+         bdd_difference(bdd1, bdd_union(d2, u2), leaf_compare)}
+        |> case do
+          {_, :bdd_bot, u, :bdd_bot} -> u
+          other -> other
+        end
+
+      :none ->
+        bdd_difference(bdd1, bdd2)
+    end
+  end
+
+  defp bdd_difference(bdd1, bdd2, _leaf_compare) do
     bdd_difference(bdd1, bdd2)
   end
 
