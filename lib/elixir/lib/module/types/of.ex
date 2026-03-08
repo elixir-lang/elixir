@@ -105,31 +105,62 @@ defmodule Module.Types.Of do
           context
       end
 
-    if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
-      case compatible_intersection(old_type, type) do
-        {:error, _} when allow_empty? ->
-          data = %{
-            data
-            | type: none(),
-              off_traces: new_trace(expr, none(), stack, off_traces)
-          }
+    if match?(%{pattern_info: %{allow_empty?: _}}, context) do
+      if type not in [term(), dynamic()] and not is_map_key(data, :errored) do
+        new_type = intersection(old_type, type)
 
-          {none(), %{context | vars: %{vars | version => data}}}
+        case empty?(new_type) do
+          true when allow_empty? ->
+            data = %{
+              data
+              | type: none(),
+                off_traces: new_trace(expr, none(), stack, off_traces)
+            }
 
-        {:ok, new_type} when new_type != old_type ->
-          data = %{
-            data
-            | type: new_type,
-              off_traces: new_trace(expr, new_type, stack, off_traces)
-          }
+            {none(), %{context | vars: %{vars | version => data}}}
 
-          {new_type, %{context | vars: %{vars | version => data}}}
+          false when new_type != old_type ->
+            data = %{
+              data
+              | type: new_type,
+                off_traces: new_trace(expr, new_type, stack, off_traces)
+            }
 
-        _ ->
-          {old_type, context}
+            {new_type, %{context | vars: %{vars | version => data}}}
+
+          _ ->
+            {old_type, context}
+        end
+      else
+        {old_type, context}
       end
     else
-      {old_type, context}
+      if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
+        case compatible_intersection(old_type, type) do
+          {:error, _} when allow_empty? ->
+            data = %{
+              data
+              | type: none(),
+                off_traces: new_trace(expr, none(), stack, off_traces)
+            }
+
+            {none(), %{context | vars: %{vars | version => data}}}
+
+          {:ok, new_type} when new_type != old_type ->
+            data = %{
+              data
+              | type: new_type,
+                off_traces: new_trace(expr, new_type, stack, off_traces)
+            }
+
+            {new_type, %{context | vars: %{vars | version => data}}}
+
+          _ ->
+            {old_type, context}
+        end
+      else
+        {old_type, context}
+      end
     end
   end
 

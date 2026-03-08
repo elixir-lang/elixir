@@ -194,7 +194,7 @@ defmodule Module.Types.Pattern do
   def of_head(patterns, guards, expected, previous, tag, meta, stack, original) do
     stack = %{stack | meta: meta}
 
-    {trees, precise?, context} =
+    {trees, precise?, args_types, context} =
       of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
     if context.failed and not empty_previous?(previous) and
@@ -202,17 +202,10 @@ defmodule Module.Types.Pattern do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
-        {other_trees, _, %{failed: true} = other_context} ->
+        {other_trees, _, _, %{failed: true} = other_context} ->
           {other_trees, previous, other_context}
 
-        {other_trees, _, other_context} ->
-          args_types =
-            Enum.map(other_trees, fn {tree, _, _} ->
-              tree
-              |> of_pattern_tree(stack, other_context)
-              |> upper_bound()
-            end)
-
+        {other_trees, _, args_types, other_context} ->
           if previous_subtype?(args_types, previous) do
             warning = {:redundant, tag, expected, args_types, previous, other_context}
             {other_trees, previous, warn(__MODULE__, warning, meta, stack, other_context)}
@@ -221,13 +214,6 @@ defmodule Module.Types.Pattern do
           end
       end
     else
-      args_types =
-        Enum.map(trees, fn {tree, _, _} ->
-          tree
-          |> of_pattern_tree(stack, context)
-          |> upper_bound()
-        end)
-
       cond do
         previous_subtype?(args_types, previous) ->
           warning = {:redundant, tag, expected, args_types, previous, context}
@@ -242,16 +228,63 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  defp of_precise_head([], guards, _expected, _previous, _tag, stack, context) do
+    %{vars: vars} = context
+    {guard_precise?, changed, context} = of_guards(guards, [], vars, stack, context)
+    {[], guard_precise?, [], of_changed(changed, stack, context)}
+  end
+
   defp of_precise_head(patterns, guards, expected, previous, tag, stack, context) do
     %{vars: vars} = context
+    context = init_pattern_info(context, [])
 
-    case of_pattern_args(patterns, expected, previous, tag, stack, context) do
-      {trees, pattern_precise?, changed, context} ->
-        {guard_precise?, context} = of_guards(guards, changed, vars, stack, context)
-        {trees, pattern_precise? and guard_precise?, context}
+    {trees, pattern_precise?, context} =
+      of_pattern_args_zip(patterns, expected, 0, [], true, stack, context)
 
-      {trees, context} ->
-        {trees, false, context}
+    {pattern_info, context} = pop_pattern_info(context)
+    {guard_precise?, changed, context} = of_guards(guards, [], vars, stack, context)
+
+    with {:ok, types} <-
+           of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context),
+         fork_types = types,
+         fork_context = context,
+         fork_changed = changed,
+         {:ok, types} <-
+           of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context),
+         {_types, changed, context} <-
+           of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+      args_types =
+        if previous != [] do
+          {_types, fork_changed, fork_context} =
+            of_pattern_refine(fork_types, fork_changed, pattern_info, tag, stack, fork_context)
+
+          fork_context = of_changed(fork_changed, stack, fork_context)
+
+          Enum.map(trees, fn {tree, _, _} ->
+            tree
+            |> of_pattern_tree(stack, fork_context)
+            |> upper_bound()
+          end)
+        else
+          Enum.map(trees, fn {tree, _, _} ->
+            tree
+            |> of_pattern_tree(stack, context)
+            |> upper_bound()
+          end)
+        end
+
+      {trees, pattern_precise? and guard_precise?, args_types,
+       of_changed(changed, stack, context)}
+    else
+      {:error, context} ->
+        args_types =
+          Enum.map(trees, fn {tree, _, _} ->
+            tree
+            |> of_pattern_tree(stack, context)
+            |> upper_bound()
+          end)
+
+        {trees, false, args_types, context}
     end
   end
 
@@ -270,30 +303,6 @@ defmodule Module.Types.Pattern do
 
   def of_domain([], _stack, _context) do
     []
-  end
-
-  defp of_pattern_args([], [], _previous, _tag, _stack, context) do
-    {[], true, [], context}
-  end
-
-  defp of_pattern_args(patterns, expected, previous, tag, stack, context) do
-    context = init_pattern_info(context, [])
-
-    {trees, precise?, context} =
-      of_pattern_args_zip(patterns, expected, 0, [], true, stack, context)
-
-    {pattern_info, context} = pop_pattern_info(context)
-
-    with {:ok, types} <-
-           of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context),
-         {:ok, types} <-
-           of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context),
-         {_types, changed, context} <-
-           of_pattern_refine(types, pattern_info, tag, stack, context) do
-      {trees, precise?, changed, context}
-    else
-      {:error, context} -> {trees, context}
-    end
   end
 
   defp of_pattern_args_zip(
@@ -353,14 +362,17 @@ defmodule Module.Types.Pattern do
     {pattern_info, context} = pop_pattern_info(context)
     args = [{tree, expected, pattern}]
 
-    with {:ok, types} <- of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
-         {_types, changed, context} <-
-           of_pattern_refine(types, pattern_info, tag, stack, context) do
-      {_precise?, context} = of_guards(guards, changed, vars, stack, context)
-      context
+    with {:ok, types} <- of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
+      {_precise?, changed, context} = of_guards(guards, [], vars, stack, context)
+
+      with {_types, changed, context} <-
+             of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+        of_changed(changed, stack, context)
+      else
+        {:error, context} -> context
+      end
     else
-      {:error, context} ->
-        context
+      {:error, context} -> context
     end
   end
 
@@ -382,10 +394,10 @@ defmodule Module.Types.Pattern do
     {:ok, Enum.reverse(acc)}
   end
 
-  defp of_pattern_refine(types, pattern_info, tag, stack, context) do
+  defp of_pattern_refine(types, changed \\ [], pattern_info, tag, stack, context) do
     pattern_info
     |> Enum.reverse()
-    |> Enum.reduce({[], context}, fn {version, _pinned, node}, {changed, context} ->
+    |> Enum.reduce({changed, context}, fn {version, _pinned, node}, {changed, context} ->
       %{var: var, expr: expr, root: root, path: path} = node
 
       {actual, index} =
@@ -1025,8 +1037,8 @@ defmodule Module.Types.Pattern do
   @atom_true atom([true])
   @atom_false atom([false])
 
-  defp of_guards([], changed, _vars, stack, context) do
-    {true, of_changed(changed, stack, context)}
+  defp of_guards([], changed, _vars, _stack, context) do
+    {true, changed, context}
   end
 
   defp of_guards(guards, changed, vars, stack, context) do
@@ -1040,7 +1052,7 @@ defmodule Module.Types.Pattern do
 
     {precise?, context} = of_guards(guards, stack, context)
     {%{vars: vars, changed: changed}, context} = pop_pattern_info(context)
-    {is_map(vars) and precise?, of_changed(Map.keys(changed), stack, context)}
+    {is_map(vars) and precise?, Map.keys(changed), context}
   end
 
   defp of_guards([guard], stack, context) do
@@ -1478,66 +1490,44 @@ defmodule Module.Types.Pattern do
     traces = collect_traces(args, context)
 
     message =
-      with {:case, meta, expr, type} <- info,
-           {:case, :||} <- meta[:type_check] do
-        if subtype?(type, atom([false, nil])) do
+      with {_op, meta, expr, type} <- info,
+           true <- previous_subtype?(expected, previous) do
+        if match?({:case, :||}, meta[:type_check]) do
           """
-          the following conditional expression will never succeed:
+          the right-hand side of || will always execute:
 
               #{expr_to_string(expr) |> indent(4)}
 
-          because it evaluates to:
+          because the left-hand side always evaluates to:
 
               #{to_quoted_string(type) |> indent(4)}
           """
         else
-          additional =
-            with {:case, meta, [_, _]} <- expr,
-                 {:case, :||} <- meta[:type_check] do
-              "(shown as ... below) "
-            else
-              _ -> ""
-            end
-
           """
-          the right-hand side of || #{additional}will never be executed:
+          the following clause cannot match because the previous clauses already matched all possible values:
 
-              #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
+              #{args_to_string(args) |> indent(4)} ->
 
-          because the left-hand side always evaluates to:
+          it attempts to match on the result of:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          which has the already matched type:
 
               #{to_quoted_string(type) |> indent(4)}
           """
         end
       else
         _ ->
-          with {_op, _meta, expr, type} <- info,
-               true <- previous_subtype?(expected, previous) do
-            """
-            the following clause cannot match because the previous clauses already matched all possible values:
+          """
+          the following clause is redundant:
 
-                #{args_to_string(args) |> indent(4)} ->
+              #{args_to_string(args) |> indent(4)} ->
 
-            it attempts to match on the result of:
+          previous clauses have already matched on the following types:
 
-                #{expr_to_string(expr) |> indent(4)}
-
-            which has the already matched type:
-
-                #{to_quoted_string(type) |> indent(4)}
-            """
-          else
-            _ ->
-              """
-              the following clause is redundant:
-
-                  #{args_to_string(args) |> indent(4)} ->
-
-              previous clauses have already matched on the following types:
-
-                  #{previous_to_string(previous)}
-              """
-          end
+              #{previous_to_string(previous)}
+          """
       end
 
     %{
@@ -1616,37 +1606,59 @@ defmodule Module.Types.Pattern do
 
   defp badpattern({{op, meta, expr, type}, args}, _index) when op in [:case, :try_else] do
     with {:case, op} <- meta[:type_check] do
-      if op in [:and, :or] do
-        {first_message, second_message} =
-          case booleaness(type) do
-            {true, _} -> {" will always succeed", "because it evaluates to"}
-            {false, _} -> {" will never succeed", "because it evaluates to"}
-            :none -> {" will always fail", "because it evaluates to"}
-            _ -> {"", "will always evaluate to"}
-          end
+      message =
+        cond do
+          op == :|| ->
+            additional =
+              with {:case, meta, [_, _]} <- expr,
+                   {:case, :||} <- meta[:type_check] do
+                "(shown as ... below) "
+              else
+                _ -> ""
+              end
 
-        {expr,
-         """
-         the following conditional expression#{first_message}:
+            """
+            the right-hand side of || #{additional}will never be executed:
 
-             #{expr_to_string(expr) |> indent(4)}
+                #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
 
-         #{second_message}:
+            because the left-hand side always evaluates to:
 
-             #{to_quoted_string(type) |> indent(4)}
-         """}
-      else
-        {expr,
-         """
-         the following conditional expression:
+                #{to_quoted_string(type) |> indent(4)}
+            """
 
-             #{expr_to_string(expr) |> indent(4)}
+          op in [:and, :or] ->
+            {first_message, second_message} =
+              case booleaness(type) do
+                {true, _} -> {" will always succeed", "because it evaluates to"}
+                {false, _} -> {" will never succeed", "because it evaluates to"}
+                :none -> {" will always fail", "because it evaluates to"}
+                _ -> {"", "will always evaluate to"}
+              end
 
-         will always evaluate to:
+            """
+            the following conditional expression#{first_message}:
 
-             #{to_quoted_string(type) |> indent(4)}
-         """}
-      end
+                #{expr_to_string(expr) |> indent(4)}
+
+            #{second_message}:
+
+                #{to_quoted_string(type) |> indent(4)}
+            """
+
+          true ->
+            """
+            the following conditional expression:
+
+                #{expr_to_string(expr) |> indent(4)}
+
+            will always evaluate to:
+
+                #{to_quoted_string(type) |> indent(4)}
+            """
+        end
+
+      {expr, message}
     else
       _ ->
         {args,

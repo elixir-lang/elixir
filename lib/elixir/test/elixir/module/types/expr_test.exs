@@ -1974,7 +1974,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "|| reports violations" do
-      assert typewarn!([x = 123], x || true) |> elem(1) =~ """
+      assert typeerror!([x = 123], x || true) =~ """
              the right-hand side of || will never be executed:
 
                  x || ...
@@ -1985,7 +1985,7 @@ defmodule Module.Types.ExprTest do
 
              """
 
-      assert typewarn!([x = 123], System.get_env("foo") || x || true) |> elem(1) =~ """
+      assert typeerror!([x = 123], System.get_env("foo") || x || true) =~ """
              the right-hand side of || (shown as ... below) will never be executed:
 
                  System.get_env("foo") || x || ...
@@ -1997,11 +1997,11 @@ defmodule Module.Types.ExprTest do
              """
 
       assert typewarn!([x = false], x || true) |> elem(1) =~ """
-             the following conditional expression will never succeed:
+             the right-hand side of || will always execute:
 
                  x
 
-             because it evaluates to:
+             because the left-hand side always evaluates to:
 
                  dynamic(false)
              """

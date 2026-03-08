@@ -1486,9 +1486,9 @@ defmodule Module.Types.Apply do
     domain(domain, clauses)
   end
 
-  defp filter_domain({_type, domain, clauses}, expected, arity) do
+  defp filter_domain({_type, domain, clauses}, expected, _arity) do
     case filter_domain(clauses, expected, [], true) do
-      :none -> List.duplicate(term(), arity)
+      :none -> domain(domain, clauses)
       :all -> domain(domain, clauses)
       args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
     end
