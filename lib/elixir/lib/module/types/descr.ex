@@ -4402,11 +4402,11 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_difference_strategy([{k1, _} | _], [{k2, _} | _], tag1, _tag2, _status)
+  defp map_difference_strategy([{k1, _} | _], [{k2, value} | _], tag1, _tag2, _status)
        when k1 > k2 do
     # Right side has a key the left side does not have,
     # if left-side is closed, they are disjoint.
-    if tag1 == :closed, do: :disjoint, else: :none
+    if tag1 == :closed and not is_optional_static(value), do: :disjoint, else: :none
   end
 
   defp map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
@@ -4445,9 +4445,6 @@ defmodule Module.Types.Descr do
 
   defp map_difference_strategy(_l1, l2, tag1, tag2, status) do
     cond do
-      tag1 == :closed and l2 != [] ->
-        :disjoint
-
       tag2 == :open and l2 == [] ->
         case status do
           :all_equal ->
@@ -4458,10 +4455,10 @@ defmodule Module.Types.Descr do
 
           :left_subtype_of_right ->
             :left_subtype_of_right
-
-          _ ->
-            :none
         end
+
+      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, v} -> not is_optional_static(v) end) ->
+        :disjoint
 
       true ->
         :none
