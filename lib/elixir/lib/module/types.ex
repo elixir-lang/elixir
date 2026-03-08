@@ -452,7 +452,7 @@ defmodule Module.Types do
       subpatterns: %{},
       # Variables that are specific to the current environment/conditional
       conditional_vars: nil,
-      # Track metadata specific to matches and guards
+      # Track metadata specific to patterns and guards
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,

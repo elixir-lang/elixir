@@ -171,7 +171,7 @@ defmodule Module.Types.PatternTest do
 
              where "y" was given the type:
 
-                 # type: dynamic(atom())
+                 # type: atom()
                  # from: types_test.ex:LINE
                  is_atom(y)
              """
@@ -631,9 +631,9 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the type:
 
-                 # type: dynamic()
+                 # type: list(term())
                  # from: types_test.ex:LINE
-                 x
+                 length(x)
              """
     end
 
@@ -678,22 +678,17 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = %{foo: :bar}], not x.bar, x) ==
                dynamic(open_map(foo: atom([:bar]), bar: atom([false])))
 
-      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
-               ~l"""
-               unknown key .foo_bar in expression:
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) == ~l"""
+             the following pattern will never match:
 
-                   x.foo_bar
+                 x = %Point{}
 
-               the given type does not have the given key:
+             where "x" was given the type:
 
-                   dynamic(%Point{x: term(), y: term(), z: term()})
-
-               where "x" was given the type:
-
-                   # type: dynamic(%Point{})
-                   # from: types_test.ex:LINE-1
-                   x = %Point{}
-               """
+                 # type: %{..., foo_bar: true}
+                 # from: types_test.ex:LINE
+                 x.foo_bar
+             """
     end
 
     test "when checks" do
@@ -754,7 +749,7 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the type:
 
-                 # type: dynamic(atom() or binary())
+                 # type: atom() or binary()
                  # from: types_test.ex:LINE
                  is_binary(x) or is_atom(x)
              """
@@ -807,7 +802,7 @@ defmodule Module.Types.PatternTest do
 
                where "x" was given the type:
 
-                   # type: dynamic(atom() or binary())
+                   # type: atom() or binary()
                    # from: types_test.ex:LINE-1
                    :erlang.or(is_binary(x), is_atom(x))
                """
@@ -846,21 +841,17 @@ defmodule Module.Types.PatternTest do
                dynamic(tuple([list(term()), term()]))
     end
 
-    test "errors in guards" do
+    test "incompatible pattern and guards" do
       assert typeerror!([x = {}], is_integer(x), x) == ~l"""
-             this guard will never succeed:
+             the following pattern will never match:
 
-                 is_integer(x)
-
-             because it returns type:
-
-                 false
+                 x = {}
 
              where "x" was given the type:
 
-                 # type: dynamic({})
+                 # type: integer()
                  # from: types_test.ex:LINE
-                 x = {}
+                 is_integer(x)
              """
     end
   end
@@ -1014,43 +1005,39 @@ defmodule Module.Types.PatternTest do
 
     test "warnings" do
       assert typeerror!([x = {}], x == 0, x) =~ ~l"""
-             comparison between distinct types found:
+             the following pattern will never match:
 
+                 x = {}
+
+             where "x" was given the type:
+
+                 # type: float() or integer()
+                 # from: types_test.ex:LINE
                  x == 0
-
-             given types:
-
-                 dynamic({}) == integer()
-             """
-
-      assert typeerror!([x = {}], x != 0, x) =~ ~l"""
-             comparison between distinct types found:
-
-                 x != 0
-
-             given types:
-
-                 dynamic({}) != integer()
              """
 
       assert typeerror!([x = {}], x == :foo, x) =~ ~l"""
-             comparison between distinct types found:
+             the following pattern will never match:
 
+                 x = {}
+
+             where "x" was given the type:
+
+                 # type: :foo
+                 # from: types_test.ex:LINE
                  x == :foo
-
-             given types:
-
-                 dynamic({}) == :foo
              """
 
       assert typeerror!([x = {}], not (x != :foo), x) =~ ~l"""
-             comparison between distinct types found:
+             the following pattern will never match:
 
+                 x = {}
+
+             where "x" was given the type:
+
+                 # type: :foo
+                 # from: types_test.ex:LINE
                  x != :foo
-
-             given types:
-
-                 dynamic({}) != :foo
              """
 
       # We cannot warn in this case because the inference itself will lead to disjoint types
