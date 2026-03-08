@@ -230,8 +230,8 @@ defmodule Module.Types.Pattern do
 
   defp of_precise_head([], guards, _expected, _previous, _tag, stack, context) do
     %{vars: vars} = context
-    {guard_precise?, changed, context} = of_guards(guards, [], vars, stack, context)
-    {[], guard_precise?, [], of_changed(changed, stack, context)}
+    {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
+    {[], guard_precise?, [], of_changed(Map.keys(changed), stack, context)}
   end
 
   defp of_precise_head(patterns, guards, expected, previous, tag, stack, context) do
@@ -242,50 +242,37 @@ defmodule Module.Types.Pattern do
       of_pattern_args_zip(patterns, expected, 0, [], true, stack, context)
 
     {pattern_info, context} = pop_pattern_info(context)
-    {guard_precise?, changed, context} = of_guards(guards, [], vars, stack, context)
+    {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
 
     with {:ok, types} <-
            of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context),
-         fork_types = types,
-         fork_context = context,
-         fork_changed = changed,
+         # We compute the args types before we do the intersection with previous clauses
+         args_types =
+           (with [_ | _] <- previous,
+                 {:ok, _types, context} <-
+                   of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+              trees_to_args_types(trees, stack, context)
+            else
+              _ -> nil
+            end),
          {:ok, types} <-
            of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context),
-         {_types, changed, context} <-
+         {:ok, _types, context} <-
            of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
-      args_types =
-        if previous != [] do
-          {_types, fork_changed, fork_context} =
-            of_pattern_refine(fork_types, fork_changed, pattern_info, tag, stack, fork_context)
-
-          fork_context = of_changed(fork_changed, stack, fork_context)
-
-          Enum.map(trees, fn {tree, _, _} ->
-            tree
-            |> of_pattern_tree(stack, fork_context)
-            |> upper_bound()
-          end)
-        else
-          Enum.map(trees, fn {tree, _, _} ->
-            tree
-            |> of_pattern_tree(stack, context)
-            |> upper_bound()
-          end)
-        end
-
-      {trees, pattern_precise? and guard_precise?, args_types,
-       of_changed(changed, stack, context)}
+      {trees, pattern_precise? and guard_precise?,
+       args_types || trees_to_args_types(trees, stack, context), context}
     else
       {:error, context} ->
-        args_types =
-          Enum.map(trees, fn {tree, _, _} ->
-            tree
-            |> of_pattern_tree(stack, context)
-            |> upper_bound()
-          end)
-
-        {trees, false, args_types, context}
+        {trees, false, trees_to_args_types(trees, stack, context), context}
     end
+  end
+
+  defp trees_to_args_types(trees, stack, context) do
+    Enum.map(trees, fn {tree, _, _} ->
+      tree
+      |> of_pattern_tree(stack, context)
+      |> upper_bound()
+    end)
   end
 
   @doc """
@@ -342,9 +329,9 @@ defmodule Module.Types.Pattern do
 
     with {:ok, types} <-
            of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
-         {[type], changed, context} <-
-           of_pattern_refine(types, pattern_info, tag, stack, context) do
-      {type, of_changed(changed, stack, context)}
+         {:ok, [type], context} <-
+           of_pattern_refine(types, %{}, pattern_info, tag, stack, context) do
+      {type, context}
     else
       {:error, context} -> {expected, context}
     end
@@ -361,16 +348,13 @@ defmodule Module.Types.Pattern do
 
     {pattern_info, context} = pop_pattern_info(context)
     args = [{tree, expected, pattern}]
+    {_precise?, changed, context} = of_guards(guards, vars, stack, context)
 
-    with {:ok, types} <- of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context) do
-      {_precise?, changed, context} = of_guards(guards, [], vars, stack, context)
-
-      with {_types, changed, context} <-
-             of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
-        of_changed(changed, stack, context)
-      else
-        {:error, context} -> context
-      end
+    with {:ok, types} <-
+           of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
+         {:ok, _types, context} <-
+           of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+      context
     else
       {:error, context} -> context
     end
@@ -394,7 +378,7 @@ defmodule Module.Types.Pattern do
     {:ok, Enum.reverse(acc)}
   end
 
-  defp of_pattern_refine(types, changed \\ [], pattern_info, tag, stack, context) do
+  defp of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
     pattern_info
     |> Enum.reverse()
     |> Enum.reduce({changed, context}, fn {version, _pinned, node}, {changed, context} ->
@@ -425,13 +409,13 @@ defmodule Module.Types.Pattern do
             throw(badpattern_error(expr, index, tag, stack, context))
         end
 
-      {[version | changed], context}
+      {Map.put(changed, version, true), context}
     end)
   catch
     context -> {:error, error_vars(pattern_info, context)}
   else
     {changed, context} ->
-      {types, changed, context}
+      {:ok, types, of_changed(Map.keys(changed), stack, context)}
   end
 
   defp error_vars(pattern_info, context) do
@@ -531,13 +515,11 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  @doc """
-  Receives the pattern tree and the context and returns a concrete type.
-  """
-  def of_pattern_tree(descr, _stack, _context) when is_descr(descr),
+  # Receives the pattern tree and the context and returns a concrete type.
+  defp of_pattern_tree(descr, _stack, _context) when is_descr(descr),
     do: descr
 
-  def of_pattern_tree({:guard, name, polarity, guard, expr}, stack, context) do
+  defp of_pattern_tree({:guard, name, polarity, guard, expr}, stack, context) do
     {type, _context} = of_guard(guard, term(), expr, stack, context)
 
     # This logic mirrors the code in `Apply.compare`
@@ -553,25 +535,25 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  def of_pattern_tree({:tuple, entries}, stack, context) do
+  defp of_pattern_tree({:tuple, entries}, stack, context) do
     tuple(Enum.map(entries, &of_pattern_tree(&1, stack, context)))
   end
 
-  def of_pattern_tree({:open_map, static, dynamic}, stack, context) do
+  defp of_pattern_tree({:open_map, static, dynamic}, stack, context) do
     dynamic =
       Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, stack, context)} end)
 
     open_map(static ++ dynamic)
   end
 
-  def of_pattern_tree({:closed_map, static, dynamic}, stack, context) do
+  defp of_pattern_tree({:closed_map, static, dynamic}, stack, context) do
     dynamic =
       Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, stack, context)} end)
 
     closed_map(static ++ dynamic)
   end
 
-  def of_pattern_tree({:non_empty_list, [head | tail], suffix}, stack, context) do
+  defp of_pattern_tree({:non_empty_list, [head | tail], suffix}, stack, context) do
     tail
     |> Enum.reduce(
       of_pattern_tree(head, stack, context),
@@ -580,20 +562,20 @@ defmodule Module.Types.Pattern do
     |> non_empty_list(of_pattern_tree(suffix, stack, context))
   end
 
-  def of_pattern_tree({:intersection, entries}, stack, context) do
+  defp of_pattern_tree({:intersection, entries}, stack, context) do
     entries
     |> Enum.map(&of_pattern_tree(&1, stack, context))
     |> Enum.reduce(&intersection/2)
   end
 
-  def of_pattern_tree({:var, version}, _stack, context) do
+  defp of_pattern_tree({:var, version}, _stack, context) do
     case context do
       %{vars: %{^version => %{type: type}}} -> type
       _ -> term()
     end
   end
 
-  def of_pattern_tree(:key, _stack, _context) do
+  defp of_pattern_tree(:key, _stack, _context) do
     term()
   end
 
@@ -1037,22 +1019,22 @@ defmodule Module.Types.Pattern do
   @atom_true atom([true])
   @atom_false atom([false])
 
-  defp of_guards([], changed, _vars, _stack, context) do
-    {true, changed, context}
+  defp of_guards([], _vars, _stack, context) do
+    {true, %{}, context}
   end
 
-  defp of_guards(guards, changed, vars, stack, context) do
+  defp of_guards(guards, vars, stack, context) do
     context =
       init_pattern_info(context, %{
         allow_empty?: false,
         parent_version: nil,
         vars: vars,
-        changed: Map.from_keys(changed, [])
+        changed: %{}
       })
 
     {precise?, context} = of_guards(guards, stack, context)
     {%{vars: vars, changed: changed}, context} = pop_pattern_info(context)
-    {is_map(vars) and precise?, Map.keys(changed), context}
+    {is_map(vars) and precise?, changed, context}
   end
 
   defp of_guards([guard], stack, context) do
