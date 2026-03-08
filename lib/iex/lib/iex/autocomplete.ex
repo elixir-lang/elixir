@@ -514,14 +514,17 @@ defmodule IEx.Autocomplete do
     base = prefix <> hint
 
     for mod <- match_modules(base, module == Elixir),
-        rest = binary_part(mod, prefix_size, byte_size(mod) - prefix_size),
-        name = elixir_submodule_name(rest),
+        name = elixir_submodule_name(mod, prefix_size),
         valid_alias_piece?("." <> name),
         uniq: true,
         do: %{kind: :module, name: name}
   end
 
-  defp elixir_submodule_name(rest) do
+  defp elixir_submodule_name(mod, prefix_size) do
+    # All modules are checked to start with hint, which is larger
+    # than prefix size, so the operation below is safe.
+    rest = binary_part(mod, prefix_size, byte_size(mod) - prefix_size)
+
     case :binary.match(rest, ".") do
       {pos, _} -> binary_part(rest, 0, pos)
       :nomatch -> rest
