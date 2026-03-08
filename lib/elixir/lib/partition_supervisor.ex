@@ -421,7 +421,7 @@ defmodule PartitionSupervisor do
   Returns the number of partitions for the partition supervisor.
   """
   @doc since: "1.14.0"
-  @spec partitions(name()) :: pos_integer()
+  @spec partitions(name()) :: non_neg_integer()
   def partitions(name) do
     name |> table() |> partitions(name)
   end
