@@ -1199,7 +1199,9 @@ defmodule File do
     if source_parts != dest_parts and List.starts_with?(dest_parts, source_parts) do
       {:error, :einval, destination}
     else
-      case do_cp_r(source, destination, on_conflict, dereference?, []) do
+      dereference = if dereference?, do: MapSet.new(), else: nil
+
+      case do_cp_r(source, destination, on_conflict, dereference, []) do
         {:error, _, _} = error -> error
         res -> {:ok, res}
       end
@@ -1240,7 +1242,7 @@ defmodule File do
     end
   end
 
-  defp do_cp_r(src, dest, on_conflict, dereference?, acc) when is_list(acc) do
+  defp do_cp_r(src, dest, on_conflict, dereference, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
         case do_cp_file(src, dest, on_conflict, acc) do
@@ -1253,8 +1255,15 @@ defmodule File do
 
       {:ok, :symlink} ->
         case :file.read_link(src) do
-          {:ok, link} when dereference? ->
-            do_cp_r(Path.expand(link, Path.dirname(src)), dest, on_conflict, dereference?, acc)
+          {:ok, link} when dereference != nil ->
+            resolved = Path.expand(link, Path.dirname(src))
+
+            if MapSet.member?(dereference, resolved) do
+              {:error, :eloop, src}
+            else
+              dereference = MapSet.put(dereference, resolved)
+              do_cp_r(resolved, dest, on_conflict, dereference, acc)
+            end
 
           {:ok, link} ->
             do_cp_link(link, src, dest, on_conflict, acc)
@@ -1268,8 +1277,17 @@ defmodule File do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                Enum.reduce(files, [dest | acc], fn x, acc ->
-                  do_cp_r(Path.join(src, x), Path.join(dest, x), on_conflict, dereference?, acc)
+                Enum.reduce_while(files, [dest | acc], fn x, acc ->
+                  case do_cp_r(
+                         Path.join(src, x),
+                         Path.join(dest, x),
+                         on_conflict,
+                         dereference,
+                         acc
+                       ) do
+                    {:error, _, _} = error -> {:halt, error}
+                    acc -> {:cont, acc}
+                  end
                 end)
 
               {:error, reason} ->
