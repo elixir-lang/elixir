@@ -255,9 +255,20 @@ defmodule Kernel.Typespec do
 
       case type_to_signature(expr) do
         {name, arity} = type_pair ->
-          if built_in_type?(name, arity) do
-            message = "type #{name}/#{arity} is a built-in type and it cannot be redefined"
-            compile_error(env, message)
+          cond do
+            # This is a built-in type since OTP 29 but it just generates a warning for now
+            {name, arity} == {:record, 0} ->
+              IO.warn("type #{name}/#{arity} is overriding a built-in type",
+                file: file,
+                line: line
+              )
+
+            built_in_type?(name, arity) ->
+              message = "type #{name}/#{arity} is a built-in type and it cannot be redefined"
+              compile_error(env, message)
+
+            true ->
+              :ok
           end
 
           if Map.has_key?(type_pairs, type_pair) do

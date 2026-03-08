@@ -681,15 +681,17 @@ defmodule TypespecTest do
       end
     end
 
-    test "@type can be named record" do
-      bytecode =
-        test_module do
-          @type record :: binary
-          @spec foo?(record) :: boolean
-          def foo?(_), do: true
-        end
+    test "@type named record/0 warns" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               bytecode =
+                 test_module do
+                   @type record :: binary
+                   @spec foo?(record) :: boolean
+                   def foo?(_), do: true
+                 end
 
-      assert [type: {:record, {:type, _, :binary, []}, []}] = types(bytecode)
+               assert [type: {:record, {:type, _, :binary, []}, []}] = types(bytecode)
+             end) =~ "type record/0 is overriding a built-in type"
     end
 
     test "@type with an invalid map notation" do
