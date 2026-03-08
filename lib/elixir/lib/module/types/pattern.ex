@@ -1026,7 +1026,7 @@ defmodule Module.Types.Pattern do
   defp of_guards(guards, vars, stack, context) do
     context =
       init_pattern_info(context, %{
-        allow_empty?: false,
+        guard_context: :andalso,
         parent_version: nil,
         vars: vars,
         changed: %{}
@@ -1066,7 +1066,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp enable_conditional_mode(%{pattern_info: pattern_info} = context) do
-    %{context | pattern_info: %{pattern_info | allow_empty?: true}, conditional_vars: %{}}
+    %{context | pattern_info: %{pattern_info | guard_context: :orelse}, conditional_vars: %{}}
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -1184,8 +1184,7 @@ defmodule Module.Types.Pattern do
     # and also when vars change, so we need to deal with all possibilities
     # for pattern_info.
     case context.pattern_info do
-      %{allow_empty?: allow_empty?, vars: vars, parent_version: parent_version, changed: changed} =
-          pattern_info ->
+      %{vars: vars, parent_version: parent_version, changed: changed} = pattern_info ->
         vars =
           is_map(vars) and not is_map_key(vars, version) and
             not list_subpattern?(version, context) and vars
@@ -1199,7 +1198,7 @@ defmodule Module.Types.Pattern do
             do: Of.track_var(version, [parent_version], [], context),
             else: context
 
-        Of.refine_body_var(version, expected, expr, stack, context, allow_empty?)
+        Of.refine_body_var(version, expected, expr, stack, context)
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
