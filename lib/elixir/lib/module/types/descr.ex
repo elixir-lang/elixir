@@ -2750,7 +2750,7 @@ defmodule Module.Types.Descr do
 
   defp maybe_optimize_map_union(tag1, pos1, tag2, pos2)
        when is_atom(tag1) and is_atom(tag2) do
-    case map_leaf_strategy(tag1, pos1, tag2, pos2, true) do
+    case map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
       :all_equal when tag1 == :open -> {tag1, pos1}
       :all_equal -> {tag2, pos2}
       {:one_key_difference, key, v1, v2} -> {tag1, fields_store(key, union(v1, v2), pos1)}
@@ -2762,10 +2762,7 @@ defmodule Module.Types.Descr do
 
   defp maybe_optimize_map_union(_, _, _, _), do: nil
 
-  defp map_leaf_strategy(tag1, fields1, tag2, fields2, rhs?),
-    do: map_leaf_strategy(fields1, fields2, tag1, tag2, rhs?, :all_equal)
-
-  defp map_leaf_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, rhs?, status)
+  defp map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
        when k1 < k2 do
     # Left side has a key the right side does not have,
     # left can only be a subtype if the right side is open.
@@ -2774,81 +2771,82 @@ defmodule Module.Types.Descr do
         :none
 
       :all_equal ->
-        map_leaf_strategy(t1, l2, tag1, tag2, rhs?, :left_subtype_of_right)
+        map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
 
       {:one_key_difference, _, p1, p2} ->
         if subtype?(p1, p2),
-          do: map_leaf_strategy(t1, l2, tag1, tag2, rhs?, :left_subtype_of_right),
+          do: map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
           else: :none
 
       :left_subtype_of_right ->
-        map_leaf_strategy(t1, l2, tag1, tag2, rhs?, :left_subtype_of_right)
+        map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
 
       _ ->
         :none
     end
   end
 
-  defp map_leaf_strategy([{k1, _} | _] = l1, [{k2, _} | t2], tag1, tag2, rhs?, status)
+  defp map_union_strategy([{k1, _} | _] = l1, [{k2, _} | t2], tag1, tag2, status)
        when k1 > k2 do
     # Right side has a key the left side does not have,
     # right can only be a subtype if the left side is open.
     case status do
-      _ when tag1 != :open or not rhs? ->
+      _ when tag1 != :open ->
         :none
 
       :all_equal ->
-        map_leaf_strategy(l1, t2, tag1, tag2, rhs?, :right_subtype_of_left)
+        map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
 
       {:one_key_difference, _, p1, p2} ->
         if subtype?(p2, p1),
-          do: map_leaf_strategy(l1, t2, tag1, tag2, rhs?, :right_subtype_of_left),
+          do: map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left),
           else: :none
 
       :right_subtype_of_left ->
-        map_leaf_strategy(l1, t2, tag1, tag2, rhs?, :right_subtype_of_left)
+        map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
 
       _ ->
         :none
     end
   end
 
-  defp map_leaf_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, rhs?, status) do
+  defp map_union_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
     # Same key and same value, nothing changes
-    map_leaf_strategy(t1, t2, tag1, tag2, rhs?, status)
+    map_union_strategy(t1, t2, tag1, tag2, status)
   end
 
-  defp map_leaf_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, rhs?, status) do
+  defp map_union_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
     # They have the same key but different values
     case status do
-      :all_equal when k1 != :__struct__ ->
+      :all_equal ->
         cond do
-          tag1 == tag2 ->
-            map_leaf_strategy(t1, t2, tag1, tag2, rhs?, {:one_key_difference, k1, v1, v2})
+          # Don't do difference on struct keys
+          k1 != :__struct__ and tag1 == tag2 ->
+            map_union_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
 
           subtype?(v1, v2) ->
-            map_leaf_strategy(t1, t2, tag1, tag2, rhs?, :left_subtype_of_right)
+            map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
 
-          rhs? and subtype?(v2, v1) ->
-            map_leaf_strategy(t1, t2, tag1, tag2, rhs?, :right_subtype_of_left)
+          subtype?(v2, v1) ->
+            map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
 
           true ->
             :none
         end
 
       :left_subtype_of_right ->
-        if subtype?(v1, v2), do: map_leaf_strategy(t1, t2, tag1, tag2, rhs?, status), else: :none
+        if subtype?(v1, v2), do: map_union_strategy(t1, t2, tag1, tag2, status), else: :none
 
       :right_subtype_of_left ->
-        if subtype?(v2, v1), do: map_leaf_strategy(t1, t2, tag1, tag2, rhs?, status), else: :none
+        if subtype?(v2, v1), do: map_union_strategy(t1, t2, tag1, tag2, status), else: :none
 
       {:one_key_difference, _key, p1, p2} ->
         cond do
           subtype?(p1, p2) and subtype?(v1, v2) ->
-            map_leaf_strategy(t1, t2, tag1, tag2, rhs?, :left_subtype_of_right)
+            map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
 
-          rhs? and subtype?(p2, p1) and subtype?(v2, v1) ->
-            map_leaf_strategy(t1, t2, tag1, tag2, rhs?, :right_subtype_of_left)
+          subtype?(p2, p1) and subtype?(v2, v1) ->
+            map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
 
           true ->
             :none
@@ -2859,13 +2857,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_leaf_strategy([], [], _tag1, _tag2, _rhs?, status) do
+  defp map_union_strategy([], [], _tag1, _tag2, status) do
     status
   end
 
-  defp map_leaf_strategy(l1, l2, tag1, tag2, rhs?, status) do
+  defp map_union_strategy(l1, l2, tag1, tag2, status) do
     lhs? = tag2 == :open and l2 == []
-    rhs? = rhs? and tag1 == :open and l1 == []
+    rhs? = tag1 == :open and l1 == []
 
     case status do
       :all_equal when lhs? ->
@@ -2971,9 +2969,12 @@ defmodule Module.Types.Descr do
         end
 
       _ when is_atom(tag) and is_atom(neg_tag) ->
-        case map_leaf_strategy(tag, fields, neg_tag, neg_fields, false) do
+        case map_difference_strategy(fields, neg_fields, tag, neg_tag, :all_equal) do
           :all_equal when tag == neg_tag or neg_tag == :open ->
             :bdd_bot
+
+          :disjoint ->
+            bdd_leaf(tag, fields)
 
           {:one_key_difference, key, v1, v2} ->
             t_diff = difference(fields_get(fields, key, v1), v2)
@@ -2988,7 +2989,7 @@ defmodule Module.Types.Descr do
             :bdd_bot
 
           _ ->
-            bdd_difference(map1, map2, &map_leaf_disjoint?/2)
+            bdd_difference(map1, map2)
         end
 
       _ ->
@@ -4360,14 +4361,14 @@ defmodule Module.Types.Descr do
       if empty_intersection? do
         {acc_fields, acc_negs}
       else
-        case map_leaf_strategy(tag, acc_fields, neg_tag, neg_fields, false) do
+        case map_difference_strategy(acc_fields, neg_fields, tag, neg_tag, :all_equal) do
           :all_equal when tag == neg_tag or neg_tag == :open ->
             {acc_fields, acc_negs}
 
           {:one_key_difference, key, v1, v2} ->
             {fields_store(key, difference(v1, v2), acc_fields), acc_negs}
 
-          :left_subtype_of_right ->
+          :disjoint ->
             {acc_fields, acc_negs}
 
           _ ->
@@ -4375,6 +4376,96 @@ defmodule Module.Types.Descr do
         end
       end
     end)
+  end
+
+  defp map_difference_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
+       when k1 < k2 do
+    # Left side has a key the right side does not have,
+    # left can only be a subtype if the right side is open.
+    case status do
+      _ when tag2 != :open ->
+        :none
+
+      :all_equal ->
+        map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      {:one_key_difference, _, p1, p2} ->
+        if subtype?(p1, p2),
+          do: map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
+          else: :none
+
+      :left_subtype_of_right ->
+        map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      _ ->
+        :none
+    end
+  end
+
+  defp map_difference_strategy([{k1, _} | _], [{k2, _} | _], tag1, _tag2, _status)
+       when k1 > k2 do
+    # Right side has a key the left side does not have,
+    # if left-side is closed, they are disjoint.
+    if tag1 == :closed, do: :disjoint, else: :none
+  end
+
+  defp map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
+    # Same key and same value, nothing changes
+    map_difference_strategy(t1, t2, tag1, tag2, status)
+  end
+
+  defp map_difference_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
+    # They have the same key but different values
+    if disjoint?(v1, v2) do
+      :disjoint
+    else
+      case status do
+        :all_equal when tag1 == tag2 ->
+          map_difference_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
+
+        {:one_key_difference, _key, p1, p2} ->
+          if subtype?(p1, p2) and subtype?(v1, v2) do
+            map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
+          else
+            :none
+          end
+
+        # all_equal or left_subtype_of_right
+        _ ->
+          if subtype?(v1, v2),
+            do: map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
+            else: :none
+      end
+    end
+  end
+
+  defp map_difference_strategy([], [], _tag1, _tag2, status) do
+    status
+  end
+
+  defp map_difference_strategy(_l1, l2, tag1, tag2, status) do
+    cond do
+      tag1 == :closed and l2 != [] ->
+        :disjoint
+
+      tag2 == :open and l2 == [] ->
+        case status do
+          :all_equal ->
+            :left_subtype_of_right
+
+          {:one_key_difference, _, p1, p2} ->
+            if subtype?(p1, p2), do: :left_subtype_of_right, else: :none
+
+          :left_subtype_of_right ->
+            :left_subtype_of_right
+
+          _ ->
+            :none
+        end
+
+      true ->
+        :none
+    end
   end
 
   # Given a dnf, fuse maps when possible
