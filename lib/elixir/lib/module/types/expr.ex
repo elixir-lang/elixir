@@ -243,6 +243,12 @@ defmodule Module.Types.Expr do
         end
       end)
     else
+      context =
+        Enum.reduce(pairs, context, fn {_key, value}, context ->
+          {_type, context} = of_expr(value, term(), expr, stack, context)
+          context
+        end)
+
       {error_type(), context}
     end
   end

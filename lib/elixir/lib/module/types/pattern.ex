@@ -751,6 +751,12 @@ defmodule Module.Types.Pattern do
         {{:closed_map, static, dynamic}, precise?, context}
       end
     else
+      context =
+        Enum.reduce(args, context, fn {key, value}, context ->
+          {_, _, context} = of_pattern(value, [{:key, key} | path], stack, context)
+          context
+        end)
+
       {error_type(), false, context}
     end
   end

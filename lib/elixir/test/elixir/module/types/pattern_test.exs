@@ -193,6 +193,11 @@ defmodule Module.Types.PatternTest do
                "struct Enumerable is undefined (there is such module but it does not define a struct)"
     end
 
+    test "fields access on unknown struct" do
+      assert typeerror!([%UNKNOWN.URI{reason: reason}], reason) =~
+               "struct UNKNOWN.URI is undefined (module UNKNOWN.URI is not available or is yet to be defined)"
+    end
+
     test "unknown field" do
       {_, [diagnostic]} = typediag!([%URI{unknown: _} = x], x)
       assert diagnostic.severity == :error

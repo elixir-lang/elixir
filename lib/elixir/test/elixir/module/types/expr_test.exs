@@ -1253,6 +1253,17 @@ defmodule Module.Types.ExprTest do
                "struct Enumerable is undefined (there is such module but it does not define a struct)"
     end
 
+    test "updating field in unknown struct" do
+      assert typeerror!(
+               [x],
+               (
+                 %UNKNOWN.URI{x | foo: y = 123}
+                 y
+               )
+             ) =~
+               "struct UNKNOWN.URI is undefined (module UNKNOWN.URI is not available or is yet to be defined)"
+    end
+
     test "updating unknown field" do
       {_, [diagnostic]} = typediag!([%URI{} = x], %URI{x | unknown: 123})
       assert diagnostic.severity == :warning
