@@ -57,6 +57,11 @@ defmodule FloatTest do
     assert Float.parse("1.7976931348623159e308") === :error
     assert Float.parse("1.7976931348623159e+308") === :error
     assert Float.parse("9e8363") === :error
+
+    # Non-scientific notation overflow
+    assert Float.parse(String.duplicate("9", 310) <> ".0") === :error
+    assert Float.parse("-" <> String.duplicate("9", 310) <> ".0") === :error
+    assert Float.parse(String.duplicate("9", 310) <> ".0foo") === :error
   end
 
   test "floor/1" do

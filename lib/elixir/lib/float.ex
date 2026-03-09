@@ -186,10 +186,9 @@ defmodule Float do
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
        do: parse_unsigned(rest, true, true, [digit, sign, ?e | add_dot(acc, dot?)])
 
-  # When floats are expressed in scientific notation, :erlang.binary_to_float/1 can raise an
-  # ArgumentError if the e exponent is too big. For example, "1.0e400". Because of this, we
-  # rescue the ArgumentError here and return an error.
-  defp parse_unsigned(rest, dot?, true = _e?, acc) do
+  # :erlang.binary_to_float/1 can raise an ArgumentError if the e exponent is too big. For example,
+  # "1.0e400". Because of this, we rescue the ArgumentError here and return an error.
+  defp parse_unsigned(rest, dot?, _, acc) do
     acc
     |> add_dot(dot?)
     |> :lists.reverse()
@@ -198,16 +197,6 @@ defmodule Float do
     ArgumentError -> :error
   else
     float -> {float, rest}
-  end
-
-  defp parse_unsigned(rest, dot?, false = _e?, acc) do
-    float =
-      acc
-      |> add_dot(dot?)
-      |> :lists.reverse()
-      |> :erlang.list_to_float()
-
-    {float, rest}
   end
 
   defp add_dot(acc, true), do: acc
