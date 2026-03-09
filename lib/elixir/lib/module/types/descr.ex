@@ -1294,7 +1294,7 @@ defmodule Module.Types.Descr do
 
   ## Function application formula for dynamic types
 
-      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) ∨ (dynamic(upper_bound(τ) ◦ upper_bound(τ′)))
+      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) or (dynamic(upper_bound(τ) ◦ upper_bound(τ′)))
 
   Where:
 
@@ -1376,8 +1376,10 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # A function can only have one arity.
+  # Some arities in the BDD map may be semantically empty, so we filter them out.
   defp fun_single_arity(%{fun: {:union, bdds}}) do
-    case :maps.keys(bdds) do
+    case fun_non_empty_arities(bdds) do
       [arity] -> {:ok, arity}
       arities -> {:badarity, arities}
     end
@@ -1386,7 +1388,8 @@ defmodule Module.Types.Descr do
   defp fun_single_arity(_), do: {:badarity, []}
 
   defp fun_single_arity_pair(fun_static, fun_dynamic) do
-    arities = Enum.uniq(fun_arities_of(fun_static) ++ fun_arities_of(fun_dynamic))
+    arities =
+      Enum.uniq(fun_non_empty_arities_of(fun_static) ++ fun_non_empty_arities_of(fun_dynamic))
 
     case arities do
       [arity] -> {:ok, arity}
@@ -1395,12 +1398,25 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp fun_arities_of(%{fun: {:union, bdds}}), do: :maps.keys(bdds)
-  defp fun_arities_of(_), do: []
+  defp fun_non_empty_arities_of(%{fun: {:union, bdds}}), do: fun_non_empty_arities(bdds)
+  defp fun_non_empty_arities_of(_), do: []
+
+  defp fun_non_empty_arities(bdds) do
+    for {arity, bdd} <- bdds,
+        not Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
+        do: arity
+  end
 
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
+
   defp dynamic_fun_top?(:term), do: true
-  defp dynamic_fun_top?(%{fun: {:negation, map}}), do: map == %{}
+
+  defp dynamic_fun_top?(%{fun: {:negation, map}}) do
+    Enum.all?(map, fn {_arity, bdd} ->
+      Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end)
+    end)
+  end
+
   defp dynamic_fun_top?(_), do: false
 
   # Gradual function application algorithm.
@@ -1604,8 +1620,18 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Applies one clause (an intersection of arrows) to an input type.
-  # Processes arrows one at a time, splitting into two recursive branches.
+  # Helper function for function application that handles the application of
+  # function arrows to input types.
+
+  # This function recursively processes a list of function arrows (an intersection),
+  # applying each arrow to the input type and accumulating the result.
+
+  # ## Parameters
+
+  # - result: The accumulated result type so far
+  # - input: The input type being applied to the function
+  # - rets_reached: The intersection of return types reached so far
+  # - arrow_intersections: The list of function arrows to process
   #
   # Domain escape: if the input is not covered by the union of all the
   # arrow domains in the clause, the result is term(). This is because
@@ -1614,30 +1640,40 @@ defmodule Module.Types.Descr do
   # Along a path where no arrow covers the input, rets_reached stays
   # term() and gets unioned into the result at the base case. Since
   # term() is maximal, the overall result for that clause is term().
+
+  # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
+  # For the escape case, see Section 13.2 of
+  # https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
   defp aux_apply(result, _input, rets_reached, []) do
     if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
   end
 
   defp aux_apply(result, input, returns_reached, [{args, ret} | arrow_intersections]) do
+    # Calculate the part of the input not covered by this arrow's domain
     dom_subtract = difference(input, args_to_domain(args))
+
+    # Refine the return type by intersecting with this arrow's return type
     ret_refine = intersection(returns_reached, ret)
 
-    # Phase 1 -- the part of the input not covered by this arrow's domain.
-    # We recurse on that escaped part with rets_reached unchanged (this
-    # arrow does not contribute its return type for inputs outside its domain).
-    # e.g. (integer()->atom()) and (float()->pid()) applied to number():
-    # the float part escapes integer()'s domain, so both return types
-    # contribute to the result.
+    # Phase 1: Domain partitioning
+    # If the input is not fully covered by the arrow's domain, then the result type should be
+    # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
+    # parts of the domain.
+    #
+    # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
+    # both atoms and pids in the result.
     result =
       if empty?(dom_subtract),
         do: result,
         else: aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
 
-    # Phase 2 -- the part of the input covered by this arrow's domain.
-    # We recurse on the full input with rets_reached refined (intersected)
-    # by this arrow's return type.
-    # e.g. (integer()->atom()) and (integer()->pid()) applied to integer()
-    # yields atom() and pid() (i.e., none()).
+    # 2. Return type refinement
+    # The result type is also refined (intersected) in the sense that, if several arrows match
+    # the same part of the input, then the result type is an intersection of the return types of
+    # those arrows.
+
+    # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
+    # should result in (atom() ∩ pid()), which is none().
     aux_apply(result, input, ret_refine, arrow_intersections)
   end
 
