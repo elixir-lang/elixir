@@ -620,11 +620,21 @@ defmodule Module.Types.DescrTest do
       assert difference(closed_map(__struct__: atom_foo), closed_map(__struct__: atom_bar)) ==
                closed_map(__struct__: atom_foo)
 
-      refute difference(closed_map(__struct__: atom_foo), closed_map(__struct__: term())) ==
-               closed_map(__struct__: atom_foo)
+      assert difference(closed_map(__struct__: atom_foo), closed_map(__struct__: term())) ==
+               none()
 
-      refute difference(closed_map(__struct__: atom()), closed_map(__struct__: atom_bar)) ==
-               closed_map(__struct__: atom())
+      assert difference(closed_map(__struct__: atom()), closed_map(__struct__: atom_bar)) ==
+               closed_map(__struct__: difference(atom(), atom_bar))
+
+      # Explicitly assert we keep it as cascading differences
+      assert %{map: {{:closed, _}, :bdd_bot, :bdd_bot, _}} =
+               difference(
+                 difference(
+                   open_map(value: term()),
+                   closed_map(__struct__: atom_foo, value: term())
+                 ),
+                 closed_map(__struct__: atom_bar, name: term())
+               )
     end
 
     test "map with domain keys" do

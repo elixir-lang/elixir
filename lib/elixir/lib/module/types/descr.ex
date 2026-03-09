@@ -5632,11 +5632,13 @@ defmodule Module.Types.Descr do
        when is_tuple(bdd2) do
     case leaf_compare.(a1, bdd2) do
       :disjoint ->
-        bdd_union(
-          bdd_difference(u1, bdd2, leaf_compare),
-          bdd_difference({a1, :bdd_bot, :bdd_bot, d1}, bdd2)
-        )
-        |> bdd_union({a1, c1, :bdd_bot, :bdd_bot})
+        res =
+          bdd_union(
+            bdd_difference(u1, bdd2, leaf_compare),
+            bdd_difference({a1, :bdd_bot, :bdd_bot, d1}, bdd2)
+          )
+
+        if c1 == :bdd_bot, do: res, else: bdd_union(res, {a1, c1, :bdd_bot, :bdd_bot})
 
       :subtype ->
         bdd_union(bdd_difference(u1, bdd2, leaf_compare), bdd_difference(d1, bdd2, leaf_compare))
