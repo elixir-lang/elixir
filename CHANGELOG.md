@@ -173,6 +173,29 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
+## v1.20.0-rc.3 (2026-03-09)
+
+### 1. Enhancements
+
+#### IEx
+
+  * [IEx] Optimize autocompleting modules
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Enum] Fix `Enum.slice/2` for ranges with step > 1 sliced by step > 1
+  * [File] Preserve directory permissions in `File.cp_r/3`
+  * [File] Fix `File.cp_r/3` infinite loop with symlink cycles
+  * [File] Fix `File.cp_r/3` infinite loop when copying into subdirectory of source
+  * [File] Warn when defining `@type record()`, fixes CI on Erlang/OTP 29
+  * [File] Fix `File.Stream` `Enumerable.count` for files without trailing newline
+  * [Float] Fix `Float.parse/1` inconsistent error handling for non-scientific notation overflow
+  * [Kernel] Process fields even when structs are unknown (regression)
+  * [Kernel] Improve performance on several corner cases in the type system (regression)
+  * [Kernel] Fix regression when using `Kernel.in/2` in defguard (regression)
+
 ## v1.20.0-rc.2 (2026-03-04)
 
 ### 1. Enhancements
@@ -216,11 +239,10 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
 #### Elixir
 
-  * [Kernel] Improve the performance of the type system when working with large unions of open maps
-  * [Kernel] Do not crash on map types with struct keys when performing type operations
-  * [Kernel] Mark the outcome of bitstring types as dynamic
-  * [Kernel] `<<expr::bitstring>>` will have type `binary` instead of `bitstring` if `expr` is a binary
-  * [Kernel] Do not crash on conditional variables when calling a function on a module which is represented by a variable
+  * [Kernel] Do not crash on map types with struct keys when performing type operations (regression)
+  * [Kernel] Mark the outcome of bitstring types as dynamic (regression)
+  * [Kernel] `<<expr::bitstring>>` will have type `binary` instead of `bitstring` if `expr` is a binary (regression)
+  * [Kernel] Do not crash on conditional variables when calling a function on a module which is represented by a variable (regression)
 
 ## v1.20.0-rc.0 (2026-01-09)
 
