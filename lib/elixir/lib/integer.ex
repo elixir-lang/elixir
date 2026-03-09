@@ -297,8 +297,9 @@ defmodule Integer do
 
   defp undigits([], _base, acc), do: acc
 
-  defp undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
-    do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
+  defp undigits([digit | _], base, _)
+       when is_integer(digit) and (digit >= base or digit <= -base),
+       do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
 
   defp undigits([digit | tail], base, acc) when is_integer(digit),
     do: undigits(tail, base, acc * base + digit)

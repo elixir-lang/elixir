@@ -144,6 +144,14 @@ defmodule IntegerTest do
     assert_raise ArgumentError, "invalid digit 17 in base 16", fn ->
       Integer.undigits([1, 2, 17], 16)
     end
+
+    assert_raise ArgumentError, "invalid digit -10 in base 10", fn ->
+      Integer.undigits([-10], 10)
+    end
+
+    assert_raise ArgumentError, "invalid digit -17 in base 16", fn ->
+      Integer.undigits([1, 2, -17], 16)
+    end
   end
 
   test "parse/2" do
