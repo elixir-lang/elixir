@@ -197,7 +197,7 @@ defmodule Module.Types.Pattern do
     {trees, precise?, args_types, context} =
       of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
-    if context.failed and not empty_previous?(previous) and
+    if context.failed and stack.mode != :infer and not empty_previous?(previous) and
          Keyword.get(meta, :generated, false) != true do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
@@ -215,7 +215,7 @@ defmodule Module.Types.Pattern do
       end
     else
       cond do
-        previous_subtype?(args_types, previous) ->
+        stack.mode != :infer and previous_subtype?(args_types, previous) ->
           warning = {:redundant, tag, expected, args_types, previous, context}
           {trees, previous, warn(__MODULE__, warning, meta, stack, context)}
 
