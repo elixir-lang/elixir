@@ -4791,31 +4791,29 @@ defmodule Module.Types.Descr do
   defp tuple_literal_intersection(:open, [], tag, elements), do: {tag, elements}
 
   defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-    if mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) do
-      :empty
-    else
-      try do
-        zip_non_empty_intersection!(elements1, elements2, [])
-      catch
-        :empty -> :empty
-      else
-        elements when tag1 == :open and tag2 == :open -> {:open, elements}
-        elements -> {:closed, elements}
-      end
+    case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
+      :disjoint ->
+        :empty
+
+      _ ->
+        try do
+          zip_non_empty_intersection!(elements1, elements2, [])
+        catch
+          :empty -> :empty
+        else
+          elements when tag1 == :open and tag2 == :open -> {:open, elements}
+          elements -> {:closed, elements}
+        end
     end
   end
 
-  defp mismatched_tuple_sizes?(:closed, elems1, :closed, elems2),
-    do: length(elems1) != length(elems2)
-
-  defp mismatched_tuple_sizes?(:closed, elems1, :open, elems2),
-    do: length(elems1) < length(elems2)
-
-  defp mismatched_tuple_sizes?(:open, elems1, :closed, elems2),
-    do: length(elems2) < length(elems1)
-
-  defp mismatched_tuple_sizes?(:open, _, :open, _),
-    do: false
+  defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 != n2, do: :disjoint
+  defp tuple_sizes_strategy(:closed, n1, _, n2) when n1 == n2, do: :maybe_subtype
+  defp tuple_sizes_strategy(:closed, n1, :open, n2) when n1 < n2, do: :disjoint
+  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 == n2, do: :maybe_subtype
+  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 > n2, do: :maybe_subtype
+  defp tuple_sizes_strategy(:open, n1, :closed, n2) when n1 > n2, do: :disjoint
+  defp tuple_sizes_strategy(_, _, _, _), do: :none
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
   defp zip_non_empty_intersection!([], types2, acc), do: Enum.reverse(acc, types2)
@@ -4845,27 +4843,22 @@ defmodule Module.Types.Descr do
     do: bdd_difference(bdd1, bdd2, &tuple_leaf_compare/2)
 
   defp tuple_leaf_compare(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    if mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) do
-      :disjoint
-    else
-      tuple_leaf_compare(elements1, elements2, tag1, tag2)
+    case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
+      :disjoint -> :disjoint
+      other -> tuple_leaf_compare(elements1, elements2, other == :maybe_subtype)
     end
   end
 
-  defp tuple_leaf_compare([head1 | tail1], [head2 | tail2], tag1, tag2) do
+  defp tuple_leaf_compare([head1 | tail1], [head2 | tail2], subtype?) do
     cond do
       disjoint?(head1, head2) -> :disjoint
-      subtype?(head1, head2) -> tuple_leaf_compare(tail1, tail2, tag1, tag2)
+      subtype? and subtype?(head1, head2) -> tuple_leaf_compare(tail1, tail2, subtype?)
       true -> :none
     end
   end
 
-  defp tuple_leaf_compare(tail1, tail2, tag1, tag2) do
-    cond do
-      tail1 == [] and tail2 == [] and (tag1 == :closed or tag1 == tag2) -> :subtype
-      tail1 != [] and tag2 == :open -> :subtype
-      true -> :none
-    end
+  defp tuple_leaf_compare(_tail1, _tail2, subtype?) do
+    if subtype?, do: :subtype, else: :none
   end
 
   defp non_empty_tuple_literals_intersection(tuples) do
