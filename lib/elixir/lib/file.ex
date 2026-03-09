@@ -1277,18 +1277,24 @@ defmodule File do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                Enum.reduce_while(files, [dest | acc], fn x, acc ->
-                  case do_cp_r(
-                         Path.join(src, x),
-                         Path.join(dest, x),
-                         on_conflict,
-                         dereference,
-                         acc
-                       ) do
-                    {:error, _, _} = error -> {:halt, error}
-                    acc -> {:cont, acc}
-                  end
-                end)
+                case copy_file_mode(src, dest) do
+                  :ok ->
+                    Enum.reduce_while(files, [dest | acc], fn x, acc ->
+                      case do_cp_r(
+                             Path.join(src, x),
+                             Path.join(dest, x),
+                             on_conflict,
+                             dereference,
+                             acc
+                           ) do
+                        {:error, _, _} = error -> {:halt, error}
+                        acc -> {:cont, acc}
+                      end
+                    end)
+
+                  {:error, reason} ->
+                    {:error, reason, src}
+                end
 
               {:error, reason} ->
                 {:error, reason, dest}
