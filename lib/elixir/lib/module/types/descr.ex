@@ -2990,7 +2990,7 @@ defmodule Module.Types.Descr do
               bdd_leaf(tag, fields_store(key, t_diff, fields))
             end
 
-          _ ->
+          :none ->
             bdd_difference(map1, map2)
         end
 
@@ -3011,7 +3011,7 @@ defmodule Module.Types.Descr do
       :disjoint -> :disjoint
       :left_subtype_of_right -> :subtype
       {:one_key_difference, _, v1, v2} -> if subtype?(v1, v2), do: :subtype, else: :none
-      _ -> :none
+      :none -> :none
     end
   end
 
@@ -4332,16 +4332,20 @@ defmodule Module.Types.Descr do
     do: {false, map_domain_tag_to_type(tag), map_new(tag, fields)}
 
   # Continue to eliminate negations while length of list of negs decreases
-  defp map_eliminate_while_negs_decrease(tag, fields, []), do: {tag, fields, []}
+  defp map_eliminate_while_negs_decrease(tag, fields, []), do: [{tag, fields, []}]
 
   defp map_eliminate_while_negs_decrease(tag, fields, negs) do
-    n = length(negs)
-    {fields, negs} = maybe_eliminate_map_negations(tag, fields, negs)
-
-    if length(negs) < n do
-      map_eliminate_while_negs_decrease(tag, fields, negs)
+    try do
+      maybe_eliminate_map_negations(tag, fields, negs)
+    catch
+      :empty -> []
     else
-      {tag, fields, negs}
+      {fields, new_negs} ->
+        if length(new_negs) < length(negs) do
+          map_eliminate_while_negs_decrease(tag, fields, new_negs)
+        else
+          [{tag, fields, new_negs}]
+        end
     end
   end
 
@@ -4366,7 +4370,10 @@ defmodule Module.Types.Descr do
           :disjoint ->
             {acc_fields, acc_negs}
 
-          _ ->
+          :left_subtype_of_right ->
+            throw(:empty)
+
+          :none ->
             {acc_fields, [neg | acc_negs]}
         end
       end
@@ -4522,8 +4529,8 @@ defmodule Module.Types.Descr do
 
   defp map_to_quoted(bdd, opts) do
     bdd
-    |> map_bdd_to_dnf_no_negations()
-    |> Enum.map(fn {tag, fields, negs} ->
+    |> map_bdd_to_dnf_with_negations()
+    |> Enum.flat_map(fn {tag, fields, negs} ->
       map_eliminate_while_negs_decrease(tag, fields, negs)
     end)
     |> map_fusion()
