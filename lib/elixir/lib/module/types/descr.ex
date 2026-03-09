@@ -4842,29 +4842,31 @@ defmodule Module.Types.Descr do
     do: bdd_negation(bdd2)
 
   defp tuple_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &tuple_leaf_compare?/2)
+    do: bdd_difference(bdd1, bdd2, &tuple_leaf_compare/2)
 
-  defp tuple_leaf_compare?(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    if mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) or
-         disjoint_tagged_tuples?(elements1, elements2) do
+  defp tuple_leaf_compare(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
+    if mismatched_tuple_sizes?(tag1, elements1, tag2, elements2) do
       :disjoint
     else
-      :none
+      tuple_leaf_compare(elements1, elements2, tag1, tag2)
     end
   end
 
-  # A very cheap check for tagged tuples
-  defp disjoint_tagged_tuples?([%{atom: atom} = d1 | _], [d2 | _]) when map_size(d1) == 1,
-    do: disjoint_atom_descr?(atom, d2)
+  defp tuple_leaf_compare([head1 | tail1], [head2 | tail2], tag1, tag2) do
+    cond do
+      disjoint?(head1, head2) -> :disjoint
+      subtype?(head1, head2) -> tuple_leaf_compare(tail1, tail2, tag1, tag2)
+      true -> :none
+    end
+  end
 
-  defp disjoint_tagged_tuples?([d1 | _], [%{atom: atom} = d2 | _]) when map_size(d2) == 1,
-    do: disjoint_atom_descr?(atom, d1)
-
-  defp disjoint_tagged_tuples?(_, _), do: false
-
-  defp disjoint_atom_descr?(_atom, :term), do: false
-  defp disjoint_atom_descr?(atom1, %{atom: atom2}), do: atom_intersection(atom1, atom2) === 0
-  defp disjoint_atom_descr?(_atom, %{}), do: true
+  defp tuple_leaf_compare(tail1, tail2, tag1, tag2) do
+    cond do
+      tail1 == [] and tail2 == [] and (tag1 == :closed or tag1 == tag2) -> :subtype
+      tail1 != [] and tag2 == :open -> :subtype
+      true -> :none
+    end
+  end
 
   defp non_empty_tuple_literals_intersection(tuples) do
     try do
