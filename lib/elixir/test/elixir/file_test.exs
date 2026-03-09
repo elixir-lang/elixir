@@ -678,6 +678,23 @@ defmodule FileTest do
       end
     end
 
+    @tag :unix
+    test "cp_r with dereference symlink cycle returns eloop error" do
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/dest")
+
+      File.mkdir_p!(src)
+      :ok = :file.make_symlink(Path.join(src, "b"), Path.join(src, "a"))
+      :ok = :file.make_symlink(Path.join(src, "a"), Path.join(src, "b"))
+
+      try do
+        assert {:error, :eloop, _} = File.cp_r(src, dest, dereference_symlinks: true)
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
     test "cp_r with dir and file conflict" do
       src = fixture_path("cp_r")
       dest = tmp_path("tmp")
