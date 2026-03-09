@@ -928,7 +928,62 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
-    test "unions and intersections of open maps" do
+    test "redundant clause checking of mixed open and closed maps" do
+      files = %{
+        "mixed_open_closed_maps.ex" => """
+        defmodule MixedOpenClosedMaps do
+          defmodule S1, do: defstruct([:name])
+          defmodule S2, do: defstruct([:name])
+          defmodule S3, do: defstruct([:name])
+          defmodule S4, do: defstruct([:name])
+          defmodule S5, do: defstruct([:name])
+          defmodule S6, do: defstruct([:name])
+          defmodule S7, do: defstruct([:name])
+          defmodule S8, do: defstruct([:name])
+          defmodule S9, do: defstruct([:name])
+          defmodule S10, do: defstruct([:name])
+          defmodule S11, do: defstruct([:name])
+          defmodule S12, do: defstruct([:name])
+          defmodule S13, do: defstruct([:name])
+          defmodule S14, do: defstruct([:name])
+          defmodule S15, do: defstruct([:name])
+          defmodule S16, do: defstruct([:name])
+          defmodule S17, do: defstruct([:name])
+          defmodule S18, do: defstruct([:name])
+
+          defmodule SValue do
+            defstruct [:value]
+          end
+
+          def render(%S1{}), do: :ok
+          def render(%S2{}), do: :ok
+          def render(%S3{}), do: :ok
+          def render(%S4{}), do: :ok
+          def render(%S5{}), do: :ok
+          def render(%S6{}), do: :ok
+          def render(%S7{}), do: :ok
+          def render(%S8{}), do: :ok
+          def render(%S9{}), do: :ok
+          def render(%S10{}), do: :ok
+          def render(%S11{}), do: :ok
+          def render(%S12{}), do: :ok
+          def render(%S13{}), do: :ok
+          def render(%S14{}), do: :ok
+          def render(%S15{}), do: :ok
+          def render(%S16{}), do: :ok
+          def render(%S17{}), do: :ok
+          def render(%S18{}), do: :ok
+          # Having the closed map and the struct overlap on a key is important
+          def render(%SValue{}), do: :ok
+          def render(%{value: value}), do: value
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "redundant clause checking of open maps with distinct keys" do
       files = %{
         "large_head.ex" => """
         defmodule LargeHead do

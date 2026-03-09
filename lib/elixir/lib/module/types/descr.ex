@@ -3266,7 +3266,8 @@ defmodule Module.Types.Descr do
   catch
     :open -> {true, term()}
   else
-    value -> pop_optional_static(value)
+    value ->
+      pop_optional_static(value)
   end
 
   defp map_split_negative_key(negs, key, value, bdd) do
@@ -3290,7 +3291,7 @@ defmodule Module.Types.Descr do
 
         if not found? and neg_tag == :open do
           # In case the map is open, t \ t₁ is always empty,
-          # so we just need to deal with the bdd.
+          # t ∩ t₁ is always t, so we just need to deal with the bdd.
           Enum.reduce(acc, [], fn {value, bdd}, acc ->
             diff_bdd = map_difference(bdd, neg_bdd)
 
@@ -3307,17 +3308,19 @@ defmodule Module.Types.Descr do
             if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd)) do
               [{value, bdd} | acc]
             else
-              diff_bdd = map_difference(bdd, neg_bdd)
+              intersection_value = intersection(value, neg_value)
 
-              cond do
-                value == neg_value or subtype?(value, neg_value) ->
-                  if map_empty?(diff_bdd), do: acc, else: [{value, diff_bdd} | acc]
+              if empty?(intersection_value) do
+                [{value, bdd} | acc]
+              else
+                diff_bdd = map_difference(bdd, neg_bdd)
 
-                map_empty?(diff_bdd) ->
+                if map_empty?(diff_bdd) do
                   prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
-
-                true ->
-                  prepend_pair_unless_empty_diff(value, neg_value, bdd, [{value, diff_bdd} | acc])
+                else
+                  acc = [{intersection_value, diff_bdd} | acc]
+                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                end
               end
             end
           end)
