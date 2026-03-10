@@ -1341,41 +1341,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def fun_domain(:term), do: :badfun
-
-  def fun_domain(fun) do
-    case :maps.take(:dynamic, fun) do
-      :error ->
-        if fun_only?(fun) do
-          with {:ok, arity} <- fun_single_arity(fun) do
-            case fun_normalize(fun, arity) do
-              {:ok, domain, _arrows} -> {:ok, domain}
-              error -> error
-            end
-          end
-        else
-          :badfun
-        end
-
-      {fun_dynamic, fun_static} ->
-        cond do
-          fun_static == %{} and dynamic_fun_top?(fun_dynamic) ->
-            {:ok, dynamic()}
-
-          fun_only?(fun_static) ->
-            with {:ok, arity} <- fun_single_arity_pair(fun_static, fun_dynamic) do
-              case fun_normalize_both(fun_static, fun_dynamic, arity) do
-                {:ok, domain, _static_arrows, _dynamic_arrows} -> {:ok, domain}
-                error -> error
-              end
-            end
-
-          true ->
-            :badfun
-        end
-    end
-  end
-
   # A function can only have one arity.
   # Some arities in the BDD map may be semantically empty, so we filter them out.
   defp fun_single_arity(%{fun: {:union, bdds}}) do
