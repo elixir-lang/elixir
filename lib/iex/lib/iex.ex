@@ -29,7 +29,7 @@ defmodule IEx do
   aren't explicitly documented and where the function name is in the form
   of `__foo__`.
 
-  Autocomplete is available by default on Windows shells from Erlang/OTP 26.
+  Autocomplete is available by default on Windows shells.
 
   ## Encoding and coloring
 
@@ -41,14 +41,7 @@ defmodule IEx do
   PowerShell).
 
   Similarly, ANSI coloring is enabled by default on most Unix terminals.
-  They are also available on Windows consoles from Windows 10 and on
-  Erlang/OTP 26 or later. For earlier Erlang/OTP versions, you can
-  explicitly enable it for the current user in the registry by running
-  the following command:
-
-      $ reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
-
-  After running the command above, you must restart your current console.
+  They are also available on Windows consoles from Windows 10.
 
   ## Shell history
 
