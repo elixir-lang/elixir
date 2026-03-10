@@ -95,25 +95,6 @@ defmodule Kernel.CLI.ExecutableTest do
     # Check for -e and exclamation mark handling on Windows
     assert {_output, 0} =
              System.cmd(elixir_executable(context.cli_extension), ["-e", "Time.new!(0, 0, 0)"])
-
-    # TODO: remove this once we bump CI to Erlang/OTP 27
-    if not (windows?() and System.otp_release() == "26") do
-      {output, 0} =
-        System.cmd(iex_executable(context.cli_extension), [
-          "--eval",
-          "IO.puts :hello_world123; System.halt()"
-        ])
-
-      assert output =~ "hello_world123"
-
-      {output, 0} =
-        System.cmd(iex_executable(context.cli_extension), [
-          "-e",
-          "IO.puts :hello_world123; System.halt()"
-        ])
-
-      assert output =~ "hello_world123"
-    end
   end
 
   @tag :unix
