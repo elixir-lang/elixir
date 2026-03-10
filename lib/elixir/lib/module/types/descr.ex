@@ -2260,14 +2260,14 @@ defmodule Module.Types.Descr do
         do: :bdd_bot,
         else: bdd_leaf(list1, difference(last1, last2))
     else
-      bdd_difference(bdd1, bdd2, &list_leaf_compare/2)
+      bdd_difference(bdd1, bdd2, &list_leaf_difference/2)
     end
   end
 
   defp list_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &list_leaf_compare/2)
+    do: bdd_difference(bdd1, bdd2, &list_leaf_difference/2)
 
-  defp list_leaf_compare(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
+  defp list_leaf_difference(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
     if disjoint?(list1, list2) or disjoint?(last1, last2) do
       :disjoint
     else
@@ -3009,7 +3009,7 @@ defmodule Module.Types.Descr do
         end
 
       _ ->
-        bdd_difference(map1, map2, &map_leaf_compare/2)
+        bdd_difference(map1, map2, &map_leaf_difference/2)
     end
   end
 
@@ -3017,10 +3017,10 @@ defmodule Module.Types.Descr do
     do: bdd_negation(bdd2)
 
   defp map_difference(bdd1, bdd2) do
-    bdd_difference(bdd1, bdd2, &map_leaf_compare/2)
+    bdd_difference(bdd1, bdd2, &map_leaf_difference/2)
   end
 
-  defp map_leaf_compare(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields)) do
+  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields)) do
     case map_difference_strategy(fields, neg_fields, tag, neg_tag, false) do
       :disjoint -> :disjoint
       :left_subtype_of_right -> :subtype
@@ -4847,10 +4847,9 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 != n2, do: :disjoint
-  defp tuple_sizes_strategy(:closed, n1, _, n2) when n1 == n2, do: :maybe_subtype
+  defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 == n2, do: :left_subtype_of_right
   defp tuple_sizes_strategy(:closed, n1, :open, n2) when n1 < n2, do: :disjoint
-  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 == n2, do: :maybe_subtype
-  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 > n2, do: :maybe_subtype
+  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 >= n2, do: :left_subtype_of_right
   defp tuple_sizes_strategy(:open, n1, :closed, n2) when n1 > n2, do: :disjoint
   defp tuple_sizes_strategy(_, _, _, _), do: :none
 
@@ -4879,24 +4878,24 @@ defmodule Module.Types.Descr do
     do: bdd_negation(bdd2)
 
   defp tuple_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &tuple_leaf_compare/2)
+    do: bdd_difference(bdd1, bdd2, &tuple_leaf_difference/2)
 
-  defp tuple_leaf_compare(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
+  defp tuple_leaf_difference(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
     case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
       :disjoint -> :disjoint
-      other -> tuple_leaf_compare(elements1, elements2, other == :maybe_subtype)
+      other -> tuple_leaf_difference(elements1, elements2, other == :left_subtype_of_right)
     end
   end
 
-  defp tuple_leaf_compare([head1 | tail1], [head2 | tail2], subtype?) do
+  defp tuple_leaf_difference([head1 | tail1], [head2 | tail2], subtype?) do
     cond do
       disjoint?(head1, head2) -> :disjoint
-      subtype? and subtype?(head1, head2) -> tuple_leaf_compare(tail1, tail2, subtype?)
+      subtype? and subtype?(head1, head2) -> tuple_leaf_difference(tail1, tail2, subtype?)
       true -> :none
     end
   end
 
-  defp tuple_leaf_compare(_tail1, _tail2, subtype?) do
+  defp tuple_leaf_difference(_tail1, _tail2, subtype?) do
     if subtype?, do: :subtype, else: :none
   end
 
@@ -4996,8 +4995,8 @@ defmodule Module.Types.Descr do
       [{tag, elements}]
     else
       tuple_dnf_union(
-        tuple_elim_content([], tag, elements, neg_elements),
-        tuple_elim_size(n, m, tag, elements, neg_tag)
+        tuple_elim_size(n, m, tag, elements, neg_tag),
+        tuple_elim_content([], tag, elements, neg_elements)
       )
     end
   end
@@ -5077,17 +5076,15 @@ defmodule Module.Types.Descr do
     )
   end
 
+  # Prefer the smaller on the left
   defp tuple_dnf_union(dnf1, dnf2) do
-    # Union of tuple DNFs is just concatenation, but we rely on some optimization strategies to
-    # avoid the list to grow when possible
-
-    # first pass trying to identify patterns where two maps can be fused as one
+    # Union of tuple DNFs is just concatenation,
+    # but we do our best to remove duplicates.
     with [tuple1] <- dnf1,
          [tuple2] <- dnf2,
          optimized when optimized != nil <- maybe_optimize_tuple_union(tuple1, tuple2) do
       [optimized]
     else
-      # otherwise we just concatenate and remove structural duplicates
       _ -> dnf1 ++ (dnf2 -- dnf1)
     end
   end
@@ -5106,7 +5103,7 @@ defmodule Module.Types.Descr do
   defp tuple_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp maybe_optimize_tuple_union({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
-    case tuple_union_optimization_strategy(tag1, pos1, tag2, pos2) do
+    case tuple_union_strategy(tag1, pos1, tag2, pos2) do
       :all_equal ->
         tuple1
 
@@ -5120,75 +5117,62 @@ defmodule Module.Types.Descr do
       :right_subtype_of_left ->
         tuple1
 
-      nil ->
+      :none ->
         nil
     end
   end
 
-  defp maybe_optimize_tuple_union(_, _), do: nil
+  defp tuple_union_strategy(tag1, pos1, tag2, pos2) do
+    case {tag1, tag2} do
+      {tag, tag} when length(pos1) == length(pos2) ->
+        tuple_union_strategy_index(pos1, pos2, 0, :all_equal)
 
-  defp tuple_union_optimization_strategy(tag1, pos1, tag2, pos2)
-  defp tuple_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
+      {:open, _} when length(pos1) <= length(pos2) ->
+        tuple_union_strategy_index(pos1, pos2, 0, :right_subtype_of_left)
 
-  # might be one extra loop but cheap and avoids doing deep subtype comparisons
-  defp tuple_union_optimization_strategy(:closed, pos1, :closed, pos2)
-       when length(pos1) != length(pos2),
-       do: nil
+      {_, :open} when length(pos1) >= length(pos2) ->
+        tuple_union_strategy_index(pos1, pos2, 0, :left_subtype_of_right)
 
-  defp tuple_union_optimization_strategy(tag1, pos1, tag2, pos2) do
-    status =
-      case {tag1, tag2} do
-        {:open, :closed} -> :right_subtype_of_left
-        {:closed, :open} -> :left_subtype_of_right
-        {same, same} -> :all_equal
-      end
-
-    do_tuple_union_optimization_strategy(tag1, pos1, tag2, pos2, 0, status)
-  end
-
-  defp do_tuple_union_optimization_strategy(_tag1, [], _tag2, [], _i, status), do: status
-
-  defp do_tuple_union_optimization_strategy(:open, [], _tag2, _pos2, _i, status)
-       when status in [:all_equal, :right_subtype_of_left],
-       do: :right_subtype_of_left
-
-  defp do_tuple_union_optimization_strategy(_tag1, _pos1, :open, [], _i, status)
-       when status in [:all_equal, :left_subtype_of_right],
-       do: :left_subtype_of_right
-
-  defp do_tuple_union_optimization_strategy(tag1, [v1 | pos1], tag2, [v2 | pos2], i, status) do
-    if next_status = tuple_union_next_strategy(i, v1, v2, status) do
-      do_tuple_union_optimization_strategy(tag1, pos1, tag2, pos2, i + 1, next_status)
+      {_, _} ->
+        :none
     end
   end
 
-  defp do_tuple_union_optimization_strategy(_tag1, _pos1, _tag2, _pos2, _i, _status), do: nil
-
-  defp tuple_union_next_strategy(index, v1, v2, status)
-
-  # structurally equal values do not impact the ongoing strategy
-  defp tuple_union_next_strategy(_index, same, same, status), do: status
-
-  defp tuple_union_next_strategy(index, v1, v2, :all_equal) do
-    {:one_index_difference, index, v1, v2}
+  defp tuple_union_strategy_index([v | pos1], [v | pos2], i, status) do
+    tuple_union_strategy_index(pos1, pos2, i + 1, status)
   end
 
-  defp tuple_union_next_strategy(_index, v1, v2, {:one_index_difference, _, d1, d2}) do
-    # we have at least two differences now, we switch strategy
-    # if both are subtypes in one direction, keep checking
-    cond do
-      subtype?(d1, d2) and subtype?(v1, v2) -> :left_subtype_of_right
-      subtype?(d2, d1) and subtype?(v2, v1) -> :right_subtype_of_left
-      true -> nil
+  defp tuple_union_strategy_index([v1 | pos1], [v2 | pos2], i, status) do
+    case status do
+      :all_equal ->
+        tuple_union_strategy_index(pos1, pos2, i + 1, {:one_index_difference, i, v1, v2})
+
+      {:one_index_difference, _, d1, d2} ->
+        cond do
+          subtype?(d1, d2) and subtype?(v1, v2) ->
+            tuple_union_strategy_index(pos1, pos2, i + 1, :left_subtype_of_right)
+
+          subtype?(d2, d1) and subtype?(v2, v1) ->
+            tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left)
+
+          true ->
+            :none
+        end
+
+      :left_subtype_of_right ->
+        if subtype?(v1, v2),
+          do: tuple_union_strategy_index(pos1, pos2, i + 1, :left_subtype_of_right),
+          else: :none
+
+      :right_subtype_of_left ->
+        if subtype?(v2, v1),
+          do: tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left),
+          else: :none
     end
   end
 
-  defp tuple_union_next_strategy(_index, v1, v2, :left_subtype_of_right) do
-    if subtype?(v1, v2), do: :left_subtype_of_right
-  end
-
-  defp tuple_union_next_strategy(_index, v1, v2, :right_subtype_of_left) do
-    if subtype?(v2, v1), do: :right_subtype_of_left
+  defp tuple_union_strategy_index(_pos1, _pos2, _i, status) do
+    status
   end
 
   defp tuple_to_quoted(bdd, opts) do
