@@ -147,6 +147,22 @@ defmodule PartitionSupervisorTest do
       assert PartitionSupervisor.stop(config.test) == :ok
       assert Process.whereis(config.test) == nil
     end
+
+    test "with via tuple", config do
+      {:ok, _} = Registry.start_link(keys: :unique, name: config.test)
+
+      name = {:via, Registry, {config.test, :stop_test}}
+
+      {:ok, pid} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: name
+        )
+
+      assert Process.alive?(pid)
+      assert PartitionSupervisor.stop(name) == :ok
+      refute Process.alive?(pid)
+    end
   end
 
   describe "partitions/1" do
@@ -271,6 +287,23 @@ defmodule PartitionSupervisorTest do
 
     test "raises noproc for unknown partition supervisor" do
       assert {:noproc, _} = catch_exit(PartitionSupervisor.count_children(:unknown))
+    end
+
+    test "with via tuple", config do
+      {:ok, _} = Registry.start_link(keys: :unique, name: config.test)
+
+      name = {:via, Registry, {config.test, :count_test}}
+
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: name
+        )
+
+      partitions = System.schedulers_online()
+
+      assert PartitionSupervisor.count_children(name) ==
+               %{active: partitions, specs: partitions, supervisors: 0, workers: partitions}
     end
   end
 end
