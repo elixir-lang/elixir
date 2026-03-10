@@ -285,7 +285,7 @@ defmodule Module.Types.Descr do
   end
 
   defp unwrap_domain_tuple(%{tuple: bdd} = descr, transform) when map_size(descr) == 1 do
-    tuple_bdd_to_dnf(bdd) |> Enum.map(transform)
+    tuple_bdd_to_dnf_no_negations(bdd) |> Enum.map(transform)
   end
 
   defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
@@ -679,7 +679,7 @@ defmodule Module.Types.Descr do
   defp each_singleton?(:atom, atoms), do: match?({:union, set} when map_size(set) == 1, atoms)
 
   defp each_singleton?(:tuple, bdd) do
-    case tuple_bdd_to_dnf(bdd) do
+    case tuple_bdd_to_dnf_no_negations(bdd) do
       [] -> :empty
       [{:closed, entries}] -> Enum.all?(entries, &static_singleton?/1)
       _ -> false
@@ -687,7 +687,7 @@ defmodule Module.Types.Descr do
   end
 
   defp each_singleton?(:map, bdd) do
-    case map_bdd_to_dnf_no_negations(bdd) do
+    case map_bdd_to_dnf_remove_empty(bdd) do
       [] ->
         :empty
 
@@ -3172,7 +3172,7 @@ defmodule Module.Types.Descr do
     if empty?(type), do: throw(:empty), else: type
   end
 
-  defp map_bdd_to_dnf_no_negations(bdd) do
+  defp map_bdd_to_dnf_remove_empty(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {pos, negs}, acc ->
       case non_empty_map_literals_intersection(pos) do
@@ -3189,7 +3189,7 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp map_bdd_to_dnf_with_negations(bdd) do
+  defp map_bdd_to_dnf_with_empty(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {pos, negs}, acc ->
       case non_empty_map_literals_intersection(pos) do
@@ -3257,7 +3257,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_fetch_key_static(%{map: bdd}, key) do
-    bdd |> map_bdd_to_dnf_with_negations() |> map_dnf_fetch_static(key)
+    bdd |> map_bdd_to_dnf_with_empty() |> map_dnf_fetch_static(key)
   end
 
   defp map_fetch_key_static(%{}, _key), do: {false, none()}
@@ -3395,7 +3395,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_to_list_static(%{map: bdd}, fun) do
-    case map_bdd_to_dnf_no_negations(bdd) do
+    case map_bdd_to_dnf_remove_empty(bdd) do
       [] ->
         :badmap
 
@@ -3590,7 +3590,7 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    dnf = map_bdd_to_dnf_with_negations(bdd)
+    dnf = map_bdd_to_dnf_with_empty(bdd)
     bdd = map_update_put_negated(bdd, maybe_negated_set, type_fun)
 
     {found?, value, domains, errors} =
@@ -3658,7 +3658,7 @@ defmodule Module.Types.Descr do
       {term(), open_map(), [], true}
     else
       acc = {none(), none(), [], false}
-      dnf = map_bdd_to_dnf_with_negations(@map_top)
+      dnf = map_bdd_to_dnf_with_empty(@map_top)
       map_update_keys_static(dnf, required_keys, optional_keys, type_fun, force?, static?, acc)
     end
   end
@@ -3969,7 +3969,7 @@ defmodule Module.Types.Descr do
         domains -> map_update_put_domains(bdd, domains, type_fun)
       end
 
-    dnf = map_bdd_to_dnf_with_negations(bdd)
+    dnf = map_bdd_to_dnf_with_empty(bdd)
     map_put_keys_static(dnf, required_keys ++ optional_keys, type, descr)
   end
 
@@ -3987,7 +3987,7 @@ defmodule Module.Types.Descr do
     if required_domains != [] or optional_domains != [] do
       open_map()
     else
-      dnf = map_bdd_to_dnf_with_negations(@map_top)
+      dnf = map_bdd_to_dnf_with_empty(@map_top)
       map_put_keys_static(dnf, required_keys ++ optional_keys, type, none())
     end
   end
@@ -4047,7 +4047,7 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    dnf = map_bdd_to_dnf_with_negations(bdd)
+    dnf = map_bdd_to_dnf_with_empty(bdd)
 
     acc = none()
     acc = map_get_keys(dnf, required_keys, acc)
@@ -4552,7 +4552,7 @@ defmodule Module.Types.Descr do
 
   defp map_to_quoted(bdd, opts) do
     bdd
-    |> map_bdd_to_dnf_with_negations()
+    |> map_bdd_to_dnf_with_empty()
     |> Enum.flat_map(fn {tag, fields, negs} ->
       map_eliminate_while_negs_decrease(tag, fields, negs)
     end)
@@ -5192,25 +5192,43 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_to_quoted(bdd, opts) do
-    tuple_bdd_to_dnf(bdd)
+    tuple_bdd_to_dnf_with_negations(bdd)
     |> tuple_fusion()
     |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
 
   # Transforms a bdd into a union of tuples with no negations.
-  # Note: it is important to compose the results with tuple_dnf_union/2 to avoid duplicates
-  defp tuple_bdd_to_dnf(bdd) do
+  # Note: it is important to compose the results with
+  # tuple_dnf_union/2 to avoid duplicates
+  defp tuple_bdd_to_dnf_no_negations(bdd) do
     bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {positive_tuples, negative_tuples}, acc ->
-      case non_empty_tuple_literals_intersection(positive_tuples) do
+    |> Enum.reduce([], fn {pos, negs}, acc ->
+      case non_empty_tuple_literals_intersection(pos) do
         :empty ->
           acc
 
         {tag, elements} ->
-          if tuple_line_empty?(tag, elements, negative_tuples) do
+          if tuple_line_empty?(tag, elements, negs) do
             acc
           else
-            tuple_eliminate_negations(tag, elements, negative_tuples) |> tuple_dnf_union(acc)
+            tuple_eliminate_negations(tag, elements, negs) |> tuple_dnf_union(acc)
+          end
+      end
+    end)
+  end
+
+  defp tuple_bdd_to_dnf_with_negations(bdd) do
+    bdd_to_dnf(bdd)
+    |> Enum.reduce([], fn {pos, negs}, acc ->
+      case non_empty_tuple_literals_intersection(pos) do
+        :empty ->
+          acc
+
+        {tag, elements} ->
+          if tuple_line_empty?(tag, elements, negs) do
+            acc
+          else
+            [{tag, elements, negs} | acc]
           end
       end
     end)
@@ -5219,20 +5237,32 @@ defmodule Module.Types.Descr do
   # Given a union of tuples, fuses the tuple unions when possible,
   # e.g. {integer(), atom()} or {float(), atom()} into {number(), atom()}
   # The negations of two fused tuples are just concatenated.
-  defp tuple_fusion(dnf_no_negations) do
-    # Steps:
-    # 1. Consider tuples without negations apart from those with
-    # 2. Group tuples by size and tag
-    # 3. Try fusions for each group until no fusion is found
-    # 4. Merge the groups back into a dnf
-    dnf_no_negations
-    |> Enum.group_by(fn {tag, elems} -> {tag, length(elems)} end)
-    |> Enum.flat_map(fn {_, tuples} -> tuple_non_negated_fuse(tuples) end)
-  end
+  #
+  # Steps:
+  # 1. Consider tuples without negations apart from those with
+  # 2. Group tuples by size and tag
+  # 3. Try fusions for each group until no fusion is found
+  # 4. Merge the groups back into a dnf
+  defp tuple_fusion(dnf) do
+    {with_negs, without_negs} =
+      Enum.reduce(dnf, {[], %{}}, fn
+        {tag, elements, []}, {with, without} ->
+          key = {tag, length(elements)}
+          value = {tag, elements}
+          {with, Map.update(without, key, [value], &[value | &1])}
 
-  defp tuple_non_negated_fuse(tuples) do
-    Enum.reduce(tuples, [], fn tuple, acc ->
-      tuple_fuse_with_first_fusible(tuple, acc)
+        triplet, {with, without} ->
+          {[triplet | with], without}
+      end)
+
+    Enum.reduce(without_negs, with_negs, fn {_, tuples}, with_negs ->
+      tuples
+      |> Enum.reduce([], fn tuple, acc ->
+        tuple_fuse_with_first_fusible(tuple, acc)
+      end)
+      |> Enum.reduce(with_negs, fn {tag, elements}, with_negs ->
+        [{tag, elements, []} | with_negs]
+      end)
     end)
   end
 
@@ -5247,9 +5277,17 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_literal_to_quoted({:closed, []}, _opts), do: {:{}, [], []}
+  defp tuple_literal_to_quoted({:closed, [], []}, _opts), do: {:{}, [], []}
 
-  defp tuple_literal_to_quoted({tag, elements}, opts) do
+  defp tuple_literal_to_quoted({tag, elements, negs}, opts) do
+    pos = tuple_fields_to_quoted(tag, elements, opts)
+
+    Enum.reduce(negs, pos, fn {tag, elements}, acc ->
+      {:and, [], [acc, {:not, [], [tuple_fields_to_quoted(tag, elements, opts)]}]}
+    end)
+  end
+
+  defp tuple_fields_to_quoted(tag, elements, opts) do
     case tag do
       :closed -> {:{}, [], Enum.map(elements, &to_quoted(&1, opts))}
       :open -> {:{}, [], Enum.map(elements, &to_quoted(&1, opts)) ++ [{:..., [], nil}]}
@@ -5359,7 +5397,7 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_get(bdd, index) do
-    tuple_bdd_to_dnf(bdd)
+    tuple_bdd_to_dnf_no_negations(bdd)
     |> Enum.reduce(none(), fn
       {tag, elements}, acc -> Enum.at(elements, index, tuple_tag_to_type(tag)) |> union(acc)
     end)
@@ -5390,7 +5428,7 @@ defmodule Module.Types.Descr do
   end
 
   defp process_tuples_values(bdd) do
-    tuple_bdd_to_dnf(bdd)
+    tuple_bdd_to_dnf_no_negations(bdd)
     |> Enum.reduce(none(), fn {tag, elements}, acc ->
       cond do
         Enum.any?(elements, &empty?/1) -> none()
@@ -5528,7 +5566,7 @@ defmodule Module.Types.Descr do
   defp tuple_of_size_at_least_static?(descr, index) do
     case descr do
       %{tuple: bdd} ->
-        tuple_bdd_to_dnf(bdd)
+        tuple_bdd_to_dnf_no_negations(bdd)
         |> Enum.all?(fn {_, elements} -> length(elements) >= index end)
 
       %{} ->
