@@ -9,8 +9,6 @@ defmodule Mix.Tasks.Profile.Tprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `tprof` tool.
 
-  Requires Erlang/OTP27 or above.
-
   [`:tprof`](`:tprof`) is an experimental module introduced in Erlang/OTP 27 which
   provides a unified API for measuring call count, time, and allocation, and aims to
   replace [`:eprof`](`:eprof`) and [`:cprof`](`:cprof`).
