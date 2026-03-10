@@ -379,8 +379,8 @@ defmodule Float do
         case rounding do
           :ceil when sign === 0 -> 1 / power_of_10(precision)
           :floor when sign === 1 -> -1 / power_of_10(precision)
-          :ceil when sign === 1 -> minus_zero()
-          :half_up when sign === 1 -> minus_zero()
+          :ceil when sign === 1 -> -0.0
+          :half_up when sign === 1 -> -0.0
           _ -> 0.0
         end
 
@@ -411,7 +411,7 @@ defmodule Float do
 
         cond do
           num == 0 and sign == 1 ->
-            minus_zero()
+            -0.0
 
           num == 0 ->
             0.0
@@ -426,11 +426,6 @@ defmodule Float do
         end
     end
   end
-
-  # TODO remove once we require Erlang/OTP 27+
-  # This function tricks the compiler to avoid this bug in previous versions:
-  # https://github.com/elixir-lang/elixir/blob/main/lib/elixir/lib/float.ex#L408-L412
-  defp minus_zero, do: -0.0
 
   defp decompose(significant, initial) do
     decompose(significant, 1, 0, initial)
