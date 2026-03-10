@@ -400,6 +400,13 @@ defmodule File do
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
 
+  ## Options (since v1.20)
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
+
   ## Examples
 
       File.read("hello.txt")
@@ -408,14 +415,23 @@ defmodule File do
       File.read("non_existing.txt")
       #=> {:error, :enoent}
   """
-  @spec read(Path.t()) :: {:ok, binary} | {:error, posix | :badarg | :terminated | :system_limit}
-  def read(path) do
-    :file.read_file(IO.chardata_to_string(path))
+  @spec read(Path.t(), [exists_option]) ::
+          {:ok, binary} | {:error, posix | :badarg | :terminated | :system_limit}
+        when exists_option: :raw
+  def read(path, opts \\ []) do
+    :file.read_file(IO.chardata_to_string(path), opts)
   end
 
   @doc """
   Returns a binary with the contents of the given filename,
   or raises a `File.Error` exception if an error occurs.
+
+  ## Options (since v1.20)
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
@@ -425,9 +441,9 @@ defmodule File do
       File.read!("non_existing.txt")
       ** (File.Error) could not read file "non_existing.txt": no such file or directory
   """
-  @spec read!(Path.t()) :: binary
-  def read!(path) do
-    case read(path) do
+  @spec read!(Path.t(), [exists_option]) :: binary when exists_option: :raw
+  def read!(path, opts \\ []) do
+    case read(path, opts) do
       {:ok, binary} ->
         binary
 
