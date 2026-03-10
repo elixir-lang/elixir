@@ -656,7 +656,8 @@ defmodule Module do
       @spec module_info(:attributes) :: keyword()
       @spec module_info(:compile) :: keyword()
       @spec module_info(:md5) :: binary()
-      @spec module_info(:nifs) :: module()
+      @spec module_info(:nifs) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
       @spec module_info(:exports) :: [function_info]
         when function_info: {function_name :: atom(), arity :: non_neg_integer()}
       @spec module_info(:functions) :: [function_info]
@@ -1358,7 +1359,7 @@ defmodule Module do
 
   """
   @doc since: "1.13.0"
-  @spec overridables_in(module) :: [atom]
+  @spec overridables_in(module) :: [definition]
   def overridables_in(module) when is_atom(module) do
     assert_not_compiled!(__ENV__.function, module, :all)
     :elixir_overridable.overridables_for(module)
