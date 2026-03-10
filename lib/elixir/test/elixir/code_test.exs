@@ -739,26 +739,21 @@ defmodule Code.SyncTest do
 
   import PathHelpers
 
-  if System.otp_release() >= "26" do
-    defp assert_cached(path) do
-      assert find_path(path) != :nocache
-    end
+  defp assert_cached(path) do
+    assert find_path(path) != :nocache
+  end
 
-    defp refute_cached(path) do
-      assert find_path(path) == :nocache
-    end
+  defp refute_cached(path) do
+    assert find_path(path) == :nocache
+  end
 
-    defp find_path(path) do
-      {:status, _, {:module, :code_server}, [_, :running, _, _, state]} =
-        :sys.get_status(:code_server)
+  defp find_path(path) do
+    {:status, _, {:module, :code_server}, [_, :running, _, _, state]} =
+      :sys.get_status(:code_server)
 
-      [:state, _, _otp_root, paths | _] = Tuple.to_list(state)
-      {_, value} = List.keyfind(paths, to_charlist(path), 0)
-      value
-    end
-  else
-    defp assert_cached(_path), do: :ok
-    defp refute_cached(_path), do: :ok
+    [:state, _, _otp_root, paths | _] = Tuple.to_list(state)
+    {_, value} = List.keyfind(paths, to_charlist(path), 0)
+    value
   end
 
   test "evaluates module definitions" do
