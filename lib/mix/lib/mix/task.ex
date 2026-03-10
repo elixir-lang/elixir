@@ -262,6 +262,9 @@ defmodule Mix.Task do
 
   @doc """
   Available for backwards compatibility.
+
+  See the [CLI configuration](Mix.Project.html#module-cli-configuration)
+  section in the `Mix.Project` documentation.
   """
   @deprecated "Configure the environment in your mix.exs"
   defdelegate preferred_cli_env(task), to: Mix.CLI
