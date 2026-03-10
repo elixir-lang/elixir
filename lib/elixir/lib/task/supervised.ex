@@ -122,8 +122,8 @@ defmodule Task.Supervised do
               function: fun,
               args: args,
               reason: {log_value(kind, value), __STACKTRACE__},
-              # TODO use Process.get_label/0 when we require Erlang/OTP 27+
-              process_label: Process.get(:"$process_label", :undefined)
+              # using :proc_lib over Process because we want the :undefined default, not nil
+              process_label: :proc_lib.get_label(self())
             }
           },
           %{
