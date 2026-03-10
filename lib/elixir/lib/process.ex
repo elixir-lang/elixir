@@ -997,12 +997,7 @@ defmodule Process do
   """
   @doc since: "1.17.0"
   @spec set_label(term()) :: :ok
-  def set_label(label) do
-    # TODO: switch to `:proc_lib.set_label/2` when we require Erlang/OTP 27+
-    Process.put(:"$process_label", label)
-    # mimic return value of `:proc_lib.set_label/2`
-    :ok
-  end
+  defdelegate set_label(label), to: :proc_lib
 
   @compile {:inline, nilify: 1}
   defp nilify(:undefined), do: nil
