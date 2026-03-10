@@ -1360,7 +1360,7 @@ defmodule Module.Types.Descr do
 
   ## Function application formula for dynamic types
 
-      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) ∨ (dynamic(upper_bound(τ) ◦ lower_bound(τ′)))
+      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) or (dynamic(upper_bound(τ) ◦ upper_bound(τ′)))
 
   Where:
 
@@ -1368,7 +1368,8 @@ defmodule Module.Types.Descr do
   - τ′ are the arguments
   - ◦ is function application
 
-  For more details, see Definition 6.15 in https://vlanvin.fr/papers/thesis.pdf
+  For more details, see Section 13.2 of
+  https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
 
   ## Examples
 
@@ -1411,6 +1412,19 @@ defmodule Module.Types.Descr do
   defp dynamic_fun_top?(%{fun: {:negation, map}}), do: map == %{}
   defp dynamic_fun_top?(_), do: false
 
+  # Gradual function application algorithm.
+  #
+  # 1. Domain check against the extended gradual domain (see fun_normalize_both/3):
+  #    - If the argument is a subtype of the domain, proceed to application.
+  #    - Otherwise, in gradual mode, check compatibility (see below). If
+  #      compatible, the application may succeed at runtime but we have no
+  #      static information about the result, so we return dynamic().
+  #    - Otherwise, error.
+  # 2. Compute the application result in three cases:
+  #    - Fully static: apply static arrows to the arguments directly.
+  #    - Purely dynamic function (no static arrows): wrap the result of
+  #      applying dynamic arrows to upper-bounded arguments in dynamic().
+  #    - Mixed: union the static result with the dynamic-wrapped dynamic result.
   defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
     args_domain = args_to_domain(arguments)
     static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
@@ -1422,6 +1436,18 @@ defmodule Module.Types.Descr do
         Enum.any?(arguments, &empty?/1) ->
           {:badarg, domain_to_flat_args(domain, arity)}
 
+        # The domain here is the extended gradual domain computed by
+        # fun_normalize_both/3. If the argument does not satisfy it, we
+        # check compatibility before rejecting.
+        #
+        # Compatibility has two cases to avoid a degenerate situation.
+        # If the argument is purely dynamic (e.g. dynamic() and bool()),
+        # its static part (lower bound) is none(). We do not want
+        # none() <= domain to trivially succeed, because that would mean
+        # "a diverging argument is accepted by any function", which is true but
+        # useless. So when the static part is empty, we instead check
+        # that the upper bound overlaps with the domain. When the static
+        # part is non-empty, we check it is a subtype of the domain.
         not subtype?(args_domain, domain) ->
           if static? or not compatible?(args_domain, domain),
             do: {:badarg, domain_to_flat_args(domain, arity)},
@@ -1431,12 +1457,27 @@ defmodule Module.Types.Descr do
           {:ok, fun_apply_static(arguments, static_arrows)}
 
         static_arrows == [] ->
-          # TODO: We need to validate this within the theory
+          # Purely dynamic function (e.g. dynamic() and (integer() -> integer())).
+          # There are no static arrows, so the general mixed formula simplifies:
+          # applying none() to anything yields none(), so the static branch
+          # vanishes and only the dynamic branch remains.
+          # The result is wrapped in dynamic(), so it is safe regardless of argument precision.
+          # If the upper-bounded arguments escape the domain, fun_apply_static returns term(),
+          # and dynamic(term()) = dynamic(), which brings back to the compatible case.
           arguments = Enum.map(arguments, &upper_bound/1)
           {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows))}
 
         true ->
-          # For dynamic cases, combine static and dynamic results
+          # Mixed case: union of the static and dynamic results.
+          # static_arrows (lower materialization) contain only arrows that are
+          # guaranteed to exist at runtime. Static guarantees about the result
+          # come from these alone.
+          # dynamic_arrows (upper materialization) include dynamically uncertain
+          # arrows, so their result is wrapped in dynamic().
+          # We use upper_bound on the arguments for both branches. This is sound
+          # because the dynamic branch wraps its result in dynamic().
+          # It is more strict and informative than using lower_bound in the static part,
+          # as it amounts to assuming the worst case of using the statically present arrows.
           arguments = Enum.map(arguments, &upper_bound/1)
 
           {:ok,
@@ -1448,22 +1489,57 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # Normalizes a gradual function type into static and dynamic arrow
+  # components, and computes the extended gradual domain.
+  #
+  # The extended gradual domain is:
+  #   dom(upper_bound and fun_top) or dynamic(dom(lower_bound))
+  #
+  # fun_normalize/3 implicitly performs the "and fun_top" projection
+  # because it only looks at the :fun component, so any non-function
+  # parts of the type are automatically discarded.
+  #
+  # Fallback cases:
+  #
+  # - Static normalization succeeds but dynamic fails (e.g. the dynamic
+  #   part has no arrows at the given arity): we discard the dynamic
+  #   arrows and use the static arrows for both branches, degenerating
+  #   to the fully static case. This is sound because ignoring unusable
+  #   dynamic information cannot produce incorrect static results.
+  #
+  # - Static normalization fails (:badfun): only the dynamic arrows
+  #   contribute. The domain becomes dom(upper_bound) or dynamic(),
+  #   reflecting that the lower bound has no function type at this arity.
+  #   The application proceeds as purely dynamic (static_arrows = []).
   defp fun_normalize_both(fun_static, fun_dynamic, arity) do
     case fun_normalize(fun_static, arity) do
-      {:ok, static_domain, static_arrows} when fun_dynamic == nil ->
-        {:ok, static_domain, static_arrows, static_arrows}
-
-      {:ok, static_domain, static_arrows} when fun_dynamic != nil ->
-        case fun_normalize(fun_dynamic, arity) do
-          {:ok, dynamic_domain, dynamic_arrows} ->
-            domain = union(dynamic_domain, dynamic(static_domain))
-            {:ok, domain, static_arrows, dynamic_arrows}
-
-          _ ->
+      {:ok, static_domain, static_arrows} ->
+        # A static function with arrows at other arities is a mixed-arity union:
+        # we cannot safely apply it because at runtime the value may have a
+        # different arity than the one being called with.
+        case fun_other_non_empty_arities(fun_static, arity) do
+          [] when fun_dynamic == nil ->
             {:ok, static_domain, static_arrows, static_arrows}
+
+          [] ->
+            case fun_normalize(fun_dynamic, arity) do
+              {:ok, dynamic_domain, dynamic_arrows} ->
+                domain = union(dynamic_domain, dynamic(static_domain))
+                {:ok, domain, static_arrows, dynamic_arrows}
+
+              _ ->
+                # Dynamic normalization failed: fall back to static-only.
+                {:ok, static_domain, static_arrows, static_arrows}
+            end
+
+          other ->
+            {:badarity, [arity | other]}
         end
 
       :badfun ->
+        # No static arrows: dynamic-only path. Mixed-arity in the dynamic
+        # component is fine — we pick the matching-arity arrows and the
+        # result is wrapped in dynamic(), reflecting the uncertainty.
         case fun_normalize(fun_dynamic, arity) do
           {:ok, dynamic_domain, dynamic_arrows} ->
             {:ok, union(dynamic_domain, dynamic()), [], dynamic_arrows}
@@ -1476,6 +1552,20 @@ defmodule Module.Types.Descr do
         error
     end
   end
+
+  defp fun_other_non_empty_arities(%{fun: {:union, bdds}}, arity) do
+    case :maps.take(arity, bdds) do
+      {_bdd, rest} ->
+        for {a, b} <- rest,
+            not Enum.all?(bdd_to_dnf(b), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
+            do: a
+
+      :error ->
+        []
+    end
+  end
+
+  defp fun_other_non_empty_arities(_, _), do: []
 
   # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
   #
@@ -1522,6 +1612,13 @@ defmodule Module.Types.Descr do
 
   defp fun_normalize(%{}, _arity), do: :badfun
 
+  # Applies a static function type to arguments by reducing over the
+  # function's DNF clauses. Each clause is an intersection of arrows,
+  # processed by aux_apply/4 with rets_reached initialized to term().
+  #
+  # When the arguments are within the domain, this is the standard
+  # application operator. When the arguments escape the domain, the
+  # result is term() (see aux_apply/4).
   defp fun_apply_static(arguments, arrows) do
     type_args = args_to_domain(arguments)
 
@@ -1554,8 +1651,18 @@ defmodule Module.Types.Descr do
   # - input: The input type being applied to the function
   # - rets_reached: The intersection of return types reached so far
   # - arrow_intersections: The list of function arrows to process
+  #
+  # Domain escape: if the input is not covered by the union of all the
+  # arrow domains in the clause, the result is term(). This is because
+  # rets_reached starts at term() and is only refined (intersected) when
+  # an arrow's domain covers the input, which is check by dom_subtract.
+  # Along a path where no arrow covers the input, rets_reached stays
+  # term() and gets unioned into the result at the base case. Since
+  # term() is maximal, the overall result for that clause is term().
 
   # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
+  # For the escape case, see Section 13.2 of
+  # https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
   defp aux_apply(result, _input, rets_reached, []) do
     if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
   end
