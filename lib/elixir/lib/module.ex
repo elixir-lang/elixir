@@ -958,7 +958,7 @@ defmodule Module do
 
   It handles binaries and atoms.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -984,7 +984,7 @@ defmodule Module do
   It handles binaries and atoms. If one of the aliases
   is nil, it is discarded.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -1015,7 +1015,7 @@ defmodule Module do
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -1039,7 +1039,7 @@ defmodule Module do
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
