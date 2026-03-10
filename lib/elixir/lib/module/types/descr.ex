@@ -37,13 +37,15 @@ defmodule Module.Types.Descr do
 
   defmacro bdd_leaf(arg1, arg2), do: {arg1, arg2}
 
-  # Map fields are stored as orddicts (sorted key-value lists).
+  # Map fields and domains are stored as orddicts (sorted key-value lists).
   @fields_new []
   defguardp is_fields_empty(fields) when fields == []
   defguardp fields_size(fields) when length(fields)
 
-  @domain_key_types [:binary, :integer, :float, :pid, :port, :reference] ++
-                      [:fun, :atom, :tuple, :map, :list]
+  @domain_key_types :lists.sort(
+                      [:binary, :integer, :float, :pid, :port, :reference] ++
+                        [:fun, :atom, :tuple, :map, :list]
+                    )
 
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
@@ -2649,14 +2651,14 @@ defmodule Module.Types.Descr do
   defp domain_key_to_descr(:list), do: @list_top
 
   defp map_descr(tag, pairs) do
-    {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
+    {fields, domains, dynamic?} = map_descr_pairs(pairs, [], @fields_new, false)
 
     map_new =
-      if domains != %{} do
+      if not is_fields_empty(domains) do
         domains =
           if tag == :open do
             value = term_or_optional()
-            Enum.reduce(@domain_key_types, domains, &Map.put_new(&2, &1, value))
+            fields_put_all_new(domains, @domain_key_types, value)
           else
             domains
           end
@@ -2673,10 +2675,22 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domain(domain, domain_keys, value) when is_list(domain_keys) do
-    Enum.reduce(domain_keys, domain, fn key, acc when is_atom(key) ->
-      Map.update(acc, key, if_set(value), &union(&1, value))
-    end)
+    map_put_domain(domain, :lists.usort(domain_keys), if_set(value), value)
   end
+
+  defp map_put_domain([{k1, v1} | t1], [k2 | _] = keys, initial, value) when k1 < k2 do
+    [{k1, v1} | map_put_domain(t1, keys, initial, value)]
+  end
+
+  defp map_put_domain([{k1, v1} | t1], [k1 | keys], _initial, value) do
+    [{k1, union(v1, value)} | map_put_domain(t1, keys, if_set(value), value)]
+  end
+
+  defp map_put_domain(domain, [k2 | keys], initial, value) do
+    [{k2, initial} | map_put_domain(domain, keys, initial, value)]
+  end
+
+  defp map_put_domain(domain, [], _initial, _value), do: domain
 
   defp map_descr_pairs([{key, :term} | rest], fields, domain, dynamic?) do
     case is_atom(key) do
@@ -2708,7 +2722,7 @@ defmodule Module.Types.Descr do
   # Gets the default type associated to atom keys in a map.
   defp map_key_tag_to_type(:open), do: term_or_optional()
   defp map_key_tag_to_type(:closed), do: not_set()
-  defp map_key_tag_to_type(map = %{}), do: Map.get(map, :atom, not_set())
+  defp map_key_tag_to_type(domains), do: fields_get(domains, :atom, not_set())
 
   # Gets the domain type association to a map.
   # In this case, we already remove the optional to simplify upstream.
@@ -2716,8 +2730,8 @@ defmodule Module.Types.Descr do
   defp map_domain_tag_to_type(:open), do: term()
   defp map_domain_tag_to_type(:closed), do: none()
 
-  defp map_domain_tag_to_type(domain = %{}, key) do
-    remove_optional(Map.get(domain, key, none()))
+  defp map_domain_tag_to_type(domain, key) when is_list(domain) do
+    remove_optional(fields_get(domain, key, none()))
   end
 
   defp map_domain_tag_to_type(domain, _key) do
@@ -3071,28 +3085,33 @@ defmodule Module.Types.Descr do
   defp map_domain_intersection(:open, tag_or_domains), do: tag_or_domains
   defp map_domain_intersection(tag_or_domains, :open), do: tag_or_domains
 
-  defp map_domain_intersection(domains1 = %{}, domains2 = %{}) do
-    new_domains =
-      for {domain_key, type1} <- domains1, reduce: %{} do
-        acc_domains ->
-          case domains2 do
-            %{^domain_key => type2} ->
-              inter = intersection(type1, type2)
-
-              if empty_or_optional?(inter) do
-                acc_domains
-              else
-                Map.put(acc_domains, domain_key, inter)
-              end
-
-            _ ->
-              acc_domains
-          end
-      end
-
+  defp map_domain_intersection(domains1, domains2) do
     # If the explicit domains are empty, use simple atom tags
-    if map_size(new_domains) == 0, do: :closed, else: new_domains
+    case map_domain_intersection_fields(domains1, domains2) do
+      [] -> :closed
+      new_domains -> new_domains
+    end
   end
+
+  defp map_domain_intersection_fields([{k1, _} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+    map_domain_intersection_fields(t1, l2)
+  end
+
+  defp map_domain_intersection_fields([{k1, _} | _] = l1, [{k2, _} | t2]) when k1 > k2 do
+    map_domain_intersection_fields(l1, t2)
+  end
+
+  defp map_domain_intersection_fields([{k, type1} | t1], [{_, type2} | t2]) do
+    inter = intersection(type1, type2)
+
+    if empty_or_optional?(inter) do
+      map_domain_intersection_fields(t1, t2)
+    else
+      [{k, inter} | map_domain_intersection_fields(t1, t2)]
+    end
+  end
+
+  defp map_domain_intersection_fields(_, _), do: []
 
   defp map_literal_intersection_open_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
     # If the type in the open map is optional, we continue
@@ -3423,8 +3442,8 @@ defmodule Module.Types.Descr do
               # which is filtered by `map_bdd_to_dnf_*/1`.
               throw(:open)
 
-            domains = %{} ->
-              Enum.reduce(domains, acc, fn {domain_key, value}, acc ->
+            domains when is_list(domains) ->
+              fields_fold(domains, acc, fn domain_key, value, acc ->
                 value = remove_optional(value)
 
                 if empty?(value) do
@@ -3862,16 +3881,18 @@ defmodule Module.Types.Descr do
         :open
 
       :closed ->
-        Map.from_keys(domain_keys, if_set(type_fun.(true, none())))
+        fields_from_keys(domain_keys, if_set(type_fun.(true, none())))
 
-      domains = %{} ->
+      # Note: domain_keys may contain duplicates, so we cannot
+      # do a side-by-side traversal here.
+      domains when is_list(domains) ->
         Enum.reduce(domain_keys, domains, fn domain_key, acc ->
-          case acc do
-            %{^domain_key => value} ->
-              %{acc | domain_key => union(value, type_fun.(true, remove_optional(value)))}
+          case fields_find(domain_key, acc) do
+            {:ok, value} ->
+              fields_store(domain_key, union(value, type_fun.(true, remove_optional(value))), acc)
 
-            %{} ->
-              Map.put(acc, domain_key, if_set(type_fun.(true, none())))
+            :error ->
+              fields_store(domain_key, if_set(type_fun.(true, none())), acc)
           end
         end)
     end
@@ -4303,25 +4324,27 @@ defmodule Module.Types.Descr do
 
   # An open map is a subtype iff the negative domains are all present as term_or_optional()
   defp map_check_domain_keys?(:open, neg_domains) do
-    map_size(neg_domains) == length(@domain_key_types) and
-      Enum.all?(neg_domains, fn {_domain_key, type} -> subtype?(term_or_optional(), type) end)
+    fields_size(neg_domains) == length(@domain_key_types) and
+      Enum.all?(fields_to_list(neg_domains), fn {_domain_key, type} ->
+        subtype?(term_or_optional(), type)
+      end)
   end
 
   # A positive domains is smaller than a closed map iff all its keys are empty or optional
   defp map_check_domain_keys?(pos_domains, :closed) do
-    Enum.all?(pos_domains, fn {_domain_key, type} -> empty_or_optional?(type) end)
+    Enum.all?(fields_to_list(pos_domains), fn {_domain_key, type} -> empty_or_optional?(type) end)
   end
 
   # Component-wise comparison of domains
   defp map_check_domain_keys?(pos_domains, neg_domains) do
-    Enum.all?(pos_domains, fn {domain_key, type} ->
-      subtype?(type, Map.get(neg_domains, domain_key, not_set()))
+    Enum.all?(fields_to_list(pos_domains), fn {domain_key, type} ->
+      subtype?(type, fields_get(neg_domains, domain_key, not_set()))
     end)
   end
 
   # Pop a domain type, already removing non optional.
-  defp map_pop_domain_bdd(domains = %{}, fields, domain_key) do
-    case :maps.take(domain_key, domains) do
+  defp map_pop_domain_bdd(domains, fields, domain_key) when is_list(domains) do
+    case fields_take(domain_key, domains) do
       {value, domains} -> {true, value, map_new(domains, fields)}
       :error -> {false, none(), map_new(domains, fields)}
     end
@@ -4551,26 +4574,26 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_literal_to_quoted({:closed, empty}, _opts) when is_fields_empty(empty) do
+  defp map_literal_to_quoted({:closed, empty}, _opts) when is_fields_empty(empty) do
     {:empty_map, [], []}
   end
 
-  def map_literal_to_quoted({:open, empty}, _opts) when is_fields_empty(empty) do
+  defp map_literal_to_quoted({:open, empty}, _opts) when is_fields_empty(empty) do
     {:map, [], []}
   end
 
-  def map_literal_to_quoted({domains = %{}, empty}, _opts)
-      when map_size(domains) == 0 and is_fields_empty(empty) do
+  defp map_literal_to_quoted({domains, empty}, _opts)
+       when is_fields_empty(domains) and is_fields_empty(empty) do
     {:empty_map, [], []}
   end
 
-  def map_literal_to_quoted({:open, [{:__struct__, @not_atom_or_optional}]}, _opts) do
+  defp map_literal_to_quoted({:open, [{:__struct__, @not_atom_or_optional}]}, _opts) do
     {:non_struct_map, [], []}
   end
 
-  def map_literal_to_quoted({domains = %{}, fields}, opts) do
+  defp map_literal_to_quoted({domains, fields}, opts) when is_list(domains) do
     domain_fields =
-      for {domain_key, value_type} <- domains do
+      for {domain_key, value_type} <- fields_to_list(domains) do
         non_optional = remove_optional_static(value_type)
 
         value_quoted =
@@ -4587,7 +4610,7 @@ defmodule Module.Types.Descr do
     {:%{}, [], domain_fields ++ regular_fields_quoted}
   end
 
-  def map_literal_to_quoted({tag, fields}, opts) do
+  defp map_literal_to_quoted({tag, fields}, opts) do
     case tag do
       :closed ->
         with {:ok, struct_descr} <- fields_find(:__struct__, fields),
@@ -4655,12 +4678,13 @@ defmodule Module.Types.Descr do
 
   ## Map fields helpers
   #
-  # Map fields are stored as orddicts (sorted key-value lists).
+  # Map fields and domains are stored as orddicts (sorted key-value lists).
   # These helpers wrap :orddict operations so the representation
   # can be changed without modifying every call site.
 
   @compile {:inline,
             fields_from_reverse_list: 1,
+            fields_from_keys: 2,
             fields_to_list: 1,
             fields_fold: 3,
             fields_keys: 1,
@@ -4674,13 +4698,18 @@ defmodule Module.Types.Descr do
             fields_map: 2}
 
   defp fields_from_reverse_list(list), do: :lists.ukeysort(1, list)
+  defp fields_from_keys(keys, value), do: Enum.map(:lists.usort(keys), &{&1, value})
   defp fields_to_list(fields), do: fields
   defp fields_fold(fields, acc, fun), do: :orddict.fold(fun, acc, fields)
-
   defp fields_keys(fields), do: :orddict.fetch_keys(fields)
   defp fields_store(key, value, fields), do: :orddict.store(key, value, fields)
   defp fields_find(key, fields), do: :orddict.find(key, fields)
   defp fields_take(key, fields), do: :orddict.take(key, fields)
+  defp fields_fetch!(key, fields), do: :orddict.fetch(key, fields)
+  defp fields_is_key(key, fields), do: :orddict.is_key(key, fields)
+
+  defp fields_merge(fun, fields1, fields2), do: :orddict.merge(fun, fields1, fields2)
+  defp fields_map(fun, fields), do: :orddict.map(fun, fields)
 
   defp fields_get(fields, key, default) do
     case :orddict.find(key, fields) do
@@ -4689,10 +4718,20 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp fields_fetch!(key, fields), do: :orddict.fetch(key, fields)
-  defp fields_is_key(key, fields), do: :orddict.is_key(key, fields)
-  defp fields_merge(fun, fields1, fields2), do: :orddict.merge(fun, fields1, fields2)
-  defp fields_map(fun, fields), do: :orddict.map(fun, fields)
+  defp fields_put_all_new(fields, [], _value), do: fields
+  defp fields_put_all_new([], keys, value), do: Enum.map(keys, &{&1, value})
+
+  defp fields_put_all_new([{k1, _} = h | t1], [k2 | _] = keys, value) when k1 < k2 do
+    [h | fields_put_all_new(t1, keys, value)]
+  end
+
+  defp fields_put_all_new([{k1, _} | _] = fields, [k2 | keys], value) when k1 > k2 do
+    [{k2, value} | fields_put_all_new(fields, keys, value)]
+  end
+
+  defp fields_put_all_new([h | t1], [_ | keys], value) do
+    [h | fields_put_all_new(t1, keys, value)]
+  end
 
   defp fields_merge_with_defaults([{k1, v1} | rest1] = f1, d1, [{k2, v2} | rest2] = f2, d2, fun) do
     cond do
