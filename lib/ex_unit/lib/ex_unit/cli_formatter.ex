@@ -447,19 +447,20 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp format_passed_breakdown(test_counter, failure_type_counter) do
-    types = test_counter |> Map.keys() |> Enum.sort()
-
-    if length(types) <= 1 do
+    # If there are no different test types, we just print "Passed: N/N"
+    # without the type.
+    if map_size(test_counter) in 0..1 do
       ""
     else
-      types
-      |> Enum.map(fn type ->
-        total = Map.get(test_counter, type, 0)
+      test_counter
+      |> Map.keys()
+      |> Enum.sort()
+      |> Enum.map_join(", ", fn type ->
+        total = Map.fetch!(test_counter, type)
         failed = Map.get(failure_type_counter, type, 0)
         passed = total - failed
         "#{passed}/#{total} #{pluralize_type(total, type)}"
       end)
-      |> Enum.join(", ")
     end
   end
 
