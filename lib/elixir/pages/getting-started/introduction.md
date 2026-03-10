@@ -15,8 +15,8 @@ Let's get started.
 
 If you haven't yet installed Elixir, visit our [installation page](https://elixir-lang.org/install.html). Once you are done, you can run `elixir --version` to get the current Elixir version. The requirements for this guide are:
 
-  * Elixir 1.15.0 onwards
-  * Erlang/OTP 26 onwards
+  * Elixir 1.18.0 onwards
+  * Erlang/OTP 27 onwards
 
 If you are looking for other resources for learning Elixir, you can also consult the [learning page](https://elixir-lang.org/learning.html) of the official website.
 
