@@ -27,6 +27,7 @@ defmodule ExUnit.CLIFormatter do
       test_counter: %{},
       test_timings: [],
       failure_counter: 0,
+      failure_type_counter: %{},
       skipped_counter: 0,
       excluded_counter: 0,
       invalid_counter: 0
@@ -139,7 +140,14 @@ defmodule ExUnit.CLIFormatter do
 
     test_counter = update_test_counter(config.test_counter, test)
     failure_counter = config.failure_counter + 1
-    config = %{config | test_counter: test_counter, failure_counter: failure_counter}
+    failure_type_counter = update_test_counter(config.failure_type_counter, test)
+
+    config = %{
+      config
+      | test_counter: test_counter,
+        failure_counter: failure_counter,
+        failure_type_counter: failure_type_counter
+    }
 
     {:noreply, update_test_timings(config, test)}
   end
@@ -176,8 +184,16 @@ defmodule ExUnit.CLIFormatter do
     # The failed tests have already contributed to the counter,
     # so we should only add the successful tests to the count
     config =
-      update_in(config.failure_counter, fn counter ->
-        counter + Enum.count(test_module.tests, &is_nil(&1.state))
+      Enum.reduce(test_module.tests, config, fn
+        %{state: nil} = test, acc ->
+          %{
+            acc
+            | failure_counter: acc.failure_counter + 1,
+              failure_type_counter: update_test_counter(acc.failure_type_counter, test)
+          }
+
+        _test, acc ->
+          acc
       end)
 
     formatted =
@@ -352,11 +368,28 @@ defmodule ExUnit.CLIFormatter do
   defp print_summary(config, force_failures?) do
     test_type_counts = collect_test_type_counts(config)
     test_counter = test_counter_or_default(config, test_type_counts)
-    formatted_test_type_counts = format_test_type_counts(test_counter)
-    failure_pl = pluralize(config.failure_counter, "failure", "failures")
+
+    passed_total =
+      test_type_counts - config.failure_counter - config.skipped_counter - config.invalid_counter
+
+    # Passed line: "Passed: 447/455 (53/54 doctests, 393/403 tests)"
+    passed_breakdown = format_passed_breakdown(test_counter, config.failure_type_counter)
+
+    passed_line =
+      "Passed: #{passed_total}/#{test_type_counts}"
+      |> if_true(passed_breakdown != "", &(&1 <> " (#{passed_breakdown})"))
+
+    # Failed line: "Failed: 8 tests, 1 property"
+    failed_line =
+      if config.failure_counter > 0 do
+        failed_breakdown = format_type_counts(config.failure_type_counter)
+        "\n" <> failure("Failed: #{failed_breakdown}", config)
+      else
+        ""
+      end
 
     message =
-      "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
+      passed_line
       |> if_true(
         config.invalid_counter > 0,
         &(&1 <> ", #{config.invalid_counter} invalid")
@@ -372,7 +405,7 @@ defmodule ExUnit.CLIFormatter do
 
     cond do
       config.failure_counter > 0 or force_failures? ->
-        IO.puts(failure(message, config))
+        IO.puts(message <> failed_line)
 
       config.invalid_counter > 0 ->
         IO.puts(invalid(message, config))
@@ -404,14 +437,34 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(formatted)
   end
 
-  defp format_test_type_counts(test_counter) do
-    test_counter
+  defp format_type_counts(type_counter) do
+    type_counter
     |> Enum.sort()
     |> Enum.map(fn {test_type, count} ->
-      type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
-
-      "#{count} #{type_pluralized}, "
+      "#{count} #{pluralize_type(count, test_type)}"
     end)
+    |> Enum.join(", ")
+  end
+
+  defp format_passed_breakdown(test_counter, failure_type_counter) do
+    types = test_counter |> Map.keys() |> Enum.sort()
+
+    if length(types) <= 1 do
+      ""
+    else
+      types
+      |> Enum.map(fn type ->
+        total = Map.get(test_counter, type, 0)
+        failed = Map.get(failure_type_counter, type, 0)
+        passed = total - failed
+        "#{passed}/#{total} #{pluralize_type(total, type)}"
+      end)
+      |> Enum.join(", ")
+    end
+  end
+
+  defp pluralize_type(count, type) do
+    pluralize(count, type, ExUnit.plural_rule(to_string(type)))
   end
 
   defp test_counter_or_default(_config, 0) do
