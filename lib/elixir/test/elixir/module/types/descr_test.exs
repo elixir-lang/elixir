@@ -1104,11 +1104,10 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
       assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
 
-      # Union of two different arities
-      assert fun_apply(
-               union(fun([integer()], integer()), fun([integer(), atom()], boolean())),
-               [integer()]
-             ) == {:badarity, [1, 2]}
+      # Union of two different arities: always badarity regardless of which arity is called
+      fun_mixed = union(fun([integer()], integer()), fun([integer(), atom()], boolean()))
+      assert fun_apply(fun_mixed, [integer()]) == {:badarity, [1, 2]}
+      assert fun_apply(fun_mixed, [integer(), atom()]) == {:badarity, [2, 1]}
 
       # Function intersection tests (no overlap)
       fun0 = intersection(fun([integer()], atom()), fun([float()], binary()))
@@ -1193,13 +1192,19 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(dynamic_fun([integer(), atom()], boolean()), [integer()]) ==
                {:badarity, [2]}
 
-      # Union of two dynamic functions with different arities: the call may succeed
-      # (if the value is the 1-arity branch), so we pick the matching-arity arrows
-      # and wrap in dynamic() to reflect the uncertainty.
-      assert fun_apply(
-               union(dynamic_fun([integer()], integer()), dynamic_fun([integer(), atom()], boolean())),
-               [integer()]
-             ) == {:ok, dynamic(integer())}
+      # Union of two dynamic functions with different arities: the call may succeed,
+      # so we pick the matching-arity arrows and wrap in dynamic().
+      fun_dyn_mixed =
+        union(dynamic_fun([integer()], integer()), dynamic_fun([integer(), atom()], boolean()))
+
+      # picks arity-1 arrows → dynamic(integer())
+      assert fun_apply(fun_dyn_mixed, [integer()]) == {:ok, dynamic(integer())}
+      # picks arity-2 arrows → dynamic(boolean())
+      assert fun_apply(fun_dyn_mixed, [integer(), atom()]) == {:ok, dynamic(boolean())}
+      # no matching arity → badarity (no dynamic escape here)
+      assert fun_apply(fun_dyn_mixed, [integer(), atom(), float()]) == {:badarity, [1, 2]}
+      # arg outside arity-1 domain but dynamic-compatible → dynamic()
+      assert fun_apply(fun_dyn_mixed, [atom()]) == {:ok, dynamic()}
 
       # Function intersection tests
       fun0 = intersection(dynamic_fun([integer()], atom()), dynamic_fun([float()], binary()))
