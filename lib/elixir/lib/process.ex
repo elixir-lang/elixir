@@ -980,6 +980,30 @@ defmodule Process do
   defdelegate unalias(alias), to: :erlang
 
   @doc """
+  Returns the label set for the process `pid` as set with `Process.set_label/1`
+  or `:proc_lib.set_label/1`.
+
+  Defaults to the current process when `pid` is not passed.
+
+  ## Examples
+
+      Process.set_label({:any, "term"})
+      Process.get_label()
+      #=> {:any, "term"}
+
+  Returns `nil` when not set:
+
+      Process.get_label(pid)
+      #=> nil
+
+  """
+  @doc since: "1.20.0"
+  @spec get_label(pid()) :: term()
+  def get_label(pid \\ self()) do
+    nilify(:proc_lib.get_label(pid))
+  end
+
+  @doc """
   Add a descriptive term to the current process.
 
   The term does not need to be unique, and will be shown in Observer and in
