@@ -983,6 +983,10 @@ defmodule FileTest do
       assert {:ok, "Русский\n日\n"} = File.read(Path.expand(~c"fixtures/utf8.txt", __DIR__))
     end
 
+    test "read with :raw options" do
+      assert {:ok, "FOO\n"} = File.read(fixture_path("file.txt"), [:raw])
+    end
+
     test "read!" do
       assert File.read!(fixture_path("file.txt")) == "FOO\n"
       expected_message = "could not read file \"fixtures/missing.txt\": no such file or directory"
