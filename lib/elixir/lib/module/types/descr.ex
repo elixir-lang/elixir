@@ -5063,17 +5063,16 @@ defmodule Module.Types.Descr do
   defp tuple_elim_size(_, _, :closed, _, _), do: []
 
   defp tuple_elim_size(n, m, :open, elements, neg_tag) do
-    n..(m - 1)//1
-    |> Enum.reduce([], fn i, acc ->
-      [{:closed, tuple_fill(elements, i)} | acc]
-    end)
-    |> Kernel.++(
+    acc =
       if neg_tag == :open do
         []
       else
         [{:open, tuple_fill(elements, m + 1)}]
       end
-    )
+
+    Enum.reduce(n..(m - 1)//1, acc, fn i, acc ->
+      [{:closed, tuple_fill(elements, i)} | acc]
+    end)
   end
 
   # Prefer the smaller on the left
