@@ -1128,7 +1128,7 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 %% Errors
 
 format_error(invalid_match_on_zero_float) ->
-  "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
+  "pattern matching on 0.0 is equivalent to matching only on +0.0. Instead you must match on +0.0 or -0.0";
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
