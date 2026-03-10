@@ -71,15 +71,15 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - otp: 26
-            otp_version: "26.0"
-
           - otp: 27
             otp_version: "27.0"
 
           - otp: 28
             otp_version: "28.0"
             build_docs: build_docs
+
+          - otp: 29
+            otp_version: "29.0-rc1"
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -125,7 +125,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        otp: [26, 27, 28]
+        otp: [27, 28, 29]
         flavor: [windows, linux]
 
     env:

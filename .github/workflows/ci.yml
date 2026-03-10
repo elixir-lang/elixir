@@ -26,6 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - otp_version: "29.0-rc1"
           - otp_version: "28.1"
             deterministic: true
           - otp_version: "28.1"
@@ -36,7 +37,6 @@ jobs:
             erlc_opts: "warnings_as_errors"
           - otp_version: "27.0"
             erlc_opts: "warnings_as_errors"
-          - otp_version: "26.0"
           - otp_version: master
             development: true
           - otp_version: maint
@@ -121,9 +121,9 @@ jobs:
     strategy:
       matrix:
         otp_version:
+          - "29.0-rc1"
           - "28.1"
           - "27.3"
-          - "26.2"
 
     steps:
       - name: Configure Git
