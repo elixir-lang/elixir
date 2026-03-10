@@ -1084,7 +1084,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Numbered
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1/1"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1"
   end
 
   test "IEx prompt contains host" do
@@ -1253,7 +1253,7 @@ defmodule ExUnit.DocTestTest do
       end
 
       output = capture_io(fn -> ExUnit.run() end)
-      assert output =~ "Passed: 2/2"
+      assert output =~ "Passed: 2"
     end
 
     test "failing" do

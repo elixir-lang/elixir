@@ -372,11 +372,19 @@ defmodule ExUnit.CLIFormatter do
     passed_total =
       test_type_counts - config.failure_counter - config.skipped_counter - config.invalid_counter
 
-    # Passed line: "Passed: 447/455 (53/54 doctests, 393/403 tests)"
-    passed_breakdown = format_passed_breakdown(test_counter, config.failure_type_counter)
+    # Passed line: "Passed: 447/455 (53/54 doctests, 393/403 tests)" or
+    # "Passed: 455 (70 tests, 14 properties)" when all pass
+    all_passed? = passed_total == test_type_counts
+
+    passed_breakdown =
+      format_passed_breakdown(test_counter, config.failure_type_counter, all_passed?)
 
     passed_line =
-      "Passed: #{passed_total}/#{test_type_counts}"
+      if all_passed? do
+        "Passed: #{passed_total}"
+      else
+        "Passed: #{passed_total}/#{test_type_counts}"
+      end
       |> if_true(passed_breakdown != "", &(&1 <> " (#{passed_breakdown})"))
 
     # Failed line: "Failed: 8 tests, 1 property"
@@ -389,7 +397,7 @@ defmodule ExUnit.CLIFormatter do
       end
 
     message =
-      passed_line
+      ("\n" <> passed_line)
       |> if_true(
         config.invalid_counter > 0,
         &(&1 <> ", #{config.invalid_counter} invalid")
@@ -446,7 +454,7 @@ defmodule ExUnit.CLIFormatter do
     |> Enum.join(", ")
   end
 
-  defp format_passed_breakdown(test_counter, failure_type_counter) do
+  defp format_passed_breakdown(test_counter, failure_type_counter, all_passed?) do
     # If there are no different test types, we just print "Passed: N/N"
     # without the type.
     if map_size(test_counter) in 0..1 do
@@ -457,9 +465,14 @@ defmodule ExUnit.CLIFormatter do
       |> Enum.sort()
       |> Enum.map_join(", ", fn type ->
         total = Map.fetch!(test_counter, type)
-        failed = Map.get(failure_type_counter, type, 0)
-        passed = total - failed
-        "#{passed}/#{total} #{pluralize_type(total, type)}"
+
+        if all_passed? do
+          "#{total} #{pluralize_type(total, type)}"
+        else
+          failed = Map.get(failure_type_counter, type, 0)
+          passed = total - failed
+          "#{passed}/#{total} #{pluralize_type(total, type)}"
+        end
       end)
     end
   end

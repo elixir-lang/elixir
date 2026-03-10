@@ -42,7 +42,7 @@ defmodule ExUnit.RegisterTest do
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 0, skipped: 0, total: 2, excluded: 0}
-           end) =~ "Passed: 2/2 (1/1 property, 1/1 test)"
+           end) =~ "Passed: 2 (1 property, 1 test)"
   end
 
   test "plural test types" do
@@ -96,6 +96,6 @@ defmodule ExUnit.RegisterTest do
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 0, skipped: 0, total: 4, excluded: 0}
-           end) =~ "Passed: 4/4 (2/2 properties, 2/2 tests)"
+           end) =~ "Passed: 4 (2 properties, 2 tests)"
   end
 end

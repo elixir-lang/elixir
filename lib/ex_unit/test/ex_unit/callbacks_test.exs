@@ -36,7 +36,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1/1"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1"
   end
 
   test "named callbacks run custom code in order" do
@@ -66,7 +66,7 @@ defmodule ExUnit.CallbacksTest do
       defp store_5(context), do: store(context, 5)
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1/1"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1"
   end
 
   test "named callbacks support {module, function} tuples" do
@@ -87,7 +87,7 @@ defmodule ExUnit.CallbacksTest do
       def setup_3(_), do: [setup_3: true]
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1/1"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1"
   end
 
   test "doesn't choke on setup errors" do
@@ -253,7 +253,7 @@ defmodule ExUnit.CallbacksTest do
 
     output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "on_exit run"
-    assert output =~ "Passed: 1/1"
+    assert output =~ "Passed: 1"
   end
 
   test "runs multiple on_exit exits and overrides by ref" do
