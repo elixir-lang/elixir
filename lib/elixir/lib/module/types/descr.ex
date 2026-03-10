@@ -1447,21 +1447,33 @@ defmodule Module.Types.Descr do
   #   The application proceeds as purely dynamic (static_arrows = []).
   defp fun_normalize_both(fun_static, fun_dynamic, arity) do
     case fun_normalize(fun_static, arity) do
-      {:ok, static_domain, static_arrows} when fun_dynamic == nil ->
-        {:ok, static_domain, static_arrows, static_arrows}
-
-      {:ok, static_domain, static_arrows} when fun_dynamic != nil ->
-        case fun_normalize(fun_dynamic, arity) do
-          {:ok, dynamic_domain, dynamic_arrows} ->
-            domain = union(dynamic_domain, dynamic(static_domain))
-            {:ok, domain, static_arrows, dynamic_arrows}
-
-          _ ->
-            # Dynamic normalization failed: fall back to static-only.
+      {:ok, static_domain, static_arrows} ->
+        # A static function with arrows at other arities is a mixed-arity union:
+        # we cannot safely apply it because at runtime the value may have a
+        # different arity than the one being called with.
+        case fun_other_non_empty_arities(fun_static, arity) do
+          [] when fun_dynamic == nil ->
             {:ok, static_domain, static_arrows, static_arrows}
+
+          [] ->
+            case fun_normalize(fun_dynamic, arity) do
+              {:ok, dynamic_domain, dynamic_arrows} ->
+                domain = union(dynamic_domain, dynamic(static_domain))
+                {:ok, domain, static_arrows, dynamic_arrows}
+
+              _ ->
+                # Dynamic normalization failed: fall back to static-only.
+                {:ok, static_domain, static_arrows, static_arrows}
+            end
+
+          other ->
+            {:badarity, [arity | other]}
         end
 
       :badfun ->
+        # No static arrows: dynamic-only path. Mixed-arity in the dynamic
+        # component is fine — we pick the matching-arity arrows and the
+        # result is wrapped in dynamic(), reflecting the uncertainty.
         case fun_normalize(fun_dynamic, arity) do
           {:ok, dynamic_domain, dynamic_arrows} ->
             {:ok, union(dynamic_domain, dynamic()), [], dynamic_arrows}
@@ -1474,6 +1486,20 @@ defmodule Module.Types.Descr do
         error
     end
   end
+
+  defp fun_other_non_empty_arities(%{fun: {:union, bdds}}, arity) do
+    case :maps.take(arity, bdds) do
+      {_bdd, rest} ->
+        for {a, b} <- rest,
+            not Enum.all?(bdd_to_dnf(b), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
+            do: a
+
+      :error ->
+        []
+    end
+  end
+
+  defp fun_other_non_empty_arities(_, _), do: []
 
   # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
   #
