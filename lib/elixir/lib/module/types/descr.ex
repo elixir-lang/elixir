@@ -1341,47 +1341,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # A function can only have one arity.
-  # Some arities in the BDD map may be semantically empty, so we filter them out.
-  defp fun_single_arity(%{fun: {:union, bdds}}) do
-    case fun_non_empty_arities(bdds) do
-      [arity] -> {:ok, arity}
-      arities -> {:badarity, arities}
-    end
-  end
-
-  defp fun_single_arity(_), do: {:badarity, []}
-
-  defp fun_single_arity_pair(fun_static, fun_dynamic) do
-    arities =
-      Enum.uniq(fun_non_empty_arities_of(fun_static) ++ fun_non_empty_arities_of(fun_dynamic))
-
-    case arities do
-      [arity] -> {:ok, arity}
-      [] -> {:badarity, []}
-      arities -> {:badarity, arities}
-    end
-  end
-
-  defp fun_non_empty_arities_of(%{fun: {:union, bdds}}), do: fun_non_empty_arities(bdds)
-  defp fun_non_empty_arities_of(_), do: []
-
-  defp fun_non_empty_arities(bdds) do
-    for {arity, bdd} <- bdds,
-        not Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
-        do: arity
-  end
-
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
-
   defp dynamic_fun_top?(:term), do: true
-
-  defp dynamic_fun_top?(%{fun: {:negation, map}}) do
-    Enum.all?(map, fn {_arity, bdd} ->
-      Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end)
-    end)
-  end
-
+  defp dynamic_fun_top?(%{fun: {:negation, map}}), do: map == %{}
   defp dynamic_fun_top?(_), do: false
 
   # Gradual function application algorithm.
