@@ -980,7 +980,7 @@ defmodule Process do
   defdelegate unalias(alias), to: :erlang
 
   @doc """
-  Returns the label set for the process `pid` as set with `Process.set_label/1`
+  Returns the label set for the process `pid` as set with `set_label/1`
   or `:proc_lib.set_label/1`.
 
   Defaults to the current process when `pid` is not passed.
