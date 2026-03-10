@@ -122,6 +122,7 @@ defmodule Task.Supervised do
               function: fun,
               args: args,
               reason: {log_value(kind, value), __STACKTRACE__},
+              # using :proc_lib over Process because we want the :undefined default, not nil
               process_label: :proc_lib.get_label(self())
             }
           },
