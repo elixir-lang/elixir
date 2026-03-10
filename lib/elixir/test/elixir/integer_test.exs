@@ -282,10 +282,17 @@ defmodule IntegerTest do
   end
 
   test "extended_gcd" do
-    # Poor's man properby based testing
+    # Poor's man property based testing
     for _ <- 1..100 do
       left = :rand.uniform(1000)
       right = :rand.uniform(1000)
+      {gcd, m, n} = Integer.extended_gcd(left, right)
+      assert Integer.gcd(left, right) == gcd
+      assert m * left + n * right == gcd
+    end
+
+    # zero cases
+    for {left, right} <- [{10, 0}, {0, 10}, {0, -10}, {-10, 0}] do
       {gcd, m, n} = Integer.extended_gcd(left, right)
       assert Integer.gcd(left, right) == gcd
       assert m * left + n * right == gcd
