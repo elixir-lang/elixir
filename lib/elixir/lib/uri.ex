@@ -964,6 +964,7 @@ defmodule URI do
   end
 
   defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
+  defp merge_paths("", rel_path), do: merge_paths("/", rel_path)
   defp merge_paths(_, "/" <> _ = rel_path), do: remove_dot_segments_from_path(rel_path)
 
   defp merge_paths(base_path, rel_path) do
