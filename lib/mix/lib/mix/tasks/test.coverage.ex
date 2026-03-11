@@ -75,16 +75,6 @@ defmodule Mix.Tasks.Test.Coverage do
   coverage techniques. It is up to you and your team to specify how much
   emphasis you want to place on it.
 
-  ## Native coverage
-
-  Erlang/OTP 27+ supports "native coverage", which relies on the JIT compiler
-  to compute coverage, leading to better performance when running a test suite
-  with coverage enabled.
-
-  You can enable it by running:
-
-      ERL_COMPILER_OPTIONS=line_coverage mix test
-
   ## Exporting coverage
 
   This task can be used when you need to group the coverage

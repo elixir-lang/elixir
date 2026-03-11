@@ -523,14 +523,20 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles files when lock changes" do
     in_fixture("no_mixfile", fn ->
+      Mix.ProjectStack.post_config(
+        deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}]
+      )
+
       Mix.Project.push(MixTest.Case.Sample)
-      Process.put({MixTest.Case.Sample, :application}, extra_applications: [:logger])
 
       File.write!("lib/a.ex", """
       defmodule A do
-        _ = Logger.metadata()
+        _ = GitRepo.__info__(:module)
       end
       """)
+
+      Mix.Task.run("deps.get")
+      Mix.Task.run("loadpaths")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -548,7 +554,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       # Adding to lock recompiles
       File.write!("mix.lock", """
-      %{"logger": :unused}
+      %{"git_repo": :unused}
       """)
 
       assert recompile.() == {:ok, []}
@@ -558,7 +564,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       # Changing lock recompiles
       File.write!("mix.lock", """
-      %{"logger": :another}
+      %{"git_repo": :another}
       """)
 
       assert recompile.() == {:ok, []}
@@ -566,24 +572,24 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
 
-      # Removing a lock recompiles
+      # Adding to the lock does not recompile
       File.write!("mix.lock", """
-      %{}
-      """)
-
-      assert recompile.() == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
-
-      # Adding an unknown dependency returns :ok but does not recompile
-      File.write!("mix.lock", """
-      %{"unknown": :unknown}
+      %{"git_repo": :another, "unknown": :unknown}
       """)
 
       assert recompile.() == {:ok, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Removing recompiles
+      File.write!("mix.lock", """
+      %{"unknown": :unknown}
+      """)
+
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
     end)
   end
 
@@ -749,6 +755,67 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     purge([GitRepo, GitRepo.MixProject])
+  end
+
+  test "does not recompile files from path dependencies when non-child dependency change" do
+    # Get Git repo first revision
+    [last, first | _] = get_git_repo_revs("git_repo")
+
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("path_dep/lib")
+
+      File.write!("path_dep/mix.exs", """
+      defmodule PathDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :path_dep,
+            version: "0.1.0",
+            deps: []
+          ]
+        end
+      end
+      """)
+
+      File.write!("path_dep/lib/path_dep_hello.ex", """
+      defmodule PathDep.Hello do
+      end
+      """)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        PathDep.Hello.__info__(:module)
+      end
+      """)
+
+      File.write!("mix.lock", inspect(%{git_repo: {:git, fixture_path("git_repo"), first, []}}))
+
+      Mix.ProjectStack.post_config(
+        deps: [
+          {:git_repo, "0.1.0", git: fixture_path("git_repo")},
+          {:path_dep, path: "path_dep"}
+        ]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+      Mix.Task.run("deps.get")
+      Mix.Task.run("compile", ["--verbose"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([GitRepo.MixProject, PathDep.MixProject])
+
+      ensure_touched("mix.lock", "_build/dev/lib/sample/.mix/compile.lock")
+      Mix.Task.run("deps.update", ["--all"])
+      assert File.read!("mix.lock") =~ last
+
+      Mix.Task.run("compile", ["--verbose"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject, PathDep.MixProject])
   end
 
   test "does not write BEAM files down on failures" do

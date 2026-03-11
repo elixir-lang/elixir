@@ -201,18 +201,23 @@ defmodule Mix.Tasks.Compile.App do
       :application.unload(app)
       :application.load({:application, app, properties})
 
-      Mix.Project.ensure_structure()
-      File.write!(target, IO.chardata_to_string([contents, ?.]))
-      File.touch!(target, new_mtime)
+      if opts[:force] || Map.new(current_properties) != Map.new(properties) do
+        Mix.Project.ensure_structure()
+        File.write!(target, IO.chardata_to_string([contents, ?.]))
+        File.touch!(target, new_mtime)
 
-      # If we just created the .app file, it will have touched
-      # the directory mtime, so we need to reset it.
-      if current_properties == [] do
-        File.touch!(compile_path, new_mtime)
+        # If we just created the .app file, it will have touched
+        # the directory mtime, so we need to reset it.
+        if current_properties == [] do
+          File.touch!(compile_path, new_mtime)
+        end
+
+        Mix.shell().info("Generated #{app} app")
+        {:ok, []}
+      else
+        File.touch!(target, new_mtime)
+        {:noop, []}
       end
-
-      Mix.shell().info("Generated #{app} app")
-      {:ok, []}
     else
       :application.load({:application, app, current_properties})
       {:noop, []}

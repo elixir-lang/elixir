@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
       # No-op with untouched unset compile_env
       reset_config.()
-      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
+      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
 
       # Recompiles with new compile_env
