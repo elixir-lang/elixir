@@ -359,24 +359,20 @@ defmodule Mix.Tasks.Test do
 
   ### Limitations
 
-  Coverage in Elixir has the following limitations:
-
-    * Literals, such as atoms, strings, and numbers, are not traced by coverage.
-      For example, if a function simply returns `:ok`, the atom `:ok` itself is
-      never taken into account by coverage;
-
-    * Macros, such as the ones defined by `defmacro/2` and `defguard/2`, and code
-      invoked only by macros are never considered as covered, unless they are also
-      invoked during the tests themselves. That's because macros are invoked at
-      compilation time, before the test coverage instrumentation begins;
+  Elixir uses Erlang's [`:cover`](`:cover`) for its default test coverage.
+  Erlang coverage is done by tracking *executable lines of code*. See
+  `mix test.coverage` for details.
 
   ### Configuration
 
-  The `:test_coverage` configures the coverage tool and accepts the following options:
-
-    * `:output` - the output directory for cover results. Defaults to `"cover"`.
+  The `:test_coverage` configures the coverage tool and the default tool
+  accepts the following options:
 
     * `:tool` - a module specifying the coverage tool to use.
+      Defaults to `Mix.Tasks.Test.Coverage`.
+
+    * `:output` - the output directory for cover results.
+      Defaults to `"cover"`.
 
     * `:summary` - at the end of each coverage run, a summary of each
       module is printed, with results in red or green depending on whether
@@ -399,9 +395,9 @@ defmodule Mix.Tasks.Test do
     * `:local_only` - by default coverage only tracks local calls,
       set this option to false if you plan to run coverage across nodes.
 
-  By default, a wrapper around OTP's `cover` is used as the default coverage
-  tool. You can learn more about how it works in the docs for
-  `mix test.coverage`. Your tool of choice can be given as follows:
+  By default, a wrapper around OTP's `cover` is used as the coverage tool.
+  You can learn more about how it works in the docs for `mix test.coverage`.
+  Your tool of choice can be given as follows:
 
       def project() do
         [

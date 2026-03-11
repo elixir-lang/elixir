@@ -17,11 +17,11 @@ defmodule Mix.Tasks.Test.Coverage do
 
   Elixir uses Erlang's [`:cover`](`:cover`) for its default test coverage.
   Erlang coverage is done by tracking *executable lines of code*.
-  This implies blank lines, code comments,
+  This implies blank lines, code comments, literals (such as atoms),
   function signatures, and patterns are not necessarily executable and
-  therefore won't be tracked in coverage reports. Code in macros are
-  also often executed at compilation time, and therefore may not be covered.
-  Similarly, Elixir AST literals, such as atoms, are not executable either.
+  therefore won't be tracked in coverage reports. Code in macros defined in
+  your project are also often executed at compilation time, and therefore
+  may not be covered.
 
   Let's see an example:
 
@@ -74,6 +74,16 @@ defmodule Mix.Tasks.Test.Coverage do
   different executions flows have been asserted, even with the most advanced
   coverage techniques. It is up to you and your team to specify how much
   emphasis you want to place on it.
+
+  ## Native coverage
+
+  Erlang/OTP 27+ supports "native coverage", which relies on the JIT compiler
+  to compute coverage, leading to better performance when running a test suite
+  with coverage enabled.
+
+  You can enable it by setting:
+
+      ERL_COMPILER_OPTIONS=line_coverage mix test.coverage
 
   ## Exporting coverage
 
