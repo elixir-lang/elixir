@@ -616,7 +616,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [one: 0, two: 0], import: true
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "2 doctests, 1 failure"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Failed: 1 doctest"
   end
 
   test "empty :only" do
@@ -627,7 +627,7 @@ defmodule ExUnit.DocTestTest do
 
     output = capture_io(fn -> ExUnit.run() end)
 
-    assert output =~ "0 failures"
+    refute output =~ "Failed:"
     refute output =~ "doctest"
   end
 
@@ -639,7 +639,7 @@ defmodule ExUnit.DocTestTest do
 
     output = capture_io(fn -> ExUnit.run() end)
 
-    assert output =~ "0 failures"
+    refute output =~ "Failed:"
     assert output =~ "2 skipped"
   end
 
@@ -763,7 +763,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~
              "#{stack(starting_line + 28)}ExUnit.DocTestTest.Failure (module)"
 
-    assert output =~ "8 doctests, 8 failures"
+    assert output =~ "Failed: 8 doctests"
   end
 
   test "doctest invalid" do
@@ -969,7 +969,7 @@ defmodule ExUnit.DocTestTest do
                   #{stack(line)}ExUnit.DocTestTest.Invalid (module)
            """
 
-    assert output =~ "10 doctests, 10 failures"
+    assert output =~ "Failed: 10 doctests"
   end
 
   test "pattern matching assertions in doctests" do
@@ -1075,7 +1075,7 @@ defmodule ExUnit.DocTestTest do
                   (for doctest at) #{location}:#{starting_line + 19}: (test)
            """
 
-    assert output =~ "10 doctests, 8 failures"
+    assert output =~ "Failed: 8 doctests"
   end
 
   test "IEx prefix contains a number" do
@@ -1084,7 +1084,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Numbered
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "1 doctest, 0 failures"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 1"
   end
 
   test "IEx prompt contains host" do
@@ -1253,7 +1253,7 @@ defmodule ExUnit.DocTestTest do
       end
 
       output = capture_io(fn -> ExUnit.run() end)
-      assert output =~ "2 doctests, 0 failures"
+      assert output =~ "Passed: 2"
     end
 
     test "failing" do
