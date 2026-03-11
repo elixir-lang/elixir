@@ -253,7 +253,7 @@ defmodule Mix.CLITest do
 
       output = mix(~w[test test/new_with_tests_test.exs --cover])
       assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
-      assert output =~ "1 doctest, 1 test, 0 failures"
+      assert output =~ "Passed: 2 (1 doctest, 1 test)"
       assert output =~ "Generating cover results ..."
       assert File.regular?("cover/Elixir.NewWithTests.html")
     end)
@@ -267,7 +267,7 @@ defmodule Mix.CLITest do
 
       output = mix(~w[test])
       assert File.regular?("_build/test/lib/sup_with_tests/ebin/Elixir.SupWithTests.beam")
-      assert output =~ "1 doctest, 1 test, 0 failures"
+      assert output =~ "Passed: 2 (1 doctest, 1 test)"
     end)
   end
 end
