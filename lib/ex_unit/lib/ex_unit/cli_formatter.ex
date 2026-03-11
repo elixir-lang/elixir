@@ -43,9 +43,9 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:suite_finished, times_us}, config) do
-    test_type_counts = collect_test_type_counts(config)
+    test_counter = collect_test_counter(config)
 
-    if test_type_counts == 0 and config.excluded_counter > 0 do
+    if test_counter == 0 and config.excluded_counter > 0 do
       IO.puts(invalid("All tests have been excluded.", config))
     end
 
@@ -83,10 +83,7 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, reason}} = test}, config)
       when is_binary(reason) do
     if config.trace, do: IO.puts(trace_test_excluded(test))
-
-    test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, excluded_counter: config.excluded_counter + 1}
-
+    config = %{config | excluded_counter: config.excluded_counter + 1}
     {:noreply, config}
   end
 
@@ -98,10 +95,7 @@ defmodule ExUnit.CLIFormatter do
       IO.write(skipped("*", config))
     end
 
-    test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, skipped_counter: config.skipped_counter + 1}
-
-    {:noreply, config}
+    {:noreply, %{config | skipped_counter: config.skipped_counter + 1}}
   end
 
   def handle_cast(
@@ -115,10 +109,7 @@ defmodule ExUnit.CLIFormatter do
       IO.write(invalid("?", config))
     end
 
-    test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, invalid_counter: config.invalid_counter + 1}
-
-    {:noreply, config}
+    {:noreply, %{config | invalid_counter: config.invalid_counter + 1}}
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
@@ -287,10 +278,6 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp update_test_counter(test_counter, %{state: {:excluded, _reason}}) do
-    test_counter
-  end
-
   defp update_test_counter(test_counter, %{tags: %{test_type: test_type}}) do
     Map.update(test_counter, test_type, 1, &(&1 + 1))
   end
@@ -366,26 +353,22 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_summary(config, force_failures?) do
-    test_type_counts = collect_test_type_counts(config)
-    test_counter = test_counter_or_default(config, test_type_counts)
+    test_counter = collect_test_counter(config)
+    passed_counter = test_counter - config.failure_counter
 
-    passed_total =
-      test_type_counts - config.failure_counter - config.skipped_counter - config.invalid_counter
-
-    # Passed line: "Passed: 447/455 (53/54 doctests, 393/403 tests)" or
-    # "Passed: 455 (70 tests, 14 properties)" when all pass
-    all_passed? = passed_total == test_type_counts
+    # Passed line: "Result: 447/455 passed (53/54 doctests, 393/403 tests)" or
+    # "Result: 455 passed (70 tests, 14 properties)" when all pass
+    all_passed? = config.failure_counter == 0
 
     passed_breakdown =
-      format_passed_breakdown(test_counter, config.failure_type_counter, all_passed?)
+      format_passed_breakdown(config.test_counter, config.failure_type_counter, all_passed?)
 
     passed_line =
-      if all_passed? do
-        "Passed: #{passed_total}"
-      else
-        "Passed: #{passed_total}/#{test_type_counts}"
-      end
-      |> if_true(passed_breakdown != "", &(&1 <> " (#{passed_breakdown})"))
+      cond do
+        test_counter == 0 -> "Result: 0 tests"
+        all_passed? -> "Result: #{passed_counter} passed"
+        true -> "Result: #{passed_counter}/#{test_counter} passed"
+      end <> passed_breakdown
 
     # Failed line: "Failed: 8 tests, 1 property"
     failed_line =
@@ -408,7 +391,7 @@ defmodule ExUnit.CLIFormatter do
       )
       |> if_true(
         config.excluded_counter > 0,
-        &(&1 <> " (#{config.excluded_counter} excluded)")
+        &(&1 <> ", #{config.excluded_counter} excluded")
       )
 
     cond do
@@ -418,7 +401,7 @@ defmodule ExUnit.CLIFormatter do
       config.invalid_counter > 0 ->
         IO.puts(invalid(message, config))
 
-      test_type_counts > 0 && config.excluded_counter == test_type_counts ->
+      test_counter > 0 && config.excluded_counter == test_counter ->
         IO.puts(invalid(message, config))
 
       true ->
@@ -455,25 +438,27 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp format_passed_breakdown(test_counter, failure_type_counter, all_passed?) do
-    # If there are no different test types, we just print "Passed: N/N"
-    # without the type.
+    # If there are no different test types, we just print "Result: N/N passed" without the type.
     if map_size(test_counter) in 0..1 do
       ""
     else
-      test_counter
-      |> Map.keys()
-      |> Enum.sort()
-      |> Enum.map_join(", ", fn type ->
-        total = Map.fetch!(test_counter, type)
+      entries =
+        test_counter
+        |> Map.keys()
+        |> Enum.sort()
+        |> Enum.map_join(", ", fn type ->
+          total = Map.fetch!(test_counter, type)
 
-        if all_passed? do
-          "#{total} #{pluralize_type(total, type)}"
-        else
-          failed = Map.get(failure_type_counter, type, 0)
-          passed = total - failed
-          "#{passed}/#{total} #{pluralize_type(total, type)}"
-        end
-      end)
+          if all_passed? do
+            "#{total} #{pluralize_type(total, type)}"
+          else
+            failed = Map.get(failure_type_counter, type, 0)
+            passed = total - failed
+            "#{passed}/#{total} #{pluralize_type(total, type)}"
+          end
+        end)
+
+      " (" <> entries <> ")"
     end
   end
 
@@ -481,15 +466,7 @@ defmodule ExUnit.CLIFormatter do
     pluralize(count, type, ExUnit.plural_rule(to_string(type)))
   end
 
-  defp test_counter_or_default(_config, 0) do
-    %{test: 0}
-  end
-
-  defp test_counter_or_default(%{test_counter: test_counter} = _config, _test_type_counts) do
-    test_counter
-  end
-
-  defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
+  defp collect_test_counter(%{test_counter: test_counter} = _config) do
     Enum.reduce(test_counter, 0, fn {_, count}, acc ->
       acc + count
     end)

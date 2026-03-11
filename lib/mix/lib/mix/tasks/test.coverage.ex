@@ -81,9 +81,9 @@ defmodule Mix.Tasks.Test.Coverage do
   to compute coverage, leading to better performance when running a test suite
   with coverage enabled.
 
-  You can enable it by setting:
+  You can enable it by running:
 
-      ERL_COMPILER_OPTIONS=line_coverage mix test.coverage
+      ERL_COMPILER_OPTIONS=line_coverage mix test
 
   ## Exporting coverage
 

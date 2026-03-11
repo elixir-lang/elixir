@@ -33,7 +33,7 @@ defmodule ExUnitTest do
     assert capture_io(fn ->
              assert ExUnit.async_run() |> ExUnit.await_run() ==
                       %{failures: 0, skipped: 0, total: 0, excluded: 0}
-           end) =~ "\nPassed: 0\n"
+           end) =~ "\nResult: 0 tests\n"
   end
 
   test "supports rerunning given modules" do
@@ -139,7 +139,7 @@ defmodule ExUnitTest do
     assert result =~ ~r"\* test true \[.*test/ex_unit_test.exs:#{line}\]"
 
     assert result =~ "Showing results so far..."
-    assert result =~ "Passed: 0"
+    assert result =~ "Result: 0 tests"
   end
 
   test "doesn't hang on exits" do
@@ -332,11 +332,11 @@ defmodule ExUnitTest do
 
     {result, output} = run_with_filter([exclude: [even: true]], [ParityTest])
     assert result == %{failures: 0, skipped: 0, excluded: 1, total: 4}
-    assert output =~ "Passed: 3"
+    assert output =~ "Result: 3 passed"
 
     {result, output} = run_with_filter([exclude: :even], [ParityTest])
     assert result == %{failures: 0, skipped: 0, excluded: 3, total: 4}
-    assert output =~ "Passed: 1"
+    assert output =~ "Result: 1 passed"
 
     {result, output} = run_with_filter([exclude: :even, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 0, excluded: 2, total: 4}
@@ -493,7 +493,7 @@ defmodule ExUnitTest do
         assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2, excluded: 0}
       end)
 
-    assert output =~ "Passed: 0/2"
+    assert output =~ "Result: 0 tests"
   end
 
   test "filtering cases with :module tag" do
@@ -511,7 +511,7 @@ defmodule ExUnitTest do
     {result, output} = run_with_filter([exclude: :module], [])
 
     assert result == %{failures: 0, skipped: 0, excluded: 2, total: 2}
-    assert output =~ "Passed: 0"
+    assert output =~ "Result: 0 tests"
 
     {result, output} =
       [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
@@ -644,7 +644,7 @@ defmodule ExUnitTest do
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3, excluded: 0}
-           end) =~ "Passed: 3"
+           end) =~ "Result: 3 passed"
   end
 
   # Skipped and excluded tests should be included in the stats
@@ -682,7 +682,7 @@ defmodule ExUnitTest do
       end)
 
     refute output =~ max_failures_reached_msg()
-    assert output =~ "Passed: 0/5"
+    assert output =~ "Result: 0 tests"
   end
 
   test "parameterized tests" do
@@ -727,7 +727,7 @@ defmodule ExUnitTest do
     end
 
     configure_and_reload_on_exit(trace: true)
-    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 0"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Result: 0 tests"
 
     defmodule EmptyGroupedParameterizedTests do
       use ExUnit.Case, async: true, parameterize: [], group: :example
@@ -738,7 +738,7 @@ defmodule ExUnitTest do
     end
 
     configure_and_reload_on_exit(trace: true)
-    assert capture_io(fn -> ExUnit.run() end) =~ "Passed: 0"
+    assert capture_io(fn -> ExUnit.run() end) =~ "Result: 0 tests"
   end
 
   describe "after_suite/1" do
@@ -912,7 +912,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "Passed: 0/3"
+      assert output =~ "Result: 0 tests"
     end
 
     test ":max_failures flushes all async/sync cases" do
@@ -1103,7 +1103,7 @@ defmodule ExUnitTest do
       end)
 
     assert output =~ "All tests have been excluded.\n"
-    assert output =~ "Passed: 0"
+    assert output =~ "Result: 0 tests"
   end
 
   test "tests are run in compile order (FIFO)" do
