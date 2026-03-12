@@ -367,7 +367,7 @@ format_error({invalid_match_append, Arg}) ->
 cannot_invoke_or_maybe_require(Receiver, Fun, Arity) ->
   try
     true = lists:member({Fun, Arity}, Receiver:'__info__'(macros)),
-    ["you must require the module", 'Elixir.Macro':to_string(Receiver), " before invoking macro"]
+    ["you must require the module ", 'Elixir.Macro':to_string(Receiver), " before invoking macro"]
   catch
     _:_ -> "cannot invoke remote function"
   end.
