@@ -10,7 +10,7 @@
 -export([start/2, stop/1, config_change/3]).
 -export([
   string_to_tokens/5, tokens_to_quoted/3, string_to_quoted/5, 'string_to_quoted!'/5,
-  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3, eval_quoted/4,
+  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_forms/4, eval_quoted/3, eval_quoted/4,
   erl_eval/3, eval_local_handler/2, eval_external_handler/3, emit_warnings/3
 ]).
 -include("elixir.hrl").
@@ -304,27 +304,35 @@ eval_forms(Tree, Binding, OrigE) ->
   eval_forms(Tree, Binding, OrigE, []).
 eval_forms(Tree, Binding, OrigE, Opts) ->
   Prune = proplists:get_value(prune_binding, Opts, false),
-  {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding, Prune),
-  E = elixir_env:with_vars(OrigE, ExVars),
-  ExS = elixir_env:env_to_ex(E),
-  ErlS = elixir_erl_var:from_env(E, ErlVars),
-  {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, ErlS, ExS, E),
+  case proplists:get_value(dbg_callback, Opts) of
+    undefined -> ok;
+    DbgCallback -> erlang:put({elixir, dbg_callback}, DbgCallback)
+  end,
+  try
+    {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding, Prune),
+    E = elixir_env:with_vars(OrigE, ExVars),
+    ExS = elixir_env:env_to_ex(E),
+    ErlS = elixir_erl_var:from_env(E, ErlVars),
+    {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, ErlS, ExS, E),
 
-  case Erl of
-    {Literal, _, Value} when Literal == atom; Literal == float; Literal == integer ->
-      if
-        Prune -> {Value, [], NewE#{versioned_vars := #{}}};
-        true -> {Value, Binding, NewE}
-      end;
+    case Erl of
+      {Literal, _, Value} when Literal == atom; Literal == float; Literal == integer ->
+        if
+          Prune -> {Value, [], NewE#{versioned_vars := #{}}};
+          true -> {Value, Binding, NewE}
+        end;
 
-    _  ->
-      {value, Value, NewBinding} = erl_eval(Erl, ErlBinding, NewE),
-      PruneBefore = if Prune -> length(Binding); true -> -1 end,
+      _  ->
+        {value, Value, NewBinding} = erl_eval(Erl, ErlBinding, NewE),
+        PruneBefore = if Prune -> length(Binding); true -> -1 end,
 
-      {DumpedBinding, DumpedVars} =
-        elixir_erl_var:dump_binding(NewBinding, NewErlS, NewExS, PruneBefore),
+        {DumpedBinding, DumpedVars} =
+          elixir_erl_var:dump_binding(NewBinding, NewErlS, NewExS, PruneBefore),
 
-      {Value, DumpedBinding, NewE#{versioned_vars := DumpedVars}}
+        {Value, DumpedBinding, NewE#{versioned_vars := DumpedVars}}
+    end
+  after
+    erlang:erase({elixir, dbg_callback})
   end.
 
 %% Evaluate Erlang code with careful handling of local and external functions
