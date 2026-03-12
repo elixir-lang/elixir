@@ -645,6 +645,11 @@ defmodule Module.Types.PatternTest do
     test "is_struct/1" do
       assert typecheck!([x], is_struct(x), x) == dynamic(open_map(__struct__: atom()))
       assert typecheck!([x], is_struct(x, URI), x) == dynamic(open_map(__struct__: atom([URI])))
+
+      assert typecheck!([x], not is_struct(x), x)
+             |> equal?(dynamic(negation(open_map(__struct__: atom()))))
+
+      assert typecheck!([x], not is_struct(x, URI), x) == dynamic()
     end
 
     test "is_binary/1" do

@@ -1258,6 +1258,18 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  @dynamic_fail dynamic(atom([:fail]))
+
+  # `x or :fail` is a pattern used in Elixir to make guards fail.
+  # For example, `not is_struct(x, Foo)` checks if `Foo` is an atom
+  # or fails, but in the negation case `:fail` becomes a possible
+  # return type leading to a violation, we don't want. So we mark
+  # `:fail` as dynamic as its whole purpose is to cause failures.
+  defp of_remote(:orelse, [left, :fail], _call, expected, stack, context) do
+    {type, context} = of_guard(left, expected, left, stack, context)
+    {union(type, @dynamic_fail), context}
+  end
+
   defp of_remote(fun, _args, call, expected, stack, context)
        when fun in [:and, :or, :andalso, :orelse] do
     {both_domain, abort_domain, always_rhs?} =
@@ -1280,38 +1292,43 @@ defmodule Module.Types.Pattern do
     # For example, if the expected type is true for andalso, then it can
     # only be true if both clauses are executed, so we know the first
     # argument has to be true and the second has to be expected.
-    if subtype?(expected, both_domain) do
-      of_logical_all([left | right], true, both_domain, abort_domain, stack, context)
-    else
-      cond_context = enable_conditional_mode(context)
+    cond do
+      subtype?(expected, both_domain) ->
+        of_logical_all([left | right], true, both_domain, abort_domain, stack, context)
 
-      # Compute the sure types, which are stored directly in the context
-      {_type, context} = of_guard(left, boolean(), left, stack, context)
+      right == [] ->
+        of_guard(left, expected, left, stack, context)
 
-      # andalso/orelse may not execute the rhs, so we cannot get sure types from it
-      context =
-        case always_rhs? do
-          true ->
-            Enum.reduce(right, context, fn expr, context ->
-              {_, context} = of_guard(expr, boolean(), expr, stack, context)
+      true ->
+        cond_context = enable_conditional_mode(context)
+
+        # Compute the sure types, which are stored directly in the context
+        {_type, context} = of_guard(left, boolean(), left, stack, context)
+
+        # andalso/orelse may not execute the rhs, so we cannot get sure types from it
+        context =
+          case always_rhs? do
+            true ->
+              Enum.reduce(right, context, fn expr, context ->
+                {_, context} = of_guard(expr, boolean(), expr, stack, context)
+                context
+              end)
+
+            false ->
               context
-            end)
+          end
 
-          false ->
-            context
-        end
+        {type, vars_conds} =
+          of_logical_cond([left | right], none(), [], expected, stack, cond_context)
 
-      {type, vars_conds} =
-        of_logical_cond([left | right], none(), [], expected, stack, cond_context)
+        # We will be precise if all branches changed the same variable
+        context =
+          update_in(context.pattern_info.vars, fn
+            false -> false
+            vars -> Of.all_same_conditional_vars?(vars_conds) and vars
+          end)
 
-      # We will be precise if all branches changed the same variable
-      context =
-        update_in(context.pattern_info.vars, fn
-          false -> false
-          vars -> Of.all_same_conditional_vars?(vars_conds) and vars
-        end)
-
-      {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
+        {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
     end
   end
 
