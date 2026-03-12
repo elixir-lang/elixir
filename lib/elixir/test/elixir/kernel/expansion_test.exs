@@ -810,7 +810,7 @@ defmodule Kernel.ExpansionTest do
 
     test "in guards with macros" do
       message =
-        ~r"you must require the moduleInteger before invoking macro Integer.is_even/1 inside a guard"
+        ~r"you must require the module Integer before invoking macro Integer.is_even/1 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when Integer.is_even(arg) -> arg end))
