@@ -91,7 +91,7 @@ iex> ~w(foo bar bat)a
 
 ## Interpolation and escaping in textual sigils
 
-Elixir supports some sigil variants to deal with escaping characters and interpolation. In particular, uppercase-letter textual sigils do not perform interpolation nor escaping. For example, although both `~s` and `~S` will return strings, the former allows escape codes and interpolation while the latter does not:
+Sigils also help deal with escaping characters and interpolation. In particular, uppercase-letter textual sigils do not perform interpolation nor escaping, and most lowercase sigils have an uppercase variant. For example, although both `~s` and `~S` will return strings, the former allows escape codes and interpolation while the latter does not:
 
 ```elixir
 iex> ~s(String with escape codes \x26 #{"inter" <> "polation"})
@@ -116,8 +116,6 @@ The following escape codes can be used in textual sigils:
   * `\0` - null byte
   * `\xDD` - represents a single byte in hexadecimal (such as `\x13`)
   * `\uDDDD` and `\u{D...}` - represents a Unicode codepoint in hexadecimal (such as `\u{1F600}`)
-
-In addition to those, a double quote inside a double-quoted string needs to be escaped as `\"`, and, analogously, a single quote inside a single-quoted char list needs to be escaped as `\'`. Nevertheless, it is better style to change delimiters as seen above than to escape them.
 
 Sigils also support heredocs, that is, three double-quotes or single-quotes as separators:
 
@@ -160,7 +158,7 @@ def convert(...)
 
 ## Calendar sigils
 
-Elixir offers several sigils to deal with various flavors of times and dates.
+Elixir offers sigils to deal with various flavors of times and dates.
 
 ### Date
 
@@ -240,6 +238,4 @@ iex> ~i(42)n
 -42
 ```
 
-Custom sigils may be either a single lowercase character, or an uppercase character followed by more uppercase characters and digits.
-
-Sigils can also be used to do compile-time work with the help of macros. For example, regular expressions in Elixir are compiled into an efficient representation during compilation of the source code, therefore skipping this step at runtime. If you're interested in the subject, you can learn more about macros and check out how sigils are implemented in the `Kernel` module (where the `sigil_*` functions are defined).
+Custom sigils may be either a single lowercase character, or an uppercase character followed by more uppercase characters and digits. In practice, they are often used to embed templating languages or even represent regular languages within Elixir itself. If you're interested in learning more, check out how sigils are implemented in the `Kernel` module (where the `sigil_*` functions/macros are defined) for a starting point.
