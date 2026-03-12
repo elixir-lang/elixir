@@ -845,7 +845,6 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.Project.push(RawRepoDepApp)
       Mix.Tasks.Deps.Loadpaths.run([])
-      # 2 files
       assert_receive {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
       assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
       assert Application.spec(:raw_repo, :vsn)
