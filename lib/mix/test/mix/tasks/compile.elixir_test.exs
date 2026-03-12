@@ -322,6 +322,55 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :elixir_config.put(:initial_dbg_callback, {Macro, :dbg, []})
   end
 
+  test "recompiles files on debug_info flag" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule DebugInfo.A do
+        def run, do: :ok
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule DebugInfo.B do
+        def run, do: DebugInfo.A.run()
+      end
+      """)
+
+      File.write!("lib/c.ex", """
+      defmodule DebugInfo.C do
+        @compile_time_value DebugInfo.A.run()
+        def compile_time_value, do: @compile_time_value
+        def run, do: DebugInfo.B.run()
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--no-debug-info"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--no-debug-info"]) == {:noop, []}
+
+      File.write!("lib/a.ex", """
+      defmodule DebugInfo.A do
+        def run, do: :error
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--no-debug-info"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+    end)
+  end
+
   test "recompiles files when config changes export dependencies" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

@@ -105,7 +105,7 @@ defmodule Module.ParallelChecker do
                        {@elixir_checker_version, contents} <- :erlang.binary_to_term(checker) do
                     {cache_chunk(table, module, contents), module_map_to_module_tuple(module_map)}
                   else
-                    _ -> {:not_found, nil}
+                    _ -> {:uncached, nil}
                   end
 
                 is_tuple(info) ->
