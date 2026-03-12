@@ -1,4 +1,4 @@
-Application.compile_env(:raw_repo, :compile_env)
+Application.compile_env(:anyapp, :anything)
 
 defmodule RawRepo do
   def hello do

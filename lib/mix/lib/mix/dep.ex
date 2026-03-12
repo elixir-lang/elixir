@@ -338,6 +338,10 @@ defmodule Mix.Dep do
     "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
   end
 
+  def format_status(%Mix.Dep{status: :envoutdated}) do
+    "the dependency compile environment is outdated, please run \"#{mix_env_var()}mix deps.compile\""
+  end
+
   def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
     "the dependency #{app} #{vsn}\n" <>
       dep_status(dep) <>
@@ -505,11 +509,20 @@ defmodule Mix.Dep do
   @doc """
   Returns `true` if the dependency is compilable.
   """
-  def compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
-  def compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
-  def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
-  def compilable?(%Mix.Dep{status: :compile}), do: true
-  def compilable?(_), do: false
+  def compilable?(%Mix.Dep{status: :envoutdated}), do: true
+  def compilable?(dep), do: force_compilable?(dep)
+
+  @doc """
+  Returns `true` if the dependency is force compilable.
+
+  This is a subset of compilable. This is used in `deps.compile` to
+  clean the build path before compiling.
+  """
+  def force_compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
+  def force_compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
+  def force_compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  def force_compilable?(%Mix.Dep{status: :compile}), do: true
+  def force_compilable?(_), do: false
 
   @doc """
   Formats a dependency for printing.
