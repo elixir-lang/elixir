@@ -2681,11 +2681,19 @@ defmodule Kernel do
         invalid_match!(:is_struct)
 
       :guard ->
-        quote do
-          is_map(unquote(term)) and
-            (is_atom(unquote(name)) or :fail) and
-            :erlang.is_map_key(:__struct__, unquote(term)) and
-            :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
+        if is_atom(name) or is_atom(Macro.expand(name, __CALLER__)) do
+          quote do
+            is_map(unquote(term)) and
+              :erlang.is_map_key(:__struct__, unquote(term)) and
+              :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
+          end
+        else
+          quote do
+            is_map(unquote(term)) and
+              (is_atom(unquote(name)) or :fail) and
+              :erlang.is_map_key(:__struct__, unquote(term)) and
+              :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
+          end
         end
     end
   end
@@ -2805,13 +2813,23 @@ defmodule Kernel do
         invalid_match!(:is_exception)
 
       :guard ->
-        quote do
-          is_map(unquote(term)) and
-            (is_atom(unquote(name)) or :fail) and
-            :erlang.is_map_key(:__struct__, unquote(term)) and
-            :erlang.map_get(:__struct__, unquote(term)) == unquote(name) and
-            :erlang.is_map_key(:__exception__, unquote(term)) and
-            :erlang.map_get(:__exception__, unquote(term)) == true
+        if is_atom(name) or is_atom(Macro.expand(name, __CALLER__)) do
+          quote do
+            is_map(unquote(term)) and
+              :erlang.is_map_key(:__struct__, unquote(term)) and
+              :erlang.map_get(:__struct__, unquote(term)) == unquote(name) and
+              :erlang.is_map_key(:__exception__, unquote(term)) and
+              :erlang.map_get(:__exception__, unquote(term)) == true
+          end
+        else
+          quote do
+            is_map(unquote(term)) and
+              (is_atom(unquote(name)) or :fail) and
+              :erlang.is_map_key(:__struct__, unquote(term)) and
+              :erlang.map_get(:__struct__, unquote(term)) == unquote(name) and
+              :erlang.is_map_key(:__exception__, unquote(term)) and
+              :erlang.map_get(:__exception__, unquote(term)) == true
+          end
         end
     end
   end

@@ -316,6 +316,15 @@ defmodule Exception do
   defp struct_macro?(
          {:and, _,
           [
+            {:and, _, [%{node: node_1 = {_, _, [arg]}}, %{node: node_2 = {_, _, [arg, _]}}]},
+            %{node: node_3 = {_, _, [{_, _, [_, arg]}, _]}}
+          ]}
+       ),
+       do: map_node?(node_1) and map_key_node?(node_2) and struct_validation_node?(node_3)
+
+  defp struct_macro?(
+         {:and, _,
+          [
             {:and, _,
              [
                {:and, _,
