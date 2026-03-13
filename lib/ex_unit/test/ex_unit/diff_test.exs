@@ -1132,22 +1132,6 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "concat binaries with specifiers" do
-    input = "foobar"
-
-    refute_diff(
-      <<trap::binary-size(3)>> <> "baz" = input,
-      "-<<trap::binary-size(3)>> <> \"baz\"-",
-      "+\"foobar\"+"
-    )
-
-    refute_diff(
-      "hello " <> <<_::binary-size(6)>> = "hello world",
-      "\"hello \" <> -<<_::binary-size(6)>>-",
-      "\"hello +world+\""
-    )
-  end
-
   test "underscore" do
     assert_diff(_ = :a, [])
     assert_diff({_, _} = {:a, :b}, [])
@@ -1359,14 +1343,6 @@ defmodule ExUnit.DiffTest do
       closure1 == closure2,
       "#Function<\n  #{uniq}/0 in ExUnit.DiffTest.closure/1\n  [-1-]\n>",
       "#Function<\n  #{uniq}/0 in ExUnit.DiffTest.closure/1\n  [+2+]\n>"
-    )
-  end
-
-  test "not supported" do
-    refute_diff(
-      <<147, 1, 2, 31>> = <<193, 1, 31>>,
-      "-<<147, 1, 2, 31>>-",
-      "+<<193, 1, 31>>+"
     )
   end
 end

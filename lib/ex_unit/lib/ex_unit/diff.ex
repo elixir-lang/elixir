@@ -38,6 +38,8 @@ defmodule ExUnit.Diff do
   """
   def compute(left, right, context) do
     diff(left, right, context_to_env(context))
+  catch
+    :undiffable -> nil
   end
 
   defp context_to_env({:match, pins}),
@@ -111,6 +113,18 @@ defmodule ExUnit.Diff do
   defp diff_quoted({:<>, _, [literal, _]} = left, right, _expanded, env)
        when is_binary(literal) and is_binary(right) do
     diff_string_concat(left, right, env)
+  end
+
+  defp diff_quoted({:<<>>, _, parts} = left, right, _expanded, env) do
+    if Enum.all?(parts, &is_binary/1) do
+      equivalent? = IO.iodata_to_binary(parts) == right
+      diff_left = update_diff_meta(left, not equivalent?)
+      diff_right = escape(right) |> update_diff_meta(not equivalent?)
+      diff = %__MODULE__{equivalent?: equivalent?, left: diff_left, right: diff_right}
+      {diff, env}
+    else
+      throw(:undiffable)
+    end
   end
 
   defp diff_quoted({:when, _, [_, _]} = left, right, _expanded, env) do

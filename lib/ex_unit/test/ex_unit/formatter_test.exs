@@ -35,6 +35,8 @@ defmodule ExUnit.FormatterTest do
   defp formatter(_key, value), do: value
 
   defp diff_formatter(:diff_enabled?, _default), do: true
+  defp diff_formatter(:diff_insert, value), do: Inspect.Algebra.concat(["+", value, "+"])
+  defp diff_formatter(:diff_delete, value), do: Inspect.Algebra.concat(["-", value, "-"])
   defp diff_formatter(_key, value), do: value
 
   defp kw_to_string(kw), do: for({k, v} <- kw, do: {k, IO.iodata_to_binary(v)})
@@ -328,11 +330,14 @@ defmodule ExUnit.FormatterTest do
 
     assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
            |> kw_to_string() ==
-             [{:left, "{3, 2, 1}"}, {:right, "{1, 2, 3}"}]
+             [{:left, "{-3-, 2, -1-}"}, {:right, "{+1+, 2, +3+}"}]
   end
 
   nfc_hello = String.normalize("héllo", :nfc)
   nfd_hello = String.normalize("héllo", :nfd)
+
+  nfc_left_hello = String.normalize("h-é-llo", :nfc)
+  nfd_right_hello = String.normalize("h+é+llo", :nfd)
 
   test "formats assertions with hints" do
     assertion_error = catch_assertion(assert unquote(nfc_hello) == unquote(nfd_hello))
@@ -343,19 +348,16 @@ defmodule ExUnit.FormatterTest do
                 test/ex_unit/formatter_test.exs:1
                 Assertion with == failed
                 code:  assert "#{unquote(nfc_hello)}" == "#{unquote(nfd_hello)}"
-                left:  "#{unquote(nfc_hello)}"
-                right: "#{unquote(nfd_hello)}"
+                left:  "#{unquote(nfc_left_hello)}"
+                right: "#{unquote(nfd_right_hello)}"
                 hint:  you are comparing strings that have the same visual representation but are made of different Unicode codepoints
            """
-
-    assert format_test_failure(test(), failure, 1, 80, &diff_formatter/2) ==
-             format_test_failure(test(), failure, 1, 80, &formatter/2)
 
     assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
            |> kw_to_string() ==
              [
-               left: inspect(unquote(nfc_hello)),
-               right: inspect(unquote(nfd_hello)),
+               left: inspect(unquote(nfc_left_hello)),
+               right: inspect(unquote(nfd_right_hello)),
                hint:
                  "you are comparing strings that have the same visual representation but are made of different Unicode codepoints"
              ]
@@ -377,8 +379,8 @@ defmodule ExUnit.FormatterTest do
                 The following variables were pinned:
                   expected_module = ExUnit.TestModule
                 code:  assert %^expected_module{} = nil
-                left:  %^expected_module{}
-                right: nil
+                left:  -%^expected_module{}-
+                right: +nil+
            """
   end
 
@@ -548,8 +550,19 @@ defmodule ExUnit.FormatterTest do
     assert format_test_all_failure(test_module(), failure, 1, :infinity, &diff_formatter/2) =~ """
            match (=) failed
                 code:  assert :foo = %{bar: [1 | 2]}
-                left:  :foo
-                right: %{bar: [1 | 2]}
+                left:  -:foo-
+                right: +%{bar: [1 | 2]}+
+           """
+  end
+
+  test "formats assertions with binary matching without diffing" do
+    failure = [{:error, catch_assertion(assert %{foo: <<_>>, bar: 2} = %{foo: "!", bar: 3}), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, :infinity, &diff_formatter/2) =~ """
+           match (=) failed
+                code:  assert %{foo: <<_>>, bar: 2} = %{foo: "!", bar: 3}
+                left:  %{foo: <<_>>, bar: 2}
+                right: %{foo: "!", bar: 3}
            """
   end
 
