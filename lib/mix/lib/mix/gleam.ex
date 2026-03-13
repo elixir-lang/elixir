@@ -107,7 +107,7 @@ defmodule Mix.Gleam do
     case fetch_gleam_version() do
       {:ok, gleam_version} ->
         if Version.match?(gleam_version, @gleam_version_requirement) do
-          {:ok, :ok}
+          :ok
         else
           {:error,
            "Current Gleam version does not meet minimum requirements " <>
@@ -154,6 +154,7 @@ defmodule Mix.Gleam do
       {:error, "Command \"gleam #{Enum.join(args, " ")}\" failed"}
   end
 
+  defp assert_ok_value!(:ok), do: :ok
   defp assert_ok_value!({:ok, term}), do: term
   defp assert_ok_value!({:error, message}) when is_binary(message), do: Mix.raise(message)
 end
