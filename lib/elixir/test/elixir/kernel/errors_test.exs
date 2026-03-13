@@ -7,7 +7,7 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.ErrorsTest do
   use ExUnit.Case, async: true
 
-  defmacro hello do
+  defmacro hello(_) do
     quote location: :keep do
       def hello, do: :world
     end
@@ -153,6 +153,59 @@ defmodule Kernel.ErrorsTest do
         def foo do
           IO.puts bar
           IO.puts baz
+        end
+      end
+      """
+    )
+  end
+
+  test "cascading from undefined variables" do
+    # Test that we show undefined modules/functions/macros on variable failure,
+    # as sometimes the variable failure come from a missing module or require
+    assert_compile_error(
+      [
+        "nofile:3:23",
+        "undefined variable \"bar\"",
+        "nofile:3:19",
+        "function UnknownModule.foo/1 is undefined (module UnknownModule is not available)"
+      ],
+      ~c"""
+      defmodule Sample do
+        def foo do
+          UnknownModule.foo(bar)
+        end
+      end
+      """
+    )
+
+    assert_compile_error(
+      [
+        "nofile:3:20",
+        "undefined variable \"bar\"",
+        "nofile:3:16",
+        "function Enumerable.foo/1 is undefined or private"
+      ],
+      ~c"""
+      defmodule Sample do
+        def foo do
+          Enumerable.foo(bar)
+        end
+      end
+      """
+    )
+
+    assert_compile_error(
+      [
+        "nofile:3:29",
+        "undefined variable \"bar\"",
+        "nofile:3:23",
+        "function Kernel.ErrorsTest.hello/1 is undefined or private",
+        "there is a macro with the same name and arity"
+      ],
+      ~c"""
+      defmodule Sample do
+        def foo do
+          Kernel.ErrorsTest.hello(bar)
         end
       end
       """
@@ -677,7 +730,7 @@ defmodule Kernel.ErrorsTest do
     defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
       require Kernel.ErrorsTest
       defp hello, do: :world
-      Kernel.ErrorsTest.hello()
+      Kernel.ErrorsTest.hello(:ok)
     end
     """)
   end

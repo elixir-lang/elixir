@@ -379,15 +379,20 @@ expand({'^', Meta, [Arg]}, #elixir_ex{prematch={Prematch, _, _}, vars={_, Write}
 
     _ ->
       function_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg}),
-      {{'^', Meta, [Arg]}, S, E}
+      {{'^', Meta, [Arg]}, S#elixir_ex{tainted_function=true}, E}
   end;
 expand({'^', Meta, [Arg]}, S, E) ->
   function_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg}),
-  {{'^', Meta, [Arg]}, S, E};
+  {{'^', Meta, [Arg]}, S#elixir_ex{tainted_function=true}, E};
 
 expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind) ->
-  (Context /= match) andalso function_error(Meta, E, ?MODULE, unbound_underscore),
-  {Var, S, E};
+  case Context of
+    match ->
+      {Var, S, E};
+    _ ->
+      function_error(Meta, E, ?MODULE, unbound_underscore),
+      {Var, S#elixir_ex{tainted_function=true}, E}
+  end;
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
@@ -476,7 +481,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
         %% TODO: Remove this clause on v2.0 as we will raise by default
         {if_undefined, raise} ->
           function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, Meta, Kind}, S, E};
+          {{Name, Meta, Kind}, S#elixir_ex{tainted_function=true}, E};
 
         %% TODO: Remove this clause on v2.0 as we will no longer support warn
         _ when Error == warn ->
@@ -485,12 +490,12 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
         _ when Error == pin ->
           function_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind}),
-          {{Name, Meta, Kind}, S, E};
+          {{Name, Meta, Kind}, S#elixir_ex{tainted_function=true}, E};
 
         _ when Error == raise ->
           SpanMeta =  elixir_env:calculate_span(Meta, Name),
           function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, SpanMeta, Kind}, S, E}
+          {{Name, SpanMeta, Kind}, S#elixir_ex{tainted_function=true}, E}
       end
   end;
 
@@ -950,6 +955,11 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
     Context =:= nil ->
       AttachedMeta = attach_runtime_module(Receiver, Meta, S, E),
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
+
+      SA#elixir_ex.tainted_function andalso is_atom(Receiver) andalso
+        (not is_loaded_and_exported(Receiver, Right, Args)) andalso
+        elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_function, Receiver, Right, length(Args)}),
+
       Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, AttachedMeta, EArgs),
       {Rewritten, elixir_env:close_write(SA, S), EA};
 
@@ -969,6 +979,10 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
+
+is_loaded_and_exported(Receiver, Fun, Args) ->
+  (code:ensure_loaded(Receiver) =:= {module, Receiver}) andalso
+    erlang:function_exported(Receiver, Fun, length(Args)).
 
 attach_runtime_module(Receiver, Meta, S, _E) ->
   case lists:member(Receiver, S#elixir_ex.runtime_modules) of
@@ -1127,6 +1141,11 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 
 %% Errors
 
+format_error({undefined_function, Module, Fun, Arity}) ->
+  Opts = [{module, Module}, {function, Fun}, {arity, Arity}],
+  Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
+  {BlamedException, _} = 'Elixir.UndefinedFunctionError':blame(Exception, []),
+  'Elixir.UndefinedFunctionError':message(BlamedException);
 format_error(invalid_match_on_zero_float) ->
   "pattern matching on 0.0 is equivalent to matching only on +0.0. Instead you must match on +0.0 or -0.0";
 format_error({useless_literal, Term}) ->

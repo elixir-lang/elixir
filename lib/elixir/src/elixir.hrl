@@ -11,6 +11,9 @@
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
 -record(elixir_ex, {
+  %% Stores that the function will fail, which can be used
+  %% to run more expensive checks upfront
+  tainted_function=false,
   %% Stores if __CALLER__ is allowed
   caller=false,
   %% Stores the variables available before a match.
