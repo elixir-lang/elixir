@@ -1234,14 +1234,43 @@ defmodule Code.Fragment do
       the cursor. This is necessary to correctly complete anonymous functions
       and the left-hand side of `->`
 
+    * `:preserve_sigils` (since v1.20.0) - preserve sigil cursor location
+      (see "Tracking sigils" section below)
+
+  ## Tracking sigils
+
+  The `:preserve_sigils` option can be used to track cursor positions inside
+  a sigil.
+
+  If the sigil is terminated abruptly, the `sigil_*` call will have the cursor
+  as the second argument:
+
+      iex> Code.Fragment.container_cursor_to_quoted("~r/foo", preserve_sigils: true)
+      {:ok,
+      {:sigil_r, [delimiter: "/", line: 1],
+        [{:<<>>, [line: 1], ["foo"]}, {:__cursor__, [line: 1, column: 7], []}]}}
+
+  In case the sigil is completed and has zero or more modifiers, the cursor will
+  be nested in the list, with all previous delimiters specified:
+
+      iex> Code.Fragment.container_cursor_to_quoted("~r/foo/i", preserve_sigils: true)
+      {:ok,
+       {:sigil_r, [delimiter: "/", line: 1],
+        [{:<<>>, [line: 1], ["foo"]}, [105, {:__cursor__, [line: 1, column: 9], []}]]}}
+
+  If the cursor is after the sigil, then it is discarded as everything else:
+
+      iex> Code.Fragment.container_cursor_to_quoted("~r/foo/i ", preserve_sigils: true)
+      {:ok, {:__cursor__, [line: 1], []}}
   """
   @doc since: "1.13.0"
   @spec container_cursor_to_quoted(List.Chars.t(), container_cursor_to_quoted_opts()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
     {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)
+    {preserve_sigils?, opts} = Keyword.pop(opts, :preserve_sigils, false)
     opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
-    opts = [check_terminators: {:cursor, []}] ++ opts
+    opts = [check_terminators: {:cursor, preserve_sigils?, []}] ++ opts
 
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -1272,7 +1301,7 @@ defmodule Code.Fragment do
                  Enum.split_while(rev_terminators, &(elem(&1, 0) not in [:do, :fn])),
                true <- maybe_missing_stab?(rev_tokens, true),
                opts =
-                 Keyword.put(opts, :check_terminators, {:cursor, before_start}),
+                 Keyword.put(opts, :check_terminators, {:cursor, false, before_start}),
                {:error, {meta, _, ~c"end"}, _rest, _warnings, trailing_rev_tokens} <-
                  :elixir_tokenizer.tokenize(to_charlist(trailing_fragment), line, column, opts) do
             trailing_tokens =
