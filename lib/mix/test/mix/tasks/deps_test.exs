@@ -837,8 +837,15 @@ defmodule Mix.Tasks.DepsTest do
 
   test "checks if compile env changed" do
     in_fixture("deps_status", fn ->
+      # Write another file, it should not be recompiled upon compiled env change.
+      File.write!("custom/raw_repo/lib/foo.ex", """
+      defmodule RawRepo.Foo do
+      end
+      """)
+
       Mix.Project.push(RawRepoDepApp)
       Mix.Tasks.Deps.Loadpaths.run([])
+      assert_receive {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
       assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
       assert Application.spec(:raw_repo, :vsn)
 
@@ -846,7 +853,7 @@ defmodule Mix.Tasks.DepsTest do
 
       File.write!("config/config.exs", """
       import Config
-      config :raw_repo, :compile_env, :new_value
+      config :anyapp, :anything, :anyvalue
       """)
 
       Application.unload(:raw_repo)
@@ -859,10 +866,15 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run([])
 
       assert_receive {:mix_shell, :info,
-                      ["  the dependency build is outdated, please run \"mix deps.compile\""]}
+                      [
+                        "  the dependency compile environment is outdated, please run \"mix deps.compile\""
+                      ]}
+
+      Mix.shell().flush()
 
       Mix.Tasks.Deps.Loadpaths.run([])
 
+      assert_receive {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
       assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
       assert Application.spec(:raw_repo, :vsn)
     end)

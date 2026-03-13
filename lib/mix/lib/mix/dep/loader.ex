@@ -444,7 +444,7 @@ defmodule Mix.Dep.Loader do
   defp compile_env_status(vsn, properties) do
     with [_ | _] = compile_env <- properties[:compile_env],
          false <- Config.Provider.valid_compile_env?(compile_env) do
-      :compile
+      :envoutdated
     else
       _ -> {:ok, vsn, properties}
     end

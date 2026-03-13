@@ -161,10 +161,13 @@ defmodule Mix.Tasks.Compile.App do
       |> max(Mix.Utils.last_modified(compile_path))
 
     current_properties = current_app_properties(target)
+    current_compile_env = Mix.ProjectStack.compile_env(nil)
 
     {changed?, modules} =
       cond do
-        opts[:force] || new_mtime > Mix.Utils.last_modified(target) ->
+        opts[:force] || new_mtime > Mix.Utils.last_modified(target) ||
+            (current_compile_env != nil and
+               current_compile_env != Keyword.get(current_properties, :compile_env, [])) ->
           {true, nil}
 
         Keyword.get(config, :reliable_dir_mtime, fn -> not match?({:win32, _}, :os.type()) end) ->
@@ -184,7 +187,7 @@ defmodule Mix.Tasks.Compile.App do
         ]
         |> merge_project_application(project)
         |> handle_extra_applications(config)
-        |> add_compile_env(current_properties)
+        |> add_compile_env(current_compile_env, current_properties)
         |> add_modules(modules, compile_path)
 
       contents =
@@ -389,12 +392,12 @@ defmodule Mix.Tasks.Compile.App do
   defp typed_app?({app, type}) when is_atom(app) and type in [:required, :optional], do: true
   defp typed_app?(_), do: false
 
-  defp add_compile_env(properties, current_properties) do
+  defp add_compile_env(properties, current_compile_env, current_properties) do
     # If someone calls compile.elixir and then compile.app across two
     # separate OS calls, then the compile_env won't be properly reflected.
     # This is ok because compile_env is not used for correctness. It is
     # simply to catch possible errors early.
-    case Mix.ProjectStack.compile_env(nil) do
+    case current_compile_env do
       nil -> Keyword.take(current_properties, [:compile_env]) ++ properties
       [] -> properties
       compile_env -> Keyword.put(properties, :compile_env, compile_env)
