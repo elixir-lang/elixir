@@ -965,6 +965,15 @@ defmodule Keyword do
   """
   @spec equal?(t, t) :: boolean
   def equal?(left, right) when is_list(left) and is_list(right) do
+    if not keyword?(left) do
+      raise ArgumentError, "expected a keyword list as the first argument, got: #{inspect(left)}"
+    end
+
+    if not keyword?(right) do
+      raise ArgumentError,
+            "expected a keyword list as the second argument, got: #{inspect(right)}"
+    end
+
     :lists.sort(left) === :lists.sort(right)
   end
 

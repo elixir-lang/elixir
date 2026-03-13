@@ -242,4 +242,27 @@ defmodule KeywordTest do
     assert Keyword.split_with([a: "1", a: 1, b: 2], fn {k, v} -> k in [:a] and is_integer(v) end) ==
              {[a: 1], [a: "1", b: 2]}
   end
+
+  test "equal?/2" do
+    assert Keyword.equal?([], [])
+    assert Keyword.equal?([a: 1], a: 1)
+    assert Keyword.equal?([a: 1, b: 2], b: 2, a: 1)
+    refute Keyword.equal?([a: 1, b: 2], b: 1, a: 2)
+
+    assert Keyword.equal?([a: 1, b: 2, a: 3], b: 2, a: 3, a: 1)
+
+    refute Keyword.equal?([a: 1.0], a: 1)
+
+    message = "expected a keyword list as the first argument, got: [1, 2]"
+
+    assert_raise ArgumentError, message, fn ->
+      Keyword.equal?([1, 2], a: 1)
+    end
+
+    message = "expected a keyword list as the second argument, got: [1, 2]"
+
+    assert_raise ArgumentError, message, fn ->
+      Keyword.equal?([a: 1], [1, 2])
+    end
+  end
 end
