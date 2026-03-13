@@ -291,14 +291,20 @@ defmodule Code do
         ]
 
   @typedoc """
-  Options for environment evaluation functions like eval_string/3 and eval_quoted/3.
+  Options for evaluation environment, accepted by `env_for_eval/1`.
   """
-  @type env_eval_opts :: [
-          file: binary(),
-          line: pos_integer(),
-          module: module(),
-          prune_binding: boolean()
-        ]
+  @type env_eval_opt ::
+          {:file, binary()}
+          | {:line, pos_integer()}
+          | {:module, module()}
+
+  @typedoc """
+  Options for evaluation functions like `eval_string/3`, `eval_quoted/3`
+  and `eval_quoted_with_env/4`.
+  """
+  @type eval_opt ::
+          {:prune_binding, boolean()}
+          | {:dbg_callback, {module(), atom(), list()}}
 
   @boolean_compiler_options [
     :docs,
@@ -573,9 +579,11 @@ defmodule Code do
 
   ## Options
 
-  It accepts the same options as `env_for_eval/1`. Additionally, you may
-  also pass an environment as second argument, so the evaluation happens
-  within that environment.
+  It accepts the same options as both `env_for_eval/1` and
+  `eval_quoted_with_env/4`. Additionally, you may also pass an environment
+  as third argument, so the evaluation happens within that environment.
+
+  ## Return
 
   Returns a tuple of the form `{value, binding}`, where `value` is the value
   returned from evaluating `string`. If an error occurs while evaluating
@@ -605,7 +613,7 @@ defmodule Code do
       iex> Enum.sort(binding)
       [a: 3, b: 2]
 
-  For convenience, you can pass `__ENV__/0` as the `opts` argument and
+  For convenience, you can pass `__ENV__/0` as the `opts_or_env` argument and
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
@@ -617,15 +625,16 @@ defmodule Code do
       [a: 1, b: 2]
 
   """
-  @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | env_eval_opts) :: {term, binding}
-  def eval_string(string, binding \\ [], opts \\ [])
+  @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | [eval_opt | env_eval_opt]) ::
+          {term, binding}
+  def eval_string(string, binding \\ [], opts_or_env \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    validated_eval_string(string, validate_binding(binding), env)
+    validated_eval_string(string, validate_binding(binding), env_for_eval(env), [])
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
-    validated_eval_string(string, validate_binding(binding), opts)
+    validated_eval_string(string, validate_binding(binding), env_for_eval(opts), opts)
   end
 
   defp validate_binding(binding) when is_list(binding), do: binding
@@ -634,10 +643,10 @@ defmodule Code do
     raise ArgumentError, "binding must be a list, got: #{inspect(binding)}"
   end
 
-  defp validated_eval_string(string, binding, opts_or_env) do
-    %{line: line, file: file} = env = env_for_eval(opts_or_env)
+  defp validated_eval_string(string, binding, env, opts) do
+    %{line: line, file: file} = env
     forms = :elixir.string_to_quoted!(to_charlist(string), line, 1, file, [])
-    {value, binding, _env} = eval_verify(:eval_forms, [forms, binding, env])
+    {value, binding, _env} = eval_verify(:eval_forms, [forms, binding, env, opts])
     {value, binding}
   end
 
@@ -1140,7 +1149,8 @@ defmodule Code do
   returned quoted expressions (instead of evaluated).
 
   See `eval_string/3` for a description of arguments and return types.
-  The options are described under `env_for_eval/1`.
+  It accepts the same options as both `env_for_eval/1` and
+  `eval_quoted_with_env/4`.
 
   ## Examples
 
@@ -1162,11 +1172,20 @@ defmodule Code do
       [a: 1, b: 2]
 
   """
-  @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | env_eval_opts) :: {term, binding}
-  def eval_quoted(quoted, binding \\ [], env_or_opts \\ []) do
-    {value, binding, _env} =
-      eval_verify(:eval_quoted, [quoted, binding, env_for_eval(env_or_opts)])
+  @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | [eval_opt | env_eval_opt]) ::
+          {term, binding}
+  def eval_quoted(quoted, binding \\ [], env_or_opts \\ [])
 
+  def eval_quoted(quoted, binding, %Macro.Env{} = env) do
+    eval_quoted(quoted, validate_binding(binding), env_for_eval(env), [])
+  end
+
+  def eval_quoted(quoted, binding, opts) when is_list(opts) do
+    eval_quoted(quoted, validate_binding(binding), env_for_eval(opts), opts)
+  end
+
+  defp eval_quoted(quoted, binding, env, opts) do
+    {value, binding, _env} = eval_verify(:eval_quoted, [quoted, binding, env, opts])
     {value, binding}
   end
 
@@ -1194,14 +1213,9 @@ defmodule Code do
 
     * `:module` - the module to run the environment on
 
-    * `:prune_binding` - (since v1.14.2) prune binding to keep only
-      variables read or written by the evaluated code. Note that
-      variables used by modules are always pruned, even if later used
-      by the modules. You can submit to the `:on_module` tracer event
-      and access the variables used by the module from its environment.
   """
   @doc since: "1.14.0"
-  @spec env_for_eval(Macro.Env.t() | env_eval_opts) :: Macro.Env.t()
+  @spec env_for_eval(Macro.Env.t() | [env_eval_opt]) :: Macro.Env.t()
   def env_for_eval(env_or_opts), do: :elixir.env_for_eval(env_or_opts)
 
   @doc """
@@ -1215,11 +1229,19 @@ defmodule Code do
 
   ## Options
 
-  It accepts the same options as `env_for_eval/1`.
+    * `:prune_binding` - (since v1.14.2) prune binding to keep only
+      variables read or written by the evaluated code. Note that
+      variables used by modules are always pruned, even if later used
+      by the modules. You can submit to the `:on_module` tracer event
+      and access the variables used by the module from its environment.
+
+    * `:dbg_callback` - (since v1.20.0) overrides the behaviour of `dbg/2`
+      used in the evaluated code. It must be a `{module, function, args}`
+      tuple, see `dbg/2` for more details.
 
   """
   @doc since: "1.14.0"
-  @spec eval_quoted_with_env(Macro.t(), binding, Macro.Env.t(), env_eval_opts) ::
+  @spec eval_quoted_with_env(Macro.t(), binding, Macro.Env.t(), [eval_opt]) ::
           {term, binding, Macro.Env.t()}
   def eval_quoted_with_env(quoted, binding, %Macro.Env{} = env, opts \\ [])
       when is_list(binding) do

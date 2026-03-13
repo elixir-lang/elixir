@@ -6326,7 +6326,15 @@ defmodule Kernel do
   """
   @doc since: "1.14.0"
   defmacro dbg(code \\ quote(do: binding()), options \\ []) do
-    {mod, fun, args} = Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
+    # The compiling process may override the callback by putting it in
+    # the process dictionary.
+    dbg_callback =
+      case :erlang.get({:elixir, :dbg_callback}) do
+        :undefined -> Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
+        value -> value
+      end
+
+    {mod, fun, args} = dbg_callback
     Macro.compile_apply(mod, fun, [code, options, __CALLER__ | args], __CALLER__)
   end
 
