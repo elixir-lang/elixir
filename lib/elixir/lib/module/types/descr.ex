@@ -5098,10 +5098,8 @@ defmodule Module.Types.Descr do
          zip_empty_intersection?(elements, neg_elements) do
       [{tag, elements}]
     else
-      tuple_dnf_union(
-        tuple_elim_size(n, m, tag, elements, neg_tag),
+      tuple_elim_size(n, m, tag, elements, neg_tag) ++
         tuple_elim_content([], tag, elements, neg_elements)
-      )
     end
   end
 
@@ -5177,19 +5175,6 @@ defmodule Module.Types.Descr do
     Enum.reduce(n..(m - 1)//1, acc, fn i, acc ->
       [{:closed, tuple_fill(elements, i)} | acc]
     end)
-  end
-
-  # Prefer the smaller on the left
-  defp tuple_dnf_union(dnf1, dnf2) do
-    # Union of tuple DNFs is just concatenation,
-    # but we do our best to remove duplicates.
-    with [tuple1] <- dnf1,
-         [tuple2] <- dnf2,
-         optimized when optimized != nil <- maybe_optimize_tuple_union(tuple1, tuple2) do
-      [optimized]
-    else
-      _ -> dnf1 ++ (dnf2 -- dnf1)
-    end
   end
 
   defp tuple_union(
@@ -5285,21 +5270,12 @@ defmodule Module.Types.Descr do
   end
 
   # Transforms a bdd into a union of tuples with no negations.
-  # Note: it is important to compose the results with
-  # tuple_dnf_union/2 to avoid duplicates
   defp tuple_bdd_to_dnf_no_negations(bdd) do
     bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {pos, negs}, acc ->
+    |> Enum.flat_map(fn {pos, negs} ->
       case non_empty_tuple_literals_intersection(pos) do
-        :empty ->
-          acc
-
-        {tag, elements} ->
-          if tuple_line_empty?(tag, elements, negs) do
-            acc
-          else
-            tuple_eliminate_negations(tag, elements, negs) |> tuple_dnf_union(acc)
-          end
+        :empty -> []
+        {tag, elements} -> tuple_eliminate_negations(tag, elements, negs)
       end
     end)
   end
