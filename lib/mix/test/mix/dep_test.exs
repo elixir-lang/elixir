@@ -403,7 +403,7 @@ defmodule Mix.DepTest do
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
         [git_repo, _] = Mix.Dep.Converger.converge([])
-        %{app: :git_repo, status: {:overridden, _}} = git_repo
+        %{app: :git_repo, status: {:overridden, _, _}} = git_repo
       end)
     end)
   end
@@ -819,7 +819,7 @@ defmodule Mix.DepTest do
       end)
     end
 
-    test "conflicts on invalid only subset on nested deps" do
+    test "conflicts on invalid subset on nested deps" do
       # deps_repo wants git_repo for dev, git_repo is restricted to only test
       deps = [
         {:deps_repo, "0.1.0", path: "custom/deps_repo", only: :dev},
@@ -850,7 +850,7 @@ defmodule Mix.DepTest do
       end)
     end
 
-    test "does not conflict with valid only in both parent and child on nested deps" do
+    test "does not conflict when valid in both parent and child on nested deps" do
       Process.put(:custom_deps_git_repo_opts, only: :test)
 
       # deps_repo has environment set to test so it loads the deps_git_repo set to test too
@@ -879,7 +879,7 @@ defmodule Mix.DepTest do
       end)
     end
 
-    test "converges and diverges when only is not in_upper" do
+    test "converges and diverges when not in_upper" do
       loaded = fn deps ->
         with_deps(deps, fn ->
           in_fixture("deps_status", fn ->
@@ -942,7 +942,7 @@ defmodule Mix.DepTest do
       assert loaded.(deps) == [git_repo: :test, other_repo: :test, deps_repo: :prod]
     end
 
-    test "converges and diverges when only is not specified" do
+    test "converges and diverges when not specified" do
       Process.put(:custom_deps_git_repo_opts, only: :test)
 
       deps = [
@@ -1098,7 +1098,7 @@ defmodule Mix.DepTest do
       end)
     end
 
-    test "conflicts on invalid only subset on nested deps" do
+    test "conflicts on invalid subset on nested deps" do
       # deps_repo wants git_repo for rpi3, git_repo is restricted to only test
       deps = [
         {:deps_repo, "0.1.0", path: "custom/deps_repo", targets: :host},
@@ -1129,7 +1129,7 @@ defmodule Mix.DepTest do
       end)
     end
 
-    test "does not conflict with valid only in both parent and child on nested deps" do
+    test "does not conflict when in both parent and child on nested deps" do
       Process.put(:custom_deps_git_repo_opts, targets: :bbb)
 
       # deps_repo has environment set to bbb so it loads the deps_git_repo set to bbb too
@@ -1158,7 +1158,7 @@ defmodule Mix.DepTest do
       end)
     end
 
-    test "converges and diverges when only is not in_upper" do
+    test "converges and diverges when not in_upper" do
       loaded = fn deps ->
         with_deps(deps, fn ->
           in_fixture("deps_status", fn ->
@@ -1266,44 +1266,101 @@ defmodule Mix.DepTest do
     end
   end
 
-  describe "override_for" do
-    test "warns when overrides are no longer needed for an app" do
+  describe "override: [dep]" do
+    test "warns when overrides do not match dependency" do
       deps = [
         {:deps_repo, "0.1.0", path: "custom/deps_repo"},
-        {:git_repo, "0.1.0",
-         git: MixTest.Case.fixture_path("git_repo"), override_for: [:deps_repo]}
+        {:ok, "0.1.0", path: "deps/ok", override: [:deps_repo]}
       ]
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          Mix.Tasks.Deps.Get.run([])
-          Mix.Tasks.Deps.Compile.run([])
+          Mix.Task.run("deps.get")
+        end)
+      end)
+
+      message = "Dependency ok 0.1.0 (deps/ok) no longer requires :override on :deps_repo"
+      assert_received {:mix_shell, :info, [^message]}
+    end
+
+    test "warns when overrides are no longer needed" do
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+        {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), override: [:deps_repo]}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          Mix.Task.run("deps.get")
         end)
       end)
 
       message =
-        "Dependency git_repo (#{fixture_path("git_repo")}) no longer requires override_for on deps_repo"
+        "Dependency git_repo (#{fixture_path("git_repo")}) no longer requires :override on :deps_repo"
 
       assert_received {:mix_shell, :info, [^message]}
     end
 
-    test "errors when more overrides are needed for an app" do
+    test "targets divergence when app is not overridden" do
       deps = [
-        {:deps_repo, "0.1.0", path: "custom/deps_repo"},
-        {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), override_for: []}
+        {:deps_repo, "0.1.0", path: "custom/deps_repo", targets: :host},
+        {:git_repo, "0.2.0",
+         git: MixTest.Case.fixture_path("git_repo"), targets: [:rpi3], override: []}
       ]
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          Mix.Tasks.Deps.Get.run([])
-          Mix.Tasks.Deps.Compile.run([])
+          [git_repo, _] = Mix.Dep.Converger.converge([])
+          %{app: :git_repo, status: {:divergedtargets, _}} = git_repo
         end)
       end)
+    end
 
-      message =
-        "Dependency git_repo (#{fixture_path("git_repo")}) requires override_for on deps_repo"
+    test "targets divergence overridden per app" do
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo", targets: :host},
+        {:git_repo, "0.2.0",
+         git: MixTest.Case.fixture_path("git_repo"), targets: [:rpi3], override: [:deps_repo]}
+      ]
 
-      assert_received {:mix_shell, :info, [^message]}
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          [git_repo, _] = Mix.Dep.Converger.converge([])
+          %{app: :git_repo, status: {:unavailable, _}} = git_repo
+        end)
+      end)
+    end
+
+    test "system env divergence when app is not overridden" do
+      Process.put(:custom_deps_git_repo_opts, system_env: [{"FOO", "BAR"}])
+
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+        {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), override: []}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          [git_repo, _] = Mix.Dep.Converger.converge([])
+          %{app: :git_repo, status: {:overridden, :deps_repo, _}} = git_repo
+        end)
+      end)
+    end
+
+    test "system env divergence overridden per app" do
+      Process.put(:custom_deps_git_repo_opts, system_env: [{"FOO", "BAR"}])
+
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+        {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), override: [:deps_repo]}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          [git_repo, _] = Mix.Dep.Converger.converge([])
+          %{app: :git_repo, status: {:unavailable, _}} = git_repo
+        end)
+      end)
     end
   end
 
