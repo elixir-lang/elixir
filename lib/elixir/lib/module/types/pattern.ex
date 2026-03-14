@@ -21,21 +21,17 @@ defmodule Module.Types.Pattern do
   defp previous_subtype?(_, []), do: false
   defp previous_subtype?([], _), do: true
 
-  defp previous_subtype?([type], previous),
-    do: subtype?(type, Enum.reduce(previous, none(), &union(&2, hd(&1))))
-
-  defp previous_subtype?(args, previous) do
-    subtype?(
-      args_to_domain(args),
-      Enum.reduce(previous, none(), &union(&2, args_to_domain(&1)))
-    )
-  end
+  defp previous_subtype?(args, previous),
+    do: subtype?(args_to_previous(args), Enum.reduce(previous, none(), &union(&2, elem(&1, 1))))
 
   defp concat_previous([], previous),
     do: previous
 
   defp concat_previous(types, previous),
-    do: [types | previous]
+    do: [{types, args_to_previous(types)} | previous]
+
+  defp args_to_previous([type]), do: upper_bound(type)
+  defp args_to_previous(types), do: args_to_static_domain(types)
 
   defp of_pattern_previous(types, [], _trees, _pattern_info, _tag, _stack, _context) do
     {:ok, types}
@@ -45,11 +41,11 @@ defmodule Module.Types.Pattern do
     types =
       case types do
         [type] ->
-          [Enum.reduce(previous, type, &difference(&2, hd(&1)))]
+          [Enum.reduce(previous, type, &difference(&2, elem(&1, 1)))]
 
         [_ | _] ->
           previous
-          |> Enum.reduce(args_to_domain(types), &difference(&2, args_to_domain(&1)))
+          |> Enum.reduce(args_to_domain(types), &difference(&2, elem(&1, 1)))
           |> domain_to_flat_args(types)
       end
 
@@ -63,9 +59,9 @@ defmodule Module.Types.Pattern do
   end
 
   defp previous_to_string(previous) do
-    Enum.map_join(previous, "\n    ", fn types ->
+    Enum.map_join(previous, "\n    ", fn {types, _} ->
       types
-      |> Enum.map_join(", ", &to_quoted_string/1)
+      |> Enum.map_join(", ", &(&1 |> upper_bound() |> to_quoted_string()))
       |> indent(4)
     end)
   end
@@ -269,9 +265,7 @@ defmodule Module.Types.Pattern do
 
   defp trees_to_args_types(trees, stack, context) do
     Enum.map(trees, fn {tree, _, _} ->
-      tree
-      |> of_pattern_tree(stack, context)
-      |> upper_bound()
+      of_pattern_tree(tree, stack, context)
     end)
   end
 

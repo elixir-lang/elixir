@@ -251,6 +251,15 @@ defmodule Module.Types.Descr do
   def args_to_domain(types) when is_list(types), do: tuple(types)
 
   @doc """
+  Converts a list of arguments into a static domain.
+
+  If a dynamic type is given, we get its upper bound.
+  """
+  def args_to_static_domain(types) when is_list(types) do
+    %{tuple: tuple_new(:closed, Enum.map(types, &upper_bound/1))}
+  end
+
+  @doc """
   Converts the domain to a list of arguments.
 
   The domain is expected to be closed tuples. They may have complex negations
