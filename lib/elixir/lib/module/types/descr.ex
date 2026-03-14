@@ -2823,9 +2823,6 @@ defmodule Module.Types.Descr do
     {fields_from_reverse_list(fields), domain, dynamic?}
   end
 
-  defp tuple_tag_to_type(:open), do: term_or_optional()
-  defp tuple_tag_to_type(:closed), do: not_set()
-
   # Gets the default type associated to atom keys in a map.
   defp map_key_tag_to_type(:open), do: term_or_optional()
   defp map_key_tag_to_type(:closed), do: not_set()
@@ -5481,17 +5478,104 @@ defmodule Module.Types.Descr do
   defp tuple_fetch_static(descr, index) when is_integer(index) do
     case descr do
       :term -> {true, term()}
-      %{tuple: tuple} -> tuple_get(tuple, index) |> pop_optional_static()
+      %{tuple: bdd_leaf(tag, elements)} -> tuple_fetch_element(elements, index, tag)
+      %{tuple: bdd} -> tuple_bdd_fetch_static(bdd, index)
       %{} -> {false, none()}
     end
   end
 
-  defp tuple_get(bdd, index) do
-    tuple_bdd_to_dnf_no_negations(bdd)
-    |> Enum.reduce(none(), fn
-      {tag, elements}, acc -> Enum.at(elements, index, tuple_tag_to_type(tag)) |> union(acc)
+  defp tuple_bdd_fetch_static(bdd, index) do
+    bdd
+    |> tuple_bdd_to_dnf_with_negations()
+    |> Enum.reduce({false, none()}, fn
+      # Optimization: if there are no negatives
+      {tag, elements, []}, {acc_optional?, acc_descr} ->
+        {optional?, descr} = tuple_fetch_element(elements, index, tag)
+        {optional? or acc_optional?, union(descr, acc_descr)}
+
+      {tag, elements, negs}, acc ->
+        {_, value, bdd} = tuple_take_element(elements, index, tag)
+
+        negs
+        |> tuple_split_negative(index, value, bdd)
+        |> Enum.reduce(acc, fn {value, _}, {acc_optional?, acc_descr} ->
+          {optional?, descr} = pop_optional_static(value)
+          {optional? or acc_optional?, union(descr, acc_descr)}
+        end)
     end)
+  catch
+    :open -> {true, term()}
   end
+
+  # Remove negatives:
+  # {t, s} \ {t₁, s₁} = {t \ t₁, s} ∪ {t ∩ t₁, s \ s₁}
+  defp tuple_split_negative(negs, index, value, bdd) do
+    Enum.reduce(negs, [{value, bdd}], fn
+      {:open, []}, _acc ->
+        throw(:empty)
+
+      {neg_tag, neg_elements}, acc ->
+        {found?, neg_value, neg_bdd} = tuple_take_element(neg_elements, index, neg_tag)
+
+        if not found? and neg_tag == :open do
+          # In case the tuple is open, t \ t₁ is always empty,
+          # t ∩ t₁ is always t, so we just need to deal with the bdd.
+          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+            diff_bdd = tuple_difference(bdd, neg_bdd)
+
+            if tuple_empty?(diff_bdd) do
+              acc
+            else
+              [{value, diff_bdd} | acc]
+            end
+          end)
+        else
+          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+            # If the negative tag is closed, then they are likely disjoint,
+            # so we can drastically cut down the amount of operations.
+            if neg_tag == :closed and tuple_empty?(tuple_intersection(bdd, neg_bdd)) do
+              [{value, bdd} | acc]
+            else
+              intersection_value = intersection(value, neg_value)
+
+              if empty?(intersection_value) do
+                [{value, bdd} | acc]
+              else
+                diff_bdd = tuple_difference(bdd, neg_bdd)
+
+                if tuple_empty?(diff_bdd) do
+                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                else
+                  acc = [{intersection_value, diff_bdd} | acc]
+                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                end
+              end
+            end
+          end)
+        end
+    end)
+  catch
+    :empty -> []
+  end
+
+  defp tuple_fetch_element([], _, :open), do: {true, term()}
+  defp tuple_fetch_element([], _, :closed), do: {true, none()}
+  defp tuple_fetch_element([h | _], 0, _tag), do: {false, h}
+  defp tuple_fetch_element([_ | t], i, tag), do: tuple_fetch_element(t, i - 1, tag)
+
+  defp tuple_take_element(elements, index, tag) do
+    case do_tuple_take_element(elements, index, []) do
+      :error -> {false, tuple_tag_to_type(tag), tuple_new(tag, elements)}
+      {value, elements} -> {true, value, tuple_new(tag, elements)}
+    end
+  end
+
+  defp do_tuple_take_element([], _, _), do: :error
+  defp do_tuple_take_element([h | t], 0, acc), do: {h, Enum.reverse(acc, t)}
+  defp do_tuple_take_element([h | t], i, acc), do: do_tuple_take_element(t, i - 1, [h | acc])
+
+  defp tuple_tag_to_type(:open), do: term_or_optional()
+  defp tuple_tag_to_type(:closed), do: none()
 
   @doc """
   Returns all of the values that are part of a tuple.
