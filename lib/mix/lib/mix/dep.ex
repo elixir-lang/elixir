@@ -342,12 +342,14 @@ defmodule Mix.Dep do
     "the dependency compile environment is outdated, please run \"#{mix_env_var()}mix deps.compile\""
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, parent, other}} = dep) do
+    override = if parent, do: [parent], else: true
+
     "the dependency #{app} #{vsn}\n" <>
       dep_status(dep) <>
       "\n  does not match the requirement specified\n" <>
       dep_status(other) <>
-      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "\n  Ensure they match or specify one of the above in your deps and set \"override: #{inspect(override)}\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
@@ -378,14 +380,16 @@ defmodule Mix.Dep do
       dep_status(other) <> "\n  #{recommendation}"
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:diverged, parent, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}\n  " <> override_diverge_recommendation(dep, other)
+      "#{dep_status(dep)}#{dep_status(other)}\n  " <>
+      override_diverge_recommendation(dep, parent, other)
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:overridden, parent, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}\n  " <> override_diverge_recommendation(dep, other)
+      "#{dep_status(dep)}#{dep_status(other)}\n  " <>
+      override_diverge_recommendation(dep, parent, other)
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
@@ -404,11 +408,14 @@ defmodule Mix.Dep do
     "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
   end
 
-  defp override_diverge_recommendation(dep, other) do
+  defp override_diverge_recommendation(dep, parent, other) do
     if dep.opts[:from_umbrella] || other.opts[:from_umbrella] do
       "Please remove the conflicting options from your definition"
     else
-      "Ensure they match or specify one of the above in your deps and set \"override: true\""
+      override = if parent, do: [parent], else: true
+
+      "Ensure they match or specify one of the above in your deps " <>
+        "and set \"override: #{inspect(override)}\""
     end
   end
 
@@ -499,9 +506,9 @@ defmodule Mix.Dep do
   @doc """
   Checks if a dependency has diverged.
   """
-  def diverged?(%Mix.Dep{status: {:overridden, _}}), do: true
-  def diverged?(%Mix.Dep{status: {:diverged, _}}), do: true
-  def diverged?(%Mix.Dep{status: {:divergedreq, _, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:overridden, _, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:diverged, _, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:divergedreq, _, _, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedtargets, _}}), do: true
   def diverged?(%Mix.Dep{}), do: false
