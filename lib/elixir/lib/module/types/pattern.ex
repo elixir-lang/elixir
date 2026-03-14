@@ -34,11 +34,11 @@ defmodule Module.Types.Pattern do
   defp args_to_previous(types), do: args_to_static_domain(types)
 
   defp of_pattern_previous(types, [], _trees, _pattern_info, _tag, _stack, _context) do
-    {:ok, types}
+    {:ok, types, false}
   end
 
   defp of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context) do
-    types =
+    refined_types =
       case types do
         [type] ->
           [Enum.reduce(previous, type, &difference(&2, elem(&1, 1)))]
@@ -54,7 +54,10 @@ defmodule Module.Types.Pattern do
       context = badpattern_error(pattern, index, tag, stack, context)
       {:error, error_vars(pattern_info, context)}
     else
-      {:ok, types}
+      # check_previous? is an optimization. If types have not changed,
+      # it means args_types and previous are disjoint, and any further
+      # refinement will keep them disjoint, so no need to check for previous.
+      {:ok, refined_types, stack.mode != :infer and types != refined_types}
     end
   end
 
@@ -190,7 +193,7 @@ defmodule Module.Types.Pattern do
   def of_head(patterns, guards, expected, previous, tag, meta, stack, original) do
     stack = %{stack | meta: meta}
 
-    {trees, precise?, args_types, context} =
+    {trees, precise?, check_previous?, args_types, context} =
       of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
     if context.failed and stack.mode != :infer and not empty_previous?(previous) and
@@ -198,10 +201,10 @@ defmodule Module.Types.Pattern do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
-        {other_trees, _, _, %{failed: true} = other_context} ->
+        {other_trees, _, _, _, %{failed: true} = other_context} ->
           {other_trees, previous, other_context}
 
-        {other_trees, _, args_types, other_context} ->
+        {other_trees, _, _, args_types, other_context} ->
           if previous_subtype?(args_types, previous) do
             warning = {:redundant, tag, expected, args_types, previous, other_context}
             {other_trees, previous, warn(__MODULE__, warning, meta, stack, other_context)}
@@ -211,7 +214,7 @@ defmodule Module.Types.Pattern do
       end
     else
       cond do
-        stack.mode != :infer and previous_subtype?(args_types, previous) ->
+        check_previous? and previous_subtype?(args_types, previous) ->
           warning = {:redundant, tag, expected, args_types, previous, context}
           {trees, previous, warn(__MODULE__, warning, meta, stack, context)}
 
@@ -227,7 +230,7 @@ defmodule Module.Types.Pattern do
   defp of_precise_head([], guards, _expected, _previous, _tag, stack, context) do
     %{vars: vars} = context
     {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
-    {[], guard_precise?, [], of_changed(Map.keys(changed), stack, context)}
+    {[], guard_precise?, false, [], of_changed(Map.keys(changed), stack, context)}
   end
 
   defp of_precise_head(patterns, guards, expected, previous, tag, stack, context) do
@@ -251,15 +254,15 @@ defmodule Module.Types.Pattern do
             else
               _ -> nil
             end),
-         {:ok, types} <-
+         {:ok, types, check_previous?} <-
            of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context),
          {:ok, _types, context} <-
            of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
-      {trees, pattern_precise? and guard_precise?,
+      {trees, pattern_precise? and guard_precise?, check_previous?,
        args_types || trees_to_args_types(trees, stack, context), context}
     else
       {:error, context} ->
-        {trees, false, trees_to_args_types(trees, stack, context), context}
+        {trees, false, false, trees_to_args_types(trees, stack, context), context}
     end
   end
 
