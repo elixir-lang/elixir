@@ -1280,7 +1280,7 @@ defmodule Mix.DepTest do
       end)
 
       message = "Dependency ok 0.1.0 (deps/ok) no longer requires :override on :deps_repo"
-      assert_received {:mix_shell, :info, [^message]}
+      assert_received {:mix_shell, :error, [^message]}
     end
 
     test "warns when overrides are no longer needed" do
@@ -1298,7 +1298,7 @@ defmodule Mix.DepTest do
       message =
         "Dependency git_repo (#{fixture_path("git_repo")}) no longer requires :override on :deps_repo"
 
-      assert_received {:mix_shell, :info, [^message]}
+      assert_received {:mix_shell, :error, [^message]}
     end
 
     test "targets divergence when app is not overridden" do

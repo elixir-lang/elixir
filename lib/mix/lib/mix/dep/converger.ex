@@ -381,7 +381,7 @@ defmodule Mix.Dep.Converger do
   end
 
   defp warn_uneeded_override(dep, parent) do
-    Mix.shell().info(
+    Mix.shell().error(
       "Dependency #{Mix.Dep.format_dep(dep)} no longer requires :override on #{inspect(parent)}"
     )
   end
