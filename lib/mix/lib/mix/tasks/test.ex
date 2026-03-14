@@ -724,7 +724,7 @@ defmodule Mix.Tasks.Test do
           failures > 0 and opts[:raise] ->
             raise_with_shell(shell, "\"mix test\" failed")
 
-          warnings_as_errors? and warnings? and failures > 0 ->
+          warnings_as_errors? and (warnings? or warn_files != []) and failures > 0 ->
             System.at_exit(fn _ ->
               exit({:shutdown, exit_status + 1})
             end)
@@ -746,6 +746,16 @@ defmodule Mix.Tasks.Test do
 
       {:noop, _} ->
         cond do
+          warnings_as_errors? and warn_files != [] ->
+            message =
+              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+            IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+            System.at_exit(fn _ ->
+              exit({:shutdown, 1})
+            end)
+
           opts[:stale] ->
             Mix.shell().info("No stale tests")
 
