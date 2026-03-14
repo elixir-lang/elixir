@@ -319,6 +319,18 @@ defmodule Module.Types.Apply do
       do: unquote(Macro.escape(domain_clauses))
   end
 
+  def signature(:erlang, :is_integer, 3),
+    do:
+      unquote(
+        Macro.escape(
+          {:strong, [term(), integer(), integer()],
+           [
+             {[integer(), integer(), integer()], atom([true])},
+             {[negation(integer()), integer(), integer()], atom([false])}
+           ]}
+        )
+      )
+
   def signature(_mod, _fun, _arity), do: :none
 
   @doc """
