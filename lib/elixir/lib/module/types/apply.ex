@@ -325,7 +325,7 @@ defmodule Module.Types.Apply do
         Macro.escape(
           {:strong, [term(), integer(), integer()],
            [
-             {[integer(), integer(), integer()], atom([true])},
+             {[integer(), integer(), integer()], boolean()},
              {[negation(integer()), integer(), integer()], atom([false])}
            ]}
         )
