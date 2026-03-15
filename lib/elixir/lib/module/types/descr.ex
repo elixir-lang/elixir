@@ -5909,16 +5909,18 @@ defmodule Module.Types.Descr do
       :none when a1 < bdd2 ->
         {a1, bdd_difference(c1, bdd2, leaf_compare), bdd_difference(u1, bdd2, leaf_compare),
          bdd_difference(d1, bdd2, leaf_compare)}
-        |> case do
-          {_, :bdd_bot, u, :bdd_bot} -> u
-          other -> other
-        end
 
       :none when bdd2 < a1 ->
         {bdd2, :bdd_bot, :bdd_bot, bdd1}
 
       :none ->
+        # There is no point in traversing down if they are equal,
+        # as we can assume this check already happened when building bdd1
         {bdd2, :bdd_bot, :bdd_bot, bdd_union(u1, d1)}
+    end
+    |> case do
+      {_, :bdd_bot, u, :bdd_bot} -> u
+      other -> other
     end
   end
 
@@ -5953,16 +5955,18 @@ defmodule Module.Types.Descr do
       :none when a2 < bdd1 ->
         {a2, bdd_difference(bdd1, bdd_union(c2, u2), leaf_compare), :bdd_bot,
          bdd_difference(bdd1, bdd_union(d2, u2), leaf_compare)}
-        |> case do
-          {_, :bdd_bot, u, :bdd_bot} -> u
-          other -> other
-        end
 
       :none when bdd1 < a2 ->
         {bdd1, bdd_negation(bdd2), :bdd_bot, :bdd_bot}
 
       :none ->
-        bdd1 |> bdd_difference(c2, leaf_compare) |> bdd_difference(u2, leaf_compare)
+        # There is no point in traversing down if they are equal,
+        # as we can assume this check already happened when building bdd2
+        {bdd1, bdd_negation(bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
+    end
+    |> case do
+      {_, :bdd_bot, u, :bdd_bot} -> u
+      other -> other
     end
   end
 
