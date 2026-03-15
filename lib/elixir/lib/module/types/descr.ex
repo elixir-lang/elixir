@@ -5830,7 +5830,7 @@ defmodule Module.Types.Descr do
 
           {:eq, {lit, c1, u1, d1}, {_, c2, u2, d2}} ->
             # The formula is:
-            # {a1, (C1 or U1) and not (C2 or U2), :bottom, (D1 or U1) and not (D2 or U2)} when a1 == a2
+            # {a1, (C1 or U1) and not (C2 or U2), :bdd_bot, (D1 or U1) and not (D2 or U2)} when a1 == a2
             #
             # Constrained: (C1 and not C2 and not U2) or (U1 and not C2 and not U2)
             # Dual: (D1 and not D2 and not U2) or (U1 and not D2 and not U2)
@@ -5914,8 +5914,11 @@ defmodule Module.Types.Descr do
           other -> other
         end
 
+      :none when bdd2 < a1 ->
+        {bdd2, :bdd_bot, :bdd_bot, bdd1}
+
       :none ->
-        bdd_difference(bdd1, bdd2)
+        {bdd2, :bdd_bot, :bdd_bot, bdd_union(u1, d1)}
     end
   end
 
@@ -5955,8 +5958,11 @@ defmodule Module.Types.Descr do
           other -> other
         end
 
+      :none when bdd1 < a2 ->
+        {bdd1, bdd_negation(bdd2), :bdd_bot, :bdd_bot}
+
       :none ->
-        bdd_difference(bdd1, bdd2)
+        bdd1 |> bdd_difference(c2, leaf_compare) |> bdd_difference(u2, leaf_compare)
     end
   end
 
@@ -5990,7 +5996,7 @@ defmodule Module.Types.Descr do
 
           # Notice that (a, c1, u1, d1) and (a, c2, u2, d2) is described as:
           #
-          #     {a, (C1 or U1) and (C2 or U2), :bottom, (D1 or U1) and (D2 or U2)}
+          #     {a, (C1 or U1) and (C2 or U2), :bdd_bot, (D1 or U1) and (D2 or U2)}
           #
           # However, if we distribute the intersection over the unions, we find a
           # common term, U1 and U2, leading to:
