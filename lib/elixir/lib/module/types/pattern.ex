@@ -31,27 +31,21 @@ defmodule Module.Types.Pattern do
   defp args_to_previous([type]), do: upper_bound(type)
   defp args_to_previous(types), do: args_to_static_domain(types)
 
-  defp of_pattern_previous(types, {[], _}, _trees, _pattern_info, _tag, _stack, _context) do
-    {:ok, types, false}
+  defp of_pattern_previous(types, {[], _}, _stack) do
+    {types, false}
   end
 
-  defp of_pattern_previous(types, {_, descr}, trees, pattern_info, tag, stack, context) do
+  defp of_pattern_previous(types, {_, descr}, stack) do
     refined_types =
       case types do
         [type] -> [difference(type, descr)]
         [_ | _] -> args_to_domain(types) |> difference(descr) |> domain_to_flat_args(types)
       end
 
-    if index = Enum.find_index(types, &empty?/1) do
-      {_, _, pattern} = Enum.fetch!(trees, index)
-      context = badpattern_error(pattern, index, tag, stack, context)
-      {:error, error_vars(pattern_info, context)}
-    else
-      # check_previous? is an optimization. If types have not changed,
-      # it means args_types and previous are disjoint, and any further
-      # refinement will keep them disjoint, so no need to check for previous.
-      {:ok, refined_types, stack.mode != :infer and types != refined_types}
-    end
+    # check_previous? is an optimization. If types have not changed,
+    # it means args_types and previous are disjoint, and any further
+    # refinement will keep them disjoint, so no need to check for previous.
+    {refined_types, stack.mode != :infer and types != refined_types}
   end
 
   defp previous_to_string({list, _}) do
@@ -247,8 +241,7 @@ defmodule Module.Types.Pattern do
             else
               _ -> nil
             end),
-         {:ok, types, check_previous?} <-
-           of_pattern_previous(types, previous, trees, pattern_info, tag, stack, context),
+         {types, check_previous?} = of_pattern_previous(types, previous, stack),
          {:ok, _types, context} <-
            of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
       {trees, pattern_precise? and guard_precise?, check_previous?,
