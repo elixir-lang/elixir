@@ -3080,7 +3080,17 @@ defmodule Module.Types.Descr do
   defp map_difference(_, bdd_leaf(:open, [])),
     do: :bdd_bot
 
-  defp map_difference(bdd_leaf(tag, fields) = map1, bdd_leaf(:open, [{key, v2}])) do
+  defp map_difference(bdd1, bdd2),
+    do: bdd_difference(bdd1, bdd2, &map_leaf_difference/3)
+
+  # We only apply this particular optimization when comparing leafs (type == :none).
+  # Applying it in other scenarios lead to slow compilation, likely because the
+  # introduction of `a_int` and `a_union` lead to additional nodes and large rehashes
+  # of the tree.
+  #
+  # Outside of this particular scenario, the `a_int` optimization has been useful,
+  # but we haven't measured benefits for `a_union`.
+  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), :none) do
     {found?, v1} =
       case fields_find(key, fields) do
         {:ok, value} -> {true, value}
@@ -3088,20 +3098,11 @@ defmodule Module.Types.Descr do
       end
 
     if tag == :closed and not found? and not is_optional_static(v2) do
-      map1
+      :disjoint
     else
-      v_diff = difference(v1, v2)
-
-      if empty?(v_diff) do
-        :bdd_bot
-      else
-        bdd_leaf(tag, fields_store(key, v_diff, fields))
-      end
+      map_leaf_one_key_difference(tag, fields, key, v1, v2, :none)
     end
   end
-
-  defp map_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &map_leaf_difference/3)
 
   defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields), type) do
     case map_difference_strategy(fields, neg_fields, tag, neg_tag) do
@@ -5884,17 +5885,6 @@ defmodule Module.Types.Descr do
 
   ## Optimize differences
 
-  defp bdd_difference(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, leaf_compare) do
-    case leaf_compare.(bdd1, bdd2, :none) do
-      :disjoint -> bdd1
-      {:one_key_difference, a_diff, _a_none} -> a_diff
-      :subtype -> :bdd_bot
-      :none when bdd2 < bdd1 -> {bdd2, :bdd_bot, :bdd_bot, bdd1}
-      :none when bdd1 < bdd2 -> {bdd1, bdd_negation(bdd2), :bdd_bot, :bdd_bot}
-      :none -> :bdd_bot
-    end
-  end
-
   # For the right-side being a leaf, we have:
   #
   #     ((a1 and C1) or U1 or (not a1 and D1)) and not a2
@@ -5933,21 +5923,8 @@ defmodule Module.Types.Descr do
       :subtype ->
         bdd_union(bdd_difference(u1, bdd2, leaf_compare), bdd_difference(d1, bdd2, leaf_compare))
 
-      :none when a1 < bdd2 ->
-        {a1, bdd_difference(c1, bdd2, leaf_compare), bdd_difference(u1, bdd2, leaf_compare),
-         bdd_difference(d1, bdd2, leaf_compare)}
-
-      :none when bdd2 < a1 ->
-        {bdd2, :bdd_bot, :bdd_bot, bdd1}
-
       :none ->
-        # There is no point in traversing down if they are equal,
-        # as we can assume this check already happened when building bdd1
-        {bdd2, :bdd_bot, :bdd_bot, bdd_union(u1, d1)}
-    end
-    |> case do
-      {_, :bdd_bot, u, :bdd_bot} -> u
-      other -> other
+        bdd_difference(bdd1, bdd2)
     end
   end
 
@@ -5993,8 +5970,9 @@ defmodule Module.Types.Descr do
   #
   defp bdd_difference(bdd_leaf(_, _) = bdd1, bdd2, leaf_compare) when is_tuple(bdd2) do
     {a2, c2, u2, d2} = bdd_expand(bdd2)
+    type = if c2 == :bdd_top, do: :none, else: :intersection
 
-    case leaf_compare.(bdd1, a2, :intersection) do
+    case leaf_compare.(bdd1, a2, type) do
       :disjoint ->
         bdd1 |> bdd_difference(d2, leaf_compare) |> bdd_difference(u2, leaf_compare)
 
@@ -6007,21 +5985,8 @@ defmodule Module.Types.Descr do
       :subtype ->
         bdd1 |> bdd_difference(c2, leaf_compare) |> bdd_difference(u2, leaf_compare)
 
-      :none when a2 < bdd1 ->
-        {a2, bdd_difference(bdd1, bdd_union(c2, u2), leaf_compare), :bdd_bot,
-         bdd_difference(bdd1, bdd_union(d2, u2), leaf_compare)}
-
-      :none when bdd1 < a2 ->
-        {bdd1, bdd_negation(bdd2), :bdd_bot, :bdd_bot}
-
       :none ->
-        # There is no point in traversing down if they are equal,
-        # as we can assume this check already happened when building bdd2
-        {bdd1, bdd_negation(bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
-    end
-    |> case do
-      {_, :bdd_bot, u, :bdd_bot} -> u
-      other -> other
+        bdd_difference(bdd1, bdd2)
     end
   end
 
