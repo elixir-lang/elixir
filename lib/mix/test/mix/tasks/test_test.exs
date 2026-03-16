@@ -594,7 +594,7 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
-    test "fail with exit status 1 if only misnamed test files with --warnings-as-errors (no tests to run)" do
+    test "fail with exit status 1 if misnamed test files with --warnings-as-errors (no tests to run)" do
       in_tmp("test_warn_as_errors_noop", fn ->
         File.write!("mix.exs", """
         defmodule TestWarnAsErrorsNoop.MixProject do
