@@ -851,8 +851,9 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:erlang, :hd, _info, [list], stack) do
+  defp remote_apply(:erlang, :hd, info, [list], stack) do
     case list_hd(list) do
+      {:ok, :term} -> remote_apply(info, [list], stack)
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
       :badnonemptylist -> {:error, badremote(:erlang, :hd, [list])}
     end
@@ -866,8 +867,9 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(:erlang, :tl, _info, [list], stack) do
+  defp remote_apply(:erlang, :tl, info, [list], stack) do
     case list_tl(list) do
+      {:ok, :term} -> remote_apply(info, [list], stack)
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
       :badnonemptylist -> {:error, badremote(:erlang, :tl, [list])}
     end

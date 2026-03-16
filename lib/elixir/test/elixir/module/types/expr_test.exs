@@ -78,6 +78,8 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
       assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())
 
+      assert typecheck!([x], is_list(x) and is_map(hd(x)), hd(x)) == dynamic()
+
       assert typeerror!(hd([])) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.hd/1:
