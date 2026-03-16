@@ -5891,11 +5891,11 @@ defmodule Module.Types.Descr do
   #
   # If disjoint?(a1, a2), we end up with:
   #
-  #     (a1 and C1) or (U1 and not d2) or (not a1 and D1 and not a2)
+  #     (a1 and C1) or (U1 and not a2) or (not a1 and D1 and not a2)
   #
   # If subtype?(a1, a2), we end up with:
   #
-  #     (U1 and not d2) or (D1 and not a2)
+  #     (U1 and not a2) or (D1 and not a2)
   #
   # If one key difference, then we compute the difference
   # and the union of said keys, returning a_union and a_diff:
@@ -5948,7 +5948,7 @@ defmodule Module.Types.Descr do
   # Result: a1 and not C2 and not U2
   #
   # If one key difference, then we compute the difference
-  # and the intersection of said keys, returning a_union and a_diff:
+  # and the intersection of said keys, returning a_int and a_diff:
   #
   #     a1 and not (a2 and C2) and not U2 and (a2 or not D2)
   #     ((a1 and not a2) or (a1 and not C2)) and not U2 and (a2 or not D2)
