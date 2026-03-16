@@ -594,6 +594,39 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "fail with exit status 1 if misnamed test files with --warnings-as-errors (no tests to run)" do
+      in_tmp("test_warn_as_errors_noop", fn ->
+        File.write!("mix.exs", """
+        defmodule TestWarnAsErrorsNoop.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :test_warn_as_errors_noop,
+              version: "0.0.1",
+              test_load_filters: [~r/.*_tests\.exs/]
+            ]
+          end
+        end
+        """)
+
+        File.mkdir!("test")
+        File.write!("test/test_helper.exs", "ExUnit.start()")
+
+        File.touch!("test/a_missing.exs")
+
+        msg =
+          "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+        {output, exit_status} = mix_code(["test", "--warnings-as-errors"])
+
+        assert output =~ "the following files do not match"
+        assert output =~ "test/a_missing.exs"
+        assert output =~ msg
+        assert exit_status == 1
+      end)
+    end
+
     test "fail with exit status 1 if warning in test_helper.exs" do
       in_fixture("test_stale", fn ->
         File.write!("test/test_helper.exs", """
