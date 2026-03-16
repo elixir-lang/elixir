@@ -2401,21 +2401,27 @@ defmodule Module.Types.DescrTest do
       # Putting dynamic atom over record keys
       assert map_update(closed_map(key1: binary(), key2: pid()), atom(), integer()) ==
                {union(binary(), pid()),
-                closed_map(key1: union(integer(), binary()), key2: union(integer(), pid())),
-                [baddomain: atom()]}
+                union(
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map(key1: union(integer(), binary()), key2: pid())
+                ), [baddomain: atom()]}
 
       # ... unless forcing
       assert map_update(closed_map(key1: binary(), key2: pid()), atom(), integer(), true, true) ==
                {union(binary(), pid()),
-                closed_map([
-                  {:key1, union(integer(), binary())},
-                  {:key2, union(integer(), pid())},
-                  {domain_key(:atom), integer()}
-                ]), [baddomain: atom()]}
+                [
+                  closed_map([{domain_key(:atom), integer()}, key1: binary(), key2: pid()]),
+                  closed_map(key1: integer(), key2: pid()),
+                  closed_map(key1: binary(), key2: integer())
+                ]
+                |> Enum.reduce(&union/2), [baddomain: atom()]}
 
       assert map_update(closed_map(key1: binary(), key2: pid()), dynamic(atom()), integer()) ==
                {union(binary(), pid()),
-                closed_map(key1: union(integer(), binary()), key2: union(integer(), pid())), []}
+                union(
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map(key1: union(integer(), binary()), key2: pid())
+                ), []}
 
       # A "none()" map
       assert open_map()
@@ -2464,9 +2470,13 @@ defmodule Module.Types.DescrTest do
                integer()
              ) ==
                {union(binary(), pid()),
-                closed_map(
-                  [key1: binary(), key2: union(integer(), binary())] ++
-                    [{domain_key(:atom), union(integer(), pid())}]
+                union(
+                  closed_map([{domain_key(:atom), pid()}, key1: binary(), key2: integer()]),
+                  closed_map([
+                    {domain_key(:atom), union(pid(), integer())},
+                    key1: binary(),
+                    key2: binary()
+                  ])
                 ), []}
 
       # Missing keys
@@ -2497,6 +2507,12 @@ defmodule Module.Types.DescrTest do
                     {domain_key(:integer), binary()}
                   ])
                 ), []}
+
+      # Popping dynamic keys
+      non_struct_map = difference(open_map(), open_map(__struct__: atom()))
+      {type, descr, []} = map_update(non_struct_map, dynamic(), not_set(), true, true)
+      assert type == term()
+      assert equal?(descr, open_map(__struct__: if_set(negation(atom()))))
     end
   end
 
@@ -2639,10 +2655,12 @@ defmodule Module.Types.DescrTest do
       # Putting dynamic atom over record keys
       assert map_put(closed_map(key1: binary(), key2: binary()), atom(), integer()) ==
                {:ok,
-                closed_map(
-                  [key1: union(integer(), binary()), key2: union(integer(), binary())] ++
-                    [{domain_key(:atom), integer()}]
-                )}
+                [
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map(key1: integer(), key2: binary()),
+                  closed_map([{domain_key(:atom), integer()}, key1: binary(), key2: binary()])
+                ]
+                |> Enum.reduce(&union/2)}
     end
 
     test "with mixed keys" do
@@ -2687,9 +2705,9 @@ defmodule Module.Types.DescrTest do
                integer()
              ) ==
                {:ok,
-                closed_map(
-                  [key1: binary(), key2: union(binary(), integer())] ++
-                    [{domain_key(:atom), integer()}]
+                union(
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map([{domain_key(:atom), integer()}, key1: binary(), key2: binary()])
                 )}
 
       assert map_put(
@@ -2698,9 +2716,13 @@ defmodule Module.Types.DescrTest do
                integer()
              ) ==
                {:ok,
-                closed_map(
-                  [key1: binary(), key2: union(integer(), binary())] ++
-                    [{domain_key(:atom), union(integer(), pid())}]
+                union(
+                  closed_map([{domain_key(:atom), pid()}, key1: binary(), key2: integer()]),
+                  closed_map([
+                    {domain_key(:atom), union(integer(), pid())},
+                    key1: binary(),
+                    key2: binary()
+                  ])
                 )}
     end
   end
@@ -3090,7 +3112,7 @@ defmodule Module.Types.DescrTest do
                "%{..., Foo.Bar => float()}"
 
       assert difference(open_map(), open_map(a: term())) |> to_quoted_string() ==
-               "%{..., a: not_set()}"
+               "map() and not %{..., a: term()}"
 
       assert closed_map(a: integer(), b: atom()) |> to_quoted_string() ==
                "%{a: integer(), b: atom()}"

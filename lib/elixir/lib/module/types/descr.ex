@@ -839,6 +839,9 @@ defmodule Module.Types.Descr do
   defp print_as_negated_bdd(bdd_leaf(_, _), _top), do: 0
   defp print_as_negated_bdd(bdd, top), do: if(negated_bdd?(bdd, top), do: 1, else: -100)
 
+  defp negated_bdd?({top, bdd, :bdd_bot, :bdd_bot}, top),
+    do: negated_bdd?(bdd, top)
+
   defp negated_bdd?({_, :bdd_bot, :bdd_bot, bdd}, top),
     do: bdd in [:bdd_top, top] or negated_bdd?(bdd, top)
 
@@ -3090,17 +3093,24 @@ defmodule Module.Types.Descr do
   #
   # Outside of this particular scenario, the `a_int` optimization has been useful,
   # but we haven't measured benefits for `a_union`.
-  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), :none) do
+  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
     {found?, v1} =
       case fields_find(key, fields) do
         {:ok, value} -> {true, value}
         :error -> {false, map_key_tag_to_type(tag)}
       end
 
-    if tag == :closed and not found? and not is_optional_static(v2) do
-      :disjoint
-    else
-      map_leaf_one_key_difference(tag, fields, key, v1, v2, :none)
+    cond do
+      tag == :closed and not found? and not is_optional_static(v2) ->
+        :disjoint
+
+      tag == :open and not found? ->
+        # In case the left-side is open, we will only be adding new keys
+        # to the open map, which makes future eliminations harder.
+        :none
+
+      true ->
+        map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
     end
   end
 
@@ -3709,8 +3719,11 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
+    optional_keys =
+      ((map_keys_from_negated_set(maybe_negated_set, bdd) -- optional_keys) -- required_keys) ++
+        optional_keys
+
     dnf = map_bdd_to_dnf_with_empty(bdd)
-    bdd = map_update_put_negated(bdd, maybe_negated_set, type_fun)
 
     {found?, value, domains, errors} =
       if force? and not return_type? do
@@ -3872,29 +3885,6 @@ defmodule Module.Types.Descr do
     else
       {value, %{map: bdd}}
     end
-  end
-
-  # For keys with `not :foo`, we generate an approximation
-  # by adding the type to all keys, except `:foo`.
-  defp map_update_put_negated(bdd, nil, _type_fun), do: bdd
-
-  defp map_update_put_negated(bdd, negated, type_fun) do
-    bdd_map(bdd, fn {tag, fields} ->
-      fields =
-        fields_map(
-          fn key, value ->
-            if :sets.is_element(key, negated) do
-              value
-            else
-              {optional?, call_value} = pop_optional_static(value)
-              union(value, type_fun.(optional?, call_value))
-            end
-          end,
-          fields
-        )
-
-      {tag, fields}
-    end)
   end
 
   defp map_update_merge_atom_key(bdd, dnf) do
@@ -4079,8 +4069,11 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
+    optional_keys =
+      ((map_keys_from_negated_set(maybe_negated_set, bdd) -- optional_keys) -- required_keys) ++
+        optional_keys
+
     type_fun = fn _, _ -> type end
-    bdd = map_update_put_negated(bdd, maybe_negated_set, type_fun)
 
     descr =
       case required_domains ++ optional_domains do
@@ -4171,7 +4164,7 @@ defmodule Module.Types.Descr do
     acc = none()
     acc = map_get_keys(dnf, required_keys, acc)
     acc = map_get_keys(dnf, optional_keys, acc)
-    acc = map_get_keys(dnf, map_materialize_negated_set(maybe_negated_set, bdd), acc)
+    acc = map_get_keys(dnf, map_keys_from_negated_set(maybe_negated_set, bdd), acc)
     acc = Enum.reduce(required_domains, acc, &map_get_domain_no_optional(dnf, &1, &2))
     acc = Enum.reduce(optional_domains, acc, &map_get_domain_no_optional(dnf, &1, &2))
     remove_optional(acc)
@@ -4206,9 +4199,9 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp map_materialize_negated_set(nil, _bdd), do: []
+  defp map_keys_from_negated_set(nil, _bdd), do: []
 
-  defp map_materialize_negated_set(set, bdd) do
+  defp map_keys_from_negated_set(set, bdd) do
     bdd
     |> bdd_reduce(%{}, fn {_, fields}, acc ->
       fields_fold(fields, acc, fn atom, _, acc ->
@@ -5901,7 +5894,7 @@ defmodule Module.Types.Descr do
   # and the union of said keys, returning a_union and a_diff:
   #
   #     ((a1 and C1) or U1 or (not a1 and D1)) and not a2
-  #     (a_diff and C1) or (U1 and not a2) or (not a1 and not a2 and D1)
+  #     (a_diff and C1) or (U1 and not a2) or (not a_union and D1)
   #
   defp bdd_difference({a1, c1, u1, d1} = bdd1, bdd_leaf(_, _) = bdd2, leaf_compare)
        when is_tuple(bdd2) do
