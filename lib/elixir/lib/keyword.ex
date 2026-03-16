@@ -119,14 +119,23 @@ defmodule Keyword do
 
       iex> Keyword.from_keys([:foo, :bar, :baz], :atom)
       [foo: :atom, bar: :atom, baz: :atom]
+
       iex> Keyword.from_keys([], :atom)
       []
 
+      iex> Keyword.from_keys(["foo"], :bar)
+      ** (ArgumentError) expected a list of atoms as keys, got: "foo"
   """
   @doc since: "1.14.0"
   @spec from_keys([key], value) :: t(value)
   def from_keys(keys, value) when is_list(keys) do
-    :lists.map(&{&1, value}, keys)
+    :lists.map(
+      fn
+        key when is_atom(key) -> {key, value}
+        other -> raise ArgumentError, "expected a list of atoms as keys, got: #{inspect(other)}"
+      end,
+      keys
+    )
   end
 
   @doc """
