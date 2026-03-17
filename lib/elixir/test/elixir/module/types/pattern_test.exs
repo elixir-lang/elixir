@@ -642,6 +642,31 @@ defmodule Module.Types.PatternTest do
              """
     end
 
+    test "hd/tl" do
+      assert typecheck!([x], is_list(x) and is_map(hd(x)) and is_map_key(hd(x), :tag), x) ==
+               dynamic(non_empty_list(term(), term()))
+
+      assert typeerror!([x], is_list(x) and is_map(hd(x)) and is_binary(hd(x)), x) =~ ~l"""
+             this guard will never succeed:
+
+                 is_list(x) and is_map(hd(x)) and is_binary(hd(x))
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the types:
+
+                 # type: empty_list() or non_empty_list(term(), term())
+                 # from: types_test.ex:649
+                 is_list(x)
+
+                 # type: non_empty_list(term(), term())
+                 # from: types_test.ex:649
+                 hd(x)
+             """
+    end
+
     test "is_struct/1" do
       assert typecheck!([x], is_struct(x), x) == dynamic(open_map(__struct__: atom()))
       assert typecheck!([x], is_struct(x, URI), x) == dynamic(open_map(__struct__: atom([URI])))

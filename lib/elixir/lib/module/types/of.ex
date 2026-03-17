@@ -48,7 +48,7 @@ defmodule Module.Types.Of do
   @doc """
   Declares a variable.
   """
-  def declare_var(var, context) do
+  def declare_var(var, type \\ term(), context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -58,7 +58,7 @@ defmodule Module.Types.Of do
 
       vars ->
         data = %{
-          type: term(),
+          type: type,
           name: var_name,
           context: var_context,
           off_traces: [],
