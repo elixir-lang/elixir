@@ -5834,23 +5834,23 @@ defmodule Module.Types.Descr do
             # Dual: (D1 and not D2 and not U2) or (U1 and not D2 and not U2)
             #
             # We can optimize the cases below.
-            cond do
-              c2 == :bdd_bot and d2 == :bdd_bot ->
-                # Constrained = (C1 and not U2) or (U1 and not U2)
-                # Dual = (D1 and not U2) or (U1 and not U2)
-                # Hence:
-                {lit, bdd_difference(c1, u2), bdd_difference(u1, u2), bdd_difference(d1, u2)}
+            if u1 == :bdd_bot or u1 == u2 do
+              # Constrained = (C1 and not C2 and not U2)
+              # Dual = (D1 and not D2 and not U2)
+              # Hence:
+              {lit, bdd_difference_union(c1, c2, u2), :bdd_bot, bdd_difference_union(d1, d2, u2)}
+            else
+              c =
+                if c2 == :bdd_top,
+                  do: :bdd_bot,
+                  else: bdd_difference(bdd_union(c1, u1), bdd_union(c2, u2))
 
-              u1 == :bdd_bot or u1 == u2 ->
-                # Constrained = (C1 and not C2 and not U2)
-                # Dual = (D1 and not D2 and not U2)
-                # Hence:
-                {lit, bdd_difference_union(c1, c2, u2), :bdd_bot,
-                 bdd_difference_union(d1, d2, u2)}
+              d =
+                if d2 == :bdd_top,
+                  do: :bdd_bot,
+                  else: bdd_difference(bdd_union(d1, u1), bdd_union(d2, u2))
 
-              true ->
-                {lit, bdd_difference(bdd_union(c1, u1), bdd_union(c2, u2)), :bdd_bot,
-                 bdd_difference(bdd_union(d1, u1), bdd_union(d2, u2))}
+              {lit, c, :bdd_bot, d}
             end
 
           {:eq, _, {lit, c2, u2, _d2}} ->
