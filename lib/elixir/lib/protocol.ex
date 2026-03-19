@@ -818,11 +818,9 @@ defmodule Protocol do
         @fallback_to_any false
         @undefined_impl_description ""
 
-        # Invoke the user given block
-        _ = unquote(block)
-
-        # Finalize expansion
+        res = unquote(block)
         unquote(after_defprotocol())
+        res
       end
     end
   end
@@ -932,7 +930,7 @@ defmodule Protocol do
       quote bind_quoted: [built_in: built_in()] do
         any_impl_for =
           if @fallback_to_any do
-            __MODULE__.Any
+            Protocol.__concat__(__MODULE__, "Any")
           else
             nil
           end
@@ -1225,10 +1223,12 @@ defmodule Protocol do
   end
 
   @doc false
-  def __concat__(left, right) do
-    String.to_atom(
-      ensure_prefix(Atom.to_string(left)) <> "." <> remove_prefix(Atom.to_string(right))
-    )
+  def __concat__(left, right) when is_atom(right) do
+    __concat__(left, remove_prefix(Atom.to_string(right)))
+  end
+
+  def __concat__(left, right) when is_binary(right) do
+    String.to_atom(ensure_prefix(Atom.to_string(left)) <> "." <> right)
   end
 
   defp ensure_prefix("Elixir." <> _ = left), do: left
