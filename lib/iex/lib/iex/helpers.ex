@@ -1050,7 +1050,7 @@ defmodule IEx.Helpers do
   This is a convenience function to stop the Erlang VM gracefully.
   It is equivalent to calling `System.stop(0)`.
   """
-  @doc since: "1.19.0"
+  @doc since: "1.20.0"
   def exit do
     System.stop(0)
     dont_display_result()
