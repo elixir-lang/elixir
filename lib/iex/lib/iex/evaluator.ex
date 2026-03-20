@@ -56,12 +56,13 @@ defmodule IEx.Evaluator do
   end
 
   @break_trigger ~c"#iex:break\n"
+  @exit_trigger ~c"#iex:exit\n"
 
   @op_tokens [:or_op, :and_op, :comp_op, :rel_op, :arrow_op, :in_op] ++
                [:three_op, :concat_op, :mult_op]
 
   @doc """
-  Default parsing implementation with support for pipes and #iex:break.
+  Default parsing implementation with support for pipes, #iex:break, and #iex:exit.
 
   If parsing fails, this might be a TokenMissingError which we treat in
   a special way (to allow for continuation of an expression on the next
@@ -77,55 +78,61 @@ defmodule IEx.Evaluator do
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
 
-    if List.ends_with?(input, @break_trigger) do
-      triplet = {~c"", line, column, 0}
-      :elixir_errors.parse_error([line: line], file, "incomplete expression", "", triplet)
-    else
-      result =
-        with {:ok, tokens, warnings1} <- :elixir.string_to_tokens(input, line, column, file, opts),
-             {:ok, adjusted_tokens, adjusted_op} <-
-               adjust_operator(tokens, line, column, file, opts, last_op),
-             {:ok, forms, warnings2} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
-          last_op =
-            case forms do
-              {:=, _, [_, _]} -> :match
-              _ -> :other
-            end
+    cond do
+      List.ends_with?(input, @exit_trigger) ->
+        throw({:iex_exit, 0})
 
-          forms =
-            if adjusted_op != nil do
-              quote do
-                IEx.Evaluator.assert_no_error!()
-                unquote(forms)
+      List.ends_with?(input, @break_trigger) ->
+        triplet = {~c"", line, column, 0}
+        :elixir_errors.parse_error([line: line], file, "incomplete expression", "", triplet)
+
+      true ->
+        result =
+          with {:ok, tokens, warnings1} <-
+                 :elixir.string_to_tokens(input, line, column, file, opts),
+               {:ok, adjusted_tokens, adjusted_op} <-
+                 adjust_operator(tokens, line, column, file, opts, last_op),
+               {:ok, forms, warnings2} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
+            last_op =
+              case forms do
+                {:=, _, [_, _]} -> :match
+                _ -> :other
               end
-            else
+
+            forms =
+              if adjusted_op != nil do
+                quote do
+                  IEx.Evaluator.assert_no_error!()
+                  unquote(forms)
+                end
+              else
+                forms
+              end
+
+            callback = fn ->
+              :elixir.emit_warnings(warnings1 ++ warnings2, file, opts)
               forms
             end
 
-          callback = fn ->
-            :elixir.emit_warnings(warnings1 ++ warnings2, file, opts)
-            forms
+            {:ok, callback, last_op}
           end
 
-          {:ok, callback, last_op}
+        case result do
+          {:ok, forms, last_op} ->
+            {:ok, forms, {[], last_op}}
+
+          {:error, {_, _, ""}} ->
+            {:incomplete, {input, last_op}}
+
+          {:error, {location, error, token}} ->
+            :elixir_errors.parse_error(
+              location,
+              file,
+              error,
+              token,
+              {input, line, column, 0}
+            )
         end
-
-      case result do
-        {:ok, forms, last_op} ->
-          {:ok, forms, {[], last_op}}
-
-        {:error, {_, _, ""}} ->
-          {:incomplete, {input, last_op}}
-
-        {:error, {location, error, token}} ->
-          :elixir_errors.parse_error(
-            location,
-            file,
-            error,
-            token,
-            {input, line, column, 0}
-          )
-      end
     end
   end
 

@@ -102,6 +102,10 @@ defmodule IEx.InteractionTest do
     assert output =~ "iex:1"
   end
 
+  test "exit trigger is defined" do
+    assert :erlang.function_exported(IEx.Evaluator, :parse, 3)
+  end
+
   test "module definition" do
     input = """
     defmodule Sample do

@@ -1134,6 +1134,12 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "exit" do
+    test "is defined as a helper" do
+      assert function_exported?(IEx.Helpers, :exit, 0)
+    end
+  end
+
   describe "flush" do
     test "flushes messages" do
       assert capture_io(fn ->

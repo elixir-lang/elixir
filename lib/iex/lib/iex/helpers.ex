@@ -31,6 +31,7 @@ defmodule IEx.Helpers do
     * `c/2`             - compiles a file and writes bytecode to the given path
     * `cd/1`            - changes the current directory
     * `clear/0`         - clears the screen
+    * `exit/0`          - exits the IEx session
     * `exports/1`       - shows all exports (functions + macros) in a module
     * `flush/0`         - flushes all messages sent to the shell
     * `h/0`             - prints this help message
@@ -1040,6 +1041,18 @@ defmodule IEx.Helpers do
         IO.puts(IEx.color(:eval_error, :file.format_error(reason)))
     end
 
+    dont_display_result()
+  end
+
+  @doc """
+  Exits the IEx session.
+
+  This is a convenience function to stop the Erlang VM gracefully.
+  It is equivalent to calling `System.stop(0)`.
+  """
+  @doc since: "1.19.0"
+  def exit do
+    System.stop(0)
     dont_display_result()
   end
 

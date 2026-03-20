@@ -99,6 +99,11 @@ defmodule IEx do
       ...(1)> #iex:break
       ** (TokenMissingError) iex:1: incomplete expression
 
+  Similarly, `#iex:exit` can be used to exit the IEx session entirely.
+  It works the same way as calling `exit()` or `System.stop(0)`, gracefully
+  stopping the Erlang VM. This can be useful when trapped in an incomplete
+  expression and wanting to quit rather than recover.
+
   ## Pasting multiline expressions into IEx
 
   IEx evaluates its input line by line in an eager fashion. If at the end of a

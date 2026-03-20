@@ -408,6 +408,9 @@ defmodule IEx.Server do
         {:more, {counter, parser_state, mfa}}
     end
   catch
+    :throw, {:iex_exit, _status} ->
+      {:done, :eof, []}
+
     kind, error ->
       {:done, {:error, kind, error, __STACKTRACE__}, []}
   end
