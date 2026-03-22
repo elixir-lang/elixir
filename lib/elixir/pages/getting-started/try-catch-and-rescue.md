@@ -303,4 +303,6 @@ iex> try do
 ** (CompileError) undefined variable "another_what_happened"
 ```
 
-This finishes our introduction on `try`, `catch`, and `rescue`. You will find they are used less frequently in Elixir than in other languages. Next we will talk about a very important subject to Elixir developers: writing documentation.
+This finishes our introduction on `try`, `catch`, and `rescue`. You will find they are used less frequently in Elixir than in other languages.
+
+Next, we'll look at a feature central to Elixir, Processes, which allows us to write concurrent, parallel and distributed programs in an easy and understandable way.
