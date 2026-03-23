@@ -433,7 +433,7 @@ defmodule Kernel.LexicalTrackerTest do
         """)
 
       refute URI in compile
-      refute URI in exports
+      assert URI in exports
       assert URI in runtime
     end
 

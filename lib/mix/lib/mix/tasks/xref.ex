@@ -733,13 +733,7 @@ defmodule Mix.Tasks.Xref do
 
   defp require_mode(meta), do: if(meta[:from_macro], do: :compile, else: :export)
 
-  defp struct_mode(meta, %{function: function}) do
-    if function != nil and meta[:operation] in [:match, :update] do
-      :runtime
-    else
-      :export
-    end
-  end
+  defp struct_mode(_meta, _env), do: :export
 
   defp mode(%{function: nil}), do: :compile
   defp mode(_), do: :runtime

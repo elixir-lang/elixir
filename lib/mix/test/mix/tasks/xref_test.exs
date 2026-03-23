@@ -258,7 +258,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/b.ex:7: call A.macro/0 (compile)
       lib/b.ex:8: call A.fun/0 (runtime)
       lib/b.ex:9: struct A (export)
-      lib/b.ex:10: struct A (runtime)
+      lib/b.ex:10: struct A (export)
       lib/b.ex:11: struct A (export)
       """
 
