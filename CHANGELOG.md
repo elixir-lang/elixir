@@ -6,6 +6,8 @@
 
 # Changelog for Elixir v1.20
 
+This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
+
 ## Type system improvements
 
 This release includes type inference of all constructs.
@@ -173,6 +175,45 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
+## v1.20.0-rc.4
+
+This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Add `:dbg_callback` option to eval functions
+  * [Code.Fragment] Allow preserving sigil metadata in `container_cursor_to_quoted`
+  * [File] Add support for [:raw] opts in `File.read/2`
+  * [Kernel] Show undefined function errors even when missing variables (this helps debug errors caused when the developer forgets to require a macro)
+  * [PartitionSupervisor] Support via tuples in `count_children/1` and `stop/3`
+  * [Process] Add `Process.get_label/1`
+
+#### Mix
+
+  * [mix deps] Allow overriding specific dependencies in `:override`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Integer] Fix `Integer.extended_gcd/2` returning negative GCD for zero base cases
+  * [Integer] Raise when negative out-of-range digits are given to `Integer.undigits/2`
+  * [Kernel] Protocols should not add compile-time dependencies on `Any` implementation
+  * [Kernel] Ensure structs trigger recompilation for type checking purposes (regression)
+  * [Kernel] Ensure type information propagate across `hd/tl` in guards (regression)
+  * [Keyword] Raise `ArgumentError` in `Keyword.from_keys/2` for non-atom keys
+  * [URI] Fix `URI.merge` leaking `:+` marker when base path is empty string
+
+#### Mix
+
+  * [mix deps] Use config files to pass project state in `mix deps.partition` to avoid argv limits on Windows
+  * [mix compile] Fix compile env change triggering full recompilation of path dependencies
+  * [mix compile] Add a build lock around protocol consolidation in umbrellas
+  * [mix compile] Ensure compilation of sibling deps do not mark path deps as changed
+  * [mix test] Fix `--warnings-as-errors` not catching misnamed test file warnings
+
 ## v1.20.0-rc.3 (2026-03-09)
 
 ### 1. Enhancements
@@ -205,7 +246,6 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
   * [Code] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
   * [Code] Make module purging opt-in and move temporary module deletion to the background to speed up compilation times
   * [Integer] Add `Integer.popcount/1`
-  * [Kernel] Move struct validation in patterns and updates to type checker, this means adding and remove struct fields will cause fewer files to be recompiled
   * [Kernel] Add type inference across clauses. For example, if one clause says `x when is_integer(x)`, then the next clause may no longer be an integer
   * [Kernel] Detect and warn on redundant clauses
   * [List] Add `List.first!/1` and `List.last!/1`
