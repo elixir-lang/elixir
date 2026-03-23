@@ -3112,7 +3112,7 @@ defmodule Module.Types.DescrTest do
                "%{..., Foo.Bar => float()}"
 
       assert difference(open_map(), open_map(a: term())) |> to_quoted_string() ==
-               "map() and not %{..., a: term()}"
+               "%{..., a: not_set()}"
 
       assert closed_map(a: integer(), b: atom()) |> to_quoted_string() ==
                "%{a: integer(), b: atom()}"
