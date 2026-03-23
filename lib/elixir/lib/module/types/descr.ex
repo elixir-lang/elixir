@@ -3104,7 +3104,7 @@ defmodule Module.Types.Descr do
       tag == :closed and not found? and not is_optional_static(v2) ->
         :disjoint
 
-      tag == :open and not found? ->
+      tag == :open and not found? and fields != [] ->
         # In case the left-side is open, we will only be adding new keys
         # to the open map, which makes future eliminations harder.
         :none
