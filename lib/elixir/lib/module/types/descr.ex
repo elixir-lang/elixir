@@ -5878,6 +5878,23 @@ defmodule Module.Types.Descr do
 
   ## Optimize differences
 
+  defp bdd_difference(bdd_leaf(_, _) = a1, bdd_leaf(_, _) = a2, leaf_compare) do
+    case leaf_compare.(a1, a2, :none) do
+      :disjoint -> a1
+      :subtype -> :bdd_bot
+      {:one_key_difference, a_diff, _} -> a_diff
+      :none -> bdd_difference(a1, a2)
+    end
+  end
+
+  defp bdd_difference(bdd1, bdd2, leaf_compare) when is_tuple(bdd1) and is_tuple(bdd2) do
+    bdd_difference(bdd_expand(bdd1), bdd_expand(bdd2), bdd1, bdd2, leaf_compare)
+  end
+
+  defp bdd_difference(bdd1, bdd2, _leaf_compare) do
+    bdd_difference(bdd1, bdd2)
+  end
+
   # We have two formulas for differences.
   #
   # ## When D1 = bottom
@@ -5906,93 +5923,65 @@ defmodule Module.Types.Descr do
   #
   #     ((U1 and not a2) or (D1 and not D2)) and not U2 and not D2
   #
-  defp bdd_difference(bdd_leaf(_, _) = a1, bdd_leaf(_, _) = a2, leaf_compare) do
-    case leaf_compare.(a1, a2, :none) do
-      :disjoint -> a1
-      :subtype -> :bdd_bot
-      {:one_key_difference, a_diff, _} -> a_diff
-      :none -> bdd_difference(a1, a2)
-    end
-  end
+  defp bdd_difference({a1, :bdd_top, u1, :bdd_bot}, {a2, c2, u2, d2}, bdd1, bdd2, leaf_compare) do
+    type = if c2 == :bdd_top, do: :none, else: :intersection
 
-  defp bdd_difference(bdd1, bdd2, leaf_compare) when is_tuple(bdd1) and is_tuple(bdd2) do
-    # TODO: Use bdd_expand on Erlang/OTP 28.
-    # We write the case by hand to address a bug in Erlang/OTP 27.0
-    {a1, c1, u1, d1} =
-      case bdd1 do
-        bdd_leaf(_, _) -> {bdd1, :bdd_top, :bdd_bot, :bdd_bot}
-        _ -> bdd1
-      end
+    case leaf_compare.(a1, a2, type) do
+      :disjoint ->
+        a1
+        |> bdd_difference(d2, leaf_compare)
+        |> bdd_difference(u2, leaf_compare)
+        |> bdd_union(bdd_difference(u1, bdd2, leaf_compare))
 
-    {a2, c2, u2, d2} =
-      case bdd2 do
-        bdd_leaf(_, _) -> {bdd2, :bdd_top, :bdd_bot, :bdd_bot}
-        _ -> bdd2
-      end
+      :subtype ->
+        a1
+        |> bdd_difference(c2, leaf_compare)
+        |> bdd_difference(u2, leaf_compare)
+        |> bdd_union(bdd_difference(u1, bdd2, leaf_compare))
 
-    cond do
-      d1 == :bdd_bot and c1 == :bdd_top ->
-        type = if c2 == :bdd_top, do: :none, else: :intersection
+      {:one_key_difference, a_diff, a_int} ->
+        bdd_union(
+          a_diff |> bdd_difference(d2, leaf_compare) |> bdd_difference(u2, leaf_compare),
+          a_int |> bdd_difference(c2, leaf_compare) |> bdd_difference(u2, leaf_compare)
+        )
+        |> bdd_union(bdd_difference(u1, bdd2, leaf_compare))
 
-        case leaf_compare.(a1, a2, type) do
-          :disjoint ->
-            a1
-            |> bdd_difference(d2, leaf_compare)
-            |> bdd_difference(u2, leaf_compare)
-            |> bdd_union(bdd_difference(u1, bdd2, leaf_compare))
-
-          :subtype ->
-            a1
-            |> bdd_difference(c2, leaf_compare)
-            |> bdd_difference(u2, leaf_compare)
-            |> bdd_union(bdd_difference(u1, bdd2, leaf_compare))
-
-          {:one_key_difference, a_diff, a_int} ->
-            bdd_union(
-              a_diff |> bdd_difference(d2, leaf_compare) |> bdd_difference(u2, leaf_compare),
-              a_int |> bdd_difference(c2, leaf_compare) |> bdd_difference(u2, leaf_compare)
-            )
-            |> bdd_union(bdd_difference(u1, bdd2, leaf_compare))
-
-          :none ->
-            bdd_difference(bdd1, bdd2)
-        end
-
-      c2 == :bdd_top ->
-        type = if d1 == :bdd_bot, do: :none, else: :union
-
-        case leaf_compare.(a1, a2, type) do
-          :disjoint ->
-            bdd_difference(u1, a2, leaf_compare)
-            |> bdd_union(bdd_difference({a1, c1, :bdd_bot, d1}, a2))
-            |> bdd_difference(d2, leaf_compare)
-            |> bdd_difference(u2, leaf_compare)
-
-          :subtype ->
-            bdd_union(
-              bdd_difference(u1, a2, leaf_compare),
-              bdd_difference(d1, a2, leaf_compare)
-            )
-            |> bdd_difference(d2, leaf_compare)
-            |> bdd_difference(u2, leaf_compare)
-
-          {:one_key_difference, a_diff, a_union} ->
-            bdd_intersection(a_diff, c1)
-            |> bdd_union(bdd_difference(u1, a2, leaf_compare))
-            |> bdd_union(bdd_difference(d1, a_union, leaf_compare))
-            |> bdd_difference(d2, leaf_compare)
-            |> bdd_difference(u2, leaf_compare)
-
-          :none ->
-            bdd_difference(bdd1, bdd2)
-        end
-
-      true ->
+      :none ->
         bdd_difference(bdd1, bdd2)
     end
   end
 
-  defp bdd_difference(bdd1, bdd2, _leaf_compare) do
+  defp bdd_difference({a1, c1, u1, d1}, {a2, :bdd_top, u2, d2}, bdd1, bdd2, leaf_compare) do
+    type = if d1 == :bdd_bot, do: :none, else: :union
+
+    case leaf_compare.(a1, a2, type) do
+      :disjoint ->
+        bdd_difference(u1, a2, leaf_compare)
+        |> bdd_union(bdd_difference({a1, c1, :bdd_bot, d1}, a2))
+        |> bdd_difference(d2, leaf_compare)
+        |> bdd_difference(u2, leaf_compare)
+
+      :subtype ->
+        bdd_union(
+          bdd_difference(u1, a2, leaf_compare),
+          bdd_difference(d1, a2, leaf_compare)
+        )
+        |> bdd_difference(d2, leaf_compare)
+        |> bdd_difference(u2, leaf_compare)
+
+      {:one_key_difference, a_diff, a_union} ->
+        bdd_intersection(a_diff, c1)
+        |> bdd_union(bdd_difference(u1, a2, leaf_compare))
+        |> bdd_union(bdd_difference(d1, a_union, leaf_compare))
+        |> bdd_difference(d2, leaf_compare)
+        |> bdd_difference(u2, leaf_compare)
+
+      :none ->
+        bdd_difference(bdd1, bdd2)
+    end
+  end
+
+  defp bdd_difference(_, _, bdd1, bdd2, _leaf_compare) do
     bdd_difference(bdd1, bdd2)
   end
 
