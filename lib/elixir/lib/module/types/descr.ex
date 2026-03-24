@@ -5906,6 +5906,15 @@ defmodule Module.Types.Descr do
   #
   #     ((U1 and not a2) or (D1 and not D2)) and not U2 and not D2
   #
+  defp bdd_difference(bdd_leaf(_, _) = a1, bdd_leaf(_, _) = a2, leaf_compare) do
+    case leaf_compare.(a1, a2, :none) do
+      :disjoint -> a1
+      :subtype -> :bdd_bot
+      {:one_key_difference, a_diff, _} -> a_diff
+      :none -> bdd_difference(a1, a2)
+    end
+  end
+
   defp bdd_difference(bdd1, bdd2, leaf_compare) when is_tuple(bdd1) and is_tuple(bdd2) do
     {a1, c1, u1, d1} = bdd_expand(bdd1)
     {a2, c2, u2, d2} = bdd_expand(bdd2)
