@@ -208,7 +208,7 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
 #### Mix
 
-  * [mix deps] Use config files to pass project state in `mix deps.partition` to avoid argv limits on Windows
+  * [mix deps] Use config files to pass project state to avoid argv limits on Windows when using `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
   * [mix compile] Fix compile env change triggering full recompilation of path dependencies
   * [mix compile] Add a build lock around protocol consolidation in umbrellas
   * [mix compile] Ensure compilation of sibling deps do not mark path deps as changed
