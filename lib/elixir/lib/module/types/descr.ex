@@ -5916,8 +5916,19 @@ defmodule Module.Types.Descr do
   end
 
   defp bdd_difference(bdd1, bdd2, leaf_compare) when is_tuple(bdd1) and is_tuple(bdd2) do
-    {a1, c1, u1, d1} = bdd_expand(bdd1)
-    {a2, c2, u2, d2} = bdd_expand(bdd2)
+    # TODO: Use bdd_expand on Erlang/OTP 28.
+    # We write the case by hand to address a bug in Erlang/OTP 27.0
+    {a1, c1, u1, d1} =
+      case bdd1 do
+        bdd_leaf(_, _) -> {bdd1, :bdd_top, :bdd_bot, :bdd_bot}
+        _ -> bdd1
+      end
+
+    {a2, c2, u2, d2} =
+      case bdd2 do
+        bdd_leaf(_, _) -> {bdd2, :bdd_top, :bdd_bot, :bdd_bot}
+        _ -> bdd2
+      end
 
     cond do
       d1 == :bdd_bot and c1 == :bdd_top ->
