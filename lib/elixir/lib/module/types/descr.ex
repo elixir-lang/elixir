@@ -5887,13 +5887,19 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp bdd_difference(bdd1, bdd2, leaf_compare) when is_tuple(bdd1) and is_tuple(bdd2) do
-    bdd_difference(bdd_expand(bdd1), bdd_expand(bdd2), bdd1, bdd2, leaf_compare)
-  end
+  # We could use bdd_expand but there was a bug in earlier versions
+  # of the Erlang compiler which would emit bad ,code, so we match one by one.
+  defp bdd_difference({_, _, _, _} = bdd1, bdd_leaf(_, _) = a2, leaf_compare),
+    do: bdd_difference(bdd1, {a2, :bdd_top, :bdd_bot, :bdd_bot}, bdd1, a2, leaf_compare)
 
-  defp bdd_difference(bdd1, bdd2, _leaf_compare) do
-    bdd_difference(bdd1, bdd2)
-  end
+  defp bdd_difference(bdd_leaf(_, _) = a1, {_, _, _, _} = bdd2, leaf_compare),
+    do: bdd_difference({a1, :bdd_top, :bdd_bot, :bdd_bot}, bdd2, a1, bdd2, leaf_compare)
+
+  defp bdd_difference({_, _, _, _} = bdd1, {_, _, _, _} = bdd2, leaf_compare),
+    do: bdd_difference(bdd1, bdd2, bdd1, bdd2, leaf_compare)
+
+  defp bdd_difference(bdd1, bdd2, _leaf_compare),
+    do: bdd_difference(bdd1, bdd2)
 
   # We have two formulas for differences.
   #
