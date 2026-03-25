@@ -2090,7 +2090,8 @@ defmodule Module.Types.Apply do
   defp args_to_quoted_string(args_types, domain, converter) do
     docs =
       Enum.zip_with(args_types, domain, fn actual, expected ->
-        if compatible?(actual, expected) or not has_simple_difference?(actual, expected) do
+        if compatible?(actual, expected) or not has_simple_difference?(actual, expected) or
+             term_type?(actual) do
           actual |> to_quoted() |> Code.Formatter.to_algebra()
         else
           common = intersection(actual, expected)

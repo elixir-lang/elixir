@@ -726,6 +726,42 @@ defmodule Module.Types.PatternTest do
              """
     end
 
+    test "map_get" do
+      # Below we have a precision warning because the map key is term.
+      # We could solve this in the same we say solved hd/tl in guards,
+      # but we explicitly chose not to (for now) for the following reasons:
+      #
+      # 1. We don't expose `:erlang.map_get` in Elixir, only `map.foo`,
+      #    which is an atom key and will be precise
+      #
+      # 2. The typing violation below will also happen once we add type
+      #    signatures and `%{x => v}` returns anything but a `boolean()`
+      #    (but it will work if you declare the value type only as boolean())
+      #
+      # 3. It also works if you explicitly match on `== true`, which
+      #    effectively forces the return given to `not` to be boolean
+      #
+      # Furthermore, we currently use it to test we don't split term types
+      # in error messages (as we don't have type signatures).
+      assert typeerror!([key, map], not :erlang.map_get(key, map), map) =~ """
+             incompatible types given to Kernel.not/1:
+
+                 not :erlang.map_get(key, map)
+
+             given types:
+
+                 term()
+
+             but expected one of:
+
+                 #1
+                 true
+
+                 #2
+                 false
+             """
+    end
+
     test "when checks" do
       assert typecheck!([x], is_binary(x) when is_atom(x), x) == dynamic(union(binary(), atom()))
 
