@@ -1034,7 +1034,13 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "strings" do
+  test "bitstrings" do
+    assert_diff(<<1::1>> == <<1::1>>, [])
+    refute_diff(<<1::1>> == <<1::2>>, "-<<1::size(1)>>", "+<<1::size(2)>>+")
+    refute_diff(<<1::1>> == <<0::1>>, "-<<1::size(1)>>", "+<<0::size(1)>>+")
+  end
+
+  test "binaries" do
     assert_diff("" = "", [])
     assert_diff("fox hops over the dog" = "fox hops over the dog", [])
 
