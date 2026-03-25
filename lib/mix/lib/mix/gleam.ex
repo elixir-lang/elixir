@@ -31,7 +31,14 @@ defmodule Mix.Gleam do
       |> Enum.map(&parse_dep!/1)
 
     dev_deps =
-      Map.get(json, "dev-dependencies", %{})
+      case Map.has_key?(json, "dev_dependencies") do
+        true ->
+          Map.get(json, "dev_dependencies", %{})
+
+        # Old format, for compatibility purposes
+        false ->
+          Map.get(json, "dev-dependencies", %{})
+      end
       |> Enum.map(&parse_dep!(&1, only: [:dev, :test]))
 
     with {:ok, name} <- Map.fetch(json, "name"),
@@ -122,7 +129,7 @@ defmodule Mix.Gleam do
 
   defp fetch_gleam_version() do
     case gleam(["--version"]) do
-      {:ok, version} ->
+      {:ok, "gleam " <> version} ->
         case Version.parse(version) do
           {:ok, parsed_version} ->
             {:ok, Version.to_string(parsed_version)}

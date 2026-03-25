@@ -38,7 +38,7 @@ defmodule Mix.GleamTest do
 
   describe "Gleam export package-information format" do
     test "parse_config" do
-      config =
+      {:ok, config} =
         %{
           "name" => "gael",
           "version" => "1.0.0",
@@ -47,7 +47,7 @@ defmodule Mix.GleamTest do
             "git_dep" => %{"git" => "../git_dep", "ref" => "957b83b"},
             "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"}
           },
-          "dev-dependencies" => %{
+          "dev_dependencies" => %{
             "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
           },
           "erlang" => %{
@@ -69,6 +69,32 @@ defmodule Mix.GleamTest do
                application: [
                  mod: {:some@application, []},
                  extra_applications: [:some_app]
+               ]
+             }
+    end
+
+    test "with old dev-dependencies format" do
+      {:ok, config} =
+        %{
+          "name" => "gael",
+          "version" => "1.0.0",
+          "gleam" => ">= 1.8.0",
+          "dependencies" => %{
+            "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"}
+          },
+          "dev-dependencies" => %{
+            "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
+          }
+        }
+        |> Mix.Gleam.parse_config()
+
+      assert config == %{
+               name: "gael",
+               version: "1.0.0",
+               gleam: ">= 1.8.0",
+               deps: [
+                 {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"},
+                 {:gleeunit, ">= 1.0.0 and < 2.0.0", only: [:dev, :test]}
                ]
              }
     end
