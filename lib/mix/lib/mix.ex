@@ -452,7 +452,6 @@ defmodule Mix do
   import Kernel, except: [raise: 2]
 
   @doc false
-  @spec start() :: :ok
   def start do
     {:ok, _} = Application.ensure_all_started(:mix)
     :ok
@@ -486,7 +485,7 @@ defmodule Mix do
   Proper configuration can be set in config files, often per-environment
   (see the `Config` module for more information).
   """
-  @spec env() :: env :: atom()
+  @spec env() :: atom()
   def env do
     # env is not available on bootstrapping, so set a :dev default
     Mix.State.get(:env, :dev)
@@ -509,7 +508,7 @@ defmodule Mix do
   @doc """
   Returns the Mix target.
   """
-  @spec target() :: target :: atom()
+  @spec target() :: atom()
   def target do
     # target is not available on bootstrapping, so set a :host default
     Mix.State.get(:target, :host)
@@ -652,7 +651,7 @@ defmodule Mix do
   The path for local archives or escripts.
   """
   @doc since: "1.10.0"
-  @spec path_for(kind :: :archives | :escripts) :: String.t()
+  @spec path_for(:archives | :escripts) :: String.t()
   def path_for(kind)
 
   def path_for(:archives) do
@@ -1225,6 +1224,5 @@ defmodule Mix do
   end
 
   @doc false
-  @spec install?() :: boolean()
   def install?, do: Mix.Project.get() == @mix_install_project
 end
