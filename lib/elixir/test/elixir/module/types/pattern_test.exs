@@ -790,6 +790,23 @@ defmodule Module.Types.PatternTest do
              """
     end
 
+    test "min/max" do
+      assert typecheck!([x, y], is_integer(min(x, y)), min(x, y)) ==
+               dynamic(integer())
+
+      assert typecheck!([x, y], is_number(min(x, y)), min(x, y)) ==
+               dynamic(union(integer(), float()))
+
+      assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
+               dynamic(open_map(pair: open_tuple([]), x: integer(), y: integer()))
+
+      assert typeerror!(
+               [x, y],
+               is_integer(x) and is_binary(y) and is_integer(min(x, y)),
+               min(x, y)
+             ) =~ "comparison between distinct types found"
+    end
+
     test "conditional checks (and/or)" do
       assert typecheck!([x], :erlang.or(is_binary(x), is_atom(x)), x) ==
                dynamic(union(binary(), atom()))

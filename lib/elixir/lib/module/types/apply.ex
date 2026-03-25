@@ -389,7 +389,7 @@ defmodule Module.Types.Apply do
   end
 
   defp do_remote(:erlang, name, [left, right], expected, expr, stack, context, of_fun)
-       when name in [:>=, :"=<", :>, :<, :min, :max] do
+       when name in [:>=, :"=<", :>, :<] do
     case sized_order(name, left, right, expected) do
       {arg, expected, precise?, return} ->
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
@@ -399,36 +399,38 @@ defmodule Module.Types.Apply do
       :none ->
         {left_type, context} = of_fun.(left, term(), expr, stack, context)
         {right_type, context} = of_fun.(right, term(), expr, stack, context)
+        result = return(boolean(), [left_type, right_type], stack)
 
-        result =
-          if name in [:min, :max] do
-            union(left_type, right_type)
-          else
-            return(boolean(), [left_type, right_type], stack)
-          end
-
-        if is_warning(stack) do
-          common = intersection(left_type, right_type)
-
-          cond do
-            # This check is incomplete. After all, we could have the number type nested
-            # inside a tuple or a list and the comparison would still be valid.
-            # However, nested comparison between distinct numbers is very uncommon,
-            # so we only check the direct value here.
-            empty?(common) and not (number_type?(left_type) and number_type?(right_type)) ->
-              error = {:mismatched_comparison, left_type, right_type}
-              remote_error(error, :erlang, name, 2, expr, stack, context)
-
-            match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
-              error = {:struct_comparison, left_type, right_type}
-              remote_error(error, :erlang, name, 2, expr, stack, context)
-
-            true ->
-              {result, context}
-          end
+        if error = mismatched_ordered_comparison(left_type, right_type, stack) do
+          remote_error(error, :erlang, name, 2, expr, stack, context)
         else
           {result, context}
         end
+    end
+  end
+
+  defp do_remote(:erlang, name, [left, right], expected, expr, stack, context, of_fun)
+       when name in [:min, :max] do
+    # While comparison between distinct types are allowed,
+    # we check for disjointedness, so we effectively require
+    # left and right to have at least one type in common.
+    # Overall, it behaves as if we had this signature:
+    #
+    #     integer(), integer() -> integer()
+    #     float(), float() -> float()
+    #     float(), integer() -> number()
+    #     integer(), float() -> number()
+    #     a and not number(), b and not number() -> a and b
+    #
+    # However, during inference, we type it as `a, b -> a and b` only.
+    {left_type, context} = of_fun.(left, expected, expr, stack, context)
+    {right_type, context} = of_fun.(right, expected, expr, stack, context)
+    result = union(left_type, right_type)
+
+    if error = mismatched_ordered_comparison(left_type, right_type, stack) do
+      remote_error(error, :erlang, name, 2, expr, stack, context)
+    else
+      {result, context}
     end
   end
 
@@ -684,28 +686,45 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp sized_order(name, left, right, expected) do
-    if name in [:>=, :"=<", :>, :<] do
-      case {left, right} do
-        {{{:., _, [:erlang, fun]}, _, [arg]}, size} when is_data_size(fun, size) ->
-          case booleaness(expected) do
-            {true, _} -> sized_order(name, fun, size, arg, @atom_true)
-            {false, _} -> sized_order(invert_order(name), fun, size, arg, @atom_false)
-            _ -> :none
-          end
+  defp mismatched_ordered_comparison(left_type, right_type, stack) do
+    if is_warning(stack) do
+      common = intersection(left_type, right_type)
 
-        {size, {{:., _, [:erlang, fun]}, _, [arg]}} when is_data_size(fun, size) ->
-          case booleaness(expected) do
-            {true, _} -> sized_order(invert_order(name), fun, size, arg, @atom_true)
-            {false, _} -> sized_order(name, fun, size, arg, @atom_false)
-            _ -> :none
-          end
+      cond do
+        # This check is incomplete. After all, we could have the number type nested
+        # inside a tuple or a list and the comparison would still be valid.
+        # However, nested comparison between distinct numbers is very uncommon,
+        # so we only check the direct value here.
+        empty?(common) and not (number_type?(left_type) and number_type?(right_type)) ->
+          {:mismatched_comparison, left_type, right_type}
 
-        _ ->
-          :none
+        match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
+          {:struct_comparison, left_type, right_type}
+
+        true ->
+          nil
       end
-    else
-      :none
+    end
+  end
+
+  defp sized_order(name, left, right, expected) do
+    case {left, right} do
+      {{{:., _, [:erlang, fun]}, _, [arg]}, size} when is_data_size(fun, size) ->
+        case booleaness(expected) do
+          {true, _} -> sized_order(name, fun, size, arg, @atom_true)
+          {false, _} -> sized_order(invert_order(name), fun, size, arg, @atom_false)
+          _ -> :none
+        end
+
+      {size, {{:., _, [:erlang, fun]}, _, [arg]}} when is_data_size(fun, size) ->
+        case booleaness(expected) do
+          {true, _} -> sized_order(invert_order(name), fun, size, arg, @atom_true)
+          {false, _} -> sized_order(name, fun, size, arg, @atom_false)
+          _ -> :none
+        end
+
+      _ ->
+        :none
     end
   end
 
