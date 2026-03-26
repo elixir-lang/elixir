@@ -92,6 +92,8 @@ defmodule ModuleTest do
                  fn ->
                    Module.create(ModuleTest.Raise, contents, __ENV__)
                  end
+
+    refute Code.loaded?(ModuleTest.Raise)
   end
 
   test "supports read access to module from __after_compile__/2" do

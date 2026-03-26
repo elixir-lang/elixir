@@ -241,6 +241,8 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     {module, Module, Binary, Result}
   catch
     error:undef:Stacktrace ->
+      code:purge(Module),
+      code:delete(Module),
       case Stacktrace of
         [{Module, Fun, Args, _Info} | _] = Stack when is_list(Args) ->
           compile_undef(Module, Fun, length(Args), Stack);
@@ -248,7 +250,11 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           compile_undef(Module, Fun, Arity, Stack);
         Stack ->
           erlang:raise(error, undef, Stack)
-      end
+      end;
+    Kind:Reason:Stacktrace ->
+        code:purge(Module),
+        code:delete(Module),
+        erlang:raise(Kind, Reason, Stacktrace)
   after
     put_compiler_modules(CompilerModules),
     ets:delete(DataSet),
