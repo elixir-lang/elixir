@@ -536,7 +536,7 @@ defmodule Mix do
       end
 
   """
-  @spec compilers() :: [compiler :: atom()]
+  @spec compilers() :: [atom()]
   def compilers do
     [:erlang, :elixir, :app]
   end
