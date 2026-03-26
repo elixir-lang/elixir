@@ -612,8 +612,8 @@ defmodule Mix do
   Sets Mix debug mode.
   """
   @spec debug(boolean()) :: :ok
-  def debug(debug) when is_boolean(debug) do
-    Mix.State.put(:debug, debug)
+  def debug(enabled?) when is_boolean(enabled?) do
+    Mix.State.put(:debug, enabled?)
   end
 
   @doc """
@@ -652,6 +652,8 @@ defmodule Mix do
   """
   @doc since: "1.10.0"
   @spec path_for(:archives | :escripts) :: String.t()
+  def path_for(kind)
+
   def path_for(:archives) do
     System.get_env("MIX_ARCHIVES") || Path.join(Mix.Utils.mix_home(), "archives")
   end
@@ -671,6 +673,7 @@ defmodule Mix do
   This function does not start the given applications.
   """
   @doc since: "1.15.0"
+  @spec ensure_application!(Application.app()) :: :ok
   def ensure_application!(app) when is_atom(app) do
     ensure_application!(app, Mix.State.builtin_apps(), [], %{})
     :ok
@@ -1131,7 +1134,7 @@ defmodule Mix do
   end
 
   @doc false
-  def in_install_project(fun) do
+  def in_install_project(fun) when is_function(fun, 0) do
     case safe_get_installed() do
       {id, dynamic_config} ->
         config = install_project_config(dynamic_config)
