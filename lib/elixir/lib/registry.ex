@@ -803,18 +803,29 @@ defmodule Registry do
   @doc since: "1.4.0"
   @spec match(registry, key, match_pattern, guards) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
-    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-    spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
-
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select(key_ets, spec)
 
-      {{:duplicate, _}, 1, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        spec = ordered_match_spec(key, pattern, guards)
         :ets.select(key_ets, spec)
 
-      {{:duplicate, _}, partitions, _key_ets} ->
+      {{:duplicate, :key}, partitions, _key_ets} ->
+        spec = ordered_match_spec(key, pattern, guards)
+        :ets.select(key_ets!(registry, key, partitions), spec)
+
+      {{:duplicate, :pid}, 1, key_ets} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+        :ets.select(key_ets, spec)
+
+      {{:duplicate, :pid}, partitions, _key_ets} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
         for partition <- 0..(partitions - 1),
             pair <- :ets.select(key_ets!(registry, partition), spec),
             do: pair
@@ -1436,18 +1447,29 @@ defmodule Registry do
   @spec count_match(registry, key, match_pattern, guards) :: non_neg_integer()
   def count_match(registry, key, pattern, guards \\ [])
       when is_atom(registry) and is_list(guards) do
-    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-    spec = [{{:_, {:_, pattern}}, guards, [true]}]
-
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [true]}]
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select_count(key_ets, spec)
 
-      {{:duplicate, _}, 1, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        spec = ordered_count_match_spec(key, pattern, guards)
         :ets.select_count(key_ets, spec)
 
-      {{:duplicate, _}, partitions, _key_ets} ->
+      {{:duplicate, :key}, partitions, _key_ets} ->
+        spec = ordered_count_match_spec(key, pattern, guards)
+        :ets.select_count(key_ets!(registry, key, partitions), spec)
+
+      {{:duplicate, :pid}, 1, key_ets} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [true]}]
+        :ets.select_count(key_ets, spec)
+
+      {{:duplicate, :pid}, partitions, _key_ets} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [true]}]
         Enum.sum_by(0..(partitions - 1), fn partition_index ->
           :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
@@ -1671,6 +1693,32 @@ defmodule Registry do
       :ets.select_delete(key_ets, [{{:_, :_}, [guard, pid_guard], [true]}]) >= 0
     else
       :ets.match_delete(key_ets, {{key, pid, :_}, :_})
+    end
+  end
+
+  defp ordered_match_spec(key, pattern, guards) do
+    body = [{{:element, 2, {:element, 1, :"$_"}}, {:element, 2, :"$_"}}]
+
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      guards = [
+        {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}} | guards
+      ]
+
+      [{{{:_, :_, :_}, pattern}, guards, body}]
+    else
+      [{{{key, :_, :_}, pattern}, guards, body}]
+    end
+  end
+
+  defp ordered_count_match_spec(key, pattern, guards) do
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      guards = [
+        {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}} | guards
+      ]
+
+      [{{{:_, :_, :_}, pattern}, guards, [true]}]
+    else
+      [{{{key, :_, :_}, pattern}, guards, [true]}]
     end
   end
 
