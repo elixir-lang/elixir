@@ -554,12 +554,22 @@ defmodule Registry do
         |> List.wrap()
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
-      {{:duplicate, _}, 1, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        key_ets
+        |> ordered_lookup_second(key)
+        |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+
+      {{:duplicate, :pid}, 1, key_ets} ->
         key_ets
         |> safe_lookup_second(key)
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
-      {{:duplicate, _}, partitions, _} ->
+      {{:duplicate, :key}, partitions, _} ->
+        key_ets!(registry, key, partitions)
+        |> ordered_lookup_second(key)
+        |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+
+      {{:duplicate, :pid}, partitions, _} ->
         if Keyword.get(opts, :parallel, false) do
           registry
           |> dispatch_parallel(key, mfa_or_fun, partitions)
@@ -671,12 +681,14 @@ defmodule Registry do
             []
         end
 
-      {{:duplicate, _}, 1, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        ordered_lookup_second(key_ets, key)
+
+      {{:duplicate, :pid}, 1, key_ets} ->
         safe_lookup_second(key_ets, key)
 
       {{:duplicate, :key}, partitions, _key_ets} ->
-        partition = hash(key, partitions)
-        safe_lookup_second(key_ets!(registry, partition), key)
+        ordered_lookup_second(key_ets!(registry, key, partitions), key)
 
       {{:duplicate, :pid}, partitions, _key_ets} ->
         for partition <- 0..(partitions - 1),
@@ -951,13 +963,15 @@ defmodule Registry do
             []
         end
 
-      {{:duplicate, _}, 1, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        for {^pid, value} <- ordered_lookup_second(key_ets, key), do: value
+
+      {{:duplicate, :pid}, 1, key_ets} ->
         for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
 
       {{:duplicate, :key}, partitions, _key_ets} ->
-        partition = hash(key, partitions)
-        key_ets = key_ets!(registry, partition)
-        for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
+        key_ets = key_ets!(registry, key, partitions)
+        for {^pid, value} <- ordered_lookup_second(key_ets, key), do: value
 
       {{:duplicate, :pid}, partitions, _key_ets} ->
         partition = hash(pid, partitions)
@@ -1588,6 +1602,22 @@ defmodule Registry do
   defp safe_lookup_second(ets, key) do
     try do
       :ets.lookup_element(ets, key, 2)
+    catch
+      :error, :badarg -> []
+    end
+  end
+
+  defp ordered_lookup_second(ets, key) do
+    spec =
+      if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+        guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
+        [{{{:_, :"$1", :_}, :"$2"}, [guard], [{{:"$1", :"$2"}}]}]
+      else
+        [{{{key, :"$1", :_}, :"$2"}, [], [{{:"$1", :"$2"}}]}]
+      end
+
+    try do
+      :ets.select(ets, spec)
     catch
       :error, :badarg -> []
     end
