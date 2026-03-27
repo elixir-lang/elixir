@@ -1030,7 +1030,13 @@ defmodule Registry do
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true = __unregister__(key_ets, {key, {self, :_}}, 1)
+    true =
+      if ordered?(kind) do
+        ordered_unregister_key(key_ets, key, self)
+      else
+        __unregister__(key_ets, {key, {self, :_}}, 1)
+      end
+
     true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
 
     unlink_if_unregistered(pid_server, pid_ets, self)
@@ -1657,6 +1663,17 @@ defmodule Registry do
     end
   end
 
+  @doc false
+  def ordered_unregister_key(key_ets, key, pid) do
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
+      pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, pid}}
+      :ets.select_delete(key_ets, [{{:_, :_}, [guard, pid_guard], [true]}]) >= 0
+    else
+      :ets.match_delete(key_ets, {{key, pid, :_}, :_})
+    end
+  end
+
   defp reserved_atom?("_"), do: true
   defp reserved_atom?("$" <> _), do: true
   defp reserved_atom?(_), do: false
@@ -1843,7 +1860,11 @@ defmodule Registry.Partition do
         end
 
       try do
-        Registry.__unregister__(key_ets, {key, {pid, :_}}, 1)
+        if ordered do
+          Registry.ordered_unregister_key(key_ets, key, pid)
+        else
+          Registry.__unregister__(key_ets, {key, {pid, :_}}, 1)
+        end
       catch
         :error, :badarg -> :badarg
       end
