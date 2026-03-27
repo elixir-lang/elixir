@@ -1528,15 +1528,16 @@ defmodule Registry do
   @spec select(registry, spec) :: [term]
   def select(registry, spec)
       when is_atom(registry) and is_list(spec) do
-    spec = group_match_headers(spec, __ENV__.function)
-
     case key_info!(registry) do
-      {_kind, partitions, nil} ->
+      {kind, partitions, nil} ->
+        spec = group_match_headers(spec, kind, __ENV__.function)
+
         Enum.flat_map(0..(partitions - 1), fn partition_index ->
           :ets.select(key_ets!(registry, partition_index), spec)
         end)
 
-      {_kind, 1, key_ets} ->
+      {kind, 1, key_ets} ->
+        spec = group_match_headers(spec, kind, __ENV__.function)
         :ets.select(key_ets, spec)
     end
   end
@@ -1559,30 +1560,59 @@ defmodule Registry do
   @spec count_select(registry, spec) :: non_neg_integer()
   def count_select(registry, spec)
       when is_atom(registry) and is_list(spec) do
-    spec = group_match_headers(spec, __ENV__.function)
-
     case key_info!(registry) do
-      {_kind, partitions, nil} ->
+      {kind, partitions, nil} ->
+        spec = group_match_headers(spec, kind, __ENV__.function)
+
         Enum.sum_by(0..(partitions - 1), fn partition_index ->
           :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
 
-      {_kind, 1, key_ets} ->
+      {kind, 1, key_ets} ->
+        spec = group_match_headers(spec, kind, __ENV__.function)
         :ets.select_count(key_ets, spec)
     end
   end
 
-  defp group_match_headers(spec, {fun, arity}) do
+  defp group_match_headers(spec, kind, {fun, arity}) do
+    ordered = ordered?(kind)
+
     for part <- spec do
       case part do
-        {{key, pid, value}, guards, select} ->
-          {{key, {pid, value}}, guards, select}
+        {{key, pid, value}, guards, body} when ordered ->
+          guards = ordered_rewrite(guards)
+          body = ordered_rewrite(body)
+          {{{key, pid, :_}, value}, guards, body}
+
+        {{key, pid, value}, guards, body} ->
+          {{key, {pid, value}}, guards, body}
 
         _ ->
           raise ArgumentError,
                 "invalid match specification in Registry.#{fun}/#{arity}: #{inspect(spec)}"
       end
     end
+  end
+
+  defp ordered_rewrite(term) when is_tuple(term) do
+    ordered_rewrite_tuple(term)
+  end
+
+  defp ordered_rewrite(term) when is_list(term) do
+    Enum.map(term, &ordered_rewrite/1)
+  end
+
+  defp ordered_rewrite(term), do: term
+
+  defp ordered_rewrite_tuple({:element, 1, :"$_"}) do
+    {:element, 1, {:element, 1, :"$_"}}
+  end
+
+  defp ordered_rewrite_tuple(tuple) do
+    tuple
+    |> Tuple.to_list()
+    |> Enum.map(&ordered_rewrite/1)
+    |> List.to_tuple()
   end
 
   ## Helpers
