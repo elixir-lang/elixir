@@ -1107,20 +1107,23 @@ defmodule Registry do
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
-    # Remove first from the key_ets because in case of crashes
-    # the pid_ets will still be able to clean up. The last step is
-    # to clean if we have no more entries.
+    if ordered?(kind) do
+      ordered_unregister_match(key, self, pattern, guards, key_ets, pid_server, pid_ets, registry, listeners)
+    else
+      bag_unregister_match(key, self, pattern, guards, key_ets, pid_server, pid_ets, registry, listeners)
+    end
 
-    # Here we want to count all entries for this pid under this key, regardless of pattern.
+    :ok
+  end
+
+  defp bag_unregister_match(key, self, pattern, guards, key_ets, pid_server, pid_ets, registry, listeners) do
     underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
     total_spec = [{{:_, {self, :_}}, [underscore_guard], [true]}]
     total = :ets.select_count(key_ets, total_spec)
 
-    # We only want to delete things that match the pattern
     delete_spec = [{{:_, {self, pattern}}, [underscore_guard | guards], [true]}]
 
     case :ets.select_delete(key_ets, delete_spec) do
-      # We deleted everything, we can just delete the object
       ^total ->
         true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
         unlink_if_unregistered(pid_server, pid_ets, self)
@@ -1133,10 +1136,6 @@ defmodule Registry do
         :ok
 
       deleted ->
-        # There are still entries remaining for this pid. delete_object/2 with
-        # duplicate_bag tables will remove every entry, but we only want to
-        # remove those we have deleted. The solution is to introduce a temp_entry
-        # that indicates how many keys WILL be remaining after the delete operation.
         counter = System.unique_integer()
         remaining = total - deleted
         temp_entry = {self, key, {key_ets, remaining}, counter}
@@ -1144,12 +1143,58 @@ defmodule Registry do
         true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
         real_keys = List.duplicate({self, key, key_ets, counter}, remaining)
         true = :ets.insert(pid_ets, real_keys)
-        # We've recreated the real remaining key entries, so we can now delete
-        # our temporary entry.
         true = :ets.delete_object(pid_ets, temp_entry)
     end
+  end
 
-    :ok
+  defp ordered_unregister_match(key, self, pattern, guards, key_ets, pid_server, pid_ets, registry, listeners) do
+    total_spec = ordered_unregister_match_total_spec(key, self)
+    total = :ets.select_count(key_ets, total_spec)
+
+    delete_spec = ordered_unregister_match_delete_spec(key, self, pattern, guards)
+
+    case :ets.select_delete(key_ets, delete_spec) do
+      ^total ->
+        true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
+        unlink_if_unregistered(pid_server, pid_ets, self)
+
+        for listener <- listeners do
+          Kernel.send(listener, {:unregister, registry, key, self})
+        end
+
+      0 ->
+        :ok
+
+      deleted ->
+        counter = System.unique_integer()
+        remaining = total - deleted
+        temp_entry = {self, key, {key_ets, remaining}, counter}
+        true = :ets.insert(pid_ets, temp_entry)
+        true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
+        real_keys = List.duplicate({self, key, key_ets, counter}, remaining)
+        true = :ets.insert(pid_ets, real_keys)
+        true = :ets.delete_object(pid_ets, temp_entry)
+    end
+  end
+
+  defp ordered_unregister_match_total_spec(key, self) do
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
+      pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, self}}
+      [{{{:_, :_, :_}, :_}, [guard, pid_guard], [true]}]
+    else
+      [{{{key, self, :_}, :_}, [], [true]}]
+    end
+  end
+
+  defp ordered_unregister_match_delete_spec(key, self, pattern, guards) do
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
+      pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, self}}
+      [{{{:_, :_, :_}, pattern}, [guard, pid_guard | guards], [true]}]
+    else
+      [{{{key, self, :_}, pattern}, guards, [true]}]
+    end
   end
 
   @doc """
