@@ -1180,7 +1180,14 @@ defmodule Registry do
     counter = System.unique_integer()
     true = :ets.insert(pid_ets, {self, key, key_ets, counter})
 
-    case register_key(kind, key_ets, key, {key, {self, value}}) do
+    key_entry =
+      if ordered?(kind) do
+        {{key, self, counter}, value}
+      else
+        {key, {self, value}}
+      end
+
+    case register_key(kind, key_ets, key, key_entry) do
       :ok ->
         for listener <- listeners do
           Kernel.send(listener, {:register, registry, key, self, value})
@@ -1623,6 +1630,9 @@ defmodule Registry do
   defp reserved_atom?("_"), do: true
   defp reserved_atom?("$" <> _), do: true
   defp reserved_atom?(_), do: false
+
+  defp ordered?({:duplicate, :key}), do: true
+  defp ordered?(_), do: false
 end
 
 defmodule Registry.Supervisor do
