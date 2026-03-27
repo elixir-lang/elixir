@@ -565,9 +565,25 @@ defmodule Registry do
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {{:duplicate, :key}, partitions, _} ->
-        key_ets!(registry, key, partitions)
-        |> ordered_lookup_second(key)
-        |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+        if Keyword.get(opts, :parallel, false) do
+          parent = self()
+
+          task =
+            Task.async(fn ->
+              key_ets!(registry, key, partitions)
+              |> ordered_lookup_second(key)
+              |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+
+              Process.unlink(parent)
+              :ok
+            end)
+
+          Task.await(task, :infinity)
+        else
+          key_ets!(registry, key, partitions)
+          |> ordered_lookup_second(key)
+          |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+        end
 
       {{:duplicate, :pid}, partitions, _} ->
         if Keyword.get(opts, :parallel, false) do
@@ -1772,7 +1788,7 @@ defmodule Registry do
   end
 
   defp ordered_match_spec(key, pattern, guards) do
-    body = [{{:element, 2, {:element, 1, :"$_"}}, {:element, 2, :"$_"}}]
+    body = [{{{:element, 2, {:element, 1, :"$_"}}, {:element, 2, :"$_"}}}]
 
     if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
       guards = [
