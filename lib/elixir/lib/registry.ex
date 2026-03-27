@@ -1734,7 +1734,8 @@ defmodule Registry.Partition do
       true = :ets.insert(registry, {i, key_ets, {self(), pid_ets}})
     end
 
-    {:ok, {pid_ets, %{}}}
+    ordered = kind == {:duplicate, :key}
+    {:ok, {pid_ets, %{}, ordered}}
   end
 
   # The key partition is a set for unique keys,
@@ -1744,7 +1745,12 @@ defmodule Registry.Partition do
     :ets.new(key_partition, compression_opt(opts, compressed))
   end
 
-  defp init_key_ets({:duplicate, _}, key_partition, compressed) do
+  defp init_key_ets({:duplicate, :key}, key_partition, compressed) do
+    opts = [:ordered_set, :public, read_concurrency: true, write_concurrency: true]
+    :ets.new(key_partition, compression_opt(opts, compressed))
+  end
+
+  defp init_key_ets({:duplicate, :pid}, key_partition, compressed) do
     opts = [:duplicate_bag, :public, read_concurrency: true, write_concurrency: true]
     :ets.new(key_partition, compression_opt(opts, compressed))
   end
@@ -1768,7 +1774,7 @@ defmodule Registry.Partition do
     {:reply, :ok, state}
   end
 
-  def handle_call({:lock, key}, from, {ets, lock}) do
+  def handle_call({:lock, key}, from, {ets, lock, ordered}) do
     lock =
       case lock do
         %{^key => queue} ->
@@ -1779,10 +1785,10 @@ defmodule Registry.Partition do
           Map.put(lock, key, :queue.new())
       end
 
-    {:noreply, {ets, lock}}
+    {:noreply, {ets, lock, ordered}}
   end
 
-  def handle_info({:EXIT, pid, _reason}, {ets, lock}) do
+  def handle_info({:EXIT, pid, _reason}, {ets, lock, ordered}) do
     entries = :ets.take(ets, pid)
 
     for {_pid, key, key_ets, _counter} <- entries do
@@ -1803,7 +1809,7 @@ defmodule Registry.Partition do
       end
     end
 
-    {:noreply, {ets, lock}}
+    {:noreply, {ets, lock, ordered}}
   end
 
   def handle_info({{:unlock, key}, _ref, :process, _pid, _reason}, state) do
@@ -1815,7 +1821,7 @@ defmodule Registry.Partition do
     unlock(key, state)
   end
 
-  defp unlock(key, {ets, lock}) do
+  defp unlock(key, {ets, lock, ordered}) do
     %{^key => queue} = lock
 
     lock =
@@ -1824,7 +1830,7 @@ defmodule Registry.Partition do
         {:not_empty, queue} -> Map.put(lock, key, queue)
       end
 
-    {:noreply, {ets, lock}}
+    {:noreply, {ets, lock, ordered}}
   end
 
   defp dequeue(queue, key) do
