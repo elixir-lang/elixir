@@ -25,7 +25,23 @@ defmodule ExUnit.FormatterTest do
   end
 
   defp test do
-    %ExUnit.Test{name: :world, module: Hello, tags: %{file: __ENV__.file, line: 1}}
+    %ExUnit.Test{
+      name: :world,
+      description: "world",
+      module: Hello,
+      tags: %{file: __ENV__.file, line: 1}
+    }
+  end
+
+  defp long_test do
+    long_name = "test " <> String.duplicate("a", 300)
+
+    %ExUnit.Test{
+      name: String.to_atom("truncated"),
+      description: long_name,
+      module: Hello,
+      tags: %{file: __ENV__.file, line: 1}
+    }
   end
 
   def falsy() do
@@ -621,5 +637,23 @@ defmodule ExUnit.FormatterTest do
                 test/ex_unit/formatter_test.exs:1
                 ** (ExUnit.FormatterTest.BadMessage) #{message}
            """
+  end
+
+  test "formats long test name using full description" do
+    failure = [{:error, catch_error(raise "oops"), []}]
+    long = long_test()
+
+    result = format_test_failure(long, failure, 1, 80, &formatter/2)
+    assert result =~ "test #{String.duplicate("a", 300)} (Hello)"
+  end
+
+  test "formats long test name with assertions using full description" do
+    assertion_error = catch_assertion(assert 1 == 2)
+    failure = [{:error, assertion_error, []}]
+    long = long_test()
+
+    result = format_test_failure(long, failure, 1, 80, &formatter/2)
+    assert result =~ "test #{String.duplicate("a", 300)} (Hello)"
+    assert result =~ "Assertion with == failed"
   end
 end

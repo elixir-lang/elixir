@@ -695,16 +695,17 @@ defmodule ExUnit.Case do
     moduletag = Module.get_attribute(mod, :moduletag)
     tag = Module.delete_attribute(mod, :tag)
 
-    {name, describe, describe_line, describetag} =
+    {description, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
         {line, describe, _counter} ->
-          test_name = validate_test_name("#{test_type} #{describe} #{name}")
-          {test_name, describe, line, Module.get_attribute(mod, :describetag)}
+          {"#{test_type} #{describe} #{name}", describe, line,
+           Module.get_attribute(mod, :describetag)}
 
         nil ->
-          test_name = validate_test_name("#{test_type} #{name}")
-          {test_name, nil, nil, []}
+          {"#{test_type} #{name}", nil, nil, []}
       end
+
+    name = build_test_name(description)
 
     if Module.defines?(mod, {name, 1}) do
       raise ArgumentError, ~s("#{name}" is already defined in #{inspect(mod)})
@@ -723,7 +724,7 @@ defmodule ExUnit.Case do
         test_type: test_type
       })
 
-    test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
+    test = %ExUnit.Test{name: name, description: description, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
 
     for attribute <- Module.get_attribute(mod, :ex_unit_registered_test_attributes) do
@@ -733,15 +734,8 @@ defmodule ExUnit.Case do
     name
   end
 
-  @doc """
-  Registers a test with the given environment.
-
-  This function is deprecated in favor of `register_test/6` which performs
-  better under tight loops by avoiding `__ENV__`.
-  """
   # TODO: Remove me Elixir v2.0
   @deprecated "Use register_test/6 instead"
-  @doc since: "1.3.0"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     register_test(mod, file, line, test_type, name, tags)
   end
@@ -925,7 +919,12 @@ defmodule ExUnit.Case do
     tags
   end
 
-  defp validate_test_name(name) do
+  defp build_test_name(name) when byte_size(name) > 255 do
+    hash = :erlang.md5(name) |> binary_slice(0, 3) |> Base.encode64()
+    build_test_name(String.byte_slice(name, 0, 246) <> "... " <> hash)
+  end
+
+  defp build_test_name(name) do
     try do
       String.to_atom(name)
     rescue

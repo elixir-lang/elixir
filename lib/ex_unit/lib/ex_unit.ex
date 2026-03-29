@@ -143,8 +143,10 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:name` - the test name
+      * `:name` - the test name. This is the function name in the test module,
+        which is truncated and hashed when above 250 characters
       * `:module` - the test module
+      * `:description` - the test description (the name without truncation)
       * `:state` - the finished test state (see `t:ExUnit.state/0`)
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
@@ -152,7 +154,17 @@ defmodule ExUnit do
       * `:parameters` - the test parameters
 
     """
-    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: "", parameters: %{}]
+    defstruct [
+      :name,
+      :description,
+      :case,
+      :module,
+      :state,
+      time: 0,
+      tags: %{},
+      logs: "",
+      parameters: %{}
+    ]
 
     # TODO: Remove the `:case` field on v2.0
     @type t :: %__MODULE__{
@@ -163,7 +175,8 @@ defmodule ExUnit do
             time: non_neg_integer,
             tags: map,
             logs: String.t(),
-            parameters: map
+            parameters: map,
+            description: String.t()
           }
   end
 

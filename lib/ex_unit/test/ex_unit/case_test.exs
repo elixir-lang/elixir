@@ -127,30 +127,6 @@ defmodule ExUnit.CaseTest do
     end
   end
 
-  test "raises when name is longer than 255 characters" do
-    assert_raise SystemLimitError,
-                 ~r/must be shorter than 255 characters, got: "test a{256}"/,
-                 fn ->
-                   defmodule LongNameTest do
-                     use ExUnit.Case
-
-                     test String.duplicate("a", 256)
-                   end
-                 end
-
-    assert_raise SystemLimitError,
-                 ~r/must be shorter than 255 characters, got: "test a{100} a{156}"/,
-                 fn ->
-                   defmodule LongDescribeNameTest do
-                     use ExUnit.Case
-
-                     describe String.duplicate("a", 100) do
-                       test String.duplicate("a", 156)
-                     end
-                   end
-                 end
-  end
-
   test "warns when using @tag outside of describe" do
     stderr =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
