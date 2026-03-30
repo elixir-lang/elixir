@@ -4,9 +4,7 @@
 
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 -module(elixir_erl_pass).
--export([translate/3, translate_args/3, no_parens_error/2]).
-%% TODO: Remove me on Elixir v2.0.
--export([parens_map_field/2, no_parens_remote/2]).
+-export([translate/3, translate_args/3, no_parens_remote/2, parens_map_field/2]).
 -include("elixir.hrl").
 
 %% =
@@ -241,13 +239,15 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
   Ann = ?ann(Meta),
   {TLeft, SL} = translate(Left, Ann, S),
   TRight = {atom, Ann, Right},
+
   Generated = erl_anno:set_generated(true, Ann),
+  {InnerVar, SI} = elixir_erl_var:build('_', SL),
+  TInnerVar = {var, Generated, InnerVar},
+  {Var, SV} = elixir_erl_var:build('_', SI),
+  TVar = {var, Generated, Var},
 
   case proplists:get_value(no_parens, Meta, false) of
     true ->
-      {Var, SV} = elixir_erl_var:build('_', SL),
-      TVar = {var, Generated, Var},
-
       {{'case', Generated, TLeft, [
         {clause, Generated,
           [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
@@ -256,13 +256,24 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
         {clause, Generated,
           [TVar],
           [],
-          [?remote(Ann, erlang, error, [
-            ?remote(Generated, elixir_erl_pass, no_parens_error, [TVar, TRight])
-           ])]}
+          [{'case', Generated, ?remote(Generated, elixir_erl_pass, no_parens_remote, [TVar, TRight]), [
+            {clause, Generated,
+             [{tuple, Generated, [{atom, Generated, ok}, TInnerVar]}], [], [TInnerVar]},
+            {clause, Generated,
+             [{tuple, Generated, [{atom, Generated, error}, TInnerVar]}], [], [?remote(Ann, erlang, error, [TInnerVar])]}
+          ]}]}
       ]}, SV};
-
     false ->
-      {{call, Generated, {remote, Generated, TLeft, TRight}, []}, SL}
+      {{'case', Generated, TLeft, [
+        {clause, Generated,
+          [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
+          [],
+          [?remote(Generated, elixir_erl_pass, parens_map_field, [TRight, TVar])]},
+        {clause, Generated,
+          [TVar],
+          [],
+          [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
+      ]}, SV}
     end;
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, _Ann, S)
@@ -740,13 +751,9 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
 generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
 
-no_parens_error(#{} = Map, Key) ->
-  {badkey, Key, Map};
-no_parens_error(Other, _Key) ->
-  {badmap, Other}.
-
-%% TODO: Previous Elixir code was compiled with these functions,
-%% so we have to keep them.
+%% TODO: Make this a runtime error on Elixir v2.0
+%% Note we must keep these old functions around for
+%% a while as compiled code may still call them.
 no_parens_remote(nil, _Key) -> {error, {badmap, nil}};
 no_parens_remote(false, _Key) -> {error, {badmap, false}};
 no_parens_remote(true, _Key) -> {error, {badmap, true}};

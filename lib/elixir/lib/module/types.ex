@@ -480,7 +480,7 @@ defmodule Module.Types do
   def format_diagnostic({:unused_clause, kind, {fun, arity}}) do
     %{
       message:
-        "this clause of #{kind} #{fun}/#{arity} is never used (or it will always fail when invoked)"
+        "this clause of #{kind} #{fun}/#{arity} is never used (or it will always fail/warn when invoked)"
     }
   end
 
