@@ -369,7 +369,10 @@ defmodule Registry do
     * `{:duplicate, :key}` - Use `:key` partitioning when entries are spread across
       many different keys (e.g., many topics with few subscribers each). This makes
       key-based lookups more efficient as they only need to check a single partition
-      instead of all partitions.
+      instead of all partitions. This option uses a different internal ETS table type
+      (`ordered_set` instead of `duplicate_bag`), which means match specs passed to
+      `select/2` and `count_select/2` that reference `:"$_"` may behave differently.
+      Use named match variables (`:"$1"`, `:"$2"`, etc.) instead.
 
   """
   @doc since: "1.5.0"
