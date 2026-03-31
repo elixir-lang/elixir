@@ -1590,6 +1590,9 @@ defmodule Registry do
     end
   end
 
+  # In duplicate_bag, :"$_" is {key, {pid, value}}, so {:element, 1, :"$_"} = key.
+  # In ordered_set, :"$_" is {{key, pid, counter}, value}, so we need
+  # {:element, 1, {:element, 1, :"$_"}} to reach the key.
   defp ordered_rewrite(term) when is_tuple(term) do
     ordered_rewrite_tuple(term)
   end
