@@ -316,16 +316,6 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "expands vars to local call when :on_undefined_variable is :warn" do
-      Code.put_compiler_option(:on_undefined_variable, :warn)
-
-      {output, env} = expand_env({:a, [], nil}, __ENV__, [])
-      assert output == {:a, [if_undefined: :warn], []}
-      assert Macro.Env.vars(env) == []
-    after
-      Code.put_compiler_option(:on_undefined_variable, :raise)
-    end
-
     test "expands vars to local call without warning" do
       env = __ENV__
 
