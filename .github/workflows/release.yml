@@ -145,7 +145,7 @@ jobs:
 
       - name: Log in to Azure
         if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
