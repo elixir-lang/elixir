@@ -1111,7 +1111,9 @@ defmodule Registry do
     {total_spec, delete_spec} = unregister_match_specs(kind, key, self, pattern, guards)
     total = :ets.select_count(key_ets, total_spec)
 
+    # We only want to delete things that match the pattern
     case :ets.select_delete(key_ets, delete_spec) do
+      # We deleted everything, we can just delete the object
       ^total ->
         true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
         unlink_if_unregistered(pid_server, pid_ets, self)
@@ -1124,6 +1126,10 @@ defmodule Registry do
         :ok
 
       deleted ->
+        # There are still entries remaining for this pid. delete_object/2 with
+        # duplicate_bag tables will remove every entry, but we only want to
+        # remove those we have deleted. The solution is to introduce a temp_entry
+        # that indicates how many keys WILL be remaining after the delete operation.
         counter = System.unique_integer()
         remaining = total - deleted
         temp_entry = {self, key, {key_ets, remaining}, counter}
@@ -1131,6 +1137,8 @@ defmodule Registry do
         true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
         real_keys = List.duplicate({self, key, key_ets, counter}, remaining)
         true = :ets.insert(pid_ets, real_keys)
+        # We've recreated the real remaining key entries, so we can now delete
+        # our temporary entry.
         true = :ets.delete_object(pid_ets, temp_entry)
     end
 
