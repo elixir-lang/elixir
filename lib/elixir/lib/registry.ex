@@ -808,31 +808,25 @@ defmodule Registry do
   @spec match(registry, key, match_pattern, guards) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        :ets.select(key_ets, ordered_match_spec(key, pattern, guards))
+
+      {{:duplicate, :key}, partitions, _key_ets} ->
+        :ets.select(key_ets!(registry, key, partitions), ordered_match_spec(key, pattern, guards))
+
+      {{:duplicate, :pid}, partitions, nil} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+
+        for partition <- 0..(partitions - 1),
+            pair <- :ets.select(key_ets!(registry, partition), spec),
+            do: pair
+
+      {_kind, partitions, key_ets} ->
         guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
         spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select(key_ets, spec)
-
-      {{:duplicate, :key}, 1, key_ets} ->
-        spec = ordered_match_spec(key, pattern, guards)
-        :ets.select(key_ets, spec)
-
-      {{:duplicate, :key}, partitions, _key_ets} ->
-        spec = ordered_match_spec(key, pattern, guards)
-        :ets.select(key_ets!(registry, key, partitions), spec)
-
-      {{:duplicate, :pid}, 1, key_ets} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
-        :ets.select(key_ets, spec)
-
-      {{:duplicate, :pid}, partitions, _key_ets} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
-        for partition <- 0..(partitions - 1),
-            pair <- :ets.select(key_ets!(registry, partition), spec),
-            do: pair
     end
   end
 
@@ -1497,31 +1491,25 @@ defmodule Registry do
   def count_match(registry, key, pattern, guards \\ [])
       when is_atom(registry) and is_list(guards) do
     case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
+      {{:duplicate, :key}, 1, key_ets} ->
+        :ets.select_count(key_ets, ordered_count_match_spec(key, pattern, guards))
+
+      {{:duplicate, :key}, partitions, _key_ets} ->
+        :ets.select_count(key_ets!(registry, key, partitions), ordered_count_match_spec(key, pattern, guards))
+
+      {{:duplicate, :pid}, partitions, nil} ->
+        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+        spec = [{{:_, {:_, pattern}}, guards, [true]}]
+
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          :ets.select_count(key_ets!(registry, partition_index), spec)
+        end)
+
+      {_kind, partitions, key_ets} ->
         guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
         spec = [{{:_, {:_, pattern}}, guards, [true]}]
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select_count(key_ets, spec)
-
-      {{:duplicate, :key}, 1, key_ets} ->
-        spec = ordered_count_match_spec(key, pattern, guards)
-        :ets.select_count(key_ets, spec)
-
-      {{:duplicate, :key}, partitions, _key_ets} ->
-        spec = ordered_count_match_spec(key, pattern, guards)
-        :ets.select_count(key_ets!(registry, key, partitions), spec)
-
-      {{:duplicate, :pid}, 1, key_ets} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [true]}]
-        :ets.select_count(key_ets, spec)
-
-      {{:duplicate, :pid}, partitions, _key_ets} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [true]}]
-        Enum.sum_by(0..(partitions - 1), fn partition_index ->
-          :ets.select_count(key_ets!(registry, partition_index), spec)
-        end)
     end
   end
 
