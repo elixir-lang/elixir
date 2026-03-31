@@ -532,13 +532,17 @@ defmodule Registry do
   given as an option, the dispatching happens in parallel. In both cases,
   the callback is only invoked if there are entries for that partition.
 
+  For `{:duplicate, :key}` registries, all entries for a given key are in a
+  single partition, so the `:parallel` option has no effect.
+
   See the module documentation for examples of using the `dispatch/3`
   function for building custom dispatching or a pubsub system.
 
   ## Options
 
     * `:parallel` - if `true`, the dispatching is done in parallel
-      across all partitions. Defaults to `false`.
+      across all partitions. Only meaningful for `{:duplicate, :pid}`
+      registries. Defaults to `false`.
 
   """
   @doc since: "1.4.0"
@@ -565,25 +569,9 @@ defmodule Registry do
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {{:duplicate, :key}, partitions, _} ->
-        if Keyword.get(opts, :parallel, false) do
-          parent = self()
-
-          task =
-            Task.async(fn ->
-              key_ets!(registry, key, partitions)
-              |> ordered_lookup_second(key)
-              |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
-
-              Process.unlink(parent)
-              :ok
-            end)
-
-          Task.await(task, :infinity)
-        else
-          key_ets!(registry, key, partitions)
-          |> ordered_lookup_second(key)
-          |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
-        end
+        key_ets!(registry, key, partitions)
+        |> ordered_lookup_second(key)
+        |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {{:duplicate, :pid}, partitions, _} ->
         if Keyword.get(opts, :parallel, false) do

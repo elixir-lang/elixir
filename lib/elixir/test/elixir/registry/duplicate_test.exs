@@ -113,9 +113,13 @@ defmodule Registry.DuplicateTest do
   end
 
   test "dispatches to multiple keys in parallel", context do
-    %{registry: registry, partitions: partitions} = context
+    %{registry: registry, keys: keys, partitions: partitions} = context
     Process.flag(:trap_exit, true)
     parent = self()
+
+    # {:duplicate, :key} dispatches from a single partition,
+    # so parallel: true has no effect.
+    parallel? = partitions == 8 and keys != {:duplicate, :key}
 
     fun = fn _ -> raise "will never be invoked" end
     assert Registry.dispatch(registry, "hello", fun, parallel: true) == :ok
@@ -125,7 +129,7 @@ defmodule Registry.DuplicateTest do
     {:ok, _} = Registry.register(registry, "world", :value3)
 
     fun = fn entries ->
-      if partitions == 8 do
+      if parallel? do
         assert parent != self()
       else
         assert parent == self()
@@ -141,7 +145,7 @@ defmodule Registry.DuplicateTest do
     refute_received {:dispatch, :value3}
 
     fun = fn entries ->
-      if partitions == 8 do
+      if parallel? do
         assert parent != self()
       else
         assert parent == self()
