@@ -258,7 +258,7 @@ defmodule Registry do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
-        case safe_lookup_second(key_ets, key) do
+        case lookup_second(:unique, key_ets, key) do
           {pid, _} ->
             if Process.alive?(pid), do: pid, else: :undefined
 
@@ -556,24 +556,21 @@ defmodule Registry do
       when is_atom(registry) and tuple_size(mfa_or_fun) == 3 do
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
-        (key_ets || key_ets!(registry, key, partitions))
-        |> safe_lookup_second(key)
+        key_ets = key_ets || key_ets!(registry, key, partitions)
+
+        :unique
+        |> lookup_second(key_ets, key)
         |> List.wrap()
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
-      {{:duplicate, :key}, 1, key_ets} ->
-        key_ets
-        |> ordered_lookup_second(key)
-        |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
-
-      {{:duplicate, :pid}, 1, key_ets} ->
-        key_ets
-        |> safe_lookup_second(key)
+      {{:duplicate, _} = kind, 1, key_ets} ->
+        kind
+        |> lookup_second(key_ets, key)
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {{:duplicate, :key}, partitions, _} ->
-        key_ets!(registry, key, partitions)
-        |> ordered_lookup_second(key)
+        {:duplicate, :key}
+        |> lookup_second(key_ets!(registry, key, partitions), key)
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {{:duplicate, :pid}, partitions, _} ->
@@ -596,9 +593,8 @@ defmodule Registry do
   defp dispatch_serial(registry, key, mfa_or_fun, partition) do
     partition = partition - 1
 
-    registry
-    |> key_ets!(partition)
-    |> safe_lookup_second(key)
+    {:duplicate, :pid}
+    |> lookup_second(key_ets!(registry, partition), key)
     |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
     dispatch_serial(registry, key, mfa_or_fun, partition)
@@ -614,9 +610,8 @@ defmodule Registry do
 
     task =
       Task.async(fn ->
-        registry
-        |> key_ets!(partition)
-        |> safe_lookup_second(key)
+        {:duplicate, :pid}
+        |> lookup_second(key_ets!(registry, partition), key)
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
         Process.unlink(parent)
@@ -680,7 +675,7 @@ defmodule Registry do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
-        case safe_lookup_second(key_ets, key) do
+        case lookup_second(:unique, key_ets, key) do
           {_, _} = pair ->
             [pair]
 
@@ -688,18 +683,15 @@ defmodule Registry do
             []
         end
 
-      {{:duplicate, :key}, 1, key_ets} ->
-        ordered_lookup_second(key_ets, key)
-
-      {{:duplicate, :pid}, 1, key_ets} ->
-        safe_lookup_second(key_ets, key)
+      {{:duplicate, _} = kind, 1, key_ets} ->
+        lookup_second(kind, key_ets, key)
 
       {{:duplicate, :key}, partitions, _key_ets} ->
-        ordered_lookup_second(key_ets!(registry, key, partitions), key)
+        lookup_second({:duplicate, :key}, key_ets!(registry, key, partitions), key)
 
       {{:duplicate, :pid}, partitions, _key_ets} ->
         for partition <- 0..(partitions - 1),
-            pair <- safe_lookup_second(key_ets!(registry, partition), key),
+            pair <- lookup_second({:duplicate, :pid}, key_ets!(registry, partition), key),
             do: pair
     end
   end
@@ -967,7 +959,7 @@ defmodule Registry do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
-        case safe_lookup_second(key_ets, key) do
+        case lookup_second(:unique, key_ets, key) do
           {^pid, value} ->
             [value]
 
@@ -975,20 +967,17 @@ defmodule Registry do
             []
         end
 
-      {{:duplicate, :key}, 1, key_ets} ->
-        for {^pid, value} <- ordered_lookup_second(key_ets, key), do: value
-
-      {{:duplicate, :pid}, 1, key_ets} ->
-        for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
+      {{:duplicate, _} = kind, 1, key_ets} ->
+        for {^pid, value} <- lookup_second(kind, key_ets, key), do: value
 
       {{:duplicate, :key}, partitions, _key_ets} ->
         key_ets = key_ets!(registry, key, partitions)
-        for {^pid, value} <- ordered_lookup_second(key_ets, key), do: value
+        for {^pid, value} <- lookup_second({:duplicate, :key}, key_ets, key), do: value
 
       {{:duplicate, :pid}, partitions, _key_ets} ->
         partition = hash(pid, partitions)
         key_ets = key_ets!(registry, partition)
-        for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
+        for {^pid, value} <- lookup_second({:duplicate, :pid}, key_ets, key), do: value
     end
   end
 
@@ -1644,15 +1633,7 @@ defmodule Registry do
     :ets.lookup_element(registry, partition, 3)
   end
 
-  defp safe_lookup_second(ets, key) do
-    try do
-      :ets.lookup_element(ets, key, 2)
-    catch
-      :error, :badarg -> []
-    end
-  end
-
-  defp ordered_lookup_second(ets, key) do
+  defp lookup_second({:duplicate, :key}, ets, key) do
     spec =
       if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
         guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
@@ -1663,6 +1644,14 @@ defmodule Registry do
 
     try do
       :ets.select(ets, spec)
+    catch
+      :error, :badarg -> []
+    end
+  end
+
+  defp lookup_second(_kind, ets, key) do
+    try do
+      :ets.lookup_element(ets, key, 2)
     catch
       :error, :badarg -> []
     end
