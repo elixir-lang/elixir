@@ -428,8 +428,8 @@ defmodule Registry.DuplicateTest do
 
     assert ["hello", "world"] ==
              Registry.select(registry, [
-               {{"hello", :_, :_}, [], [{:element, 1, :"$_"}]},
-               {{"world", :_, :_}, [], [{:element, 1, :"$_"}]}
+               {{:"$1", :_, :_}, [{:"=:=", :"$1", {:const, "hello"}}], [:"$1"]},
+               {{:"$1", :_, :_}, [{:"=:=", :"$1", {:const, "world"}}], [:"$1"]}
              ])
              |> Enum.sort()
   end

@@ -1497,6 +1497,9 @@ defmodule Registry do
   some operations like `:element` to modify the output format.
 
   Do not use special match variables `:"$_"` and `:"$$"`, because they might not work as expected.
+  In particular, `{:duplicate, :key}` registries use a different internal ETS layout, so match specs
+  that reference the underlying entry structure via `:"$_"` will return different results.
+  Use named variables like `:"$1"`, `:"$2"`, `:"$3"` instead.
 
   Note that for large registries with many partitions this will be costly as it builds the result by
   concatenating all the partitions.
@@ -1576,8 +1579,6 @@ defmodule Registry do
     for part <- spec do
       case part do
         {{key, pid, value}, guards, body} when ordered ->
-          guards = ordered_rewrite(guards)
-          body = ordered_rewrite(body)
           {{{key, pid, :_}, value}, guards, body}
 
         {{key, pid, value}, guards, body} ->
@@ -1588,30 +1589,6 @@ defmodule Registry do
                 "invalid match specification in Registry.#{fun}/#{arity}: #{inspect(spec)}"
       end
     end
-  end
-
-  # In duplicate_bag, :"$_" is {key, {pid, value}}, so {:element, 1, :"$_"} = key.
-  # In ordered_set, :"$_" is {{key, pid, counter}, value}, so we need
-  # {:element, 1, {:element, 1, :"$_"}} to reach the key.
-  defp ordered_rewrite(term) when is_tuple(term) do
-    ordered_rewrite_tuple(term)
-  end
-
-  defp ordered_rewrite(term) when is_list(term) do
-    Enum.map(term, &ordered_rewrite/1)
-  end
-
-  defp ordered_rewrite(term), do: term
-
-  defp ordered_rewrite_tuple({:element, 1, :"$_"}) do
-    {:element, 1, {:element, 1, :"$_"}}
-  end
-
-  defp ordered_rewrite_tuple(tuple) do
-    tuple
-    |> Tuple.to_list()
-    |> Enum.map(&ordered_rewrite/1)
-    |> List.to_tuple()
   end
 
   ## Helpers
