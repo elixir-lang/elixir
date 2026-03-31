@@ -1039,12 +1039,7 @@ defmodule Registry do
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true =
-      if ordered?(kind) do
-        ordered_unregister_key(key_ets, key, self)
-      else
-        __unregister__(key_ets, {key, {self, :_}}, 1)
-      end
+    true = __unregister__(key_ets, {key, {self, :_}}, 1, ordered?(kind))
 
     true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
 
@@ -1739,7 +1734,19 @@ defmodule Registry do
   end
 
   @doc false
-  def __unregister__(table, match, pos) do
+  def __unregister__(table, match, pos, ordered \\ false)
+
+  def __unregister__(table, {key, {pid, :_}}, 1, true = _ordered) do
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
+      pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, pid}}
+      :ets.select_delete(table, [{{:_, :_}, [guard, pid_guard], [true]}]) >= 0
+    else
+      :ets.match_delete(table, {{key, pid, :_}, :_})
+    end
+  end
+
+  def __unregister__(table, match, pos, false = _ordered) do
     key = :erlang.element(pos, match)
 
     # We need to perform an element comparison if we have a special atom key.
@@ -1749,17 +1756,6 @@ defmodule Registry do
       :ets.select_delete(table, [{match, [guard], [true]}]) >= 0
     else
       :ets.match_delete(table, match)
-    end
-  end
-
-  @doc false
-  def ordered_unregister_key(key_ets, key, pid) do
-    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
-      guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
-      pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, pid}}
-      :ets.select_delete(key_ets, [{{:_, :_}, [guard, pid_guard], [true]}]) >= 0
-    else
-      :ets.match_delete(key_ets, {{key, pid, :_}, :_})
     end
   end
 
@@ -1975,11 +1971,7 @@ defmodule Registry.Partition do
         end
 
       try do
-        if ordered do
-          Registry.ordered_unregister_key(key_ets, key, pid)
-        else
-          Registry.__unregister__(key_ets, {key, {pid, :_}}, 1)
-        end
+        Registry.__unregister__(key_ets, {key, {pid, :_}}, 1, ordered)
       catch
         :error, :badarg -> :badarg
       end
