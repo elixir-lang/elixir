@@ -803,23 +803,15 @@ defmodule Registry do
   @spec match(registry, key, match_pattern, guards) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
     case key_info!(registry) do
-      {{:duplicate, :key}, 1, key_ets} ->
-        :ets.select(key_ets, ordered_match_spec(key, pattern, guards))
-
-      {{:duplicate, :key}, partitions, _key_ets} ->
-        :ets.select(key_ets!(registry, key, partitions), ordered_match_spec(key, pattern, guards))
-
       {{:duplicate, :pid}, partitions, nil} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+        spec = match_spec({:duplicate, :pid}, key, pattern, guards)
 
         for partition <- 0..(partitions - 1),
             pair <- :ets.select(key_ets!(registry, partition), spec),
             do: pair
 
-      {_kind, partitions, key_ets} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+      {kind, partitions, key_ets} ->
+        spec = match_spec(kind, key, pattern, guards)
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select(key_ets, spec)
     end
@@ -1450,23 +1442,15 @@ defmodule Registry do
   def count_match(registry, key, pattern, guards \\ [])
       when is_atom(registry) and is_list(guards) do
     case key_info!(registry) do
-      {{:duplicate, :key}, 1, key_ets} ->
-        :ets.select_count(key_ets, ordered_count_match_spec(key, pattern, guards))
-
-      {{:duplicate, :key}, partitions, _key_ets} ->
-        :ets.select_count(key_ets!(registry, key, partitions), ordered_count_match_spec(key, pattern, guards))
-
       {{:duplicate, :pid}, partitions, nil} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [true]}]
+        spec = count_match_spec({:duplicate, :pid}, key, pattern, guards)
 
         Enum.sum_by(0..(partitions - 1), fn partition_index ->
           :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
 
-      {_kind, partitions, key_ets} ->
-        guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-        spec = [{{:_, {:_, pattern}}, guards, [true]}]
+      {kind, partitions, key_ets} ->
+        spec = count_match_spec(kind, key, pattern, guards)
         key_ets = key_ets || key_ets!(registry, key, partitions)
         :ets.select_count(key_ets, spec)
     end
@@ -1703,7 +1687,7 @@ defmodule Registry do
     end
   end
 
-  defp ordered_match_spec(key, pattern, guards) do
+  defp match_spec({:duplicate, :key}, key, pattern, guards) do
     body = [{{{:element, 2, {:element, 1, :"$_"}}, {:element, 2, :"$_"}}}]
 
     if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
@@ -1717,7 +1701,12 @@ defmodule Registry do
     end
   end
 
-  defp ordered_count_match_spec(key, pattern, guards) do
+  defp match_spec(_kind, key, pattern, guards) do
+    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+    [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+  end
+
+  defp count_match_spec({:duplicate, :key}, key, pattern, guards) do
     if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
       guards = [
         {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}} | guards
@@ -1727,6 +1716,11 @@ defmodule Registry do
     else
       [{{{key, :_, :_}, pattern}, guards, [true]}]
     end
+  end
+
+  defp count_match_spec(_kind, key, pattern, guards) do
+    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+    [{{:_, {:_, pattern}}, guards, [true]}]
   end
 
   defp reserved_atom?("_"), do: true
