@@ -175,7 +175,7 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
-## v1.20.0-rc.4
+## v1.20.0-rc.4 (2026-03-31)
 
 This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
@@ -185,8 +185,9 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
   * [Code] Add `:dbg_callback` option to eval functions
   * [Code.Fragment] Allow preserving sigil metadata in `container_cursor_to_quoted`
-  * [File] Add support for [:raw] opts in `File.read/2`
+  * [File] Add support for `[:raw]` opts in `File.read/2`
   * [Kernel] Show undefined function errors even when missing variables (this helps debug errors caused when the developer forgets to require a macro)
+  * [Module] Purge and delete modules if `after_verify/2` callback fails
   * [PartitionSupervisor] Support via tuples in `count_children/1` and `stop/3`
   * [Process] Add `Process.get_label/1`
 
@@ -205,6 +206,10 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
   * [Kernel] Ensure type information propagate across `hd/tl` in guards (regression)
   * [Keyword] Raise `ArgumentError` in `Keyword.from_keys/2` for non-atom keys
   * [URI] Fix `URI.merge` leaking `:+` marker when base path is empty string
+
+#### ExUnit
+
+  * [ExUnit.Diff] Avoid false positives when diffing bitstrings
 
 #### Mix
 
