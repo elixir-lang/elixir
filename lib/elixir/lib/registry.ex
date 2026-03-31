@@ -1134,8 +1134,7 @@ defmodule Registry do
       {[{{{:_, :_, :_}, :_}, [guard, pid_guard], [true]}],
        [{{{:_, :_, :_}, pattern}, [guard, pid_guard | guards], [true]}]}
     else
-      {[{{{key, self, :_}, :_}, [], [true]}],
-       [{{{key, self, :_}, pattern}, guards, [true]}]}
+      {[{{{key, self, :_}, :_}, [], [true]}], [{{{key, self, :_}, pattern}, guards, [true]}]}
     end
   end
 
