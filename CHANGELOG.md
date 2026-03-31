@@ -187,7 +187,7 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
   * [Code.Fragment] Allow preserving sigil metadata in `container_cursor_to_quoted`
   * [File] Add support for `[:raw]` opts in `File.read/2`
   * [Kernel] Show undefined function errors even when missing variables (this helps debug errors caused when the developer forgets to require a macro)
-  * [Module] Purge and delete modules if `after_verify/2` callback fails
+  * [Module] Purge and delete modules if `after_compile/2` callback fails
   * [PartitionSupervisor] Support via tuples in `count_children/1` and `stop/3`
   * [Process] Add `Process.get_label/1`
 
