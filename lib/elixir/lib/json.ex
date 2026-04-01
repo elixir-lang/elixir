@@ -478,6 +478,10 @@ defmodule JSON do
       (default: `100` when formatting).
     * `:encoder` - a custom 2-arity encoder function to use as the
       base encoder (default: `&protocol_encode/2`).
+    * `:formatter` - a custom 3-arity function `(term, formatter, state)`
+      for controlling pretty-printed output. See `:json.format/3` for
+      details on the formatter interface. Only used when `:indent` or
+      `:max` is present.
 
   ## Custom encoder
 
@@ -538,7 +542,8 @@ defmodule JSON do
     {encoder, opts} = Keyword.pop(opts, :encoder, &protocol_encode/2)
 
     if opts[:indent] || opts[:max] do
-      :json.format(term, &protocol_format(&1, &2, &3, encoder), Map.new(opts))
+      {formatter, opts} = Keyword.pop(opts, :formatter, &protocol_format(&1, &2, &3, encoder))
+      :json.format(term, formatter, Map.new(opts))
     else
       encoder.(term, encoder)
     end

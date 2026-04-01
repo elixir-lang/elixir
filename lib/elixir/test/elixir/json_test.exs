@@ -319,6 +319,27 @@ defmodule JSONTest do
       assert JSON.encode!(%{name: "elixir"}, encoder) == "{\"NAME\":\"ELIXIR\"}"
     end
 
+    test "custom formatter" do
+      # A custom formatter that uppercases all string values
+      formatter = fn
+        term, formatter, state when is_binary(term) ->
+          :json.format_value(String.upcase(term), formatter, state)
+
+        term, formatter, state ->
+          JSON.protocol_format(term, formatter, state, &JSON.protocol_encode/2)
+      end
+
+      assert JSON.encode!(%{name: "elixir"}, indent: 2, formatter: formatter) ==
+               "{\n  \"NAME\": \"ELIXIR\"\n}\n"
+
+      assert JSON.encode!(
+               %{name: "elixir", tags: ["functional", "concurrent"]},
+               indent: 2,
+               formatter: formatter
+             ) ==
+               "{\n  \"NAME\": \"ELIXIR\",\n  \"TAGS\": [\n    \"FUNCTIONAL\",\n    \"CONCURRENT\"\n  ]\n}\n"
+    end
+
     test "encode_to_iodata with indent" do
       data = JSON.encode_to_iodata!(%{key: "value"}, indent: 2)
       assert is_list(data)
