@@ -309,7 +309,7 @@ defmodule JSONTest do
     test "custom encoder" do
       # A custom encoder that uppercases all string values
       encoder = fn
-        value, encoder when is_binary(value) ->
+        value, _encoder when is_binary(value) ->
           :json.encode_binary(String.upcase(value))
 
         value, encoder ->
