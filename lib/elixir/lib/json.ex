@@ -124,17 +124,26 @@ defprotocol JSON.Encoder do
   def encode(term, encoder)
 
   @doc """
-  A function invoked to format the given term to `t:iodata/0`.
+  A function invoked to format the given term to pretty-printed `t:iodata/0`.
 
-  The default implementations delegate to `encode/2`, which is
-  appropriate for scalar types. Structs may override this callback
-  to produce different output when pretty-printing (for example,
-  selecting different fields or ordering keys).
+  This callback is used by `JSON.format!/2` and `JSON.format_to_iodata!/2`.
+  The default implementations for scalar types (numbers, strings, dates, etc.)
+  produce the same output as `encode/2`. Container types (maps, lists) and
+  derived structs produce indented, multi-line output.
 
-  The `formatter` argument is a 3-arity function matching
-  `t:JSON.formatter/0` that should be called to recursively format
-  nested values. The `state` is a map carrying formatting context
-  such as indentation level (see `:json.format_value/3`).
+  Structs may override this callback to customize their pretty-printed
+  representation, for example to select different fields, reorder keys,
+  or add indentation-aware formatting.
+
+  ## Arguments
+
+    * `term` - the term to format
+    * `formatter` - a 3-arity function matching `t:JSON.formatter/0` that
+      should be called to recursively format nested values
+    * `state` - a map carrying formatting context such as `:level` (current
+      nesting depth), `:indent` (spaces per level), `:col` (current column),
+      and `:max` (line width hint). See `:json.format_value/3` for details.
+
   """
   def format(term, formatter, state)
 end
@@ -723,7 +732,8 @@ defmodule JSON do
   end
 
   def protocol_format(value, formatter, state)
-      when is_atom(value) or is_binary(value) or is_integer(value) or is_float(value) or is_list(value) do
+      when is_atom(value) or is_binary(value) or is_integer(value) or is_float(value) or
+             is_list(value) do
     :json.format_value(value, formatter, state)
   end
 
