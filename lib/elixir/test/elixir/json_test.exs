@@ -13,10 +13,6 @@ defmodule JSONTest do
       def encode(token, encoder) do
         [?[, encoder.(token.value, encoder), ?]]
       end
-
-      def format(token, formatter, state) do
-        [?[, formatter.(token.value, formatter, state), ?]]
-      end
     end
   end
 
@@ -137,9 +133,8 @@ defmodule JSONTest do
     end
 
     test "with only" do
-      assert ["{\"a\":", _, ",\"b\":", _, ",\"d\":", _, 125] =
-               json = JSON.encode_to_iodata!(%WithOnly{a: :a, b: "b", c: make_ref(), d: [?d]})
-
+      json = JSON.encode_to_iodata!(%WithOnly{a: :a, b: "b", c: make_ref(), d: [?d]})
+      assert is_list(json)
       assert IO.iodata_to_binary(json) == "{\"a\":\"a\",\"b\":\"b\",\"d\":[100]}"
     end
 
@@ -149,9 +144,8 @@ defmodule JSONTest do
     end
 
     test "with except" do
-      assert ["{\"a\":", _, ",\"b\":", _, ",\"d\":", _, 125] =
-               json = JSON.encode_to_iodata!(%WithExcept{a: :a, b: "b", c: make_ref(), d: [?d]})
-
+      json = JSON.encode_to_iodata!(%WithExcept{a: :a, b: "b", c: make_ref(), d: [?d]})
+      assert is_list(json)
       assert IO.iodata_to_binary(json) == "{\"a\":\"a\",\"b\":\"b\",\"d\":[100]}"
     end
 
@@ -163,131 +157,141 @@ defmodule JSONTest do
     test "with empty" do
       assert JSON.encode_to_iodata!(%WithEmpty{}) == "{}"
     end
+
+    test "nested without formatting" do
+      assert JSON.encode!(%{user: %WithOnly{a: 1, b: "nested", c: nil, d: [1, 2]}}) ==
+               "{\"user\":{\"a\":1,\"b\":\"nested\",\"d\":[1,2]}}"
+    end
   end
 
-  describe "format" do
+  describe "encode with indent" do
     test "atoms" do
-      assert JSON.format!(nil) == "null\n"
-      assert JSON.format!(true) == "true\n"
-      assert JSON.format!(false) == "false\n"
-      assert JSON.format!(:hello) == "\"hello\"\n"
+      assert JSON.encode!(nil, indent: 2) == "null\n"
+      assert JSON.encode!(true, indent: 2) == "true\n"
+      assert JSON.encode!(false, indent: 2) == "false\n"
+      assert JSON.encode!(:hello, indent: 2) == "\"hello\"\n"
 
-      formatted = JSON.format!(%{a: nil, b: false, c: true, d: :another})
+      formatted = JSON.encode!(%{a: nil, b: false, c: true, d: :another}, indent: 2)
 
       assert {:ok, %{"a" => nil, "b" => false, "c" => true, "d" => "another"}} =
                JSON.decode(formatted)
     end
 
     test "binaries" do
-      assert JSON.format!("hello") == "\"hello\"\n"
-      assert JSON.format!("hello\0world\t✂️") == "\"hello\\u0000world\\t✂️\"\n"
+      assert JSON.encode!("hello", indent: 2) == "\"hello\"\n"
+      assert JSON.encode!("hello\0world\t✂️", indent: 2) == "\"hello\\u0000world\\t✂️\"\n"
     end
 
     test "integers" do
-      assert JSON.format!(123_456) == "123456\n"
+      assert JSON.encode!(123_456, indent: 2) == "123456\n"
     end
 
     test "floats" do
-      assert JSON.format!(123.456) == "123.456\n"
+      assert JSON.encode!(123.456, indent: 2) == "123.456\n"
     end
 
     test "maps" do
-      assert JSON.format!(%{key: "value"}) ==
+      assert JSON.encode!(%{key: "value"}, indent: 2) ==
                "{\n  \"key\": \"value\"\n}\n"
 
-      assert JSON.format!(%{}) == "{}\n"
+      assert JSON.encode!(%{}, indent: 2) == "{}\n"
     end
 
     test "nested maps" do
-      assert JSON.format!(%{a: %{b: 1}}) ==
+      assert JSON.encode!(%{a: %{b: 1}}, indent: 2) ==
                "{\n  \"a\": {\n    \"b\": 1\n  }\n}\n"
     end
 
     test "maps with String.Chars keys" do
-      assert JSON.format!(%{1 => "one"}) ==
+      assert JSON.encode!(%{1 => "one"}, indent: 2) ==
                "{\n  \"1\": \"one\"\n}\n"
 
-      assert JSON.format!(%{~c"list" => "value"}) ==
+      assert JSON.encode!(%{~c"list" => "value"}, indent: 2) ==
                "{\n  \"list\": \"value\"\n}\n"
 
-      formatted = JSON.format!(%{1 => 2, 3.0 => 4.0, ~c"list" => ~c"list", key: :bar})
+      formatted = JSON.encode!(%{1 => 2, 3.0 => 4.0, ~c"list" => ~c"list", key: :bar}, indent: 2)
       assert {:ok, decoded} = JSON.decode(formatted)
       assert decoded == %{"1" => 2, "3.0" => 4.0, "key" => "bar", "list" => [108, 105, 115, 116]}
     end
 
     test "lists" do
-      assert JSON.format!([1, "two", 3]) == "[1,\"two\",3]\n"
+      assert JSON.encode!([1, "two", 3], indent: 2) == "[1,\"two\",3]\n"
 
-      assert JSON.format!(%{items: [1, 2, 3]}) ==
+      assert JSON.encode!(%{items: [1, 2, 3]}, indent: 2) ==
                "{\n  \"items\": [1,2,3]\n}\n"
     end
 
     test "structs" do
-      assert JSON.format!(%{token: %Token{value: "example"}}) ==
+      assert JSON.encode!(%{token: %Token{value: "example"}}, indent: 2) ==
                "{\n  \"token\": [\"example\"]\n}\n"
     end
 
     test "calendar" do
-      assert JSON.format!(~D[2010-04-17]) == "\"2010-04-17\"\n"
-      assert JSON.format!(~T[14:00:00.123]) == "\"14:00:00.123\"\n"
-      assert JSON.format!(~N[2010-04-17 14:00:00.123]) == "\"2010-04-17T14:00:00.123\"\n"
-      assert JSON.format!(~U[2010-04-17 14:00:00.123Z]) == "\"2010-04-17T14:00:00.123Z\"\n"
-      assert JSON.format!(Duration.new!(month: 2, hour: 3)) == "\"P2MT3H\"\n"
+      assert JSON.encode!(~D[2010-04-17], indent: 2) == "\"2010-04-17\"\n"
+      assert JSON.encode!(~T[14:00:00.123], indent: 2) == "\"14:00:00.123\"\n"
 
-      assert JSON.format!(%{date: ~D[2010-04-17]}) ==
+      assert JSON.encode!(~N[2010-04-17 14:00:00.123], indent: 2) ==
+               "\"2010-04-17T14:00:00.123\"\n"
+
+      assert JSON.encode!(~U[2010-04-17 14:00:00.123Z], indent: 2) ==
+               "\"2010-04-17T14:00:00.123Z\"\n"
+
+      assert JSON.encode!(Duration.new!(month: 2, hour: 3), indent: 2) == "\"P2MT3H\"\n"
+
+      assert JSON.encode!(%{date: ~D[2010-04-17]}, indent: 2) ==
                "{\n  \"date\": \"2010-04-17\"\n}\n"
 
-      assert JSON.format!(%{time: ~T[14:00:00.123]}) ==
+      assert JSON.encode!(%{time: ~T[14:00:00.123]}, indent: 2) ==
                "{\n  \"time\": \"14:00:00.123\"\n}\n"
 
-      assert JSON.format!(%{naive: ~N[2010-04-17 14:00:00.123]}) ==
+      assert JSON.encode!(%{naive: ~N[2010-04-17 14:00:00.123]}, indent: 2) ==
                "{\n  \"naive\": \"2010-04-17T14:00:00.123\"\n}\n"
 
-      assert JSON.format!(%{utc: ~U[2010-04-17 14:00:00.123Z]}) ==
+      assert JSON.encode!(%{utc: ~U[2010-04-17 14:00:00.123Z]}, indent: 2) ==
                "{\n  \"utc\": \"2010-04-17T14:00:00.123Z\"\n}\n"
 
-      assert JSON.format!(%{duration: Duration.new!(month: 2, hour: 3)}) ==
+      assert JSON.encode!(%{duration: Duration.new!(month: 2, hour: 3)}, indent: 2) ==
                "{\n  \"duration\": \"P2MT3H\"\n}\n"
     end
 
     test "empty containers" do
-      assert JSON.format!(%{}) == "{}\n"
-
-      formatted = JSON.format!(%{map: %{}, list: []})
+      formatted = JSON.encode!(%{map: %{}, list: []}, indent: 2)
       assert {:ok, %{"map" => %{}, "list" => []}} = JSON.decode(formatted)
     end
 
-    test "indent option" do
-      assert JSON.format!(%{key: "value"}, indent: 4) ==
+    test "indent: 4" do
+      assert JSON.encode!(%{key: "value"}, indent: 4) ==
                "{\n    \"key\": \"value\"\n}\n"
 
-      assert JSON.format!(%{a: %{b: 1}}, indent: 4) ==
+      assert JSON.encode!(%{a: %{b: 1}}, indent: 4) ==
                "{\n    \"a\": {\n        \"b\": 1\n    }\n}\n"
     end
 
     test "max option" do
       # Default max (100): array stays on one line
-      assert JSON.format!(%{items: [1, 2, 3, 4, 5]}) ==
+      assert JSON.encode!(%{items: [1, 2, 3, 4, 5]}, indent: 2) ==
                "{\n  \"items\": [1,2,3,4,5]\n}\n"
 
       # Narrow max: array wraps
-      assert JSON.format!(%{items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}, max: 20) ==
+      assert JSON.encode!(%{items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}, indent: 2, max: 20) ==
                "{\n  \"items\": [1,2,3,4,5,6,7,8,9,10,\n    11,12]\n}\n"
     end
 
     test "derived structs" do
-      formatted = JSON.format!(%JSONTest.WithOnly{a: :a, b: "b", c: make_ref(), d: [?d]})
+      formatted =
+        JSON.encode!(%JSONTest.WithOnly{a: :a, b: "b", c: make_ref(), d: [?d]}, indent: 2)
 
       assert formatted ==
                "{\n  \"a\": \"a\",\n  \"b\": \"b\",\n  \"d\": [100]\n}\n"
 
-      nested = JSON.format!(%{user: %JSONTest.WithOnly{a: 1, b: "nested", c: nil, d: [1, 2]}})
+      nested =
+        JSON.encode!(%{user: %JSONTest.WithOnly{a: 1, b: "nested", c: nil, d: [1, 2]}}, indent: 2)
 
       assert nested ==
                "{\n  \"user\": {\n    \"a\": 1,\n    \"b\": \"nested\",\n    \"d\": [1,2]\n  }\n}\n"
 
       nested_4 =
-        JSON.format!(%{user: %JSONTest.WithOnly{a: 1, b: "nested", c: nil, d: [1, 2]}},
+        JSON.encode!(%{user: %JSONTest.WithOnly{a: 1, b: "nested", c: nil, d: [1, 2]}},
           indent: 4
         )
 
@@ -295,25 +299,24 @@ defmodule JSONTest do
                "{\n    \"user\": {\n        \"a\": 1,\n        \"b\": \"nested\",\n        \"d\": [1,2]\n    }\n}\n"
     end
 
-    test "custom formatter" do
-      # A formatter that uppercases all string values
-      formatter = fn
-        value, formatter, state when is_binary(value) ->
-          :json.format_value(String.upcase(value), formatter, state)
+    test "custom encoder" do
+      # A custom encoder that uppercases all string values
+      encoder = fn
+        value, encoder when is_binary(value) ->
+          :json.encode_binary(String.upcase(value))
 
-        value, formatter, state ->
-          JSON.protocol_format(value, formatter, state)
+        value, encoder ->
+          JSON.protocol_encode(value, encoder)
       end
 
-      assert JSON.format!(%{name: "elixir"}, formatter: formatter) ==
-               "{\n  \"NAME\": \"ELIXIR\"\n}\n"
+      assert JSON.encode!(%{name: "elixir"}, encoder) == "{\"NAME\":\"ELIXIR\"}"
     end
-  end
 
-  test "format_to_iodata" do
-    data = JSON.format_to_iodata!(%{key: "value"})
-    assert is_list(data)
-    assert IO.iodata_to_binary(data) == "{\n  \"key\": \"value\"\n}\n"
+    test "encode_to_iodata with indent" do
+      data = JSON.encode_to_iodata!(%{key: "value"}, indent: 2)
+      assert is_list(data)
+      assert IO.iodata_to_binary(data) == "{\n  \"key\": \"value\"\n}\n"
+    end
   end
 
   describe "decode" do

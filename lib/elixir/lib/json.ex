@@ -65,25 +65,13 @@ defprotocol JSON.Encoder do
     vars = Macro.generate_arguments(length(fields), __MODULE__)
     kv = Enum.zip(fields, vars)
 
-    {encode_io, _prefix} =
-      Enum.flat_map_reduce(kv, ?{, fn {field, value}, prefix ->
-        key = IO.iodata_to_binary([prefix, :json.encode_binary(Atom.to_string(field)), ?:])
-        {[key, quote(do: encoder.(unquote(value), encoder))], ?,}
-      end)
-
-    encode_io = if encode_io == [], do: "{}", else: encode_io ++ [?}]
-
-    format_kvs =
-      Enum.map(kv, fn {field, var} -> {Atom.to_string(field), var} end)
+    format_map =
+      {:%{}, [], Enum.map(kv, fn {field, var} -> {Atom.to_string(field), var} end)}
 
     quote do
       defimpl JSON.Encoder, for: unquote(module) do
         def encode(%{unquote_splicing(kv)}, encoder) do
-          unquote(encode_io)
-        end
-
-        def format(%{unquote_splicing(kv)}, formatter, state) do
-          :json.format_key_value_list(unquote(format_kvs), formatter, state)
+          encoder.(unquote(format_map), encoder)
         end
       end
     end
@@ -122,30 +110,6 @@ defprotocol JSON.Encoder do
   A function invoked to encode the given term to `t:iodata/0`.
   """
   def encode(term, encoder)
-
-  @doc """
-  A function invoked to format the given term to pretty-printed `t:iodata/0`.
-
-  This callback is used by `JSON.format!/2` and `JSON.format_to_iodata!/2`.
-  The default implementations for scalar types (numbers, strings, dates, etc.)
-  produce the same output as `encode/2`. Container types (maps, lists) and
-  derived structs produce indented, multi-line output.
-
-  Structs may override this callback to customize their pretty-printed
-  representation, for example to select different fields, reorder keys,
-  or add indentation-aware formatting.
-
-  ## Arguments
-
-    * `term` - the term to format
-    * `formatter` - a 3-arity function matching `t:JSON.formatter/0` that
-      should be called to recursively format nested values
-    * `state` - a map carrying formatting context such as `:level` (current
-      nesting depth), `:indent` (spaces per level), `:col` (current column),
-      and `:max` (line width hint). See `:json.format_value/3` for details.
-
-  """
-  def format(term, formatter, state)
 end
 
 defimpl JSON.Encoder, for: Atom do
@@ -157,19 +121,11 @@ defimpl JSON.Encoder, for: Atom do
       _ -> encoder.(Atom.to_string(value), encoder)
     end
   end
-
-  def format(value, formatter, state) do
-    :json.format_value(value, formatter, state)
-  end
 end
 
 defimpl JSON.Encoder, for: BitString do
   def encode(value, _encoder) do
     :json.encode_binary(value)
-  end
-
-  def format(value, formatter, state) do
-    :json.format_value(value, formatter, state)
   end
 end
 
@@ -177,29 +133,17 @@ defimpl JSON.Encoder, for: List do
   def encode(value, encoder) do
     :json.encode_list(value, encoder)
   end
-
-  def format(value, formatter, state) do
-    :json.format_value(value, formatter, state)
-  end
 end
 
 defimpl JSON.Encoder, for: Integer do
   def encode(value, _encoder) do
     :json.encode_integer(value)
   end
-
-  def format(value, formatter, state) do
-    :json.format_value(value, formatter, state)
-  end
 end
 
 defimpl JSON.Encoder, for: Float do
   def encode(value, _encoder) do
     :json.encode_float(value)
-  end
-
-  def format(value, formatter, state) do
-    :json.format_value(value, formatter, state)
   end
 end
 
@@ -214,25 +158,6 @@ defimpl JSON.Encoder, for: Map do
     end
   end
 
-  def format(value, formatter, state) do
-    case :maps.next(:maps.iterator(value)) do
-      :none ->
-        "{}"
-
-      {key, value, iterator} ->
-        state = %{state | level: state.level + 1}
-
-        [
-          "{\n",
-          indent(state),
-          key(key, formatter, state),
-          ": ",
-          formatter.(value, formatter, state)
-          | format_next(iterator, formatter, state)
-        ]
-    end
-  end
-
   defp next(iterator, encoder) do
     case :maps.next(iterator) do
       :none ->
@@ -243,52 +168,17 @@ defimpl JSON.Encoder, for: Map do
     end
   end
 
-  defp format_next(iterator, formatter, state) do
-    case :maps.next(iterator) do
-      :none ->
-        ["\n", indent(%{state | level: state.level - 1}), ?}]
-
-      {key, value, iterator} ->
-        [
-          ",\n",
-          indent(state),
-          key(key, formatter, state),
-          ": ",
-          formatter.(value, formatter, state)
-          | format_next(iterator, formatter, state)
-        ]
-    end
-  end
-
-  defp indent(%{indent: indent, level: level}) do
-    String.duplicate(" ", indent * level)
-  end
-
   # Erlang supports only numbers, binaries, and atoms as keys,
   # we support anything that implements the String.Chars protocol.
   defp key(key, encoder) when is_atom(key), do: encoder.(Atom.to_string(key), encoder)
   defp key(key, encoder) when is_binary(key), do: encoder.(key, encoder)
   defp key(key, encoder), do: encoder.(String.Chars.to_string(key), encoder)
-
-  defp key(key, formatter, state) when is_atom(key) do
-    formatter.(Atom.to_string(key), formatter, state)
-  end
-
-  defp key(key, formatter, state) when is_binary(key) do
-    formatter.(key, formatter, state)
-  end
-
-  defp key(key, formatter, state) do
-    formatter.(String.Chars.to_string(key), formatter, state)
-  end
 end
 
 defimpl JSON.Encoder, for: Duration do
   def encode(value, _encoder) do
     [?", Duration.to_iso8601(value), ?"]
   end
-
-  def format(value, formatter, _state), do: encode(value, formatter)
 end
 
 defimpl JSON.Encoder, for: Date do
@@ -300,8 +190,6 @@ defimpl JSON.Encoder, for: Date do
   def encode(value, _encoder) do
     [?", Date.to_iso8601(value), ?"]
   end
-
-  def format(value, formatter, _state), do: encode(value, formatter)
 end
 
 defimpl JSON.Encoder, for: Time do
@@ -319,8 +207,6 @@ defimpl JSON.Encoder, for: Time do
   def encode(value, _encoder) do
     [?", Time.to_iso8601(value), ?"]
   end
-
-  def format(value, formatter, _state), do: encode(value, formatter)
 end
 
 defimpl JSON.Encoder, for: NaiveDateTime do
@@ -347,8 +233,6 @@ defimpl JSON.Encoder, for: NaiveDateTime do
   def encode(value, _encoder) do
     [?", NaiveDateTime.to_iso8601(value), ?"]
   end
-
-  def format(value, formatter, _state), do: encode(value, formatter)
 end
 
 defimpl JSON.Encoder, for: DateTime do
@@ -379,8 +263,6 @@ defimpl JSON.Encoder, for: DateTime do
   def encode(value, _encoder) do
     [?", DateTime.to_iso8601(value), ?"]
   end
-
-  def format(value, formatter, _state), do: encode(value, formatter)
 end
 
 defmodule JSON.DecodeError do
@@ -440,14 +322,6 @@ defmodule JSON do
   @moduledoc since: "1.18.0"
 
   @type encoder :: (term(), encoder() -> iodata())
-
-  @typedoc """
-  A formatter function used by `format!/2` and `format_to_iodata!/2`.
-
-  Unlike `t:encoder/0`, a formatter receives a third argument: a state map
-  that tracks indentation level and formatting options during recursion.
-  """
-  @type formatter :: (term(), formatter(), state :: map() -> iodata())
 
   @type decode_error_reason ::
           {:unexpected_end, non_neg_integer()}
@@ -590,8 +464,26 @@ defmodule JSON do
   @doc ~S"""
   Encodes the given term to JSON as a binary.
 
-  The second argument is a function that is recursively
-  invoked to encode a term.
+  The second argument can be a custom encoder function or a keyword
+  list of options.
+
+  ## Options
+
+  When a keyword list is given, the following options are supported:
+
+    * `:indent` - the number of spaces per indentation level. When
+      present, the output will be pretty-printed with newlines and
+      indentation.
+    * `:max` - loosely limits the width of arrays before wrapping
+      (default: `100` when formatting).
+    * `:encoder` - a custom 2-arity encoder function to use as the
+      base encoder (default: `&protocol_encode/2`).
+
+  ## Custom encoder
+
+  When a function is given as the second argument, it is used as the
+  encoder and called recursively for each term. The function receives
+  the term and itself for recursion: `encoder.(term, encoder)`.
 
   > #### IO and performance {: .tip}
   >
@@ -604,20 +496,29 @@ defmodule JSON do
       iex> JSON.encode!([123, "string", %{key: "value"}])
       "[123,\"string\",{\"key\":\"value\"}]"
 
+      iex> JSON.encode!(%{key: "value"}, indent: 2)
+      "{\n  \"key\": \"value\"\n}\n"
+
   """
-  @spec encode!(term(), encoder()) :: binary()
-  def encode!(term, encoder \\ &protocol_encode/2) do
+  @spec encode!(term(), encoder() | keyword()) :: binary()
+  def encode!(term, encoder_or_opts \\ &protocol_encode/2)
+
+  def encode!(term, encoder) when is_function(encoder) do
     IO.iodata_to_binary(encoder.(term, encoder))
   end
 
+  def encode!(term, opts) when is_list(opts) do
+    IO.iodata_to_binary(encode_to_iodata!(term, opts))
+  end
+
   @doc ~S"""
-  Encodes the given term to JSON as an iodata.
+  Encodes the given term to JSON as iodata.
 
   This is the most efficient format if the JSON is going to be
   used for IO purposes.
 
-  The second argument is a function that is recursively
-  invoked to encode a term.
+  The second argument can be a custom encoder function or a keyword
+  list of options. See `encode!/2` for supported options.
 
   ## Examples
 
@@ -626,9 +527,21 @@ defmodule JSON do
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
-  @spec encode_to_iodata!(term(), encoder()) :: iodata()
-  def encode_to_iodata!(term, encoder \\ &protocol_encode/2) do
+  @spec encode_to_iodata!(term(), encoder() | keyword()) :: iodata()
+  def encode_to_iodata!(term, encoder_or_opts \\ &protocol_encode/2)
+
+  def encode_to_iodata!(term, encoder) when is_function(encoder) do
     encoder.(term, encoder)
+  end
+
+  def encode_to_iodata!(term, opts) when is_list(opts) do
+    {encoder, opts} = Keyword.pop(opts, :encoder, &protocol_encode/2)
+
+    if opts[:indent] || opts[:max] do
+      :json.format(term, &protocol_format(&1, &2, &3, encoder), Map.new(opts))
+    else
+      encoder.(term, encoder)
+    end
   end
 
   @doc """
@@ -666,82 +579,70 @@ defmodule JSON do
   def protocol_encode(value, encoder),
     do: JSON.Encoder.encode(value, encoder)
 
-  @doc ~S"""
-  Formats the given term as pretty-printed JSON.
+  @doc false
+  def protocol_format(nil, _formatter, _state, _encoder), do: "null"
 
-  Returns a binary with newlines and indentation for human readability.
-
-  ## Options
-
-    * `:indent` - the number of spaces per indentation level (default: `2`)
-    * `:max` - loosely limits the width of arrays before wrapping (default: `100`)
-    * `:formatter` - a custom 3-arity formatter function (default: `&protocol_format/3`)
-
-  > #### IO and performance {: .tip}
-  >
-  > If you need to format data to be sent over the network
-  > or written to the filesystem, consider using the more
-  > efficient `format_to_iodata!/2`.
-
-  ## Examples
-
-      iex> JSON.format!(%{key: "value", list: [1, 2, 3]})
-      "{\n  \"list\": [1,2,3],\n  \"key\": \"value\"\n}\n"
-
-  """
-  @spec format!(term(), keyword()) :: binary()
-  def format!(term, opts \\ []) do
-    IO.iodata_to_binary(format_to_iodata!(term, opts))
-  end
-
-  @doc ~S"""
-  Formats the given term as pretty-printed JSON iodata.
-
-  This is the most efficient format if the JSON is going to be
-  used for IO purposes.
-
-  See `format!/2` for supported options.
-
-  ## Examples
-
-      iex> data = JSON.format_to_iodata!(%{key: "value", list: [1, 2, 3]})
-      iex> IO.iodata_to_binary(data)
-      "{\n  \"list\": [1,2,3],\n  \"key\": \"value\"\n}\n"
-
-  """
-  @spec format_to_iodata!(term(), keyword()) :: iodata()
-  def format_to_iodata!(term, opts \\ []) do
-    {formatter, opts} = Keyword.pop(opts, :formatter, &protocol_format/3)
-    :json.format(term, formatter, Map.new(opts))
-  end
-
-  @doc """
-  This is the default format implementation passed to `format!/1`.
-
-  This function is most typically passed as the `:formatter` option to
-  `format!/2` and `format_to_iodata!/2`. The default implementation
-  delegates to `:json.format_value/3` for standard types and dispatches
-  to the `JSON.Encoder` protocol for structs.
-  """
-  @spec protocol_format(term(), formatter(), map()) :: iodata()
-  def protocol_format(nil, _formatter, _state), do: "null"
-
-  def protocol_format(value, formatter, state)
+  def protocol_format(value, formatter, state, _encoder)
       when is_atom(value) and value not in [true, false] do
     :json.format_value(Atom.to_string(value), formatter, state)
   end
 
-  def protocol_format(value, formatter, state)
+  def protocol_format(value, formatter, state, _encoder)
       when is_atom(value) or is_binary(value) or is_integer(value) or is_float(value) or
              is_list(value) do
     :json.format_value(value, formatter, state)
   end
 
-  def protocol_format(%{} = value, formatter, state) when not is_map_key(value, :__struct__) do
-    JSON.Encoder.Map.format(value, formatter, state)
+  def protocol_format(%{} = value, formatter, state, _encoder)
+      when not is_map_key(value, :__struct__) do
+    case :maps.next(:maps.iterator(value)) do
+      :none ->
+        "{}"
+
+      {key, value, iterator} ->
+        state = %{state | level: state.level + 1}
+
+        [
+          "{\n",
+          format_indent(state),
+          format_key(key, formatter, state),
+          ": ",
+          formatter.(value, formatter, state)
+          | format_map_next(iterator, formatter, state)
+        ]
+    end
   end
 
-  def protocol_format(value, formatter, state) do
-    JSON.Encoder.format(value, formatter, state)
+  def protocol_format(value, formatter, state, encoder) do
+    encoder.(value, fn nested, _enc -> formatter.(nested, formatter, state) end)
   end
+
+  defp format_map_next(iterator, formatter, state) do
+    case :maps.next(iterator) do
+      :none ->
+        ["\n", format_indent(%{state | level: state.level - 1}), ?}]
+
+      {key, value, iterator} ->
+        [
+          ",\n",
+          format_indent(state),
+          format_key(key, formatter, state),
+          ": ",
+          formatter.(value, formatter, state)
+          | format_map_next(iterator, formatter, state)
+        ]
+    end
+  end
+
+  defp format_indent(%{indent: indent, level: level}),
+    do: String.duplicate(" ", indent * level)
+
+  defp format_key(key, formatter, state) when is_atom(key),
+    do: formatter.(Atom.to_string(key), formatter, state)
+
+  defp format_key(key, formatter, state) when is_binary(key),
+    do: formatter.(key, formatter, state)
+
+  defp format_key(key, formatter, state),
+    do: formatter.(String.Chars.to_string(key), formatter, state)
 end
