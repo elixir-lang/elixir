@@ -221,9 +221,16 @@ defmodule JSONTest do
                "{\n  \"items\": [1,2,3]\n}\n"
     end
 
-    test "structs" do
-      assert JSON.encode!(%{token: %Token{value: "example"}}, indent: 2) ==
-               "{\n  \"token\": [\"example\"]\n}\n"
+    test "custom structs" do
+      nested = %{wrapper: %Token{value: %{name: "test", nested: %{x: 1}}}}
+
+      # Compact: everything inline
+      assert JSON.encode!(nested) ==
+               "{\"wrapper\":[{\"name\":\"test\",\"nested\":{\"x\":1}}]}"
+
+      # Formatted: custom wrapper stays compact, nested maps get indented
+      assert JSON.encode!(nested, indent: 2) ==
+               "{\n  \"wrapper\": [{\n    \"name\": \"test\",\n    \"nested\": {\n      \"x\": 1\n    }\n  }]\n}\n"
     end
 
     test "calendar" do
