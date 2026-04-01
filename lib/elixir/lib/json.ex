@@ -579,7 +579,15 @@ defmodule JSON do
   def protocol_encode(value, encoder),
     do: JSON.Encoder.encode(value, encoder)
 
-  @doc false
+  @doc """
+  This is the default format implementation used when encoding with
+  the `:indent` or `:max` options.
+
+  It handles the same types as `protocol_encode/2` but produces
+  pretty-printed output with indentation. For structs, it delegates
+  to `JSON.Encoder.encode/2` with a bridged encoder that routes
+  nested values back through the formatter.
+  """
   def protocol_format(nil, _formatter, _state, _encoder), do: "null"
 
   def protocol_format(value, formatter, state, _encoder)
