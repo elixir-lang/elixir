@@ -49,7 +49,7 @@ jobs:
       - uses: erlef/setup-beam@ee09b1e59bb240681c382eb1f0abc6a04af72764 # v1.23.0
         with:
           otp-version: ${{ matrix.otp_version }}
-
+          gleam-version: "1.11.1"
       - name: Set ERL_COMPILER_OPTIONS
         if: ${{ matrix.deterministic }}
         run: echo "ERL_COMPILER_OPTIONS=deterministic" >> $GITHUB_ENV
