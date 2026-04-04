@@ -152,7 +152,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: "Sign files with Trusted Signing"
-        uses: azure/trusted-signing-action@87c2e83e6868da99d3380aa309851b32ed9a8346 # v1.1.0
+        uses: azure/trusted-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1.2.0
         if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
         with:
           endpoint: https://eus.codesigning.azure.net/
