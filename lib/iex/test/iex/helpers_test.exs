@@ -317,17 +317,21 @@ defmodule IEx.HelpersTest do
 
   describe "source" do
     @describetag :requires_source
+    @example_module_source "test/test_helper.exs"
 
-    test "prints source for Elixir module" do
-      assert capture_iex("source(HelperExampleModule)") =~ "defmodule HelperExampleModule"
+    test "prints source location for Elixir module" do
+      assert capture_iex("source(HelperExampleModule)") =~
+               ~r/#{@example_module_source}:\d+$/
     end
 
-    test "prints source for module.function" do
-      assert capture_iex("source(HelperExampleModule.fun)") =~ "defmodule HelperExampleModule"
+    test "prints source location for module.function" do
+      assert capture_iex("source(HelperExampleModule.fun)") =~
+               ~r/#{@example_module_source}:\d+$/
     end
 
-    test "prints source for module.function/arity" do
-      assert capture_iex("source(HelperExampleModule.fun/1)") =~ "defmodule HelperExampleModule"
+    test "prints source location for module.function/arity" do
+      assert capture_iex("source(HelperExampleModule.fun/1)") =~
+               ~r/#{@example_module_source}:\d+$/
     end
 
     test "errors if module is not available" do
