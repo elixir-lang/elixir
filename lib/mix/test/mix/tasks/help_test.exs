@@ -322,6 +322,28 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help t:MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["t:Enum.t/0"])
+        end)
+
+      assert output =~ "@type t()"
+    end)
+  end
+
+  test "help c:MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["c:GenServer.init/1"])
+        end)
+
+      assert output =~ "@callback init"
+    end)
+  end
+
   test "help ERROR" do
     assert_raise Mix.Error, "Invalid expression: Foo.bar(~s[baz])", fn ->
       Mix.Tasks.Help.run(["Foo.bar(~s[baz])"])
