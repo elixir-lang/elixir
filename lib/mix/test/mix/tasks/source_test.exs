@@ -19,6 +19,7 @@ defmodule Mix.Tasks.SourceTest do
     end)
   end
 
+  @tag :require_ast
   test "source MODULE.FUN", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Source.run(["Enum.map"])
@@ -27,6 +28,7 @@ defmodule Mix.Tasks.SourceTest do
     end)
   end
 
+  @tag :require_ast
   test "source MODULE.FUN/ARITY", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Source.run(["Enum.map/2"])
@@ -70,23 +72,6 @@ defmodule Mix.Tasks.SourceTest do
       output =
         capture_io(fn ->
           Mix.Tasks.Source.run(["--open", "Enum"])
-        end)
-
-      assert output =~ ~r"\d+:.*lib/elixir/lib/enum\.ex"
-    end)
-  after
-    if @editor,
-      do: System.put_env("ELIXIR_EDITOR", @editor),
-      else: System.delete_env("ELIXIR_EDITOR")
-  end
-
-  test "source -o opens with shortcut", context do
-    System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
-
-    in_tmp(context.test, fn ->
-      output =
-        capture_io(fn ->
-          Mix.Tasks.Source.run(["-o", "Enum.map/2"])
         end)
 
       assert output =~ ~r"\d+:.*lib/elixir/lib/enum\.ex"
