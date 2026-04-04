@@ -8,6 +8,7 @@ defmodule Mix.Tasks.SourceTest do
 
   import ExUnit.CaptureIO
 
+  @moduletag :requires_source
   @editor System.get_env("ELIXIR_EDITOR")
 
   test "source MODULE", context do

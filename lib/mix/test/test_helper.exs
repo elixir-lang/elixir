@@ -38,7 +38,7 @@ git_exclude =
 
 cover_exclude =
   if :deterministic in :compile.env_compiler_options() do
-    [:cover]
+    [:cover, :requires_source]
   else
     []
   end
