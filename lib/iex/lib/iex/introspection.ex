@@ -135,9 +135,29 @@ defmodule IEx.Introspection do
   end
 
   def open({file, line}) when is_binary(file) and is_integer(line) do
+    case open_location(file, line) do
+      {:ok, result} -> IO.write(IEx.color(:eval_info, result))
+      {:error, message} -> puts_error(message)
+    end
+
+    dont_display_result()
+  end
+
+  def open(invalid) do
+    puts_error("Invalid arguments for open helper: #{inspect(invalid)}")
+    dont_display_result()
+  end
+
+  @doc """
+  Opens the given file at the given line using the ELIXIR_EDITOR or EDITOR
+  environment variable.
+
+  Returns `{:ok, result}` on success or `{:error, message}` on failure.
+  """
+  def open_location(file, line) when is_binary(file) and is_integer(line) do
     cond do
       not File.regular?(file) ->
-        puts_error("Could not open #{inspect(file)}, file is not available.")
+        {:error, "Could not open #{inspect(file)}, file is not available."}
 
       editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") ->
         command =
@@ -149,22 +169,14 @@ defmodule IEx.Introspection do
             "#{editor} #{inspect(file)}:#{line}"
           end
 
-        IO.write(IEx.color(:eval_info, :os.cmd(String.to_charlist(command))))
+        {:ok, :os.cmd(String.to_charlist(command))}
 
       true ->
-        puts_error(
-          "Could not open: #{inspect(file)}. " <>
-            "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
-            "command line invocation of your favorite EDITOR."
-        )
+        {:error,
+         "Could not open: #{inspect(file)}. " <>
+           "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
+           "command line invocation of your favorite EDITOR."}
     end
-
-    dont_display_result()
-  end
-
-  def open(invalid) do
-    puts_error("Invalid arguments for open helper: #{inspect(invalid)}")
-    dont_display_result()
   end
 
   @doc """
@@ -212,7 +224,13 @@ defmodule IEx.Introspection do
     dont_display_result()
   end
 
-  defp source_location(module) when is_atom(module) do
+  @doc """
+  Returns the source location for the given module, {module, function},
+  or {module, function, arity}.
+
+  Returns `{:ok, {file, line}}` or `{:error, reason}`.
+  """
+  def source_location(module) when is_atom(module) do
     case source_mfa(module, :__info__, 1) do
       {source, nil, _} -> {:ok, {source, 1}}
       {_, tuple, _} -> {:ok, tuple}
@@ -220,7 +238,7 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp source_location({module, function}) when is_atom(module) and is_atom(function) do
+  def source_location({module, function}) when is_atom(module) and is_atom(function) do
     case source_mfa(module, function, :*) do
       {_, _, nil} -> {:error, "function/macro is not available"}
       {_, _, tuple} -> {:ok, tuple}
@@ -228,8 +246,8 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp source_location({module, function, arity})
-       when is_atom(module) and is_atom(function) and is_integer(arity) do
+  def source_location({module, function, arity})
+      when is_atom(module) and is_atom(function) and is_integer(arity) do
     case source_mfa(module, function, arity) do
       {_, _, nil} -> {:error, "function/macro is not available"}
       {_, _, tuple} -> {:ok, tuple}
