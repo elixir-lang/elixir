@@ -567,9 +567,12 @@ defmodule GenServer do
      `Supervisor`. Likely this approach involves calling `Supervisor.restart_child/2`
       after a delay to attempt a restart.
 
-  Returning `{:stop, reason}` will cause `start_link/3` to return
-  `{:error, reason}` and the process to exit with reason `reason` without
-  entering the loop or calling `c:terminate/2`.
+  Returning `{:error, reason}` will cause `start_link/3` to return
+  `{:error, reason}`.
+
+  Returning `{:stop, reason}` will the process to exit with reason `reason`,
+  without entering the loop or calling `c:terminate/2`. `start_link/3` will
+  return `{:error, reason}`, but only if the caller is trapping exits.
   """
   @callback init(init_arg :: term) ::
               {:ok, state}
