@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Source do
                     {:error, message} -> Mix.raise(message)
                   end
                 else
-                  Mix.shell().info("#{file}:#{line}")
+                  Mix.shell().info("#{Path.relative_to_cwd(file)}:#{line}")
                 end
 
               {:error, reason} ->

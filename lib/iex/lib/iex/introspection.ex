@@ -184,8 +184,8 @@ defmodule IEx.Introspection do
   """
   def source(module) when is_atom(module) do
     case source_location(module) do
-      {:ok, {file, _line}} ->
-        IO.puts(File.read!(file))
+      {:ok, {file, line}} ->
+        print_source(file, line)
 
       {:error, reason} ->
         puts_error("Could not show source for #{inspect(module)}, #{reason}")
@@ -196,8 +196,8 @@ defmodule IEx.Introspection do
 
   def source({module, function}) when is_atom(module) and is_atom(function) do
     case source_location({module, function}) do
-      {:ok, {file, _line}} ->
-        IO.puts(File.read!(file))
+      {:ok, {file, line}} ->
+        print_source(file, line)
 
       {:error, reason} ->
         puts_error("Could not show source for #{inspect(module)}.#{function}, #{reason}")
@@ -209,8 +209,8 @@ defmodule IEx.Introspection do
   def source({module, function, arity})
       when is_atom(module) and is_atom(function) and is_integer(arity) do
     case source_location({module, function, arity}) do
-      {:ok, {file, _line}} ->
-        IO.puts(File.read!(file))
+      {:ok, {file, line}} ->
+        print_source(file, line)
 
       {:error, reason} ->
         puts_error("Could not show source for #{inspect(module)}.#{function}/#{arity}, #{reason}")
@@ -222,6 +222,10 @@ defmodule IEx.Introspection do
   def source(invalid) do
     puts_error("Invalid arguments for source helper: #{inspect(invalid)}")
     dont_display_result()
+  end
+
+  defp print_source(file, line) do
+    IO.puts(Path.relative_to_cwd(file) <> ":" <> Integer.to_string(line))
   end
 
   @doc """
