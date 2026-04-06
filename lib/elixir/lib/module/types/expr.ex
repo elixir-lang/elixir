@@ -312,6 +312,7 @@ defmodule Module.Types.Expr do
   end
 
   def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, context) do
+    _ = Keyword.fetch!(meta, :version)
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
     info = {:case, meta, case_expr, case_type}
 

@@ -155,13 +155,14 @@ recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
 %% Match
 
 match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
-  #elixir_ex{vars=Current, unused={_, Counter} = Unused} = AfterS,
+  #elixir_ex{vars=Current, unused=Unused, version=Counter} = AfterS,
   #elixir_ex{vars={Read, _}, prematch=Prematch} = BeforeS,
 
   CallS = BeforeS#elixir_ex{
     prematch={Read, {#{}, []}, Counter},
     unused=Unused,
-    vars=Current
+    vars=Current,
+    version=Counter
   },
 
   CallE = E#{context := match},
@@ -170,7 +171,8 @@ match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
   #elixir_ex{
     vars=NewCurrent,
     unused=NewUnused,
-    prematch={_, Cycles, _}
+    prematch={_, Cycles, _},
+    version=NewCounter
   } = SE,
 
   validate_cycles(Cycles, Meta, {match, Expr}, E),
@@ -178,7 +180,8 @@ match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
   EndS = AfterS#elixir_ex{
     prematch=Prematch,
     unused=NewUnused,
-    vars=NewCurrent
+    vars=NewCurrent,
+    version=NewCounter
   },
 
   EndE = EE#{context := ?key(E, context)},

@@ -437,7 +437,9 @@ defmodule Module.Types do
       # The mode to be used, see the @modes attribute
       mode: mode,
       # The function for handling local calls
-      local_handler: handler
+      local_handler: handler,
+      # Reverse arrow handling (nil | :cache | :use)
+      reverse_arrow: nil
     }
   end
 
@@ -459,7 +461,9 @@ defmodule Module.Types do
       # Local signatures used by local handler
       local_sigs: %{},
       # Track which clauses have been used across private local calls
-      local_used: %{}
+      local_used: %{},
+      # Cached reverse arrows
+      reverse_arrows: %{}
     }
   end
 

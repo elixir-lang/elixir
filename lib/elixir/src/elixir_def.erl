@@ -295,17 +295,17 @@ store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, 
 %% Handling of defaults
 
 unpack_defaults(Kind, Meta, Name, Args, S, E) ->
-  {Expanded, #elixir_ex{unused={_, VersionOffset}}} = expand_defaults(Args, S, E#{context := nil}, []),
-  unpack_expanded(Kind, Meta, Name, Expanded, VersionOffset, [], []).
+  {Expanded, #elixir_ex{version=Counter}} = expand_defaults(Args, S, E#{context := nil}, []),
+  unpack_expanded(Kind, Meta, Name, Expanded, Counter, [], []).
 
-unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, VersionOffset, Acc, Clauses) ->
-  Base = match_defaults(Acc, length(Acc) + VersionOffset, []),
-  {Args, Invoke} = extract_defaults(List, length(Base) + VersionOffset, [], []),
+unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Counter, Acc, Clauses) ->
+  Base = match_defaults(Acc, length(Acc) + Counter, []),
+  {Args, Invoke} = extract_defaults(List, length(Base) + Counter, [], []),
   Clause = {Meta, Base ++ Args, [], {super, [{super, {Kind, Name}}, {default, true} | DefaultMeta], Base ++ Invoke}},
-  unpack_expanded(Kind, Meta, Name, T, VersionOffset, [Expr | Acc], [Clause | Clauses]);
-unpack_expanded(Kind, Meta, Name, [H | T], VersionOffset, Acc, Clauses) ->
-  unpack_expanded(Kind, Meta, Name, T, VersionOffset, [H | Acc], Clauses);
-unpack_expanded(_Kind, _Meta, _Name, [], _VersionOffset, Acc, Clauses) ->
+  unpack_expanded(Kind, Meta, Name, T, Counter, [Expr | Acc], [Clause | Clauses]);
+unpack_expanded(Kind, Meta, Name, [H | T], Counter, Acc, Clauses) ->
+  unpack_expanded(Kind, Meta, Name, T, Counter, [H | Acc], Clauses);
+unpack_expanded(_Kind, _Meta, _Name, [], _Counter, Acc, Clauses) ->
   {lists:reverse(Acc), lists:reverse(Clauses)}.
 
 expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], S, E, Acc) ->

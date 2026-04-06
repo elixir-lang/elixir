@@ -397,8 +397,8 @@ expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind)
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
     prematch={_, _, PrematchVersion},
-    unused={Unused, Version},
-    vars={Read, Write}
+    vars={Read, Write},
+    unused=Unused
   } = S,
 
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
@@ -408,29 +408,31 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, Meta, VarVersion, Unused),
-      NewWrite = (Write /= false) andalso Write#{Pair => Version},
+      NewWrite = (Write /= false) andalso Write#{Pair => VarVersion},
       Var = {Name, [{version, VarVersion} | Meta], Kind},
-      {Var, S#elixir_ex{vars={Read, NewWrite}, unused={NewUnused, Version}}, E};
+      {Var, S#elixir_ex{vars={Read, NewWrite}, unused=NewUnused}, E};
 
     %% Variable is being overridden now
     #{Pair := _} ->
+      Version = S#elixir_ex.version,
       NewUnused = var_unused(Pair, Meta, Version, Unused, true),
       NewRead = Read#{Pair => Version},
       NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E};
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused=NewUnused, version=Version + 1}, E};
 
     %% Variable defined for the first time
     _ ->
+      Version = S#elixir_ex.version,
       NewUnused = var_unused(Pair, Meta, Version, Unused, false),
       NewRead = Read#{Pair => Version},
       NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E}
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused=NewUnused, version=Version + 1}, E}
   end;
 
 expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
-  #elixir_ex{vars={Read, _Write}, unused={Unused, Version}, prematch=Prematch} = S,
+  #elixir_ex{vars={Read, _Write}, unused=Unused, prematch=Prematch} = S,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   Result =
@@ -471,7 +473,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     {ok, PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-      {Var, S#elixir_ex{unused={var_used(Pair, Meta, PairVersion, Unused), Version}}, E};
+      {Var, S#elixir_ex{unused=var_used(Pair, Meta, PairVersion, Unused)}, E};
 
     Error ->
       case lists:keyfind(if_undefined, 1, Meta) of
@@ -795,8 +797,8 @@ expand_case(Meta, Expr, Opts, S, E) ->
       false -> Opts
     end,
 
-  {EOpts, SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
-  {{'case', Meta, [EExpr, EOpts]}, SO, EO}.
+  {EOpts, #elixir_ex{version=Counter} = SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
+  {{'case', [{version, Counter} | Meta], [EExpr, EOpts]}, SO#elixir_ex{version = Counter + 1}, EO}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [

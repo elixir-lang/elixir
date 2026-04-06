@@ -494,7 +494,7 @@ maybe_prune_versioned_vars(false, _Vars, _Exs, E) ->
   E;
 maybe_prune_versioned_vars(true, Vars, ExS, E) ->
   PruneBefore = length(Vars),
-  #elixir_ex{vars={ExVars, _}, unused={Unused, _}} = ExS,
+  #elixir_ex{vars={ExVars, _}, unused=Unused} = ExS,
 
   VersionedVars =
     maps:filter(fun
