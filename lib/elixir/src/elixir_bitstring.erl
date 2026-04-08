@@ -61,7 +61,7 @@ expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
 
   InferredMeta = [{inferred_bitstring_spec, true} | Meta],
   EAcc = concat_or_prepend_bitstring(InferredMeta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
-  expand(Meta, Fun, T, EAcc, {SS, OriginalS}, ES, Alignment, RequireSize).
+  expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, Alignment, RequireSize).
 
 extract_meta({_, Meta, _}, _) -> Meta;
 extract_meta(_, Meta) -> Meta.

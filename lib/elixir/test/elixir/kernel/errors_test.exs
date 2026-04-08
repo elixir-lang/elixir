@@ -267,6 +267,18 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "invalid literal on bitstring" do
+    assert_compile_error(
+      ["nofile:1:1", "a bitstring only accepts binaries, numbers, and variables inside a match"],
+      ~c"""
+      <<
+        "foo",
+        [1]
+      >> = List.flatten([])
+      """
+    )
+  end
+
   test "literal on map and struct" do
     assert_compile_error(
       ["nofile:1:10", "expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)"],
