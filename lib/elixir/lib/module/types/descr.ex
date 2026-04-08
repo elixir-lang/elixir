@@ -3650,7 +3650,6 @@ defmodule Module.Types.Descr do
   However, the third argument is an anonymous function that receives the current
   value and returns `type_fun`. Note the value returned by `type_fun` cannot hold
   dynamic. Any dynamic conversion must happen before invoking this function.
-
   """
   def map_update_fun(descr, key_descr, type_fun, return_type? \\ true, force? \\ false) do
     gradual? = gradual?(descr)
