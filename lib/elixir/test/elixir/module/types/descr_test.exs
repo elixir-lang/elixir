@@ -2275,6 +2275,30 @@ defmodule Module.Types.DescrTest do
              |> map_update(atom([:b]), integer(), true, true) == {none(), none(), []}
     end
 
+    test "with non-empty open maps does not call the callback with none from absent branches" do
+      # This is a test of the map_update_fun/5 with forced?: false parameter.
+      # We check that it does not call its typed_fun argument with `none()`
+      # due to the key being absent in the map.
+
+      type = dynamic(difference(open_map(), empty_map()))
+      ref = make_ref()
+
+      fun = fn _optional?, value ->
+        send(self(), {ref, value})
+        value
+      end
+
+      _ = map_update_fun(type, binary(), fun, false, false)
+
+      messages = Process.info(self(), :messages) |> elem(1)
+
+      # Check that the callback was not invoked with `none()`
+      refute Enum.any?(messages, fn
+               {seen_ref, value} when seen_ref == ref -> empty?(value)
+               _ -> false
+             end)
+    end
+
     test "with dynamic atom keys" do
       assert map_update(closed_map(key: atom([:value])), dynamic(), atom([:new_value])) ==
                {atom([:value]), closed_map(key: atom([:value, :new_value])), []}
