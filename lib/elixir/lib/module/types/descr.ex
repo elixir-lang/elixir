@@ -4005,7 +4005,9 @@ defmodule Module.Types.Descr do
         # Non-forced updates must not invoke the callback on absent branches:
         # the callback may itself typecheck a function application, and
         # applying it to `none()` will raise undue warnings.
-        if force?, do: fields_from_keys(domain_keys, if_set(type_fun.(true, none()))), else: :closed
+        if force?,
+          do: fields_from_keys(domain_keys, if_set(type_fun.(true, none()))),
+          else: :closed
 
       # Note: domain_keys may contain duplicates, so we cannot
       # do a side-by-side traversal here.
@@ -4017,7 +4019,9 @@ defmodule Module.Types.Descr do
 
             :error ->
               # Likewise, only forced updates may synthesize missing domain keys.
-              if force?, do: fields_store(domain_key, if_set(type_fun.(true, none())), acc), else: acc
+              if force?,
+                do: fields_store(domain_key, if_set(type_fun.(true, none())), acc),
+                else: acc
           end
         end)
     end
