@@ -2290,6 +2290,19 @@ defmodule String do
     end
   end
 
+  # 56-bit SWAR guard: all 7 bytes are ASCII (< 128) and none is \r (0x0D).
+  # Uses Mycroft's zero-byte detection: XOR with 0x0D and check for zero bytes.
+  defguardp ascii_no_cr_swar?(w)
+            when Bitwise.band(w, 0x80808080808080) == 0 and
+                   Bitwise.band(
+                     Bitwise.bxor(w, 0x0D0D0D0D0D0D0D) - 0x01010101010101,
+                     0x80808080808080
+                   ) == 0
+
+  defp skip_length(<<w::56, b, rest::binary>>, acc)
+       when b <= 127 and b != ?\r and ascii_no_cr_swar?(w),
+       do: skip_length(rest, acc + 8)
+
   defp skip_length(<<byte, rest::binary>>, acc)
        when byte <= 127 and byte != ?\r,
        do: skip_length(rest, acc + 1)
@@ -3213,7 +3226,13 @@ defmodule String do
     byte_size_unicode(unicode)
   end
 
-  defp byte_size_remaining_at(unicode, n) do
+  defp byte_size_remaining_at(<<byte1, byte2, rest::binary>> = binary, n)
+       when n > 0 and byte1 <= 127 and byte1 != ?\r and byte2 <= 127 and byte2 != ?\r do
+    skip = min(skip_length(rest, 1), n)
+    byte_size_remaining_at(binary_part(binary, skip, byte_size(binary) - skip), n - skip)
+  end
+
+  defp byte_size_remaining_at(unicode, n) when n > 0 do
     case :unicode_util.gc(unicode) do
       [_] -> 0
       [_ | rest] -> byte_size_remaining_at(rest, n - 1)
