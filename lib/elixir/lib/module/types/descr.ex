@@ -1442,12 +1442,10 @@ defmodule Module.Types.Descr do
     static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
     arity = length(arguments)
 
-    with {:ok, domain, static_arrows, dynamic_arrows} <-
+    with false <- Enum.any?(arguments, &empty?/1),
+         {:ok, domain, static_arrows, dynamic_arrows} <-
            fun_normalize_both(fun_static, fun_dynamic, arity) do
       cond do
-        Enum.any?(arguments, &empty?/1) ->
-          {:badarg, domain_to_flat_args(domain, arity)}
-
         # The domain here is the extended gradual domain computed by
         # fun_normalize_both/3. If the argument does not satisfy it, we
         # check compatibility before rejecting.
@@ -1498,6 +1496,9 @@ defmodule Module.Types.Descr do
              dynamic(fun_apply_static(arguments, dynamic_arrows))
            )}
       end
+    else
+      true -> {:badarg, arguments}
+      error -> error
     end
   end
 
