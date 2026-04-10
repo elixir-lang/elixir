@@ -896,6 +896,24 @@ defmodule Module.Types.PatternTest do
                """
     end
 
+    test "nested conditional checks" do
+      assert typecheck!([a, b], true == (b and a), a) == dynamic(atom([true]))
+      assert typecheck!([a, b], false == (b and a), a) == dynamic(term())
+
+      assert typecheck!([a, b, c], a != (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a == (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a !== (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a === (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a == hd(b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a != (b and c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a == (b and c), a) == dynamic(term())
+
+      assert typecheck!([a, b, c], a == :erlang.and(b, c), a) == dynamic(boolean())
+      assert typecheck!([a, b, c], a == :erlang.or(b, c), a) == dynamic(boolean())
+      assert typecheck!([a, b, c], c and a === (b or c), a) == dynamic(atom([true]))
+      assert typecheck!([a, b, c], c and a === (b and c), a) == dynamic(boolean())
+    end
+
     test "domain checks" do
       # Regular domain check
       assert typecheck!([x, z], length(x) == z, x) == dynamic(list(term()))

@@ -1282,8 +1282,8 @@ defmodule Module.Types.Pattern do
     # only be true if both clauses are executed, so we know the first
     # argument has to be true and the second has to be expected.
     cond do
-      subtype?(expected, both_domain) ->
-        of_logical_all([left | right], true, both_domain, abort_domain, stack, context)
+      is_nil(context.pattern_info) or subtype?(expected, both_domain) ->
+        of_logical_all([left | right], true, expected, abort_domain, stack, context)
 
       right == [] ->
         of_guard(left, expected, left, stack, context)
