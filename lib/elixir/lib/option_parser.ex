@@ -952,8 +952,14 @@ defmodule OptionParser do
 
         case types |> List.delete(:keep) |> List.first(:string) do
           :boolean ->
-            base = "#{to_switch(name)}, #{to_switch(name, "--no-")}"
-            add_aliases(base, name, reverse_aliases)
+            case to_switch(name) do
+              "--no-" <> _ = switch ->
+                add_aliases(switch, name, reverse_aliases)
+
+              switch ->
+                base = "#{switch}, #{to_switch(name, "--no-")}"
+                add_aliases(base, name, reverse_aliases)
+            end
 
           type ->
             base = "#{to_switch(name)} #{String.upcase(Atom.to_string(type))}"

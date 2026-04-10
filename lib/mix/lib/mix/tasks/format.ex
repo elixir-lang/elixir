@@ -13,7 +13,8 @@ defmodule Mix.Tasks.Format do
       $ mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
   If any of the files is `-`, then the input is read from stdin and the output
-  is written to stdout.
+  is written to stdout. In such cases, because `mix format` may still compile
+  before running, you may want to pass the `--no-compile` flag.
 
   ## Formatting options
 
@@ -199,6 +200,7 @@ defmodule Mix.Tasks.Format do
     check_equivalent: :boolean,
     check_formatted: :boolean,
     no_exit: :boolean,
+    no_compile: :boolean,
     dot_formatter: :string,
     dry_run: :boolean,
     verbose: :boolean,
