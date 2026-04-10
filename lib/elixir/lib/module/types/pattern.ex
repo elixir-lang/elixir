@@ -1259,7 +1259,7 @@ defmodule Module.Types.Pattern do
     {union(type, @dynamic_fail), context}
   end
 
-  defp of_remote(fun, _args, call, expected, stack, context)
+  defp of_remote(fun, _args, call, expected, stack, %{pattern_info: %{}} = context)
        when fun in [:and, :or, :andalso, :orelse] do
     {both_domain, abort_domain, always_rhs?} =
       case fun do

@@ -1132,6 +1132,29 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = {}], not (x == :foo), x) == dynamic(tuple([]))
       assert typecheck!([x = {}], x != :foo, x) == dynamic(tuple([]))
     end
+
+    test "with orelse/andalso nested in comparison" do
+      # Verify that orelse and andalso guard evaluation works correctly
+      assert typecheck!([a, b, c], a != (b or c), :ok) == atom([:ok])
+      assert typecheck!([a, b, c], a == (b or c), :ok) == atom([:ok])
+      assert typecheck!([a, b, c], a !== (b or c), :ok) == atom([:ok])
+      assert typecheck!([a, b, c], a === (b or c), :ok) == atom([:ok])
+      assert typecheck!([a, b, c], a == hd(b or c), :ok) == atom([:ok])
+      assert typecheck!([a, b, c], a != (b and c), :ok) == atom([:ok])
+      assert typecheck!([a, b, c], a == (b and c), :ok) == atom([:ok])
+
+      # Verify type precision is not lost through orelse/andalso re-evaluation
+      assert typecheck!([a, b], a and b, a) == dynamic(atom([true]))
+      assert typecheck!([a, b, c], a === (b or c), a) == dynamic(boolean())
+      assert typecheck!([a, b, c], a === (b and c), a) == dynamic(boolean())
+      assert typecheck!([a], a, a) == dynamic(atom([true]))
+      assert typecheck!([a, b], a or b, a) == dynamic(boolean())
+      assert typecheck!([a, b, c], b and a === (b or c), a) == dynamic(atom([true]))
+      assert typecheck!([a, b, c], c and a === (b or c), a) == dynamic(atom([true]))
+      assert typecheck!([a, b, c], b and a === (b and c), a) == dynamic(boolean())
+      assert typecheck!([a, b, c], b and a === (not b and c), a) == dynamic(atom([false]))
+      assert typecheck!([a, b, c], not b and a === (b and c), a) == dynamic(atom([false]))
+    end
   end
 
   describe "size comparison in guards" do
