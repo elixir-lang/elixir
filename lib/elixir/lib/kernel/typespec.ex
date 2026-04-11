@@ -610,8 +610,7 @@ defmodule Kernel.Typespec do
         types =
           :lists.map(
             fn %{field: field} ->
-              default_type = if field == :__exception__, do: true, else: quote(do: term())
-              {field, Keyword.get(fields, field, default_type)}
+              {field, Keyword.get(fields, field, quote(do: term()))}
             end,
             struct_info
           )

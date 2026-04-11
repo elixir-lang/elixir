@@ -525,7 +525,10 @@ defmodule TypespecTest do
       assert {:type, _, :map, [struct, arg1, arg2]} = type
       assert {:type, _, :map_field_exact, struct_args} = struct
       assert [{:atom, _, :__struct__}, {:atom, _, TypespecSample}] = struct_args
-      assert {:type, _, :map_field_exact, [{:atom, _, :__exception__}, {:atom, _, true}]} = arg1
+
+      assert {:type, _, :map_field_exact, [{:atom, _, :__exception__}, {:type, _, :term, []}]} =
+               arg1
+
       assert {:type, _, :map_field_exact, [{:atom, _, :message}, {:type, _, :term, []}]} = arg2
     end
 

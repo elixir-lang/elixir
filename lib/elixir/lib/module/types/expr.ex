@@ -15,7 +15,6 @@ defmodule Module.Types.Expr do
   list_of_modules = list(atom())
 
   @try_catch atom([:error, :exit, :throw])
-  @atom_true atom([true])
 
   @caller closed_map(
             __struct__: atom([Macro.Env]),
@@ -41,7 +40,7 @@ defmodule Module.Types.Expr do
 
   # We do not make exception dynamic on purpose. If you do a blank rescue,
   # then we will assume you need to statically handle all possible exceptions.
-  @exception open_map(__struct__: atom(), __exception__: @atom_true)
+  @exception open_map(__struct__: atom(), __exception__: term())
 
   args_or_arity = union(list(term()), integer())
 
@@ -558,7 +557,7 @@ defmodule Module.Types.Expr do
   ## Try
 
   defp of_rescue(var, exceptions, body, expr, info, meta, stack, original) do
-    args = [__exception__: @atom_true]
+    args = [__exception__: term()]
 
     {structs, context} =
       Enum.map_reduce(exceptions, original, fn exception, context ->

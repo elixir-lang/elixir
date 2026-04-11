@@ -2752,7 +2752,7 @@ defmodule Kernel do
       nil ->
         quote do
           case unquote(term) do
-            %_{__exception__: true} -> true
+            %_{__exception__: _} -> true
             _ -> false
           end
         end
@@ -2764,8 +2764,7 @@ defmodule Kernel do
         quote do
           is_map(unquote(term)) and :erlang.is_map_key(:__struct__, unquote(term)) and
             is_atom(:erlang.map_get(:__struct__, unquote(term))) and
-            :erlang.is_map_key(:__exception__, unquote(term)) and
-            :erlang.map_get(:__exception__, unquote(term)) == true
+            :erlang.is_map_key(:__exception__, unquote(term))
         end
     end
   end
@@ -2792,7 +2791,7 @@ defmodule Kernel do
           case unquote(name) do
             name when is_atom(name) ->
               case unquote(term) do
-                %{__struct__: ^name, __exception__: true} -> true
+                %{__struct__: ^name, __exception__: _} -> true
                 _ -> false
               end
 
@@ -2810,8 +2809,7 @@ defmodule Kernel do
             (is_atom(unquote(name)) or :fail) and
             :erlang.is_map_key(:__struct__, unquote(term)) and
             :erlang.map_get(:__struct__, unquote(term)) == unquote(name) and
-            :erlang.is_map_key(:__exception__, unquote(term)) and
-            :erlang.map_get(:__exception__, unquote(term)) == true
+            :erlang.is_map_key(:__exception__, unquote(term))
         end
     end
   end

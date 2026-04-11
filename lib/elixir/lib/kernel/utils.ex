@@ -266,7 +266,7 @@ defmodule Kernel.Utils do
     module.exception([])
   end
 
-  def raise(%_{__exception__: true} = exception) do
+  def raise(%_{__exception__: _} = exception) do
     exception
   end
 

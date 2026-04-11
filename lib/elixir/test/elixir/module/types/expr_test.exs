@@ -2287,12 +2287,12 @@ defmodule Module.Types.ExprTest do
                  union(
                    closed_map(
                      __struct__: atom([ArgumentError]),
-                     __exception__: atom([true]),
+                     __exception__: term(),
                      message: term()
                    ),
                    closed_map(
                      __struct__: atom([RuntimeError]),
-                     __exception__: atom([true]),
+                     __exception__: term(),
                      message: term()
                    )
                  )
@@ -2309,7 +2309,7 @@ defmodule Module.Types.ExprTest do
              ) ==
                open_map(
                  __struct__: atom(),
-                 __exception__: atom([true])
+                 __exception__: term()
                )
     end
 
@@ -2328,7 +2328,7 @@ defmodule Module.Types.ExprTest do
 
              given types:
 
-                 %{..., __exception__: true, __struct__: atom()}
+                 %{..., __exception__: term(), __struct__: atom()}
 
              but expected one of:
 
@@ -2336,7 +2336,7 @@ defmodule Module.Types.ExprTest do
 
              where "e" was given the type:
 
-                 # type: %{..., __exception__: true, __struct__: atom()}
+                 # type: %{..., __exception__: term(), __struct__: atom()}
                  # from: types_test.ex
                  rescue e
 

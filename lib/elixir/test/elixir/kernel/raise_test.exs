@@ -337,6 +337,22 @@ defmodule Kernel.RaiseTest do
       assert result == "Erlang error: :sample"
     end
 
+    test "runtime error from Erlang" do
+      result =
+        try do
+          :erlang.error(%{
+            __struct__: RuntimeError,
+            __exception__: :does_not_matter,
+            message: "oops"
+          })
+        rescue
+          x in [ErlangError] -> {:erlang, Exception.message(x)}
+          x in [RuntimeError] -> {:runtime, Exception.message(x)}
+        end
+
+      assert result == {:runtime, "oops"}
+    end
+
     test "undefined function error" do
       result =
         try do
