@@ -1214,6 +1214,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(dynamic_fun([integer()], atom()), [float()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], atom()), [term()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], none()), [integer()]) == {:ok, dynamic(none())}
+      assert fun_apply(dynamic(fun([integer()], integer())), [none()]) == {:badarg, [none()]}
       assert fun_apply(dynamic_fun([integer()], term()), [integer()]) == {:ok, dynamic()}
 
       # Dynamic return and dynamic args
