@@ -45,7 +45,7 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
   {build_name(Key, Count),
    S#elixir_erl{counter=Counter#{Key => Count}}}.
 
-build_name('_', Count) -> list_to_atom("_@" ++ integer_to_list(Count));
+build_name('_', Count) -> list_to_atom("_" ++ integer_to_list(Count));
 build_name(Name, Count) -> list_to_atom("_" ++ atom_to_list(Name) ++ "@" ++ integer_to_list(Count)).
 
 %% BINDINGS
