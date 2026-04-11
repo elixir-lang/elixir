@@ -474,7 +474,11 @@ defmodule Mix.Dep do
         %{dep | status: {:scmlock, old_scm}}
 
       {:ok, _, _, old_lock} when old_lock != lock ->
-        %{dep | status: :compile}
+        if scm.fetchable?() do
+          %{dep | status: :compile}
+        else
+          dep
+        end
 
       :error ->
         if scm.fetchable?() do

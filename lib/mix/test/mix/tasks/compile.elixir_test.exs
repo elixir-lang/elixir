@@ -667,7 +667,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       Mix.Task.clear()
       File.write!("_build/dev/lib/sample/consolidated/.to_be_removed", "")
-      manifest_data = :erlang.term_to_binary({:v1, "0.0.0", nil})
+      manifest_data = :erlang.term_to_binary({2, "0.0.0", Mix.SCM.Path, nil})
       File.write!("_build/dev/lib/sample/.mix/compile.elixir_scm", manifest_data)
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
@@ -689,14 +689,30 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
 
       Mix.Task.clear()
-      manifest_data = :erlang.term_to_binary({1, @elixir_otp_version, :another})
-      File.write!("_build/dev/lib/sample/.mix/compile.elixir_scm", manifest_data)
+      Mix.Dep.ElixirSCM.update("_build/dev/lib/sample/.mix/", UnknownSCM, nil)
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
       assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
-
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
+    end)
+  end
+
+  test "recompiles project if lock changes except for path dependencies" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      Mix.Tasks.Compile.run(["--verbose"])
+      purge([A, B])
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+
+      Mix.Task.clear()
+      Mix.Dep.ElixirSCM.update("_build/dev/lib/sample/.mix/", Mix.SCM.Path, :whatever)
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
+
+      assert Mix.Tasks.Compile.run([]) == {:noop, []}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, :whatever}
     end)
   end
 
