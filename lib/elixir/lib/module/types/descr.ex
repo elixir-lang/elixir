@@ -3767,7 +3767,7 @@ defmodule Module.Types.Descr do
         # If any of required or optional domains are satisfied, then we compute the
         # initial return type. `map_update_keys_static` will then union into the
         # computed type below, using the original bdd/dnf, not the one with updated domains.
-        descr = map_update_put_domains(bdd, domains, type_fun)
+        descr = map_update_put_domains(bdd, domains, type_fun, force?)
         {remove_optional(value), descr, errors, true}
       else
         {remove_optional(value), none(), errors, false}
@@ -3920,31 +3920,42 @@ defmodule Module.Types.Descr do
     :found_key -> true
   end
 
+  # For each domain key, check if it exists in the map DNF and classify it
+  # as valid (matched) or invalid (missing). Accumulates the value type if require_type? is set.
+  # Returns {found?, valid_domains, invalid_domains, accumulated_value_type},
+  # where found? tracks whether at least one domain key was matched in the map.
   defp map_update_get_domains(dnf, domain_keys, acc, require_type?, any_atom_key) do
     Enum.reduce(domain_keys, {false, [], [], acc}, fn domain_key, {found?, valid, invalid, acc} ->
+      # Get the value type for this domain key, excluding optional entries
       value = map_get_domain_no_optional(dnf, domain_key, none())
 
       cond do
+        # Atom domains are special: we also check for individually named atom keys
         domain_key == :atom ->
           atom_acc = any_atom_key.()
 
           cond do
+            # Domain has a direct match: valid, union both atom keys and domain value
             not empty?(value) ->
               acc = if require_type?, do: union(union(atom_acc, acc), value), else: acc
               {true, [:atom | valid], invalid, acc}
 
+            # No direct match, but individual atom keys exist: found but domain is invalid
             not empty?(atom_acc) ->
               acc = if require_type?, do: union(atom_acc, acc), else: acc
               {true, valid, [:atom | invalid], acc}
 
+            # No match at all
             true ->
               {found?, valid, [:atom | invalid], acc}
           end
 
+        # Non-atom domain key has a match: mark as valid
         not empty?(value) ->
           acc = if require_type?, do: union(acc, value), else: acc
           {true, [domain_key | valid], invalid, acc}
 
+        # Non-atom domain key not found: mark as invalid
         true ->
           {found?, valid, [domain_key | invalid], acc}
       end
@@ -3974,24 +3985,29 @@ defmodule Module.Types.Descr do
   # But that would not be helpful, as we can't distinguish between these two
   # in Elixir code. It only makes sense to build the union for domain keys
   # that do not exist.
-  defp map_update_put_domains(bdd, [], _type_fun), do: %{map: bdd}
+  defp map_update_put_domains(bdd, [], _type_fun, _force?), do: %{map: bdd}
 
-  defp map_update_put_domains(bdd, domain_keys, type_fun) do
+  defp map_update_put_domains(bdd, domain_keys, type_fun, force?) do
     bdd =
       bdd_map(bdd, fn {tag, fields} ->
-        {map_update_put_domain(tag, domain_keys, type_fun), fields}
+        {map_update_put_domain(tag, domain_keys, type_fun, force?), fields}
       end)
 
     %{map: bdd}
   end
 
-  defp map_update_put_domain(tag_or_domains, domain_keys, type_fun) do
+  defp map_update_put_domain(tag_or_domains, domain_keys, type_fun, force?) do
     case tag_or_domains do
       :open ->
         :open
 
       :closed ->
-        fields_from_keys(domain_keys, if_set(type_fun.(true, none())))
+        # Non-forced updates must not invoke the callback on absent branches:
+        # the callback may itself typecheck a function application, and
+        # applying it to `none()` will raise undue warnings.
+        if force?,
+          do: fields_from_keys(domain_keys, if_set(type_fun.(true, none()))),
+          else: :closed
 
       # Note: domain_keys may contain duplicates, so we cannot
       # do a side-by-side traversal here.
@@ -4002,7 +4018,10 @@ defmodule Module.Types.Descr do
               fields_store(domain_key, union(value, type_fun.(true, remove_optional(value))), acc)
 
             :error ->
-              fields_store(domain_key, if_set(type_fun.(true, none())), acc)
+              # Likewise, only forced updates may synthesize missing domain keys.
+              if force?,
+                do: fields_store(domain_key, if_set(type_fun.(true, none())), acc),
+                else: acc
           end
         end)
     end
@@ -4079,7 +4098,7 @@ defmodule Module.Types.Descr do
     descr =
       case required_domains ++ optional_domains do
         [] -> none()
-        domains -> map_update_put_domains(bdd, domains, type_fun)
+        domains -> map_update_put_domains(bdd, domains, type_fun, true)
       end
 
     dnf = map_bdd_to_dnf_with_empty(bdd)
