@@ -1619,7 +1619,7 @@ defmodule Module.Types.Apply do
 
     {message, to_trace, hints} =
       case reason do
-        {:badarg, domain} ->
+        {:badarg, domain, _empty?} ->
           message = """
           incompatible types given on #{mfa_or_call}:
 

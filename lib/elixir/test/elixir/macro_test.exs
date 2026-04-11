@@ -628,7 +628,7 @@ defmodule MacroTest do
 
     test "boolean expressions that raise" do
       falsy = length([]) != 0
-      x = 0
+      x = Process.get(:unused, 0)
 
       {result, formatted} = dbg_format_no_newline((falsy || x) && 1 / x)
 

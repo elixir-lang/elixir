@@ -1103,26 +1103,26 @@ defmodule Module.Types.DescrTest do
 
     test "static" do
       # Full static
-      assert fun_apply(fun(), [integer()]) == {:badarg, [none()]}
-      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == {:badarg, [none()]}
+      assert fun_apply(fun(), [integer()]) == {:badarg, [none()], false}
+      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == {:badarg, [none()], false}
 
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
-      assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()]}
-      assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()], false}
+      assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()], false}
 
       # Union argument type: domain is int | float
       assert fun_apply(fun([union(integer(), float())], atom()), [integer()]) == {:ok, atom()}
       assert fun_apply(fun([union(integer(), float())], atom()), [float()]) == {:ok, atom()}
 
       assert fun_apply(fun([union(integer(), float())], atom()), [atom()]) ==
-               {:badarg, [union(integer(), float())]}
+               {:badarg, [union(integer(), float())], false}
 
       # 2-arity function
       assert fun_apply(fun([integer(), atom()], binary()), [integer(), atom()]) == {:ok, binary()}
 
       assert fun_apply(fun([integer(), atom()], binary()), [boolean(), atom()]) ==
-               {:badarg, [integer(), atom()]}
+               {:badarg, [integer(), atom()], false}
 
       # Return types
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
@@ -1135,7 +1135,9 @@ defmodule Module.Types.DescrTest do
              |> elem(1)
              |> equal?(atom())
 
-      assert fun_apply(fun([integer()], atom()), [dynamic(float())]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [dynamic(float())]) ==
+               {:badarg, [integer()], false}
+
       assert fun_apply(fun([integer()], atom()), [dynamic(term())]) == {:ok, dynamic()}
 
       # Arity mismatches
@@ -1198,7 +1200,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun, [dynamic(integer())]) == {:ok, union(atom(), dynamic())}
       assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
       assert fun_apply(fun, [integer()]) == {:ok, dynamic()}
-      assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())]}
+      assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())], false}
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
@@ -1214,7 +1216,10 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(dynamic_fun([integer()], atom()), [float()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], atom()), [term()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], none()), [integer()]) == {:ok, dynamic(none())}
-      assert fun_apply(dynamic(fun([integer()], integer())), [none()]) == {:badarg, [none()]}
+
+      assert fun_apply(dynamic(fun([integer()], integer())), [none()]) ==
+               {:badarg, [none()], true}
+
       assert fun_apply(dynamic_fun([integer()], term()), [integer()]) == {:ok, dynamic()}
 
       # Dynamic return and dynamic args
@@ -1330,15 +1335,17 @@ defmodule Module.Types.DescrTest do
         )
 
       assert fun_args |> fun_apply([atom()]) == {:ok, dynamic()}
-      assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())]}
+      assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())], false}
 
       # ((bool->bool) or dyn(int->int))
       # booleans work, but not integers
       fun_mixed_gdom = union(fun([boolean()], boolean()), dynamic_fun([integer()], integer()))
       assert fun_apply(fun_mixed_gdom, [boolean()]) == {:ok, dynamic()}
       assert fun_apply(fun_mixed_gdom, [dynamic(boolean())]) == {:ok, union(dynamic(), boolean())}
-      assert fun_apply(fun_mixed_gdom, [integer()]) == {:badarg, [dynamic(boolean())]}
-      assert fun_apply(fun_mixed_gdom, [dynamic(integer())]) == {:badarg, [dynamic(boolean())]}
+      assert fun_apply(fun_mixed_gdom, [integer()]) == {:badarg, [dynamic(boolean())], false}
+
+      assert fun_apply(fun_mixed_gdom, [dynamic(integer())]) ==
+               {:badarg, [dynamic(boolean())], false}
 
       # Badfun
       assert union(
@@ -2280,24 +2287,15 @@ defmodule Module.Types.DescrTest do
       # This is a test of the map_update_fun/5 with forced?: false parameter.
       # We check that it does not call its typed_fun argument with `none()`
       # due to the key being absent in the map.
-
       type = dynamic(difference(open_map(), empty_map()))
-      ref = make_ref()
 
       fun = fn _optional?, value ->
-        send(self(), {ref, value})
+        send(self(), :callback_invoked)
         value
       end
 
-      _ = map_update_fun(type, binary(), fun, false, false)
-
-      messages = Process.info(self(), :messages) |> elem(1)
-
-      # Check that the callback was not invoked with `none()`
-      refute Enum.any?(messages, fn
-               {seen_ref, value} when seen_ref == ref -> empty?(value)
-               _ -> false
-             end)
+      assert map_update_fun(type, binary(), fun, false, false) == {dynamic(none()), type, []}
+      refute_received :callback_invoked
     end
 
     test "with dynamic atom keys" do
