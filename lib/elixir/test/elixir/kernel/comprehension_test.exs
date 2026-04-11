@@ -513,6 +513,11 @@ defmodule Kernel.ComprehensionTest do
     bin = <<8, 1, 32, 2, 3>>
     assert for(<<s, x::size(s) <- bin>>, into: "", do: <<x::size(s)>>) == <<1>>
     assert for(<<s, x::size(s) <- bin>>, into: %{}, do: {s, x}) == %{8 => 1}
+
+    # Computed
+    bin = <<1, 1, 2, 2, 3>>
+    assert for(<<s, x::size(s * 8) <- bin>>, into: "", do: <<x::size(s * 8)>>) == <<1, 2, 3>>
+    assert for(<<s, x::size(s * 8) <- bin>>, into: %{}, do: {s, x}) == %{1 => 1, 2 => 515}
   end
 
   test "binary for comprehensions where value is not used" do
