@@ -500,7 +500,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_external?({external, {mtime, size}, digest}, sources_stats) do
     case sources_stats do
-      %{^external => {0, 0}} ->
+      %{^external => {0, -1}} ->
         digest != nil
 
       %{^external => {last_mtime, last_size}} ->

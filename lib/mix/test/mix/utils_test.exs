@@ -58,6 +58,10 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.extract_files([""], ".ex") == []
   end
 
+  test "last_modified_and_size returns {0, -1} for missing files" do
+    assert Mix.Utils.last_modified_and_size("nonexistent") == {0, -1}
+  end
+
   test "extract stale" do
     # 2038-01-01 00:00:00
     time = 2_145_916_800
