@@ -166,55 +166,16 @@ build_into(Ann, Clauses, Expr, ?empty_map_set_pattern = _Into, Uniq, S) ->
   {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S),
   {?remote(Ann, 'Elixir.MapSet', new, [ReduceExpr]), SR};
 build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
-  {Fun, SF}    = build_var(Ann, S),
-  {Acc, SA}    = build_var(Ann, SF),
-  {Kind, SK}   = build_var(Ann, SA),
-  {Reason, SR} = build_var(Ann, SK),
-  {Stack, ST}  = build_var(Ann, SR),
-  {Done, SD}   = build_var(Ann, ST),
-  {Ref, SRef}  = build_var(Ann, SD),
-  {Current, SC} = build_var(Ann, SRef),
-
-  InnerFun = fun(InnerExpr, InnerAcc) ->
-    {block, Ann, [
-      {match, Ann, Current, {call, Ann, Fun, [InnerAcc, pair(Ann, cont, InnerExpr)]}},
-      ?remote(Ann, erlang, put, [Ref, Current]),
-      Current
-    ]}
-  end,
+  {Fun, SF} = build_var(Ann, S),
+  {Acc, SA} = build_var(Ann, SF),
 
   MatchExpr = {match, Ann,
     {tuple, Ann, [Acc, Fun]},
     ?remote(Ann, 'Elixir.Collectable', into, [Into])
   },
 
-  {IntoReduceExpr, SN} = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, SC),
-  RefExpr = {match, Ann, Ref, ?remote(Ann, erlang, make_ref, [])},
-
-  TryExpr =
-    {'try', Ann,
-      [IntoReduceExpr],
-      [{clause, Ann,
-        [Done],
-        [],
-        [
-          ?remote(Ann, erlang, erase, [Ref]),
-          {call, Ann, Fun, [Done, {atom, Ann, done}]}
-        ]}],
-      [stacktrace_clause(Ann, Fun, Ref, Kind, Reason, Stack)],
-      []},
-
-  {{block, Ann, [RefExpr, MatchExpr, ?remote(Ann, erlang, put, [Ref, Acc]), TryExpr]}, SN}.
-
-stacktrace_clause(Ann, Fun, Ref, Kind, Reason, Stack) ->
-  CurrentAcc = ?remote(Ann, erlang, get, [Ref]),
-  {clause, Ann,
-    [{tuple, Ann, [Kind, Reason, Stack]}],
-    [],
-    [
-     {call, Ann, Fun, [CurrentAcc, {atom, Ann, halt}]},
-     ?remote(Ann, erlang, erase, [Ref]),
-     ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]}.
+  {IntoReduceExpr, SN} = build_into_reduce(Ann, Clauses, Expr, Acc, Fun, Uniq, SA),
+  {{block, Ann, [MatchExpr, {call, Ann, Fun, [IntoReduceExpr, {atom, Ann, done}]}]}, SN}.
 
 %% Helpers
 
@@ -244,6 +205,53 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
 
   EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SU),
   {?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SU}.
+
+build_into_reduce(Ann, Clauses, Expr, Into, Fun, false, S) ->
+  {Acc, SA} = build_var(Ann, S),
+  {ProtectedExpr, SP} = build_into_try(Ann, Expr, Fun, Acc, SA),
+  {build_reduce_each(Clauses, {call, Ann, Fun, [Acc, pair(Ann, cont, ProtectedExpr)]}, Into, Acc, SP), SP};
+build_into_reduce(Ann, Clauses, Expr, Into, Fun, true, S) ->
+  %% Those variables are used only inside the anonymous function
+  %% so we don't need to worry about returning the scope.
+  {Acc, SA} = build_var(Ann, S),
+  {Value, SV} = build_var(Ann, SA),
+  {IntoAcc, SI} = build_var(Ann, SV),
+  {UniqAcc, SU} = build_var(Ann, SI),
+
+  {ProtectedExpr, SP} = build_into_try(Ann, Expr, Fun, IntoAcc, SU),
+  NewInto = {tuple, Ann, [Into, {map, Ann, []}]},
+  AccTuple = {tuple, Ann, [IntoAcc, UniqAcc]},
+  PutUniqExpr = {map, Ann, UniqAcc, [{map_field_assoc, Ann, Value, {atom, Ann, true}}]},
+
+  InnerExpr = {block, Ann, [
+    {match, Ann, AccTuple, Acc},
+    {match, Ann, Value, ProtectedExpr},
+    {'case', Ann, UniqAcc, [
+      {clause, Ann, [{map, Ann, [{map_field_exact, Ann, Value, {atom, Ann, true}}]}], [], [AccTuple]},
+      {clause, Ann, [{map, Ann, []}], [], [{tuple, Ann, [{call, Ann, Fun, [IntoAcc, pair(Ann, cont, Value)]}, PutUniqExpr]}]}
+    ]}
+  ]},
+
+  EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SP),
+  {?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SP}.
+
+build_into_try(Ann, Expr, Fun, Acc, S) ->
+  {Value, SV} = build_var(Ann, S),
+  {Kind, SK} = build_var(Ann, SV),
+  {Reason, SR} = build_var(Ann, SK),
+  {Stack, SS} = build_var(Ann, SR),
+
+  {{'try', Ann,
+    [Expr],
+    [{clause, Ann, [Value], [], [Value]}],
+    [{clause, Ann,
+      [{tuple, Ann, [Kind, Reason, Stack]}],
+      [],
+      [
+        {call, Ann, Fun, [Acc, {atom, Ann, halt}]},
+        ?remote(Ann, erlang, raise, [Kind, Reason, Stack])
+      ]}],
+    []}, SS}.
 
 build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
