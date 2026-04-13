@@ -31,8 +31,8 @@
   prematch=none,
   %% Stores if __STACKTRACE__ is allowed
   stacktrace=false,
-  %% A map of unused vars and a version counter for vars
-  unused={#{}, 0},
+  %% A map of unused vars
+  unused=#{},
   %% A list of modules defined in functions (runtime)
   runtime_modules=[],
   %% A tuple with maps of read and optional write current vars.
@@ -46,7 +46,9 @@
   %%     if you write foo(a = 123), the value of `a` cannot be
   %%     read in the following argument, only after the call
   %%
-  vars={#{}, false}
+  vars={#{}, false},
+  %% Stores expression version counter
+  version=0
 }).
 
 -record(elixir_erl, {

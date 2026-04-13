@@ -786,7 +786,7 @@ defmodule Protocol do
   end
 
   defp fallback_clause_for(value, _protocol, meta) do
-    {meta, [quote(do: _)], [], value}
+    {meta, [{:_, [version: -1], __MODULE__}], [], value}
   end
 
   # Finally compile the module and emit its bytecode.

@@ -5,7 +5,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 33
+  @manifest_vsn 34
   @checkpoint_vsn 4
 
   import Record

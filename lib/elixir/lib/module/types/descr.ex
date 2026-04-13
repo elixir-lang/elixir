@@ -971,6 +971,8 @@ defmodule Module.Types.Descr do
   domain of a function. It is used to refine dynamic types
   as we traverse the program.
   """
+  def compatible_intersection(other, :term), do: {:ok, remove_optional(other)}
+
   def compatible_intersection(left, right) do
     {left_dynamic, left_static} = pop_dynamic(left)
 
@@ -1810,7 +1812,7 @@ defmodule Module.Types.Descr do
           cache = Map.put(cache, cache_key, false)
           {false, cache}
         else
-          {_index, result2, cache} =
+          {_index, result, cache} =
             Enum.reduce_while(arguments, {0, true, cache}, fn
               type, {index, acc_result, acc_cache} ->
                 {new_result, new_cache} =
@@ -1825,7 +1827,6 @@ defmodule Module.Types.Descr do
                 end
             end)
 
-          result = result1 and result2
           cache = Map.put(cache, cache_key, result)
           {result, cache}
         end

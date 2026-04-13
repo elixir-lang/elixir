@@ -437,7 +437,9 @@ defmodule Module.Types do
       # The mode to be used, see the @modes attribute
       mode: mode,
       # The function for handling local calls
-      local_handler: handler
+      local_handler: handler,
+      # Reverse arrow handling (nil | :cache | :use)
+      reverse_arrow: nil
     }
   end
 
@@ -459,20 +461,26 @@ defmodule Module.Types do
       # Local signatures used by local handler
       local_sigs: %{},
       # Track which clauses have been used across private local calls
-      local_used: %{}
+      local_used: %{},
+      # Cached reverse arrows
+      reverse_arrows: %{}
     }
   end
 
   defp fresh_stack(stack, mode, function) when mode in @modes do
-    %{stack | mode: mode, function: function}
+    %{stack | mode: mode, function: function, reverse_arrow: nil}
   end
 
   defp fresh_context(context) do
-    %{context | vars: %{}, failed: false}
+    %{context | vars: %{}, failed: false, reverse_arrows: %{}}
   end
 
-  defp restore_context(later_context, %{vars: vars, failed: failed}) do
-    %{later_context | vars: vars, failed: failed}
+  defp restore_context(later_context, %{
+         vars: vars,
+         failed: failed,
+         reverse_arrows: reverse_arrows
+       }) do
+    %{later_context | vars: vars, failed: failed, reverse_arrows: reverse_arrows}
   end
 
   ## Diagnostics

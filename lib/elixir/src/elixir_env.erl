@@ -56,12 +56,12 @@ env_to_ex(#{context := match, versioned_vars := Vars}) ->
   #elixir_ex{
     prematch={Vars, {#{}, []}, Counter},
     vars={Vars, false},
-    unused={#{}, Counter}
+    version=Counter
   };
 env_to_ex(#{versioned_vars := Vars}) ->
   #elixir_ex{
     vars={Vars, false},
-    unused={#{}, map_size(Vars)}
+    version=map_size(Vars)
   }.
 
 %% VAR HANDLING
@@ -94,10 +94,10 @@ merge_vars(V1, V2) ->
 
 %% UNUSED VARS
 
-reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
-  S#elixir_ex{unused={#{}, Version}}.
+reset_unused_vars(#elixir_ex{} = S) ->
+  S#elixir_ex{unused=#{}}.
 
-check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
+check_unused_vars(#elixir_ex{unused=Unused}, E) ->
   [elixir_errors:file_warn(calculate_span(Meta, Name), E, ?MODULE, {unused_var, Name, Overridden}) ||
     {{{Name, _Kind}, _Count}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
@@ -111,10 +111,10 @@ calculate_span(Meta, Name) ->
       Meta
   end.
 
-merge_and_check_unused_vars(S, #elixir_ex{vars={Read, Write}, unused={Unused, _Version}}, E) ->
-  #elixir_ex{unused={ClauseUnused, Version}} = S,
+merge_and_check_unused_vars(S, #elixir_ex{vars={Read, Write}, unused=Unused}, E) ->
+  #elixir_ex{unused=ClauseUnused} = S,
   NewUnused = merge_and_check_unused_vars(Read, Unused, ClauseUnused, E),
-  S#elixir_ex{unused={NewUnused, Version}, vars={Read, Write}}.
+  S#elixir_ex{unused=NewUnused, vars={Read, Write}}.
 
 merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
   maps:fold(fun

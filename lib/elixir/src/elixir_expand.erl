@@ -331,7 +331,8 @@ expand({'cond', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "cond", S, E),
   assert_no_underscore_clause_in_cond(Opts, E),
   {EClauses, SC, EC} = elixir_clauses:'cond'(Meta, Opts, S, E),
-  {{'cond', Meta, [EClauses]}, SC, EC};
+  #elixir_ex{version=Counter} = SC,
+  {{'cond', [{version, Counter} | Meta], [EClauses]}, SC#elixir_ex{version=Counter+1}, EC};
 
 expand({'case', Meta, [Expr, Options]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "case", S, E),
@@ -340,12 +341,14 @@ expand({'case', Meta, [Expr, Options]}, S, E) ->
 expand({'receive', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "receive", S, E),
   {EClauses, SC, EC} = elixir_clauses:'receive'(Meta, Opts, S, E),
-  {{'receive', Meta, [EClauses]}, SC, EC};
+  #elixir_ex{version=Counter} = SC,
+  {{'receive', [{version, Counter} | Meta], [EClauses]}, SC#elixir_ex{version=Counter+1}, EC};
 
 expand({'try', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "try", S, E),
   {EClauses, SC, EC} = elixir_clauses:'try'(Meta, Opts, S, E),
-  {{'try', Meta, [EClauses]}, SC, EC};
+  #elixir_ex{version=Counter} = SC,
+  {{'try', [{version, Counter} | Meta], [EClauses]}, SC#elixir_ex{version=Counter+1}, EC};
 
 %% Comprehensions
 
@@ -385,20 +388,22 @@ expand({'^', Meta, [Arg]}, S, E) ->
   function_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg}),
   {{'^', Meta, [Arg]}, S#elixir_ex{tainted_function=true}, E};
 
-expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind) ->
+expand({'_', Meta, Kind}, #elixir_ex{version=Counter} = S, #{context := Context} = E) when is_atom(Kind) ->
+  NewVar = {'_', [{version, Counter} | Meta], Kind},
+
   case Context of
     match ->
-      {Var, S, E};
+      {NewVar, S#elixir_ex{version=Counter+1}, E};
     _ ->
       function_error(Meta, E, ?MODULE, unbound_underscore),
-      {Var, S#elixir_ex{tainted_function=true}, E}
+      {NewVar, S#elixir_ex{tainted_function=true, version=Counter+1}, E}
   end;
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
     prematch={_, _, PrematchVersion},
-    unused={Unused, Version},
-    vars={Read, Write}
+    vars={Read, Write},
+    unused=Unused
   } = S,
 
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
@@ -408,29 +413,31 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, Meta, VarVersion, Unused),
-      NewWrite = (Write /= false) andalso Write#{Pair => Version},
+      NewWrite = (Write /= false) andalso Write#{Pair => VarVersion},
       Var = {Name, [{version, VarVersion} | Meta], Kind},
-      {Var, S#elixir_ex{vars={Read, NewWrite}, unused={NewUnused, Version}}, E};
+      {Var, S#elixir_ex{vars={Read, NewWrite}, unused=NewUnused}, E};
 
     %% Variable is being overridden now
     #{Pair := _} ->
+      Version = S#elixir_ex.version,
       NewUnused = var_unused(Pair, Meta, Version, Unused, true),
       NewRead = Read#{Pair => Version},
       NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E};
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused=NewUnused, version=Version + 1}, E};
 
     %% Variable defined for the first time
     _ ->
+      Version = S#elixir_ex.version,
       NewUnused = var_unused(Pair, Meta, Version, Unused, false),
       NewRead = Read#{Pair => Version},
       NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E}
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused=NewUnused, version=Version + 1}, E}
   end;
 
 expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
-  #elixir_ex{vars={Read, _Write}, unused={Unused, Version}, prematch=Prematch} = S,
+  #elixir_ex{vars={Read, _Write}, unused=Unused, prematch=Prematch} = S,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   Result =
@@ -471,7 +478,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     {ok, PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-      {Var, S#elixir_ex{unused={var_used(Pair, Meta, PairVersion, Unused), Version}}, E};
+      {Var, S#elixir_ex{unused=var_used(Pair, Meta, PairVersion, Unused)}, E};
 
     Error ->
       case lists:keyfind(if_undefined, 1, Meta) of
@@ -795,8 +802,8 @@ expand_case(Meta, Expr, Opts, S, E) ->
       false -> Opts
     end,
 
-  {EOpts, SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
-  {{'case', Meta, [EExpr, EOpts]}, SO, EO}.
+  {EOpts, #elixir_ex{version=Counter} = SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
+  {{'case', [{version, Counter} | Meta], [EExpr, EOpts]}, SO#elixir_ex{version=Counter+1}, EO}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
@@ -853,9 +860,9 @@ expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
       {error, Error} -> {file_error(Meta, E, ?MODULE, Error), EOpts}
     end,
 
-  {{for, Meta, ECases ++ [[{do, EExpr} | NormalizedOpts]]},
-   elixir_env:merge_and_check_unused_vars(SE, S, EE),
-   E}.
+  #elixir_ex{version=Counter} = SF = elixir_env:merge_and_check_unused_vars(SE, S, EE),
+  {{for, [{version, Counter} | Meta], ECases ++ [[{do, EExpr} | NormalizedOpts]]},
+   SF#elixir_ex{version=Counter+1}, E}.
 
 validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Return, Meta, E, Acc) ->
   validate_for_options(Opts, Pair, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);

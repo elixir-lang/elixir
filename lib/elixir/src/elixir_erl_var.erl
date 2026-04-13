@@ -102,7 +102,7 @@ load_pair({Pair, Value}) -> {Pair, Value}.
 
 dump_binding(Binding, ErlS, ExS, PruneBefore) ->
   #elixir_erl{var_names=ErlVars} = ErlS,
-  #elixir_ex{vars={ExVars, _}, unused={Unused, _}} = ExS,
+  #elixir_ex{vars={ExVars, _}, unused=Unused} = ExS,
 
   maps:fold(fun
     ({Var, Kind} = Pair, Version, {B, V})
