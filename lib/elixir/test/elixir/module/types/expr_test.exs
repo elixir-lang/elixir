@@ -2618,6 +2618,24 @@ defmodule Module.Types.ExprTest do
              ) == union(bitstring(), list(term()))
     end
 
+    test ":into inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 List.to_integer([_ | _] = for(_ <- x, do: y))
+                 y
+               )
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x, y],
+               (
+                 for(<<_ <- x>>, do: y, into: "")
+                 y
+               )
+             ) == dynamic(bitstring())
+    end
+
     test ":into incompatibility" do
       assert typeerror!([binary], for(<<x <- binary>>, do: x, into: "")) =~ ~l"""
              expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):

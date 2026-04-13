@@ -411,7 +411,7 @@ defmodule Module.Types.Expr do
 
       {type, context} =
         if else_block do
-          {type, context} = of_expr(body, @pending, body, stack, original)
+          {type, context} = of_expr(body, term(), body, stack, original)
           info = {:try_else, meta, body, type}
           of_clauses(else_block, [type], expected, info, stack, context, none())
         else
@@ -425,13 +425,13 @@ defmodule Module.Types.Expr do
             Enum.reduce(clauses, acc_context, fn
               {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, {acc, context} ->
                 {type, context} =
-                  of_rescue(var, exceptions, body, expr, :rescue, meta, stack, context)
+                  of_rescue(var, exceptions, body, expr, expected, :rescue, meta, stack, context)
 
                 {union(type, acc), context}
 
               {:->, meta, [[var], body]}, {acc, context} ->
                 {type, context} =
-                  of_rescue(var, [], body, var, :anonymous_rescue, meta, stack, context)
+                  of_rescue(var, [], body, var, expected, :anonymous_rescue, meta, stack, context)
 
                 {union(type, acc), context}
             end)
@@ -494,16 +494,16 @@ defmodule Module.Types.Expr do
         of_clauses(block, args, expected, :for_reduce, stack, context, reduce_type)
       else
         # TODO: Use the collectable protocol for the output
-        # TODO: Use the expected type for the block output
         into = Keyword.get(opts, :into, [])
         {into_type, into_kind, context} = for_into(into, meta, stack, context)
-        {block_type, context} = of_expr(block, @pending, block, stack, context)
 
         case into_kind do
           :bitstring ->
+            {block_type, context} = of_expr(block, bitstring(), block, stack, context)
+
             case compatible_intersection(block_type, bitstring()) do
               {:ok, intersection} ->
-                {return_union(into_type, intersection, stack), context}
+                {union(into_type, intersection), context}
 
               {:error, _} ->
                 error = {:badbitbody, block_type, block, context}
@@ -511,11 +511,20 @@ defmodule Module.Types.Expr do
             end
 
           :non_empty_list ->
-            {return_union(into_type, non_empty_list(block_type), stack), context}
+            expected =
+              case list_hd(expected) do
+                {:ok, head} -> head
+                _ -> term()
+              end
+
+            {block_type, context} = of_expr(block, expected, block, stack, context)
+            {union(into_type, non_empty_list(block_type)), context}
 
           :none ->
+            {_, context} = of_expr(block, term(), block, stack, context)
             {into_type, context}
         end
+        |> dynamic_unless_static(stack)
       end
     end)
   end
@@ -535,7 +544,7 @@ defmodule Module.Types.Expr do
 
     # TODO: Perform inference based on the strong domain of a function
     {args_types, context} =
-      Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
+      Enum.map_reduce(args, context, &of_expr(&1, term(), &1, stack, &2))
 
     Apply.fun(fun_type, args_types, call, stack, context)
   end
@@ -619,7 +628,7 @@ defmodule Module.Types.Expr do
 
   ## Try
 
-  defp of_rescue(var, exceptions, body, expr, info, meta, stack, original) do
+  defp of_rescue(var, exceptions, body, expr, expected, info, meta, stack, original) do
     args = [__exception__: term()]
 
     {structs, context} =
@@ -648,7 +657,7 @@ defmodule Module.Types.Expr do
           context
       end
 
-    {type, context} = of_expr(body, @pending, body, stack, context)
+    {type, context} = of_expr(body, expected, body, stack, context)
     {type, Of.reset_vars(context, original)}
   end
 
@@ -658,16 +667,16 @@ defmodule Module.Types.Expr do
     expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
     {pattern, guards} = extract_head([left])
 
+    # TODO: Extract the type from enumerable protocol
     {_type, context} =
-      Apply.remote(Enumerable, :count, [right], dynamic(), expr, stack, context, &of_expr/5)
+      Apply.remote(Enumerable, :count, [right], term(), expr, stack, context, &of_expr/5)
 
     Pattern.of_generator(pattern, guards, dynamic(), :for, expr, stack, context)
   end
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]} = expr, stack, context) do
     {right_type, context} = of_expr(right, bitstring(), expr, stack, context)
-    info = {:for, expr, dynamic()}
-    context = Pattern.of_generator(left, [], bitstring(), info, expr, stack, context)
+    context = Pattern.of_generator(left, [], bitstring(), :for, expr, stack, context)
 
     if compatible?(right_type, bitstring()) do
       context
@@ -728,17 +737,12 @@ defmodule Module.Types.Expr do
     end
   end
 
-  defp return_union(left, right, stack) do
-    Apply.return(union(left, right), [left, right], stack)
-  end
-
   ## With
 
   defp with_clause({:<-, _meta, [left, right]} = expr, stack, context) do
     {pattern, guards} = extract_head([left])
     {_type, context} = of_expr(right, @pending, right, stack, context)
-    info = {:with, expr, dynamic()}
-    Pattern.of_generator(pattern, guards, dynamic(), info, expr, stack, context)
+    Pattern.of_generator(pattern, guards, dynamic(), :with, expr, stack, context)
   end
 
   defp with_clause(expr, stack, context) do

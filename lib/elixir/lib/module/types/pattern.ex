@@ -323,7 +323,9 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles matches in generators.
   """
-  def of_generator(pattern, guards, expected, tag, expr, stack, %{vars: vars} = context) do
+  def of_generator(pattern, guards, expected, op, expr, stack, %{vars: vars} = context)
+      when is_atom(op) do
+    tag = {op, expr, expected}
     context = init_pattern_info(context, [])
 
     {tree, _precise?, context} =
