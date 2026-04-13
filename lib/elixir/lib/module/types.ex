@@ -468,15 +468,19 @@ defmodule Module.Types do
   end
 
   defp fresh_stack(stack, mode, function) when mode in @modes do
-    %{stack | mode: mode, function: function}
+    %{stack | mode: mode, function: function, reverse_arrow: nil}
   end
 
   defp fresh_context(context) do
-    %{context | vars: %{}, failed: false}
+    %{context | vars: %{}, failed: false, reverse_arrows: %{}}
   end
 
-  defp restore_context(later_context, %{vars: vars, failed: failed}) do
-    %{later_context | vars: vars, failed: failed}
+  defp restore_context(later_context, %{
+         vars: vars,
+         failed: failed,
+         reverse_arrows: reverse_arrows
+       }) do
+    %{later_context | vars: vars, failed: failed, reverse_arrows: reverse_arrows}
   end
 
   ## Diagnostics
