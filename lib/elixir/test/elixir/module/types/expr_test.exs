@@ -1931,6 +1931,17 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "discards warnings from refinements" do
+      assert {_, [_]} =
+               typediag!(
+                 if x = System.unknown_function_get_env("HELLO") do
+                   {:ok, x}
+                 else
+                   {:error, x}
+                 end
+               )
+    end
+
     test "and/or does not report on literals" do
       assert typecheck!(false and true) == boolean()
       assert typecheck!(false or true) == atom([true])

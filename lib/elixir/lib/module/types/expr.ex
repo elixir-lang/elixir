@@ -353,10 +353,10 @@ defmodule Module.Types.Expr do
     of_body = fn trees, body, context ->
       [arg_type] = Pattern.of_domain(trees, stack, context)
 
-      {_, context} =
+      {_, refined_context} =
         of_expr(case_expr, arg_type, case_expr, %{stack | reverse_arrow: :use}, context)
 
-      of_expr(body, expected, body, stack, context)
+      of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
     end
 
     result_context =
@@ -803,6 +803,8 @@ defmodule Module.Types.Expr do
 
     {result, context}
   end
+
+  defp reset_warnings(context, %{warnings: warnings}), do: %{context | warnings: warnings}
 
   defp reset_failed(%{failed: true} = context, false), do: {true, %{context | failed: false}}
   defp reset_failed(context, _), do: {false, context}
