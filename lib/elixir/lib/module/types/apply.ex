@@ -497,50 +497,54 @@ defmodule Module.Types.Apply do
   end
 
   defp do_remote(:lists, :member, [arg, list] = args, expected, expr, stack, context, of_fun)
-       when is_list(list) and list != [] do
-    case booleaness(expected) do
-      {polarity, _maybe_or_always} ->
-        {return, acc} =
-          case polarity do
-            true -> {@atom_true, none()}
-            false -> {@atom_false, term()}
+       when is_list(list) do
+    if list == [] or Enum.any?(list, &match?({:|, _, [_, _]}, &1)) do
+      remote_domain(:lists, :member, args, expected, elem(expr, 1), stack, context)
+    else
+      case booleaness(expected) do
+        {polarity, _maybe_or_always} ->
+          {return, acc} =
+            case polarity do
+              true -> {@atom_true, none()}
+              false -> {@atom_false, term()}
+            end
+
+          {expected, singleton?, context} =
+            Enum.reduce(list, {acc, true, context}, fn literal, {acc, all_singleton?, context} ->
+              {type, context} = of_fun.(literal, term(), expr, stack, context)
+
+              if singleton?(type) do
+                acc = if polarity, do: union(acc, type), else: intersection(acc, negation(type))
+                {acc, all_singleton?, context}
+              else
+                acc = if polarity, do: union(acc, type), else: acc
+                {acc, false, context}
+              end
+            end)
+
+          {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
+
+          cond do
+            # Return a precise result
+            singleton? and subtype?(arg_type, expected) ->
+              {return(return, [arg_type, expected], stack), context}
+
+            # Singleton types with reverse polarity are negated, so we don't check for disjoint
+            (singleton? and not polarity) or not is_warning(stack) ->
+              {return(boolean(), [arg_type, expected], stack), context}
+
+            # Nothing in common between left and right, emit a warning
+            disjoint?(arg_type, expected) ->
+              error = {:mismatched_comparison, arg_type, list(expected)}
+              remote_error(error, :lists, :member, 2, expr, stack, context)
+
+            true ->
+              {return(boolean(), [arg_type, expected], stack), context}
           end
 
-        {expected, singleton?, context} =
-          Enum.reduce(list, {acc, true, context}, fn literal, {acc, all_singleton?, context} ->
-            {type, context} = of_fun.(literal, term(), expr, stack, context)
-
-            if singleton?(type) do
-              acc = if polarity, do: union(acc, type), else: intersection(acc, negation(type))
-              {acc, all_singleton?, context}
-            else
-              acc = if polarity, do: union(acc, type), else: acc
-              {acc, false, context}
-            end
-          end)
-
-        {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
-
-        cond do
-          # Return a precise result
-          singleton? and subtype?(arg_type, expected) ->
-            {return(return, [arg_type, expected], stack), context}
-
-          # Singleton types with reverse polarity are negated, so we don't check for disjoint
-          (singleton? and not polarity) or not is_warning(stack) ->
-            {return(boolean(), [arg_type, expected], stack), context}
-
-          # Nothing in common between left and right, emit a warning
-          disjoint?(arg_type, expected) ->
-            error = {:mismatched_comparison, arg_type, list(expected)}
-            remote_error(error, :lists, :member, 2, expr, stack, context)
-
-          true ->
-            {return(boolean(), [arg_type, expected], stack), context}
-        end
-
-      _ ->
-        remote_domain(:lists, :member, args, expected, elem(expr, 1), stack, context)
+        _ ->
+          remote_domain(:lists, :member, args, expected, elem(expr, 1), stack, context)
+      end
     end
   end
 
