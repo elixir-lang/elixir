@@ -322,7 +322,9 @@ with(Meta, Args, S, E) ->
       ok
   end,
 
-  {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, S3, E}.
+  #elixir_ex{version=Counter} = S3,  
+  {{with, [{version, Counter} | Meta], EExprs ++ [[{do, EDo} | EOpts]]},
+   S3#elixir_ex{version=Counter+1}, E}.
 
 expand_with({'<-', Meta, [Left, Right]}, {S, E, HasMatch}) ->
   {ERight, SR, ER} = elixir_expand:expand(Right, S, E),

@@ -331,7 +331,8 @@ expand({'cond', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "cond", S, E),
   assert_no_underscore_clause_in_cond(Opts, E),
   {EClauses, SC, EC} = elixir_clauses:'cond'(Meta, Opts, S, E),
-  {{'cond', Meta, [EClauses]}, SC, EC};
+  #elixir_ex{version=Counter} = SC,
+  {{'cond', [{version, Counter} | Meta], [EClauses]}, SC#elixir_ex{version=Counter+1}, EC};
 
 expand({'case', Meta, [Expr, Options]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "case", S, E),
@@ -340,12 +341,14 @@ expand({'case', Meta, [Expr, Options]}, S, E) ->
 expand({'receive', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "receive", S, E),
   {EClauses, SC, EC} = elixir_clauses:'receive'(Meta, Opts, S, E),
-  {{'receive', Meta, [EClauses]}, SC, EC};
+  #elixir_ex{version=Counter} = SC,
+  {{'receive', [{version, Counter} | Meta], [EClauses]}, SC#elixir_ex{version=Counter+1}, EC};
 
 expand({'try', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "try", S, E),
   {EClauses, SC, EC} = elixir_clauses:'try'(Meta, Opts, S, E),
-  {{'try', Meta, [EClauses]}, SC, EC};
+  #elixir_ex{version=Counter} = SC,
+  {{'try', [{version, Counter} | Meta], [EClauses]}, SC#elixir_ex{version=Counter+1}, EC};
 
 %% Comprehensions
 
@@ -857,9 +860,9 @@ expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
       {error, Error} -> {file_error(Meta, E, ?MODULE, Error), EOpts}
     end,
 
-  {{for, Meta, ECases ++ [[{do, EExpr} | NormalizedOpts]]},
-   elixir_env:merge_and_check_unused_vars(SE, S, EE),
-   E}.
+  #elixir_ex{version=Counter} = SF = elixir_env:merge_and_check_unused_vars(SE, S, EE),
+  {{for, [{version, Counter} | Meta], ECases ++ [[{do, EExpr} | NormalizedOpts]]},
+   SF#elixir_ex{version=Counter+1}, E}.
 
 validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Return, Meta, E, Acc) ->
   validate_for_options(Opts, Pair, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);

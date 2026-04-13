@@ -404,7 +404,7 @@ defmodule Kernel.ExpansionTest do
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 4), 3]}
+                {:=, _, [var_ver(:x, 5), 3]}
               ]} =
                expand_with_version(
                  quote do
