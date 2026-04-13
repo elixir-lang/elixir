@@ -180,6 +180,12 @@ defmodule Kernel.ImportTest do
     defmacro bor(x, _), do: x
   end
 
+  defmodule ModuleWithInvalidSigils do
+    def sigil_ab(string, []), do: string
+    def sigil_1(string, []), do: string
+    def helper(x), do: x
+  end
+
   test "import only sigils" do
     import Kernel, except: [sigil_w: 2]
     import ModuleWithSigils, only: :sigils
@@ -202,6 +208,14 @@ defmodule Kernel.ImportTest do
     assert ~I'10' == 10
     assert ~III'10' == 30
     assert ~w(abc def) == ["abc", "def"]
+  end
+
+  test "import only sigils ignores malformed sigil names" do
+    import ModuleWithInvalidSigils, only: :sigils
+
+    assert Macro.Env.lookup_import(__ENV__, {:sigil_ab, 2}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:sigil_1, 2}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:helper, 1}) == []
   end
 
   test "import only removes the non-import part" do

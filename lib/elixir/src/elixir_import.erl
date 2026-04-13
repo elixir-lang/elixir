@@ -194,7 +194,8 @@ is_sigil({Name, 2}) ->
         [H|T] when H >= $A, H =< $Z ->
               lists:all(fun(L) -> (L >= $0 andalso L =< $9)
                                   orelse (L>= $A andalso L =< $Z)
-                        end, T)
+                        end, T);
+        _ -> false
       end;
     _ ->
       false
