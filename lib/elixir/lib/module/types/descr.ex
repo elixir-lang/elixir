@@ -5278,7 +5278,9 @@ defmodule Module.Types.Descr do
         {tag, elements} -> tuple_eliminate_negations(tag, elements, negs)
       end
     end)
-    |> Enum.uniq()
+    # We want to avoid each_singleton? from failing,
+    # so we remove contiguous duplicates (cheaper than uniq)
+    |> Enum.dedup()
   end
 
   defp tuple_bdd_to_dnf_with_negations(bdd) do
