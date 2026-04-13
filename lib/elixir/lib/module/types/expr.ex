@@ -137,8 +137,6 @@ defmodule Module.Types.Expr do
     {@stacktrace, context}
   end
 
-  @dynamic_or_term_list [dynamic(), term()]
-
   # left = right
   def of_expr({:=, _, [left_expr, right_expr]} = match, expected, expr, stack, context) do
     {left_expr, right_expr} = repack_match(left_expr, right_expr)
@@ -151,19 +149,15 @@ defmodule Module.Types.Expr do
       _ ->
         type_fun =
           fn pattern_type, context ->
-            if expected in @dynamic_or_term_list do
-              of_expr(right_expr, pattern_type, expr, stack, context)
-            else
-              # See if we can use the expected type to further refine the pattern type,
-              # if we cannot, use the pattern type as that will fail later on.
-              {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
-              {result, context} = of_expr(right_expr, type, expr, stack, context)
+            # See if we can use the expected type to further refine the pattern type,
+            # if we cannot, use the pattern type as that will fail later on.
+            {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
+            {result, context} = of_expr(right_expr, type, expr, stack, context)
 
-              # The function may still return a too broad type, so we refine once again
-              # to assign the most appropriate one for reverse arrows.
-              {_ok_or_error, result} = compatible_intersection(result, expected)
-              {result, context}
-            end
+            # The function may still return a too broad type, so we refine once again
+            # to assign the most appropriate one for reverse arrows.
+            {_ok_or_error, result} = compatible_intersection(result, expected)
+            {result, context}
           end
 
         Pattern.of_match(left_expr, type_fun, match, stack, context)
@@ -335,7 +329,7 @@ defmodule Module.Types.Expr do
     version = Keyword.fetch!(meta, :version)
 
     {case_type, context} =
-      of_expr(case_expr, @pending, case_expr, %{stack | reverse_arrow: :cache}, base_context)
+      of_expr(case_expr, term(), case_expr, %{stack | reverse_arrow: :cache}, base_context)
 
     info = {:case, meta, case_expr, case_type}
 
@@ -386,7 +380,7 @@ defmodule Module.Types.Expr do
     {patterns, _guards} = extract_head(head)
     domain = Enum.map(patterns, fn _ -> dynamic() end)
 
-    of_body = fn _args_types, body, context -> of_expr(body, @pending, body, stack, context) end
+    of_body = fn _args_types, body, context -> of_expr(body, term(), body, stack, context) end
 
     {acc, context} =
       of_clauses_fun(clauses, domain, :fn, stack, context, of_body, [], fn
@@ -483,6 +477,7 @@ defmodule Module.Types.Expr do
       of_clauses(block, args, expected, :for_reduce, stack, context, reduce_type)
     else
       # TODO: Use the collectable protocol for the output
+      # TODO: Use the expected type for the block output
       into = Keyword.get(opts, :into, [])
       {into_type, into_kind, context} = for_into(into, meta, stack, context)
       {block_type, context} = of_expr(block, @pending, block, stack, context)
