@@ -1422,6 +1422,16 @@ defmodule Module.Types.DescrTest do
       refute singleton?(open_tuple([]))
       refute singleton?(union(tuple([atom([:value])]), tuple([atom([:other_value])])))
       refute singleton?(union(tuple([atom([:value])]), closed_map(other: atom([:value]))))
+
+      # Both BDD lines produce the same singleton tuple, so the tuple DNF must not duplicate it.
+      a = tuple([union(integer(), atom([:ok])), atom([:x])])
+      b = tuple([integer(), atom([:x, :y])])
+      c = tuple([integer(), union(atom([:x]), binary())])
+
+      t = union(difference(a, b), difference(a, c))
+      # Semantically t ~= {:ok, :x}, confirmed by equal?
+      assert equal?(t, tuple([atom([:ok]), atom([:x])]))
+      assert singleton?(t)
     end
   end
 

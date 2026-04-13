@@ -5278,6 +5278,7 @@ defmodule Module.Types.Descr do
         {tag, elements} -> tuple_eliminate_negations(tag, elements, negs)
       end
     end)
+    |> Enum.uniq()
   end
 
   defp tuple_bdd_to_dnf_with_negations(bdd) do
