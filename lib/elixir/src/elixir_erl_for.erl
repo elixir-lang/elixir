@@ -172,9 +172,15 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
   {Reason, SR} = build_var(Ann, SK),
   {Stack, ST}  = build_var(Ann, SR),
   {Done, SD}   = build_var(Ann, ST),
+  {Ref, SRef}  = build_var(Ann, SD),
+  {Current, SC} = build_var(Ann, SRef),
 
   InnerFun = fun(InnerExpr, InnerAcc) ->
-    {call, Ann, Fun, [InnerAcc, pair(Ann, cont, InnerExpr)]}
+    {block, Ann, [
+      {match, Ann, Current, {call, Ann, Fun, [InnerAcc, pair(Ann, cont, InnerExpr)]}},
+      ?remote(Ann, erlang, put, [Ref, Current]),
+      Current
+    ]}
   end,
 
   MatchExpr = {match, Ann,
@@ -182,7 +188,8 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
     ?remote(Ann, 'Elixir.Collectable', into, [Into])
   },
 
-  {IntoReduceExpr, SN} = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, SD),
+  {IntoReduceExpr, SN} = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, SC),
+  RefExpr = {match, Ann, Ref, ?remote(Ann, erlang, make_ref, [])},
 
   TryExpr =
     {'try', Ann,
@@ -190,17 +197,23 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
       [{clause, Ann,
         [Done],
         [],
-        [{call, Ann, Fun, [Done, {atom, Ann, done}]}]}],
-      [stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack)],
+        [
+          ?remote(Ann, erlang, erase, [Ref]),
+          {call, Ann, Fun, [Done, {atom, Ann, done}]}
+        ]}],
+      [stacktrace_clause(Ann, Fun, Ref, Kind, Reason, Stack)],
       []},
 
-  {{block, Ann, [MatchExpr, TryExpr]}, SN}.
+  {{block, Ann, [RefExpr, MatchExpr, ?remote(Ann, erlang, put, [Ref, Acc]), TryExpr]}, SN}.
 
-stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
+stacktrace_clause(Ann, Fun, Ref, Kind, Reason, Stack) ->
+  CurrentAcc = ?remote(Ann, erlang, get, [Ref]),
   {clause, Ann,
     [{tuple, Ann, [Kind, Reason, Stack]}],
     [],
-    [{call, Ann, Fun, [Acc, {atom, Ann, halt}]},
+    [
+     {call, Ann, Fun, [CurrentAcc, {atom, Ann, halt}]},
+     ?remote(Ann, erlang, erase, [Ref]),
      ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]}.
 
 %% Helpers

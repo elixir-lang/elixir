@@ -26,6 +26,31 @@ defmodule Kernel.ComprehensionTest do
     end
   end
 
+  defmodule EvolvingCollectable do
+    defstruct []
+
+    defimpl Collectable do
+      def into(struct) do
+        fun = fn
+          acc, {:cont, x} ->
+            next = acc ++ [x]
+            Process.put(:into_trace, [{acc, x, next} | Process.get(:into_trace)])
+            next
+
+          acc, :done ->
+            Process.put(:into_done_acc, acc)
+            acc
+
+          acc, :halt ->
+            Process.put(:into_halt_acc, acc)
+            acc
+        end
+
+        {[struct], fun}
+      end
+    end
+  end
+
   defp to_bin(x) do
     <<x>>
   end
@@ -100,6 +125,27 @@ defmodule Kernel.ComprehensionTest do
     end
 
     assert Process.get(:into_halt)
+  end
+
+  test "for into halts with the current accumulator" do
+    Process.put(:into_trace, [])
+    Process.put(:into_halt_acc, nil)
+    Process.put(:into_done_acc, nil)
+
+    assert_raise RuntimeError, "oops", fn ->
+      for x <- [1, 2, 3], into: %EvolvingCollectable{} do
+        if x == 3, do: raise("oops")
+        x
+      end
+    end
+
+    assert Process.get(:into_trace) |> Enum.reverse() == [
+             {[%EvolvingCollectable{}], 1, [%EvolvingCollectable{}, 1]},
+             {[%EvolvingCollectable{}, 1], 2, [%EvolvingCollectable{}, 1, 2]}
+           ]
+
+    assert Process.get(:into_halt_acc) == [%EvolvingCollectable{}, 1, 2]
+    assert Process.get(:into_done_acc) == nil
   end
 
   test "nested for comprehensions with unique values" do
