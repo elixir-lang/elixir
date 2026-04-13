@@ -317,17 +317,25 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  def of_expr({:case, meta, [_case_expr, [{:do, _clauses}]]}, _expected, _expr, stack, context)
+  def of_expr({:case, meta, [case_expr, [{:do, _clauses}]]}, expected, _expr, stack, context)
       when stack.reverse_arrow == :use do
     version = Keyword.fetch!(meta, :version)
     clauses = Map.fetch!(context.reverse_arrows, version)
-    result = Enum.reduce(clauses, none(), &union(elem(&1, 1), &2))
-    dynamic_unless_static({result, context}, stack)
+
+    case_expected =
+      Enum.reduce(clauses, none(), fn {arg_type, body_type}, acc ->
+        if disjoint?(body_type, expected) do
+          acc
+        else
+          union(arg_type, acc)
+        end
+      end)
+
+    {_, context} = of_expr(case_expr, case_expected, case_expr, stack, context)
+    {expected, context}
   end
 
   def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, base_context) do
-    version = Keyword.fetch!(meta, :version)
-
     {case_type, context} =
       of_expr(case_expr, term(), case_expr, %{stack | reverse_arrow: :cache}, base_context)
 
@@ -360,7 +368,7 @@ defmodule Module.Types.Expr do
     end
 
     result_context =
-      cache_arrows(version, stack, fn ->
+      cache_arrows(meta, stack, fn ->
         of_clauses_fun(clauses, [case_type], info, stack, context, of_body, [], fn
           trees, body_type, context, acc ->
             [arg_type] = Pattern.of_domain(trees, stack, context)
@@ -767,10 +775,11 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp cache_arrows(_version, %{reverse_arrow: nil}, _fun), do: nil
+  defp cache_arrows(_meta, %{reverse_arrow: nil}, _fun), do: nil
 
-  defp cache_arrows(version, %{reverse_arrow: :cache}, fun) do
+  defp cache_arrows(meta, %{reverse_arrow: :cache}, fun) do
     {clauses, context} = fun.()
+    version = Keyword.fetch!(meta, :version)
     context = put_in(context.reverse_arrows[version], clauses)
     result = Enum.reduce(clauses, none(), &union(elem(&1, 1), &2))
     {result, context}

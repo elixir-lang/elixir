@@ -1931,6 +1931,25 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "refines nested expression type" do
+      assert typecheck!(
+               case (if x = System.get_env("HELLO") do
+                       :do
+                     else
+                       :else
+                     end) do
+                 :do -> {:ok, x}
+                 :else -> {:error, x}
+               end
+             ) ==
+               dynamic(
+                 union(
+                   tuple([atom([:ok]), binary()]),
+                   tuple([atom([:error]), atom([nil])])
+                 )
+               )
+    end
+
     test "discards warnings from refinements" do
       assert {_, [_]} =
                typediag!(
