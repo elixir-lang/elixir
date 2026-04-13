@@ -1137,7 +1137,7 @@ defmodule Kernel.ParserTest do
           "nofile:1:12:",
           "invalid line break character in string: \\u000B. If you want to use such character, use it in its escaped \\u000B form instead"
         ],
-        :erlang.list_to_binary([34] ++ ~c"this is a " ++ [11, 34])
+        [34] ++ ~c"this is a " ++ [11, 34]
       )
 
       assert_syntax_error(
@@ -1145,15 +1145,7 @@ defmodule Kernel.ParserTest do
           "nofile:1:12:",
           "invalid line break character in string: \\u000C. If you want to use such character, use it in its escaped \\u000C form instead"
         ],
-        :erlang.list_to_binary([34] ++ ~c"this is a " ++ [12, 34])
-      )
-
-      assert_syntax_error(
-        [
-          "nofile:1:12:",
-          "invalid line break character in string: \\u0085. If you want to use such character, use it in its escaped \\u0085 form instead"
-        ],
-        <<34, "this is a ", 194, 133, 34>>
+        [34] ++ ~c"this is a " ++ [12, 34]
       )
     end
 

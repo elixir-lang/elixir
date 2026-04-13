@@ -24,20 +24,20 @@
 
 %% Bidirectional control
 %% Retrieved from https://trojansource.codes/trojan-source.pdf
--define(bidi(C), C =:= 16#202A;
-                 C =:= 16#202B;
-                 C =:= 16#202D;
-                 C =:= 16#202E;
-                 C =:= 16#2066;
-                 C =:= 16#2067;
-                 C =:= 16#2068;
-                 C =:= 16#202C;
+-define(bidi(C), C =:= 16#202A orelse
+                 C =:= 16#202B orelse
+                 C =:= 16#202D orelse
+                 C =:= 16#202E orelse
+                 C =:= 16#2066 orelse
+                 C =:= 16#2067 orelse
+                 C =:= 16#2068 orelse
+                 C =:= 16#202C orelse
                  C =:= 16#2069).
 
 %% Unsupported newlines
 %% https://www.unicode.org/reports/tr55/
--define(break(C), C =:= 16#000B;
-                  C =:= 16#000C;
-                  C =:= 16#0085;
-                  C =:= 16#2028;
+-define(break(C), C =:= 16#000B orelse
+                  C =:= 16#000C orelse
+                  C =:= 16#0085 orelse
+                  C =:= 16#2028 orelse
                   C =:= 16#2029).
