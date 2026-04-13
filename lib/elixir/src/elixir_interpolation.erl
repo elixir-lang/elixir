@@ -80,6 +80,15 @@ extract([$\\ | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
 
 %% Catch all clause
 
+extract([Char | _Rest], _Buffer, _Output, Line, Column, _Scope, _Interpol, _Last)
+    when ?break(Char) ->
+  Token = io_lib:format("\\u~4.16.0B", [Char]),
+  Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
+  {error, {?LOC(Line, Column),
+    {"invalid line break character in string: ",
+     Pos},
+    Token}};
+
 extract([Char1, Char2 | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last)
     when Char1 =< 255, Char2 =< 255 ->
   extract([Char2 | Rest], [Char1 | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
