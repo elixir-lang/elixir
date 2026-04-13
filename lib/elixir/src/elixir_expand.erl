@@ -385,13 +385,15 @@ expand({'^', Meta, [Arg]}, S, E) ->
   function_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg}),
   {{'^', Meta, [Arg]}, S#elixir_ex{tainted_function=true}, E};
 
-expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind) ->
+expand({'_', Meta, Kind}, #elixir_ex{version=Counter} = S, #{context := Context} = E) when is_atom(Kind) ->
+  NewVar = {'_', [{version, Counter} | Meta], Kind},
+
   case Context of
     match ->
-      {Var, S, E};
+      {NewVar, S#elixir_ex{version=Counter+1}, E};
     _ ->
       function_error(Meta, E, ?MODULE, unbound_underscore),
-      {Var, S#elixir_ex{tainted_function=true}, E}
+      {NewVar, S#elixir_ex{tainted_function=true, version=Counter+1}, E}
   end;
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
@@ -798,7 +800,7 @@ expand_case(Meta, Expr, Opts, S, E) ->
     end,
 
   {EOpts, #elixir_ex{version=Counter} = SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
-  {{'case', [{version, Counter} | Meta], [EExpr, EOpts]}, SO#elixir_ex{version = Counter + 1}, EO}.
+  {{'case', [{version, Counter} | Meta], [EExpr, EOpts]}, SO#elixir_ex{version=Counter+1}, EO}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [

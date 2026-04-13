@@ -137,6 +137,8 @@ defmodule Module.Types.Expr do
     {@stacktrace, context}
   end
 
+  @dynamic_or_term_list [dynamic(), term()]
+
   # left = right
   def of_expr({:=, _, [left_expr, right_expr]} = match, expected, expr, stack, context) do
     {left_expr, right_expr} = repack_match(left_expr, right_expr)
@@ -147,12 +149,22 @@ defmodule Module.Types.Expr do
         of_expr(right_expr, expected, expr, stack, context)
 
       _ ->
-        type_fun = fn pattern_type, context ->
-          # See if we can use the expected type to further refine the pattern type,
-          # if we cannot, use the pattern type as that will fail later on.
-          {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
-          of_expr(right_expr, type, expr, stack, context)
-        end
+        type_fun =
+          fn pattern_type, context ->
+            if expected in @dynamic_or_term_list do
+              of_expr(right_expr, pattern_type, expr, stack, context)
+            else
+              # See if we can use the expected type to further refine the pattern type,
+              # if we cannot, use the pattern type as that will fail later on.
+              {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
+              {result, context} = of_expr(right_expr, type, expr, stack, context)
+
+              # The function may still return a too broad type, so we refine once again
+              # to assign the most appropriate one for reverse arrows.
+              {_ok_or_error, result} = compatible_intersection(result, expected)
+              {result, context}
+            end
+          end
 
         Pattern.of_match(left_expr, type_fun, match, stack, context)
     end
@@ -311,9 +323,20 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, context) do
-    _ = Keyword.fetch!(meta, :version)
-    {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
+  def of_expr({:case, meta, [_case_expr, [{:do, _clauses}]]}, _expected, _expr, stack, context)
+      when stack.reverse_arrow == :use do
+    version = Keyword.fetch!(meta, :version)
+    clauses = Map.fetch!(context.reverse_arrows, version)
+    result = Enum.reduce(clauses, none(), &union(elem(&1, 1), &2))
+    dynamic_unless_static({result, context}, stack)
+  end
+
+  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, base_context) do
+    version = Keyword.fetch!(meta, :version)
+
+    {case_type, context} =
+      of_expr(case_expr, @pending, case_expr, %{stack | reverse_arrow: :cache}, base_context)
+
     info = {:case, meta, case_expr, case_type}
 
     added_meta =
@@ -326,13 +349,35 @@ defmodule Module.Types.Expr do
     # If the expression is generated or the construct is a literal,
     # it is most likely a macro code. However, if no clause is matched,
     # we should still check for that.
-    if added_meta != [] do
-      for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
-    else
-      clauses
+    clauses =
+      if added_meta != [] do
+        for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
+      else
+        clauses
+      end
+
+    of_body = fn trees, body, context ->
+      [arg_type] = Pattern.of_domain(trees, stack, context)
+
+      {_, context} =
+        of_expr(case_expr, arg_type, case_expr, %{stack | reverse_arrow: :use}, context)
+
+      of_expr(body, expected, body, stack, context)
     end
-    |> of_clauses([case_type], expected, info, stack, context, none())
-    |> dynamic_unless_static(stack)
+
+    result_context =
+      cache_arrows(version, stack, fn ->
+        of_clauses_fun(clauses, [case_type], info, stack, context, of_body, [], fn
+          trees, body_type, context, acc ->
+            [arg_type] = Pattern.of_domain(trees, stack, context)
+            [{arg_type, body_type} | acc]
+        end)
+      end) ||
+        of_clauses_fun(clauses, [case_type], info, stack, context, of_body, none(), fn
+          _trees, body_type, _context, acc -> union(acc, body_type)
+        end)
+
+    dynamic_unless_static(result_context, stack)
   end
 
   # fn pat -> expr end
@@ -341,11 +386,13 @@ defmodule Module.Types.Expr do
     {patterns, _guards} = extract_head(head)
     domain = Enum.map(patterns, fn _ -> dynamic() end)
 
+    of_body = fn _args_types, body, context -> of_expr(body, @pending, body, stack, context) end
+
     {acc, context} =
-      of_clauses_fun(clauses, domain, @pending, :fn, stack, context, [], fn
-        trees, body, context, acc ->
+      of_clauses_fun(clauses, domain, :fn, stack, context, of_body, [], fn
+        trees, body_type, context, acc ->
           args_types = Pattern.of_domain(trees, stack, context)
-          add_inferred(acc, args_types, body)
+          add_inferred(acc, args_types, body_type)
       end)
 
     {fun_from_inferred_clauses(acc), context}
@@ -725,12 +772,22 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
-    fun = fn _args_types, result, _context, acc -> union(result, acc) end
-    of_clauses_fun(clauses, domain, expected, base_info, stack, context, acc, fun)
+  defp cache_arrows(_version, %{reverse_arrow: nil}, _fun), do: nil
+
+  defp cache_arrows(version, %{reverse_arrow: :cache}, fun) do
+    {clauses, context} = fun.()
+    context = put_in(context.reverse_arrows[version], clauses)
+    result = Enum.reduce(clauses, none(), &union(elem(&1, 1), &2))
+    {result, context}
   end
 
-  defp of_clauses_fun(clauses, domain, expected, base_info, stack, original, acc, fun) do
+  defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
+    of_body = fn _args_types, body, context -> of_expr(body, expected, body, stack, context) end
+    of_acc = fn _args_types, body_type, _context, acc -> union(acc, body_type) end
+    of_clauses_fun(clauses, domain, base_info, stack, context, of_body, acc, of_acc)
+  end
+
+  defp of_clauses_fun(clauses, domain, base_info, stack, original, of_body, acc, of_acc) do
     %{failed: failed?} = original
 
     {result, _previous, context} =
@@ -743,9 +800,9 @@ defmodule Module.Types.Expr do
           {trees, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
-          {result, context} = of_expr(body, expected, body, stack, context)
+          {result, context} = of_body.(trees, body, context)
 
-          {fun.(trees, result, context, acc), previous,
+          {of_acc.(trees, result, context, acc), previous,
            context |> set_failed(failed?) |> Of.reset_vars(original)}
       end)
 

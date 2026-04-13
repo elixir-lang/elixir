@@ -338,7 +338,7 @@ defmodule Module.Types.IntegrationTest do
 
             previous clauses have already matched on the following types:
 
-                term(), integer()
+                not integer(), integer()
                 integer(), term()
 
             │

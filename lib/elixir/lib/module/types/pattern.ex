@@ -805,12 +805,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # _
-  defp of_pattern({:_, _meta, _var_context}, _path, _stack, context) do
-    {term(), true, context}
-  end
-
-  # var
+  # var (includes underscores)
   defp of_pattern({name, meta, ctx} = var, path, _stack, context)
        when is_atom(name) and is_atom(ctx) do
     version = Keyword.fetch!(meta, :version)

@@ -1915,6 +1915,22 @@ defmodule Module.Types.ExprTest do
              ) == atom([:ok, nil])
     end
 
+    test "refines expression type" do
+      assert typecheck!(
+               if x = System.get_env("HELLO") do
+                 {:ok, x}
+               else
+                 {:error, x}
+               end
+             ) ==
+               dynamic(
+                 union(
+                   tuple([atom([:ok]), binary()]),
+                   tuple([atom([:error]), atom([nil])])
+                 )
+               )
+    end
+
     test "and/or does not report on literals" do
       assert typecheck!(false and true) == boolean()
       assert typecheck!(false or true) == atom([true])

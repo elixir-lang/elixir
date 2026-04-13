@@ -387,8 +387,8 @@ defmodule Kernel.ExpansionTest do
               [
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 1), 1]},
-                {:=, _, [_, var_ver(:x, 1)]}
+                {:=, _, [var_ver(:x, 2), 1]},
+                {:=, _, [_, var_ver(:x, 2)]}
               ]} =
                expand_with_version(
                  quote do
@@ -404,7 +404,7 @@ defmodule Kernel.ExpansionTest do
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 3), 3]}
+                {:=, _, [var_ver(:x, 4), 3]}
               ]} =
                expand_with_version(
                  quote do
@@ -420,7 +420,7 @@ defmodule Kernel.ExpansionTest do
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 1)], var_ver(:x, 1)]}]]]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 3), 2]}
+                {:=, _, [var_ver(:x, 4), 2]}
               ]} =
                expand_with_version(
                  quote do
