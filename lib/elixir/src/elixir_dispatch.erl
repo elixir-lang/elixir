@@ -349,7 +349,7 @@ prune_stacktrace([{_, _, [Caller | _], _} | _], _MFA, Info, {ok, Caller}) ->
 prune_stacktrace([{M, F, A, _} | _], {M, F, A}, Info, _E) ->
   Info;
 %% We've reached the elixir_dispatch internals, skip it with the rest
-prune_stacktrace([{Mod, _, _, _} | _], _MFA, Info, _E) when Mod == elixir_dispatch; Mod == elixir_exp ->
+prune_stacktrace([{Mod, _, _, _} | _], _MFA, Info, _E) when Mod == elixir_dispatch; Mod == elixir_expand ->
   Info;
 prune_stacktrace([H | T], MFA, Info, E) ->
   [H | prune_stacktrace(T, MFA, Info, E)];

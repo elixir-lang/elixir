@@ -215,6 +215,30 @@ defmodule CodeTest do
       end
     end
 
+    test "prunes elixir_expand from macro expansion stacktraces" do
+      defmodule PruneStacktraceMacro do
+        defmacro bad do
+          quote do
+            receive 1
+          end
+        end
+      end
+
+      stacktrace =
+        try do
+          Code.eval_quoted(
+            quote do
+              require PruneStacktraceMacro
+              PruneStacktraceMacro.bad()
+            end
+          )
+        rescue
+          CompileError -> __STACKTRACE__
+        end
+
+      refute Enum.any?(stacktrace, &match?({:elixir_expand, :expand, 3, _}, &1))
+    end
+
     test "warns when lexical tracker process is dead" do
       {pid, ref} = spawn_monitor(fn -> :ok end)
       assert_receive {:DOWN, ^ref, _, _, _}
