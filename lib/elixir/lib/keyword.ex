@@ -270,34 +270,34 @@ defmodule Keyword do
   @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
           {:ok, keyword()} | {:error, [atom]}
   def validate(keyword, values) when is_list(keyword) and is_list(values) do
-    validate(keyword, values, [], [], [])
+    validate(keyword, values, [], keyword, [])
   end
 
-  defp validate([{key, _} = pair | keyword], values1, values2, acc, bad_keys) when is_atom(key) do
+  defp validate([{key, _} | keyword], values1, values2, original, bad_keys) when is_atom(key) do
     case find_key!(key, values1, values2) do
       {values1, values2} ->
-        validate(keyword, values1, values2, [pair | acc], bad_keys)
+        validate(keyword, values1, values2, original, bad_keys)
 
       :error ->
         case find_key!(key, values2, values1) do
           {values1, values2} ->
-            validate(keyword, values1, values2, [pair | acc], bad_keys)
+            validate(keyword, values1, values2, original, bad_keys)
 
           :error ->
-            validate(keyword, values1, values2, acc, [key | bad_keys])
+            validate(keyword, values1, values2, original, [key | bad_keys])
         end
     end
   end
 
-  defp validate([], values1, values2, acc, []) do
-    {:ok, move_pairs!(values1, move_pairs!(values2, acc))}
+  defp validate([], values1, values2, original, []) do
+    {:ok, move_pairs!(values1, move_pairs!(values2, original))}
   end
 
-  defp validate([], _values1, _values2, _acc, bad_keys) do
+  defp validate([], _values1, _values2, _original, bad_keys) do
     {:error, bad_keys}
   end
 
-  defp validate([pair | _], _values1, _values2, _acc, []) do
+  defp validate([pair | _], _values1, _values2, _original, []) do
     raise ArgumentError,
           "expected a keyword list as first argument, got invalid entry: #{inspect(pair)}"
   end
