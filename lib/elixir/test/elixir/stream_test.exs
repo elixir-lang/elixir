@@ -25,6 +25,28 @@ defmodule StreamTest do
     end
   end
 
+  defmodule IntoCollectable do
+    defstruct [:pid]
+
+    defimpl Collectable do
+      def into(%StreamTest.IntoCollectable{pid: pid}) do
+        {[],
+         fn
+           acc, {:cont, x} ->
+             [x | acc]
+
+           acc, :done ->
+             send(pid, {:done, Enum.reverse(acc)})
+             :ok
+
+           acc, :halt ->
+             send(pid, {:halt, Enum.reverse(acc)})
+             :ok
+         end}
+      end
+    end
+  end
+
   defmodule HaltAcc do
     defstruct [:acc]
 
@@ -566,6 +588,23 @@ defmodule StreamTest do
     assert Process.get(:stream_cont) == [6, 4, 2]
     assert Process.get(:stream_done)
     refute Process.get(:stream_halt)
+  end
+
+  test "into/3 halts with the current accumulator on exceptions" do
+    parent = self()
+
+    stream =
+      Stream.into([1, 2], %IntoCollectable{pid: parent}, fn
+        2 -> raise "boom"
+        x -> x
+      end)
+
+    assert_raise RuntimeError, "boom", fn ->
+      Enum.to_list(stream)
+    end
+
+    assert_received {:halt, [1]}
+    refute_received {:done, _}
   end
 
   test "into/2 with halting" do

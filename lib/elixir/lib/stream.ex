@@ -587,30 +587,53 @@ defmodule Stream do
 
   defp do_into(enum, collectable, transform, acc, fun) do
     {initial, into} = Collectable.into(collectable)
-
-    composed = fn x, [acc | collectable] ->
-      collectable = into.(collectable, {:cont, transform.(x)})
-      {reason, acc} = fun.(x, acc)
-      {reason, [acc | collectable]}
-    end
-
-    do_into(&Enumerable.reduce(enum, &1, composed), initial, into, acc)
+    step = fn x, acc -> {:suspend, {x, acc}} end
+    do_into_reduce(&Enumerable.reduce(enum, &1, step), initial, into, transform, acc, fun)
   end
 
-  defp do_into(reduce, collectable, into, {command, acc}) do
+  defp do_into_reduce(reduce, collectable, into, transform, {:suspend, acc}, fun) do
+    {:suspended, acc, &do_into_reduce(reduce, collectable, into, transform, &1, fun)}
+  end
+
+  defp do_into_reduce(reduce, collectable, into, transform, {command, acc}, fun) do
     try do
-      reduce.({command, [acc | collectable]})
+      reduce.({command, acc})
     catch
       kind, reason ->
         into.(collectable, :halt)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      {:suspended, [acc | collectable], continuation} ->
-        {:suspended, acc, &do_into(continuation, collectable, into, &1)}
+      {:suspended, {x, acc}, continuation} ->
+        {reason, acc, collectable} =
+          next_into_step(x, acc, collectable, continuation, into, transform, fun)
 
-      {reason, [acc | collectable]} ->
+        do_into_reduce(continuation, collectable, into, transform, {reason, acc}, fun)
+
+      {reason, acc} ->
         into.(collectable, :done)
         {reason, acc}
+    end
+  end
+
+  defp next_into_step(x, acc, collectable, continuation, into, transform, fun) do
+    try do
+      collectable = into.(collectable, {:cont, transform.(x)})
+      {reason, acc} = fun.(x, acc)
+      {reason, acc, collectable}
+    catch
+      kind, reason ->
+        safe_halt_into(continuation, acc, collectable, into)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    end
+  end
+
+  defp safe_halt_into(continuation, acc, collectable, into) do
+    try do
+      continuation.({:halt, acc})
+    catch
+      _, _ -> :ok
+    after
+      into.(collectable, :halt)
     end
   end
 

@@ -8,6 +8,28 @@ defmodule EnumTest do
   use ExUnit.Case, async: true
   doctest Enum
 
+  defmodule IntoCollectable do
+    defstruct [:pid]
+
+    defimpl Collectable do
+      def into(%EnumTest.IntoCollectable{pid: pid}) do
+        {[],
+         fn
+           acc, {:cont, x} ->
+             [x | acc]
+
+           acc, :done ->
+             send(pid, {:done, Enum.reverse(acc)})
+             :ok
+
+           acc, :halt ->
+             send(pid, {:halt, Enum.reverse(acc)})
+             :ok
+         end}
+      end
+    end
+  end
+
   defp assert_runs_enumeration_only_once(enum_fun) do
     enumerator =
       Stream.map([:element], fn element ->
@@ -491,6 +513,23 @@ defmodule EnumTest do
     end
   end
 
+  test "into/2 halts with the current accumulator on enumerable exceptions" do
+    parent = self()
+
+    enumerable =
+      Stream.concat([
+        [1],
+        Stream.map([2], fn _ -> raise "boom" end)
+      ])
+
+    assert_raise RuntimeError, "boom", fn ->
+      Enum.into(enumerable, %IntoCollectable{pid: parent})
+    end
+
+    assert_received {:halt, [1]}
+    refute_received {:done, _}
+  end
+
   test "into/3" do
     assert Enum.into([1, 2, 3], [], fn x -> x * 2 end) == [2, 4, 6]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
@@ -501,6 +540,20 @@ defmodule EnumTest do
     assert_raise MatchError, fn ->
       Enum.into([2, 3], %{a: 1}, & &1)
     end
+  end
+
+  test "into/3 halts with the current accumulator on transform exceptions" do
+    parent = self()
+
+    assert_raise RuntimeError, "boom", fn ->
+      Enum.into([1, 2], %IntoCollectable{pid: parent}, fn
+        2 -> raise "boom"
+        x -> x
+      end)
+    end
+
+    assert_received {:halt, [1]}
+    refute_received {:done, _}
   end
 
   test "join/2" do

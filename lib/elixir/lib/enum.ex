@@ -1561,27 +1561,40 @@ defmodule Enum do
   defp into_protocol(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
 
+    reduce_into_protocol(enumerable, initial, fn entry, acc -> fun.(acc, {:cont, entry}) end, fun)
+    |> fun.(:done)
+  end
+
+  defp reduce_into_protocol([entry | entries], acc, callback, fun) do
+    next_acc = collect_into(entry, acc, callback, fun)
+    reduce_into_protocol(entries, next_acc, callback, fun)
+  end
+
+  defp reduce_into_protocol([], acc, _callback, _fun) do
+    acc
+  end
+
+  defp reduce_into_protocol(enumerable, acc, callback, fun) do
+    step = fn entry, acc -> {:suspend, {entry, acc}} end
+    reduce_into_protocol(&Enumerable.reduce(enumerable, &1, step), acc, callback, fun, true)
+  end
+
+  defp reduce_into_protocol(reduce, acc, callback, fun, _suspended?)
+       when is_function(reduce, 1) do
     try do
-      reduce_into_protocol(enumerable, initial, fun)
+      reduce.({:cont, acc})
     catch
       kind, reason ->
-        fun.(initial, :halt)
+        fun.(acc, :halt)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      acc -> fun.(acc, :done)
+      {:suspended, {entry, acc}, continuation} ->
+        next_acc = collect_into(entry, acc, callback, fun, continuation)
+        reduce_into_protocol(continuation, next_acc, callback, fun, true)
+
+      {_, acc} ->
+        acc
     end
-  end
-
-  defp reduce_into_protocol(enumerable, initial, fun) when is_list(enumerable) do
-    :lists.foldl(fn x, acc -> fun.(acc, {:cont, x}) end, initial, enumerable)
-  end
-
-  defp reduce_into_protocol(enumerable, initial, fun) do
-    enumerable
-    |> Enumerable.reduce({:cont, initial}, fn x, acc ->
-      {:cont, fun.(acc, {:cont, x})}
-    end)
-    |> elem(1)
   end
 
   @doc """
@@ -1632,27 +1645,42 @@ defmodule Enum do
   defp into_protocol(enumerable, collectable, transform) do
     {initial, fun} = Collectable.into(collectable)
 
+    reduce_into_protocol(
+      enumerable,
+      initial,
+      fn entry, acc -> fun.(acc, {:cont, transform.(entry)}) end,
+      fun
+    )
+    |> fun.(:done)
+  end
+
+  defp collect_into(entry, acc, callback, fun) do
     try do
-      reduce_into_protocol(enumerable, initial, transform, fun)
+      callback.(entry, acc)
     catch
       kind, reason ->
-        fun.(initial, :halt)
+        fun.(acc, :halt)
         :erlang.raise(kind, reason, __STACKTRACE__)
-    else
-      acc -> fun.(acc, :done)
     end
   end
 
-  defp reduce_into_protocol(enumerable, initial, transform, fun) when is_list(enumerable) do
-    :lists.foldl(fn x, acc -> fun.(acc, {:cont, transform.(x)}) end, initial, enumerable)
+  defp collect_into(entry, acc, callback, fun, continuation) do
+    try do
+      callback.(entry, acc)
+    catch
+      kind, reason ->
+        safe_halt_continuation(continuation, acc)
+        fun.(acc, :halt)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    end
   end
 
-  defp reduce_into_protocol(enumerable, initial, transform, fun) do
-    enumerable
-    |> Enumerable.reduce({:cont, initial}, fn x, acc ->
-      {:cont, fun.(acc, {:cont, transform.(x)})}
-    end)
-    |> elem(1)
+  defp safe_halt_continuation(continuation, acc) do
+    try do
+      continuation.({:halt, acc})
+    catch
+      _, _ -> :ok
+    end
   end
 
   @doc """
