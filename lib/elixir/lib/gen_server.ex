@@ -232,6 +232,8 @@ defmodule GenServer do
   a name on start via the `:name` option. Registered names are also
   automatically cleaned up on termination. The supported values are:
 
+    * `nil` (default) - the GenServer is not registered with a name.
+
     * an atom - the GenServer is registered locally (to the current node)
       with the given name using `Process.register/2`.
 
@@ -565,9 +567,12 @@ defmodule GenServer do
      `Supervisor`. Likely this approach involves calling `Supervisor.restart_child/2`
       after a delay to attempt a restart.
 
-  Returning `{:stop, reason}` will cause `start_link/3` to return
-  `{:error, reason}` and the process to exit with reason `reason` without
-  entering the loop or calling `c:terminate/2`.
+  Returning `{:error, reason}` will cause `start_link/3` to return
+  `{:error, reason}`.
+
+  Returning `{:stop, reason}` will the process to exit with reason `reason`,
+  without entering the loop or calling `c:terminate/2`. `start_link/3` will
+  return `{:error, reason}`, but only if the caller is trapping exits.
   """
   @callback init(init_arg :: term) ::
               {:ok, state}
@@ -858,7 +863,7 @@ defmodule GenServer do
   @type on_start :: {:ok, pid} | :ignore | {:error, {:already_started, pid} | term}
 
   @typedoc "The GenServer name"
-  @type name :: atom | {:global, term} | {:via, module, term}
+  @type name :: nil | atom | {:global, term} | {:via, module, term}
 
   @typedoc "Options used by the `start*` functions"
   @type options :: [option]

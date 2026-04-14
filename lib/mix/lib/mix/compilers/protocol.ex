@@ -23,34 +23,38 @@ defmodule Mix.Compilers.Protocol do
         opts ++ Keyword.take(config, [:consolidate_protocols])
       end
 
-    manifest = manifest()
-    config_mtime = Mix.Project.config_mtime()
-    {old_config_mtime, old_protocols_and_impls} = read_manifest(manifest)
+    # Because this function is called outside of the usual compiler loop,
+    # we need a build lock.
+    Mix.Project.with_build_lock(config, fn ->
+      manifest = manifest()
+      config_mtime = Mix.Project.config_mtime()
+      {old_config_mtime, old_protocols_and_impls} = read_manifest(manifest)
 
-    case status(config_mtime > old_config_mtime, opts) do
-      :off ->
-        res
+      case status(config_mtime > old_config_mtime, opts) do
+        :off ->
+          res
 
-      :on when res == :noop ->
-        :noop
+        :on when res == :noop ->
+          :noop
 
-      on_or_force ->
-        deps_paths =
-          for %{scm: scm, opts: opts} <- Mix.Dep.cached(),
-              not scm.fetchable?(),
-              do: opts[:build]
+        on_or_force ->
+          deps_paths =
+            for %{scm: scm, opts: opts} <- Mix.Dep.cached(),
+                not scm.fetchable?(),
+                do: opts[:build]
 
-        protocols_and_impls = Mix.Compilers.Elixir.protocols_and_impls_from_paths(deps_paths)
+          protocols_and_impls = Mix.Compilers.Elixir.protocols_and_impls_from_paths(deps_paths)
 
-        case compile(on_or_force == :force, old_protocols_and_impls, protocols_and_impls, opts) do
-          :ok ->
-            write_manifest(manifest, {config_mtime, protocols_and_impls})
-            :ok
+          case compile(on_or_force == :force, old_protocols_and_impls, protocols_and_impls, opts) do
+            :ok ->
+              write_manifest(manifest, {config_mtime, protocols_and_impls})
+              :ok
 
-          :noop ->
-            res
-        end
-    end
+            :noop ->
+              res
+          end
+      end
+    end)
   end
 
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)

@@ -1034,7 +1034,13 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "strings" do
+  test "bitstrings" do
+    assert_diff(<<1::1>> == <<1::1>>, [])
+    refute_diff(<<1::1>> == <<1::2>>, "-<<1::size(1)>>", "+<<1::size(2)>>+")
+    refute_diff(<<1::1>> == <<0::1>>, "-<<1::size(1)>>", "+<<0::size(1)>>+")
+  end
+
+  test "binaries" do
     assert_diff("" = "", [])
     assert_diff("fox hops over the dog" = "fox hops over the dog", [])
 
@@ -1129,22 +1135,6 @@ defmodule ExUnit.DiffTest do
       ~s/"fox hops " <> "-h-over " <> -^x-/,
       ~s/"fox hops over +t+he dog"/,
       pins
-    )
-  end
-
-  test "concat binaries with specifiers" do
-    input = "foobar"
-
-    refute_diff(
-      <<trap::binary-size(3)>> <> "baz" = input,
-      "-<<trap::binary-size(3)>> <> \"baz\"-",
-      "+\"foobar\"+"
-    )
-
-    refute_diff(
-      "hello " <> <<_::binary-size(6)>> = "hello world",
-      "\"hello \" <> -<<_::binary-size(6)>>-",
-      "\"hello +world+\""
     )
   end
 
@@ -1359,14 +1349,6 @@ defmodule ExUnit.DiffTest do
       closure1 == closure2,
       "#Function<\n  #{uniq}/0 in ExUnit.DiffTest.closure/1\n  [-1-]\n>",
       "#Function<\n  #{uniq}/0 in ExUnit.DiffTest.closure/1\n  [+2+]\n>"
-    )
-  end
-
-  test "not supported" do
-    refute_diff(
-      <<147, 1, 2, 31>> = <<193, 1, 31>>,
-      "-<<147, 1, 2, 31>>-",
-      "+<<193, 1, 31>>+"
     )
   end
 end

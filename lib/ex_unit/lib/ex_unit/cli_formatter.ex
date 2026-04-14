@@ -27,6 +27,7 @@ defmodule ExUnit.CLIFormatter do
       test_counter: %{},
       test_timings: [],
       failure_counter: 0,
+      failure_type_counter: %{},
       skipped_counter: 0,
       excluded_counter: 0,
       invalid_counter: 0
@@ -42,9 +43,9 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:suite_finished, times_us}, config) do
-    test_type_counts = collect_test_type_counts(config)
+    test_counter = collect_test_counter(config)
 
-    if test_type_counts == 0 and config.excluded_counter > 0 do
+    if test_counter == 0 and config.excluded_counter > 0 do
       IO.puts(invalid("All tests have been excluded.", config))
     end
 
@@ -82,10 +83,7 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, reason}} = test}, config)
       when is_binary(reason) do
     if config.trace, do: IO.puts(trace_test_excluded(test))
-
-    test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, excluded_counter: config.excluded_counter + 1}
-
+    config = %{config | excluded_counter: config.excluded_counter + 1}
     {:noreply, config}
   end
 
@@ -97,10 +95,7 @@ defmodule ExUnit.CLIFormatter do
       IO.write(skipped("*", config))
     end
 
-    test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, skipped_counter: config.skipped_counter + 1}
-
-    {:noreply, config}
+    {:noreply, %{config | skipped_counter: config.skipped_counter + 1}}
   end
 
   def handle_cast(
@@ -114,10 +109,7 @@ defmodule ExUnit.CLIFormatter do
       IO.write(invalid("?", config))
     end
 
-    test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, invalid_counter: config.invalid_counter + 1}
-
-    {:noreply, config}
+    {:noreply, %{config | invalid_counter: config.invalid_counter + 1}}
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
@@ -139,7 +131,14 @@ defmodule ExUnit.CLIFormatter do
 
     test_counter = update_test_counter(config.test_counter, test)
     failure_counter = config.failure_counter + 1
-    config = %{config | test_counter: test_counter, failure_counter: failure_counter}
+    failure_type_counter = update_test_counter(config.failure_type_counter, test)
+
+    config = %{
+      config
+      | test_counter: test_counter,
+        failure_counter: failure_counter,
+        failure_type_counter: failure_type_counter
+    }
 
     {:noreply, update_test_timings(config, test)}
   end
@@ -176,8 +175,16 @@ defmodule ExUnit.CLIFormatter do
     # The failed tests have already contributed to the counter,
     # so we should only add the successful tests to the count
     config =
-      update_in(config.failure_counter, fn counter ->
-        counter + Enum.count(test_module.tests, &is_nil(&1.state))
+      Enum.reduce(test_module.tests, config, fn
+        %{state: nil} = test, acc ->
+          %{
+            acc
+            | failure_counter: acc.failure_counter + 1,
+              failure_type_counter: update_test_counter(acc.failure_type_counter, test)
+          }
+
+        _test, acc ->
+          acc
       end)
 
     formatted =
@@ -233,7 +240,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_test_started(test) do
-    String.replace("  * #{test.name}", "\n", " ")
+    String.replace("  * #{test.description}", "\n", " ")
   end
 
   defp trace_test_result(test) do
@@ -249,7 +256,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_aborted(%ExUnit.Test{} = test) do
-    "* #{test.name} [#{trace_test_file_line(test)}]"
+    "* #{test.description} [#{trace_test_file_line(test)}]"
   end
 
   defp trace_aborted(%ExUnit.TestModule{name: name, file: file}) do
@@ -269,10 +276,6 @@ defmodule ExUnit.CLIFormatter do
       us = div(us, 10)
       "#{div(us, 10)}.#{rem(us, 10)}"
     end
-  end
-
-  defp update_test_counter(test_counter, %{state: {:excluded, _reason}}) do
-    test_counter
   end
 
   defp update_test_counter(test_counter, %{tags: %{test_type: test_type}}) do
@@ -350,13 +353,34 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_summary(config, force_failures?) do
-    test_type_counts = collect_test_type_counts(config)
-    test_counter = test_counter_or_default(config, test_type_counts)
-    formatted_test_type_counts = format_test_type_counts(test_counter)
-    failure_pl = pluralize(config.failure_counter, "failure", "failures")
+    test_counter = collect_test_counter(config)
+    passed_counter = test_counter - config.failure_counter
+
+    # Passed line: "Result: 447/455 passed (53/54 doctests, 393/403 tests)" or
+    # "Result: 455 passed (70 tests, 14 properties)" when all pass
+    all_passed? = config.failure_counter == 0
+
+    passed_breakdown =
+      format_passed_breakdown(config.test_counter, config.failure_type_counter, all_passed?)
+
+    passed_line =
+      cond do
+        test_counter == 0 -> "Result: 0 tests"
+        all_passed? -> "Result: #{passed_counter} passed"
+        true -> "Result: #{passed_counter}/#{test_counter} passed"
+      end <> passed_breakdown
+
+    # Failed line: "Failed: 8 tests, 1 property"
+    failed_line =
+      if config.failure_counter > 0 do
+        failed_breakdown = format_type_counts(config.failure_type_counter)
+        "\n" <> failure("Failed: #{failed_breakdown}", config)
+      else
+        ""
+      end
 
     message =
-      "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
+      ("\n" <> passed_line)
       |> if_true(
         config.invalid_counter > 0,
         &(&1 <> ", #{config.invalid_counter} invalid")
@@ -367,17 +391,17 @@ defmodule ExUnit.CLIFormatter do
       )
       |> if_true(
         config.excluded_counter > 0,
-        &(&1 <> " (#{config.excluded_counter} excluded)")
+        &(&1 <> ", #{config.excluded_counter} excluded")
       )
 
     cond do
       config.failure_counter > 0 or force_failures? ->
-        IO.puts(failure(message, config))
+        IO.puts(message <> failed_line)
 
       config.invalid_counter > 0 ->
         IO.puts(invalid(message, config))
 
-      test_type_counts > 0 && config.excluded_counter == test_type_counts ->
+      test_counter > 0 && config.excluded_counter == test_counter ->
         IO.puts(invalid(message, config))
 
       true ->
@@ -404,25 +428,45 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(formatted)
   end
 
-  defp format_test_type_counts(test_counter) do
-    test_counter
+  defp format_type_counts(type_counter) do
+    type_counter
     |> Enum.sort()
     |> Enum.map(fn {test_type, count} ->
-      type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
-
-      "#{count} #{type_pluralized}, "
+      "#{count} #{pluralize_type(count, test_type)}"
     end)
+    |> Enum.join(", ")
   end
 
-  defp test_counter_or_default(_config, 0) do
-    %{test: 0}
+  defp format_passed_breakdown(test_counter, failure_type_counter, all_passed?) do
+    # If there are no different test types, we just print "Result: N/N passed" without the type.
+    if map_size(test_counter) in 0..1 do
+      ""
+    else
+      entries =
+        test_counter
+        |> Map.keys()
+        |> Enum.sort()
+        |> Enum.map_join(", ", fn type ->
+          total = Map.fetch!(test_counter, type)
+
+          if all_passed? do
+            "#{total} #{pluralize_type(total, type)}"
+          else
+            failed = Map.get(failure_type_counter, type, 0)
+            passed = total - failed
+            "#{passed}/#{total} #{pluralize_type(total, type)}"
+          end
+        end)
+
+      " (" <> entries <> ")"
+    end
   end
 
-  defp test_counter_or_default(%{test_counter: test_counter} = _config, _test_type_counts) do
-    test_counter
+  defp pluralize_type(count, type) do
+    pluralize(count, type, ExUnit.plural_rule(to_string(type)))
   end
 
-  defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
+  defp collect_test_counter(%{test_counter: test_counter} = _config) do
     Enum.reduce(test_counter, 0, fn {_, count}, acc ->
       acc + count
     end)

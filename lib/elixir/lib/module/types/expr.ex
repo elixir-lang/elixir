@@ -15,7 +15,6 @@ defmodule Module.Types.Expr do
   list_of_modules = list(atom())
 
   @try_catch atom([:error, :exit, :throw])
-  @atom_true atom([true])
 
   @caller closed_map(
             __struct__: atom([Macro.Env]),
@@ -41,7 +40,7 @@ defmodule Module.Types.Expr do
 
   # We do not make exception dynamic on purpose. If you do a blank rescue,
   # then we will assume you need to statically handle all possible exceptions.
-  @exception open_map(__struct__: atom(), __exception__: @atom_true)
+  @exception open_map(__struct__: atom(), __exception__: term())
 
   args_or_arity = union(list(term()), integer())
 
@@ -148,12 +147,18 @@ defmodule Module.Types.Expr do
         of_expr(right_expr, expected, expr, stack, context)
 
       _ ->
-        type_fun = fn pattern_type, context ->
-          # See if we can use the expected type to further refine the pattern type,
-          # if we cannot, use the pattern type as that will fail later on.
-          {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
-          of_expr(right_expr, type, expr, stack, context)
-        end
+        type_fun =
+          fn pattern_type, context ->
+            # See if we can use the expected type to further refine the pattern type,
+            # if we cannot, use the pattern type as that will fail later on.
+            {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
+            {result, context} = of_expr(right_expr, type, expr, stack, context)
+
+            # The function may still return a too broad type, so we refine once again
+            # to assign the most appropriate one for reverse arrows.
+            {_ok_or_error, result} = compatible_intersection(result, expected)
+            {result, context}
+          end
 
         Pattern.of_match(left_expr, type_fun, match, stack, context)
     end
@@ -243,6 +248,12 @@ defmodule Module.Types.Expr do
         end
       end)
     else
+      context =
+        Enum.reduce(pairs, context, fn {_key, value}, context ->
+          {_type, context} = of_expr(value, term(), expr, stack, context)
+          context
+        end)
+
       {error_type(), context}
     end
   end
@@ -276,38 +287,60 @@ defmodule Module.Types.Expr do
     of_expr(post, expected, post, stack, context)
   end
 
-  def of_expr({:cond, _meta, [[{:do, clauses}]]}, expected, expr, stack, original) do
-    clauses
-    |> reduce_non_empty({none(), original}, fn
-      {:->, meta, [[head], body]}, {acc, context}, last? ->
-        {head_type, context} = of_expr(head, @pending, head, stack, context)
+  def of_expr({:cond, meta, [[{:do, clauses}]]}, expected, expr, stack, original) do
+    cache_result(meta, stack, original, fn ->
+      clauses
+      |> reduce_non_empty({none(), original}, fn
+        {:->, meta, [[head], body]}, {acc, context}, last? ->
+          {head_type, context} = of_expr(head, @pending, head, stack, context)
 
-        context =
-          if is_warning(stack) do
-            case truthiness(head_type) do
-              :always_true when not last? ->
-                warning = {:badcond, "always match", head_type, head, context}
-                warn(__MODULE__, warning, meta, stack, context)
+          context =
+            if is_warning(stack) do
+              case truthiness(head_type) do
+                :always_true when not last? ->
+                  warning = {:badcond, "always match", head_type, head, context}
+                  warn(__MODULE__, warning, meta, stack, context)
 
-              :always_false ->
-                warning = {:badcond, "never match", head_type, head, context}
-                warn(__MODULE__, warning, meta, stack, context)
+                :always_false ->
+                  warning = {:badcond, "never match", head_type, head, context}
+                  warn(__MODULE__, warning, meta, stack, context)
 
-              _ ->
-                context
+                _ ->
+                  context
+              end
+            else
+              context
             end
-          else
-            context
-          end
 
-        {body_type, context} = of_expr(body, expected, expr, stack, context)
-        {union(body_type, acc), Of.reset_vars(context, original)}
+          {body_type, context} = of_expr(body, expected, expr, stack, context)
+          {union(body_type, acc), Of.reset_vars(context, original)}
+      end)
+      |> dynamic_unless_static(stack)
     end)
-    |> dynamic_unless_static(stack)
   end
 
-  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, context) do
-    {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
+  def of_expr({:case, meta, [case_expr, [{:do, _clauses}]]}, expected, _expr, stack, context)
+      when stack.reverse_arrow == :use do
+    version = Keyword.fetch!(meta, :version)
+    clauses = Map.fetch!(context.reverse_arrows, version)
+
+    case_expected =
+      Enum.reduce(clauses, none(), fn {arg_type, body_type}, acc ->
+        if disjoint?(body_type, expected) do
+          acc
+        else
+          union(arg_type, acc)
+        end
+      end)
+
+    {_, context} = of_expr(case_expr, case_expected, case_expr, stack, context)
+    {expected, context}
+  end
+
+  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, _expr, stack, base_context) do
+    {case_type, context} =
+      of_expr(case_expr, term(), case_expr, %{stack | reverse_arrow: :cache}, base_context)
+
     info = {:case, meta, case_expr, case_type}
 
     added_meta =
@@ -320,145 +353,190 @@ defmodule Module.Types.Expr do
     # If the expression is generated or the construct is a literal,
     # it is most likely a macro code. However, if no clause is matched,
     # we should still check for that.
-    if added_meta != [] do
-      for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
-    else
-      clauses
+    clauses =
+      if added_meta != [] do
+        for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
+      else
+        clauses
+      end
+
+    of_body = fn trees, body, context ->
+      [arg_type] = Pattern.of_domain(trees, stack, context)
+
+      {_, refined_context} =
+        of_expr(case_expr, arg_type, case_expr, %{stack | reverse_arrow: :use}, context)
+
+      of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
     end
-    |> of_redundant_clauses([case_type], expected, info, stack, context, none())
-    |> dynamic_unless_static(stack)
+
+    result_context =
+      cache_arrows(meta, stack, fn ->
+        of_clauses_fun(clauses, [case_type], info, stack, context, of_body, [], fn
+          trees, body_type, context, acc ->
+            [arg_type] = Pattern.of_domain(trees, stack, context)
+            [{arg_type, body_type} | acc]
+        end)
+      end) ||
+        of_clauses_fun(clauses, [case_type], info, stack, context, of_body, none(), fn
+          _trees, body_type, _context, acc -> union(acc, body_type)
+        end)
+
+    dynamic_unless_static(result_context, stack)
   end
 
   # fn pat -> expr end
-  def of_expr({:fn, _meta, clauses}, _expected, _expr, stack, context) do
-    [{:->, _, [head, _]} | _] = clauses
-    {patterns, _guards} = extract_head(head)
-    domain = Enum.map(patterns, fn _ -> dynamic() end)
+  def of_expr({:fn, meta, clauses}, _expected, _expr, stack, context) do
+    cache_result(meta, stack, context, fn ->
+      [{:->, _, [head, _]} | _] = clauses
+      {patterns, _guards} = extract_head(head)
+      domain = Enum.map(patterns, fn _ -> dynamic() end)
 
-    {acc, context} =
-      of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
-        trees, body, context, acc ->
-          args = Pattern.of_domain(trees, stack, context)
-          add_inferred(acc, args, body)
-      end)
+      of_body = fn _args_types, body, context -> of_expr(body, term(), body, stack, context) end
 
-    {fun_from_inferred_clauses(acc), context}
+      {acc, context} =
+        of_clauses_fun(clauses, domain, :fn, stack, context, of_body, [], fn
+          trees, body_type, context, acc ->
+            args_types = Pattern.of_domain(trees, stack, context)
+            add_inferred(acc, args_types, body_type)
+        end)
+
+      {fun_from_inferred_clauses(acc), context}
+    end)
   end
 
   def of_expr({:try, meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
-    {after_block, blocks} = Keyword.pop(blocks, :after)
-    {else_block, blocks} = Keyword.pop(blocks, :else)
+    cache_result(meta, stack, original, fn ->
+      {after_block, blocks} = Keyword.pop(blocks, :after)
+      {else_block, blocks} = Keyword.pop(blocks, :else)
 
-    {type, context} =
-      if else_block do
-        {type, context} = of_expr(body, @pending, body, stack, original)
-        info = {:try_else, meta, body, type}
-        of_redundant_clauses(else_block, [type], expected, info, stack, context, none())
+      {type, context} =
+        if else_block do
+          {type, context} = of_expr(body, term(), body, stack, original)
+          info = {:try_else, meta, body, type}
+          of_clauses(else_block, [type], expected, info, stack, context, none())
+        else
+          of_expr(body, expected, expr, stack, original)
+        end
+
+      {type, context} =
+        blocks
+        |> Enum.reduce({type, Of.reset_vars(context, original)}, fn
+          {:rescue, clauses}, acc_context ->
+            Enum.reduce(clauses, acc_context, fn
+              {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, {acc, context} ->
+                {type, context} =
+                  of_rescue(var, exceptions, body, expr, expected, :rescue, meta, stack, context)
+
+                {union(type, acc), context}
+
+              {:->, meta, [[var], body]}, {acc, context} ->
+                {type, context} =
+                  of_rescue(var, [], body, var, expected, :anonymous_rescue, meta, stack, context)
+
+                {union(type, acc), context}
+            end)
+
+          {:catch, clauses}, {acc, context} ->
+            args = [@try_catch, dynamic()]
+            of_clauses(clauses, args, expected, :try_catch, stack, context, acc)
+        end)
+        |> dynamic_unless_static(stack)
+
+      if after_block do
+        {_type, context} = of_expr(after_block, term(), after_block, stack, context)
+        {type, context}
       else
-        of_expr(body, expected, expr, stack, original)
+        {type, context}
       end
-
-    {type, context} =
-      blocks
-      |> Enum.reduce({type, Of.reset_vars(context, original)}, fn
-        {:rescue, clauses}, acc_context ->
-          Enum.reduce(clauses, acc_context, fn
-            {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, {acc, context} ->
-              {type, context} =
-                of_rescue(var, exceptions, body, expr, :rescue, meta, stack, context)
-
-              {union(type, acc), context}
-
-            {:->, meta, [[var], body]}, {acc, context} ->
-              {type, context} =
-                of_rescue(var, [], body, var, :anonymous_rescue, meta, stack, context)
-
-              {union(type, acc), context}
-          end)
-
-        {:catch, clauses}, {acc, context} ->
-          args = [@try_catch, dynamic()]
-          of_redundant_clauses(clauses, args, expected, :try_catch, stack, context, acc)
-      end)
-      |> dynamic_unless_static(stack)
-
-    if after_block do
-      {_type, context} = of_expr(after_block, term(), after_block, stack, context)
-      {type, context}
-    else
-      {type, context}
-    end
+    end)
   end
 
   @timeout_type union(integer(), atom([:infinity]))
 
-  def of_expr({:receive, _meta, [blocks]}, expected, expr, stack, original) do
-    blocks
-    |> Enum.reduce({none(), original}, fn
-      {:do, {:__block__, _, []}}, acc_context ->
-        acc_context
+  def of_expr({:receive, meta, [blocks]}, expected, expr, stack, original) do
+    cache_result(meta, stack, original, fn ->
+      blocks
+      |> Enum.reduce({none(), original}, fn
+        {:do, {:__block__, _, []}}, acc_context ->
+          acc_context
 
-      {:do, clauses}, {acc, context} ->
-        of_redundant_clauses(clauses, [dynamic()], expected, :receive, stack, context, acc)
+        {:do, clauses}, {acc, context} ->
+          of_clauses(clauses, [dynamic()], expected, :receive, stack, context, acc)
 
-      {:after, [{:->, meta, [[timeout], body]}] = after_expr}, {acc, context} ->
-        {timeout_type, context} = of_expr(timeout, @timeout_type, after_expr, stack, context)
-        {body_type, context} = of_expr(body, expected, expr, stack, context)
+        {:after, [{:->, meta, [[timeout], body]}] = after_expr}, {acc, context} ->
+          {timeout_type, context} = of_expr(timeout, @timeout_type, after_expr, stack, context)
+          {body_type, context} = of_expr(body, expected, expr, stack, context)
 
-        if compatible?(timeout_type, @timeout_type) do
-          {union(body_type, acc), Of.reset_vars(context, original)}
-        else
-          error = {:badtimeout, timeout_type, timeout, context}
-          {union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
-        end
+          if compatible?(timeout_type, @timeout_type) do
+            {union(body_type, acc), Of.reset_vars(context, original)}
+          else
+            error = {:badtimeout, timeout_type, timeout, context}
+            {union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
+          end
+      end)
+      |> dynamic_unless_static(stack)
     end)
-    |> dynamic_unless_static(stack)
   end
 
   def of_expr({:for, meta, [_ | _] = args}, expected, expr, stack, context) do
-    {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
-    context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
+    cache_result(meta, stack, context, fn ->
+      {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
+      context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
 
-    # We don't need to type check uniq, as it is a compile-time boolean.
-    # We handle reduce and into accordingly instead.
-    if Keyword.has_key?(opts, :reduce) do
-      reduce = Keyword.fetch!(opts, :reduce)
-      {reduce_type, context} = of_expr(reduce, expected, expr, stack, context)
-      # TODO: We need to type check against dynamic() instead of using reduce_type
-      # because this is recursive. We need to infer the block type first.
-      of_clauses(block, [dynamic()], expected, expr, :for_reduce, stack, context, reduce_type)
-    else
-      # TODO: Use the collectable protocol for the output
-      into = Keyword.get(opts, :into, [])
-      {into_type, into_kind, context} = for_into(into, meta, stack, context)
-      {block_type, context} = of_expr(block, @pending, block, stack, context)
+      # We don't need to type check uniq, as it is a compile-time boolean.
+      # We handle reduce and into accordingly instead.
+      if Keyword.has_key?(opts, :reduce) do
+        reduce = Keyword.fetch!(opts, :reduce)
+        {reduce_type, context} = of_expr(reduce, expected, expr, stack, context)
+        # TODO: We need to type check against dynamic() instead of using reduce_type
+        # because this is recursive. We need to infer the block type first.
+        args = [dynamic()]
+        of_clauses(block, args, expected, :for_reduce, stack, context, reduce_type)
+      else
+        # TODO: Use the collectable protocol for the output
+        into = Keyword.get(opts, :into, [])
+        {into_type, into_kind, context} = for_into(into, meta, stack, context)
 
-      case into_kind do
-        :bitstring ->
-          case compatible_intersection(block_type, bitstring()) do
-            {:ok, intersection} ->
-              {return_union(into_type, intersection, stack), context}
+        case into_kind do
+          :bitstring ->
+            {block_type, context} = of_expr(block, bitstring(), block, stack, context)
 
-            {:error, _} ->
-              error = {:badbitbody, block_type, block, context}
-              {error_type(), error(__MODULE__, error, meta, stack, context)}
-          end
+            case compatible_intersection(block_type, bitstring()) do
+              {:ok, intersection} ->
+                {union(into_type, intersection), context}
 
-        :non_empty_list ->
-          {return_union(into_type, non_empty_list(block_type), stack), context}
+              {:error, _} ->
+                error = {:badbitbody, block_type, block, context}
+                {error_type(), error(__MODULE__, error, meta, stack, context)}
+            end
 
-        :none ->
-          {into_type, context}
+          :non_empty_list ->
+            expected =
+              case list_hd(expected) do
+                {:ok, head} -> head
+                _ -> term()
+              end
+
+            {block_type, context} = of_expr(block, expected, block, stack, context)
+            {union(into_type, non_empty_list(block_type)), context}
+
+          :none ->
+            {_, context} = of_expr(block, term(), block, stack, context)
+            {into_type, context}
+        end
+        |> dynamic_unless_static(stack)
       end
-    end
+    end)
   end
 
   # TODO: with pat <- expr do expr end
-  def of_expr({:with, _meta, [_ | _] = clauses}, _expected, _expr, stack, original) do
-    {clauses, [options]} = Enum.split(clauses, -1)
-    context = Enum.reduce(clauses, original, &with_clause(&1, stack, &2))
-    context = Enum.reduce(options, context, &with_option(&1, stack, &2, original))
-    {dynamic(), context}
+  def of_expr({:with, meta, [_ | _] = clauses}, _expected, _expr, stack, original) do
+    cache_result(meta, stack, original, fn ->
+      {clauses, [options]} = Enum.split(clauses, -1)
+      context = Enum.reduce(clauses, original, &with_clause(&1, stack, &2))
+      context = Enum.reduce(options, context, &with_option(&1, stack, &2, original))
+      {dynamic(), context}
+    end)
   end
 
   def of_expr({{:., _, [fun]}, _, args} = call, _expected, _expr, stack, context) do
@@ -466,7 +544,7 @@ defmodule Module.Types.Expr do
 
     # TODO: Perform inference based on the strong domain of a function
     {args_types, context} =
-      Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
+      Enum.map_reduce(args, context, &of_expr(&1, term(), &1, stack, &2))
 
     Apply.fun(fun_type, args_types, call, stack, context)
   end
@@ -550,8 +628,8 @@ defmodule Module.Types.Expr do
 
   ## Try
 
-  defp of_rescue(var, exceptions, body, expr, info, meta, stack, original) do
-    args = [__exception__: @atom_true]
+  defp of_rescue(var, exceptions, body, expr, expected, info, meta, stack, original) do
+    args = [__exception__: term()]
 
     {structs, context} =
       Enum.map_reduce(exceptions, original, fn exception, context ->
@@ -579,7 +657,7 @@ defmodule Module.Types.Expr do
           context
       end
 
-    {type, context} = of_expr(body, @pending, body, stack, context)
+    {type, context} = of_expr(body, expected, body, stack, context)
     {type, Of.reset_vars(context, original)}
   end
 
@@ -589,8 +667,9 @@ defmodule Module.Types.Expr do
     expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
     {pattern, guards} = extract_head([left])
 
+    # TODO: Extract the type from enumerable protocol
     {_type, context} =
-      Apply.remote(Enumerable, :count, [right], dynamic(), expr, stack, context, &of_expr/5)
+      Apply.remote(Enumerable, :count, [right], term(), expr, stack, context, &of_expr/5)
 
     Pattern.of_generator(pattern, guards, dynamic(), :for, expr, stack, context)
   end
@@ -658,10 +737,6 @@ defmodule Module.Types.Expr do
     end
   end
 
-  defp return_union(left, right, stack) do
-    Apply.return(union(left, right), [left, right], stack)
-  end
-
   ## With
 
   defp with_clause({:<-, _meta, [left, right]} = expr, stack, context) do
@@ -682,7 +757,7 @@ defmodule Module.Types.Expr do
 
   defp with_option({:else, clauses}, stack, context, _original) do
     {_, context} =
-      of_clauses(clauses, [dynamic()], @pending, nil, :with_else, stack, context, none())
+      of_clauses(clauses, [dynamic()], @pending, :with_else, stack, context, none())
 
     context
   end
@@ -716,88 +791,62 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, domain, expected, expr, info, stack, context, acc) do
-    fun = fn _trees, result, _context, acc -> union(result, acc) end
-    of_clauses_fun(clauses, domain, expected, expr, info, stack, context, acc, fun)
+  defp cache_result(meta, %{reverse_arrow: reverse_arrow}, context, fun) do
+    case reverse_arrow do
+      nil ->
+        fun.()
+
+      :cache ->
+        {result, context} = fun.()
+        version = Keyword.fetch!(meta, :version)
+        context = put_in(context.reverse_arrows[version], result)
+        {result, context}
+
+      :use ->
+        version = Keyword.fetch!(meta, :version)
+        {Map.fetch!(context.reverse_arrows, version), context}
+    end
   end
 
-  defp of_clauses_fun(clauses, domain, expected, expr, info, stack, original, acc, fun) do
-    %{failed: failed?} = original
+  defp cache_arrows(_meta, %{reverse_arrow: nil}, _fun), do: nil
 
-    Enum.reduce(clauses, {acc, original}, fn {:->, meta, [head, body]}, {acc, context} ->
-      {failed?, context} = reset_failed(context, failed?)
-      {patterns, guards} = extract_head(head)
-
-      {trees, _precise?, context} =
-        Pattern.of_head(patterns, guards, domain, info, meta, stack, context)
-
-      {result, context} = of_expr(body, expected, expr || body, stack, context)
-
-      {fun.(trees, result, context, acc),
-       context |> set_failed(failed?) |> Of.reset_vars(original)}
-    end)
+  defp cache_arrows(meta, %{reverse_arrow: :cache}, fun) do
+    {clauses, context} = fun.()
+    version = Keyword.fetch!(meta, :version)
+    context = put_in(context.reverse_arrows[version], clauses)
+    result = Enum.reduce(clauses, none(), &union(elem(&1, 1), &2))
+    {result, context}
   end
 
-  defp of_redundant_clauses(clauses, domain, expected, clause_info, stack, original, acc) do
+  defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
+    of_body = fn _args_types, body, context -> of_expr(body, expected, body, stack, context) end
+    of_acc = fn _args_types, body_type, _context, acc -> union(acc, body_type) end
+    of_clauses_fun(clauses, domain, base_info, stack, context, of_body, acc, of_acc)
+  end
+
+  defp of_clauses_fun(clauses, domain, base_info, stack, original, of_body, acc, of_acc) do
     %{failed: failed?} = original
 
     {result, _previous, context} =
-      Enum.reduce(clauses, {acc, [], original}, fn
-        {:->, meta, [head, body]} = clause, {acc, previous, context} ->
+      Enum.reduce(clauses, {acc, Pattern.init_previous(), original}, fn
+        {:->, meta, [head, body]}, {acc, previous, context} ->
           {failed?, context} = reset_failed(context, failed?)
           {patterns, guards} = extract_head(head)
-          info = {clause_info, head, previous}
+          info = {base_info, head}
 
-          {trees, precise?, context} =
+          {trees, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
-          # It failed, let's try to detect if it was due a previous or current clause.
-          # The current clause will be easier to understand, so we prefer that
-          {trees, precise?, context} =
-            if context.failed and previous != [] do
-              info = {clause_info, head, []}
+          {result, context} = of_body.(trees, body, context)
 
-              case Pattern.of_head(patterns, guards, domain, info, meta, stack, context) do
-                {_, _, %{failed: true}} = result -> result
-                _ -> {trees, precise?, context}
-              end
-            else
-              {trees, precise?, context}
-            end
-
-          {previous, context} =
-            if context.failed do
-              {previous, context}
-            else
-              clause_type =
-                Enum.map(trees, fn {tree, _, _} ->
-                  tree
-                  |> Pattern.of_pattern_tree(stack, context)
-                  |> upper_bound()
-                end)
-
-              cond do
-                stack.mode != :infer and previous != [] and
-                    Pattern.args_subtype?(clause_type, previous) ->
-                  stack = %{stack | meta: meta}
-                  {previous, Pattern.badpattern_error(clause, nil, info, stack, context)}
-
-                precise? ->
-                  {[clause_type | previous], context}
-
-                true ->
-                  {previous, context}
-              end
-            end
-
-          {result, context} = of_expr(body, expected, body, stack, context)
-
-          {union(result, acc), previous,
+          {of_acc.(trees, result, context, acc), previous,
            context |> set_failed(failed?) |> Of.reset_vars(original)}
       end)
 
     {result, context}
   end
+
+  defp reset_warnings(context, %{warnings: warnings}), do: %{context | warnings: warnings}
 
   defp reset_failed(%{failed: true} = context, false), do: {true, %{context | failed: false}}
   defp reset_failed(context, _), do: {false, context}
@@ -845,25 +894,6 @@ defmodule Module.Types.Expr do
   end
 
   ## Warning formatting
-
-  def format_diagnostic({:badclause, {:case, meta, type, expr}, [head], context}) do
-    {expr, message} =
-      if meta[:type_check] == :expr do
-        {expr,
-         """
-         the following conditional expression will always evaluate to #{to_quoted_string(type)}:
-
-             #{expr_to_string(expr) |> indent(4)}
-         """}
-      else
-        {head, "the following clause has no effect because a previous clause will always match\n"}
-      end
-
-    %{
-      details: %{typing_traces: collect_traces(expr, context)},
-      message: message
-    }
-  end
 
   def format_diagnostic({:badupdate, type, expr, context}) do
     {:%, _, [module, {:%{}, _, [{:|, _, [map, _]}]}]} = expr

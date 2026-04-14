@@ -5,7 +5,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 31
+  @manifest_vsn 34
   @checkpoint_vsn 4
 
   import Record
@@ -180,8 +180,10 @@ defmodule Mix.Compilers.Elixir do
         Mix.Compilers.Protocol.status(config_mtime > old_config_mtime, opts)
       end
 
-    if stale != [] or stale_modules != %{} or removed != [] or deps_changed? or
-         consolidation_status == :force do
+    consolidate? =
+      consolidation_status == :force or (deps_changed? and consolidation_status != :off)
+
+    if stale != [] or stale_modules != %{} or removed != [] or consolidate? do
       path = opts[:purge_consolidation_path_if_stale]
 
       if is_binary(path) and Code.delete_path(path) do
@@ -266,6 +268,25 @@ defmodule Mix.Compilers.Elixir do
         Code.compiler_options(previous_opts)
       end
     else
+      # Only the dependencies changed but nothing was recompiled,
+      # so we need to update the config_mtime configuration but
+      # keep its original timestamp so recompilation does not cascade.
+      if deps_changed? do
+        write_manifest(
+          manifest,
+          all_modules,
+          all_sources,
+          all_local_exports,
+          old_parents,
+          old_cache_key,
+          old_deps_config,
+          old_project_mtime,
+          config_mtime,
+          old_protocols_and_impls,
+          modified
+        )
+      end
+
       all_warnings = Keyword.get(opts, :all_warnings, true)
       previous_warnings = previous_warnings(sources, all_warnings)
       unless_warnings_as_errors(opts, {:noop, previous_warnings})
@@ -276,7 +297,10 @@ defmodule Mix.Compilers.Elixir do
     # If you change this config, you need to bump @manifest_vsn
     %{
       local: Enum.sort(Enum.map(local_deps, &{&1.app, true})),
-      lock: Enum.sort(Mix.Dep.Lock.read()),
+      lock:
+        Mix.Dep.Lock.read()
+        |> Map.take(Mix.Project.deps_apps())
+        |> Enum.sort(),
       config: Enum.sort(Mix.Tasks.Loadconfig.read_compile()),
       dbg: Application.fetch_env!(:elixir, :dbg_callback)
     }
@@ -287,13 +311,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp deps_config_compile_env_apps(deps_config) do
-    # Use initial_dbg_callback instead of dbg_callback to ignore runtime modifications.
-    # Tools like Kino modify dbg_callback at runtime to customize dbg/2 behavior,
-    # but this should not trigger recompilation since the config hasn't actually changed.
-    # initial_dbg_callback is set when :elixir app starts, before any runtime modifications.
-    initial_dbg = :elixir_config.get(:initial_dbg_callback)
-
-    if deps_config[:dbg] != initial_dbg do
+    if deps_config[:dbg] != Application.fetch_env!(:elixir, :dbg_callback) do
       [:elixir]
     else
       []
@@ -482,7 +500,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_external?({external, {mtime, size}, digest}, sources_stats) do
     case sources_stats do
-      %{^external => {0, 0}} ->
+      %{^external => {0, -1}} ->
         digest != nil
 
       %{^external => {last_mtime, last_size}} ->

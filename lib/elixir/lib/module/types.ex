@@ -319,15 +319,17 @@ defmodule Module.Types do
   defp local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context) do
     {fun, _arity} = fun_arity
     stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
+    base_info = {:def, kind, fun, expected}
 
-    {_, _, mapping, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {0, 0, [], [], context}, fn
-        {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
-          context = fresh_context(context)
+    {_, _, _, mapping, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], context}, fn
+        {meta, args, guards, body}, {index, total, previous, mapping, inferred, acc_context} ->
+          fresh_context = fresh_context(acc_context)
+          info = {base_info, args, guards}
 
           try do
-            {trees, _precise?, context} =
-              Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
+            {trees, previous, context} =
+              Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
             {return_type, context} =
               Expr.of_expr(body, Descr.term(), body, stack, context)
@@ -338,9 +340,9 @@ defmodule Module.Types do
               add_inferred(inferred, args_types, return_type, total - 1, [])
 
             if type_index == -1 do
-              {index + 1, total + 1, [{index, total} | mapping], inferred, context}
+              {index + 1, total + 1, previous, [{index, total} | mapping], inferred, context}
             else
-              {index + 1, total, [{index, type_index} | mapping], inferred, context}
+              {index + 1, total, previous, [{index, type_index} | mapping], inferred, context}
             end
           rescue
             e ->
@@ -435,7 +437,9 @@ defmodule Module.Types do
       # The mode to be used, see the @modes attribute
       mode: mode,
       # The function for handling local calls
-      local_handler: handler
+      local_handler: handler,
+      # Reverse arrow handling (nil | :cache | :use)
+      reverse_arrow: nil
     }
   end
 
@@ -450,34 +454,41 @@ defmodule Module.Types do
       subpatterns: %{},
       # Variables that are specific to the current environment/conditional
       conditional_vars: nil,
-      # Track metadata specific to matches and guards
+      # Track metadata specific to patterns and guards
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,
       # Local signatures used by local handler
       local_sigs: %{},
       # Track which clauses have been used across private local calls
-      local_used: %{}
+      local_used: %{},
+      # Cached reverse arrows
+      reverse_arrows: %{}
     }
   end
 
   defp fresh_stack(stack, mode, function) when mode in @modes do
-    %{stack | mode: mode, function: function}
+    %{stack | mode: mode, function: function, reverse_arrow: nil}
   end
 
   defp fresh_context(context) do
-    %{context | vars: %{}, failed: false}
+    %{context | vars: %{}, failed: false, reverse_arrows: %{}}
   end
 
-  defp restore_context(later_context, %{vars: vars, failed: failed}) do
-    %{later_context | vars: vars, failed: failed}
+  defp restore_context(later_context, %{
+         vars: vars,
+         failed: failed,
+         reverse_arrows: reverse_arrows
+       }) do
+    %{later_context | vars: vars, failed: failed, reverse_arrows: reverse_arrows}
   end
 
   ## Diagnostics
 
   def format_diagnostic({:unused_clause, kind, {fun, arity}}) do
     %{
-      message: "this clause of #{kind} #{fun}/#{arity} is never used"
+      message:
+        "this clause of #{kind} #{fun}/#{arity} is never used (or it will always fail/warn when invoked)"
     }
   end
 

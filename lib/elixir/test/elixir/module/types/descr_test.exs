@@ -329,6 +329,24 @@ defmodule Module.Types.DescrTest do
              |> equal?(closed_map(tag: atom([true]), halted: atom([true]), assigns: term()))
     end
 
+    # Closed maps with not set keys should have no impact
+    test "map closed with not set keys" do
+      assert intersection(closed_map(a: integer()), closed_map(a: integer(), b: not_set())) ==
+               closed_map(a: integer())
+
+      assert intersection(closed_map(a: integer(), b: not_set()), closed_map(a: integer())) ==
+               closed_map(a: integer())
+
+      assert intersection(closed_map(a: integer()), closed_map(a: not_set())) ==
+               none()
+
+      assert intersection(
+               closed_map(a: integer(), b: not_set()),
+               closed_map(a: integer(), c: not_set())
+             ) ==
+               closed_map(a: integer())
+    end
+
     test "map with domain keys" do
       # %{..., int => t1, atom => t2} and %{int => t3}
       # intersection is %{int => t1 and t3, atom => none}
@@ -554,25 +572,35 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map" do
-      assert empty?(difference(open_map(), open_map()))
-      assert empty?(difference(open_map(), term()))
-      assert equal?(difference(open_map(), none()), open_map())
+      assert difference(open_map(), open_map()) == none()
+      assert difference(open_map(), term()) == none()
+      assert difference(open_map(), none()) == open_map()
+
       assert empty?(difference(closed_map(a: integer()), open_map()))
-      assert empty?(difference(closed_map(a: integer()), closed_map(a: integer())))
-      assert empty?(difference(closed_map(a: integer()), open_map(a: integer())))
-      assert empty?(difference(closed_map(a: integer()), open_map(b: if_set(integer()))))
 
       assert difference(closed_map(a: integer(), b: if_set(atom())), closed_map(a: integer()))
              |> difference(closed_map(a: integer(), b: atom()))
              |> empty?()
 
+      refute empty?(difference(open_map(), empty_map()))
+
+      # Difference with single field closed map on rhs
+      assert difference(closed_map(a: integer()), closed_map(a: integer())) == none()
+
       assert difference(open_map(a: atom()), closed_map(b: integer()))
              |> equal?(open_map(a: atom()))
 
-      refute empty?(difference(open_map(), empty_map()))
-
       assert difference(open_map(a: integer()), closed_map(b: boolean()))
              |> equal?(open_map(a: integer()))
+
+      # Difference with single field open map on rhs (they are optimized)
+      assert difference(closed_map(a: integer()), open_map(a: integer())) == none()
+      assert difference(closed_map(a: integer()), open_map(a: if_set(integer()))) == none()
+
+      assert difference(closed_map(a: integer()), open_map(b: integer())) ==
+               closed_map(a: integer())
+
+      assert difference(closed_map(a: integer()), open_map(b: if_set(integer()))) == none()
     end
 
     test "map (struct optimizations)" do
@@ -592,11 +620,21 @@ defmodule Module.Types.DescrTest do
       assert difference(closed_map(__struct__: atom_foo), closed_map(__struct__: atom_bar)) ==
                closed_map(__struct__: atom_foo)
 
-      refute difference(closed_map(__struct__: atom_foo), closed_map(__struct__: term())) ==
-               closed_map(__struct__: atom_foo)
+      assert difference(closed_map(__struct__: atom_foo), closed_map(__struct__: term())) ==
+               none()
 
-      refute difference(closed_map(__struct__: atom()), closed_map(__struct__: atom_bar)) ==
-               closed_map(__struct__: atom())
+      assert difference(closed_map(__struct__: atom()), closed_map(__struct__: atom_bar)) ==
+               closed_map(__struct__: difference(atom(), atom_bar))
+
+      # Explicitly assert we keep it as cascading differences
+      assert %{map: {{:closed, _}, :bdd_bot, :bdd_bot, _}} =
+               difference(
+                 difference(
+                   open_map(value: term()),
+                   closed_map(__struct__: atom_foo, value: term())
+                 ),
+                 closed_map(__struct__: atom_bar, name: term())
+               )
     end
 
     test "map with domain keys" do
@@ -1057,18 +1095,34 @@ defmodule Module.Types.DescrTest do
 
     test "non funs" do
       assert fun_apply(term(), [integer()]) == :badfun
+      assert fun_apply(integer(), [integer()]) == :badfun
       assert fun_apply(union(integer(), none_fun(1)), [integer()]) == :badfun
+      assert fun_apply(union(integer(), fun([integer()], atom())), [integer()]) == :badfun
+      assert fun_apply(union(integer(), dynamic()), [integer()]) == :badfun
     end
 
     test "static" do
       # Full static
-      assert fun_apply(fun(), [integer()]) == {:badarg, [none()]}
-      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == {:badarg, [none()]}
+      assert fun_apply(fun(), [integer()]) == {:badarg, [none()], false}
+      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == {:badarg, [none()], false}
 
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
-      assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()]}
-      assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()], false}
+      assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()], false}
+
+      # Union argument type: domain is int | float
+      assert fun_apply(fun([union(integer(), float())], atom()), [integer()]) == {:ok, atom()}
+      assert fun_apply(fun([union(integer(), float())], atom()), [float()]) == {:ok, atom()}
+
+      assert fun_apply(fun([union(integer(), float())], atom()), [atom()]) ==
+               {:badarg, [union(integer(), float())], false}
+
+      # 2-arity function
+      assert fun_apply(fun([integer(), atom()], binary()), [integer(), atom()]) == {:ok, binary()}
+
+      assert fun_apply(fun([integer(), atom()], binary()), [boolean(), atom()]) ==
+               {:badarg, [integer(), atom()], false}
 
       # Return types
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
@@ -1081,12 +1135,19 @@ defmodule Module.Types.DescrTest do
              |> elem(1)
              |> equal?(atom())
 
-      assert fun_apply(fun([integer()], atom()), [dynamic(float())]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [dynamic(float())]) ==
+               {:badarg, [integer()], false}
+
       assert fun_apply(fun([integer()], atom()), [dynamic(term())]) == {:ok, dynamic()}
 
       # Arity mismatches
       assert fun_apply(fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
       assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
+
+      # Union of two different arities: always badarity regardless of which arity is called
+      fun_mixed = union(fun([integer()], integer()), fun([integer(), atom()], boolean()))
+      assert fun_apply(fun_mixed, [integer()]) == {:badarity, [1, 2]}
+      assert fun_apply(fun_mixed, [integer(), atom()]) == {:badarity, [2, 1]}
 
       # Function intersection tests (no overlap)
       fun0 = intersection(fun([integer()], atom()), fun([float()], binary()))
@@ -1139,7 +1200,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun, [dynamic(integer())]) == {:ok, union(atom(), dynamic())}
       assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
       assert fun_apply(fun, [integer()]) == {:ok, dynamic()}
-      assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())]}
+      assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())], false}
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
@@ -1155,6 +1216,10 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(dynamic_fun([integer()], atom()), [float()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], atom()), [term()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], none()), [integer()]) == {:ok, dynamic(none())}
+
+      assert fun_apply(dynamic(fun([integer()], integer())), [none()]) ==
+               {:badarg, [none()], true}
+
       assert fun_apply(dynamic_fun([integer()], term()), [integer()]) == {:ok, dynamic()}
 
       # Dynamic return and dynamic args
@@ -1170,6 +1235,20 @@ defmodule Module.Types.DescrTest do
 
       assert fun_apply(dynamic_fun([integer(), atom()], boolean()), [integer()]) ==
                {:badarity, [2]}
+
+      # Union of two dynamic functions with different arities: the call may succeed,
+      # so we pick the matching-arity arrows and wrap in dynamic().
+      fun_dyn_mixed =
+        union(dynamic_fun([integer()], integer()), dynamic_fun([integer(), atom()], boolean()))
+
+      # picks arity-1 arrows → dynamic(integer())
+      assert fun_apply(fun_dyn_mixed, [integer()]) == {:ok, dynamic(integer())}
+      # picks arity-2 arrows → dynamic(boolean())
+      assert fun_apply(fun_dyn_mixed, [integer(), atom()]) == {:ok, dynamic(boolean())}
+      # no matching arity → badarity (no dynamic escape here)
+      assert fun_apply(fun_dyn_mixed, [integer(), atom(), float()]) == {:badarity, [1, 2]}
+      # arg outside arity-1 domain but dynamic-compatible → dynamic()
+      assert fun_apply(fun_dyn_mixed, [atom()]) == {:ok, dynamic()}
 
       # Function intersection tests
       fun0 = intersection(dynamic_fun([integer()], atom()), dynamic_fun([float()], binary()))
@@ -1214,6 +1293,23 @@ defmodule Module.Types.DescrTest do
         )
 
       assert fun_apply(fun3, [atom([:ok])]) == {:ok, dynamic(none())}
+
+      # Testing the special case of uplifiting both the function and argument
+      # when the function is purely dynamic
+      fun4 =
+        intersection(
+          dynamic_fun([integer()], integer()),
+          dynamic_fun([boolean()], boolean())
+        )
+
+      # dynamic(int->int and bool->bool) applied to dynamic(int)
+      assert fun_apply(fun4, [dynamic(integer())]) == {:ok, dynamic(integer())}
+
+      # float escapes the domain so the result is dynamic()
+      arg = dynamic(union(integer(), float()))
+      assert fun_apply(fun4, [arg]) == {:ok, dynamic()}
+
+      assert fun_apply(dynamic(), [integer()]) == {:ok, dynamic()}
     end
 
     test "static and dynamic" do
@@ -1239,7 +1335,17 @@ defmodule Module.Types.DescrTest do
         )
 
       assert fun_args |> fun_apply([atom()]) == {:ok, dynamic()}
-      assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())]}
+      assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())], false}
+
+      # ((bool->bool) or dyn(int->int))
+      # booleans work, but not integers
+      fun_mixed_gdom = union(fun([boolean()], boolean()), dynamic_fun([integer()], integer()))
+      assert fun_apply(fun_mixed_gdom, [boolean()]) == {:ok, dynamic()}
+      assert fun_apply(fun_mixed_gdom, [dynamic(boolean())]) == {:ok, union(dynamic(), boolean())}
+      assert fun_apply(fun_mixed_gdom, [integer()]) == {:badarg, [dynamic(boolean())], false}
+
+      assert fun_apply(fun_mixed_gdom, [dynamic(integer())]) ==
+               {:badarg, [dynamic(boolean())], false}
 
       # Badfun
       assert union(
@@ -1255,6 +1361,23 @@ defmodule Module.Types.DescrTest do
                dynamic_fun([integer()], binary())
              )
              |> fun_apply([integer()]) == {:ok, dynamic(binary())}
+
+      # Applying (dynamic or int) -> bool to (dynamic and float).
+      # The domain is
+      #   gdom((dynamic or int) -> bool) = dom(int -> bool) or dynamic and dom(term -> bool)
+      #                                  = int or dynamic and term = int or dynamic
+
+      # The domain check dynamic and float <= int or dynamic succeeds.
+      # The static application (term -> bool) o float = bool is well-defined.
+      # The dynamic application (int -> bool) o float is not well-defined (float not <: int),
+      # but since it is dynamic it returns term wrapped in dynamic, which is dynamic.
+      # Result: bool or dynamic.
+      fun_type = fun([union(dynamic(), integer())], boolean())
+      arg = dynamic(float())
+
+      # Application yields bool or dynamic
+      assert {:ok, result} = fun_apply(fun_type, [arg])
+      assert equal?(union(boolean(), dynamic()), result)
     end
   end
 
@@ -1307,6 +1430,16 @@ defmodule Module.Types.DescrTest do
       refute singleton?(open_tuple([]))
       refute singleton?(union(tuple([atom([:value])]), tuple([atom([:other_value])])))
       refute singleton?(union(tuple([atom([:value])]), closed_map(other: atom([:value]))))
+
+      # Both BDD lines produce the same singleton tuple, so the tuple DNF must not duplicate it.
+      a = tuple([union(integer(), atom([:ok])), atom([:x])])
+      b = tuple([integer(), atom([:x, :y])])
+      c = tuple([integer(), union(atom([:x]), binary())])
+
+      t = union(difference(a, b), difference(a, c))
+      # Semantically t ~= {:ok, :x}, confirmed by equal?
+      assert equal?(t, tuple([atom([:ok]), atom([:x])]))
+      assert singleton?(t)
     end
   end
 
@@ -2160,6 +2293,21 @@ defmodule Module.Types.DescrTest do
              |> map_update(atom([:b]), integer(), true, true) == {none(), none(), []}
     end
 
+    test "with non-empty open maps does not call the callback with none from absent branches" do
+      # This is a test of the map_update_fun/5 with forced?: false parameter.
+      # We check that it does not call its typed_fun argument with `none()`
+      # due to the key being absent in the map.
+      type = dynamic(difference(open_map(), empty_map()))
+
+      fun = fn _optional?, value ->
+        send(self(), :callback_invoked)
+        value
+      end
+
+      assert map_update_fun(type, binary(), fun, false, false) == {dynamic(none()), type, []}
+      refute_received :callback_invoked
+    end
+
     test "with dynamic atom keys" do
       assert map_update(closed_map(key: atom([:value])), dynamic(), atom([:new_value])) ==
                {atom([:value]), closed_map(key: atom([:value, :new_value])), []}
@@ -2286,21 +2434,27 @@ defmodule Module.Types.DescrTest do
       # Putting dynamic atom over record keys
       assert map_update(closed_map(key1: binary(), key2: pid()), atom(), integer()) ==
                {union(binary(), pid()),
-                closed_map(key1: union(integer(), binary()), key2: union(integer(), pid())),
-                [baddomain: atom()]}
+                union(
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map(key1: union(integer(), binary()), key2: pid())
+                ), [baddomain: atom()]}
 
       # ... unless forcing
       assert map_update(closed_map(key1: binary(), key2: pid()), atom(), integer(), true, true) ==
                {union(binary(), pid()),
-                closed_map([
-                  {:key1, union(integer(), binary())},
-                  {:key2, union(integer(), pid())},
-                  {domain_key(:atom), integer()}
-                ]), [baddomain: atom()]}
+                [
+                  closed_map([{domain_key(:atom), integer()}, key1: binary(), key2: pid()]),
+                  closed_map(key1: integer(), key2: pid()),
+                  closed_map(key1: binary(), key2: integer())
+                ]
+                |> Enum.reduce(&union/2), [baddomain: atom()]}
 
       assert map_update(closed_map(key1: binary(), key2: pid()), dynamic(atom()), integer()) ==
                {union(binary(), pid()),
-                closed_map(key1: union(integer(), binary()), key2: union(integer(), pid())), []}
+                union(
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map(key1: union(integer(), binary()), key2: pid())
+                ), []}
 
       # A "none()" map
       assert open_map()
@@ -2349,9 +2503,13 @@ defmodule Module.Types.DescrTest do
                integer()
              ) ==
                {union(binary(), pid()),
-                closed_map(
-                  [key1: binary(), key2: union(integer(), binary())] ++
-                    [{domain_key(:atom), union(integer(), pid())}]
+                union(
+                  closed_map([{domain_key(:atom), pid()}, key1: binary(), key2: integer()]),
+                  closed_map([
+                    {domain_key(:atom), union(pid(), integer())},
+                    key1: binary(),
+                    key2: binary()
+                  ])
                 ), []}
 
       # Missing keys
@@ -2382,6 +2540,12 @@ defmodule Module.Types.DescrTest do
                     {domain_key(:integer), binary()}
                   ])
                 ), []}
+
+      # Popping dynamic keys
+      non_struct_map = difference(open_map(), open_map(__struct__: atom()))
+      {type, descr, []} = map_update(non_struct_map, dynamic(), not_set(), true, true)
+      assert type == term()
+      assert equal?(descr, open_map(__struct__: if_set(negation(atom()))))
     end
   end
 
@@ -2524,10 +2688,12 @@ defmodule Module.Types.DescrTest do
       # Putting dynamic atom over record keys
       assert map_put(closed_map(key1: binary(), key2: binary()), atom(), integer()) ==
                {:ok,
-                closed_map(
-                  [key1: union(integer(), binary()), key2: union(integer(), binary())] ++
-                    [{domain_key(:atom), integer()}]
-                )}
+                [
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map(key1: integer(), key2: binary()),
+                  closed_map([{domain_key(:atom), integer()}, key1: binary(), key2: binary()])
+                ]
+                |> Enum.reduce(&union/2)}
     end
 
     test "with mixed keys" do
@@ -2572,9 +2738,9 @@ defmodule Module.Types.DescrTest do
                integer()
              ) ==
                {:ok,
-                closed_map(
-                  [key1: binary(), key2: union(binary(), integer())] ++
-                    [{domain_key(:atom), integer()}]
+                union(
+                  closed_map(key1: binary(), key2: integer()),
+                  closed_map([{domain_key(:atom), integer()}, key1: binary(), key2: binary()])
                 )}
 
       assert map_put(
@@ -2583,9 +2749,13 @@ defmodule Module.Types.DescrTest do
                integer()
              ) ==
                {:ok,
-                closed_map(
-                  [key1: binary(), key2: union(integer(), binary())] ++
-                    [{domain_key(:atom), union(integer(), pid())}]
+                union(
+                  closed_map([{domain_key(:atom), pid()}, key1: binary(), key2: integer()]),
+                  closed_map([
+                    {domain_key(:atom), union(integer(), pid())},
+                    key1: binary(),
+                    key2: binary()
+                  ])
                 )}
     end
   end
@@ -2602,6 +2772,11 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "to_quoted" do
+    test "none" do
+      assert none() |> to_quoted_string() == "none()"
+      assert dynamic(none()) |> to_quoted_string() == "none()"
+    end
+
     test "bitmap" do
       assert union(pid(), bitstring()) |> to_quoted_string() ==
                "bitstring() or pid()"
@@ -2613,15 +2788,15 @@ defmodule Module.Types.DescrTest do
                "(bitstring() and not binary()) or integer()"
     end
 
-    test "none" do
-      assert none() |> to_quoted_string() == "none()"
-      assert dynamic(none()) |> to_quoted_string() == "none()"
-    end
+    test "bitmap (negation)" do
+      assert union(pid(), bitstring()) |> negation() |> to_quoted_string() ==
+               "not bitstring() and not pid()"
 
-    test "negation" do
-      assert negation(negation(integer())) |> to_quoted_string() == "integer()"
-      assert negation(negation(atom([:foo, :bar]))) |> to_quoted_string() == ":bar or :foo"
-      assert negation(negation(list(term()))) |> to_quoted_string() == "list(term())"
+      assert difference(bitstring(), binary())
+             |> union(integer())
+             |> negation()
+             |> to_quoted_string() ==
+               "not (bitstring() and not binary()) and not integer()"
     end
 
     test "atom" do
@@ -2639,6 +2814,15 @@ defmodule Module.Types.DescrTest do
       assert atom([true, false, :a]) |> to_quoted_string() == ":a or boolean()"
       assert atom([true, :a]) |> to_quoted_string() == ":a or true"
       assert difference(atom(), boolean()) |> to_quoted_string() == "atom() and not boolean()"
+    end
+
+    test "atom/boolean (negation)" do
+      assert atom() |> negation() |> to_quoted_string() == "not atom()"
+      assert atom([:a, :b]) |> negation() |> to_quoted_string() == "not :a and not :b"
+      assert boolean() |> negation() |> to_quoted_string() == "not boolean()"
+
+      assert atom([true, false, :a]) |> negation() |> to_quoted_string() ==
+               "not :a and not boolean()"
     end
 
     test "dynamic" do
@@ -2668,7 +2852,21 @@ defmodule Module.Types.DescrTest do
                "dynamic(%{a: integer()})"
     end
 
-    test "lists" do
+    test "dynamic (negation)" do
+      assert dynamic(negation(integer())) |> to_quoted_string() == "dynamic(not integer())"
+      assert negation(dynamic(integer())) |> to_quoted_string() == "dynamic() or not integer()"
+
+      assert union(atom(), dynamic(integer())) |> negation() |> to_quoted_string() ==
+               "dynamic(not atom()) or (not atom() and not integer())"
+
+      assert dynamic(union(atom(), integer()))
+             |> negation()
+             |> union(integer())
+             |> to_quoted_string() ==
+               "dynamic() or not atom()"
+    end
+
+    test "list" do
       assert list(term()) |> to_quoted_string() == "list(term())"
       assert list(integer()) |> to_quoted_string() == "list(integer())"
 
@@ -2720,7 +2918,18 @@ defmodule Module.Types.DescrTest do
       assert to_quoted_string(list_with_tail) == "non_empty_list(atom())"
     end
 
-    test "tuples" do
+    test "list (negation)" do
+      assert list(term()) |> negation() |> to_quoted_string() == "not list(term())"
+      assert list(negation(integer())) |> to_quoted_string() == "list(not integer())"
+
+      assert list(term()) |> difference(empty_list()) |> negation() |> to_quoted_string() ==
+               "not non_empty_list(term())"
+
+      assert non_empty_list(integer(), integer()) |> negation() |> to_quoted_string() ==
+               "not non_empty_list(integer(), integer())"
+    end
+
+    test "tuple" do
       assert tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom()}"
 
       assert tuple([integer(), dynamic(atom())]) |> to_quoted_string() ==
@@ -2832,7 +3041,12 @@ defmodule Module.Types.DescrTest do
                """
     end
 
-    test "function" do
+    test "tuple (negation)" do
+      assert tuple([integer()]) |> negation() |> to_quoted_string() == "not {integer()}"
+      assert tuple([negation(integer())]) |> to_quoted_string() == "{not integer()}"
+    end
+
+    test "fun" do
       assert fun() |> to_quoted_string() == "fun()"
       assert none_fun(1) |> to_quoted_string() == "(none() -> term())"
 
@@ -2868,7 +3082,7 @@ defmodule Module.Types.DescrTest do
                "fun() and not (none(), none(), none() -> term())"
     end
 
-    test "function with optimized intersections" do
+    test "fun with optimized intersections" do
       assert fun([integer()], atom()) |> intersection(none_fun(1)) |> to_quoted_string() ==
                "(integer() -> atom())"
 
@@ -2879,7 +3093,7 @@ defmodule Module.Types.DescrTest do
                "(integer() -> atom())"
     end
 
-    test "function with dynamic signatures" do
+    test "fun with dynamic signatures" do
       assert fun([dynamic(integer())], float()) |> to_quoted_string() ==
                "(dynamic(integer()) -> float())"
 
@@ -2910,6 +3124,11 @@ defmodule Module.Types.DescrTest do
                (dynamic(atom()) or integer(), binary() -> float()) and
                  (pid(), float() -> dynamic(atom()) or integer())\
                """
+    end
+
+    test "fun (negation)" do
+      assert fun([integer()], atom()) |> negation() |> to_quoted_string() ==
+               "not (integer() -> atom())"
     end
 
     test "map as records" do
@@ -3035,12 +3254,26 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() == "%{..., a: float(), b: atom(), c: port()}"
     end
 
-    test "maps as dictionaries" do
+    test "map as dictionaries" do
       assert closed_map([{domain_key(:integer), integer()}])
              |> to_quoted_string() == "%{integer() => integer()}"
 
       assert closed_map([{domain_key(:integer), not_set()}, {:float, float()}])
              |> to_quoted_string() == "%{integer() => not_set(), float: float()}"
+    end
+
+    test "map (negation)" do
+      assert open_map(a: integer()) |> negation() |> to_quoted_string() ==
+               "not %{..., a: integer()}"
+
+      assert open_map(a: negation(integer())) |> to_quoted_string() ==
+               "%{..., a: not integer()}"
+
+      assert closed_map(a: integer()) |> negation() |> to_quoted_string() ==
+               "not %{a: integer()}"
+
+      assert closed_map(a: negation(integer())) |> to_quoted_string() ==
+               "%{a: not integer()}"
     end
 
     test "structs" do

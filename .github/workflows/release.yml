@@ -37,30 +37,31 @@ jobs:
         if: github.ref_type != 'branch'
         run: |
           gh release create \
-            --repo ${{ github.repository }} \
-            --title ${{ github.ref_name }} \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
             --notes '' \
             --draft \
-            ${{ github.ref_name }}
+            "$GITHUB_REF_NAME"
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        # zizmor: ignore[artipacked]
         if: github.ref_type == 'branch'
 
       - name: Update ${{ github.ref_name }}-latest
         if: github.ref_type == 'branch'
         run: |
-          ref_name=${{ github.ref_name }}-latest
+          ref_name="${GITHUB_REF_NAME}-latest"
 
-          if ! gh release view $ref_name; then
+          if ! gh release view "$ref_name"; then
             gh release create \
               --latest=false \
-              --title $ref_name \
-              --notes "Automated release for latest ${{ github.ref_name }}." \
-              $ref_name
+              --title "$ref_name" \
+              --notes "Automated release for latest ${GITHUB_REF_NAME}." \
+              "$ref_name"
           fi
 
-          git tag $ref_name --force
-          git push origin $ref_name --force
+          git tag "$ref_name" --force
+          git push origin "$ref_name" --force
 
   build:
     name: Ubuntu 24.04, OTP ${{ matrix.otp_version }}${{ matrix.build_docs && ' (build docs)' || '' }}
@@ -70,9 +71,6 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - otp: 26
-            otp_version: "26.0"
-
           - otp: 27
             otp_version: "27.0"
 
@@ -80,8 +78,13 @@ jobs:
             otp_version: "28.0"
             build_docs: build_docs
 
+          - otp: 29
+            otp_version: "29.0-rc1"
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: "Build Release"
         uses: ./.github/workflows/release_pre_built
@@ -97,19 +100,19 @@ jobs:
           shasum -a 256 Docs.zip > Docs.zip.sha256sum
 
       - name: "Upload Linux release artifacts"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: build-linux-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.zip
 
       - name: "Upload Windows release artifacts"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: build-windows-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.exe
 
       - name: "Upload doc artifacts"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: matrix.build_docs
         with:
           name: Docs
@@ -122,7 +125,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        otp: [26, 27, 28]
+        otp: [27, 28, 29]
         flavor: [windows, linux]
 
     env:
@@ -136,20 +139,20 @@ jobs:
 
     steps:
       - name: "Download build"
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
 
       - name: Log in to Azure
         if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: "Sign files with Trusted Signing"
-        uses: azure/trusted-signing-action@87c2e83e6868da99d3380aa309851b32ed9a8346 # v1.1.0
+        uses: azure/trusted-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1.2.0
         if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
         with:
           endpoint: https://eus.codesigning.azure.net/
@@ -179,7 +182,7 @@ jobs:
           shasum -a 256 "$RELEASE_FILE" > "${RELEASE_FILE}.sha256sum"
 
       - name: "Upload Linux release artifacts"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
           path: ${{ env.RELEASE_FILE }}*
@@ -203,10 +206,12 @@ jobs:
       - name: Checkout project
         id: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: "Download Build Artifacts"
         id: download-build-artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
@@ -221,7 +226,7 @@ jobs:
 
       - name: Attest Distribution Assets with SBoM
         id: attest-sbom
-        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3.0.0
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: |
             /tmp/build-artifacts/{elixir-otp-*.*,Docs.zip}
@@ -241,15 +246,19 @@ jobs:
             cp "$ATTESTATION" "attestations/$(basename "$FILE").sigstore"
           done
 
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}").sigstore"
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}").sigstore"
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}").sigstore"
-          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-json-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_CYCLONEDX_XML").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_CYCLONEDX_JSON").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_SPDX_YML").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "$SBOM_SPDX_JSON").sigstore"
         env:
           ATTESTATION: "${{ steps.attest-sbom.outputs.bundle-path }}"
+          SBOM_CYCLONEDX_XML: "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}"
+          SBOM_CYCLONEDX_JSON: "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}"
+          SBOM_SPDX_YML: "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}"
+          SBOM_SPDX_JSON: "${{ steps.ort.outputs.results-sbom-spdx-json-path }}"
 
       - name: "Assemble Release SBoM Artifacts"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: "SBoM"
           path: |
@@ -259,7 +268,7 @@ jobs:
             ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
 
       - name: "Assemble Distribution Attestations"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: "Attestations"
           path: "attestations/*.sigstore"
@@ -273,7 +282,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: "{sign-*-elixir-otp-*,Docs,SBoM,Attestations}"
           merge-multiple: true
@@ -283,14 +292,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ github.ref_type }}" == "branch" ]; then
-            tag=${{ github.ref_name }}-latest
+          if [ "$GITHUB_REF_TYPE" == "branch" ]; then
+            tag="${GITHUB_REF_NAME}-latest"
           else
-            tag="${{ github.ref_name }}"
+            tag="$GITHUB_REF_NAME"
           fi
 
           gh release upload \
-            --repo ${{ github.repository }} \
+            --repo "$GITHUB_REPOSITORY" \
             --clobber \
             "$tag" \
             elixir-otp-*.zip \
@@ -324,7 +333,7 @@ jobs:
           echo "Required variables for uploading to hex.pm are not set up, skipping..."
           exit 1
 
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
@@ -335,12 +344,10 @@ jobs:
 
       - name: Upload Precompiled to S3
         run: |
-          ref_name=${{ github.ref_name }}
-
           oldest_otp=$(find . -type f -name 'elixir-otp-*.zip' | sed -r 's/^.*elixir-otp-([[:digit:]]+)\.zip$/\1/' | sort -n | head -n 1)
 
           for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
-            dest=${zip/elixir/${ref_name}}
+            dest=${zip/elixir/${GITHUB_REF_NAME}}
             surrogate_key=${dest/.zip$/}
 
             aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
@@ -349,16 +356,16 @@ jobs:
             echo "builds/elixir/${surrogate_key}" >> purge_keys.txt
 
             if [ "$zip" == "elixir-otp-${oldest_otp}.zip" ]; then
-              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
+              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${GITHUB_REF_NAME}.zip" \
                 --cache-control "public,max-age=3600" \
-                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
-              echo builds/elixir/${ref_name} >> purge_keys.txt
+                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${GITHUB_REF_NAME}\",\"surrogate-control\":\"public,max-age=604800\"}"
+              echo builds/elixir/${GITHUB_REF_NAME} >> purge_keys.txt
             fi
           done
 
       - name: Upload Docs to S3
         run: |
-          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
+          version=$(echo "$GITHUB_REF_NAME" | sed -e 's/^v//g')
 
           unzip Docs.zip
 
@@ -379,7 +386,7 @@ jobs:
       - name: Update builds txt
         run: |
           date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          ref_name=${{ github.ref_name }}
+          ref_name="$GITHUB_REF_NAME"
 
           oldest_otp=$(find . -name 'elixir-otp-*.zip.sha256sum' | sed -r 's/^.*elixir-otp-([[:digit:]]+)\.zip\.sha256sum$/\1/' | sort -n | head -n 1)
 

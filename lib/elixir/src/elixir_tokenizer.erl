@@ -121,8 +121,8 @@ tokenize(String, Line, Column, Opts) ->
     lists:foldl(fun
       ({check_terminators, false}, Acc) ->
         Acc#elixir_tokenizer{cursor_completion=false, terminators=none};
-      ({check_terminators, {cursor, Terminators}}, Acc) ->
-        Acc#elixir_tokenizer{cursor_completion=prune_and_cursor, terminators=Terminators};
+      ({check_terminators, {cursor, Sigils, Terminators}}, Acc) ->
+        Acc#elixir_tokenizer{cursor_completion={prune_and_cursor, Sigils}, terminators=Terminators};
       ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
       ({static_atoms_encoder, StaticAtomsEncoder}, Acc) when is_function(StaticAtomsEncoder) ->
@@ -144,12 +144,9 @@ tokenize(String, Line, Opts) ->
 
 tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, terminators=Terminators, warnings=Warnings} = Scope,
-
-  {CursorColumn, AccTerminators, AccTokens} =
-    add_cursor(Line, Column, Cursor, Terminators, Tokens),
-
+  {CursorColumn, AccTokens} = add_cursor(Line, Column, Cursor, Tokens),
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
-  {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
+  {ok, Line, CursorColumn, AllWarnings, AccTokens, Terminators};
 
 tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
@@ -515,7 +512,7 @@ tokenize([$:, H | T] = Original, Line, Column, BaseScope, Tokens) when ?is_quote
   end,
 
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
-    {NewLine, NewColumn, Parts, Rest, InterScope} ->
+    {NewLine, NewColumn, Parts, Rest, _Done, InterScope} ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
         true ->
           WarnMsg = io_lib:format(
@@ -788,7 +785,7 @@ handle_char(_)  -> false.
 
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
-    {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
+    {ok, NewLine, NewColumn, Parts, Rest, _Done, NewScope} ->
       case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
           Token = {heredoc_type(H), {Line, Column, nil}, NewColumn - 4, Unescaped},
@@ -807,7 +804,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
     {error, Reason} ->
       interpolation_error(Reason, [H | T], Scope, Tokens, " (for string starting at line ~B)", [Line], Line, Column-1, [H], [H]);
 
-    {NewLine, NewColumn, Parts, [$: | Rest], InterScope} when ?is_space(hd(Rest)) ->
+    {NewLine, NewColumn, Parts, [$: | Rest], _Done, InterScope} when ?is_space(hd(Rest)) ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
         true ->
           WarnMsg = io_lib:format(
@@ -850,7 +847,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           error(Reason, Rest, NewScope, Tokens)
       end;
 
-    {NewLine, NewColumn, Parts, Rest, InterScope} ->
+    {NewLine, NewColumn, Parts, Rest, _Done, InterScope} ->
       NewScope =
         case H of
           $' ->
@@ -961,7 +958,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) whe
   end,
 
   case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
-    {NewLine, NewColumn, [Part], Rest, InterScope} when is_list(Part) ->
+    {NewLine, NewColumn, [Part], Rest, _Done, InterScope} when is_list(Part) ->
       NewScope = case is_unnecessary_quote([Part], InterScope) of
         true ->
           WarnMsg = io_lib:format(
@@ -992,7 +989,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) whe
           error(Reason, Original, NewScope, Tokens)
       end;
 
-    {_NewLine, _NewColumn, _Parts, Rest, NewScope} ->
+    {_NewLine, _NewColumn, _Parts, Rest, _Done, NewScope} ->
       Message = "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: ",
       error({?LOC(Line, Column), Message, [H]}, Rest, NewScope, Tokens);
     {error, Reason} ->
@@ -1149,11 +1146,11 @@ unsafe_to_atom(List, Line, Column, #elixir_tokenizer{}) when is_list(List) ->
       end
   end.
 
-collect_modifiers([H | T], Buffer) when ?is_downcase(H) or ?is_upcase(H) or ?is_digit(H) ->
-  collect_modifiers(T, [H | Buffer]);
+collect_modifiers([H | T], Column, Buffer) when ?is_downcase(H) or ?is_upcase(H) or ?is_digit(H) ->
+  collect_modifiers(T, Column + 1, [H | Buffer]);
 
-collect_modifiers(Rest, Buffer) ->
-  {Rest, lists:reverse(Buffer)}.
+collect_modifiers(Rest, Column, Buffer) ->
+  {Rest, Column, lists:reverse(Buffer)}.
 
 %% Heredocs
 
@@ -1164,14 +1161,14 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
       %% spaces later. This new line is removed by calling "tl"
       %% in the final heredoc body three lines below.
       case elixir_interpolation:extract(Line, Column, Scope, Interpol, [$\n|Headerless], [H,H,H]) of
-        {NewLine, NewColumn, Parts0, Rest, InterScope} ->
+        {NewLine, NewColumn, Parts0, Rest, Done, InterScope} ->
           Indent = NewColumn - 4,
           Fun = fun(Part, Acc) -> extract_heredoc_indent(Part, Acc, Indent) end,
           {Parts1, {ShouldWarn, _}} = lists:mapfoldl(Fun, {false, Line}, Parts0),
           Parts2 = extract_heredoc_head(Parts1),
           NewScope = maybe_heredoc_warn(ShouldWarn, Column, InterScope, H),
           try
-            {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope}
+            {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, Done, NewScope}
           catch
             error:#{'__struct__' := 'Elixir.UnicodeConversionError', message := Message} ->
               {error, interpolation_format(Message, " (for heredoc starting at line ~B)", [Line], Line, Column, [H, H, H], [H, H, H])}
@@ -1746,9 +1743,9 @@ sigil_name_error() ->
 tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_quote(H) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
-    {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
+    {ok, NewLine, NewColumn, Parts, Rest, Done, NewScope} ->
       Indentation = NewColumn - 4,
-      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, NewScope, Tokens, Indentation, <<H, H, H>>);
+      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Done, NewScope, Tokens, Indentation, <<H, H, H>>);
 
     {error, Reason} ->
       error(Reason, [$~] ++ SigilName ++ Original, Scope, Tokens)
@@ -1757,9 +1754,10 @@ tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Col
 tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_sigil(H) ->
   case elixir_interpolation:extract(Line, Column + 1, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
-    {NewLine, NewColumn, Parts, Rest, NewScope} ->
+    {NewLine, NewColumn, Parts, Rest, Done, NewScope} ->
       Indentation = nil,
-      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>);
+      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn,
+                      tokens_to_binary(Parts), Rest, Done, NewScope, Tokens, Indentation, <<H>>);
 
     {error, Reason} ->
       Sigil = [$~, S, H],
@@ -1779,7 +1777,7 @@ tokenize_sigil_contents([H | _] = Original, SigilName, Line, Column, Scope, Toke
 tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens) ->
   tokenize([], Line, Column, Scope, Tokens).
 
-add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Scope, Tokens, Indentation, Delimiter) ->
+add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Done, Scope, Tokens, Indentation, Delimiter) ->
   TokenColumn = Column - 1 - length(SigilName),
   MaybeEncoded = case SigilName of
     % Single-letter sigils present no risk of atom exhaustion (limited possibilities)
@@ -1788,9 +1786,12 @@ add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Scope,
   end,
   case MaybeEncoded of
     {ok, Atom} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
-      Token = {sigil, {Line, TokenColumn, nil}, Atom, Parts, Modifiers, Indentation, Delimiter},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      {Final, NewColumnWithModifiers, Modifiers} = case Done of
+        true -> collect_modifiers(Rest, NewColumn, []);
+        false -> {Rest, NewColumn, false}
+      end,
+      Token = {sigil, {Line, TokenColumn, {NewLine, NewColumnWithModifiers}},
+               Atom, Parts, Modifiers, Indentation, Delimiter},
       tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
 
     {error, Reason} ->
@@ -1903,9 +1904,19 @@ format_error({Location, Error, Token}) ->
 
 %% Cursor handling
 
-add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
-  {Column, Terminators, Tokens};
-add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
+add_cursor(_Line, Column, noprune, Tokens) ->
+  {Column, Tokens};
+
+add_cursor(Line, Column, {prune_and_cursor, true},
+           [{sigil, {_, _, {Line, Column}} = Location, Name, Parts, Modifier, Identation, Delimiter} | Rest]) ->
+  Cursor = {'__cursor__', [{line, Line}, {column, Column}], []},
+  CursorModifier = case Modifier of
+    false -> Cursor;
+    List -> List ++ [Cursor]
+  end,
+  {Column + 12, [{sigil, Location, Name, Parts, CursorModifier, Identation, Delimiter} | Rest]};
+
+add_cursor(Line, Column, {prune_and_cursor, _}, Tokens) ->
   PrePrunedTokens = prune_identifier(Tokens),
   PrunedTokens = prune_tokens(PrePrunedTokens, []),
   CursorTokens = [
@@ -1914,7 +1925,7 @@ add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
     {paren_identifier, {Line, Column, nil}, '__cursor__'}
     | PrunedTokens
   ],
-  {Column + 12, Terminators, CursorTokens}.
+  {Column + 12, CursorTokens}.
 
 prune_identifier([{identifier, _, _} | Tokens]) -> Tokens;
 prune_identifier(Tokens) -> Tokens.

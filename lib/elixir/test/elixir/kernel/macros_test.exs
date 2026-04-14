@@ -16,6 +16,17 @@ defmodule Kernel.MacrosTest.Nested do
       require Integer
     end
   end
+
+  defmacro wrap_empty_var(expr) do
+    empty = Macro.var(:"", nil)
+
+    quote do
+      (fn x ->
+         unquote(empty) = List.wrap(x)
+         unquote(empty)
+       end).(unquote(expr))
+    end
+  end
 end
 
 defmodule Kernel.MacrosTest do
@@ -90,5 +101,10 @@ defmodule Kernel.MacrosTest do
     assert (Kernel.MacrosTest.Nested.do_identity! do
               1
             end) == 1
+  end
+
+  test "do not collide on empty variable name", config do
+    import Kernel.MacrosTest.Nested
+    assert wrap_empty_var(config) == [config]
   end
 end

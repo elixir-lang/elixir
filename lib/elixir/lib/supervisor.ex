@@ -556,19 +556,29 @@ defmodule Supervisor do
 
   Developers typically invoke `Supervisor.init/2` at the end of their
   init callback to return the proper supervision flags.
+
+  See `start_link/2` for more information.
   """
   @callback init(init_arg :: term) ::
               {:ok,
                {sup_flags(), [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
               | :ignore
 
-  @typedoc "Return values of `start_link/2` and `start_link/3`."
+  @typedoc """
+  Return values of `start_link/2` and `start_link/3`.
+
+  See the documentation for those functions for more information.
+  """
   @type on_start ::
           {:ok, pid}
           | :ignore
           | {:error, {:already_started, pid} | {:shutdown, term} | term}
 
-  @typedoc "Return values of `start_child/2`."
+  @typedoc """
+  Return values of `start_child/2`.
+
+  See the documentation for those functions for more information.
+  """
   @type on_start_child ::
           {:ok, child}
           | {:ok, child, info :: term}
@@ -698,15 +708,18 @@ defmodule Supervisor do
   If the supervisor and all child processes are successfully spawned
   (if the start function of each child process returns `{:ok, child}`,
   `{:ok, child, info}`, or `:ignore`), this function returns
-  `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
-  is given a name and a process with the specified name already exists,
-  the function returns `{:error, {:already_started, pid}}`, where `pid`
-  is the PID of that process.
+  `{:ok, pid}`, where `pid` is the PID of the supervisor.
 
-  If the start function of any of the child processes fails or returns an error
-  tuple or an erroneous value, the supervisor first terminates with reason
-  `:shutdown` all the child processes that have already been started, and then
-  terminates itself and returns `{:error, {:shutdown, reason}}`.
+  If the supervisor is given a name and a process with the specified name
+  already exists, the function returns `{:error, {:already_started, pid}}`,
+  where `pid` is the PID of that process.
+
+  If the start function of any of the child processes fails or returns
+  an error tuple or an erroneous value, the supervisor first terminates
+  with reason `:shutdown` all the child processes that have already been
+  started, and then terminates itself. If the caller process is trapping
+  exits, this function then returns
+  `{:error, {:shutdown, {:failed_to_start_child, id, reason}}}`.
 
   Note that a supervisor started with this function is linked to the parent
   process and exits not only on crashes but also if the parent process exits
@@ -939,9 +952,17 @@ defmodule Supervisor do
 
   If the `c:init/1` callback returns `:ignore`, this function returns
   `:ignore` as well and the supervisor terminates with reason `:normal`.
-  If it fails or returns an incorrect value, this function returns
-  `{:error, term}` where `term` is a term with information about the
-  error, and the supervisor terminates with reason `term`.
+
+  If the `c:init/1` callback fails or returns an incorrect value, the supervisor
+  will shutdown with reason `term`, where `term` contains information
+  about the error. If the caller process is trapping exits, this function then
+  returns `{:error, term()}`.
+
+  If the start function of any of the child processes returned by `c:init/1`
+  fail or return an error tuple or an erroneous value, the supervisor first
+  terminates with reason `:shutdown` all the child processes that have already
+  been started, and then terminates itself. If the caller process is trapping
+  exits, this function then returns `{:error, {:shutdown, {:failed_to_start_child, id, reason}}}`.
 
   The `:name` option can also be given in order to register a supervisor
   name, the supported values are described in the "Name registration"

@@ -786,7 +786,7 @@ defmodule Protocol do
   end
 
   defp fallback_clause_for(value, _protocol, meta) do
-    {meta, [quote(do: _)], [], value}
+    {meta, [{:_, [version: -1], __MODULE__}], [], value}
   end
 
   # Finally compile the module and emit its bytecode.
@@ -818,11 +818,9 @@ defmodule Protocol do
         @fallback_to_any false
         @undefined_impl_description ""
 
-        # Invoke the user given block
-        _ = unquote(block)
-
-        # Finalize expansion
+        res = unquote(block)
         unquote(after_defprotocol())
+        res
       end
     end
   end
@@ -932,7 +930,7 @@ defmodule Protocol do
       quote bind_quoted: [built_in: built_in()] do
         any_impl_for =
           if @fallback_to_any do
-            __MODULE__.Any
+            Protocol.__concat__(__MODULE__, "Any")
           else
             nil
           end
@@ -967,16 +965,6 @@ defmodule Protocol do
           end,
           built_in
         )
-
-        # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
-        # destructuring opaque types is illegal, Dialyzer will think none of the
-        # previous clauses matches opaque types, and without this clause, will
-        # conclude that impl_for can't handle an opaque argument). This is a hack
-        # since it relies on Dialyzer not being smart enough to conclude that all
-        # opaque types will get the any_impl_for/0 implementation.
-        Kernel.def impl_for(_) do
-          unquote(any_impl_for)
-        end
 
         # Internal handler for Structs
         Kernel.defp struct_impl_for(struct) do
@@ -1021,8 +1009,22 @@ defmodule Protocol do
         )
       end
 
+    # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
+    # destructuring opaque types is illegal, Dialyzer will think none of the
+    # previous clauses matches opaque types, and without this clause, will
+    # conclude that impl_for can't handle an opaque argument). This is a hack
+    # since it relies on Dialyzer not being smart enough to conclude that all
+    # opaque types will get the any_impl_for/0 implementation.
+    impl_for_fallback =
+      quote generated: true, bind_quoted: [] do
+        Kernel.def impl_for(_) do
+          unquote(any_impl_for)
+        end
+      end
+
     quote generated: true do
       unquote(prefix)
+      unquote(impl_for_fallback)
 
       @doc false
       @spec impl_for!(term) :: atom
@@ -1221,10 +1223,12 @@ defmodule Protocol do
   end
 
   @doc false
-  def __concat__(left, right) do
-    String.to_atom(
-      ensure_prefix(Atom.to_string(left)) <> "." <> remove_prefix(Atom.to_string(right))
-    )
+  def __concat__(left, right) when is_atom(right) do
+    __concat__(left, remove_prefix(Atom.to_string(right)))
+  end
+
+  def __concat__(left, right) when is_binary(right) do
+    String.to_atom(ensure_prefix(Atom.to_string(left)) <> "." <> right)
   end
 
   defp ensure_prefix("Elixir." <> _ = left), do: left

@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # If a dependency was marked as fetched or with an out of date lock
     # or missing the app file, we always compile it from scratch.
-    if force? or Mix.Dep.compilable?(dep) do
+    if force? or Mix.Dep.force_compilable?(dep) do
       File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(dep.app)]))
     end
 

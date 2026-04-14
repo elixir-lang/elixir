@@ -2341,6 +2341,16 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..10//2, -5..-1) == [1, 3, 5, 7, 9]
     assert Enum.slice(1..10//2, -5..-3) == [1, 3, 5]
 
+    # Range with step > 1 sliced by a range with step > 1
+    assert Enum.slice(1..10//2, 0..4//2) == [1, 5, 9]
+    assert Enum.slice(1..10//2, 0..4//3) == [1, 7]
+    assert Enum.slice(1..10//2, 1..4//2) == [3, 7]
+    assert Enum.slice(0..20//3, 0..6//2) == [0, 6, 12, 18]
+
+    # Range with negative step sliced by a range with step > 1
+    assert Enum.slice(10..1//-2, 0..4//2) == [10, 6, 2]
+    assert Enum.slice(20..0//-3, 0..6//2) == [20, 14, 8, 2]
+
     assert_raise ArgumentError,
                  "Enum.slice/2 does not accept ranges with negative steps, got: 1..3//-2",
                  fn -> Enum.slice(1..5, 1..3//-2) end

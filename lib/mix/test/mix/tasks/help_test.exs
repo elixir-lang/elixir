@@ -204,14 +204,12 @@ defmodule Mix.Tasks.HelpTest do
 
       assert output =~ "# IEx\n\nElixir's interactive shell."
 
-      if System.otp_release() >= "27" do
-        output =
-          capture_io(fn ->
-            Mix.Tasks.Help.run(["app:parsetools"])
-          end)
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["app:parsetools"])
+        end)
 
-        assert output =~ "# :leex"
-      end
+      assert output =~ "# :leex"
     end)
   end
 
@@ -321,6 +319,28 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "Sets the foreground color from individual RGB values"
+    end)
+  end
+
+  test "help t:MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["t:Enum.t/0"])
+        end)
+
+      assert output =~ "@type t()"
+    end)
+  end
+
+  test "help c:MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["c:GenServer.init/1"])
+        end)
+
+      assert output =~ "@callback init"
     end)
   end
 

@@ -359,24 +359,20 @@ defmodule Mix.Tasks.Test do
 
   ### Limitations
 
-  Coverage in Elixir has the following limitations:
-
-    * Literals, such as atoms, strings, and numbers, are not traced by coverage.
-      For example, if a function simply returns `:ok`, the atom `:ok` itself is
-      never taken into account by coverage;
-
-    * Macros, such as the ones defined by `defmacro/2` and `defguard/2`, and code
-      invoked only by macros are never considered as covered, unless they are also
-      invoked during the tests themselves. That's because macros are invoked at
-      compilation time, before the test coverage instrumentation begins;
+  Elixir uses Erlang's [`:cover`](`:cover`) for its default test coverage.
+  Erlang coverage is done by tracking *executable lines of code*. See
+  `mix test.coverage` for details.
 
   ### Configuration
 
-  The `:test_coverage` configures the coverage tool and accepts the following options:
-
-    * `:output` - the output directory for cover results. Defaults to `"cover"`.
+  The `:test_coverage` configures the coverage tool and the default tool
+  accepts the following options:
 
     * `:tool` - a module specifying the coverage tool to use.
+      Defaults to `Mix.Tasks.Test.Coverage`.
+
+    * `:output` - the output directory for cover results.
+      Defaults to `"cover"`.
 
     * `:summary` - at the end of each coverage run, a summary of each
       module is printed, with results in red or green depending on whether
@@ -399,9 +395,9 @@ defmodule Mix.Tasks.Test do
     * `:local_only` - by default coverage only tracks local calls,
       set this option to false if you plan to run coverage across nodes.
 
-  By default, a wrapper around OTP's `cover` is used as the default coverage
-  tool. You can learn more about how it works in the docs for
-  `mix test.coverage`. Your tool of choice can be given as follows:
+  By default, a wrapper around OTP's `cover` is used as the coverage tool.
+  You can learn more about how it works in the docs for `mix test.coverage`.
+  Your tool of choice can be given as follows:
 
       def project() do
         [
@@ -716,14 +712,7 @@ defmodule Mix.Tasks.Test do
         cond do
           warnings_as_errors? and (warnings? or helper_warned? or warn_files != []) and
               failures == 0 ->
-            message =
-              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
-
-            IO.puts(:stderr, IO.ANSI.format([:red, message]))
-
-            System.at_exit(fn _ ->
-              exit({:shutdown, 1})
-            end)
+            abort_due_to_warnings()
 
           failures > 0 and opts[:raise] ->
             raise_with_shell(shell, "\"mix test\" failed")
@@ -750,6 +739,9 @@ defmodule Mix.Tasks.Test do
 
       {:noop, _} ->
         cond do
+          warnings_as_errors? and warn_files != [] ->
+            abort_due_to_warnings()
+
           opts[:stale] ->
             Mix.shell().info("No stale tests")
 
@@ -790,6 +782,17 @@ defmodule Mix.Tasks.Test do
       |> Enum.uniq()
 
     {files, directly_included}
+  end
+
+  defp abort_due_to_warnings() do
+    message =
+      "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+    IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+    System.at_exit(fn _ ->
+      exit({:shutdown, 1})
+    end)
   end
 
   defp raise_with_shell(shell, message) do

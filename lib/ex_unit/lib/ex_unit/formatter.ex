@@ -259,7 +259,7 @@ defmodule ExUnit.Formatter do
 
       iex> failure = {:error, catch_error(raise "oops"), _stacktrace = []}
       iex> formatter_cb = fn _key, value -> value end
-      iex> test = %ExUnit.Test{name: :"it works", module: MyTest, tags: %{file: "file.ex", line: 7}}
+      iex> test = %ExUnit.Test{name: :"it works", description: "it works", module: MyTest, tags: %{file: "file.ex", line: 7}}
       iex> format_test_failure(test, [failure], 1, 80, formatter_cb)
       "  1) it works (MyTest)\n     file.ex:7\n     ** (RuntimeError) oops\n"
 
@@ -273,9 +273,15 @@ defmodule ExUnit.Formatter do
         ) :: String.t()
         when failure: {atom, term, Exception.stacktrace()}
   def format_test_failure(test, failures, counter, width, formatter) do
-    %ExUnit.Test{name: name, module: module, tags: tags, parameters: parameters} = test
+    %ExUnit.Test{
+      name: name,
+      description: description,
+      module: module,
+      tags: tags,
+      parameters: parameters
+    } = test
 
-    test_info(with_counter(counter, "#{name} (#{inspect(module)})"), formatter) <>
+    test_info(with_counter(counter, "#{description} (#{inspect(module)})"), formatter) <>
       test_parameters(parameters, formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->

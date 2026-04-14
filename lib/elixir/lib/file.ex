@@ -400,6 +400,13 @@ defmodule File do
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
 
+  ## Options (since v1.20)
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
+
   ## Examples
 
       File.read("hello.txt")
@@ -408,14 +415,23 @@ defmodule File do
       File.read("non_existing.txt")
       #=> {:error, :enoent}
   """
-  @spec read(Path.t()) :: {:ok, binary} | {:error, posix | :badarg | :terminated | :system_limit}
-  def read(path) do
-    :file.read_file(IO.chardata_to_string(path))
+  @spec read(Path.t(), [exists_option]) ::
+          {:ok, binary} | {:error, posix | :badarg | :terminated | :system_limit}
+        when exists_option: :raw
+  def read(path, opts \\ []) do
+    :file.read_file(IO.chardata_to_string(path), opts)
   end
 
   @doc """
   Returns a binary with the contents of the given filename,
   or raises a `File.Error` exception if an error occurs.
+
+  ## Options (since v1.20)
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
@@ -425,9 +441,9 @@ defmodule File do
       File.read!("non_existing.txt")
       ** (File.Error) could not read file "non_existing.txt": no such file or directory
   """
-  @spec read!(Path.t()) :: binary
-  def read!(path) do
-    case read(path) do
+  @spec read!(Path.t(), [exists_option]) :: binary when exists_option: :raw
+  def read!(path, opts \\ []) do
+    case read(path, opts) do
       {:ok, binary} ->
         binary
 
@@ -1116,6 +1132,12 @@ defmodule File do
 
   Special files such as device files, sockets, and named pipes are not copied.
 
+  Typical error reasons are:
+
+    * `:enoent`  - `source` does not exist
+    * `:eisdir`  - `source` is a file and `destination` is a directory
+    * `:einval`  - `destination` is the same as or a subdirectory of `source`
+
   ## Options
 
     * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
@@ -1146,7 +1168,11 @@ defmodule File do
       #=> {:ok, ["z.txt", "y.txt", "x.txt]}
 
       File.cp_r("non_existing.txt", "copy.txt")
-      #=> {:error, :enoent}
+      #=> {:error, :enoent, "non_existing.txt"}
+
+      # Copying into a subdirectory of source is not allowed
+      File.cp_r("src", "src/dest")
+      #=> {:error, :einval, "src/dest"}
   """
   @spec cp_r(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
@@ -1183,9 +1209,18 @@ defmodule File do
       |> IO.chardata_to_string()
       |> assert_no_null_byte!("File.cp_r/3")
 
-    case do_cp_r(source, destination, on_conflict, dereference?, []) do
-      {:error, _, _} = error -> error
-      res -> {:ok, res}
+    source_parts = source |> Path.expand() |> Path.split()
+    dest_parts = destination |> Path.expand() |> Path.split()
+
+    if source_parts != dest_parts and List.starts_with?(dest_parts, source_parts) do
+      {:error, :einval, destination}
+    else
+      dereference = if dereference?, do: MapSet.new(), else: nil
+
+      case do_cp_r(source, destination, on_conflict, dereference, []) do
+        {:error, _, _} = error -> error
+        res -> {:ok, res}
+      end
     end
   end
 
@@ -1223,7 +1258,7 @@ defmodule File do
     end
   end
 
-  defp do_cp_r(src, dest, on_conflict, dereference?, acc) when is_list(acc) do
+  defp do_cp_r(src, dest, on_conflict, dereference, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
         case do_cp_file(src, dest, on_conflict, acc) do
@@ -1236,8 +1271,15 @@ defmodule File do
 
       {:ok, :symlink} ->
         case :file.read_link(src) do
-          {:ok, link} when dereference? ->
-            do_cp_r(Path.expand(link, Path.dirname(src)), dest, on_conflict, dereference?, acc)
+          {:ok, link} when dereference != nil ->
+            resolved = Path.expand(link, Path.dirname(src))
+
+            if MapSet.member?(dereference, resolved) do
+              {:error, :eloop, src}
+            else
+              dereference = MapSet.put(dereference, resolved)
+              do_cp_r(resolved, dest, on_conflict, dereference, acc)
+            end
 
           {:ok, link} ->
             do_cp_link(link, src, dest, on_conflict, acc)
@@ -1251,9 +1293,24 @@ defmodule File do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                Enum.reduce(files, [dest | acc], fn x, acc ->
-                  do_cp_r(Path.join(src, x), Path.join(dest, x), on_conflict, dereference?, acc)
-                end)
+                case copy_file_mode(src, dest) do
+                  :ok ->
+                    Enum.reduce_while(files, [dest | acc], fn x, acc ->
+                      case do_cp_r(
+                             Path.join(src, x),
+                             Path.join(dest, x),
+                             on_conflict,
+                             dereference,
+                             acc
+                           ) do
+                        {:error, _, _} = error -> {:halt, error}
+                        acc -> {:cont, acc}
+                      end
+                    end)
+
+                  {:error, reason} ->
+                    {:error, reason, src}
+                end
 
               {:error, reason} ->
                 {:error, reason, dest}

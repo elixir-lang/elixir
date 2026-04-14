@@ -153,19 +153,23 @@ defmodule TypeHelper do
   def __precise__?(patterns, guards) do
     stack = new_stack(:static)
     expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
+    init_previous = Pattern.init_previous()
+    tag = {:fn, patterns}
 
-    {_trees, precise?, _context} =
-      Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
+    {_trees, previous, _context} =
+      Pattern.of_head(patterns, guards, expected, init_previous, tag, [], stack, new_context())
 
-    precise?
+    previous != init_previous
   end
 
   def __typecheck__(mode, patterns, guards, body) do
     stack = new_stack(mode)
     expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
+    previous = Pattern.init_previous()
+    tag = {:fn, patterns}
 
     {_trees, _precise?, context} =
-      Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
+      Pattern.of_head(patterns, guards, expected, previous, tag, [], stack, new_context())
 
     Expr.of_expr(body, Descr.term(), :ok, stack, context)
   end

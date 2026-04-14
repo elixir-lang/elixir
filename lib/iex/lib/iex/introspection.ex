@@ -104,9 +104,8 @@ defmodule IEx.Introspection do
   Opens the given module, mfa, file/line, binary.
   """
   def open(module) when is_atom(module) do
-    case open_mfa(module, :__info__, 1) do
-      {source, nil, _} -> open(source)
-      {_, tuple, _} -> open(tuple)
+    case source_location(module) do
+      {:ok, tuple} -> open(tuple)
       {:error, reason} -> puts_error("Could not open #{inspect(module)}, #{reason}")
     end
 
@@ -114,17 +113,9 @@ defmodule IEx.Introspection do
   end
 
   def open({module, function}) when is_atom(module) and is_atom(function) do
-    case open_mfa(module, function, :*) do
-      {_, _, nil} ->
-        puts_error(
-          "Could not open #{inspect(module)}.#{function}, function/macro is not available"
-        )
-
-      {_, _, tuple} ->
-        open(tuple)
-
-      {:error, reason} ->
-        puts_error("Could not open #{inspect(module)}.#{function}, #{reason}")
+    case source_location({module, function}) do
+      {:ok, tuple} -> open(tuple)
+      {:error, reason} -> puts_error("Could not open #{inspect(module)}.#{function}, #{reason}")
     end
 
     dont_display_result()
@@ -132,13 +123,8 @@ defmodule IEx.Introspection do
 
   def open({module, function, arity})
       when is_atom(module) and is_atom(function) and is_integer(arity) do
-    case open_mfa(module, function, arity) do
-      {_, _, nil} ->
-        puts_error(
-          "Could not open #{inspect(module)}.#{function}/#{arity}, function/macro is not available"
-        )
-
-      {_, _, tuple} ->
+    case source_location({module, function, arity}) do
+      {:ok, tuple} ->
         open(tuple)
 
       {:error, reason} ->
@@ -149,9 +135,29 @@ defmodule IEx.Introspection do
   end
 
   def open({file, line}) when is_binary(file) and is_integer(line) do
+    case open_location(file, line) do
+      {:ok, result} -> IO.write(IEx.color(:eval_info, result))
+      {:error, message} -> puts_error(message)
+    end
+
+    dont_display_result()
+  end
+
+  def open(invalid) do
+    puts_error("Invalid arguments for open helper: #{inspect(invalid)}")
+    dont_display_result()
+  end
+
+  @doc """
+  Opens the given file at the given line using the ELIXIR_EDITOR or EDITOR
+  environment variable.
+
+  Returns `{:ok, result}` on success or `{:error, message}` on failure.
+  """
+  def open_location(file, line) when is_binary(file) and is_integer(line) do
     cond do
       not File.regular?(file) ->
-        puts_error("Could not open #{inspect(file)}, file is not available.")
+        {:error, "Could not open #{inspect(file)}, file is not available."}
 
       editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") ->
         command =
@@ -163,31 +169,103 @@ defmodule IEx.Introspection do
             "#{editor} #{inspect(file)}:#{line}"
           end
 
-        IO.write(IEx.color(:eval_info, :os.cmd(String.to_charlist(command))))
+        {:ok, :os.cmd(String.to_charlist(command))}
 
       true ->
-        puts_error(
-          "Could not open: #{inspect(file)}. " <>
-            "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
-            "command line invocation of your favorite EDITOR."
-        )
+        {:error,
+         "Could not open: #{inspect(file)}. " <>
+           "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
+           "command line invocation of your favorite EDITOR."}
+    end
+  end
+
+  @doc """
+  Prints source code.
+  """
+  def source(module) when is_atom(module) do
+    case source_location(module) do
+      {:ok, {file, line}} ->
+        print_source(file, line)
+
+      {:error, reason} ->
+        puts_error("Could not show source for #{inspect(module)}, #{reason}")
     end
 
     dont_display_result()
   end
 
-  def open(invalid) do
-    puts_error("Invalid arguments for open helper: #{inspect(invalid)}")
+  def source({module, function}) when is_atom(module) and is_atom(function) do
+    case source_location({module, function}) do
+      {:ok, {file, line}} ->
+        print_source(file, line)
+
+      {:error, reason} ->
+        puts_error("Could not show source for #{inspect(module)}.#{function}, #{reason}")
+    end
+
     dont_display_result()
   end
 
-  defp open_mfa(module, fun, arity) do
+  def source({module, function, arity})
+      when is_atom(module) and is_atom(function) and is_integer(arity) do
+    case source_location({module, function, arity}) do
+      {:ok, {file, line}} ->
+        print_source(file, line)
+
+      {:error, reason} ->
+        puts_error("Could not show source for #{inspect(module)}.#{function}/#{arity}, #{reason}")
+    end
+
+    dont_display_result()
+  end
+
+  def source(invalid) do
+    puts_error("Invalid arguments for source helper: #{inspect(invalid)}")
+    dont_display_result()
+  end
+
+  defp print_source(file, line) do
+    IO.puts(Path.relative_to_cwd(file) <> ":" <> Integer.to_string(line))
+  end
+
+  @doc """
+  Returns the source location for the given module, {module, function},
+  or {module, function, arity}.
+
+  Returns `{:ok, {file, line}}` or `{:error, reason}`.
+  """
+  def source_location(module) when is_atom(module) do
+    case source_mfa(module, :__info__, 1) do
+      {source, nil, _} -> {:ok, {source, 1}}
+      {_, tuple, _} -> {:ok, tuple}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def source_location({module, function}) when is_atom(module) and is_atom(function) do
+    case source_mfa(module, function, :*) do
+      {_, _, nil} -> {:error, "function/macro is not available"}
+      {_, _, tuple} -> {:ok, tuple}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def source_location({module, function, arity})
+      when is_atom(module) and is_atom(function) and is_integer(arity) do
+    case source_mfa(module, function, arity) do
+      {_, _, nil} -> {:error, "function/macro is not available"}
+      {_, _, tuple} -> {:ok, tuple}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp source_mfa(module, fun, arity) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case module.module_info(:compile)[:source] do
           [_ | _] = source ->
             source = rewrite_source(module, source)
-            open_abstract_code(module, fun, arity, source)
+            source_abstract_code(module, fun, arity, source)
 
           _ ->
             {:error, "source code is not available"}
@@ -198,14 +276,14 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp open_abstract_code(module, fun, arity, source) do
+  defp source_abstract_code(module, fun, arity, source) do
     fun = Atom.to_string(fun)
 
     with [_ | _] = beam <- :code.which(module),
          {:ok, {_, [abstract_code: abstract_code]}} <- :beam_lib.chunks(beam, [:abstract_code]),
          {:raw_abstract_v1, code} <- abstract_code do
       {_, module_pair, fa_pair} =
-        Enum.reduce(code, {source, nil, nil}, &open_abstract_code_reduce(&1, &2, fun, arity))
+        Enum.reduce(code, {source, nil, nil}, &source_abstract_code_reduce(&1, &2, fun, arity))
 
       {source, module_pair, fa_pair}
     else
@@ -214,7 +292,7 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp open_abstract_code_reduce(entry, {file, module_pair, fa_pair}, fun, arity) do
+  defp source_abstract_code_reduce(entry, {file, module_pair, fa_pair}, fun, arity) do
     case entry do
       {:attribute, ann, :module, _} ->
         {file, {file, :erl_anno.line(ann)}, fa_pair}
@@ -274,10 +352,6 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
-          # TODO remove once we require Erlang/OTP 27+
-          {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs ->
-            :shell_docs.render(module, erl_docs) |> IO.puts()
-
           {:docs_v1, _, _, format, doc, metadata, _} when is_map(doc) or doc == :none ->
             print_doc([inspect(module)], [], format, doc, metadata)
 
@@ -298,7 +372,7 @@ defmodule IEx.Introspection do
   def h({module, function}) when is_atom(module) and is_atom(function) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        {_language, _format, docs, _} = get_docs(module, [:function, :macro])
+        {_language, _format, docs} = get_docs(module, [:function, :macro])
 
         exports =
           cond do
@@ -390,15 +464,10 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
-    {language, format, docs, docs_v1} = get_docs(mod, [:function, :macro])
+    {language, format, docs} = get_docs(mod, [:function, :macro])
     spec = get_spec(mod, fun, arity)
 
     cond do
-      # TODO remove once we require Erlang/OTP 27+
-      language == :erlang and format == "application/erlang+html" ->
-        print_erlang_doc(mod, fun, arity, docs_v1)
-        :ok
-
       doc_tuple = find_doc_with_content(docs, fun, arity) ->
         print_fun(mod, language, format, doc_tuple, spec)
         :ok
@@ -432,23 +501,23 @@ defmodule IEx.Introspection do
   end
 
   defp has_type?(mod, fun) do
-    {_, _, docs, _} = get_docs(mod, [:type])
+    {_, _, docs} = get_docs(mod, [:type])
     Enum.any?(docs, &match?({_, ^fun, _}, elem(&1, 0)))
   end
 
   defp has_type?(mod, fun, arity) do
-    {_, _, docs, _} = get_docs(mod, [:type])
+    {_, _, docs} = get_docs(mod, [:type])
     Enum.any?(docs, &match?({_, ^fun, ^arity}, elem(&1, 0)))
   end
 
   defp get_docs(mod, kinds) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, language, format, _, _, docs} = docs_v1 ->
+      {:docs_v1, _, language, format, _, _, docs} ->
         docs = for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-        {language, format, docs, docs_v1}
+        {language, format, docs}
 
       {:error, _} ->
-        {nil, nil, nil, nil}
+        {nil, nil, nil}
     end
   end
 
@@ -588,7 +657,7 @@ defmodule IEx.Introspection do
   end
 
   defp get_callback_docs(mod, filter) do
-    {_, format, docs, _} = get_docs(mod, [:callback, :macrocallback])
+    {_, format, docs} = get_docs(mod, [:callback, :macrocallback])
 
     case Typespec.fetch_callbacks(mod) do
       :error ->
@@ -677,58 +746,43 @@ defmodule IEx.Introspection do
   Prints the types for the given module and type documentation.
   """
   def t(module) when is_atom(module) do
-    case :code.get_doc(module) do
-      # TODO remove once we require Erlang/OTP 27+
-      {:ok, {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs} ->
-        :shell_docs.render_type(module, erl_docs) |> IO.puts()
+    case Typespec.fetch_types(module) do
+      :error ->
+        no_beam(module)
 
-      _ ->
-        case Typespec.fetch_types(module) do
-          :error ->
-            no_beam(module)
+      {:ok, []} ->
+        types_not_found(inspect(module))
 
-          {:ok, []} ->
-            types_not_found(inspect(module))
-
-          {:ok, types} ->
-            types
-            |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
-            |> Enum.each(&(&1 |> format_type() |> IO.puts()))
-        end
+      {:ok, types} ->
+        types
+        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+        |> Enum.each(&(&1 |> format_type() |> IO.puts()))
     end
 
     dont_display_result()
   end
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
-    case get_docs(module, [:type]) do
-      # TODO remove once we require Erlang/OTP 27+
-      {:erlang, "application/erlang+html", _, erl_docs} ->
-        case :shell_docs.render_type(module, type, erl_docs) do
-          {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
-          iodata -> IO.puts(iodata)
-        end
+    {_, format, docs} = get_docs(module, [:type])
 
-      {_, format, docs, _} ->
-        case Typespec.fetch_types(module) do
-          :error ->
-            no_beam(module)
+    case Typespec.fetch_types(module) do
+      :error ->
+        no_beam(module)
 
-          {:ok, types} ->
-            types
-            |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
-            |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
-            |> case do
-              [] ->
-                types_not_found_or_private("#{inspect(module)}.#{type}")
+      {:ok, types} ->
+        types
+        |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
+        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+        |> case do
+          [] ->
+            types_not_found_or_private("#{inspect(module)}.#{type}")
 
-              types ->
-                Enum.map(types, fn {_, {_, _, args}} = typespec ->
-                  type
-                  |> type_doc(length(args), typespec, format, docs)
-                  |> print_typespec()
-                end)
-            end
+          types ->
+            Enum.map(types, fn {_, {_, _, args}} = typespec ->
+              type
+              |> type_doc(length(args), typespec, format, docs)
+              |> print_typespec()
+            end)
         end
     end
 
@@ -736,36 +790,28 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case get_docs(module, [:type]) do
-      # TODO remove once we require Erlang/OTP 27+
-      {:erlang, "application/erlang+html", _, erl_docs} ->
-        case :shell_docs.render_type(module, type, arity, erl_docs) do
-          {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
-          chardata -> IO.puts(chardata)
-        end
+    {_, format, docs} = get_docs(module, [:type])
 
-      {_, format, docs, _} ->
-        case Typespec.fetch_types(module) do
-          :error ->
-            no_beam(module)
+    case Typespec.fetch_types(module) do
+      :error ->
+        no_beam(module)
 
-          {:ok, types} ->
-            types
-            |> Enum.find(
-              &match?(
-                {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
-                &1
-              )
-            )
-            |> case do
-              nil ->
-                types_not_found_or_private("#{inspect(module)}.#{type}")
+      {:ok, types} ->
+        types
+        |> Enum.find(
+          &match?(
+            {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
+            &1
+          )
+        )
+        |> case do
+          nil ->
+            types_not_found_or_private("#{inspect(module)}.#{type}")
 
-              typespec ->
-                type
-                |> type_doc(arity, typespec, format, docs)
-                |> print_typespec()
-            end
+          typespec ->
+            type
+            |> type_doc(arity, typespec, format, docs)
+            |> print_typespec()
         end
     end
 
@@ -840,20 +886,6 @@ defmodule IEx.Introspection do
 
   defp translate_doc(%{"en" => doc}), do: doc
   defp translate_doc(_), do: nil
-
-  defp print_erlang_doc(mod, fun, arity, docs) do
-    heading = Exception.format_mfa(mod, fun, arity)
-    opts = IEx.Config.ansi_docs()
-
-    case :shell_docs.render(mod, fun, arity, docs) do
-      {:error, :function_missing} ->
-        docs_not_found("#{inspect(mod)}.#{fun}")
-
-      chardata ->
-        IO.ANSI.Docs.print_headings([heading], opts)
-        IO.puts(chardata)
-    end
-  end
 
   defp no_beam(module) do
     case Code.ensure_loaded(module) do

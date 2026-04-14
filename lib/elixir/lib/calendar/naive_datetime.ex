@@ -715,16 +715,18 @@ defmodule NaiveDateTime do
 
   """
   @spec to_date(Calendar.naive_datetime()) :: Date.t()
-  def to_date(%{
-        year: year,
-        month: month,
-        day: day,
-        calendar: calendar,
-        hour: _,
-        minute: _,
-        second: _,
-        microsecond: _
-      }) do
+  def to_date(
+        %{
+          year: year,
+          month: month,
+          day: day,
+          calendar: calendar,
+          hour: _,
+          minute: _,
+          second: _,
+          microsecond: _
+        } = _naive_datetime
+      ) do
     %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
@@ -741,16 +743,18 @@ defmodule NaiveDateTime do
 
   """
   @spec to_time(Calendar.naive_datetime()) :: Time.t()
-  def to_time(%{
-        year: _,
-        month: _,
-        day: _,
-        calendar: calendar,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      }) do
+  def to_time(
+        %{
+          year: _,
+          month: _,
+          day: _,
+          calendar: calendar,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        } = _naive_datetime
+      ) do
     %Time{
       hour: hour,
       minute: minute,
@@ -1146,16 +1150,18 @@ defmodule NaiveDateTime do
   """
   @doc since: "1.11.0"
   @spec to_gregorian_seconds(Calendar.naive_datetime()) :: {integer(), non_neg_integer()}
-  def to_gregorian_seconds(%{
-        calendar: calendar,
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: {microsecond, precision}
-      }) do
+  def to_gregorian_seconds(
+        %{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: {microsecond, precision}
+        } = _naive_datetime
+      ) do
     {days, day_fraction} =
       calendar.naive_datetime_to_iso_days(
         year,

@@ -678,6 +678,23 @@ defmodule FileTest do
       end
     end
 
+    @tag :unix
+    test "cp_r with dereference symlink cycle returns eloop error" do
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/dest")
+
+      File.mkdir_p!(src)
+      :ok = :file.make_symlink(Path.join(src, "b"), Path.join(src, "a"))
+      :ok = :file.make_symlink(Path.join(src, "a"), Path.join(src, "b"))
+
+      try do
+        assert {:error, :eloop, _} = File.cp_r(src, dest, dereference_symlinks: true)
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
     test "cp_r with dir and file conflict" do
       src = fixture_path("cp_r")
       dest = tmp_path("tmp")
@@ -799,6 +816,42 @@ defmodule FileTest do
       end
     end
 
+    test "cp_r with destination inside source returns error" do
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/src/subdir/dest")
+
+      File.mkdir_p!(src)
+      File.write!(Path.join(src, "file.txt"), "hello")
+
+      try do
+        assert File.cp_r(src, dest) == {:error, :einval, dest}
+        refute File.exists?(dest)
+      after
+        File.rm_rf(src)
+      end
+    end
+
+    test "cp_r! with destination inside source raises" do
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/src/subdir/dest")
+
+      File.mkdir_p!(src)
+      File.write!(Path.join(src, "file.txt"), "hello")
+
+      try do
+        message =
+          "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{dest}: invalid argument"
+
+        assert_raise File.CopyError, message, fn ->
+          File.cp_r!(src, dest)
+        end
+
+        refute File.exists?(dest)
+      after
+        File.rm_rf(src)
+      end
+    end
+
     test "cp preserves mode" do
       File.mkdir_p!(tmp_path("tmp"))
       src = fixture_path("cp_mode")
@@ -814,6 +867,26 @@ defmodule FileTest do
       %File.Stat{mode: src_mode} = File.stat!(src)
       %File.Stat{mode: dest_mode} = File.stat!(dest)
       assert src_mode == dest_mode
+    end
+
+    test "cp_r preserves directory mode" do
+      src = tmp_path("tmp/src_dir")
+      dest = tmp_path("tmp/dest_dir")
+      inner = Path.join(src, "inner")
+
+      File.mkdir_p!(inner)
+      File.chmod!(inner, 0o700)
+
+      try do
+        File.cp_r!(src, dest)
+
+        %File.Stat{mode: src_mode} = File.stat!(inner)
+        %File.Stat{mode: dest_mode} = File.stat!(Path.join(dest, "inner"))
+        assert src_mode == dest_mode
+      after
+        File.rm_rf!(src)
+        File.rm_rf!(dest)
+      end
     end
 
     @tag :unix
@@ -908,6 +981,10 @@ defmodule FileTest do
 
     test "read with UTF-8" do
       assert {:ok, "Русский\n日\n"} = File.read(Path.expand(~c"fixtures/utf8.txt", __DIR__))
+    end
+
+    test "read with :raw options" do
+      assert {:ok, "FOO\n"} = File.read(fixture_path("file.txt"), [:raw])
     end
 
     test "read!" do

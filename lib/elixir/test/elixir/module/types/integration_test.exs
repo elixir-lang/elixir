@@ -315,6 +315,43 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
+    test "redundant clauses" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def foo(x, _) when is_integer(x), do: :one
+          def foo(_, y) when is_integer(y), do: :two
+          def foo(x, y) when is_integer(x) and is_integer(y), do: :three
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: the following clause is redundant:
+
+                def foo(x, y) when is_integer(x) and is_integer(y)
+
+            it has type:
+
+                integer(), integer()
+
+            previous clauses have already matched on the following types:
+
+                not integer(), integer()
+                integer(), term()
+
+            │
+          4 │   def foo(x, y) when is_integer(x) and is_integer(y), do: :three
+            │       ~
+            │
+            └─ a.ex:4:7: A.foo/2
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
     test "mismatched locals" do
       files = %{
         "a.ex" => """
@@ -379,7 +416,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         """
-            warning: this clause of defp private/1 is never used
+            warning: this clause of defp private/1 is never used (or it will always fail/warn when invoked)
             │
           6 │   defp private(nil), do: nil
             │        ~
@@ -387,7 +424,7 @@ defmodule Module.Types.IntegrationTest do
             └─ a.ex:6:8: A.private/1
         """,
         """
-            warning: this clause of defp private/1 is never used
+            warning: this clause of defp private/1 is never used (or it will always fail/warn when invoked)
             │
           7 │   defp private("foo"), do: "foo"
             │        ~
@@ -395,7 +432,7 @@ defmodule Module.Types.IntegrationTest do
             └─ a.ex:7:8: A.private/1
         """,
         """
-            warning: this clause of defp private/1 is never used
+            warning: this clause of defp private/1 is never used (or it will always fail/warn when invoked)
             │
          10 │   defp private("bar"), do: "bar"
             │        ~
@@ -472,7 +509,8 @@ defmodule Module.Types.IntegrationTest do
 
         defimpl Itself, for: Range do
           def itself(nil), do: nil
-          def itself(range), do: range
+          def itself(%Range{} = range), do: range
+          def itself(%Range{}), do: raise "oops"
         end
         """
       }
@@ -495,6 +533,25 @@ defmodule Module.Types.IntegrationTest do
             │   ~~~~~~~~~~~~~~~~~~~~~~~~
             │
             └─ a.ex:6: Itself.Range.itself/1
+        """,
+        """
+            warning: the following clause is redundant:
+
+                def itself(%Range{})
+
+            it has type:
+
+                %Range{}
+
+            previous clauses have already matched on the following types:
+
+                %Range{}
+
+            │
+          8 │   def itself(%Range{}), do: raise "oops"
+            │       ~
+            │
+            └─ a.ex:8:7: Itself.Range.itself/1
         """
       ]
 
@@ -661,7 +718,7 @@ defmodule Module.Types.IntegrationTest do
 
             it has type:
 
-                -dynamic(%Date{})-
+                -dynamic(%Date{year: integer(), month: integer(), day: integer(), calendar: Calendar.ISO})-
 
             but expected a type that implements the Collectable protocol.
             You either passed the wrong value or you forgot to implement the protocol.
@@ -793,7 +850,140 @@ defmodule Module.Types.IntegrationTest do
   end
 
   describe "performance regressions" do
-    test "unions and intersections of open maps" do
+    test "redundant clause checking on structs with many fields" do
+      files = %{
+        "big_struct.ex" => """
+        defmodule BigStruct do
+          defstruct [:f1, :f2, :f3, :f4, :f5, :f6, :f7, :f8, :f9, :f10,
+                     :f11, :f12, :f13, :f14, :f15, :f16, :f17, :f18, :f19, :f20,
+                     :f21, :f22, :f23, :f24, :f25, :f26, :f27, :f28, :f29, :f30,
+                     :f31, :f32, :f33, :value, :schema]
+          def cast(%__MODULE__{value: nil, schema: %{k1: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k2: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k3: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k4: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k5: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k6: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k7: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k8: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k9: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k10: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k11: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k12: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k13: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k14: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k15: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k16: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k17: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k18: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k19: _}}), do: :ok
+          def cast(%__MODULE__{value: nil, schema: %{k20: _}}), do: :ok
+          # This different clause avoids optimizations from kick in many cases
+          def cast(%__MODULE__{schema: %{target_key: x}}), do: x
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "redundant clause checking with nested open maps" do
+      files = %{
+        "nested_maps.ex" => """
+        defmodule NestedMapsIssue do
+          def foo(%{a: nil, b: %{c: true}}), do: :ok
+          def foo(%{a: nil, b: %{c: false}}), do: :ok
+          def foo(%{a: nil, b: %{d: x}}) when is_list(x), do: :ok
+          def foo(%{a: nil, b: %{e: x}}) when is_list(x), do: :ok
+          def foo(%{a: nil, b: %{f: x}}) when is_list(x), do: :ok
+          def foo(%{a: nil}), do: :ok
+          def foo(%{b: %{g: :one, h: x}}) when is_map(x), do: :ok
+          def foo(%{b: %{g: _, i: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{g: _, j: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{g: _, k: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{g: :one}}), do: :ok
+          def foo(%{b: %{g: :two}}), do: :ok
+          def foo(%{b: %{g: :three}}), do: :ok
+          def foo(%{b: %{g: :four}}), do: :ok
+          def foo(%{b: %{g: :five}}), do: :ok
+          def foo(%{b: %{g: :six}}), do: :ok
+          def foo(%{b: %{l: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{m: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{n: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{o: x}}) when is_list(x), do: :ok
+          def foo(%{b: %{p: x, q: y}}) when is_number(x) and is_number(y), do: :ok
+          def foo(%{b: %{p: x}}) when is_number(x), do: :ok
+          def foo(%{b: %{q: x}}) when is_number(x), do: :ok
+          def foo(%{b: %{r: x}}) when is_integer(x), do: :ok
+          def foo(%{b: %{s: x}}) when is_integer(x), do: :ok
+          def foo(%{b: %{t: x}}) when is_binary(x), do: :ok
+          def foo(%{b: %{u: x}}) when is_atom(x), do: :ok
+          def foo(%{b: %{v: x}}) when is_integer(x), do: :ok
+          def foo(%{b: %{w: x}}) when is_integer(x), do: :ok
+          def foo(_), do: :ok
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "redundant clause checking of mixed open and closed maps" do
+      files = %{
+        "mixed_open_closed_maps.ex" => """
+        defmodule MixedOpenClosedMaps do
+          defmodule S1, do: defstruct([:name])
+          defmodule S2, do: defstruct([:name])
+          defmodule S3, do: defstruct([:name])
+          defmodule S4, do: defstruct([:name])
+          defmodule S5, do: defstruct([:name])
+          defmodule S6, do: defstruct([:name])
+          defmodule S7, do: defstruct([:name])
+          defmodule S8, do: defstruct([:name])
+          defmodule S9, do: defstruct([:name])
+          defmodule S10, do: defstruct([:name])
+          defmodule S11, do: defstruct([:name])
+          defmodule S12, do: defstruct([:name])
+          defmodule S13, do: defstruct([:name])
+          defmodule S14, do: defstruct([:name])
+          defmodule S15, do: defstruct([:name])
+          defmodule S16, do: defstruct([:name])
+          defmodule S17, do: defstruct([:name])
+          defmodule S18, do: defstruct([:name])
+
+          defmodule SValue do
+            defstruct [:value]
+          end
+
+          def render(%S1{}), do: :ok
+          def render(%S2{}), do: :ok
+          def render(%S3{}), do: :ok
+          def render(%S4{}), do: :ok
+          def render(%S5{}), do: :ok
+          def render(%S6{}), do: :ok
+          def render(%S7{}), do: :ok
+          def render(%S8{}), do: :ok
+          def render(%S9{}), do: :ok
+          def render(%S10{}), do: :ok
+          def render(%S11{}), do: :ok
+          def render(%S12{}), do: :ok
+          def render(%S13{}), do: :ok
+          def render(%S14{}), do: :ok
+          def render(%S15{}), do: :ok
+          def render(%S16{}), do: :ok
+          def render(%S17{}), do: :ok
+          def render(%S18{}), do: :ok
+          # Having the closed map and the struct overlap on a key is important
+          def render(%SValue{}), do: :ok
+          def render(%{value: value}), do: value
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "redundant clause checking of open maps with distinct keys" do
       files = %{
         "large_head.ex" => """
         defmodule LargeHead do
@@ -824,6 +1014,87 @@ defmodule Module.Types.IntegrationTest do
       }
 
       assert_no_warnings(files)
+    end
+
+    test "pretty printing large tuples with negations" do
+      files = %{
+        "large_tuples.ex" => """
+        defmodule LargeTuplesWithNegations do
+          @abc [:a, :b]
+          defguard g1(t) when tuple_size(t) < 10
+          defguard g2(t, i) when elem(t, i) in @abc
+
+          def main() do
+            foo(Bar)
+          end
+
+          def foo(t) when g1(t) and g2(t, 0) and g2(t, 1) and g2(t, 2),
+            do: {bar(elem(t, 3)), bar(elem(t, 4))}
+
+          def foo(t) when g1(t) and g2(t, 1) and g2(t, 2) and g2(t, 3),
+            do: {bar(elem(t, 4)), bar(elem(t, 5))}
+
+          def foo(t) when g1(t) and g2(t, 2) and g2(t, 3) and g2(t, 4),
+            do: {bar(elem(t, 5)), bar(elem(t, 6))}
+
+          def foo(t) when g1(t) and g2(t, 3) and g2(t, 4) and g2(t, 5),
+            do: {bar(elem(t, 6)), bar(elem(t, 0))}
+
+          def foo(t) when g1(t) and g2(t, 4) and g2(t, 5) and g2(t, 6),
+            do: {bar(elem(t, 0)), bar(elem(t, 1))}
+
+          def foo(t) when g1(t) and g2(t, 5) and g2(t, 6) and g2(t, 0),
+            do: {bar(elem(t, 1)), bar(elem(t, 2))}
+
+          def foo(t) when g1(t) and g2(t, 6) and g2(t, 0) and g2(t, 1),
+            do: {bar(elem(t, 2)), bar(elem(t, 3))}
+
+          def bar(t) when g1(t) and g2(t, 0) and g2(t, 1) and g2(t, 2),
+            do: {baz(elem(t, 3)), baz(elem(t, 4))}
+
+          def bar(t) when g1(t) and g2(t, 1) and g2(t, 2) and g2(t, 3),
+            do: {baz(elem(t, 4)), baz(elem(t, 5))}
+
+          def bar(t) when g1(t) and g2(t, 2) and g2(t, 3) and g2(t, 4),
+            do: {baz(elem(t, 5)), baz(elem(t, 6))}
+
+          def bar(t) when g1(t) and g2(t, 3) and g2(t, 4) and g2(t, 5),
+            do: {baz(elem(t, 6)), baz(elem(t, 0))}
+
+          def bar(t) when g1(t) and g2(t, 4) and g2(t, 5) and g2(t, 6),
+            do: {baz(elem(t, 0)), baz(elem(t, 1))}
+
+          def bar(t) when g1(t) and g2(t, 5) and g2(t, 6) and g2(t, 0),
+            do: {baz(elem(t, 1)), baz(elem(t, 2))}
+
+          def bar(t) when g1(t) and g2(t, 6) and g2(t, 0) and g2(t, 1),
+            do: {baz(elem(t, 2)), baz(elem(t, 3))}
+
+          def baz(t) when g1(t) and elem(t, 0) in @abc and elem(t, 1) in @abc and elem(t, 2) in @abc,
+            do: 0
+
+          def baz(t) when g1(t) and elem(t, 1) in @abc and elem(t, 2) in @abc and elem(t, 3) in @abc,
+            do: 1
+
+          def baz(t) when g1(t) and elem(t, 2) in @abc and elem(t, 3) in @abc and elem(t, 4) in @abc,
+            do: 2
+
+          def baz(t) when g1(t) and elem(t, 3) in @abc and elem(t, 4) in @abc and elem(t, 5) in @abc,
+            do: 3
+
+          def baz(t) when g1(t) and elem(t, 4) in @abc and elem(t, 5) in @abc and elem(t, 6) in @abc,
+            do: 4
+
+          def baz(t) when g1(t) and elem(t, 5) in @abc and elem(t, 6) in @abc and elem(t, 0) in @abc,
+            do: 5
+
+          def baz(t) when g1(t) and elem(t, 6) in @abc and elem(t, 0) in @abc and elem(t, 1) in @abc,
+            do: 6
+        end
+        """
+      }
+
+      assert_warnings(files, ["incompatible types given to foo/1"])
     end
   end
 
@@ -1603,7 +1874,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v5, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v7, map} = :erlang.binary_to_term(chunk)
     map
   end
 

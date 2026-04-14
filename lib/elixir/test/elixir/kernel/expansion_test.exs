@@ -316,16 +316,6 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "expands vars to local call when :on_undefined_variable is :warn" do
-      Code.put_compiler_option(:on_undefined_variable, :warn)
-
-      {output, env} = expand_env({:a, [], nil}, __ENV__, [])
-      assert output == {:a, [if_undefined: :warn], []}
-      assert Macro.Env.vars(env) == []
-    after
-      Code.put_compiler_option(:on_undefined_variable, :raise)
-    end
-
     test "expands vars to local call without warning" do
       env = __ENV__
 
@@ -397,8 +387,8 @@ defmodule Kernel.ExpansionTest do
               [
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 1), 1]},
-                {:=, _, [_, var_ver(:x, 1)]}
+                {:=, _, [var_ver(:x, 2), 1]},
+                {:=, _, [_, var_ver(:x, 2)]}
               ]} =
                expand_with_version(
                  quote do
@@ -414,7 +404,7 @@ defmodule Kernel.ExpansionTest do
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 3), 3]}
+                {:=, _, [var_ver(:x, 5), 3]}
               ]} =
                expand_with_version(
                  quote do
@@ -430,7 +420,7 @@ defmodule Kernel.ExpansionTest do
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 1)], var_ver(:x, 1)]}]]]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 2), 2]}
+                {:=, _, [var_ver(:x, 4), 2]}
               ]} =
                expand_with_version(
                  quote do
@@ -531,7 +521,7 @@ defmodule Kernel.ExpansionTest do
   describe "floats" do
     test "cannot be 0.0 inside match" do
       assert capture_io(:stderr, fn -> expand(quote(do: 0.0 = 0.0)) end) =~
-               "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+"
+               "pattern matching on 0.0 is equivalent to matching only on +0.0"
 
       assert {:=, [], [+0.0, +0.0]} = expand(quote(do: +0.0 = 0.0))
       assert {:=, [], [-0.0, +0.0]} = expand(quote(do: -0.0 = 0.0))
@@ -810,7 +800,7 @@ defmodule Kernel.ExpansionTest do
 
     test "in guards with macros" do
       message =
-        ~r"you must require the moduleInteger before invoking macro Integer.is_even/1 inside a guard"
+        ~r"you must require the module Integer before invoking macro Integer.is_even/1 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when Integer.is_even(arg) -> arg end))

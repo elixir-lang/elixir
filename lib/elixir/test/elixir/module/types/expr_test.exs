@@ -180,6 +180,9 @@ defmodule Module.Types.ExprTest do
                  )
                )
              )
+
+      assert typecheck!(fn x -> Integer.to_string(x) end) ==
+               fun([integer()], dynamic(binary()))
     end
 
     test "application" do
@@ -187,7 +190,7 @@ defmodule Module.Types.ExprTest do
                [map],
                (fn
                   %{a: a} = data -> %{data | b: a}
-                  data -> data
+                  %{} = data -> data
                 end).(map)
              ) == dynamic()
 
@@ -200,6 +203,22 @@ defmodule Module.Types.ExprTest do
                  _ -> :error
                end)
              ) == dynamic(atom([:ok, :error]))
+    end
+
+    test "warns on redundant clauses" do
+      assert typewarn!(fn
+               x when is_binary(x) -> x
+               "foo" -> "bar"
+             end)
+             |> elem(1) == """
+             the following clause is redundant:
+
+                 "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 binary()
+             """
     end
 
     test "bad function" do
@@ -1234,6 +1253,17 @@ defmodule Module.Types.ExprTest do
                "struct Enumerable is undefined (there is such module but it does not define a struct)"
     end
 
+    test "updating field in unknown struct" do
+      assert typeerror!(
+               [x],
+               (
+                 %UNKNOWN.URI{x | foo: y = 123}
+                 y
+               )
+             ) =~
+               "struct UNKNOWN.URI is undefined (module UNKNOWN.URI is not available or is yet to be defined)"
+    end
+
     test "updating unknown field" do
       {_, [diagnostic]} = typediag!([%URI{} = x], %URI{x | unknown: 123})
       assert diagnostic.severity == :warning
@@ -1782,15 +1812,16 @@ defmodule Module.Types.ExprTest do
                atom([:non_empty_map, :maybe_empty_map])
     end
 
-    test "reports error from redundant clauses" do
-      assert typeerror!(
+    test "warns on redundant clauses" do
+      assert typewarn!(
                [x],
                case System.get_env(x) do
                  nil -> 1
                  b when is_binary(b) -> 2
                  other -> other
                end
-             ) == ~l"""
+             )
+             |> elem(1) =~ ~l"""
              the following clause cannot match because the previous clauses already matched all possible values:
 
                  other ->
@@ -1804,13 +1835,14 @@ defmodule Module.Types.ExprTest do
                  dynamic(nil or binary())
              """
 
-      assert typeerror!(
+      assert typewarn!(
                [x],
                case String.to_atom(x) do
                  :ok -> 1
                  :ok -> 2
                end
-             ) == ~l"""
+             )
+             |> elem(1) == ~l"""
              the following clause is redundant:
 
                  :ok ->
@@ -1820,13 +1852,14 @@ defmodule Module.Types.ExprTest do
                  :ok
              """
 
-      assert typeerror!(
+      assert typewarn!(
                [a, b],
                case {a, b} do
                  {x, y} when is_integer(x) and is_integer(y) -> 1
                  {x, y} when is_integer(x) and is_integer(y) -> 2
                end
-             ) =~ ~l"""
+             )
+             |> elem(1) =~ ~l"""
              the following clause is redundant:
 
                  {x, y} when is_integer(x) and is_integer(y) ->
@@ -1882,27 +1915,150 @@ defmodule Module.Types.ExprTest do
              ) == atom([:ok, nil])
     end
 
-    test "and does not report on literals" do
+    test "refines expression type" do
+      assert typecheck!(
+               if x = System.get_env("HELLO") do
+                 {:ok, x}
+               else
+                 {:error, x}
+               end
+             ) ==
+               dynamic(
+                 union(
+                   tuple([atom([:ok]), binary()]),
+                   tuple([atom([:error]), atom([nil])])
+                 )
+               )
+    end
+
+    test "refines nested expression type" do
+      assert typecheck!(
+               case (if x = System.get_env("HELLO") do
+                       :do
+                     else
+                       :else
+                     end) do
+                 :do -> {:ok, x}
+                 :else -> {:error, x}
+               end
+             ) ==
+               dynamic(
+                 union(
+                   tuple([atom([:ok]), binary()]),
+                   tuple([atom([:error]), atom([nil])])
+                 )
+               )
+    end
+
+    test "discards warnings from refinements" do
+      assert {_, [_]} =
+               typediag!(
+                 if x = System.unknown_function_get_env("HELLO") do
+                   {:ok, x}
+                 else
+                   {:error, x}
+                 end
+               )
+    end
+
+    test "and/or does not report on literals" do
       assert typecheck!(false and true) == boolean()
+      assert typecheck!(false or true) == atom([true])
     end
 
     test "and reports violations" do
       assert typeerror!([x = 123], x and true) =~ """
-             the following conditional expression:
+             the following conditional expression will always fail:
 
                  x
 
-             will always evaluate to:
+             because it evaluates to:
 
                  integer()
              """
 
-      assert typeerror!([x = false], x and true) =~ """
-             the following conditional expression:
+      assert typeerror!([x = true], x and true) =~ """
+             the following conditional expression will always succeed:
 
                  x
 
-             will always evaluate to:
+             because it evaluates to:
+
+                 dynamic(true)
+             """
+
+      assert typeerror!([x = false], x and true) =~ """
+             the following conditional expression will never succeed:
+
+                 x
+
+             because it evaluates to:
+
+                 dynamic(false)
+             """
+    end
+
+    test "or reports violations" do
+      assert typeerror!([x = 123], x or true) =~ """
+             the following conditional expression will always fail:
+
+                 x
+
+             because it evaluates to:
+
+                 integer()
+             """
+
+      assert typeerror!([x = true], x or true) =~ """
+             the following conditional expression will always succeed:
+
+                 x
+
+             because it evaluates to:
+
+                 dynamic(true)
+             """
+
+      assert typeerror!([x = false], x or true) =~ """
+             the following conditional expression will never succeed:
+
+                 x
+
+             because it evaluates to:
+
+                 dynamic(false)
+             """
+    end
+
+    test "|| reports violations" do
+      assert typeerror!([x = 123], x || true) =~ """
+             the right-hand side of || will never be executed:
+
+                 x || ...
+
+             because the left-hand side always evaluates to:
+
+                 integer()
+
+             """
+
+      assert typeerror!([x = 123], System.get_env("foo") || x || true) =~ """
+             the right-hand side of || (shown as ... below) will never be executed:
+
+                 System.get_env("foo") || x || ...
+
+             because the left-hand side always evaluates to:
+
+                 dynamic(binary() or integer())
+
+             """
+
+      assert typewarn!([x = false], x || true) |> elem(1) =~ """
+             the right-hand side of || will always execute:
+
+                 x
+
+             because the left-hand side always evaluates to:
 
                  dynamic(false)
              """
@@ -1965,13 +2121,14 @@ defmodule Module.Types.ExprTest do
              ) == union(atom([:ok]), dynamic(tuple([atom([:other]), negation(binary())])))
     end
 
-    test "errors on redundant clauses" do
-      assert typeerror!(
+    test "warns on redundant clauses" do
+      assert typewarn!(
                receive do
                  x when is_binary(x) -> x
                  "foo" -> "bar"
                end
-             ) == """
+             )
+             |> elem(1) == """
              the following clause is redundant:
 
                  "foo" ->
@@ -2081,15 +2238,16 @@ defmodule Module.Types.ExprTest do
              ) == union(atom([:ok]), dynamic(tuple([atom([:other]), negation(binary())])))
     end
 
-    test "catch: errors on redundant clauses" do
-      assert typeerror!(
+    test "catch: warns on redundant clauses" do
+      assert typewarn!(
                try do
                  flunk("whatever")
                catch
                  x when is_binary(x) -> x
                  "foo" -> "bar"
                end
-             ) == """
+             )
+             |> elem(1) == """
              the following clause is redundant:
 
                  :throw, "foo" ->
@@ -2114,8 +2272,8 @@ defmodule Module.Types.ExprTest do
                union(atom([:ok, :unused]), dynamic(tuple([atom([:other]), negation(binary())])))
     end
 
-    test "else: errors on redundant clauses" do
-      assert typeerror!(
+    test "else: warns on redundant clauses" do
+      assert typewarn!(
                try do
                  Process.get(:x)
                rescue
@@ -2124,7 +2282,8 @@ defmodule Module.Types.ExprTest do
                  x when is_binary(x) -> x
                  "foo" -> "bar"
                end
-             ) == """
+             )
+             |> elem(1) == """
              the following clause is redundant:
 
                  "foo" ->
@@ -2174,12 +2333,12 @@ defmodule Module.Types.ExprTest do
                  union(
                    closed_map(
                      __struct__: atom([ArgumentError]),
-                     __exception__: atom([true]),
+                     __exception__: term(),
                      message: term()
                    ),
                    closed_map(
                      __struct__: atom([RuntimeError]),
-                     __exception__: atom([true]),
+                     __exception__: term(),
                      message: term()
                    )
                  )
@@ -2196,7 +2355,7 @@ defmodule Module.Types.ExprTest do
              ) ==
                open_map(
                  __struct__: atom(),
-                 __exception__: atom([true])
+                 __exception__: term()
                )
     end
 
@@ -2215,7 +2374,7 @@ defmodule Module.Types.ExprTest do
 
              given types:
 
-                 %{..., __exception__: true, __struct__: atom()}
+                 %{..., __exception__: term(), __struct__: atom()}
 
              but expected one of:
 
@@ -2223,7 +2382,7 @@ defmodule Module.Types.ExprTest do
 
              where "e" was given the type:
 
-                 # type: %{..., __exception__: true, __struct__: atom()}
+                 # type: %{..., __exception__: term(), __struct__: atom()}
                  # from: types_test.ex
                  rescue e
 
@@ -2459,6 +2618,24 @@ defmodule Module.Types.ExprTest do
              ) == union(bitstring(), list(term()))
     end
 
+    test ":into inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 List.to_integer([_ | _] = for(_ <- x, do: y))
+                 y
+               )
+             ) == dynamic(integer())
+
+      assert typecheck!(
+               [x, y],
+               (
+                 for(<<_ <- x>>, do: y, into: "")
+                 y
+               )
+             ) == dynamic(bitstring())
+    end
+
     test ":into incompatibility" do
       assert typeerror!([binary], for(<<x <- binary>>, do: x, into: "")) =~ ~l"""
              expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
@@ -2499,6 +2676,48 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) == dynamic(integer())
+    end
+
+    test ":reduce warns on redundant clauses" do
+      assert typewarn!(
+               [list, x],
+               for _ <- list, reduce: x do
+                 x when is_binary(x) -> x
+                 "foo" -> "bar"
+               end
+             )
+             |> elem(1) == """
+             the following clause is redundant:
+
+                 "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 binary()
+             """
+    end
+  end
+
+  describe "with" do
+    test "warns on redundant clauses in else" do
+      assert typewarn!(
+               [x],
+               with false <- x do
+                 x
+               else
+                 x when is_binary(x) -> x
+                 "foo" -> "bar"
+               end
+             )
+             |> elem(1) == ~l"""
+             the following clause is redundant:
+
+                 "foo" ->
+
+             previous clauses have already matched on the following types:
+
+                 binary()
+             """
     end
   end
 

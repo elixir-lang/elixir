@@ -391,11 +391,11 @@ defmodule Mix.Sync.Lock do
   # consists of 1 switch byte (either 0 or 1) and two content segments
   # with fixed, equal lengths. The switch byte indicates which segment
   # is currently active. To replace the file content, we write to the
-  # non-active segment and call :file.sync/1 to ensure the segment is
-  # persisted, then we toggle the switch byte. While we cannot write
-  # multiple bytes atomically (since they may reside in multiple disk
-  # sectors), if we toggle only a single byte, there is no intermediate
-  # invalid state, which gives us the atomic replace we need.
+  # non-active segment, then we toggle the switch byte. While we cannot
+  # write multiple bytes atomically (since they may reside in multiple
+  # disk sectors), if we toggle only a single byte, there is no
+  # intermediate invalid state, which gives us the atomic replace we
+  # need.
   #
   # Note that file content can be replaced only by a single process
   # at a time.
@@ -421,11 +421,11 @@ defmodule Mix.Sync.Lock do
         end
 
       # Write new data
-      file_pwrite_sync!(file, inactive_content_position, new_content)
+      file_pwrite!(file, inactive_content_position, new_content)
 
       # Toggle switch byte - it's a single byte so the content changes
       # atomically
-      file_pwrite_sync!(file, 0, <<1 - switch_byte>>)
+      file_pwrite!(file, 0, <<1 - switch_byte>>)
     after
       File.close(file)
     end
@@ -457,16 +457,10 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp file_pwrite_sync!(file, position, bytes) do
+  defp file_pwrite!(file, position, bytes) do
     case :file.pwrite(file, position, bytes) do
       :ok ->
-        case :file.sync(file) do
-          :ok ->
-            :ok
-
-          {:error, reason} ->
-            raise File.Error, reason: reason, action: "sync file"
-        end
+        :ok
 
       {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file at position"

@@ -26,7 +26,7 @@ defmodule Exception do
   @typedoc "The exception type"
   @type t :: %{
           required(:__struct__) => module,
-          required(:__exception__) => true,
+          required(:__exception__) => term,
           optional(atom) => any
         }
 
@@ -77,7 +77,7 @@ defmodule Exception do
   @doc false
   @deprecated "Use Kernel.is_exception/1 instead"
   def exception?(term)
-  def exception?(%_{__exception__: true}), do: true
+  def exception?(%_{__exception__: _}), do: true
   def exception?(_), do: false
 
   @doc """
@@ -89,7 +89,7 @@ defmodule Exception do
   return a descriptive error message instead.
   """
   @spec message(t) :: String.t()
-  def message(%module{__exception__: true} = exception) do
+  def message(%module{__exception__: _} = exception) do
     try do
       module.message(exception)
     rescue
@@ -123,7 +123,7 @@ defmodule Exception do
   @spec normalize(:error, any, stacktrace) :: t
   @spec normalize(non_error_kind, payload, stacktrace) :: payload when payload: var
   def normalize(kind, payload, stacktrace \\ [])
-  def normalize(:error, %_{__exception__: true} = payload, _stacktrace), do: payload
+  def normalize(:error, %_{__exception__: _} = payload, _stacktrace), do: payload
   def normalize(:error, payload, stacktrace), do: ErlangError.normalize(payload, stacktrace)
   def normalize(_kind, payload, _stacktrace), do: payload
 

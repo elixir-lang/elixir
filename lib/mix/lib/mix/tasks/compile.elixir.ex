@@ -63,7 +63,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
     * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules
-    * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules
+    * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules.
+      Passing this flag will force a full recompilation
     * `--force` - forces compilation regardless of modification times
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
@@ -73,9 +74,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--no-verification` - disables code verification, such as unused functions,
       deprecation warnings, and type checking. It must be used solely for debugging
       alongside `MIX_DEBUG=1`
-    * `--no-check-cwd` - (since v1.19.2) Elixir stores absolute paths in .beam files, which means
-      that relocating the project root triggers a full build. Pass this option if you don't want
-      the current working directory to be checked
+    * `--no-check-cwd` - (since v1.19.2) Elixir stores absolute paths in .beam files,
+      which means that relocating the project root triggers a full build. Pass this option
+      if you don't want the current working directory to be checked
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
     * `--purge-compiler-modules` - automatically purge compilation modules
@@ -135,13 +136,16 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     manifest = manifest()
     base = xref_exclude_opts(project[:elixirc_options] || [], project)
-    cache_key = {base, srcs, "--no-optional-deps" in args}
 
     opts =
       base
       |> Keyword.merge(opts)
       |> tracers_opts(tracers)
       |> profile_opts()
+
+    # Optional dependencies and debug info affect how artifacts are generated
+    cache_key =
+      {base, srcs, "--no-optional-deps" in args, "--no-debug-info" in args}
 
     opts =
       if "--no-protocol-consolidation" in args do

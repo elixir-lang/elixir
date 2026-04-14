@@ -1044,5 +1044,11 @@ defmodule URITest do
       assert URI.merge(base, "/foo") |> to_string() == "http://example.com/foo"
       assert URI.merge(base, "foo") |> to_string() == "http://example.com/foo"
     end
+
+    test "merges when base path is empty string" do
+      base = %URI{scheme: "http", host: "example.com", path: ""}
+      assert URI.merge(base, "foo") |> to_string() == "http://example.com/foo"
+      assert URI.merge(base, "/bar") |> to_string() == "http://example.com/bar"
+    end
   end
 end

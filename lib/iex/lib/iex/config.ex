@@ -26,21 +26,10 @@ defmodule IEx.Config do
     case Enum.split_while(prompt, &(&1 != ?()) do
       # It is not the default Elixir shell, so we use the default prompt
       {_, []} ->
-        List.duplicate(?\s, max(0, prompt_width(prompt) - 3)) ++ ~c".. "
+        List.duplicate(?\s, max(0, :shell.prompt_width(prompt) - 3)) ++ ~c".. "
 
       {left, right} ->
-        List.duplicate(?., prompt_width(left)) ++ right
-    end
-  end
-
-  # TODO: Remove this when we require Erlang/OTP 27+
-  @compile {:no_warn_undefined, :prim_tty}
-  @compile {:no_warn_undefined, :shell}
-  defp prompt_width(prompt) do
-    if function_exported?(:prim_tty, :npwcwidthstring, 1) do
-      :prim_tty.npwcwidthstring(prompt)
-    else
-      :shell.prompt_width(prompt)
+        List.duplicate(?., :shell.prompt_width(left)) ++ right
     end
   end
 

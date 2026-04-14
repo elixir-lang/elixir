@@ -218,7 +218,6 @@ defmodule Logger.TranslatorTest do
     refute Map.has_key?(process_metadata, :registered_name)
   end
 
-  @tag skip: System.otp_release() < "27"
   test "translates GenServer crashes with process label" do
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
     :ok = GenServer.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
@@ -369,7 +368,6 @@ defmodule Logger.TranslatorTest do
     assert metadata[:registered_name] == config.test
   end
 
-  @tag skip: System.otp_release() < "27"
   test "translates :gen_event crashes with process label" do
     {:ok, pid} = :gen_event.start()
     :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
@@ -451,7 +449,6 @@ defmodule Logger.TranslatorTest do
     refute Map.has_key?(process_metadata, :registered_name)
   end
 
-  @tag skip: System.otp_release() < "27"
   test "translates :gen_statem crashes with process label" do
     {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
 
@@ -857,7 +854,6 @@ defmodule Logger.TranslatorTest do
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
-  @tag skip: System.otp_release() < "27"
   test "translates :proc_lib crashes with process label" do
     fun = fn ->
       Process.set_label({:any, "term"})

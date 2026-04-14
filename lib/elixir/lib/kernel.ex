@@ -2081,7 +2081,7 @@ defmodule Kernel do
       end
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, operator}],
       {:case, [], [check, [do: bools ++ error]]}
     )
   end
@@ -2109,7 +2109,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, :!}],
       quote do
         case unquote(value) do
           x when unquote(x_is_false_or_nil()) -> false
@@ -2123,7 +2123,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, :!}],
       quote do
         case unquote(value) do
           x when unquote(x_is_false_or_nil()) -> true
@@ -2752,7 +2752,7 @@ defmodule Kernel do
       nil ->
         quote do
           case unquote(term) do
-            %_{__exception__: true} -> true
+            %_{__exception__: _} -> true
             _ -> false
           end
         end
@@ -2764,8 +2764,7 @@ defmodule Kernel do
         quote do
           is_map(unquote(term)) and :erlang.is_map_key(:__struct__, unquote(term)) and
             is_atom(:erlang.map_get(:__struct__, unquote(term))) and
-            :erlang.is_map_key(:__exception__, unquote(term)) and
-            :erlang.map_get(:__exception__, unquote(term)) == true
+            :erlang.is_map_key(:__exception__, unquote(term))
         end
     end
   end
@@ -2792,7 +2791,7 @@ defmodule Kernel do
           case unquote(name) do
             name when is_atom(name) ->
               case unquote(term) do
-                %{__struct__: ^name, __exception__: true} -> true
+                %{__struct__: ^name, __exception__: _} -> true
                 _ -> false
               end
 
@@ -2810,8 +2809,7 @@ defmodule Kernel do
             (is_atom(unquote(name)) or :fail) and
             :erlang.is_map_key(:__struct__, unquote(term)) and
             :erlang.map_get(:__struct__, unquote(term)) == unquote(name) and
-            :erlang.is_map_key(:__exception__, unquote(term)) and
-            :erlang.map_get(:__exception__, unquote(term)) == true
+            :erlang.is_map_key(:__exception__, unquote(term))
         end
     end
   end
@@ -4054,7 +4052,7 @@ defmodule Kernel do
 
   defp build_if(condition, do: do_clause, else: else_clause) do
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true, type_check: {:case, :if}],
       quote do
         case unquote(condition) do
           x when unquote(x_is_false_or_nil()) -> unquote(else_clause)
@@ -4105,9 +4103,15 @@ defmodule Kernel do
   end
 
   defp build_unless(condition, do: do_clause, else: else_clause) do
-    quote do
-      if(unquote(condition), do: unquote(else_clause), else: unquote(do_clause))
-    end
+    annotate_case(
+      [optimize_boolean: true, type_check: {:case, :unless}],
+      quote do
+        case unquote(condition) do
+          x when unquote(x_is_false_or_nil()) -> unquote(do_clause)
+          _ -> unquote(else_clause)
+        end
+      end
+    )
   end
 
   defp build_unless(_condition, _arguments) do
@@ -4375,7 +4379,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "&&")
 
     annotate_case(
-      [type_check: :expr],
+      [type_check: {:case, :&&}],
       quote do
         case unquote(left) do
           x when unquote(x_is_false_or_nil()) ->
@@ -4418,7 +4422,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "||")
 
     annotate_case(
-      [type_check: :expr],
+      [type_check: {:case, :||}],
       quote do
         case unquote(left) do
           x when unquote(x_is_false_or_nil()) ->
@@ -4705,8 +4709,6 @@ defmodule Kernel do
         end
 
       [head | tail] = list ->
-        # We only expand lists in the body if they are relatively
-        # short and it is made only of literal expressions.
         case in_body? do
           false -> in_list(left, head, tail, expand, list)
           true -> quote(do: :lists.member(unquote(left), unquote(right)))
@@ -5212,6 +5214,11 @@ defmodule Kernel do
         __ENV__
       )
     end
+  end
+
+  defmacro defmodule(alias, [{:do, _block}, {atom, _} | _]) when is_atom(atom) do
+    raise ArgumentError,
+          "unexpected reserved word at the top-level of the \"defmodule #{Macro.to_string(alias)}\" do-block: #{atom}"
   end
 
   defp module_meta({_, meta, _}), do: meta
@@ -6317,7 +6324,15 @@ defmodule Kernel do
   """
   @doc since: "1.14.0"
   defmacro dbg(code \\ quote(do: binding()), options \\ []) do
-    {mod, fun, args} = Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
+    # The compiling process may override the callback by putting it in
+    # the process dictionary.
+    dbg_callback =
+      case :erlang.get({:elixir, :dbg_callback}) do
+        :undefined -> Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
+        value -> value
+      end
+
+    {mod, fun, args} = dbg_callback
     Macro.compile_apply(mod, fun, [code, options, __CALLER__ | args], __CALLER__)
   end
 

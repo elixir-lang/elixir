@@ -173,6 +173,7 @@ defmodule OptionParserTest do
         --debug, --no-debug (alias: -d)
         --files STRING (alias: -f) (may be given more than once)
         --name STRING (alias: -n)
+        --no-exit
         --verbose, --no-verbose (alias: -v)\
       """
 
@@ -183,7 +184,8 @@ defmodule OptionParserTest do
           count: :integer,
           verbose: :boolean,
           debug: :boolean,
-          files: :keep
+          files: :keep,
+          no_exit: :boolean
         ],
         aliases: [n: :name, c: :count, v: :verbose, d: :debug, f: :files]
       )

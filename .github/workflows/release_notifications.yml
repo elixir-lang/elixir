@@ -18,8 +18,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
-      - uses: erlef/setup-beam@e6d7c94229049569db56a7ad5a540c051a010af9 # v1.20.4
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         with:
           otp-version: "27.3"
           elixir-version: "1.18.3"
@@ -29,4 +31,4 @@ jobs:
           ELIXIR_FORUM_TOKEN: ${{ secrets.ELIXIR_FORUM_TOKEN }}
           ELIXIR_LANG_ANN_TOKEN: ${{ secrets.ELIXIR_LANG_ANN_TOKEN }}
         run: |
-          elixir .github/workflows/notify.exs ${{ github.ref_name }}
+          elixir .github/workflows/notify.exs "$GITHUB_REF_NAME"

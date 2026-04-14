@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Compile do
     * `--no-listeners` - does not start Mix listeners
     * `--no-optional-deps` - does not compile or load optional deps. Useful for testing
       if a library still successfully compiles without optional dependencies (which is the
-      default case with dependencies)
+      default case with dependencies). Passing this flag will force a full recompilation
     * `--no-prune-code-paths` - do not prune code paths before compilation, this keeps
       the entirety of Erlang/OTP available when the project starts
     * `--no-protocol-consolidation` - skips protocol consolidation

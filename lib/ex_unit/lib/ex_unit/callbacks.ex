@@ -48,15 +48,16 @@ defmodule ExUnit.Callbacks do
   callbacks always run in a separate process, as implied by their name. The
   test process always exits with reason `:shutdown`, which means any process
   linked to the test process will also exit, although asynchronously. Therefore
-  it is preferred to use `start_supervised/2` to guarantee synchronous termination.
+  it is preferred to use `start_supervised/2` to guarantee all supervised processes
+  have fully terminated before the next test starts.
 
   Here is a rundown of the life cycle of the test process:
 
     1. the test process is spawned
     2. it runs `setup/2` callbacks
     3. it runs the test itself
-    4. it stops all supervised processes
-    5. the test process exits with reason `:shutdown`
+    4. the test process exits with reason `:shutdown`
+    5. it stops all supervised processes synchronously
     6. `on_exit/2` callbacks are executed in a separate process
 
   ## Context

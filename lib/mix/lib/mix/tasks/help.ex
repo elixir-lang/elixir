@@ -25,9 +25,11 @@ defmodule Mix.Tasks.Help do
 
   But also for modules, functions, and applications:
 
-      $ mix help MODULE           - prints the definition for the given module
-      $ mix help MODULE.FUN       - prints the definition for the given module+function
+      $ mix help MODULE           - prints the documentation for the given module
+      $ mix help MODULE.FUN       - prints the documentation for the given module+function
       $ mix help app:APP          - prints a summary of all public modules in application
+      $ mix help c:MODULE.NAME    - prints the documentation for the given callback
+      $ mix help t:MODULE.NAME    - prints the documentation for the given type
 
   ## Colors
 
@@ -149,27 +151,14 @@ defmodule Mix.Tasks.Help do
     end
   end
 
-  def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?: do
-    loadpaths!()
+  def run(["t:" <> type]),
+    do: run_iex_doc(:t, type)
 
-    iex_colors = Application.get_env(:iex, :colors, [])
-    mix_colors = Application.get_env(:mix, :colors, [])
+  def run(["c:" <> callback]),
+    do: run_iex_doc(:b, callback)
 
-    try do
-      Application.put_env(:iex, :colors, mix_colors)
-
-      module
-      |> Code.string_to_quoted!()
-      |> IEx.Introspection.decompose(__ENV__)
-      |> case do
-        :error -> Mix.raise("Invalid expression: #{module}")
-        decomposition -> decomposition
-      end
-      |> IEx.Introspection.h()
-    after
-      Application.put_env(:iex, :colors, iex_colors)
-    end
-  end
+  def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?:,
+    do: run_iex_doc(:h, module)
 
   def run([task]) do
     loadpaths!()
@@ -184,6 +173,27 @@ defmodule Mix.Tasks.Help do
 
   def run(_) do
     Mix.raise("Unexpected arguments, expected \"mix help\" or \"mix help TASK\"")
+  end
+
+  defp run_iex_doc(type, string) do
+    loadpaths!()
+
+    iex_colors = Application.get_env(:iex, :colors, [])
+    mix_colors = Application.get_env(:mix, :colors, [])
+
+    try do
+      Application.put_env(:iex, :colors, mix_colors)
+
+      string
+      |> Code.string_to_quoted!()
+      |> IEx.Introspection.decompose(__ENV__)
+      |> case do
+        :error -> Mix.raise("Invalid expression: #{string}")
+        decomposition -> apply(IEx.Introspection, type, [decomposition])
+      end
+    after
+      Application.put_env(:iex, :colors, iex_colors)
+    end
   end
 
   defp ansi_opts do

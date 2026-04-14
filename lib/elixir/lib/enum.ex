@@ -829,7 +829,7 @@ defmodule Enum do
   """
   @spec dedup(t) :: list
   def dedup(enumerable) when is_list(enumerable) do
-    dedup_list(enumerable, []) |> :lists.reverse()
+    dedup_list(enumerable)
   end
 
   def dedup(enumerable) do
@@ -4507,19 +4507,9 @@ defmodule Enum do
 
   # dedup
 
-  defp dedup_list([value | tail], acc) do
-    acc =
-      case acc do
-        [^value | _] -> acc
-        _ -> [value | acc]
-      end
-
-    dedup_list(tail, acc)
-  end
-
-  defp dedup_list([], acc) do
-    acc
-  end
+  defp dedup_list([value | [value | _] = tail]), do: dedup_list(tail)
+  defp dedup_list([value | tail]), do: [value | dedup_list(tail)]
+  defp dedup_list([]), do: []
 
   ## drop
 
@@ -5168,7 +5158,16 @@ defimpl Enumerable, for: Range do
   end
 
   # TODO: Remove me on v2.0
-  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
+  reduce =
+    quote generated: true do
+      reduce(
+        %{__struct__: Range, first: var!(first), last: var!(last)} = var!(range),
+        var!(acc),
+        var!(fun)
+      )
+    end
+
+  def unquote(reduce) do
     step = if first <= last, do: 1, else: -1
     reduce(Map.put(range, :step, step), acc, fun)
   end
@@ -5191,12 +5190,12 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
-  def member?(first..last//step, value) when is_integer(value) do
-    if step > 0 do
-      {:ok, first <= value and value <= last and rem(value - first, step) == 0}
-    else
-      {:ok, last <= value and value <= first and rem(value - first, step) == 0}
-    end
+  def member?(first..last//step, value) when is_integer(value) and step > 0 do
+    {:ok, first <= value and value <= last and rem(value - first, step) == 0}
+  end
+
+  def member?(first..last//step, value) when is_integer(value) and step < 0 do
+    {:ok, last <= value and value <= first and rem(value - first, step) == 0}
   end
 
   # TODO: Remove me on v2.0
@@ -5215,11 +5214,17 @@ defimpl Enumerable, for: Range do
   end
 
   def slice(first.._//step = range) do
-    {:ok, Range.size(range), &slice(first + &1 * step, step + &3 - 1, &2)}
+    {:ok, Range.size(range), &slice(first + &1 * step, step * &3, &2)}
   end
 
   # TODO: Remove me on v2.0
-  def slice(%{__struct__: Range, first: first, last: last} = range) do
+
+  slice =
+    quote generated: true do
+      slice(%{__struct__: Range, first: var!(first), last: var!(last)} = var!(range))
+    end
+
+  def unquote(slice) do
     step = if first <= last, do: 1, else: -1
     slice(Map.put(range, :step, step))
   end

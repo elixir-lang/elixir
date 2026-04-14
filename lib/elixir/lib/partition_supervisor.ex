@@ -170,6 +170,8 @@ defmodule PartitionSupervisor do
           | {:max_seconds, non_neg_integer()}
           | {:with_arguments, (args :: [term()], partition() -> updated_args :: [term()])}
 
+  defguardp is_name(name) when is_atom(name) or elem(name, 0) == :via
+
   @doc false
   def child_spec(opts) when is_list(opts) do
     id =
@@ -366,7 +368,7 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.18.0"
   @spec resize!(name(), non_neg_integer()) :: non_neg_integer()
-  def resize!(name, partitions) when is_integer(partitions) do
+  def resize!(name, partitions) when is_name(name) and is_integer(partitions) do
     supervisor =
       GenServer.whereis(name) || exit({:noproc, {__MODULE__, :resize!, [name, partitions]}})
 
@@ -421,8 +423,8 @@ defmodule PartitionSupervisor do
   Returns the number of partitions for the partition supervisor.
   """
   @doc since: "1.14.0"
-  @spec partitions(name()) :: pos_integer()
-  def partitions(name) do
+  @spec partitions(name()) :: non_neg_integer()
+  def partitions(name) when is_name(name) do
     name |> table() |> partitions(name)
   end
 
@@ -470,7 +472,7 @@ defmodule PartitionSupervisor do
           # Inlining [module()] | :dynamic here because :supervisor.modules() is not exported
           {integer(), pid | :restarting, :worker | :supervisor, [module()] | :dynamic}
         ]
-  def which_children(name) when is_atom(name) or elem(name, 0) == :via do
+  def which_children(name) when is_name(name) do
     Supervisor.which_children(name)
   end
 
@@ -498,7 +500,7 @@ defmodule PartitionSupervisor do
           supervisors: non_neg_integer,
           workers: non_neg_integer
         }
-  def count_children(supervisor) when is_atom(supervisor) do
+  def count_children(supervisor) when is_name(supervisor) do
     Supervisor.count_children(supervisor)
   end
 
@@ -514,7 +516,7 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.14.0"
   @spec stop(name(), reason :: term, timeout) :: :ok
-  def stop(supervisor, reason \\ :normal, timeout \\ :infinity) when is_atom(supervisor) do
+  def stop(supervisor, reason \\ :normal, timeout \\ :infinity) when is_name(supervisor) do
     Supervisor.stop(supervisor, reason, timeout)
   end
 

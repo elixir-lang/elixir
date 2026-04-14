@@ -325,12 +325,10 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "list for comprehension matched to '_' on last line of block" do
-    assert (if true_fun() do
+    assert (if Process.get(:unused, true) do
               _ = for x <- [1, 2, 3], do: x * 2
             end) == [2, 4, 6]
   end
-
-  defp true_fun(), do: true
 
   test "list for comprehensions with filters" do
     assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
@@ -515,6 +513,11 @@ defmodule Kernel.ComprehensionTest do
     bin = <<8, 1, 32, 2, 3>>
     assert for(<<s, x::size(s) <- bin>>, into: "", do: <<x::size(s)>>) == <<1>>
     assert for(<<s, x::size(s) <- bin>>, into: %{}, do: {s, x}) == %{8 => 1}
+
+    # Computed
+    bin = <<1, 1, 2, 2, 3>>
+    assert for(<<s, x::size(s * 8) <- bin>>, into: "", do: <<x::size(s * 8)>>) == <<1, 2, 3>>
+    assert for(<<s, x::size(s * 8) <- bin>>, into: %{}, do: {s, x}) == %{1 => 1, 2 => 515}
   end
 
   test "binary for comprehensions where value is not used" do

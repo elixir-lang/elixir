@@ -15,7 +15,7 @@ extract_interpolations(String) ->
   case elixir_interpolation:extract(1, 1, #elixir_tokenizer{}, true, String ++ [$"], $") of
     {error, Error} ->
       Error;
-    {_, _, Parts, _, _} ->
+    {_, _, Parts, _, _, _} ->
       Parts
    end.
 
@@ -26,7 +26,7 @@ extract_interpolations_without_interpolation_test() ->
 
 extract_interpolations_with_escaped_interpolation_test() ->
   ["f\\#{o}o"] = extract_interpolations("f\\#{o}o"),
-  {1, 10, ["f\\#{o}o"], [], _} =
+  {1, 10, ["f\\#{o}o"], [], _, _} =
     elixir_interpolation:extract(1, 2, #elixir_tokenizer{}, true, "f\\#{o}o\"", $").
 
 extract_interpolations_with_interpolation_test() ->

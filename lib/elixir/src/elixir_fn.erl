@@ -29,7 +29,8 @@ expand(Meta, Clauses, S, E) when is_list(Clauses) ->
 
   case lists:usort(EArities) of
     [_] ->
-      {{fn, Meta, EClauses}, SE, E};
+      #elixir_ex{version=Counter} = SE,
+      {{fn, [{version, Counter} | Meta], EClauses}, SE#elixir_ex{version=Counter+1}, E};
     _ ->
       file_error(Meta, E, ?MODULE, clauses_with_different_arities)
   end.

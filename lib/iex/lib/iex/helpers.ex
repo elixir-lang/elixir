@@ -51,6 +51,7 @@ defmodule IEx.Helpers do
     * `ref/1`           - creates a reference from a string
     * `ref/4`           - creates a reference with the 4 integer arguments passed
     * `runtime_info/0`  - prints runtime info (versions, memory usage, stats)
+    * `source/1`        - prints the source location for the given module or function
     * `t/1`             - prints the types for the given module or function
     * `v/0`             - retrieves the last value from the history
     * `v/1`             - retrieves the nth value from the history
@@ -344,6 +345,22 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints the source code for the given module or function.
+
+  ## Examples
+
+      iex> source(MyApp)
+      iex> source(MyApp.fun/2)
+
+  """
+  @doc since: "1.20.0"
+  defmacro source(term) do
+    quote do
+      IEx.Introspection.source(unquote(decompose(term, __CALLER__)))
+    end
+  end
+
+  @doc """
   Prints the documentation for `IEx.Helpers`.
   """
   def h() do
@@ -476,7 +493,7 @@ defmodule IEx.Helpers do
           raise ArgumentError, "could not load nor find module: #{inspect(module)}"
         end
 
-        source = source(module)
+        source = source_path(module)
 
         cond do
           source == nil ->
@@ -1008,7 +1025,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp source(module) do
+  defp source_path(module) do
     source = module.module_info(:compile)[:source]
 
     case source do

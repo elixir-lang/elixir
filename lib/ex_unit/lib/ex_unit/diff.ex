@@ -38,6 +38,8 @@ defmodule ExUnit.Diff do
   """
   def compute(left, right, context) do
     diff(left, right, context_to_env(context))
+  catch
+    :undiffable -> nil
   end
 
   defp context_to_env({:match, pins}),
@@ -113,6 +115,18 @@ defmodule ExUnit.Diff do
     diff_string_concat(left, right, env)
   end
 
+  defp diff_quoted({:<<>>, _, parts} = left, right, _expanded, env) do
+    if Enum.all?(parts, &is_binary/1) do
+      equivalent? = IO.iodata_to_binary(parts) == right
+      diff_left = update_diff_meta(left, not equivalent?)
+      diff_right = escape(right) |> update_diff_meta(not equivalent?)
+      diff = %__MODULE__{equivalent?: equivalent?, left: diff_left, right: diff_right}
+      {diff, env}
+    else
+      throw(:undiffable)
+    end
+  end
+
   defp diff_quoted({:when, _, [_, _]} = left, right, _expanded, env) do
     diff_guard(left, right, env)
   end
@@ -143,9 +157,7 @@ defmodule ExUnit.Diff do
 
   ## diff_value
 
-  defp diff_value(literal, literal, env)
-       when is_atom(literal) or is_number(literal) or is_reference(literal) or
-              is_pid(literal) or is_function(literal) do
+  defp diff_value(literal, literal, env) do
     {%__MODULE__{equivalent?: true, left: literal, right: literal}, env}
   end
 
@@ -181,6 +193,9 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_value(left, right, env) when is_binary(left) and is_binary(right) do
+    # We only differ over binaries because it is hard to diff over bitstrings
+    # cause we don't know where the misaligned bit is. We could compare bit by bit
+    # but it would be too verbose
     diff_string(left, right, ?", env)
   end
 

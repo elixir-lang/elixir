@@ -171,7 +171,7 @@ defmodule Module.Types.PatternTest do
 
              where "y" was given the type:
 
-                 # type: dynamic(atom())
+                 # type: atom()
                  # from: types_test.ex:LINE
                  is_atom(y)
              """
@@ -191,6 +191,11 @@ defmodule Module.Types.PatternTest do
 
       assert diagnostic.message ==
                "struct Enumerable is undefined (there is such module but it does not define a struct)"
+    end
+
+    test "fields access on unknown struct" do
+      assert typeerror!([%UNKNOWN.URI{reason: reason}], reason) =~
+               "struct UNKNOWN.URI is undefined (module UNKNOWN.URI is not available or is yet to be defined)"
     end
 
     test "unknown field" do
@@ -631,15 +636,45 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the type:
 
-                 # type: dynamic()
+                 # type: list(term())
                  # from: types_test.ex:LINE
-                 x
+                 length(x)
+             """
+    end
+
+    test "hd/tl" do
+      assert typecheck!([x], is_list(x) and is_map(hd(x)) and is_map_key(hd(x), :tag), x) ==
+               dynamic(non_empty_list(term(), term()))
+
+      assert typeerror!([x], is_list(x) and is_map(hd(x)) and is_binary(hd(x)), x) =~ ~l"""
+             this guard will never succeed:
+
+                 is_list(x) and is_map(hd(x)) and is_binary(hd(x))
+
+             because it returns type:
+
+                 false
+
+             where "x" was given the types:
+
+                 # type: empty_list() or non_empty_list(term(), term())
+                 # from: types_test.ex:649
+                 is_list(x)
+
+                 # type: non_empty_list(term(), term())
+                 # from: types_test.ex:649
+                 hd(x)
              """
     end
 
     test "is_struct/1" do
       assert typecheck!([x], is_struct(x), x) == dynamic(open_map(__struct__: atom()))
       assert typecheck!([x], is_struct(x, URI), x) == dynamic(open_map(__struct__: atom([URI])))
+
+      assert typecheck!([x], not is_struct(x), x)
+             |> equal?(dynamic(negation(open_map(__struct__: atom()))))
+
+      assert typecheck!([x], not is_struct(x, URI), x) == dynamic()
     end
 
     test "is_binary/1" do
@@ -678,22 +713,53 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = %{foo: :bar}], not x.bar, x) ==
                dynamic(open_map(foo: atom([:bar]), bar: atom([false])))
 
-      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
-               ~l"""
-               unknown key .foo_bar in expression:
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) == ~l"""
+             the following pattern will never match:
 
-                   x.foo_bar
+                 x = %Point{}
 
-               the given type does not have the given key:
+             where "x" was given the type:
 
-                   dynamic(%Point{x: term(), y: term(), z: term()})
+                 # type: %{..., foo_bar: true}
+                 # from: types_test.ex:LINE
+                 x.foo_bar
+             """
+    end
 
-               where "x" was given the type:
+    test "map_get" do
+      # Below we have a precision warning because the map key is term.
+      # We could solve this in the same we say solved hd/tl in guards,
+      # but we explicitly chose not to (for now) for the following reasons:
+      #
+      # 1. We don't expose `:erlang.map_get` in Elixir, only `map.foo`,
+      #    which is an atom key and will be precise
+      #
+      # 2. The typing violation below will also happen once we add type
+      #    signatures and `%{x => v}` returns anything but a `boolean()`
+      #    (but it will work if you declare the value type only as boolean())
+      #
+      # 3. It also works if you explicitly match on `== true`, which
+      #    effectively forces the return given to `not` to be boolean
+      #
+      # Furthermore, we currently use it to test we don't split term types
+      # in error messages (as we don't have type signatures).
+      assert typeerror!([key, map], not :erlang.map_get(key, map), map) =~ """
+             incompatible types given to Kernel.not/1:
 
-                   # type: dynamic(%Point{})
-                   # from: types_test.ex:LINE-1
-                   x = %Point{}
-               """
+                 not :erlang.map_get(key, map)
+
+             given types:
+
+                 term()
+
+             but expected one of:
+
+                 #1
+                 true
+
+                 #2
+                 false
+             """
     end
 
     test "when checks" do
@@ -754,10 +820,27 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the type:
 
-                 # type: dynamic(atom() or binary())
+                 # type: atom() or binary()
                  # from: types_test.ex:LINE
                  is_binary(x) or is_atom(x)
              """
+    end
+
+    test "min/max" do
+      assert typecheck!([x, y], is_integer(min(x, y)), min(x, y)) ==
+               dynamic(integer())
+
+      assert typecheck!([x, y], is_number(min(x, y)), min(x, y)) ==
+               dynamic(union(integer(), float()))
+
+      assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
+               dynamic(open_map(pair: open_tuple([]), x: integer(), y: integer()))
+
+      assert typeerror!(
+               [x, y],
+               is_integer(x) and is_binary(y) and is_integer(min(x, y)),
+               min(x, y)
+             ) =~ "comparison between distinct types found"
     end
 
     test "conditional checks (and/or)" do
@@ -807,10 +890,28 @@ defmodule Module.Types.PatternTest do
 
                where "x" was given the type:
 
-                   # type: dynamic(atom() or binary())
+                   # type: atom() or binary()
                    # from: types_test.ex:LINE-1
                    :erlang.or(is_binary(x), is_atom(x))
                """
+    end
+
+    test "nested conditional checks" do
+      assert typecheck!([a, b], true == (b and a), a) == dynamic(atom([true]))
+      assert typecheck!([a, b], false == (b and a), a) == dynamic(term())
+
+      assert typecheck!([a, b, c], a != (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a == (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a !== (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a === (b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a == hd(b or c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a != (b and c), a) == dynamic(term())
+      assert typecheck!([a, b, c], a == (b and c), a) == dynamic(term())
+
+      assert typecheck!([a, b, c], a == :erlang.and(b, c), a) == dynamic(boolean())
+      assert typecheck!([a, b, c], a == :erlang.or(b, c), a) == dynamic(boolean())
+      assert typecheck!([a, b, c], c and a === (b or c), a) == dynamic(atom([true]))
+      assert typecheck!([a, b, c], c and a === (b and c), a) == dynamic(boolean())
     end
 
     test "domain checks" do
@@ -846,21 +947,17 @@ defmodule Module.Types.PatternTest do
                dynamic(tuple([list(term()), term()]))
     end
 
-    test "errors in guards" do
+    test "incompatible pattern and guards" do
       assert typeerror!([x = {}], is_integer(x), x) == ~l"""
-             this guard will never succeed:
+             the following pattern will never match:
 
-                 is_integer(x)
-
-             because it returns type:
-
-                 false
+                 x = {}
 
              where "x" was given the type:
 
-                 # type: dynamic({})
+                 # type: integer()
                  # from: types_test.ex:LINE
-                 x = {}
+                 is_integer(x)
              """
     end
   end
@@ -1014,43 +1111,39 @@ defmodule Module.Types.PatternTest do
 
     test "warnings" do
       assert typeerror!([x = {}], x == 0, x) =~ ~l"""
-             comparison between distinct types found:
+             the following pattern will never match:
 
+                 x = {}
+
+             where "x" was given the type:
+
+                 # type: float() or integer()
+                 # from: types_test.ex:LINE
                  x == 0
-
-             given types:
-
-                 dynamic({}) == integer()
-             """
-
-      assert typeerror!([x = {}], x != 0, x) =~ ~l"""
-             comparison between distinct types found:
-
-                 x != 0
-
-             given types:
-
-                 dynamic({}) != integer()
              """
 
       assert typeerror!([x = {}], x == :foo, x) =~ ~l"""
-             comparison between distinct types found:
+             the following pattern will never match:
 
+                 x = {}
+
+             where "x" was given the type:
+
+                 # type: :foo
+                 # from: types_test.ex:LINE
                  x == :foo
-
-             given types:
-
-                 dynamic({}) == :foo
              """
 
       assert typeerror!([x = {}], not (x != :foo), x) =~ ~l"""
-             comparison between distinct types found:
+             the following pattern will never match:
 
+                 x = {}
+
+             where "x" was given the type:
+
+                 # type: :foo
+                 # from: types_test.ex:LINE
                  x != :foo
-
-             given types:
-
-                 dynamic({}) != :foo
              """
 
       # We cannot warn in this case because the inference itself will lead to disjoint types
@@ -1290,6 +1383,12 @@ defmodule Module.Types.PatternTest do
       refute precise?([x], hd(x) == :ok)
       refute precise?([x, y], x == :ok and y == 123)
       refute precise?([x, y], x == :ok or y == :error)
+      refute precise?([x], x <= 0 or x == :infinity)
+    end
+
+    test "when guards" do
+      assert precise?([x, y], is_integer(x) when is_binary(x))
+      refute precise?([x, y], is_integer(x) when is_binary(y))
     end
 
     test "sized guards" do

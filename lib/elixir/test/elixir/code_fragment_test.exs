@@ -1485,6 +1485,40 @@ defmodule CodeFragmentTest do
       assert cc2q!("foo(123, ~r/") == s2q!("foo(123, __cursor__())")
     end
 
+    test "sigils" do
+      assert cc2q!("foo(123, ~") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r/") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r/foo") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r//") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r//i") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r//i ") == s2q!("foo(123, __cursor__())")
+
+      drop_metadata = fn ast ->
+        Macro.prewalk(ast, fn node ->
+          Macro.update_meta(node, &Keyword.drop(&1, [:delimiter, :column]))
+        end)
+      end
+
+      assert cc2q!("foo(123, ~", preserve_sigils: true) == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r", preserve_sigils: true) == s2q!("foo(123, __cursor__())")
+
+      assert cc2q!("foo(123, ~r/", preserve_sigils: true) |> drop_metadata.() ==
+               s2q!("foo(123, sigil_r(<<\"\">>, __cursor__()))")
+
+      assert cc2q!("foo(123, ~r/foo", preserve_sigils: true) |> drop_metadata.() ==
+               s2q!("foo(123, sigil_r(<<\"foo\">>, __cursor__()))")
+
+      assert cc2q!("foo(123, ~r//", preserve_sigils: true) |> drop_metadata.() ==
+               s2q!("foo(123, sigil_r(<<\"\">>, [__cursor__()]))")
+
+      assert cc2q!("foo(123, ~r//i", preserve_sigils: true) |> drop_metadata.() ==
+               s2q!("foo(123, sigil_r(<<\"\">>, [?i, __cursor__()]))")
+
+      assert cc2q!("foo(123, ~r//i ", preserve_sigils: true) |> drop_metadata.() ==
+               s2q!("foo(123, __cursor__())")
+    end
+
     test "no warnings" do
       assert cc2q!(~s"?\\ ") == s2q!("__cursor__()")
       assert cc2q!(~s"{fn -> end, ") == s2q!("{fn -> nil end, __cursor__()}")

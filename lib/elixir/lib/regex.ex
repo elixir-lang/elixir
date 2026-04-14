@@ -78,8 +78,7 @@ defmodule Regex do
 
     * `:caseless` (i) - adds case insensitivity
 
-    * `:dotall` (s) - causes dot to match newlines and also sets newline to
-      `(*ANYCRLF)`.\
+    * `:dotall` (s) - causes dot to match newlines and also sets newline to `(*ANYCRLF)`.
       The new line setting, as described in the [`:re` documentation](`:re`),
       can be overridden by starting the regular expression pattern with:
       * `(*CR)` - carriage return
@@ -87,7 +86,7 @@ defmodule Regex do
       * `(*CRLF)` - carriage return, followed by line feed
       * `(*ANYCRLF)` - any of the three above
       * `(*ANY)` - all Unicode newline sequences
-      * _Starting from Erlang/OTP 28, `(*NUL)` - the NUL character (binary zero)_
+      * `(*NUL)` - the NUL character (binary zero) (from Erlang/OTP 28)
 
     * `:multiline` (m) - causes `^` and `$` to mark the beginning and end of
       each line; use `\A` and `\z` to match the end or beginning of the string

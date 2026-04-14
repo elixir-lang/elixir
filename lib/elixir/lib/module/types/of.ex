@@ -48,7 +48,7 @@ defmodule Module.Types.Of do
   @doc """
   Declares a variable.
   """
-  def declare_var(var, context) do
+  def declare_var(var, type \\ term(), context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -58,7 +58,7 @@ defmodule Module.Types.Of do
 
       vars ->
         data = %{
-          type: term(),
+          type: type,
           name: var_name,
           context: var_context,
           off_traces: [],
@@ -86,13 +86,14 @@ defmodule Module.Types.Of do
   or if we are doing a guard analysis or occurrence typing.
   Returns `true` if there was a refinement, `false` otherwise.
   """
-  def refine_body_var(var_or_version, type, expr, stack, context, allow_empty? \\ false)
+  @skip_refinement_for [term(), dynamic()]
+  def refine_body_var(var_or_version, type, expr, stack, context)
 
-  def refine_body_var({_, meta, _}, type, expr, stack, context, allow_empty?) do
-    refine_body_var(Keyword.fetch!(meta, :version), type, expr, stack, context, allow_empty?)
+  def refine_body_var({_, meta, _}, type, expr, stack, context) do
+    refine_body_var(Keyword.fetch!(meta, :version), type, expr, stack, context)
   end
 
-  def refine_body_var(version, type, expr, stack, context, allow_empty?)
+  def refine_body_var(version, type, expr, stack, context)
       when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
@@ -105,31 +106,50 @@ defmodule Module.Types.Of do
           context
       end
 
-    if gradual?(old_type) and type not in [term(), dynamic()] and not is_map_key(data, :errored) do
-      case compatible_intersection(old_type, type) do
-        {:error, _} when allow_empty? ->
-          data = %{
-            data
-            | type: none(),
-              off_traces: new_trace(expr, none(), stack, off_traces)
-          }
+    case context do
+      _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
+        {old_type, context}
 
-          {none(), %{context | vars: %{vars | version => data}}}
+      %{pattern_info: %{guard_context: guard_context}} ->
+        new_type = intersection(old_type, type)
 
-        {:ok, new_type} when new_type != old_type ->
-          data = %{
-            data
-            | type: new_type,
-              off_traces: new_trace(expr, new_type, stack, off_traces)
-          }
+        case empty?(new_type) do
+          true when guard_context == :orelse ->
+            data = %{
+              data
+              | type: none(),
+                off_traces: new_trace(expr, none(), stack, off_traces)
+            }
 
-          {new_type, %{context | vars: %{vars | version => data}}}
+            {none(), %{context | vars: %{vars | version => data}}}
 
-        _ ->
-          {old_type, context}
-      end
-    else
-      {old_type, context}
+          false when new_type != old_type ->
+            data = %{
+              data
+              | type: new_type,
+                off_traces: new_trace(expr, new_type, stack, off_traces)
+            }
+
+            {new_type, %{context | vars: %{vars | version => data}}}
+
+          _ ->
+            {old_type, context}
+        end
+
+      _ ->
+        case gradual?(old_type) and compatible_intersection(old_type, type) do
+          {:ok, new_type} when new_type != old_type ->
+            data = %{
+              data
+              | type: new_type,
+                off_traces: new_trace(expr, new_type, stack, off_traces)
+            }
+
+            {new_type, %{context | vars: %{vars | version => data}}}
+
+          _ ->
+            {old_type, context}
+        end
     end
   end
 
@@ -186,6 +206,13 @@ defmodule Module.Types.Of do
         conditional_vars: conditional_vars
       }),
       do: %{context | subpatterns: subpatterns, vars: vars, conditional_vars: conditional_vars}
+
+  @doc """
+  Returns true if all entries have the same conditional vars.
+  """
+  def all_same_conditional_vars?([{_, cond} | tail]) do
+    Enum.all?(tail, fn {_, tail_cond} -> cond == tail_cond end)
+  end
 
   @doc """
   Executes the args with acc using conditional variables.

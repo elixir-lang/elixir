@@ -13,7 +13,8 @@ defmodule Mix.Tasks.Format do
       $ mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
   If any of the files is `-`, then the input is read from stdin and the output
-  is written to stdout.
+  is written to stdout. In such cases, because `mix format` may still compile
+  before running, you may want to pass the `--no-compile` flag.
 
   ## Formatting options
 
@@ -76,6 +77,8 @@ defmodule Mix.Tasks.Format do
       but still want to check for format errors and print them to the console.
 
     * `--dry-run` - does not save files after formatting.
+
+    * `--verbose` - prints the names of files that were formatted.
 
     * `--dot-formatter` - path to the file with formatter configuration.
       Defaults to `.formatter.exs` if one is available. See the
@@ -197,8 +200,10 @@ defmodule Mix.Tasks.Format do
     check_equivalent: :boolean,
     check_formatted: :boolean,
     no_exit: :boolean,
+    no_compile: :boolean,
     dot_formatter: :string,
     dry_run: :boolean,
+    verbose: :boolean,
     stdin_filename: :string,
     force: :boolean,
     migrate: :boolean
@@ -764,18 +769,27 @@ defmodule Mix.Tasks.Format do
         :ok
 
       true ->
-        write_or_print(file, input, output)
+        write_or_print(file, input, output, task_opts)
     end
   rescue
     exception ->
       {:exit, file, exception, __STACKTRACE__}
   end
 
-  defp write_or_print(file, input, output) do
+  defp write_or_print(file, input, output, task_opts) do
     cond do
-      file == :stdin -> IO.write(output)
-      input == output -> :ok
-      true -> File.write!(file, output)
+      file == :stdin ->
+        IO.write(output)
+
+      input == output ->
+        :ok
+
+      true ->
+        File.write!(file, output)
+
+        if task_opts[:verbose] do
+          Mix.shell().info([:green, "* formatting ", :reset, Path.relative_to_cwd(file)])
+        end
     end
 
     :ok

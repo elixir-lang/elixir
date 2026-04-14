@@ -117,7 +117,7 @@ rescue_guards(Meta, Var, Aliases) ->
   ElixirGuards =
     [erl_and(Meta,
        {erl(Meta, '=='), Meta, [{erl(Meta, map_get), Meta, ['__struct__', Var]}, Alias]},
-       {erl(Meta, map_get), Meta, ['__exception__', Var]}
+       {erl(Meta, is_map_key), Meta, ['__exception__', Var]}
      ) || Alias <- Aliases],
 
   {ElixirGuards ++ ErlangGuards, ErlangAliases}.
@@ -214,7 +214,11 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
     erl_and(
       Meta,
       {erl(Meta, is_map), Meta, [Var]},
-      {erl(Meta, is_map_key), Meta, ['__exception__', Var]}
+      erl_and(
+        Meta,
+        {erl(Meta, is_map_key), Meta, ['__struct__', Var]},
+        {erl(Meta, is_map_key), Meta, ['__exception__', Var]}
+      )
     ),
   {erl(Meta, 'not'), Meta, [Condition]};
 

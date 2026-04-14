@@ -176,6 +176,16 @@ defmodule CodeTest do
                {"1", [{:c, 2}, {:b, "1"}, {:a, 1}]}
     end
 
+    test "raises on invalid binding type" do
+      assert_raise ArgumentError, "binding must be a list, got: :not_a_list", fn ->
+        Code.eval_string("1 + 1", :not_a_list)
+      end
+
+      assert_raise ArgumentError, "binding must be a list, got: %{}", fn ->
+        Code.eval_string("1 + 1", %{}, __ENV__)
+      end
+    end
+
     test "keeps caller in stacktrace" do
       try do
         Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
@@ -236,6 +246,21 @@ defmodule CodeTest do
                }
              ] = diagnostics
     end
+
+    test "with :prune_binding" do
+      opts = [prune_binding: true]
+      assert {2, [x: 1]} = Code.eval_string("x + 1", [x: 1, y: 2], opts)
+    end
+
+    test "with :debug_callback" do
+      opts = [dbg_callback: {__MODULE__, :dbg_callback_add_one, []}]
+      assert {2, _binding} = Code.eval_string("dbg(1)", [], opts)
+
+      # Maintains the default behaviour when called again without the option.
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {1, _binding} = Code.eval_string("dbg(1)", [])
+      end)
+    end
   end
 
   describe "eval_quoted/1" do
@@ -259,6 +284,23 @@ defmodule CodeTest do
         alias String.Chars
         {"foo", []} = Code.eval_string("Chars.to_string(:foo)", [], __ENV__)
       end
+    end
+
+    test "with :prune_binding" do
+      quoted = quote(do: var!(x) + 1)
+      opts = [prune_binding: true]
+      assert {2, [x: 1]} = Code.eval_quoted(quoted, [x: 1, y: 2], opts)
+    end
+
+    test "with :dbg_callback" do
+      quoted = quote(do: dbg(1))
+      opts = [dbg_callback: {__MODULE__, :dbg_callback_add_one, []}]
+      assert {2, _binding} = Code.eval_quoted(quoted, [], opts)
+
+      # Maintains the default behaviour when called again without the option.
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {1, _binding} = Code.eval_quoted(quoted, [])
+      end)
     end
   end
 
@@ -370,6 +412,24 @@ defmodule CodeTest do
       {false, binding, env} = Code.eval_quoted_with_env(quoted, [], env, prune_binding: true)
       assert binding == []
       assert Macro.Env.vars(env) == []
+    end
+
+    test "with :dbg_callback" do
+      quoted = quote(do: dbg(1))
+      env = Code.env_for_eval(__ENV__)
+      opts = [dbg_callback: {__MODULE__, :dbg_callback_add_one, []}]
+      assert {2, _binding, _env} = Code.eval_quoted_with_env(quoted, [], env, opts)
+
+      # Maintains the default behaviour when called again without the option.
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {1, _binding, _env} = Code.eval_quoted_with_env(quoted, [], env, [])
+      end)
+    end
+  end
+
+  def dbg_callback_add_one(code, _options, _caller) do
+    quote do
+      unquote(code) + 1
     end
   end
 
@@ -729,26 +789,21 @@ defmodule Code.SyncTest do
 
   import PathHelpers
 
-  if System.otp_release() >= "26" do
-    defp assert_cached(path) do
-      assert find_path(path) != :nocache
-    end
+  defp assert_cached(path) do
+    assert find_path(path) != :nocache
+  end
 
-    defp refute_cached(path) do
-      assert find_path(path) == :nocache
-    end
+  defp refute_cached(path) do
+    assert find_path(path) == :nocache
+  end
 
-    defp find_path(path) do
-      {:status, _, {:module, :code_server}, [_, :running, _, _, state]} =
-        :sys.get_status(:code_server)
+  defp find_path(path) do
+    {:status, _, {:module, :code_server}, [_, :running, _, _, state]} =
+      :sys.get_status(:code_server)
 
-      [:state, _, _otp_root, paths | _] = Tuple.to_list(state)
-      {_, value} = List.keyfind(paths, to_charlist(path), 0)
-      value
-    end
-  else
-    defp assert_cached(_path), do: :ok
-    defp refute_cached(_path), do: :ok
+    [:state, _, _otp_root, paths | _] = Tuple.to_list(state)
+    {_, value} = List.keyfind(paths, to_charlist(path), 0)
+    value
   end
 
   test "evaluates module definitions" do

@@ -117,11 +117,11 @@ defmodule ExUnit do
                diff_delete: atom(),
                diff_delete_whitespace: IO.ANSI.ansidata()
              ]}
-          | {:exclude, keyword()}
+          | {:exclude, atom() | [atom() | {atom(), any()}]}
           | {:exit_status, non_neg_integer()}
           | {:failures_manifest_path, String.t()}
           | {:formatters, [module()]}
-          | {:include, keyword()}
+          | {:include, atom() | [atom() | {atom(), any()}]}
           | {:max_cases, pos_integer()}
           | {:max_failures, pos_integer() | :infinity}
           | {:only_test_ids, [test_id()]}
@@ -143,8 +143,10 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:name` - the test name
+      * `:name` - the test name. This is the function name in the test module,
+        which is truncated and hashed when above 250 characters
       * `:module` - the test module
+      * `:description` - the test description (the name without truncation)
       * `:state` - the finished test state (see `t:ExUnit.state/0`)
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
@@ -152,7 +154,17 @@ defmodule ExUnit do
       * `:parameters` - the test parameters
 
     """
-    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: "", parameters: %{}]
+    defstruct [
+      :name,
+      :description,
+      :case,
+      :module,
+      :state,
+      time: 0,
+      tags: %{},
+      logs: "",
+      parameters: %{}
+    ]
 
     # TODO: Remove the `:case` field on v2.0
     @type t :: %__MODULE__{
@@ -163,7 +175,8 @@ defmodule ExUnit do
             time: non_neg_integer,
             tags: map,
             logs: String.t(),
-            parameters: map
+            parameters: map,
+            description: String.t()
           }
   end
 
@@ -328,7 +341,8 @@ defmodule ExUnit do
         defaults to `IO.ANSI.color_background(0, 2, 0)`;
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
-      filter. See the "Filters" section in the documentation for `ExUnit.Case`;
+      filter. For more information, see the "Tags" and "Filters" sections in the
+      documentation for `ExUnit.Case`;
 
     * `:exit_status` - specifies an alternate exit status to use when the test
       suite fails. Defaults to `2`;
@@ -342,8 +356,9 @@ defmodule ExUnit do
     * `:include` - specifies which tests are run by skipping tests that do not
       match the filter. Keep in mind that all tests are included by default, so unless they are
       excluded first, the `:include` option has no effect. To only run the tests
-      that match the `:include` filter, exclude the `:test` tag first (see the
-      documentation for `ExUnit.Case` for more information on tags and filters);
+      that match the `:include` filter, exclude the `:test` tag first.
+      For more information, see the "Tags" and "Filters" sections in the
+      documentation for `ExUnit.Case`;
 
     * `:max_cases` - maximum number of tests to run in parallel. Only tests from
       different modules run in parallel. It defaults to `System.schedulers_online * 2`

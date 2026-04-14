@@ -67,7 +67,7 @@ defprotocol JSON.Encoder do
 
     {io, _prefix} =
       Enum.flat_map_reduce(kv, ?{, fn {field, value}, prefix ->
-        key = IO.iodata_to_binary([prefix, :elixir_json.encode_binary(Atom.to_string(field)), ?:])
+        key = IO.iodata_to_binary([prefix, :json.encode_binary(Atom.to_string(field)), ?:])
         {[key, quote(do: encoder.(unquote(value), encoder))], ?,}
       end)
 
@@ -130,25 +130,25 @@ end
 
 defimpl JSON.Encoder, for: BitString do
   def encode(value, _encoder) do
-    :elixir_json.encode_binary(value)
+    :json.encode_binary(value)
   end
 end
 
 defimpl JSON.Encoder, for: List do
   def encode(value, encoder) do
-    :elixir_json.encode_list(value, encoder)
+    :json.encode_list(value, encoder)
   end
 end
 
 defimpl JSON.Encoder, for: Integer do
   def encode(value, _encoder) do
-    :elixir_json.encode_integer(value)
+    :json.encode_integer(value)
   end
 end
 
 defimpl JSON.Encoder, for: Float do
   def encode(value, _encoder) do
-    :elixir_json.encode_float(value)
+    :json.encode_float(value)
   end
 end
 
@@ -408,7 +408,7 @@ defmodule JSON do
     decoders = Keyword.put_new(decoders, :null, nil)
 
     try do
-      :elixir_json.decode(binary, acc, Map.new(decoders))
+      :json.decode(binary, acc, Map.new(decoders))
     catch
       :error, :unexpected_end ->
         {:error, {:unexpected_end, byte_size(binary)}}
@@ -528,16 +528,16 @@ defmodule JSON do
   end
 
   def protocol_encode(value, _encoder) when is_binary(value),
-    do: :elixir_json.encode_binary(value)
+    do: :json.encode_binary(value)
 
   def protocol_encode(value, _encoder) when is_integer(value),
-    do: :elixir_json.encode_integer(value)
+    do: :json.encode_integer(value)
 
   def protocol_encode(value, _encoder) when is_float(value),
-    do: :elixir_json.encode_float(value)
+    do: :json.encode_float(value)
 
   def protocol_encode(value, encoder) when is_list(value),
-    do: :elixir_json.encode_list(value, encoder)
+    do: :json.encode_list(value, encoder)
 
   def protocol_encode(%{} = value, encoder) when not is_map_key(value, :__struct__),
     do: JSON.Encoder.Map.encode(value, encoder)

@@ -525,7 +525,10 @@ defmodule TypespecTest do
       assert {:type, _, :map, [struct, arg1, arg2]} = type
       assert {:type, _, :map_field_exact, struct_args} = struct
       assert [{:atom, _, :__struct__}, {:atom, _, TypespecSample}] = struct_args
-      assert {:type, _, :map_field_exact, [{:atom, _, :__exception__}, {:atom, _, true}]} = arg1
+
+      assert {:type, _, :map_field_exact, [{:atom, _, :__exception__}, {:type, _, :term, []}]} =
+               arg1
+
       assert {:type, _, :map_field_exact, [{:atom, _, :message}, {:type, _, :term, []}]} = arg2
     end
 
@@ -681,15 +684,17 @@ defmodule TypespecTest do
       end
     end
 
-    test "@type can be named record" do
-      bytecode =
-        test_module do
-          @type record :: binary
-          @spec foo?(record) :: boolean
-          def foo?(_), do: true
-        end
+    test "@type named record/0 warns" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               bytecode =
+                 test_module do
+                   @type record :: binary
+                   @spec foo?(record) :: boolean
+                   def foo?(_), do: true
+                 end
 
-      assert [type: {:record, {:type, _, :binary, []}, []}] = types(bytecode)
+               assert [type: {:record, {:type, _, :binary, []}, []}] = types(bytecode)
+             end) =~ "type record/0 is overriding a built-in type"
     end
 
     test "@type with an invalid map notation" do

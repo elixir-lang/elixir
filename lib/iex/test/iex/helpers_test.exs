@@ -283,7 +283,7 @@ defmodule IEx.HelpersTest do
 
     test "errors if module is in-memory" do
       assert capture_iex("defmodule Foo, do: nil ; open(Foo)") =~
-               ~r"Invalid arguments for open helper:"
+               "file is not available"
     after
       cleanup_modules([Foo])
     end
@@ -312,6 +312,47 @@ defmodule IEx.HelpersTest do
         {:win32, _} -> String.replace(string, "\"", "")
         _ -> string
       end
+    end
+  end
+
+  describe "source" do
+    @describetag :requires_source
+    @example_module_source "test/test_helper.exs"
+
+    test "prints source location for Elixir module" do
+      assert capture_iex("source(HelperExampleModule)") =~
+               ~r/#{@example_module_source}:\d+$/
+    end
+
+    test "prints source location for module.function" do
+      assert capture_iex("source(HelperExampleModule.fun)") =~
+               ~r/#{@example_module_source}:\d+$/
+    end
+
+    test "prints source location for module.function/arity" do
+      assert capture_iex("source(HelperExampleModule.fun/1)") =~
+               ~r/#{@example_module_source}:\d+$/
+    end
+
+    test "errors if module is not available" do
+      assert capture_iex("source(:unknown)") ==
+               "Could not show source for :unknown, module is not available"
+    end
+
+    test "errors if module.function is not available" do
+      assert capture_iex("source(:unknown.unknown)") ==
+               "Could not show source for :unknown.unknown, module is not available"
+
+      assert capture_iex("source(:elixir.unknown)") ==
+               "Could not show source for :elixir.unknown, function/macro is not available"
+    end
+
+    test "errors if module.function/arity is not available" do
+      assert capture_iex("source(:unknown.start/10)") ==
+               "Could not show source for :unknown.start/10, module is not available"
+
+      assert capture_iex("source(:elixir.start/10)") ==
+               "Could not show source for :elixir.start/10, function/macro is not available"
     end
   end
 
@@ -357,31 +398,18 @@ defmodule IEx.HelpersTest do
     test "prints Erlang module function specs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
 
-      # TODO remove once we require Erlang/OTP 27+
-      if System.otp_release() < "27" do
-        assert captured =~ ":timer.sleep/1"
-        assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
-      else
-        assert captured =~ "sleep(Time)"
-        assert captured =~ "@spec sleep(time) :: :ok when time: "
-      end
+      assert captured =~ "sleep(Time)"
+      assert captured =~ "@spec sleep(time) :: :ok when time: "
     end
 
     @tag :erlang_doc
     test "handles non-existing Erlang module function" do
       captured = capture_io(fn -> h(:timer.baz() / 1) end)
 
-      # TODO remove once we require Erlang/OTP 27+
-      if System.otp_release() < "27" do
-        assert captured =~ "No documentation for :timer.baz was found"
-      else
-        assert captured =~ "No documentation for :timer.baz/1 was found"
-      end
+      assert captured =~ "No documentation for :timer.baz/1 was found"
     end
 
     @tag :erlang_doc
-    # TODO remove once we require Erlang/OTP 27+
-    @tag skip: System.otp_release() < "27"
     test "erlang -moduledoc" do
       filename = "sample.erl"
 
@@ -401,8 +429,6 @@ defmodule IEx.HelpersTest do
     end
 
     @tag :erlang_doc
-    # TODO remove once we require Erlang/OTP 27+
-    @tag skip: System.otp_release() < "27"
     test "erlang -doc" do
       filename = "sample.erl"
 
@@ -1088,38 +1114,20 @@ defmodule IEx.HelpersTest do
     test "prints all types in Erlang module" do
       captured = capture_io(fn -> t(:queue) end)
 
-      # TODO remove once we require Erlang/OTP 27+
-      if System.otp_release() < "27" do
-        assert captured =~ "-type queue() :: queue(_)"
-        assert captured =~ "-opaque queue(Item)"
-      else
-        assert captured =~ "@type queue() :: queue(_)"
-        assert captured =~ "@opaque queue(item)"
-      end
+      assert captured =~ "@type queue() :: queue(_)"
+      assert captured =~ "@opaque queue(item)"
     end
 
     @tag :erlang_doc
     test "prints single type from Erlang module" do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
 
-      # TODO remove once we require Erlang/OTP 27+
-      if System.otp_release() < "27" do
-        assert captured =~ "-type iovec() :: [binary()]"
-      else
-        assert captured =~ "@type iovec() :: [binary()]"
-      end
-
+      assert captured =~ "@type iovec() :: [binary()]"
       assert captured =~ "A list of binaries."
 
       captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
 
-      # TODO remove once we require Erlang/OTP 27+
-      if System.otp_release() < "27" do
-        assert captured =~ "-type iovec() :: [binary()]"
-      else
-        assert captured =~ "@type iovec() :: [binary()]"
-      end
-
+      assert captured =~ "@type iovec() :: [binary()]"
       assert captured =~ "A list of binaries."
     end
 

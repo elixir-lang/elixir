@@ -249,8 +249,8 @@ defmodule Mix.Utils do
   Returns the date the given path was last modified in posix time
   and the size.
 
-  If the path does not exist, it returns the Unix epoch
-  (1970-01-01 00:00:00).
+  If the path does not exist, it returns `{0, -1}` (the Unix epoch
+  with size -1 to distinguish from actual 0-byte files).
   """
   def last_modified_and_size(path) do
     now = System.os_time(:second)
@@ -268,7 +268,7 @@ defmodule Mix.Utils do
         {mtime, size}
 
       {:error, _} ->
-        {0, 0}
+        {0, -1}
     end
   end
 

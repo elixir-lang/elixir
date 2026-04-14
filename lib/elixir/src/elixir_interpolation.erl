@@ -20,10 +20,10 @@ extract([], _Buffer, _Output, Line, Column, #elixir_tokenizer{cursor_completion=
   {error, {string, Line, Column, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
 extract([], Buffer, Output, Line, Column, Scope, _Interpol, _Last) ->
-  finish_extraction([], Buffer, Output, Line, Column, Scope);
+  finish_extraction([], false, Buffer, Output, Line, Column, Scope);
 
 extract([Last | Rest], Buffer, Output, Line, Column, Scope, _Interpol, Last) ->
-  finish_extraction(Rest, Buffer, Output, Line, Column + 1, Scope);
+  finish_extraction(Rest, true, Buffer, Output, Line, Column + 1, Scope);
 
 %% Going through the string
 
@@ -81,7 +81,7 @@ extract([$\\ | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
 %% Catch all clause
 
 extract([Char1, Char2 | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last)
-    when Char1 =< 255, Char2 =< 255 ->
+    when Char1 =< 255, Char2 =< 255, not (?break(Char1)) ->
   extract([Char2 | Rest], [Char1 | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
 extract(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
@@ -113,7 +113,7 @@ extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
 extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, [H,H,H] = Last) ->
   case strip_horizontal_space(Rest, Buffer, 1) of
     {[H,H,H|NewRest], _NewBuffer, Column} ->
-      finish_extraction(NewRest, Buffer, Output, Line + 1, Column + 3, Scope);
+      finish_extraction(NewRest, true, Buffer, Output, Line + 1, Column + 3, Scope);
     {NewRest, NewBuffer, Column} ->
       extract(NewRest, NewBuffer, Output, Line + 1, Column, Scope, Interpol, Last)
   end;
@@ -267,13 +267,13 @@ unescape_map(E)  -> E.
 
 % Extract Helpers
 
-finish_extraction(Remaining, Buffer, Output, Line, Column, Scope) ->
+finish_extraction(Remaining, Done, Buffer, Output, Line, Column, Scope) ->
   Final = case build_string(Buffer, Output) of
     [] -> [[]];
     F  -> F
   end,
 
-  {Line, Column, lists:reverse(Final), Remaining, Scope}.
+  {Line, Column, lists:reverse(Final), Remaining, Done, Scope}.
 
 build_string([], Output) -> Output;
 build_string(Buffer, Output) -> [lists:reverse(Buffer) | Output].

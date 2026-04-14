@@ -26,20 +26,34 @@ defmodule Mix.Tasks.Deps.Partition do
     {:ok, {_ip, port}} = :inet.sockname(socket)
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
     force_flag = if force?, do: ~c"--force", else: ~c"--no-force"
+    config = Mix.ProjectStack.peek() |> :erlang.term_to_binary() |> Base.url_encode64()
+    tmp_dir = System.tmp_dir()
 
-    args = [
-      ansi_flag,
-      ~c"-e",
-      ~c"Mix.Tasks.Deps.Partition.client",
-      ~c"--",
-      force_flag,
-      ~c"--port",
-      Integer.to_charlist(port),
-      ~c"--host",
-      ~c"127.0.0.1",
-      ~c"--config",
-      Mix.ProjectStack.peek() |> :erlang.term_to_binary() |> Base.url_encode64()
-    ]
+    {config_flag, config_value} =
+      with true <- is_binary(tmp_dir),
+           partition_dir = Path.join(tmp_dir, "mix_deps_partition"),
+           :ok <- File.mkdir_p(partition_dir),
+           partition_file = Path.join(partition_dir, Base.encode32(:crypto.strong_rand_bytes(10))),
+           :ok <- File.write(partition_file, config) do
+        {~c"--config-file", String.to_charlist(partition_file)}
+      else
+        _ -> {~c"--config", String.to_charlist(config)}
+      end
+
+    args =
+      [
+        ansi_flag,
+        ~c"-e",
+        ~c"Mix.Tasks.Deps.Partition.client",
+        ~c"--",
+        force_flag,
+        ~c"--port",
+        Integer.to_charlist(port),
+        ~c"--host",
+        ~c"127.0.0.1",
+        config_flag,
+        config_value
+      ]
 
     options = [
       :exit_status,
@@ -54,6 +68,10 @@ defmodule Mix.Tasks.Deps.Partition do
         {~c"MIX_TARGET", Atom.to_charlist(Mix.target())}
       ]
     ]
+
+    if Mix.debug?() do
+      IO.puts("-> mix deps.partition args: #{Enum.join(args, " ")}")
+    end
 
     ports =
       Map.new(1..count//1, fn index ->
@@ -215,7 +233,14 @@ defmodule Mix.Tasks.Deps.Partition do
 
   ## Client
 
-  @switches [port: :integer, host: :string, force: :boolean, index: :string, config: :string]
+  @switches [
+    port: :integer,
+    host: :string,
+    force: :boolean,
+    index: :string,
+    config: :string,
+    config_file: :string
+  ]
 
   def client do
     # If stdin closes, we shutdown the VM
@@ -226,7 +251,15 @@ defmodule Mix.Tasks.Deps.Partition do
 
     args = System.argv()
     {opts, []} = OptionParser.parse!(args, strict: @switches)
-    peek = Keyword.fetch!(opts, :config) |> Base.url_decode64!() |> :erlang.binary_to_term()
+
+    peek =
+      if config_file = Keyword.get(opts, :config_file) do
+        File.read!(config_file)
+      else
+        Keyword.fetch!(opts, :config)
+      end
+      |> Base.url_decode64!()
+      |> :erlang.binary_to_term()
 
     # This is specific to Mix.install/2 and how it handles compile-time config
     if compile_config = peek.config[:compile_config] do

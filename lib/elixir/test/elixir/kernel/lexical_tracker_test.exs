@@ -433,7 +433,7 @@ defmodule Kernel.LexicalTrackerTest do
         """)
 
       refute URI in compile
-      refute URI in exports
+      assert URI in exports
       assert URI in runtime
     end
 
@@ -594,7 +594,7 @@ defmodule Kernel.LexicalTrackerTest do
       refute Config in runtime
     end
 
-    test "defimpl does not add dependencies on for only on impl" do
+    test "defimpl does not add dependencies on for, only on impl" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defimpl String.Chars, for: Kernel.LexicalTrackerTest do
@@ -609,6 +609,20 @@ defmodule Kernel.LexicalTrackerTest do
       refute Kernel.LexicalTrackerTest in compile
       refute Kernel.LexicalTrackerTest in exports
       refute Kernel.LexicalTrackerTest in runtime
+    end
+
+    test "defprotocol does not add dependencies on implementations" do
+      {{compile, _exports, _runtime, _}, _binding} =
+        Code.eval_string("""
+        defprotocol Kernel.LexicalTracker.ProtocolTest do
+          @fallback_to_any true
+          def example(val)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute Kernel.LexicalTracker.ProtocolTest.Any in compile
+      refute Kernel.LexicalTracker.ProtocolTest.Tuple in compile
     end
   end
 end

@@ -45,7 +45,7 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
   {build_name(Key, Count),
    S#elixir_erl{counter=Counter#{Key => Count}}}.
 
-build_name('_', Count) -> list_to_atom("_@" ++ integer_to_list(Count));
+build_name('_', Count) -> list_to_atom("_" ++ integer_to_list(Count));
 build_name(Name, Count) -> list_to_atom("_" ++ atom_to_list(Name) ++ "@" ++ integer_to_list(Count)).
 
 %% BINDINGS
@@ -102,7 +102,7 @@ load_pair({Pair, Value}) -> {Pair, Value}.
 
 dump_binding(Binding, ErlS, ExS, PruneBefore) ->
   #elixir_erl{var_names=ErlVars} = ErlS,
-  #elixir_ex{vars={ExVars, _}, unused={Unused, _}} = ExS,
+  #elixir_ex{vars={ExVars, _}, unused=Unused} = ExS,
 
   maps:fold(fun
     ({Var, Kind} = Pair, Version, {B, V})

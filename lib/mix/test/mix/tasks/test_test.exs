@@ -74,7 +74,7 @@ defmodule Mix.Tasks.TestTest do
   describe "--stale" do
     test "runs all tests for first run, then none on second" do
       in_fixture("test_stale", fn ->
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
 
         assert_stale_run_output("""
         No stale tests
@@ -84,23 +84,23 @@ defmodule Mix.Tasks.TestTest do
 
     test "runs tests that depend on modified modules" do
       in_fixture("test_stale", fn ->
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
 
         set_all_mtimes()
         force_recompilation("lib/b.ex")
 
-        assert_stale_run_output("1 test, 0 failures")
+        assert_stale_run_output("Result: 1 passed")
 
         set_all_mtimes()
         force_recompilation("lib/a.ex")
 
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
       end)
     end
 
     test "doesn't write manifest when there are failures" do
       in_fixture("test_stale", fn ->
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
 
         set_all_mtimes()
 
@@ -110,39 +110,39 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        assert_stale_run_output("1 test, 1 failure")
+        assert_stale_run_output("Failed: 1 test")
 
-        assert_stale_run_output("1 test, 1 failure")
+        assert_stale_run_output("Failed: 1 test")
       end)
     end
 
     test "runs tests that have changed" do
       in_fixture("test_stale", fn ->
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
 
         set_all_mtimes()
         File.touch!("test/a_test_stale.exs")
 
-        assert_stale_run_output("1 test, 0 failures")
+        assert_stale_run_output("Result: 1 passed")
       end)
     end
 
     test "runs tests that have changed test_helpers" do
       in_fixture("test_stale", fn ->
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
 
         set_all_mtimes()
         File.touch!("test/test_helper.exs")
 
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
       end)
     end
 
     test "runs all tests no matter what with --force" do
       in_fixture("test_stale", fn ->
-        assert_stale_run_output("2 tests, 0 failures")
+        assert_stale_run_output("Result: 2 passed")
 
-        assert_stale_run_output(~w[--force], "2 tests, 0 failures")
+        assert_stale_run_output(~w[--force], "Result: 2 passed")
       end)
     end
   end
@@ -154,7 +154,7 @@ defmodule Mix.Tasks.TestTest do
         # This fixture by default results in coverage above the default threshold
         # which should result in an exit status of 0.
         assert {output, 0} = mix_code(["test", "--cover"])
-        assert output =~ "4 tests, 0 failures"
+        assert output =~ "Result: 4 passed"
 
         # For bar, we do regular --cover and also test protocols
         assert output =~ """
@@ -168,7 +168,7 @@ defmodule Mix.Tasks.TestTest do
                |    100.00% | Total                  |
                """
 
-        assert output =~ "1 test, 0 failures"
+        assert output =~ "Result: 1 passed"
 
         # For foo, we do regular --cover and test it does not include bar
         assert output =~ """
@@ -227,24 +227,24 @@ defmodule Mix.Tasks.TestTest do
         # Run `mix test` once to record failures...
         output = mix(["test"])
         assert output =~ loading_only_passing_test_msg
-        assert output =~ "4 tests, 2 failures"
+        assert output =~ "Failed: 2 tests"
 
         # `mix test --failed` runs only failed tests and avoids loading files with no failures
         output = mix(["test", "--failed"])
         refute output =~ loading_only_passing_test_msg
-        assert output =~ "2 tests, 2 failures"
+        assert output =~ "Failed: 2 tests"
 
         # `mix test --failed` can be applied to a directory or file
         output = mix(["test", "test/passing_and_failing_test_failed.exs", "--failed"])
-        assert output =~ "1 test, 1 failure"
+        assert output =~ "Failed: 1 test"
 
         # Plus line
         output = mix(["test", "test/passing_and_failing_test_failed.exs:5", "--failed"])
-        assert output =~ "1 test, 1 failure"
+        assert output =~ "Failed: 1 test"
 
         if windows?() do
           output = mix(["test", "test\\passing_and_failing_test_failed.exs:5", "--failed"])
-          assert output =~ "1 test, 1 failure"
+          assert output =~ "Failed: 1 test"
         end
 
         # `--failed` composes with an `--only` filter by running the intersection.
@@ -252,11 +252,11 @@ defmodule Mix.Tasks.TestTest do
         # Of the passing tests, 1 is tagged with `@tag :foo`.
         # But only the failing test with that tag should run.
         output = mix(["test", "--failed", "--only", "foo"])
-        assert output =~ "1 test, 1 failure (1 excluded)"
+        assert output =~ "Failed: 1 test"
 
         # Run again to give it a chance to record as passed
         System.put_env("PASS_FAILING_TESTS", "true")
-        assert mix(["test", "--failed"]) =~ "2 tests, 0 failures"
+        assert mix(["test", "--failed"]) =~ "Result: 2 passed"
 
         # Nothing should get run if we try it again since everything is passing.
         assert mix(["test", "--failed"]) =~ "There are no tests to run"
@@ -292,7 +292,7 @@ defmodule Mix.Tasks.TestTest do
       in_fixture("test_stale", fn ->
         port = mix_port(~w[test --stale --listen-on-stdin])
 
-        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
+        assert receive_until_match(port, "Result:", "") =~ "Result: 2 passed"
 
         Port.command(port, "\n")
 
@@ -306,10 +306,10 @@ defmodule Mix.Tasks.TestTest do
     test "splits tests into partitions (with coverage)" do
       in_fixture("test_stale", fn ->
         assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "1"}]) =~
-                 "1 test, 0 failures"
+                 "Result: 1 passed"
 
         assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "2"}]) =~
-                 "1 test, 0 failures"
+                 "Result: 1 passed"
 
         assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "3"}]) =~
                  "There are no tests to run"
@@ -351,13 +351,13 @@ defmodule Mix.Tasks.TestTest do
     test "do not raise if partitions flag is set to 1 and no partition given" do
       in_fixture("test_stale", fn ->
         assert mix(["test", "--partitions", "1"], []) =~
-                 "2 tests, 0 failures"
+                 "Result: 2 passed"
 
         assert mix(["test", "--partitions", "1"], [{"MIX_TEST_PARTITION", ""}]) =~
-                 "2 tests, 0 failures"
+                 "Result: 2 passed"
 
         assert mix(["test", "--partitions", "1"], [{"MIX_TEST_PARTITION", "1"}]) =~
-                 "2 tests, 0 failures"
+                 "Result: 2 passed"
       end)
     end
 
@@ -501,14 +501,14 @@ defmodule Mix.Tasks.TestTest do
                Including tags: [location: {"test/foo_tests.exs", 9}]
                """
 
-        assert output =~ "1 test, 0 failures\n"
+        assert output =~ "Result: 1 passed\n"
 
         assert output =~ """
                Excluding tags: [:test]
                Including tags: [location: {"test/bar_tests.exs", 5}]
                """
 
-        assert output =~ "1 test, 0 failures (3 excluded)\n"
+        assert output =~ "Result: 1 passed, 3 excluded\n"
       end)
     end
   end
@@ -568,7 +568,7 @@ defmodule Mix.Tasks.TestTest do
           ])
 
         assert output =~ "variable \"unused_test_var\" is unused"
-        assert output =~ "1 failure"
+        assert output =~ "Failed: 1 test"
 
         assert exit_status == 43
       end)
@@ -587,10 +587,43 @@ defmodule Mix.Tasks.TestTest do
         """)
 
         output = mix(["test", "--warnings-as-errors"])
-        assert output =~ "2 failures"
+        assert output =~ "Failed: 2 tests"
         refute output =~ "Test suite aborted after successful execution"
         output = mix(["test", "--failed"])
-        assert output =~ "2 failures"
+        assert output =~ "Failed: 2 tests"
+      end)
+    end
+
+    test "fail with exit status 1 if misnamed test files with --warnings-as-errors (no tests to run)" do
+      in_tmp("test_warn_as_errors_noop", fn ->
+        File.write!("mix.exs", """
+        defmodule TestWarnAsErrorsNoop.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :test_warn_as_errors_noop,
+              version: "0.0.1",
+              test_load_filters: [~r/.*_tests\.exs/]
+            ]
+          end
+        end
+        """)
+
+        File.mkdir!("test")
+        File.write!("test/test_helper.exs", "ExUnit.start()")
+
+        File.touch!("test/a_missing.exs")
+
+        msg =
+          "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+        {output, exit_status} = mix_code(["test", "--warnings-as-errors"])
+
+        assert output =~ "the following files do not match"
+        assert output =~ "test/a_missing.exs"
+        assert output =~ msg
+        assert exit_status == 1
       end)
     end
 
@@ -618,7 +651,7 @@ defmodule Mix.Tasks.TestTest do
     test "returns custom exit status" do
       in_fixture("test_failed", fn ->
         {output, exit_status} = mix_code(["test", "--exit-status", "5"])
-        assert output =~ "2 failures"
+        assert output =~ "Failed: 2 tests"
         assert exit_status == 5
       end)
     end
@@ -630,7 +663,7 @@ defmodule Mix.Tasks.TestTest do
       # it does not test the concurrency behavior
       in_fixture("test_stale", fn ->
         output = mix(["test", "--max-requires", "1"])
-        assert output =~ "0 failures"
+        assert output =~ "Result:"
       end)
     end
   end
@@ -695,7 +728,7 @@ defmodule Mix.Tasks.TestTest do
                """
 
         # the dummy test ran successfully
-        assert output =~ "1 test, 0 failures"
+        assert output =~ "Result: 1 passed"
       end)
     end
 
@@ -740,7 +773,7 @@ defmodule Mix.Tasks.TestTest do
         refute output =~ "the following files do not match"
 
         # the dummy test ran successfully
-        assert output =~ "1 test, 0 failures"
+        assert output =~ "Result: 1 passed"
       end)
     end
   end
@@ -775,29 +808,29 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ "test/b_test_stale.exs:4"
         assert output =~ "test/dry_run_one_test_stale.exs:4"
         refute output =~ "test/dry_run_two_test_stale.exs:5"
-        assert output =~ "1 test, 0 failures, 1 skipped"
+        assert output =~ "Result: 0 tests, 1 skipped"
 
         # Tests should still be marked as stale
         output = mix(["test", "--dry-run", "--stale"])
-        assert output =~ "1 test, 0 failures, 1 skipped"
+        assert output =~ "Result: 0 tests, 1 skipped"
       end)
     end
 
     test "works with --failed" do
       in_fixture("test_failed", fn ->
         output = mix(["test"])
-        assert output =~ "4 tests, 2 failures"
+        assert output =~ "Failed: 2 tests"
 
         output = mix(["test", "--dry-run", "--failed"])
         assert output =~ "Tests that would be executed:"
         assert output =~ "test/only_failing_test_failed.exs:4"
         assert output =~ "test/passing_and_failing_test_failed.exs:5"
-        assert output =~ "0 tests, 0 failures"
+        assert output =~ "Result: 0 tests"
 
         # Force the tests to pass, verify dry-run doesn't actually run them
         System.put_env("PASS_FAILING_TESTS", "true")
         output = mix(["test", "--dry-run", "--failed"])
-        assert output =~ "0 tests, 0 failures"
+        assert output =~ "Result: 0 tests"
       end)
     after
       System.delete_env("PASS_FAILING_TESTS")

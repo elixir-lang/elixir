@@ -180,17 +180,27 @@ defmodule ProcessTest do
     end
   end
 
-  describe "set_label/1" do
-    @compile {:no_warn_undefined, :proc_lib}
+  describe "get_label/1" do
+    test "gets a process label, compatible with `:proc_lib.set_label/1`" do
+      label = {:some_label, :rand.uniform(99999)}
+      assert :ok = :proc_lib.set_label(label)
 
-    test "sets a process label, compatible with OTP 27+ `:proc_lib.get_label/1`" do
+      assert Process.get_label() == label
+      assert Process.get_label(self()) == label
+    end
+
+    test "returns nil when not set" do
+      pid = spawn(fn -> :ok end)
+      assert Process.get_label(pid) == nil
+    end
+  end
+
+  describe "set_label/1" do
+    test "sets a process label, compatible with `:proc_lib.get_label/1`" do
       label = {:some_label, :rand.uniform(99999)}
       assert :ok = Process.set_label(label)
 
-      # TODO: Remove this when we require Erlang/OTP 27+
-      if System.otp_release() >= "27" do
-        assert :proc_lib.get_label(self()) == label
-      end
+      assert :proc_lib.get_label(self()) == label
     end
   end
 

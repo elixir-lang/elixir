@@ -19,6 +19,45 @@ defmodule Integer do
   import Bitwise
 
   @doc """
+  Counts the number of set bits (1) in the binary representation of a non-negative `integer`.
+
+  This operation is known as the Hamming weight or population count.
+
+  Raises an `ArithmeticError` if `integer` is negative.
+
+  ## Examples
+
+      iex> Integer.popcount(0)
+      0
+
+      iex> Integer.popcount(1)
+      1
+
+      iex> Integer.popcount(0b10110101)
+      5
+
+      iex> Integer.popcount(255)
+      8
+
+      iex> Integer.popcount(0b1111111111111111)
+      16
+
+      iex> Integer.popcount(-1)
+      ** (ArithmeticError) bad argument in arithmetic expression
+
+  """
+  @doc since: "1.20.0"
+  @spec popcount(non_neg_integer) :: non_neg_integer
+  def popcount(integer) when is_integer(integer) and integer < 0,
+    do: :erlang.error(:badarith, [integer])
+
+  def popcount(integer) when is_integer(integer),
+    do: popcount(integer, 0)
+
+  defp popcount(0, acc), do: acc
+  defp popcount(n, acc), do: popcount(n &&& n - 1, acc + 1)
+
+  @doc """
   Determines if `integer` is odd.
 
   Returns `true` if the given `integer` is an odd number,
@@ -258,8 +297,9 @@ defmodule Integer do
 
   defp undigits([], _base, acc), do: acc
 
-  defp undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
-    do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
+  defp undigits([digit | _], base, _)
+       when is_integer(digit) and (digit >= base or digit <= -base),
+       do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
 
   defp undigits([digit | tail], base, acc) when is_integer(digit),
     do: undigits(tail, base, acc * base + digit)
@@ -492,8 +532,12 @@ defmodule Integer do
 
       iex> Integer.extended_gcd(10, 0)
       {10, 1, 0}
+      iex> Integer.extended_gcd(-10, 0)
+      {10, -1, 0}
       iex> Integer.extended_gcd(0, 10)
       {10, 0, 1}
+      iex> Integer.extended_gcd(0, -10)
+      {10, 0, -1}
       iex> Integer.extended_gcd(0, 0)
       {0, 0, 0}
 
@@ -501,8 +545,10 @@ defmodule Integer do
   @doc since: "1.12.0"
   @spec extended_gcd(integer, integer) :: {non_neg_integer, integer, integer}
   def extended_gcd(0, 0), do: {0, 0, 0}
-  def extended_gcd(0, b), do: {b, 0, 1}
-  def extended_gcd(a, 0), do: {a, 1, 0}
+  def extended_gcd(0, b) when b > 0, do: {b, 0, 1}
+  def extended_gcd(0, b) when b < 0, do: {-b, 0, -1}
+  def extended_gcd(a, 0) when a > 0, do: {a, 1, 0}
+  def extended_gcd(a, 0) when a < 0, do: {-a, -1, 0}
 
   def extended_gcd(integer1, integer2) when is_integer(integer1) and is_integer(integer2) do
     extended_gcd(integer2, integer1, 0, 1, 1, 0)

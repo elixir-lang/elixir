@@ -186,10 +186,9 @@ defmodule Float do
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
        do: parse_unsigned(rest, true, true, [digit, sign, ?e | add_dot(acc, dot?)])
 
-  # When floats are expressed in scientific notation, :erlang.binary_to_float/1 can raise an
-  # ArgumentError if the e exponent is too big. For example, "1.0e400". Because of this, we
-  # rescue the ArgumentError here and return an error.
-  defp parse_unsigned(rest, dot?, true = _e?, acc) do
+  # :erlang.binary_to_float/1 can raise an ArgumentError if the e exponent is too big. For example,
+  # "1.0e400". Because of this, we rescue the ArgumentError here and return an error.
+  defp parse_unsigned(rest, dot?, _, acc) do
     acc
     |> add_dot(dot?)
     |> :lists.reverse()
@@ -198,16 +197,6 @@ defmodule Float do
     ArgumentError -> :error
   else
     float -> {float, rest}
-  end
-
-  defp parse_unsigned(rest, dot?, false = _e?, acc) do
-    float =
-      acc
-      |> add_dot(dot?)
-      |> :lists.reverse()
-      |> :erlang.list_to_float()
-
-    {float, rest}
   end
 
   defp add_dot(acc, true), do: acc
@@ -390,8 +379,8 @@ defmodule Float do
         case rounding do
           :ceil when sign === 0 -> 1 / power_of_10(precision)
           :floor when sign === 1 -> -1 / power_of_10(precision)
-          :ceil when sign === 1 -> minus_zero()
-          :half_up when sign === 1 -> minus_zero()
+          :ceil when sign === 1 -> -0.0
+          :half_up when sign === 1 -> -0.0
           _ -> 0.0
         end
 
@@ -422,7 +411,7 @@ defmodule Float do
 
         cond do
           num == 0 and sign == 1 ->
-            minus_zero()
+            -0.0
 
           num == 0 ->
             0.0
@@ -437,11 +426,6 @@ defmodule Float do
         end
     end
   end
-
-  # TODO remove once we require Erlang/OTP 27+
-  # This function tricks the compiler to avoid this bug in previous versions:
-  # https://github.com/elixir-lang/elixir/blob/main/lib/elixir/lib/float.ex#L408-L412
-  defp minus_zero, do: -0.0
 
   defp decompose(significant, initial) do
     decompose(significant, 1, 0, initial)

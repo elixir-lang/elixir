@@ -656,7 +656,8 @@ defmodule Module do
       @spec module_info(:attributes) :: keyword()
       @spec module_info(:compile) :: keyword()
       @spec module_info(:md5) :: binary()
-      @spec module_info(:nifs) :: module()
+      @spec module_info(:nifs) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
       @spec module_info(:exports) :: [function_info]
         when function_info: {function_name :: atom(), arity :: non_neg_integer()}
       @spec module_info(:functions) :: [function_info]
@@ -679,7 +680,7 @@ defmodule Module do
   information. For documentation, see `c:Module.__info__/1`.
   '''
 
-  @type definition :: {atom, arity}
+  @type definition :: {function_name :: atom, arity}
   @type def_kind :: :def | :defp | :defmacro | :defmacrop
 
   @type create_opts :: [
@@ -958,7 +959,7 @@ defmodule Module do
 
   It handles binaries and atoms.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -984,7 +985,7 @@ defmodule Module do
   It handles binaries and atoms. If one of the aliases
   is nil, it is discarded.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -1015,7 +1016,7 @@ defmodule Module do
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -1039,7 +1040,7 @@ defmodule Module do
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
 
-  > #### Untracked compile-time dependencies {. :warning}
+  > #### Untracked compile-time dependencies {: .warning}
   >
   > Use this function with care, as dynamically defining
   > module names at compilation time may lead to
@@ -1249,17 +1250,18 @@ defmodule Module do
 
   """
   @spec defines?(module, definition) :: boolean
-  def defines?(module, {name, arity} = tuple)
-      when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
+  def defines?(module, {function_name, arity} = definition)
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 do
     {set, _bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_defines?)
-    :ets.member(set, {:def, tuple})
+    :ets.member(set, {:def, definition})
   end
 
   @doc """
   Checks if the module defines a function or macro of the
-  given `kind`.
+  given kind.
 
-  `kind` can be any of `:def`, `:defp`, `:defmacro`, or `:defmacrop`.
+  `def_kind` can be any of `:def`, `:defp`, `:defmacro`, or `:defmacrop`.
 
   This function can only be used on modules that have not yet been compiled.
   Use `Kernel.function_exported?/3` and `Kernel.macro_exported?/3` to check for
@@ -1275,12 +1277,13 @@ defmodule Module do
 
   """
   @spec defines?(module, definition, def_kind) :: boolean
-  def defines?(module, {name, arity} = tuple, def_kind)
-      when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
+  def defines?(module, {function_name, arity} = definition, def_kind)
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 and
              def_kind in [:def, :defp, :defmacro, :defmacrop] do
     {set, _bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_defines?)
 
-    case :ets.lookup(set, {:def, tuple}) do
+    case :ets.lookup(set, {:def, definition}) do
       [{_, ^def_kind, _, _, _, _}] -> true
       _ -> false
     end
@@ -1293,7 +1296,9 @@ defmodule Module do
   """
   @doc since: "1.7.0"
   @spec defines_type?(module, definition) :: boolean
-  def defines_type?(module, definition) when is_atom(module) do
+  def defines_type?(module, {function_name, arity} = definition)
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 do
     Kernel.Typespec.defines_type?(module, definition)
   end
 
@@ -1306,7 +1311,9 @@ defmodule Module do
   """
   @doc since: "1.7.0"
   @spec spec_to_callback(module, definition) :: boolean
-  def spec_to_callback(module, definition) do
+  def spec_to_callback(module, {function_name, arity} = definition)
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 do
     Kernel.Typespec.spec_to_callback(module, definition)
   end
 
@@ -1358,7 +1365,7 @@ defmodule Module do
 
   """
   @doc since: "1.13.0"
-  @spec overridables_in(module) :: [atom]
+  @spec overridables_in(module) :: [definition]
   def overridables_in(module) when is_atom(module) do
     assert_not_compiled!(__ENV__.function, module, :all)
     :elixir_overridable.overridables_for(module)
@@ -1407,10 +1414,10 @@ defmodule Module do
 
   """
   @spec definitions_in(module, def_kind) :: [definition]
-  def definitions_in(module, kind)
-      when is_atom(module) and kind in [:def, :defp, :defmacro, :defmacrop] do
+  def definitions_in(module, def_kind)
+      when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
     {set, _} = data_tables_for!(module, __ENV__.function, @extra_error_msg_definitions_in)
-    :ets.select(set, [{{{:def, :"$1"}, kind, :_, :_, :_, :_}, [], [:"$1"]}])
+    :ets.select(set, [{{{:def, :"$1"}, def_kind, :_, :_, :_, :_}, [], [:"$1"]}])
   end
 
   @doc """
@@ -1441,16 +1448,17 @@ defmodule Module do
            [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
           | nil
   @doc since: "1.12.0"
-  def get_definition(module, {name, arity}, options \\ [])
-      when is_atom(module) and is_atom(name) and is_integer(arity) and is_list(options) do
+  def get_definition(module, {function_name, arity} = _definition, options \\ [])
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 and is_list(options) do
     {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
-    case :ets.lookup(set, {:def, {name, arity}}) do
+    case :ets.lookup(set, {:def, {function_name, arity}}) do
       [{_key, kind, meta, _, _, _}] ->
         clauses =
           if options[:skip_clauses],
             do: [],
-            else: bag_lookup_element(bag, {:clauses, {name, arity}}, 2)
+            else: bag_lookup_element(bag, {:clauses, {function_name, arity}}, 2)
 
         {:v1, kind, meta, clauses}
 
@@ -1467,10 +1475,11 @@ defmodule Module do
   """
   @doc since: "1.12.0"
   @spec delete_definition(module, definition) :: boolean()
-  def delete_definition(module, {name, arity})
-      when is_atom(module) and is_atom(name) and is_integer(arity) do
+  def delete_definition(module, {function_name, arity} = _definition)
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 do
     assert_not_compiled!(__ENV__.function, module, :writeable)
-    :elixir_def.take_definition(module, {name, arity}) != false
+    :elixir_def.take_definition(module, {function_name, arity}) != false
   end
 
   @doc """
@@ -1486,20 +1495,20 @@ defmodule Module do
   given.
   """
   @spec make_overridable(module, [definition]) :: :ok
-  def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
+  def make_overridable(module, definitions) when is_atom(module) and is_list(definitions) do
     assert_not_compiled!(__ENV__.function, module, :writeable)
 
     func = fn
-      {function_name, arity} = tuple
+      {function_name, arity} = definition
       when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
-        case :elixir_def.take_definition(module, tuple) do
+        case :elixir_def.take_definition(module, definition) do
           false ->
             raise ArgumentError,
                   "cannot make function #{function_name}/#{arity} " <>
                     "overridable because it was not defined"
 
           clause ->
-            :elixir_overridable.record_overridable(module, tuple, clause)
+            :elixir_overridable.record_overridable(module, definition, clause)
         end
 
       other ->
@@ -1508,7 +1517,7 @@ defmodule Module do
                 "{function_name :: atom, arity :: 0..255} tuple, got: #{inspect(other)}"
     end
 
-    :lists.foreach(func, tuples)
+    :lists.foreach(func, definitions)
   end
 
   @spec make_overridable(module, module) :: :ok
@@ -1566,9 +1575,10 @@ defmodule Module do
   exists or one is pending.
   """
   @spec overridable?(module, definition) :: boolean
-  def overridable?(module, {function_name, arity} = tuple)
-      when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
-    :elixir_overridable.overridable_for(module, tuple) != :not_overridable
+  def overridable?(module, {function_name, arity} = definition)
+      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity >= 0 and
+             arity <= 255 do
+    :elixir_overridable.overridable_for(module, definition) != :not_overridable
   end
 
   @doc """
