@@ -75,8 +75,8 @@ ex_unit_opts =
     trace: !!System.get_env("TRACE"),
     exclude:
       epmd_exclude ++
-        deterministic_exclude ++
-        os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude ++ re_import_exclude, ++ gleam_exclude
+        deterministic_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++
+        cover_exclude ++ re_import_exclude ++ gleam_exclude,
     include: line_include,
     assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
   ] ++ maybe_seed_opt
