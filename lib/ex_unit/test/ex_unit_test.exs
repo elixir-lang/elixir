@@ -1021,6 +1021,8 @@ defmodule ExUnitTest do
       runs = String.split(output, "Running ExUnit", trim: true)
       # 6 runs in total, 5 repeats
       assert length(runs) == 6
+      assert output =~ "remaining_runs: 5"
+      assert output =~ "remaining_runs: 0"
     end
 
     test "repeats tests up to the configured number of times with groups" do
@@ -1039,6 +1041,8 @@ defmodule ExUnitTest do
       runs = String.split(output, "Running ExUnit", trim: true)
       # 6 runs in total, 5 repeats
       assert length(runs) == 6
+      assert output =~ "remaining_runs: 5"
+      assert output =~ "remaining_runs: 0"
     end
 
     test "stops on failure" do
@@ -1080,6 +1084,7 @@ defmodule ExUnitTest do
       # four runs in total, the first two repeats work fine, the third repeat (4th run)
       # fails, therefore we stop
       assert length(runs) == 4
+      assert output =~ "remaining_runs: 2"
       assert List.last(runs) =~ "Expected truthy, got false"
     end
   end

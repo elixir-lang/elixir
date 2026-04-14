@@ -12,7 +12,18 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    IO.puts("Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}")
+    remaining =
+      if opts[:repeat_until_failure] > 0 do
+        ", remaining_runs: #{opts[:repeat_until_failure_remaining]}"
+      else
+        ""
+      end
+
+    IO.puts([
+      "Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}",
+      remaining
+    ])
+
     print_filters(opts, :exclude)
     print_filters(opts, :include)
     IO.puts("")
