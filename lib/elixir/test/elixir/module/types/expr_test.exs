@@ -60,7 +60,10 @@ defmodule Module.Types.ExprTest do
 
       assert typecheck!([:ok, 123]) == non_empty_list(union(atom([:ok]), integer()))
       assert typecheck!([:ok | 123]) == non_empty_list(atom([:ok]), integer())
-      assert typecheck!([x], [:ok, x]) == dynamic(non_empty_list(term()))
+
+      assert typecheck!([x], [:ok, x])
+             |> equal?(union(non_empty_list(atom([:ok])), dynamic(non_empty_list(term()))))
+
       assert typecheck!([x], [:ok | x]) == dynamic(non_empty_list(term(), term()))
     end
 
