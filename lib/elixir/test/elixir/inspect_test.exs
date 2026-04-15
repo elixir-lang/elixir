@@ -268,6 +268,36 @@ defmodule Inspect.TupleTest do
   end
 end
 
+defmodule Inspect.NativeRecordTest do
+  use ExUnit.Case, async: true
+
+  @moduletag skip: System.otp_release() < "29"
+
+  @tag :tmp_dir
+  test "basic", %{tmp_dir: tmp_dir} do
+    File.write!("#{tmp_dir}/native_records_test.erl", """
+    -module(native_records_test).
+    -export([test/0]).
+    -record #point{ x = 0.0, y = 0.0 }.
+
+    test() ->
+        #point{}.
+    """)
+
+    {"", 0} = System.cmd("erlc", ["native_records_test.erl"], cd: tmp_dir, stderr_to_stdout: true)
+
+    {:module, _} =
+      :code.load_binary(
+        :native_records_test,
+        ~c"nofile",
+        File.read!("#{tmp_dir}/native_records_test.beam")
+      )
+
+    assert inspect(apply(:native_records_test, :test, [])) ==
+             "#native_records_test:point{x = 0.0,y = 0.0}"
+  end
+end
+
 defmodule Inspect.ListTest do
   use ExUnit.Case, async: true
 
