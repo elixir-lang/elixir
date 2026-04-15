@@ -293,6 +293,28 @@ defmodule Registry.DuplicateTest do
     assert Registry.keys(registry, self()) |> Enum.sort() == [:_, "hello", "hello"]
   end
 
+  test "match supports tricky keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, {1, :atom})
+    {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, "hello", "a")
+
+    assert Registry.match(registry, :_, {:_, :atom}) |> Enum.sort() ==
+             [{self(), {1, :atom}}, {self(), {2, :atom}}]
+
+    assert Registry.match(registry, :_, {1, :_}) == [{self(), {1, :atom}}]
+    assert Registry.match(registry, "hello", :_) == [{self(), "a"}]
+  end
+
+  test "count_match supports tricky keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, {1, :atom})
+    {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, "hello", "a")
+
+    assert Registry.count_match(registry, :_, {:_, :atom}) == 2
+    assert Registry.count_match(registry, :_, {1, :_}) == 1
+    assert Registry.count_match(registry, "hello", :_) == 1
+  end
+
   @tag base_listener: :unique_listener
   test "allows listeners", %{registry: registry, listeners: [listener]} do
     Process.register(self(), listener)

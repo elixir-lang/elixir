@@ -1686,6 +1686,10 @@ defmodule Registry do
     end
   end
 
+  # For {:duplicate, :key} registries, the ETS entry layout is
+  # {{key, pid, counter}, value} (ordered_set with composite key),
+  # so :"$_" refers to that whole tuple. The body extracts {pid, value}
+  # to match the public API's return shape of [{pid, value}].
   defp match_spec({:duplicate, :key}, key, pattern, guards) do
     body = [{{{:element, 2, {:element, 1, :"$_"}}, {:element, 2, :"$_"}}}]
 
