@@ -203,3 +203,25 @@ make docs
 This will produce documentation sets for `elixir`, `eex`, `ex_unit`, `iex`, `logger`,
 and `mix` under the `doc` directory. If you are planning to contribute documentation,
 [please check our best practices for writing documentation](https://hexdocs.pm/elixir/writing-documentation.html).
+
+## AI contributions
+
+AI agents MUST NOT add Signed-off-by tags. Only humans can legally certify the Developer
+Certificate of Origin (DCO). The human submitter is responsible for:
+
+  * Reviewing all AI-generated code
+  * Ensuring compliance with licensing requirements
+  * Adding their own Signed-off-by tag to certify the DCO
+  * Taking full responsibility for the contribution
+  * Disclosing use of AI for comments and code contributions
+
+When AI tools contribute to Elixir, proper attribution helps track the evolving role of
+AI in the development process. Contributions should include an Assisted-by tag in the
+following format:
+
+    Assisted-by: AGENT_NAME:MODEL_VERSION
+
+When it comes to discussions, please be mindful about the use of AI. Using AI to help
+express yourself is welcome but avoid simply copy and pasting large AI generated content.
+Elixir maintainers also have access to coding agents and, if they need feedback from an
+agentic systems, they can request such themselves.
