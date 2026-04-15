@@ -262,18 +262,13 @@ defmodule Module.Types.Pattern do
   @doc """
   Computes the domain from the pattern tree and expected types.
 
-  Note we use `upper_bound` because the user of dynamic in the signature
+  Note we use `upper_bound` because the use of dynamic in the signature
   won't make a difference.
   """
-  def of_domain([{tree, expected, _pattern} | trees], stack, context) do
-    [
-      intersection(of_pattern_tree(tree, stack, context), expected) |> upper_bound()
-      | of_domain(trees, stack, context)
-    ]
-  end
-
-  def of_domain([], _stack, _context) do
-    []
+  def of_domain(trees, stack, context) do
+    Enum.map(trees, fn {tree, _, _} ->
+      tree |> of_pattern_tree(stack, context) |> upper_bound()
+    end)
   end
 
   defp of_pattern_args_zip(
