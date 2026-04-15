@@ -215,7 +215,7 @@ defmodule CodeTest do
       end
     end
 
-    test "prunes elixir_expand from macro expansion stacktraces" do
+    test "prunes internal modules from macro expansion stacktraces" do
       defmodule PruneStacktraceMacro do
         defmacro bad do
           quote do
@@ -236,7 +236,10 @@ defmodule CodeTest do
           CompileError -> __STACKTRACE__
         end
 
-      refute Enum.any?(stacktrace, &match?({:elixir_expand, :expand, 3, _}, &1))
+      refute Enum.any?(
+               stacktrace,
+               &match?({mod, _, _, _} when mod in [:elixir_expand, :elixir_dispatch], &1)
+             )
     end
 
     test "warns when lexical tracker process is dead" do
