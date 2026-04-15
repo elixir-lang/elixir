@@ -3029,63 +3029,7 @@ defmodule Module.Types.Descr do
 
   defp map_intersection(bdd_leaf(:open, []), bdd), do: bdd
   defp map_intersection(bdd, bdd_leaf(:open, [])), do: bdd
-  defp map_intersection(bdd1, bdd2), do: map_bdd_intersection(bdd1, bdd2)
-
-  # A variant of bdd_intersection/3 that only continues if the maps are closed
-  # or both sides are leafs.
-  #
-  # This is necessary because the intersection of open maps end-up accumulating
-  # fields and it is unlikely to eliminate, which would lead to explosions.
-  # However, note this optimization only works because closed nodes come first
-  # in the BDD representation. If that was not the case, open nodes would come
-  # first and this optimization would not happen if they were mixed.
-  defp map_bdd_intersection(bdd_leaf(_, _) = leaf1, bdd_leaf(_, _) = leaf2) do
-    map_leaf_intersection(leaf1, leaf2)
-  end
-
-  defp map_bdd_intersection(bdd_leaf(:closed, _) = leaf, bdd) do
-    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
-  end
-
-  defp map_bdd_intersection(bdd, bdd_leaf(:closed, _) = leaf) do
-    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
-  end
-
-  defp map_bdd_intersection({bdd_leaf(:closed, _) = leaf, :bdd_top, u, d}, bdd) do
-    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
-    |> bdd_union(map_bdd_intersection(u, bdd))
-    |> case do
-      result when d == :bdd_bot -> result
-      result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
-    end
-  end
-
-  defp map_bdd_intersection(bdd, {bdd_leaf(:closed, _) = leaf, :bdd_top, u, d}) do
-    bdd_leaf_intersection(leaf, bdd, &map_leaf_intersection/2)
-    |> bdd_union(map_bdd_intersection(u, bdd))
-    |> case do
-      result when d == :bdd_bot -> result
-      result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
-    end
-  end
-
-  defp map_bdd_intersection({bdd_leaf(:closed, _) = leaf, :bdd_bot, u, d}, bdd) do
-    case map_bdd_intersection(u, bdd) do
-      result when d == :bdd_bot -> result
-      result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
-    end
-  end
-
-  defp map_bdd_intersection(bdd, {bdd_leaf(:closed, _) = leaf, :bdd_bot, u, d}) do
-    case map_bdd_intersection(u, bdd) do
-      result when d == :bdd_bot -> result
-      result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
-    end
-  end
-
-  defp map_bdd_intersection(bdd1, bdd2) do
-    bdd_intersection(bdd1, bdd2)
-  end
+  defp map_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2, &map_leaf_intersection/2)
 
   defp map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     try do
@@ -6090,11 +6034,17 @@ defmodule Module.Types.Descr do
   # the number of nodes in the tree. So whenever we have a leaf,
   # we actually propagate it throughout the whole tree, cutting
   # down nodes.
-  defp bdd_intersection(bdd_leaf(_, _) = leaf, bdd, leaf_intersection) do
+  defguardp is_not_open(leaf) when elem(leaf, 0) != :open
+
+  defp bdd_intersection(bdd_leaf(_, _) = leaf1, bdd_leaf(_, _) = leaf2, leaf_intersection) do
+    leaf_intersection.(leaf1, leaf2)
+  end
+
+  defp bdd_intersection(bdd_leaf(_, _) = leaf, bdd, leaf_intersection) when is_not_open(leaf) do
     bdd_leaf_intersection(leaf, bdd, leaf_intersection)
   end
 
-  defp bdd_intersection(bdd, bdd_leaf(_, _) = leaf, leaf_intersection) do
+  defp bdd_intersection(bdd, bdd_leaf(_, _) = leaf, leaf_intersection) when is_not_open(leaf) do
     bdd_leaf_intersection(leaf, bdd, leaf_intersection)
   end
 
@@ -6109,7 +6059,7 @@ defmodule Module.Types.Descr do
   #
   #     (U2 or (not a1 and D2)) and B2
   #     (B2 and U2) or (B2 and not a1 and D2)
-  defp bdd_intersection({leaf, :bdd_top, u, d}, bdd, leaf_intersection) do
+  defp bdd_intersection({leaf, :bdd_top, u, d}, bdd, leaf_intersection) when is_not_open(leaf) do
     bdd_leaf_intersection(leaf, bdd, leaf_intersection)
     |> bdd_union(bdd_intersection(u, bdd, leaf_intersection))
     |> case do
@@ -6118,7 +6068,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp bdd_intersection(bdd, {leaf, :bdd_top, u, d}, leaf_intersection) do
+  defp bdd_intersection(bdd, {leaf, :bdd_top, u, d}, leaf_intersection) when is_not_open(leaf) do
     bdd_leaf_intersection(leaf, bdd, leaf_intersection)
     |> bdd_union(bdd_intersection(u, bdd, leaf_intersection))
     |> case do
@@ -6127,14 +6077,14 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp bdd_intersection({leaf, :bdd_bot, u, d}, bdd, leaf_intersection) do
+  defp bdd_intersection({leaf, :bdd_bot, u, d}, bdd, leaf_intersection) when is_not_open(leaf) do
     case bdd_intersection(u, bdd, leaf_intersection) do
       result when d == :bdd_bot -> result
       result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
     end
   end
 
-  defp bdd_intersection(bdd, {leaf, :bdd_bot, u, d}, leaf_intersection) do
+  defp bdd_intersection(bdd, {leaf, :bdd_bot, u, d}, leaf_intersection) when is_not_open(leaf) do
     case bdd_intersection(u, bdd, leaf_intersection) do
       result when d == :bdd_bot -> result
       result -> bdd_union(result, bdd_intersection(bdd, {leaf, :bdd_bot, :bdd_bot, d}))
@@ -6156,6 +6106,9 @@ defmodule Module.Types.Descr do
       bdd_leaf(_, _) ->
         intersection.(leaf, bdd)
 
+      {bdd_leaf(:open, _), _, _, _} ->
+        bdd_intersection(leaf, bdd)
+
       {lit, c, u, _} when lit == leaf ->
         case bdd_union(c, u) do
           :bdd_bot -> :bdd_bot
@@ -6169,12 +6122,13 @@ defmodule Module.Types.Descr do
             bdd_difference(bdd_leaf_intersection(leaf, d, intersection), lit)
           )
 
-        with true <- c != :bdd_bot,
-             new_leaf = intersection.(leaf, lit),
-             true <- new_leaf != :bdd_bot do
-          bdd_union(bdd_leaf_intersection(new_leaf, c, intersection), rest)
+        if c == :bdd_bot do
+          rest
         else
-          _ -> rest
+          case intersection.(leaf, lit) do
+            :bdd_bot -> rest
+            new_leaf -> bdd_union(bdd_leaf_intersection(new_leaf, c, intersection), rest)
+          end
         end
     end
   end
