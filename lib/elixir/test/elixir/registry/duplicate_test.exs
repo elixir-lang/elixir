@@ -501,6 +501,40 @@ defmodule Registry.DuplicateTest do
              ])
   end
 
+  test "select supports tricky keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, {1, :atom})
+    {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, "hello", "a")
+
+    # Use a guard to match the literal :_ key, since :_ in the match head is a wildcard
+    assert [{self(), {1, :atom}}, {self(), {2, :atom}}] ==
+             Registry.select(registry, [
+               {{:"$1", :"$2", :"$3"}, [{:"=:=", :"$1", {:const, :_}}], [{{:"$2", :"$3"}}]}
+             ])
+             |> Enum.sort()
+
+    assert [{self(), "a"}] ==
+             Registry.select(registry, [
+               {{"hello", :"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}
+             ])
+  end
+
+  test "count_select supports tricky keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, {1, :atom})
+    {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, "hello", "a")
+
+    assert 2 ==
+             Registry.count_select(registry, [
+               {{:"$1", :_, :_}, [{:"=:=", :"$1", {:const, :_}}], [true]}
+             ])
+
+    assert 1 ==
+             Registry.count_select(registry, [
+               {{"hello", :_, :_}, [], [true]}
+             ])
+  end
+
   test "rejects invalid tuple syntax", %{partitions: partitions} do
     name = :"test_invalid_tuple_#{partitions}"
 
