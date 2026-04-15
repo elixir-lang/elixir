@@ -18,6 +18,7 @@ defmodule Module.Types.Pattern do
   defp empty_previous?({[], _}), do: true
   defp empty_previous?({[_ | _], _}), do: false
 
+  # Previous is always an upper bound (static), so we can use subtype?
   defp previous_subtype?(_, {[], _}), do: false
   defp previous_subtype?([], _), do: true
   defp previous_subtype?(args, {_, descr}), do: subtype?(args_to_previous(args), descr)
@@ -1258,12 +1259,12 @@ defmodule Module.Types.Pattern do
 
   defp of_remote(fun, _args, call, expected, stack, context)
        when fun in [:and, :or, :andalso, :orelse] do
-    {both_domain, abort_domain, always_rhs?} =
+    {boolean, abort_domain, always_rhs?} =
       case fun do
-        :andalso -> {@atom_true, @atom_false, false}
-        :orelse -> {@atom_false, @atom_true, false}
-        :and -> {@atom_true, @atom_false, true}
-        :or -> {@atom_false, @atom_true, true}
+        :andalso -> {true, @atom_false, false}
+        :orelse -> {false, @atom_true, false}
+        :and -> {true, @atom_false, true}
+        :or -> {false, @atom_true, true}
       end
 
     # If we have multiple operations in a row,
@@ -1279,7 +1280,7 @@ defmodule Module.Types.Pattern do
     # only be true if both clauses are executed, so we know the first
     # argument has to be true and the second has to be expected.
     cond do
-      is_nil(context.pattern_info) or subtype?(expected, both_domain) ->
+      is_nil(context.pattern_info) or booleaness(expected) == {boolean, :always} ->
         of_logical_all([left | right], true, expected, abort_domain, stack, context)
 
       right == [] ->

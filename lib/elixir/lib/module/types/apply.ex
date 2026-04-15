@@ -393,6 +393,7 @@ defmodule Module.Types.Apply do
     case sized_order(name, left, right, expected) do
       {arg, expected, precise?, return} ->
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
+        # expected is a static type, so we can use subtype? rather than compatible?
         result = if precise? and subtype?(actual, expected), do: return, else: boolean()
         {result, context}
 
@@ -525,9 +526,10 @@ defmodule Module.Types.Apply do
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
 
           cond do
-            # Return a precise result
-            singleton? and subtype?(arg_type, expected) ->
-              {return(return, [arg_type, expected], stack), context}
+            # expected can have dynamic terms but, since we have verified
+            # them to be singletons, we can compute the upper bound.
+            singleton? and subtype?(arg_type, upper_bound(expected)) ->
+              {return, context}
 
             # Singleton types with reverse polarity are negated, so we don't check for disjoint
             (singleton? and not polarity) or not is_warning(stack) ->
@@ -608,6 +610,8 @@ defmodule Module.Types.Apply do
           end
 
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
+
+        # expected here is a static type, so subtyping relation is fine
         result = if precise? and subtype?(actual, expected), do: return, else: boolean()
 
         # We can skip return compare because literal is always an integer,
@@ -635,7 +639,7 @@ defmodule Module.Types.Apply do
         if singleton?(type) do
           expected = if polarity, do: type, else: negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
-          result = if subtype?(arg_type, expected), do: return, else: boolean()
+          result = if subtype?(arg_type, upper_bound(expected)), do: return, else: boolean()
 
           # Because reverse polarity means we will infer negated types
           # (which are naturally disjoint), we skip checks in such cases
