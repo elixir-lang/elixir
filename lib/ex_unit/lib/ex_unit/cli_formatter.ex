@@ -13,7 +13,7 @@ defmodule ExUnit.CLIFormatter do
 
   def init(opts) do
     remaining =
-      if opts[:remaining_runs] > 0 do
+      if opts[:repeat_until_failure] > 0 do
         ", remaining_runs: #{opts[:remaining_runs]}"
       else
         ""
