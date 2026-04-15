@@ -928,7 +928,7 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
-    test "redundant clause checking of mixed open and closed maps" do
+    test "redundant clause checking of mixed open and closed maps (1)" do
       files = %{
         "mixed_open_closed_maps.ex" => """
         defmodule MixedOpenClosedMaps do
@@ -976,6 +976,59 @@ defmodule Module.Types.IntegrationTest do
           # Having the closed map and the struct overlap on a key is important
           def render(%SValue{}), do: :ok
           def render(%{value: value}), do: value
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "redundant clause checking of mixed open and closed maps (2)" do
+      files = %{
+        "mixed_open_closed_maps.ex" => """
+        defmodule MixedOpenClose.Roles do
+          defstruct engineering_admin: false,
+                    admin: false,
+                    support: false,
+                    service_desk: false,
+                    sales: false
+        end
+
+        defmodule MixedOpenClose.User do
+          defstruct roles: %MixedOpenClose.Roles{}
+        end
+
+        defmodule MixedOpenClose.Policy do
+          alias MixedOpenClose.{User, Roles}
+
+          @admin_actions [
+            :access,
+            :edit,
+            :manage_roles,
+            :global_search,
+            :get_users_with_roles,
+            :deactivate,
+            :reactivate,
+            :confirm_email,
+            :soft_delete
+          ]
+
+          def can?(%User{roles: %Roles{support: true}}, _a, action)
+              when action in [:global_search, :confirm_email, :get_users_with_roles], do: true
+
+          def can?(%User{roles: %Roles{service_desk: true}}, _a, action)
+              when action in [:global_search, :confirm_email], do: true
+
+          def can?(%User{roles: %Roles{sales: true}}, _a, action)
+              when action in [:edit, :confirm_email], do: true
+
+          def can?(%User{roles: roles}, _a, action)
+              when action in @admin_actions and (roles.admin == true or roles.engineering_admin == true),
+              do: true
+
+          def can?(user, %URI{} = uri, action), do: can?(user, uri, action)
+
+          def can?(_a, _b, _c), do: false
         end
         """
       }
