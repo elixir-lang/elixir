@@ -570,6 +570,8 @@ defmodule ExUnit do
   end
 
   defp maybe_repeated_run(options, seed, load_us, repeat) do
+    options = Keyword.put(options, :remaining_runs, repeat)
+
     case ExUnit.Runner.run(options, load_us) do
       {%{failures: 0}, {async_modules, sync_modules}}
       when repeat > 0 and (sync_modules != [] or async_modules != []) ->
