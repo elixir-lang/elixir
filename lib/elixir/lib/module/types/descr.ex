@@ -2130,9 +2130,31 @@ defmodule Module.Types.Descr do
   #
   # none() types can be given and, while stored, it means the list type is empty.
   defp list_descr(list_type, last_type, empty?) do
-    {list_dynamic?, list_type} = list_pop_dynamic(list_type)
-    {last_dynamic?, last_type} = list_pop_dynamic(last_type)
+    {dynamic_list_type, static_list_type} = pop_dynamic(list_type)
+    {dynamic_last_type, static_last_type} = pop_dynamic(last_type)
+    dynamic? = dynamic_list_type != static_list_type or dynamic_last_type != static_last_type
+    static_possible? = not empty?(static_list_type) and not empty?(static_last_type)
 
+    dynamic_descr = list_descr_build(dynamic_list_type, dynamic_last_type, empty?)
+
+    cond do
+      empty?(dynamic_descr) ->
+        %{}
+
+      dynamic? ->
+        if not static_possible? do
+          %{dynamic: dynamic_descr}
+        else
+          static_descr = list_descr_build(static_list_type, static_last_type, empty?)
+          Map.put(static_descr, :dynamic, dynamic_descr)
+        end
+
+      true ->
+        dynamic_descr
+    end
+  end
+
+  defp list_descr_build(list_type, last_type, empty?) do
     list_part =
       if last_type == :term do
         list_new(:term, :term)
@@ -2163,13 +2185,7 @@ defmodule Module.Types.Descr do
         end
       end
 
-    list_descr =
-      if empty?, do: %{list: list_part, bitmap: @bit_empty_list}, else: %{list: list_part}
-
-    case list_dynamic? or last_dynamic? do
-      true -> %{dynamic: list_descr}
-      false -> list_descr
-    end
+    if empty?, do: %{list: list_part, bitmap: @bit_empty_list}, else: %{list: list_part}
   end
 
   defp list_new(list_type, last_type), do: bdd_leaf(list_type, last_type)
@@ -2214,15 +2230,6 @@ defmodule Module.Types.Descr do
           end
       end
     end)
-  end
-
-  defp list_pop_dynamic(:term), do: {false, :term}
-
-  defp list_pop_dynamic(descr) do
-    case :maps.take(:dynamic, descr) do
-      :error -> {false, descr}
-      {dynamic, _} -> {true, dynamic}
-    end
   end
 
   defp list_tail_unfold(:term), do: @not_non_empty_list
@@ -2772,8 +2779,29 @@ defmodule Module.Types.Descr do
   defp domain_key_to_descr(:list), do: @list_top
 
   defp map_descr(tag, pairs) do
-    {fields, domains, dynamic?} = map_descr_pairs(pairs, [], @fields_new, false)
+    {fields, domains, dynamic_fields, dynamic_domains, dynamic?, static_possible?} =
+      map_descr_pairs(pairs, [], @fields_new, [], @fields_new, false, true)
 
+    dynamic_descr = map_descr_build(tag, dynamic_fields, dynamic_domains)
+
+    cond do
+      empty?(dynamic_descr) ->
+        %{}
+
+      dynamic? ->
+        if not static_possible? do
+          %{dynamic: dynamic_descr}
+        else
+          static_descr = map_descr_build(tag, fields, domains)
+          Map.put(static_descr, :dynamic, dynamic_descr)
+        end
+
+      true ->
+        dynamic_descr
+    end
+  end
+
+  defp map_descr_build(tag, fields, domains) do
     map_new =
       if not is_fields_empty(domains) do
         domains =
@@ -2789,10 +2817,7 @@ defmodule Module.Types.Descr do
         map_new(tag, fields)
       end
 
-    case dynamic? do
-      true -> %{dynamic: %{map: map_new}}
-      false -> %{map: map_new}
-    end
+    %{map: map_new}
   end
 
   defp map_put_domain(domain, domain_keys, value) when is_list(domain_keys) do
@@ -2813,28 +2838,89 @@ defmodule Module.Types.Descr do
 
   defp map_put_domain(domain, [], _initial, _value), do: domain
 
-  defp map_descr_pairs([{key, :term} | rest], fields, domain, dynamic?) do
+  defp map_descr_pairs(
+         [{key, :term} | rest],
+         fields,
+         domain,
+         dynamic_fields,
+         dynamic_domain,
+         dynamic?,
+         static_possible?
+       ) do
     case is_atom(key) do
-      true -> map_descr_pairs(rest, [{key, :term} | fields], domain, dynamic?)
-      false -> map_descr_pairs(rest, fields, map_put_domain(domain, key, :term), dynamic?)
+      true ->
+        map_descr_pairs(
+          rest,
+          [{key, :term} | fields],
+          domain,
+          [{key, :term} | dynamic_fields],
+          dynamic_domain,
+          dynamic?,
+          static_possible?
+        )
+
+      false ->
+        map_descr_pairs(
+          rest,
+          fields,
+          map_put_domain(domain, key, :term),
+          dynamic_fields,
+          map_put_domain(dynamic_domain, key, :term),
+          dynamic?,
+          static_possible?
+        )
     end
   end
 
-  defp map_descr_pairs([{key, value} | rest], fields, domain, dynamic?) do
-    {value, dynamic?} =
-      case :maps.take(:dynamic, value) do
-        :error -> {value, dynamic?}
-        {dynamic, _static} -> {dynamic, true}
-      end
+  defp map_descr_pairs(
+         [{key, value} | rest],
+         fields,
+         domain,
+         dynamic_fields,
+         dynamic_domain,
+         dynamic?,
+         static_possible?
+       ) do
+    {dynamic_value, static_value} = pop_dynamic(value)
+    dynamic? = dynamic? or dynamic_value != static_value
+    static_possible? = static_possible? and not empty?(static_value)
 
     case is_atom(key) do
-      true -> map_descr_pairs(rest, [{key, value} | fields], domain, dynamic?)
-      false -> map_descr_pairs(rest, fields, map_put_domain(domain, key, value), dynamic?)
+      true ->
+        map_descr_pairs(
+          rest,
+          [{key, static_value} | fields],
+          domain,
+          [{key, dynamic_value} | dynamic_fields],
+          dynamic_domain,
+          dynamic?,
+          static_possible?
+        )
+
+      false ->
+        map_descr_pairs(
+          rest,
+          fields,
+          map_put_domain(domain, key, static_value),
+          dynamic_fields,
+          map_put_domain(dynamic_domain, key, dynamic_value),
+          dynamic?,
+          static_possible?
+        )
     end
   end
 
-  defp map_descr_pairs([], fields, domain, dynamic?) do
-    {fields_from_reverse_list(fields), domain, dynamic?}
+  defp map_descr_pairs(
+         [],
+         fields,
+         domain,
+         dynamic_fields,
+         dynamic_domain,
+         dynamic?,
+         static_possible?
+       ) do
+    {fields_from_reverse_list(fields), domain, fields_from_reverse_list(dynamic_fields),
+     dynamic_domain, dynamic?, static_possible?}
   end
 
   # Gets the default type associated to atom keys in a map.
@@ -4901,46 +4987,47 @@ defmodule Module.Types.Descr do
   # - {atom(), boolean(), ...} is encoded as {:open, [atom(), boolean()]}
 
   defp tuple_descr(tag, fields) do
-    case tuple_descr(fields, [], false) do
-      :empty -> %{}
-      {fields, true} -> %{dynamic: %{tuple: tuple_new(tag, Enum.reverse(fields))}}
-      {_, false} -> %{tuple: tuple_new(tag, fields)}
+    case tuple_descr(fields, [], [], false, true) do
+      :empty ->
+        %{}
+
+      {static_fields, dynamic_fields, true, static_possible?} ->
+        dynamic_descr = %{tuple: tuple_new(tag, :lists.reverse(dynamic_fields))}
+
+        if not static_possible? do
+          %{dynamic: dynamic_descr}
+        else
+          static_descr = %{tuple: tuple_new(tag, :lists.reverse(static_fields))}
+          Map.put(static_descr, :dynamic, dynamic_descr)
+        end
+
+      {fields, _dynamic_fields, false, _static_possible?} ->
+        %{tuple: tuple_new(tag, :lists.reverse(fields))}
     end
   end
 
-  defp tuple_descr([:term | rest], acc, dynamic?) do
-    tuple_descr(rest, [:term | acc], dynamic?)
+  defp tuple_descr([:term | rest], acc, dynamic_acc, dynamic?, static_possible?) do
+    tuple_descr(rest, [:term | acc], [:term | dynamic_acc], dynamic?, static_possible?)
   end
 
-  defp tuple_descr([value | rest], acc, dynamic?) do
-    # Check if the static part is empty
-    static_empty? =
-      case value do
-        # Has dynamic component, check static separately
-        %{dynamic: _} -> false
-        _ -> empty?(value)
-      end
+  defp tuple_descr([value | rest], acc, dynamic_acc, dynamic?, static_possible?) do
+    {dynamic_value, static_value} = pop_dynamic(value)
 
-    if static_empty? do
+    if empty?(dynamic_value) do
       :empty
     else
-      case :maps.take(:dynamic, value) do
-        :error ->
-          tuple_descr(rest, [value | acc], dynamic?)
-
-        {dynamic, _static} ->
-          # Check if dynamic component is empty
-          if empty?(dynamic) do
-            :empty
-          else
-            tuple_descr(rest, [dynamic | acc], true)
-          end
-      end
+      tuple_descr(
+        rest,
+        [static_value | acc],
+        [dynamic_value | dynamic_acc],
+        dynamic? or dynamic_value != static_value,
+        static_possible? and not empty?(static_value)
+      )
     end
   end
 
-  defp tuple_descr([], acc, dynamic?) do
-    {acc, dynamic?}
+  defp tuple_descr([], acc, dynamic_acc, dynamic?, static_possible?) do
+    {acc, dynamic_acc, dynamic?, static_possible?}
   end
 
   defp tuple_new(tag, elements), do: bdd_leaf(tag, elements)

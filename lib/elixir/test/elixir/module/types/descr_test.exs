@@ -787,7 +787,7 @@ defmodule Module.Types.DescrTest do
     test "map hoists dynamic" do
       assert dynamic(open_map(a: integer())) == open_map(a: dynamic(integer()))
 
-      assert dynamic(open_map(a: union(integer(), binary()))) ==
+      assert union(open_map(a: binary()), dynamic(open_map(a: union(integer(), binary())))) ==
                open_map(a: dynamic(integer()) |> union(binary()))
 
       # For domains too
@@ -798,7 +798,40 @@ defmodule Module.Types.DescrTest do
       # if_set on dynamic fields also must work
       t1 = dynamic(open_map(a: if_set(integer())))
       t2 = open_map(a: if_set(dynamic(integer())))
-      assert t1 == t2
+      assert union(open_map(a: not_set()), t1) == t2
+    end
+
+    test "tuple preserves static part of gradual elements" do
+      x = union(atom([:ok]), dynamic(integer()))
+
+      assert tuple([x, atom([:x])]) == %{
+               tuple: {:closed, [atom([:ok]), atom([:x])]},
+               dynamic: %{tuple: {:closed, [upper_bound(x), atom([:x])]}}
+             }
+
+      assert subtype?(tuple([atom([:ok]), atom([:x])]), tuple([x, atom([:x])]))
+    end
+
+    test "closed_map preserves static part of gradual values" do
+      x = union(atom([:ok]), dynamic(integer()))
+
+      assert closed_map(a: x) == %{
+               map: {:closed, [a: atom([:ok])]},
+               dynamic: %{map: {:closed, [a: upper_bound(x)]}}
+             }
+
+      assert subtype?(closed_map(a: atom([:ok])), closed_map(a: x))
+    end
+
+    test "non_empty_list preserves static part of gradual head types" do
+      x = union(atom([:ok]), dynamic(integer()))
+
+      assert non_empty_list(x) == %{
+               list: {atom([:ok]), empty_list()},
+               dynamic: %{list: {upper_bound(x), empty_list()}}
+             }
+
+      assert subtype?(non_empty_list(atom([:ok])), non_empty_list(x))
     end
   end
 
