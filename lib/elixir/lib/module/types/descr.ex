@@ -6196,7 +6196,18 @@ defmodule Module.Types.Descr do
   def bdd_negation({_, _} = pair), do: {pair, :bdd_bot, :bdd_bot, :bdd_top}
 
   def bdd_negation({lit, c, u, d}) do
-    {lit, bdd_negation(bdd_union(c, u)), :bdd_bot, bdd_negation(bdd_union(d, u))}
+    inner =
+      {lit, bdd_negation(c), :bdd_bot, bdd_negation(d)}
+
+    case u do
+      :bdd_bot -> inner
+      _ -> bdd_intersection(inner, bdd_negation(u))
+    end
+    |> case do
+      # Full simplification necessary for e.g. formatter.ex compilation
+      {lit, c, u, c} -> bdd_union(u, c)
+      x -> x
+    end
   end
 
   def bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
