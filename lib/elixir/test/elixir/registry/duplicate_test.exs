@@ -296,22 +296,26 @@ defmodule Registry.DuplicateTest do
   test "match supports tricky keys", %{registry: registry} do
     {:ok, _} = Registry.register(registry, :_, {1, :atom})
     {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
     {:ok, _} = Registry.register(registry, "hello", "a")
 
     assert Registry.match(registry, :_, {:_, :atom}) |> Enum.sort() ==
              [{self(), {1, :atom}}, {self(), {2, :atom}}]
 
     assert Registry.match(registry, :_, {1, :_}) == [{self(), {1, :atom}}]
+    assert Registry.match(registry, :"$1", {:_, :atom}) == [{self(), {3, :atom}}]
     assert Registry.match(registry, "hello", :_) == [{self(), "a"}]
   end
 
   test "count_match supports tricky keys", %{registry: registry} do
     {:ok, _} = Registry.register(registry, :_, {1, :atom})
     {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
     {:ok, _} = Registry.register(registry, "hello", "a")
 
     assert Registry.count_match(registry, :_, {:_, :atom}) == 2
     assert Registry.count_match(registry, :_, {1, :_}) == 1
+    assert Registry.count_match(registry, :"$1", {:_, :atom}) == 1
     assert Registry.count_match(registry, "hello", :_) == 1
   end
 
@@ -504,6 +508,7 @@ defmodule Registry.DuplicateTest do
   test "select supports tricky keys", %{registry: registry} do
     {:ok, _} = Registry.register(registry, :_, {1, :atom})
     {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
     {:ok, _} = Registry.register(registry, "hello", "a")
 
     # Use a guard to match the literal :_ key, since :_ in the match head is a wildcard
@@ -517,11 +522,17 @@ defmodule Registry.DuplicateTest do
              Registry.select(registry, [
                {{"hello", :"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}
              ])
+
+    assert [{self(), {3, :atom}}] ==
+             Registry.select(registry, [
+               {{:"$2", :"$3", :"$4"}, [{:"=:=", :"$2", {:const, :"$1"}}], [{{:"$3", :"$4"}}]}
+             ])
   end
 
   test "count_select supports tricky keys", %{registry: registry} do
     {:ok, _} = Registry.register(registry, :_, {1, :atom})
     {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
     {:ok, _} = Registry.register(registry, "hello", "a")
 
     assert 2 ==
@@ -532,6 +543,11 @@ defmodule Registry.DuplicateTest do
     assert 1 ==
              Registry.count_select(registry, [
                {{"hello", :_, :_}, [], [true]}
+             ])
+
+    assert 1 ==
+             Registry.count_select(registry, [
+               {{:"$2", :_, :_}, [{:"=:=", :"$2", {:const, :"$1"}}], [true]}
              ])
   end
 
