@@ -55,7 +55,7 @@ end;
 has_unquotes({{'.', _, [_, unquote]}, _, [_]}, _) -> true;
 has_unquotes({Var, _, Ctx}, _) when is_atom(Var), is_atom(Ctx) -> false;
 has_unquotes({Name, _, Args}, QuoteLevel) when is_list(Args) ->
-  has_unquotes(Name) orelse lists:any(fun(Child) -> has_unquotes(Child, QuoteLevel) end, Args);
+  has_unquotes(Name, QuoteLevel) orelse lists:any(fun(Child) -> has_unquotes(Child, QuoteLevel) end, Args);
 has_unquotes({Left, Right}, QuoteLevel) ->
   has_unquotes(Left, QuoteLevel) orelse has_unquotes(Right, QuoteLevel);
 has_unquotes(List, QuoteLevel) when is_list(List) ->

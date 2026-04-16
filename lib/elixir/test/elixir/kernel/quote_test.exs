@@ -742,6 +742,15 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
     ast =
       quote unquote: false do
         quote do
+          unquote(x)()
+        end
+      end
+
+    refute :elixir_quote.has_unquotes(ast)
+
+    ast =
+      quote unquote: false do
+        quote do
           foo = bar(unquote_splicing(args))
         end
       end
