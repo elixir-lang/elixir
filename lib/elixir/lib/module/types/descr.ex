@@ -6190,7 +6190,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
+  # {lit, c, u, d} = (lit and c) or u or (not lit and d), so
+  # its negation is ((lit and not c) or (not lit and not d)) and not u.
   def bdd_negation(:bdd_top), do: :bdd_bot
   def bdd_negation(:bdd_bot), do: :bdd_top
   def bdd_negation({_, _} = pair), do: {pair, :bdd_bot, :bdd_bot, :bdd_top}
