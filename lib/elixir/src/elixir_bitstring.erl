@@ -115,7 +115,9 @@ concat_or_prepend_bitstring(Meta, {'<<>>', PartsMeta, Parts} = ELeft, ERight, Ac
           [{'::', Meta, [ELeft, ERight]} | Acc]
       end;
     {bitstring, _, nil} ->
-      lists:reverse(Parts, Acc)
+      lists:reverse(Parts, Acc);
+    _ ->
+      [{'::', Meta, [ELeft, ERight]} | Acc]
   end;
 concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, _E, _RequireSize) ->
   [{'::', Meta, [ELeft, ERight]} | Acc].

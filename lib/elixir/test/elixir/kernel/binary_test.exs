@@ -196,6 +196,12 @@ defmodule Kernel.BinaryTest do
     assert_compile_error(message, fn ->
       Code.eval_string(~s[<<"foo"::float>>])
     end)
+
+    assert_compile_error(message, fn ->
+      Code.compile_string(
+        "defmodule Repro do\n  def run do\n    <<(<<1>>)::integer>>\n  end\nend\n"
+      )
+    end)
   end
 
   @bitstring <<"foo", 16::4>>
