@@ -669,6 +669,11 @@ defimpl Inspect, for: Any do
     Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
   end
 
+  # A temporary clause to deal with native records until they are officially supported
+  def inspect(native_record, _opts) do
+    :io_lib.format("~p", [native_record]) |> IO.iodata_to_binary()
+  end
+
   def inspect_as_struct(map, name, infos, opts) do
     open = color_doc("#" <> name <> "<", :map, opts)
     sep = color_doc(",", :map, opts)
