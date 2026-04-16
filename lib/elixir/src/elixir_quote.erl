@@ -583,8 +583,10 @@ tail_list(Left, Right, Tail) when is_list(Right), is_list(Tail) ->
 
 tail_list(Left, Right, Tail) when is_list(Left) ->
   validate_list(Left),
-  [H | T] = lists:reverse(Tail ++ Left),
-  lists:reverse([{'|', [], [H, Right]} | T]).
+  case lists:reverse(Tail ++ Left) of
+    [H | T] -> lists:reverse([{'|', [], [H, Right]} | T]);
+    [] -> argument_error(<<"unquote_splicing/1 failed because it attempted to splice an empty list before tail position">>)
+  end.
 
 validate_list(List) ->
   case valid_ast_list(List) of

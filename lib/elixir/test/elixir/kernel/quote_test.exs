@@ -200,10 +200,17 @@ defmodule Kernel.QuoteTest do
     contents = [1, 2, 3]
 
     assert quote(do: [unquote_splicing(contents) | [1, 2, 3]]) == [1, 2, 3, 1, 2, 3]
-
     assert quote(do: [unquote_splicing(contents) | val]) == quote(do: [1, 2, 3 | val])
-
     assert quote(do: [unquote_splicing(contents) | unquote([4])]) == quote(do: [1, 2, 3, 4])
+
+    # Empty splicing
+    assert quote(do: [unquote_splicing([]) | [1, 2, 3]]) == [1, 2, 3]
+    assert quote(do: [0, unquote_splicing([]) | [1, 2, 3]]) == [0, 1, 2, 3]
+    assert quote(do: [:head, unquote_splicing([]) | :tail]) == quote(do: [:head | :tail])
+
+    assert_raise ArgumentError,
+                 ~r"unquote_splicing/1 failed because it attempted to splice an empty list",
+                 fn -> quote(do: [unquote_splicing([]) | :tail]) end
   end
 
   test "splice on stab" do
