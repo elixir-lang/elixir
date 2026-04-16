@@ -198,8 +198,10 @@ defmodule Kernel.BinaryTest do
     end)
 
     assert_compile_error(message, fn ->
+      # We need to wrap the example below in a module because
+      # we attempt to continue compilation when inside a function
       Code.compile_string(
-        "defmodule Repro do\n  def run do\n    <<(<<1>>)::integer>>\n  end\nend\n"
+        "defmodule Repro do\n  def run, do:  <<(<<1>>)::integer>>\nend\n"
       )
     end)
   end
