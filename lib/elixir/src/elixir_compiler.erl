@@ -98,9 +98,11 @@ do_is_purgeable(<<_:4/binary, Size:32, Beam/binary>>) ->
   do_is_purgeable(Rest).
 
 dispatch(Module, Fun, Args, Purgeable) ->
-  Res = Module:Fun(Args),
-  return_compiler_module(Module, Purgeable),
-  Res.
+  try
+    Module:Fun(Args)
+  after
+    return_compiler_module(Module, Purgeable)
+  end.
 
 code_fun(nil) -> '__FILE__';
 code_fun(_)   -> '__MODULE__'.
