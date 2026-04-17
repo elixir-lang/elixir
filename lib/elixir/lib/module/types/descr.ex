@@ -5749,7 +5749,7 @@ defmodule Module.Types.Descr do
   defp tuple_insert_static(descr, index, type) do
     Map.update!(descr, :tuple, fn bdd ->
       bdd_map(bdd, fn {tag, elements} ->
-        # Iff the tuple is open, then we want List.insert_at to put the new element at the correct
+        # If the tuple is open, then we want List.insert_at to put the new element at the correct
         # index, which requires filling the tuple with `term()` values first.
         # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
         # intersection with `tuple_of_size_at_least`).
