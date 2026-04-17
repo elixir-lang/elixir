@@ -5901,6 +5901,8 @@ defmodule Module.Types.Descr do
   defp bdd_difference_union(i, u1, u2),
     do: bdd_difference(i, bdd_union(u1, u2))
 
+  # We avoid unions because they are lazy and we prune
+  # intersections more actively.
   defp bdd_negation_union(u1, u2) do
     bdd_intersection(bdd_negation(u1), bdd_negation(u2))
   end
@@ -6204,11 +6206,7 @@ defmodule Module.Types.Descr do
     inner =
       {lit, bdd_negation(c), :bdd_bot, bdd_negation(d)}
 
-    case u do
-      :bdd_bot -> inner
-      _ -> bdd_intersection(inner, bdd_negation(u))
-    end
-    |> case do
+    case bdd_intersection(inner, bdd_negation(u)) do
       # Full simplification necessary for e.g. formatter.ex compilation
       {_lit, c, u, c} -> bdd_union(u, c)
       x -> x
