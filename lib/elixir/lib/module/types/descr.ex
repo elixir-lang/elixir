@@ -6210,7 +6210,7 @@ defmodule Module.Types.Descr do
     end
     |> case do
       # Full simplification necessary for e.g. formatter.ex compilation
-      {lit, c, u, c} -> bdd_union(u, c)
+      {_lit, c, u, c} -> bdd_union(u, c)
       x -> x
     end
   end
