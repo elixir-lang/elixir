@@ -5693,6 +5693,17 @@ defmodule Module.Types.Descr do
   defp tuple_insert_static(descr, index, type) do
     Map.update!(descr, :tuple, fn bdd ->
       bdd_map(bdd, fn {tag, elements} ->
+        # If the tuple is open, then we want List.insert_at to put the new element at the correct
+        # index, which requires filling the tuple with `term()` values first.
+        # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
+        # intersection with `tuple_of_size_at_least`).
+        elements =
+          if tag == :open and length(elements) < index do
+            tuple_fill(elements, index)
+          else
+            elements
+          end
+
         {tag, List.insert_at(elements, index, type)}
       end)
     end)
@@ -5812,7 +5823,7 @@ defmodule Module.Types.Descr do
             end
 
           {:eq, _, {lit, c2, u2, _d2}} ->
-            {lit, bdd_negation(bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
+            {lit, bdd_negation_union(c2, u2), :bdd_bot, :bdd_bot}
 
           {:eq, {lit, _c1, u1, d1}, _} ->
             {lit, :bdd_bot, :bdd_bot, bdd_union(d1, u1)}
@@ -5833,6 +5844,12 @@ defmodule Module.Types.Descr do
 
   defp bdd_difference_union(i, u1, u2),
     do: bdd_difference(i, bdd_union(u1, u2))
+
+  # We avoid unions because they are lazy and we prune
+  # intersections more actively.
+  defp bdd_negation_union(u1, u2) do
+    bdd_intersection(bdd_negation(u1), bdd_negation(u2))
+  end
 
   ## Optimize differences
 
@@ -6133,13 +6150,21 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Lazy negation: eliminate the union, then perform normal negation (switching leaves)
+  # {lit, c, u, d} = (lit and c) or u or (not lit and d), so
+  # its negation is ((lit and not c) or (not lit and not d)) and not u.
   def bdd_negation(:bdd_top), do: :bdd_bot
   def bdd_negation(:bdd_bot), do: :bdd_top
   def bdd_negation({_, _} = pair), do: {pair, :bdd_bot, :bdd_bot, :bdd_top}
 
   def bdd_negation({lit, c, u, d}) do
-    {lit, bdd_negation(bdd_union(c, u)), :bdd_bot, bdd_negation(bdd_union(d, u))}
+    inner =
+      {lit, bdd_negation(c), :bdd_bot, bdd_negation(d)}
+
+    case bdd_intersection(inner, bdd_negation(u)) do
+      # Full simplification necessary for e.g. formatter.ex compilation
+      {_lit, c, u, c} -> bdd_union(u, c)
+      x -> x
+    end
   end
 
   def bdd_to_dnf(bdd), do: bdd_to_dnf([], [], [], bdd)
