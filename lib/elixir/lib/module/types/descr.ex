@@ -5879,7 +5879,7 @@ defmodule Module.Types.Descr do
             end
 
           {:eq, _, {lit, c2, u2, _d2}} ->
-            {lit, bdd_negation(bdd_union(c2, u2)), :bdd_bot, :bdd_bot}
+            {lit, bdd_negation_union(c2, u2), :bdd_bot, :bdd_bot}
 
           {:eq, {lit, _c1, u1, d1}, _} ->
             {lit, :bdd_bot, :bdd_bot, bdd_union(d1, u1)}
@@ -5900,6 +5900,10 @@ defmodule Module.Types.Descr do
 
   defp bdd_difference_union(i, u1, u2),
     do: bdd_difference(i, bdd_union(u1, u2))
+
+  defp bdd_negation_union(u1, u2) do
+    bdd_intersection(bdd_negation(u1), bdd_negation(u2))
+  end
 
   ## Optimize differences
 
