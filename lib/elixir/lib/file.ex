@@ -1293,23 +1293,30 @@ defmodule File do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                case copy_file_mode(src, dest) do
-                  :ok ->
-                    Enum.reduce_while(files, [dest | acc], fn x, acc ->
-                      case do_cp_r(
-                             Path.join(src, x),
-                             Path.join(dest, x),
-                             on_conflict,
-                             dereference,
-                             acc
-                           ) do
-                        {:error, _, _} = error -> {:halt, error}
-                        acc -> {:cont, acc}
-                      end
-                    end)
+                files
+                |> Enum.reduce_while([dest | acc], fn x, acc ->
+                  case do_cp_r(
+                         Path.join(src, x),
+                         Path.join(dest, x),
+                         on_conflict,
+                         dereference,
+                         acc
+                       ) do
+                    {:error, _, _} = error -> {:halt, error}
+                    acc -> {:cont, acc}
+                  end
+                end)
+                |> case do
+                  {:error, _, _} = error ->
+                    error
 
-                  {:error, reason} ->
-                    {:error, reason, src}
+                  files ->
+                    # Change the directory after writing files in case
+                    # it was originally read only
+                    case copy_file_mode(src, dest) do
+                      :ok -> files
+                      {:error, reason} -> {:error, reason, src}
+                    end
                 end
 
               {:error, reason} ->

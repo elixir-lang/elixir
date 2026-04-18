@@ -875,7 +875,8 @@ defmodule FileTest do
       inner = Path.join(src, "inner")
 
       File.mkdir_p!(inner)
-      File.chmod!(inner, 0o700)
+      File.write!(Path.join(inner, "hello"), "world")
+      File.chmod!(inner, 0o500)
 
       try do
         File.cp_r!(src, dest)
@@ -883,7 +884,11 @@ defmodule FileTest do
         %File.Stat{mode: src_mode} = File.stat!(inner)
         %File.Stat{mode: dest_mode} = File.stat!(Path.join(dest, "inner"))
         assert src_mode == dest_mode
+
+        assert File.read!(Path.join(dest, "inner/hello")) == "world"
       after
+        File.chmod!(inner, 0o700)
+        File.chmod!(Path.join(dest, "inner"), 0o700)
         File.rm_rf!(src)
         File.rm_rf!(dest)
       end
