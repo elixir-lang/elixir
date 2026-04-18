@@ -50,7 +50,9 @@ defmodule Module.Types.Pattern do
   end
 
   defp previous_to_string({list, _}) do
-    Enum.map_join(list, "\n    ", fn types ->
+    list
+    |> Enum.reverse()
+    |> Enum.map_join("\n    ", fn types ->
       types
       |> Enum.map_join(", ", &(&1 |> upper_bound() |> to_quoted_string()))
       |> indent(4)
@@ -190,27 +192,28 @@ defmodule Module.Types.Pattern do
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
         {other_trees, _, _, _, %{failed: true} = other_context} ->
-          {other_trees, previous, other_context}
+          {other_trees, args_types, previous, other_context}
 
         {other_trees, _, _, args_types, other_context} ->
           if previous_subtype?(args_types, previous) do
             warning = {:redundant, tag, expected, args_types, previous, other_context}
-            {other_trees, previous, warn(__MODULE__, warning, meta, stack, other_context)}
+            context = warn(__MODULE__, warning, meta, stack, other_context)
+            {other_trees, args_types, previous, context}
           else
-            {trees, previous, context}
+            {trees, args_types, previous, context}
           end
       end
     else
       cond do
         check_previous? and previous_subtype?(args_types, previous) ->
           warning = {:redundant, tag, expected, args_types, previous, context}
-          {trees, previous, warn(__MODULE__, warning, meta, stack, context)}
+          {trees, args_types, previous, warn(__MODULE__, warning, meta, stack, context)}
 
         precise? ->
-          {trees, concat_previous(args_types, previous), context}
+          {trees, args_types, concat_previous(args_types, previous), context}
 
         true ->
-          {trees, previous, context}
+          {trees, args_types, previous, context}
       end
     end
   end
@@ -235,7 +238,7 @@ defmodule Module.Types.Pattern do
            of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context),
          # We compute the args types before we do the intersection with previous clauses
          args_types =
-           (with [_ | _] <- previous,
+           (with false <- empty_previous?(previous),
                  {:ok, _types, context} <-
                    of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
               trees_to_args_types(trees, stack, context)

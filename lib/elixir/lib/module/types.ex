@@ -321,28 +321,41 @@ defmodule Module.Types do
     stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
     base_info = {:def, kind, fun, expected}
 
-    {_, _, _, mapping, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], context}, fn
-        {meta, args, guards, body}, {index, total, previous, mapping, inferred, acc_context} ->
+    {_, _, _, domain, mapping, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], [], context}, fn
+        {meta, args, guards, body},
+        {index, total, previous, domain, mapping, inferred, acc_context} ->
           fresh_context = fresh_context(acc_context)
           info = {base_info, args, guards}
 
           try do
-            {trees, previous, context} =
+            {trees, head_no_previous_args_types, previous, head_context} =
               Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
             {return_type, context} =
-              Expr.of_expr(body, Descr.term(), body, stack, context)
+              Expr.of_expr(body, Descr.term(), body, stack, head_context)
 
             args_types = Pattern.of_domain(trees, stack, context)
 
             {type_index, inferred} =
               add_inferred(inferred, args_types, return_type, total - 1, [])
 
+            domain =
+              case domain do
+                [] ->
+                  args_types
+
+                _ ->
+                  head_args_types = Pattern.of_domain(trees, stack, head_context)
+                  compute_domain(args_types, head_args_types, head_no_previous_args_types, domain)
+              end
+
             if type_index == -1 do
-              {index + 1, total + 1, previous, [{index, total} | mapping], inferred, context}
+              mapping = [{index, total} | mapping]
+              {index + 1, total + 1, previous, domain, mapping, inferred, context}
             else
-              {index + 1, total, previous, [{index, type_index} | mapping], inferred, context}
+              mapping = [{index, type_index} | mapping]
+              {index + 1, total, previous, domain, mapping, inferred, context}
             end
           rescue
             e ->
@@ -352,18 +365,68 @@ defmodule Module.Types do
 
     domain =
       case clauses_types do
-        [_] ->
-          nil
-
-        _ ->
-          clauses_types
-          |> Enum.map(fn {args, _} -> args end)
-          |> Enum.zip_with(fn types -> Enum.reduce(types, &Descr.union/2) end)
+        [_] -> nil
+        _ -> domain
       end
 
     inferred = {:infer, domain, Enum.reverse(clauses_types)}
     {inferred, mapping, restore_context(clauses_context, context)}
   end
+
+  defp compute_domain(
+         [arg | args_types],
+         [head_arg | head_args_types],
+         [no_prev_arg | no_prev_args_types],
+         [d | domain]
+       ) do
+    [
+      # This is an optimization that broadens the domain, but it is acceptable
+      # because the domain is used for reverse arrows and not type checking.
+      #
+      # The overall idea is that, if we have a function with three clauses,
+      # the domain is computed by unioning their inferred types. However, their
+      # inferred types often have the different of the previous clauses:
+      #
+      #     union(r3 ^ (c3 - c2 - c1), r2 ^ (c2 - c1), r1 ^ c1)
+      #
+      # Where `rN` represents the refinement in every function body.
+      #
+      # What this function does is, if the type of a given arg in a clause
+      # before and after the body is the same (meaning r3 is term), then
+      # we replace all of `(c3 - c2 - c1)` by just `c3`, which removes
+      # many of the differences in the node. However, keep in mind that,
+      # because `r2` may have refine `c2` in the previous clause, the domain
+      # may end-up being broader. Take this example:
+      #
+      #     % %{..., foo: integer()} -> binary()
+      #     def example(%{foo: var}), do: Integer.to_string(var)
+      #
+      #     % %{...} and not %{..., foo: term()} -> :error
+      #     def example(%{}), do: :error
+      #
+      # The actual domain is:
+      #
+      #     %{..., foo: not_set()} or %{..., foo: integer()}
+      #     #=> %{..., foo: if_set(integer())}
+      #
+      # But we will infer:
+      #
+      #     %{...} or %{..., foo: integer()}
+      #     #=> %{...}
+      #
+      # We lose precision but this is exactly what we want: to have simpler types.
+      # Furthermore, the signature used in type checking is not refined in any way,
+      # so type checking is still sound.
+      if arg == head_arg do
+        Descr.union(Descr.upper_bound(no_prev_arg), d)
+      else
+        Descr.union(arg, d)
+      end
+      | compute_domain(args_types, head_args_types, no_prev_args_types, domain)
+    ]
+  end
+
+  defp compute_domain([], [], [], []), do: []
 
   # We check for term equality of types as an optimization
   # to reduce the amount of check we do at runtime.

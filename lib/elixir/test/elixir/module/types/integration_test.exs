@@ -85,7 +85,7 @@ defmodule Module.Types.IntegrationTest do
              ]
     end
 
-    test "writes exports with inferred map types" do
+    test "writes exports with inferred map return types" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -163,7 +163,7 @@ defmodule Module.Types.IntegrationTest do
                )
     end
 
-    test "writes exports with inferred function types" do
+    test "writes exports with inferred function return types" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -191,6 +191,40 @@ defmodule Module.Types.IntegrationTest do
                  {[non_empty_list(term(), term())], dynamic(atom([:list]))}
                ])
              )
+    end
+
+    test "writes exports with inferred domain types" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          # Test that we don't return differences on catch-all
+          def foo(%{foo: 123}, {:ok, _}), do: 1
+          def foo(%{}, {_, _}), do: 2
+
+          def bar(%{foo: 123}, {:ok, _}), do: 1
+          def bar(map, tuple), do: {map, tuple}
+
+          # Notice that we will return a broader domain than the inferred types
+          # but because the domain is only used for refining reverse arrows,
+          # type checking will fail if %{foo: not integer()} is given
+          def baz(%{foo: var}), do: Integer.to_string(var)
+          def baz(%{}), do: :error
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+      exports = read_chunk(modules[A]).exports |> Map.new()
+
+      domain = fn name, arity ->
+        pair = {name, arity}
+        %{^pair => %{sig: {:infer, domain, _}}} = exports
+        domain
+      end
+
+      assert domain.(:foo, 2) == [open_map(), tuple([term(), term()])]
+      assert domain.(:bar, 2) == [term(), term()]
+      assert domain.(:baz, 1) == [open_map()]
     end
 
     test "writes exports for implementations" do
@@ -338,8 +372,8 @@ defmodule Module.Types.IntegrationTest do
 
             previous clauses have already matched on the following types:
 
-                not integer(), integer()
                 integer(), term()
+                term(), integer()
 
             │
           4 │   def foo(x, y) when is_integer(x) and is_integer(y), do: :three

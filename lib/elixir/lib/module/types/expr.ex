@@ -834,7 +834,7 @@ defmodule Module.Types.Expr do
           {patterns, guards} = extract_head(head)
           info = {base_info, head}
 
-          {trees, previous, context} =
+          {trees, _, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
           {result, context} = of_body.(trees, body, context)

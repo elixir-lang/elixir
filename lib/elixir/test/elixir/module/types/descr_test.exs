@@ -99,6 +99,12 @@ defmodule Module.Types.DescrTest do
       assert tuple([union(integer(), atom())])
              |> difference(open_tuple([atom()]))
              |> equal?(tuple([integer()]))
+
+      # Test union of open tuple
+      # We assert using == on purpose as we want to return open tuples
+      assert union(open_tuple([]), tuple([atom()])) == open_tuple([])
+      assert union(open_tuple([]), difference(open_tuple([]), tuple([atom()]))) == open_tuple([])
+      assert union(difference(open_tuple([]), tuple([atom()])), open_tuple([])) == open_tuple([])
     end
 
     test "map" do
@@ -123,16 +129,15 @@ defmodule Module.Types.DescrTest do
       assert union(atom_to_atom, atom_to_integer)
              |> subtype?(open_map([{domain_key(:atom), union(atom(), integer())}]))
 
-      # Test unions with empty and open maps
+      # Test unions with empty map
       assert union(empty_map(), open_map([{domain_key(:integer), atom()}]))
              |> equal?(open_map([{domain_key(:integer), atom()}]))
 
-      assert union(open_map(), open_map([{domain_key(:integer), atom()}]))
-             |> equal?(open_map())
-
-      # Test union of open map and map with domain key
-      assert union(open_map(), open_map([{domain_key(:integer), atom()}]))
-             |> equal?(open_map())
+      # Test union of open map
+      # We assert using == on purpose as we want to return open maps
+      assert union(open_map(), open_map([{domain_key(:integer), atom()}])) == open_map()
+      assert union(open_map(), difference(open_map(), closed_map(foo: atom()))) == open_map()
+      assert union(difference(open_map(), closed_map(foo: atom())), open_map()) == open_map()
 
       # Ensure no duplicate, no matter the order
       assert union(

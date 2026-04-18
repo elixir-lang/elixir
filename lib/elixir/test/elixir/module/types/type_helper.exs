@@ -156,7 +156,7 @@ defmodule TypeHelper do
     init_previous = Pattern.init_previous()
     tag = {:fn, patterns}
 
-    {_trees, previous, _context} =
+    {_trees, _, previous, _context} =
       Pattern.of_head(patterns, guards, expected, init_previous, tag, [], stack, new_context())
 
     previous != init_previous
@@ -168,7 +168,7 @@ defmodule TypeHelper do
     previous = Pattern.init_previous()
     tag = {:fn, patterns}
 
-    {_trees, _precise?, context} =
+    {_trees, _, _, context} =
       Pattern.of_head(patterns, guards, expected, previous, tag, [], stack, new_context())
 
     Expr.of_expr(body, Descr.term(), :ok, stack, context)
