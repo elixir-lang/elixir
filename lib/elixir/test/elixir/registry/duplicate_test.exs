@@ -180,16 +180,6 @@ defmodule Registry.DuplicateTest do
     assert Registry.unregister(registry, "hello") == :ok
   end
 
-  test "unregisters with tricky keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, :foo)
-    {:ok, _} = Registry.register(registry, :_, :bar)
-    {:ok, _} = Registry.register(registry, "hello", "a")
-    {:ok, _} = Registry.register(registry, "hello", "b")
-
-    Registry.unregister(registry, :_)
-    assert Registry.keys(registry, self()) |> Enum.sort() == ["hello", "hello"]
-  end
-
   test "supports match patterns", %{registry: registry} do
     value1 = {1, :atom, 1}
     value2 = {2, :atom, 2}
@@ -279,44 +269,6 @@ defmodule Registry.DuplicateTest do
 
     Registry.unregister_match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}])
     assert Registry.lookup(registry, "hello") == [{self(), value2}]
-  end
-
-  test "unregister_match supports tricky keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, :foo)
-    {:ok, _} = Registry.register(registry, :_, :bar)
-    {:ok, _} = Registry.register(registry, "hello", "a")
-    {:ok, _} = Registry.register(registry, "hello", "b")
-
-    Registry.unregister_match(registry, :_, :foo)
-    assert Registry.lookup(registry, :_) == [{self(), :bar}]
-
-    assert Registry.keys(registry, self()) |> Enum.sort() == [:_, "hello", "hello"]
-  end
-
-  test "match supports tricky keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, {1, :atom})
-    {:ok, _} = Registry.register(registry, :_, {2, :atom})
-    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
-    {:ok, _} = Registry.register(registry, "hello", "a")
-
-    assert Registry.match(registry, :_, {:_, :atom}) |> Enum.sort() ==
-             [{self(), {1, :atom}}, {self(), {2, :atom}}]
-
-    assert Registry.match(registry, :_, {1, :_}) == [{self(), {1, :atom}}]
-    assert Registry.match(registry, :"$1", {:_, :atom}) == [{self(), {3, :atom}}]
-    assert Registry.match(registry, "hello", :_) == [{self(), "a"}]
-  end
-
-  test "count_match supports tricky keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, {1, :atom})
-    {:ok, _} = Registry.register(registry, :_, {2, :atom})
-    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
-    {:ok, _} = Registry.register(registry, "hello", "a")
-
-    assert Registry.count_match(registry, :_, {:_, :atom}) == 2
-    assert Registry.count_match(registry, :_, {1, :_}) == 1
-    assert Registry.count_match(registry, :"$1", {:_, :atom}) == 1
-    assert Registry.count_match(registry, "hello", :_) == 1
   end
 
   @tag base_listener: :unique_listener
@@ -505,7 +457,72 @@ defmodule Registry.DuplicateTest do
              ])
   end
 
-  test "select supports tricky keys", %{registry: registry} do
+  test "rejects invalid tuple syntax", %{partitions: partitions} do
+    name = :"test_invalid_tuple_#{partitions}"
+
+    assert_raise ArgumentError, ~r/expected :keys to be given and be one of/, fn ->
+      Registry.start_link(keys: {:duplicate, :invalid}, name: name, partitions: partitions)
+    end
+  end
+
+  test "update_value is not supported", %{registry: registry} do
+    assert_raise ArgumentError, ~r/Registry.update_value\/3 is not supported/, fn ->
+      Registry.update_value(registry, "hello", fn val -> val end)
+    end
+  end
+
+  # Keys like :_ and :"$1" are reserved atoms in ETS match spec syntax.
+  # These tests verify that they work correctly as literal registry keys.
+
+  test "unregister with reserved-atom keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, :foo)
+    {:ok, _} = Registry.register(registry, :_, :bar)
+    {:ok, _} = Registry.register(registry, "hello", "a")
+    {:ok, _} = Registry.register(registry, "hello", "b")
+
+    Registry.unregister(registry, :_)
+    assert Registry.keys(registry, self()) |> Enum.sort() == ["hello", "hello"]
+  end
+
+  test "unregister_match with reserved-atom keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, :foo)
+    {:ok, _} = Registry.register(registry, :_, :bar)
+    {:ok, _} = Registry.register(registry, "hello", "a")
+    {:ok, _} = Registry.register(registry, "hello", "b")
+
+    Registry.unregister_match(registry, :_, :foo)
+    assert Registry.lookup(registry, :_) == [{self(), :bar}]
+
+    assert Registry.keys(registry, self()) |> Enum.sort() == [:_, "hello", "hello"]
+  end
+
+  test "match with reserved-atom keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, {1, :atom})
+    {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
+    {:ok, _} = Registry.register(registry, "hello", "a")
+
+    assert Registry.match(registry, :_, {:_, :atom}) |> Enum.sort() ==
+             [{self(), {1, :atom}}, {self(), {2, :atom}}]
+
+    assert Registry.match(registry, :_, {1, :_}) == [{self(), {1, :atom}}]
+    assert Registry.match(registry, :"$1", {:_, :atom}) == [{self(), {3, :atom}}]
+    assert Registry.match(registry, "hello", :_) == [{self(), "a"}]
+  end
+
+  test "count_match with reserved-atom keys", %{registry: registry} do
+    {:ok, _} = Registry.register(registry, :_, {1, :atom})
+    {:ok, _} = Registry.register(registry, :_, {2, :atom})
+    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
+    {:ok, _} = Registry.register(registry, "hello", "a")
+
+    assert Registry.count_match(registry, :_, {:_, :atom}) == 2
+    assert Registry.count_match(registry, :_, {1, :_}) == 1
+    assert Registry.count_match(registry, :"$1", {:_, :atom}) == 1
+    assert Registry.count_match(registry, "hello", :_) == 1
+  end
+
+  test "select with reserved-atom keys", %{registry: registry} do
     {:ok, _} = Registry.register(registry, :_, {1, :atom})
     {:ok, _} = Registry.register(registry, :_, {2, :atom})
     {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
@@ -529,7 +546,7 @@ defmodule Registry.DuplicateTest do
              ])
   end
 
-  test "count_select supports tricky keys", %{registry: registry} do
+  test "count_select with reserved-atom keys", %{registry: registry} do
     {:ok, _} = Registry.register(registry, :_, {1, :atom})
     {:ok, _} = Registry.register(registry, :_, {2, :atom})
     {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
@@ -549,20 +566,6 @@ defmodule Registry.DuplicateTest do
              Registry.count_select(registry, [
                {{:"$2", :_, :_}, [{:"=:=", :"$2", {:const, :"$1"}}], [true]}
              ])
-  end
-
-  test "rejects invalid tuple syntax", %{partitions: partitions} do
-    name = :"test_invalid_tuple_#{partitions}"
-
-    assert_raise ArgumentError, ~r/expected :keys to be given and be one of/, fn ->
-      Registry.start_link(keys: {:duplicate, :invalid}, name: name, partitions: partitions)
-    end
-  end
-
-  test "update_value is not supported", %{registry: registry} do
-    assert_raise ArgumentError, ~r/Registry.update_value\/3 is not supported/, fn ->
-      Registry.update_value(registry, "hello", fn val -> val end)
-    end
   end
 
   defp register_task(registry, key, value) do
