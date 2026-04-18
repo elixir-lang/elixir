@@ -6,7 +6,7 @@ defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
   @manifest_vsn 34
-  @checkpoint_vsn 4
+  @checkpoint_vsn 5
 
   import Record
 
@@ -163,8 +163,7 @@ defmodule Mix.Compilers.Elixir do
           removed,
           Map.merge(stale_modules, removed_modules),
           Map.merge(stale_exports, removed_modules),
-          dest,
-          timestamp
+          dest
         )
       end
 
@@ -387,36 +386,17 @@ defmodule Mix.Compilers.Elixir do
          removed,
          stale_modules,
          stale_exports,
-         dest,
-         timestamp
+         dest
        ) do
-    {checkpoint_stale_modules, checkpoint_stale_exports} =
+    {checkpoint_stale_modules, checkpoint_stale_exports, checkpoint_changed} =
       case parse_checkpoint(:update, manifest) do
-        {:ok, {_, _} = data} -> data
-        :error -> {%{}, %{}}
+        {:ok, {_, _, _} = data} -> data
+        :error -> {%{}, %{}, %{}}
       end
 
     stale_modules = Map.merge(checkpoint_stale_modules, stale_modules)
     stale_exports = Map.merge(checkpoint_stale_exports, stale_exports)
 
-    # Once we added semantic recompilation, the following can happen:
-    #
-    # 1. The user changes config/mix.exs/__mix_recompile__?
-    # 2. We detect the change, remove .beam files and start recompilation
-    # 3. Recompilation fails
-    # 4. The user reverts the change
-    # 5. The compiler no longer recompiles and the .beam files are missing
-    #
-    # Therefore, it is important for us to checkpoint any state that may
-    # have lead to a compilation and which can now be reverted.
-    if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
-         map_size(stale_exports) != map_size(checkpoint_stale_exports) do
-      write_checkpoint(:update, manifest, {stale_modules, stale_exports})
-    end
-
-    # We don't need to store those in the checkpoint because
-    # these changes come from modules and, when they are stale,
-    # we remove the .beam files and touch sources.
     modules_to_mix_check =
       for {module, module(recompile?: true)} <- all_modules,
           not Map.has_key?(stale_modules, module),
@@ -448,33 +428,45 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      Enum.flat_map(all_sources, fn
+      Enum.reduce(all_sources, checkpoint_changed, fn
         {source,
-         source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)} ->
+         source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)},
+        acc ->
           {last_mtime, last_size} = Map.fetch!(sources_stats, source)
 
           cond do
             Enum.any?(external, &stale_external?(&1, sources_stats)) or
                 has_any_key?(modules_to_recompile, modules) ->
-              # Mark the source as changed so the combination of a timestamp
-              # plus removed beam files (which are removed by update_stale_entries)
-              # causes it to be recompiled. Note we don't raise use touch! because
-              # in case of checkpoints the file may have been removed.
-              File.touch(source, timestamp + 1)
-              [source]
+              Map.put(acc, source, true)
 
             size != last_size or
               has_any_key?(stale_modules, modules) or
                 (last_mtime != mtime and
                    (missing_beam_file?(dest, modules) or digest_changed?(source, digest))) ->
-              [source]
+              Map.put(acc, source, true)
 
             true ->
-              []
+              acc
           end
       end)
 
-    changed = new_paths ++ changed
+    # Once we added semantic recompilation, the following can happen:
+    #
+    # 1. The user changes config/mix.exs/__mix_recompile__?
+    # 2. We detect the change, remove .beam files and start recompilation
+    # 3. Recompilation fails
+    # 4. The user reverts the change
+    # 5. The compiler no longer recompiles and the .beam files are missing
+    #
+    # Therefore, it is important for us to checkpoint any state that may
+    # have lead to a compilation and which can now be reverted.
+    if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
+         map_size(stale_exports) != map_size(checkpoint_stale_exports) or
+         map_size(changed) != map_size(checkpoint_changed) do
+      write_checkpoint(:update, manifest, {stale_modules, stale_exports, changed})
+    end
+
+    changed = new_paths ++ Map.keys(changed)
 
     {modules, exports, changed} =
       update_stale_entries(
