@@ -5833,10 +5833,10 @@ defmodule Module.Types.Descr do
             bdd_split(lit, bdd_union(c1, c2), bdd_union(u1, u2), bdd_union(d1, d2))
 
           {:eq, {lit, _, u1, d1, _}, _} ->
-            bdd_split(lit, :bdd_bot, bdd_union(u1, lit), d1)
+            bdd_union(d1, bdd_union(u1, lit))
 
           {:eq, _, {lit, _, u2, d2, _}} ->
-            bdd_split(lit, :bdd_bot, bdd_union(u2, lit), d2)
+            bdd_union(d2, bdd_union(u2, lit))
 
           {:eq, _, _} ->
             bdd1
@@ -5920,11 +5920,25 @@ defmodule Module.Types.Descr do
               bdd_split(lit, c, :bdd_bot, d)
             end
 
+          # so this is: we have lit \ ((lit and c2) or u2 or ((not lit) and d2)
+          # which is (lit and not c2) or (lit and not u2)
           {:eq, _, {lit, c2, u2, _d2, _}} ->
-            bdd_split(lit, bdd_negation_union(c2, u2), :bdd_bot, :bdd_bot)
+            bdd_union(
+              bdd_intersection(lit, bdd_negation(c2)),
+              bdd_intersection(lit, bdd_negation(u2))
+            )
 
+          # bdd_difference(lit, c2) |> bdd_union(bdd_difference(lit, u2))
+
+          # bdd_split(lit, bdd_intersection(bdd_negation(c2), bdd_negation(u2)), :bdd_bot, :bdd_bot)
+
+          # this is (lit and c1) or u1 or (not lit and d1) \ lit
+          # which is (u1 \ lit) or (not lit and d1)
+          # which is (u1 and not lit) or (d1 and not lit)
           {:eq, {lit, _c1, u1, d1, _}, _} ->
-            bdd_split(lit, :bdd_bot, :bdd_bot, bdd_union(d1, u1))
+            bdd_union(bdd_difference(u1, lit), bdd_difference(d1, lit))
+
+          # bdd_split(lit, :bdd_bot, :bdd_bot, bdd_union(d1, u1))
 
           {:eq, _, _} ->
             :bdd_bot
@@ -6141,11 +6155,15 @@ defmodule Module.Types.Descr do
               bdd_intersection_eq(d1, d2, u1, u2)
             )
 
+          # Important! lit must be put into the union/assumptions, to give it a go a simplification
           {:eq, {lit, c1, u1, _, _}, _} ->
-            bdd_split(lit, bdd_union(c1, u1), :bdd_bot, :bdd_bot)
+            # bdd_split(lit, :bdd_top, u1, d1}
+            bdd_union(c1, bdd_union(u1, lit))
 
           {:eq, _, {lit, c2, u2, _, _}} ->
-            bdd_split(lit, bdd_union(c2, u2), :bdd_bot, :bdd_bot)
+            bdd_union(c2, bdd_union(u2, lit))
+
+          # bdd_split(lit, bdd_union(c2, u2), :bdd_bot, :bdd_bot)
 
           {:eq, bdd, _} ->
             bdd
