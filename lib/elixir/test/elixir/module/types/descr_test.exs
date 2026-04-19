@@ -162,7 +162,13 @@ defmodule Module.Types.DescrTest do
       t1 = non_empty_list(integer())
       t2 = non_empty_list(number())
 
-      assert union(difference(t2, t1), t1) == union(t1, t2)
+      assert difference(t2, t1) |> union(t1) == union(t1, t2)
+
+      t3 = non_empty_list(pid())
+
+      # (t3 \ t2 \ t1) \/ (t2 \ t1) \/ t1 is structurally the same as t1 \/ t2 \/ t3
+      assert difference(t3, t2) |> difference(t1) |> union(difference(t2, t1)) |> union(t1) ==
+               union(t1, t2) |> union(t3)
     end
 
     test "fun" do
