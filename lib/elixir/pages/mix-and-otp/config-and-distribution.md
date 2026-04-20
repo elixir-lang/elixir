@@ -241,7 +241,7 @@ $ mix help
 mix deps              # Lists dependencies and their status
 mix deps.clean        # Deletes the given dependencies' files
 mix deps.compile      # Compiles dependencies
-mix deps.get          # Gets all out of date dependencies
+mix deps.get          # Fetches unavailable and out of date dependencies
 mix deps.tree         # Prints the dependency tree
 mix deps.unlock       # Unlocks the given dependencies
 mix deps.update       # Updates the given dependencies
