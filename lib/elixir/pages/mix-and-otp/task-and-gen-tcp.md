@@ -143,7 +143,7 @@ With this change, we are saying that we want to run `KV.Server.accept(4040)` as 
 Now that the server is part of the supervision tree, it should start automatically when we run the application. Run `iex -S mix` to boot the app and use the `telnet` client to make sure that everything still works:
 
 ```console
-$ telnet 127.0.0.1 4321
+$ telnet 127.0.0.1 4040
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
@@ -158,7 +158,7 @@ Yes, it works! However, can it handle more than one client?
 Try to connect two telnet clients at the same time. When you do so, you will notice that the second client doesn't echo:
 
 ```console
-$ telnet 127.0.0.1 4321
+$ telnet 127.0.0.1 4040
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
