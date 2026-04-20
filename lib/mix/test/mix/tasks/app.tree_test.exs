@@ -7,6 +7,8 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.App.TreeTest do
   use MixTest.Case
 
+  import ExUnit.CaptureIO
+
   defmodule AppDepsSample do
     def project do
       [app: :test, version: "0.1.0"]
@@ -134,6 +136,54 @@ defmodule Mix.Tasks.App.TreeTest do
                "logger" -> "elixir"
              }
              """
+    end)
+  end
+
+  @expected_dot """
+  digraph "application tree" {
+    "test"
+    "test" -> "app_deps_sample"
+    "app_deps_sample" -> "app_deps2_sample"
+    "app_deps2_sample" -> "app_deps4_sample" [label="(included)"]
+    "app_deps_sample" -> "app_deps3_sample"
+    "test" -> "elixir"
+    "test" -> "logger"
+    "logger" -> "elixir"
+  }
+  """
+
+  @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
+  test "writes the dot graph to a custom file via --output", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(AppDepsSample)
+
+      load_apps()
+      Mix.Tasks.App.Tree.run(["--format", "dot", "--output", "custom.dot"])
+
+      assert File.read!("custom.dot") == @expected_dot
+      refute File.exists?("app_tree.dot")
+
+      File.write!("custom.dot", "previous")
+      Mix.Tasks.App.Tree.run(["--format", "dot", "--output", "custom.dot"])
+      assert File.read!("custom.dot") == @expected_dot
+      assert File.read!("custom.dot.bak") == "previous"
+    end)
+  end
+
+  @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
+  test "writes the dot graph to stdout via --output -", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(AppDepsSample)
+
+      load_apps()
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.App.Tree.run(["--format", "dot", "--output", "-"])
+        end)
+
+      assert output == @expected_dot
+      refute File.exists?("app_tree.dot")
     end)
   end
 

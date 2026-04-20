@@ -30,8 +30,20 @@ defmodule Mix.Tasks.App.Tree do
         This is the default on Windows.
 
       * `dot` - produces a DOT graph description of the application tree
-        in `app_tree.dot` in the current directory.
-        Warning: this will overwrite any previously generated file.
+        in `app_tree.dot` in the current directory. See the documentation
+        for the `--output` option to learn how to control where the file
+        is written and other related details.
+
+    * `--output` *(since v1.20.0)* - can be used to override the location of
+      the file created by the `dot` format. It can be set to
+
+      * `-` - prints the output to standard output;
+
+      * a path - writes the output graph to the given path
+
+      If the output file already exists then it will be renamed in place
+      to have a `.bak` suffix, possibly overwriting any existing `.bak` file.
+      If this rename fails a fatal exception will be thrown.
 
   """
 
@@ -42,7 +54,9 @@ defmodule Mix.Tasks.App.Tree do
     Mix.Task.run("compile", args)
 
     {app, opts} =
-      case OptionParser.parse!(args, strict: [exclude: :keep, format: :string]) do
+      case OptionParser.parse!(args,
+             strict: [exclude: :keep, format: :string, output: :string]
+           ) do
         {opts, []} ->
           app =
             Mix.Project.config()[:app] ||
@@ -67,17 +81,23 @@ defmodule Mix.Tasks.App.Tree do
 
     if opts[:format] == "dot" do
       root = [{app, :normal}]
-      Mix.Utils.write_dot_graph!("app_tree.dot", "application tree", root, callback, opts)
 
-      """
-      Generated "app_tree.dot" in the current directory. To generate a PNG:
+      file_spec =
+        Mix.Utils.write_dot_graph!("app_tree.dot", "application tree", root, callback, opts)
 
-         dot -Tpng app_tree.dot -o app_tree.png
+      if file_spec != "-" do
+        png_file_spec = (file_spec |> Path.rootname() |> Path.basename()) <> ".png"
 
-      For more options see https://www.graphviz.org/.
-      """
-      |> String.trim_trailing()
-      |> Mix.shell().info()
+        """
+        Generated "#{Path.relative_to_cwd(file_spec)}". To generate a PNG:
+
+           dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
+
+        For more options see https://www.graphviz.org/.
+        """
+        |> String.trim_trailing()
+        |> Mix.shell().info()
+      end
     else
       Mix.Utils.print_tree([{app, :normal}], callback, opts)
     end

@@ -37,8 +37,20 @@ defmodule Mix.Tasks.Deps.Tree do
         This is the default on Windows.
 
       * `dot` - produces a DOT graph description of the dependency tree
-        in `deps_tree.dot` in the current directory.
-        Warning: this will override any previously generated file.
+        in `deps_tree.dot` in the current directory. See the documentation
+        for the `--output` option to learn how to control where the file
+        is written and other related details.
+
+    * `--output` *(since v1.20.0)* - can be used to override the location of
+      the file created by the `dot` format. It can be set to
+
+      * `-` - prints the output to standard output;
+
+      * a path - writes the output graph to the given path
+
+      If the output file already exists then it will be renamed in place
+      to have a `.bak` suffix, possibly overwriting any existing `.bak` file.
+      If this rename fails a fatal exception will be thrown.
 
   ## Examples
 
@@ -61,7 +73,8 @@ defmodule Mix.Tasks.Deps.Tree do
     target: :string,
     exclude: :keep,
     umbrella_only: :boolean,
-    format: :string
+    format: :string,
+    output: :string
   ]
 
   @impl true
@@ -89,17 +102,23 @@ defmodule Mix.Tasks.Deps.Tree do
 
     if opts[:format] == "dot" do
       callback = callback(&format_dot/1, deps, opts)
-      Mix.Utils.write_dot_graph!("deps_tree.dot", "dependency tree", [root], callback, opts)
 
-      """
-      Generated "deps_tree.dot" in the current directory. To generate a PNG:
+      file_spec =
+        Mix.Utils.write_dot_graph!("deps_tree.dot", "dependency tree", [root], callback, opts)
 
-          dot -Tpng deps_tree.dot -o deps_tree.png
+      if file_spec != "-" do
+        png_file_spec = (file_spec |> Path.rootname() |> Path.basename()) <> ".png"
 
-      For more options see https://www.graphviz.org/.
-      """
-      |> String.trim_trailing()
-      |> Mix.shell().info()
+        """
+        Generated "#{Path.relative_to_cwd(file_spec)}". To generate a PNG:
+
+            dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
+
+        For more options see https://www.graphviz.org/.
+        """
+        |> String.trim_trailing()
+        |> Mix.shell().info()
+      end
     else
       callback = callback(&format_tree/1, deps, opts)
       Mix.Utils.print_tree([root], callback, opts)
