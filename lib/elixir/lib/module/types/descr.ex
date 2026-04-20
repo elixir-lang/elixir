@@ -5756,14 +5756,6 @@ defmodule Module.Types.Descr do
 
   ## BDD helpers
 
-  @compile {:inline,
-            bdd_leaf_new: 2,
-            bdd_node_new: 4,
-            bdd_normalize: 1,
-            bdd_hash: 1,
-            bdd_compute_hash: 4,
-            bdd_leaf_value: 1,
-            bdd_equal?: 2}
   defp bdd_leaf_new(arg1, arg2), do: {:erlang.phash2({arg1, arg2}), arg1, arg2}
 
   defp bdd_node_new(lit, c, u, d),
