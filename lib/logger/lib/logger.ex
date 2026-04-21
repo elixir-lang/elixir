@@ -753,7 +753,7 @@ defmodule Logger do
           IO.warn_once(
             {__MODULE__, :configure, key},
             fn ->
-              "setting #{inspect(key)} in Logger.configure/2 is deprecated, " <>
+              "setting #{inspect(key)} in Logger.configure/1 is deprecated, " <>
                 "add the :logger_backends dependency and configure it instead"
             end,
             3
