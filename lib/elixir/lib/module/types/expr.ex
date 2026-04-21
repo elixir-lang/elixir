@@ -138,7 +138,7 @@ defmodule Module.Types.Expr do
   end
 
   # left = right
-  def of_expr({:=, _, [left_expr, right_expr]} = match, expected, expr, stack, context) do
+  def of_expr({:=, meta, [left_expr, right_expr]} = match, expected, expr, stack, context) do
     {left_expr, right_expr} = repack_match(left_expr, right_expr)
 
     case left_expr do
@@ -151,16 +151,16 @@ defmodule Module.Types.Expr do
           fn pattern_type, context ->
             # See if we can use the expected type to further refine the pattern type,
             # if we cannot, use the pattern type as that will fail later on.
-            {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
+            type = intersection(pattern_type, expected)
+            type = if empty?(type), do: pattern_type, else: type
             {result, context} = of_expr(right_expr, type, expr, stack, context)
 
-            # The function may still return a too broad type, so we refine once again
-            # to assign the most appropriate one for reverse arrows.
-            {_ok_or_error, result} = compatible_intersection(result, expected)
-            {result, context}
+            # The function may still return a too broad type,
+            # so we refine once again to assign the most appropriate to the pattern.
+            {intersection(result, expected), context}
           end
 
-        Pattern.of_match(left_expr, type_fun, match, stack, context)
+        Pattern.of_match(left_expr, type_fun, match, meta, stack, context)
     end
   end
 
@@ -412,7 +412,7 @@ defmodule Module.Types.Expr do
       {type, context} =
         if else_block do
           {type, context} = of_expr(body, term(), body, stack, original)
-          info = {:try_else, meta, body, type}
+          info = {:try_else, type}
           of_clauses(else_block, [type], expected, info, stack, context, none())
         else
           of_expr(body, expected, expr, stack, original)
@@ -500,14 +500,13 @@ defmodule Module.Types.Expr do
         case into_kind do
           :bitstring ->
             {block_type, context} = of_expr(block, bitstring(), block, stack, context)
+            intersection = intersection(block_type, bitstring())
 
-            case compatible_intersection(block_type, bitstring()) do
-              {:ok, intersection} ->
-                {union(into_type, intersection), context}
-
-              {:error, _} ->
-                error = {:badbitbody, block_type, block, context}
-                {error_type(), error(__MODULE__, error, meta, stack, context)}
+            if empty?(intersection) do
+              error = {:badbitbody, block_type, block, context}
+              {error_type(), error(__MODULE__, error, meta, stack, context)}
+            else
+              {union(into_type, intersection), context}
             end
 
           :non_empty_list ->
@@ -530,12 +529,27 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: with pat <- expr do expr end
-  def of_expr({:with, meta, [_ | _] = clauses}, _expected, _expr, stack, original) do
+  def of_expr({:with, meta, [_ | _] = clauses}, expected, _expr, stack, original) do
     cache_result(meta, stack, original, fn ->
-      {clauses, [options]} = Enum.split(clauses, -1)
-      context = Enum.reduce(clauses, original, &with_clause(&1, stack, &2))
-      context = Enum.reduce(options, context, &with_option(&1, stack, &2, original))
-      {dynamic(), context}
+      {clauses, [[do: do_block] ++ options]} = Enum.split(clauses, -1)
+
+      {else_types, context} =
+        Enum.reduce(clauses, {none(), original}, &with_clause(&1, stack, &2))
+
+      {do_result, context} = of_expr(do_block, expected, do_block, stack, context)
+      context = Of.reset_vars(context, original)
+
+      {else_result, context} =
+        case options do
+          [else: clauses] ->
+            info = {:with_else, else_types}
+            of_clauses(clauses, [else_types], expected, info, stack, context, none())
+
+          [] ->
+            {else_types, context}
+        end
+
+      dynamic_unless_static({union(do_result, else_result), context}, stack)
     end)
   end
 
@@ -664,19 +678,25 @@ defmodule Module.Types.Expr do
   ## Comprehensions
 
   defp for_clause({:<-, meta, [left, right]}, stack, context) do
-    expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
-    {pattern, guards} = extract_head([left])
+    meta = [type_check: :generator] ++ meta
+    expr = {:<-, meta, [left, right]}
+    {[pattern], guards} = extract_head([left])
 
     # TODO: Extract the type from enumerable protocol
     {_type, context} =
       Apply.remote(Enumerable, :count, [right], term(), expr, stack, context, &of_expr/5)
 
-    Pattern.of_generator(pattern, guards, dynamic(), :for, expr, stack, context)
+    {_tree, _precise, context} =
+      Pattern.of_generator(pattern, guards, dynamic(), :for, expr, meta, stack, context)
+
+    context
   end
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]} = expr, stack, context) do
     {right_type, context} = of_expr(right, bitstring(), expr, stack, context)
-    context = Pattern.of_generator(left, [], bitstring(), :for, expr, stack, context)
+
+    {_tree, _precise?, context} =
+      Pattern.of_generator(left, [], bitstring(), :for, expr, meta, stack, context)
 
     if compatible?(right_type, bitstring()) do
       context
@@ -739,27 +759,31 @@ defmodule Module.Types.Expr do
 
   ## With
 
-  defp with_clause({:<-, _meta, [left, right]} = expr, stack, context) do
-    {pattern, guards} = extract_head([left])
-    {_type, context} = of_expr(right, @pending, right, stack, context)
-    Pattern.of_generator(pattern, guards, dynamic(), :with, expr, stack, context)
+  defp with_clause({:<-, meta, [left, right]} = expr, stack, {else_types, context}) do
+    {[pattern], guards} = extract_head([left])
+
+    {type, context} =
+      of_expr(right, term(), right, %{stack | reverse_arrow: :cache}, context)
+
+    {trees, precise?, context} =
+      Pattern.of_generator(pattern, guards, type, :with, expr, meta, stack, context)
+
+    if precise? do
+      [pattern_type] = Pattern.of_domain(trees, stack, context)
+
+      {_, refined_context} =
+        of_expr(right, pattern_type, right, %{stack | reverse_arrow: :use}, context)
+
+      {union(difference(type, pattern_type), else_types),
+       reset_warnings(refined_context, context)}
+    else
+      {union(type, else_types), context}
+    end
   end
 
-  defp with_clause(expr, stack, context) do
-    {_type, context} = of_expr(expr, @pending, expr, stack, context)
-    context
-  end
-
-  defp with_option({:do, body}, stack, context, original) do
-    {_type, context} = of_expr(body, @pending, body, stack, context)
-    Of.reset_vars(context, original)
-  end
-
-  defp with_option({:else, clauses}, stack, context, _original) do
-    {_, context} =
-      of_clauses(clauses, [dynamic()], @pending, :with_else, stack, context, none())
-
-    context
+  defp with_clause(expr, stack, {else_types, context}) do
+    {_type, context} = of_expr(expr, term(), expr, stack, context)
+    {else_types, context}
   end
 
   ## General helpers

@@ -239,15 +239,14 @@ defmodule Module.Types.Pattern do
          # We compute the args types before we do the intersection with previous clauses
          args_types =
            (with false <- empty_previous?(previous),
-                 {:ok, _types, context} <-
+                 {:ok, context} <-
                    of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
               trees_to_args_types(trees, stack, context)
             else
               _ -> nil
             end),
          {types, check_previous?} = of_pattern_previous(types, previous, stack),
-         {:ok, _types, context} <-
-           of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+         {:ok, context} <- of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
       {trees, pattern_precise? and guard_precise?, check_previous?,
        args_types || trees_to_args_types(trees, stack, context), context}
     else
@@ -297,7 +296,8 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles the match operator.
   """
-  def of_match(pattern, expected_fun, expr, stack, context) do
+  def of_match(pattern, expected_fun, expr, meta, stack, context) do
+    stack = %{stack | meta: meta}
     context = init_pattern_info(context, [])
 
     {tree, _precise?, context} =
@@ -311,9 +311,9 @@ defmodule Module.Types.Pattern do
 
     with {:ok, types} <-
            of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
-         {:ok, [type], context} <-
+         {:ok, context} <-
            of_pattern_refine(types, %{}, pattern_info, tag, stack, context) do
-      {type, context}
+      {of_pattern_tree(tree, stack, context), context}
     else
       {:error, context} -> {expected, context}
     end
@@ -322,25 +322,27 @@ defmodule Module.Types.Pattern do
   @doc """
   Handles matches in generators.
   """
-  def of_generator(pattern, guards, expected, op, expr, stack, %{vars: vars} = context)
+  def of_generator(pattern, guards, expected, op, expr, meta, stack, %{vars: vars} = context)
       when is_atom(op) do
-    tag = {op, expr, expected}
+    stack = %{stack | meta: meta}
     context = init_pattern_info(context, [])
 
-    {tree, _precise?, context} =
+    {tree, pattern_precise?, context} =
       of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
 
     {pattern_info, context} = pop_pattern_info(context)
+    {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
+
     args = [{tree, expected, pattern}]
-    {_precise?, changed, context} = of_guards(guards, vars, stack, context)
+    tag = {op, expr, expected}
 
     with {:ok, types} <-
            of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
-         {:ok, _types, context} <-
+         {:ok, context} <-
            of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
-      context
+      {args, pattern_precise? and guard_precise?, context}
     else
-      {:error, context} -> context
+      {:error, context} -> {tree, false, context}
     end
   end
 
@@ -399,7 +401,7 @@ defmodule Module.Types.Pattern do
     context -> {:error, error_vars(pattern_info, context)}
   else
     {changed, context} ->
-      {:ok, types, of_changed(Map.keys(changed), stack, context)}
+      {:ok, of_changed(Map.keys(changed), stack, context)}
   end
 
   defp error_vars(pattern_info, context) do
@@ -1582,8 +1584,9 @@ defmodule Module.Types.Pattern do
   #
   # $ typep head_pattern =
   #     {{:def, kind, fun, types}, args, guards} or
-  #     {{:case | :try_else, meta, expr, type}, [arg]} or
-  #     {:for_reduce | :receive | :try_catch | :with_else | :fn, [arg]}
+  #     {{:case, meta, expr, type}, [arg]} or
+  #     {{:try_else | :with_else, type}, [arg]} or
+  #     {:for_reduce | :receive | :try_catch | :fn, [arg]}
   #
   # $ typep match_pattern =
   #     {:with or :for or :match, pattern, type}
@@ -1629,62 +1632,63 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp badpattern({{op, meta, expr, type}, args}, _index) when op in [:case, :try_else] do
-    with {:case, op} <- meta[:type_check] do
-      message =
-        cond do
-          op == :|| ->
-            additional =
-              with {:case, meta, [_, _]} <- expr,
-                   {:case, :||} <- meta[:type_check] do
-                "(shown as ... below) "
-              else
-                _ -> ""
-              end
+  defp badpattern({{:case, meta, expr, type}, args}, _index) do
+    case meta[:type_check] do
+      {:case, op} ->
+        message =
+          cond do
+            op == :|| ->
+              additional =
+                with {:case, meta, [_, _]} <- expr,
+                     {:case, :||} <- meta[:type_check] do
+                  "(shown as ... below) "
+                else
+                  _ -> ""
+                end
 
-            """
-            the right-hand side of || #{additional}will never be executed:
+              """
+              the right-hand side of || #{additional}will never be executed:
 
-                #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
+                  #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
 
-            because the left-hand side always evaluates to:
+              because the left-hand side always evaluates to:
 
-                #{to_quoted_string(type) |> indent(4)}
-            """
+                  #{to_quoted_string(type) |> indent(4)}
+              """
 
-          op in [:and, :or] ->
-            {first_message, second_message} =
-              case booleaness(type) do
-                {true, _} -> {" will always succeed", "because it evaluates to"}
-                {false, _} -> {" will never succeed", "because it evaluates to"}
-                :none -> {" will always fail", "because it evaluates to"}
-                _ -> {"", "will always evaluate to"}
-              end
+            op in [:and, :or] ->
+              {first_message, second_message} =
+                case booleaness(type) do
+                  {true, _} -> {" will always succeed", "because it evaluates to"}
+                  {false, _} -> {" will never succeed", "because it evaluates to"}
+                  :none -> {" will always fail", "because it evaluates to"}
+                  _ -> {"", "will always evaluate to"}
+                end
 
-            """
-            the following conditional expression#{first_message}:
+              """
+              the following conditional expression#{first_message}:
 
-                #{expr_to_string(expr) |> indent(4)}
+                  #{expr_to_string(expr) |> indent(4)}
 
-            #{second_message}:
+              #{second_message}:
 
-                #{to_quoted_string(type) |> indent(4)}
-            """
+                  #{to_quoted_string(type) |> indent(4)}
+              """
 
-          true ->
-            """
-            the following conditional expression:
+            true ->
+              """
+              the following conditional expression:
 
-                #{expr_to_string(expr) |> indent(4)}
+                  #{expr_to_string(expr) |> indent(4)}
 
-            will always evaluate to:
+              will always evaluate to:
 
-                #{to_quoted_string(type) |> indent(4)}
-            """
-        end
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+          end
 
-      {expr, message}
-    else
+        {expr, message}
+
       _ ->
         {args,
          """
@@ -1703,8 +1707,22 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp badpattern({op, args}, index)
-       when op in [:for_reduce, :receive, :try_catch, :with_else, :fn] do
+  defp badpattern({{op, type}, args}, index) when op in [:try_else, :with_else] do
+    arg = Enum.fetch!(args, index)
+
+    {arg,
+     """
+     the following clause will never match:
+
+         #{args_to_string(args) |> indent(4)} ->
+
+     it is expected to match on type:
+
+         #{to_quoted_string(type) |> indent(4)}
+     """}
+  end
+
+  defp badpattern({op, args}, index) when op in [:for_reduce, :receive, :try_catch, :fn] do
     arg = Enum.fetch!(args, index)
 
     {arg,

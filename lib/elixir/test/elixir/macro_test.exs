@@ -1020,7 +1020,6 @@ defmodule MacroTest do
           with {:ok, width} <- Map.fetch(opts, :width) do
             width
           else
-            other when is_integer(other) -> :int
             other when is_atom(other) -> :atom
           end
         )

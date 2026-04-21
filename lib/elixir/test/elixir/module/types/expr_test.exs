@@ -2310,11 +2310,7 @@ defmodule Module.Types.ExprTest do
 
                  :error ->
 
-             because it attempts to match on the result of:
-
-                 Atom.to_string(x)
-
-             which has type:
+             it is expected to match on type:
 
                  binary()
              """
@@ -2699,6 +2695,60 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "with" do
+    test "computes non-matched types" do
+      assert typecheck!(
+               [x],
+               with y when is_binary(y) <- System.get_env(x) do
+                 {:ok, y}
+               end
+             ) == dynamic(union(tuple([atom([:ok]), binary()]), atom([nil])))
+
+      assert typecheck!(
+               [x],
+               with "not precise" <- System.get_env(x) do
+                 :not_precise
+               end
+             ) ==
+               dynamic(union(binary(), atom([nil, :not_precise])))
+               |> union(atom([:not_precise]))
+    end
+
+    test "warns on non-matching generators" do
+      assert typeerror!(
+               [x],
+               with :ok <- System.get_env(x) do
+                 x
+               end
+             ) =~ """
+             the following pattern will never match:
+
+                 :ok <- System.get_env(x)
+
+             because the right-hand side has type:
+
+                 dynamic(nil or binary())
+             """
+    end
+
+    test "warns on non-matching clauses in else" do
+      assert typeerror!(
+               [x],
+               with y when is_binary(y) <- System.get_env(x) do
+                 x
+               else
+                 :ok -> :ok
+               end
+             ) == ~l"""
+             the following clause will never match:
+
+                 :ok ->
+
+             it is expected to match on type:
+
+                 dynamic(nil)
+             """
+    end
+
     test "warns on redundant clauses in else" do
       assert typewarn!(
                [x],
