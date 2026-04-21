@@ -439,7 +439,7 @@ quoted_to_erl(Quoted, ErlS, ExS, Env) ->
 
 %% Converts a given string (charlist) into quote expression
 
-string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
+string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_integer(StartColumn), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
     {ok, _Line, _Column, Warnings, Tokens, Terminators} ->
       {ok, lists:reverse(Tokens, Terminators), Warnings};
