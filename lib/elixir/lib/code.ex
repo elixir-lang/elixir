@@ -286,7 +286,7 @@ defmodule Code do
           existing_atoms_only: boolean(),
           token_metadata: boolean(),
           literal_encoder: (term(), Macro.metadata() -> term()),
-          static_atoms_encoder: (atom() -> term()),
+          static_atoms_encoder: (binary(), Macro.metadata() -> {:ok, term()} | {:error, binary()}),
           emit_warnings: boolean()
         ]
 
@@ -1319,7 +1319,7 @@ defmodule Code do
   and keyword lists.
 
   The encoder function will receive the atom name (as a binary) and a
-  keyword list with the current file, line and column. It must return
+  keyword list with the current line and column. It must return
   `{:ok, token :: term} | {:error, reason :: binary}`.
 
   The encoder function is supposed to create an atom from the given
