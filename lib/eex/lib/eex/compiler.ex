@@ -347,7 +347,7 @@ defmodule EEx.Compiler do
         state.parser_options
 
     expr = Code.string_to_quoted!(chars, options)
-    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
+    buffer = handle_expr(buffer, mark, expr, meta, state)
     generate_buffer(rest, buffer, scope, state)
   end
 
@@ -376,7 +376,7 @@ defmodule EEx.Compiler do
       IO.warn(message, file: state.file, line: meta.line, column: meta.column)
     end
 
-    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
+    buffer = handle_expr(buffer, mark, contents, meta, state)
     generate_buffer(rest, buffer, scope, state)
   end
 
@@ -511,6 +511,20 @@ defmodule EEx.Compiler do
       file: state.file,
       line: meta.line,
       column: meta.column
+  end
+
+  defp handle_expr(buffer, mark, expr, meta, state) do
+    state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
+  rescue
+    e in EEx.SyntaxError ->
+      reraise %{
+                e
+                | file: e.file || state.file,
+                  line: e.line || meta.line,
+                  column: e.column || meta.column,
+                  snippet: e.snippet || code_snippet(state.source, state.indentation, meta)
+              },
+              __STACKTRACE__
   end
 
   defp code_snippet(source, indentation, meta) do
