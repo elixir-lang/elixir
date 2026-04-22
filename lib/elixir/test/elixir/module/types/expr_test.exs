@@ -2711,6 +2711,23 @@ defmodule Module.Types.ExprTest do
              ) ==
                dynamic(union(binary(), atom([nil, :not_precise])))
                |> union(atom([:not_precise]))
+
+      assert typecheck!(
+               [x],
+               with :ok <- System.get_env(x) && :ok do
+                 {:ok, x}
+               end
+             ) ==
+               dynamic(union(tuple([atom([:ok]), binary()]), atom([nil])))
+
+      assert typecheck!(
+               [x],
+               with {:ok, "not precise"} <- if(y = System.get_env(x), do: {:ok, y}) do
+                 {:ok, x}
+               end
+             ) ==
+               dynamic(union(tuple([atom([:ok]), binary()]), atom([nil])))
+               |> union(atom([nil]))
     end
 
     test "warns on non-matching generators" do

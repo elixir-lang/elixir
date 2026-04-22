@@ -342,7 +342,7 @@ defmodule Module.Types.Pattern do
            of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
       {args, pattern_precise? and guard_precise?, context}
     else
-      {:error, context} -> {tree, false, context}
+      {:error, context} -> {args, false, context}
     end
   end
 

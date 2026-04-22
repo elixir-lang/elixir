@@ -768,17 +768,13 @@ defmodule Module.Types.Expr do
     {trees, precise?, context} =
       Pattern.of_generator(pattern, guards, type, :with, expr, meta, stack, context)
 
-    if precise? do
-      [pattern_type] = Pattern.of_domain(trees, stack, context)
+    [pattern_type] = Pattern.of_domain(trees, stack, context)
 
-      {_, refined_context} =
-        of_expr(right, pattern_type, right, %{stack | reverse_arrow: :use}, context)
+    {_, refined_context} =
+      of_expr(right, pattern_type, right, %{stack | reverse_arrow: :use}, context)
 
-      {union(difference(type, pattern_type), else_types),
-       reset_warnings(refined_context, context)}
-    else
-      {union(type, else_types), context}
-    end
+    else_type = if precise?, do: difference(type, pattern_type), else: type
+    {union(else_type, else_types), reset_warnings(refined_context, context)}
   end
 
   defp with_clause(expr, stack, {else_types, context}) do
