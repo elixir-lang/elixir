@@ -2196,7 +2196,7 @@ defmodule Macro do
   Please check `expand_literals/2` for use cases and pitfalls.
   """
   @doc since: "1.14.1"
-  @spec expand_literals(t(), acc, (t(), acc -> {t(), acc})) :: t() when acc: term()
+  @spec expand_literals(t(), acc, (t(), acc -> {t(), acc})) :: {t(), acc} when acc: term()
   def expand_literals(ast, acc, fun)
 
   def expand_literals({:__aliases__, meta, args}, acc, fun) do
