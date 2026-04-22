@@ -369,19 +369,41 @@ defmodule Module.Types.Expr do
       of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
     end
 
-    result_context =
-      cache_arrows(meta, stack, fn ->
-        of_clauses_fun(clauses, [case_type], info, stack, context, of_body, [], fn
-          trees, body_type, context, acc ->
-            [arg_type] = Pattern.of_domain(trees, stack, context)
-            [{arg_type, body_type} | acc]
-        end)
-      end) ||
-        of_clauses_fun(clauses, [case_type], info, stack, context, of_body, none(), fn
-          _trees, body_type, _context, acc -> union(acc, body_type)
-        end)
+    {{head_type, body_type}, _, context} =
+      cache_arrows(meta, stack, fn cache? ->
+        acc = {none(), none(), []}
 
-    dynamic_unless_static(result_context, stack)
+        {{head_acc, body_acc, clauses_acc}, context} =
+          of_clauses_fun(clauses, [case_type], info, stack, context, of_body, acc, fn
+            trees, precise?, body_type, context, {head_acc, body_acc, clauses_acc} ->
+              cond do
+                precise? and empty?(body_type) ->
+                  [arg_type] = Pattern.of_domain(trees, stack, context)
+                  {union(negation(arg_type), head_acc), body_acc, clauses_acc}
+
+                cache? ->
+                  [arg_type] = Pattern.of_domain(trees, stack, context)
+                  {head_acc, union(body_type, body_acc), [{arg_type, body_type} | clauses_acc]}
+
+                true ->
+                  {head_acc, union(body_type, body_acc), clauses_acc}
+              end
+          end)
+
+        {{head_acc, body_acc}, clauses_acc, context}
+      end)
+
+    context =
+      if head_type == none() do
+        context
+      else
+        {_, refined_context} =
+          of_expr(case_expr, head_type, case_expr, %{stack | reverse_arrow: :use}, context)
+
+        reset_warnings(refined_context, context)
+      end
+
+    dynamic_unless_static({body_type, context}, stack)
   end
 
   # fn pat -> expr end
@@ -395,7 +417,7 @@ defmodule Module.Types.Expr do
 
       {acc, context} =
         of_clauses_fun(clauses, domain, :fn, stack, context, of_body, [], fn
-          trees, body_type, context, acc ->
+          trees, _precise?, body_type, context, acc ->
             args_types = Pattern.of_domain(trees, stack, context)
             add_inferred(acc, args_types, body_type)
         end)
@@ -828,19 +850,18 @@ defmodule Module.Types.Expr do
     end
   end
 
-  defp cache_arrows(_meta, %{reverse_arrow: nil}, _fun), do: nil
+  defp cache_arrows(_meta, %{reverse_arrow: nil}, fun), do: fun.(false)
 
   defp cache_arrows(meta, %{reverse_arrow: :cache}, fun) do
-    {clauses, context} = fun.()
+    {result, cache, context} = fun.(true)
     version = Keyword.fetch!(meta, :version)
-    context = put_in(context.reverse_arrows[version], clauses)
-    result = Enum.reduce(clauses, none(), &union(elem(&1, 1), &2))
-    {result, context}
+    context = put_in(context.reverse_arrows[version], cache)
+    {result, cache, context}
   end
 
   defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
     of_body = fn _args_types, body, context -> of_expr(body, expected, body, stack, context) end
-    of_acc = fn _args_types, body_type, _context, acc -> union(acc, body_type) end
+    of_acc = fn _args_types, _precise?, body_type, _context, acc -> union(acc, body_type) end
     of_clauses_fun(clauses, domain, base_info, stack, context, of_body, acc, of_acc)
   end
 
@@ -854,12 +875,12 @@ defmodule Module.Types.Expr do
           {patterns, guards} = extract_head(head)
           info = {base_info, head}
 
-          {trees, _, previous, context} =
+          {trees, precise?, _, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
           {result, context} = of_body.(trees, body, context)
 
-          {of_acc.(trees, result, context, acc), previous,
+          {of_acc.(trees, precise?, result, context, acc), previous,
            context |> set_failed(failed?) |> Of.reset_vars(original)}
       end)
 

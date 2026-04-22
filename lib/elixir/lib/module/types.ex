@@ -329,7 +329,7 @@ defmodule Module.Types do
           info = {base_info, args, guards}
 
           try do
-            {trees, head_no_previous_args_types, previous, head_context} =
+            {trees, _precise?, head_no_previous_args_types, previous, head_context} =
               Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
             {return_type, context} =

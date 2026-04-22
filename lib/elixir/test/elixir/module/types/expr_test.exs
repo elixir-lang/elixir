@@ -1812,6 +1812,42 @@ defmodule Module.Types.ExprTest do
                atom([:non_empty_map, :maybe_empty_map])
     end
 
+    test "computes types from dead branches" do
+      assert typecheck!(
+               [x],
+               (
+                 if is_integer(x) do
+                   raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic(negation(integer()))
+
+      assert typecheck!(
+               [x],
+               (
+                 if x == :foo do
+                   raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic(negation(atom([:foo])))
+
+      # When it is not precise enough, we don't filter
+      assert typecheck!(
+               [x],
+               (
+                 if x == "foo" do
+                   raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic()
+    end
+
     test "warns on redundant clauses" do
       assert typewarn!(
                [x],
