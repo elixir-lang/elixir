@@ -367,7 +367,8 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec define_require(t, Macro.metadata(), module, define_require_opts) :: {:ok, t}
+  @spec define_require(t, Macro.metadata(), module, define_require_opts) ::
+          {:ok, t} | {:error, String.t()}
   def define_require(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
