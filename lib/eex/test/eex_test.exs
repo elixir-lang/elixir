@@ -575,6 +575,18 @@ defmodule EExTest do
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end
+
+    test "unsupported marker error carries template location metadata" do
+      error =
+        assert_raise EEx.SyntaxError, fn ->
+          EEx.compile_string("<%/ true %>", file: "sample.eex", line: 7)
+        end
+
+      assert error.file == "sample.eex"
+      assert error.line == 7
+      assert error.column == 1
+      assert Exception.message(error) =~ "sample.eex:7:1:"
+    end
   end
 
   describe "warnings" do
