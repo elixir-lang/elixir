@@ -216,6 +216,11 @@ tokenize([$~, H | _T] = Original, Line, Column, Scope, Tokens) when ?is_upcase(H
 % elixir_errors.erl as by default {char, _, _} tokens are "hijacked" by Erlang
 % and printed with Erlang syntax ($a) in the parser's error messages.
 
+%% Reject bare carriage return after ?\ (CR is only valid as part of CRLF line ending).
+tokenize([$?, $\\, $\r | _Rest] = Original, Line, Column, Scope, Tokens) ->
+  Reason = {?LOC(Line, Column), "invalid bare carriage return after ?\\, use ?\\r instead: ", "\\u000D"},
+  error(Reason, Original, Scope, Tokens);
+
 tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
 
@@ -247,6 +252,11 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
     _ ->
       tokenize(T, Line, Column + 3, NewScope, [Token | Tokens])
   end;
+
+%% Reject bare carriage return after ? (CR is only valid as part of CRLF line ending).
+tokenize([$?, $\r | _Rest] = Original, Line, Column, Scope, Tokens) ->
+  Reason = {?LOC(Line, Column), "invalid bare carriage return after ?, use ?\\r instead: ", "\\u000D"},
+  error(Reason, Original, Scope, Tokens);
 
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   NewScope = case handle_char(Char) of
