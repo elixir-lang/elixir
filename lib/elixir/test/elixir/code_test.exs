@@ -288,6 +288,42 @@ defmodule CodeTest do
         assert {1, _binding} = Code.eval_string("dbg(1)", [])
       end)
     end
+
+    test "nested eval preserves outer :dbg_callback" do
+      opts = [dbg_callback: {__MODULE__, :dbg_callback_add_one, []}]
+
+      assert {2, _binding} =
+               Code.eval_string(
+                 """
+                 Code.eval_string("1 + 1")
+                 dbg(1)
+                 """,
+                 [],
+                 opts
+               )
+    end
+
+    test "nested eval preserves outer env in exception stacktrace" do
+      env = %{Code.env_for_eval([]) | file: "outer_file.ex"}
+
+      stacktrace =
+        try do
+          Code.eval_string(
+            """
+            Code.eval_string("1 + 1")
+            raise "boom"
+            """,
+            [],
+            env
+          )
+        rescue
+          _ -> __STACKTRACE__
+        end
+
+      assert Enum.any?(stacktrace, fn
+               {_, _, _, meta} -> Keyword.get(meta, :file) == ~c"outer_file.ex"
+             end)
+    end
   end
 
   describe "eval_quoted/1" do
