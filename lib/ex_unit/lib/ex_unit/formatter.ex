@@ -375,7 +375,10 @@ defmodule ExUnit.Formatter do
   defp linked_or_trapped_exit(_kind, _reason), do: :error
 
   defp format_exception(test, %ExUnit.AssertionError{} = struct, stack, width, formatter, pad) do
-    label_padding_size = if has_value?(struct.right), do: 7, else: 6
+    label_padding_size =
+      if(has_value?(struct.right), do: 7, else: 6)
+      |> max(if has_value?(struct.error_context), do: 9, else: 0)
+
     padding_size = label_padding_size + byte_size(@counter_padding)
 
     code_multiline =
@@ -388,7 +391,8 @@ defmodule ExUnit.Formatter do
         message: if_value(struct.message, &format_message(&1, formatter)),
         doctest: if_value(struct.doctest, &pad_multiline(&1, 2 + byte_size(@counter_padding))),
         code: if_value(struct.expr, code_multiline, fn -> get_code(test, stack) || @no_value end),
-        arguments: if_value(struct.args, &format_args(&1, width))
+        arguments: if_value(struct.args, &format_args(&1, width)),
+        context: if_value(struct.error_context, &format_error_context(&1, padding_size, width))
       ]
       |> Kernel.++(format_assertion_diff(struct, padding_size, width, formatter))
       |> format_meta(formatter, pad, label_padding_size)
@@ -641,6 +645,14 @@ defmodule ExUnit.Formatter do
     else
       formatter.(:error_info, value)
     end
+  end
+
+  defp format_error_context(value, padding_size, _width) when is_binary(value) do
+    pad_multiline(value, padding_size)
+  end
+
+  defp format_error_context(value, padding_size, width) do
+    inspect_multiline(value, padding_size, width)
   end
 
   defp format_args(args, width) do

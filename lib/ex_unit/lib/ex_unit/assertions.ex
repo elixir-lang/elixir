@@ -19,7 +19,8 @@ defmodule ExUnit.AssertionError do
           expr: any,
           args: any,
           doctest: any,
-          context: any
+          context: any,
+          error_context: any
         }
 
   defexception left: @no_value,
@@ -28,7 +29,8 @@ defmodule ExUnit.AssertionError do
                expr: @no_value,
                args: @no_value,
                doctest: @no_value,
-               context: :==
+               context: :==,
+               error_context: @no_value
 
   @doc """
   Indicates no meaningful value for a field.
@@ -146,62 +148,8 @@ defmodule ExUnit.Assertions do
       assert match?([%{id: id} | _] when is_integer(id), records)
 
   """
-  defmacro assert({:=, meta, [left, right]} = assertion) do
-    code = escape_quoted(:assert, meta, mark_as_generated(assertion))
-
-    check =
-      quote generated: true do
-        if right do
-          :ok
-        else
-          raise ExUnit.AssertionError,
-            expr: expr,
-            message: "Expected truthy, got #{inspect(right)}"
-        end
-      end
-
-    {left, right} = move_match(left, right)
-    __match__(left, right, code, check, __CALLER__)
-  end
-
-  defmacro assert({:match?, meta, [left, right]} = assertion) do
-    code = escape_quoted(:assert, meta, mark_as_generated(assertion))
-    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-
-    left = __expand_pattern__(left, __CALLER__)
-    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
-
-    quote do
-      right = unquote(right)
-      left = unquote(Macro.escape(left))
-
-      ExUnit.Assertions.assert(unquote(match?),
-        right: right,
-        left: left,
-        expr: unquote(code),
-        message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
-        context: {:match, unquote(pins)}
-      )
-    end
-  end
-
   defmacro assert(assertion) do
-    if translated = translate_assertion(:assert, assertion, __CALLER__) do
-      translated
-    else
-      {args, value} = extract_args(assertion, __CALLER__)
-
-      quote generated: true do
-        if value = unquote(value) do
-          value
-        else
-          raise ExUnit.AssertionError,
-            args: unquote(args),
-            expr: unquote(escape_quoted(:assert, [], assertion)),
-            message: "Expected truthy, got #{inspect(value)}"
-        end
-      end
-    end
+    build_assertion(:assert, assertion, [diff: true], __CALLER__)
   end
 
   @doc """
@@ -224,52 +172,168 @@ defmodule ExUnit.Assertions do
       refute age < 0
 
   """
-  defmacro refute({:match?, meta, [left, right]} = assertion) do
-    code = escape_quoted(:refute, meta, assertion)
-    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-
-    left = __expand_pattern__(left, __CALLER__)
-    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
-
-    quote do
-      right = unquote(right)
-      left = unquote(Macro.escape(left))
-
-      refute unquote(match?),
-        right: right,
-        left: left,
-        expr: unquote(code),
-        message:
-          "match (match?) succeeded, but should have failed" <>
-            ExUnit.Assertions.__pins__(unquote(pins)),
-        context: {:match, unquote(pins)}
-    end
-  end
-
   defmacro refute(assertion) do
-    if translated = translate_assertion(:refute, assertion, __CALLER__) do
-      {:!, [generated: true], [translated]}
-    else
-      {args, value} = extract_args(assertion, __CALLER__)
-
-      quote generated: true do
-        if value = unquote(value) do
-          raise ExUnit.AssertionError,
-            args: unquote(args),
-            expr: unquote(escape_quoted(:refute, [], assertion)),
-            message: "Expected false or nil, got #{inspect(value)}"
-        else
-          value
-        end
-      end
-    end
+    build_assertion(:refute, assertion, [diff: true], __CALLER__)
   end
 
   ## START HELPERS
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, caller)
+  defp build_assertion(kind, assertion, opts_expr, caller) do
+    case {kind, assertion} do
+      {:assert, {:=, meta, [left, right]} = assertion} ->
+        code = escape_quoted(:assert, meta, mark_as_generated(assertion))
+
+        check =
+          quote generated: true do
+            if right do
+              :ok
+            else
+              ExUnit.Assertions.__raise_assertion_error__(
+                ExUnit.Assertions.__merge_assertion_opts__(unquote(opts_expr),
+                  expr: expr,
+                  message: "Expected truthy, got #{inspect(right)}"
+                )
+              )
+            end
+          end
+
+        {left, right} = move_match(left, right)
+        __match__(left, right, code, check, opts_expr, caller)
+
+      {:assert, {:match?, meta, [left, right]} = assertion} ->
+        code = escape_quoted(:assert, meta, mark_as_generated(assertion))
+        match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
+
+        left = __expand_pattern__(left, caller)
+        pins = collect_pins_from_pattern(left, Macro.Env.vars(caller))
+
+        quote do
+          right = unquote(right)
+          left = unquote(Macro.escape(left))
+
+          ExUnit.Assertions.__assert__(
+            unquote(match?),
+            ExUnit.Assertions.__merge_assertion_opts__(unquote(opts_expr),
+              right: right,
+              left: left,
+              expr: unquote(code),
+              message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+              context: {:match, unquote(pins)}
+            )
+          )
+        end
+
+      {:refute, {:match?, meta, [left, right]} = assertion} ->
+        code = escape_quoted(:refute, meta, assertion)
+        match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
+
+        left = __expand_pattern__(left, caller)
+        pins = collect_pins_from_pattern(left, Macro.Env.vars(caller))
+
+        quote do
+          right = unquote(right)
+          left = unquote(Macro.escape(left))
+
+          if value = unquote(match?) do
+            ExUnit.Assertions.__raise_assertion_error__(
+              ExUnit.Assertions.__merge_assertion_opts__(unquote(opts_expr),
+                right: right,
+                left: left,
+                expr: unquote(code),
+                message:
+                  "match (match?) succeeded, but should have failed" <>
+                    ExUnit.Assertions.__pins__(unquote(pins)),
+                context: {:match, unquote(pins)}
+              )
+            )
+          else
+            value
+          end
+        end
+
+      _ ->
+        case translate_assertion(kind, assertion, opts_expr, caller) do
+          nil -> build_truthy_assertion(kind, assertion, opts_expr, caller)
+          translated when kind == :refute -> {:!, [generated: true], [translated]}
+          translated -> translated
+        end
+    end
+  end
+
+  defp build_runtime_assertion(:assert, assertion, message_or_opts) do
+    quote generated: true do
+      value = unquote(assertion)
+
+      ExUnit.Assertions.__assert__(
+        value,
+        ExUnit.Assertions.__normalize_assert_opts__(unquote(message_or_opts))
+      )
+
+      true
+    end
+  end
+
+  defp build_runtime_assertion(:refute, assertion, message_or_opts) do
+    quote generated: true do
+      value = unquote(assertion)
+
+      ExUnit.Assertions.__assert__(
+        !value,
+        ExUnit.Assertions.__normalize_assert_opts__(unquote(message_or_opts))
+      )
+
+      false
+    end
+  end
+
+  defp build_truthy_assertion(:assert, assertion, opts, caller) do
+    {args, value} = extract_args(assertion, caller)
+
+    quote generated: true do
+      if value = unquote(value) do
+        value
+      else
+        ExUnit.Assertions.__raise_assertion_error__(
+          ExUnit.Assertions.__merge_assertion_opts__(unquote(opts),
+            args: unquote(args),
+            expr: unquote(escape_quoted(:assert, [], assertion)),
+            message: "Expected truthy, got #{inspect(value)}"
+          )
+        )
+      end
+    end
+  end
+
+  defp build_truthy_assertion(:refute, assertion, opts, caller) do
+    {args, value} = extract_args(assertion, caller)
+
+    quote generated: true do
+      if value = unquote(value) do
+        ExUnit.Assertions.__raise_assertion_error__(
+          ExUnit.Assertions.__merge_assertion_opts__(unquote(opts),
+            args: unquote(args),
+            expr: unquote(escape_quoted(:refute, [], assertion)),
+            message: "Expected false or nil, got #{inspect(value)}"
+          )
+        )
+      else
+        value
+      end
+    end
+  end
+
+  defp diff_enabled?(opts) when is_list(opts) do
+    Keyword.keyword?(opts) and
+      (Keyword.get(opts, :diff, false) or Keyword.has_key?(opts, :error_context))
+  end
+
+  defp diff_enabled?(_opts) do
+    false
+  end
+
+  defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, opts, caller)
        when operator in @operator do
     if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
       left = Macro.var(:left, __MODULE__)
@@ -277,11 +341,11 @@ defmodule ExUnit.Assertions do
       call = {operator, meta, [left, right]}
       equality_check? = operator in [:<, :>, :!==, :!=]
       message = "Assertion with #{operator} failed"
-      translate_operator(:assert, expr, call, message, equality_check?, caller)
+      translate_operator(:assert, expr, call, message, equality_check?, opts, caller)
     end
   end
 
-  defp translate_assertion(:refute, {operator, meta, [_, _]} = expr, caller)
+  defp translate_assertion(:refute, {operator, meta, [_, _]} = expr, opts, caller)
        when operator in @operator do
     if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
       left = Macro.var(:left, __MODULE__)
@@ -289,15 +353,23 @@ defmodule ExUnit.Assertions do
       call = {:not, meta, [{operator, meta, [left, right]}]}
       equality_check? = operator in [:<=, :>=, :===, :==, :=~]
       message = "Refute with #{operator} failed"
-      translate_operator(:refute, expr, call, message, equality_check?, caller)
+      translate_operator(:refute, expr, call, message, equality_check?, opts, caller)
     end
   end
 
-  defp translate_assertion(_kind, _expected, _caller) do
+  defp translate_assertion(_kind, _expected, _opts, _caller) do
     nil
   end
 
-  defp translate_operator(kind, {op, meta, [left, right]} = expr, call, message, true, _caller) do
+  defp translate_operator(
+         kind,
+         {op, meta, [left, right]} = expr,
+         call,
+         message,
+         true,
+         opts,
+         _caller
+       ) do
     expr = escape_quoted(kind, meta, expr)
     context = if op in [:===, :!==], do: :===, else: :==
 
@@ -308,24 +380,37 @@ defmodule ExUnit.Assertions do
       message = unquote(message)
 
       if ExUnit.Assertions.__equal__?(left, right) do
-        ExUnit.Assertions.assert(false,
-          left: left,
-          expr: expr,
-          message: message <> ", both sides are exactly equal"
+        ExUnit.Assertions.__raise_assertion_error__(
+          ExUnit.Assertions.__merge_assertion_opts__(unquote(opts),
+            left: left,
+            expr: expr,
+            message: message <> ", both sides are exactly equal"
+          )
         )
       else
-        ExUnit.Assertions.assert(unquote(call),
-          left: left,
-          right: right,
-          expr: expr,
-          message: message,
-          context: unquote(context)
+        ExUnit.Assertions.__assert__(
+          unquote(call),
+          ExUnit.Assertions.__merge_assertion_opts__(unquote(opts),
+            left: left,
+            right: right,
+            expr: expr,
+            message: message,
+            context: unquote(context)
+          )
         )
       end
     end
   end
 
-  defp translate_operator(kind, {op, meta, [left, right]} = expr, call, message, false, _caller) do
+  defp translate_operator(
+         kind,
+         {op, meta, [left, right]} = expr,
+         call,
+         message,
+         false,
+         opts,
+         _caller
+       ) do
     expr = escape_quoted(kind, meta, expr)
     context = if op in [:===, :!==], do: :===, else: :==
 
@@ -333,14 +418,42 @@ defmodule ExUnit.Assertions do
       left = unquote(left)
       right = unquote(right)
 
-      ExUnit.Assertions.assert(unquote(call),
-        left: left,
-        right: right,
-        expr: unquote(expr),
-        message: unquote(message),
-        context: unquote(context)
+      ExUnit.Assertions.__assert__(
+        unquote(call),
+        ExUnit.Assertions.__merge_assertion_opts__(unquote(opts),
+          left: left,
+          right: right,
+          expr: unquote(expr),
+          message: unquote(message),
+          context: unquote(context)
+        )
       )
     end
+  end
+
+  @doc false
+  def __assert__(value, opts) when is_list(opts) do
+    if !value, do: __raise_assertion_error__(opts)
+    value
+  end
+
+  @doc false
+  def __raise_assertion_error__(opts) when is_list(opts) do
+    raise ExUnit.AssertionError, Keyword.delete(opts, :diff)
+  end
+
+  @doc false
+  def __merge_assertion_opts__(opts, defaults) when is_list(opts) do
+    Keyword.merge(defaults, opts)
+  end
+
+  @doc false
+  def __normalize_assert_opts__(message) when is_binary(message) do
+    [message: message]
+  end
+
+  def __normalize_assert_opts__(opts) when is_list(opts) do
+    opts
   end
 
   @doc false
@@ -389,6 +502,55 @@ defmodule ExUnit.Assertions do
 
   @doc false
   def __match__({:when, _, _} = left, right, _, _, _) do
+    raise_invalid_assert_match!(left, right)
+  end
+
+  def __match__(left, right, code, check, caller) do
+    __match__(left, right, code, check, [], caller)
+  end
+
+  def __match__({:when, _, _} = left, right, _, _, _, _) do
+    raise_invalid_assert_match!(left, right)
+  end
+
+  def __match__(left, right, code, check, opts, caller) do
+    left = __expand_pattern__(left, caller)
+    vars = collect_vars_from_pattern(left)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(caller))
+
+    match_expr =
+      suppress_warning(
+        quote do
+          case right do
+            unquote(left) ->
+              unquote(check)
+              {unquote_splicing(mark_as_generated(vars))}
+
+            _ ->
+              left = unquote(Macro.escape(left))
+
+              ExUnit.Assertions.__raise_assertion_error__(
+                ExUnit.Assertions.__merge_assertion_opts__(unquote(opts),
+                  left: left,
+                  right: right,
+                  expr: expr,
+                  message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+                  context: {:match, unquote(pins)}
+                )
+              )
+          end
+        end
+      )
+
+    quote do
+      right = unquote(right)
+      expr = unquote(code)
+      {unquote_splicing(vars)} = unquote(match_expr)
+      right
+    end
+  end
+
+  defp raise_invalid_assert_match!(left, right) do
     suggestion =
       quote do
         assert match?(unquote(left), unquote(right))
@@ -405,44 +567,25 @@ defmodule ExUnit.Assertions do
     """
   end
 
-  def __match__(left, right, code, check, caller) do
-    left = __expand_pattern__(left, caller)
-    vars = collect_vars_from_pattern(left)
-    pins = collect_pins_from_pattern(left, Macro.Env.vars(caller))
-
-    match_expr =
-      suppress_warning(
-        quote do
-          case right do
-            unquote(left) ->
-              unquote(check)
-              {unquote_splicing(mark_as_generated(vars))}
-
-            _ ->
-              left = unquote(Macro.escape(left))
-
-              raise ExUnit.AssertionError,
-                left: left,
-                right: right,
-                expr: expr,
-                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
-                context: {:match, unquote(pins)}
-          end
-        end
-      )
-
-    quote do
-      right = unquote(right)
-      expr = unquote(code)
-      {unquote_splicing(vars)} = unquote(match_expr)
-      right
-    end
-  end
-
   ## END HELPERS
 
   @doc """
-  Asserts `value` is truthy, displaying the given `message` otherwise.
+  Asserts `value` is truthy.
+
+  A message or keyword list of options may be given as a second argument.
+  To enable the same expression introspection as `assert/1`, the options
+  must be passed directly as a keyword list.
+
+  ## Options
+
+    * `:message` - customizes the failure message
+
+    * `:diff` - when `true`, enables the same expression introspection and
+      diffing as `assert/1`
+
+    * `:error_context` - includes the given value under `context:` in the
+      failure output. Binaries are shown as-is and other values are formatted
+      with `inspect/1`. This option implies `diff: true`
 
   ## Examples
 
@@ -452,14 +595,22 @@ defmodule ExUnit.Assertions do
 
       assert match?({:ok, _}, x), "expected x to match {:ok, _}"
 
-  """
-  def assert(value, message) when is_binary(message) do
-    assert(value, message: message)
-  end
+      assert x == :foo, message: "expected x to be foo", diff: true
 
-  def assert(value, opts) when is_list(opts) do
-    if !value, do: raise(ExUnit.AssertionError, opts)
-    true
+      assert x == :foo, error_context: %{id: 1}
+
+  """
+  defmacro assert(assertion, message_or_opts) do
+    if diff_enabled?(message_or_opts) do
+      build_assertion(
+        :assert,
+        assertion,
+        quote(do: ExUnit.Assertions.__normalize_assert_opts__(unquote(message_or_opts))),
+        __CALLER__
+      )
+    else
+      build_runtime_assertion(:assert, assertion, message_or_opts)
+    end
   end
 
   @doc """
@@ -994,13 +1145,41 @@ defmodule ExUnit.Assertions do
   @doc """
   Asserts `value` is `nil` or `false` (that is, `value` is not truthy).
 
+  A message or keyword list of options may be given as a second argument.
+  To enable the same expression introspection as `refute/1`, the options
+  must be passed directly as a keyword list.
+
+  ## Options
+
+    * `:message` - customizes the failure message
+
+    * `:diff` - when `true`, enables the same expression introspection and
+      diffing as `refute/1`
+
+    * `:error_context` - includes the given value under `context:` in the
+      failure output. Binaries are shown as-is and other values are formatted
+      with `inspect/1`. This option implies `diff: true`
+
   ## Examples
 
       refute true, "This will obviously fail"
 
+      refute x == :foo, message: "expected x not to be foo", diff: true
+
+      refute x == :foo, error_context: %{id: 1}
+
   """
-  def refute(value, message) do
-    not assert(!value, message)
+  defmacro refute(assertion, message_or_opts) do
+    if diff_enabled?(message_or_opts) do
+      build_assertion(
+        :refute,
+        assertion,
+        quote(do: ExUnit.Assertions.__normalize_assert_opts__(unquote(message_or_opts))),
+        __CALLER__
+      )
+    else
+      build_runtime_assertion(:refute, assertion, message_or_opts)
+    end
   end
 
   @doc """

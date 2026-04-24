@@ -99,6 +99,45 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert with error_context implies diff" do
+    try do
+      assert 1 + 1 == 1, error_context: %{id: 1}
+      flunk("This should never be tested")
+    rescue
+      error in [ExUnit.AssertionError] ->
+        2 = error.left
+        1 = error.right
+        %{id: 1} = error.error_context
+        "Assertion with == failed" = error.message
+        assert Exception.message(error) =~ "context: %{id: 1}"
+    end
+  end
+
+  test "assert with diff and custom message keeps diff details" do
+    try do
+      assert 1 + 1 == 1, diff: true, message: "numbers did not match", error_context: "item 4"
+      flunk("This should never be tested")
+    rescue
+      error in [ExUnit.AssertionError] ->
+        2 = error.left
+        1 = error.right
+        "numbers did not match" = error.message
+        "item 4" = error.error_context
+        assert Exception.message(error) =~ "context: item 4"
+    end
+  end
+
+  test "assert with error_context preserves match bindings" do
+    {:ok, 123} = assert({:ok, value} = {:ok, 123}, error_context: :loop_item)
+    123 = value
+  end
+
+  test "assert with message keeps match semantics when diff is disabled" do
+    assert_raise MatchError, fn ->
+      assert {:ok, _} = error(true), "expected {:ok, _}"
+    end
+  end
+
   test "assert when value evaluates to falsy" do
     try do
       assert Value.falsy()
@@ -193,6 +232,20 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         "refute Value.truthy()" = Macro.to_string(error.expr)
         "Expected false or nil, got :truthy" = error.message
+    end
+  end
+
+  test "refute with error_context implies diff" do
+    try do
+      refute 1 > 0, error_context: %{id: 2}
+      flunk("This should never be tested")
+    rescue
+      error in [ExUnit.AssertionError] ->
+        1 = error.left
+        0 = error.right
+        %{id: 2} = error.error_context
+        "Refute with > failed" = error.message
+        assert Exception.message(error) =~ "context: %{id: 2}"
     end
   end
 
