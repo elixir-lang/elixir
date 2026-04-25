@@ -1812,7 +1812,7 @@ defmodule Module.Types.ExprTest do
                atom([:non_empty_map, :maybe_empty_map])
     end
 
-    test "computes types from dead branches" do
+    test "computes types from dead branches (conditional)" do
       assert typecheck!(
                [x],
                (
@@ -1846,6 +1846,45 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) == dynamic()
+    end
+
+    test "computes types from dead branches (case)" do
+      assert typecheck!(
+               [x, key],
+               (
+                 case x do
+                   %{^key => value} -> {:ok, value}
+                   %{} -> raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic(open_map())
+
+      assert typecheck!(
+               [x],
+               (
+                 case x do
+                   %{foo: _} -> :ok
+                   %{} -> raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic(open_map(foo: term()))
+
+      assert typecheck!(
+               [x, key],
+               (
+                 case x do
+                   %{foo: _} -> :ok
+                   %{^key => value} -> {:value, value}
+                   %{} -> raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic(open_map())
     end
 
     test "warns on redundant clauses" do

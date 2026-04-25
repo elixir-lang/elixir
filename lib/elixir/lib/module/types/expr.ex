@@ -369,24 +369,18 @@ defmodule Module.Types.Expr do
       of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
     end
 
-    {{head_type, body_type}, _, context} =
-      cache_arrows(meta, stack, fn cache? ->
-        acc = {none(), none(), []}
+    {{none?, body_type}, clauses_acc, context} =
+      cache_arrows(meta, stack, fn _cache? ->
+        acc = {false, none(), []}
 
         {{head_acc, body_acc, clauses_acc}, context} =
           of_clauses_fun(clauses, [case_type], info, stack, context, of_body, acc, fn
-            trees, precise?, body_type, context, {head_acc, body_acc, clauses_acc} ->
-              cond do
-                precise? and empty?(body_type) ->
-                  [arg_type] = Pattern.of_domain(trees, stack, context)
-                  {union(negation(arg_type), head_acc), body_acc, clauses_acc}
-
-                cache? ->
-                  [arg_type] = Pattern.of_domain(trees, stack, context)
-                  {head_acc, union(body_type, body_acc), [{arg_type, body_type} | clauses_acc]}
-
-                true ->
-                  {head_acc, union(body_type, body_acc), clauses_acc}
+            trees, precise?, body_type, context, {none?, body_acc, clauses_acc} ->
+              if precise? and empty?(body_type) do
+                {true, body_acc, clauses_acc}
+              else
+                [arg_type] = Pattern.of_domain(trees, stack, context)
+                {none?, union(body_type, body_acc), [{arg_type, body_type} | clauses_acc]}
               end
           end)
 
@@ -394,13 +388,15 @@ defmodule Module.Types.Expr do
       end)
 
     context =
-      if head_type == none() do
-        context
-      else
+      if none? do
+        head_type = Enum.reduce(clauses_acc, none(), &union(elem(&1, 0), &2))
+
         {_, refined_context} =
           of_expr(case_expr, head_type, case_expr, %{stack | reverse_arrow: :use}, context)
 
         reset_warnings(refined_context, context)
+      else
+        context
       end
 
     dynamic_unless_static({body_type, context}, stack)
