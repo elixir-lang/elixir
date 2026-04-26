@@ -1619,6 +1619,13 @@ defmodule File do
   directories removed in no specific order, `{:error, reason, file}`
   otherwise.
 
+  ## Options
+
+    * `:each_directory` - (since v1.20.0) a callback invoked for each
+      directory before its contents are deleted. The callback receives the
+      directory path as a binary. It is useful, for example, to grant write
+      permission to a directory before attempting to delete it.
+
   ## Examples
 
       File.rm_rf("samples")
@@ -1630,24 +1637,28 @@ defmodule File do
       File.rm_rf("/tmp")
       #=> {:error, :eperm, "/tmp"}
   """
-  @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg, binary}
-  def rm_rf(path) do
+  @spec rm_rf(Path.t(), each_directory: (Path.t() -> term)) ::
+          {:ok, [binary]} | {:error, posix | :badarg, binary}
+  def rm_rf(path, options \\ []) do
     {major, _} = :os.type()
+    each_directory = Keyword.get(options, :each_directory, fn _ -> :ok end)
 
     path
     |> IO.chardata_to_string()
     |> assert_no_null_byte!("File.rm_rf/1")
-    |> do_rm_rf([], major)
+    |> do_rm_rf([], major, each_directory)
   end
 
-  defp do_rm_rf(path, acc, major) do
+  defp do_rm_rf(path, acc, major, each_directory) do
     case safe_list_dir(path, major) do
       {:ok, files} when is_list(files) ->
+        each_directory.(path)
+
         acc =
           Enum.reduce(files, acc, fn file, acc ->
             # In case we can't delete, continue anyway, we might succeed
             # to delete it on Windows due to how they handle symlinks.
-            case do_rm_rf(Path.join(path, file), acc, major) do
+            case do_rm_rf(Path.join(path, file), acc, major, each_directory) do
               {:ok, acc} -> acc
               {:error, _, _} -> acc
             end
@@ -1723,7 +1734,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `rm_rf/1` but raises a `File.Error` exception in case of failures,
+  Same as `rm_rf/2` but raises a `File.Error` exception in case of failures,
   otherwise returns the list of files or directories removed.
 
   ## Examples
@@ -1737,9 +1748,9 @@ defmodule File do
       File.rm_rf!("/tmp")
       ** (File.Error) could not remove files and directories recursively from "/tmp": not owner
   """
-  @spec rm_rf!(Path.t()) :: [binary]
-  def rm_rf!(path) do
-    case rm_rf(path) do
+  @spec rm_rf!(Path.t(), each_directory: (Path.t() -> term)) :: [binary]
+  def rm_rf!(path, options \\ []) do
+    case rm_rf(path, options) do
       {:ok, files} ->
         files
 

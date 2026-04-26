@@ -1473,6 +1473,46 @@ defmodule FileTest do
       assert File.rm_rf(dir) == {:ok, [dir, subdir]}
     end
 
+    test "rm_rf with each_directory callback" do
+      fixture = tmp_path("tmp")
+      File.mkdir(fixture)
+      File.cp_r!(fixture_path("cp_r"), fixture)
+      me = self()
+
+      {:ok, files} =
+        File.rm_rf(fixture, each_directory: fn path -> send(me, {:dir, path}) end)
+
+      assert length(files) == 7
+
+      assert_received {:dir, ^fixture}
+      assert_received {:dir, _}
+      assert_received {:dir, _}
+    end
+
+    @tag :unix
+    test "rm_rf with each_directory callback for read-only dir" do
+      dir = tmp_path("tmp")
+      subdir = Path.join(dir, "read-only")
+      File.mkdir_p!(subdir)
+      File.write!(Path.join(subdir, "file.txt"), "hello")
+      File.chmod!(subdir, 0o444)
+
+      me = self()
+
+      {:ok, files} =
+        File.rm_rf(dir,
+          each_directory: fn path ->
+            send(me, {:dir, path})
+            File.chmod(path, 0o755)
+          end
+        )
+
+      assert length(files) == 3
+      refute File.exists?(dir)
+      assert_received {:dir, ^dir}
+      assert_received {:dir, ^subdir}
+    end
+
     test "rm_rf with unknown" do
       fixture = tmp_path("tmp.unknown")
       assert File.rm_rf(fixture) == {:ok, []}
