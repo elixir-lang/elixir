@@ -6325,11 +6325,11 @@ defmodule Kernel do
   @doc since: "1.14.0"
   defmacro dbg(code \\ quote(do: binding()), options \\ []) do
     # The compiling process may override the callback by putting it in
-    # the process dictionary.
+    # the process dictionary. A stack is used to support nested eval calls.
     dbg_callback =
       case :erlang.get({:elixir, :dbg_callback}) do
-        :undefined -> Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
-        value -> value
+        [value | _] -> value
+        _ -> Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
       end
 
     {mod, fun, args} = dbg_callback
