@@ -100,19 +100,19 @@ jobs:
           shasum -a 256 Docs.zip > Docs.zip.sha256sum
 
       - name: "Upload Linux release artifacts"
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: build-linux-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.zip
 
       - name: "Upload Windows release artifacts"
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: build-windows-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.exe
 
       - name: "Upload doc artifacts"
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: matrix.build_docs
         with:
           name: Docs
@@ -182,7 +182,7 @@ jobs:
           shasum -a 256 "$RELEASE_FILE" > "${RELEASE_FILE}.sha256sum"
 
       - name: "Upload Linux release artifacts"
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
           path: ${{ env.RELEASE_FILE }}*
@@ -258,7 +258,7 @@ jobs:
           SBOM_SPDX_JSON: "${{ steps.ort.outputs.results-sbom-spdx-json-path }}"
 
       - name: "Assemble Release SBoM Artifacts"
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: "SBoM"
           path: |
@@ -268,7 +268,7 @@ jobs:
             ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
 
       - name: "Assemble Distribution Attestations"
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: "Attestations"
           path: "attestations/*.sigstore"
