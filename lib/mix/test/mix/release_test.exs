@@ -27,7 +27,7 @@ defmodule Mix.ReleaseTest do
   end
 
   setup do
-    File.rm_rf!(tmp_path("mix_release"))
+    File.rm_rf!(tmp_path("mix_release"), each_directory: &File.chmod(&1, 0o755))
     File.mkdir_p!(tmp_path("mix_release"))
     :ok
   end

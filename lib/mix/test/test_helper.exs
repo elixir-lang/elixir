@@ -175,7 +175,7 @@ defmodule MixTest.Case do
     dest = tmp_path(String.replace(tmp, ":", "_"))
     flag = String.to_charlist(tmp_path())
 
-    File.rm_rf!(dest)
+    File.rm_rf!(dest, each_directory: &File.chmod(&1, 0o755))
     File.mkdir_p!(dest)
     File.cp_r!(src, dest)
 
