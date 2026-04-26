@@ -1151,6 +1151,11 @@ defmodule File do
       dereferenced and have their contents copied instead when set to `true`. If the dereferenced
       files do not exist, than the operation fails. The default is `false`.
 
+    * `:preserve_directory_permissions` - (since v1.20.0) when `true`, the permissions of
+      source directories are copied to the destination directories after their contents are
+      written. This is useful when source directories are read-only or have restricted
+      permissions that must be preserved. The default is `false`.
+
   ## Examples
 
       # Copies file "a.txt" to "b.txt"
@@ -1176,7 +1181,8 @@ defmodule File do
   """
   @spec cp_r(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
-          dereference_symlinks: boolean()
+          dereference_symlinks: boolean(),
+          preserve_directory_permissions: boolean()
         ) ::
           {:ok, [binary]} | {:error, posix | :badarg | :terminated, binary}
 
@@ -1198,6 +1204,7 @@ defmodule File do
   def cp_r(source, destination, options) when is_list(options) do
     on_conflict = Keyword.get(options, :on_conflict, fn _, _ -> true end)
     dereference? = Keyword.get(options, :dereference_symlinks, false)
+    preserve_directory_permissions? = Keyword.get(options, :preserve_directory_permissions, false)
 
     source =
       source
@@ -1217,7 +1224,14 @@ defmodule File do
     else
       dereference = if dereference?, do: MapSet.new(), else: nil
 
-      case do_cp_r(source, destination, on_conflict, dereference, []) do
+      case do_cp_r(
+             source,
+             destination,
+             on_conflict,
+             dereference,
+             preserve_directory_permissions?,
+             []
+           ) do
         {:error, _, _} = error -> error
         res -> {:ok, res}
       end
@@ -1241,7 +1255,8 @@ defmodule File do
   """
   @spec cp_r!(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
-          dereference_symlinks: boolean()
+          dereference_symlinks: boolean(),
+          preserve_directory_permissions: boolean()
         ) :: [binary]
   def cp_r!(source, destination, options \\ []) do
     case cp_r(source, destination, options) do
@@ -1258,7 +1273,7 @@ defmodule File do
     end
   end
 
-  defp do_cp_r(src, dest, on_conflict, dereference, acc) when is_list(acc) do
+  defp do_cp_r(src, dest, on_conflict, dereference, preserve_dir_perms?, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
         case do_cp_file(src, dest, on_conflict, acc) do
@@ -1278,7 +1293,7 @@ defmodule File do
               {:error, :eloop, src}
             else
               dereference = MapSet.put(dereference, resolved)
-              do_cp_r(resolved, dest, on_conflict, dereference, acc)
+              do_cp_r(resolved, dest, on_conflict, dereference, preserve_dir_perms?, acc)
             end
 
           {:ok, link} ->
@@ -1300,6 +1315,7 @@ defmodule File do
                          Path.join(dest, x),
                          on_conflict,
                          dereference,
+                         preserve_dir_perms?,
                          acc
                        ) do
                     {:error, _, _} = error -> {:halt, error}
@@ -1310,13 +1326,16 @@ defmodule File do
                   {:error, _, _} = error ->
                     error
 
-                  files ->
+                  files when preserve_dir_perms? ->
                     # Change the directory after writing files in case
                     # it was originally read only
                     case copy_file_mode(src, dest) do
                       :ok -> files
                       {:error, reason} -> {:error, reason, src}
                     end
+
+                  files ->
+                    files
                 end
 
               {:error, reason} ->
@@ -1336,7 +1355,7 @@ defmodule File do
   end
 
   # If we reach this clause, there was an error while processing a file.
-  defp do_cp_r(_, _, _, _, acc) do
+  defp do_cp_r(_, _, _, _, _, acc) do
     acc
   end
 
