@@ -36,8 +36,11 @@
 
 %% Unsupported newlines
 %% https://www.unicode.org/reports/tr55/
+%% CR (0x000D) is included: a bare CR not followed by LF is rejected.
+%% Call sites must handle CRLF explicitly before the ?break check.
 -define(break(C), C =:= 16#000B orelse
                   C =:= 16#000C orelse
+                  C =:= 16#000D orelse
                   C =:= 16#0085 orelse
                   C =:= 16#2028 orelse
                   C =:= 16#2029).

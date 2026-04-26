@@ -33,6 +33,9 @@ extract([$\\, $\r, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, 
 extract([$\\, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
   extract_nl(Rest, [$\n, $\\ | Buffer], Output, Line, Scope, Interpol, Last);
 
+extract([$\r, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
+  extract_nl(Rest, [$\n, $\r | Buffer], Output, Line, Scope, Interpol, Last);
+
 extract([$\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
   extract_nl(Rest, [$\n | Buffer], Output, Line, Scope, Interpol, Last);
 
