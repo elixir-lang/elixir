@@ -3000,8 +3000,12 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_union_strategy([], [], _tag1, _tag2, status) do
-    status
+  defp map_union_strategy([], [], tag1, tag2, status) do
+    case status do
+      :left_subtype_of_right when tag1 == :open and tag2 == :closed -> :none
+      :right_subtype_of_left when tag1 == :closed and tag2 == :open -> :none
+      _ -> status
+    end
   end
 
   defp map_union_strategy(l1, l2, tag1, tag2, status) do

@@ -115,6 +115,14 @@ defmodule Module.Types.DescrTest do
       a_integer_open = open_map(a: integer())
       assert equal?(union(closed_map(a: integer()), a_integer_open), a_integer_open)
 
+      closed = closed_map(a: integer(), b: atom())
+      open = open_map(a: integer(), b: boolean())
+
+      assert subtype?(closed, union(closed, open))
+      assert subtype?(open, union(closed, open))
+      assert subtype?(closed, union(open, closed))
+      assert subtype?(open, union(open, closed))
+
       # Domain key types
       atom_to_atom = open_map([{domain_key(:atom), atom()}])
       atom_to_integer = open_map([{domain_key(:atom), integer()}])
