@@ -3062,7 +3062,8 @@ defmodule Module.Types.Descr do
   #
   # Outside of this particular scenario, the `a_int` optimization has been useful,
   # but we haven't measured benefits for `a_union`.
-  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
+  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type)
+       when type != :union do
     {found?, v1} =
       case fields_find(key, fields) do
         {:ok, value} -> {true, value}

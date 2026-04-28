@@ -608,6 +608,12 @@ defmodule Module.Types.DescrTest do
       assert difference(closed_map(a: integer()), open_map(b: if_set(integer()))) == none()
     end
 
+    test "map double negation with redundant empty map" do
+      type = closed_map(a: atom()) |> union(open_map(a: if_set(integer()))) |> union(empty_map())
+
+      assert negation(negation(type)) |> equal?(type)
+    end
+
     test "map (struct optimizations)" do
       # We do direct assertions because we want to check how it works underneath
       atom_foo = atom([:foo])
