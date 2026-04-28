@@ -431,7 +431,7 @@ defmodule PathTest do
   end
 end
 
-defmodule PathCwdFailureTest do
+defmodule Path.SyncTest do
   use ExUnit.Case, async: false
 
   @tag :tmp_dir
