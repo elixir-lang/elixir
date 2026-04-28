@@ -304,16 +304,13 @@ eval_forms(Tree, Binding, OrigE) ->
   eval_forms(Tree, Binding, OrigE, []).
 eval_forms(Tree, Binding, OrigE, Opts) ->
   Prune = proplists:get_value(prune_binding, Opts, false),
-  %% We keep a stack of dbg_callbacks in the process dictionary so nested
-  %% eval calls in the same process do not clobber the outer callback.
-  Pushed =
-    case proplists:get_value(dbg_callback, Opts) of
-      undefined ->
-        false;
-      DbgCallback ->
-        push_pdict({elixir, dbg_callback}, DbgCallback),
-        true
-    end,
+  %% We save and restore the previous dbg_callback so nested eval calls in
+  %% the same process do not clobber the outer callback.
+  PreviousDbg = erlang:get({elixir, dbg_callback}),
+  case proplists:get_value(dbg_callback, Opts) of
+    undefined -> ok;
+    DbgCallback -> erlang:put({elixir, dbg_callback}, DbgCallback)
+  end,
   try
     {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding, Prune),
     E = elixir_env:with_vars(OrigE, ExVars),
@@ -338,9 +335,9 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
         {Value, DumpedBinding, NewE#{versioned_vars := DumpedVars}}
     end
   after
-    case Pushed of
-      true -> pop_pdict({elixir, dbg_callback});
-      false -> ok
+    case PreviousDbg of
+      undefined -> erlang:erase({elixir, dbg_callback});
+      _ -> erlang:put({elixir, dbg_callback}, PreviousDbg)
     end
   end.
 
@@ -360,33 +357,17 @@ erl_eval(Expr, Binding, Env) ->
   %% The downside is that functions that escape the eval context will no
   %% longer have the original environment they came from.
   %%
-  %% We keep a stack of envs in the process dictionary so nested eval calls
-  %% in the same process do not clobber the outer env.
-  push_pdict(?elixir_eval_env, Env),
+  %% We save and restore the previous env so nested eval calls in the same
+  %% process do not clobber the outer env.
+  PreviousEvalEnv = erlang:get(?elixir_eval_env),
+  erlang:put(?elixir_eval_env, Env),
   try
     erl_eval:expr(Expr, Binding, LocalHandler, ExternalHandler)
   after
-    pop_pdict(?elixir_eval_env)
-  end.
-
-push_pdict(Key, Value) ->
-  Stack = case erlang:get(Key) of
-    undefined -> [];
-    Existing -> Existing
-  end,
-  erlang:put(Key, [Value | Stack]).
-
-pop_pdict(Key) ->
-  case erlang:get(Key) of
-    [_] -> erlang:erase(Key);
-    [_ | Rest] -> erlang:put(Key, Rest);
-    _ -> erlang:erase(Key)
-  end.
-
-peek_pdict(Key) ->
-  case erlang:get(Key) of
-    [Top | _] -> Top;
-    _ -> undefined
+    case PreviousEvalEnv of
+      undefined -> erlang:erase(?elixir_eval_env);
+      _ -> erlang:put(?elixir_eval_env, PreviousEvalEnv)
+    end
   end.
 
 eval_local_handler(FunName, Args) ->
@@ -434,7 +415,7 @@ eval_external_handler(Ann, FunOrModFun, Args) ->
 
       %% Add file+line information at the bottom
       Bottom =
-        case peek_pdict(?elixir_eval_env) of
+        case erlang:get(?elixir_eval_env) of
           #{'__struct__' := 'Elixir.Macro.Env'} = E ->
             'Elixir.Macro.Env':stacktrace(E#{line := erl_anno:line(Ann)});
           _ ->

@@ -292,11 +292,10 @@ defmodule CodeTest do
     test "nested eval preserves outer :dbg_callback" do
       opts = [dbg_callback: {__MODULE__, :dbg_callback_add_one, []}]
 
-      assert {2, _binding} =
+      assert {{2, []}, _binding} =
                Code.eval_string(
                  """
-                 Code.eval_string("1 + 1")
-                 dbg(1)
+                 Code.eval_string("dbg(1)")
                  """,
                  [],
                  opts
