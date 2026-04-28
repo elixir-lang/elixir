@@ -53,6 +53,81 @@ defmodule Mix.Tasks.CleanTest do
     end)
   end
 
+  defmodule ParserOnly do
+    def project do
+      [
+        app: :clean_with_yecc,
+        version: "0.1.0",
+        deps: [{:parser_dep, path: "deps/parser_dep"}]
+      ]
+    end
+  end
+
+  defp yecc_manifest(build_dir, relative_paths) do
+    write_manifest(build_dir, "compile.yecc", relative_paths)
+  end
+
+  defp leex_manifest(build_dir, relative_paths) do
+    write_manifest(build_dir, "compile.leex", relative_paths)
+  end
+
+  defp write_manifest(build_dir, name, relative_paths) do
+    mix_dir = Path.join(build_dir, ".mix")
+    File.mkdir_p!(mix_dir)
+    entries = Enum.map(relative_paths, &{&1, []})
+    File.write!(Path.join(mix_dir, name), :erlang.term_to_binary({1, entries}))
+  end
+
+  test "--deps removes yecc-generated .erl files from dep source" do
+    in_fixture("clean_with_yecc", fn ->
+      Mix.Project.push(ParserOnly)
+
+      build_dir = "_build/dev/lib/parser_dep"
+      File.mkdir_p!(Path.join(build_dir, "ebin"))
+      yecc_manifest(build_dir, ["src/parser.erl"])
+
+      Mix.Tasks.Clean.run(["--deps"])
+
+      refute File.exists?("deps/parser_dep/src/parser.erl")
+      assert File.exists?("deps/parser_dep/src/parser.yrl")
+      refute File.exists?("_build/dev")
+    end)
+  end
+
+  test "without --deps does not touch dep generated files" do
+    in_fixture("clean_with_yecc", fn ->
+      Mix.Project.push(ParserOnly)
+
+      Mix.Tasks.Clean.run([])
+
+      assert File.exists?("deps/parser_dep/src/parser.erl")
+    end)
+  end
+
+  test "--deps --only dev scopes generated-file cleanup to dev environment" do
+    in_fixture("clean_with_yecc", fn ->
+      Mix.Project.push(ParserOnly)
+
+      dev_dir = "_build/dev/lib/parser_dep"
+      test_dir = "_build/test/lib/parser_dep"
+
+      File.mkdir_p!(Path.join(dev_dir, "ebin"))
+      File.mkdir_p!(Path.join(test_dir, "ebin"))
+
+      # dev tracks parser.erl; test tracks lexer.erl
+      yecc_manifest(dev_dir, ["src/parser.erl"])
+      leex_manifest(test_dir, ["src/lexer.erl"])
+
+      Mix.Tasks.Clean.run(["--deps", "--only", "dev"])
+
+      refute File.exists?("deps/parser_dep/src/parser.erl")
+      # test manifest was not processed
+      assert File.exists?("deps/parser_dep/src/lexer.erl")
+      refute File.exists?("_build/dev")
+      assert File.exists?("_build/test")
+    end)
+  end
+
   test "invokes compiler hook defined in project" do
     Mix.ProjectStack.post_config(compilers: Mix.compilers() ++ [:testc])
 

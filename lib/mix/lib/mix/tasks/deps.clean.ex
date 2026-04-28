@@ -68,6 +68,7 @@ defmodule Mix.Tasks.Deps.Clean do
       end
 
     Mix.Project.with_build_lock(fn ->
+      clean_generated_sources(apps_to_clean, build_path, deps_path, loaded_deps)
       clean_build(apps_to_clean, build_path)
     end)
 
@@ -116,6 +117,60 @@ defmodule Mix.Tasks.Deps.Clean do
           "reason: #{:file.format_error(reason)}"
       )
     end
+  end
+
+  # Called from Mix.Tasks.Clean for --deps mode.
+  @doc false
+  def clean_generated_sources([], _build_path, _deps_path, _loaded_deps), do: :ok
+
+  def clean_generated_sources([app | rest], build_path, deps_path, loaded_deps) do
+    dest =
+      case Enum.find(loaded_deps, &(Atom.to_string(&1.app) == app)) do
+        %{opts: opts} -> opts[:dest]
+        nil -> Path.expand(Path.join(deps_path, app))
+      end
+
+    # When no Mix manifests exist (e.g. rebar3 deps compiled externally),
+    # infer generated files from co-located .yrl/.xrl sources.
+    paths =
+      case get_manifest_paths(build_path, app) do
+        [] ->
+          erl_paths_from_grammar_sources(dest)
+
+        manifest_paths ->
+          manifest_paths
+      end
+
+    maybe_remove_files(paths, dest)
+
+    clean_generated_sources(rest, build_path, deps_path, loaded_deps)
+  end
+
+  defp maybe_remove_files(paths, dest) do
+    paths
+    |> Enum.uniq()
+    |> Enum.map(&Path.expand(&1, dest))
+    |> Enum.filter(&String.starts_with?(&1, dest <> "/"))
+    |> Enum.each(fn expanded ->
+      case File.rm(expanded) do
+        :ok -> :ok
+        {:error, reason} -> maybe_warn_failed_file_deletion({:error, reason, expanded})
+      end
+    end)
+  end
+
+  defp erl_paths_from_grammar_sources(dest) do
+    ~w[yrl xrl]
+    |> Enum.flat_map(&Path.wildcard(Path.join([dest, "**", "*.#{&1}"])))
+    |> Enum.map(&(Path.rootname(&1) <> ".erl"))
+  end
+
+  defp get_manifest_paths(build_path, app) do
+    build_path
+    |> Path.join(to_string(app))
+    |> Path.wildcard()
+    |> Enum.flat_map(&Path.wildcard(Path.join(&1, ".mix/compile.{yecc,leex}")))
+    |> Enum.flat_map(&Mix.Compilers.Erlang.outputs/1)
   end
 
   defp clean_build(apps, build_path) do

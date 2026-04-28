@@ -57,6 +57,22 @@ defmodule Mix.Tasks.Clean do
       |> Path.join("*#{opts[:only]}")
 
     if opts[:deps] do
+      deps_path = Mix.Project.deps_path()
+      build_lib = Path.join(build, "lib")
+      loaded_deps = Mix.Dep.Converger.converge([])
+
+      apps =
+        build_lib
+        |> Path.join("*")
+        |> Path.wildcard()
+        |> Enum.filter(&File.dir?/1)
+        |> Enum.map(&Path.basename/1)
+        |> Enum.reject(&(&1 == to_string(Mix.Project.config()[:app])))
+
+      Mix.Project.with_deps_lock(fn ->
+        Mix.Tasks.Deps.Clean.clean_generated_sources(apps, build_lib, deps_path, loaded_deps)
+      end)
+
       build
       |> Path.wildcard()
       |> Enum.each(&File.rm_rf/1)
