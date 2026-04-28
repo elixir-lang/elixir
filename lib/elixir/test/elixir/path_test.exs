@@ -430,3 +430,27 @@ defmodule PathTest do
     defp strip_drive_letter_if_windows(path), do: path
   end
 end
+
+defmodule PathCwdFailureTest do
+  use ExUnit.Case, async: false
+
+  @tag :tmp_dir
+  @tag :unix
+  test "relative_to_cwd/2 returns a binary even when cwd cannot be retrieved", config do
+    {:ok, original} = :file.get_cwd()
+    tmp = Path.join(config.tmp_dir, "deleted")
+    File.mkdir_p!(tmp)
+
+    try do
+      File.cd!(tmp)
+      File.rm_rf!(tmp)
+      assert {:error, _} = :file.get_cwd()
+
+      assert Path.relative_to_cwd("foo/bar") == "foo/bar"
+      assert Path.relative_to_cwd(~c"foo/bar") == "foo/bar"
+      assert Path.relative_to_cwd(["foo", ?/, "bar"]) == "foo/bar"
+    after
+      :file.set_cwd(original)
+    end
+  end
+end
