@@ -485,7 +485,7 @@ defmodule Path do
   def relative_to_cwd(path, opts \\ []) when is_list(opts) do
     case :file.get_cwd() do
       {:ok, base} -> relative_to(path, IO.chardata_to_string(base), opts)
-      _ -> path
+      _ -> IO.chardata_to_string(path)
     end
   end
 
