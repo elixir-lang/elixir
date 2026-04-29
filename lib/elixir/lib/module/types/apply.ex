@@ -726,8 +726,8 @@ defmodule Module.Types.Apply do
 
       {size, {{:., _, [:erlang, fun]}, _, [arg]}} when is_data_size(fun, size) ->
         case booleaness(expected) do
-          {true, _} -> sized_order(invert_order(name), fun, size, arg, @atom_true)
-          {false, _} -> sized_order(name, fun, size, arg, @atom_false)
+          {true, _} -> sized_order(mirror_order(name), fun, size, arg, @atom_true)
+          {false, _} -> sized_order(invert_order(mirror_order(name)), fun, size, arg, @atom_false)
           _ -> :none
         end
 
@@ -778,6 +778,11 @@ defmodule Module.Types.Apply do
   defp invert_order(:"=<"), do: :>
   defp invert_order(:>), do: :"=<"
   defp invert_order(:<), do: :>=
+
+  defp mirror_order(:>=), do: :"=<"
+  defp mirror_order(:"=<"), do: :>=
+  defp mirror_order(:>), do: :<
+  defp mirror_order(:<), do: :>
 
   @doc """
   Returns the domain of an unknown module.
