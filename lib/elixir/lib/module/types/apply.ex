@@ -397,6 +397,10 @@ defmodule Module.Types.Apply do
         result = if precise? and subtype?(actual, expected), do: return, else: boolean()
         {result, context}
 
+      {:impossible, arg, fun} ->
+        {_, context} = of_fun.(arg, sized_domain(fun), expr, stack, context)
+        {opposite_boolean(expected), context}
+
       :none ->
         {left_type, context} = of_fun.(left, term(), expr, stack, context)
         {right_type, context} = of_fun.(right, term(), expr, stack, context)
@@ -739,11 +743,24 @@ defmodule Module.Types.Apply do
   defp sized_order(name, fun, size, arg, return) do
     case expected_order(fun, name, size) do
       :none -> :none
+      :impossible -> {:impossible, arg, fun}
       {expected, precise?} -> {arg, expected, precise?, return}
     end
   end
 
-  defp expected_order(_, :<, 0), do: :none
+  defp sized_domain(:length), do: @list
+  defp sized_domain(:map_size), do: open_map()
+  defp sized_domain(:tuple_size), do: open_tuple([])
+
+  defp opposite_boolean(expected) do
+    case booleaness(expected) do
+      {true, _} -> @atom_false
+      {false, _} -> @atom_true
+      _ -> boolean()
+    end
+  end
+
+  defp expected_order(_, :<, 0), do: :impossible
 
   defp expected_order(:tuple_size, :<, size),
     do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size))), true}

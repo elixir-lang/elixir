@@ -1162,18 +1162,20 @@ defmodule Module.Types.PatternTest do
     end
 
     test "length ordered" do
-      assert typecheck!([x], length(x) < 0, x) == dynamic(list(term()))
+      assert typeerror!([x], length(x) < 0, x) =~ "this guard will never succeed"
+      assert typeerror!([x], 0 > length(x), x) =~ "this guard will never succeed"
+      assert typeerror!([x], not (length(x) >= 0), x) =~ "this guard will never succeed"
+      assert typeerror!([x], not (0 <= length(x)), x) =~ "this guard will never succeed"
+
       assert typecheck!([x], length(x) >= 0, x) == dynamic(list(term()))
       assert typecheck!([x], length(x) <= 0, x) == dynamic(empty_list())
 
       assert typecheck!([x], 0 <= length(x), x) == dynamic(list(term()))
       assert typecheck!([x], 0 >= length(x), x) == dynamic(empty_list())
       assert typecheck!([x], 0 < length(x), x) == dynamic(non_empty_list(term()))
-      assert typecheck!([x], 0 > length(x), x) == dynamic(list(term()))
 
       assert typecheck!([x], not (length(x) > 0), x) == dynamic(empty_list())
       assert typecheck!([x], not (length(x) < 0), x) == dynamic(list(term()))
-      assert typecheck!([x], not (length(x) >= 0), x) == dynamic(list(term()))
       assert typecheck!([x], not (length(x) <= 0), x) == dynamic(non_empty_list(term()))
 
       assert typecheck!([x], length(x) < 1, x) == dynamic(empty_list())
@@ -1209,19 +1211,21 @@ defmodule Module.Types.PatternTest do
     end
 
     test "map_size ordered" do
+      assert typeerror!([x], map_size(x) < 0, x) =~ "this guard will never succeed"
+      assert typeerror!([x], 0 > map_size(x), x) =~ "this guard will never succeed"
+      assert typeerror!([x], not (map_size(x) >= 0), x) =~ "this guard will never succeed"
+      assert typeerror!([x], not (0 <= map_size(x)), x) =~ "this guard will never succeed"
+
       assert typecheck!([x], map_size(x) > 0, x) == dynamic(@non_empty_map)
-      assert typecheck!([x], map_size(x) < 0, x) == dynamic(open_map())
       assert typecheck!([x], map_size(x) >= 0, x) == dynamic(open_map())
       assert typecheck!([x], map_size(x) <= 0, x) == dynamic(empty_map())
 
       assert typecheck!([x], 0 <= map_size(x), x) == dynamic(open_map())
       assert typecheck!([x], 0 >= map_size(x), x) == dynamic(empty_map())
       assert typecheck!([x], 0 < map_size(x), x) == dynamic(@non_empty_map)
-      assert typecheck!([x], 0 > map_size(x), x) == dynamic(open_map())
 
       assert typecheck!([x], not (map_size(x) > 0), x) == dynamic(empty_map())
       assert typecheck!([x], not (map_size(x) < 0), x) == dynamic(open_map())
-      assert typecheck!([x], not (map_size(x) >= 0), x) == dynamic(open_map())
       assert typecheck!([x], not (map_size(x) <= 0), x) == dynamic(@non_empty_map)
 
       assert typecheck!([x], map_size(x) < 1, x) == dynamic(empty_map())
@@ -1273,19 +1277,21 @@ defmodule Module.Types.PatternTest do
     end
 
     test "tuple_size ordered" do
+      assert typeerror!([x], tuple_size(x) < 0, x) =~ "this guard will never succeed"
+      assert typeerror!([x], 0 > tuple_size(x), x) =~ "this guard will never succeed"
+      assert typeerror!([x], not (tuple_size(x) >= 0), x) =~ "this guard will never succeed"
+      assert typeerror!([x], not (0 <= tuple_size(x)), x) =~ "this guard will never succeed"
+
       assert typecheck!([x], tuple_size(x) > 0, x) == dynamic(open_tuple([term()]))
-      assert typecheck!([x], tuple_size(x) < 0, x) == dynamic(open_tuple([]))
       assert typecheck!([x], tuple_size(x) >= 0, x) == dynamic(open_tuple([]))
       assert typecheck!([x], tuple_size(x) <= 0, x) == dynamic(tuple([]))
 
       assert typecheck!([x], 0 <= tuple_size(x), x) == dynamic(open_tuple([]))
       assert typecheck!([x], 0 >= tuple_size(x), x) == dynamic(tuple([]))
       assert typecheck!([x], 0 < tuple_size(x), x) == dynamic(open_tuple([term()]))
-      assert typecheck!([x], 0 > tuple_size(x), x) == dynamic(open_tuple([]))
 
       assert typecheck!([x], not (tuple_size(x) > 0), x) == dynamic(tuple([]))
       assert typecheck!([x], not (tuple_size(x) < 0), x) == dynamic(open_tuple([]))
-      assert typecheck!([x], not (tuple_size(x) >= 0), x) == dynamic(open_tuple([]))
       assert typecheck!([x], not (tuple_size(x) <= 0), x) == dynamic(open_tuple([term()]))
 
       assert typecheck!([x], tuple_size(x) > 2, x) == dynamic(@open_ternary_tuple)
@@ -1302,6 +1308,14 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (tuple_size(x) < 2), x) == dynamic(@open_binary_tuple)
       assert typecheck!([x], not (tuple_size(x) >= 2), x) == dynamic(@non_open_binary_tuple)
       assert typecheck!([x], not (tuple_size(x) <= 2), x) == dynamic(@open_ternary_tuple)
+    end
+
+    test "impossible size order composes with boolean operators" do
+      assert typeerror!([x], is_list(x) and length(x) < 0, x) =~
+               "this guard will never succeed"
+
+      assert typecheck!([x], is_list(x) or length(x) < 0, x)
+             |> equal?(dynamic(union(empty_list(), non_empty_list(term(), term()))))
     end
   end
 
