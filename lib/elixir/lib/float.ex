@@ -349,7 +349,9 @@ defmodule Float do
   def round(float, 0) when float == 0.0, do: float
 
   def round(float, 0) when is_float(float) do
-    case float |> :erlang.round() |> :erlang.float() do
+    rounded = :erlang.round(float) * 1.0
+
+    case rounded do
       zero when zero == 0.0 and float < 0.0 -> -0.0
       rounded -> rounded
     end
@@ -415,7 +417,7 @@ defmodule Float do
       rounded_int < @power_of_2_to_52 <<< 1 ->
         # Both rounded_int and power fit in 53 bits, so IEEE float division
         # is correctly rounded.
-        result = :erlang.float(rounded_int) / :erlang.float(power)
+        result = rounded_int / power
         if sign == 1, do: -result, else: result
 
       true ->
@@ -440,8 +442,8 @@ defmodule Float do
 
   # Result of rounding a non-zero float whose |float * 10^precision| < 0.5.
   # ceil(+) → +10^-precision, floor(-) → -10^-precision, others → signed 0.
-  defp tiny_round(0, precision, :ceil), do: 1.0 / :erlang.float(power_of_10(precision))
-  defp tiny_round(1, precision, :floor), do: -1.0 / :erlang.float(power_of_10(precision))
+  defp tiny_round(0, precision, :ceil), do: 1.0 / power_of_10(precision)
+  defp tiny_round(1, precision, :floor), do: -1.0 / power_of_10(precision)
   defp tiny_round(sign, _precision, _mode), do: signed_zero(sign)
 
   # Slow path: emit float closest to `sign * rounded_int / power` when
