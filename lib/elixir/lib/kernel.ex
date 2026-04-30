@@ -1999,6 +1999,12 @@ defmodule Kernel do
     {:case, extra ++ meta, args}
   end
 
+  defp x_var do
+    quote generated: true do
+      x
+    end
+  end
+
   defp x_is_false_or_nil do
     quote generated: true do
       :erlang.orelse(:erlang."=:="(x, false), :erlang."=:="(x, nil))
@@ -2112,7 +2118,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: {:case, :!}],
       quote do
         case unquote(value) do
-          x when unquote(x_is_false_or_nil()) -> false
+          unquote(x_var()) when unquote(x_is_false_or_nil()) -> false
           _ -> true
         end
       end
@@ -2126,7 +2132,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: {:case, :!}],
       quote do
         case unquote(value) do
-          x when unquote(x_is_false_or_nil()) -> true
+          unquote(x_var()) when unquote(x_is_false_or_nil()) -> true
           _ -> false
         end
       end
@@ -4055,7 +4061,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: {:case, :if}],
       quote do
         case unquote(condition) do
-          x when unquote(x_is_false_or_nil()) -> unquote(else_clause)
+          unquote(x_var()) when unquote(x_is_false_or_nil()) -> unquote(else_clause)
           _ -> unquote(do_clause)
         end
       end
@@ -4107,7 +4113,7 @@ defmodule Kernel do
       [optimize_boolean: true, type_check: {:case, :unless}],
       quote do
         case unquote(condition) do
-          x when unquote(x_is_false_or_nil()) -> unquote(do_clause)
+          unquote(x_var()) when unquote(x_is_false_or_nil()) -> unquote(do_clause)
           _ -> unquote(else_clause)
         end
       end
@@ -4382,8 +4388,8 @@ defmodule Kernel do
       [type_check: {:case, :&&}],
       quote do
         case unquote(left) do
-          x when unquote(x_is_false_or_nil()) ->
-            x
+          unquote(x_var()) when unquote(x_is_false_or_nil()) ->
+            unquote(x_var())
 
           _ ->
             unquote(right)
@@ -4425,11 +4431,11 @@ defmodule Kernel do
       [type_check: {:case, :||}],
       quote do
         case unquote(left) do
-          x when unquote(x_is_false_or_nil()) ->
+          unquote(x_var()) when unquote(x_is_false_or_nil()) ->
             unquote(right)
 
-          x ->
-            x
+          unquote(x_var()) ->
+            unquote(x_var())
         end
       end
     )
