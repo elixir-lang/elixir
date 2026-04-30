@@ -344,9 +344,6 @@ defmodule Float do
 
   """
   @spec round(float, precision_range) :: float
-  # This implementation is slow since it relies on big integers.
-  # Faster implementations are available on more recent papers
-  # and could be implemented in the future.
   def round(float, precision \\ 0)
 
   def round(float, 0) when float == 0.0, do: float
@@ -366,133 +363,135 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
+  # Float rounding via Russ Cox's "unrounded scaling" algorithm specialised for
+  # fixed-precision rounding. Reference: https://research.swtch.com/fp
+  #
+  # 1. Decompose `f = (-1)^s * m * 2^e` (m has 53 bits incl. implicit leading 1).
+  # 2. Bounded multiply `prod = m * 10^p` (≤103 bits, exact for p in 0..15).
+  # 3. Round `prod / 2^-e` to integer `n` per the requested rounding mode.
+  # 4. Emit float closest to `n / 10^p`:
+  #    - fast path: when n < 2^53, IEEE float division is correctly rounded.
+  #    - slow path: bignum scaling + manual mantissa extraction.
   defp round(num, _precision, _rounding) when is_float(num) and num == 0.0, do: num
 
-  defp round(float, precision, rounding) do
-    <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
-    {num, count} = decompose(significant, 1)
-    count = count - exp + 1023
+  defp round(float, precision, mode) do
+    <<sign::1, exp_field::11, mant::52>> = <<float::float>>
 
     cond do
-      # Precision beyond 15 digits
-      count >= 104 ->
-        case rounding do
-          :ceil when sign === 0 -> 1 / power_of_10(precision)
-          :floor when sign === 1 -> -1 / power_of_10(precision)
-          :ceil when sign === 1 -> -0.0
-          :half_up when sign === 1 -> -0.0
-          _ -> 0.0
-        end
+      # Subnormal — tiny but non-zero; treat per-mode (ceil(+) and floor(-) bump
+      # to 10^-precision; everything else rounds to signed zero).
+      exp_field == 0 ->
+        tiny_round(sign, precision, mode)
 
-      # We are asking more precision than we have
-      count <= precision ->
+      # |f| >= 2^52 — already integer-valued at any precision >= 1.
+      exp_field - 1075 >= 0 ->
         float
 
       true ->
-        # Difference in precision between float and asked precision
-        # We subtract 1 because we need to calculate the remainder too
-        diff = count - precision - 1
-
-        # Get up to latest so we calculate the remainder
-        power_of_10 = power_of_10(diff)
-
-        # Convert the numerand to decimal base
-        num = num * power_of_5(count)
-
-        # Move to the given precision - 1
-        num = div(num, power_of_10)
-        div = div(num, 10)
-        num = rounding(rounding, sign, num, div)
-
-        # Convert back to float without loss
-        # https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
-        den = power_of_10(precision)
-        boundary = den <<< 52
-
-        cond do
-          num == 0 and sign == 1 ->
-            -0.0
-
-          num == 0 ->
-            0.0
-
-          num >= boundary ->
-            {den, exp} = scale_down(num, boundary, 52)
-            decimal_to_float(sign, num, den, exp)
-
-          true ->
-            {num, exp} = scale_up(num, boundary, 52)
-            decimal_to_float(sign, num, den, exp)
-        end
+        do_round(sign, @power_of_2_to_52 ||| mant, 1075 - exp_field, precision, mode)
     end
   end
 
-  defp decompose(significant, initial) do
-    decompose(significant, 1, 0, initial)
+  # |f * 10^p| < 0.5 — integer round is 0; ceil/floor still bump per sign.
+  defp do_round(sign, _m, shift, precision, mode) when shift >= 104 do
+    tiny_round(sign, precision, mode)
   end
 
-  defp decompose(<<1::1, bits::bitstring>>, count, last_count, acc) do
-    decompose(bits, count + 1, count, (acc <<< (count - last_count)) + 1)
-  end
+  defp do_round(sign, m, shift, precision, mode) do
+    pow = power_of_10(precision)
+    prod = m * pow
+    half = 1 <<< (shift - 1)
+    q = prod >>> shift
+    rem = prod - (q <<< shift)
+    n = round_step(mode, sign, q, rem, half)
 
-  defp decompose(<<0::1, bits::bitstring>>, count, last_count, acc) do
-    decompose(bits, count + 1, last_count, acc)
-  end
+    cond do
+      n == 0 ->
+        signed_zero(sign)
 
-  defp decompose(<<>>, _count, last_count, acc) do
-    {acc, last_count}
-  end
+      n < @power_of_2_to_52 <<< 1 ->
+        # Both n and pow fit in 53 bits, so IEEE float division is correctly rounded.
+        r = :erlang.float(n) / :erlang.float(pow)
+        if sign == 1, do: -r, else: r
 
-  defp scale_up(num, boundary, exp) when num >= boundary, do: {num, exp}
-  defp scale_up(num, boundary, exp), do: scale_up(num <<< 1, boundary, exp - 1)
-
-  defp scale_down(num, den, exp) do
-    new_den = den <<< 1
-
-    if num < new_den do
-      {den >>> 52, exp}
-    else
-      scale_down(num, new_den, exp + 1)
+      true ->
+        bignum_to_float(sign, n, pow)
     end
   end
 
-  defp decimal_to_float(sign, num, den, exp) do
+  defp round_step(:half_up, _sign, q, rem, half) do
+    if rem >= half, do: q + 1, else: q
+  end
+
+  defp round_step(:floor, 0, q, _rem, _half), do: q
+  defp round_step(:floor, 1, q, rem, _half) when rem > 0, do: q + 1
+  defp round_step(:floor, 1, q, _rem, _half), do: q
+  defp round_step(:ceil, 0, q, rem, _half) when rem > 0, do: q + 1
+  defp round_step(:ceil, 0, q, _rem, _half), do: q
+  defp round_step(:ceil, 1, q, _rem, _half), do: q
+
+  defp signed_zero(0), do: 0.0
+  defp signed_zero(1), do: -0.0
+
+  # Result of rounding a non-zero float whose |f * 10^precision| < 0.5.
+  # ceil(+) → +10^-precision, floor(-) → -10^-precision, others → signed 0.
+  defp tiny_round(0, precision, :ceil), do: 1.0 / :erlang.float(power_of_10(precision))
+  defp tiny_round(1, precision, :floor), do: -1.0 / :erlang.float(power_of_10(precision))
+  defp tiny_round(sign, _precision, _mode), do: signed_zero(sign)
+
+  # Slow path: emit float closest to (sign * n / pow) when n >= 2^53.
+  # The binary emission step is always IEEE round-to-nearest-even, regardless
+  # of the integer-rounding mode used for `n`.
+  defp bignum_to_float(sign, n, pow) do
+    s = bit_length(n) - bit_length(pow) - 53
+    {num, den, exp} = align(n, pow, s)
+
     quo = div(num, den)
     rem = num - quo * den
+    half = den >>> 1
 
-    tmp =
-      case den >>> 1 do
-        den when rem > den -> quo + 1
-        den when rem < den -> quo
-        _ when (quo &&& 1) === 1 -> quo + 1
-        _ -> quo
+    mant =
+      cond do
+        rem > half -> quo + 1
+        rem < half -> quo
+        (quo &&& 1) === 1 -> quo + 1
+        true -> quo
       end
 
-    tmp = tmp - @power_of_2_to_52
-    <<tmp::float>> = <<sign::1, exp + 1023::11, tmp::52>>
-    tmp
+    <<f::float>> = <<sign::1, exp + 1023::11, mant - @power_of_2_to_52::52>>
+    f
   end
 
-  defp rounding(:floor, 1, _num, div), do: div + 1
-  defp rounding(:ceil, 0, _num, div), do: div + 1
+  # Pick (num, den, exp) so that num/den ∈ [2^52, 2^53) and the resulting
+  # float = num/den * 2^(exp-52).
+  defp align(n, pow, s) when s >= 0 do
+    new_pow = pow <<< s
 
-  defp rounding(:half_up, _sign, num, div) do
-    case rem(num, 10) do
-      rem when rem < 5 -> div
-      rem when rem >= 5 -> div + 1
-    end
+    if n < new_pow <<< 53,
+      do: {n, new_pow, 52 + s},
+      else: {n, new_pow <<< 1, 53 + s}
   end
 
-  defp rounding(_, _, _, div), do: div
+  defp align(n, pow, s) do
+    new_n = n <<< -s
+    boundary = pow <<< 52
 
-  Enum.reduce(0..104, 1, fn x, acc ->
+    if new_n >= boundary,
+      do: {new_n, pow, 52 + s},
+      else: {new_n <<< 1, pow, 51 + s}
+  end
+
+  defp bit_length(0), do: 0
+  defp bit_length(n) when n > 0, do: bit_length(n, 0)
+  defp bit_length(n, acc) when n >= 1 <<< 64, do: bit_length(n >>> 64, acc + 64)
+  defp bit_length(n, acc) when n >= 1 <<< 16, do: bit_length(n >>> 16, acc + 16)
+  defp bit_length(n, acc) when n >= 1 <<< 4, do: bit_length(n >>> 4, acc + 4)
+  defp bit_length(n, acc) when n >= 1, do: bit_length(n >>> 1, acc + 1)
+  defp bit_length(_, acc), do: acc
+
+  Enum.reduce(0..15, 1, fn x, acc ->
     defp power_of_10(unquote(x)), do: unquote(acc)
     acc * 10
-  end)
-
-  Enum.reduce(0..104, 1, fn x, acc ->
-    defp power_of_5(unquote(x)), do: unquote(acc)
-    acc * 5
   end)
 
   @doc """
