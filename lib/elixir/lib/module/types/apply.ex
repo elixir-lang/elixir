@@ -590,17 +590,23 @@ defmodule Module.Types.Apply do
 
         {expected, precise?} =
           case fun do
-            :length when :erlang.xor(polarity, literal > 0) ->
-              {@empty_list, literal == 0}
+            :length when polarity and literal == 0 ->
+              {@empty_list, true}
+
+            :length when not polarity and literal == 0 ->
+              {@non_empty_list, true}
 
             :length ->
-              {@non_empty_list, literal == 0}
+              {@list, false}
 
-            :map_size when :erlang.xor(polarity, literal > 0) ->
-              {@empty_map, literal == 0}
+            :map_size when polarity and literal == 0 ->
+              {@empty_map, true}
+
+            :map_size when not polarity and literal == 0 ->
+              {@non_empty_map, true}
 
             :map_size ->
-              {@non_empty_map, literal == 0}
+              {open_map(), false}
 
             :tuple_size when polarity ->
               {tuple(List.duplicate(term(), literal)), true}
