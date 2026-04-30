@@ -596,6 +596,9 @@ defmodule Module.Types.Apply do
             :length when not polarity and literal == 0 ->
               {@non_empty_list, true}
 
+            :length when polarity ->
+              {@non_empty_list, false}
+
             :length ->
               {@list, false}
 
@@ -604,6 +607,9 @@ defmodule Module.Types.Apply do
 
             :map_size when not polarity and literal == 0 ->
               {@non_empty_map, true}
+
+            :map_size when polarity ->
+              {@non_empty_map, false}
 
             :map_size ->
               {open_map(), false}

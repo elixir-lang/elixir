@@ -1160,13 +1160,13 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], 0 != length(x), x) == dynamic(non_empty_list(term()))
       assert typecheck!([x], not (0 != length(x)), x) == dynamic(empty_list())
 
-      assert typecheck!([x], length(x) != 1, x) == dynamic(list(term()))
-      assert typecheck!([x], length(x) == 1, x) == dynamic(list(term()))
-      assert typecheck!([x], not (length(x) != 1), x) == dynamic(list(term()))
-      assert typecheck!([x], not (length(x) == 1), x) == dynamic(list(term()))
+      assert typecheck!([x], length(x) == 1, x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], not (length(x) != 1), x) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], 1 == length(x), x) == dynamic(non_empty_list(term()))
 
+      assert typecheck!([x], length(x) != 1, x) == dynamic(list(term()))
+      assert typecheck!([x], not (length(x) == 1), x) == dynamic(list(term()))
       assert typecheck!([x], 1 != length(x), x) == dynamic(list(term()))
-      assert typecheck!([x], 1 == length(x), x) == dynamic(list(term()))
 
       assert typecheck!([x], is_list(x) and length(x) != 1 and x != [], hd(x)) ==
                dynamic(term())
@@ -1218,13 +1218,13 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x], not (0 == map_size(x)), x) == dynamic(@non_empty_map)
       assert typecheck!([x], not (0 != map_size(x)), x) == dynamic(empty_map())
 
-      assert typecheck!([x], map_size(x) != 1, x) == dynamic(open_map())
-      assert typecheck!([x], map_size(x) == 1, x) == dynamic(open_map())
-      assert typecheck!([x], not (map_size(x) != 1), x) == dynamic(open_map())
-      assert typecheck!([x], not (map_size(x) == 1), x) == dynamic(open_map())
+      assert typecheck!([x], map_size(x) == 1, x) == dynamic(@non_empty_map)
+      assert typecheck!([x], not (map_size(x) != 1), x) == dynamic(@non_empty_map)
+      assert typecheck!([x], 1 == map_size(x), x) == dynamic(@non_empty_map)
 
+      assert typecheck!([x], map_size(x) != 1, x) == dynamic(open_map())
+      assert typecheck!([x], not (map_size(x) == 1), x) == dynamic(open_map())
       assert typecheck!([x], 1 != map_size(x), x) == dynamic(open_map())
-      assert typecheck!([x], 1 == map_size(x), x) == dynamic(open_map())
 
       assert typecheck!(
                [x],
