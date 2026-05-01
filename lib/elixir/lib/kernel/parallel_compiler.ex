@@ -25,9 +25,8 @@ defmodule Kernel.ParallelCompiler do
           each_long_compilation: (Path.t() -> term()) | (Path.t(), pid() -> term()),
           each_long_verification: (module() -> term()) | (module(), pid() -> term()),
           each_module: (Path.t(), module(), binary() -> term()),
-          each_cycle: ([module()], [Code.diagnostic(:warning)] ->
-                         {:compile, [module()], [Code.diagnostic(:warning)]}
-                         | {:runtime, [module()], [Code.diagnostic(:warning)]}),
+          each_cycle: (-> {:compile, [module()], [Code.diagnostic(:warning)]}
+                          | {:runtime, [module()], [Code.diagnostic(:warning)]}),
           long_compilation_threshold: pos_integer(),
           long_verification_threshold: pos_integer(),
           verification: boolean(),
