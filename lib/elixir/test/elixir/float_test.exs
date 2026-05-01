@@ -121,7 +121,6 @@ defmodule FloatTest do
 
     test "with already-integer floats" do
       # |f| >= 2^52 — fast path returns the float unchanged.
-      assert Float.floor(:math.pow(2, 52), 5) === 4_503_599_627_370_496.0
       assert Float.floor(1.0e20, 3) === 1.0e20
       assert Float.floor(-1.0e20, 3) === -1.0e20
     end
@@ -129,6 +128,9 @@ defmodule FloatTest do
     test "with very large floats hits the bignum slow path" do
       # n = round(|f| * 10^p) >= 2^53 — exercises bignum_to_float / align.
       # The slow path must round-trip representable floats back to themselves.
+      assert Float.floor(2_661_101_816_343_531.5, 1) === 2_661_101_816_343_531.5
+      assert Float.floor(3.0e15, 1) === 3.0e15
+      assert Float.floor(-3.0e15, 1) === -3.0e15
       assert Float.floor(1.234e15, 3) === 1.234e15
       assert Float.floor(1.234567e11, 5) === 1.234567e11
       assert Float.floor(-1.234567e11, 5) === -1.234567e11
@@ -207,12 +209,14 @@ defmodule FloatTest do
     end
 
     test "with already-integer floats" do
-      assert Float.ceil(:math.pow(2, 52), 5) === 4_503_599_627_370_496.0
       assert Float.ceil(1.0e20, 3) === 1.0e20
       assert Float.ceil(-1.0e20, 3) === -1.0e20
     end
 
     test "with very large floats hits the bignum slow path" do
+      assert Float.ceil(2_661_101_816_343_531.5, 1) === 2_661_101_816_343_531.5
+      assert Float.ceil(3.0e15, 1) === 3.0e15
+      assert Float.ceil(-3.0e15, 1) === -3.0e15
       assert Float.ceil(1.234e15, 3) === 1.234e15
       assert Float.ceil(1.234567e11, 5) === 1.234567e11
       assert Float.ceil(-1.234567e11, 5) === -1.234567e11
@@ -268,15 +272,23 @@ defmodule FloatTest do
     end
 
     test "with already-integer floats" do
-      assert Float.round(:math.pow(2, 52), 5) === 4_503_599_627_370_496.0
       assert Float.round(1.0e20, 3) === 1.0e20
       assert Float.round(-1.0e20, 3) === -1.0e20
+      assert Float.round(3.0e15, 3) === 3.0e15
+      assert Float.round(-3.0e15, 3) === -3.0e15
     end
 
     test "with very large floats hits the bignum slow path" do
+      assert Float.round(3.0e15, 1) === 3.0e15
+      assert Float.round(-3.0e15, 1) === -3.0e15
       assert Float.round(1.234e15, 3) === 1.234e15
       assert Float.round(1.234567e11, 5) === 1.234567e11
       assert Float.round(-1.234567e11, 5) === -1.234567e11
+
+      assert Float.round(2_251_799_813_685_248.5, 1) === 2_251_799_813_685_248.5
+      assert Float.round(2_251_799_813_685_249.5, 1) === 2_251_799_813_685_249.5
+      assert Float.round(-2_251_799_813_685_248.5, 1) === -2_251_799_813_685_248.5
+      assert Float.round(-2_251_799_813_685_249.5, 1) === -2_251_799_813_685_249.5
     end
 
     test "preserves documented tie behavior" do
@@ -286,6 +298,17 @@ defmodule FloatTest do
       assert Float.round(-5.5675, 3) === -5.567
       assert Float.round(12.5, 0) === 13.0
       assert Float.round(-12.5, 0) === -13.0
+    end
+  end
+
+  test "round/2, floor/2, and ceil/2 preserve powers of two" do
+    # Powers of two are exactly representable and have no fractional content,
+    # so rounding at any precision must return the input unchanged.
+    for k <- 0..60 do
+      f = :math.pow(2, k)
+      assert Float.round(f, 1) === f
+      assert Float.floor(f, 1) === f
+      assert Float.ceil(f, 1) === f
     end
   end
 
