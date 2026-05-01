@@ -303,7 +303,7 @@ defmodule EEx.Compiler do
       file: file,
       source: source,
       line: line,
-      quoted: [],
+      quoted: %{},
       parser_options: [indentation: indentation] ++ parser_options,
       indentation: indentation
     }
@@ -366,7 +366,7 @@ defmodule EEx.Compiler do
         rest,
         state.engine.handle_begin(buffer),
         [{contents, start_line, start_column} | scope],
-        %{state | quoted: [], line: line}
+        %{state | quoted: %{}, line: line}
       )
 
     if mark == ~c"" and not match?({:=, _, [_, _]}, contents) do
@@ -443,10 +443,10 @@ defmodule EEx.Compiler do
 
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
-    key = length(state.quoted)
+    key = map_size(state.quoted)
     placeholder = [~c"__EEX__(", Integer.to_charlist(key), ~c");"]
     count = [current, placeholder, new_lines, chars]
-    new_state = %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}
+    new_state = %{state | quoted: Map.put(state.quoted, key, state.engine.handle_end(buffer))}
 
     {count, new_state}
   end
@@ -479,8 +479,7 @@ defmodule EEx.Compiler do
   # Changes placeholder to real expression
 
   defp insert_quoted({:__EEX__, _, [key]}, quoted) do
-    {^key, value} = List.keyfind(quoted, key, 0)
-    value
+    Map.get(quoted, key)
   end
 
   defp insert_quoted({left, line, right}, quoted) do
