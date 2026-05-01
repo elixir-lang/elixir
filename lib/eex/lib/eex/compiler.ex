@@ -410,7 +410,7 @@ defmodule EEx.Compiler do
        ) do
     {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
     options = [file: state.file, line: line, column: column] ++ state.parser_options
-    tuples = Code.string_to_quoted!(wrapped, options)
+    tuples = Code.string_to_quoted!(:lists.flatten(wrapped), options)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}
   end
@@ -426,7 +426,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:eof, _meta}], _buffer, [{content, line, column} | _scope], state) do
     message = "expected a closing '<% end %>' for block expression in EEx"
-    expr_meta = non_whitespace_meta(content, line, column, state)
+    expr_meta = non_whitespace_meta(:lists.flatten(content), line, column, state)
     syntax_error!(message, expr_meta, state)
   end
 
@@ -444,8 +444,8 @@ defmodule EEx.Compiler do
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
     key = length(state.quoted)
-    placeholder = ~c"__EEX__(" ++ Integer.to_charlist(key) ++ ~c");"
-    count = current ++ placeholder ++ new_lines ++ chars
+    placeholder = [~c"__EEX__(", Integer.to_charlist(key), ~c");"]
+    count = [current, placeholder, new_lines, chars]
     new_state = %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}
 
     {count, new_state}
