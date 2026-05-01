@@ -97,7 +97,7 @@ defmodule Macro.EnvTest do
 
     test "with errors" do
       message =
-        "invalid :only option for import, expected value to be an atom :functions, :macros, " <>
+        "invalid :only option for import, expected value to be an atom :functions, :macros, :sigils, " <>
           "or a literal keyword list of function names with arity as values, got: "
 
       assert define_import(env(), meta(), Integer, only: :unknown) ==

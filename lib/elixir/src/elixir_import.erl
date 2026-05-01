@@ -248,7 +248,7 @@ format_error({invalid_import, {Receiver, Name, Arity}}) ->
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({invalid_option, only, Value}) ->
-  Message = "invalid :only option for import, expected value to be an atom :functions, :macros"
+  Message = "invalid :only option for import, expected value to be an atom :functions, :macros, :sigils"
   ", or a literal keyword list of function names with arity as values, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 

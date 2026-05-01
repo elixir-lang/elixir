@@ -698,7 +698,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:3:3",
-        "invalid :only option for import, expected value to be an atom :functions, :macros, or a literal keyword list of function names with arity as values, got: x"
+        "invalid :only option for import, expected value to be an atom :functions, :macros, :sigils, or a literal keyword list of function names with arity as values, got: x"
       ],
       ~c"""
       defmodule Kernel.ErrorsTest.Only do
