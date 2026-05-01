@@ -185,7 +185,7 @@ defmodule IEx.InteractionTest do
     assert capture_io(:stderr, fn ->
              capture_iex("open('README.md')", [], env: __ENV__)
            end) =~
-             ~r"function open/1 imported from both File and IEx.Helpers"
+             ~r"open/1 is ambiguous, it is imported as a function from File and as a macro from IEx.Helpers"
   end
 
   test "receive exit" do

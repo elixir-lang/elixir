@@ -607,6 +607,9 @@ defmodule Macro.Env do
           {:function, receiver, name} ->
             {:function, receiver, name}
 
+          {:ambiguous, tagged} ->
+            {:error, {:ambiguous, for({_kind, mod} <- tagged, do: mod)}}
+
           error ->
             {:error, error}
         end

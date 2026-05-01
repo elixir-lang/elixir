@@ -47,10 +47,10 @@ find_imports(Meta, Name, E) ->
   Macs = ?key(E, macros),
 
   Acc0 = #{},
-  Acc1 = find_imports_by_name(Funs, Acc0, Name, Meta, E),
-  Acc2 = find_imports_by_name(Macs, Acc1, Name, Meta, E),
+  Acc1 = find_imports_by_name(function, Funs, Acc0, Name, Meta, E),
+  Acc2 = find_imports_by_name(macro, Macs, Acc1, Name, Meta, E),
 
-  lists:sort(maps:to_list(Acc2)).
+  [{Arity, Mod} || {Arity, {_Kind, Mod}} <- lists:sort(maps:to_list(Acc2))].
 
 %% Function retrieval
 
@@ -287,24 +287,24 @@ caller(Line, E) ->
 
 %% Helpers
 
-find_imports_by_name([{Mod, Imports} | ModImports], Acc, Name, Meta, E) ->
-  NewAcc = find_imports_by_name(Name, Imports, Acc, Mod, Meta, E),
-  find_imports_by_name(ModImports, NewAcc, Name, Meta, E);
-find_imports_by_name([], Acc, _Name, _Meta, _E) ->
+find_imports_by_name(Kind, [{Mod, Imports} | ModImports], Acc, Name, Meta, E) ->
+  NewAcc = find_imports_by_name(Kind, Name, Imports, Acc, Mod, Meta, E),
+  find_imports_by_name(Kind, ModImports, NewAcc, Name, Meta, E);
+find_imports_by_name(_Kind, [], Acc, _Name, _Meta, _E) ->
   Acc.
 
-find_imports_by_name(Name, [{Name, Arity} | Imports], Acc, Mod, Meta, E) ->
+find_imports_by_name(Kind, Name, [{Name, Arity} | Imports], Acc, Mod, Meta, E) ->
   case Acc of
-    #{Arity := OtherMod} ->
-      Error = {import, {ambiguous, [Mod, OtherMod]}, Name, Arity},
+    #{Arity := {OtherKind, OtherMod}} ->
+      Error = {import, {ambiguous, [{Kind, Mod}, {OtherKind, OtherMod}]}, Name, Arity},
       elixir_errors:file_error(Meta, E, ?MODULE, Error);
 
     #{} ->
-      find_imports_by_name(Name, Imports, Acc#{Arity => Mod}, Mod, Meta, E)
+      find_imports_by_name(Kind, Name, Imports, Acc#{Arity => {Kind, Mod}}, Mod, Meta, E)
   end;
-find_imports_by_name(Name, [{ImportName, _} | Imports], Acc, Mod, Meta, E) when Name > ImportName ->
-  find_imports_by_name(Name, Imports, Acc, Mod, Meta, E);
-find_imports_by_name(_Name, _Imports, Acc, _Mod, _Meta, _E) ->
+find_imports_by_name(Kind, Name, [{ImportName, _} | Imports], Acc, Mod, Meta, E) when Name > ImportName ->
+  find_imports_by_name(Kind, Name, Imports, Acc, Mod, Meta, E);
+find_imports_by_name(_Kind, _Name, _Imports, Acc, _Mod, _Meta, _E) ->
   Acc.
 
 find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, Extra, E) ->
@@ -321,7 +321,9 @@ find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, Extra, E) ->
         {[], [Receiver]} -> {macro, Receiver};
         {[Receiver], []} -> {function, Receiver};
         {[], []} -> false;
-        _ -> {ambiguous, FunMatch ++ MacMatch}
+        _ ->
+          Tagged = [{function, M} || M <- FunMatch] ++ [{macro, M} || M <- MacMatch],
+          {ambiguous, Tagged}
       end
   end.
 
@@ -362,9 +364,18 @@ format_error({import, {conflict, Receiver}, Name, Arity}) ->
   io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B, "
     "please rename the local macro or remove the conflicting import",
     [Name, Arity, elixir_aliases:inspect(Receiver), Name, Arity]);
-format_error({import, {ambiguous, [Mod1, Mod2 | _]}, Name, Arity}) ->
-  io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
-    [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]);
+format_error({import, {ambiguous, [{Kind1, Mod1}, {Kind2, Mod2} | _]}, Name, Arity}) ->
+  case {Kind1, Kind2} of
+    {function, function} ->
+      io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
+        [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]);
+    {macro, macro} ->
+      io_lib:format("macro ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
+        [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]);
+    _ ->
+      io_lib:format("~ts/~B is ambiguous, it is imported as a ~ts from ~ts and as a ~ts from ~ts",
+        [Name, Arity, Kind1, elixir_aliases:inspect(Mod1), Kind2, elixir_aliases:inspect(Mod2)])
+  end;
 format_error({compile_env, Name, Arity}) ->
   io_lib:format("Application.~s/~B is discouraged in the module body, use Application.compile_env/3 instead", [Name, Arity]);
 format_error({deprecated, Mod, '__using__', 1, Message}) ->
