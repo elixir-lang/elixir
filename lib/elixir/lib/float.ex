@@ -365,16 +365,34 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
-  # Float rounding via Russ Cox's "unrounded scaling" algorithm specialised for
-  # fixed-precision rounding. Reference: https://research.swtch.com/fp
+  # Decimal-place rounding via exact rational scaling. This is the bignum
+  # core used by reference implementations like David M. Gay's "Correctly
+  # Rounded Binary-Decimal and Decimal-Binary Conversions" (cited in the
+  # @doc above), Python's round(), and Java's BigDecimal.setScale.
   #
-  # 1. Decompose float = (-1)^sign * mantissa * 2^binary_exp
-  #    (mantissa has 53 bits incl. implicit leading 1).
-  # 2. Bounded multiply `product = mantissa * 10^precision` (≤103 bits, exact).
-  # 3. Round `product / 2^-binary_exp` to an integer per the requested mode.
-  # 4. Emit float closest to `rounded_int / 10^precision`:
-  #    - fast path: when rounded_int < 2^53, IEEE float division is correctly rounded.
-  #    - slow path: bignum scaling + manual mantissa extraction.
+  # 1. Decompose float exactly: |float| = mantissa / 2^shift.
+  # 2. Scale exactly: |float| * 10^precision = mantissa * 10^precision / 2^shift.
+  #    Because precision is bounded to 0..15, the product fits in ~103 bits
+  #    (53-bit mantissa + ~50-bit power of ten) and BEAM bignums handle it
+  #    directly without approximation.
+  # 3. Round the exact rational to an integer per the requested mode
+  #    (half_up / floor / ceil) using quotient and remainder.
+  # 4. Emit the float closest to rounded_int / 10^precision:
+  #    - fast path: when rounded_int < 2^53, both operands are exactly
+  #      representable as floats and IEEE division is correctly rounded.
+  #    - slow path: bignum alignment + manual mantissa extraction with
+  #      round-to-nearest-even for the trailing bit.
+  #
+  # The integer-rounding decision (step 3) and the binary-emission decision
+  # (step 4) are deliberately independent: step 3 picks the exact rational
+  # the user asked for, step 4 picks the closest float to that rational.
+  # Conflating them is the classic source of double-rounding bugs.
+  #
+  # Faster algorithms exist (Cox 2026's table-based uscale; Ryū / Schubfach
+  # for round-trip printing) but target different problems or assume
+  # fixed-width machine arithmetic that BEAM doesn't expose efficiently.
+  # At precision <= 15, the exact path is small, easy to audit, and fast
+  # enough that a more complex algorithm has not been justified by benchmarks.
   defp round(num, _precision, _rounding) when is_float(num) and num == 0.0, do: num
 
   defp round(float, precision, mode) do
@@ -386,7 +404,7 @@ defmodule Float do
       exp == 0 ->
         tiny_round(sign, precision, mode)
 
-      # |float| >= 2^52 — already integer-valued at any precision >= 1.
+      # |float| >= 2^52 — has no fractional bits, return unchanged.
       exp - 1075 >= 0 ->
         float
 
@@ -465,6 +483,15 @@ defmodule Float do
         true -> quotient
       end
 
+    # Carry-bit normalization: `mantissa` lives in [2^52, 2^53]. The upper
+    # bound `2^53` is reachable when `align/3` returns an upper-bound quotient
+    # or when rounding carries. Rebalance into the canonical [2^52, 2^53)
+    # range so the 52-bit packing below doesn't silently truncate.
+    {mantissa, exp} =
+      if mantissa == @power_of_2_to_52 <<< 1,
+        do: {@power_of_2_to_52, exp + 1},
+        else: {mantissa, exp}
+
     <<result::float>> = <<sign::1, exp + 1023::11, mantissa - @power_of_2_to_52::52>>
     result
   end
@@ -481,11 +508,12 @@ defmodule Float do
 
   defp align(rounded_int, power, shift_adjust) do
     shifted = rounded_int <<< -shift_adjust
-    boundary = power <<< 52
 
-    if shifted >= boundary,
-      do: {shifted, power, 52 + shift_adjust},
-      else: {shifted <<< 1, power, 51 + shift_adjust}
+    cond do
+      shifted >= power <<< 53 -> {shifted, power <<< 1, 53 + shift_adjust}
+      shifted >= power <<< 52 -> {shifted, power, 52 + shift_adjust}
+      true -> {shifted <<< 1, power, 51 + shift_adjust}
+    end
   end
 
   defp bit_length(0), do: 0
