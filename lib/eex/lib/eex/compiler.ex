@@ -479,7 +479,7 @@ defmodule EEx.Compiler do
   # Changes placeholder to real expression
 
   defp insert_quoted({:__EEX__, _, [key]}, quoted) do
-    Map.get(quoted, key)
+    Map.fetch!(quoted, key)
   end
 
   defp insert_quoted({left, line, right}, quoted) do
