@@ -1091,6 +1091,11 @@ defmodule Access do
 
   defp normalize_range(range, _list), do: range
 
+  defp get_and_update_slice(rest, %Range{last: last}, _next, updates, gets, index)
+       when index > last do
+    {:lists.reverse(gets), :lists.reverse(updates, rest)}
+  end
+
   defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
     if index in range do
       case next.(head) do
