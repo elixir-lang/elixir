@@ -152,7 +152,10 @@ defmodule Base do
   defp remove_ignored(string, nil), do: string
 
   defp remove_ignored(string, :whitespace) do
-    for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
+    case :binary.match(string, [<<?\s>>, <<?\t>>, <<?\r>>, <<?\n>>]) do
+      :nomatch -> string
+      _ -> for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
+    end
   end
 
   @doc """
@@ -376,6 +379,26 @@ defmodule Base do
 
     defp unquote(validate_name)(<<>>), do: true
 
+    defp unquote(validate_name)(<<c1, c2, c3, c4, c5, c6, c7, c8, rest::binary>>) do
+      unquote(valid_char_name)(c1) and
+        unquote(valid_char_name)(c2) and
+        unquote(valid_char_name)(c3) and
+        unquote(valid_char_name)(c4) and
+        unquote(valid_char_name)(c5) and
+        unquote(valid_char_name)(c6) and
+        unquote(valid_char_name)(c7) and
+        unquote(valid_char_name)(c8) and
+        unquote(validate_name)(rest)
+    end
+
+    defp unquote(validate_name)(<<c1, c2, c3, c4, rest::binary>>) do
+      unquote(valid_char_name)(c1) and
+        unquote(valid_char_name)(c2) and
+        unquote(valid_char_name)(c3) and
+        unquote(valid_char_name)(c4) and
+        unquote(validate_name)(rest)
+    end
+
     defp unquote(validate_name)(<<c1, c2, rest::binary>>) do
       unquote(valid_char_name)(c1) and
         unquote(valid_char_name)(c2) and
@@ -391,6 +414,7 @@ defmodule Base do
 
     defp unquote(valid_char_name)(_char), do: false
 
+    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
 
@@ -870,6 +894,7 @@ defmodule Base do
 
     defp unquote(valid_char_name)(_char), do: false
 
+    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
 
@@ -1526,6 +1551,7 @@ defmodule Base do
 
     defp unquote(valid_char_name)(_char), do: false
 
+    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
 
