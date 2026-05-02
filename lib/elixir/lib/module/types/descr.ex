@@ -3242,7 +3242,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
-    if v1 == @not_set do
+    if is_optional_static(v1) do
       map_literal_intersection_closed(t1, l2)
     else
       throw(:empty)
@@ -3250,7 +3250,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
-    if v2 == @not_set do
+    if is_optional_static(v2) do
       map_literal_intersection_closed(l1, t2)
     else
       throw(:empty)
@@ -3262,8 +3262,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_closed(t1, t2) do
-    if Enum.any?(t1, fn {_, v} -> v != @not_set end) or
-         Enum.any?(t2, fn {_, v} -> v != @not_set end) do
+    if Enum.any?(t1, fn {_, v} -> not is_optional_static(v) end) or
+         Enum.any?(t2, fn {_, v} -> not is_optional_static(v) end) do
       throw(:empty)
     end
 
@@ -5565,6 +5565,7 @@ defmodule Module.Types.Descr do
   @doc """
   Returns all of the values that are part of a tuple.
   """
+  def tuple_values(:term), do: :badtuple
   def tuple_values(descr) when descr == %{}, do: :badtuple
 
   def tuple_values(descr) do
@@ -5578,7 +5579,13 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         if tuple_only?(static) and descr_key?(dynamic, :tuple) do
-          dynamic(process_tuples_values(Map.get(dynamic, :tuple, :bdd_bot)))
+          dynamic_value =
+            case dynamic do
+              :term -> term()
+              %{tuple: bdd} -> process_tuples_values(bdd)
+            end
+
+          dynamic(dynamic_value)
           |> union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
         else
           :badtuple

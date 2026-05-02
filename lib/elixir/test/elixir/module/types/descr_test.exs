@@ -358,6 +358,10 @@ defmodule Module.Types.DescrTest do
                closed_map(a: integer(), c: not_set())
              ) ==
                closed_map(a: integer())
+
+      assert intersection(empty_map(), closed_map(a: if_set(integer()))) == empty_map()
+      assert intersection(closed_map(a: if_set(integer())), empty_map()) == empty_map()
+      refute disjoint?(empty_map(), closed_map(a: if_set(integer())))
     end
 
     test "map with domain keys" do
@@ -1776,6 +1780,8 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple_values" do
+      assert tuple_values(term()) == :badtuple
+      assert tuple_values(dynamic()) == dynamic()
       assert tuple_values(integer()) == :badtuple
       assert tuple_values(tuple([none()])) == :badtuple
       assert tuple_values(tuple([])) == none()
