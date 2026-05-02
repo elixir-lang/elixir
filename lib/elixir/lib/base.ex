@@ -152,10 +152,7 @@ defmodule Base do
   defp remove_ignored(string, nil), do: string
 
   defp remove_ignored(string, :whitespace) do
-    case :binary.match(string, [<<?\s>>, <<?\t>>, <<?\r>>, <<?\n>>]) do
-      :nomatch -> string
-      _ -> for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
-    end
+    for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
   end
 
   @doc """
@@ -414,7 +411,6 @@ defmodule Base do
 
     defp unquote(valid_char_name)(_char), do: false
 
-    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
 
@@ -894,7 +890,6 @@ defmodule Base do
 
     defp unquote(valid_char_name)(_char), do: false
 
-    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
 
@@ -1551,7 +1546,6 @@ defmodule Base do
 
     defp unquote(valid_char_name)(_char), do: false
 
-    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
 
