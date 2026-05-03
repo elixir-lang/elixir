@@ -5770,7 +5770,7 @@ defmodule Module.Types.Descr do
 
   ## BDD helpers
 
-  defp bdd_leaf_new(arg1, arg2), do: {:erlang.phash2({arg1, arg2}), arg1, arg2}
+  defp bdd_leaf_new(arg1, arg2), do: {:erlang.phash2([arg1 | arg2]), arg1, arg2}
 
   defp bdd_node_new(lit, c, u, d),
     do: {bdd_compute_hash(lit, c, u, d), lit, c, u, d}
