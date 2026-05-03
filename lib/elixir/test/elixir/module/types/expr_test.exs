@@ -1596,6 +1596,34 @@ defmodule Module.Types.ExprTest do
                    # from: types_test.ex:LINE-1
                    y = 123
                """
+
+      assert typewarn!(
+               [x],
+               cond do
+                 if(x, do: true, else: 1) -> :if
+                 x -> :x
+               end
+             ) ==
+               {atom([:if, :x]),
+                ~l"""
+                this clause in cond will always match:
+
+                    if x do
+                      true
+                    else
+                      1
+                    end
+
+                since it has type:
+
+                    true or integer()
+
+                where "x" was given the type:
+
+                    # type: dynamic()
+                    # from: types_test.ex:LINE-7
+                    x
+                """}
     end
 
     test "Integer.to_string/1" do

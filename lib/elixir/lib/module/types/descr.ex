@@ -1169,12 +1169,14 @@ defmodule Module.Types.Descr do
       :term ->
         :undefined
 
-      %{atom: {:union, set}}
-      when map_size(descr) == 1 and set in @false_or_nil_atoms ->
-        :always_false
+      %{atom: {:union, set}} when set in @false_or_nil_atoms ->
+        cond do
+          map_size(descr) == 1 -> :always_false
+          empty?(Map.delete(descr, :atom)) -> :always_false
+          true -> :undefined
+        end
 
-      %{atom: {:union, set}}
-      when map_size(descr) == 1 and not is_map_key(set, false) and not is_map_key(set, nil) ->
+      %{atom: {:union, set}} when not is_map_key(set, false) and not is_map_key(set, nil) ->
         :always_true
 
       %{atom: {:negation, %{nil => _, false => _}}} ->
@@ -1186,8 +1188,8 @@ defmodule Module.Types.Descr do
       _ when map_size(descr) == 0 ->
         :undefined
 
-      _ ->
-        :always_true
+      descr ->
+        if empty?(descr), do: :undefined, else: :always_true
     end
   end
 

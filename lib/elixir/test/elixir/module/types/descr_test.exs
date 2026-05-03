@@ -1505,6 +1505,20 @@ defmodule Module.Types.DescrTest do
         assert truthiness(type) == :always_true
         assert truthiness(dynamic(type)) == :always_true
       end
+
+      assert truthiness(union(atom([true]), integer())) == :always_true
+
+      empty_descr =
+        difference(tuple([number(), integer()]), open_tuple([float(), term()]))
+        |> difference(tuple([integer(), integer()]))
+
+      assert empty?(empty_descr)
+
+      assert truthiness(empty_descr) == :undefined
+      assert truthiness(dynamic(empty_descr)) == :undefined
+      assert truthiness(union(atom([nil]), empty_descr)) == :always_false
+
+      assert truthiness(union(atom([false]), empty_descr)) == :always_false
     end
 
     test "atom_fetch" do
