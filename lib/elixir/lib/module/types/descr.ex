@@ -5775,8 +5775,18 @@ defmodule Module.Types.Descr do
   defp bdd_node_new(lit, c, u, d),
     do: {bdd_compute_hash(lit, c, u, d), lit, c, u, d}
 
-  defp bdd_compute_hash(lit, c, u, d),
-    do: :erlang.phash2({bdd_hash(lit), bdd_hash(c), bdd_hash(u), bdd_hash(d)})
+  defp bdd_compute_hash(lit, c, u, d) do
+    h1 = bdd_combine_hash(bdd_hash(lit), bdd_hash(c))
+    h2 = bdd_combine_hash(h1, bdd_hash(u))
+    bdd_combine_hash(h2, bdd_hash(d)) &&& 0xFFFFFFFF
+  end
+
+  # Boost-style hash_combine for four already-hashed integers.
+  # Cheaper than :erlang.phash2({lit, c, u, d}) and good enough for ruling out equality.
+  @compile {:inline, bdd_combine_hash: 2, bdd_hash: 1}
+  defp bdd_combine_hash(acc, x) do
+    bxor(acc, x + 0x9E3779B9 + (acc <<< 6) + (acc >>> 2))
+  end
 
   defp bdd_leaf_value(bdd_leaf(arg1, arg2)), do: {arg1, arg2}
 
