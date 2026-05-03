@@ -3149,7 +3149,7 @@ defmodule Module.Types.DescrTest do
              |> union(fun([float()], float()))
              |> union(fun([pid()], pid()))
              |> to_quoted_string() ==
-               "(integer() -> integer()) or (float() -> float()) or (pid() -> pid())"
+               "(integer() -> integer()) or (pid() -> pid()) or (float() -> float())"
 
       assert fun(3) |> to_quoted_string() == "(none(), none(), none() -> term())"
 

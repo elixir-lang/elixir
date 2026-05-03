@@ -48,10 +48,10 @@ defmodule Module.Types.Descr do
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top {:erlang.phash2({:open, @fields_new}), :open, @fields_new}
-  @non_empty_list_top {:erlang.phash2({:term, :term}), :term, :term}
-  @tuple_top {:erlang.phash2({:open, []}), :open, []}
-  @map_empty {:erlang.phash2({:closed, @fields_new}), :closed, @fields_new}
+  @map_top {:erlang.phash2([:open | @fields_new]), :open, @fields_new}
+  @non_empty_list_top {:erlang.phash2([:term | :term]), :term, :term}
+  @tuple_top {:erlang.phash2([:open | []]), :open, []}
+  @map_empty {:erlang.phash2([:closed | @fields_new]), :closed, @fields_new}
 
   defmacrop bdd_leaf(arg1, arg2) do
     quote do
@@ -5788,8 +5788,6 @@ defmodule Module.Types.Descr do
     bxor(acc, x + 0x9E3779B9 + (acc <<< 6) + (acc >>> 2))
   end
 
-  defp bdd_leaf_value(bdd_leaf(arg1, arg2)), do: {arg1, arg2}
-
   @bdd_bot_hash :erlang.phash2(:bdd_bot)
   @bdd_top_hash :erlang.phash2(:bdd_top)
 
@@ -6282,12 +6280,12 @@ defmodule Module.Types.Descr do
       :bdd_top ->
         :bdd_top
 
-      bdd_leaf(_, _) ->
-        {arg1, arg2} = fun.(bdd_leaf_value(bdd))
+      bdd_leaf(arg1, arg2) ->
+        {arg1, arg2} = fun.({arg1, arg2})
         bdd_leaf_new(arg1, arg2)
 
-      {_, literal, left, union, right} ->
-        {arg1, arg2} = fun.(bdd_leaf_value(literal))
+      {_, bdd_leaf(arg1, arg2), left, union, right} ->
+        {arg1, arg2} = fun.({arg1, arg2})
         literal = bdd_leaf_new(arg1, arg2)
         bdd_node_new(literal, bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun))
     end
@@ -6301,11 +6299,11 @@ defmodule Module.Types.Descr do
       :bdd_top ->
         acc
 
-      bdd_leaf(_, _) ->
-        fun.(bdd_leaf_value(bdd), acc)
+      bdd_leaf(arg1, arg2) ->
+        fun.({arg1, arg2}, acc)
 
-      {_, literal, left, union, right} ->
-        acc = fun.(bdd_leaf_value(literal), acc)
+      {_, bdd_leaf(arg1, arg2), left, union, right} ->
+        acc = fun.({arg1, arg2}, acc)
         acc = bdd_reduce(left, acc, fun)
         acc = bdd_reduce(union, acc, fun)
         acc = bdd_reduce(right, acc, fun)
