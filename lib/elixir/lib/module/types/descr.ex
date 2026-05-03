@@ -448,8 +448,6 @@ defmodule Module.Types.Descr do
   """
   def intersection(:term, other), do: remove_optional(other)
   def intersection(other, :term), do: remove_optional(other)
-  def intersection(%{dynamic: :term}, other), do: dynamic(remove_optional(other))
-  def intersection(other, %{dynamic: :term}), do: dynamic(remove_optional(other))
 
   def intersection(left, right) do
     is_gradual_left = gradual?(left)

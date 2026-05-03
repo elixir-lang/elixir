@@ -1500,6 +1500,11 @@ defmodule Module.Types.DescrTest do
         assert truthiness(dynamic(type)) == :always_false
       end
 
+      assert equal?(
+               intersection(union(atom(), dynamic()), union(atom(), dynamic())),
+               union(atom(), dynamic())
+             )
+
       for type <-
             [negation(atom()), atom([true]), negation(atom([false, nil])), atom([:ok]), integer()] do
         assert truthiness(type) == :always_true

@@ -1425,6 +1425,20 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = 123, y = 456.0], x == y) == boolean()
     end
 
+    test "preserves static components across gradual self-intersections" do
+      assert typecheck!(
+               [x],
+               (
+                 # y :: :foo or dynamic()
+                 y = if :rand.uniform() > 0.5, do: :foo, else: x
+                 # y's type intersected with itself
+                 y = y
+
+                 y
+               )
+             ) == union(atom([:foo]), dynamic())
+    end
+
     test "in dynamic mode" do
       assert typedyn!([x = 123, y = 456.0], x < y) == dynamic(boolean())
       assert typedyn!([x = 123, y = 456.0], x == y) == dynamic(boolean())
