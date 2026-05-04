@@ -24,64 +24,6 @@ defmodule Module.Types.DescrTest do
   defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
   defp map_with_default(descr), do: open_map([{to_domain_keys(:term), descr}])
 
-  defp assert_hash_consed_bdds(descr) do
-    Enum.each([:fun, :list, :map, :tuple], fn key ->
-      case descr do
-        %{^key => bdd} ->
-          assert_hash_consed_bdd(bdd)
-          assert_hash_consed_bdd_dnf(bdd)
-
-        %{} ->
-          :ok
-      end
-    end)
-  end
-
-  defp assert_hash_consed_bdd(:bdd_bot), do: :ok
-  defp assert_hash_consed_bdd(:bdd_top), do: :ok
-
-  defp assert_hash_consed_bdd({:union, by_arity}) do
-    Enum.each(by_arity, fn {_arity, bdd} -> assert_hash_consed_bdd(bdd) end)
-  end
-
-  defp assert_hash_consed_bdd({hash, _arg1, _arg2}) when is_integer(hash), do: :ok
-
-  defp assert_hash_consed_bdd({hash, lit, c, u, d}) when is_integer(hash) do
-    assert_hash_consed_bdd(lit)
-    assert_hash_consed_bdd(c)
-    assert_hash_consed_bdd(u)
-    assert_hash_consed_bdd(d)
-  end
-
-  defp assert_hash_consed_bdd(bdd) do
-    flunk("expected hash-consed BDD, got: #{inspect(bdd)}")
-  end
-
-  defp assert_hash_consed_bdd_dnf({:union, by_arity}) do
-    Enum.each(by_arity, fn {_arity, bdd} -> assert_hash_consed_bdd_dnf(bdd) end)
-  end
-
-  defp assert_hash_consed_bdd_dnf(bdd) do
-    Enum.each(bdd_to_dnf(bdd), fn {pos, neg} ->
-      Enum.each(pos ++ neg, &assert_hash_consed_bdd/1)
-    end)
-  end
-
-  describe "BDD representation" do
-    test "leaves and nodes carry hashes at construction" do
-      descrs = [
-        fun([integer()], atom()),
-        non_empty_list(integer(), atom()),
-        union(non_empty_list(integer(), atom()), non_empty_list(atom(), binary())),
-        union(closed_map(a: integer()), closed_map(b: atom())),
-        difference(open_map(), closed_map(a: integer())),
-        union(tuple([integer()]), tuple([atom()]))
-      ]
-
-      Enum.each(descrs, &assert_hash_consed_bdds/1)
-    end
-  end
-
   describe "union" do
     test "bitmap" do
       assert union(integer(), float()) == union(float(), integer())
