@@ -290,7 +290,7 @@ defmodule Module.Types.ExprTest do
 
              but function has type:
 
-                 (non_empty_list(integer()) -> integer()) or (binary() -> integer())
+                 (binary() -> integer()) or (non_empty_list(integer()) -> integer())
 
              hint: the function has an empty domain and therefore cannot be applied to any argument. \
              This may happen when you have a union of functions, which means the only valid argument \
