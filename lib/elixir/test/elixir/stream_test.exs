@@ -281,6 +281,43 @@ defmodule StreamTest do
              [1, 1, 1, 1, 1]
   end
 
+  test "cycle/1 raises and does not infinite-loop when a subsequent reduce yields no elements" do
+    {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+    stream =
+      Stream.resource(
+        fn -> Agent.get_and_update(agent, fn n -> {n, n + 1} end) end,
+        fn
+          0 -> {[:a], :done}
+          _ -> {:halt, :ok}
+        end,
+        fn _ -> :ok end
+      )
+
+    parent = self()
+
+    task =
+      Task.async(fn ->
+        try do
+          Stream.cycle(stream) |> Enum.take(3)
+        rescue
+          e in ArgumentError -> send(parent, {:raised, e.message})
+        end
+      end)
+
+    try do
+      case Task.yield(task, 1000) || Task.shutdown(task, :brutal_kill) do
+        {:ok, _} ->
+          assert_received {:raised, "cannot cycle over an empty enumerable"}
+
+        nil ->
+          flunk("Stream.cycle/1 entered an unbounded loop with no progress")
+      end
+    after
+      Agent.stop(agent)
+    end
+  end
+
   test "dedup/1 is lazy" do
     assert lazy?(Stream.dedup([1, 2, 3]))
   end

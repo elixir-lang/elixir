@@ -1437,7 +1437,7 @@ defmodule Stream do
         do_cycle(cycle, [], cycle, fun.(element, acc), fun)
 
       {_, []} ->
-        do_cycle(cycle, [], cycle, {:cont, acc}, fun)
+        do_cycle(check_cycle_first_element(cycle), [], cycle, {:cont, acc}, fun)
     end
   end
 
