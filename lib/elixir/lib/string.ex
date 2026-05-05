@@ -756,6 +756,8 @@ defmodule String do
   @doc since: "1.19.0"
   def count(string, <<>>), do: length(string) + 1
 
+  def count(_string, []), do: 0
+
   def count(string, pattern) when is_struct(pattern, Regex) do
     Kernel.length(Regex.scan(pattern, string, return: :index))
   end
