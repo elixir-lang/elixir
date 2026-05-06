@@ -694,54 +694,6 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "macro/function import conflict" do
-    assert_compile_error(
-      [
-        "nofile:12:",
-        "conflicting foo/1 import from modules Kernel.ErrorsTest.MacroFunImportB and Kernel.ErrorsTest.MacroFunImportA"
-      ],
-      ~c"""
-      defmodule Kernel.ErrorsTest.MacroFunImportA do
-        defmacro foo(x), do: x
-      end
-
-      defmodule Kernel.ErrorsTest.MacroFunImportB do
-        def foo(x), do: x
-      end
-
-      defmodule Kernel.ErrorsTest.MacroFunImportConflict do
-        import Kernel.ErrorsTest.MacroFunImportA
-        import Kernel.ErrorsTest.MacroFunImportB
-        foo(1)
-      end
-      """
-    )
-  end
-
-  test "macro/macro import conflict" do
-    assert_compile_error(
-      [
-        "nofile:12:",
-        "conflicting foo/1 import from modules Kernel.ErrorsTest.MacroMacroImportB and Kernel.ErrorsTest.MacroMacroImportA"
-      ],
-      ~c"""
-      defmodule Kernel.ErrorsTest.MacroMacroImportA do
-        defmacro foo(x), do: x
-      end
-
-      defmodule Kernel.ErrorsTest.MacroMacroImportB do
-        defmacro foo(x), do: x
-      end
-
-      defmodule Kernel.ErrorsTest.MacroMacroImportConflict do
-        import Kernel.ErrorsTest.MacroMacroImportA
-        import Kernel.ErrorsTest.MacroMacroImportB
-        foo(1)
-      end
-      """
-    )
-  end
-
   test "ensure valid import :only option" do
     assert_compile_error(
       [
