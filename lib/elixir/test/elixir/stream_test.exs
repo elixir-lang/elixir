@@ -263,6 +263,10 @@ defmodule StreamTest do
       Stream.cycle(%{}) |> Enum.to_list()
     end
 
+    assert_raise ArgumentError, "cannot cycle over an empty enumerable", fn ->
+      Stream.cycle(%HaltAcc{acc: []}) |> Enum.to_list()
+    end
+
     assert Stream.cycle([1, 2, 3]) |> Stream.take(5) |> Enum.to_list() == [1, 2, 3, 1, 2]
     assert Enum.take(stream, 5) == [1, 2, 3, 1, 2]
   end
