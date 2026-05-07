@@ -650,6 +650,30 @@ defmodule LoggerTest do
     Logger.configure(translator_inspect_opts: [])
   end
 
+  test "configure/1 persists :level to the application environment across restarts" do
+    previous = Application.get_env(:logger, :level)
+
+    try do
+      Application.delete_env(:logger, :level)
+      Logger.configure(level: :error)
+      assert Logger.level() == :error
+      assert Application.get_env(:logger, :level) == :error
+
+      Logger.App.stop()
+      Application.start(:logger)
+      assert Logger.level() == :error
+      assert Application.get_env(:logger, :level) == :error
+    after
+      Logger.configure(level: previous || :debug)
+
+      if previous do
+        Application.put_env(:logger, :level, previous)
+      else
+        Application.delete_env(:logger, :level)
+      end
+    end
+  end
+
   @tag formatter: [metadata: [:module, :meta]]
   test "always evaluate messages" do
     Logger.configure(
