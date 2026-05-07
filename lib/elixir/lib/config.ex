@@ -377,21 +377,27 @@ defmodule Config do
     end
   end
 
-  defp validate!(config, file) do
-    Enum.all?(config, fn
+  defp validate!(config, file) when is_list(config) do
+    Enum.each(config, fn
       {app, value} when is_atom(app) ->
-        if Keyword.keyword?(value) do
-          true
-        else
+        if not Keyword.keyword?(value) do
           raise ArgumentError,
                 "expected config for app #{inspect(app)} in #{Path.relative_to_cwd(file)} " <>
                   "to return keyword list, got: #{inspect(value)}"
         end
 
-      _ ->
-        false
+      other ->
+        raise ArgumentError,
+              "expected config in #{Path.relative_to_cwd(file)} to be a keyword list " <>
+                "of {atom, keyword} pairs, got entry: #{inspect(other)}"
     end)
 
     config
+  end
+
+  defp validate!(config, file) do
+    raise ArgumentError,
+          "expected config in #{Path.relative_to_cwd(file)} to be a keyword list " <>
+            "of {atom, keyword} pairs, got: #{inspect(config)}"
   end
 end
