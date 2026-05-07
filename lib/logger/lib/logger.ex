@@ -738,9 +738,15 @@ defmodule Logger do
   def configure(options) do
     for {k, v} <- options do
       cond do
-        k == :level -> :logger.set_primary_config(:level, elixir_level_to_erlang_level(v))
-        k in @valid_options -> Application.put_env(:logger, k, v)
-        true -> :ok
+        k == :level ->
+          :ok = :logger.set_primary_config(:level, elixir_level_to_erlang_level(v))
+          Application.put_env(:logger, :level, v)
+
+        k in @valid_options ->
+          Application.put_env(:logger, k, v)
+
+        true ->
+          :ok
       end
     end
 
