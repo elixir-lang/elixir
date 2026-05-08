@@ -6421,12 +6421,20 @@ defmodule Kernel do
         {microsecond, _precision} = duration.microsecond
         millisecond = :erlang.convert_time_unit(microsecond, :microsecond, :millisecond)
 
-        duration.week * unquote(week_in_ms) +
-          duration.day * unquote(day_in_ms) +
-          duration.hour * unquote(hour_in_ms) +
-          duration.minute * 60_000 +
-          duration.second * 1000 +
-          millisecond
+        total =
+          duration.week * unquote(week_in_ms) +
+            duration.day * unquote(day_in_ms) +
+            duration.hour * unquote(hour_in_ms) +
+            duration.minute * 60_000 +
+            duration.second * 1000 +
+            millisecond
+
+        if total < 0 do
+          raise ArgumentError,
+                "duration must be positive, got: #{inspect(duration)}"
+        end
+
+        total
     end
   end
 

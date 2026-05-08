@@ -1550,6 +1550,16 @@ defmodule KernelTest do
       end
     end
 
+    test "raises on durations that result in a negative timeout" do
+      assert_raise ArgumentError,
+                   ~r"duration must be positive",
+                   fn -> to_timeout(Duration.new!(second: -1)) end
+
+      assert_raise ArgumentError,
+                   ~r"duration must be positive",
+                   fn -> to_timeout(Duration.new!(hour: 1, minute: -61)) end
+    end
+
     test "works with timeouts" do
       assert to_timeout(1_000) == 1_000
       assert to_timeout(0) == 0
