@@ -72,6 +72,7 @@ defmodule Mix.Dep do
           requirement: String.t() | Regex.t() | nil,
           status: {:ok, String.t() | nil} | atom | tuple,
           opts: keyword,
+          deps: [t],
           top_level: boolean,
           manager: :rebar3 | :mix | :make | nil,
           from: String.t(),
