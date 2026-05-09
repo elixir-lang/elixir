@@ -1109,7 +1109,7 @@ defmodule Map do
       iex> Map.equal?(%{a: 1, b: 2}, %{b: 1, a: 2})
       false
 
-  Comparison between keys and values is done with `===/3`,
+  Comparison between keys and values is done with `===/2`,
   which means integers are not equivalent to floats:
 
       iex> Map.equal?(%{a: 1.0}, %{a: 1})

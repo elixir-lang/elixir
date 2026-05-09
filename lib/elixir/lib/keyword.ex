@@ -965,7 +965,7 @@ defmodule Keyword do
       iex> Keyword.equal?([a: 1, b: 2, a: 3], [b: 2, a: 3, a: 1])
       true
 
-  Comparison between values is done with `===/3`,
+  Comparison between values is done with `===/2`,
   which means integers are not equivalent to floats:
 
       iex> Keyword.equal?([a: 1.0], [a: 1])
