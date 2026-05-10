@@ -68,7 +68,7 @@ defmodule Code.Normalizer do
 
   # Bit containers
   defp do_normalize({:<<>>, _, args} = quoted, state) when is_list(args) do
-    normalize_bitstring(quoted, state)
+    normalize_bitstring(quoted, state, false)
   end
 
   # Atoms with interpolations
@@ -89,13 +89,7 @@ defmodule Code.Normalizer do
         normalize_literal(:utf8, [], state)
       end
 
-    string =
-      if state.escape do
-        normalize_bitstring(string, state, true)
-      else
-        normalize_bitstring(string, state)
-      end
-
+    string = normalize_bitstring(string, state, state.escape)
     {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [string, utf8]}
   end
 
@@ -118,6 +112,7 @@ defmodule Code.Normalizer do
             end
         end)
 
+      parts = maybe_add_trailing_newline(call_meta, parts, state)
       {{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]}
     else
       normalize_call(quoted, state)
@@ -405,7 +400,8 @@ defmodule Code.Normalizer do
   defp allow_keyword?(:{}, _), do: false
   defp allow_keyword?(op, arity), do: not is_atom(op) or not Macro.operator?(op, arity)
 
-  defp normalize_bitstring({:<<>>, meta, parts}, state, escape_interpolation \\ false) do
+  defp normalize_bitstring({:<<>>, meta, parts}, state, escape_interpolation) do
+    parts = maybe_add_trailing_newline(meta, parts, state)
     meta = patch_meta_line(meta, state.parent_meta)
 
     parts =
@@ -425,6 +421,17 @@ defmodule Code.Normalizer do
       end
 
     {:<<>>, meta, parts}
+  end
+
+  defp maybe_add_trailing_newline(meta, parts, state) do
+    with true <- state.escape and Keyword.get(meta, :delimiter) in ~w(""" '''),
+         last = List.last(parts),
+         true <- is_binary(last) and not String.ends_with?(last, "\n") do
+      [_last | rest] = Enum.reverse(parts)
+      Enum.reverse([last <> "\n" | rest])
+    else
+      _ -> parts
+    end
   end
 
   defp normalize_interpolation_parts(parts, state, escape_interpolation) do
