@@ -424,7 +424,7 @@ defmodule Code.Normalizer do
   end
 
   defp maybe_add_trailing_newline(meta, parts, state) do
-    with true <- state.escape and Keyword.get(meta, :delimiter) in ~w(""" '''),
+    with true <- state.escape and Keyword.get(meta, :delimiter) in ["\"\"\"", "'''"],
          last = List.last(parts),
          true <- is_binary(last) and not String.ends_with?(last, "\n") do
       [_last | rest] = Enum.reverse(parts)
