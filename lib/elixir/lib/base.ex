@@ -178,10 +178,30 @@ defmodule Base do
   @swar_gt_7 0x48484848484848
   @swar_ge_A 0x3F3F3F3F3F3F3F
   @swar_gt_F 0x39393939393939
+  @swar_gt_V 0x29292929292929
   @swar_gt_Z 0x25252525252525
   @swar_ge_a 0x1F1F1F1F1F1F1F
   @swar_gt_f 0x19191919191919
+  @swar_gt_v 0x09090909090909
   @swar_gt_z 0x05050505050505
+
+  # For base64 standard, '/' (0x2F) sits exactly one below '0' (0x30), so we
+  # extend the digit range to [0x2F, 0x39], which absorbs '/' into one range
+  # check — saves one Mycroft singleton. Trick lifted from
+  # https://lemire.me/blog/2025/04/13/detect-control-characters-quotes-and-backslashes-efficiently-using-swar/
+  @swar_ge_slash 0x51515151515151
+
+  # Mycroft zero-byte detection for base64 singletons (+, -, _).
+  # Per lane: high bit set iff `bxor(w, K*ones) - 0x01..01` has its high bit
+  # set, i.e. that byte's V value was 0 → original byte was K. Simplified
+  # (no `bnot V` term) — for ASCII-gated `w`, borrow-propagation false
+  # positives only occur for adjacent bytes that happen to equal `K xor 0x01`,
+  # which is outside the base64 alphabet, so it never matters here.
+  # Pattern follows https://github.com/elixir-lang/elixir/pull/15255.
+  @swar_mask01 0x01010101010101
+  @swar_plus_x7 0x2B2B2B2B2B2B2B
+  @swar_dash_x7 0x2D2D2D2D2D2D2D
+  @swar_under_x7 0x5F5F5F5F5F5F5F
 
   # Per-byte validity guards (used in both the SWAR clauses for the 8th byte
   # of each stride and in the body of the sub-8-byte tail clauses).
@@ -192,6 +212,18 @@ defmodule Base do
   defguardp valid_char32upper?(c) when c in ?A..?Z or c in ?2..?7
   defguardp valid_char32lower?(c) when c in ?a..?z or c in ?2..?7
   defguardp valid_char32mixed?(c) when c in ?A..?Z or c in ?a..?z or c in ?2..?7
+
+  # Most common range first — letters dominate (22/32) over digits (10/32)
+  # in hex base32, so letters go first in the OR short-circuit.
+  defguardp valid_char32hexupper?(c) when c in ?A..?V or c in ?0..?9
+  defguardp valid_char32hexlower?(c) when c in ?a..?v or c in ?0..?9
+  defguardp valid_char32hexmixed?(c) when c in ?A..?V or c in ?a..?v or c in ?0..?9
+
+  defguardp valid_char64base?(c)
+            when c in ?A..?Z or c in ?a..?z or c in ?0..?9 or c == ?+ or c == ?/
+
+  defguardp valid_char64url?(c)
+            when c in ?A..?Z or c in ?a..?z or c in ?0..?9 or c == ?- or c == ?_
 
   # SWAR 7-byte word validity. Structure for each guard:
   #   1. ASCII gate `band(w, MASK80) == 0` — every byte < 0x80 so the
@@ -261,6 +293,78 @@ defmodule Base do
                          bxor(w + @swar_ge_a, w + @swar_gt_z)
                        ),
                        bxor(w + @swar_ge_2, w + @swar_gt_7)
+                     ),
+                     @swar_mask80
+                   ) == @swar_mask80
+
+  defguardp valid_word32hexupper?(w)
+            when band(w, @swar_mask80) == 0 and
+                   band(
+                     bor(
+                       bxor(w + @swar_ge_0, w + @swar_gt_9),
+                       bxor(w + @swar_ge_A, w + @swar_gt_V)
+                     ),
+                     @swar_mask80
+                   ) == @swar_mask80
+
+  defguardp valid_word32hexlower?(w)
+            when band(w, @swar_mask80) == 0 and
+                   band(
+                     bor(
+                       bxor(w + @swar_ge_0, w + @swar_gt_9),
+                       bxor(w + @swar_ge_a, w + @swar_gt_v)
+                     ),
+                     @swar_mask80
+                   ) == @swar_mask80
+
+  defguardp valid_word32hexmixed?(w)
+            when band(w, @swar_mask80) == 0 and
+                   band(
+                     bor(
+                       bor(
+                         bxor(w + @swar_ge_0, w + @swar_gt_9),
+                         bxor(w + @swar_ge_A, w + @swar_gt_V)
+                       ),
+                       bxor(w + @swar_ge_a, w + @swar_gt_v)
+                     ),
+                     @swar_mask80
+                   ) == @swar_mask80
+
+  # base64 SWAR word validity: 3 ranges (A-Z, a-z, 0-9) OR'd with singletons.
+  # For base, the digit range is extended to [0x2F, 0x39] to absorb '/' as
+  # part of one range (Lemire merge), leaving only '+' as a Mycroft singleton.
+  # For url, the singletons '-' and '_' are detected via two Mycroft terms.
+  defguardp valid_word64base?(w)
+            when band(w, @swar_mask80) == 0 and
+                   band(
+                     bor(
+                       bor(
+                         bor(
+                           bxor(w + @swar_ge_A, w + @swar_gt_Z),
+                           bxor(w + @swar_ge_a, w + @swar_gt_z)
+                         ),
+                         bxor(w + @swar_ge_slash, w + @swar_gt_9)
+                       ),
+                       bxor(w, @swar_plus_x7) - @swar_mask01
+                     ),
+                     @swar_mask80
+                   ) == @swar_mask80
+
+  defguardp valid_word64url?(w)
+            when band(w, @swar_mask80) == 0 and
+                   band(
+                     bor(
+                       bor(
+                         bor(
+                           bxor(w + @swar_ge_A, w + @swar_gt_Z),
+                           bxor(w + @swar_ge_a, w + @swar_gt_z)
+                         ),
+                         bxor(w + @swar_ge_0, w + @swar_gt_9)
+                       ),
+                       bor(
+                         bxor(w, @swar_dash_x7) - @swar_mask01,
+                         bxor(w, @swar_under_x7) - @swar_mask01
+                       )
                      ),
                      @swar_mask80
                    ) == @swar_mask80
@@ -485,33 +589,17 @@ defmodule Base do
 
     {min, decoded} = to_decode_list.(alphabet)
 
+    # SWAR fast path: 7 bytes per stride, validated entirely via
+    # `valid_word16<base>?` in the body. The `and` short-circuits when SWAR
+    # fails on any byte. Tail bytes (1-6 leftover) recurse through the
+    # single-byte clause below.
+    defp unquote(validate_name)(<<w::56, rest::binary>>),
+      do: unquote(valid_word_name)(w) and unquote(validate_name)(rest)
+
     defp unquote(validate_name)(<<>>), do: true
 
-    # SWAR fast path: 7+1 = 8 bytes per stride. The SWAR guard validates 7
-    # bytes in `w` in one shot; the 8th byte `b` is checked with the per-byte
-    # guard. Stride stays 8 to preserve the even-length invariant.
-    defp unquote(validate_name)(<<w::56, b, rest::binary>>)
-         when unquote(valid_word_name)(w) and unquote(valid_char_name)(b),
-         do: unquote(validate_name)(rest)
-
-    # 8+ bytes but the SWAR guard failed → at least one byte is invalid.
-    defp unquote(validate_name)(<<_::56, _, _::binary>>), do: false
-
-    defp unquote(validate_name)(<<c1, c2, c3, c4, rest::binary>>) do
-      unquote(valid_char_name)(c1) and
-        unquote(valid_char_name)(c2) and
-        unquote(valid_char_name)(c3) and
-        unquote(valid_char_name)(c4) and
-        unquote(validate_name)(rest)
-    end
-
-    defp unquote(validate_name)(<<c1, c2, rest::binary>>) do
-      unquote(valid_char_name)(c1) and
-        unquote(valid_char_name)(c2) and
-        unquote(validate_name)(rest)
-    end
-
-    defp unquote(validate_name)(<<_char, _rest::binary>>), do: false
+    defp unquote(validate_name)(<<char, rest::binary>>),
+      do: unquote(valid_char_name)(char) and unquote(validate_name)(rest)
 
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
@@ -883,23 +971,19 @@ defmodule Base do
     validate_name = :"validate64#{base}?"
     validate_main_name = :"validate_main64#{validate_name}?"
     valid_char_name = :"valid_char64#{base}?"
+    valid_word_name = :"valid_word64#{base}?"
     {min, decoded} = alphabet |> Enum.with_index() |> to_decode_list.()
+
+    # SWAR fast path: 7 bytes per stride, validated via `valid_word64<base>?`
+    # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
+    # 8-byte-multiple `main`) recurses through the single-byte clause.
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>),
+      do: unquote(valid_word_name)(w) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_main_name)(<<>>), do: true
 
-    defp unquote(validate_main_name)(
-           <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8, rest::binary>>
-         ) do
-      unquote(valid_char_name)(c1) and
-        unquote(valid_char_name)(c2) and
-        unquote(valid_char_name)(c3) and
-        unquote(valid_char_name)(c4) and
-        unquote(valid_char_name)(c5) and
-        unquote(valid_char_name)(c6) and
-        unquote(valid_char_name)(c7) and
-        unquote(valid_char_name)(c8) and
-        unquote(validate_main_name)(rest)
-    end
+    defp unquote(validate_main_name)(<<char, rest::binary>>),
+      do: unquote(valid_char_name)(char) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_name)(<<>>, _pad?), do: true
 
@@ -984,13 +1068,6 @@ defmodule Base do
           false
       end
     end
-
-    @compile {:inline, [{valid_char_name, 1}]}
-    defp unquote(valid_char_name)(char)
-         when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
-         do: true
-
-    defp unquote(valid_char_name)(_char), do: false
 
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
@@ -1547,33 +1624,18 @@ defmodule Base do
     valid_char_name = :"valid_char32#{base}?"
     {min, decoded} = to_decode_list.(alphabet)
 
+    # SWAR fast path: 7 bytes per stride, validated via `valid_word32<base>?`
+    # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
+    # 8-byte-multiple `main`) recurses through the single-byte clause.
+    valid_word_name = :"valid_word32#{base}?"
+
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>),
+      do: unquote(valid_word_name)(w) and unquote(validate_main_name)(rest)
+
     defp unquote(validate_main_name)(<<>>), do: true
 
-    if base in [:upper, :lower, :mixed] do
-      # SWAR fast path: 7+1 = 8 bytes per stride.
-      valid_word_name = :"valid_word32#{base}?"
-
-      defp unquote(validate_main_name)(<<w::56, b, rest::binary>>)
-           when unquote(valid_word_name)(w) and unquote(valid_char_name)(b),
-           do: unquote(validate_main_name)(rest)
-
-      # 8+ bytes but the SWAR guard failed → at least one byte is invalid.
-      defp unquote(validate_main_name)(<<_::56, _, _::binary>>), do: false
-    else
-      defp unquote(validate_main_name)(
-             <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8, rest::binary>>
-           ) do
-        unquote(valid_char_name)(c1) and
-          unquote(valid_char_name)(c2) and
-          unquote(valid_char_name)(c3) and
-          unquote(valid_char_name)(c4) and
-          unquote(valid_char_name)(c5) and
-          unquote(valid_char_name)(c6) and
-          unquote(valid_char_name)(c7) and
-          unquote(valid_char_name)(c8) and
-          unquote(validate_main_name)(rest)
-      end
-    end
+    defp unquote(validate_main_name)(<<char, rest::binary>>),
+      do: unquote(valid_char_name)(char) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_name)(<<>>, _pad?), do: true
 
@@ -1651,15 +1713,6 @@ defmodule Base do
         _ ->
           false
       end
-    end
-
-    if base in [:hexupper, :hexlower, :hexmixed] do
-      @compile {:inline, [{valid_char_name, 1}]}
-      defp unquote(valid_char_name)(char)
-           when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
-           do: true
-
-      defp unquote(valid_char_name)(_char), do: false
     end
 
     defp unquote(decode_name)(char) do
