@@ -225,7 +225,7 @@ defmodule Kernel.Typespec do
   ## Translation from Elixir AST to typespec AST
 
   @doc false
-  def translate_typespecs_for_module(_set, bag) do
+  def translate_typespecs_for_module(set, bag) do
     type_typespecs = take_typespecs(bag, [:type, :opaque, :typep])
     defined_type_pairs = collect_defined_type_pairs(type_typespecs)
 
@@ -246,8 +246,67 @@ defmodule Kernel.Typespec do
     optional_callbacks = :lists.flatten(get_typespecs(bag, :optional_callbacks))
     used_types = filter_used_types(types, state)
 
+    store_types_descr(set, type_typespecs)
+
     {used_types, specs, callbacks, macrocallbacks, optional_callbacks}
   end
+
+  # Convert `@type`/`@opaque`/`@typep` ASTs into `Module.Types.Descr`
+  # values and store them in the module's data table under
+  # `{:elixir, :types_descr}`. The checker reads this table to
+  # resolve struct field types.
+  #
+  # Parametric types (arity > 0) are skipped — they are not yet
+  # representable in `Descr`. Cycles raise a compile error.
+  defp store_types_descr(_set, []), do: :ok
+
+  defp store_types_descr(set, type_typespecs) do
+    # Skip if the converter isn't available yet (early bootstrap
+    # compilation order). The conversion is best-effort metadata for
+    # the checker; missing it just means struct field types fall back
+    # to `dynamic()` for those modules.
+    if :code.ensure_loaded(Module.Types.Typespec) == {:module, Module.Types.Typespec} do
+      {descr_map, _} =
+        :lists.foldl(&convert_type_to_descr/2, {%{}, %{}}, type_typespecs)
+
+      :ets.insert(set, {{:elixir, :types_descr}, descr_map})
+    end
+
+    :ok
+  end
+
+  # Convert one type's AST into a `Descr` and accumulate into `defined`.
+  # The type currently being converted is marked `:pending` so a
+  # self-reference inside its own body can be detected. Both recursive
+  # and parametric references degrade the whole type to `dynamic()` —
+  # those features will be lit up by later PRs; for now the alias is
+  # stored but treated as opaque-from-the-checker's-view.
+  defp convert_type_to_descr({kind, expr, pos}, {acc, defined}) do
+    with {:"::", _, [{name, _meta, args}, definition]} <- expr,
+         arity = arg_count(args),
+         true <- arity == 0 do
+      env = :elixir_module.get_cached_env(pos)
+      state = %{module: env.module, defined: Map.put(defined, {name, 0}, :pending)}
+
+      descr =
+        case Module.Types.Typespec.to_descr(definition, state) do
+          {:ok, descr} -> descr
+          {:error, _reason} -> Module.Types.Descr.dynamic()
+        end
+
+      entry = {descr_kind_for(kind), descr}
+      {Map.put(acc, {name, 0}, entry), Map.put(defined, {name, 0}, entry)}
+    else
+      _ -> {acc, defined}
+    end
+  end
+
+  defp arg_count(args) when is_atom(args), do: 0
+  defp arg_count(args) when is_list(args), do: length(args)
+
+  defp descr_kind_for(:type), do: :type
+  defp descr_kind_for(:typep), do: :typep
+  defp descr_kind_for(:opaque), do: :opaque
 
   defp collect_defined_type_pairs(type_typespecs) do
     fun = fn {_kind, expr, pos}, type_pairs ->
@@ -801,6 +860,16 @@ defmodule Kernel.Typespec do
         typespec({name, meta, args}, vars, caller, state)
 
       true ->
+        :elixir_env.trace({:type_reference, meta, remote, {name, length(args)}}, caller)
+
+        # Ensure the referenced module is compiled before we proceed, so that
+        # store_types_descr / fetch_remote_types can read the ExCk chunk from
+        # the in-memory binary. This mirrors how struct expansion waits for its
+        # module via Kernel.ErrorHandler.ensure_compiled.
+        if :erlang.get(:elixir_compiler_info) != :undefined do
+          Kernel.ErrorHandler.ensure_compiled(remote, :module, :soft, caller.line)
+        end
+
         {remote_spec, state} = typespec(remote, vars, caller, state)
         {name_spec, state} = typespec(name, vars, caller, state)
         type = {remote_spec, meta, name_spec, args}

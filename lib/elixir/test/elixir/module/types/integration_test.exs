@@ -85,6 +85,44 @@ defmodule Module.Types.IntegrationTest do
              ]
     end
 
+    test "writes typed struct fields under :types" do
+      files = %{
+        "user.ex" => """
+        defmodule UserT do
+          defstruct [:name, :age]
+          @type t :: %__MODULE__{name: binary(), age: integer()}
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+      chunk = read_chunk(modules[UserT])
+
+      assert %{types: %{{:t, 0} => {:type, descr}}} = chunk
+
+      # Round-trip sanity: the Descr we read back must answer field queries.
+      assert {_, age_type} = map_fetch_key(descr, :age)
+      assert equal?(age_type, integer())
+
+      assert {_, name_type} = map_fetch_key(descr, :name)
+      assert equal?(name_type, binary())
+    end
+
+    test "no :types key when module has no @type" do
+      files = %{
+        "plain.ex" => """
+        defmodule Plain do
+          def x, do: :ok
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+      chunk = read_chunk(modules[Plain])
+
+      refute Map.has_key?(chunk, :types)
+    end
+
     test "writes exports for implementations" do
       files = %{
         "pi.ex" => """
@@ -153,6 +191,80 @@ defmodule Module.Types.IntegrationTest do
                )
 
       assert itself_arg.(Itself.Unknown) == dynamic(open_map(__struct__: atom([Unknown])))
+    end
+
+    test "consolidation writes union of impl types into protocol's t/0" do
+      files = %{
+        "pi.ex" => """
+        defprotocol Sized do
+          def size(data)
+        end
+
+        defimpl Sized, for: List do
+          def size(data), do: length(data)
+        end
+
+        defimpl Sized, for: Tuple do
+          def size(data), do: tuple_size(data)
+        end
+        """
+      }
+
+      modules = compile_modules(files, consolidate_protocols: true)
+      chunk = read_chunk(modules[Sized])
+
+      assert %{types: %{{:t, 0} => {:type, t_descr}}} = chunk
+
+      # The union of all impls: List ∪ Tuple in their open form.
+      expected =
+        union(
+          union(empty_list(), non_empty_list(term(), term())),
+          tuple()
+        )
+
+      assert equal?(t_descr, expected)
+    end
+
+    test "@fallback_to_any protocol consolidates t/0 to term()" do
+      files = %{
+        "pi.ex" => """
+        defprotocol Fallback do
+          @fallback_to_any true
+          def describe(data)
+        end
+
+        defimpl Fallback, for: Any do
+          def describe(_), do: "any"
+        end
+
+        defimpl Fallback, for: Atom do
+          def describe(data), do: Atom.to_string(data)
+        end
+        """
+      }
+
+      modules = compile_modules(files, consolidate_protocols: true)
+      chunk = read_chunk(modules[Fallback])
+
+      assert %{types: %{{:t, 0} => {:type, t_descr}}} = chunk
+      # `Any` in the impl list makes the protocol accept every value.
+      assert equal?(t_descr, term())
+    end
+
+    test "protocol with no impls consolidates t/0 to none()" do
+      files = %{
+        "pi.ex" => """
+        defprotocol NoImpls do
+          def call(data)
+        end
+        """
+      }
+
+      modules = compile_modules(files, consolidate_protocols: true)
+      chunk = read_chunk(modules[NoImpls])
+
+      assert %{types: %{{:t, 0} => {:type, t_descr}}} = chunk
+      assert equal?(t_descr, none())
     end
   end
 
@@ -1724,6 +1836,203 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
+  describe "typed struct fields via @type t" do
+    test "field type from @type t is used when constructing %__MODULE__{}" do
+      files = %{
+        "user.ex" => """
+        defmodule User do
+          defstruct [:name, :age]
+          @type t :: %__MODULE__{name: binary(), age: integer()}
+
+          def make_bad, do: %__MODULE__{age: :not_an_int}
+        end
+        """
+      }
+
+      warnings = ["expected type:", "integer()", ":not_an_int"]
+      assert_warnings(files, warnings)
+    end
+
+    test "struct without @type t falls back to dynamic() per field (no warning)" do
+      files = %{
+        "user.ex" => """
+        defmodule User do
+          defstruct [:name, :age]
+
+          def make_bad, do: %__MODULE__{age: :not_an_int}
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "field not declared in @type t body stays dynamic() (no spurious warning)" do
+      files = %{
+        "user.ex" => """
+        defmodule User do
+          defstruct [:name, :age]
+          # `age` is intentionally absent from t
+          @type t :: %__MODULE__{name: binary()}
+
+          def make_anything, do: %__MODULE__{age: :anything}
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "@opaque t is strict inside its defining module" do
+      files = %{
+        "user.ex" => """
+        defmodule User do
+          defstruct [:name, :age]
+          @opaque t :: %__MODULE__{name: binary(), age: integer()}
+
+          def make_bad, do: %__MODULE__{age: :not_an_int}
+        end
+        """
+      }
+
+      warnings = ["expected type:", "integer()", ":not_an_int"]
+      assert_warnings(files, warnings)
+    end
+
+    test "cross-module: @type t resolved via ExCk chunk" do
+      files = %{
+        "user.ex" => """
+        defmodule User do
+          defstruct [:name, :age]
+          @type t :: %__MODULE__{name: binary(), age: integer()}
+        end
+        """,
+        "caller.ex" => """
+        defmodule Caller do
+          def go, do: %User{age: :not_an_int}
+        end
+        """
+      }
+
+      warnings = ["expected type:", "integer()", ":not_an_int"]
+      assert_warnings(files, warnings)
+    end
+
+    test "function-typed field: wrong arity warns" do
+      files = %{
+        "handler.ex" => """
+        defmodule Handler do
+          defstruct [:cb]
+          @type t :: %__MODULE__{cb: (integer() -> :ok)}
+
+          # &Kernel.+/2 has arity 2, expected arity 1
+          def make_bad, do: %__MODULE__{cb: &Kernel.+/2}
+        end
+        """
+      }
+
+      assert_warnings(files, ["expected type:", "&Kernel.+/2"])
+    end
+
+    test "remote type reference resolves through ExCk (stdlib type)" do
+      # `String.t :: binary()` ships in the stdlib ExCk chunk. From any
+      # other module, `String.t()` resolves to the stored `binary()`
+      # descriptor.
+      #
+      # Same-compile-unit type-only references aren't yet supported
+      # because type references aren't tracked as compile dependencies
+      # — see #15127's second sub-bullet (dep tracking).
+      files = %{
+        "user_string.ex" => """
+        defmodule UserString do
+          defstruct [:name]
+          @type t :: %__MODULE__{name: String.t()}
+
+          def make_bad, do: %__MODULE__{name: 42}
+        end
+        """
+      }
+
+      warnings = ["expected type:", "binary()", "42"]
+      assert_warnings(files, warnings)
+    end
+
+    test "remote type reference resolves through ExCk (same compilation unit)" do
+      # When A and B are in the same compilation unit and B references A.t()
+      # in a typespec without any runtime call, the dep tracking must ensure
+      # A compiles before B so B's typespec translation reads A's beam correctly.
+      files = %{
+        "id.ex" => """
+        defmodule Id do
+          @type t :: integer()
+        end
+        """,
+        "user_remote.ex" => """
+        defmodule UserRemote do
+          defstruct [:id]
+          @type t :: %__MODULE__{id: Id.t()}
+
+          def make_bad, do: %__MODULE__{id: :not_int}
+        end
+        """
+      }
+
+      warnings = ["expected type:", "integer()", ":not_int"]
+      assert_warnings(files, warnings)
+    end
+
+    test "opaque remote type degrades to dynamic outside its module (no warning)" do
+      # `Version.Requirement.t` is `@opaque` in stdlib. From outside its
+      # defining module, it must degrade to dynamic — any value should
+      # type-check against the field without warning.
+      files = %{
+        "uses_opaque.ex" => """
+        defmodule UsesOpaque do
+          defstruct [:req]
+          @type t :: %__MODULE__{req: Version.Requirement.t()}
+
+          def make_anything, do: %__MODULE__{req: :anything}
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "function-typed field: compatible function does not warn" do
+      files = %{
+        "handler.ex" => """
+        defmodule Handler do
+          defstruct [:cb]
+          @type t :: %__MODULE__{cb: (atom() -> binary())}
+
+          def make_ok, do: %__MODULE__{cb: &Atom.to_string/1}
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "cross-module: @opaque t treated as dynamic() outside defining module (no warning)" do
+      files = %{
+        "user.ex" => """
+        defmodule User do
+          defstruct [:name, :age]
+          @opaque t :: %__MODULE__{name: binary(), age: integer()}
+        end
+        """,
+        "caller.ex" => """
+        defmodule Caller do
+          def go, do: %User{age: :not_an_int}
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+  end
+
   defp assert_warnings(files, expected, opts \\ [])
 
   defp assert_warnings(files, expected, opts) when is_binary(expected) do
@@ -1756,10 +2065,12 @@ defmodule Module.Types.IntegrationTest do
     end)
   end
 
-  defp compile_modules(files) do
+  defp compile_modules(files), do: compile_modules(files, [])
+
+  defp compile_modules(files, opts) do
     in_tmp(fn ->
       paths = generate_files(files)
-      {modules, _warnings} = compile_to_path(paths, [])
+      {modules, _warnings} = compile_to_path(paths, opts)
 
       Map.new(modules, fn module ->
         {^module, binary, _filename} = :code.get_object_code(module)

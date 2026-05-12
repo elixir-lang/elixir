@@ -171,8 +171,15 @@ compile(#{module := Module, anno := Anno} = BaseMap, Signatures) ->
 
   ChunkOpts = chunk_opts(Map),
   DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks, ChunkOpts),
-  CheckerChunk = checker_chunk(Map, Def, Signatures, ChunkOpts),
+  TypesDescr = types_descr_for_chunk(Set),
+  CheckerChunk = checker_chunk(Map, Def, Signatures, TypesDescr, ChunkOpts),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
+
+types_descr_for_chunk(Set) ->
+  case ets:lookup(Set, {elixir, types_descr}) of
+    [{_, Map}] when is_map(Map) -> Map;
+    _ -> #{}
+  end.
 
 chunk_opts(Map) ->
   case lists:member(deterministic, ?key(Map, compile_opts)) of
@@ -649,7 +656,7 @@ signature_to_binary(_, Name, Signature) ->
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
 
-checker_chunk(Map, Def, Signatures, ChunkOpts) ->
+checker_chunk(Map, Def, Signatures, TypesDescr, ChunkOpts) ->
   #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, attributes := Attributes} = Map,
   DeprecatedMap = maps:from_list(Deprecated),
 
@@ -663,13 +670,19 @@ checker_chunk(Map, Def, Signatures, ChunkOpts) ->
       {FA, Info}
     end || {FA, _Meta} <- prepend_behaviour_info(DefinesBehaviour, Def)],
 
-  Contents = #{
+  BaseContents = #{
     exports => Exports,
     mode => case lists:keymember('__protocol__', 1, Attributes) of
       true -> protocol;
       false -> elixir
     end
   },
+
+  %% Optional additive key — older readers ignore it, no version bump.
+  Contents = case map_size(TypesDescr) of
+    0 -> BaseContents;
+    _ -> BaseContents#{types => TypesDescr}
+  end,
 
   checker_chunk(Contents, ChunkOpts).
 

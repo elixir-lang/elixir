@@ -645,17 +645,33 @@ defmodule Protocol do
 
         checker =
           if checker do
-            update_in(checker.exports, fn exports ->
-              signatures = new_signatures(definitions, protocol_funs, protocol, types, structs)
+            {domain, signatures} =
+              new_signatures(definitions, protocol_funs, protocol, types, structs)
 
-              for {fun, info} <- exports do
-                if sig = Map.get(signatures, fun) do
-                  {fun, %{info | sig: sig}}
-                else
-                  {fun, info}
+            checker =
+              update_in(checker.exports, fn exports ->
+                for {fun, info} <- exports do
+                  if sig = Map.get(signatures, fun) do
+                    {fun, %{info | sig: sig}}
+                  else
+                    {fun, info}
+                  end
                 end
-              end
-            end)
+              end)
+
+            # After consolidation, `t/0` is the union of every type that
+            # implements the protocol. This makes `Protocol.t()` references
+            # in downstream typespecs semantically meaningful — a value
+            # typed as `Enumerable.t()` is statically known to be one of
+            # the implementing struct or built-in types.
+            #
+            # Note: protocols are open-world by language design (anyone can
+            # `defimpl`); this union is closed-world *for the current build
+            # artifact*. Downstream code sees the closed-world view only on
+            # compilations that follow consolidation.
+            existing_types = Map.get(checker, :types, %{})
+            updated_types = Map.put(existing_types, {:t, 0}, {:type, domain})
+            Map.put(checker, :types, updated_types)
           end
 
         {:ok, definitions, checker}
@@ -716,12 +732,15 @@ defmodule Protocol do
         {fun_arity, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
       end
 
-    Map.new(
-      [
-        {{:impl_for, 1}, {:strong, [Descr.term()], impl_for}},
-        {{:impl_for!, 1}, {:strong, [domain], impl_for!}}
-      ] ++ new_signatures
-    )
+    signatures =
+      Map.new(
+        [
+          {{:impl_for, 1}, {:strong, [Descr.term()], impl_for}},
+          {{:impl_for!, 1}, {:strong, [domain], impl_for!}}
+        ] ++ new_signatures
+      )
+
+    {domain, signatures}
   end
 
   defp get_protocol_functions({_name, _kind, _meta, clauses}) do

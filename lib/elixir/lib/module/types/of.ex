@@ -464,7 +464,6 @@ defmodule Module.Types.Of do
 
   This is expanded and validated by the compiler, so don't need to check the fields.
   """
-  # TODO: Type check the fields match the struct
   def struct_instance(struct, args, expected, meta, stack, context, of_fun)
       when is_atom(struct) do
     {info, context} = struct_info(struct, :expr, meta, stack, context)
@@ -473,20 +472,74 @@ defmodule Module.Types.Of do
       raise "expected #{inspect(struct)} to return struct metadata, but got none"
     end
 
+    typed_fields = fetch_struct_type_descr(struct, stack)
+    defaults_by_field = struct_defaults_by_field(info)
+
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
+        typed_field_type = typed_field(typed_fields, key)
+
         value_type =
-          case map_fetch_key(expected, key) do
-            {_, expected_value_type} -> expected_value_type
-            _ -> term()
+          if typed_field_type != nil do
+            typed_field_type
+          else
+            case map_fetch_key(expected, key) do
+              {_, expected_value_type} -> expected_value_type
+              _ -> term()
+            end
           end
 
         {type, context} = of_fun.(value, value_type, stack, context)
+
+        context =
+          cond do
+            typed_field_type == nil -> context
+            # The compiler injects defaults into `args`. Don't warn for
+            # values that are exactly the defstruct default — those are
+            # not user-authored and would surface a noisy diagnostic at
+            # every struct construction site.
+            value == Map.get(defaults_by_field, key, :__no_default__) -> context
+            compatible?(type, typed_field_type) -> context
+            true ->
+              error =
+                {:badstructfield, struct, key, value, typed_field_type, type, context}
+
+              error(error, meta, stack, context)
+          end
+
         {{key, type}, context}
       end)
 
     {closed_map([{:__struct__, atom([struct])} | args_types]), context}
+  end
+
+  defp typed_field(nil, _key), do: nil
+
+  defp typed_field(descr, key) do
+    case map_fetch_key(descr, key) do
+      {_optional?, type} -> type
+      _ -> nil
+    end
+  end
+
+  defp struct_defaults_by_field(info) do
+    Map.new(info, fn %{field: field, default: default} -> {field, default} end)
+  end
+
+  # Look up the `t/0` typespec Descr for `struct` from the parallel
+  # checker cache. The cache snapshot is written during
+  # `cache_from_module_map` (parallel_checker.ex) so it survives the
+  # teardown of the module's compile-time data tables.
+  #
+  # `@opaque t :: ...` is strict only inside the defining module; from
+  # any other module it is treated as `dynamic()` (i.e. nil here).
+  defp fetch_struct_type_descr(struct, stack) do
+    case Module.ParallelChecker.fetch_type(stack.cache, struct, :t, 0) do
+      {:type, descr} -> descr
+      {:opaque, descr} when struct == stack.module -> descr
+      _ -> nil
+    end
   end
 
   @doc """
@@ -869,6 +922,31 @@ defmodule Module.Types.Of do
       message: "unknown key #{inspect(field)} for struct #{inspect(module)}",
       group: true,
       severity: if(kind == :pattern, do: :error, else: :warning)
+    }
+  end
+
+  def format_diagnostic({:badstructfield, module, field, expr, expected_type, actual_type, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible value for field #{inspect(field)} of struct #{inspect(module)}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got type:
+
+              #{to_quoted_string(actual_type) |> indent(4)}
+
+          expected type:
+
+              #{to_quoted_string(expected_type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
     }
   end
 

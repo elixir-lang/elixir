@@ -482,6 +482,7 @@ defmodule Module.ParallelChecker do
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
     cache_info(table, map.module, exports, Map.new(map.deprecated), signatures)
+    cache_types_descr_from_data_tables(table, map.module)
     {elixir_mode(map.attributes), module_map_to_module_tuple(map)}
   end
 
@@ -491,6 +492,46 @@ defmodule Module.ParallelChecker do
       :ets.insert(table, {{module, fa}, reason, Map.get(sigs, fa, :none)})
     end)
   end
+
+  # Snapshot the module's `{:elixir, :types_descr}` ETS entry into the
+  # long-lived checker table so the checker can resolve type aliases
+  # after the module's own data tables have been torn down.
+  defp cache_types_descr_from_data_tables(table, module) do
+    try do
+      {set, _bag} = :elixir_module.data_tables(module)
+
+      case :ets.lookup(set, {:elixir, :types_descr}) do
+        [{_, descr_map}] when is_map(descr_map) ->
+          Enum.each(descr_map, fn {{name, arity}, entry} ->
+            :ets.insert(table, {{module, :type, name, arity}, entry})
+          end)
+
+        _ ->
+          :ok
+      end
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  @doc """
+  Returns the `Descr` for a user-declared `@type`/`@opaque` if cached.
+
+  Returns `nil` when the alias is unknown, parametric (arity > 0), or
+  the cache is unavailable. Returns the `:opaque`/`:type` entry tuple
+  so callers can implement opacity rules.
+  """
+  def fetch_type(nil, _module, _name, _arity), do: nil
+  def fetch_type(:none, _module, _name, _arity), do: nil
+
+  def fetch_type({_checker, table}, module, name, arity)
+      when is_atom(module) and is_atom(name) and is_integer(arity) do
+    case :ets.lookup(table, {module, :type, name, arity}) do
+      [{_, entry}] -> entry
+      _ -> nil
+    end
+  end
+
 
   defp cache_chunk(table, module, contents) do
     Enum.each(contents.exports, fn {{fun, arity}, info} ->
@@ -505,6 +546,10 @@ defmodule Module.ParallelChecker do
         {{module, {fun, arity}}, Map.get(info, :deprecated), sig}
       )
     end)
+
+    for {{name, arity}, entry} <- Map.get(contents, :types, %{}) do
+      :ets.insert(table, {{module, :type, name, arity}, entry})
+    end
 
     Map.get(contents, :mode, :elixir)
   end

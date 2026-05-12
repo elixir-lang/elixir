@@ -171,6 +171,10 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           undefined -> undefined;
           _ -> erlang:put(elixir_compiler_info, CompilerInfo)
         end,
+        case CheckerInfo of
+          {_, nil} -> ok;
+          _ -> erlang:put(elixir_checker_info, CheckerInfo)
+        end,
 
         PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
         Attributes = attributes(DataSet, DataBag, PersistedAttributes),
