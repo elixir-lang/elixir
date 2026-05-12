@@ -824,37 +824,28 @@ defmodule Module.Types.DescrTest do
       assert union(open_map(a: not_set()), t1) == t2
     end
 
-    test "tuple preserves static part of gradual elements" do
-      x = union(atom([:ok]), dynamic(integer()))
+    test "structural types preserve static part of gradual elements" do
+      static = atom([:ok])
+      gradual = union(static, dynamic(integer()))
+      upper_bound = upper_bound(gradual)
+      x = atom([:x])
+      head = atom([:head])
 
-      assert tuple([x, atom([:x])]) == %{
-               tuple: {:closed, [atom([:ok]), atom([:x])]},
-               dynamic: %{tuple: {:closed, [upper_bound(x), atom([:x])]}}
-             }
-
-      assert subtype?(tuple([atom([:ok]), atom([:x])]), tuple([x, atom([:x])]))
-    end
-
-    test "closed_map preserves static part of gradual values" do
-      x = union(atom([:ok]), dynamic(integer()))
-
-      assert closed_map(a: x) == %{
-               map: {:closed, [a: atom([:ok])]},
-               dynamic: %{map: {:closed, [a: upper_bound(x)]}}
-             }
-
-      assert subtype?(closed_map(a: atom([:ok])), closed_map(a: x))
-    end
-
-    test "non_empty_list preserves static part of gradual head types" do
-      x = union(atom([:ok]), dynamic(integer()))
-
-      assert non_empty_list(x) == %{
-               list: {atom([:ok]), empty_list()},
-               dynamic: %{list: {upper_bound(x), empty_list()}}
-             }
-
-      assert subtype?(non_empty_list(atom([:ok])), non_empty_list(x))
+      for {descr, static_descr, dynamic_descr} <- [
+            {tuple([gradual, x]), tuple([static, x]), tuple([upper_bound, x])},
+            {open_tuple([gradual]), open_tuple([static]), open_tuple([upper_bound])},
+            {closed_map(a: gradual), closed_map(a: static), closed_map(a: upper_bound)},
+            {open_map(a: gradual), open_map(a: static), open_map(a: upper_bound)},
+            {closed_map([{domain_key(:integer), gradual}]),
+             closed_map([{domain_key(:integer), static}]),
+             closed_map([{domain_key(:integer), upper_bound}])},
+            {non_empty_list(gradual), non_empty_list(static), non_empty_list(upper_bound)},
+            {non_empty_list(head, gradual), non_empty_list(head, static),
+             non_empty_list(head, upper_bound)}
+          ] do
+        assert descr == Map.put(static_descr, :dynamic, dynamic_descr)
+        assert subtype?(static_descr, descr)
+      end
     end
   end
 
@@ -1708,6 +1699,7 @@ defmodule Module.Types.DescrTest do
       assert tuple_fetch(dynamic(empty_tuple()), 0) == :badindex
       assert tuple_fetch(dynamic(tuple([integer(), atom()])), 2) == :badindex
       assert tuple_fetch(union(dynamic(), integer()), 0) == :badtuple
+      assert tuple_fetch(tuple([none()]), 0) == :badtuple
 
       assert tuple_fetch(dynamic(tuple()), 0)
              |> Kernel.then(fn {opt, type} -> opt and equal?(type, dynamic()) end)
@@ -1773,6 +1765,7 @@ defmodule Module.Types.DescrTest do
       assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
       assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
       assert tuple_insert_at(term(), 0, boolean()) == :badtuple
+      assert tuple_insert_at(tuple([none()]), 0, boolean()) == :badtuple
 
       # Out-of-bounds in a union
       assert union(tuple([integer(), atom()]), tuple([float()]))
@@ -2944,6 +2937,7 @@ defmodule Module.Types.DescrTest do
     end
 
     test "list" do
+      assert non_empty_list(none()) |> to_quoted_string() == "none()"
       assert list(term()) |> to_quoted_string() == "list(term())"
       assert list(integer()) |> to_quoted_string() == "list(integer())"
 

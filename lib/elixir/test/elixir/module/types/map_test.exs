@@ -623,6 +623,8 @@ defmodule Module.Types.MapTest do
                  ])
                )
 
+      map = closed_map([{domain_key(:integer), atom([:before])}])
+
       assert typecheck!(
                [x],
                (
@@ -632,16 +634,8 @@ defmodule Module.Types.MapTest do
              )
              |> equal?(
                union(
-                 tuple([
-                   atom([:before]),
-                   closed_map([{domain_key(:integer), atom([:before])}])
-                 ]),
-                 dynamic(
-                   tuple([
-                     atom([:before, :after]),
-                     closed_map([{domain_key(:integer), atom([:before])}])
-                   ])
-                 )
+                 tuple([atom([:before]), map]),
+                 dynamic(tuple([atom([:before, :after]), map]))
                )
              )
     end
