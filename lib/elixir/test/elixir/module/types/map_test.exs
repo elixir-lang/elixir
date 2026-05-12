@@ -833,6 +833,22 @@ defmodule Module.Types.MapTest do
       assert typeerror!([x = []], Map.put(x, :key, :value)) =~
                "incompatible types given to Map.put/3"
     end
+
+    test "errors with dynamic key and value" do
+      assert typeerror!([key, value], Map.put(1, key, value)) |> strip_ansi() =~ """
+             incompatible types given to Map.put/3:
+
+                 Map.put(1, key, value)
+
+             given types:
+
+                 integer(), dynamic(), dynamic()
+
+             but expected one of:
+
+                 map(), term(), term()
+             """
+    end
   end
 
   describe "Map.put_new_lazy/3" do

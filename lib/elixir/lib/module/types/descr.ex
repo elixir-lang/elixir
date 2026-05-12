@@ -3394,15 +3394,72 @@ defmodule Module.Types.Descr do
       {tag, fields, negs}, acc ->
         {value, bdd} = map_pop_key_bdd(tag, fields, key)
 
-        negs
-        |> map_split_negative_key(key, value, bdd)
-        |> Enum.reduce(acc, fn {value, _}, acc -> union(value, acc) end)
+        case map_split_negative_pairs_key(negs, key) do
+          :empty ->
+            acc
+
+          negative ->
+            value =
+              if map_pair_projection_keeps_full_fst?(negative, bdd) do
+                value
+              else
+                negs
+                |> map_split_negative_key(key, value, bdd)
+                |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
+              end
+
+            union(value, acc)
+        end
     end)
   catch
     :open -> {true, term()}
   else
     value ->
       pop_optional_static(value)
+  end
+
+  defp map_split_negative_pairs_key(negs, key) do
+    Enum.reduce_while(negs, [], fn
+      {:open, empty}, _acc when is_fields_empty(empty) ->
+        {:halt, :empty}
+
+      {tag, fields}, neg_acc ->
+        {:cont, [map_pop_key_bdd(tag, fields, key) | neg_acc]}
+    end)
+  end
+
+  defp map_split_negative_pairs_domain(negs, domain_key) do
+    Enum.reduce_while(negs, [], fn
+      {:open, empty}, _acc when is_fields_empty(empty) ->
+        {:halt, :empty}
+
+      {tag, fields}, neg_acc ->
+        {_found?, value, bdd} = map_pop_domain_bdd(tag, fields, domain_key)
+        {:cont, [{value, bdd} | neg_acc]}
+    end)
+  end
+
+  # Projection shortcuts for the pair-shaped map split below. These are
+  # existential checks: if at least one remaining-map sample avoids all negative
+  # remaining maps, the full key-value side survives; dually, if at least one
+  # key-value sample avoids all negative key values, the full map-shape side
+  # survives. If neither shortcut applies, we fall back to the regular split.
+  defp map_pair_projection_keeps_full_fst?(negative, bdd) do
+    neg_bdd =
+      Enum.reduce(negative, :bdd_bot, fn {_neg_value, neg_bdd}, acc ->
+        map_union(neg_bdd, acc)
+      end)
+
+    not map_empty?(map_difference(bdd, neg_bdd))
+  end
+
+  defp map_pair_projection_keeps_full_snd?(negative, value) do
+    neg_values =
+      Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
+        union(neg_value, acc)
+      end)
+
+    not empty?(difference(value, neg_values))
   end
 
   defp map_split_negative_key(negs, key, value, bdd) do
@@ -3443,19 +3500,17 @@ defmodule Module.Types.Descr do
             if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd)) do
               [{value, bdd} | acc]
             else
-              intersection_value = intersection(value, neg_value)
+              diff_bdd = map_difference(bdd, neg_bdd)
 
-              if empty?(intersection_value) do
-                [{value, bdd} | acc]
-              else
-                diff_bdd = map_difference(bdd, neg_bdd)
+              cond do
+                value == neg_value or subtype?(value, neg_value) ->
+                  if map_empty?(diff_bdd), do: acc, else: [{value, diff_bdd} | acc]
 
-                if map_empty?(diff_bdd) do
+                map_empty?(diff_bdd) ->
                   prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
-                else
-                  acc = [{intersection_value, diff_bdd} | acc]
-                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
-                end
+
+                true ->
+                  prepend_pair_unless_empty_diff(value, neg_value, bdd, [{value, diff_bdd} | acc])
               end
             end
           end)
@@ -3861,10 +3916,35 @@ defmodule Module.Types.Descr do
 
         {tag, fields, negs}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          pairs = map_split_negative_key(negs, key, fst, snd)
 
-          {maybe_union(value, fn -> Enum.reduce(pairs, none(), &union(elem(&1, 0), &2)) end),
-           Enum.reduce(pairs, bdd, &map_union(elem(&1, 1), &2))}
+          case map_split_negative_pairs_key(negs, key) do
+            :empty ->
+              {value, bdd}
+
+            negative ->
+              keep_fst? =
+                value == nil or map_pair_projection_keeps_full_fst?(negative, snd)
+
+              keep_snd? = map_pair_projection_keeps_full_snd?(negative, fst)
+
+              pairs =
+                if keep_fst? and keep_snd?,
+                  do: [],
+                  else: map_split_negative_key(negs, key, fst, snd)
+
+              {maybe_union(value, fn ->
+                 if keep_fst? do
+                   fst
+                 else
+                   Enum.reduce(pairs, none(), &union(elem(&1, 0), &2))
+                 end
+               end),
+               if keep_snd? do
+                 map_union(bdd, snd)
+               else
+                 Enum.reduce(pairs, bdd, &map_union(elem(&1, 1), &2))
+               end}
+          end
       end)
 
     if bdd == :bdd_bot do
@@ -4197,11 +4277,24 @@ defmodule Module.Types.Descr do
       {tag_or_domains, fields, negs}, acc ->
         {_found, value, bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
 
-        negs
-        |> map_split_negative(value, bdd, fn neg_tag, neg_fields ->
-          map_pop_domain_bdd(neg_tag, neg_fields, domain_key)
-        end)
-        |> Enum.reduce(acc, fn {value, _}, acc -> union(value, acc) end)
+        case map_split_negative_pairs_domain(negs, domain_key) do
+          :empty ->
+            acc
+
+          negative ->
+            value =
+              if map_pair_projection_keeps_full_fst?(negative, bdd) do
+                value
+              else
+                negs
+                |> map_split_negative(value, bdd, fn neg_tag, neg_fields ->
+                  map_pop_domain_bdd(neg_tag, neg_fields, domain_key)
+                end)
+                |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
+              end
+
+            union(value, acc)
+        end
     end)
   end
 
