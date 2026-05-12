@@ -46,6 +46,17 @@ defmodule Mix.Dep.LockTest do
     end)
   end
 
+  test "does not raise with check_locked when custom lockfile is unchanged", context do
+    in_tmp(context.test, fn ->
+      custom_lockfile = Path.expand("custom.lock")
+
+      Mix.Dep.Lock.write(%{foo: :bar})
+      Mix.Dep.Lock.write(%{bar: :baz}, file: custom_lockfile)
+
+      Mix.Dep.Lock.write(%{bar: :baz}, file: custom_lockfile, check_locked: true)
+    end)
+  end
+
   test "raises a proper error if check_locked opt is true and there are changes", context do
     in_tmp(context.test, fn ->
       Mix.Dep.Lock.write(%{foo: :bar})

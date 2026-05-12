@@ -42,7 +42,7 @@ defmodule Mix.Dep.Lock do
   def write(map, opts \\ []) do
     lockfile = opts[:file] || lockfile()
 
-    if map != read() do
+    if map != read(lockfile) do
       if Keyword.get(opts, :check_locked, false) do
         Mix.raise(
           "Your #{lockfile} is out of date and must be updated without the --check-locked flag"
