@@ -2894,9 +2894,7 @@ defmodule Module.Types.DescrTest do
     end
 
     test "with projected negative maps and no popped value projection" do
-      # map_put/3 passes nil as the popped value accumulator because it only
-      # needs the map side. The final negative covers the whole popped map shape
-      # but not the key value, so this exercises that nil shortcut directly.
+      # map_put/3 passes nil as the popped value accumulator because it only needs the map side.
       map =
         projected_negative_map(100)
         |> difference(open_map(k: atom(), x: term()))
