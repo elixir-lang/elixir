@@ -2888,9 +2888,12 @@ defmodule Module.Types.DescrTest do
 
       map = difference(open_map(k: integer(), x: term()), open_map(k: integer(), a: integer()))
 
-      assert map_put(map, atom([:k]), binary()) ==
-               {:ok,
-                difference(open_map(k: binary(), x: term()), open_map(k: binary(), a: integer()))}
+      {:ok, type} = map_put(map, atom([:k]), binary())
+
+      assert equal?(
+               type,
+               difference(open_map(k: binary(), x: term()), open_map(k: binary(), a: integer()))
+             )
     end
 
     test "with projected negative maps and no popped value projection" do

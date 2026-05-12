@@ -3420,10 +3420,10 @@ defmodule Module.Types.Descr do
 
   defp map_split_negative_pairs_key(negs, key) do
     Enum.reduce_while(negs, [], fn
-      {:open, empty}, _acc when is_fields_empty(empty) ->
+      bdd_leaf(:open, empty), _acc when is_fields_empty(empty) ->
         {:halt, :empty}
 
-      {tag, fields}, neg_acc ->
+      bdd_leaf(tag, fields), neg_acc ->
         {:cont, [map_pop_key_bdd(tag, fields, key) | neg_acc]}
     end)
   end
