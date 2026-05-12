@@ -2241,6 +2241,55 @@ defmodule Module.Types.DescrTest do
       map = closed_map([{:a, atom([:a])}, {:__struct__, term()}, {domain_key(:atom), pid()}])
       {:ok, term} = map_get(map, atom() |> difference(atom([:a])))
       assert equal?(term, term())
+
+      base = open_map([{domain_key(:atom), term()}])
+      bad = open_map(a: if_set(negation(integer())))
+      map = negation(union(negation(base), bad))
+
+      assert equal?(map, open_map(a: integer()))
+
+      {:ok, type} = map_get(map, atom())
+      assert equal?(type, term())
+
+      {:ok, type} = map_get(map, atom([:a]))
+      assert equal?(type, integer())
+
+      map = closed_map([{:a, term()}, {domain_key(:atom), integer()}])
+
+      {:ok, type} = map_get(map, atom())
+      assert equal?(type, term())
+
+      {:ok, type} = map_get(map, atom([:a]))
+      assert equal?(type, term())
+
+      {:ok, type} = map_get(map, difference(atom(), atom([:a])))
+      assert equal?(type, integer())
+
+      map =
+        closed_map([{:a, term()}, {domain_key(:atom), integer()}])
+        |> difference(open_map(a: negation(pid())))
+
+      {:ok, type} = map_get(map, atom())
+      assert equal?(type, union(integer(), pid()))
+
+      {:ok, type} = map_get(map, atom([:a]))
+      assert equal?(type, pid())
+
+      {:ok, type} = map_get(map, difference(atom(), atom([:a])))
+      assert equal?(type, integer())
+
+      map =
+        closed_map([{:a, term()}, {:b, binary()}, {domain_key(:atom), integer()}])
+        |> difference(open_map(a: negation(pid())))
+
+      {:ok, type} = map_get(map, atom())
+      assert equal?(type, union(union(integer(), pid()), binary()))
+
+      {:ok, type} = map_get(map, atom([:a, :b]))
+      assert equal?(type, union(pid(), binary()))
+
+      {:ok, type} = map_get(map, difference(atom(), atom([:a, :b])))
+      assert equal?(type, integer())
     end
 
     test "with lists" do

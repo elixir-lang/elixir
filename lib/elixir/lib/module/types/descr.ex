@@ -3428,17 +3428,6 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp map_split_negative_pairs_domain(negs, domain_key) do
-    Enum.reduce_while(negs, [], fn
-      {:open, empty}, _acc when is_fields_empty(empty) ->
-        {:halt, :empty}
-
-      {tag, fields}, neg_acc ->
-        {_found?, value, bdd} = map_pop_domain_bdd(tag, fields, domain_key)
-        {:cont, [{value, bdd} | neg_acc]}
-    end)
-  end
-
   # Projection shortcuts for the pair-shaped map split below. These are
   # existential checks: if at least one remaining-map sample avoids all negative
   # remaining maps, the full key-value side survives; dually, if at least one
@@ -4275,26 +4264,31 @@ defmodule Module.Types.Descr do
         map_domain_tag_to_type(tag, domain_key) |> union(acc)
 
       {tag_or_domains, fields, negs}, acc ->
-        {_found, value, bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
-
-        case map_split_negative_pairs_domain(negs, domain_key) do
-          :empty ->
-            acc
-
-          negative ->
-            value =
-              if map_pair_projection_keeps_full_fst?(negative, bdd) do
-                value
-              else
-                negs
-                |> map_split_negative(value, bdd, fn neg_tag, neg_fields ->
-                  map_pop_domain_bdd(neg_tag, neg_fields, domain_key)
-                end)
-                |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
-              end
-
-            union(value, acc)
+        if init_map_line_empty?(tag_or_domains, fields, negs) do
+          acc
+        else
+          {_found, value, _bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
+          union(value, acc)
         end
+
+        # case map_split_negative_pairs_domain(negs, domain_key) do
+        #   :empty ->
+        #     acc
+
+        #   negative ->
+        #     value =
+        #       if map_pair_projection_keeps_full_fst?(negative, bdd) do
+        #         value
+        #       else
+        #         negs
+        #         |> map_split_negative(value, bdd, fn neg_tag, neg_fields ->
+        #           map_pop_domain_bdd(neg_tag, neg_fields, domain_key)
+        #         end)
+        #         |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
+        #       end
+
+        #     union(value, acc)
+        # end
     end)
   end
 
