@@ -4270,25 +4270,6 @@ defmodule Module.Types.Descr do
           {_found, value, _bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
           union(value, acc)
         end
-
-        # case map_split_negative_pairs_domain(negs, domain_key) do
-        #   :empty ->
-        #     acc
-
-        #   negative ->
-        #     value =
-        #       if map_pair_projection_keeps_full_fst?(negative, bdd) do
-        #         value
-        #       else
-        #         negs
-        #         |> map_split_negative(value, bdd, fn neg_tag, neg_fields ->
-        #           map_pop_domain_bdd(neg_tag, neg_fields, domain_key)
-        #         end)
-        #         |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
-        #       end
-
-        #     union(value, acc)
-        # end
     end)
   end
 
