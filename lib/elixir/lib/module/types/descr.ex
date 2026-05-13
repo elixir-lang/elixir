@@ -4990,8 +4990,13 @@ defmodule Module.Types.Descr do
   defp tuple_sizes_strategy(_, _, _, _), do: :none
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
-  defp zip_non_empty_intersection!([], types2, acc), do: Enum.reverse(acc, types2)
-  defp zip_non_empty_intersection!(types1, [], acc), do: Enum.reverse(acc, types1)
+  defp zip_non_empty_intersection!([], types2, acc) do
+    if Enum.any?(types2, &empty?/1), do: throw(:empty), else: Enum.reverse(acc, types2)
+  end
+
+  defp zip_non_empty_intersection!(types1, [], acc) do
+    if Enum.any?(types1, &empty?/1), do: throw(:empty), else: Enum.reverse(acc, types1)
+  end
 
   defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc) do
     zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])

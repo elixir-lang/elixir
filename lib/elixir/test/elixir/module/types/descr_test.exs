@@ -292,6 +292,21 @@ defmodule Module.Types.DescrTest do
 
       assert intersection(tuple([term(), integer()]), tuple([atom(), term()]))
              |> equal?(tuple([atom(), integer()]))
+
+      empty_field =
+        closed_map(key: atom([:value]))
+        |> difference(open_map(key: atom(), optional: if_set(atom())))
+
+      assert empty?(empty_field)
+      refute empty_field == none()
+
+      assert intersection(open_tuple([integer()]), tuple([integer(), empty_field]))
+             |> equal?(none())
+
+      assert intersection(tuple([integer(), empty_field]), open_tuple([integer()]))
+             |> equal?(none())
+
+      assert intersection(tuple(), tuple([integer(), empty_field])) |> equal?(none())
     end
 
     test "map" do
