@@ -480,27 +480,25 @@ defmodule Module.Types.Of do
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
         typed_field_type = typed_field(typed_fields, key)
 
-        value_type =
-          if typed_field_type != nil do
-            typed_field_type
-          else
-            case map_fetch_key(expected, key) do
-              {_, expected_value_type} -> expected_value_type
-              _ -> term()
-            end
-          end
+        value_type = typed_field_type || expected_field_type(expected, key)
 
         {type, context} = of_fun.(value, value_type, stack, context)
 
         context =
           cond do
-            typed_field_type == nil -> context
+            typed_field_type == nil ->
+              context
+
             # The compiler injects defaults into `args`. Don't warn for
             # values that are exactly the defstruct default — those are
             # not user-authored and would surface a noisy diagnostic at
             # every struct construction site.
-            value == Map.get(defaults_by_field, key, :__no_default__) -> context
-            compatible?(type, typed_field_type) -> context
+            value == Map.get(defaults_by_field, key, :__no_default__) ->
+              context
+
+            compatible?(type, typed_field_type) ->
+              context
+
             true ->
               error =
                 {:badstructfield, struct, key, value, typed_field_type, type, context}
@@ -525,6 +523,13 @@ defmodule Module.Types.Of do
 
   defp struct_defaults_by_field(info) do
     Map.new(info, fn %{field: field, default: default} -> {field, default} end)
+  end
+
+  defp expected_field_type(expected, key) do
+    case map_fetch_key(expected, key) do
+      {_, type} -> type
+      _ -> term()
+    end
   end
 
   # Look up the `t/0` typespec Descr for `struct` from the parallel
@@ -925,7 +930,9 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:badstructfield, module, field, expr, expected_type, actual_type, context}) do
+  def format_diagnostic(
+        {:badstructfield, module, field, expr, expected_type, actual_type, context}
+      ) do
     traces = collect_traces(expr, context)
 
     %{
@@ -941,7 +948,7 @@ defmodule Module.Types.Of do
 
               #{to_quoted_string(actual_type) |> indent(4)}
 
-          expected type:
+          but expected type:
 
               #{to_quoted_string(expected_type) |> indent(4)}
           """,

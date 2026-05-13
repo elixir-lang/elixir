@@ -532,7 +532,6 @@ defmodule Module.ParallelChecker do
     end
   end
 
-
   defp cache_chunk(table, module, contents) do
     Enum.each(contents.exports, fn {{fun, arity}, info} ->
       sig =

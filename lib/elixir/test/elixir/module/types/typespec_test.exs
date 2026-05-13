@@ -74,9 +74,7 @@ defmodule Module.Types.TypespecTest do
     test "%__MODULE__{} expands to closed_map with struct tag" do
       assert {:ok, descr} =
                to_descr(
-                 quote(
-                   do: %Module.Types.TypespecTest.SomeStruct{name: binary(), age: integer()}
-                 )
+                 quote(do: %Module.Types.TypespecTest.SomeStruct{name: binary(), age: integer()})
                )
 
       assert equal?(
@@ -149,7 +147,9 @@ defmodule Module.Types.TypespecTest do
 
     test "parametric arity > 0 reference returns parametric_unsupported" do
       defined = %{{:t, 1} => {:type, term()}}
-      assert {:error, {:parametric_unsupported, :t, 1}} = to_descr(quote(do: t(integer())), defined)
+
+      assert {:error, {:parametric_unsupported, :t, 1}} =
+               to_descr(quote(do: t(integer())), defined)
     end
   end
 

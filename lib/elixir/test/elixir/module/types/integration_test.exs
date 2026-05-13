@@ -1849,7 +1849,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warnings = ["expected type:", "integer()", ":not_an_int"]
+      warnings = ["but expected type:", "integer()", ":not_an_int"]
       assert_warnings(files, warnings)
     end
 
@@ -1895,7 +1895,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warnings = ["expected type:", "integer()", ":not_an_int"]
+      warnings = ["but expected type:", "integer()", ":not_an_int"]
       assert_warnings(files, warnings)
     end
 
@@ -1914,7 +1914,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warnings = ["expected type:", "integer()", ":not_an_int"]
+      warnings = ["but expected type:", "integer()", ":not_an_int"]
       assert_warnings(files, warnings)
     end
 
@@ -1931,7 +1931,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      assert_warnings(files, ["expected type:", "&Kernel.+/2"])
+      assert_warnings(files, ["but expected type:", "&Kernel.+/2"])
     end
 
     test "remote type reference resolves through ExCk (stdlib type)" do
@@ -1953,7 +1953,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warnings = ["expected type:", "binary()", "42"]
+      warnings = ["but expected type:", "binary()", "42"]
       assert_warnings(files, warnings)
     end
 
@@ -1977,7 +1977,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warnings = ["expected type:", "integer()", ":not_int"]
+      warnings = ["but expected type:", "integer()", ":not_int"]
       assert_warnings(files, warnings)
     end
 

@@ -23,6 +23,10 @@ defmodule Module.Types.Typespec do
 
   @elixir_checker_version :elixir_erl.checker_version()
 
+  # Process-dictionary key for the per-worker remote-types cache.
+  # The leading "$" keeps it distinct from user-visible keys.
+  @remote_cache_key :"$elixir_typespec_remote_cache"
+
   @doc """
   Convert `ast` to a `Descr`, using `state.defined` to resolve local references.
 
@@ -48,6 +52,26 @@ defmodule Module.Types.Typespec do
     union(left_descr, right_descr)
   end
 
+  # Remote type reference: Mod.name(args).
+  # Listed early because this is the hottest pattern in typespec-heavy modules
+  # (e.g. every String.t(), Keyword.t(), URI.t() reference hits this clause).
+  defp do_to_descr({{:., _, [module_ast, name]}, _, args}, state)
+       when is_atom(name) and is_list(args) do
+    arity = length(args)
+
+    case expand_module(module_ast) do
+      nil ->
+        dynamic()
+
+      module when module == state.module ->
+        # Self-qualified reference — treat as a local lookup.
+        local_or_pending(name, arity, state)
+
+      module when is_atom(module) ->
+        resolve_remote(module, name, arity)
+    end
+  end
+
   # Parenthesized / annotated forms — strip and recurse.
   defp do_to_descr({:"::", _, [_var, ast]}, state), do: do_to_descr(ast, state)
 
@@ -68,18 +92,11 @@ defmodule Module.Types.Typespec do
   defp do_to_descr([], _state), do: empty_list()
 
   # Function spec: `(args -> result)` is parsed as `[{:->, _, [args, result]}]`.
-  defp do_to_descr([{:->, _, [args, return]}], state) when is_list(args) do
-    cond do
-      # `(... -> result)` — variable arity. Not statically representable;
-      # degrade to the top function type.
-      Enum.any?(args, &match?({:..., _, _}, &1)) ->
-        fun()
+  # `(... -> result)` — variable arity. Not statically representable; degrade to the top function type.
+  defp do_to_descr([{:->, _, [[{:..., _, _} | _], _return]}], _state), do: fun()
 
-      true ->
-        arg_types = Enum.map(args, &do_to_descr(&1, state))
-        return_type = do_to_descr(return, state)
-        fun(arg_types, return_type)
-    end
+  defp do_to_descr([{:->, _, [args, return]}], state) when is_list(args) do
+    fun(Enum.map(args, &do_to_descr(&1, state)), do_to_descr(return, state))
   end
 
   # Non-empty proper list literal: [type]
@@ -135,27 +152,10 @@ defmodule Module.Types.Typespec do
     end
   end
 
-  # Remote type reference: Mod.name(args).
-  defp do_to_descr({{:., _, [module_ast, name]}, _, args}, state)
-       when is_atom(name) and is_list(args) do
-    arity = length(args)
-
-    case expand_module(module_ast) do
-      nil ->
-        dynamic()
-
-      module when module == state.module ->
-        # Self-qualified reference — treat as a local lookup.
-        local_or_pending(name, arity, state)
-
-      module when is_atom(module) ->
-        resolve_remote(module, name, arity)
-    end
-  end
-
   # Built-in type calls and local references: name(arg1, arg2, ...).
 
-  defp do_to_descr({name, _meta, args}, state) when is_atom(name) and (is_list(args) or is_atom(args)) do
+  defp do_to_descr({name, _meta, args}, state)
+       when is_atom(name) and (is_list(args) or is_atom(args)) do
     arg_list = if is_list(args), do: args, else: []
     arity = length(arg_list)
     builtin(name, arity, arg_list, state)
@@ -232,6 +232,27 @@ defmodule Module.Types.Typespec do
   end
 
   defp fetch_remote_types(module) do
+    # Fast path: check the per-worker process-dict cache first.
+    # Each module compile runs in its own short-lived worker process, so the
+    # cache is naturally bounded — no explicit eviction needed.
+    case :erlang.get(@remote_cache_key) do
+      %{^module => types} ->
+        types
+
+      cache when is_map(cache) ->
+        types = compute_remote_types(module)
+        :erlang.put(@remote_cache_key, Map.put(cache, module, types))
+        types
+
+      _ ->
+        # First call in this worker: initialise the cache and compute.
+        types = compute_remote_types(module)
+        :erlang.put(@remote_cache_key, %{module => types})
+        types
+    end
+  end
+
+  defp compute_remote_types(module) do
     # Try the parallel checker ETS first (same-compilation-unit modules that
     # were compiled earlier in the same run).  Fall back to the in-memory beam
     # binary for cross-app references where the module is already loaded in the VM.
@@ -253,13 +274,11 @@ defmodule Module.Types.Typespec do
   defp fetch_remote_types_from_checker(module) do
     case :erlang.get(:elixir_checker_info) do
       {_parent, {_checker, table}} ->
-        pairs = :ets.match(table, {{module, :type, :"$1", :"$2"}, :"$3"})
-
-        case pairs do
+        case :ets.match(table, {{module, :type, :"$1", :"$2"}, :"$3"}) do
           [] ->
             :not_found
 
-          _ ->
+          pairs ->
             {:ok, Map.new(pairs, fn [name, arity, entry] -> {{name, arity}, entry} end)}
         end
 

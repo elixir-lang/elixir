@@ -283,8 +283,7 @@ defmodule Kernel.Typespec do
   # stored but treated as opaque-from-the-checker's-view.
   defp convert_type_to_descr({kind, expr, pos}, {acc, defined}) do
     with {:"::", _, [{name, _meta, args}, definition]} <- expr,
-         arity = arg_count(args),
-         true <- arity == 0 do
+         true <- arg_count(args) == 0 do
       env = :elixir_module.get_cached_env(pos)
       state = %{module: env.module, defined: Map.put(defined, {name, 0}, :pending)}
 
@@ -675,7 +674,7 @@ defmodule Kernel.Typespec do
           )
 
         fun = fn {field, _} ->
-          if not Enum.any?(struct_info, &(&1.field == field)) do
+          if not :lists.any(fn info -> info.field == field end, struct_info) do
             compile_error(
               caller,
               "undefined field #{inspect(field)} on struct #{inspect(module)}"
@@ -866,8 +865,24 @@ defmodule Kernel.Typespec do
         # store_types_descr / fetch_remote_types can read the ExCk chunk from
         # the in-memory binary. This mirrors how struct expansion waits for its
         # module via Kernel.ErrorHandler.ensure_compiled.
+        #
+        # Deduplicate per-process: within one module compile, many @type
+        # declarations can reference the same remote (e.g. Calendar.year(),
+        # Calendar.month(), ...). After the first call the parallel compiler has
+        # already resolved that module, so subsequent calls are no-ops but still
+        # cross into the error handler. We cache resolved remotes in the process
+        # dictionary under a system-reserved key to avoid redundant calls.
         if :erlang.get(:elixir_compiler_info) != :undefined do
-          Kernel.ErrorHandler.ensure_compiled(remote, :module, :soft, caller.line)
+          ensured =
+            case :erlang.get(:"$elixir_typespec_ensured") do
+              :undefined -> %{}
+              map -> map
+            end
+
+          unless is_map_key(ensured, remote) do
+            Kernel.ErrorHandler.ensure_compiled(remote, :module, :soft, caller.line)
+            :erlang.put(:"$elixir_typespec_ensured", Map.put(ensured, remote, true))
+          end
         end
 
         {remote_spec, state} = typespec(remote, vars, caller, state)
