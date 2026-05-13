@@ -214,12 +214,17 @@ defmodule Keyword do
   """
   @spec new(Enumerable.t(), (term -> {key, value})) :: t
   def new(pairs, transform) when is_function(transform, 1) do
-    fun = fn el, acc ->
-      {k, v} = transform.(el)
-      put_new(acc, k, v)
+    fun = fn element, {acc, seen} ->
+      {key, value} = transform.(element)
+
+      case seen do
+        %{^key => _} -> {acc, seen}
+        _ -> {[{key, value} | acc], Map.put(seen, key, true)}
+      end
     end
 
-    :lists.foldl(fun, [], Enum.reverse(pairs))
+    {result, _seen} = :lists.foldl(fun, {[], %{}}, Enum.reverse(pairs))
+    result
   end
 
   @doc """
