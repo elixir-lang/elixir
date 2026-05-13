@@ -1138,9 +1138,9 @@ defmodule Map do
   > #### Performance considerations {: .tip}
   >
   > If you find yourself doing multiple calls to `Map.filter/2`
-  > and `Map.reject/2` in a pipeline, it is likely more efficient
-  > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
-  > a map at the end using `Map.new/1`.
+  > and/or `Map.reject/2` in a pipeline, it is likely more efficient
+  > to use `Enum.filter/2` and `Enum.reject/2` instead and convert to
+  > a map at the end using `Map.new/1` or `Map.new/2`.
 
   ## Examples
 
@@ -1171,6 +1171,13 @@ defmodule Map do
   a truthy value.
 
   See also `filter/2`.
+
+  > #### Performance considerations {: .tip}
+  >
+  > If you find yourself doing multiple calls to `Map.filter/2`
+  > and/or `Map.reject/2` in a pipeline, it is likely more efficient
+  > to use `Enum.filter/2` and `Enum.reject/2` instead and convert to
+  > a map at the end using `Map.new/1` or `Map.new/2`.
 
   ## Examples
 
