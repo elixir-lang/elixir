@@ -1090,31 +1090,62 @@ defmodule Keyword do
   @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(keywords1, keywords2, fun)
       when is_list(keywords1) and is_list(keywords2) and is_function(fun, 3) do
-    if keyword?(keywords1) do
-      do_merge(keywords2, [], keywords1, keywords1, fun, keywords2)
-    else
+    if not keyword?(keywords1) do
       raise ArgumentError,
             "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
     end
+
+    keys2 = collect_keys!(keywords2)
+
+    {non_matching_rev, keys2, duplicate_keys} =
+      partition_left(keywords1, [], keys2, MapSet.new())
+
+    keys2 =
+      Enum.reduce(duplicate_keys, keys2, fn key, acc ->
+        Map.update!(acc, key, &:lists.reverse/1)
+      end)
+
+    emitted_rev = emit_right(keywords2, [], keys2, fun)
+    :lists.reverse(non_matching_rev) ++ :lists.reverse(emitted_rev)
   end
 
-  defp do_merge([{key, value2} | tail], acc, rest, original, fun, keywords2) when is_atom(key) do
-    case :lists.keyfind(key, 1, original) do
-      {^key, value1} ->
-        acc = [{key, fun.(key, value1, value2)} | acc]
-        original = :lists.keydelete(key, 1, original)
-        do_merge(tail, acc, delete(rest, key), original, fun, keywords2)
+  defp partition_left([{key, value} | rest], non_matching, keys2, duplicate_keys) do
+    case keys2 do
+      %{^key => []} ->
+        partition_left(rest, non_matching, Map.put(keys2, key, [value]), duplicate_keys)
 
-      false ->
-        do_merge(tail, [{key, value2} | acc], rest, original, fun, keywords2)
+      %{^key => current} ->
+        partition_left(
+          rest,
+          non_matching,
+          Map.put(keys2, key, [value | current]),
+          MapSet.put(duplicate_keys, key)
+        )
+
+      _ ->
+        partition_left(rest, [{key, value} | non_matching], keys2, duplicate_keys)
     end
   end
 
-  defp do_merge([], acc, rest, _original, _fun, _keywords2) do
-    rest ++ :lists.reverse(acc)
+  defp partition_left([], non_matching, keys2, duplicate_keys),
+    do: {non_matching, keys2, duplicate_keys}
+
+  defp emit_right([{key, value2} | rest], emitted, keys2, fun) do
+    case keys2 do
+      %{^key => [value1 | remaining]} ->
+        emit_right(
+          rest,
+          [{key, fun.(key, value1, value2)} | emitted],
+          Map.put(keys2, key, remaining),
+          fun
+        )
+
+      _ ->
+        emit_right(rest, [{key, value2} | emitted], keys2, fun)
+    end
   end
 
-  defp emit_right([], emitted, _queue_map, _fun), do: emitted
+  defp emit_right([], emitted, _keys2, _fun), do: emitted
 
   # Validates a keyword list while collecting its keys into a `%{key => []}`
   # lookup map. Raises with the full original list if a non-keyword element
