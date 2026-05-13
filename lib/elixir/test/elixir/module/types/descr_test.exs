@@ -1109,6 +1109,44 @@ defmodule Module.Types.DescrTest do
     test "fun_from_non_overlapping_clauses" do
       assert fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}]) ==
                intersection(fun([integer()], atom()), fun([float()], binary()))
+
+      assert fun_from_non_overlapping_clauses([
+               {[integer()], atom()},
+               {[float()], binary()},
+               {[pid()], atom()}
+             ]) ==
+               intersection(fun([union(integer(), pid())], atom()), fun([float()], binary()))
+
+      assert fun_from_non_overlapping_clauses([
+               {[integer(), atom()], binary()},
+               {[float(), atom()], binary()}
+             ]) ==
+               fun([number(), atom()], binary())
+    end
+
+    test "group_clauses_by_return compacts any single differing argument" do
+      assert group_clauses_by_return([
+               {[integer(), atom(), binary()], boolean()},
+               {[float(), atom(), binary()], boolean()},
+               {[atom(), integer(), binary()], atom()},
+               {[atom(), float(), binary()], atom()},
+               {[atom(), binary(), integer()], pid()},
+               {[atom(), binary(), float()], pid()}
+             ]) == [
+               {[number(), atom(), binary()], boolean()},
+               {[atom(), number(), binary()], atom()},
+               {[atom(), binary(), number()], pid()}
+             ]
+    end
+
+    test "group_clauses_by_return repeats until no more clauses can be compacted" do
+      assert group_clauses_by_return([
+               {[number(), binary()], boolean()},
+               {[integer(), atom()], boolean()},
+               {[float(), atom()], boolean()}
+             ]) == [
+               {[number(), union(binary(), atom())], boolean()}
+             ]
     end
 
     test "fun_from_inferred_clauses" do

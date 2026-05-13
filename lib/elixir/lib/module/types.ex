@@ -122,7 +122,16 @@ defmodule Module.Types do
           end
       end)
 
-    {Map.new(types), unreachable}
+    types =
+      Map.new(types, fn {fun_arity, inferred} ->
+        {fun_arity, compress_exported_inferred(inferred)}
+      end)
+
+    {types, unreachable}
+  end
+
+  defp compress_exported_inferred({:infer, domain, clauses}) do
+    {:infer, domain, Descr.group_clauses_by_return(clauses)}
   end
 
   defp infer_mode(kind, infer_signatures?) do

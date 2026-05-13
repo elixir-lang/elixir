@@ -122,6 +122,33 @@ defmodule Module.Types.InferTest do
               [{[term()], dynamic(union(atom([:error]), tuple([integer(), binary()])))}]}
   end
 
+  test "infers Credo-style operator predicate clauses", config do
+    types =
+      infer config do
+        def operator?({:comp_op, _, _}), do: true
+        def operator?({:comp_op2, _, _}), do: true
+        def operator?({:dual_op, _, _}), do: true
+        def operator?({:mult_op, _, _}), do: true
+        def operator?({:two_op, _, _}), do: true
+        def operator?({:concat_op, _, _}), do: true
+        def operator?({:ternary_op, _, _}), do: true
+        def operator?({:rel_op, _, _}), do: true
+        def operator?({:rel_op2, _, _}), do: true
+        def operator?({:and_op, _, _}), do: true
+        def operator?({:or_op, _, _}), do: true
+        def operator?({:match_op, _, _}), do: true
+        def operator?({:in_match_op, _, _}), do: true
+        def operator?({:stab_op, _, _}), do: true
+        def operator?({:pipe_op, _, _}), do: true
+        def operator?({:arrow_op, _, _}), do: false
+        def operator?(_), do: false
+      end
+
+    assert {:infer, [domain], clauses} = types[{:operator?, 1}]
+    assert domain |> equal?(term())
+    assert length(clauses) == 2
+  end
+
   test "from private functions", config do
     types =
       infer config do

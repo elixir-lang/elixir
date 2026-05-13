@@ -179,11 +179,95 @@ defmodule Module.Types.Descr do
   @doc """
   Creates a function from non-overlapping function clauses.
   """
-  def fun_from_non_overlapping_clauses([{args, return} | clauses]) do
+  def fun_from_non_overlapping_clauses(clauses) do
+    clauses
+    |> group_clauses_by_return()
+    |> fun_from_clauses()
+  end
+
+  defp fun_from_clauses([{args, return} | clauses]) do
     Enum.reduce(clauses, fun(args, return), fn {args, return}, acc ->
       intersection(acc, fun(args, return))
     end)
   end
+
+  # Compact clauses that have the same return and differ in exactly one
+  # argument by unioning that argument. For example:
+  #
+  #   (integer(), atom() -> boolean()) and (float(), atom() -> boolean())
+  #
+  # becomes:
+  #
+  #   (number(), atom() -> boolean())
+  #
+  # Arity-zero clauses have no argument position to widen.
+  def group_clauses_by_return([{[], _} | _] = clauses), do: clauses
+
+  def group_clauses_by_return([{args, _} | _] = clauses) do
+    arity = length(args)
+
+    if Enum.all?(clauses, &(elem(&1, 0) |> length() == arity)) do
+      do_group_clauses_by_return(clauses)
+    else
+      clauses
+    end
+  end
+
+  def group_clauses_by_return(clauses), do: clauses
+
+  defp do_group_clauses_by_return(clauses) do
+    {clauses, merged?} =
+      Enum.reduce(clauses, {[], false}, fn {args, return}, {acc, merged?} ->
+        case merge_clause_by_return(acc, args, return) do
+          {:ok, acc} -> {acc, true}
+          :error -> {[{args, return} | acc], merged?}
+        end
+      end)
+
+    clauses = Enum.reverse(clauses)
+
+    # Keep going until no pair can be compacted. One merge can expose
+    # another, such as a|b with c later becoming a|b|c.
+    if merged? do
+      do_group_clauses_by_return(clauses)
+    else
+      clauses
+    end
+  end
+
+  defp merge_clause_by_return([{existing_args, return} | tail], args, return) do
+    case merge_args(existing_args, args, [], false) do
+      {:ok, args} ->
+        {:ok, [{args, return} | tail]}
+
+      :error ->
+        with {:ok, tail} <- merge_clause_by_return(tail, args, return) do
+          {:ok, [{existing_args, return} | tail]}
+        end
+    end
+  end
+
+  defp merge_clause_by_return([head | tail], args, return) do
+    with {:ok, tail} <- merge_clause_by_return(tail, args, return) do
+      {:ok, [head | tail]}
+    end
+  end
+
+  defp merge_clause_by_return([], _args, _return), do: :error
+
+  defp merge_args([arg | existing], [arg | args], acc, changed?) do
+    merge_args(existing, args, [arg | acc], changed?)
+  end
+
+  # Allow exactly one differing argument. That one position is widened
+  # with union/2; a second difference means the clauses must stay separate.
+  defp merge_args([existing_arg | existing], [arg | args], acc, false) do
+    merge_args(existing, args, [union(existing_arg, arg) | acc], true)
+  end
+
+  defp merge_args([_ | _], [_ | _], _acc, true), do: :error
+  defp merge_args([], [], acc, true), do: {:ok, Enum.reverse(acc)}
+  defp merge_args([], [], _acc, false), do: :error
 
   @doc """
   Creates a function from overlapping function clauses.
