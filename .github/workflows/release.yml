@@ -79,7 +79,7 @@ jobs:
             build_docs: build_docs
 
           - otp: 29
-            otp_version: "29.0-rc1"
+            otp_version: "29.0"
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

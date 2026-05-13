@@ -26,12 +26,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: "29.0-rc1"
-          - otp_version: "28.1"
+          - otp_version: "29.0"
             deterministic: true
-          - otp_version: "28.1"
+          - otp_version: "28.4"
             docs: true
             coverage: true
+          - otp_version: "28.1"
           - otp_version: "27.3"
           - otp_version: "27.0"
           - otp_version: master
@@ -115,7 +115,7 @@ jobs:
     strategy:
       matrix:
         otp_version:
-          - "29.0-rc1"
+          - "29.0"
           - "28.1"
           - "27.3"
 
