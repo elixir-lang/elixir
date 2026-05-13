@@ -1039,21 +1039,18 @@ defmodule Keyword do
   def merge([], keywords2) when is_list(keywords2), do: keywords2
 
   def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
-    if keyword?(keywords2) do
-      fun = fn
-        {key, _value} when is_atom(key) ->
-          not has_key?(keywords2, key)
+    keys2 = collect_keys!(keywords2)
 
-        _ ->
-          raise ArgumentError,
-                "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
-      end
+    fun = fn
+      {key, _value} when is_atom(key) ->
+        not Map.has_key?(keys2, key)
 
-      :lists.filter(fun, keywords1) ++ keywords2
-    else
-      raise ArgumentError,
-            "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
+      _ ->
+        raise ArgumentError,
+              "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
     end
+
+    :lists.filter(fun, keywords1) ++ keywords2
   end
 
   @doc """
@@ -1117,9 +1114,21 @@ defmodule Keyword do
     rest ++ :lists.reverse(acc)
   end
 
-  defp do_merge(_other, _acc, _rest, _original, _fun, keywords2) do
+  defp emit_right([], emitted, _queue_map, _fun), do: emitted
+
+  # Validates a keyword list while collecting its keys into a `%{key => []}`
+  # lookup map. Raises with the full original list if a non-keyword element
+  # is encountered. Used by merge/2 and merge/3.
+  defp collect_keys!(list), do: collect_keys!(list, %{}, list)
+
+  defp collect_keys!([{key, _} | rest], acc, original) when is_atom(key),
+    do: collect_keys!(rest, Map.put(acc, key, []), original)
+
+  defp collect_keys!([], acc, _original), do: acc
+
+  defp collect_keys!(_other, _acc, original) do
     raise ArgumentError,
-          "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
+          "expected a keyword list as the second argument, got: #{inspect(original)}"
   end
 
   @doc """
