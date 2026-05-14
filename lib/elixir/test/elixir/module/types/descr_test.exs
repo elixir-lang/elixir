@@ -1881,6 +1881,10 @@ defmodule Module.Types.DescrTest do
       assert dynamic(union(tuple(), integer()))
              |> tuple_insert_at(1, boolean())
              |> equal?(dynamic(open_tuple([term(), boolean()])))
+
+      # Errors must propagate even when the inserted value is dynamic
+      assert tuple_insert_at(integer(), 0, dynamic()) == :badtuple
+      assert tuple_insert_at(tuple([atom([:ok])]), 2, dynamic()) == :badindex
     end
 
     test "tuple_values" do

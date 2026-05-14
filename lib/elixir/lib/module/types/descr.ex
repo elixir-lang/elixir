@@ -5850,8 +5850,14 @@ defmodule Module.Types.Descr do
 
   def tuple_insert_at(descr, index, type) when is_integer(index) and index >= 0 do
     case :maps.take(:dynamic, unfold(type)) do
-      :error -> tuple_insert_at_checked(descr, index, type)
-      {dynamic, _static} -> dynamic(tuple_insert_at_checked(descr, index, dynamic))
+      :error ->
+        tuple_insert_at_checked(descr, index, type)
+
+      {dynamic_type, _static} ->
+        case tuple_insert_at_checked(descr, index, dynamic_type) do
+          atom when atom in [:badtuple, :badindex] -> atom
+          result -> dynamic(result)
+        end
     end
   end
 
