@@ -545,6 +545,37 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "raise if warning in tests but tests pass and --raise is specified" do
+      in_fixture("test_stale", fn ->
+        msg =
+          "** (Mix) test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+        refute mix(["test", "--warnings-as-errors", "--raise"]) =~ msg
+
+        File.write!("lib/warning.ex", """
+        unused_compile_var = 1
+        """)
+
+        File.write!("test/warning_test_stale.exs", """
+        defmodule WarningTest do
+          use ExUnit.Case
+
+          test "warning" do
+            unused_test_var = 1
+          end
+        end
+        """)
+
+        {output, exit_status} =
+          mix_code(["test", "--warnings-as-errors", "--raise", "test/warning_test_stale.exs"])
+
+        assert output =~ "variable \"unused_compile_var\" is unused"
+        assert output =~ "variable \"unused_test_var\" is unused"
+        assert output =~ msg
+        assert exit_status == 1
+      end)
+    end
+
     test "fail with --exit-status + 1 if warning in tests and tests fail" do
       in_fixture("test_stale", fn ->
         File.write!("test/warning_test_warnings_as_errors_and_failures.exs", """
