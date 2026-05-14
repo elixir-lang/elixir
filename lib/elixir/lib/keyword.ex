@@ -1107,10 +1107,10 @@ defmodule Keyword do
     keys2 = collect_keys!(keywords2)
 
     {non_matching_rev, keys2, duplicate_keys} =
-      partition_left(keywords1, [], keys2, MapSet.new())
+      partition_left(keywords1, [], keys2, %{})
 
     keys2 =
-      Enum.reduce(duplicate_keys, keys2, fn key, acc ->
+      Enum.reduce(duplicate_keys, keys2, fn {key, _true}, acc ->
         Map.update!(acc, key, &:lists.reverse/1)
       end)
 
@@ -1128,7 +1128,7 @@ defmodule Keyword do
           rest,
           non_matching,
           Map.put(keys2, key, [value | current]),
-          MapSet.put(duplicate_keys, key)
+          Map.put(duplicate_keys, key, true)
         )
 
       _ ->
@@ -1290,8 +1290,8 @@ defmodule Keyword do
   end
 
   defp in_keys_check(keys) do
-    keys_set = MapSet.new(keys)
-    fn {key, _} -> MapSet.member?(keys_set, key) end
+    keys_set = :lists.foldl(fn key, acc -> Map.put(acc, key, true) end, %{}, keys)
+    fn {key, _} -> Map.has_key?(keys_set, key) end
   end
 
   @doc """
