@@ -387,8 +387,6 @@ defmodule Process do
   automatically canceled when `dest` is an atom (as the atom resolution is done
   on delivery).
 
-  Inlined by the compiler.
-
   ## Options
 
     * `:abs` - (boolean) when `false`, `time` is treated as relative to the

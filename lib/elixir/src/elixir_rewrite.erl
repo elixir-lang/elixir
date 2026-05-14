@@ -264,8 +264,6 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 ?rewrite(?process, group_leader, [Pid, Leader], erlang, group_leader, [Leader, Pid]);
 ?rewrite(?process, monitor, [Arg], erlang, monitor, [process, Arg]);
 ?rewrite(?process, monitor, [Arg, Opts], erlang, monitor, [process, Arg, Opts]);
-?rewrite(?process, send_after, [Dest, Msg, Time], erlang, send_after, [Time, Dest, Msg]);
-?rewrite(?process, send_after, [Dest, Msg, Time, Opts], erlang, send_after, [Time, Dest, Msg, Opts]);
 ?rewrite(?tuple, duplicate, [Data, Size], erlang, make_tuple, [Size, Data]);
 
 inner_rewrite(ex_to_erl, Meta, ?tuple, delete_at, [Tuple, Index]) ->
