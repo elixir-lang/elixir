@@ -48,10 +48,12 @@ defmodule Module.Types.Descr do
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top {:erlang.phash2([:open | @fields_new]), :open, @fields_new}
+  @map_leaf_hash_space 1 <<< 20
+  @map_top {:erlang.phash2([:open | @fields_new], @map_leaf_hash_space), :open, @fields_new}
   @non_empty_list_top {:erlang.phash2([:term | :term]), :term, :term}
   @tuple_top {:erlang.phash2([:open | []]), :open, []}
-  @map_empty {-:erlang.phash2(@fields_new), :closed, @fields_new}
+  @map_empty {-:erlang.phash2([:closed | @fields_new], @map_leaf_hash_space), :closed,
+              @fields_new}
 
   defmacrop bdd_leaf(arg1, arg2) do
     quote do
@@ -643,7 +645,7 @@ defmodule Module.Types.Descr do
 
   defp numberize(:map, bdd) do
     bdd_map(bdd, fn bdd_leaf(tag, fields) ->
-      bdd_leaf_new(tag, fields_map(fn _key, value -> numberize(value) end, fields))
+      map_new(tag, fields_map(fn _key, value -> numberize(value) end, fields))
     end)
   end
 
@@ -2886,7 +2888,20 @@ defmodule Module.Types.Descr do
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
 
-  defp map_new(tag, fields), do: bdd_leaf_new(tag, fields)
+  # Order broader map contexts before more specific ones so shared requirements
+  # are factored once in the BDD instead of copied under every specialized branch.
+  defp map_new(:closed, fields) do
+    {-map_leaf_order(:closed, fields), :closed, fields}
+  end
+
+  defp map_new(tag, fields) do
+    {map_leaf_order(tag, fields), tag, fields}
+  end
+
+  defp map_leaf_order(tag, fields) do
+    fields_size(fields) * @map_leaf_hash_space +
+      :erlang.phash2([tag | fields_keys(fields)], @map_leaf_hash_space)
+  end
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
@@ -2905,8 +2920,8 @@ defmodule Module.Types.Descr do
 
   defp map_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     case maybe_optimize_map_union(tag1, fields1, tag2, fields2) do
-      {tag, fields} -> bdd_leaf_new(tag, fields)
-      nil -> bdd_union(bdd_leaf_new(tag1, fields1), bdd_leaf_new(tag2, fields2))
+      {tag, fields} -> map_new(tag, fields)
+      nil -> bdd_union(map_new(tag1, fields1), map_new(tag2, fields2))
     end
   end
 
@@ -3071,7 +3086,7 @@ defmodule Module.Types.Descr do
   defp map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     try do
       {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
-      bdd_leaf_new(tag, fields)
+      map_new(tag, fields)
     catch
       :empty -> :bdd_bot
     end
@@ -3138,7 +3153,7 @@ defmodule Module.Types.Descr do
     if empty?(v_diff) do
       :subtype
     else
-      a_diff = bdd_leaf_new(tag, fields_store(key, v_diff, fields))
+      a_diff = map_new(tag, fields_store(key, v_diff, fields))
 
       a_type =
         case type do
@@ -3146,14 +3161,14 @@ defmodule Module.Types.Descr do
             :bdd_bot
 
           :union ->
-            bdd_leaf_new(tag, fields_store(key, union(v1, v2), fields))
+            map_new(tag, fields_store(key, union(v1, v2), fields))
 
           :intersection ->
             v_int = intersection(v1, v2)
 
             if empty?(v_int),
               do: :bdd_bot,
-              else: bdd_leaf_new(tag, fields_store(key, v_int, fields))
+              else: map_new(tag, fields_store(key, v_int, fields))
         end
 
       {:one_key_difference, a_diff, a_type}
@@ -3891,8 +3906,8 @@ defmodule Module.Types.Descr do
   defp map_put_key_static(%{map: bdd} = descr, key, type) do
     bdd =
       bdd_map(bdd, fn
-        bdd_leaf(:closed, fields) when type == @not_set -> bdd_leaf_new(:closed, fields)
-        bdd_leaf(tag, fields) -> bdd_leaf_new(tag, fields_store(key, type, fields))
+        bdd_leaf(:closed, fields) when type == @not_set -> map_new(:closed, fields)
+        bdd_leaf(tag, fields) -> map_new(tag, fields_store(key, type, fields))
       end)
 
     %{descr | map: bdd}
@@ -4062,7 +4077,7 @@ defmodule Module.Types.Descr do
   defp map_update_put_domains(bdd, domain_keys, type_fun, force?) do
     bdd =
       bdd_map(bdd, fn bdd_leaf(tag, fields) ->
-        bdd_leaf_new(map_update_put_domain(tag, domain_keys, type_fun, force?), fields)
+        map_new(map_update_put_domain(tag, domain_keys, type_fun, force?), fields)
       end)
 
     %{map: bdd}
