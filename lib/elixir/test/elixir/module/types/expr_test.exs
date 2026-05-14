@@ -813,6 +813,17 @@ defmodule Module.Types.ExprTest do
 
                    {:ok, integer()}
                """
+
+      assert typeerror!(elem({1, 2}, -1)) ==
+               ~l"""
+               expected a non-negative integer as index in Kernel.elem/2:
+
+                   elem({1, 2}, -1)
+
+               got the index:
+
+                   -1
+               """
     end
 
     test "Tuple.insert_at/3" do
@@ -875,6 +886,17 @@ defmodule Module.Types.ExprTest do
                    # from: types_test.ex:LINE-1
                    x
                """
+
+      assert typeerror!(Tuple.insert_at({1, 2}, -1, :x)) ==
+               ~l"""
+               expected a non-negative integer as index in Tuple.insert_at/3:
+
+                   Tuple.insert_at({1, 2}, -1, :x)
+
+               got the index:
+
+                   -1
+               """
     end
 
     test "Tuple.delete_at/2" do
@@ -930,6 +952,17 @@ defmodule Module.Types.ExprTest do
                    # type: dynamic()
                    # from: types_test.ex:LINE-1
                    x
+               """
+
+      assert typeerror!(Tuple.delete_at({1, 2}, -1)) ==
+               ~l"""
+               expected a non-negative integer as index in Tuple.delete_at/2:
+
+                   Tuple.delete_at({1, 2}, -1)
+
+               got the index:
+
+                   -1
                """
     end
 
@@ -990,6 +1023,17 @@ defmodule Module.Types.ExprTest do
                    # type: dynamic()
                    # from: types_test.ex:LINE-1
                    x
+               """
+
+      assert typeerror!(put_elem({1, 2}, -1, :x)) ==
+               ~l"""
+               expected a non-negative integer as index in Kernel.put_elem/3:
+
+                   put_elem({1, 2}, -1, :x)
+
+               got the index:
+
+                   -1
                """
     end
 

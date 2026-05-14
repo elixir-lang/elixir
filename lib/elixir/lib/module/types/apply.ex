@@ -447,6 +447,9 @@ defmodule Module.Types.Apply do
       :badtuple ->
         remote_error(:erlang, :element, [integer(), tuple_type], expr, stack, context)
 
+      :badindex when index < 1 ->
+        remote_error({:negindex, index - 1}, :erlang, :element, 2, expr, stack, context)
+
       :badindex ->
         remote_error({:badindex, index, tuple_type}, :erlang, :element, 2, expr, stack, context)
     end
@@ -473,6 +476,9 @@ defmodule Module.Types.Apply do
         args_types = [integer(), tuple_type, elem_type]
         remote_error(:erlang, :insert_element, args_types, expr, stack, context)
 
+      :badindex when index < 1 ->
+        remote_error({:negindex, index - 1}, :erlang, :insert_element, 3, expr, stack, context)
+
       :badindex ->
         error = {:badindex, index - 1, tuple_type}
         remote_error(error, :erlang, :insert_element, 3, expr, stack, context)
@@ -494,6 +500,9 @@ defmodule Module.Types.Apply do
         args_types = [integer(), tuple_type, elem_type]
         remote_error(:erlang, :setelement, args_types, expr, stack, context)
 
+      :badindex when index < 1 ->
+        remote_error({:negindex, index - 1}, :erlang, :setelement, 3, expr, stack, context)
+
       :badindex ->
         error = {:badindex, index, tuple_type}
         remote_error(error, :erlang, :setelement, 3, expr, stack, context)
@@ -511,6 +520,9 @@ defmodule Module.Types.Apply do
 
       :badtuple ->
         remote_error(:erlang, :delete_element, [integer(), tuple_type], expr, stack, context)
+
+      :badindex when index < 1 ->
+        remote_error({:negindex, index - 1}, :erlang, :delete_element, 2, expr, stack, context)
 
       :badindex ->
         error = {:badindex, index, tuple_type}
@@ -1823,6 +1835,29 @@ defmodule Module.Types.Apply do
           the given type does not have the given index:
 
               #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({{:negindex, index}, mfac, expr, context}) do
+    traces = collect_traces(expr, context)
+    {mod, fun, arity, _converter} = mfac
+    mfa = Exception.format_mfa(mod, fun, arity)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a non-negative integer as index in #{mfa}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got the index:
+
+              #{index}
           """,
           format_traces(traces)
         ])
