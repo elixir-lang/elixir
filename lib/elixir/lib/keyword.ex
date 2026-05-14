@@ -1156,9 +1156,6 @@ defmodule Keyword do
 
   defp emit_right([], emitted, _keys2, _fun), do: emitted
 
-  # Validates a keyword list while collecting its keys into a `%{key => []}`
-  # lookup map. Raises with the full original list if a non-keyword element
-  # is encountered. Used by merge/2 and merge/3.
   defp collect_keys!(list), do: collect_keys!(list, %{}, list)
 
   defp collect_keys!([{key, _} | rest], acc, original) when is_atom(key),
