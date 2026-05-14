@@ -1273,16 +1273,19 @@ defmodule Keyword do
   """
   @spec split(t, [key]) :: {t, t}
   def split(keywords, keys) when is_list(keywords) and is_list(keys) do
-    fun = fn {k, v}, {take, drop} ->
-      case k in keys do
-        true -> {[{k, v} | take], drop}
-        false -> {take, [{k, v} | drop]}
-      end
+    predicate = in_keys_check(keys)
+
+    fun = fn pair, {take, drop} ->
+      if predicate.(pair), do: {[pair | take], drop}, else: {take, [pair | drop]}
     end
 
-    acc = {[], []}
-    {take, drop} = :lists.foldl(fun, acc, keywords)
+    {take, drop} = :lists.foldl(fun, {[], []}, keywords)
     {:lists.reverse(take), :lists.reverse(drop)}
+  end
+
+  defp in_keys_check(keys) do
+    keys_set = MapSet.new(keys)
+    fn {key, _} -> MapSet.member?(keys_set, key) end
   end
 
   @doc """
@@ -1340,7 +1343,7 @@ defmodule Keyword do
   """
   @spec take(t, [key]) :: t
   def take(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
+    :lists.filter(in_keys_check(keys), keywords)
   end
 
   @doc """
@@ -1360,7 +1363,8 @@ defmodule Keyword do
   """
   @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(fn {k, _} -> k not in keys end, keywords)
+    predicate = in_keys_check(keys)
+    :lists.filter(fn pair -> not predicate.(pair) end, keywords)
   end
 
   @doc """
