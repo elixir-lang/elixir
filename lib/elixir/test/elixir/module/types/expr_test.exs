@@ -899,6 +899,49 @@ defmodule Module.Types.ExprTest do
                """
     end
 
+    test "put_elem/3" do
+      assert typecheck!(put_elem({:ok, 123}, 0, "foo")) == tuple([binary(), integer()])
+      assert typecheck!(put_elem({:ok, 123}, 1, "foo")) == tuple([atom([:ok]), binary()])
+
+      assert typecheck!([x], put_elem({:ok, x}, 0, "foo")) ==
+               dynamic(tuple([binary(), term()]))
+
+      assert typecheck!([x], put_elem({:ok, x}, 1, "foo")) ==
+               dynamic(tuple([atom([:ok]), binary()]))
+
+      assert typeerror!([<<x::float>>], put_elem(x, 0, "foo")) |> strip_ansi() ==
+               ~l"""
+               incompatible types given to Kernel.put_elem/3:
+
+                   put_elem(x, 0, "foo")
+
+               given types:
+
+                   float(), integer(), binary()
+
+               but expected one of:
+
+                   {...}, integer(), term()
+
+               where "x" was given the type:
+
+                   # type: float()
+                   # from: types_test.ex:LINE-1
+                   <<x::float>>
+               """
+
+      assert typeerror!(put_elem({:ok, 123}, 2, "foo")) ==
+               ~l"""
+               expected a tuple with at least 3 elements in Kernel.put_elem/3:
+
+                   put_elem({:ok, 123}, 2, "foo")
+
+               the given type does not have the given index:
+
+                   {:ok, integer()}
+               """
+    end
+
     test "Tuple.duplicate/2" do
       assert typecheck!(Tuple.duplicate(123, 0)) == tuple([])
       assert typecheck!(Tuple.duplicate(123, 1)) == tuple([integer()])

@@ -5919,6 +5919,81 @@ defmodule Module.Types.Descr do
     end)
   end
 
+  @doc """
+  Replace an element in the tuple at the given (0-based) index.
+
+  It returns the same as `tuple_fetch/2`.
+  """
+  def tuple_replace_at(:term, _key, _type), do: :badtuple
+
+  def tuple_replace_at(descr, index, type) when is_integer(index) and index >= 0 do
+    case :maps.take(:dynamic, unfold(type)) do
+      :error -> tuple_replace_at_checked(descr, index, type)
+      {dynamic, _static} -> dynamic(tuple_replace_at_checked(descr, index, dynamic))
+    end
+  end
+
+  def tuple_replace_at(_, _, _), do: :badindex
+
+  defp tuple_replace_at_checked(descr, index, type) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        # Note: the empty type is not a valid input
+        is_proper_tuple? = descr_key?(descr, :tuple) and non_empty_tuple_only?(descr)
+        is_proper_size? = tuple_of_size_at_least_static?(descr, index + 1)
+
+        cond do
+          is_proper_tuple? and is_proper_size? -> tuple_replace_static(descr, index, type)
+          is_proper_tuple? -> :badindex
+          true -> :badtuple
+        end
+
+      {dynamic, static} ->
+        is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
+        is_proper_size? = tuple_of_size_at_least_static?(static, index + 1)
+
+        cond do
+          is_proper_tuple? and is_proper_size? ->
+            static_result = tuple_replace_static(static, index, type)
+
+            # Prune for dynamic values that make the intersection succeed
+            dynamic_result =
+              intersection(dynamic, tuple_of_size_at_least(index + 1))
+              |> tuple_replace_static(index, type)
+
+            union(dynamic(dynamic_result), static_result)
+
+          # Highlight the case where the issue is an index out of range from the tuple
+          is_proper_tuple? ->
+            :badindex
+
+          true ->
+            :badtuple
+        end
+    end
+  end
+
+  defp tuple_replace_static(descr, _, _) when descr == @none, do: none()
+
+  defp tuple_replace_static(descr, index, type) do
+    Map.update!(descr, :tuple, fn bdd ->
+      bdd_map(bdd, fn bdd_leaf(tag, elements) ->
+        # If the tuple is open, then we want List.replace_at to update the correct
+        # index, which requires filling the tuple with `term()` values first.
+        # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
+        # intersection with `tuple_of_size_at_least`).
+        elements =
+          if tag == :open and length(elements) < index + 1 do
+            tuple_fill(elements, index + 1)
+          else
+            elements
+          end
+
+        bdd_leaf_new(tag, List.replace_at(elements, index, type))
+      end)
+    end)
+  end
+
   defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
     %{tuple: tuple_new(:open, List.duplicate(term(), n))}
   end
