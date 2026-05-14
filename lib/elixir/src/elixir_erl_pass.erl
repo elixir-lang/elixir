@@ -643,10 +643,11 @@ translate_remote(Left, Right, Meta, Args, S) ->
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
       end;
     {reorder, ErlLeft, ErlRight, FunArgs} ->
-      {TArgs, SA} = translate_args(FunArgs(Meta, Args), Ann, S),
-      TLeft = {atom, Ann, ErlLeft},
-      TRight = {atom, Ann, ErlRight},
-      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA};
+      evaluate_first(Args, Ann, S, fun(ErlArgs) ->
+        TLeft = {atom, Ann, ErlLeft},
+        TRight = {atom, Ann, ErlRight},
+        {call, Ann, {remote, Ann, TLeft, TRight}, FunArgs(Ann, ErlArgs)}
+      end);
     {inline_pure, Result} ->
       Generated = erl_anno:set_generated(true, Ann),
       translate(Result, Generated, S);
@@ -708,11 +709,11 @@ rewrite_strategy(Left, Right, Args) ->
 
 -define(
   reorder(ExMod, ExFun, ExArity, ExArgs, ErlMod, ErlFun, ErlArgs),
-  reorder_strategy(ExMod, ExFun, ExArity) -> {reorder, ErlMod, ErlFun, fun(Meta, ExArgs) -> _ = Meta, ErlArgs end}
+  reorder_strategy(ExMod, ExFun, ExArity) -> {reorder, ErlMod, ErlFun, fun(Ann, ExArgs) -> _ = Ann, ErlArgs end}
 ).
 
-?reorder('Elixir.Kernel', elem, 2, [Tuple, Index], erlang, element, [increment(Meta, Index), Tuple]);
-?reorder('Elixir.Kernel', put_elem, 2, [Tuple, Index, Term], erlang, element, [increment(Meta, Index), Tuple, Term]);
+?reorder('Elixir.Kernel', elem, 2, [Tuple, Index], erlang, element, [increment(Ann, Index), Tuple]);
+?reorder('Elixir.Kernel', put_elem, 2, [Tuple, Index, Term], erlang, element, [increment(Ann, Index), Tuple, Term]);
 ?reorder('Elixir.Kernel', is_map_key, 2, [Map, Key], erlang, is_map_key, [Key, Map]);
 ?reorder('Elixir.Map', delete, 2, [Map, Key], maps, remove, [Key, Map]);
 ?reorder('Elixir.Map', fetch, 2, [Map, Key], maps, find, [Key, Map]);
@@ -721,13 +722,22 @@ rewrite_strategy(Left, Right, Args) ->
 ?reorder('Elixir.Map', put, 3, [Map, Key, Value], maps, put, [Key, Value, Map]);
 ?reorder('Elixir.Map', 'replace!', 3, [Map, Key, Value], maps, update, [Key, Value, Map]);
 ?reorder('Elixir.Process', group_leader, 2, [Pid, Leader], erlang, group_leader, [Leader, Pid]);
-?reorder('Elixir.Tuple', delete_at, 2, [Tuple, Index], erlang, delete_element, [increment(Meta, Index), Tuple]);
+?reorder('Elixir.Tuple', delete_at, 2, [Tuple, Index], erlang, delete_element, [increment(Ann, Index), Tuple]);
 ?reorder('Elixir.Tuple', duplicate, 2, [Data, Size], erlang, make_tuple, [Size, Data]);
-?reorder('Elixir.Tuple', insert_at, 3, [Tuple, Index, Term], erlang, insert_element, [increment(Meta, Index), Tuple, Term]);
+?reorder('Elixir.Tuple', insert_at, 3, [Tuple, Index, Term], erlang, insert_element, [increment(Ann, Index), Tuple, Term]);
 reorder_strategy(_, _, _) -> none.
 
-increment(_Meta, Number) when is_number(Number) -> Number + 1;
-increment(Meta, Other) -> {{'.', Meta, [erlang, '+']}, Meta, [Other, 1]}.
+increment(_Ann, {integer, Ann, Number}) when is_number(Number) -> {integer, Ann, Number + 1};
+increment(Ann, Other) -> {op, Ann, '+', Other, {integer, Ann, 1}}.
+
+evaluate_first([{Var, _Meta, Ctx} | _Tail] = Args, Ann, S, Fun) when is_atom(Var), is_atom(Ctx) ->
+  {TArgs, ST} = translate_args(Args, Ann, S),
+  {Fun(TArgs), ST};
+evaluate_first(Args, Ann, S, Fun) ->
+  {VarName, SV} = elixir_erl_var:build('_', S),
+  {[Head | Tail], ST} = translate_args(Args, Ann, SV),
+  Var = {var, Ann, VarName},
+  {{block, Ann, [{match, Ann, Var, Head}, Fun([Var | Tail])]}, ST}.
 
 inline_pure_function('Elixir.Duration', 'new!') -> true;
 inline_pure_function('Elixir.MapSet', new) -> true;
