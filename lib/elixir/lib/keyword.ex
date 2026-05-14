@@ -1391,11 +1391,17 @@ defmodule Keyword do
   """
   @spec pop(t, key, default) :: {value | default, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> {default, keywords}
-    end
+    do_pop(keywords, key, default, [])
   end
+
+  defp do_pop([{key, value} | tail], key, _default, acc),
+    do: {value, :lists.reverse(acc, delete_key(tail, key))}
+
+  defp do_pop([{_, _} = pair | tail], key, default, acc),
+    do: do_pop(tail, key, default, [pair | acc])
+
+  defp do_pop([], _key, default, acc),
+    do: {default, :lists.reverse(acc)}
 
   @doc """
   Returns the first value for `key` and removes all associated entries in the keyword list,
