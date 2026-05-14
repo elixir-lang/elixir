@@ -5942,89 +5942,14 @@ defmodule Module.Types.Descr do
 
   It returns the same as `tuple_fetch/2`.
   """
-  def tuple_replace_at(:term, _key, _type), do: :badtuple
-
   def tuple_replace_at(descr, index, type) when is_integer(index) and index >= 0 do
-    case :maps.take(:dynamic, unfold(type)) do
-      :error ->
-        tuple_replace_at_checked(descr, index, type)
-
-      {dynamic_type, _static} ->
-        case tuple_replace_at_checked(descr, index, dynamic_type) do
-          atom when atom in [:badtuple, :badindex] -> atom
-          result -> dynamic(result)
-        end
+    case tuple_delete_at(descr, index) do
+      descr when is_descr(descr) -> tuple_insert_at(descr, index, type)
+      error -> error
     end
   end
 
   def tuple_replace_at(_, _, _), do: :badindex
-
-  defp tuple_replace_at_checked(descr, index, type) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        # Note: the empty type is not a valid input
-        is_proper_tuple? = descr_key?(descr, :tuple) and non_empty_tuple_only?(descr)
-        is_proper_size? = tuple_of_size_at_least_static?(descr, index + 1)
-
-        cond do
-          is_proper_tuple? and is_proper_size? -> tuple_replace_static(descr, index, type)
-          is_proper_tuple? -> :badindex
-          true -> :badtuple
-        end
-
-      {dynamic, static} ->
-        is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
-        is_proper_size? = tuple_of_size_at_least_static?(static, index + 1)
-
-        cond do
-          is_proper_tuple? and is_proper_size? ->
-            static_result = tuple_replace_static(static, index, type)
-
-            # Prune for dynamic values that make the operation succeed.
-            dynamic_input = intersection(dynamic, tuple_of_size_at_least(index + 1))
-
-            if empty?(dynamic_input) and empty?(static) do
-              :badindex
-            else
-              dynamic_result = tuple_replace_static(dynamic_input, index, type)
-              union(dynamic(dynamic_result), static_result)
-            end
-
-          # Highlight the case where the issue is an index out of range from the tuple
-          is_proper_tuple? ->
-            :badindex
-
-          true ->
-            :badtuple
-        end
-    end
-  end
-
-  defp tuple_replace_static(descr, _, _) when descr == @none, do: none()
-
-  # Unlike insert/delete, replace is not injective at the replaced index, so
-  # transformed negative leaves would discard valid outputs. We eliminate
-  # negations first by converting to a positive-only DNF and replacing in
-  # each disjunct.
-  defp tuple_replace_static(descr, index, type) do
-    Map.update!(descr, :tuple, fn bdd ->
-      tuple_bdd_to_dnf_no_negations(bdd)
-      |> Enum.reduce(:bdd_bot, fn {tag, elements}, acc ->
-        # If the tuple is open, then we want List.replace_at to update the correct
-        # index, which requires filling the tuple with `term()` values first.
-        # Closed tuples of an incorrect size will have been cancelled by the
-        # earlier intersection with `tuple_of_size_at_least`.
-        elements =
-          if tag == :open and length(elements) < index + 1 do
-            tuple_fill(elements, index + 1)
-          else
-            elements
-          end
-
-        bdd_union(acc, tuple_new(tag, List.replace_at(elements, index, type)))
-      end)
-    end)
-  end
 
   defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
     %{tuple: tuple_new(:open, List.duplicate(term(), n))}
