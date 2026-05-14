@@ -654,7 +654,7 @@ defmodule Module.ParallelChecker do
 
   defp run_checkers(%{modules: [{module, pid, ref} | modules]} = state) do
     send(pid, {ref, :check})
-    timer = Process.send_after(self(), {__MODULE__, :timeout, module, pid}, state.threshold)
+    timer = :erlang.send_after(state.threshold, self(), {__MODULE__, :timeout, module, pid})
     spawned = Map.put(state.spawned, module, timer)
     run_checkers(%{state | modules: modules, spawned: spawned})
   end

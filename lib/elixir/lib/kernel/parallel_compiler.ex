@@ -339,7 +339,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_workers(schedulers, checker, files, output, options) do
     threshold = Keyword.get(options, :long_compilation_threshold, 10) * 1000
-    timer_ref = Process.send_after(self(), :threshold_check, threshold)
+    timer_ref = :erlang.send_after(threshold, self(), :threshold_check)
 
     purge_compiler_modules =
       if Keyword.get(options, :purge_compiler_modules, false) do
