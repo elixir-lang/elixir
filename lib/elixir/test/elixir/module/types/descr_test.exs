@@ -1883,6 +1883,98 @@ defmodule Module.Types.DescrTest do
              |> equal?(dynamic(open_tuple([term(), boolean()])))
     end
 
+    test "tuple_replace_at" do
+      assert tuple_replace_at(tuple([integer(), atom()]), 2, boolean()) == :badindex
+      assert tuple_replace_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
+      assert tuple_replace_at(empty_tuple(), 0, boolean()) == :badindex
+      assert tuple_replace_at(integer(), 0, boolean()) == :badtuple
+      assert tuple_replace_at(term(), 0, boolean()) == :badtuple
+      assert tuple_replace_at(tuple([none()]), 0, boolean()) == :badtuple
+
+      # Out-of-bounds in a union
+      assert union(tuple([integer(), atom()]), tuple([float()]))
+             |> tuple_replace_at(1, boolean()) == :badindex
+
+      # Test replacing an element in a closed tuple
+      assert tuple_replace_at(tuple([integer(), atom(), boolean()]), 1, float()) ==
+               tuple([integer(), float(), boolean()])
+
+      # Test replacing the first element of a closed tuple
+      assert tuple_replace_at(tuple([integer(), atom()]), 0, boolean()) ==
+               tuple([boolean(), atom()])
+
+      # Test replacing the last element of a closed tuple
+      assert tuple_replace_at(tuple([integer(), atom()]), 1, boolean()) ==
+               tuple([integer(), boolean()])
+
+      # Test replacing in an open tuple
+      assert tuple_replace_at(open_tuple([integer(), atom(), boolean()]), 1, float()) ==
+               open_tuple([integer(), float(), boolean()])
+
+      # Test replacing with a dynamic type
+      assert tuple_replace_at(tuple([integer(), atom()]), 1, dynamic()) ==
+               dynamic(tuple([integer(), term()]))
+
+      # Test replacing in a dynamic tuple
+      assert tuple_replace_at(dynamic(tuple([integer(), atom()])), 1, boolean()) ==
+               dynamic(tuple([integer(), boolean()]))
+
+      # Test replacing in a union of tuples
+      assert tuple_replace_at(union(tuple([integer()]), tuple([atom()])), 0, boolean()) ==
+               tuple([boolean()])
+
+      # Test replacing in an intersection of tuples
+      assert intersection(tuple([integer(), atom()]), tuple([term(), boolean()]))
+             |> tuple_replace_at(1, float()) == tuple([integer(), float()])
+
+      # Replacing in a difference where the negation actually constrains the
+      # positive (not just by arity). The replaced position drops its negative
+      # constraint, the other positions keep theirs.
+      assert difference(tuple([atom(), atom()]), tuple([atom([:a]), term()]))
+             |> tuple_replace_at(0, boolean())
+             |> equal?(tuple([boolean(), atom()]))
+
+      assert difference(tuple([atom(), atom()]), tuple([atom([:a]), term()]))
+             |> tuple_replace_at(1, boolean())
+             |> equal?(difference(tuple([atom(), boolean()]), tuple([atom([:a]), boolean()])))
+
+      # Errors must propagate even when the replacement value is dynamic
+      assert tuple_replace_at(integer(), 0, dynamic()) == :badtuple
+      assert tuple_replace_at(term(), 0, dynamic()) == :badtuple
+      assert tuple_replace_at(tuple([atom([:ok])]), 1, dynamic()) == :badindex
+      assert tuple_replace_at(empty_tuple(), 0, dynamic()) == :badindex
+
+      # Out-of-bounds writes to a dynamic fixed-size tuple must fail with :badindex
+      assert tuple_replace_at(dynamic(tuple([atom([:ok]), term()])), 2, binary()) ==
+               :badindex
+
+      assert tuple_replace_at(dynamic(tuple([atom([:ok])])), 1, binary()) == :badindex
+
+      # Test replacing in a complex union involving dynamic
+      assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
+             |> tuple_replace_at(1, boolean())
+             |> equal?(
+               union(
+                 tuple([integer(), boolean()]),
+                 dynamic(tuple([float(), boolean()]))
+               )
+             )
+
+      # Successfully replacing at position `index` in a tuple means that the dynamic
+      # values that succeed are intersected with tuples of size at least `index + 1`
+      assert dynamic(tuple())
+             |> tuple_replace_at(0, boolean())
+             |> equal?(dynamic(open_tuple([boolean()])))
+
+      assert dynamic(term())
+             |> tuple_replace_at(0, boolean())
+             |> equal?(dynamic(open_tuple([boolean()])))
+
+      assert dynamic(union(tuple(), integer()))
+             |> tuple_replace_at(1, boolean())
+             |> equal?(dynamic(open_tuple([term(), boolean()])))
+    end
+
     test "tuple_values" do
       assert tuple_values(term()) == :badtuple
       assert tuple_values(dynamic()) == dynamic()
