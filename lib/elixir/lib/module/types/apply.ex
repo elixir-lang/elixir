@@ -435,6 +435,12 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp do_remote(:erlang, :element, [index, tuple], _expected, expr, stack, context, of_fun)
+       when is_integer(index) and index < 1 do
+    {_, context} = of_fun.(tuple, open_tuple([]), expr, stack, context)
+    remote_error({:negindex, index - 1}, :erlang, :element, 2, expr, stack, context)
+  end
+
   defp do_remote(:erlang, :element, [index, tuple], expected, expr, stack, context, of_fun)
        when is_integer(index) do
     tuple_type = open_tuple(List.duplicate(term(), max(index - 1, 0)) ++ [expected])
@@ -459,6 +465,13 @@ defmodule Module.Types.Apply do
   end
 
   defp do_remote(:erlang, :insert_element, [index, tuple, elem], _, expr, stack, context, of_fun)
+       when is_integer(index) and index < 1 do
+    {_, context} = of_fun.(tuple, open_tuple([]), expr, stack, context)
+    {_, context} = of_fun.(elem, term(), expr, stack, context)
+    remote_error({:negindex, index - 1}, :erlang, :insert_element, 3, expr, stack, context)
+  end
+
+  defp do_remote(:erlang, :insert_element, [index, tuple, elem], _, expr, stack, context, of_fun)
        when is_integer(index) do
     tuple_type = open_tuple(List.duplicate(term(), max(index - 1, 0)))
 
@@ -477,6 +490,12 @@ defmodule Module.Types.Apply do
         error = {:badindex, index - 1, tuple_type}
         remote_error(error, :erlang, :insert_element, 3, expr, stack, context)
     end
+  end
+
+  defp do_remote(:erlang, :delete_element, [index, tuple], _, expr, stack, context, of_fun)
+       when is_integer(index) and index < 1 do
+    {_, context} = of_fun.(tuple, open_tuple([]), expr, stack, context)
+    remote_error({:negindex, index - 1}, :erlang, :delete_element, 2, expr, stack, context)
   end
 
   defp do_remote(:erlang, :delete_element, [index, tuple], _, expr, stack, context, of_fun)
@@ -1801,6 +1820,29 @@ defmodule Module.Types.Apply do
           the given type does not have the given index:
 
               #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({{:negindex, index}, mfac, expr, context}) do
+    traces = collect_traces(expr, context)
+    {mod, fun, arity, _converter} = mfac
+    mfa = Exception.format_mfa(mod, fun, arity)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a non-negative integer as index in #{mfa}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got the index:
+
+              #{index}
           """,
           format_traces(traces)
         ])
