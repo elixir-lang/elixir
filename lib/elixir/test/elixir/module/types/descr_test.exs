@@ -1913,6 +1913,16 @@ defmodule Module.Types.DescrTest do
                :badindex
 
       assert tuple_insert_at(dynamic(tuple([atom([:ok])])), 2, binary()) == :badindex
+
+      # Even at index 0 (where the size constraint is vacuous) the dynamic
+      # upper bound must still be intersected with the tuple domain so that
+      # non-tuple alternatives are pruned. `Tuple.insert_at/3` always returns
+      # a tuple, so an integer alternative cannot survive the operation.
+      assert tuple_insert_at(dynamic(term()), 0, boolean()) ==
+               dynamic(open_tuple([boolean()]))
+
+      assert tuple_insert_at(dynamic(union(tuple(), integer())), 0, boolean()) ==
+               dynamic(open_tuple([boolean()]))
     end
 
     test "tuple_replace_at" do
