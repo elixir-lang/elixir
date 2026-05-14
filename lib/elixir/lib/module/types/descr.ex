@@ -321,7 +321,8 @@ defmodule Module.Types.Descr do
   # If type contains a :dynamic part, :optional gets added there.
   def if_set(type) do
     case type do
-      %{dynamic: :term} -> %{dynamic: term_or_optional()}
+      %{dynamic: :term} when map_size(type) == 1 -> %{dynamic: term_or_optional()}
+      %{dynamic: :term} -> Map.put(%{type | dynamic: term_or_optional()}, :optional, 1)
       %{dynamic: dyn} -> Map.put(%{type | dynamic: Map.put(dyn, :optional, 1)}, :optional, 1)
       _ -> Map.put(type, :optional, 1)
     end
@@ -342,10 +343,14 @@ defmodule Module.Types.Descr do
   defp remove_optional(descr) do
     case descr do
       %{dynamic: %{optional: _} = dynamic} when map_size(dynamic) == 1 ->
-        Map.delete(descr, :dynamic)
+        descr
+        |> Map.delete(:dynamic)
+        |> remove_optional_static()
 
       %{dynamic: %{optional: _} = dynamic} ->
-        %{descr | dynamic: Map.delete(dynamic, :optional)}
+        descr
+        |> Map.replace!(:dynamic, Map.delete(dynamic, :optional))
+        |> remove_optional_static()
 
       _ ->
         remove_optional_static(descr)

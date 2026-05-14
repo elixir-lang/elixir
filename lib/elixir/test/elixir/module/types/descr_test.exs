@@ -258,6 +258,15 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "if_set" do
+    test "preserves static parts alongside dynamic term" do
+      type = union(atom([:value]), dynamic()) |> if_set()
+
+      assert equal?(type, union(if_set(atom([:value])), dynamic(if_set(term()))))
+      refute equal?(type, dynamic(if_set(term())))
+    end
+  end
+
   describe "intersection" do
     test "bitmap" do
       assert intersection(integer(), union(integer(), float())) == integer()
@@ -294,6 +303,12 @@ defmodule Module.Types.DescrTest do
 
       # Check for structural equivalence
       assert intersection(dynamic(not_set()), term()) == none()
+      assert equal?(intersection(if_set(dynamic(integer())), term()), dynamic(integer()))
+
+      assert equal?(
+               intersection(if_set(union(atom(), dynamic())), term()),
+               union(atom(), dynamic())
+             )
     end
 
     test "tuple" do

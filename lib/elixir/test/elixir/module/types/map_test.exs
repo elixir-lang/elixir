@@ -274,6 +274,24 @@ defmodule Module.Types.MapTest do
                ])
     end
 
+    test "optionalizing an inferred gradual value preserves its static part" do
+      value = typecheck!([condition?, x], if(condition?, do: :value, else: x))
+      optional = if_set(value)
+
+      assert equal?(optional, union(if_set(atom([:value])), dynamic(if_set(term()))))
+      refute equal?(optional, dynamic(if_set(term())))
+    end
+
+    test "reports errors from static part of optionalized gradual value" do
+      assert typeerror!(
+               [condition?, x],
+               (
+                 map = Map.from_keys([:key], if(condition?, do: :value, else: x))
+                 Map.fetch!(map, :key) + 1
+               )
+             ) =~ "incompatible types given to Kernel.+/2"
+    end
+
     test "inference" do
       assert typecheck!(
                [x],
