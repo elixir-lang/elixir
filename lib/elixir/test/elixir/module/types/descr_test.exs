@@ -1844,6 +1844,18 @@ defmodule Module.Types.DescrTest do
       assert tuple_insert_at(tuple([integer(), atom()]), 1, dynamic()) ==
                dynamic(tuple([integer(), term(), atom()]))
 
+      assert tuple_insert_at(
+               tuple([boolean()]),
+               1,
+               union(dynamic(integer()), atom([:inserted]))
+             )
+             |> equal?(
+               union(
+                 tuple([boolean(), atom([:inserted])]),
+                 dynamic(tuple([boolean(), integer()]))
+               )
+             )
+
       # Test inserting into a dynamic tuple
       assert tuple_insert_at(dynamic(tuple([integer(), atom()])), 1, boolean()) ==
                dynamic(tuple([integer(), boolean(), atom()]))
