@@ -5934,6 +5934,17 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # This is a cheap proof that a tuple type has a size lower bound.
+  #
+  # In an intersection of tuples, the size is lower-bounded by each tuple literal
+  # we encounter. So we can find a lower bound on the size by making sure that all
+  # paths in the bdd have at least one tuple literal with a size >= to index.
+  #
+  # We don't need to check that the elements are not equivalent to none(), since in
+  # that case the intersection will be equivalent to none() and will disappear.
+  #
+  # This misses the case where the lower bound is proven by negations. For instance,
+  # the type "{...} and not {}" has a size of at least 1.
   defp tuple_bdd_positive_size_at_least?(_bdd, 0), do: true
 
   defp tuple_bdd_positive_size_at_least?(bdd, index),
