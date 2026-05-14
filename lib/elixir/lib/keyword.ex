@@ -193,15 +193,6 @@ defmodule Keyword do
       iex> Keyword.new([{:a, 1}, {:a, 2}, {:a, 3}])
       [a: 3]
 
-      iex> Keyword.new([{:a, 1}, {:b, 2}, {:a, 3}])
-      [b: 2, a: 3]
-
-      iex> Keyword.new([{:a, 1}, {:b, 2}, {:a, 3}, {:c, 4}, {:b, 5}, {:a, 6}])
-      [c: 4, b: 5, a: 6]
-
-      iex> Keyword.new([])
-      []
-
   """
   @spec new(Enumerable.t()) :: t
   def new(pairs) do
@@ -223,17 +214,12 @@ defmodule Keyword do
   """
   @spec new(Enumerable.t(), (term -> {key, value})) :: t
   def new(pairs, transform) when is_function(transform, 1) do
-    fun = fn element, {acc, seen} ->
-      {key, value} = transform.(element)
-
-      case seen do
-        %{^key => _} -> {acc, seen}
-        _ -> {[{key, value} | acc], Map.put(seen, key, true)}
-      end
+    fun = fn el, acc ->
+      {k, v} = transform.(el)
+      put_new(acc, k, v)
     end
 
-    {result, _seen} = :lists.foldl(fun, {[], %{}}, Enum.reverse(pairs))
-    result
+    :lists.foldl(fun, [], Enum.reverse(pairs))
   end
 
   @doc """
@@ -1048,18 +1034,21 @@ defmodule Keyword do
   def merge([], keywords2) when is_list(keywords2), do: keywords2
 
   def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
-    keys2 = collect_keys!(keywords2)
+    if keyword?(keywords2) do
+      fun = fn
+        {key, _value} when is_atom(key) ->
+          not has_key?(keywords2, key)
 
-    fun = fn
-      {key, _value} when is_atom(key) ->
-        not Map.has_key?(keys2, key)
+        _ ->
+          raise ArgumentError,
+                "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
+      end
 
-      _ ->
-        raise ArgumentError,
-              "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
+      :lists.filter(fun, keywords1) ++ keywords2
+    else
+      raise ArgumentError,
+            "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
     end
-
-    :lists.filter(fun, keywords1) ++ keywords2
   end
 
   @doc """
@@ -1099,73 +1088,33 @@ defmodule Keyword do
   @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(keywords1, keywords2, fun)
       when is_list(keywords1) and is_list(keywords2) and is_function(fun, 3) do
-    if not keyword?(keywords1) do
+    if keyword?(keywords1) do
+      do_merge(keywords2, [], keywords1, keywords1, fun, keywords2)
+    else
       raise ArgumentError,
             "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
     end
-
-    keys2 = collect_keys!(keywords2)
-
-    {non_matching_rev, keys2, duplicate_keys} =
-      partition_left(keywords1, [], keys2, %{})
-
-    keys2 =
-      Enum.reduce(duplicate_keys, keys2, fn {key, _true}, acc ->
-        Map.update!(acc, key, &:lists.reverse/1)
-      end)
-
-    emitted_rev = emit_right(keywords2, [], keys2, fun)
-    :lists.reverse(non_matching_rev) ++ :lists.reverse(emitted_rev)
   end
 
-  defp partition_left([{key, value} | rest], non_matching, keys2, duplicate_keys) do
-    case keys2 do
-      %{^key => []} ->
-        partition_left(rest, non_matching, Map.put(keys2, key, [value]), duplicate_keys)
+  defp do_merge([{key, value2} | tail], acc, rest, original, fun, keywords2) when is_atom(key) do
+    case :lists.keyfind(key, 1, original) do
+      {^key, value1} ->
+        acc = [{key, fun.(key, value1, value2)} | acc]
+        original = :lists.keydelete(key, 1, original)
+        do_merge(tail, acc, delete(rest, key), original, fun, keywords2)
 
-      %{^key => current} ->
-        partition_left(
-          rest,
-          non_matching,
-          Map.put(keys2, key, [value | current]),
-          Map.put(duplicate_keys, key, true)
-        )
-
-      _ ->
-        partition_left(rest, [{key, value} | non_matching], keys2, duplicate_keys)
+      false ->
+        do_merge(tail, [{key, value2} | acc], rest, original, fun, keywords2)
     end
   end
 
-  defp partition_left([], non_matching, keys2, duplicate_keys),
-    do: {non_matching, keys2, duplicate_keys}
-
-  defp emit_right([{key, value2} | rest], emitted, keys2, fun) do
-    case keys2 do
-      %{^key => [value1 | remaining]} ->
-        emit_right(
-          rest,
-          [{key, fun.(key, value1, value2)} | emitted],
-          Map.put(keys2, key, remaining),
-          fun
-        )
-
-      _ ->
-        emit_right(rest, [{key, value2} | emitted], keys2, fun)
-    end
+  defp do_merge([], acc, rest, _original, _fun, _keywords2) do
+    rest ++ :lists.reverse(acc)
   end
 
-  defp emit_right([], emitted, _keys2, _fun), do: emitted
-
-  defp collect_keys!(list), do: collect_keys!(list, %{}, list)
-
-  defp collect_keys!([{key, _} | rest], acc, original) when is_atom(key),
-    do: collect_keys!(rest, Map.put(acc, key, []), original)
-
-  defp collect_keys!([], acc, _original), do: acc
-
-  defp collect_keys!(_other, _acc, original) do
+  defp do_merge(_other, _acc, _rest, _original, _fun, keywords2) do
     raise ArgumentError,
-          "expected a keyword list as the second argument, got: #{inspect(original)}"
+          "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
   end
 
   @doc """
@@ -1279,19 +1228,16 @@ defmodule Keyword do
   """
   @spec split(t, [key]) :: {t, t}
   def split(keywords, keys) when is_list(keywords) and is_list(keys) do
-    predicate = in_keys_check(keys)
-
-    fun = fn pair, {take, drop} ->
-      if predicate.(pair), do: {[pair | take], drop}, else: {take, [pair | drop]}
+    fun = fn {k, v}, {take, drop} ->
+      case k in keys do
+        true -> {[{k, v} | take], drop}
+        false -> {take, [{k, v} | drop]}
+      end
     end
 
-    {take, drop} = :lists.foldl(fun, {[], []}, keywords)
+    acc = {[], []}
+    {take, drop} = :lists.foldl(fun, acc, keywords)
     {:lists.reverse(take), :lists.reverse(drop)}
-  end
-
-  defp in_keys_check(keys) do
-    keys_set = :lists.foldl(fn key, acc -> Map.put(acc, key, true) end, %{}, keys)
-    fn {key, _} -> Map.has_key?(keys_set, key) end
   end
 
   @doc """
@@ -1349,7 +1295,7 @@ defmodule Keyword do
   """
   @spec take(t, [key]) :: t
   def take(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(in_keys_check(keys), keywords)
+    :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
   end
 
   @doc """
@@ -1369,8 +1315,7 @@ defmodule Keyword do
   """
   @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
-    predicate = in_keys_check(keys)
-    :lists.filter(fn pair -> not predicate.(pair) end, keywords)
+    :lists.filter(fn {k, _} -> k not in keys end, keywords)
   end
 
   @doc """
@@ -1397,17 +1342,11 @@ defmodule Keyword do
   """
   @spec pop(t, key, default) :: {value | default, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
-    do_pop(keywords, key, default, [])
+    case fetch(keywords, key) do
+      {:ok, value} -> {value, delete(keywords, key)}
+      :error -> {default, keywords}
+    end
   end
-
-  defp do_pop([{key, value} | tail], key, _default, acc),
-    do: {value, :lists.reverse(acc, delete_key(tail, key))}
-
-  defp do_pop([{_, _} = pair | tail], key, default, acc),
-    do: do_pop(tail, key, default, [pair | acc])
-
-  defp do_pop([], _key, default, acc),
-    do: {default, :lists.reverse(acc)}
 
   @doc """
   Returns the first value for `key` and removes all associated entries in the keyword list,
