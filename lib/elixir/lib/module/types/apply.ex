@@ -236,24 +236,39 @@ defmodule Module.Types.Apply do
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
+        ## Kernel
+        {Kernel, :elem, [{[open_tuple([]), integer()], dynamic()}]},
+        {Kernel, :is_map_key, [{[open_map(), term()], boolean()}]},
+        {Kernel, :put_elem, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
+
         ## Lists
         {:lists, :member, [{[term(), list(term())], boolean()}]},
 
         ## Map
+        {Map, :delete, [{[open_map(), term()], open_map()}]},
+        {Map, :fetch,
+         [{[open_map(), term()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
+        {Map, :fetch!, [{[open_map(), term()], term()}]},
         {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
         {Map, :get, [{[open_map(), term()], term()}]},
         {Map, :get, [{[open_map(), term(), term()], term()}]},
         {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
+        {Map, :has_key?, [{[open_map(), term()], boolean()}]},
         {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
         {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop_lazy, [{[open_map(), term(), fun(0)], tuple([term(), open_map()])}]},
+        {Map, :put, [{[open_map(), term(), term()], open_map()}]},
         {Map, :put_new, [{[open_map(), term(), term()], open_map()}]},
         {Map, :put_new_lazy, [{[open_map(), term(), fun(0)], open_map()}]},
         {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
+        {Map, :replace!, [{[open_map(), term(), term()], open_map()}]},
         {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
         {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
         {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
+        {Tuple, :delete_at, [{[open_tuple([]), integer()], dynamic(open_tuple([]))}]},
+        {Tuple, :duplicate, [{[term(), integer()], tuple()}]},
+        {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
@@ -269,8 +284,6 @@ defmodule Module.Types.Apply do
         {:maps, :values, [{[open_map()], list(term())}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
-
-    true = Code.ensure_loaded?(mod)
 
     domain_clauses =
       case clauses do
@@ -533,6 +546,80 @@ defmodule Module.Types.Apply do
         :badindex ->
           error = {:badindex, index, tuple_type}
           remote_error(error, :erlang, :delete_element, 2, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Kernel, :elem, [tuple, index], expected, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index, 0)) ++ [expected])
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Kernel, :elem, 2, expr, stack, context)
+    else
+      case tuple_fetch(tuple_type, index) do
+        {_optional?, value_type} ->
+          {return(value_type, [tuple_type], stack), context}
+
+        :badtuple ->
+          remote_error(Kernel, :elem, [tuple_type, integer()], expr, stack, context)
+
+        :badindex ->
+          remote_error({:badindex, index + 1, tuple_type}, Kernel, :elem, 2, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Tuple, :duplicate, [elem, size], _, expr, stack, context, of_fun)
+       when is_integer(size) and size >= 0 do
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+    {return(tuple(List.duplicate(elem_type, size)), [elem_type], stack), context}
+  end
+
+  defp do_remote(Tuple, :insert_at, [tuple, index, elem], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index, 0)))
+
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Tuple, :insert_at, 3, expr, stack, context)
+    else
+      case tuple_insert_at(tuple_type, index, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
+
+        :badtuple ->
+          args_types = [tuple_type, integer(), elem_type]
+          remote_error(Tuple, :insert_at, args_types, expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index, tuple_type}
+          remote_error(error, Tuple, :insert_at, 3, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Tuple, :delete_at, [tuple, index], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index + 1, 1)))
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Tuple, :delete_at, 2, expr, stack, context)
+    else
+      case tuple_delete_at(tuple_type, index) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type], stack), context}
+
+        :badtuple ->
+          remote_error(Tuple, :delete_at, [tuple_type, integer()], expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index + 1, tuple_type}
+          remote_error(error, Tuple, :delete_at, 2, expr, stack, context)
       end
     end
   end
@@ -877,15 +964,38 @@ defmodule Module.Types.Apply do
     {info, filter_domain(info, expected, 2), context}
   end
 
+  def remote_domain(Kernel, :is_map_key, [_map, key], expected, _meta, _stack, context)
+      when is_atom(key) do
+    info =
+      {:strong, [open_map(), term()],
+       [
+         {[open_map([{key, term()}]), term()], atom([true])},
+         {[open_map([{key, not_set()}]), term()], atom([false])}
+       ]}
+
+    {info, filter_domain(info, expected, 2), context}
+  end
+
   def remote_domain(:erlang, :map_get, [key, _], expected, _meta, _stack, context)
       when is_atom(key) do
     domain = [term(), open_map([{key, expected}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
   end
 
+  def remote_domain(Map, :fetch!, [_, key], expected, _meta, _stack, context) when is_atom(key) do
+    domain = [open_map([{key, expected}]), term()]
+    {{:strong, nil, [{domain, term()}]}, domain, context}
+  end
+
   def remote_domain(:maps, :get, [key, _], expected, _meta, _stack, context) when is_atom(key) do
     domain = [term(), open_map([{key, expected}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
+  end
+
+  def remote_domain(Map, :replace!, [_, key, _], _expected, _meta, _stack, context)
+      when is_atom(key) do
+    domain = [open_map([{key, term()}]), term(), term()]
+    {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
   def remote_domain(:maps, :update, [key, _, _], _expected, _meta, _stack, context)
@@ -964,6 +1074,36 @@ defmodule Module.Types.Apply do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :from_struct, args_types)}
       {:error, _errors} -> {:ok, map}
+    end
+  end
+
+  defp remote_apply(Map, :delete, _info, [map, key] = args_types, stack) do
+    case map_update(map, key, not_set(), false, true) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :delete, args_types)}
+      {:error, _errors} -> {:ok, map}
+    end
+  end
+
+  defp remote_apply(Map, :fetch, _info, [map, key] = args_types, stack) do
+    case map_get(map, key) do
+      {_, value} ->
+        result = tuple([atom([:ok]), value]) |> union(atom([:error]))
+        {:ok, return(result, args_types, stack)}
+
+      :badmap ->
+        {:error, badremote(Map, :fetch, args_types)}
+
+      :error ->
+        {:error, {:badkeydomain, map, key, atom([:error])}}
+    end
+  end
+
+  defp remote_apply(Map, :fetch!, _info, [map, key] = args_types, stack) do
+    case map_get(map, key) do
+      {:ok, value} -> {:ok, return(value, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :fetch!, args_types)}
+      :error -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
@@ -1048,6 +1188,14 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(Map, :put, _info, [map, key, value] = args_types, stack) do
+    case map_update(map, key, value, false, true) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :put, args_types)}
+      {:error, _errors} -> {:ok, map}
+    end
+  end
+
   defp remote_apply(Map, :pop!, _info, [map, key] = args_types, stack) do
     case map_update(map, key, not_set(), true, false) do
       {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1063,6 +1211,16 @@ defmodule Module.Types.Apply do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "do nothing"}}
+    end
+  end
+
+  defp remote_apply(Map, :replace!, _info, [map, key, value] = args_types, stack) do
+    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+
+    case map_update_fun(map, key, fun, false, false) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :replace!, args_types)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 

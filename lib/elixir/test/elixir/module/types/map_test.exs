@@ -94,6 +94,9 @@ defmodule Module.Types.MapTest do
       assert typecheck!(Map.delete(%{key: 123}, :key)) ==
                empty_map()
 
+      assert typecheck!(:maps.remove(:key, %{key: 123})) ==
+               empty_map()
+
       assert typecheck!([x], Map.delete(x, :key)) ==
                dynamic(open_map(key: not_set()))
 
@@ -137,6 +140,9 @@ defmodule Module.Types.MapTest do
   describe "Map.fetch/2" do
     test "checking" do
       assert typecheck!(Map.fetch(%{key: 123}, :key)) ==
+               tuple([atom([:ok]), integer()]) |> union(atom([:error]))
+
+      assert typecheck!(:maps.find(:key, %{key: 123})) ==
                tuple([atom([:ok]), integer()]) |> union(atom([:error]))
 
       assert typecheck!([x], Map.fetch(x, :key)) ==
@@ -185,6 +191,8 @@ defmodule Module.Types.MapTest do
   describe "Map.fetch!/2" do
     test "checking" do
       assert typecheck!(Map.fetch!(%{key: 123}, :key)) == integer()
+
+      assert typecheck!(:maps.get(:key, %{key: 123})) == integer()
 
       assert typecheck!([x], Map.fetch!(x, :key)) == dynamic()
 
@@ -241,6 +249,18 @@ defmodule Module.Types.MapTest do
 
                therefore this function will always raise
                """
+    end
+  end
+
+  describe "Map.has_key?/2" do
+    test "checking" do
+      assert typecheck!(Map.has_key?(%{key: 123}, :key)) == boolean()
+      assert typecheck!(:maps.is_key(:key, %{key: 123})) == boolean()
+    end
+
+    test "errors" do
+      assert typeerror!([x = []], Map.has_key?(x, :key)) =~
+               "incompatible types given to Map.has_key?/2"
     end
   end
 
@@ -823,6 +843,9 @@ defmodule Module.Types.MapTest do
       assert typecheck!(Map.put(%{}, :key, :value)) ==
                closed_map(key: atom([:value]))
 
+      assert typecheck!(:maps.put(:key, :value, %{})) ==
+               closed_map(key: atom([:value]))
+
       assert typecheck!(Map.put(%{key: 123}, :key, :value)) ==
                closed_map(key: atom([:value]))
 
@@ -1124,6 +1147,9 @@ defmodule Module.Types.MapTest do
   describe "Map.replace!/3" do
     test "checking" do
       assert typecheck!(Map.replace!(%{key: 123}, :key, :value)) ==
+               closed_map(key: atom([:value]))
+
+      assert typecheck!(:maps.update(:key, :value, %{key: 123})) ==
                closed_map(key: atom([:value]))
 
       assert typecheck!([x], Map.replace!(x, :key, :value)) ==

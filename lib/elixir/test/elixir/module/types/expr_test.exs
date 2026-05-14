@@ -779,6 +779,8 @@ defmodule Module.Types.ExprTest do
     test "elem/2" do
       assert typecheck!(elem({:ok, 123}, 0)) == atom([:ok])
       assert typecheck!(elem({:ok, 123}, 1)) == integer()
+      assert typecheck!(:erlang.element(1, {:ok, 123})) == atom([:ok])
+      assert typecheck!(:erlang.element(2, {:ok, 123})) == integer()
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
 
@@ -833,6 +835,9 @@ defmodule Module.Types.ExprTest do
                tuple([binary(), atom([:ok]), integer()])
 
       assert typecheck!(Tuple.insert_at({:ok, 123}, 1, "foo")) ==
+               tuple([atom([:ok]), binary(), integer()])
+
+      assert typecheck!(:erlang.insert_element(2, {:ok, 123}, "foo")) ==
                tuple([atom([:ok]), binary(), integer()])
 
       assert typecheck!(Tuple.insert_at({:ok, 123}, 2, "foo")) ==
@@ -895,6 +900,7 @@ defmodule Module.Types.ExprTest do
     test "Tuple.delete_at/2" do
       assert typecheck!(Tuple.delete_at({:ok, 123}, 0)) == tuple([integer()])
       assert typecheck!(Tuple.delete_at({:ok, 123}, 1)) == tuple([atom([:ok])])
+      assert typecheck!(:erlang.delete_element(2, {:ok, 123})) == tuple([atom([:ok])])
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 0)) == dynamic(tuple([term()]))
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 1)) == dynamic(tuple([atom([:ok])]))
 
@@ -1017,6 +1023,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(Tuple.duplicate(123, 0)) == tuple([])
       assert typecheck!(Tuple.duplicate(123, 1)) == tuple([integer()])
       assert typecheck!(Tuple.duplicate(123, 2)) == tuple([integer(), integer()])
+      assert typecheck!(:erlang.make_tuple(2, 123)) == tuple([integer(), integer()])
       assert typecheck!([x], Tuple.duplicate(x, 2)) == dynamic(tuple([term(), term()]))
     end
   end

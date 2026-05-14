@@ -692,17 +692,27 @@ defmodule Module.Types.PatternTest do
 
     test "is_map_key/2" do
       assert typecheck!([x], is_map_key(x, :foo), x) == dynamic(open_map(foo: term()))
+      assert typecheck!([x], :erlang.is_map_key(:foo, x), x) == dynamic(open_map(foo: term()))
       assert typecheck!([x], not is_map_key(x, :foo), x) == dynamic(open_map(foo: not_set()))
+
+      assert typecheck!([x], not :erlang.is_map_key(:foo, x), x) ==
+               dynamic(open_map(foo: not_set()))
     end
 
     test "elem" do
       assert typecheck!([x], elem(x, 1), x) ==
                dynamic(open_tuple([term(), atom([true])]))
 
+      assert typecheck!([x], :erlang.element(2, x), x) ==
+               dynamic(open_tuple([term(), atom([true])]))
+
       assert typecheck!([x], not elem(x, 1), x) ==
                dynamic(open_tuple([term(), atom([false])]))
 
       assert typecheck!([x], is_integer(elem(x, 1)), x) ==
+               dynamic(open_tuple([term(), integer()]))
+
+      assert typecheck!([x], is_integer(:erlang.element(2, x)), x) ==
                dynamic(open_tuple([term(), integer()]))
     end
 
