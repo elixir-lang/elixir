@@ -193,6 +193,15 @@ defmodule Keyword do
       iex> Keyword.new([{:a, 1}, {:a, 2}, {:a, 3}])
       [a: 3]
 
+      iex> Keyword.new([{:a, 1}, {:b, 2}, {:a, 3}])
+      [b: 2, a: 3]
+
+      iex> Keyword.new([{:a, 1}, {:b, 2}, {:a, 3}, {:c, 4}, {:b, 5}, {:a, 6}])
+      [c: 4, b: 5, a: 6]
+
+      iex> Keyword.new([])
+      []
+
   """
   @spec new(Enumerable.t()) :: t
   def new(pairs) do
