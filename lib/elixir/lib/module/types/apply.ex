@@ -501,30 +501,27 @@ defmodule Module.Types.Apply do
   end
 
   defp do_remote(:erlang, :setelement, [index, tuple, elem], _, expr, stack, context, of_fun)
-       when is_integer(index) and index < 1 do
-    {_, context} = of_fun.(tuple, open_tuple([]), expr, stack, context)
-    {_, context} = of_fun.(elem, term(), expr, stack, context)
-    remote_error({:negindex, index - 1}, :erlang, :setelement, 3, expr, stack, context)
-  end
-
-  defp do_remote(:erlang, :setelement, [index, tuple, elem], _, expr, stack, context, of_fun)
        when is_integer(index) do
     tuple_type = open_tuple(List.duplicate(term(), max(index, 1)))
 
     {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
     {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
 
-    case tuple_replace_at(tuple_type, index - 1, elem_type) do
-      value_type when is_descr(value_type) ->
-        {return(value_type, [tuple_type, elem_type], stack), context}
+    if index < 1 do
+      remote_error({:negindex, index - 1}, :erlang, :setelement, 3, expr, stack, context)
+    else
+      case tuple_replace_at(tuple_type, index - 1, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
 
-      :badtuple ->
-        args_types = [integer(), tuple_type, elem_type]
-        remote_error(:erlang, :setelement, args_types, expr, stack, context)
+        :badtuple ->
+          args_types = [integer(), tuple_type, elem_type]
+          remote_error(:erlang, :setelement, args_types, expr, stack, context)
 
-      :badindex ->
-        error = {:badindex, index, tuple_type}
-        remote_error(error, :erlang, :setelement, 3, expr, stack, context)
+        :badindex ->
+          error = {:badindex, index, tuple_type}
+          remote_error(error, :erlang, :setelement, 3, expr, stack, context)
+      end
     end
   end
 
@@ -567,6 +564,31 @@ defmodule Module.Types.Apply do
 
         :badindex ->
           remote_error({:badindex, index + 1, tuple_type}, Kernel, :elem, 2, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Kernel, :put_elem, [tuple, index, elem], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index + 1, 1)))
+
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Kernel, :put_elem, 3, expr, stack, context)
+    else
+      case tuple_replace_at(tuple_type, index, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
+
+        :badtuple ->
+          args_types = [tuple_type, integer(), elem_type]
+          remote_error(Kernel, :put_elem, args_types, expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index + 1, tuple_type}
+          remote_error(error, Kernel, :put_elem, 3, expr, stack, context)
       end
     end
   end

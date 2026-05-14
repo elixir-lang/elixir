@@ -840,7 +840,7 @@ defmodule Kernel.ParallelCompiler do
             end
           end
 
-        timer_ref = Process.send_after(self(), :threshold_check, state.long_compilation_threshold)
+        timer_ref = :erlang.send_after(state.long_compilation_threshold, self(), :threshold_check)
         state = %{state | timer_ref: timer_ref}
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 

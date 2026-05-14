@@ -951,6 +951,8 @@ defmodule Module.Types.ExprTest do
     test "put_elem/3" do
       assert typecheck!(put_elem({:ok, 123}, 0, "foo")) == tuple([binary(), integer()])
       assert typecheck!(put_elem({:ok, 123}, 1, "foo")) == tuple([atom([:ok]), binary()])
+      assert typecheck!(:erlang.setelement(1, {:ok, 123}, "foo")) == tuple([binary(), integer()])
+      assert typecheck!(:erlang.setelement(2, {:ok, 123}, "foo")) == tuple([atom([:ok]), binary()])
 
       assert typecheck!([x], put_elem({:ok, x}, 0, "foo")) ==
                dynamic(tuple([binary(), term()]))
