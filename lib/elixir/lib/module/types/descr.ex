@@ -5853,10 +5853,22 @@ defmodule Module.Types.Descr do
       :error ->
         tuple_insert_at_checked(descr, index, type)
 
-      {dynamic_type, _static} ->
+      {dynamic_type, static_type} ->
         case tuple_insert_at_checked(descr, index, dynamic_type) do
-          atom when atom in [:badtuple, :badindex] -> atom
-          result -> dynamic(result)
+          dynamic_result when is_descr(dynamic_result) ->
+            dynamic_result = dynamic(dynamic_result)
+
+            if empty?(static_type) do
+              dynamic_result
+            else
+              case tuple_insert_at_checked(descr, index, static_type) do
+                static_result when is_descr(static_result) -> union(dynamic_result, static_result)
+                error -> error
+              end
+            end
+
+          error ->
+            error
         end
     end
   end

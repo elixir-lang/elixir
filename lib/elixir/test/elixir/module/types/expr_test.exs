@@ -838,6 +838,16 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(Tuple.insert_at({:ok, 123}, 2, "foo")) ==
                tuple([atom([:ok]), integer(), binary()])
 
+      assert typeerror!(
+               [x],
+               (
+                 value = if :rand.uniform() > 0.5, do: :inserted, else: x
+                 tuple = Tuple.insert_at({:ok}, 1, value)
+                 Integer.to_string(elem(tuple, 1))
+               )
+             )
+             |> strip_ansi() =~ "incompatible types given to Integer.to_string/1"
+
       assert typeerror!([<<x::float>>], Tuple.insert_at(x, 0, "foo")) |> strip_ansi() ==
                ~l"""
                incompatible types given to Tuple.insert_at/3:
