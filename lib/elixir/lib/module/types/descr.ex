@@ -5584,15 +5584,26 @@ defmodule Module.Types.Descr do
         {optional?, descr} = tuple_fetch_element(elements, index, tag)
         {optional? or acc_optional?, union(descr, acc_descr)}
 
-      {tag, elements, negs}, acc ->
+      {tag, elements, negs}, {acc_optional?, acc_descr} ->
         {_, value, bdd} = tuple_take_element(elements, index, tag)
 
-        negs
-        |> tuple_split_negative(index, value, bdd)
-        |> Enum.reduce(acc, fn {value, _}, {acc_optional?, acc_descr} ->
-          {optional?, descr} = pop_optional_static(value)
-          {optional? or acc_optional?, union(descr, acc_descr)}
-        end)
+        case tuple_split_negative_pairs_index(negs, index) do
+          :empty ->
+            {acc_optional?, acc_descr}
+
+          negative ->
+            value =
+              if tuple_pair_projection_keeps_full_fst?(negative, bdd) do
+                value
+              else
+                negs
+                |> tuple_split_negative(index, value, bdd)
+                |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
+              end
+
+            {optional?, descr} = pop_optional_static(value)
+            {optional? or acc_optional?, union(descr, acc_descr)}
+        end
     end)
   catch
     :open -> {true, term()}
@@ -5647,6 +5658,40 @@ defmodule Module.Types.Descr do
     end)
   catch
     :empty -> []
+  end
+
+  defp tuple_split_negative_pairs_index(negs, index) do
+    Enum.reduce_while(negs, [], fn
+      bdd_leaf(:open, []), _acc ->
+        {:halt, :empty}
+
+      bdd_leaf(tag, elements), neg_acc ->
+        {_found?, neg_value, neg_bdd} = tuple_take_element(elements, index, tag)
+        {:cont, [{neg_value, neg_bdd} | neg_acc]}
+    end)
+  end
+
+  # Projection shortcuts for the pair-shaped tuple split below. These are
+  # existential checks: if at least one remaining-tuple sample avoids all
+  # negative remaining tuples, the full value side survives; dually, if at least
+  # one value sample avoids all negative values, the full remaining-tuple side
+  # survives. If neither shortcut applies, we fall back to the regular split.
+  defp tuple_pair_projection_keeps_full_fst?(negative, bdd) do
+    neg_bdd =
+      Enum.reduce(negative, :bdd_bot, fn {_neg_value, neg_bdd}, acc ->
+        tuple_union(neg_bdd, acc)
+      end)
+
+    not tuple_empty?(tuple_difference(bdd, neg_bdd))
+  end
+
+  defp tuple_pair_projection_keeps_full_snd?(negative, value) do
+    neg_values =
+      Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
+        union(neg_value, acc)
+      end)
+
+    not empty?(difference(value, neg_values))
   end
 
   defp tuple_fetch_element([], _, :open), do: {true, term()}
@@ -5740,12 +5785,15 @@ defmodule Module.Types.Descr do
           is_proper_tuple? and is_proper_size? ->
             static_result = tuple_delete_static(static, index)
 
-            # Prune for dynamic values make the intersection succeed
-            dynamic_result =
-              intersection(dynamic, tuple_of_size_at_least(index))
-              |> tuple_delete_static(index)
+            # Prune for dynamic values that make the operation succeed.
+            dynamic_input = intersection(dynamic, tuple_of_size_at_least(index + 1))
 
-            union(dynamic(dynamic_result), static_result)
+            if empty?(dynamic_input) and empty?(static) do
+              :badindex
+            else
+              dynamic_result = tuple_delete_static(dynamic_input, index)
+              union(dynamic(dynamic_result), static_result)
+            end
 
           # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
@@ -5759,17 +5807,38 @@ defmodule Module.Types.Descr do
 
   def tuple_delete_at(_, _), do: :badindex
 
-  # Takes a static map type and removes an index from it.
+  # Takes a static tuple type and removes an index from it.
   defp tuple_delete_static(%{tuple: bdd}, index) do
-    %{
-      tuple:
-        bdd_map(bdd, fn bdd_leaf(tag, elements) ->
-          bdd_leaf_new(tag, List.delete_at(elements, index))
-        end)
-    }
+    bdd =
+      bdd
+      |> tuple_bdd_to_dnf_with_negations()
+      |> Enum.reduce(:bdd_bot, fn
+        {tag, elements, []}, acc ->
+          {_, _, bdd} = tuple_take_element(elements, index, tag)
+          tuple_union(bdd, acc)
+
+        {tag, elements, negs}, acc ->
+          {_, value, bdd} = tuple_take_element(elements, index, tag)
+
+          case tuple_split_negative_pairs_index(negs, index) do
+            :empty ->
+              acc
+
+            negative ->
+              if tuple_pair_projection_keeps_full_snd?(negative, value) do
+                tuple_union(bdd, acc)
+              else
+                negs
+                |> tuple_split_negative(index, value, bdd)
+                |> Enum.reduce(acc, fn {_, bdd}, acc -> tuple_union(bdd, acc) end)
+              end
+          end
+      end)
+
+    %{tuple: bdd}
   end
 
-  # If there is no map part to this static type, there is nothing to delete.
+  # If there is no tuple part to this static type, there is nothing to delete.
   defp tuple_delete_static(_type, _key), do: none()
 
   @doc """
@@ -5810,11 +5879,14 @@ defmodule Module.Types.Descr do
             static_result = tuple_insert_static(static, index, type)
 
             # Prune for dynamic values that make the intersection succeed
-            dynamic_result =
-              intersection(dynamic, tuple_of_size_at_least(index))
-              |> tuple_insert_static(index, type)
+            dynamic_input = intersection(dynamic, tuple_of_size_at_least(index))
 
-            union(dynamic(dynamic_result), static_result)
+            if empty?(dynamic_input) and empty?(static) do
+              :badindex
+            else
+              dynamic_result = tuple_insert_static(dynamic_input, index, type)
+              union(dynamic(dynamic_result), static_result)
+            end
 
           # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
@@ -5854,12 +5926,37 @@ defmodule Module.Types.Descr do
   defp tuple_of_size_at_least_static?(descr, index) do
     case descr do
       %{tuple: bdd} ->
-        tuple_bdd_to_dnf_no_negations(bdd)
-        |> Enum.all?(fn {_, elements} -> length(elements) >= index end)
+        tuple_bdd_positive_size_at_least?(bdd, index) or
+          tuple_empty?(tuple_difference(bdd, tuple_new(:open, List.duplicate(term(), index))))
 
       %{} ->
         true
     end
+  end
+
+  defp tuple_bdd_positive_size_at_least?(_bdd, 0), do: true
+
+  defp tuple_bdd_positive_size_at_least?(bdd, index),
+    do: tuple_bdd_positive_size_at_least?(bdd, index, false)
+
+  defp tuple_bdd_positive_size_at_least?(_bdd, _index, true), do: true
+  defp tuple_bdd_positive_size_at_least?(:bdd_bot, _index, _guaranteed?), do: true
+  defp tuple_bdd_positive_size_at_least?(:bdd_top, _index, guaranteed?), do: guaranteed?
+
+  defp tuple_bdd_positive_size_at_least?(bdd_leaf(_tag, elements), index, _guaranteed?) do
+    length(elements) >= index
+  end
+
+  defp tuple_bdd_positive_size_at_least?(
+         {_, bdd_leaf(_tag, elements), c, u, d},
+         index,
+         guaranteed?
+       ) do
+    literal_guaranteed? = length(elements) >= index
+
+    tuple_bdd_positive_size_at_least?(u, index, guaranteed?) and
+      tuple_bdd_positive_size_at_least?(c, index, literal_guaranteed?) and
+      tuple_bdd_positive_size_at_least?(d, index, guaranteed?)
   end
 
   ## BDD helpers

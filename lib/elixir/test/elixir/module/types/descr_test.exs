@@ -36,6 +36,18 @@ defmodule Module.Types.DescrTest do
     end)
   end
 
+  defp projected_negative_tuple(size) do
+    Enum.reduce(1..size, open_tuple([open_tuple([]), term()]), fn index, acc ->
+      difference(
+        acc,
+        open_tuple([
+          open_tuple([atom([:"value#{index}"])]),
+          integer()
+        ])
+      )
+    end)
+  end
+
   describe "union" do
     test "bitmap" do
       assert union(integer(), float()) == union(float(), integer())
@@ -1721,6 +1733,11 @@ defmodule Module.Types.DescrTest do
       assert tuple_fetch(tuple(), 0) == :badindex
     end
 
+    # Times out without a projection-only tuple_fetch path
+    test "tuple_fetch with projected negative tuples" do
+      assert tuple_fetch(projected_negative_tuple(100), 1) == {false, term()}
+    end
+
     test "tuple_fetch with dynamic" do
       assert tuple_fetch(dynamic(), 0) == {true, dynamic()}
       assert tuple_fetch(dynamic(empty_tuple()), 0) == :badindex
@@ -1759,6 +1776,8 @@ defmodule Module.Types.DescrTest do
       assert tuple_delete_at(dynamic(tuple([integer(), atom()])), 1) ==
                dynamic(tuple([integer()]))
 
+      assert tuple_delete_at(dynamic(tuple([integer(), atom()])), 2) == :badindex
+
       # Test deleting from a union of tuples
       assert tuple_delete_at(union(tuple([integer(), atom()]), tuple([float(), binary()])), 1)
              |> equal?(tuple([union(integer(), float())]))
@@ -1785,6 +1804,16 @@ defmodule Module.Types.DescrTest do
       assert dynamic(union(tuple(), integer()))
              |> tuple_delete_at(1)
              |> equal?(dynamic(tuple_of_size_at_least(1)))
+    end
+
+    test "tuple_delete_at projects negative tuple constraints existentially" do
+      tuple =
+        difference(
+          open_tuple([open_tuple([]), term()]),
+          open_tuple([open_tuple([atom([:value])]), integer()])
+        )
+
+      assert tuple_delete_at(tuple, 1) |> equal?(open_tuple([open_tuple([])]))
     end
 
     test "tuple_insert_at" do
@@ -1825,9 +1854,15 @@ defmodule Module.Types.DescrTest do
       assert tuple_insert_at(dynamic(tuple([integer(), atom()])), 1, boolean()) ==
                dynamic(tuple([integer(), boolean(), atom()]))
 
+      assert tuple_insert_at(dynamic(tuple([integer(), atom()])), 3, boolean()) == :badindex
+
       # Test inserting into a union of tuples
       assert tuple_insert_at(union(tuple([integer()]), tuple([atom()])), 0, boolean()) ==
                union(tuple([boolean(), integer()]), tuple([boolean(), atom()]))
+
+      assert difference(tuple(), empty_tuple())
+             |> tuple_insert_at(1, boolean())
+             |> equal?(open_tuple([term(), boolean()]))
 
       # Test inserting into a difference of tuples
       assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
@@ -1849,6 +1884,14 @@ defmodule Module.Types.DescrTest do
       assert dynamic(union(tuple(), integer()))
              |> tuple_insert_at(1, boolean())
              |> equal?(dynamic(open_tuple([term(), boolean()])))
+    end
+
+    # Times out without a projection-only tuple size check
+    test "tuple_insert_at with projected negative tuples" do
+      tuple = projected_negative_tuple(100)
+      inserted = tuple_insert_at(tuple, 1, atom([:inserted]))
+
+      assert tuple_fetch(inserted, 1) == {false, atom([:inserted])}
     end
 
     test "tuple_values" do
