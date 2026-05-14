@@ -858,6 +858,23 @@ defmodule Module.Types.ExprTest do
 
                    {:ok, integer()}
                """
+
+      assert typeerror!([x], Tuple.insert_at({:ok, x}, 3, "foo")) |> strip_ansi() ==
+               ~l"""
+               expected a tuple with at least 3 elements in Tuple.insert_at/3:
+
+                   Tuple.insert_at({:ok, x}, 3, "foo")
+
+               the given type does not have the given index:
+
+                   dynamic({:ok, term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic()
+                   # from: types_test.ex:LINE-1
+                   x
+               """
     end
 
     test "Tuple.delete_at/2" do
@@ -896,6 +913,23 @@ defmodule Module.Types.ExprTest do
                the given type does not have the given index:
 
                    {:ok, integer()}
+               """
+
+      assert typeerror!([x], Tuple.delete_at({:ok, x}, 2)) |> strip_ansi() ==
+               ~l"""
+               expected a tuple with at least 3 elements in Tuple.delete_at/2:
+
+                   Tuple.delete_at({:ok, x}, 2)
+
+               the given type does not have the given index:
+
+                   dynamic({:ok, term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic()
+                   # from: types_test.ex:LINE-1
+                   x
                """
     end
 
@@ -939,6 +973,23 @@ defmodule Module.Types.ExprTest do
                the given type does not have the given index:
 
                    {:ok, integer()}
+               """
+
+      assert typeerror!([x], put_elem({:ok, x}, 2, "foo")) |> strip_ansi() ==
+               ~l"""
+               expected a tuple with at least 3 elements in Kernel.put_elem/3:
+
+                   put_elem({:ok, x}, 2, "foo")
+
+               the given type does not have the given index:
+
+                   dynamic({:ok, term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic()
+                   # from: types_test.ex:LINE-1
+                   x
                """
     end
 

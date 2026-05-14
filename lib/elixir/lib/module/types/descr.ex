@@ -5850,8 +5850,16 @@ defmodule Module.Types.Descr do
 
   def tuple_insert_at(descr, index, type) when is_integer(index) and index >= 0 do
     case :maps.take(:dynamic, unfold(type)) do
-      :error -> tuple_insert_at_checked(descr, index, type)
-      {dynamic, _static} -> dynamic(tuple_insert_at_checked(descr, index, dynamic))
+      :error ->
+        tuple_insert_at_checked(descr, index, type)
+
+      {dynamic_type, _static} ->
+        # Errors about the tuple/index do not become "dynamic errors" when the
+        # inserted value happens to be dynamic — propagate them as-is.
+        case tuple_insert_at_checked(descr, index, dynamic_type) do
+          atom when atom in [:badtuple, :badindex] -> atom
+          result -> dynamic(result)
+        end
     end
   end
 
@@ -5928,8 +5936,16 @@ defmodule Module.Types.Descr do
 
   def tuple_replace_at(descr, index, type) when is_integer(index) and index >= 0 do
     case :maps.take(:dynamic, unfold(type)) do
-      :error -> tuple_replace_at_checked(descr, index, type)
-      {dynamic, _static} -> dynamic(tuple_replace_at_checked(descr, index, dynamic))
+      :error ->
+        tuple_replace_at_checked(descr, index, type)
+
+      {dynamic_type, _static} ->
+        # Errors about the tuple/index do not become "dynamic errors" when the
+        # replacement value happens to be dynamic — propagate them as-is.
+        case tuple_replace_at_checked(descr, index, dynamic_type) do
+          atom when atom in [:badtuple, :badindex] -> atom
+          result -> dynamic(result)
+        end
     end
   end
 
@@ -5956,12 +5972,15 @@ defmodule Module.Types.Descr do
           is_proper_tuple? and is_proper_size? ->
             static_result = tuple_replace_static(static, index, type)
 
-            # Prune for dynamic values that make the intersection succeed
-            dynamic_result =
-              intersection(dynamic, tuple_of_size_at_least(index + 1))
-              |> tuple_replace_static(index, type)
+            # Prune for dynamic values that make the operation succeed.
+            dynamic_input = intersection(dynamic, tuple_of_size_at_least(index + 1))
 
-            union(dynamic(dynamic_result), static_result)
+            if empty?(dynamic_input) and empty?(static) do
+              :badindex
+            else
+              dynamic_result = tuple_replace_static(dynamic_input, index, type)
+              union(dynamic(dynamic_result), static_result)
+            end
 
           # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
@@ -5976,12 +5995,17 @@ defmodule Module.Types.Descr do
   defp tuple_replace_static(descr, _, _) when descr == @none, do: none()
 
   defp tuple_replace_static(descr, index, type) do
+    # Unlike insert/delete, replace is not injective at the replaced index, so
+    # transformed negative leaves would discard valid outputs. We eliminate
+    # negations first by converting to a positive-only DNF and replacing in
+    # each disjunct.
     Map.update!(descr, :tuple, fn bdd ->
-      bdd_map(bdd, fn bdd_leaf(tag, elements) ->
+      tuple_bdd_to_dnf_no_negations(bdd)
+      |> Enum.reduce(:bdd_bot, fn {tag, elements}, acc ->
         # If the tuple is open, then we want List.replace_at to update the correct
         # index, which requires filling the tuple with `term()` values first.
-        # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
-        # intersection with `tuple_of_size_at_least`).
+        # Closed tuples of an incorrect size will have been cancelled by the
+        # earlier intersection with `tuple_of_size_at_least`.
         elements =
           if tag == :open and length(elements) < index + 1 do
             tuple_fill(elements, index + 1)
@@ -5989,7 +6013,7 @@ defmodule Module.Types.Descr do
             elements
           end
 
-        bdd_leaf_new(tag, List.replace_at(elements, index, type))
+        bdd_union(acc, tuple_new(tag, List.replace_at(elements, index, type)))
       end)
     end)
   end

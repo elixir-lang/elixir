@@ -1808,6 +1808,25 @@ defmodule Module.Types.DescrTest do
       assert dynamic(union(tuple(), integer()))
              |> tuple_delete_at(1)
              |> equal?(dynamic(tuple_of_size_at_least(1)))
+
+      # Deleting beyond a dynamic fixed-size tuple must fail with :badindex.
+      # In particular, deleting index N from a dynamic N-tuple must NOT
+      # silently return the original tuple type (off-by-one pruning bug).
+      assert tuple_delete_at(dynamic(tuple([atom([:ok]), term()])), 2) == :badindex
+      assert tuple_delete_at(dynamic(tuple([atom([:a]), atom([:b])])), 2) == :badindex
+      assert tuple_delete_at(dynamic(tuple([atom([:ok])])), 1) == :badindex
+
+      # Deletion is not injective at the deleted position; the negative
+      # constraint at that position must not be preserved.
+      assert difference(tuple([atom(), atom()]), tuple([atom([:a]), term()]))
+             |> tuple_delete_at(0)
+             |> equal?(tuple([atom()]))
+
+      # Negative constraints at positions OTHER than the deleted one are
+      # preserved (after shifting).
+      assert difference(tuple([atom(), atom()]), tuple([atom([:a]), term()]))
+             |> tuple_delete_at(1)
+             |> equal?(difference(tuple([atom()]), tuple([atom([:a])])))
     end
 
     test "tuple_insert_at" do
@@ -1881,6 +1900,19 @@ defmodule Module.Types.DescrTest do
       assert dynamic(union(tuple(), integer()))
              |> tuple_insert_at(1, boolean())
              |> equal?(dynamic(open_tuple([term(), boolean()])))
+
+      # Errors must propagate even when the inserted value is dynamic
+      assert tuple_insert_at(integer(), 0, dynamic()) == :badtuple
+      assert tuple_insert_at(term(), 0, dynamic()) == :badtuple
+      assert tuple_insert_at(tuple([atom([:ok])]), 2, dynamic()) == :badindex
+      assert tuple_insert_at(tuple([atom([:ok])]), -1, dynamic()) == :badindex
+
+      # Out-of-bounds insertions into a dynamic fixed-size tuple must fail
+      # with :badindex (rather than silently producing dynamic(none())).
+      assert tuple_insert_at(dynamic(tuple([atom([:ok]), term()])), 3, binary()) ==
+               :badindex
+
+      assert tuple_insert_at(dynamic(tuple([atom([:ok])])), 2, binary()) == :badindex
     end
 
     test "tuple_replace_at" do
@@ -1931,6 +1963,29 @@ defmodule Module.Types.DescrTest do
       assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
              |> tuple_replace_at(1, float())
              |> equal?(tuple([integer(), float(), boolean()]))
+
+      # Replacing in a difference where the negation actually constrains the
+      # positive (not just by arity). The replaced position drops its negative
+      # constraint, the other positions keep theirs.
+      assert difference(tuple([atom(), atom()]), tuple([atom([:a]), term()]))
+             |> tuple_replace_at(0, boolean())
+             |> equal?(tuple([boolean(), atom()]))
+
+      assert difference(tuple([atom(), atom()]), tuple([atom([:a]), term()]))
+             |> tuple_replace_at(1, boolean())
+             |> equal?(difference(tuple([atom(), boolean()]), tuple([atom([:a]), boolean()])))
+
+      # Errors must propagate even when the replacement value is dynamic
+      assert tuple_replace_at(integer(), 0, dynamic()) == :badtuple
+      assert tuple_replace_at(term(), 0, dynamic()) == :badtuple
+      assert tuple_replace_at(tuple([atom([:ok])]), 1, dynamic()) == :badindex
+      assert tuple_replace_at(empty_tuple(), 0, dynamic()) == :badindex
+
+      # Out-of-bounds writes to a dynamic fixed-size tuple must fail with :badindex
+      assert tuple_replace_at(dynamic(tuple([atom([:ok]), term()])), 2, binary()) ==
+               :badindex
+
+      assert tuple_replace_at(dynamic(tuple([atom([:ok])])), 1, binary()) == :badindex
 
       # Test replacing in a complex union involving dynamic
       assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
