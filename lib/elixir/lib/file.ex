@@ -1103,8 +1103,7 @@ defmodule File do
 
   @doc ~S"""
   Copies the contents in `source` to `destination` recursively, maintaining the
-  source directory structure. Regular file modes are preserved, while directory
-  modes are preserved only when `:preserve_directory_permissions` is `true`.
+  source directory structure and regular file modes.
 
   If `source` is a file or a symbolic link to it, `destination` must be a path
   to an existent file, a symbolic link to one, or a path to a non-existent file.
@@ -1115,7 +1114,9 @@ defmodule File do
   If the source is a file, it copies `source` to `destination`. If the `source`
   is a directory, it copies the contents inside source into the `destination` directory.
 
-  If a file already exists in the destination, it invokes the optional `on_conflict`
+  For regular files, their respective file modes are preserved in the destination.
+  Directory modes are preserved only when `:preserve_directory_permissions` is `true`.
+  If a file already exists in the destination, it invokes the optional `:on_conflict`
   callback given as an option. See "Options" for more information.
 
   This function may fail while copying files, in such cases, it will leave the
