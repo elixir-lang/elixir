@@ -86,9 +86,13 @@ defmodule ExUnit.DiffTest do
     end
   end
 
-  defmacrop refute_diff(expr, expected_left, expected_right, pins \\ [])
+  # Use a finite width only for tests that exercise display layout. Most diff
+  # tests should keep the default :infinity width so generated inspected values,
+  # such as references, pids, and functions, do not affect line wrapping.
+  @terminal_width 80
+  defmacrop refute_diff(expr, expected_left, expected_right, pins \\ [], width \\ :infinity)
 
-  defmacrop refute_diff({:=, _, [left, right]}, expected_left, expected_right, pins) do
+  defmacrop refute_diff({:=, _, [left, right]}, expected_left, expected_right, pins, width) do
     left = Assertions.__expand_pattern__(left, __CALLER__) |> Macro.escape()
 
     quote do
@@ -97,12 +101,13 @@ defmodule ExUnit.DiffTest do
         unquote(right),
         unquote(expected_left),
         unquote(expected_right),
-        {:match, unquote(pins)}
+        {:match, unquote(pins)},
+        unquote(width)
       )
     end
   end
 
-  defmacrop refute_diff({op, _, [left, right]}, expected_left, expected_right, [])
+  defmacrop refute_diff({op, _, [left, right]}, expected_left, expected_right, [], width)
             when op in [:==, :===] do
     quote do
       refute_diff(
@@ -110,19 +115,20 @@ defmodule ExUnit.DiffTest do
         unquote(right),
         unquote(expected_left),
         unquote(expected_right),
-        unquote(op)
+        unquote(op),
+        unquote(width)
       )
     end
   end
 
-  defp refute_diff(left, right, expected_left, expected_right, context) do
+  defp refute_diff(left, right, expected_left, expected_right, context, width) do
     {diff, _env} = Diff.compute(left, right, context)
     assert diff.equivalent? == false
 
-    diff_left = to_diff(diff.left, "-")
+    diff_left = to_diff(diff.left, "-", width)
     assert diff_left =~ expected_left
 
-    diff_right = to_diff(diff.right, "+")
+    diff_right = to_diff(diff.right, "+", width)
     assert diff_right =~ expected_right
   end
 
@@ -134,11 +140,10 @@ defmodule ExUnit.DiffTest do
     assert env_binding == expected_binding
   end
 
-  @terminal_width 80
-  defp to_diff(side, sign) do
+  defp to_diff(side, sign, width) do
     side
     |> Diff.to_algebra(&diff_wrapper(&1, sign))
-    |> Algebra.format(@terminal_width)
+    |> Algebra.format(width)
     |> IO.iodata_to_binary()
   end
 
@@ -718,7 +723,9 @@ defmodule ExUnit.DiffTest do
         },
         name: nil
       }\
-      """
+      """,
+      [],
+      @terminal_width
     )
 
     refute_diff(
@@ -742,7 +749,9 @@ defmodule ExUnit.DiffTest do
         },
         name: nil
       }\
-      """
+      """,
+      [],
+      @terminal_width
     )
   end
 
@@ -917,7 +926,9 @@ defmodule ExUnit.DiffTest do
         }-
       ]\
       """,
-      "[]"
+      "[]",
+      [],
+      @terminal_width
     )
 
     refute_diff(
@@ -934,7 +945,9 @@ defmodule ExUnit.DiffTest do
           "notifications" => true
         }+
       ]\
-      """
+      """,
+      [],
+      @terminal_width
     )
 
     assert_diff([map] == [map], [])
@@ -967,7 +980,9 @@ defmodule ExUnit.DiffTest do
         }-
       ]\
       """,
-      "[]"
+      "[]",
+      [],
+      @terminal_width
     )
 
     refute_diff(
@@ -984,7 +999,9 @@ defmodule ExUnit.DiffTest do
           notifications: true
         }+
       ]\
-      """
+      """,
+      [],
+      @terminal_width
     )
 
     assert_diff([customer] == [customer], [])
@@ -1232,18 +1249,8 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       {ref1, ref2} == {ref2, ref1},
-      """
-      {
-        -#{inspect_ref1}-,
-        -#{inspect_ref2}-
-      }\
-      """,
-      """
-      {
-        +#{inspect_ref2}+,
-        +#{inspect_ref1}+
-      }\
-      """
+      "{-#{inspect_ref1}-, -#{inspect_ref2}-}",
+      "{+#{inspect_ref2}+, +#{inspect_ref1}+}"
     )
 
     refute_diff(
@@ -1263,11 +1270,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       %{ref1 => ref2} == :a,
-      """
-      -%{
-        #{inspect_ref1} => #{inspect_ref2}
-      }\
-      """,
+      "-%{#{inspect_ref1} => #{inspect_ref2}}",
       "+:a+"
     )
 
@@ -1313,11 +1316,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       %{identity => identity} == :a,
-      """
-      -%{
-        #{inspect} => #{inspect}
-      }-\
-      """,
+      "-%{#{inspect} => #{inspect}}-",
       "+:a+"
     )
 
