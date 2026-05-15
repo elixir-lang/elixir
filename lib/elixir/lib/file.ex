@@ -1103,7 +1103,8 @@ defmodule File do
 
   @doc ~S"""
   Copies the contents in `source` to `destination` recursively, maintaining the
-  source directory structure and modes.
+  source directory structure. Regular file modes are preserved, while directory
+  modes are preserved only when `:preserve_directory_permissions` is `true`.
 
   If `source` is a file or a symbolic link to it, `destination` must be a path
   to an existent file, a symbolic link to one, or a path to a non-existent file.
