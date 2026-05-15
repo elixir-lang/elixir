@@ -276,7 +276,7 @@ defmodule Mix.Task do
   to be a task optionally followed by its arguments.
   """
   @doc since: "1.11.0"
-  @spec requirements(task_module) :: [String.t]
+  @spec requirements(task_module) :: [String.t()]
   def requirements(module) when is_atom(module) do
     {:requirements, requirements} =
       List.keyfind(module.__info__(:attributes), :requirements, 0, {:requirements, []})
