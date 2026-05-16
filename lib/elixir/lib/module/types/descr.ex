@@ -48,11 +48,14 @@ defmodule Module.Types.Descr do
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_leaf_hash_space 1 <<< 20
-  @map_top {:erlang.phash2([:open | @fields_new], @map_leaf_hash_space), :open, @fields_new}
+  # The hash range is also the stride between field-count buckets.
+  # Since phash2/2 returns less than the range, the count remains the primary sort key.
+  @map_leaf_hash_range 1 <<< 28
+  @tuple_leaf_hash_range 1 <<< 28
+  @map_top {:erlang.phash2([:open | @fields_new], @map_leaf_hash_range), :open, @fields_new}
   @non_empty_list_top {:erlang.phash2([:term | :term]), :term, :term}
-  @tuple_top {:erlang.phash2([:open | []]), :open, []}
-  @map_empty {-:erlang.phash2([:closed | @fields_new], @map_leaf_hash_space), :closed,
+  @tuple_top {:erlang.phash2([:open | []], @tuple_leaf_hash_range), :open, []}
+  @map_empty {-:erlang.phash2([:closed | @fields_new], @map_leaf_hash_range), :closed,
               @fields_new}
 
   defmacrop bdd_leaf(arg1, arg2) do
@@ -650,7 +653,9 @@ defmodule Module.Types.Descr do
   end
 
   defp numberize(:tuple, bdd) do
-    bdd_map(bdd, fn bdd_leaf(tag, fields) -> bdd_leaf_new(tag, Enum.map(fields, &numberize/1)) end)
+    bdd_map(bdd, fn bdd_leaf(tag, elements) ->
+      tuple_new(tag, Enum.map(elements, &numberize/1))
+    end)
   end
 
   defp numberize(:list, bdd) do
@@ -2899,8 +2904,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_leaf_order(tag, fields) do
-    fields_size(fields) * @map_leaf_hash_space +
-      :erlang.phash2([tag | fields_keys(fields)], @map_leaf_hash_space)
+    fields_size(fields) * @map_leaf_hash_range +
+      :erlang.phash2([tag | fields_keys(fields)], @map_leaf_hash_range)
   end
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
@@ -5025,7 +5030,20 @@ defmodule Module.Types.Descr do
     {acc, dynamic_acc, dynamic?, static_empty?}
   end
 
-  defp tuple_new(tag, elements), do: bdd_leaf_new(tag, elements)
+  # Order broader tuple contexts before more specific ones so shared requirements
+  # are factored once in the BDD instead of copied under every specialized branch.
+  defp tuple_new(:closed, elements) do
+    {-tuple_leaf_order(:closed, elements), :closed, elements}
+  end
+
+  defp tuple_new(tag, elements) do
+    {tuple_leaf_order(tag, elements), tag, elements}
+  end
+
+  defp tuple_leaf_order(tag, elements) do
+    length(elements) * @tuple_leaf_hash_range +
+      :erlang.phash2([tag | elements], @tuple_leaf_hash_range)
+  end
 
   defp tuple_intersection(bdd_leaf(:open, []), bdd), do: bdd
   defp tuple_intersection(bdd, bdd_leaf(:open, [])), do: bdd
@@ -5036,7 +5054,7 @@ defmodule Module.Types.Descr do
 
   defp tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
     case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-      {tag, elements} -> bdd_leaf_new(tag, elements)
+      {tag, elements} -> tuple_new(tag, elements)
       :empty -> :bdd_bot
     end
   end
@@ -5306,12 +5324,12 @@ defmodule Module.Types.Descr do
     do: leaf
 
   defp tuple_union(
-         bdd_leaf(tag1, elements1) = tuple1,
-         bdd_leaf(tag2, elements2) = tuple2
+         bdd_leaf(tag1, elements1),
+         bdd_leaf(tag2, elements2)
        ) do
     case maybe_optimize_tuple_union({tag1, elements1}, {tag2, elements2}) do
-      {tag, elements} -> bdd_leaf_new(tag, elements)
-      nil -> bdd_union(tuple1, tuple2)
+      {tag, elements} -> tuple_new(tag, elements)
+      nil -> bdd_union(tuple_new(tag1, elements1), tuple_new(tag2, elements2))
     end
   end
 
@@ -5935,7 +5953,7 @@ defmodule Module.Types.Descr do
             elements
           end
 
-        bdd_leaf_new(tag, List.insert_at(elements, index, type))
+        tuple_new(tag, List.insert_at(elements, index, type))
       end)
     end)
   end
