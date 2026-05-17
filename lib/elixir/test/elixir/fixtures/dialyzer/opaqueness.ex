@@ -14,6 +14,11 @@ defmodule Dialyzer.Opaqueness do
     bar(@my_set)
   end
 
+  def contains?(ids, id) do
+    id_set = MapSet.new(ids)
+    MapSet.member?(id_set, id)
+  end
+
   # Task.Supervisor returns a Task.t() containing an opaque Task.ref()
   @spec run_task() :: Task.t()
   def run_task do
