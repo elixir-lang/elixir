@@ -3099,8 +3099,7 @@ defmodule Module.Types.Descr do
   #
   # Outside of this particular scenario, the `a_int` optimization has been useful,
   # but we haven't measured benefits for `a_union`.
-  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type)
-       when type != :union do
+  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
     {found?, v1} =
       case fields_find(key, fields) do
         {:ok, value} -> {true, value}
@@ -3108,13 +3107,16 @@ defmodule Module.Types.Descr do
       end
 
     cond do
-      tag == :closed and not found? and not is_optional_static(v2) ->
-        :disjoint
+      tag == :closed and not found? ->
+        if is_optional_static(v2), do: :subtype, else: :disjoint
 
+      # In case the left-side is open, we will only be adding new keys
+      # to the open map, which makes future eliminations harder.
       tag == :open and not found? and fields != [] ->
-        # In case the left-side is open, we will only be adding new keys
-        # to the open map, which makes future eliminations harder.
         :none
+
+      disjoint?(v1, v2) ->
+        :disjoint
 
       true ->
         map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
@@ -6237,7 +6239,7 @@ defmodule Module.Types.Descr do
   #
   # If subtype, a_diff is none and a_union is a2:
   #
-  #     ((U1 and not a2) or (D1 and not D2)) and not U2 and not D2
+  #     ((U1 and not a2) or (D1 and not a2)) and not U2 and not D2
   #
   defp bdd_difference(
          {_, a1, :bdd_top, u1, :bdd_bot},
