@@ -1496,15 +1496,16 @@ defmodule KernelTest do
       assert to_timeout(millisecond: 1_234_123) == 1_234_123
 
       assert to_timeout(hour: 2, minute: 30) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(hour: 2.5) == 1000 * 60 * 60 * 2.5
       assert to_timeout(minute: 30, hour: 2) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
       assert to_timeout(minute: 74, second: 30) == 1000 * 60 * 74 + 1000 * 30
     end
 
     test "raises on invalid values with keyword lists" do
       for unit <- [:hour, :minute, :second, :millisecond],
-          value <- [-1, 1.0, :not_an_int] do
+          value <- [-1, :not_a_number] do
         message =
-          "timeout component #{inspect(unit)} must be a non-negative integer, " <>
+          "timeout component #{inspect(unit)} must be a non-negative number, " <>
             "got: #{inspect(value)}"
 
         assert_raise ArgumentError, message, fn -> to_timeout([{unit, value}]) end

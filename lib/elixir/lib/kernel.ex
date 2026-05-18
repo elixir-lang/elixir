@@ -6360,12 +6360,13 @@ defmodule Kernel do
   `year` and `month` fields set to `0`, since those cannot be reliably converted to
   milliseconds (due to the varying number of days in a month and year).
 
-  Microseconds in durations are converted to milliseconds (through `System.convert_time_unit/3`).
+  Microseconds in durations are converted to milliseconds
+  (rounded via the floor function, through `System.convert_time_unit/3`).
 
   ### Passing components
 
   The `duration` argument can also be keyword list which can contain the following
-  keys, each appearing at most once with a non-negative integer value:
+  keys, each appearing at most once with a non-negative numeric value:
 
     * `:week` - the number of weeks (a week is always 7 days)
     * `:day` - the number of days (a day is always 24 hours)
@@ -6387,6 +6388,8 @@ defmodule Kernel do
   With a keyword list:
 
       iex> to_timeout(hour: 1, minute: 30)
+      5400000
+      iex> to_timeout(hour: 1.5)
       5400000
 
   With a duration:
@@ -6443,7 +6446,7 @@ defmodule Kernel do
 
   def to_timeout(components) when is_list(components) do
     reducer = fn
-      {key, value}, {acc, seen_keys} when is_integer(value) and value >= 0 ->
+      {key, value}, {acc, seen_keys} when is_number(value) and value >= 0 ->
         case :lists.member(key, seen_keys) do
           true ->
             raise ArgumentError, "timeout component #{inspect(key)} is duplicated"
@@ -6484,7 +6487,7 @@ defmodule Kernel do
       {key, value}, {_acc, _seen_keys} ->
         raise ArgumentError,
               "timeout component #{inspect(key)} must be a non-negative " <>
-                "integer, got: #{inspect(value)}"
+                "number, got: #{inspect(value)}"
     end
 
     elem(:lists.foldl(reducer, {0, _seen_keys = []}, components), 0)
