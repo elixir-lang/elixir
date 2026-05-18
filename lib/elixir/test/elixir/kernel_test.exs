@@ -1494,9 +1494,11 @@ defmodule KernelTest do
       assert to_timeout(minute: 74) == 1000 * 60 * 74
       assert to_timeout(second: 1293) == 1_293_000
       assert to_timeout(millisecond: 1_234_123) == 1_234_123
+      assert to_timeout(millisecond: 1.25) == 2
+      assert to_timeout(millisecond: 1.75) == 2
 
       assert to_timeout(hour: 2, minute: 30) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
-      assert to_timeout(hour: 2.5) == 1000 * 60 * 60 * 2.5
+      assert to_timeout(hour: 2.5, second: 1.3) == 1000 * 60 * 60 * 2.5 + 1000 * 1.3
       assert to_timeout(minute: 30, hour: 2) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
       assert to_timeout(minute: 74, second: 30) == 1000 * 60 * 74 + 1000 * 30
     end

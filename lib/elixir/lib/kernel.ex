@@ -6360,8 +6360,7 @@ defmodule Kernel do
   `year` and `month` fields set to `0`, since those cannot be reliably converted to
   milliseconds (due to the varying number of days in a month and year).
 
-  Microseconds in durations are converted to milliseconds
-  (rounded via the floor function, through `System.convert_time_unit/3`).
+  Microseconds in durations are converted to milliseconds (through `System.convert_time_unit/3`).
 
   ### Passing components
 
@@ -6376,7 +6375,8 @@ defmodule Kernel do
     * `:millisecond` - the number of milliseconds
 
   The timeout is calculated as the sum of the components, each multiplied by
-  the corresponding factor.
+  the corresponding factor. Fractional milliseconds are rounded upwards with
+  `ceil/1` to ensure the timeout exceeds the requested value.
 
   ### Passing timeouts
 
@@ -6490,7 +6490,7 @@ defmodule Kernel do
                 "number, got: #{inspect(value)}"
     end
 
-    elem(:lists.foldl(reducer, {0, _seen_keys = []}, components), 0)
+    ceil(elem(:lists.foldl(reducer, {0, _seen_keys = []}, components), 0))
   end
 
   ## Sigils
