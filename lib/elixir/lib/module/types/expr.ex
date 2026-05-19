@@ -308,7 +308,7 @@ defmodule Module.Types.Expr do
         of_expr(pos_head, term(), pos_head, %{stack | reverse_arrow: :cache}, acc_context)
 
       # Reset the context vars, keep warnings, as we will infer with expected truthy
-      context = Of.reset_vars(context, acc_context)
+      # context = Of.reset_vars(context, acc_context)
 
       context =
         maybe_always_or_never_match_cond(pos_head_type, pos_head, pos_meta, stack, context, false)
@@ -355,7 +355,7 @@ defmodule Module.Types.Expr do
               of_expr(head, term(), head, %{stack | reverse_arrow: :cache}, acc_context)
 
             # Reset the context vars, keep warnings, as we will infer with expected truthy
-            context = Of.reset_vars(context, acc_context)
+            # context = Of.reset_vars(context, acc_context)
 
             context =
               maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?)
