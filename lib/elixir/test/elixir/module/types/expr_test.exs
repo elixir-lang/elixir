@@ -3261,5 +3261,18 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic() or binary()
     end
+
+    test "case nested in cond" do
+      assert typecheck!(
+               [value],
+               cond do
+                 (case float? = is_float(value) do
+                    false -> is_integer(value)
+                    true -> true
+                  end) ->
+                   float?
+               end
+             ) == boolean()
+    end
   end
 end
