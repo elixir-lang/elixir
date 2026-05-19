@@ -307,9 +307,6 @@ defmodule Module.Types.Expr do
       {pos_head_type, context} =
         of_expr(pos_head, term(), pos_head, %{stack | reverse_arrow: :cache}, acc_context)
 
-      # Reset the context vars, keep warnings, as we will infer with expected truthy
-      context = Of.reset_vars(context, acc_context)
-
       context =
         maybe_always_or_never_match_cond(pos_head_type, pos_head, pos_meta, stack, context, false)
 
@@ -317,29 +314,29 @@ defmodule Module.Types.Expr do
         of_expr(pos_head, @truthy, pos_head, %{stack | reverse_arrow: :use}, context)
 
       # Keep the context except the warnings, and compute the body
-      context = reset_warnings(truthy_context, context)
+      truthy_context = reset_warnings(truthy_context, context)
 
-      {pos_body_type, context} =
-        of_expr(pos_body, expected, expr, stack, context)
+      {pos_body_type, pos_body_context} =
+        of_expr(pos_body, expected, expr, stack, truthy_context)
 
       # Reset the context vars once again to compute the falsy type
-      context = Of.reset_vars(context, acc_context)
+      context = Of.reset_vars(pos_body_context, context)
 
       {_, falsy_context} =
         of_expr(pos_head, @falsy, pos_head, %{stack | reverse_arrow: :use}, context)
 
-      context = reset_warnings(falsy_context, context)
+      falsy_context = reset_warnings(falsy_context, context)
 
-      {neg_body_type, context} =
-        of_expr(neg_body, expected, expr, stack, context)
+      {neg_body_type, neg_body_context} =
+        of_expr(neg_body, expected, expr, stack, falsy_context)
 
       body_type = union(pos_body_type, neg_body_type)
 
       context =
         cond do
-          empty?(pos_body_type) -> Of.reset_vars(context, falsy_context)
-          empty?(neg_body_type) -> Of.reset_vars(context, truthy_context)
-          true -> Of.reset_vars(context, acc_context)
+          empty?(pos_body_type) -> Of.reset_vars(neg_body_context, falsy_context)
+          empty?(neg_body_type) -> Of.reset_vars(neg_body_context, truthy_context)
+          true -> Of.reset_vars(neg_body_context, acc_context)
         end
 
       dynamic_unless_static({body_type, context}, stack)
@@ -350,12 +347,9 @@ defmodule Module.Types.Expr do
     cache_result(meta, stack, context, fn ->
       {body_type, acc_context} =
         reduce_non_empty(clauses, {none(), context}, fn
-          {:->, meta, [[head], body]}, {acc, acc_context}, last? ->
+          {:->, meta, [[head], body]}, {acc, context}, last? ->
             {head_type, context} =
-              of_expr(head, term(), head, %{stack | reverse_arrow: :cache}, acc_context)
-
-            # Reset the context vars, keep warnings, as we will infer with expected truthy
-            context = Of.reset_vars(context, acc_context)
+              of_expr(head, term(), head, %{stack | reverse_arrow: :cache}, context)
 
             context =
               maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?)
@@ -364,13 +358,11 @@ defmodule Module.Types.Expr do
               of_expr(head, @truthy, head, %{stack | reverse_arrow: :use}, context)
 
             # Keep the context except the warnings, and compute the body
-            context = reset_warnings(truthy_context, context)
+            truthy_context = reset_warnings(truthy_context, context)
+            {body_type, body_context} = of_expr(body, expected, expr, stack, truthy_context)
 
-            {body_type, context} =
-              of_expr(body, expected, expr, stack, context)
-
-            # Reset the context vars once again to compute the falsy type
-            context = Of.reset_vars(context, acc_context)
+            # Reset the context vars to the head definition to compute the falsy type
+            context = Of.reset_vars(body_context, context)
 
             context =
               if last? do

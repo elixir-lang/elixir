@@ -2917,6 +2917,53 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic()
     end
+
+    test "case nested in cond" do
+      # Test with one clause
+      assert typecheck!(
+               [value],
+               cond do
+                 (case float? = is_float(value) do
+                    false -> is_integer(value)
+                    true -> true
+                  end) ->
+                   float?
+               end
+             ) == boolean()
+
+      # Test with two clauses
+      assert typecheck!(
+               [value],
+               cond do
+                 (case float? = is_float(value) do
+                    false -> is_integer(value)
+                    true -> true
+                  end) ->
+                   float?
+
+                 true ->
+                   :otherwise
+               end
+             ) == union(boolean(), atom([:otherwise]))
+
+      # Test with multiple clauses
+      assert typecheck!(
+               [value],
+               cond do
+                 is_binary(value) ->
+                   :binary
+
+                 is_atom(value) ->
+                   :atom
+
+                 (case float? = is_float(value) do
+                    false -> is_integer(value)
+                    true -> true
+                  end) ->
+                   float?
+               end
+             ) == union(boolean(), atom([:binary, :atom]))
+    end
   end
 
   describe "comprehensions" do
