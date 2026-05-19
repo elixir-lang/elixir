@@ -10,29 +10,9 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
 ## Type system improvements
 
-This release includes type inference of all constructs.
+Elixir's type system now understands all language constructs and can infer types for your function definitions, using typing information from Elixir's standard library and your dependencies, to find verified bugs and dead code.
 
-### Type inference of function definitions
-
-Elixir now performs inference of whole functions. The best way to show the new capabilities are with examples. Take the following code:
-
-```elixir
-def add_foo_and_bar(data) do
-  data.foo + data.bar
-end
-```
-
-Elixir now infers that the function expects a `map` as first argument, and the map must have the keys `.foo` and `.bar` whose values are either `integer()` or `float()`. The return type will be either `integer()` or `float()`.
-
-Here is another example:
-
-```elixir
-def sum_to_string(a, b) do
-  Integer.to_string(a + b)
-end
-```
-
-Even though the `+` operator works with both integers and floats, Elixir infers that `a` and `b` must be both integers, as the result of `+` is given to a function that expects an integer. The inferred type information is then used during type checking to find possible typing errors.
+This has been achieved through a series of improvements, such as type refinement across clauses, occurrence typing, typing of map keys and domains, and more.
 
 ### Type inference of guards
 
@@ -70,6 +50,28 @@ def example(x) when tuple_size(x) < 3
 
 Elixir will correctly track the tuple has at most two elements, and therefore accessing `elem(x, 3)` will emit a typing violation. In other words, Elixir can look at complex guards, infer types, and use this information to find bugs in our code, without a need to introduce type signatures (yet).
 
+### Whole-body type inference
+
+Elixir also performs inference based on the function body itself. Take the following code:
+
+```elixir
+def add_foo_and_bar(data) do
+  data.foo + data.bar
+end
+```
+
+Elixir now infers that the function expects a `map` as first argument, and the map must have the keys `.foo` and `.bar` whose values are either `integer()` or `float()`. The return type will be either `integer()` or `float()`.
+
+Here is another example:
+
+```elixir
+def sum_to_string(a, b) do
+  Integer.to_string(a + b)
+end
+```
+
+Even though the `+` operator works with both integers and floats, Elixir infers that `a` and `b` must be both integers, as the result of `+` is given to a function that expects an integer. The inferred type information is then used during type checking to find possible typing errors. The typing inferred from your dependencies are also used to help infer more precise types for your own applications.
+
 ### Typing across clauses
 
 Elixir now infers the type of a given clause based on previous clauses. Let's see an example:
@@ -81,11 +83,11 @@ case System.get_env("SOME_VAR") do
 end
 ```
 
-`System.get_env("SOME_VAR")` returns either `nil` or a `binary()`. Because the first clause matches on `nil`, the type system now knows `value` can no longer be `nil`, and therefore it must only be a `binary()`, which allows the second clause to also type check without violations.
+`System.get_env("SOME_VAR")` returns either `nil` or a `binary()`. Because the first clause matches on `nil`, the type system knows `value` can no longer be `nil`, and therefore it must only be a `binary()`, which allows the second clause to also type check without violations.
 
-This type inference across clauses also helps the type system find redundant clauses and dead code in existing codebases.
+This type inference across clauses also helps the type system find redundant clauses and dead code in existing codebases. Elixir v1.20 also implements occurrence typing for `cond`, `case`, and `with`, providing more precise types within each clause.
 
-### Complete typing of maps keys
+### Typing of atom and domain keys in maps
 
 Maps were one of the first data-structures we implemented within the Elixir type system however, up to this point, they only supported atom keys. If they had additional keys, those keys were simply marked as `dynamic()`.
 
@@ -175,9 +177,49 @@ The code above has a type violation, which is now caught by the type system:
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
 
-## v1.20.0-rc.5 (2026-05-13)
+## Compile-time improvements
+
+Elixir's v1.20 improves compilation times once more, especially on applications with many cores.
+
+It also introduces a new compiler option called `:module_definition`, which if the module definition should be `:compiled` (the default) or `:interpreted`. Note this does not affect the `.beam` file written to disk, only how the contents inside `defmodule` are executed. Using the `:interpreted` mode may offer better compilation times for large projects, especially on machines with high core count, however, it comes with some downsides:
+
+  * Errors during compilation may have less precise stacktraces
+
+  * Anonymous functions within `defmodule` can have only up to 20 arguments.
+    If this is an issue, you can use maps or tuples to group the data.
+    Note the functions themselves inside `defmodule`, such as the ones defined
+    inside `def` and friends, can still have up to 255 arguments
+
+You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
+
+## v1.20.0-rc.6
 
 This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Perform type inference across applications
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix type checker bug when validating a `case` inside a `cond` condition (regression)
+  * [Kernel] Preserve evaluation order when rewriting function calls from Elixir modules into Erlang ones
+
+#### Mix
+
+  * [mix test] Respect --raise when mix test --warnings-as-errors passes with warnings
+
+### 3. Hard deprecations
+
+#### Mix
+
+  * [mix compile.elixir] `xref: [exclude: ...]` in your `mix.exs` is deprecated in favor of `elixirc_options: [no_warn_undefined: ...]`
+
+## v1.20.0-rc.5 (2026-05-13)
 
 ### 1. Enhancements
 
