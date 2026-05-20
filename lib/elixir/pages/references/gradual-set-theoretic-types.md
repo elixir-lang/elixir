@@ -245,6 +245,12 @@ If the results are satisfactory, the next milestone will include a mechanism for
 
 The third milestone is to introduce set-theoretic type signatures for functions. Unfortunately, the existing Erlang Typespecs are not precise enough for set-theoretic types and they will be phased out of the language and have their postprocessing moved into a separate library once this stage concludes.
 
+## Resources
+
+* (Paper) ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391)
+* (Video) ["The foundations of the Elixir type system" by José Valim](https://youtu.be/giYbq4HmfGA)
+* (Video) ["Precision in type system design" by José Valim](https://youtu.be/Ay-gnCqDw9o?t=102)
+
 ## Acknowledgements
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), and [Tidewave](https://tidewave.ai/).
