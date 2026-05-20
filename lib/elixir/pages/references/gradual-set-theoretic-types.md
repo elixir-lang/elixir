@@ -247,9 +247,9 @@ The third milestone is to introduce set-theoretic type signatures for functions.
 
 ## Resources
 
-* (Paper) ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391)
-* (Video) ["The foundations of the Elixir type system" by José Valim](https://youtu.be/giYbq4HmfGA)
-* (Video) ["Precision in type system design" by José Valim](https://youtu.be/Ay-gnCqDw9o?t=102)
+  * (Paper) ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391)
+  * (Video) ["The foundations of the Elixir type system" by José Valim](https://youtu.be/giYbq4HmfGA)
+  * (Video) ["Precision in type system design" by José Valim](https://youtu.be/Ay-gnCqDw9o?t=102)
 
 ## Acknowledgements
 
