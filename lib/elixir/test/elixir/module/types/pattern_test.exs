@@ -95,20 +95,6 @@ defmodule Module.Types.PatternTest do
              ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
-    test "match propagation" do
-      assert typecheck!([x = {:ok, y}], is_integer(y), x) ==
-               dynamic(tuple([atom([:ok]), integer()]))
-
-      assert typecheck!(
-               [x = {:ok, y}],
-               (
-                 _ = Integer.to_string(y)
-                 x
-               )
-             ) ==
-               dynamic(tuple([atom([:ok]), integer()]))
-    end
-
     test "reports incompatible types" do
       assert typeerror!([x = 123 = "123"], x) == ~l"""
              the following pattern will never match:

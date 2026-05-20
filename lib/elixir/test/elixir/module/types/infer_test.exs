@@ -130,12 +130,21 @@ defmodule Module.Types.InferTest do
         def fun(x) do
           x.foo + x.bar
         end
+
+        def fun_nested(%{x: x} = data) do
+          baz = x.foo + x.bar
+          IO.inspect(data)
+          baz
+        end
       end
 
     number = union(integer(), float())
 
     assert types[{:fun, 1}] ==
              {:infer, nil, [{[open_map(foo: number, bar: number)], dynamic(number)}]}
+
+    assert types[{:fun_nested, 1}] ==
+             {:infer, nil, [{[open_map(x: open_map(foo: number, bar: number))], dynamic(number)}]}
   end
 
   test "from Elixir built-in", config do
