@@ -275,6 +275,30 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
+  test "marks fetchable dep for recompile when stored lock differs from current lock" do
+    Mix.Project.push(GitApp)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run([])
+      Mix.Tasks.Deps.Compile.run([])
+
+      manifest = "_build/dev/lib/git_repo/.mix/compile.elixir_scm"
+      {2, vsn, scm, _lock} = manifest |> File.read!() |> :erlang.binary_to_term()
+      File.write!(manifest, :erlang.term_to_binary({2, vsn, scm, :stale_lock}))
+
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([GitRepo, GitRepo.MixProject])
+
+      [git_repo_dep] =
+        Mix.Dep.load_and_cache() |> Enum.filter(&(&1.app == :git_repo))
+
+      assert git_repo_dep.status == :compile
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject])
+  end
+
   test "updates the repo when the lock updates" do
     Mix.Project.push(GitApp)
     [last, first | _] = get_git_repo_revs("git_repo")

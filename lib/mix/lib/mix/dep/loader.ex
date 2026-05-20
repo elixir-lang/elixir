@@ -396,6 +396,9 @@ defmodule Mix.Dep.Loader do
       not ok?(dep) ->
         dep
 
+      fetched_but_not_compiled?(dep) ->
+        %{dep | status: :compile}
+
       opts_app == false ->
         dep
 
@@ -408,6 +411,16 @@ defmodule Mix.Dep.Loader do
           status -> %{dep | status: status}
         end
     end
+  end
+
+  # The build's .app is stale after a fetch replaced the source; skip its
+  # vsn/req check until the SCM manifest's stored lock matches opts[:lock].
+  defp fetched_but_not_compiled?(%Mix.Dep{scm: scm, opts: opts}) do
+    scm.fetchable?() and
+      case Mix.Dep.ElixirSCM.read(Path.join(opts[:build], ".mix")) do
+        {:ok, _, _, stored_lock} -> stored_lock != opts[:lock]
+        :error -> true
+      end
   end
 
   defp app_status(app_path, app, req) do
