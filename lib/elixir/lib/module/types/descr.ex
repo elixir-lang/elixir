@@ -3092,13 +3092,6 @@ defmodule Module.Types.Descr do
   defp map_difference(bdd1, bdd2),
     do: bdd_difference(bdd1, bdd2, &map_leaf_difference/3)
 
-  # We only apply this particular optimization when comparing leafs (type == :none).
-  # Applying it in other scenarios lead to slow compilation, likely because the
-  # introduction of `a_int` and `a_union` lead to additional nodes and large rehashes
-  # of the tree.
-  #
-  # Outside of this particular scenario, the `a_int` optimization has been useful,
-  # but we haven't measured benefits for `a_union`.
   defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
     {found?, v1} =
       case fields_find(key, fields) do
@@ -6059,10 +6052,10 @@ defmodule Module.Types.Descr do
       _ ->
         case bdd_compare(bdd1, bdd2) do
           {:lt, {_, lit1, c1, u1, d1}, bdd2} ->
-            bdd_node_new(lit1, c1, bdd_union(u1, bdd2), d1)
+            bdd_node_new(lit1, bdd_remove(c1, bdd2), bdd_union(u1, bdd2), bdd_remove(d1, bdd2))
 
           {:gt, bdd1, {_, lit2, c2, u2, d2}} ->
-            bdd_node_new(lit2, c2, bdd_union(bdd1, u2), d2)
+            bdd_node_new(lit2, bdd_remove(c2, bdd1), bdd_union(bdd1, u2), bdd_remove(d2, bdd1))
 
           {:eq, {_, lit, c1, u1, d1}, {_, _, c2, u2, d2}} ->
             bdd_node_new(lit, bdd_union(c1, c2), bdd_union(u1, u2), bdd_union(d1, d2))
@@ -6082,6 +6075,55 @@ defmodule Module.Types.Descr do
         end
     end
   end
+
+  # When doing BDD1 v BDD2, BDD2 is likely stored as a lazy union.
+  # However, if BDD2 appears in the constrained or dual nodes of BDD1,
+  # we want to remove them, to avoid carrying unecessary information.
+  # This function does precisely so.
+  defp bdd_remove(_bdd, :bdd_top), do: :bdd_bot
+  defp bdd_remove(bdd, :bdd_bot), do: bdd
+  defp bdd_remove(bdd, bdd_leaf(_, _) = leaf), do: bdd_remove_leaf(bdd, leaf)
+  defp bdd_remove(bdd1, bdd2), do: bdd_remove_bdd(bdd1, bdd2)
+
+  # (a and C) or U or (not a and D) or a
+  #
+  # is equivalent to:
+  #
+  # U or a or D
+  #
+  # Because:
+  # (a and C) or a => a
+  # (not a and D) or a => a or D
+  defp bdd_remove_leaf({_, leaf, _c, u, d}, leaf), do: leaf |> bdd_union(u) |> bdd_union(d)
+  defp bdd_remove_leaf(leaf, leaf), do: :bdd_bot
+  defp bdd_remove_leaf(bdd, _), do: bdd
+
+  defp bdd_remove_bdd(bdd, bdd), do: :bdd_bot
+
+  defp bdd_remove_bdd({_, lit1, c1, u1, d1} = bdd1, {_, lit2, c2, u2, d2} = bdd2) do
+    cond do
+      lit1 < lit2 ->
+        bdd_node_new(
+          lit1,
+          bdd_remove_bdd(c1, bdd2),
+          bdd_remove_bdd(u1, bdd2),
+          bdd_remove_bdd(d1, bdd2)
+        )
+
+      lit1 > lit2 ->
+        bdd_remove(bdd1, u2)
+
+      true ->
+        bdd_node_new(
+          lit1,
+          bdd_remove(bdd_remove(c1, c2), u2),
+          u1,
+          bdd_remove(bdd_remove(d1, d2), u2)
+        )
+    end
+  end
+
+  defp bdd_remove_bdd(bdd, _), do: bdd
 
   def bdd_difference(bdd, bdd), do: :bdd_bot
 
