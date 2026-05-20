@@ -6366,9 +6366,8 @@ defmodule Module.Types.Descr do
           #      (D1 and (D2 or U2)) or (U1 and D2)}
           #
           # This formula is longer, meaning more operations, but it does preserve
-          # unions in place whenever possible. This change has reduced the algorithmic
-          # complexity in the past, but perhaps it is rendered less useful now due to
-          # the eager literal intersections.
+          # unions in place whenever possible, especially in the cases where C1
+          # and C2 are top, D1 and D2 are bottom.
           {:eq, {_, lit, c1, u1, d1}, {_, _, c2, u2, d2}} ->
             bdd_node_new(
               lit,
