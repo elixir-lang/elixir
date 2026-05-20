@@ -2368,6 +2368,50 @@ defmodule Module.Types.ExprTest do
                  dynamic(false)
              """
     end
+
+    test "! reports violations" do
+      assert typeerror!([x = 123], !x) =~ ~l"""
+             the following conditional expression:
+
+                 !x
+
+             will always evaluate to false because the expression has type:
+
+                 integer()
+
+             where "x" was given the type:
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 x = 123
+             """
+
+      assert typewarn!([x = nil], !x) |> elem(1) =~ ~l"""
+             the following conditional expression:
+
+                 !x
+
+             will always evaluate to true because the expression has type:
+
+                 dynamic(nil)
+             """
+
+      assert typeerror!([x = 123], !!x) =~ ~l"""
+             the following conditional expression:
+
+                 !x
+
+             will always evaluate to false because the expression has type:
+
+                 integer()
+
+             where "x" was given the type:
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 x = 123
+             """
+    end
   end
 
   describe "receive" do

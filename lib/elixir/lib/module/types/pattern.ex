@@ -1546,30 +1546,43 @@ defmodule Module.Types.Pattern do
     message =
       with {_op, meta, expr, type} <- info,
            true <- previous_subtype?(expected, previous) do
-        if match?({:case, :||}, meta[:type_check]) do
-          """
-          the right-hand side of || will always execute:
+        case meta[:type_check] do
+          {:case, :||} ->
+            """
+            the right-hand side of || will always execute:
 
-              #{expr_to_string(expr) |> indent(4)}
+                #{expr_to_string(expr) |> indent(4)}
 
-          because the left-hand side always evaluates to:
+            because the left-hand side always evaluates to:
 
-              #{to_quoted_string(type) |> indent(4)}
-          """
-        else
-          """
-          the following clause cannot match because the previous clauses already matched all possible values:
+                #{to_quoted_string(type) |> indent(4)}
+            """
 
-              #{args_to_string(args) |> indent(4)} ->
+          {:case, :!} ->
+            """
+            the following conditional expression:
 
-          it attempts to match on the result of:
+                #{expr_to_string({:!, [], [expr]}) |> indent(4)}
 
-              #{expr_to_string(expr) |> indent(4)}
+            will always evaluate to true because the expression has type:
 
-          which has the already matched type:
+                #{to_quoted_string(type) |> indent(4)}
+            """
 
-              #{to_quoted_string(type) |> indent(4)}
-          """
+          _ ->
+            """
+            the following clause cannot match because the previous clauses already matched all possible values:
+
+                #{args_to_string(args) |> indent(4)} ->
+
+            it attempts to match on the result of:
+
+                #{expr_to_string(expr) |> indent(4)}
+
+            which has the already matched type:
+
+                #{to_quoted_string(type) |> indent(4)}
+            """
         end
       else
         _ ->
@@ -1698,6 +1711,17 @@ defmodule Module.Types.Pattern do
                   #{expr_to_string(expr) |> indent(4)}
 
               #{second_message}:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            op == :! ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string({:!, [], [expr]}) |> indent(4)}
+
+              will always evaluate to false because the expression has type:
 
                   #{to_quoted_string(type) |> indent(4)}
               """
