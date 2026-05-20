@@ -644,11 +644,11 @@ defmodule Module.Types.PatternTest do
              where "x" was given the types:
 
                  # type: empty_list() or non_empty_list(term(), term())
-                 # from: types_test.ex:649
+                 # from: types_test.ex:LINE
                  is_list(x)
 
                  # type: non_empty_list(term(), term())
-                 # from: types_test.ex:649
+                 # from: types_test.ex:LINE
                  hd(x)
              """
     end
