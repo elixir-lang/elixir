@@ -299,6 +299,82 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
+  test "stale .app for a fetchable dep does not surface as :divergedreq via the converger" do
+    # Reproduces the convergence chain seen in hexpm/hex#1166:
+    #
+    #   1. validate_app reads `_build/.../git_repo.app` (stale vsn 0.1.0)
+    #      against the top-level requirement "0.1.0" and returns
+    #      {:ok, "0.1.0"}.
+    #   2. The converger then encounters git_repo a second time, this
+    #      time as a child of `strict_parent`, whose requirement
+    #      "~> 0.2.0" does not match the cached {:ok, "0.1.0"}.
+    #      `req_mismatch` fires and the dep is marked :divergedreq.
+    #   3. `show_diverged!` raises before the lock-in-manifest check
+    #      in `check_manifest` gets a chance to flag the build as stale.
+    #
+    # With the loader bypass, step 1 returns :compile instead of
+    # {:ok, _}, `req_mismatch` returns nil, and the dep ends up flagged
+    # for recompile rather than as a spurious requirement conflict.
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("strict_parent/lib")
+      File.write!("strict_parent/lib/strict_parent.ex", "defmodule StrictParent do\nend\n")
+
+      write_strict_parent = fn req ->
+        File.write!("strict_parent/mix.exs", """
+        defmodule StrictParent.MixProject do
+          use Mix.Project
+          def project do
+            [
+              app: :strict_parent,
+              version: "0.1.0",
+              deps: [{:git_repo, #{inspect(req)}, git: #{inspect(fixture_path("git_repo"))}}]
+            ]
+          end
+        end
+        """)
+      end
+
+      # Bootstrap with a matching requirement so deps.get + compile succeed
+      # and the SCM manifest records the current lock alongside vsn 0.1.0.
+      write_strict_parent.("0.1.0")
+
+      Mix.ProjectStack.post_config(
+        deps: [
+          {:git_repo, "0.1.0", git: fixture_path("git_repo")},
+          {:strict_parent, path: "strict_parent"}
+        ]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+
+      Mix.Tasks.Deps.Get.run([])
+      Mix.Tasks.Deps.Compile.run([])
+
+      # Now simulate the post-fetch state:
+      #   - The transitive parent has moved on to a stricter requirement
+      #     that the build's stale .app vsn ("0.1.0") no longer satisfies.
+      #   - The SCM manifest's stored lock no longer matches opts[:lock],
+      #     signalling that _build is behind the fetched source.
+      write_strict_parent.("~> 0.2.0")
+
+      manifest = "_build/dev/lib/git_repo/.mix/compile.elixir_scm"
+      {2, vsn, scm, _lock} = manifest |> File.read!() |> :erlang.binary_to_term()
+      File.write!(manifest, :erlang.term_to_binary({2, vsn, scm, :stale_lock}))
+
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([GitRepo, GitRepo.MixProject, StrictParent.MixProject])
+
+      [git_repo_dep] =
+        Mix.Dep.load_and_cache() |> Enum.filter(&(&1.app == :git_repo))
+
+      assert git_repo_dep.status == :compile
+      refute Mix.Dep.diverged?(git_repo_dep)
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject, StrictParent.MixProject])
+  end
+
   test "updates the repo when the lock updates" do
     Mix.Project.push(GitApp)
     [last, first | _] = get_git_repo_revs("git_repo")
