@@ -92,6 +92,7 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.21] | `Macro.Env.fetch_alias/2` (and `fetch_macro_alias`) | `Macro.Env.expand_alias/4` (v1.17)
 [v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>` (v1.15)
 [v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)` (v1.16)
 [v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2` (v1.16)

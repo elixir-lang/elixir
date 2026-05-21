@@ -210,13 +210,13 @@ defmodule Macro.Env do
     [file: file, line: line]
   end
 
-  # TODO: Deprecate on Elixir 1.21 in favor of expand_alias/4
   @doc false
+  @deprecated "Use Macro.Env.expand_alias/4 instead"
   def fetch_alias(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
     do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
-  # TODO: Deprecate on Elixir 1.21 in favor of expand_alias/4
   @doc false
+  @deprecated "Use Macro.Env.expand_alias/4 instead"
   def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom)
       when is_atom(atom),
       do: Keyword.fetch(aliases, :"Elixir.#{atom}")
