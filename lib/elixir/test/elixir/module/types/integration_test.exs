@@ -931,28 +931,55 @@ defmodule Module.Types.IntegrationTest do
     test "redundant clause checking of open maps with distinct keys" do
       files = %{
         "large_head.ex" => """
-        defmodule LargeHead do
-          def id(%{node_id: id}) when is_binary(id), do: id
-          def id(%{node: %{id: id}}) when is_binary(id), do: id
-          def id(%{cluster: %{node_id: id}}) when is_binary(id), do: id
-          def id(%{graph: %{node_id: id}}) when is_binary(id), do: id
-          def id(%{vertex: %{node_id: id}}) when is_binary(id), do: id
-          def id(%{collection: %{graph_id: id} = collection}) when is_binary(id), do: id(collection)
-          def id(%{element: %{} = element}), do: id(element)
-          def id(%{cluster_id: id}) when is_binary(id), do: id
-          def id(%{region_id: id}) when is_binary(id), do: id
-          def id(%{graph_id: id}) when is_binary(id), do: id
-          def id(%{vertex_id: id}) when is_binary(id), do: id
-          def id(%{path_id: id}) when is_binary(id), do: id
-          def id(%{tree_id: id}) when is_binary(id), do: id
-          def id(%{collection_id: id}) when is_binary(id), do: id
-          def id(%{segment_id: id}) when is_binary(id), do: id
-          def id(%{edge_id: id}) when is_binary(id), do: id
-          def nested_access(%{graph: graph} = collection) do
-            <<_::binary>> = id(graph)
-            if collection.graph.cluster_id do
-              {graph.id, graph.node_id, collection.graph.cluster_id}
+        defmodule GraphResolver do
+          def resolve(%{resource: node, member: vertex} = edge) do
+            graph_id = fetch_id(edge.resource)
+
+            with %{id: id} <- vertex do
+              {node.project_id, node.id, node.parent_id, [id], graph_id}
             end
+          end
+
+          def fetch_id(%{id: id}) when is_binary(id), do: id
+          def fetch_id(%{account_id: id}) when is_binary(id), do: id
+          def fetch_id(%{account: %{id: id}}) when is_binary(id), do: id
+          def fetch_id(%{team: %{account_id: id}}) when is_binary(id), do: id
+          def fetch_id(%{project: %{account_id: id}}) when is_binary(id), do: id
+          def fetch_id(%{asset: %{account_id: id}}) when is_binary(id), do: id
+
+          def fetch_id(%{collection: %{project_id: id} = collection}) when is_binary(id),
+            do: fetch_id(collection)
+
+          def fetch_id(%{item: %{} = item}), do: fetch_id(item)
+          def fetch_id(%{team_id: id}) when is_binary(id), do: local_id(:team, id)
+          def fetch_id(%{workspace_id: id}) when is_binary(id), do: local_id(:team, id)
+          def fetch_id(%{project_id: id}) when is_binary(id), do: local_id(:project, id)
+          def fetch_id(%{asset_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{portal_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{codex_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{vertex_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{edge_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{comment_id: id}) when is_binary(id), do: remote_id(id)
+
+          def fetch_id(%struct{id: id}) do
+            case struct do
+              Team -> local_id(:team, id)
+              Project -> local_id(:project, id)
+              Asset -> remote_id(id)
+              Portal -> remote_id(id)
+              Codex -> remote_id(id)
+              CommentAttachment -> remote_id(id)
+              Vertex -> remote_id(id)
+              Edge -> remote_id(id)
+            end
+          end
+
+          defp local_id(type, id) when type in ~w(project team)a do
+            {:local, type, id}
+          end
+
+          defp remote_id(id) do
+            {:remote, id}
           end
         end
         """
