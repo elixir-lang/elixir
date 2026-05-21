@@ -73,31 +73,7 @@ defmodule Mix.Dep.Converger do
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
     if remote = Mix.RemoteConverger.get(), do: remote.post_converge()
-    sorted_deps = topological_sort(deps)
-    warn_on_unneeded_deps_overrides(sorted_deps)
-    {sorted_deps, acc, lock}
-  end
-
-  defp warn_on_unneeded_deps_overrides([%{app: app, opts: opts} = dep | rest]) do
-    override = Keyword.get(opts, :override, false)
-
-    if is_list(override) do
-      Enum.each(override, fn overridden_app ->
-        # Since we used a topological sort, if someone depends on dep, it will come after dep
-        with %{deps: deps} <- Enum.find(rest, &(&1.app == overridden_app)),
-             true <- Enum.any?(deps, &(&1.app == app)) do
-          :ok
-        else
-          _ -> warn_uneeded_override(dep, overridden_app)
-        end
-      end)
-    end
-
-    warn_on_unneeded_deps_overrides(rest)
-  end
-
-  defp warn_on_unneeded_deps_overrides([]) do
-    :ok
+    {topological_sort(deps), acc, lock}
   end
 
   defp all(acc, lock, opts, callback) do
@@ -176,10 +152,11 @@ defmodule Mix.Dep.Converger do
 
   defp init_all(main, apps, rest, lock, callback, locked?, env_target, cache) do
     state = %{locked?: locked?, env_target: env_target, cache: cache, callback: callback}
-    {deps, _kept, _optional, rest, lock} = all(main, nil, [], [], [], apps, [], rest, lock, state)
+    {deps, _kept, _optional, rest, lock} = all(main, [], [], [], apps, [], rest, lock, state)
+    deps = Enum.reverse(deps)
     # When traversing dependencies, we keep skipped ones to
     # find conflicts. We remove them now after traversal.
-    {deps, _} = deps |> Enum.reverse() |> Mix.Dep.Loader.split_by_env_and_target(env_target)
+    {deps, _} = Mix.Dep.Loader.split_by_env_and_target(deps, env_target)
     {deps, rest, lock}
   end
 
@@ -222,19 +199,19 @@ defmodule Mix.Dep.Converger do
   # Now, since "d" was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authoritative source.
-  defp all([dep | t], parent, acc, kept, upper, breadths, optional, rest, lock, state) do
-    case match_deps(parent, acc, upper, dep, state.env_target) do
+  defp all([dep | t], acc, kept, upper, breadths, optional, rest, lock, state) do
+    case match_deps(acc, upper, dep, state.env_target) do
       {:replace, dep, acc} ->
-        all([dep | t], parent, acc, kept, upper, breadths, optional, rest, lock, state)
+        all([dep | t], acc, kept, upper, breadths, optional, rest, lock, state)
 
       {:match, acc} ->
-        all(t, parent, acc, kept, upper, breadths, optional, rest, lock, state)
+        all(t, acc, kept, upper, breadths, optional, rest, lock, state)
 
       :skip ->
         # We still keep skipped dependencies around to detect conflicts.
         # They must be rejected after every all iteration but they are not
         # included in the list of kept dependencies.
-        all(t, parent, [dep | acc], kept, upper, breadths, optional, rest, lock, state)
+        all(t, [dep | acc], kept, upper, breadths, optional, rest, lock, state)
 
       :nomatch ->
         {%{app: app, deps: deps, opts: opts} = dep, rest, lock} =
@@ -257,21 +234,19 @@ defmodule Mix.Dep.Converger do
         # no longer a dependency. Add it back for traversal.
         {no_longer_optional, optional} = Enum.split_with(optional, &(&1.app == app))
         t = no_longer_optional ++ t
-        acc = [dep | acc]
 
         {acc, kept, optional, rest, lock} =
-          all(t, parent, acc, [dep.app | kept], upper, breadths, optional, rest, lock, state)
+          all(t, [dep | acc], [dep.app | kept], upper, breadths, optional, rest, lock, state)
 
         # Now traverse all parent dependencies and see if we have any optional dependency.
         {discarded, deps} = split_non_fulfilled_optional(deps, kept, opts[:from_umbrella])
 
         new_breadths = Enum.map(deps, & &1.app) ++ breadths
-        new_optional = discarded ++ optional
-        all(deps, app, acc, kept, breadths, new_breadths, new_optional, rest, lock, state)
+        all(deps, acc, kept, breadths, new_breadths, discarded ++ optional, rest, lock, state)
     end
   end
 
-  defp all([], _parent, acc, kept, _upper, _current, optional, rest, lock, _state) do
+  defp all([], acc, kept, _upper, _current, optional, rest, lock, _state) do
     {acc, kept, optional, rest, lock}
   end
 
@@ -289,7 +264,7 @@ defmodule Mix.Dep.Converger do
   # diverges is in the upper breadth, in those cases we
   # also check for the override option and mark the dependency
   # as overridden instead of diverged.
-  defp match_deps(parent, list, upper_breadths, %Mix.Dep{app: app} = dep, env_target) do
+  defp match_deps(list, upper_breadths, %Mix.Dep{app: app} = dep, env_target) do
     case Enum.split_while(list, &(&1.app != app)) do
       {_, []} ->
         if Mix.Dep.Loader.skip?(dep, env_target) do
@@ -308,82 +283,49 @@ defmodule Mix.Dep.Converger do
           )
         end
 
-        override = Keyword.get(other_opts, :override, false)
-
         cond do
-          in_upper? && override == true ->
+          in_upper? && other_opts[:override] ->
             {:match, list}
 
           not converge?(other, dep) ->
-            if parent_overriden?(override, parent) do
-              {:match, list}
-            else
-              tag = if in_upper?, do: :overridden, else: :diverged
-              other = %{other | status: {tag, parent, dep}}
-              {:match, pre ++ [other | pos]}
-            end
+            tag = if in_upper?, do: :overridden, else: :diverged
+            other = %{other | status: {tag, dep}}
+            {:match, pre ++ [other | pos]}
 
           vsn = req_mismatch(other, dep) ->
-            if parent_overriden?(override, parent) do
-              {:match, list}
-            else
-              other = %{other | status: {:divergedreq, vsn, parent, dep}}
-              {:match, pre ++ [other | pos]}
-            end
+            other = %{other | status: {:divergedreq, vsn, dep}}
+            {:match, pre ++ [other | pos]}
 
           not in_upper? and Mix.Dep.Loader.skip?(other, env_target) and
               not Mix.Dep.Loader.skip?(dep, env_target) ->
-            dep
-            |> merge_manager(other, in_upper?)
-            |> with_matching_only_and_targets(other, in_upper?, override, parent, list, fn dep ->
-              {:replace, dep, pre ++ pos}
-            end)
+            dep =
+              dep
+              |> with_matching_only_and_targets(other, in_upper?)
+              |> merge_manager(other, in_upper?)
+
+            {:replace, dep, pre ++ pos}
 
           true ->
-            other
-            |> merge_manager(dep, in_upper?)
-            |> with_matching_only_and_targets(dep, in_upper?, override, parent, list, fn other ->
-              {:match, pre ++ [other | pos]}
-            end)
+            other =
+              other
+              |> with_matching_only_and_targets(dep, in_upper?)
+              |> merge_manager(dep, in_upper?)
+
+            {:match, pre ++ [other | pos]}
         end
     end
   end
 
-  defp parent_overriden?(list, app) when is_list(list), do: app in list
-  defp parent_overriden?(_list, _app), do: false
-
-  defp with_matching_only_and_targets(other, dep, in_upper?, override, parent, list, callback) do
+  defp with_matching_only_and_targets(other, dep, in_upper?) do
     %{opts: opts} = dep
 
     if opts[:optional] do
-      maybe_warn_uneeded_override(dep, override, parent)
-      callback.(other)
+      other
     else
-      with {:ok, other} <- with_matching(other, :only, dep, opts, in_upper?),
-           {:ok, other} <- with_matching(other, :targets, dep, opts, in_upper?) do
-        maybe_warn_uneeded_override(dep, override, parent)
-        callback.(other)
-      else
-        {:error, other} ->
-          if parent_overriden?(override, parent) do
-            {:match, list}
-          else
-            callback.(other)
-          end
-      end
+      other
+      |> with_matching(:only, dep, opts, in_upper?)
+      |> with_matching(:targets, dep, opts, in_upper?)
     end
-  end
-
-  defp maybe_warn_uneeded_override(dep, override, parent) do
-    if parent_overriden?(override, parent) do
-      warn_uneeded_override(dep, parent)
-    end
-  end
-
-  defp warn_uneeded_override(dep, parent) do
-    Mix.shell().error(
-      "Dependency #{Mix.Dep.format_dep(dep)} no longer requires :override on #{inspect(parent)}"
-    )
   end
 
   # When in_upper is true
@@ -403,16 +345,16 @@ defmodule Mix.Dep.Converger do
         case Keyword.fetch(opts, key) do
           {:ok, value} ->
             case List.wrap(value) -- List.wrap(other_value) do
-              [] -> {:ok, other}
-              _ -> {:error, %{other | status: {:"diverged#{key}", dep}}}
+              [] -> other
+              _ -> %{other | status: {:"diverged#{key}", dep}}
             end
 
           :error ->
-            {:error, %{other | status: {:"diverged#{key}", dep}}}
+            %{other | status: {:"diverged#{key}", dep}}
         end
 
       :error ->
-        {:ok, other}
+        other
     end
   end
 
@@ -427,9 +369,9 @@ defmodule Mix.Dep.Converger do
     value = Keyword.get(opts, key)
 
     if other_value && value do
-      {:ok, put_in(other.opts[key], Enum.uniq(List.wrap(other_value) ++ List.wrap(value)))}
+      put_in(other.opts[key], Enum.uniq(List.wrap(other_value) ++ List.wrap(value)))
     else
-      {:ok, %{other | opts: Keyword.delete(other_opts, key)}}
+      %{other | opts: Keyword.delete(other_opts, key)}
     end
   end
 
