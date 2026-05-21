@@ -98,7 +98,7 @@ defmodule Kernel.CLI do
   @doc """
   Shared helper for error formatting on CLI tools.
   """
-  def format_error(kind, reason, stacktrace) do
+  def format_error(kind, reason, stacktrace, ansi? \\ false) do
     {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
 
     iodata =
@@ -106,10 +106,10 @@ defmodule Kernel.CLI do
         %FunctionClauseError{} ->
           formatted = Exception.format_banner(kind, reason, stacktrace)
           padded_blame = pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/1))
-          [formatted, padded_blame]
+          [banner_ansi(formatted, ansi?), padded_blame]
 
         _ ->
-          Exception.format_banner(kind, blamed, stacktrace)
+          Exception.format_banner(kind, blamed, stacktrace) |> banner_ansi(ansi?)
       end
 
     [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
@@ -179,8 +179,13 @@ defmodule Kernel.CLI do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    IO.write(:stderr, format_error(kind, reason, stacktrace))
+    IO.write(:stderr, format_error(kind, reason, stacktrace, IO.ANSI.enabled?()))
   end
+
+  defp banner_ansi(banner, true),
+    do: IO.iodata_to_binary(IO.ANSI.format([:red, banner], true))
+
+  defp banner_ansi(banner, false), do: banner
 
   defp blame_match(%{match?: true, node: node}), do: blame_ansi(:normal, "+", node)
   defp blame_match(%{match?: false, node: node}), do: blame_ansi(:red, "-", node)

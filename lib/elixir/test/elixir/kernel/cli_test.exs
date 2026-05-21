@@ -197,6 +197,27 @@ defmodule Kernel.CLI.ExecutableTest do
     assert elixir(fixture_path("at_exit.exs") |> to_charlist()) ==
              "goodbye cruel world with status 1\n"
   end
+
+  describe "format_error/4" do
+    test "colors the banner in red when ansi? is true" do
+      formatted =
+        Kernel.CLI.format_error(:error, %ArgumentError{message: "boom"}, [], true)
+        |> IO.iodata_to_binary()
+
+      assert formatted =~ IO.ANSI.red()
+      assert formatted =~ IO.ANSI.reset()
+      assert formatted =~ "** (ArgumentError) boom"
+    end
+
+    test "leaves output plain by default" do
+      formatted =
+        Kernel.CLI.format_error(:error, %ArgumentError{message: "boom"}, [])
+        |> IO.iodata_to_binary()
+
+      refute formatted =~ "\e["
+      assert formatted =~ "** (ArgumentError) boom"
+    end
+  end
 end
 
 defmodule Kernel.CLI.RPCTest do
