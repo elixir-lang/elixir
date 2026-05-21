@@ -211,6 +211,8 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
 #### Mix
 
+  * [mix deps] Do not show dependency as diverged when it actually requires compilation (regression)
+  * [mix deps] Revert allowing overriding specific dependencies in `:override` due to conflicts with Hex (revert)
   * [mix test] Respect --raise when mix test --warnings-as-errors passes with warnings
 
 ### 3. Hard deprecations
