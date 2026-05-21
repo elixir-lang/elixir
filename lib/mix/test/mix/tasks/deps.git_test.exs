@@ -711,12 +711,79 @@ defmodule Mix.Tasks.DepsGitTest do
         message = "* Getting git_repo (#{fixture_path("git_repo")})"
         assert_received {:mix_shell, :info, [^message]}
         assert_shallow("deps/git_repo", 1)
-
         assert File.read!("mix.lock") =~ "submodules: true"
-        # TODO: assert submodule is not shallow. This would likely require
-        # changes to the fixtures. Apparently, not even the submodules-specific
-        # tests check that the cloned repo contains submodules as expected.
       end)
+    end
+
+    test "stale .app for a fetchable dep does not surface as :divergedreq via the converger" do
+      # Reproduces the convergence chain seen in hexpm/hex#1166:
+      #
+      #   1. validate_app reads `_build/.../git_repo.app` (stale vsn 0.1.0)
+      #      against the top-level requirement "0.1.0" and returns
+      #      {:ok, "0.1.0"}.
+      #   2. The converger then encounters git_repo a second time, this
+      #      time as a child of `deps_on_git_repo`, whose requirement
+      #      "~> 0.2.0" does not match the cached {:ok, "0.1.0"}.
+      #      `req_mismatch` fires and the dep is marked :divergedreq.
+      #   3. `show_diverged!` raises before the lock-in-manifest check
+      #      in `check_manifest` gets a chance to flag the build as stale.
+      #
+      # With the loader bypass, step 1 returns :compile instead of
+      # {:ok, _}, `req_mismatch` returns nil, and the dep ends up flagged
+      # for recompile rather than as a spurious requirement conflict.
+      in_fixture("no_mixfile", fn ->
+        File.cp_r!(fixture_path("deps_on_git_repo"), "deps_on_git_repo")
+
+        update_deps_on_git_repo = fn req ->
+          File.write!(
+            "deps_on_git_repo/mix.exs",
+            File.read!("deps_on_git_repo/mix.exs")
+            |> String.replace(
+              ~r/\{:git_repo, (?:".*?", )?git: MixTest\.Case\.fixture_path\("git_repo"\)\}/,
+              "{:git_repo, #{inspect(req)}, git: MixTest.Case.fixture_path(\"git_repo\")}"
+            )
+          )
+        end
+
+        # Bootstrap with a matching requirement so deps.get + compile succeed
+        # and the SCM manifest records the current lock alongside vsn 0.1.0.
+        update_deps_on_git_repo.("0.1.0")
+
+        Mix.ProjectStack.post_config(
+          deps: [
+            {:git_repo, "0.1.0", git: fixture_path("git_repo")},
+            {:deps_on_git_repo, path: "deps_on_git_repo"}
+          ]
+        )
+
+        Mix.Project.push(MixTest.Case.Sample)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+
+        # Now simulate the post-fetch state:
+        #   - The transitive parent has moved on to a stricter requirement
+        #     that the build's stale .app vsn ("0.1.0") no longer satisfies.
+        #   - The SCM manifest's stored lock no longer matches opts[:lock],
+        #     signalling that _build is behind the fetched source.
+        update_deps_on_git_repo.("~> 0.2.0")
+
+        manifest = "_build/dev/lib/git_repo/.mix/compile.elixir_scm"
+        {2, vsn, scm, _lock} = manifest |> File.read!() |> :erlang.binary_to_term()
+        File.write!(manifest, :erlang.term_to_binary({2, vsn, scm, :stale_lock}))
+
+        Mix.Task.clear()
+        Mix.State.clear_cache()
+        purge([GitRepo, GitRepo.MixProject, DepsOnGitRepo.MixProject])
+
+        [git_repo_dep] =
+          Mix.Dep.load_and_cache() |> Enum.filter(&(&1.app == :git_repo))
+
+        assert git_repo_dep.status == :compile
+        refute Mix.Dep.diverged?(git_repo_dep)
+      end)
+    after
+      purge([GitRepo, GitRepo.MixProject, DepsOnGitRepo.MixProject])
     end
 
     defp update_dep(git_repo_opts) do

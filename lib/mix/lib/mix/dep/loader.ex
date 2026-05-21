@@ -110,7 +110,9 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    validate_app(%{dep | deps: attach_only_and_targets(children, opts)})
+    %{dep | deps: attach_only_and_targets(children, opts)}
+    |> validate_manifest()
+    |> validate_app()
   end
 
   @doc """
@@ -407,6 +409,33 @@ defmodule Mix.Dep.Loader do
           {:ok, vsn, app} -> %{dep | status: {:ok, vsn}, opts: [app_properties: app] ++ opts}
           status -> %{dep | status: status}
         end
+    end
+  end
+
+  defp validate_manifest(dep) do
+    if ok?(dep) do
+      %{scm: scm, opts: opts} = dep
+      vsn = {System.version(), :erlang.system_info(:otp_release)}
+      lock = opts[:lock]
+
+      case Mix.Dep.ElixirSCM.read(Path.join(opts[:build], ".mix")) do
+        {:ok, old_vsn, _, _} when old_vsn != vsn ->
+          %{dep | status: {:vsnlock, old_vsn}}
+
+        {:ok, _, old_scm, _} when old_scm != scm ->
+          %{dep | status: {:scmlock, old_scm}}
+
+        {:ok, _, _, old_lock} when old_lock != lock ->
+          if scm.fetchable?(), do: %{dep | status: :compile}, else: dep
+
+        :error ->
+          if scm.fetchable?(), do: %{dep | status: :compile}, else: dep
+
+        _ ->
+          dep
+      end
+    else
+      dep
     end
   end
 

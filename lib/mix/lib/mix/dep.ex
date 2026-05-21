@@ -438,7 +438,10 @@ defmodule Mix.Dep do
   Checks the lock for the given dependency and update its status accordingly.
   """
   def check_lock(%Mix.Dep{scm: scm, opts: opts} = dep) do
-    if available?(dep) do
+    # We only update the lock if the dependency is compilable or available.
+    # That's because a dependency may need compilation but if it has the wrong version,
+    # then the version reporting gets higher priority.
+    if available?(dep) or compilable?(dep) do
       case scm.lock_status(opts) do
         :mismatch ->
           status = if rev = opts[:lock], do: {:lockmismatch, rev}, else: :nolock
@@ -449,41 +452,10 @@ defmodule Mix.Dep do
           %{dep | status: :lockoutdated}
 
         :ok ->
-          check_manifest(dep)
+          dep
       end
     else
       dep
-    end
-  end
-
-  defp check_manifest(%{scm: scm, opts: opts} = dep) do
-    vsn = {System.version(), :erlang.system_info(:otp_release)}
-    lock = opts[:lock]
-
-    case Mix.Dep.ElixirSCM.read(Path.join(opts[:build], ".mix")) do
-      {:ok, old_vsn, _, _} when old_vsn != vsn ->
-        %{dep | status: {:vsnlock, old_vsn}}
-
-      {:ok, _, old_scm, _} when old_scm != scm ->
-        %{dep | status: {:scmlock, old_scm}}
-
-      {:ok, _, _, old_lock} when old_lock != lock ->
-        if scm.fetchable?() do
-          %{dep | status: :compile}
-        else
-          dep
-        end
-
-      :error ->
-        if scm.fetchable?() do
-          %{dep | status: :compile}
-        else
-          dep
-        end
-
-      # If the file is missing, it is handled in the loader
-      _ ->
-        dep
     end
   end
 
