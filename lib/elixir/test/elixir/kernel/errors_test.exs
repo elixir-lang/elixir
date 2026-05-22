@@ -161,23 +161,7 @@ defmodule Kernel.ErrorsTest do
 
   test "cascading from undefined variables" do
     # Test that we show undefined modules/functions/macros on variable failure,
-    # as sometimes the variable failure come from a missing module or require
-    assert_compile_error(
-      [
-        "nofile:3:23",
-        "undefined variable \"bar\"",
-        "nofile:3:19",
-        "function UnknownModule.foo/1 is undefined (module UnknownModule is not available)"
-      ],
-      ~c"""
-      defmodule Sample do
-        def foo do
-          UnknownModule.foo(bar)
-        end
-      end
-      """
-    )
-
+    # as sometimes the variable failure come from a missing require/export
     assert_compile_error(
       [
         "nofile:3:20",
