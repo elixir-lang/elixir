@@ -2109,7 +2109,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: {:case, :!}],
+      [optimize_boolean: true, type_check: {:case, :"!!"}],
       quote do
         case unquote(value) do
           x when unquote(x_is_false_or_nil()) -> false
