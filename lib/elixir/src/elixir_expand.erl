@@ -970,7 +970,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
       SA#elixir_ex.tainted_function andalso is_atom(Receiver) andalso
-        (not is_loaded_and_exported(Receiver, Right, Args)) andalso
+        is_loaded_and_not_exported(Receiver, Right, Args) andalso
         elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_function, Receiver, Right, length(Args)}),
 
       Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, AttachedMeta, EArgs),
@@ -993,9 +993,9 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
-is_loaded_and_exported(Receiver, Fun, Args) ->
+is_loaded_and_not_exported(Receiver, Fun, Args) ->
   (code:ensure_loaded(Receiver) =:= {module, Receiver}) andalso
-    erlang:function_exported(Receiver, Fun, length(Args)).
+    not erlang:function_exported(Receiver, Fun, length(Args)).
 
 attach_runtime_module(Receiver, Meta, S, _E) ->
   case lists:member(Receiver, S#elixir_ex.runtime_modules) of
