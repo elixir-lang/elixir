@@ -494,30 +494,7 @@ defmodule Kernel.GuardTest do
 
       assert expand_defguard_to_string(:with_or_and_or, args, nil) == """
              {arg1, arg2, arg3} = {1 + 1, 2 + 2, 3 + 3}
-
-             case arg1 do
-               false ->
-                 case arg2 do
-                   false ->
-                     false
-
-                   true ->
-                     case arg3 do
-                       false -> arg1
-                       true -> true
-                       other -> :erlang.error({:badbool, :or, other})
-                     end
-
-                   other ->
-                     :erlang.error({:badbool, :and, other})
-                 end
-
-               true ->
-                 true
-
-               other ->
-                 :erlang.error({:badbool, :or, other})
-             end
+             :erlang.orelse(arg1, :erlang.andalso(arg2, :erlang.orelse(arg3, arg1)))
              """
     end
 

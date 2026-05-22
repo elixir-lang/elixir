@@ -293,7 +293,10 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
       _ -> {'__block__', [], EPrelude ++ [EBindingQuoted]}
     end,
 
-  {{{'.', Meta, [elixir_quote, validate_quote]}, Meta, [EBlock]}, ES, EQ};
+  case ?key(E, context) of
+    nil -> {{{'.', Meta, [elixir_quote, validate_quote]}, Meta, [EBlock]}, ES, EQ};
+    _ -> {EBlock, ES, EQ}
+  end;
 
 expand({quote, Meta, [_, _]}, _S, E) ->
   file_error(Meta, E, ?MODULE, {invalid_args, 'quote'});
