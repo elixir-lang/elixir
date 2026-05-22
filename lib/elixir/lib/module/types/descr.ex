@@ -2205,14 +2205,13 @@ defmodule Module.Types.Descr do
   defp list_new(list_type, last_type), do: bdd_leaf_new(list_type, last_type)
 
   defp non_empty_list_literals_intersection(list_literals) do
-    try do
-      Enum.reduce(list_literals, {:term, :term}, fn bdd_leaf(next_list, next_last),
-                                                    {list, last} ->
-        {non_empty_intersection!(list, next_list), non_empty_intersection!(last, next_last)}
+    {list, last} =
+      Enum.reduce(list_literals, {:term, :term}, fn
+        bdd_leaf(next_list, next_last), {list, last} ->
+          {intersection(list, next_list), intersection(last, next_last)}
       end)
-    catch
-      :empty -> :empty
-    end
+
+    if empty?(list) or empty?(last), do: :empty, else: {list, last}
   end
 
   # Takes all the lines from the root to the leaves finishing with a 1,
@@ -5026,15 +5025,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Detecting tuples built with none() fields
-  defp tuple_literal_intersection(:open, [], tag, elements) do
-    if Enum.any?(elements, &empty?/1) do
-      :empty
-    else
-      {tag, elements}
-    end
-  end
-
   defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
     case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
       :disjoint ->
@@ -5052,21 +5042,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 != n2, do: :disjoint
-  defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 == n2, do: :left_subtype_of_right
-  defp tuple_sizes_strategy(:closed, n1, :open, n2) when n1 < n2, do: :disjoint
-  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 >= n2, do: :left_subtype_of_right
-  defp tuple_sizes_strategy(:open, n1, :closed, n2) when n1 > n2, do: :disjoint
-  defp tuple_sizes_strategy(_, _, _, _), do: :none
-
   # Intersects two lists of types, and _appends_ the extra elements to the result.
-  defp zip_non_empty_intersection!([], types2, acc) do
-    if Enum.any?(types2, &empty?/1), do: throw(:empty), else: Enum.reverse(acc, types2)
-  end
-
-  defp zip_non_empty_intersection!(types1, [], acc) do
-    if Enum.any?(types1, &empty?/1), do: throw(:empty), else: Enum.reverse(acc, types1)
-  end
+  defp zip_non_empty_intersection!([], types2, acc), do: Enum.reverse(acc, types2)
+  defp zip_non_empty_intersection!(types1, [], acc), do: Enum.reverse(acc, types1)
 
   defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc) do
     zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
@@ -5081,6 +5059,13 @@ defmodule Module.Types.Descr do
       false -> zip_empty_intersection?(rest1, rest2)
     end
   end
+
+  defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 != n2, do: :disjoint
+  defp tuple_sizes_strategy(:closed, n1, :closed, n2) when n1 == n2, do: :left_subtype_of_right
+  defp tuple_sizes_strategy(:closed, n1, :open, n2) when n1 < n2, do: :disjoint
+  defp tuple_sizes_strategy(_, n1, :open, n2) when n1 >= n2, do: :left_subtype_of_right
+  defp tuple_sizes_strategy(:open, n1, :closed, n2) when n1 > n2, do: :disjoint
+  defp tuple_sizes_strategy(_, _, _, _), do: :none
 
   defp tuple_difference(_, bdd_leaf(:open, [])),
     do: :bdd_bot
@@ -5112,15 +5097,33 @@ defmodule Module.Types.Descr do
 
   defp non_empty_tuple_literals_intersection(tuples) do
     try do
-      Enum.reduce(tuples, {:open, []}, fn bdd_leaf(next_tag, next_elements), {tag, elements} ->
-        case tuple_literal_intersection(tag, elements, next_tag, next_elements) do
-          :empty -> throw(:empty)
-          next -> next
+      Enum.reduce(tuples, {:open, []}, fn bdd_leaf(tag1, elements1), {tag2, elements2} ->
+        case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
+          :disjoint ->
+            throw(:empty)
+
+          _ ->
+            tag = if tag1 == :open and tag2 == :open, do: :open, else: :closed
+            {tag, zip_intersection(elements1, elements2, [])}
         end
       end)
     catch
       :empty -> :empty
+    else
+      {tag, elements} ->
+        if Enum.any?(elements, &empty?/1) do
+          :empty
+        else
+          {tag, elements}
+        end
     end
+  end
+
+  defp zip_intersection([], types2, acc), do: Enum.reverse(acc, types2)
+  defp zip_intersection(types1, [], acc), do: Enum.reverse(acc, types1)
+
+  defp zip_intersection([type1 | rest1], [type2 | rest2], acc) do
+    zip_intersection(rest1, rest2, [intersection(type1, type2) | acc])
   end
 
   defp tuple_empty?(bdd) do
