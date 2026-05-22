@@ -1564,7 +1564,18 @@ defmodule Module.Types.Pattern do
 
                 #{expr_to_string({:!, [], [expr]}) |> indent(4)}
 
-            will always evaluate to true because the expression has type:
+            will always evaluate to true because its inner expression has type:
+
+                #{to_quoted_string(type) |> indent(4)}
+            """
+
+          {:case, :"!!"} ->
+            """
+            the following conditional expression:
+
+                #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
+
+            will always evaluate to false because its inner expression has type:
 
                 #{to_quoted_string(type) |> indent(4)}
             """
@@ -1721,7 +1732,18 @@ defmodule Module.Types.Pattern do
 
                   #{expr_to_string({:!, [], [expr]}) |> indent(4)}
 
-              will always evaluate to false because the expression has type:
+              will always evaluate to false because its inner expression has type:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            op == :"!!" ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
+
+              will always evaluate to true because its inner expression has type:
 
                   #{to_quoted_string(type) |> indent(4)}
               """

@@ -2375,7 +2375,7 @@ defmodule Module.Types.ExprTest do
 
                  !x
 
-             will always evaluate to false because the expression has type:
+             will always evaluate to false because its inner expression has type:
 
                  integer()
 
@@ -2391,7 +2391,7 @@ defmodule Module.Types.ExprTest do
 
                  !x
 
-             will always evaluate to true because the expression has type:
+             will always evaluate to true because its inner expression has type:
 
                  dynamic(nil)
              """
@@ -2399,9 +2399,9 @@ defmodule Module.Types.ExprTest do
       assert typeerror!([x = 123], !!x) =~ ~l"""
              the following conditional expression:
 
-                 !x
+                 !!x
 
-             will always evaluate to false because the expression has type:
+             will always evaluate to true because its inner expression has type:
 
                  integer()
 
@@ -2410,6 +2410,16 @@ defmodule Module.Types.ExprTest do
                  # type: integer()
                  # from: types_test.ex:LINE
                  x = 123
+             """
+
+      assert typewarn!([x = nil], !!x) |> elem(1) =~ ~l"""
+             the following conditional expression:
+
+                 !!x
+
+             will always evaluate to false because its inner expression has type:
+
+                 dynamic(nil)
              """
     end
   end
