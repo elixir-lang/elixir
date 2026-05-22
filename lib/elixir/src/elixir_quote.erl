@@ -7,7 +7,9 @@
 -feature(maybe_expr, enable).
 
 -export([escape/3, linify/3, linify_with_context_counter/3, build/7, quote/2, has_unquotes/1, fun_to_quoted/1]).
--export([dot/5, tail_list/3, list/2, validate_runtime/2, shallow_validate_ast/1]). %% Quote callbacks
+
+%% Quote callbacks (appear in code, must be handled by the type system)
+-export([dot/5, tail_list/3, list/2, unquote/1, validate_quote/1, validate_runtime/2, shallow_validate_ast/1]).
 
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
@@ -23,7 +25,7 @@
   imports_hygiene=nil,
   unquote=true,
   generated=false,
-  shallow_validate=false
+  validate=false
 }).
 
 %% fun_to_quoted
@@ -273,10 +275,13 @@ build(Meta, Line, File, Context, Unquote, Generated, E) ->
     unquote=Unquote,
     context=VContext,
     generated=Generated,
-    shallow_validate=true
+    validate=true
   },
 
   {Q, VContext, Acc3}.
+
+validate_quote(Expr) ->
+  Expr.
 
 validate_compile(_Meta, line, Value, Acc) when is_boolean(Value) ->
   {Value, Acc};
@@ -312,27 +317,6 @@ is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
 is_valid(generated, Generated) -> is_boolean(Generated);
 is_valid(unquote, Unquote) -> is_boolean(Unquote).
 
-shallow_validate_ast(Expr) ->
-  case shallow_valid_ast(Expr) of
-    true -> Expr;
-    false -> argument_error(
-      <<"tried to unquote invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary,
-        "\nDid you forget to escape term using Macro.escape/1?">>)
-  end.
-
-shallow_valid_ast(Expr) when is_list(Expr) -> valid_ast_list(Expr);
-shallow_valid_ast(Expr) -> valid_ast_elem(Expr).
-
-valid_ast_list([]) -> true;
-valid_ast_list([Head | Tail]) -> valid_ast_elem(Head) andalso valid_ast_list(Tail);
-valid_ast_list(_Improper) -> false.
-
-valid_ast_elem(Expr) when is_list(Expr); is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr); is_function(Expr) -> true;
-valid_ast_elem({Left, Right}) -> valid_ast_elem(Left) andalso valid_ast_elem(Right);
-valid_ast_elem({Atom, Meta, Args}) when is_atom(Atom), is_list(Meta), is_atom(Args) orelse is_list(Args) -> true;
-valid_ast_elem({Call, Meta, Args}) when is_list(Meta), is_list(Args) -> shallow_valid_ast(Call);
-valid_ast_elem(_Term) -> false.
-
 quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=true}) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
@@ -362,9 +346,9 @@ do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
 
   {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
-do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true, shallow_validate=Validate}) when is_list(Meta) ->
+do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true, validate=Validate}) when is_list(Meta) ->
   case Validate of
-    true -> {{'.', Meta, [?MODULE, shallow_validate_ast]}, Meta, [Expr]};
+    true -> {{'.', Meta, [?MODULE, unquote]}, Meta, [Expr]};
     false -> Expr
   end;
 
@@ -490,7 +474,7 @@ collect_trace_import_quoted([], _Mod, Acc, Arities) ->
 do_quote_call(Left, Meta, Expr, Args, Q) ->
   All  = [Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
   TAll = [do_quote(X, Q) || X <- All],
-  {{'.', Meta, [elixir_quote, dot]}, Meta, [meta(Meta, Q) | TAll]}.
+  {{'.', Meta, [?MODULE, dot]}, Meta, [meta(Meta, Q) | TAll]}.
 
 do_quote_tuple({Left, Meta, Right}, Q) ->
   do_quote_tuple(Left, Meta, Right, Q).
@@ -533,12 +517,14 @@ do_list_concat([], Right) -> Right;
 do_list_concat(Left, Right) -> {{'.', [], [erlang, '++']}, [], [Left, Right]}.
 
 do_runtime_list(Meta, Fun, Args) ->
-  {{'.', Meta, [elixir_quote, Fun]}, Meta, Args}.
+  {{'.', Meta, [?MODULE, Fun]}, Meta, Args}.
 
-%% Callbacks
+%% Unquote validation callbacks
+%%
+%% They perform shallow runtime validation for performance
+%% reasons but will be type checked in the future for full
+%% validation.
 
-%% Some expressions cannot be unquoted at compilation time.
-%% This function is responsible for doing runtime unquoting.
 dot(Meta, Left, Right, Args, Context) ->
   annotate(dot(Meta, Left, Right, Args), Context).
 
@@ -589,11 +575,36 @@ tail_list(Left, Right, Tail) when is_list(Left) ->
   end.
 
 validate_list(List) ->
-  case valid_ast_list(List) of
+  case shallow_valid_list(List) of
     true -> ok;
     false -> argument_error(<<"expected a list with quoted expressions in unquote_splicing/1, got: ",
                    ('Elixir.Kernel':inspect(List))/binary>>)
   end.
+
+unquote(Expr) ->
+  case shallow_valid_ast(Expr) of
+    true -> Expr;
+    false -> argument_error(
+      <<"tried to unquote invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary,
+        "\nDid you forget to escape term using Macro.escape/1?">>)
+  end.
+
+shallow_valid_ast(Expr) when is_list(Expr) -> shallow_valid_list(Expr);
+shallow_valid_ast(Expr) -> shallow_valid_elem(Expr).
+
+shallow_valid_list([]) -> true;
+shallow_valid_list([Head | Tail]) -> shallow_valid_elem(Head) andalso shallow_valid_list(Tail);
+shallow_valid_list(_Improper) -> false.
+
+shallow_valid_elem(Expr) when is_list(Expr); is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr); is_function(Expr) -> true;
+shallow_valid_elem({Left, Right}) -> shallow_valid_elem(Left) andalso shallow_valid_elem(Right);
+shallow_valid_elem({Atom, Meta, Args}) when is_atom(Atom), is_list(Meta), is_atom(Args) orelse is_list(Args) -> true;
+shallow_valid_elem({Call, Meta, Args}) when is_list(Meta), is_list(Args) -> shallow_valid_ast(Call);
+shallow_valid_elem(_Term) -> false.
+
+%% TODO: We keep this with backwards compatibility in previous compiled Elixirw code.
+shallow_validate_ast(Expr) ->
+  unquote(Expr).
 
 argument_error(Message) ->
   error('Elixir.ArgumentError':exception([{message, Message}])).
