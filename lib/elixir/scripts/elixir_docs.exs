@@ -101,7 +101,9 @@ canonical = System.fetch_env!("CANONICAL")
   ],
   skip_code_autolink_to: [
     "Enumerable.List",
-    "Inspect.MapSet"
+    "Inspect.MapSet",
+    "Macro.Env.fetch_alias/2",
+    "Macro.Env.fetch_macro_alias/2"
   ],
   formatters: ["html", "markdown", "epub"],
   groups_for_modules: [
