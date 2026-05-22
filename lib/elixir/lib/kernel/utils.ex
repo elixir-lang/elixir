@@ -369,9 +369,7 @@ defmodule Kernel.Utils do
   end
 
   # Prefaces `guard` with unquoted versions of `refs`.
-  defp unquote_refs_once(guard, refs, %{module: module} = env) do
-    env = %{env | context: nil}
-
+  defp unquote_refs_once(guard, refs, %{module: module}) do
     {guard, used_refs} =
       Macro.postwalk(guard, %{}, fn
         {ref, meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
@@ -392,12 +390,6 @@ defmodule Kernel.Utils do
             false ->
               {var, acc}
           end
-
-        {{:., dot_meta, [:erlang, :orelse]}, meta, [left, right]}, acc ->
-          {Macro.expand({{:., dot_meta, [Kernel, :or]}, meta, [left, right]}, env), acc}
-
-        {{:., dot_meta, [:erlang, :andalso]}, meta, [left, right]}, acc ->
-          {Macro.expand({{:., dot_meta, [Kernel, :and]}, meta, [left, right]}, env), acc}
 
         node, acc ->
           {node, acc}

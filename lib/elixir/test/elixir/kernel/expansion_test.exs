@@ -679,7 +679,8 @@ defmodule Kernel.ExpansionTest do
 
   describe "quote" do
     test "expanded to raw forms" do
-      assert expand(quote(do: quote(do: hello)), []) == {:{}, [], [:hello, [], __MODULE__]}
+      assert {{:., _, [:elixir_quote, :validate_quote]}, _, [{:{}, [], [:hello, [], __MODULE__]}]} =
+               expand(quote(do: quote(do: hello)), [])
     end
 
     test "raises if the :bind_quoted option is invalid" do

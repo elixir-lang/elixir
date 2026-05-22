@@ -320,6 +320,20 @@ defmodule Module.Types.InferTest do
            ]
   end
 
+  test "from defguard (regression with large code generation)", config do
+    # As long as it type checks in time, we are fine,
+    # but it should infer Macro.t in the future.
+    infer config do
+      defguard is_erlang_app(app) when app in ~w(
+        inets ftp os_mon parsetools mnesia eldap eunit observer
+        dialyzer runtime_tools edoc diameter wx debugger ssh et
+        sasl ssl asn1 snmp erts tools stdlib reltool kernel crypto
+        tftp erl_interface syntax_tools megaco public_key
+        common_test xmerl compiler jinterface
+      )
+    end
+  end
+
   test "from defaults (regression with multiple clauses)", config do
     types =
       infer config do
