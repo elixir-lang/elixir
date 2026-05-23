@@ -579,11 +579,7 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
 translate_remote(lists, member, Meta, [Expr, []], S) ->
   Ann = ?ann(Meta),
   {TExpr, S1} = translate(Expr, Ann, S),
-  {VarName, S2} = elixir_erl_var:build('_', S1),
-  Generated = erl_anno:set_generated(true, Ann),
-  Var = {var, Generated, VarName},
-  Block = {block, Generated, [{match, Generated, Var, TExpr}, {atom, Ann, false}]},
-  {Block, S2};
+  {{block, Ann, [{match, Ann, {var, Ann, '_'}, TExpr}, {atom, Ann, false}]}, S1};
 translate_remote(lists, member, Meta, [Expr, [Head | Tail] = List], S) ->
   Ann = ?ann(Meta),
 

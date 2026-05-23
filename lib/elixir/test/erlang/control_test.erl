@@ -63,7 +63,7 @@ optimized_or_test() ->
 optimized_in_test() ->
   {'block', _,
     [{match,_,
-      {var, _, '_1'},
+      {var, _, '_'},
       {call, _, {remote, _, {atom, _, 'Elixir.IO'}, {atom, _, puts}}, [{atom, _, hi}]}},
     {atom, _, false}]
   } = to_erl("IO.puts(:hi) in []"),
