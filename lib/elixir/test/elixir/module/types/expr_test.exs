@@ -1820,6 +1820,11 @@ defmodule Module.Types.ExprTest do
     test "Kernel.in/2" do
       assert typecheck!(
                [x],
+               x in []
+             ) == boolean()
+
+      assert typecheck!(
+               [x],
                (
                  true = x in [:foo, 1, :bar, 2.0, :baz]
                  x

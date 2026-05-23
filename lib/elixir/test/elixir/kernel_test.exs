@@ -697,7 +697,7 @@ defmodule KernelTest do
              """
 
       # Empty list
-      assert expand_to_string(quote(do: :x in [])) =~ "_ = :x\nfalse"
+      assert expand_to_string(quote(do: :x in [])) =~ ":lists.member(:x, [])"
       assert expand_to_string(quote(do: :x in []), :guard) == "false"
 
       # Lists

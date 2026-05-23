@@ -576,6 +576,9 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
     {clause, Generated, [Var], [[Guard]], [Fast]},
     {clause, Generated, [Var], [], [Slow]}
   ]}, VS};
+translate_remote(lists, member, Meta, [_Expr, []], S) ->
+  Ann = ?ann(Meta),
+  {{atom, Ann, false}, S};
 translate_remote(lists, member, Meta, [Expr, [Head | Tail] = List], S) ->
   Ann = ?ann(Meta),
 

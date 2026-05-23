@@ -4703,10 +4703,8 @@ defmodule Kernel do
         false
 
       [] ->
-        quote do
-          _ = unquote(left)
-          false
-        end
+        # inlined as false in erlang pass
+        quote(do: :lists.member(unquote(left), []))
 
       [head | tail] = list ->
         case in_body? do
