@@ -541,7 +541,7 @@ defmodule System do
   By default, the Erlang VM register traps to the three
   signals:
 
-    * `:sigstop` - gracefully shuts down the VM with `stop/0`
+    * `:sigterm` - gracefully shuts down the VM with `stop/0`
     * `:sigquit` - halts the VM via `halt/0`
     * `:sigusr1` - halts the VM via status code of 1
 
