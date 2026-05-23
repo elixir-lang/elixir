@@ -1821,7 +1821,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(
                [x],
                x in []
-             ) == boolean()
+             ) == atom([false])
 
       assert typecheck!(
                [x],
