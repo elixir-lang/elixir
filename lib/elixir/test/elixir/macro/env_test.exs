@@ -75,7 +75,7 @@ defmodule Macro.EnvTest do
   test "to_match/1" do
     quote = quote(do: x in [])
 
-    assert {:__block__, [], [{:=, [], [{:_, [], Kernel}, {:x, [], Macro.EnvTest}]}, false]} =
+    assert {{:., [], [:lists, :member]}, [], [{:x, [], Macro.EnvTest}, []]} =
              Macro.expand_once(quote, __ENV__)
 
     assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false

@@ -329,7 +329,7 @@ defmodule Module.Types.Helpers do
             end
         end
 
-      {{:., _, [:lists, :member]}, meta, [expr, [_ | _] = args]} = call ->
+      {{:., _, [:lists, :member]}, meta, [expr, args]} = call when is_list(args) ->
         if Enum.any?(args, &match?({:|, _, [_, _]}, &1)) do
           call
         else

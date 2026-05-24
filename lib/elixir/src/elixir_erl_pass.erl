@@ -576,6 +576,10 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
     {clause, Generated, [Var], [[Guard]], [Fast]},
     {clause, Generated, [Var], [], [Slow]}
   ]}, VS};
+translate_remote(lists, member, Meta, [Expr, []], S) ->
+  Ann = ?ann(Meta),
+  {TExpr, S1} = translate(Expr, Ann, S),
+  {{block, Ann, [{match, Ann, {var, Ann, '_'}, TExpr}, {atom, Ann, false}]}, S1};
 translate_remote(lists, member, Meta, [Expr, [Head | Tail] = List], S) ->
   Ann = ?ann(Meta),
 
