@@ -461,6 +461,11 @@ defmodule KernelTest do
       refute 2 in []
       refute false in []
       refute true in []
+
+      # make sure optimization still evaluates the left-hand side
+      # (do not use assert/refute which handle in/2 differently)
+      send(self(), :foo) in []
+      assert_received :foo
     end
 
     test "with expressions on right side" do
@@ -697,7 +702,7 @@ defmodule KernelTest do
              """
 
       # Empty list
-      assert expand_to_string(quote(do: :x in [])) =~ "_ = :x\nfalse"
+      assert expand_to_string(quote(do: :x in [])) =~ ":lists.member(:x, [])"
       assert expand_to_string(quote(do: :x in []), :guard) == "false"
 
       # Lists

@@ -60,6 +60,23 @@ optimized_or_test() ->
      {clause, _, [{atom, _, true}], [], [{atom, _, true}]}]
   } = to_erl("is_list([]) or :done").
 
+optimized_in_test() ->
+  {'block', _,
+    [{match,_,
+      {var, _, '_'},
+      {call, _, {remote, _, {atom, _, 'Elixir.IO'}, {atom, _, puts}}, [{atom, _, hi}]}},
+    {atom, _, false}]
+  } = to_erl("IO.puts(:hi) in []"),
+  {'block', _,
+    [{match,_,
+      {var, _, '_1'},
+      {call, _, {remote, _, {atom, _, 'Elixir.IO'}, {atom, _, puts}}, [{atom, _, hi}]}},
+    {op, _, 'orelse',
+      {op, _, '=:=', {var, _ , '_1'}, {integer, _, 1}},
+      {op, _, '=:=', {var, _ , '_1'}, {integer, _, 2}}
+      }]
+  } = to_erl("IO.puts(:hi) in [1, 2]").
+
 no_after_in_try_test() ->
   {'try', _, [_], [], [_], []} = to_erl("try do :foo.bar() catch _ -> :ok end").
 

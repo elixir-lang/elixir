@@ -20,6 +20,8 @@ defmodule Module.Types.HelpersTest do
       assert expr_to_string(quote(do: :erlang.list_to_atom(a))) == "List.to_atom(a)"
       assert expr_to_string(quote(do: :erlang.element(1, a))) == "elem(a, 0)"
       assert expr_to_string(quote(do: :erlang.element(:erlang.+(a, 1), b))) == "elem(b, a)"
+      assert expr_to_string(quote(do: :lists.member(a, []))) == "a in []"
+      assert expr_to_string(quote(do: :lists.member(a, [:foo, :bar]))) == "a in [:foo, :bar]"
     end
 
     test "Kernel macros" do

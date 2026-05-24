@@ -242,7 +242,11 @@ defmodule Module.Types.Apply do
         {Kernel, :put_elem, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
 
         ## Lists
-        {:lists, :member, [{[term(), list(term())], boolean()}]},
+        {:lists, :member,
+         [
+           {[term(), empty_list()], atom([false])},
+           {[term(), non_empty_list(term())], boolean()}
+         ]},
 
         ## Map
         {Map, :delete, [{[open_map(), term()], open_map()}]},
