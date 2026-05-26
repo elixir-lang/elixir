@@ -219,6 +219,24 @@ defmodule Registry.DuplicateTest do
            |> Enum.sort() == [{self(), value1}, {self(), value2}]
   end
 
+  test "uses exact complex keys in lookup and match", %{registry: registry} do
+    tuple_key = {:_, :topic}
+    map_key = %{b: "b"}
+
+    {:ok, _} = Registry.register(registry, tuple_key, :tuple)
+    {:ok, _} = Registry.register(registry, {:other, :topic}, :other_tuple)
+    {:ok, _} = Registry.register(registry, map_key, :map)
+    {:ok, _} = Registry.register(registry, %{a: "a", b: "b"}, :superset_map)
+
+    assert Registry.lookup(registry, tuple_key) == [{self(), :tuple}]
+    assert Registry.match(registry, tuple_key, :_) == [{self(), :tuple}]
+    assert Registry.count_match(registry, tuple_key, :_) == 1
+
+    assert Registry.lookup(registry, map_key) == [{self(), :map}]
+    assert Registry.match(registry, map_key, :_) == [{self(), :map}]
+    assert Registry.count_match(registry, map_key, :_) == 1
+  end
+
   test "count_match supports match patterns", %{registry: registry} do
     value = {1, :atom, 1}
     {:ok, _} = Registry.register(registry, "hello", value)
@@ -471,55 +489,69 @@ defmodule Registry.DuplicateTest do
     end
   end
 
-  # Keys like :_ and :"$1" are reserved atoms in ETS match spec syntax.
-  # These tests verify that they work correctly as literal registry keys.
+  # Keys that use reserved ETS match syntax need exact comparisons.
+  test "supports reserved keys", %{registry: registry} do
+    keys = register_reserved_keys(registry, :match_phase)
 
-  test "unregister with reserved-atom keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, :foo)
-    {:ok, _} = Registry.register(registry, :_, :bar)
-    {:ok, _} = Registry.register(registry, "hello", "a")
-    {:ok, _} = Registry.register(registry, "hello", "b")
+    assert Registry.lookup(registry, keys.good_key) == [{self(), keys.good_value}]
 
-    Registry.unregister(registry, :_)
-    assert Registry.keys(registry, self()) |> Enum.sort() == ["hello", "hello"]
-  end
+    assert Registry.lookup(registry, keys.reserved_key) |> Enum.sort() ==
+             [{self(), keys.reserved_value1}, {self(), keys.reserved_value2}]
 
-  test "unregister_match with reserved-atom keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, :foo)
-    {:ok, _} = Registry.register(registry, :_, :bar)
-    {:ok, _} = Registry.register(registry, "hello", "a")
-    {:ok, _} = Registry.register(registry, "hello", "b")
+    assert Registry.lookup(registry, keys.variable_tuple_key) == [
+             {self(), keys.variable_tuple_value}
+           ]
 
-    Registry.unregister_match(registry, :_, :foo)
-    assert Registry.lookup(registry, :_) == [{self(), :bar}]
+    assert Registry.lookup(registry, keys.dollar_list_key) == [{self(), keys.dollar_list_value}]
+    assert Registry.lookup(registry, keys.map_key) == [{self(), keys.map_value}]
 
-    assert Registry.keys(registry, self()) |> Enum.sort() == [:_, "hello", "hello"]
-  end
+    assert Registry.match(registry, keys.good_key, :_) == [{self(), keys.good_value}]
 
-  test "match with reserved-atom keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, {1, :atom})
-    {:ok, _} = Registry.register(registry, :_, {2, :atom})
-    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
-    {:ok, _} = Registry.register(registry, "hello", "a")
+    assert Registry.match(registry, keys.reserved_key, :_) |> Enum.sort() ==
+             [{self(), keys.reserved_value1}, {self(), keys.reserved_value2}]
 
-    assert Registry.match(registry, :_, {:_, :atom}) |> Enum.sort() ==
-             [{self(), {1, :atom}}, {self(), {2, :atom}}]
+    assert Registry.match(registry, keys.variable_tuple_key, :_) == [
+             {self(), keys.variable_tuple_value}
+           ]
 
-    assert Registry.match(registry, :_, {1, :_}) == [{self(), {1, :atom}}]
-    assert Registry.match(registry, :"$1", {:_, :atom}) == [{self(), {3, :atom}}]
-    assert Registry.match(registry, "hello", :_) == [{self(), "a"}]
-  end
+    assert Registry.match(registry, keys.dollar_list_key, :_) == [
+             {self(), keys.dollar_list_value}
+           ]
 
-  test "count_match with reserved-atom keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, {1, :atom})
-    {:ok, _} = Registry.register(registry, :_, {2, :atom})
-    {:ok, _} = Registry.register(registry, :"$1", {3, :atom})
-    {:ok, _} = Registry.register(registry, "hello", "a")
+    assert Registry.match(registry, keys.map_key, :_) == [{self(), keys.map_value}]
 
-    assert Registry.count_match(registry, :_, {:_, :atom}) == 2
-    assert Registry.count_match(registry, :_, {1, :_}) == 1
-    assert Registry.count_match(registry, :"$1", {:_, :atom}) == 1
-    assert Registry.count_match(registry, "hello", :_) == 1
+    assert Registry.count_match(registry, keys.good_key, :_) == 1
+    assert Registry.count_match(registry, keys.reserved_key, :_) == 2
+    assert Registry.count_match(registry, keys.variable_tuple_key, :_) == 1
+    assert Registry.count_match(registry, keys.dollar_list_key, :_) == 1
+    assert Registry.count_match(registry, keys.map_key, :_) == 1
+
+    Registry.unregister_match(registry, keys.reserved_key, keys.reserved_value1)
+    Registry.unregister_match(registry, keys.variable_tuple_key, keys.variable_tuple_value)
+    Registry.unregister_match(registry, keys.dollar_list_key, keys.dollar_list_value)
+    Registry.unregister_match(registry, keys.map_key, keys.map_value)
+
+    assert Registry.lookup(registry, keys.good_key) == [{self(), keys.good_value}]
+    assert Registry.lookup(registry, keys.reserved_key) == [{self(), keys.reserved_value2}]
+    assert Registry.lookup(registry, keys.variable_tuple_key) == []
+    assert Registry.lookup(registry, keys.dollar_list_key) == []
+    assert Registry.lookup(registry, keys.map_key) == []
+    assert Registry.lookup(registry, keys.map_superset_key) == [{self(), keys.map_superset_value}]
+
+    keys = register_reserved_keys(registry, :unregister_phase)
+
+    Registry.unregister(registry, keys.good_key)
+    Registry.unregister(registry, keys.reserved_key)
+    Registry.unregister(registry, keys.variable_tuple_key)
+    Registry.unregister(registry, keys.dollar_list_key)
+    Registry.unregister(registry, keys.map_key)
+
+    assert Registry.lookup(registry, keys.good_key) == []
+    assert Registry.lookup(registry, keys.reserved_key) == []
+    assert Registry.lookup(registry, keys.variable_tuple_key) == []
+    assert Registry.lookup(registry, keys.dollar_list_key) == []
+    assert Registry.lookup(registry, keys.map_key) == []
+    assert Registry.lookup(registry, keys.map_superset_key) == [{self(), keys.map_superset_value}]
   end
 
   test "select with reserved-atom keys", %{registry: registry} do
@@ -566,6 +598,33 @@ defmodule Registry.DuplicateTest do
              Registry.count_select(registry, [
                {{:"$2", :_, :_}, [{:"=:=", :"$2", {:const, :"$1"}}], [true]}
              ])
+  end
+
+  defp register_reserved_keys(registry, label) do
+    keys = %{
+      good_key: {:good, label},
+      good_value: {:good, label},
+      reserved_key: :_,
+      reserved_value1: {:reserved, label, 1},
+      reserved_value2: {:reserved, label, 2},
+      variable_tuple_key: {:"$1", label},
+      variable_tuple_value: {:tuple, label},
+      dollar_list_key: [:"$$", label],
+      dollar_list_value: {:list, label},
+      map_key: %{label: label, b: "b"},
+      map_value: {:map, label},
+      map_superset_key: %{label: label, a: "a", b: "b"},
+      map_superset_value: {:superset_map, label}
+    }
+
+    {:ok, _} = Registry.register(registry, keys.good_key, keys.good_value)
+    {:ok, _} = Registry.register(registry, keys.reserved_key, keys.reserved_value1)
+    {:ok, _} = Registry.register(registry, keys.reserved_key, keys.reserved_value2)
+    {:ok, _} = Registry.register(registry, keys.variable_tuple_key, keys.variable_tuple_value)
+    {:ok, _} = Registry.register(registry, keys.dollar_list_key, keys.dollar_list_value)
+    {:ok, _} = Registry.register(registry, keys.map_key, keys.map_value)
+    {:ok, _} = Registry.register(registry, keys.map_superset_key, keys.map_superset_value)
+    keys
   end
 
   defp register_task(registry, key, value) do

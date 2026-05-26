@@ -110,6 +110,56 @@ defmodule Registry.UniqueTest do
              [{self(), value}]
   end
 
+  test "supports reserved keys", %{registry: registry} do
+    keys = register_reserved_keys(registry, :match_phase)
+
+    assert Registry.match(registry, keys.good_key, :_) == [{self(), keys.good_value}]
+    assert Registry.match(registry, keys.reserved_key, :_) == [{self(), keys.reserved_value}]
+
+    assert Registry.match(registry, keys.variable_tuple_key, :_) == [
+             {self(), keys.variable_tuple_value}
+           ]
+
+    assert Registry.match(registry, keys.dollar_list_key, :_) == [
+             {self(), keys.dollar_list_value}
+           ]
+
+    assert Registry.match(registry, keys.map_key, :_) == [{self(), keys.map_value}]
+
+    assert Registry.count_match(registry, keys.good_key, :_) == 1
+    assert Registry.count_match(registry, keys.reserved_key, :_) == 1
+    assert Registry.count_match(registry, keys.variable_tuple_key, :_) == 1
+    assert Registry.count_match(registry, keys.dollar_list_key, :_) == 1
+    assert Registry.count_match(registry, keys.map_key, :_) == 1
+
+    Registry.unregister_match(registry, keys.reserved_key, keys.reserved_value)
+    Registry.unregister_match(registry, keys.variable_tuple_key, keys.variable_tuple_value)
+    Registry.unregister_match(registry, keys.dollar_list_key, keys.dollar_list_value)
+    Registry.unregister_match(registry, keys.map_key, keys.map_value)
+
+    assert Registry.lookup(registry, keys.good_key) == [{self(), keys.good_value}]
+    assert Registry.lookup(registry, keys.reserved_key) == []
+    assert Registry.lookup(registry, keys.variable_tuple_key) == []
+    assert Registry.lookup(registry, keys.dollar_list_key) == []
+    assert Registry.lookup(registry, keys.map_key) == []
+    assert Registry.lookup(registry, keys.map_superset_key) == [{self(), keys.map_superset_value}]
+
+    keys = register_reserved_keys(registry, :unregister_phase)
+
+    Registry.unregister(registry, keys.good_key)
+    Registry.unregister(registry, keys.reserved_key)
+    Registry.unregister(registry, keys.variable_tuple_key)
+    Registry.unregister(registry, keys.dollar_list_key)
+    Registry.unregister(registry, keys.map_key)
+
+    assert Registry.lookup(registry, keys.good_key) == []
+    assert Registry.lookup(registry, keys.reserved_key) == []
+    assert Registry.lookup(registry, keys.variable_tuple_key) == []
+    assert Registry.lookup(registry, keys.dollar_list_key) == []
+    assert Registry.lookup(registry, keys.map_key) == []
+    assert Registry.lookup(registry, keys.map_superset_key) == [{self(), keys.map_superset_value}]
+  end
+
   test "count_match supports match patterns", %{registry: registry} do
     value = {1, :atom, 1}
     {:ok, _} = Registry.register(registry, "hello", value)
@@ -152,15 +202,6 @@ defmodule Registry.UniqueTest do
 
     Registry.unregister_match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}])
     assert Registry.lookup(registry, "hello") == []
-  end
-
-  test "unregister_match supports tricky keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, :foo)
-    {:ok, _} = Registry.register(registry, "hello", "b")
-
-    Registry.unregister_match(registry, :_, :foo)
-    assert Registry.lookup(registry, :_) == []
-    assert Registry.keys(registry, self()) |> Enum.sort() == ["hello"]
   end
 
   test "compares using ===", %{registry: registry} do
@@ -208,15 +249,6 @@ defmodule Registry.UniqueTest do
 
   test "unregisters with no entries", %{registry: registry} do
     assert Registry.unregister(registry, "hello") == :ok
-  end
-
-  test "unregisters with tricky keys", %{registry: registry} do
-    {:ok, _} = Registry.register(registry, :_, :foo)
-    {:ok, _} = Registry.register(registry, "hello", "b")
-
-    Registry.unregister(registry, :_)
-    assert Registry.lookup(registry, :_) == []
-    assert Registry.keys(registry, self()) |> Enum.sort() == ["hello"]
   end
 
   @tag base_listener: :unique_listener
@@ -471,6 +503,31 @@ defmodule Registry.UniqueTest do
              Registry.register(registry, "hello", :recent)
 
     assert sum_pid_entries(registry, partitions) == 2
+  end
+
+  defp register_reserved_keys(registry, label) do
+    keys = %{
+      good_key: {:good, label},
+      good_value: {:good, label},
+      reserved_key: :_,
+      reserved_value: {:reserved, label},
+      variable_tuple_key: {:"$1", label},
+      variable_tuple_value: {:tuple, label},
+      dollar_list_key: [:"$$", label],
+      dollar_list_value: {:list, label},
+      map_key: %{label: label, b: "b"},
+      map_value: {:map, label},
+      map_superset_key: %{label: label, a: "a", b: "b"},
+      map_superset_value: {:superset_map, label}
+    }
+
+    {:ok, _} = Registry.register(registry, keys.good_key, keys.good_value)
+    {:ok, _} = Registry.register(registry, keys.reserved_key, keys.reserved_value)
+    {:ok, _} = Registry.register(registry, keys.variable_tuple_key, keys.variable_tuple_value)
+    {:ok, _} = Registry.register(registry, keys.dollar_list_key, keys.dollar_list_value)
+    {:ok, _} = Registry.register(registry, keys.map_key, keys.map_value)
+    {:ok, _} = Registry.register(registry, keys.map_superset_key, keys.map_superset_value)
+    keys
   end
 
   defp register_task(registry, key, value) do

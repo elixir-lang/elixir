@@ -1127,22 +1127,26 @@ defmodule Registry do
   end
 
   defp unregister_match_specs({:duplicate, :key}, key, self, pattern, guards) do
-    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+    if exact_match_key?(key) do
+      {[{{{key, self, :_}, :_}, [], [true]}], [{{{key, self, :_}, pattern}, guards, [true]}]}
+    else
       guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
       pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, self}}
 
       {[{{{:_, :_, :_}, :_}, [guard, pid_guard], [true]}],
        [{{{:_, :_, :_}, pattern}, [guard, pid_guard | guards], [true]}]}
-    else
-      {[{{{key, self, :_}, :_}, [], [true]}], [{{{key, self, :_}, pattern}, guards, [true]}]}
     end
   end
 
   defp unregister_match_specs(_kind, key, self, pattern, guards) do
-    underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
+    if exact_match_key?(key) do
+      {[{{key, {self, :_}}, [], [true]}], [{{key, {self, pattern}}, guards, [true]}]}
+    else
+      underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
 
-    {[{{:_, {self, :_}}, [underscore_guard], [true]}],
-     [{{:_, {self, pattern}}, [underscore_guard | guards], [true]}]}
+      {[{{:_, {self, :_}}, [underscore_guard], [true]}],
+       [{{:_, {self, pattern}}, [underscore_guard | guards], [true]}]}
+    end
   end
 
   @doc """
@@ -1618,11 +1622,11 @@ defmodule Registry do
 
   defp lookup_second({:duplicate, :key}, ets, key) do
     spec =
-      if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      if exact_match_key?(key) do
+        [{{{key, :"$1", :_}, :"$2"}, [], [{{:"$1", :"$2"}}]}]
+      else
         guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
         [{{{:_, :"$1", :_}, :"$2"}, [guard], [{{:"$1", :"$2"}}]}]
-      else
-        [{{{key, :"$1", :_}, :"$2"}, [], [{{:"$1", :"$2"}}]}]
       end
 
     try do
@@ -1664,25 +1668,24 @@ defmodule Registry do
   def __unregister__(table, match, pos, ordered \\ false)
 
   def __unregister__(table, {key, {pid, :_}}, 1, true = _ordered) do
-    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+    if exact_match_key?(key) do
+      :ets.match_delete(table, {{key, pid, :_}, :_})
+    else
       guard = {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}}
       pid_guard = {:"=:=", {:element, 2, {:element, 1, :"$_"}}, {:const, pid}}
       :ets.select_delete(table, [{{:_, :_}, [guard, pid_guard], [true]}]) >= 0
-    else
-      :ets.match_delete(table, {{key, pid, :_}, :_})
     end
   end
 
   def __unregister__(table, match, pos, false = _ordered) do
     key = :erlang.element(pos, match)
 
-    # We need to perform an element comparison if we have a special atom key.
-    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+    if exact_match_key?(key) do
+      :ets.match_delete(table, match)
+    else
       match = :erlang.setelement(pos, match, :_)
       guard = {:"=:=", {:element, pos, :"$_"}, {:const, key}}
       :ets.select_delete(table, [{match, [guard], [true]}]) >= 0
-    else
-      :ets.match_delete(table, match)
     end
   end
 
@@ -1693,42 +1696,72 @@ defmodule Registry do
   defp match_spec({:duplicate, :key}, key, pattern, guards) do
     body = [{{{:element, 2, {:element, 1, :"$_"}}, {:element, 2, :"$_"}}}]
 
-    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+    if exact_match_key?(key) do
+      [{{{key, :_, :_}, pattern}, guards, body}]
+    else
       guards = [
         {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}} | guards
       ]
 
       [{{{:_, :_, :_}, pattern}, guards, body}]
-    else
-      [{{{key, :_, :_}, pattern}, guards, body}]
     end
   end
 
   defp match_spec(_kind, key, pattern, guards) do
-    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-    [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+    if exact_match_key?(key) do
+      [{{key, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+    else
+      guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+      [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+    end
   end
 
   defp count_match_spec({:duplicate, :key}, key, pattern, guards) do
-    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+    if exact_match_key?(key) do
+      [{{{key, :_, :_}, pattern}, guards, [true]}]
+    else
       guards = [
         {:"=:=", {:element, 1, {:element, 1, :"$_"}}, {:const, key}} | guards
       ]
 
       [{{{:_, :_, :_}, pattern}, guards, [true]}]
-    else
-      [{{{key, :_, :_}, pattern}, guards, [true]}]
     end
   end
 
   defp count_match_spec(_kind, key, pattern, guards) do
-    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-    [{{:_, {:_, pattern}}, guards, [true]}]
+    if exact_match_key?(key) do
+      [{{key, {:_, pattern}}, guards, [true]}]
+    else
+      guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+      [{{:_, {:_, pattern}}, guards, [true]}]
+    end
   end
 
-  defp reserved_atom?("_"), do: true
-  defp reserved_atom?("$" <> _), do: true
-  defp reserved_atom?(_), do: false
+  # Only keys that remain exact when embedded in an ETS match head can use
+  # the optimized direct-key match path.
+  defp exact_match_key?(term) when is_map(term), do: false
+  defp exact_match_key?([]), do: true
+  defp exact_match_key?([head | tail]), do: exact_match_key?(head) and exact_match_key?(tail)
+
+  defp exact_match_key?(term) when is_tuple(term) do
+    exact_match_tuple?(term, tuple_size(term))
+  end
+
+  defp exact_match_key?(term) when is_atom(term) do
+    case Atom.to_string(term) do
+      "_" -> false
+      "$" <> _ -> false
+      _ -> true
+    end
+  end
+
+  defp exact_match_key?(_term), do: true
+
+  defp exact_match_tuple?(_term, 0), do: true
+
+  defp exact_match_tuple?(term, index) do
+    exact_match_key?(:erlang.element(index, term)) and exact_match_tuple?(term, index - 1)
+  end
 
   defp ordered?({:duplicate, :key}), do: true
   defp ordered?(_), do: false
