@@ -2241,6 +2241,61 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "refines static expression type from predicates" do
+      assert typecheck!(
+               [bin?],
+               (
+                 x =
+                   if bin? do
+                     "foo"
+                   else
+                     1
+                   end
+
+                 if is_binary(x) do
+                   String.length(x)
+                 else
+                   x + 1
+                 end
+               )
+             )
+             |> equal?(union(dynamic(), integer()))
+
+      message =
+        typeerror!(
+          [bin?, int?, bool?],
+          (
+            x =
+              if bin? do
+                "foo"
+              else
+                if int? do
+                  1
+                else
+                  if bool? do
+                    true
+                  else
+                    false
+                  end
+                end
+              end
+
+            if is_binary(x) do
+              String.length(x)
+            else
+              x + 1
+            end
+          )
+        )
+        |> strip_ansi()
+
+      assert message =~ "incompatible types given to Kernel.+/2"
+      assert message =~ "boolean() or integer(), integer()"
+      assert message =~ "# type: binary() or boolean() or integer()"
+      assert message =~ "# type: boolean() or integer()"
+      refute message =~ "dynamic("
+    end
+
     test "refines nested expression type" do
       assert typecheck!(
                case (if x = System.get_env("HELLO") do

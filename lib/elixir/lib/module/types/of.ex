@@ -136,6 +136,23 @@ defmodule Module.Types.Of do
             {old_type, context}
         end
 
+      _ when stack.reverse_arrow == :use ->
+        new_type = intersection(old_type, type)
+
+        case empty?(new_type) do
+          false when new_type != old_type ->
+            data = %{
+              data
+              | type: new_type,
+                off_traces: new_trace(expr, new_type, stack, off_traces)
+            }
+
+            {new_type, %{context | vars: %{vars | version => data}}}
+
+          _ ->
+            {old_type, context}
+        end
+
       _ ->
         case gradual?(old_type) and compatible_intersection(old_type, type) do
           {:ok, new_type} when new_type != old_type ->
