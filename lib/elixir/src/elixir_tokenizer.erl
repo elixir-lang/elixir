@@ -1438,7 +1438,7 @@ suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
     {error, _Reason} ->
        ConfusableSkeleton = 'Elixir.String.Tokenizer.Security':confusable_skeleton(Wrong),
        case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(ConfusableSkeleton) of
-         {_, Simpler, _, _, _, _} ->
+         {_, Simpler, _, _, _, _} when Simpler =/= Wrong ->
            Message = suggest_change("Codepoint failed identifier tokenization, but a simpler form was found.",
                                     Wrong,
                                     "You could write the above in a similar way that is accepted by Elixir:",

@@ -1353,6 +1353,12 @@ defmodule Kernel.ParserTest do
       ]
 
       assert_syntax_error(message, ~c"fooی𝚳")
+
+      # regression test: ǜ (should not suggest back the wrong character)
+      assert_syntax_error(
+        ["nofile:1:4:", ~s/unexpected token: "#{"\u01DC"}" (column 4, code point U+01DC)/],
+        ~c":fooǜ"
+      )
     end
 
     test "keyword missing space" do
