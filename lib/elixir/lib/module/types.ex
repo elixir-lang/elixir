@@ -628,7 +628,7 @@ defmodule Module.Types do
       mode: mode,
       # The function for handling local calls
       local_handler: handler,
-      # Reverse arrow handling (nil | :cache | :use)
+      # Reverse arrow handling (nil | :cache | :except_none | :include_none)
       reverse_arrow: nil
     }
   end

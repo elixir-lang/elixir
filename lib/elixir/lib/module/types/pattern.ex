@@ -1018,9 +1018,10 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_guards(guards, vars, stack, context) do
+    stack = %{stack | reverse_arrow: :except_none}
+
     context =
       init_pattern_info(context, %{
-        guard_context: :andalso,
         parent_version: nil,
         vars: vars,
         subpatterns_vars: %{},
@@ -1063,10 +1064,6 @@ defmodule Module.Types.Pattern do
   defp update_parent_version(parent_version, %{pattern_info: pattern_info} = context) do
     {pattern_info.parent_version,
      %{context | pattern_info: %{pattern_info | parent_version: parent_version}}}
-  end
-
-  defp enable_conditional_mode(%{pattern_info: pattern_info} = context) do
-    %{context | pattern_info: %{pattern_info | guard_context: :orelse}, conditional_vars: %{}}
   end
 
   defp maybe_badguard(type, guard, stack, context) do
@@ -1294,7 +1291,8 @@ defmodule Module.Types.Pattern do
         of_guard(left, expected, left, stack, context)
 
       true ->
-        cond_context = enable_conditional_mode(context)
+        cond_context = %{context | conditional_vars: %{}}
+        stack = %{stack | reverse_arrow: :include_none}
 
         # Compute the sure types, which are stored directly in the context
         {_type, context} = of_guard(left, boolean(), left, stack, context)

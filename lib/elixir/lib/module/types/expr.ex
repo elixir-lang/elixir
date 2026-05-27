@@ -311,7 +311,7 @@ defmodule Module.Types.Expr do
         maybe_always_or_never_match_cond(pos_head_type, pos_head, pos_meta, stack, context, false)
 
       {_, truthy_context} =
-        of_expr(pos_head, @truthy, pos_head, %{stack | reverse_arrow: :use}, context)
+        of_expr(pos_head, @truthy, pos_head, %{stack | reverse_arrow: :except_none}, context)
 
       # Keep the context except the warnings, and compute the body
       truthy_context = reset_warnings(truthy_context, context)
@@ -323,7 +323,7 @@ defmodule Module.Types.Expr do
       context = Of.reset_vars(pos_body_context, context)
 
       {_, falsy_context} =
-        of_expr(pos_head, @falsy, pos_head, %{stack | reverse_arrow: :use}, context)
+        of_expr(pos_head, @falsy, pos_head, %{stack | reverse_arrow: :except_none}, context)
 
       falsy_context = reset_warnings(falsy_context, context)
 
@@ -355,7 +355,7 @@ defmodule Module.Types.Expr do
               maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?)
 
             {_, truthy_context} =
-              of_expr(head, @truthy, head, %{stack | reverse_arrow: :use}, context)
+              of_expr(head, @truthy, head, %{stack | reverse_arrow: :except_none}, context)
 
             # Keep the context except the warnings, and compute the body
             truthy_context = reset_warnings(truthy_context, context)
@@ -369,7 +369,7 @@ defmodule Module.Types.Expr do
                 context
               else
                 {_, falsy_context} =
-                  of_expr(head, @falsy, head, %{stack | reverse_arrow: :use}, context)
+                  of_expr(head, @falsy, head, %{stack | reverse_arrow: :except_none}, context)
 
                 reset_warnings(falsy_context, context)
               end
@@ -382,7 +382,7 @@ defmodule Module.Types.Expr do
   end
 
   def of_expr({:case, meta, [case_expr, [do: _clauses]]}, expected, _expr, stack, context)
-      when stack.reverse_arrow == :use do
+      when stack.reverse_arrow in [:except_none, :include_none] do
     version = Keyword.fetch!(meta, :version)
     clauses = Map.fetch!(context.reverse_arrows, version)
     original = context
@@ -461,7 +461,13 @@ defmodule Module.Types.Expr do
 
             # Now we refine the case_expr context and use it to compute the body
             {_, refined_context} =
-              of_expr(case_expr, arg_type, case_expr, %{stack | reverse_arrow: :use}, context)
+              of_expr(
+                case_expr,
+                arg_type,
+                case_expr,
+                %{stack | reverse_arrow: :except_none},
+                context
+              )
 
             {body_type, context} =
               of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
@@ -483,7 +489,13 @@ defmodule Module.Types.Expr do
           head_type = Enum.reduce(clauses_acc, none(), &union(elem(&1, 0), &2))
 
           {_, refined_context} =
-            of_expr(case_expr, head_type, case_expr, %{stack | reverse_arrow: :use}, context)
+            of_expr(
+              case_expr,
+              head_type,
+              case_expr,
+              %{stack | reverse_arrow: :except_none},
+              context
+            )
 
           reset_warnings(refined_context, context)
         else
@@ -879,7 +891,7 @@ defmodule Module.Types.Expr do
     [pattern_type] = Pattern.of_domain(trees, stack, context)
 
     {_, refined_context} =
-      of_expr(right, pattern_type, right, %{stack | reverse_arrow: :use}, context)
+      of_expr(right, pattern_type, right, %{stack | reverse_arrow: :except_none}, context)
 
     else_type = if precise?, do: difference(type, pattern_type), else: type
     {union(else_type, else_types), reset_warnings(refined_context, context)}
@@ -949,7 +961,7 @@ defmodule Module.Types.Expr do
         context = put_in(context.reverse_arrows[version], result)
         {result, context}
 
-      :use ->
+      _ ->
         version = Keyword.fetch!(meta, :version)
         {Map.fetch!(context.reverse_arrows, version), context}
     end

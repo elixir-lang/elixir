@@ -2261,39 +2261,58 @@ defmodule Module.Types.ExprTest do
              )
              |> equal?(union(dynamic(), integer()))
 
-      message =
-        typeerror!(
-          [bin?, int?, bool?],
-          (
-            x =
-              if bin? do
-                "foo"
-              else
-                if int? do
-                  1
-                else
-                  if bool? do
-                    true
-                  else
-                    false
-                  end
-                end
-              end
+      assert typeerror!(
+               [bin?, int?, bool?],
+               (
+                 x =
+                   if bin? do
+                     "foo"
+                   else
+                     if int? do
+                       1
+                     else
+                       if bool? do
+                         true
+                       else
+                         false
+                       end
+                     end
+                   end
 
-            if is_binary(x) do
-              String.length(x)
-            else
-              x + 1
-            end
-          )
-        )
-        |> strip_ansi()
+                 if is_binary(x) do
+                   String.length(x)
+                 else
+                   x + 1
+                 end
+               )
+             )
+             |> strip_ansi() =~ ~l"""
+             incompatible types given to Kernel.+/2:
 
-      assert message =~ "incompatible types given to Kernel.+/2"
-      assert message =~ "boolean() or integer(), integer()"
-      assert message =~ "# type: binary() or boolean() or integer()"
-      assert message =~ "# type: boolean() or integer()"
-      refute message =~ "dynamic("
+                 x + 1
+
+             given types:
+
+                 boolean() or integer(), integer()
+
+             but expected one of:
+
+                 #1
+                 integer(), integer()
+
+                 #2
+                 integer(), float()
+
+                 #3
+                 float(), integer()
+
+                 #4
+                 float(), float()
+
+             where "x" was given the types:
+
+                 # type: binary() or boolean() or integer()
+             """
     end
 
     test "refines nested expression type" do

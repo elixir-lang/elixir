@@ -106,15 +106,15 @@ defmodule Module.Types.Of do
           context
       end
 
-    case context do
+    case stack do
       _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
         {old_type, context}
 
-      %{pattern_info: %{guard_context: guard_context}} ->
+      %{reverse_arrow: reverse_arrow} when reverse_arrow in [:except_none, :include_none] ->
         new_type = intersection(old_type, type)
 
         case empty?(new_type) do
-          true when guard_context == :orelse ->
+          true when reverse_arrow == :include_none ->
             data = %{
               data
               | type: none(),
@@ -123,23 +123,6 @@ defmodule Module.Types.Of do
 
             {none(), %{context | vars: %{vars | version => data}}}
 
-          false when new_type != old_type ->
-            data = %{
-              data
-              | type: new_type,
-                off_traces: new_trace(expr, new_type, stack, off_traces)
-            }
-
-            {new_type, %{context | vars: %{vars | version => data}}}
-
-          _ ->
-            {old_type, context}
-        end
-
-      _ when stack.reverse_arrow == :use ->
-        new_type = intersection(old_type, type)
-
-        case empty?(new_type) do
           false when new_type != old_type ->
             data = %{
               data
