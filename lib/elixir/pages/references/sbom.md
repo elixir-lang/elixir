@@ -146,4 +146,4 @@ See the [ORT Mix plugin documentation](https://oss-review-toolkit.org/ort/docs/p
 
   * [CycloneDX Specification](https://cyclonedx.org/specification/overview/): learn more about the SBoM format
   * [OWASP Dependency-Track](https://dependencytrack.org/): continuous SBoM analysis platform
-  * [mix_sbom documentation](https://hexdocs.pm/sbom): full documentation and advanced options
+  * [mix_sbom documentation](https://sbom.hexdocs.pm): full documentation and advanced options

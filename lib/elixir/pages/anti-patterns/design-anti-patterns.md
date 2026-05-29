@@ -226,7 +226,7 @@ end
 
 While you may receive the `address` as a string from a database, web request, or a third-party, if you find yourself frequently manipulating or extracting information from the string, it is a good indicator you should convert the address into structured data:
 
-Another example of this anti-pattern is using floating numbers to model money and currency, when [richer data structures should be preferred](https://hexdocs.pm/ex_money/).
+Another example of this anti-pattern is using floating numbers to model money and currency, when [richer data structures should be preferred](https://ex-money.hexdocs.pm/).
 
 #### Refactoring
 
@@ -350,7 +350,7 @@ The difference here is that the `struct/2` function behaves precisely the same f
 
 #### Problem
 
-The [*application environment*](https://hexdocs.pm/elixir/Application.html#module-the-application-environment) can be used to parameterize global values that can be used in an Elixir system. This mechanism can be very useful and therefore is not considered an anti-pattern by itself. However, library authors should avoid using the application environment to configure their library. The reason is exactly that the application environment is a **global** state, so there can only be a single value for each key in the environment for an application. This makes it impossible for multiple applications depending on the same library to configure the same aspect of the library in different ways.
+The [*application environment*](https://elixir.hexdocs.pm/Application.html#module-the-application-environment) can be used to parameterize global values that can be used in an Elixir system. This mechanism can be very useful and therefore is not considered an anti-pattern by itself. However, library authors should avoid using the application environment to configure their library. The reason is exactly that the application environment is a **global** state, so there can only be a single value for each key in the environment for an application. This makes it impossible for multiple applications depending on the same library to configure the same aspect of the library in different ways.
 
 #### Example
 

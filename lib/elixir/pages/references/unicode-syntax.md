@@ -37,7 +37,7 @@ Mixed-script identifiers are not supported for security reasons. 'аdmin' is mad
   \u006E n {Latin}
 
 Make sure all characters in the identifier resolve to a single script or a highly
-restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+restrictive script. See https://elixir.hexdocs.pm/unicode-syntax.html for more information.
 ```
 
 Finally, Elixir will also warn of confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.

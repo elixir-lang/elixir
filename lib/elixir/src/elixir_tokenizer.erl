@@ -1406,7 +1406,7 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
       case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
         no_suggestion ->
           %% we append a pointer to more info if we aren't appending a suggestion
-          MoreInfo = "\nSee https://hexdocs.pm/elixir/unicode-syntax.html for more information.",
+          MoreInfo = "\nSee https://elixir.hexdocs.pm/unicode-syntax.html for more information.",
           {error, {?LOC(Line, Column), {Prefix, Suffix ++ MoreInfo}, Wrong}};
 
         {_, {Location, _, SuggestionMessage}} = _SuggestionError ->
@@ -1443,7 +1443,7 @@ suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
                                     Wrong,
                                     "You could write the above in a similar way that is accepted by Elixir:",
                                     Simpler,
-                                    "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."),
+                                    "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."),
            {error, {?LOC(Line, WrongColumn), "unexpected token: ", Message}};
          _other ->
            no_suggestion
@@ -1453,7 +1453,7 @@ suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
                                Wrong,
                                "You could write the above in a compatible format that is accepted by Elixir:",
                                NFKC,
-                               "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."),
+                               "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."),
           {error, {?LOC(Line, WrongColumn), "unexpected token: ", Message}}
     end.
 

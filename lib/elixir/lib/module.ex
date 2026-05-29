@@ -190,7 +190,7 @@ defmodule Module do
 
     * a string (often a heredoc)
     * `false`, which will make the entity invisible to documentation-extraction
-      tools like [`ExDoc`](https://hexdocs.pm/ex_doc/)
+      tools like [`ExDoc`](https://ex-doc.hexdocs.pm/)
     * a keyword list, since Elixir 1.7.0
 
   For example:
@@ -216,7 +216,7 @@ defmodule Module do
 
   As can be seen in the example above, since Elixir 1.7.0 `@doc` and `@typedoc`
   also accept a keyword list that serves as a way to provide arbitrary metadata
-  about the entity. Tools like [`ExDoc`](https://hexdocs.pm/ex_doc/) and
+  about the entity. Tools like [`ExDoc`](https://ex-doc.hexdocs.pm/) and
   `IEx` may use this information to display annotations. A common use
   case is the `:since` key, which may be used to annotate in which version the
   function was introduced.
@@ -263,7 +263,7 @@ defmodule Module do
 
   Tools may use this information to ensure the module is recompiled
   in case any of the external resources change, see for example:
-  [`mix compile.elixir`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html).
+  [`mix compile.elixir`](https://mix.hexdocs.pm/Mix.Tasks.Compile.Elixir.html).
 
   The specified file path provided is interpreted as relative to
   the folder containing the project's `mix.exs`, which is the
@@ -321,7 +321,7 @@ defmodule Module do
 
   Accepts a string (often a heredoc) or `false` where `@moduledoc false`
   will make the module invisible to documentation extraction tools like
-  [`ExDoc`](https://hexdocs.pm/ex_doc/).
+  [`ExDoc`](https://ex-doc.hexdocs.pm/).
 
   Similarly to `@doc` also accepts a keyword list to provide metadata
   about the module. For more details, see the documentation of `@doc`

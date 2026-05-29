@@ -155,7 +155,7 @@ defmodule Mix do
   > #### Avoiding the application environment {: .warning}
   >
   > The application environment is discouraged for libraries. See Elixir's
-  > [Library Guidelines](https://hexdocs.pm/elixir/library-guidelines.html) for
+  > [Library Guidelines](https://elixir.hexdocs.pm/library-guidelines.html) for
   > more information.
 
   ### Build-time configuration
@@ -398,7 +398,7 @@ defmodule Mix do
 
   If you simply want to change the certificates used by Mix and Hex, you may set
   the `HEX_CACERTS_PATH` environment variable, pointing to a CA certificate file.
-  See [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys).
+  See [`mix hex.config`](https://hex.hexdocs.pm/Mix.Tasks.Hex.Config.html#module-config-keys).
 
   From Erlang/OTP 27.2, it is also possible to change the certificates for your
   project as a whole. To do so, you might add the following to your `config/config.exs`:

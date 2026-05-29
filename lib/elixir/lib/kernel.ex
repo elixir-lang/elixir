@@ -6278,7 +6278,7 @@ defmodule Kernel do
   step through the code it sees). For general stepping, you can set breakpoints
   using `IEx.break!/4`.
 
-  For more information, [see IEx documentation](https://hexdocs.pm/iex/IEx.html#module-dbg-and-breakpoints).
+  For more information, [see IEx documentation](https://iex.hexdocs.pm/IEx.html#module-dbg-and-breakpoints).
 
   ## Configuring the debug function
 
@@ -7051,7 +7051,7 @@ defmodule Kernel do
       :guard ->
         raise ArgumentError,
               "invalid expression in guard, #{exp} is not allowed in guards. " <>
-                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
+                "To learn more about guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html"
 
       _ ->
         :ok

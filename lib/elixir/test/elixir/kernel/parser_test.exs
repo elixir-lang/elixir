@@ -1332,7 +1332,7 @@ defmodule Kernel.ParserTest do
         ~s/"foO𝚳" (code points 0x00066 0x0006F 0x0004F 0x1D6B3)/,
         "Hint: You could write the above in a similar way that is accepted by Elixir:",
         ~s/"foOM" (code points 0x00066 0x0006F 0x0004F 0x0004D)/,
-        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
+        "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."
       ]
 
       assert_syntax_error(message, ~c"foO𝚳")
@@ -1349,7 +1349,7 @@ defmodule Kernel.ParserTest do
         ~s/"𝚳" (code points 0x1D6B3)/,
         "Hint: You could write the above in a compatible format that is accepted by Elixir:",
         ~s/"Μ" (code points 0x0039C)/,
-        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
+        "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."
       ]
 
       assert_syntax_error(message, ~c"fooی𝚳")
