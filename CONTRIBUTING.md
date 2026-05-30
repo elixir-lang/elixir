@@ -135,7 +135,7 @@ make docs
 
 This will produce documentation sets for `elixir`, `eex`, `ex_unit`, `iex`, `logger`,
 and `mix` under the `doc` directory. If you are planning to contribute documentation,
-[please check our best practices for writing documentation](https://hexdocs.pm/elixir/writing-documentation.html).
+[please check our best practices for writing documentation](https://elixir.hexdocs.pm/writing-documentation.html).
 
 ## Licensing and Compliance Requirements
 

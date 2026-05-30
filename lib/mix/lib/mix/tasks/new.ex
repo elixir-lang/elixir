@@ -286,7 +286,7 @@ defmodule Mix.Tasks.New do
 
   Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
   and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-  be found at <https://hexdocs.pm/<%= @app %>>.
+  be found at <https://<%= String.replace(@app, "_", "-") %>.hexdocs.pm>.
   <% end %>
   """)
 
@@ -469,7 +469,7 @@ defmodule Mix.Tasks.New do
 
   embed_template(:lib_app, """
   defmodule <%= @mod %>.Application do
-    # See https://hexdocs.pm/elixir/Application.html
+    # See https://elixir.hexdocs.pm/Application.html
     # for more information on OTP Applications
     @moduledoc false
 
@@ -482,7 +482,7 @@ defmodule Mix.Tasks.New do
         # {<%= @mod %>.Worker, arg}
       ]
 
-      # See https://hexdocs.pm/elixir/Supervisor.html
+      # See https://elixir.hexdocs.pm/Supervisor.html
       # for other strategies and supported options
       opts = [strategy: :one_for_one, name: <%= @mod %>.Supervisor]
       Supervisor.start_link(children, opts)

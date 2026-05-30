@@ -2699,7 +2699,7 @@ defmodule Macro do
       :guard ->
         raise ArgumentError,
               "invalid expression in guard, dbg is not allowed in guards. " <>
-                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
+                "To learn more about guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html"
 
       _ ->
         :ok

@@ -42,7 +42,11 @@ latest =
 version_nodes =
   for version <- versions do
     version_string = Version.to_string(version)
-    map = %{version: "v#{version_string}", url: "https://hexdocs.pm/#{app}/#{version_string}"}
+
+    map = %{
+      version: "v#{version_string}",
+      url: "https://#{String.replace(app, "_", "-")}.hexdocs.pm/#{version_string}"
+    }
 
     if version_string == latest do
       Map.put(map, :latest, true)

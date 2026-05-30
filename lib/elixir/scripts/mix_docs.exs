@@ -21,12 +21,12 @@ canonical = System.fetch_env!("CANONICAL")
     }
   ],
   deps: [
-    eex: "https://hexdocs.pm/eex/#{canonical}",
-    elixir: "https://hexdocs.pm/elixir/#{canonical}",
-    ex_unit: "https://hexdocs.pm/ex_unit/#{canonical}",
-    iex: "https://hexdocs.pm/iex/#{canonical}",
-    logger: "https://hexdocs.pm/logger/#{canonical}",
-    mix: "https://hexdocs.pm/mix/#{canonical}"
+    eex: "https://eex.hexdocs.pm/#{canonical}",
+    elixir: "https://elixir.hexdocs.pm/#{canonical}",
+    ex_unit: "https://ex-unit.hexdocs.pm/#{canonical}",
+    iex: "https://iex.hexdocs.pm/#{canonical}",
+    logger: "https://logger.hexdocs.pm/#{canonical}",
+    mix: "https://mix.hexdocs.pm/#{canonical}"
   ],
   formatters: ["html", "markdown", "epub"],
   before_closing_body_tag: fn

@@ -79,11 +79,11 @@ canonical = System.fetch_env!("CANONICAL")
     "CHANGELOG.md"
   ],
   deps: [
-    eex: "https://hexdocs.pm/eex/#{canonical}",
-    ex_unit: "https://hexdocs.pm/ex_unit/#{canonical}",
-    iex: "https://hexdocs.pm/iex/#{canonical}",
-    logger: "https://hexdocs.pm/logger/#{canonical}",
-    mix: "https://hexdocs.pm/mix/#{canonical}"
+    eex: "https://eex.hexdocs.pm/#{canonical}",
+    ex_unit: "https://ex-unit.hexdocs.pm/#{canonical}",
+    iex: "https://iex.hexdocs.pm/#{canonical}",
+    logger: "https://logger.hexdocs.pm/#{canonical}",
+    mix: "https://mix.hexdocs.pm/#{canonical}"
   ],
   groups_for_extras: [
     "Getting started": ~r"pages/getting-started/.*\.md$",

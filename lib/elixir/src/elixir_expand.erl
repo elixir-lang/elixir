@@ -1248,12 +1248,12 @@ format_error({invalid_expr_in_scope, Scope, Kind}) ->
 format_error({invalid_expr_in_guard, Kind}) ->
   Message =
     "invalid expression in guards, ~ts is not allowed in guards. To learn more about "
-    "guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html#guards",
+    "guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html#guards",
   io_lib:format(Message, [Kind]);
 format_error({invalid_expr_in_bitsize, Kind}) ->
   Message =
     "~ts is not allowed inside a bitstring size specifier. The size specifier in matches works like guards. "
-    "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html#guards",
+    "To learn more about guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html#guards",
   io_lib:format(Message, [Kind]);
 format_error({invalid_alias, Expr}) ->
   Message =
