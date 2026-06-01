@@ -332,7 +332,7 @@ defmodule IO.ANSI do
   end
 
   defp do_format([], [], acc, true, true) do
-    [acc | IO.ANSI.reset()]
+    [acc | reset()]
   end
 
   defp do_format([], [], acc, _emit?, _append_reset) do
