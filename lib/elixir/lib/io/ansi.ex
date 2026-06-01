@@ -319,7 +319,6 @@ defmodule IO.ANSI do
   end
 
   defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
-    format_sequence(term)
     do_format([], rem, acc, false, append_reset)
   end
 
@@ -332,7 +331,7 @@ defmodule IO.ANSI do
   end
 
   defp do_format([], [], acc, true, true) do
-    [acc | IO.ANSI.reset()]
+    [acc | reset()]
   end
 
   defp do_format([], [], acc, _emit?, _append_reset) do
