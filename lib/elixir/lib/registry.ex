@@ -21,8 +21,8 @@ defmodule Registry do
   the `:via` option), storing properties, custom dispatching rules, or a pubsub
   implementation. We explore some of those use cases below.
 
-  The registry may also be transparently partitioned, which provides
-  more scalable behavior for running registries on highly concurrent
+  The registry may also be transparently partitioned with the `:partitions` option,
+  which provides more scalable behavior for running registries on highly concurrent
   environments with thousands or millions of entries.
 
   ## Using in `:via`
@@ -1488,8 +1488,9 @@ defmodule Registry do
   that reference the underlying entry structure via `:"$_"` will return different results.
   Use named variables like `:"$1"`, `:"$2"`, `:"$3"` instead.
 
-  Note that for large registries with many partitions this will be costly as it builds the result by
-  concatenating all the partitions.
+  Note that for registries with many partitions, the result of each partition is concatenated.
+  Therefore selecting thousands of entries across partitions may become an expensive operation
+  and we recommend profiling/benchmarking whenever selecting too many entries.
 
   ## Examples
 
