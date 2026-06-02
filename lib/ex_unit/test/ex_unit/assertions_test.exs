@@ -615,6 +615,76 @@ defmodule ExUnit.AssertionsTest do
     :world = world
   end
 
+  describe "trace" do
+    test "delivers receive trace messages to the calling process" do
+      pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
+
+      trace(pid, [:receive], fn ->
+        send(pid, {:hello, :world})
+        assert_receive {:trace, ^pid, :receive, {:hello, :world}}
+      end)
+    end
+
+    test "delivers send trace messages to the calling process" do
+      parent = self()
+      pid = spawn_link(fn -> receive(do: (:go -> send(parent, :done))) end)
+
+      trace(pid, [:send], fn ->
+        send(pid, :go)
+        assert_receive {:trace, ^pid, :send, :done, ^parent}
+      end)
+    end
+
+    test "traces function calls" do
+      pid = spawn_link(fn -> receive(do: (:go -> Map.get(%{a: 1}, :a))) end)
+
+      trace(pid, [call: {Map, :get, 2}], fn ->
+        send(pid, :go)
+        assert_receive {:trace, ^pid, :call, {Map, :get, [%{a: 1}, :a]}}
+      end)
+    end
+
+    test "returns the value of the function" do
+      pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
+      :result = trace(pid, [:receive], fn -> :result end)
+    end
+
+    test "stops tracing and flushes messages once the function returns" do
+      pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
+
+      trace(pid, [:receive], fn -> send(pid, :during) end)
+
+      send(pid, :after)
+      refute_received {:trace, ^pid, :receive, _}
+    end
+
+    test "custom setup" do
+      pid =
+        spawn_link(fn ->
+          receive do
+            _ ->
+              receive do
+                _ -> :ok
+              end
+          end
+        end)
+
+      trace(
+        pid,
+        [:receive],
+        fn session ->
+          :trace.recv(session, [{[:_, :_, {:reply, :_}], [], []}], [])
+        end,
+        fn ->
+          send(pid, {:reply, :foo})
+          send(pid, {:other, :bar})
+          assert_receive {:trace, ^pid, :receive, {:reply, :foo}}
+          refute_receive {:trace, ^pid, :receive, {:other, :bar}}
+        end
+      )
+    end
+  end
+
   test "refute received does not wait" do
     false = refute_received :hello
   end

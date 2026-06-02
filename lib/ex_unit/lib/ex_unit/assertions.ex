@@ -1077,6 +1077,104 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Traces `pid` while `fun` runs, delivering trace messages to the calling process.
+
+  This is a thin wrapper around Erlang's [trace sessions](`:trace`) that lets you
+  assert on the internal behaviour of a process — the messages it sends and
+  receives, the functions it calls, and so on — using the regular
+  `assert_receive/3` and `assert_received/2` assertions.
+
+  Tracing is enabled before `fun` is invoked and disabled once it returns. The
+  value returned by `fun` is returned.
+
+  `flags` is a list of trace flags. In addition to the process trace flags
+  documented in `:trace.process/4` (such as `:send`, `:receive`, and `:procs`),
+  it accepts `{:call, {module, function, arity}}` entries to trace calls to the
+  given function. See the documentation for `:trace.function/4` on the shape of
+  the `mfa` tuple for details.
+
+  Trace messages are delivered to the calling process in the shapes documented
+  in `:trace.process/4`, for example `{:trace, pid, :receive, message}` or
+  `{:trace, pid, :call, {module, function, args}}`. Because they are delivered
+  asynchronously, prefer `assert_receive/3` over `assert_received/2`.
+
+  Trace messages left in the mailbox once `fun` returns are not flushed.
+
+  ## Examples
+
+  Asserting that a process receives a message:
+
+      trace(pid, [:receive], fn ->
+        send(pid, {:event, "click"})
+        assert_receive {:trace, ^pid, :receive, {:event, "click"}}
+      end)
+
+  Tracing function calls to `Map.get/2`:
+
+      trace(pid, [call: {Map, :get, 2}], fn ->
+        run_request()
+        assert_receive {:trace, ^pid, :call, {Map, :get, [_map, :key]}}
+      end)
+
+  """
+  @doc since: "1.21.0"
+  def trace(pid, flags, fun)
+      when is_pid(pid) and is_list(flags) and is_function(fun, 0) do
+    do_trace(pid, flags, fn _session -> :ok end, fun)
+  end
+
+  @doc """
+  Traces `pid` while `fun` runs with custom trace session initialization.
+
+  This is a more advanced version of `trace/3` that allows you to customize the `:trace` session
+  before attaching it to the process.
+
+  ## Examples
+
+  Only trace received messages of the shape `{:reply, _}`:
+
+      trace(
+        pid,
+        [:receive],
+        fn session ->
+          :trace.recv(session, [{[:_, :_, {:reply, :_}], [], []}], [])
+        end,
+        fn ->
+          send(pid, {:reply, :foo})
+          send(pid, {:other, :bar})
+          assert_receive {:trace, ^pid, :receive, {:reply, :foo}}
+          refute_receive {:trace, ^pid, :receive, {:other, :bar}}
+        end
+      )
+
+  """
+  @doc since: "1.21.0"
+  def trace(pid, flags, init, fun)
+      when is_pid(pid) and is_list(flags) and is_function(init, 1) and is_function(fun, 0) do
+    do_trace(pid, flags, init, fun)
+  end
+
+  defp do_trace(pid, flags, init, fun) do
+    {call_patterns, process_flags} = Enum.split_with(flags, &match?({:call, _}, &1))
+    process_flags = if call_patterns == [], do: process_flags, else: [:call | process_flags]
+
+    session = :trace.session_create(:ex_unit_trace, self(), [])
+
+    try do
+      Enum.each(call_patterns, fn {:call, mfa} ->
+        :trace.function(session, mfa, true, [:local])
+      end)
+
+      init.(session)
+
+      :trace.process(session, pid, true, process_flags)
+      fun.()
+    after
+      :trace.session_destroy(session)
+    end
+  end
+
+  @doc """
   Asserts `value1` and `value2` are not within `delta`.
 
   This difference is exclusive, so the test will fail if the difference
