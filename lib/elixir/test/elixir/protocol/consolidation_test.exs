@@ -185,7 +185,7 @@ defmodule Protocol.ConsolidationTest do
       assert clauses == [
                {[Of.impl(ImplStruct, :open)],
                 atom([Sample.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(Of.impl(ImplStruct, :open))], atom([nil])}
+               {[opt_negation(Of.impl(ImplStruct, :open))], atom([nil])}
              ]
 
       assert %{{:impl_for!, 1} => %{sig: {:strong, domain, clauses}}} = exports
@@ -217,7 +217,7 @@ defmodule Protocol.ConsolidationTest do
                {[Of.impl(Map, :open)], atom([WithAny.Map])},
                {[Of.impl(ImplStruct, :open)],
                 atom([WithAny.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(union(Of.impl(ImplStruct, :open), Of.impl(Map, :open)))],
+               {[opt_negation(opt_union(Of.impl(ImplStruct, :open), Of.impl(Map, :open)))],
                 atom([WithAny.Any])}
              ]
 
