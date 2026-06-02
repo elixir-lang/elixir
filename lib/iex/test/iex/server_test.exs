@@ -201,22 +201,27 @@ defmodule IEx.ServerTest do
   end
 
   defp pry_request(sessions) do
-    :erlang.trace(Process.whereis(IEx.Broker), true, [:receive, tracer: self()])
-    patterns = for %{pid: pid} <- sessions, do: {[:_, pid, :_], [], []}
-    :erlang.trace_pattern(:receive, patterns, [])
+    trace(
+      Process.whereis(IEx.Broker),
+      [:receive],
+      fn trace_session ->
+        patterns = for %{pid: pid} <- sessions, do: {[:_, pid, :_], [], []}
+        :trace.recv(trace_session, patterns, [])
+      end,
+      fn ->
+        task =
+          Task.async(fn ->
+            iex_context = :inside_pry
+            IEx.pry()
+          end)
 
-    task =
-      Task.async(fn ->
-        iex_context = :inside_pry
-        IEx.pry()
-      end)
+        for _ <- sessions do
+          assert_receive {:trace, _, :receive, {_, _, call}}
+                         when elem(call, 0) in [:accept, :refuse]
+        end
 
-    for _ <- sessions do
-      assert_receive {:trace, _, :receive, {_, _, call}} when elem(call, 0) in [:accept, :refuse]
-    end
-
-    task
-  after
-    :erlang.trace(Process.whereis(IEx.Broker), false, [:receive, tracer: self()])
+        task
+      end
+    )
   end
 end
