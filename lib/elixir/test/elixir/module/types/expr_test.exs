@@ -34,7 +34,7 @@ defmodule Module.Types.ExprTest do
   describe "bitstrings" do
     test "integer alignment" do
       assert typecheck!(<<round(:rand.uniform())>>) == binary()
-      assert typecheck!(<<round(:rand.uniform())::1>>) == difference(bitstring(), binary())
+      assert typecheck!(<<round(:rand.uniform())::1>>) == opt_difference(bitstring(), binary())
       assert typecheck!(<<round(:rand.uniform())::4, round(:rand.uniform())::4>>) == binary()
       assert typecheck!([size], <<round(:rand.uniform())::size(size)>>) == bitstring()
     end
@@ -58,11 +58,11 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([1, 2 | 3]) == non_empty_list(integer(), integer())
       assert typecheck!([1, 2 | [3, 4]]) == non_empty_list(integer())
 
-      assert typecheck!([:ok, 123]) == non_empty_list(union(atom([:ok]), integer()))
+      assert typecheck!([:ok, 123]) == non_empty_list(opt_union(atom([:ok]), integer()))
       assert typecheck!([:ok | 123]) == non_empty_list(atom([:ok]), integer())
 
       assert typecheck!([x], [:ok, x])
-             |> equal?(union(non_empty_list(atom([:ok])), dynamic(non_empty_list(term()))))
+             |> equal?(opt_union(non_empty_list(atom([:ok])), dynamic(non_empty_list(term()))))
 
       assert typecheck!([x], [:ok | x]) == dynamic(non_empty_list(term(), term()))
     end
@@ -78,7 +78,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "hd" do
-      assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
+      assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(opt_union(atom([:foo]), integer()))
       assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())
 
       assert typeerror!(hd([])) |> strip_ansi() ==
@@ -113,10 +113,11 @@ defmodule Module.Types.ExprTest do
     end
 
     test "tl" do
-      assert typecheck!([x = [123, :foo]], tl(x)) == dynamic(list(union(atom([:foo]), integer())))
+      assert typecheck!([x = [123, :foo]], tl(x)) ==
+               dynamic(list(opt_union(atom([:foo]), integer())))
 
       assert typecheck!([x = [123 | :foo]], tl(x)) ==
-               dynamic(union(atom([:foo]), non_empty_list(integer(), atom([:foo]))))
+               dynamic(opt_union(atom([:foo]), non_empty_list(integer(), atom([:foo]))))
 
       assert typeerror!(tl([])) |> strip_ansi() ==
                ~l"""
@@ -172,7 +173,7 @@ defmodule Module.Types.ExprTest do
                [_ | _], %{} -> :list
              end)
              |> equal?(
-               intersection(
+               opt_intersection(
                  fun(
                    [non_empty_list(term(), term()), open_map()],
                    dynamic(atom([:list]))
@@ -424,7 +425,7 @@ defmodule Module.Types.ExprTest do
                {dynamic(), "URI.unknown/1 is undefined or private"}
 
       assert typewarn!(if(:rand.uniform() > 0.5, do: URI.unknown("foo"))) ==
-               {dynamic() |> union(atom([nil])), "URI.unknown/1 is undefined or private"}
+               {dynamic() |> opt_union(atom([nil])), "URI.unknown/1 is undefined or private"}
 
       assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==
                {atom([:ok]), "URI.unknown/1 is undefined or private"}
@@ -442,7 +443,7 @@ defmodule Module.Types.ExprTest do
                  mod.to_string(:atom)
                )
              ) ==
-               {union(dynamic(), binary()), "GenServer.to_string/1 is undefined or private"}
+               {opt_union(dynamic(), binary()), "GenServer.to_string/1 is undefined or private"}
     end
 
     test "calling a function with none()" do
@@ -559,7 +560,7 @@ defmodule Module.Types.ExprTest do
                  res = mod.to_integer(arg)
                  {arg, res}
                )
-             ) == dynamic(tuple([union(binary(), non_empty_list(integer())), integer()]))
+             ) == dynamic(tuple([opt_union(binary(), non_empty_list(integer())), integer()]))
 
       assert typeerror!(
                [condition],
@@ -663,7 +664,7 @@ defmodule Module.Types.ExprTest do
                  <<x::float-size(y)>>
                  {x, y}
                )
-             ) == dynamic(tuple([union(float(), integer()), integer()]))
+             ) == dynamic(tuple([opt_union(float(), integer()), integer()]))
     end
 
     test "warnings" do
@@ -1059,9 +1060,9 @@ defmodule Module.Types.ExprTest do
              )
              |> equal?(
                closed_map(foo: atom([:second]))
-               |> union(closed_map(bar: atom([:second])))
-               |> union(closed_map(foo: atom([:first]), bar: atom([:second])))
-               |> union(closed_map(bar: atom([:first]), foo: atom([:second])))
+               |> opt_union(closed_map(bar: atom([:second])))
+               |> opt_union(closed_map(foo: atom([:first]), bar: atom([:second])))
+               |> opt_union(closed_map(bar: atom([:first]), foo: atom([:second])))
              )
     end
 
@@ -1108,7 +1109,7 @@ defmodule Module.Types.ExprTest do
                  %{foo_or_bar => :old, key => :new}
                )
              ) ==
-               union(
+               opt_union(
                  closed_map([
                    {domain_key(:integer), atom([:new])},
                    {:foo, atom([:old])}
@@ -1141,9 +1142,9 @@ defmodule Module.Types.ExprTest do
              )
              |> equal?(
                closed_map(key1: atom([:one]), key2: atom([:two!]))
-               |> union(closed_map(key1: atom([:two!]), key2: atom([:one!])))
-               |> union(closed_map(key1: atom([:one!]), key2: atom([:two!])))
-               |> union(closed_map(key1: atom([:two!]), key2: atom([:two])))
+               |> opt_union(closed_map(key1: atom([:two!]), key2: atom([:one!])))
+               |> opt_union(closed_map(key1: atom([:one!]), key2: atom([:two!])))
+               |> opt_union(closed_map(key1: atom([:two!]), key2: atom([:two])))
              )
 
       assert typeerror!([x = :foo], %{x | x: :zero}) == ~l"""
@@ -1558,7 +1559,7 @@ defmodule Module.Types.ExprTest do
 
                  y
                )
-             ) == union(atom([:foo]), dynamic())
+             ) == opt_union(atom([:foo]), dynamic())
     end
 
     test "in dynamic mode" do
@@ -1572,9 +1573,9 @@ defmodule Module.Types.ExprTest do
     end
 
     test "min/max" do
-      assert typecheck!(min(123, 456.0)) == union(integer(), float())
+      assert typecheck!(min(123, 456.0)) == opt_union(integer(), float())
       # min/max uses parametric types, which will carry dynamic regardless of being a strong arrow
-      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
+      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(opt_union(integer(), float()))
     end
 
     test "warns when comparison is constant" do
@@ -1830,7 +1831,7 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) ==
-               dynamic(union(atom([:foo, :bar, :baz]), union(integer(), float())))
+               dynamic(opt_union(atom([:foo, :bar, :baz]), opt_union(integer(), float())))
 
       assert typecheck!(
                [x],
@@ -1839,7 +1840,7 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) ==
-               dynamic(negation(atom([:foo, :bar, :baz])))
+               dynamic(opt_negation(atom([:foo, :bar, :baz])))
 
       assert typecheck!(
                [x],
@@ -1848,7 +1849,7 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) ==
-               dynamic(negation(atom([:foo, :bar, :baz])))
+               dynamic(opt_negation(atom([:foo, :bar, :baz])))
 
       assert typecheck!(
                [x],
@@ -1857,7 +1858,7 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) ==
-               dynamic(union(atom([:foo, :bar, :baz]), union(integer(), float())))
+               dynamic(opt_union(atom([:foo, :bar, :baz]), opt_union(integer(), float())))
 
       assert typeerror!([x = :ok], true = x in [:foo, 1.0, :baz]) =~ ~l"""
              comparison between distinct types found:
@@ -1970,7 +1971,7 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    tuple([atom([:binary]), binary()]),
                    tuple([atom([:bitstring]), bitstring_no_binary()])
                  )
@@ -2002,9 +2003,9 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  tuple([
                    term(),
-                   union(
+                   opt_union(
                      tuple([atom([:first]), atom([:foo])]),
-                     tuple([atom([:second]), union(binary(), atom([nil]))])
+                     tuple([atom([:second]), opt_union(binary(), atom([nil]))])
                    )
                  ])
                )
@@ -2020,7 +2021,7 @@ defmodule Module.Types.ExprTest do
 
                  x
                )
-             ) == dynamic(negation(integer()))
+             ) == dynamic(opt_negation(integer()))
 
       assert typecheck!(
                [x],
@@ -2031,7 +2032,7 @@ defmodule Module.Types.ExprTest do
 
                  x
                )
-             ) == dynamic(negation(atom([:foo])))
+             ) == dynamic(opt_negation(atom([:foo])))
 
       assert typecheck!(
                [x],
@@ -2042,7 +2043,7 @@ defmodule Module.Types.ExprTest do
 
                  x
                )
-             ) == dynamic(negation(union(open_map(), integer())))
+             ) == dynamic(opt_negation(opt_union(open_map(), integer())))
 
       # When it is not precise enough, we don't filter
       assert typecheck!(
@@ -2119,7 +2120,7 @@ defmodule Module.Types.ExprTest do
 
                  x
                )
-             ) == dynamic(union(open_map(), tuple([])))
+             ) == dynamic(opt_union(open_map(), tuple([])))
     end
 
     test "warns on redundant clauses" do
@@ -2234,7 +2235,7 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    tuple([atom([:ok]), binary()]),
                    tuple([atom([:error]), atom([nil])])
                  )
@@ -2259,7 +2260,7 @@ defmodule Module.Types.ExprTest do
                  end
                )
              )
-             |> equal?(union(dynamic(), integer()))
+             |> equal?(opt_union(dynamic(), integer()))
 
       assert typeerror!(
                [bin?, int?, bool?],
@@ -2327,7 +2328,7 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    tuple([atom([:ok]), binary()]),
                    tuple([atom([:error]), atom([nil])])
                  )
@@ -2531,7 +2532,7 @@ defmodule Module.Types.ExprTest do
                after
                  x -> x
                end
-             ) == dynamic(union(integer(), atom([:infinity])))
+             ) == dynamic(opt_union(integer(), atom([:infinity])))
     end
 
     test "resets branches" do
@@ -2556,7 +2557,7 @@ defmodule Module.Types.ExprTest do
                  x when is_binary(x) -> :ok
                  y -> {:other, y}
                end
-             ) == union(atom([:ok]), dynamic(tuple([atom([:other]), negation(binary())])))
+             ) == opt_union(atom([:ok]), dynamic(tuple([atom([:other]), opt_negation(binary())])))
     end
 
     test "warns on redundant clauses" do
@@ -2673,7 +2674,7 @@ defmodule Module.Types.ExprTest do
                  x when is_binary(x) -> :ok
                  y -> {:other, y}
                end
-             ) == union(atom([:ok]), dynamic(tuple([atom([:other]), negation(binary())])))
+             ) == opt_union(atom([:ok]), dynamic(tuple([atom([:other]), opt_negation(binary())])))
     end
 
     test "catch: warns on redundant clauses" do
@@ -2707,7 +2708,10 @@ defmodule Module.Types.ExprTest do
                  y -> {:other, y}
                end
              ) ==
-               union(atom([:ok, :unused]), dynamic(tuple([atom([:other]), negation(binary())])))
+               opt_union(
+                 atom([:ok, :unused]),
+                 dynamic(tuple([atom([:other]), opt_negation(binary())]))
+               )
     end
 
     test "else: warns on redundant clauses" do
@@ -2764,7 +2768,7 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    closed_map(
                      __struct__: atom([ArgumentError]),
                      __exception__: term(),
@@ -2962,9 +2966,9 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    tuple([atom([:first]), binary()]),
-                   tuple([atom([:second]), negation(binary())])
+                   tuple([atom([:second]), opt_negation(binary())])
                  )
                )
 
@@ -2992,7 +2996,7 @@ defmodule Module.Types.ExprTest do
 
                  x
                )
-             ) == dynamic(negation(binary()))
+             ) == dynamic(opt_negation(binary()))
 
       assert typecheck!(
                [x],
@@ -3018,8 +3022,8 @@ defmodule Module.Types.ExprTest do
              ) ==
                dynamic(
                  tuple([atom([:first]), binary()])
-                 |> union(tuple([atom([:second]), atom()]))
-                 |> union(tuple([atom([:third]), negation(union(binary(), atom()))]))
+                 |> opt_union(tuple([atom([:second]), atom()]))
+                 |> opt_union(tuple([atom([:third]), opt_negation(opt_union(binary(), atom()))]))
                )
 
       # Negated types do not leak through
@@ -3077,7 +3081,7 @@ defmodule Module.Types.ExprTest do
                  true ->
                    :otherwise
                end
-             ) == union(boolean(), atom([:otherwise]))
+             ) == opt_union(boolean(), atom([:otherwise]))
 
       # Test with multiple clauses
       assert typecheck!(
@@ -3095,7 +3099,7 @@ defmodule Module.Types.ExprTest do
                   end) ->
                    float?
                end
-             ) == union(boolean(), atom([:binary, :atom]))
+             ) == opt_union(boolean(), atom([:binary, :atom]))
     end
   end
 
@@ -3169,10 +3173,10 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([binary, other], for(<<x <- binary>>, do: x, into: other)) == dynamic()
 
       assert typecheck!([enum], for(x <- enum, do: x)) ==
-               union(list(dynamic()), empty_list())
+               opt_union(list(dynamic()), empty_list())
 
       assert typecheck!([enum], for(x <- enum, do: x, into: [])) ==
-               union(list(dynamic()), empty_list())
+               opt_union(list(dynamic()), empty_list())
 
       assert typecheck!([enum], for(x <- enum, do: <<x>>, into: "")) |> equal?(binary())
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
@@ -3183,7 +3187,7 @@ defmodule Module.Types.ExprTest do
                  into = if :rand.uniform() > 0.5, do: [], else: "0"
                  for(<<x::float <- binary>>, do: x, into: into)
                )
-             ) == union(bitstring(), list(term()))
+             ) == opt_union(bitstring(), list(term()))
 
       assert typecheck!(
                [binary, empty_list = []],
@@ -3191,7 +3195,7 @@ defmodule Module.Types.ExprTest do
                  into = if :rand.uniform() > 0.5, do: empty_list, else: "0"
                  for(<<x::float <- binary>>, do: x, into: into)
                )
-             ) == union(bitstring(), list(term()))
+             ) == opt_union(bitstring(), list(term()))
     end
 
     test ":into inference" do
@@ -3237,7 +3241,7 @@ defmodule Module.Types.ExprTest do
                  :ok -> 1
                  _ -> 2.0
                end
-             ) == union(atom([:ok]), union(integer(), float()))
+             ) == opt_union(atom([:ok]), opt_union(integer(), float()))
     end
 
     test ":reduce inference" do
@@ -3281,7 +3285,7 @@ defmodule Module.Types.ExprTest do
                with y when is_binary(y) <- System.get_env(x) do
                  {:ok, y}
                end
-             ) == dynamic(union(tuple([atom([:ok]), binary()]), atom([nil])))
+             ) == dynamic(opt_union(tuple([atom([:ok]), binary()]), atom([nil])))
 
       assert typecheck!(
                [x],
@@ -3289,8 +3293,8 @@ defmodule Module.Types.ExprTest do
                  :not_precise
                end
              ) ==
-               dynamic(union(binary(), atom([nil, :not_precise])))
-               |> union(atom([:not_precise]))
+               dynamic(opt_union(binary(), atom([nil, :not_precise])))
+               |> opt_union(atom([:not_precise]))
 
       assert typecheck!(
                [x],
@@ -3298,7 +3302,7 @@ defmodule Module.Types.ExprTest do
                  {:ok, x}
                end
              ) ==
-               dynamic(union(tuple([atom([:ok]), binary()]), atom([nil])))
+               dynamic(opt_union(tuple([atom([:ok]), binary()]), atom([nil])))
 
       assert typecheck!(
                [x],
@@ -3306,8 +3310,8 @@ defmodule Module.Types.ExprTest do
                  {:ok, x}
                end
              ) ==
-               dynamic(union(tuple([atom([:ok]), binary()]), atom([nil])))
-               |> union(atom([nil]))
+               dynamic(opt_union(tuple([atom([:ok]), binary()]), atom([nil])))
+               |> opt_union(atom([nil]))
     end
 
     test "warns on non-matching generators" do
@@ -3395,7 +3399,7 @@ defmodule Module.Types.ExprTest do
                list(closed_map(default: if_set(term()), field: atom()))
 
       assert typecheck!([x], x.__info__(:struct)) ==
-               list(closed_map(default: if_set(term()), field: atom())) |> union(atom([nil]))
+               list(closed_map(default: if_set(term()), field: atom())) |> opt_union(atom([nil]))
     end
 
     test "behaviour_info/1" do

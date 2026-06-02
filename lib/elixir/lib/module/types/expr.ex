@@ -22,9 +22,9 @@ defmodule Module.Types.Expr do
             context: atom([:match, :guard, nil]),
             context_modules: list_of_modules,
             file: binary(),
-            function: union(tuple([atom(), integer()]), atom([nil])),
+            function: opt_union(tuple([atom(), integer()]), atom([nil])),
             functions: functions_and_macros,
-            lexical_tracker: union(pid(), atom([nil])),
+            lexical_tracker: opt_union(pid(), atom([nil])),
             line: integer(),
             macro_aliases: aliases,
             macros: functions_and_macros,
@@ -38,24 +38,24 @@ defmodule Module.Types.Expr do
   # then we will assume you need to statically handle all possible exceptions.
   @exception open_map(__struct__: atom(), __exception__: term())
 
-  args_or_arity = union(list(term()), integer())
+  args_or_arity = opt_union(list(term()), integer())
 
   extra_info =
     list(
       tuple([atom([:file]), list(integer())])
-      |> union(tuple([atom([:line]), integer()]))
-      |> union(tuple([atom([:error_info]), open_map()]))
+      |> opt_union(tuple([atom([:line]), integer()]))
+      |> opt_union(tuple([atom([:error_info]), open_map()]))
     )
 
   @stacktrace list(
-                union(
+                opt_union(
                   tuple([atom(), atom(), args_or_arity, extra_info]),
                   tuple([fun(), args_or_arity, extra_info])
                 )
               )
 
   @falsy atom([false, nil])
-  @truthy negation(atom([false, nil]))
+  @truthy Module.Types.Descr.opt_negation(atom([false, nil]))
 
   # :atom
   def of_expr(atom, _expected, _expr, _stack, context) when is_atom(atom),
@@ -106,7 +106,7 @@ defmodule Module.Types.Expr do
         of_expr(suffix, tl_type, expr, stack, context)
       end
 
-    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+    {non_empty_list(Enum.reduce(prefix, &opt_union/2), suffix), context}
   end
 
   # {left, right}
@@ -150,13 +150,13 @@ defmodule Module.Types.Expr do
           fn pattern_type, context ->
             # See if we can use the expected type to further refine the pattern type,
             # if we cannot, use the pattern type as that will fail later on.
-            type = intersection(pattern_type, expected)
+            type = opt_intersection(pattern_type, expected)
             type = if empty?(type), do: pattern_type, else: type
             {result, context} = of_expr(right_expr, type, expr, stack, context)
 
             # The function may still return a too broad type,
             # so we refine once again to assign the most appropriate to the pattern.
-            {intersection(result, expected), context}
+            {opt_intersection(result, expected), context}
           end
 
         Pattern.of_match(left_expr, type_fun, match, meta, stack, context)
@@ -187,7 +187,7 @@ defmodule Module.Types.Expr do
         end
       end)
 
-    expected = intersection(expected, open_map(expected_pairs))
+    expected = opt_intersection(expected, open_map(expected_pairs))
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
@@ -330,7 +330,7 @@ defmodule Module.Types.Expr do
       {neg_body_type, neg_body_context} =
         of_expr(neg_body, expected, expr, stack, falsy_context)
 
-      body_type = union(pos_body_type, neg_body_type)
+      body_type = opt_union(pos_body_type, neg_body_type)
 
       context =
         cond do
@@ -374,7 +374,7 @@ defmodule Module.Types.Expr do
                 reset_warnings(falsy_context, context)
               end
 
-            {union(body_type, acc), context}
+            {opt_union(body_type, acc), context}
         end)
 
       dynamic_unless_static({body_type, Of.reset_vars(acc_context, context)}, stack)
@@ -419,7 +419,7 @@ defmodule Module.Types.Expr do
           reset_warnings(context, original)
 
         {_, filtered} ->
-          case_expected = Enum.reduce(filtered, none(), &union(elem(&1, 0), &2))
+          case_expected = Enum.reduce(filtered, none(), &opt_union(elem(&1, 0), &2))
           {_, context} = of_expr(case_expr, case_expected, case_expr, stack, context)
           reset_warnings(context, original)
       end
@@ -480,13 +480,13 @@ defmodule Module.Types.Expr do
             else
               [arg_type] = Pattern.of_domain(trees, stack, context)
               clauses_acc = [{arg_type, body_type, clause} | clauses_acc]
-              {{none?, union(body_type, body_acc), clauses_acc}, context}
+              {{none?, opt_union(body_type, body_acc), clauses_acc}, context}
             end
         end)
 
       context =
         if none? or stack.mode != :static do
-          head_type = Enum.reduce(clauses_acc, none(), &union(elem(&1, 0), &2))
+          head_type = Enum.reduce(clauses_acc, none(), &opt_union(elem(&1, 0), &2))
 
           {_, refined_context} =
             of_expr(
@@ -558,7 +558,7 @@ defmodule Module.Types.Expr do
                   end
 
                 {type, context} = of_expr(body, expected, body, stack, context)
-                {union(type, acc), context |> set_failed(failed?) |> Of.reset_vars(original)}
+                {opt_union(type, acc), context |> set_failed(failed?) |> Of.reset_vars(original)}
             end)
 
           {:catch, clauses}, {acc, context} ->
@@ -576,7 +576,7 @@ defmodule Module.Types.Expr do
     end)
   end
 
-  @timeout_type union(integer(), atom([:infinity]))
+  @timeout_type opt_union(integer(), atom([:infinity]))
 
   def of_expr({:receive, meta, [blocks]}, expected, expr, stack, original) do
     cache_result(meta, stack, original, fn ->
@@ -593,10 +593,10 @@ defmodule Module.Types.Expr do
           {body_type, context} = of_expr(body, expected, expr, stack, context)
 
           if compatible?(timeout_type, @timeout_type) do
-            {union(body_type, acc), Of.reset_vars(context, original)}
+            {opt_union(body_type, acc), Of.reset_vars(context, original)}
           else
             error = {:badtimeout, timeout_type, timeout, context}
-            {union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
+            {opt_union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
           end
       end)
       |> dynamic_unless_static(stack)
@@ -625,13 +625,13 @@ defmodule Module.Types.Expr do
         case into_kind do
           :bitstring ->
             {block_type, context} = of_expr(block, bitstring(), block, stack, context)
-            intersection = intersection(block_type, bitstring())
+            intersection = opt_intersection(block_type, bitstring())
 
             if empty?(intersection) do
               error = {:badbitbody, block_type, block, context}
               {error_type(), error(__MODULE__, error, meta, stack, context)}
             else
-              {union(into_type, intersection), context}
+              {opt_union(into_type, intersection), context}
             end
 
           :non_empty_list ->
@@ -642,7 +642,7 @@ defmodule Module.Types.Expr do
               end
 
             {block_type, context} = of_expr(block, expected, block, stack, context)
-            {union(into_type, non_empty_list(block_type)), context}
+            {opt_union(into_type, non_empty_list(block_type)), context}
 
           :none ->
             {_, context} = of_expr(block, term(), block, stack, context)
@@ -674,7 +674,7 @@ defmodule Module.Types.Expr do
             {else_types, context}
         end
 
-      dynamic_unless_static({union(do_result, else_result), context}, stack)
+      dynamic_unless_static({opt_union(do_result, else_result), context}, stack)
     end)
   end
 
@@ -787,7 +787,7 @@ defmodule Module.Types.Expr do
         context
 
       _ ->
-        expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
+        expected = if structs == [], do: @exception, else: Enum.reduce(structs, &opt_union/2)
         expr = {:__block__, [type_check: info], [expr]}
         context = Of.declare_var(var, context)
         {_ok?, _type, context} = Of.refine_head_var(var, expected, expr, stack, context)
@@ -831,7 +831,7 @@ defmodule Module.Types.Expr do
     context
   end
 
-  @into_compile union(bitstring(), empty_list())
+  @into_compile opt_union(bitstring(), empty_list())
 
   defp for_into([], _meta, _stack, context),
     do: {empty_list(), :non_empty_list, context}
@@ -860,7 +860,7 @@ defmodule Module.Types.Expr do
         # If they can be both be true, then we don't know
         # what the contents of the block are for
         {true, true} ->
-          type = union(bitstring(), list(term()))
+          type = opt_union(bitstring(), list(term()))
           {if(gradual?(type), do: dynamic(type), else: type), :none, context}
 
         {false, true} ->
@@ -893,8 +893,8 @@ defmodule Module.Types.Expr do
     {_, refined_context} =
       of_expr(right, pattern_type, right, %{stack | reverse_arrow: :except_none}, context)
 
-    else_type = if precise?, do: difference(type, pattern_type), else: type
-    {union(else_type, else_types), reset_warnings(refined_context, context)}
+    else_type = if precise?, do: opt_difference(type, pattern_type), else: type
+    {opt_union(else_type, else_types), reset_warnings(refined_context, context)}
   end
 
   defp with_clause(expr, stack, {else_types, context}) do
@@ -918,7 +918,7 @@ defmodule Module.Types.Expr do
     Of.with_conditional_vars(mods, none(), call, stack, context, fn mod, acc, context ->
       expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
       {type, context} = Apply.remote(mod, fun, args, expected, expr, stack, context, &of_expr/5)
-      {union(acc, type), context}
+      {opt_union(acc, type), context}
     end)
   end
 
@@ -982,7 +982,7 @@ defmodule Module.Types.Expr do
   defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
     of_acc = fn _args_types, _precise?, {:->, _, [_, body]}, context, acc ->
       {body_type, context} = of_expr(body, expected, body, stack, context)
-      {union(acc, body_type), context}
+      {opt_union(acc, body_type), context}
     end
 
     of_clauses_fun(clauses, domain, base_info, stack, context, acc, of_acc)
@@ -1037,7 +1037,7 @@ defmodule Module.Types.Expr do
     do: {left_expr, right_expr}
 
   defp add_inferred([{args, existing_return} | tail], args, return),
-    do: [{args, union(existing_return, return)} | tail]
+    do: [{args, opt_union(existing_return, return)} | tail]
 
   defp add_inferred([head | tail], args, return),
     do: [head | add_inferred(tail, args, return)]

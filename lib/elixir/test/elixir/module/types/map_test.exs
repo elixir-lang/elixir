@@ -25,20 +25,20 @@ defmodule Module.Types.MapTest do
   describe ":maps.take/2" do
     test "checking" do
       assert typecheck!(:maps.take(:key, %{key: 123})) ==
-               tuple([integer(), empty_map()]) |> union(atom([:error]))
+               tuple([integer(), empty_map()]) |> opt_union(atom([:error]))
 
       assert typecheck!([x], :maps.take(:key, x)) ==
-               union(
+               opt_union(
                  dynamic(tuple([term(), open_map(key: not_set())])),
                  atom([:error])
                )
 
       assert typecheck!([condition?, x], :maps.take(if(condition?, do: :foo, else: :bar), x)) ==
-               union(
+               opt_union(
                  dynamic(
                    tuple([
                      term(),
-                     union(
+                     opt_union(
                        open_map(foo: not_set()),
                        open_map(bar: not_set())
                      )
@@ -48,7 +48,7 @@ defmodule Module.Types.MapTest do
                )
 
       assert typecheck!([x], :maps.take(123, x)) ==
-               union(
+               opt_union(
                  dynamic(tuple([term(), open_map()])),
                  atom([:error])
                )
@@ -105,7 +105,7 @@ defmodule Module.Types.MapTest do
                [condition?],
                Map.delete(%{foo: 123}, if(condition?, do: :foo, else: :bar))
              ) ==
-               union(
+               opt_union(
                  empty_map(),
                  closed_map(foo: integer())
                )
@@ -140,22 +140,22 @@ defmodule Module.Types.MapTest do
   describe "Map.fetch/2" do
     test "checking" do
       assert typecheck!(Map.fetch(%{key: 123}, :key)) ==
-               tuple([atom([:ok]), integer()]) |> union(atom([:error]))
+               tuple([atom([:ok]), integer()]) |> opt_union(atom([:error]))
 
       assert typecheck!(:maps.find(:key, %{key: 123})) ==
-               tuple([atom([:ok]), integer()]) |> union(atom([:error]))
+               tuple([atom([:ok]), integer()]) |> opt_union(atom([:error]))
 
       assert typecheck!([x], Map.fetch(x, :key)) ==
-               dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error]))
+               dynamic(tuple([atom([:ok]), term()])) |> opt_union(atom([:error]))
 
       # If one of them succeeds, we are still fine!
       assert typecheck!(
                [condition?],
                Map.fetch(%{foo: 123}, if(condition?, do: :foo, else: :bar))
-             ) == tuple([atom([:ok]), integer()]) |> union(atom([:error]))
+             ) == tuple([atom([:ok]), integer()]) |> opt_union(atom([:error]))
 
       assert typecheck!([x], Map.fetch(x, 123)) ==
-               dynamic(tuple([atom([:ok]), term()])) |> union(atom([:error]))
+               dynamic(tuple([atom([:ok]), term()])) |> opt_union(atom([:error]))
     end
 
     test "inference" do
@@ -279,7 +279,7 @@ defmodule Module.Types.MapTest do
                )
              ) ==
                closed_map(key1: if_set(integer()), key2: if_set(integer()))
-               |> difference(empty_map())
+               |> opt_difference(empty_map())
 
       assert typecheck!(
                [condition?],
@@ -298,7 +298,7 @@ defmodule Module.Types.MapTest do
       value = typecheck!([condition?, x], if(condition?, do: :value, else: x))
       optional = if_set(value)
 
-      assert equal?(optional, union(if_set(atom([:value])), dynamic(if_set(term()))))
+      assert equal?(optional, opt_union(if_set(atom([:value])), dynamic(if_set(term()))))
       refute equal?(optional, dynamic(if_set(term())))
     end
 
@@ -370,17 +370,17 @@ defmodule Module.Types.MapTest do
 
   describe "Map.get/2" do
     test "checking" do
-      assert typecheck!(Map.get(%{key: 123}, :key)) == integer() |> union(atom([nil]))
+      assert typecheck!(Map.get(%{key: 123}, :key)) == integer() |> opt_union(atom([nil]))
 
-      assert typecheck!([x], Map.get(x, :key)) == dynamic(term()) |> union(atom([nil]))
+      assert typecheck!([x], Map.get(x, :key)) == dynamic(term()) |> opt_union(atom([nil]))
 
       # If one of them succeeds, we are still fine!
       assert typecheck!(
                [condition?],
                Map.get(%{foo: 123}, if(condition?, do: :foo, else: :bar))
-             ) == integer() |> union(atom([nil]))
+             ) == integer() |> opt_union(atom([nil]))
 
-      assert typecheck!([x], Map.get(x, 123)) == dynamic(term()) |> union(atom([nil]))
+      assert typecheck!([x], Map.get(x, 123)) == dynamic(term()) |> opt_union(atom([nil]))
     end
 
     test "inference" do
@@ -417,7 +417,7 @@ defmodule Module.Types.MapTest do
     test "checking" do
       assert typecheck!(Map.get(%{key: 123}, :key, 123)) == integer()
 
-      assert typecheck!([x], Map.get(x, :key, 123)) == dynamic(term()) |> union(integer())
+      assert typecheck!([x], Map.get(x, :key, 123)) == dynamic(term()) |> opt_union(integer())
 
       # If one of them succeeds, we are still fine!
       assert typecheck!(
@@ -425,7 +425,7 @@ defmodule Module.Types.MapTest do
                Map.get(%{foo: 123}, if(condition?, do: :foo, else: :bar), 123)
              ) == integer()
 
-      assert typecheck!([x], Map.get(x, 123, 123)) == dynamic(term()) |> union(integer())
+      assert typecheck!([x], Map.get(x, 123, 123)) == dynamic(term()) |> opt_union(integer())
     end
 
     test "inference" do
@@ -543,7 +543,7 @@ defmodule Module.Types.MapTest do
                  Map.keys(x)
                )
              ) ==
-               non_empty_list(union(atom([:a]), atom([:b])))
+               non_empty_list(opt_union(atom([:a]), atom([:b])))
 
       assert typecheck!(
                (
@@ -553,8 +553,8 @@ defmodule Module.Types.MapTest do
              ) ==
                non_empty_list(
                  atom([:a])
-                 |> union(atom([:b]))
-                 |> union(binary())
+                 |> opt_union(atom([:b]))
+                 |> opt_union(binary())
                )
     end
 
@@ -576,7 +576,7 @@ defmodule Module.Types.MapTest do
   describe "Map.pop/2" do
     test "checking" do
       assert typecheck!(Map.pop(%{key: 123}, :key)) ==
-               tuple([union(integer(), atom([nil])), empty_map()])
+               tuple([opt_union(integer(), atom([nil])), empty_map()])
 
       assert typecheck!([x], Map.pop(x, :key)) ==
                dynamic(tuple([term(), open_map(key: not_set())]))
@@ -585,7 +585,7 @@ defmodule Module.Types.MapTest do
                dynamic(
                  tuple([
                    term(),
-                   union(
+                   opt_union(
                      open_map(foo: not_set()),
                      open_map(bar: not_set())
                    )
@@ -639,9 +639,9 @@ defmodule Module.Types.MapTest do
   describe "Map.pop_lazy/3" do
     test "checking" do
       assert typecheck!(Map.pop_lazy(%{key: 123}, :key, fn -> :error end)) ==
-               union(
+               opt_union(
                  tuple([integer(), empty_map()]),
-                 dynamic(tuple([union(integer(), atom([:error])), empty_map()]))
+                 dynamic(tuple([opt_union(integer(), atom([:error])), empty_map()]))
                )
 
       assert typecheck!([x], Map.pop_lazy(x, :key, fn -> :error end)) ==
@@ -654,7 +654,7 @@ defmodule Module.Types.MapTest do
                dynamic(
                  tuple([
                    term(),
-                   union(
+                   opt_union(
                      open_map(foo: not_set()),
                      open_map(bar: not_set())
                    )
@@ -671,7 +671,7 @@ defmodule Module.Types.MapTest do
                )
              )
              |> equal?(
-               union(
+               opt_union(
                  tuple([atom([:before]), map]),
                  dynamic(tuple([atom([:before, :after]), map]))
                )
@@ -723,7 +723,7 @@ defmodule Module.Types.MapTest do
   describe "Map.pop/3" do
     test "checking" do
       assert typecheck!(Map.pop(%{key: 123}, :key, :error)) ==
-               tuple([union(integer(), atom([:error])), empty_map()])
+               tuple([opt_union(integer(), atom([:error])), empty_map()])
 
       assert typecheck!([x], Map.pop(x, :key, :error)) ==
                dynamic(tuple([term(), open_map(key: not_set())]))
@@ -732,7 +732,7 @@ defmodule Module.Types.MapTest do
                dynamic(
                  tuple([
                    term(),
-                   union(
+                   opt_union(
                      open_map(foo: not_set()),
                      open_map(bar: not_set())
                    )
@@ -795,7 +795,7 @@ defmodule Module.Types.MapTest do
                dynamic(
                  tuple([
                    term(),
-                   union(
+                   opt_union(
                      open_map(foo: not_set()),
                      open_map(bar: not_set())
                    )
@@ -857,7 +857,7 @@ defmodule Module.Types.MapTest do
                [condition?],
                Map.put(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
              ) ==
-               union(
+               opt_union(
                  closed_map(foo: binary()),
                  closed_map(foo: integer(), bar: binary())
                )
@@ -912,10 +912,10 @@ defmodule Module.Types.MapTest do
       assert typecheck!(
                [condition?],
                Map.put_new_lazy(%{foo: 123}, if(condition?, do: :foo, else: :bar), fn -> "123" end)
-             ) == union(closed_map(foo: integer()), closed_map(foo: integer(), bar: binary()))
+             ) == opt_union(closed_map(foo: integer()), closed_map(foo: integer(), bar: binary()))
 
       assert typecheck!([], Map.put_new_lazy(%{789 => "binary"}, 123, fn -> 456 end)) ==
-               closed_map([{domain_key(:integer), union(binary(), integer())}])
+               closed_map([{domain_key(:integer), opt_union(binary(), integer())}])
 
       assert typecheck!([x], Map.put_new_lazy(x, 123, fn -> 456 end)) == dynamic(open_map())
     end
@@ -974,10 +974,10 @@ defmodule Module.Types.MapTest do
       assert typecheck!(
                [condition?],
                Map.put_new(%{foo: 123}, if(condition?, do: :foo, else: :bar), "123")
-             ) == union(closed_map(foo: integer()), closed_map(foo: integer(), bar: binary()))
+             ) == opt_union(closed_map(foo: integer()), closed_map(foo: integer(), bar: binary()))
 
       assert typecheck!([], Map.put_new(%{789 => "binary"}, 123, 456)) ==
-               closed_map([{domain_key(:integer), union(binary(), integer())}])
+               closed_map([{domain_key(:integer), opt_union(binary(), integer())}])
 
       assert typecheck!([x], Map.put_new(x, 123, 456)) == dynamic(open_map())
     end
@@ -1086,7 +1086,7 @@ defmodule Module.Types.MapTest do
                )
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    closed_map(key1: atom([:foo]), key2: float()),
                    closed_map(key1: integer(), key2: atom([:bar]))
                  )
@@ -1095,7 +1095,7 @@ defmodule Module.Types.MapTest do
       assert typecheck!([x], Map.replace_lazy(x, 123, fn _ -> 456 end)) == dynamic(open_map())
 
       assert typecheck!([], Map.replace_lazy(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
-               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+               dynamic(closed_map([{domain_key(:integer), opt_union(integer(), float())}]))
     end
 
     test "inference" do
@@ -1220,7 +1220,7 @@ defmodule Module.Types.MapTest do
                )
              ) ==
                non_empty_list(
-                 union(tuple([atom([:a]), integer()]), tuple([atom([:b]), binary()]))
+                 opt_union(tuple([atom([:a]), integer()]), tuple([atom([:b]), binary()]))
                )
 
       assert typecheck!(
@@ -1231,8 +1231,8 @@ defmodule Module.Types.MapTest do
              ) ==
                non_empty_list(
                  tuple([atom([:a]), integer()])
-                 |> union(tuple([atom([:b]), binary()]))
-                 |> union(tuple([binary(), atom([:three])]))
+                 |> opt_union(tuple([atom([:b]), binary()]))
+                 |> opt_union(tuple([binary(), atom([:three])]))
                )
     end
 
@@ -1270,7 +1270,7 @@ defmodule Module.Types.MapTest do
                end)
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    closed_map(foo: binary()),
                    closed_map(foo: integer(), bar: atom([:default]))
                  )
@@ -1290,7 +1290,7 @@ defmodule Module.Types.MapTest do
                )
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    closed_map(key1: atom([:foo]), key2: float()),
                    closed_map(key1: integer(), key2: atom([:bar]))
                  )
@@ -1301,7 +1301,7 @@ defmodule Module.Types.MapTest do
       integer_to_integer_float_atom =
         dynamic(
           closed_map([
-            {domain_key(:integer), integer() |> union(float()) |> union(atom([:default]))}
+            {domain_key(:integer), integer() |> opt_union(float()) |> opt_union(atom([:default]))}
           ])
         )
 
@@ -1364,7 +1364,7 @@ defmodule Module.Types.MapTest do
                end)
              ) ==
                dynamic(
-                 union(
+                 opt_union(
                    closed_map(key1: atom([:foo]), key2: float()),
                    closed_map(key1: integer(), key2: atom([:bar]))
                  )
@@ -1373,10 +1373,10 @@ defmodule Module.Types.MapTest do
       assert typecheck!([x], Map.update!(x, 123, fn _ -> 456 end)) == dynamic(open_map())
 
       assert typecheck!([], Map.update!(%{123 => 456}, 123, fn x -> x * 1.0 end)) ==
-               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+               dynamic(closed_map([{domain_key(:integer), opt_union(integer(), float())}]))
 
       assert typecheck!([], Map.update!(%{123 => 456}, 456, fn x -> x * 1.0 end)) ==
-               dynamic(closed_map([{domain_key(:integer), union(integer(), float())}]))
+               dynamic(closed_map([{domain_key(:integer), opt_union(integer(), float())}]))
     end
 
     test "inference" do
@@ -1454,7 +1454,7 @@ defmodule Module.Types.MapTest do
                  Map.values(x)
                )
              ) ==
-               non_empty_list(union(integer(), binary()))
+               non_empty_list(opt_union(integer(), binary()))
 
       assert typecheck!(
                (
@@ -1464,8 +1464,8 @@ defmodule Module.Types.MapTest do
              ) ==
                non_empty_list(
                  integer()
-                 |> union(binary())
-                 |> union(atom([:three]))
+                 |> opt_union(binary())
+                 |> opt_union(atom([:three]))
                )
     end
 

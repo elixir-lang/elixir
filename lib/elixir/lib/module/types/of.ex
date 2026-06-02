@@ -11,7 +11,7 @@ defmodule Module.Types.Of do
   @prefix quote(do: ...)
   @suffix quote(do: ...)
 
-  @integer_or_float union(integer(), float())
+  @integer_or_float opt_union(integer(), float())
   @integer integer()
   @float float()
   @binary binary()
@@ -111,7 +111,7 @@ defmodule Module.Types.Of do
         {old_type, context}
 
       %{reverse_arrow: reverse_arrow} when reverse_arrow in [:except_none, :include_none] ->
-        new_type = intersection(old_type, type)
+        new_type = opt_intersection(old_type, type)
 
         case empty?(new_type) do
           true when reverse_arrow == :include_none ->
@@ -171,7 +171,7 @@ defmodule Module.Types.Of do
         {:ok, error_type(), context}
 
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
-        new_type = intersection(type, old_type)
+        new_type = opt_intersection(type, old_type)
 
         data = %{
           data
@@ -245,7 +245,7 @@ defmodule Module.Types.Of do
         type =
           Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
             %{^version => %{type: type}} = vars
-            union(acc, type)
+            opt_union(acc, type)
           end)
 
         {_, context} = refine_body_var(version, type, expr, stack, context)
@@ -264,8 +264,8 @@ defmodule Module.Types.Of do
     {Float, float()},
     {Function, fun()},
     {Integer, integer()},
-    {List, union(empty_list(), non_empty_list(term(), term()))},
-    {Map, open_map(__struct__: if_set(negation(atom())))},
+    {List, opt_union(empty_list(), non_empty_list(term(), term()))},
+    {Map, open_map(__struct__: if_set(Module.Types.Descr.opt_negation(atom())))},
     {Port, port()},
     {PID, pid()},
     {Reference, reference()},
@@ -384,15 +384,18 @@ defmodule Module.Types.Of do
           for key <- keys, t <- cartesian_map(tail) do
             closed_map(non_multiple ++ [{key, type} | t])
           end
-          |> Enum.reduce(&union/2)
+          |> Enum.reduce(&opt_union/2)
       end
 
     {if(dynamic?, do: dynamic(map), else: map), context}
   end
 
   defp union_negated([], new_type, single, multiple) do
-    single = Enum.map(single, fn {key, old_type} -> {key, union(old_type, new_type)} end)
-    multiple = Enum.map(multiple, fn {keys, old_type} -> {keys, union(old_type, new_type)} end)
+    single = Enum.map(single, fn {key, old_type} -> {key, opt_union(old_type, new_type)} end)
+
+    multiple =
+      Enum.map(multiple, fn {keys, old_type} -> {keys, opt_union(old_type, new_type)} end)
+
     {single, multiple}
   end
 
@@ -402,13 +405,13 @@ defmodule Module.Types.Of do
         if key in negated do
           {{key, old_type}, [key | matched]}
         else
-          {{key, union(old_type, new_type)}, matched}
+          {{key, opt_union(old_type, new_type)}, matched}
         end
       end)
 
     multiple =
       Enum.map(multiple, fn {keys, old_type} ->
-        {keys, union(old_type, new_type)}
+        {keys, opt_union(old_type, new_type)}
       end)
 
     {Enum.map(negated -- matched, fn key -> {key, not_set()} end) ++ single, multiple}

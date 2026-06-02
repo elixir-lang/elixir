@@ -33,7 +33,7 @@ defmodule Module.Types.Apply do
     |> Enum.map(fn {key, type} when is_atom(key) ->
       tuple([atom([key]), type])
     end)
-    |> Enum.reduce(&union/2)
+    |> Enum.reduce(&opt_union/2)
     |> list()
   end
 
@@ -56,7 +56,7 @@ defmodule Module.Types.Apply do
       exports_md5: binary(),
       functions: fas,
       macros: fas,
-      struct: struct_info |> union(atom([nil]))
+      struct: struct_info |> opt_union(atom([nil]))
     ] ++ shared_info
 
   infos =
@@ -72,7 +72,7 @@ defmodule Module.Types.Apply do
        module: atom(),
        functions: fas,
        consolidated?: boolean(),
-       impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))}
+       impls: opt_union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))}
     ]
 
   for {name, clauses} <- infos do
@@ -96,10 +96,10 @@ defmodule Module.Types.Apply do
 
   send_destination =
     pid()
-    |> union(reference())
-    |> union(port())
-    |> union(atom())
-    |> union(tuple([atom(), atom()]))
+    |> opt_union(reference())
+    |> opt_union(port())
+    |> opt_union(atom())
+    |> opt_union(tuple([atom(), atom()]))
 
   basic_arith_2_args_clauses = [
     {[integer(), integer()], integer()},
@@ -108,16 +108,16 @@ defmodule Module.Types.Apply do
     {[float(), float()], float()}
   ]
 
-  args_or_arity = union(list(term()), integer())
-  args_or_none = union(list(term()), atom([:none]))
+  args_or_arity = opt_union(list(term()), integer())
+  args_or_none = opt_union(list(term()), atom([:none]))
   extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
 
   raise_stacktrace =
     list(
       tuple([atom(), atom(), args_or_arity, extra_info])
-      |> union(tuple([atom(), atom(), args_or_arity]))
-      |> union(tuple([fun(), args_or_arity, extra_info]))
-      |> union(tuple([fun(), args_or_arity]))
+      |> opt_union(tuple([atom(), atom(), args_or_arity]))
+      |> opt_union(tuple([fun(), args_or_arity, extra_info]))
+      |> opt_union(tuple([fun(), args_or_arity]))
     )
 
   not_signature =
@@ -145,7 +145,8 @@ defmodule Module.Types.Apply do
         {:erlang, :-, [{[integer()], integer()}, {[float()], float()}]},
         {:erlang, :-, basic_arith_2_args_clauses},
         {:erlang, :*, basic_arith_2_args_clauses},
-        {:erlang, :/, [{[union(integer(), float()), union(integer(), float())], float()}]},
+        {:erlang, :/,
+         [{[opt_union(integer(), float()), opt_union(integer(), float())], float()}]},
         {:erlang, :"/=", [{[term(), term()], boolean()}]},
         {:erlang, :"=/=", [{[term(), term()], boolean()}]},
         {:erlang, :<, [{[term(), term()], boolean()}]},
@@ -175,12 +176,12 @@ defmodule Module.Types.Apply do
         {:erlang, :bsr, [{[integer(), integer()], integer()}]},
         {:erlang, :bxor, [{[integer(), integer()], integer()}]},
         {:erlang, :byte_size, [{[bitstring()], integer()}]},
-        {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
+        {:erlang, :ceil, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :div, [{[integer(), integer()], integer()}]},
         {:erlang, :error, [{[term()], none()}]},
         {:erlang, :error, [{[term(), args_or_none], none()}]},
         {:erlang, :error, [{[term(), args_or_none, kw.(error_info: open_map())], none()}]},
-        {:erlang, :floor, [{[union(integer(), float())], integer()}]},
+        {:erlang, :floor, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :function_exported, [{[atom(), atom(), integer()], boolean()}]},
         {:erlang, :integer_to_binary, [{[integer()], binary()}]},
         {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
@@ -198,12 +199,12 @@ defmodule Module.Types.Apply do
         {:erlang, :make_tuple, [{[integer(), term()], tuple()}]},
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
-        {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
+        {:erlang, :node, [{[pid() |> opt_union(reference()) |> opt_union(port())], atom()}]},
         {:erlang, :not, not_signature},
         {:erlang, :or, or_signature},
         {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
-        {:erlang, :round, [{[union(integer(), float())], integer()}]},
+        {:erlang, :round, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},
         {:erlang, :spawn, [{[fun(0)], pid()}]},
         {:erlang, :spawn, [{mfargs, pid()}]},
@@ -213,7 +214,7 @@ defmodule Module.Types.Apply do
         {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
         {:erlang, :split_binary, [{[binary(), integer()], tuple([binary(), binary()])}]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
-        {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
+        {:erlang, :trunc, [{[opt_union(integer(), float())], integer()}]},
 
         # TODO: Replace term()/dynamic() by parametric types
         {:erlang, :++,
@@ -251,7 +252,7 @@ defmodule Module.Types.Apply do
         ## Map
         {Map, :delete, [{[open_map(), term()], open_map()}]},
         {Map, :fetch,
-         [{[open_map(), term()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
+         [{[open_map(), term()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
         {Map, :fetch!, [{[open_map(), term()], term()}]},
         {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
         {Map, :get, [{[open_map(), term()], term()}]},
@@ -275,14 +276,14 @@ defmodule Module.Types.Apply do
         {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
-         [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
+         [{[term(), open_map()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
         {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], list(term())}]},
         {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :remove, [{[term(), open_map()], open_map()}]},
         {:maps, :take,
-         [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
+         [{[term(), open_map()], tuple([term(), open_map()]) |> opt_union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :values, [{[open_map()], list(term())}]}
@@ -298,7 +299,7 @@ defmodule Module.Types.Apply do
           domain =
             clauses
             |> Enum.map(fn {args, _} -> args end)
-            |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
+            |> Enum.zip_with(fn types -> Enum.reduce(types, &opt_union/2) end)
 
           {:strong, domain, clauses}
       end
@@ -315,9 +316,9 @@ defmodule Module.Types.Apply do
     is_float: float(),
     is_function: fun(),
     is_integer: integer(),
-    is_list: union(empty_list(), non_empty_list(term(), term())),
+    is_list: opt_union(empty_list(), non_empty_list(term(), term())),
     is_map: open_map(),
-    is_number: union(float(), integer()),
+    is_number: opt_union(float(), integer()),
     is_pid: pid(),
     is_port: port(),
     is_reference: reference(),
@@ -329,7 +330,7 @@ defmodule Module.Types.Apply do
       {:strong, [term()],
        [
          {[type], atom([true])},
-         {[negation(type)], atom([false])}
+         {[Module.Types.Descr.opt_negation(type)], atom([false])}
        ]}
 
     def signature(:erlang, unquote(guard), 1),
@@ -343,7 +344,7 @@ defmodule Module.Types.Apply do
           {:strong, [term(), integer(), integer()],
            [
              {[integer(), integer(), integer()], boolean()},
-             {[negation(integer()), integer(), integer()], atom([false])}
+             {[Module.Types.Descr.opt_negation(integer()), integer(), integer()], atom([false])}
            ]}
         )
       )
@@ -443,7 +444,7 @@ defmodule Module.Types.Apply do
     # However, during inference, we type it as `a, b -> a and b` only.
     {left_type, context} = of_fun.(left, expected, expr, stack, context)
     {right_type, context} = of_fun.(right, expected, expr, stack, context)
-    result = union(left_type, right_type)
+    result = opt_union(left_type, right_type)
 
     if error = mismatched_ordered_comparison(left_type, right_type, stack) do
       remote_error(error, :erlang, name, 2, expr, stack, context)
@@ -668,10 +669,14 @@ defmodule Module.Types.Apply do
               {type, context} = of_fun.(literal, term(), expr, stack, context)
 
               if singleton?(type) do
-                acc = if polarity, do: union(acc, type), else: intersection(acc, negation(type))
+                acc =
+                  if polarity,
+                    do: opt_union(acc, type),
+                    else: opt_intersection(acc, Module.Types.Descr.opt_negation(type))
+
                 {acc, all_singleton?, context}
               else
-                acc = if polarity, do: union(acc, type), else: acc
+                acc = if polarity, do: opt_union(acc, type), else: acc
                 {acc, false, context}
               end
             end)
@@ -709,9 +714,9 @@ defmodule Module.Types.Apply do
 
   @empty_list empty_list()
   @non_empty_list non_empty_list(term())
-  @list union(empty_list(), non_empty_list(term()))
+  @list opt_union(empty_list(), non_empty_list(term()))
   @empty_map empty_map()
-  @non_empty_map difference(open_map(), empty_map())
+  @non_empty_map opt_difference(open_map(), empty_map())
 
   # Limit the size of tuples to 16 entries
   # as otherwise we may create large nodes
@@ -771,7 +776,7 @@ defmodule Module.Types.Apply do
               {tuple(List.duplicate(term(), literal)), true}
 
             :tuple_size ->
-              {difference(open_tuple([]), tuple(List.duplicate(term(), literal))), true}
+              {opt_difference(open_tuple([]), tuple(List.duplicate(term(), literal))), true}
           end
 
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
@@ -802,7 +807,7 @@ defmodule Module.Types.Apply do
         # This logic mirrors the code in `Pattern.of_pattern_tree`
         # If it is a singleton, we can always be precise
         if singleton?(type) do
-          expected = if polarity, do: type, else: negation(type)
+          expected = if polarity, do: type, else: Module.Types.Descr.opt_negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
           result = if subtype?(arg_type, upper_bound(expected)), do: return, else: boolean()
 
@@ -910,13 +915,13 @@ defmodule Module.Types.Apply do
   defp expected_order(_, :<, 0), do: :none
 
   defp expected_order(:tuple_size, :<, size),
-    do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size))), true}
+    do: {opt_difference(open_tuple([]), open_tuple(List.duplicate(term(), size))), true}
 
   defp expected_order(:tuple_size, :"=<", 0),
     do: {tuple([]), true}
 
   defp expected_order(:tuple_size, :"=<", size),
-    do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1))), true}
+    do: {opt_difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1))), true}
 
   defp expected_order(:tuple_size, :>, size),
     do: {open_tuple(List.duplicate(term(), size + 1)), true}
@@ -972,7 +977,7 @@ defmodule Module.Types.Apply do
       {:strong, [term(), integer()],
        [
          {[type, integer()], atom([true])},
-         {[negation(type), integer()], atom([false])}
+         {[Module.Types.Descr.opt_negation(type), integer()], atom([false])}
        ]}
 
     {info, filter_domain(info, expected, 2), context}
@@ -1114,7 +1119,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :fetch, _info, [map, key] = args_types, stack) do
     case map_get(map, key) do
       {_, value} ->
-        result = tuple([atom([:ok]), value]) |> union(atom([:error]))
+        result = tuple([atom([:ok]), value]) |> opt_union(atom([:error]))
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
@@ -1135,7 +1140,7 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(Map, :get, _info, [map, key] = args_types, stack) do
     case map_get(map, key) do
-      {:ok, value} -> {:ok, return(union(value, @nil_atom), args_types, stack)}
+      {:ok, value} -> {:ok, return(opt_union(value, @nil_atom), args_types, stack)}
       :badmap -> {:error, badremote(Map, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, @nil_atom}}
     end
@@ -1143,7 +1148,7 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(Map, :get, _info, [map, key, default] = args_types, stack) do
     case map_get(map, key) do
-      {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
+      {:ok, value} -> {:ok, return(opt_union(value, default), args_types, stack)}
       :badmap -> {:error, badremote(Map, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, default}}
     end
@@ -1153,7 +1158,7 @@ defmodule Module.Types.Apply do
     case fun_apply(fun, []) do
       {:ok, default} ->
         case map_get(map, key) do
-          {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
+          {:ok, value} -> {:ok, return(opt_union(value, default), args_types, stack)}
           :badmap -> {:error, badremote(Map, :get_lazy, args_types)}
           :error -> {:error, {:badkeydomain, map, key, default}}
         end
@@ -1183,7 +1188,7 @@ defmodule Module.Types.Apply do
 
     case map_update(map, key, not_set(), true, false) do
       {value, descr, _errors} ->
-        value = union(value, default)
+        value = opt_union(value, default)
         {:ok, return(tuple([value, descr]), args_types, stack)}
 
       :badmap ->
@@ -1199,7 +1204,7 @@ defmodule Module.Types.Apply do
       {:ok, default} ->
         case map_update(map, key, not_set(), true, false) do
           {value, descr, _errors} ->
-            value = union(value, default)
+            value = opt_union(value, default)
             {:ok, return(tuple([value, descr]), args_types, stack)}
 
           :badmap ->
@@ -1273,7 +1278,7 @@ defmodule Module.Types.Apply do
           default
         else
           case fun_apply(fun, [arg_type]) do
-            {:ok, res} -> if optional?, do: union(res, default), else: res
+            {:ok, res} -> if optional?, do: opt_union(res, default), else: res
             reason -> throw({:badapply, reason, [arg_type]})
           end
         end
@@ -1297,7 +1302,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :find, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {_, value} ->
-        result = tuple([atom([:ok]), value]) |> union(atom([:error]))
+        result = tuple([atom([:ok]), value]) |> opt_union(atom([:error]))
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
@@ -1331,7 +1336,7 @@ defmodule Module.Types.Apply do
           map_and_maybe_empty_map =
             case empty_list? do
               true -> map
-              false -> difference(map, empty_map())
+              false -> opt_difference(map, empty_map())
             end
 
           {:ok, return(map_and_maybe_empty_map, args_types, stack)}
@@ -1376,7 +1381,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
     case map_update(map, key, not_set(), true, false) do
       {value, descr, _errors} ->
-        result = union(tuple([value, descr]), atom([:error]))
+        result = opt_union(tuple([value, descr]), atom([:error]))
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
@@ -1450,10 +1455,10 @@ defmodule Module.Types.Apply do
           Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
             case signature(module, fun, arity, meta, stack, context) do
               {{:strong, _, clauses}, context} ->
-                {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+                {opt_union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
 
               {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
-                {union(type, fun_from_inferred_clauses(clauses)), fallback?, context}
+                {opt_union(type, fun_from_inferred_clauses(clauses)), fallback?, context}
 
               {_, context} ->
                 {type, true, context}
@@ -1742,7 +1747,7 @@ defmodule Module.Types.Apply do
 
   defp map_put_new(map, key, value, name, args_types, stack) do
     fun = fn
-      true, type -> union(type, value)
+      true, type -> opt_union(type, value)
       false, type -> if empty?(type), do: value, else: type
     end
 
@@ -1798,7 +1803,7 @@ defmodule Module.Types.Apply do
     case filter_domain(clauses, expected, [], true) do
       :none -> domain(domain, clauses)
       :all -> domain(domain, clauses)
-      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
+      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &opt_union/2) end)
     end
   end
 
@@ -1822,7 +1827,7 @@ defmodule Module.Types.Apply do
         {used, dynamic()}
 
       {_count, used, returns} ->
-        {used, returns |> Enum.reduce(&union/2) |> dynamic()}
+        {used, returns |> Enum.reduce(&opt_union/2) |> dynamic()}
     end
   end
 
@@ -1839,7 +1844,7 @@ defmodule Module.Types.Apply do
     # as a non disjoint check. So we skip checking compatibility twice.
     with true <- zip_compatible_or_only_gradual?(args_types, domain),
          {count, used, returns} when count > 0 <- apply_clauses(clauses, args_types, 0, 0, [], []) do
-      {used, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
+      {used, returns |> Enum.reduce(&opt_union/2) |> return(args_types, stack)}
     else
       _ -> :error
     end
@@ -2184,7 +2189,7 @@ defmodule Module.Types.Apply do
             clauses =
               case mod.__protocol__(:impls) do
                 {:consolidated, mods} ->
-                  domain = mods |> Enum.map(&Module.Types.Of.impl/1) |> Enum.reduce(&union/2)
+                  domain = mods |> Enum.map(&Module.Types.Of.impl/1) |> Enum.reduce(&opt_union/2)
                   [{[domain], dynamic()}]
 
                 _ ->
@@ -2394,10 +2399,10 @@ defmodule Module.Types.Apply do
              term_type?(actual) do
           actual |> to_quoted() |> Code.Formatter.to_algebra()
         else
-          common = intersection(actual, expected)
+          common = opt_intersection(actual, expected)
 
           uncommon_doc =
-            difference(actual, expected)
+            opt_difference(actual, expected)
             |> to_quoted()
             |> Code.Formatter.to_algebra()
             |> ansi_red()
@@ -2415,17 +2420,17 @@ defmodule Module.Types.Apply do
   end
 
   @composite_types non_empty_list(term(), term())
-                   |> union(tuple())
-                   |> union(open_map())
-                   |> union(fun())
+                   |> opt_union(tuple())
+                   |> opt_union(open_map())
+                   |> opt_union(fun())
 
   # If actual/expected have a composite type, computing the
-  # `intersection(actual, expected) or difference(actual, expected)`
+  # `opt_intersection(actual, expected) or opt_difference(actual, expected)`
   # can lead to an explosion of terms that actually make debugging
   # harder. So we check that at least one of the two operations
   # return none() (i.e. actual is a subtype or they are disjoint).
   defp has_simple_difference?(actual, expected) do
-    composite_types = intersection(actual, @composite_types)
+    composite_types = opt_intersection(actual, @composite_types)
     subtype?(composite_types, expected) or disjoint?(composite_types, expected)
   end
 

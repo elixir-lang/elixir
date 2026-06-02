@@ -62,7 +62,7 @@ defmodule Module.Types.InferTest do
       end
 
     assert types[{:fun, 1}] ==
-             {:infer, [union(atom([:ok, :error]), binary())],
+             {:infer, [opt_union(atom([:ok, :error]), binary())],
               [
                 {[atom([:ok])], atom([:one])},
                 {[binary()], atom([:two, :three, :four])},
@@ -138,7 +138,7 @@ defmodule Module.Types.InferTest do
         end
       end
 
-    number = union(integer(), float())
+    number = opt_union(integer(), float())
 
     assert types[{:fun, 1}] ==
              {:infer, nil, [{[open_map(foo: number, bar: number)], dynamic(number)}]}
@@ -155,7 +155,7 @@ defmodule Module.Types.InferTest do
 
     assert types[{:parse, 1}] ==
              {:infer, nil,
-              [{[term()], dynamic(union(atom([:error]), tuple([integer(), binary()])))}]}
+              [{[term()], dynamic(opt_union(atom([:error]), tuple([integer(), binary()])))}]}
   end
 
   test "from private functions", config do
@@ -359,7 +359,7 @@ defmodule Module.Types.InferTest do
 
     assert signature == [
              {[tuple([term(), term(), term()])], dynamic()},
-             {[negation(tuple([term(), term(), term()]))], atom([nil])}
+             {[opt_negation(tuple([term(), term(), term()]))], atom([nil])}
            ]
   end
 end
