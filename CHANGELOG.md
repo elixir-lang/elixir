@@ -192,36 +192,9 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
-## v1.20.0-rc.6 (2026-05-21)
+## v1.20.0 (2026-06-??)
 
 This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Kernel] Perform type inference across applications
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Fix type checker bug when validating a `case` inside a `cond` condition (regression)
-  * [Kernel] Preserve evaluation order when rewriting function calls from Elixir modules into Erlang ones
-
-#### Mix
-
-  * [mix deps] Do not show dependency as diverged when it actually requires compilation (regression)
-  * [mix deps] Revert allowing overriding specific dependencies in `:override` due to conflicts with Hex (revert)
-  * [mix test] Respect --raise when mix test --warnings-as-errors passes with warnings
-
-### 3. Hard deprecations
-
-#### Mix
-
-  * [mix compile.elixir] `xref: [exclude: ...]` in your `mix.exs` is deprecated in favor of `elixirc_options: [no_warn_undefined: ...]`
-
-## v1.20.0-rc.5 (2026-05-13)
 
 ### 1. Enhancements
 
@@ -232,45 +205,98 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 #### Elixir
 
   * [Base] Optimize Base validation functions by using SWAR techniques
+  * [Calendar] Optimize `date_from_iso_days` by using the Neri-Schneider algorithm
+  * [Code] Add `:dbg_callback` option to eval functions
+  * [Code] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
+  * [Code] Make module purging opt-in and move temporary module deletion to the background to speed up compilation times
+  * [Code.Fragment] Allow preserving sigil metadata in `container_cursor_to_quoted`
+  * [Enum] Add `Enum.min_max` sorter
+  * [File] Add support for `[:raw]` opts in `File.read/2`
+  * [File] Skip device, named pipes, etc in `File.cp_r/3` instead of erroring with reason `:eio`
   * [Float] Optimize `Float.round/2` by avoiding big integers
   * [Inspect] Increase inspect limit to help print deeply nested data structures
   * [Inspect] Support printing Erlang records (using Erlang notation)
+  * [Integer] Add `Integer.ceil_div/2`
+  * [Integer] Add `Integer.popcount/1`
+  * [IO] Add `IO.iodata_empty?/1`
+  * [Kernel] Add type inference across clauses. For example, if one clause says `x when is_integer(x)`, then the next clause may no longer be an integer
   * [Kernel] Add occurrence typing on `case`, `cond`, and `with`
-  * [Registry] Switch `{:duplicate, :key}` key_ets to ordered_set with composite keys
+  * [Kernel] Detect and warn on redundant clauses
+  * [Kernel] Perform type inference across applications
+  * [Kernel] Print intermediate results of `dbg` for pipes
+  * [Kernel] Show undefined function errors even when missing variables (this helps debug errors caused when the developer forgets to require a macro)
+  * [Kernel] Warn on unused requires
+  * [List] Add `List.first!/1` and `List.last!/1`
+  * [Module] Purge and delete modules if `after_compile/2` callback fails
+  * [PartitionSupervisor] Support via tuples in `count_children/1` and `stop/3`
+  * [Process] Add `Process.get_label/1`
+  * [Registry] Switch `keys: {:duplicate, :key}` to `ordered_set` with composite keys
+  * [Regex] Add `Regex.import/1` to import regexes defined with `/E`
   * [String] SWAR-optimize ASCII fast paths in `String.length/1` and `String.slice/3`
+  * Add Software Bill of Materials guide to the Documentation
 
 #### ExUnit
 
   * [ExUnit] Show remaining runs when using `--repeat-until-failure`
+  * [ExUnit.CaptureLog] Add `:formatter` option for custom log formatting
 
 #### IEx
 
+  * [IEx] Optimize autocompleting modules
   * [IEx.Helpers] Add `source/1`
 
 #### Mix
 
   * [mix app.tree] Support `--output` option
+  * [mix compile] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
+  * [mix compile] Enforce `:elixirc_paths` to be a list of strings to avoid paths from being discarded (the only documented type was lists of strings)
+  * [mix deps] Parallelize dep lock status checks during `deps.loadpaths`, improving boot times in projects with many git dependencies
+  * [mix deps] Support filtering `mix deps` output
   * [mix deps.tree] Support `--output` option
-  * [mix help] Support printing docs for types and callbacks
   * [mix format] Support `--no-compile` option
+  * [mix help] Support printing docs for types and callbacks
   * [mix source] Add `mix source MODULE` to print or open a given module/function location
+  * [mix test] Add `mix test --dry-run`
 
 ### 2. Potential breaking changes
 
 #### Elixir
 
-  * [Kernel] Disallow raw CR line ending in strings, comments and after `?` for security reasons
+  * [Kernel] Disallow raw CR line ending in strings, comments, and after `?` for security reasons
+  * [Kernel] `require SomeModule` no longer expands to the given module at compile-time, but it still returns the module at runtime. Note Elixir does not guarantee macros will expand to certain constructs, only what its execution result, but since this can break code relying on the previous behaviour, such as `require(SomeMod).some_macro()`, we are adding this note to the CHANGELOG
 
 ### 3. Bug fixes
 
 #### Elixir
 
+  * [Enum] Fix `Enum.slice/2` for ranges with step > 1 sliced by step > 1
+  * [File] Allowing preserving directory permissions in `File.cp_r/3`
+  * [File] Fix `File.cp_r/3` infinite loop with symlink cycles
+  * [File] Fix `File.cp_r/3` infinite loop when copying into subdirectory of source
+  * [File] Fix `File.Stream`'s `Enumerable.count` for files without trailing newline
+  * [File] Warn when defining `@type record()` for Erlang/OTP 29
+  * [Float] Fix `Float.parse/1` inconsistent error handling for non-scientific notation overflow
+  * [Integer] Fix `Integer.extended_gcd/2` returning negative GCD for zero base cases
+  * [Integer] Raise when negative out-of-range digits are given to `Integer.undigits/2`
   * [Kernel] Fix a compiler crash when importing a module with `only: :sigils` option when the imported module exports non-sigil symbols with `sigil_` prefix
+  * [Kernel] Protocols should not add compile-time dependencies on `Any` implementation
+  * [Kernel] Preserve evaluation order when rewriting function calls from Elixir modules into Erlang ones
   * [Kernel] Reject negative Duration in `to_timeout/1`
+  * [Keyword] Raise `ArgumentError` in `Keyword.from_keys/2` for non-atom keys
   * [Macro] Fix generation of heredocs in `Macro.to_string/1` with escaped trailing newline
   * [Path] Consistently return path as binary in `Path.relative_to_cwd/2`
   * [Stream] Raise in `Stream.cycle/1` when enumerable reduce call yields no elements
   * [String] Support empty pattern list in `String.count/2`
+  * [URI] Fix `URI.merge` leaking `:+` marker when base path is empty string
+
+#### ExUnit
+
+  * [ExUnit.Diff] Avoid false positives when diffing bitstrings
+
+#### IEx
+
+  * [IEx] Ensure pry works across remote nodes
+  * [IEx] Ensure warnings emitted during IEx parsing are properly displayed/printed
 
 #### Logger
 
@@ -279,148 +305,16 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 #### Mix
 
   * [Mix] Use `non_executable_binary_to_term` on loopback pubsub
-  * [mix compile.elixir] Fix scenario where Elixir would tag mtimes in the future
-
-## v1.20.0-rc.4 (2026-03-31)
-
-This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Code] Add `:dbg_callback` option to eval functions
-  * [Code.Fragment] Allow preserving sigil metadata in `container_cursor_to_quoted`
-  * [File] Add support for `[:raw]` opts in `File.read/2`
-  * [Kernel] Show undefined function errors even when missing variables (this helps debug errors caused when the developer forgets to require a macro)
-  * [Module] Purge and delete modules if `after_compile/2` callback fails
-  * [PartitionSupervisor] Support via tuples in `count_children/1` and `stop/3`
-  * [Process] Add `Process.get_label/1`
-
-#### Mix
-
-  * [mix deps] Allow overriding specific dependencies in `:override`
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Integer] Fix `Integer.extended_gcd/2` returning negative GCD for zero base cases
-  * [Integer] Raise when negative out-of-range digits are given to `Integer.undigits/2`
-  * [Kernel] Protocols should not add compile-time dependencies on `Any` implementation
-  * [Kernel] Ensure structs trigger recompilation for type checking purposes (regression)
-  * [Kernel] Ensure type information propagate across `hd/tl` in guards (regression)
-  * [Keyword] Raise `ArgumentError` in `Keyword.from_keys/2` for non-atom keys
-  * [URI] Fix `URI.merge` leaking `:+` marker when base path is empty string
-
-#### ExUnit
-
-  * [ExUnit.Diff] Avoid false positives when diffing bitstrings
-
-#### Mix
-
-  * [mix deps] Use config files to pass project state to avoid argv limits on Windows when using `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
-  * [mix compile] Fix compile env change triggering full recompilation of path dependencies
   * [mix compile] Add a build lock around protocol consolidation in umbrellas
   * [mix compile] Ensure compilation of sibling deps do not mark path deps as changed
-  * [mix test] Fix `--warnings-as-errors` not catching misnamed test file warnings
-
-## v1.20.0-rc.3 (2026-03-09)
-
-### 1. Enhancements
-
-#### IEx
-
-  * [IEx] Optimize autocompleting modules
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Enum] Fix `Enum.slice/2` for ranges with step > 1 sliced by step > 1
-  * [File] Allowing preserving directory permissions in `File.cp_r/3`
-  * [File] Fix `File.cp_r/3` infinite loop with symlink cycles
-  * [File] Fix `File.cp_r/3` infinite loop when copying into subdirectory of source
-  * [File] Warn when defining `@type record()`, fixes CI on Erlang/OTP 29
-  * [File] Fix `File.Stream` `Enumerable.count` for files without trailing newline
-  * [Float] Fix `Float.parse/1` inconsistent error handling for non-scientific notation overflow
-  * [Kernel] Process fields even when structs are unknown (regression)
-  * [Kernel] Improve performance on several corner cases in the type system (regression)
-  * [Kernel] Fix regression when using `Kernel.in/2` in defguard (regression)
-
-## v1.20.0-rc.2 (2026-03-04)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Code] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
-  * [Code] Make module purging opt-in and move temporary module deletion to the background to speed up compilation times
-  * [Integer] Add `Integer.popcount/1`
-  * [Kernel] Add type inference across clauses. For example, if one clause says `x when is_integer(x)`, then the next clause may no longer be an integer
-  * [Kernel] Detect and warn on redundant clauses
-  * [List] Add `List.first!/1` and `List.last!/1`
-  * Add Software Bill of Materials guide to the Documentation
-
-#### Mix
-
-  * [mix compile] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
-  * [mix deps] Parallelize dep lock status checks during `deps.loadpaths`, improving boot times in projects with many git dependencies
-
-### 2. Bug fixes
-
-#### IEx
-
-  * [IEx] Ensure warnings emitted during IEx parsing are properly displayed/printed
-  * [IEx] Ensure pry works across remote nodes
-
-#### Mix
-
+  * [mix compile] Fix compile env change triggering full recompilation of path dependencies
+  * [mix compile.elixir] Fix scenario where Elixir would tag mtimes in the future
   * [mix compile.erlang] Topsort Erlang modules before compilation for proper dependency resolution
+  * [mix deps] Use config files to pass project state to avoid argv limits on Windows when using `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
+  * [mix test] Fix `--warnings-as-errors` not catching misnamed test file warnings
+  * [mix test] Respect `--raise` when `mix test --warnings-as-errors` passes with warnings
 
-## v1.20.0-rc.1 (2026-01-13)
-
-### 1. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Do not crash on map types with struct keys when performing type operations (regression)
-  * [Kernel] Mark the outcome of bitstring types as dynamic (regression)
-  * [Kernel] `<<expr::bitstring>>` will have type `binary` instead of `bitstring` if `expr` is a binary (regression)
-  * [Kernel] Do not crash on conditional variables when calling a function on a module which is represented by a variable (regression)
-
-## v1.20.0-rc.0 (2026-01-09)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Calendar] Optimize `date_from_iso_days` by using the Neri-Schneider algorithm
-  * [Enum] Add `Enum.min_max` sorter
-  * [Integer] Add `Integer.ceil_div/2`
-  * [IO] Add `IO.iodata_empty?/1`
-  * [File] Skip device, named pipes, etc in `File.cp_r/3` instead of erroring with reason `:eio`
-  * [Kernel] Print intermediate results of `dbg` for pipes
-  * [Kernel] Warn on unused requires
-  * [Regex] Add `Regex.import/1` to import regexes defined with `/E`
-
-#### ExUnit
-
-  * [ExUnit.CaptureLog] Add `:formatter` option for custom log formatting
-
-#### Mix
-
-  * [mix deps] Support filtering `mix deps` output
-  * [mix compile] Enforce `:elixirc_paths` to be a list of strings to avoid paths from being discarded (the only documented type was lists of strings)
-  * [mix test] Add `mix test --dry-run`
-
-### 2. Potential breaking changes
-
-#### Elixir
-
-  * `require SomeModule` no longer expands to the given module at compile-time, but it still returns the module at runtime. Note Elixir does not guarantee macros will expand to certain constructs, but since this can break code relying on the previous behaviour, such as `require(SomeMod).some_macro()`, we are adding this note to the CHANGELOG
-
-### 3. Hard deprecations
+### 4. Hard deprecations
 
 #### Elixir
 
@@ -432,6 +326,10 @@ This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
   * [Logger] `Logger.*_backend` functions are deprecated in favor of handlers. If you really want to keep on using backends, see the `:logger_backends` package
   * [Logger] `Logger.enable/1` and `Logger.disable/1` have been deprecated in favor of `Logger.put_process_level/2` and `Logger.delete_process_level/1`
+
+#### Mix
+
+  * [mix compile.elixir] `xref: [exclude: ...]` in your `mix.exs` is deprecated in favor of `elixirc_options: [no_warn_undefined: ...]`
 
 ## v1.19
 
