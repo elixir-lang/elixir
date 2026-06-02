@@ -2469,8 +2469,8 @@ defmodule Module.Types.Descr do
 
   defp list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
     try do
-      list = non_empty_intersection!(list1, list2)
-      last = non_empty_intersection!(last1, last2)
+      list = non_empty_intersection!(list1, list2, &opt_intersection/2)
+      last = non_empty_intersection!(last1, last2, &opt_intersection/2)
       bdd_leaf_new(list, last)
     catch
       :empty -> :bdd_bot
@@ -3029,7 +3029,7 @@ defmodule Module.Types.Descr do
   defp map_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
   defp opt_map_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
-    case maybe_optimize_map_union(tag1, fields1, tag2, fields2) do
+    case opt_map_union(tag1, fields1, tag2, fields2) do
       {tag, fields} -> bdd_leaf_new(tag, fields)
       nil -> bdd_union(bdd_leaf_new(tag1, fields1), bdd_leaf_new(tag2, fields2))
     end
@@ -3037,10 +3037,10 @@ defmodule Module.Types.Descr do
 
   defp opt_map_union(bdd1, bdd2), do: map_union(bdd1, bdd2)
 
-  defp maybe_optimize_map_union(:open, [], _, _), do: {:open, @fields_new}
-  defp maybe_optimize_map_union(_, _, :open, []), do: {:open, @fields_new}
+  defp opt_map_union(:open, [], _, _), do: {:open, @fields_new}
+  defp opt_map_union(_, _, :open, []), do: {:open, @fields_new}
 
-  defp maybe_optimize_map_union(tag1, pos1, tag2, pos2)
+  defp opt_map_union(tag1, pos1, tag2, pos2)
        when is_atom(tag1) and is_atom(tag2) do
     case map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
       :all_equal when tag1 == :open -> {tag1, pos1}
@@ -3052,7 +3052,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp maybe_optimize_map_union(_, _, _, _), do: nil
+  defp opt_map_union(_, _, _, _), do: nil
 
   defp map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
        when k1 < k2 do
@@ -3198,7 +3198,7 @@ defmodule Module.Types.Descr do
 
   defp map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
     try do
-      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
+      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2, &opt_intersection/2)
       bdd_leaf_new(tag, fields)
     catch
       :empty -> :bdd_bot
@@ -3285,10 +3285,12 @@ defmodule Module.Types.Descr do
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
-  defp map_literal_intersection(:open, map1, :open, map2) do
+  defp map_literal_intersection(tag1, map1, tag2, map2, intersection_fun \\ &bare_intersection/2)
+
+  defp map_literal_intersection(:open, map1, :open, map2, intersection_fun) do
     new_fields =
       fields_merge(
-        fn _, type1, type2 -> non_empty_intersection!(type1, type2) end,
+        fn _, type1, type2 -> non_empty_intersection!(type1, type2, intersection_fun) end,
         map1,
         map2
       )
@@ -3297,21 +3299,21 @@ defmodule Module.Types.Descr do
   end
 
   # Both closed: the result is closed.
-  defp map_literal_intersection(:closed, map1, :closed, map2) do
-    {:closed, map_literal_intersection_closed(map1, map2)}
+  defp map_literal_intersection(:closed, map1, :closed, map2, intersection_fun) do
+    {:closed, map_literal_intersection_closed(map1, map2, intersection_fun)}
   end
 
   # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
-  defp map_literal_intersection(:open, open, :closed, closed) do
-    {:closed, map_literal_intersection_open_closed(open, closed)}
+  defp map_literal_intersection(:open, open, :closed, closed, intersection_fun) do
+    {:closed, map_literal_intersection_open_closed(open, closed, intersection_fun)}
   end
 
-  defp map_literal_intersection(:closed, closed, :open, open) do
-    {:closed, map_literal_intersection_open_closed(open, closed)}
+  defp map_literal_intersection(:closed, closed, :open, open, intersection_fun) do
+    {:closed, map_literal_intersection_open_closed(open, closed, intersection_fun)}
   end
 
   # At least one tag is a tag-domain pair.
-  defp map_literal_intersection(tag_or_domains1, map1, tag_or_domains2, map2) do
+  defp map_literal_intersection(tag_or_domains1, map1, tag_or_domains2, map2, intersection_fun) do
     # For a closed map with domains intersected with an open map with domains:
     # 1. The result is closed (more restrictive)
     # 2. We need to check each domain in the open map against the closed map
@@ -3329,7 +3331,7 @@ defmodule Module.Types.Descr do
     # using default values when a key is not present.
     {tag_or_domains,
      fields_merge_with_defaults(map1, default1, map2, default2, fn _key, v1, v2 ->
-       non_empty_intersection!(v1, v2)
+       non_empty_intersection!(v1, v2, intersection_fun)
      end)}
   end
 
@@ -3367,24 +3369,29 @@ defmodule Module.Types.Descr do
 
   defp map_domain_intersection_fields(_, _), do: []
 
-  defp map_literal_intersection_open_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+  defp map_literal_intersection_open_closed([{k1, v1} | t1], [{k2, _} | _] = l2, intersection_fun)
+       when k1 < k2 do
     # If the type in the open map is optional, we continue
     case v1 do
-      %{optional: 1} -> map_literal_intersection_open_closed(t1, l2)
+      %{optional: 1} -> map_literal_intersection_open_closed(t1, l2, intersection_fun)
       _ -> throw(:empty)
     end
   end
 
-  defp map_literal_intersection_open_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
+  defp map_literal_intersection_open_closed([{k1, _} | _] = l1, [{k2, v2} | t2], intersection_fun)
+       when k1 > k2 do
     # Anything in the closed map not in open is preserved
-    [{k2, v2} | map_literal_intersection_open_closed(l1, t2)]
+    [{k2, v2} | map_literal_intersection_open_closed(l1, t2, intersection_fun)]
   end
 
-  defp map_literal_intersection_open_closed([{key, v1} | t1], [{_, v2} | t2]) do
-    [{key, non_empty_intersection!(v1, v2)} | map_literal_intersection_open_closed(t1, t2)]
+  defp map_literal_intersection_open_closed([{key, v1} | t1], [{_, v2} | t2], intersection_fun) do
+    [
+      {key, non_empty_intersection!(v1, v2, intersection_fun)}
+      | map_literal_intersection_open_closed(t1, t2, intersection_fun)
+    ]
   end
 
-  defp map_literal_intersection_open_closed(t1, t2) do
+  defp map_literal_intersection_open_closed(t1, t2, _intersection_fun) do
     if Enum.all?(t1, fn {_, v} -> match?(%{optional: 1}, v) end) do
       t2
     else
@@ -3392,27 +3399,32 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_literal_intersection_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+  defp map_literal_intersection_closed([{k1, v1} | t1], [{k2, _} | _] = l2, intersection_fun)
+       when k1 < k2 do
     if is_optional_static(v1) do
-      map_literal_intersection_closed(t1, l2)
+      map_literal_intersection_closed(t1, l2, intersection_fun)
     else
       throw(:empty)
     end
   end
 
-  defp map_literal_intersection_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
+  defp map_literal_intersection_closed([{k1, _} | _] = l1, [{k2, v2} | t2], intersection_fun)
+       when k1 > k2 do
     if is_optional_static(v2) do
-      map_literal_intersection_closed(l1, t2)
+      map_literal_intersection_closed(l1, t2, intersection_fun)
     else
       throw(:empty)
     end
   end
 
-  defp map_literal_intersection_closed([{key, v1} | t1], [{_, v2} | t2]) do
-    [{key, non_empty_intersection!(v1, v2)} | map_literal_intersection_closed(t1, t2)]
+  defp map_literal_intersection_closed([{key, v1} | t1], [{_, v2} | t2], intersection_fun) do
+    [
+      {key, non_empty_intersection!(v1, v2, intersection_fun)}
+      | map_literal_intersection_closed(t1, t2, intersection_fun)
+    ]
   end
 
-  defp map_literal_intersection_closed(t1, t2) do
+  defp map_literal_intersection_closed(t1, t2, _intersection_fun) do
     if Enum.any?(t1, fn {_, v} -> not is_optional_static(v) end) or
          Enum.any?(t2, fn {_, v} -> not is_optional_static(v) end) do
       throw(:empty)
@@ -3421,8 +3433,8 @@ defmodule Module.Types.Descr do
     []
   end
 
-  defp non_empty_intersection!(type1, type2) do
-    type = opt_intersection(type1, type2)
+  defp non_empty_intersection!(type1, type2, intersection_fun) do
+    type = intersection_fun.(type1, type2)
     if empty?(type), do: throw(:empty), else: type
   end
 
@@ -4481,10 +4493,10 @@ defmodule Module.Types.Descr do
     {[], [], nil, to_domain_keys(key_descr), []}
   end
 
-  defp non_empty_map_literals_intersection(maps) do
+  defp non_empty_map_literals_intersection(maps, intersection_fun \\ &bare_intersection/2) do
     try do
       Enum.reduce(maps, {:open, []}, fn bdd_leaf(next_tag, next_fields), {tag, fields} ->
-        map_literal_intersection(tag, fields, next_tag, next_fields)
+        map_literal_intersection(tag, fields, next_tag, next_fields, intersection_fun)
       end)
     catch
       :empty -> :empty
@@ -4589,8 +4601,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_tag, acc_meet, negs) do
-    diff = opt_difference(type, neg_type)
-    meet = opt_intersection(type, neg_type)
+    diff = bare_difference(type, neg_type)
+    meet = bare_intersection(type, neg_type)
 
     (empty?(diff) or map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs)) and
       (empty?(meet) or map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs))
@@ -4646,7 +4658,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_fields_empty_recur?(key, v1, v2, tag, fields, negs) do
-    diff = opt_difference(v1, v2)
+    diff = bare_difference(v1, v2)
     empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
   end
 
@@ -4877,7 +4889,7 @@ defmodule Module.Types.Descr do
     {tag1, fields1, []} = map
     {tag2, fields2, []} = candidate
 
-    case maybe_optimize_map_union(tag1, fields1, tag2, fields2) do
+    case opt_map_union(tag1, fields1, tag2, fields2) do
       nil -> [candidate | map_fuse_with_first_fusible(map, rest)]
       # we found a fusible candidate, we're done
       {tag, fields} -> [{tag, fields, []} | rest]
@@ -5149,20 +5161,26 @@ defmodule Module.Types.Descr do
     do: bdd_intersection(bdd1, bdd2, &tuple_leaf_intersection/2)
 
   defp tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+    case tuple_literal_intersection(tag1, elements1, tag2, elements2, &opt_intersection/2) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
       :empty -> :bdd_bot
     end
   end
 
-  defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+  defp tuple_literal_intersection(
+         tag1,
+         elements1,
+         tag2,
+         elements2,
+         intersection_fun
+       ) do
     case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
       :disjoint ->
         :empty
 
       _ ->
         try do
-          zip_non_empty_intersection!(elements1, elements2, [])
+          zip_non_empty_intersection!(elements1, elements2, [], intersection_fun)
         catch
           :empty -> :empty
         else
@@ -5173,18 +5191,26 @@ defmodule Module.Types.Descr do
   end
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
-  defp zip_non_empty_intersection!([], types2, acc), do: Enum.reverse(acc, types2)
-  defp zip_non_empty_intersection!(types1, [], acc), do: Enum.reverse(acc, types1)
+  defp zip_non_empty_intersection!([], types2, acc, _intersection_fun),
+    do: Enum.reverse(acc, types2)
 
-  defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc) do
-    zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
+  defp zip_non_empty_intersection!(types1, [], acc, _intersection_fun),
+    do: Enum.reverse(acc, types1)
+
+  defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
+    zip_non_empty_intersection!(
+      rest1,
+      rest2,
+      [non_empty_intersection!(type1, type2, intersection_fun) | acc],
+      intersection_fun
+    )
   end
 
   defp zip_empty_intersection?([], _types2), do: false
   defp zip_empty_intersection?(_types1, []), do: false
 
   defp zip_empty_intersection?([type1 | rest1], [type2 | rest2]) do
-    case empty?(opt_intersection(type1, type2)) do
+    case empty?(bare_intersection(type1, type2)) do
       true -> true
       false -> zip_empty_intersection?(rest1, rest2)
     end
@@ -5234,7 +5260,7 @@ defmodule Module.Types.Descr do
     if subtype?, do: :subtype, else: :none
   end
 
-  defp non_empty_tuple_literals_intersection(tuples) do
+  defp non_empty_tuple_literals_intersection(tuples, intersection_fun \\ &bare_intersection/2) do
     try do
       Enum.reduce(tuples, {:open, []}, fn bdd_leaf(tag1, elements1), {tag2, elements2} ->
         case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
@@ -5243,7 +5269,7 @@ defmodule Module.Types.Descr do
 
           _ ->
             tag = if tag1 == :open and tag2 == :open, do: :open, else: :closed
-            {tag, zip_intersection(elements1, elements2, [])}
+            {tag, zip_intersection(elements1, elements2, [], intersection_fun)}
         end
       end)
     catch
@@ -5258,11 +5284,11 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp zip_intersection([], types2, acc), do: Enum.reverse(acc, types2)
-  defp zip_intersection(types1, [], acc), do: Enum.reverse(acc, types1)
+  defp zip_intersection([], types2, acc, _intersection_fun), do: Enum.reverse(acc, types2)
+  defp zip_intersection(types1, [], acc, _intersection_fun), do: Enum.reverse(acc, types1)
 
-  defp zip_intersection([type1 | rest1], [type2 | rest2], acc) do
-    zip_intersection(rest1, rest2, [opt_intersection(type1, type2) | acc])
+  defp zip_intersection([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
+    zip_intersection(rest1, rest2, [intersection_fun.(type1, type2) | acc], intersection_fun)
   end
 
   defp tuple_empty?(bdd) do
@@ -5306,8 +5332,8 @@ defmodule Module.Types.Descr do
   defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} = List.pop_at(elements, 0, term())
-    diff = opt_difference(ty, neg_type)
-    meet = opt_intersection(ty, neg_type)
+    diff = bare_difference(ty, neg_type)
+    meet = bare_intersection(ty, neg_type)
 
     # In this case, there is no intersection between the positive and this negative.
     # So we should just "go next"
@@ -5376,9 +5402,9 @@ defmodule Module.Types.Descr do
       end
 
     # ti \ ui  (i.e., ti and not ui)
-    diff = opt_difference(ty, neg_type)
+    diff = bare_difference(ty, neg_type)
     # ti /\ ui
-    meet = opt_intersection(ty, neg_type)
+    meet = bare_intersection(ty, neg_type)
 
     # Branch where the earliest difference is *here*.
     # Earlier positions are the accumulated matches in `acc`;
@@ -5430,13 +5456,17 @@ defmodule Module.Types.Descr do
   defp tuple_union(_, bdd_leaf(:open, []) = leaf), do: leaf
   defp tuple_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
+  defp opt_tuple_union({tag1, elements1}, {tag2, elements2}) do
+    maybe_optimize_tuple_union({tag1, elements1}, {tag2, elements2})
+  end
+
   defp opt_tuple_union(
-         bdd_leaf(tag1, elements1) = tuple1,
-         bdd_leaf(tag2, elements2) = tuple2
+         bdd_leaf(tag1, elements1),
+         bdd_leaf(tag2, elements2)
        ) do
     case maybe_optimize_tuple_union({tag1, elements1}, {tag2, elements2}) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
-      nil -> bdd_union(tuple1, tuple2)
+      nil -> bdd_union(bdd_leaf_new(tag1, elements1), bdd_leaf_new(tag2, elements2))
     end
   end
 
@@ -5590,7 +5620,7 @@ defmodule Module.Types.Descr do
   defp tuple_fuse_with_first_fusible(tuple, []), do: [tuple]
 
   defp tuple_fuse_with_first_fusible(tuple, [candidate | rest]) do
-    if fused = maybe_optimize_tuple_union(tuple, candidate) do
+    if fused = opt_tuple_union(tuple, candidate) do
       # we found a fusible candidate, we're done
       [fused | rest]
     else
