@@ -407,9 +407,9 @@ defmodule Module.Types.Descr do
   defp pop_dynamic(:term), do: {:term, :term}
   defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
 
-  @compile {:inline, maybe_union: 2}
-  defp maybe_union(nil, _fun), do: nil
-  defp maybe_union(descr, fun), do: bare_union(descr, fun.())
+  @compile {:inline, maybe_opt_union: 2}
+  defp maybe_opt_union(nil, _fun), do: nil
+  defp maybe_opt_union(descr, fun), do: opt_union(descr, fun.())
 
   @doc """
   Computes the union of two descrs.
@@ -949,9 +949,9 @@ defmodule Module.Types.Descr do
   Returns the intersection between two types
   only if they are compatible. Otherwise returns `:error`.
 
-  This finds the intersection between the arguments and the
-  domain of a function. It is used to refine dynamic types
-  as we traverse the program.
+  This finds the optimized intersection between the arguments and the
+  domain of a function. It is used to refine dynamic types as we traverse
+  the program.
   """
   def compatible_intersection(other, :term), do: {:ok, remove_optional(other)}
 
@@ -966,12 +966,12 @@ defmodule Module.Types.Descr do
 
     cond do
       empty?(left_static) ->
-        dynamic = bare_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
         if empty?(dynamic), do: {:error, left}, else: {:ok, dynamic(dynamic)}
 
       subtype_static?(left_static, right_dynamic) ->
-        dynamic = bare_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
-        {:ok, bare_union(dynamic(dynamic), left_static)}
+        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        {:ok, opt_union(dynamic(dynamic), left_static)}
 
       true ->
         {:error, left}
@@ -3471,8 +3471,8 @@ defmodule Module.Types.Descr do
           # We can exceptionally check for none() here because
           # we already check for empty downstream
           if dynamic_found? do
-            {bare_union(static_value, dynamic(dynamic_value)),
-             bare_union(static_descr, dynamic(dynamic_descr)), static_errors ++ dynamic_errors}
+            {opt_union(static_value, dynamic(dynamic_value)),
+             opt_union(static_descr, dynamic(dynamic_descr)), static_errors ++ dynamic_errors}
           else
             {:error, static_errors ++ dynamic_errors}
           end
@@ -3590,10 +3590,10 @@ defmodule Module.Types.Descr do
         acc_errors = if required_key?, do: [{:badkey, key} | acc_errors], else: acc_errors
         {acc_value, acc_descr, acc_errors, acc_found?}
       else
-        acc_value = bare_union(value, acc_value)
+        acc_value = opt_union(value, acc_value)
 
         acc_descr =
-          bare_union(map_put_key_static(descr, key, type_fun.(optional?, value)), acc_descr)
+          opt_union(map_put_key_static(descr, key, type_fun.(optional?, value)), acc_descr)
 
         # The field will be missing if we are not forcing,
         # we are in static mode and the value is optional.
@@ -3639,7 +3639,7 @@ defmodule Module.Types.Descr do
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_union(value, fn -> fst end), map_union(bdd, snd)}
+          {maybe_opt_union(value, fn -> fst end), opt_map_union(bdd, snd)}
 
         {tag, fields, negs}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
@@ -3659,17 +3659,17 @@ defmodule Module.Types.Descr do
                   do: [],
                   else: map_split_negative_key(negs, key, fst, snd)
 
-              {maybe_union(value, fn ->
+              {maybe_opt_union(value, fn ->
                  if keep_fst? do
                    fst
                  else
-                   Enum.reduce(pairs, none(), &bare_union(elem(&1, 0), &2))
+                   Enum.reduce(pairs, none(), &opt_union(elem(&1, 0), &2))
                  end
                end),
                if keep_snd? do
-                 map_union(bdd, snd)
+                 opt_map_union(bdd, snd)
                else
-                 Enum.reduce(pairs, bdd, &map_union(elem(&1, 1), &2))
+                 Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2))
                end}
           end
       end)
@@ -3689,7 +3689,7 @@ defmodule Module.Types.Descr do
             {seen, acc}
           else
             {_, value} = map_dnf_fetch_static(dnf, key)
-            {Map.put(seen, key, []), bare_union(acc, value)}
+            {Map.put(seen, key, []), opt_union(acc, value)}
           end
         end)
       end)
@@ -3730,12 +3730,12 @@ defmodule Module.Types.Descr do
           cond do
             # Domain has a direct match: valid, union both atom keys and domain value
             not empty?(value) ->
-              acc = if require_type?, do: bare_union(bare_union(atom_acc, acc), value), else: acc
+              acc = if require_type?, do: opt_union(opt_union(atom_acc, acc), value), else: acc
               {true, [:atom | valid], invalid, acc}
 
             # No direct match, but individual atom keys exist: found but domain is invalid
             not empty?(atom_acc) ->
-              acc = if require_type?, do: bare_union(atom_acc, acc), else: acc
+              acc = if require_type?, do: opt_union(atom_acc, acc), else: acc
               {true, valid, [:atom | invalid], acc}
 
             # No match at all
@@ -3745,7 +3745,7 @@ defmodule Module.Types.Descr do
 
         # Non-atom domain key has a match: mark as valid
         not empty?(value) ->
-          acc = if require_type?, do: bare_union(acc, value), else: acc
+          acc = if require_type?, do: opt_union(acc, value), else: acc
           {true, [domain_key | valid], invalid, acc}
 
         # Non-atom domain key not found: mark as invalid
@@ -3810,7 +3810,7 @@ defmodule Module.Types.Descr do
             {:ok, value} ->
               fields_store(
                 domain_key,
-                bare_union(value, type_fun.(true, remove_optional(value))),
+                opt_union(value, type_fun.(true, remove_optional(value))),
                 acc
               )
 
@@ -3875,7 +3875,7 @@ defmodule Module.Types.Descr do
         if descr_key?(dynamic, :map) and map_only?(static) do
           static_descr = map_put_static(static, split_keys, type)
           dynamic_descr = map_put_static(dynamic, split_keys, type)
-          {:ok, bare_union(static_descr, dynamic(dynamic_descr))}
+          {:ok, opt_union(static_descr, dynamic(dynamic_descr))}
         else
           :badmap
         end
@@ -3924,7 +3924,7 @@ defmodule Module.Types.Descr do
   defp map_put_keys_static(dnf, keys, type, acc) do
     Enum.reduce(keys, acc, fn key, acc ->
       {nil, descr} = map_dnf_pop_key_static(dnf, key, nil)
-      bare_union(map_put_key_static(descr, key, type), acc)
+      opt_union(map_put_key_static(descr, key, type), acc)
     end)
   end
 
@@ -5172,13 +5172,13 @@ defmodule Module.Types.Descr do
             static_result = tuple_delete_static(static, index)
 
             # Prune for dynamic values that make the operation succeed.
-            dynamic_input = bare_intersection(dynamic, tuple_of_size_at_least(index + 1))
+            dynamic_input = opt_intersection(dynamic, tuple_of_size_at_least(index + 1))
 
             if empty?(dynamic_input) and empty?(static) do
               :badindex
             else
               dynamic_result = tuple_delete_static(dynamic_input, index)
-              bare_union(dynamic(dynamic_result), static_result)
+              opt_union(dynamic(dynamic_result), static_result)
             end
 
           # Highlight the case where the issue is an index out of range from the tuple
@@ -5201,7 +5201,7 @@ defmodule Module.Types.Descr do
       |> Enum.reduce(:bdd_bot, fn
         {tag, elements, []}, acc ->
           {_, _, bdd} = tuple_take_element(elements, index, tag)
-          tuple_union(bdd, acc)
+          opt_tuple_union(bdd, acc)
 
         {tag, elements, negs}, acc ->
           {_, value, bdd} = tuple_take_element(elements, index, tag)
@@ -5212,11 +5212,11 @@ defmodule Module.Types.Descr do
 
             negative ->
               if tuple_pair_projection_keeps_full_snd?(negative, value) do
-                tuple_union(bdd, acc)
+                opt_tuple_union(bdd, acc)
               else
                 negs
                 |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce(acc, fn {_, bdd}, acc -> tuple_union(bdd, acc) end)
+                |> Enum.reduce(acc, fn {_, bdd}, acc -> opt_tuple_union(bdd, acc) end)
               end
           end
       end)
@@ -5249,7 +5249,7 @@ defmodule Module.Types.Descr do
             else
               case tuple_insert_at_checked(descr, index, static_type) do
                 static_result when is_descr(static_result) ->
-                  bare_union(dynamic_result, static_result)
+                  opt_union(dynamic_result, static_result)
 
                 error ->
                   error
@@ -5286,13 +5286,13 @@ defmodule Module.Types.Descr do
             static_result = tuple_insert_static(static, index, type)
 
             # Prune for dynamic values that make the intersection succeed
-            dynamic_input = bare_intersection(dynamic, tuple_of_size_at_least(index))
+            dynamic_input = opt_intersection(dynamic, tuple_of_size_at_least(index))
 
             if empty?(dynamic_input) and empty?(static) do
               :badindex
             else
               dynamic_result = tuple_insert_static(dynamic_input, index, type)
-              bare_union(dynamic(dynamic_result), static_result)
+              opt_union(dynamic(dynamic_result), static_result)
             end
 
           # Highlight the case where the issue is an index out of range from the tuple
