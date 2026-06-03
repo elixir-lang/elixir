@@ -192,7 +192,7 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
-## v1.20.0 (2026-06-??)
+## v1.20.0 (2026-06-03)
 
 This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
 
