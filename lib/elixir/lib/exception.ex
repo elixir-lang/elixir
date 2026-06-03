@@ -1046,7 +1046,7 @@ defmodule RuntimeError do
       iex> raise "oops!"
       ** (RuntimeError) oops!
 
-  You should use this exceptions sparingly, since most of the time it might be
+  You should use this exception sparingly, since most of the time it might be
   better to define your own exceptions specific to your application or library.
   Sometimes, however, there are situations in which you don't expect a condition to
   happen, but you want to give a meaningful error message if it does. In those cases,
