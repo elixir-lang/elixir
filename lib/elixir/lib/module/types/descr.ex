@@ -407,10 +407,6 @@ defmodule Module.Types.Descr do
   defp pop_dynamic(:term), do: {:term, :term}
   defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
 
-  @compile {:inline, maybe_opt_union: 2}
-  defp maybe_opt_union(nil, _fun), do: nil
-  defp maybe_opt_union(descr, fun), do: opt_union(descr, fun.())
-
   @doc """
   Computes the union of two descrs.
   """
@@ -2402,7 +2398,7 @@ defmodule Module.Types.Descr do
         dynamic_value = list_hd_static(dynamic)
 
         if non_empty_list_only?(static) and not empty?(dynamic_value) do
-          {:ok, bare_union(dynamic(dynamic_value), list_hd_static(static))}
+          {:ok, opt_union(dynamic(dynamic_value), list_hd_static(static))}
         else
           :badnonemptylist
         end
@@ -2413,7 +2409,7 @@ defmodule Module.Types.Descr do
 
   defp list_hd_static(%{list: bdd}) do
     list_bdd_to_pos_dnf(bdd)
-    |> Enum.reduce(none(), fn {list, _last, _negs}, acc -> bare_union(acc, list) end)
+    |> Enum.reduce(none(), fn {list, _last, _negs}, acc -> opt_union(acc, list) end)
   end
 
   defp list_hd_static(%{}), do: none()
@@ -2442,7 +2438,7 @@ defmodule Module.Types.Descr do
         dynamic_value = list_tl_static(dynamic)
 
         if non_empty_list_only?(static) and not empty?(dynamic_value) do
-          {:ok, bare_union(dynamic(dynamic_value), list_tl_static(static))}
+          {:ok, opt_union(dynamic(dynamic_value), list_tl_static(static))}
         else
           :badnonemptylist
         end
@@ -2462,7 +2458,7 @@ defmodule Module.Types.Descr do
       end
 
     list_bdd_to_pos_dnf(bdd)
-    |> Enum.reduce(initial, fn {_list, last, _negs}, acc -> bare_union(acc, last) end)
+    |> Enum.reduce(initial, fn {_list, last, _negs}, acc -> opt_union(acc, last) end)
   end
 
   defp list_tl_static(%{}), do: none()
@@ -3088,7 +3084,7 @@ defmodule Module.Types.Descr do
           if static_optional? or empty?(dynamic_type) do
             :badkey
           else
-            {dynamic_optional?, bare_union(dynamic(dynamic_type), static_type)}
+            {dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badmap
@@ -3120,9 +3116,9 @@ defmodule Module.Types.Descr do
       # Optimization: if there are no negatives
       {tag, fields, []}, acc ->
         case fields_find(key, fields) do
-          {:ok, value} -> bare_union(value, acc)
+          {:ok, value} -> opt_union(value, acc)
           :error when tag == :open -> throw(:open)
-          :error -> map_key_tag_to_type(tag) |> bare_union(acc)
+          :error -> map_key_tag_to_type(tag) |> opt_union(acc)
         end
 
       {tag, fields, negs}, acc ->
@@ -3139,10 +3135,10 @@ defmodule Module.Types.Descr do
               else
                 negs
                 |> map_split_negative_key(key, value, bdd)
-                |> Enum.reduce(none(), fn {value, _}, acc -> bare_union(value, acc) end)
+                |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
               end
 
-            bare_union(value, acc)
+            opt_union(value, acc)
         end
     end)
   catch
@@ -3278,7 +3274,7 @@ defmodule Module.Types.Descr do
           with {:ok, dynamic_type} <- map_to_list_static(dynamic, fun) do
             if descr_key?(static, :map) do
               with {:ok, static_type} <- map_to_list_static(static, fun) do
-                {:ok, bare_union(static_type, dynamic(dynamic_type))}
+                {:ok, opt_union(static_type, dynamic(dynamic_type))}
               end
             else
               {:ok, dynamic(dynamic_type)}
@@ -3345,7 +3341,7 @@ defmodule Module.Types.Descr do
                 if empty?(value) do
                   acc
                 else
-                  bare_union(acc, fun.(domain_key_to_descr(domain_key), value))
+                  opt_union(acc, fun.(domain_key_to_descr(domain_key), value))
                 end
               end)
 
@@ -3369,7 +3365,7 @@ defmodule Module.Types.Descr do
                 if empty?(value) do
                   {seen, acc}
                 else
-                  {seen, bare_union(acc, fun.(atom([key]), value))}
+                  {seen, opt_union(acc, fun.(atom([key]), value))}
                 end
               end
             end)
@@ -3964,7 +3960,7 @@ defmodule Module.Types.Descr do
           if empty?(dynamic_type) do
             :error
           else
-            {:ok, bare_union(dynamic(dynamic_type), static_type)}
+            {:ok, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badmap
@@ -3993,7 +3989,7 @@ defmodule Module.Types.Descr do
   defp map_get_keys(dnf, keys, acc) do
     Enum.reduce(keys, acc, fn atom, acc ->
       {_, value} = map_dnf_fetch_static(dnf, atom)
-      bare_union(value, acc)
+      opt_union(value, acc)
     end)
   end
 
@@ -4003,14 +3999,14 @@ defmodule Module.Types.Descr do
     Enum.reduce(dnf, acc, fn
       # Optimization: if there are no negatives, get the domain tag directly
       {tag, _fields, []}, acc ->
-        map_domain_tag_to_type(tag, domain_key) |> bare_union(acc)
+        map_domain_tag_to_type(tag, domain_key) |> opt_union(acc)
 
       {tag_or_domains, fields, negs}, acc ->
         if init_map_line_empty?(tag_or_domains, fields, negs) do
           acc
         else
           {_found, value, _bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
-          bare_union(value, acc)
+          opt_union(value, acc)
         end
     end)
   end
@@ -4934,8 +4930,7 @@ defmodule Module.Types.Descr do
           if empty?(dynamic_type) do
             :badindex
           else
-            {static_optional? or dynamic_optional?,
-             bare_union(dynamic(dynamic_type), static_type)}
+            {static_optional? or dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badtuple
@@ -4968,7 +4963,7 @@ defmodule Module.Types.Descr do
       # Optimization: if there are no negatives
       {tag, elements, []}, {acc_optional?, acc_descr} ->
         {optional?, descr} = tuple_fetch_element(elements, index, tag)
-        {optional? or acc_optional?, bare_union(descr, acc_descr)}
+        {optional? or acc_optional?, opt_union(descr, acc_descr)}
 
       {tag, elements, negs}, {acc_optional?, acc_descr} ->
         {_, value, bdd} = tuple_take_element(elements, index, tag)
@@ -4984,11 +4979,11 @@ defmodule Module.Types.Descr do
               else
                 negs
                 |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce(none(), fn {value, _}, acc -> bare_union(value, acc) end)
+                |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
               end
 
             {optional?, descr} = pop_optional_static(value)
-            {optional? or acc_optional?, bare_union(descr, acc_descr)}
+            {optional? or acc_optional?, opt_union(descr, acc_descr)}
         end
     end)
   catch
@@ -5123,7 +5118,7 @@ defmodule Module.Types.Descr do
             end
 
           dynamic(dynamic_value)
-          |> bare_union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
+          |> opt_union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
         else
           :badtuple
         end
@@ -5136,9 +5131,9 @@ defmodule Module.Types.Descr do
       cond do
         Enum.any?(elements, &empty?/1) -> none()
         tag == :open -> term()
-        tag == :closed -> Enum.reduce(elements, none(), &bare_union/2)
+        tag == :closed -> Enum.reduce(elements, none(), &opt_union/2)
       end
-      |> bare_union(acc)
+      |> opt_union(acc)
     end)
   end
 
@@ -6155,6 +6150,10 @@ defmodule Module.Types.Descr do
   """
   def opt_negation(:term), do: none()
   def opt_negation(%{} = descr), do: opt_difference(term(), descr)
+
+  @compile {:inline, maybe_opt_union: 2}
+  defp maybe_opt_union(nil, _fun), do: nil
+  defp maybe_opt_union(descr, fun), do: opt_union(descr, fun.())
 
   defp opt_list_intersection(bdd_leaf(:term, :term), bdd), do: bdd
   defp opt_list_intersection(bdd, bdd_leaf(:term, :term)), do: bdd
