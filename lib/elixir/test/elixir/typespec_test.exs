@@ -1313,6 +1313,37 @@ defmodule TypespecTest do
       end)
     end
 
+    test "spec_to_quoted preserves line metadata for elixir remote types" do
+      bytecode =
+        test_module do
+          @spec foo(
+                  keyword,
+                  keyword(term()),
+                  charlist(),
+                  nonempty_charlist(),
+                  struct(),
+                  as_boolean(term())
+                ) ::
+                  :ok
+          def foo(_, _, _, _, _, _), do: :ok
+        end
+
+      [{{:foo, 6}, [spec]}] = specs(bytecode)
+
+      {:type, _, :fun, [{:type, _, :product, args}, _]} = spec
+
+      assert length(args) == 6
+
+      Enum.each(args, fn
+        {:remote_type, {line, column}, [{:atom, _, :elixir}, _, _]} ->
+          assert line > 0
+          assert column > 0
+
+        other ->
+          flunk("expected elixir remote type, got: #{inspect(other)}")
+      end)
+    end
+
     test "spec_to_quoted with maps with __struct__ key" do
       defmodule StructA do
         defstruct [:key]
