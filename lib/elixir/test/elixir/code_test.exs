@@ -514,6 +514,25 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
+  test "require_file/1 releases the file when compilation fails" do
+    path = tmp_path("bad_require_#{System.unique_integer([:positive])}.ex")
+
+    try do
+      File.write!(path, ~s|raise "boom"|)
+
+      assert_raise RuntimeError, "boom", fn ->
+        Code.require_file(path)
+      end
+
+      assert_raise RuntimeError, "boom", fn ->
+        Code.require_file(path)
+      end
+    after
+      File.rm(path)
+      Code.unrequire_files([path])
+    end
+  end
+
   test "string_to_quoted!/2 errors take lines/columns/indentation into account" do
     assert_exception(
       SyntaxError,
