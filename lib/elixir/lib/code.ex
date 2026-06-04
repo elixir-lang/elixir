@@ -1634,13 +1634,19 @@ defmodule Code do
         nil
 
       :proceed ->
-        loaded =
-          Module.ParallelChecker.verify(fn ->
-            :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
-          end)
+        try do
+          loaded =
+            Module.ParallelChecker.verify(fn ->
+              :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
+            end)
 
-        :elixir_code_server.cast({:required, file})
-        loaded
+          :elixir_code_server.cast({:required, file})
+          loaded
+        catch
+          kind, reason ->
+            :elixir_code_server.call({:release, file})
+            :erlang.raise(kind, reason, __STACKTRACE__)
+        end
     end
   end
 
