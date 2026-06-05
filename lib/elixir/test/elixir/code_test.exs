@@ -917,6 +917,32 @@ defmodule Code.SyncTest do
     Code.put_compiler_option(:module_definition, :compiled)
   end
 
+  test "uses beam_debug_info compiler option" do
+    module = CodeTest.ConfiguredBeamDebugInfo
+    previous = Code.compiler_options(beam_debug_info: true)
+
+    try do
+      assert [{^module, binary}] =
+               Code.compile_string("""
+               defmodule CodeTest.ConfiguredBeamDebugInfo do
+                 def sample(value) do
+                   doubled = value * 2
+                   doubled + 1
+                 end
+               end
+               """)
+
+      assert {:ok, {_, [{~c"DbgB", <<_version::32, entries::32, _::binary>>}]}} =
+               :beam_lib.chunks(binary, [~c"DbgB"])
+
+      assert entries > 0
+    after
+      Code.compiler_options(previous)
+      :code.purge(module)
+      :code.delete(module)
+    end
+  end
+
   test "prepend_path" do
     path = Path.join(__DIR__, "fixtures")
     true = Code.prepend_path(path)

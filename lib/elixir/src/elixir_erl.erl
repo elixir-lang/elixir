@@ -526,16 +526,31 @@ load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chu
   Binary.
 
 debug_opts(Map, Specs, Opts) ->
-  case take_debug_opts(Opts) of
+  BeamDebugOpts = take_beam_debug_opts(Opts),
+
+  case take_debug_opts(BeamDebugOpts) of
     {true, Rest} -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}} | Rest];
     {false, Rest} -> [{debug_info, {?MODULE, none}} | Rest]
   end.
 
 take_debug_opts(Opts) ->
-  case proplists:get_value(debug_info, Opts) of
-    true -> {true, proplists:delete(debug_info, Opts)};
-    false -> {false, proplists:delete(debug_info, Opts)};
-    undefined -> {elixir_config:get(debug_info), Opts}
+  take_boolean_compiler_opt(debug_info, Opts).
+
+take_beam_debug_opts(Opts) ->
+  Opts0 = take_beam_debug_opt(beam_debug_info, Opts),
+  take_beam_debug_opt(beam_debug_stack, Opts0).
+
+take_beam_debug_opt(Opt, Opts) ->
+  case take_boolean_compiler_opt(Opt, Opts) of
+    {true, Rest} -> [Opt | Rest];
+    {false, Rest} -> Rest
+  end.
+
+take_boolean_compiler_opt(Opt, Opts) ->
+  case proplists:get_value(Opt, Opts) of
+    true -> {true, proplists:delete(Opt, Opts)};
+    false -> {false, proplists:delete(Opt, Opts)};
+    undefined -> {elixir_config:get(Opt), Opts}
   end.
 
 extra_chunks_opts([], Opts) -> Opts;

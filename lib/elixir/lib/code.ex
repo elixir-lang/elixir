@@ -307,6 +307,8 @@ defmodule Code do
           | {:dbg_callback, {module(), atom(), list()}}
 
   @boolean_compiler_options [
+    :beam_debug_info,
+    :beam_debug_stack,
     :docs,
     :debug_info,
     :ignore_already_consolidated,
@@ -1755,6 +1757,14 @@ defmodule Code do
       Other environments, such as `mix test`, automatically disables this
       via the `:test_elixirc_options` project configuration, as there is
       typically no need to store debug chunks for test files.
+
+    * `:beam_debug_info` - when `true`, emits Erlang/OTP debug metadata used by
+      BEAM debuggers to set line breakpoints and inspect variables. Defaults to
+      `false`.
+
+    * `:beam_debug_stack` - when `true`, keeps additional stack information for
+      BEAM debuggers. It is only useful together with `:beam_debug_info`.
+      Defaults to `false`.
 
     * `:docs` - when `true`, retains documentation in the compiled module.
       Defaults to `true`.
