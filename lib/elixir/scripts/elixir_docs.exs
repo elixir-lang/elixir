@@ -3,7 +3,11 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 # Returns config for Elixir docs (exclusively)
-canonical = System.fetch_env!("CANONICAL")
+canonical =
+  case System.fetch_env!("CANONICAL") do
+    "" -> System.version() <> "/"
+    canonical -> canonical
+  end
 
 [
   search: [

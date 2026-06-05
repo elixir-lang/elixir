@@ -2,7 +2,11 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 
 # Returns config for other apps except Elixir
-canonical = System.fetch_env!("CANONICAL")
+canonical =
+  case System.fetch_env!("CANONICAL") do
+    "" -> System.version() <> "/"
+    canonical -> canonical
+  end
 
 [
   search: [
