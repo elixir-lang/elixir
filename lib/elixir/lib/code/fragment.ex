@@ -204,6 +204,7 @@ defmodule Code.Fragment do
           | {:local_arity, charlist}
           | {:local_call, charlist}
           | {:anonymous_call, inside_caller}
+          | {:capture_arg, charlist}
           | {:module_attribute, charlist}
           | {:operator, charlist}
           | {:operator_arity, charlist}
