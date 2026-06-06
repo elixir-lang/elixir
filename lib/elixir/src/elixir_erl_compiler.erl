@@ -60,57 +60,61 @@ env_compiler_options() ->
 
 erl_to_core(Forms, Opts) ->
   %% TODO: Remove parse transform handling on Elixir v2.0
-  case [M || {parse_transform, M} <- Opts] of
-    [] ->
+  case requires_abstract_format(Opts, false) of
+    false ->
       v3_core:module(Forms, Opts);
-    _ ->
+
+    beam_debug_info ->
+      {ok, DbgForms} = sys_coverage:beam_debug_info(Forms),
+      v3_core:module(DbgForms, Opts);
+
+    parse_transform ->
       case compile:noenv_forms(Forms, [no_spawn_compiler_process, to_core0, return, no_auto_import | Opts]) of
         {ok, _Module, Core, Warnings} -> {ok, Core, Warnings};
         {error, Errors, Warnings} -> {error, Errors, Warnings}
       end
   end.
 
+requires_abstract_format([{parse_transform, _} | _], _Default) ->
+  parse_transform;
+requires_abstract_format([beam_debug_info | Tail], _Default) ->
+  requires_abstract_format(Tail, beam_debug_info);
+requires_abstract_format([_ | Tail], Default) ->
+  requires_abstract_format(Tail, Default);
+requires_abstract_format([], Default) ->
+  Default.
+
 noenv_forms(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
 
-  %% beam_debug_info has to go through Erlang Abstract Format
-  case lists:member(beam_debug_info, Opts) of
-    true ->
-      CompileOpts = [no_spawn_compiler_process, no_auto_import, return,
-                     {source, Source} | Opts],
-      noenv_forms(Forms, CompileOpts, File, Opts);
-    false ->
-      case erl_to_core(Forms, Opts) of
-        {ok, CoreForms, CoreWarnings} ->
-          format_warnings(Opts, CoreWarnings),
-          CompileOpts = [no_spawn_compiler_process, from_core, no_core_prepare,
-                         no_auto_import, return, {source, Source} | Opts],
-          noenv_forms(CoreForms, CompileOpts, File, Opts);
+  case erl_to_core(Forms, Opts) of
+    {ok, CoreForms, CoreWarnings} ->
+      format_warnings(Opts, CoreWarnings),
+      CompileOpts = [no_spawn_compiler_process, from_core, no_core_prepare,
+                     no_auto_import, return, {source, Source} | Opts],
 
-        {error, CoreErrors, CoreWarnings} ->
-          format_warnings(Opts, CoreWarnings),
-          format_errors(CoreErrors)
-      end
-  end.
+      case compile:noenv_forms(CoreForms, CompileOpts) of
+        {ok, Module, Binary, Warnings} when is_binary(Binary) ->
+          format_warnings(Opts, Warnings),
+          {Module, Binary};
 
-noenv_forms(Forms, CompileOpts, File, Opts) ->
-  case compile:noenv_forms(Forms, CompileOpts) of
-    {ok, Module, Binary, Warnings} when is_binary(Binary) ->
-      format_warnings(Opts, Warnings),
-      {Module, Binary};
+        {ok, Module, _, _} ->
+          incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
 
-    {ok, Module, _, _} ->
-      incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
+        {ok, Module, _} ->
+          incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
 
-    {ok, Module, _} ->
-      incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
+        {error, Errors, Warnings} ->
+          format_warnings(Opts, Warnings),
+          format_errors(Errors);
 
-    {error, Errors, Warnings} ->
-      format_warnings(Opts, Warnings),
-      format_errors(Errors);
+        _ ->
+          incompatible_options("could not compile module", [], File)
+      end;
 
-    _ ->
-      incompatible_options("could not compile module", [], File)
+    {error, CoreErrors, CoreWarnings} ->
+      format_warnings(Opts, CoreWarnings),
+      format_errors(CoreErrors)
   end.
 
 incompatible_options(Prefix, Args, File) ->
