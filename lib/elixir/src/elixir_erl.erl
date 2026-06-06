@@ -521,8 +521,7 @@ attributes_form(Line, Attributes, Forms) ->
 % Loading forms
 
 load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chunks) ->
-  Opts0 = Opts ++ elixir_config:get(erlc_options),
-  CompileOpts = extra_chunks_opts(Chunks, debug_opts(Map, Specs, Opts0)),
+  CompileOpts = extra_chunks_opts(Chunks, debug_opts(Map, Specs, Opts)),
   {_, Binary} = elixir_erl_compiler:noenv_forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   Binary.
 
