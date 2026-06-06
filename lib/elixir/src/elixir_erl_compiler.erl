@@ -73,28 +73,27 @@ erl_to_core(Forms, Opts) ->
 noenv_forms(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
 
+  %% beam_debug_info has to go through Erlang Abstract Format
   case lists:member(beam_debug_info, Opts) of
     true ->
-      CompileOpts = [no_spawn_compiler_process, no_auto_import, return, {source, Source} | Opts],
-      compile_forms(Forms, CompileOpts, File, Opts);
-    false -> noenv_forms_via_core(Forms, File, Source, Opts)
+      CompileOpts = [no_spawn_compiler_process, no_auto_import, return,
+                     {source, Source} | Opts],
+      noenv_forms(Forms, CompileOpts, File, Opts);
+    false ->
+      case erl_to_core(Forms, Opts) of
+        {ok, CoreForms, CoreWarnings} ->
+          format_warnings(Opts, CoreWarnings),
+          CompileOpts = [no_spawn_compiler_process, from_core, no_core_prepare,
+                         no_auto_import, return, {source, Source} | Opts],
+          noenv_forms(CoreForms, CompileOpts, File, Opts);
+
+        {error, CoreErrors, CoreWarnings} ->
+          format_warnings(Opts, CoreWarnings),
+          format_errors(CoreErrors)
+      end
   end.
 
-noenv_forms_via_core(Forms, File, Source, Opts) ->
-  case erl_to_core(Forms, Opts) of
-    {ok, CoreForms, CoreWarnings} ->
-      format_warnings(Opts, CoreWarnings),
-      CompileOpts = [no_spawn_compiler_process, from_core, no_core_prepare,
-                     no_auto_import, return, {source, Source} | Opts],
-
-      compile_forms(CoreForms, CompileOpts, File, Opts);
-
-    {error, CoreErrors, CoreWarnings} ->
-      format_warnings(Opts, CoreWarnings),
-      format_errors(CoreErrors)
-  end.
-
-compile_forms(Forms, CompileOpts, File, Opts) ->
+noenv_forms(Forms, CompileOpts, File, Opts) ->
   case compile:noenv_forms(Forms, CompileOpts) of
     {ok, Module, Binary, Warnings} when is_binary(Binary) ->
       format_warnings(Opts, Warnings),
