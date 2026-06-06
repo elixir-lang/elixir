@@ -307,8 +307,6 @@ defmodule Code do
           | {:dbg_callback, {module(), atom(), list()}}
 
   @boolean_compiler_options [
-    :beam_debug_info,
-    :beam_debug_stack,
     :docs,
     :debug_info,
     :ignore_already_consolidated,
@@ -316,7 +314,7 @@ defmodule Code do
     :relative_paths
   ]
 
-  @list_compiler_options [:tracers, :parser_options]
+  @list_compiler_options [:tracers, :parser_options, :erlc_options]
 
   @available_compiler_options @boolean_compiler_options ++
                                 @list_compiler_options ++
@@ -1758,16 +1756,12 @@ defmodule Code do
       via the `:test_elixirc_options` project configuration, as there is
       typically no need to store debug chunks for test files.
 
-    * `:beam_debug_info` - when `true`, emits Erlang/OTP debug metadata used by
-      BEAM debuggers to set line breakpoints and inspect variables. Defaults to
-      `false`.
-
-    * `:beam_debug_stack` - when `true`, keeps additional stack information for
-      BEAM debuggers. It is only useful together with `:beam_debug_info`.
-      Defaults to `false`.
-
     * `:docs` - when `true`, retains documentation in the compiled module.
       Defaults to `true`.
+
+    * `:erlc_options` - a list of Erlang compiler options. For example,
+      `erlc_options: [:beam_debug_info, :beam_debug_stack]` emits Erlang/OTP
+      debug metadata for BEAM debuggers. Defaults to `[]`.
 
     * `:ignore_already_consolidated` (since v1.10.0) - when `true`, does not warn
       when a protocol has already been consolidated and a new implementation is added.

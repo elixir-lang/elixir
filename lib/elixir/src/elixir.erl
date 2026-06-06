@@ -87,9 +87,8 @@ start(_Type, _Args) ->
 
     %% Compiler options
     {debug_info, true},
-    {beam_debug_info, false},
-    {beam_debug_stack, false},
     {docs, true},
+    {erlc_options, []},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {infer_signatures, [elixir]},

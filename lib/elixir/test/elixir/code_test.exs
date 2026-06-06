@@ -917,9 +917,9 @@ defmodule Code.SyncTest do
     Code.put_compiler_option(:module_definition, :compiled)
   end
 
-  test "uses beam_debug_info compiler option" do
+  test "uses erlc_options compiler option" do
     module = CodeTest.ConfiguredBeamDebugInfo
-    previous = Code.compiler_options(beam_debug_info: true)
+    previous = Code.compiler_options(erlc_options: [:beam_debug_info])
 
     try do
       assert [{^module, binary}] =
