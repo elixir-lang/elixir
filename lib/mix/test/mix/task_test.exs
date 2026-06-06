@@ -4,6 +4,19 @@
 
 Code.require_file("../test_helper.exs", __DIR__)
 
+defmodule Mix.Tasks.Casing.HTTP do
+  use Mix.Task
+  def run(_), do: "HTTP"
+end
+
+defmodule Mix.Tasks.Casing.Http do
+  use Mix.Task
+  def run(_), do: "Http"
+end
+
+defmodule Mix.Tasks.InvalidAcronym.XML do
+end
+
 defmodule Mix.TaskTest do
   use MixTest.Case
 
@@ -32,14 +45,19 @@ defmodule Mix.TaskTest do
       Mix.Task.run("invalid")
     end
 
-    message =
-      "The task \"acronym.http\" could not be found because the module is named " <>
-        "Mix.Tasks.Acronym.HTTP instead of Mix.Tasks.Acronym.Http as expected. " <>
-        "Please rename it and try again"
+    assert Mix.Task.run("acronym.http") == "An HTTP Task"
+  end
 
-    assert_raise Mix.NoTaskError, message, fn ->
-      Mix.Task.run("acronym.http")
-    end
+  test "run/2 prefers conventionally named tasks" do
+    assert Mix.Task.run("casing.http") == "Http"
+  end
+
+  test "run/2 raises on invalid acronym tasks" do
+    assert_raise Mix.InvalidTaskError,
+                 "The task \"invalid_acronym.xml\" does not export run/1",
+                 fn ->
+                   Mix.Task.run("invalid_acronym.xml")
+                 end
   end
 
   test "run/2 converts OptionParser.ParseError into Mix errors" do
@@ -97,11 +115,19 @@ defmodule Mix.TaskTest do
       end
       """)
 
+      File.write!("custom/raw_repo/lib/task_http.ex", """
+      defmodule Mix.Tasks.TaskHTTP do
+        use Mix.Task
+        def run(_), do: "Hello HTTP"
+      end
+      """)
+
       # Clean up the tasks and update task
       Mix.Task.clear()
 
       # Task was found from deps loadpaths
       assert Mix.Task.run("task_hello") == "Hello World v1"
+      assert Mix.Task.run("task_http") == "Hello HTTP"
 
       # The compile task should not have run yet
       assert Mix.Task.run("compile") != :noop
@@ -136,6 +162,22 @@ defmodule Mix.TaskTest do
 
       # Check if compile task have run
       refute Mix.TasksServer.run({:task, "compile", Mix.Project.get()})
+    end)
+  end
+
+  test "run/2 finds acronym tasks after compiling current project", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(SampleProject, "sample")
+      File.mkdir_p!("lib/mix/tasks")
+
+      File.write!("lib/mix/tasks/xml.schema.ex", """
+      defmodule Mix.Tasks.XML.Schema do
+        use Mix.Task
+        def run(_), do: "XML schema"
+      end
+      """)
+
+      assert Mix.Task.run("xml.schema") == "XML schema"
     end)
   end
 

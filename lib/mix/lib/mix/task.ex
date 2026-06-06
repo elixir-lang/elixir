@@ -354,13 +354,61 @@ defmodule Mix.Task do
   end
 
   defp fetch(task) when is_binary(task) or is_atom(task) do
-    case Mix.Utils.command_to_module(to_string(task), Mix.Tasks) do
-      {:module, module} ->
-        if task?(module), do: {:ok, module}, else: {:error, :invalid}
+    task = to_string(task)
 
-      {:error, _} ->
+    case task_module(task) do
+      nil ->
         {:error, :not_found}
+
+      module ->
+        if task?(module), do: {:ok, module}, else: {:error, :invalid}
     end
+  end
+
+  defp task_module(task) do
+    expected = "Elixir.Mix.Tasks." <> Mix.Utils.command_to_module_name(task)
+
+    case available_task_module(task, expected) do
+      nil -> nil
+      ^expected -> String.to_atom(expected)
+      module -> String.to_atom(module)
+    end
+  end
+
+  defp available_task_module(task, expected) do
+    case find_available_task_module(available_modules(), task, expected) do
+      nil ->
+        :code.clear_cache()
+        find_available_task_module(available_modules(), task, expected)
+
+      module ->
+        module
+    end
+  end
+
+  defp available_modules do
+    Enum.map(:code.all_available(), fn {module, _file, _loaded?} -> List.to_string(module) end)
+  end
+
+  defp find_available_task_module(modules, task, expected) do
+    if expected in modules do
+      expected
+    else
+      case Enum.filter(modules, &(task_name_from_module(&1) == task)) do
+        [module] -> module
+        _ -> nil
+      end
+    end
+  end
+
+  defp task_name_from_module("Elixir.Mix.Tasks." <> rest) do
+    rest
+    |> String.split(".")
+    |> Enum.map_join(".", &Macro.underscore/1)
+  end
+
+  defp task_name_from_module(_module) do
+    nil
   end
 
   @doc """
