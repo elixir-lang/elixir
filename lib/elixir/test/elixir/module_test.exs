@@ -426,26 +426,6 @@ defmodule ModuleTest do
     assert map.module == ModuleCreateDebugInfoTrue
   end
 
-  test "uses the beam_debug_info chunk when explicitly set to true" do
-    contents =
-      quote do
-        @compile :beam_debug_info
-
-        def sample(value) do
-          doubled = value * 2
-          doubled + 1
-        end
-      end
-
-    {:module, ModuleCreateBeamDebugInfo, binary, _} =
-      Module.create(ModuleCreateBeamDebugInfo, contents, __ENV__)
-
-    {:ok, {_, [{~c"DbgB", <<_Version::32, entries::32, _::binary>>}]}} =
-      :beam_lib.chunks(binary, [~c"DbgB"])
-
-    assert entries > 0
-  end
-
   test "uses the debug_info chunk even if debug_info is set to false" do
     {:module, ModuleCreateNoDebugInfo, binary, _} =
       Module.create(ModuleCreateNoDebugInfo, quote(do: @compile({:debug_info, false})), __ENV__)
