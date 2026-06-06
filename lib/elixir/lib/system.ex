@@ -1386,8 +1386,8 @@ defmodule System do
 
   ## Examples
 
-      System.otp_release()
-      #=> "29"
+      iex> System.otp_release()
+      "#{:erlang.system_info(:otp_release)}"
 
   """
   @spec otp_release :: String.t()
