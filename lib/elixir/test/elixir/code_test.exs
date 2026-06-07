@@ -921,21 +921,21 @@ defmodule Code.SyncTest do
     test "uses erlc_options compiler option" do
       module = CodeTest.ConfiguredBeamDebugInfo
       previous = Code.compiler_options(erlc_options: [:beam_debug_info])
-  
+
       try do
         assert [{^module, binary}] =
-                Code.compile_string("""
-                defmodule CodeTest.ConfiguredBeamDebugInfo do
-                  def sample(value) do
-                    doubled = value * 2
-                    doubled + 1
-                  end
-                end
-                """)
-  
+                 Code.compile_string("""
+                 defmodule CodeTest.ConfiguredBeamDebugInfo do
+                   def sample(value) do
+                     doubled = value * 2
+                     doubled + 1
+                   end
+                 end
+                 """)
+
         assert {:ok, {_, [{~c"DbgB", <<_version::32, entries::32, _::binary>>}]}} =
-                :beam_lib.chunks(binary, [~c"DbgB"])
-  
+                 :beam_lib.chunks(binary, [~c"DbgB"])
+
         assert entries > 0
       after
         Code.compiler_options(previous)
