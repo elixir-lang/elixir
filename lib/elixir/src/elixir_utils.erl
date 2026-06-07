@@ -233,6 +233,9 @@ returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _]}) when
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
   Fun == function_exported; Fun == is_record -> true;
 
+returns_boolean({{'.', _, [lists, member]}, _, [_, _]}) ->
+  true;
+
 returns_boolean({'case', _, [_, [{do, Clauses}]]}) ->
   lists:all(fun
     ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
