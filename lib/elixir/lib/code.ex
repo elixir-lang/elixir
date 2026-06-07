@@ -1759,7 +1759,7 @@ defmodule Code do
     * `:docs` - when `true`, retains documentation in the compiled module.
       Defaults to `true`.
 
-    * `:erlc_options` - a list of Erlang compiler options. For example,
+    * `:erlc_options` (since v1.21.0) - a list of Erlang compiler options. For example,
       `erlc_options: [:beam_debug_info, :beam_debug_stack]` emits Erlang/OTP
       debug metadata for BEAM debuggers. Defaults to `[]`.
 
