@@ -597,6 +597,51 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  defmodule FormatWithPluginApp do
+    def project do
+      [app: :format_with_plugin, version: "0.1.0"]
+    end
+  end
+
+  test "doesn't compile plugins with --no-compile", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(__MODULE__.FormatWithPluginApp)
+      on_exit(fn -> purge([UncompiledPlugin]) end)
+
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [UncompiledPlugin]
+      ]
+      """)
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/uncompiled_plugin.ex", """
+      defmodule UncompiledPlugin do
+        @behaviour Mix.Tasks.Format
+
+        def features(_opts), do: [extensions: [".ex"]]
+        def format(contents, _opts), do: "# formatted\\n" <> contents
+      end
+      """)
+
+      File.write!("a.ex", """
+      foo bar
+      """)
+
+      assert_raise Mix.Error, "Formatter plugin UncompiledPlugin cannot be found", fn ->
+        Mix.Tasks.Format.run(["--no-compile"])
+      end
+
+      refute_received {:mix_shell, :info, ["Compiling" <> _]}
+
+      assert File.read!("a.ex") == """
+             foo bar
+             """
+    end)
+  end
+
   test "uses extension plugins with --stdin-filename", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
