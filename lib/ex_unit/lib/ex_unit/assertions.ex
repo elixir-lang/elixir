@@ -1126,26 +1126,24 @@ defmodule ExUnit.Assertions do
 
   """
   @doc since: "1.21.0"
+  @flags [:receive, :send]
   def trace(pid, flags, fun)
       when is_pid(pid) and is_list(flags) and is_function(fun, 0) do
-    {call_patterns, process_flags} = Enum.split_with(flags, &match?({:call, _}, &1))
-    {receive_specs, process_flags} = Enum.split_with(process_flags, &match?({:receive, _}, &1))
-    process_flags = if call_patterns == [], do: process_flags, else: [:call | process_flags]
-    process_flags = if receive_specs == [], do: process_flags, else: [:receive | process_flags]
+    {receive_specs, call_patterns, process_flags} =
+      Enum.reduce(flags, {[], [], []}, fn
+        {:receive, spec}, {receive, call, process} -> {[spec | receive], call, process}
+        {:call, mfa}, {receive, call, process} -> {receive, [mfa | call], process}
+        flag, {receive, call, process} when flag in @flags -> {receive, call, [flag | process]}
+        other, _acc -> raise ArgumentError, "unknown trace flag: #{inspect(other)}"
+      end)
 
     session = :trace.session_create(:ex_unit_trace, self(), [])
 
     try do
-      Enum.each(call_patterns, fn {:call, mfa} ->
-        :trace.function(session, mfa, true, [:local])
-      end)
+      Enum.each(call_patterns, &:trace.function(session, &1, true, [:local]))
 
-      case Enum.map(receive_specs, fn {:receive, pattern} -> pattern end) do
-        [] ->
-          :ok
-
-        patterns ->
-          :trace.recv(session, patterns, [])
+      if receive_specs != [] do
+        :trace.recv(session, receive_specs, [])
       end
 
       :trace.process(session, pid, true, process_flags)
