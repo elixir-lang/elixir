@@ -1080,9 +1080,9 @@ defmodule ExUnit.Assertions do
   Traces `pid` while `fun` runs, delivering trace messages to the calling process.
 
   This is a thin wrapper around Erlang's [trace sessions](`:trace`) that lets you
-  assert on the internal behaviour of a process — the messages it sends and
-  receives, the functions it calls, and so on — using the regular
-  `assert_receive/3` and `assert_received/2` assertions.
+  assert on the internal behaviour of a process, the messages it sends and
+  receives and the functions it calls, using the regular `assert_receive/3` and
+  `assert_received/2` assertions.
 
   Tracing is enabled before `fun` is invoked and disabled once it returns. The
   value returned by `fun` is returned.
