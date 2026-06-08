@@ -201,13 +201,11 @@ defmodule IEx.ServerTest do
   end
 
   defp pry_request(sessions) do
+    flags = for %{pid: pid} <- sessions, do: {:receive, {[:_, pid, :_], [], []}}
+
     trace(
       Process.whereis(IEx.Broker),
-      [:receive],
-      fn trace_session ->
-        patterns = for %{pid: pid} <- sessions, do: {[:_, pid, :_], [], []}
-        :trace.recv(trace_session, patterns, [])
-      end,
+      flags,
       fn ->
         task =
           Task.async(fn ->
