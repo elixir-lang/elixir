@@ -1139,6 +1139,9 @@ defmodule ExUnit.Assertions do
 
     session = :trace.session_create(:ex_unit_trace, self(), [])
 
+    process_flags = if call_patterns == [], do: process_flags, else: [:call | process_flags]
+    process_flags = if receive_specs == [], do: process_flags, else: [:receive | process_flags]
+
     try do
       Enum.each(call_patterns, &:trace.function(session, &1, true, [:local]))
 
