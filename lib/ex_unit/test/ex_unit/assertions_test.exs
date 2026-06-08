@@ -658,7 +658,7 @@ defmodule ExUnit.AssertionsTest do
       refute_received {:trace, ^pid, :receive, _}
     end
 
-    test "receive match spec" do
+    test "receive match specs" do
       pid =
         spawn_link(fn ->
           receive do
@@ -671,11 +671,13 @@ defmodule ExUnit.AssertionsTest do
 
       trace(
         pid,
-        [receive: {[:_, :_, {:reply, :_}], [], []}],
+        [receive: {[:_, :_, {:reply, :_}], [], []}, receive: {[:_, :_, {:another, :_}], [], []}],
         fn ->
           send(pid, {:reply, :foo})
+          send(pid, {:another, :foo})
           send(pid, {:other, :bar})
           assert_receive {:trace, ^pid, :receive, {:reply, :foo}}
+          assert_receive {:trace, ^pid, :receive, {:another, :foo}}
           refute_receive {:trace, ^pid, :receive, {:other, :bar}}
         end
       )

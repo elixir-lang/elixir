@@ -1140,9 +1140,13 @@ defmodule ExUnit.Assertions do
         :trace.function(session, mfa, true, [:local])
       end)
 
-      Enum.each(receive_specs, fn {:receive, pattern} ->
-        :trace.recv(session, [pattern], [])
-      end)
+      case Enum.map(receive_specs, fn {:receive, pattern} -> pattern end) do
+        [] ->
+          :ok
+
+        patterns ->
+          :trace.recv(session, patterns, [])
+      end
 
       :trace.process(session, pid, true, process_flags)
       fun.()
