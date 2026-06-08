@@ -1077,6 +1077,86 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Traces `pid` while `fun` runs, delivering trace messages to the calling process.
+
+  This is a thin wrapper around Erlang's [trace sessions](`:trace`) that lets you
+  assert on the internal behaviour of a process, the messages it sends and
+  receives and the functions it calls, using the regular `assert_receive/3` and
+  `assert_received/2` assertions.
+
+  Tracing is enabled before `fun` is invoked and disabled once it returns. The
+  value returned by `fun` is returned.
+
+  `flags` is a list of trace flags. The following flags are supported:
+
+    * `:receive` - trace received messages
+    * `{:receive, match_specification}` - trace only received messages matching the given match specification.
+       See `:trace.recv/3` for more information.
+    * `:send` - trace sent messages
+    * `{:call, {Module, function, arity}}` - trace calls to the given MFA
+
+  Trace messages are delivered to the calling process in different shapes,
+  depending on the used flags:
+
+    * `{:trace, pid, :receive, message}` for `:receive`
+    * `{:trace, pid, :send, message, to}` for `:send`
+    * `{:trace, pid, :send_to_non_existing_process, message, to}` for `:send` when the destination process does not exist
+    * `{:trace, pid, :call, {Module, function, args}}` when tracing function calls
+
+  Because messages are delivered asynchronously, prefer `assert_receive/3` over
+  `assert_received/2`.
+
+  Trace messages left in the mailbox once `fun` returns are not flushed.
+
+  ## Examples
+
+  Asserting that a process receives a message:
+
+      trace(pid, [:receive], fn ->
+        send(pid, {:event, "click"})
+        assert_receive {:trace, ^pid, :receive, {:event, "click"}}
+      end)
+
+  Tracing function calls to `Map.get/2`:
+
+      trace(pid, [call: {Map, :get, 2}], fn ->
+        run_request()
+        assert_receive {:trace, ^pid, :call, {Map, :get, [_map, :key]}}
+      end)
+
+  """
+  @doc since: "1.21.0"
+  @flags [:receive, :send]
+  def trace(pid, flags, fun)
+      when is_pid(pid) and is_list(flags) and is_function(fun, 0) do
+    {receive_specs, call_patterns, process_flags} =
+      Enum.reduce(flags, {[], [], []}, fn
+        {:receive, spec}, {receive, call, process} -> {[spec | receive], call, process}
+        {:call, mfa}, {receive, call, process} -> {receive, [mfa | call], process}
+        flag, {receive, call, process} when flag in @flags -> {receive, call, [flag | process]}
+        other, _acc -> raise ArgumentError, "unknown trace flag: #{inspect(other)}"
+      end)
+
+    session = :trace.session_create(:ex_unit_trace, self(), [])
+
+    process_flags = if call_patterns == [], do: process_flags, else: [:call | process_flags]
+    process_flags = if receive_specs == [], do: process_flags, else: [:receive | process_flags]
+
+    try do
+      Enum.each(call_patterns, &:trace.function(session, &1, true, [:local]))
+
+      if receive_specs != [] do
+        :trace.recv(session, receive_specs, [])
+      end
+
+      :trace.process(session, pid, true, process_flags)
+      fun.()
+    after
+      :trace.session_destroy(session)
+    end
+  end
+
+  @doc """
   Asserts `value1` and `value2` are not within `delta`.
 
   This difference is exclusive, so the test will fail if the difference
