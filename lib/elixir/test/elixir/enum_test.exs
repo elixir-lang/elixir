@@ -521,7 +521,7 @@ defmodule EnumTest do
     assert Enum.natural_join([1, 2, 3], " = ") == "1 = 2 and 3"
     assert Enum.natural_join([1, "2", 3], " = ") == "1 = 2 and 3"
     assert Enum.natural_join([1, 2, 3]) == "1, 2 and 3"
-    assert Enum.natural_join([1, 2, 3], ", ", " or ") == "1, 2 or 3"
+    assert Enum.natural_join([1, 2, 3, 4], ", ", " or ") == "1, 2, 3 or 4"
     assert Enum.natural_join(["", "", 1, 2, "", 3, "", "\n"], ";") == ";;1;2;;3; and \n"
 
     assert Enum.natural_join([["a", "b"], ["c", "d", "e", ["f", "g"]], "h", "i"], " ") ==

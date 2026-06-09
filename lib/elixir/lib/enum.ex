@@ -1719,23 +1719,15 @@ defmodule Enum do
   @spec natural_join(Enumerable.t(), binary(), binary()) :: binary()
   def natural_join(enumerable, joiner \\ ", ", final_joiner \\ " and ")
       when is_binary(joiner) and is_binary(final_joiner) do
-    natural_join(to_list(enumerable), joiner, final_joiner, [])
-  end
-
-  # done; reverse and finalize
-  defp natural_join([], _, _, result), do: result |> :lists.reverse() |> IO.iodata_to_binary()
-
-  # single element; short circuit
-  defp natural_join([head | []], _, _, []), do: entry_to_string(head)
-
-  # final element; replace interspersed joiner with final joiner, recurse to finalize
-  defp natural_join([head | [] = tail], joiner, final_joiner, [joiner | result_tail]) do
-    natural_join(tail, joiner, final_joiner, [entry_to_string(head), final_joiner | result_tail])
-  end
-
-  # other element; intersperse joiner and recurse
-  defp natural_join([head | tail], joiner, final_joiner, result) do
-    natural_join(tail, joiner, final_joiner, [joiner, entry_to_string(head) | result])
+    case reduce(enumerable, :empty, fn
+           elem, :empty -> {:one, entry_to_string(elem)}
+           elem, {:one, prev} -> {:many, prev, entry_to_string(elem)}
+           elem, {:many, acc, prev} -> {:many, [acc, joiner | prev], entry_to_string(elem)}
+         end) do
+      :empty -> ""
+      {:one, str} -> IO.iodata_to_binary(str)
+      {:many, acc, last} -> IO.iodata_to_binary([acc, final_joiner | last])
+    end
   end
 
   @doc """
