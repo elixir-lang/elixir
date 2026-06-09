@@ -40,6 +40,15 @@ defmodule Mix.Tasks.Archive.Install do
   Note that installing via Git, GitHub, or Hex fetches the source
   of the archive and builds it, while using local path uses a pre-built archive.
 
+  ## Security
+
+  Archives must be installed only from sources you trust.
+
+  Installing an archive from Git, GitHub, or Hex executes code from the source
+  during installation, unless a pre-built archive is given. Once an archive is
+  installed, Mix may load code from it as a plugin on any Mix command, even if
+  no archive command is executed.
+
   ## Command line options
 
     * `--sha512` - checks the archive matches the given SHA-512 checksum. Only
