@@ -31,7 +31,7 @@ defmodule Module.Types.Of do
   @doc """
   Marks a variable with error.
 
-  This purposedly deletes all traces of the variable,
+  This purposely deletes all traces of the variable,
   as it is often invoked when the cause for error is elsewhere.
   """
   def error_var({_, meta, _}, context) do

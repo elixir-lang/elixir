@@ -6081,7 +6081,7 @@ defmodule Module.Types.Descr do
 
   # When doing BDD1 v BDD2, BDD2 is likely stored as a lazy union.
   # However, if BDD2 appears in the constrained or dual nodes of BDD1,
-  # we want to remove them, to avoid carrying unecessary information.
+  # we want to remove them, to avoid carrying unnecessary information.
   # This function does precisely so.
   defp bdd_remove(_bdd, :bdd_top), do: :bdd_bot
   defp bdd_remove(bdd, :bdd_bot), do: bdd
