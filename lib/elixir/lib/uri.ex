@@ -24,6 +24,12 @@ defmodule URI do
 
       [scheme]://[userinfo]@[host]:[port][path]?[query]#[fragment]
 
+  The fields contain the encoded URI components as they appear in the URI
+  itself. For example, a slash inside the userinfo must be stored as `%2F`,
+  not as `/`. Functions such as `parse/1` and `new/1` preserve existing
+  percent-encoded sequences in those fields, and functions such as `to_string/1`
+  expects those fields to already be encoded as needed. Whenever setting or
+  modifying the fields directly, you must encode them accordingly.
 
   Note the `authority` field is deprecated. `parse/1` will still
   populate it for backwards compatibility but you should generally
@@ -896,6 +902,9 @@ defmodule URI do
 
   @doc """
   Returns the string representation of the given [URI struct](`t:t/0`).
+
+  This function assembles the URI components into a string, assuming each
+  field is valid and escaped as done by `parse/1` and `new/1`.
 
   ## Examples
 
