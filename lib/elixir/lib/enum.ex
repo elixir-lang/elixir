@@ -1704,6 +1704,41 @@ defmodule Enum do
   end
 
   @doc """
+  Similar to `Enum.join/2` but takes a final joiner as the third argument,
+  used for the last element, to create joined strings like "1, 2 and 3".
+
+  ## Examples
+
+      iex> Enum.natural_join([1, 2, 3])
+      "1, 2 and 3"
+      iex> Enum.natural_join([1, 2])
+      "1 and 2"
+      iex> Enum.natural_join([1])
+      "1"
+  """
+  @spec natural_join(Enumerable.t(), binary(), binary()) :: binary()
+  def natural_join(enumerable, joiner \\ ", ", final_joiner \\ " and ")
+      when is_binary(joiner) and is_binary(final_joiner) do
+    natural_join(to_list(enumerable), joiner, final_joiner, [])
+  end
+
+  # done; reverse and finalize
+  defp natural_join([], _, _, result), do: result |> :lists.reverse() |> IO.iodata_to_binary()
+
+  # single element; short circuit
+  defp natural_join([head | []], _, _, []), do: entry_to_string(head)
+
+  # final element; replace interspersed joiner with final joiner, recurse to finalize
+  defp natural_join([head | [] = tail], joiner, final_joiner, [joiner | result_tail]) do
+    natural_join(tail, joiner, final_joiner, [entry_to_string(head), final_joiner | result_tail])
+  end
+
+  # other element; intersperse joiner and recurse
+  defp natural_join([head | tail], joiner, final_joiner, result) do
+    natural_join(tail, joiner, final_joiner, [joiner, entry_to_string(head) | result])
+  end
+
+  @doc """
   Returns a list where each element is the result of invoking
   `fun` on each corresponding element of `enumerable`.
 

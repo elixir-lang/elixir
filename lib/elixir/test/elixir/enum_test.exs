@@ -514,6 +514,24 @@ defmodule EnumTest do
     assert Enum.join(fn acc, _ -> acc end, ".") == ""
   end
 
+  test "natural_join/2" do
+    assert Enum.natural_join([], " = ") == ""
+    assert Enum.natural_join([1], " = ") == "1"
+    assert Enum.natural_join([1, 2], " = ") == "1 and 2"
+    assert Enum.natural_join([1, 2, 3], " = ") == "1 = 2 and 3"
+    assert Enum.natural_join([1, "2", 3], " = ") == "1 = 2 and 3"
+    assert Enum.natural_join([1, 2, 3]) == "1, 2 and 3"
+    assert Enum.natural_join([1, 2, 3], ", ", " or ") == "1, 2 or 3"
+    assert Enum.natural_join(["", "", 1, 2, "", 3, "", "\n"], ";") == ";;1;2;;3; and \n"
+
+    assert Enum.natural_join([["a", "b"], ["c", "d", "e", ["f", "g"]], "h", "i"], " ") ==
+             "ab cdefg h and i"
+
+    assert Enum.natural_join([""]) == ""
+
+    assert Enum.natural_join(fn acc, _ -> acc end, ".") == ""
+  end
+
   test "map/2" do
     assert Enum.map([], fn x -> x * 2 end) == []
     assert Enum.map([1, 2, 3], fn x -> x * 2 end) == [2, 4, 6]
@@ -2039,6 +2057,14 @@ defmodule EnumTest.Range do
     assert Enum.join(1..0//-1, " = ") == "1 = 0"
     assert Enum.join(1..3, " = ") == "1 = 2 = 3"
     assert Enum.join(1..3) == "123"
+  end
+
+  test "natural_join/2" do
+    assert Enum.natural_join(1..0//-1, " = ", " + ") == "1 + 0"
+    assert Enum.natural_join(1..0//-1, " = ", "") == "10"
+    assert Enum.natural_join(1..0//-1, " = ") == "1 and 0"
+    assert Enum.natural_join(1..3, " = ") == "1 = 2 and 3"
+    assert Enum.natural_join(1..3) == "1, 2 and 3"
   end
 
   test "map/2" do
