@@ -402,7 +402,7 @@ defmodule Module.Types.Expr do
           context
 
         # If there is a single clause, we assume it is always evaluated
-        # by doing reverse arrows and incorporting all variables into the context.
+        # by doing reverse arrows and incorporating all variables into the context.
         # We have to evaluate the head again but it might have been preferred
         # if we could somehow merge a previously computed context.
         {_, [{arg_type, _body_type, {:->, meta, [head, body]}}]} ->

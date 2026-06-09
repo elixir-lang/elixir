@@ -238,7 +238,7 @@ inner_inline(_, _, _, _) -> false.
 %%
 %% Rewrite rules are more complex than regular inlining code
 %% as they may change the number of arguments. However, they
-%% cannot change tha argument order, as that can change the
+%% cannot change the argument order, as that can change the
 %% code semantics.
 rewrite(?string_chars, DotMeta, to_string, Meta, [Arg]) ->
   case is_always_string(Arg) of

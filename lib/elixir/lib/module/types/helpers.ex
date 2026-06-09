@@ -57,7 +57,7 @@ defmodule Module.Types.Helpers do
   ## Warnings
 
   @doc """
-  Converts an itneger into ordinal.
+  Converts an integer into ordinal.
   """
   def integer_to_ordinal(i) do
     case rem(i, 10) do
