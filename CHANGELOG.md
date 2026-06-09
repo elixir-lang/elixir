@@ -192,6 +192,27 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
+## v1.20.1 (2026-06-09)
+
+### 1. Security
+
+#### Elixir
+
+  * [Version] Limit integer components in Version to 14 decimal bytes, to avoid parsing too large integers from untrusted user input. We strongly advise developers parsing versions from user input to limit the data size given to the `Version` module (CVE-2026-49762, GHSA-w2h8-8x3g-278p)
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Calendar] Cap width in `Calendar.strftime/2` to 1024 characters
+  * [Code] Ensure `Code.require_file` releases the file if compilation fails
+  * [Kernel] Fix documentation generation to use the correct version in search
+
+#### Mix
+
+  * [mix archive.install] Validate paths and files when extracting archives
+  * [mix format] Honor `--no-compile` option when loading plugins
+
 ## v1.20.0 (2026-06-03)
 
 This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
