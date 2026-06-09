@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 defmodule Calendar do
+  @strftime_max_width 1024
+
   @moduledoc """
   This module defines the responsibilities for working with
   calendars, dates, times and datetimes in Elixir.
@@ -529,6 +531,7 @@ defmodule Calendar do
     * `%`: indicates the start of a formatted section
     * `<padding>`: set the padding (see below)
     * `<width>`: a number indicating the minimum size of the formatted section
+      (maximum #{@strftime_max_width})
     * `<format>`: the format itself (see below)
 
   ### Accepted padding options
@@ -667,9 +670,13 @@ defmodule Calendar do
   end
 
   defp parse_modifiers(<<digit, rest::binary>>, width, pad, parser_data) when digit in ?0..?9 do
-    new_width = (width || 0) * 10 + (digit - ?0)
+    width = (width || 0) * 10 + (digit - ?0)
 
-    parse_modifiers(rest, new_width, pad, parser_data)
+    if width > @strftime_max_width do
+      raise ArgumentError, "invalid strftime format: width must be at most #{@strftime_max_width}"
+    end
+
+    parse_modifiers(rest, width, pad, parser_data)
   end
 
   # set default padding if none was specified
