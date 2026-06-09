@@ -128,7 +128,8 @@ defmodule Mix.Tasks.Archive.Install do
   @impl true
   def install(basename, contents, previous) do
     ez_path = Path.join(Mix.path_for(:archives), basename)
-    dir_dest = resolve_destination(ez_path, contents)
+    archive_name = archive_name!(contents)
+    dir_dest = Path.join(Path.dirname(ez_path), archive_name)
 
     remove_previous_versions(previous)
 
@@ -158,16 +159,61 @@ defmodule Mix.Tasks.Archive.Install do
 
   ### Private helpers
 
-  defp resolve_destination(ez_path, contents) do
-    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
-         {:zip_file, zip_first_path, _, _, _, _} = zip_first_file,
-         [zip_root_dir | _] = Path.split(zip_first_path) do
-      Path.join(Path.dirname(ez_path), zip_root_dir)
+  defp archive_name!(contents) do
+    with {:ok, files} <- :zip.list_dir(contents),
+         zip_files = Enum.filter(files, &match?({:zip_file, _, _, _, _, _}, &1)),
+         true <- zip_files != [] do
+      Enum.reduce(zip_files, nil, fn zip_file, root ->
+        validate_archive_path!(zip_file, root)
+      end)
     else
       _ ->
-        Mix.raise("Installation failed: invalid archive file")
+        Mix.raise("Installation failed: invalid archive file, no files found")
     end
   end
+
+  defp validate_archive_path!({:zip_file, path, file_info, _, _, _}, root) do
+    type = elem(file_info, 2)
+    path = zip_path_to_string(path)
+
+    unless type in [:regular, :directory] do
+      Mix.raise(
+        "Installation failed: invalid archive file, #{inspect(path)} is not a regular file or directory"
+      )
+    end
+
+    cond do
+      Path.type(path) != :relative ->
+        Mix.raise(
+          "Installation failed: invalid archive file, #{inspect(path)} is an absolute path"
+        )
+
+      String.contains?(path, ["..", "\\", <<0>>]) ->
+        Mix.raise("Installation failed: invalid archive file, #{inspect(path)} is an unsafe path")
+
+      true ->
+        :ok
+    end
+
+    case String.split(path, "/", trim: true) do
+      [new_root | _] ->
+        cond do
+          root && root != new_root ->
+            Mix.raise(
+              "Installation failed: invalid archive file, #{inspect(path)} is outside archive root #{inspect(root)}"
+            )
+
+          true ->
+            new_root
+        end
+
+      [] ->
+        Mix.raise("Installation failed: invalid archive file, #{inspect(path)} is empty")
+    end
+  end
+
+  defp zip_path_to_string(path) when is_list(path), do: List.to_string(path)
+  defp zip_path_to_string(path) when is_binary(path), do: path
 
   defp archives(name) do
     Mix.path_for(:archives)
