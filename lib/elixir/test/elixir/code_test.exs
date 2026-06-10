@@ -514,6 +514,25 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
+  test "require_file/1 releases the file when compilation fails" do
+    path = tmp_path("bad_require_#{System.unique_integer([:positive])}.ex")
+
+    try do
+      File.write!(path, ~s|raise "boom"|)
+
+      assert_raise RuntimeError, "boom", fn ->
+        Code.require_file(path)
+      end
+
+      assert_raise RuntimeError, "boom", fn ->
+        Code.require_file(path)
+      end
+    after
+      File.rm(path)
+      Code.unrequire_files([path])
+    end
+  end
+
   test "string_to_quoted!/2 errors take lines/columns/indentation into account" do
     assert_exception(
       SyntaxError,
@@ -896,6 +915,34 @@ defmodule Code.SyncTest do
     end
   after
     Code.put_compiler_option(:module_definition, :compiled)
+  end
+
+  if System.otp_release() >= "29" do
+    test "uses erlc_options compiler option" do
+      module = CodeTest.ConfiguredBeamDebugInfo
+      previous = Code.compiler_options(erlc_options: [:beam_debug_info])
+
+      try do
+        assert [{^module, binary}] =
+                 Code.compile_string("""
+                 defmodule CodeTest.ConfiguredBeamDebugInfo do
+                   def sample(value) do
+                     doubled = value * 2
+                     doubled + 1
+                   end
+                 end
+                 """)
+
+        assert {:ok, {_, [{~c"DbgB", <<_version::32, entries::32, _::binary>>}]}} =
+                 :beam_lib.chunks(binary, [~c"DbgB"])
+
+        assert entries > 0
+      after
+        Code.compiler_options(previous)
+        :code.purge(module)
+        :code.delete(module)
+      end
+    end
   end
 
   test "prepend_path" do

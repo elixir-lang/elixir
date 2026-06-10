@@ -78,6 +78,10 @@ defmodule Mix.Tasks.Format do
 
     * `--dry-run` - does not save files after formatting.
 
+    * `--no-compile` - does not compile, even if compilation is required
+      to load formatter plugins. If a plugin cannot be loaded, an error
+      is raised.
+
     * `--verbose` - prints the names of files that were formatted.
 
     * `--dot-formatter` - path to the file with formatter configuration.
@@ -152,7 +156,7 @@ defmodule Mix.Tasks.Format do
       ]
 
   Notice that, when running the formatter with plugins, your code will be
-  compiled first.
+  compiled first, unless the `--no-compile` flag is given.
 
   In addition, the order by which you input your plugins is the format order.
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
@@ -316,7 +320,7 @@ defmodule Mix.Tasks.Format do
 
     plugins =
       if plugins != [] do
-        Keyword.get(opts, :plugin_loader, &plugin_loader/1).(plugins)
+        Keyword.get(opts, :plugin_loader, &plugin_loader(&1, opts)).(plugins)
       else
         []
       end
@@ -357,12 +361,12 @@ defmodule Mix.Tasks.Format do
      end)}
   end
 
-  defp plugin_loader(plugins) do
+  defp plugin_loader(plugins, opts) do
     if plugins != [] do
-      Mix.Task.run("loadpaths", [])
+      Mix.Task.run("loadpaths", if(opts[:no_compile], do: ["--no-compile"], else: []))
     end
 
-    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+    if !opts[:no_compile] and not Enum.all?(plugins, &Code.ensure_loaded?/1) do
       Mix.Task.run("compile", [])
     end
 

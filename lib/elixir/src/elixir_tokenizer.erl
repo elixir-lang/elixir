@@ -1918,13 +1918,13 @@ add_cursor(_Line, Column, noprune, Tokens) ->
   {Column, Tokens};
 
 add_cursor(Line, Column, {prune_and_cursor, true},
-           [{sigil, {_, _, {Line, Column}} = Location, Name, Parts, Modifier, Identation, Delimiter} | Rest]) ->
+           [{sigil, {_, _, {Line, Column}} = Location, Name, Parts, Modifier, Indentation, Delimiter} | Rest]) ->
   Cursor = {'__cursor__', [{line, Line}, {column, Column}], []},
   CursorModifier = case Modifier of
     false -> Cursor;
     List -> List ++ [Cursor]
   end,
-  {Column + 12, [{sigil, Location, Name, Parts, CursorModifier, Identation, Delimiter} | Rest]};
+  {Column + 12, [{sigil, Location, Name, Parts, CursorModifier, Indentation, Delimiter} | Rest]};
 
 add_cursor(Line, Column, {prune_and_cursor, _}, Tokens) ->
   PrePrunedTokens = prune_identifier(Tokens),

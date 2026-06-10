@@ -340,6 +340,32 @@ defmodule CalendarTest do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%010A") == "00Thursday"
     end
 
+    test "limits width to at most 1024 characters" do
+      assert Calendar.strftime(~D[2019-08-15], "%1024d") |> byte_size() == 1024
+
+      assert_raise ArgumentError, "invalid strftime format: width must be at most 1024", fn ->
+        Calendar.strftime(~D[2019-08-15], "%1025d")
+      end
+
+      assert_raise ArgumentError, "invalid strftime format: width must be at most 1024", fn ->
+        Calendar.strftime(~D[2019-08-15], "%10000d")
+      end
+    end
+
+    test "limits width in preferred formats" do
+      assert_raise ArgumentError, "invalid strftime format: width must be at most 1024", fn ->
+        Calendar.strftime(~N[2019-08-15 17:07:57], "%c", preferred_datetime: "%1025d")
+      end
+
+      assert_raise ArgumentError, "invalid strftime format: width must be at most 1024", fn ->
+        Calendar.strftime(~N[2019-08-15 17:07:57], "%x", preferred_date: "%1025d")
+      end
+
+      assert_raise ArgumentError, "invalid strftime format: width must be at most 1024", fn ->
+        Calendar.strftime(~N[2019-08-15 17:07:57], "%X", preferred_time: "%1025H")
+      end
+    end
+
     test "formats Epoch time with %s" do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%s") == "1565888877"
 

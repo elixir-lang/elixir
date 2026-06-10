@@ -38,7 +38,9 @@ defmodule Module.Types.Apply do
   end
 
   fas = list(tuple([atom(), integer()]))
-  struct_info = list(closed_map(default: if_set(term()), field: atom()))
+
+  struct_info =
+    list(closed_map(default: if_set(term()), field: atom(), required: if_set(boolean())))
 
   shared_info = [
     attributes: list(tuple([atom(), list(term())])),

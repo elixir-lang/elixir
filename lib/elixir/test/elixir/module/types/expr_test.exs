@@ -3396,10 +3396,16 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(GenServer.__info__(:struct)) == atom([nil])
 
       assert typecheck!(URI.__info__(:struct)) ==
-               list(closed_map(default: if_set(term()), field: atom()))
+               list(
+                 closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
+               )
 
       assert typecheck!([x], x.__info__(:struct)) ==
-               list(closed_map(default: if_set(term()), field: atom())) |> opt_union(atom([nil]))
+               list(
+                 closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
+               )
+               |> opt_union(atom([nil]))
+
     end
 
     test "behaviour_info/1" do

@@ -314,7 +314,7 @@ defmodule Code do
     :relative_paths
   ]
 
-  @list_compiler_options [:tracers, :parser_options]
+  @list_compiler_options [:tracers, :parser_options, :erlc_options]
 
   @available_compiler_options @boolean_compiler_options ++
                                 @list_compiler_options ++
@@ -1634,13 +1634,19 @@ defmodule Code do
         nil
 
       :proceed ->
-        loaded =
-          Module.ParallelChecker.verify(fn ->
-            :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
-          end)
+        try do
+          loaded =
+            Module.ParallelChecker.verify(fn ->
+              :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
+            end)
 
-        :elixir_code_server.cast({:required, file})
-        loaded
+          :elixir_code_server.cast({:required, file})
+          loaded
+        catch
+          kind, reason ->
+            :elixir_code_server.call({:release, file})
+            :erlang.raise(kind, reason, __STACKTRACE__)
+        end
     end
   end
 
@@ -1752,6 +1758,10 @@ defmodule Code do
 
     * `:docs` - when `true`, retains documentation in the compiled module.
       Defaults to `true`.
+
+    * `:erlc_options` (since v1.21.0) - a list of Erlang compiler options. For example,
+      `erlc_options: [:beam_debug_info, :beam_debug_stack]` emits Erlang/OTP
+      debug metadata for BEAM debuggers. Defaults to `[]`.
 
     * `:ignore_already_consolidated` (since v1.10.0) - when `true`, does not warn
       when a protocol has already been consolidated and a new implementation is added.

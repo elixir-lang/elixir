@@ -88,6 +88,7 @@ start(_Type, _Args) ->
     %% Compiler options
     {debug_info, true},
     {docs, true},
+    {erlc_options, []},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {infer_signatures, [elixir]},

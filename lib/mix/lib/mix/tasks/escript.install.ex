@@ -40,6 +40,14 @@ defmodule Mix.Tasks.Escript.Install do
   `$PATH` environment variable. For more information, check the wikipedia
   article on PATH: https://en.wikipedia.org/wiki/PATH_(variable)
 
+  ## Security
+
+  Escripts must be installed only from sources you trust.
+
+  Installing an escript from Git, GitHub, or Hex executes code from the source
+  during installation, unless a pre-built escript is given. Once an escript is
+  installed, running it executes code on your machine.
+
   ## Command line options
 
     * `--sha512` - checks the escript matches the given SHA-512 checksum. Only

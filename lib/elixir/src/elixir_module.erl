@@ -205,7 +205,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
               'Elixir.Module.Types':infer(Module, File, Attributes, AllDefinitions, UsedPrivate, E, CheckerInfo)
           end,
 
-        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2) ++ elixir_config:get(erlc_options),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
         Impls = bag_lookup_element(DataBag, impls, 2),
 

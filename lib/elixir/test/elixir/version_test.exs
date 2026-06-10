@@ -84,8 +84,14 @@ defmodule VersionTest do
     assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]}} =
              Version.parse("1.4.5-6.7.eight")
 
+    assert {:ok, %Version{major: 99_999_999_999_999, minor: 0, patch: 0}} =
+             Version.parse("99999999999999.0.0")
+
     assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} =
              Version.parse("1.4.5-6-g3318bd5+ignore")
+
+    assert {:ok, %Version{major: 1, minor: 0, patch: 0, pre: ["100000000000000-alpha"]}} =
+             Version.parse("1.0.0-100000000000000-alpha")
 
     assert Version.parse("foobar") == :error
     assert Version.parse("2") == :error
@@ -105,6 +111,13 @@ defmodule VersionTest do
     assert Version.parse("02.3.0") == :error
     assert Version.parse("0. 0.0") == :error
     assert Version.parse("0.1.0-&&pre") == :error
+    assert Version.parse("100000000000000.0.0") == :error
+    assert Version.parse("1.100000000000000.0") == :error
+    assert Version.parse("1.0.100000000000000") == :error
+    assert Version.parse("1.0.0-100000000000000") == :error
+
+    assert Version.parse("1.0.0+100000000000000") ==
+             {:ok, %Version{major: 1, minor: 0, patch: 0, build: "100000000000000"}}
   end
 
   test "to_string/1" do
@@ -338,6 +351,7 @@ defmodule VersionTest do
       assert Version.parse_requirement("1.2.3 and or 4.5.6") == :error
       assert Version.parse_requirement(">= 1") == :error
       assert Version.parse_requirement("1.2.3 >=") == :error
+      assert Version.parse_requirement("100000000000000.0.0") == :error
     end
 
     test "inspect/1" do

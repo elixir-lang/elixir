@@ -1378,6 +1378,17 @@ defmodule System do
 
   @doc """
   Returns the Erlang/OTP release number.
+
+  The version is a single number, the major version of OTP.
+  Erlang/OTP does not provide an API to fetch the exact
+  patch version, see the [*Versions* page](https://www.erlang.org/doc/system/versions.html)
+  in the Erlang documentation for more information.
+
+  ## Examples
+
+      iex> System.otp_release()
+      "#{:erlang.system_info(:otp_release)}"
+
   """
   @spec otp_release :: String.t()
   @doc since: "1.3.0"

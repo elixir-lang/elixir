@@ -18,11 +18,15 @@ defmodule Version do
 
       MAJOR.MINOR.PATCH
 
+  Each numeric component is limited to at most 14 digits.
+
   Pre-releases are supported by optionally appending a hyphen and a series of
   period-separated identifiers immediately following the patch version.
   Identifiers consist of only ASCII alphanumeric characters and hyphens (`[0-9A-Za-z-]`):
 
       "1.0.0-alpha.3"
+
+  Numeric pre-release identifiers are also limited to at most 14 digits.
 
   Build information can be added by appending a plus sign and a series of
   dot-separated identifiers immediately following the patch or pre-release version.
@@ -520,6 +524,8 @@ defmodule Version do
   defmodule Parser do
     @moduledoc false
 
+    @max_numeric_component_digits 14
+
     operators = [
       {">=", :>=},
       {"<=", :<=},
@@ -621,7 +627,9 @@ defmodule Version do
     defp require_digits(nil), do: :error
 
     defp require_digits(string) do
-      if leading_zero?(string), do: :error, else: parse_digits(string, "")
+      if leading_zero?(string) or byte_size(string) > @max_numeric_component_digits,
+        do: :error,
+        else: parse_digits(string, "")
     end
 
     defp leading_zero?(<<?0, _, _::binary>>), do: true
@@ -649,6 +657,11 @@ defmodule Version do
       end
     end
 
+    defp convert_parts_to_integer([part | rest], acc)
+         when byte_size(part) > @max_numeric_component_digits do
+      if all_digits?(part), do: :error, else: convert_parts_to_integer(rest, [part | acc])
+    end
+
     defp convert_parts_to_integer([part | rest], acc) do
       case parse_digits(part, "") do
         {:ok, integer} ->
@@ -666,6 +679,10 @@ defmodule Version do
     defp convert_parts_to_integer([], acc) do
       {:ok, Enum.reverse(acc)}
     end
+
+    defp all_digits?(<<char, rest::binary>>) when char in ?0..?9, do: all_digits?(rest)
+    defp all_digits?(<<>>), do: true
+    defp all_digits?(_other), do: false
 
     defp valid_identifier?(<<char, rest::binary>>)
          when char in ?0..?9
