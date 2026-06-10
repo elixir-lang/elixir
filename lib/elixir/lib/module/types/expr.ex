@@ -653,7 +653,6 @@ defmodule Module.Types.Expr do
     end)
   end
 
-  # TODO: with pat <- expr do expr end
   def of_expr({:with, meta, [_ | _] = clauses}, expected, _expr, stack, original) do
     cache_result(meta, stack, original, fn ->
       {clauses, [[do: do_block] ++ options]} = Enum.split(clauses, -1)
