@@ -37,7 +37,6 @@ defmodule Module.Types.Descr do
 
   # Map fields and domains are stored as orddicts (sorted key-value lists).
   @fields_new []
-  defguardp is_fields_empty(fields) when fields == []
   defguardp fields_size(fields) when length(fields)
 
   @domain_key_types :lists.sort(
@@ -181,7 +180,7 @@ defmodule Module.Types.Descr do
   """
   def fun_from_non_overlapping_clauses([{args, return} | clauses]) do
     Enum.reduce(clauses, fun(args, return), fn {args, return}, acc ->
-      intersection(acc, fun(args, return))
+      bare_intersection(acc, fun(args, return))
     end)
   end
 
@@ -201,7 +200,7 @@ defmodule Module.Types.Descr do
           args <- domain_to_args(domain),
           do: fun(args, dynamic(union))
 
-    Enum.reduce(funs, &intersection/2)
+    Enum.reduce(funs, &bare_intersection/2)
   end
 
   # If you have a function with multiple clauses, they may overlap,
@@ -233,8 +232,8 @@ defmodule Module.Types.Descr do
       ]
     else
       [
-        {acc_domain, acc_return, union(return, acc_union)}
-        | pivot_overlapping_clause(domain, return, union(acc_return, union), acc)
+        {acc_domain, acc_return, bare_union(return, acc_union)}
+        | pivot_overlapping_clause(domain, return, bare_union(acc_return, union), acc)
       ]
     end
   end
@@ -293,7 +292,7 @@ defmodule Module.Types.Descr do
     case domain_to_args(domain) do
       [] when is_integer(arity_or_args) -> List.duplicate(none(), arity_or_args)
       [] when is_list(arity_or_args) -> Enum.map(arity_or_args, fn _ -> none() end)
-      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
+      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &bare_union/2) end)
     end
   end
 
@@ -394,7 +393,7 @@ defmodule Module.Types.Descr do
   @doc """
   Make a whole type dynamic.
 
-  It is an optimized version of `intersection(dynamic(), type)`.
+  It is an optimized version of `bare_intersection(dynamic(), type)`.
   """
   @compile {:inline, dynamic: 1}
   def dynamic(descr) do
@@ -408,182 +407,126 @@ defmodule Module.Types.Descr do
   defp pop_dynamic(:term), do: {:term, :term}
   defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
 
-  @compile {:inline, maybe_union: 2}
-  defp maybe_union(nil, _fun), do: nil
-  defp maybe_union(descr, fun), do: union(descr, fun.())
-
   @doc """
   Computes the union of two descrs.
   """
-  def union(:term, other), do: optional_to_term(other)
-  def union(other, :term), do: optional_to_term(other)
-  def union(none, other) when none == @none, do: other
-  def union(other, none) when none == @none, do: other
+  def bare_union(:term, other), do: optional_to_term(other)
+  def bare_union(other, :term), do: optional_to_term(other)
+  def bare_union(none, other) when none == @none, do: other
+  def bare_union(other, none) when none == @none, do: other
 
-  def union(left, right) do
+  def bare_union(left, right) do
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(unfold(right), :dynamic, right)
-        union_static(left, right_with_dynamic)
+        bare_union_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(unfold(left), :dynamic, left)
-        union_static(left_with_dynamic, right)
+        bare_union_static(left_with_dynamic, right)
 
       true ->
-        union_static(left, right)
+        bare_union_static(left, right)
     end
   end
 
-  @compile {:inline, union_static: 2}
-  defp union_static(left, right) do
-    symmetrical_merge(left, right, &union/3)
+  @compile {:inline, bare_union_static: 2}
+  defp bare_union_static(left, right) do
+    symmetrical_merge(left, right, &bare_union/3)
   end
 
-  defp union(:atom, v1, v2), do: atom_union(v1, v2)
-  defp union(:bitmap, v1, v2), do: v1 ||| v2
-  defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
-  defp union(:list, v1, v2), do: bdd_union(v1, v2)
-  defp union(:map, v1, v2), do: map_union(v1, v2)
-  defp union(:optional, 1, 1), do: 1
-  defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
-  defp union(:fun, v1, v2), do: fun_union(v1, v2)
+  defp bare_union(:atom, v1, v2), do: atom_union(v1, v2)
+  defp bare_union(:bitmap, v1, v2), do: v1 ||| v2
+  defp bare_union(:dynamic, v1, v2), do: dynamic_union(v1, v2, &bare_union/3)
+  defp bare_union(:list, v1, v2), do: list_union(v1, v2)
+  defp bare_union(:map, v1, v2), do: map_union(v1, v2)
+  defp bare_union(:optional, 1, 1), do: 1
+  defp bare_union(:tuple, v1, v2), do: tuple_union(v1, v2)
+  defp bare_union(:fun, v1, v2), do: fun_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
   """
-  def intersection(:term, other), do: remove_optional(other)
-  def intersection(other, :term), do: remove_optional(other)
+  def bare_intersection(:term, other), do: remove_optional(other)
+  def bare_intersection(other, :term), do: remove_optional(other)
 
-  def intersection(left, right) do
+  def bare_intersection(left, right) do
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(unfold(right), :dynamic, right)
-        intersection_static(left, right_with_dynamic)
+        bare_intersection_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(unfold(left), :dynamic, left)
-        intersection_static(left_with_dynamic, right)
+        bare_intersection_static(left_with_dynamic, right)
 
       true ->
-        intersection_static(left, right)
+        bare_intersection_static(left, right)
     end
   end
 
-  @compile {:inline, intersection_static: 2}
-  defp intersection_static(left, right) do
-    symmetrical_intersection(left, right, &intersection/3)
+  @compile {:inline, bare_intersection_static: 2}
+  defp bare_intersection_static(left, right) do
+    symmetrical_intersection(left, right, &bare_intersection/3)
   end
 
   # Returning 0 from the callback is taken as none() for that subtype.
-  defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
-  defp intersection(:bitmap, v1, v2), do: v1 &&& v2
-  defp intersection(:list, v1, v2), do: list_intersection(v1, v2)
-  defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
-  defp intersection(:optional, 1, 1), do: 1
-  defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
-  defp intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
+  defp bare_intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
+  defp bare_intersection(:bitmap, v1, v2), do: v1 &&& v2
+  defp bare_intersection(:list, v1, v2), do: list_intersection(v1, v2)
+  defp bare_intersection(:map, v1, v2), do: map_intersection(v1, v2)
+  defp bare_intersection(:optional, 1, 1), do: 1
+  defp bare_intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
+  defp bare_intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
 
-  defp intersection(:dynamic, v1, v2) do
-    descr = dynamic_intersection(v1, v2)
+  defp bare_intersection(:dynamic, v1, v2) do
+    descr = dynamic_intersection(v1, v2, &bare_intersection/3)
     if descr == @none, do: 0, else: descr
   end
 
   @doc """
   Computes the difference between two types.
   """
-  def difference(left, :term), do: keep_optional(left)
-  def difference(left, none) when none == @none, do: left
+  def bare_difference(left, :term), do: keep_optional(left)
+  def bare_difference(left, none) when none == @none, do: left
 
-  def difference(left, right) do
+  def bare_difference(left, right) do
     if gradual?(left) or gradual?(right) do
       {left_dynamic, left_static} = pop_dynamic(left)
       {right_dynamic, right_static} = pop_dynamic(right)
-      dynamic_part = difference_static(left_dynamic, right_static)
+      dynamic_part = bare_difference_static(left_dynamic, right_static)
 
-      Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
+      Map.put(bare_difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
     else
-      difference_static(left, right)
+      bare_difference_static(left, right)
     end
   end
 
-  # For static types, the difference is component-wise
-  defp difference_static(left, descr) when descr == %{}, do: left
-  defp difference_static(left, :term), do: keep_optional(left)
-
-  defp difference_static(left, right) do
-    iterator_difference_static(:maps.next(:maps.iterator(unfold(right))), unfold(left))
+  @compile {:inline, bare_difference_static: 2}
+  defp bare_difference_static(left, right) do
+    dynamic_difference(left, right, &bare_difference/3)
   end
-
-  defp iterator_difference_static({key, v2, iterator}, map) do
-    acc =
-      case map do
-        %{^key => v1} ->
-          value = difference(key, v1, v2)
-
-          if value in @empty_difference do
-            Map.delete(map, key)
-          else
-            %{map | key => value}
-          end
-
-        %{} ->
-          map
-      end
-
-    iterator_difference_static(:maps.next(iterator), acc)
-  end
-
-  defp iterator_difference_static(:none, map), do: map
-
-  # This function is designed to compute the difference during subtyping efficiently.
-  # Do not use it for anything else.
-  defp empty_difference_subtype?(%{dynamic: dyn_left} = left, %{dynamic: dyn_right} = right) do
-    # Dynamic will either exist on both sides or on none
-    empty_difference_subtype?(dyn_left, dyn_right) and
-      empty_difference_subtype?(Map.delete(left, :dynamic), Map.delete(right, :dynamic))
-  end
-
-  defp empty_difference_subtype?(left, :term), do: keep_optional(left) == @none
-
-  defp empty_difference_subtype?(left, right) do
-    iterator_empty_difference_subtype?(:maps.next(:maps.iterator(unfold(left))), unfold(right))
-  end
-
-  defp iterator_empty_difference_subtype?({key, v1, iterator}, map) do
-    case map do
-      %{^key => v2} ->
-        value = difference(key, v1, v2)
-        value in @empty_difference or empty_key?(key, value)
-
-      %{} ->
-        empty_key?(key, v1)
-    end and
-      iterator_empty_difference_subtype?(:maps.next(iterator), map)
-  end
-
-  defp iterator_empty_difference_subtype?(:none, _map), do: true
 
   # Returning 0 from the callback is taken as none() for that subtype.
-  defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
-  defp difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
-  defp difference(:list, v1, v2), do: list_difference(v1, v2)
-  defp difference(:map, v1, v2), do: map_difference(v1, v2)
-  defp difference(:optional, 1, 1), do: 0
-  defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
-  defp difference(:fun, v1, v2), do: fun_difference(v1, v2)
+  defp bare_difference(:atom, v1, v2), do: atom_difference(v1, v2)
+  defp bare_difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
+  defp bare_difference(:list, v1, v2), do: list_difference(v1, v2)
+  defp bare_difference(:map, v1, v2), do: map_difference(v1, v2)
+  defp bare_difference(:optional, 1, 1), do: 0
+  defp bare_difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
+  defp bare_difference(:fun, v1, v2), do: fun_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
   """
-  def negation(:term), do: none()
-  def negation(%{} = descr), do: difference(term(), descr)
+  def bare_negation(:term), do: none()
+  def bare_negation(%{} = descr), do: bare_difference(term(), descr)
 
   @doc """
   Check if a type is empty.
@@ -742,7 +685,7 @@ defmodule Module.Types.Descr do
 
         {dynamic, static} ->
           cond do
-            # Computing term_type?(difference(dynamic, static)) can be
+            # Computing term_type?(bare_difference(dynamic, static)) can be
             # expensive, so we check for term type before hand and check
             # for :term exclusively in dynamic_to_quoted/2.
             term_type?(dynamic) ->
@@ -755,7 +698,7 @@ defmodule Module.Types.Descr do
             # Denormalize functions (only unions) before we do the difference
             true ->
               {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
-              {difference(dynamic, static), static, extra}
+              {bare_difference(dynamic, static), static, extra}
           end
       end
 
@@ -806,7 +749,7 @@ defmodule Module.Types.Descr do
   defp maybe_negated_term_type_to_quoted(static, opts) do
     if print_as_negated_type?(static) do
       static
-      |> negation()
+      |> bare_negation()
       |> unfold()
       |> static_non_term_type_to_quoted([], opts)
       |> case do
@@ -911,6 +854,34 @@ defmodule Module.Types.Descr do
   defp subtype_static?(same, same), do: true
   defp subtype_static?(left, right), do: empty_difference_subtype?(left, right)
 
+  # This function is designed to compute the difference during subtyping efficiently.
+  # Do not use it for anything else.
+  defp empty_difference_subtype?(%{dynamic: dyn_left} = left, %{dynamic: dyn_right} = right) do
+    # Dynamic will either exist on both sides or on none
+    empty_difference_subtype?(dyn_left, dyn_right) and
+      empty_difference_subtype?(Map.delete(left, :dynamic), Map.delete(right, :dynamic))
+  end
+
+  defp empty_difference_subtype?(left, :term), do: keep_optional(left) == @none
+
+  defp empty_difference_subtype?(left, right) do
+    iterator_empty_difference_subtype?(:maps.next(:maps.iterator(unfold(left))), unfold(right))
+  end
+
+  defp iterator_empty_difference_subtype?({key, v1, iterator}, map) do
+    case map do
+      %{^key => v2} ->
+        value = bare_difference(key, v1, v2)
+        value in @empty_difference or empty_key?(key, value)
+
+      %{} ->
+        empty_key?(key, v1)
+    end and
+      iterator_empty_difference_subtype?(:maps.next(iterator), map)
+  end
+
+  defp iterator_empty_difference_subtype?(:none, _map), do: true
+
   @doc """
   Check if a type is equal to another.
 
@@ -974,9 +945,9 @@ defmodule Module.Types.Descr do
   Returns the intersection between two types
   only if they are compatible. Otherwise returns `:error`.
 
-  This finds the intersection between the arguments and the
-  domain of a function. It is used to refine dynamic types
-  as we traverse the program.
+  This finds the optimized intersection between the arguments and the
+  domain of a function. It is used to refine dynamic types as we traverse
+  the program.
   """
   def compatible_intersection(other, :term), do: {:ok, remove_optional(other)}
 
@@ -991,12 +962,12 @@ defmodule Module.Types.Descr do
 
     cond do
       empty?(left_static) ->
-        dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
         if empty?(dynamic), do: {:error, left}, else: {:ok, dynamic(dynamic)}
 
       subtype_static?(left_static, right_dynamic) ->
-        dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
-        {:ok, union(dynamic(dynamic), left_static)}
+        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        {:ok, opt_union(dynamic(dynamic), left_static)}
 
       true ->
         {:error, left}
@@ -1010,7 +981,7 @@ defmodule Module.Types.Descr do
   def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
 
   @doc """
-  Optimized version of `not empty?(intersection(empty_list(), type))`.
+  Optimized version of `not empty?(bare_intersection(empty_list(), type))`.
   """
   def empty_list_type?(:term), do: true
   def empty_list_type?(%{dynamic: :term}), do: true
@@ -1022,7 +993,7 @@ defmodule Module.Types.Descr do
   def empty_list_type?(_), do: false
 
   @doc """
-  Optimized version of `not empty?(intersection(bitstring(), type))`.
+  Optimized version of `not empty?(bare_intersection(bitstring(), type))`.
   """
   def bitstring_type?(:term), do: true
   def bitstring_type?(%{dynamic: :term}), do: true
@@ -1034,7 +1005,7 @@ defmodule Module.Types.Descr do
   def bitstring_type?(_), do: false
 
   @doc """
-  Optimized version of `not empty?(intersection(difference(bitstring(), binary()), type))`.
+  Optimized version of `not empty?(bare_intersection(bare_difference(bitstring(), binary()), type))`.
 
   Notice that this does not mean it is not a binary.
   It only means the bitstring bit is up, regardless of the binary bit.
@@ -1051,7 +1022,7 @@ defmodule Module.Types.Descr do
   def bitstring_no_binary_type?(_), do: false
 
   @doc """
-  Optimized version of `not empty?(intersection(integer() or float(), type))`.
+  Optimized version of `not empty?(bare_intersection(integer() or float(), type))`.
   """
   def number_type?(:term), do: true
   def number_type?(%{dynamic: :term}), do: true
@@ -1324,7 +1295,7 @@ defmodule Module.Types.Descr do
 
   # * Examples:
   #   - fun([integer()], atom()): A function from integer to atom
-  #   - intersection(fun([integer()], atom()), fun([float()], boolean())): A function handling both signatures
+  #   - bare_intersection(fun([integer()], atom()), fun([float()], boolean())): A function handling both signatures
 
   # Note: Function domains are expressed as tuple types. We use separate representations
   # rather than unary functions with tuple domains to handle special cases like representing
@@ -1504,7 +1475,7 @@ defmodule Module.Types.Descr do
             arguments = Enum.map(arguments, &upper_bound/1)
 
             {:ok,
-             union(
+             bare_union(
                fun_apply_static(arguments, static_arrows),
                dynamic(fun_apply_static(arguments, dynamic_arrows))
              )}
@@ -1548,7 +1519,7 @@ defmodule Module.Types.Descr do
           [] ->
             case fun_normalize(fun_dynamic, arity) do
               {:ok, dynamic_domain, dynamic_arrows} ->
-                domain = union(dynamic_domain, dynamic(static_domain))
+                domain = bare_union(dynamic_domain, dynamic(static_domain))
                 {:ok, domain, static_arrows, dynamic_arrows}
 
               _ ->
@@ -1566,7 +1537,7 @@ defmodule Module.Types.Descr do
         # result is wrapped in dynamic(), reflecting the uncertainty.
         case fun_normalize(fun_dynamic, arity) do
           {:ok, dynamic_domain, dynamic_arrows} ->
-            {:ok, union(dynamic_domain, dynamic()), [], dynamic_arrows}
+            {:ok, bare_union(dynamic_domain, dynamic()), [], dynamic_arrows}
 
           error ->
             error
@@ -1611,7 +1582,7 @@ defmodule Module.Types.Descr do
   # In that case, we transform the {:negation, _} into a single union
   # where we add the previous negatives into the specified arity.
   defp fun_normalize(%{fun: {:negation, _}} = neg_fun, arity) do
-    fun_normalize(intersection(fun(arity), neg_fun), arity)
+    fun_normalize(bare_intersection(fun(arity), neg_fun), arity)
   end
 
   defp fun_normalize(%{fun: {:union, bdds}}, arity) do
@@ -1620,7 +1591,7 @@ defmodule Module.Types.Descr do
         {domain, arrows} =
           Enum.reduce(fun_bdd_to_pos_dnf(arity, bdd), {term(), []}, fn pos_funs,
                                                                        {domain, arrows} ->
-            {intersection(domain, fetch_domain(pos_funs)), [pos_funs | arrows]}
+            {bare_intersection(domain, fetch_domain(pos_funs)), [pos_funs | arrows]}
           end)
 
         if arrows == [] do
@@ -1657,9 +1628,9 @@ defmodule Module.Types.Descr do
     type_input = args_to_domain(input_arguments)
 
     Enum.reduce(arrows, none(), fn bdd_leaf(args, ret), acc_return ->
-      if empty?(intersection(args_to_domain(args), type_input)),
+      if empty?(bare_intersection(args_to_domain(args), type_input)),
         do: acc_return,
-        else: union(acc_return, ret)
+        else: bare_union(acc_return, ret)
     end)
   end
 
@@ -1688,15 +1659,15 @@ defmodule Module.Types.Descr do
   # For the escape case, see Section 13.2 of
   # https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
   defp aux_apply(result, _input, rets_reached, []) do
-    if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
+    if subtype?(rets_reached, result), do: result, else: bare_union(result, rets_reached)
   end
 
   defp aux_apply(result, input, returns_reached, [bdd_leaf(args, ret) | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = difference(input, args_to_domain(args))
+    dom_subtract = bare_difference(input, args_to_domain(args))
 
     # Refine the return type by intersecting with this arrow's return type
-    ret_refine = intersection(returns_reached, ret)
+    ret_refine = bare_intersection(returns_reached, ret)
 
     # Phase 1: Domain partitioning
     # If the input is not fully covered by the arrow's domain, then the result type should be
@@ -1763,7 +1734,7 @@ defmodule Module.Types.Descr do
   # Returns the union of all domains of the arrows in the intersection of positives.
   defp fetch_domain(positives) do
     Enum.reduce(positives, none(), fn bdd_leaf(args, _), acc ->
-      union(acc, args_to_domain(args))
+      bare_union(acc, args_to_domain(args))
     end)
   end
 
@@ -1797,7 +1768,7 @@ defmodule Module.Types.Descr do
       _ ->
         # Initialize memoization cache for the recursive phi computation
         arguments = Enum.map(arguments, &{false, &1})
-        {result, _cache} = phi(arguments, {false, negation(return)}, positives, %{})
+        {result, _cache} = phi(arguments, {false, bare_negation(return)}, positives, %{})
         result
     end
   end
@@ -1817,7 +1788,7 @@ defmodule Module.Types.Descr do
 
       %{} ->
         # Compute result and cache it
-        {result1, cache} = phi(args, {true, intersection(ret, return)}, rest_positive, cache)
+        {result1, cache} = phi(args, {true, bare_intersection(ret, return)}, rest_positive, cache)
 
         if not result1 do
           cache = Map.put(cache, cache_key, false)
@@ -1828,7 +1799,7 @@ defmodule Module.Types.Descr do
               type, {index, acc_result, acc_cache} ->
                 {new_result, new_cache} =
                   args
-                  |> List.update_at(index, fn {_, arg} -> {true, difference(arg, type)} end)
+                  |> List.update_at(index, fn {_, arg} -> {true, bare_difference(arg, type)} end)
                   |> phi({b, ret}, rest_positive, acc_cache)
 
                 if new_result do
@@ -2027,10 +1998,10 @@ defmodule Module.Types.Descr do
       {pre, [bdd_leaf(dynamic_args, dynamic_return) | post]} ->
         args =
           Enum.zip_with(static_args, dynamic_args, fn static_arg, dynamic_arg ->
-            union(dynamic(static_arg), dynamic_arg)
+            bare_union(dynamic(static_arg), dynamic_arg)
           end)
 
-        return = union(dynamic(dynamic_return), static_return)
+        return = bare_union(dynamic(dynamic_return), static_return)
         fun_denormalize_intersections(statics, pre ++ post, [bdd_leaf_new(args, return) | acc])
     end
   end
@@ -2192,7 +2163,7 @@ defmodule Module.Types.Descr do
               list_bdd_to_pos_dnf(bdd)
               |> Enum.reduce({list_type, last_type_no_list}, fn
                 {list, last, _negs}, {acc_list, acc_last} ->
-                  {union(list, acc_list), union(last, acc_last)}
+                  {bare_union(list, acc_list), bare_union(last, acc_last)}
               end)
 
             list_new(list_type, last_type)
@@ -2208,7 +2179,7 @@ defmodule Module.Types.Descr do
     {list, last} =
       Enum.reduce(list_literals, {:term, :term}, fn
         bdd_leaf(next_list, next_last), {list, last} ->
-          {intersection(list, next_list), intersection(last, next_last)}
+          {bare_intersection(list, next_list), bare_intersection(last, next_last)}
       end)
 
     if empty?(list) or empty?(last), do: :empty, else: {list, last}
@@ -2233,7 +2204,7 @@ defmodule Module.Types.Descr do
           Enum.reduce_while(negs, {last, []}, fn bdd_leaf(neg_type, neg_last) = neg,
                                                  {acc_last, acc_negs} ->
             if subtype?(list, neg_type) do
-              difference = difference(acc_last, neg_last)
+              difference = bare_difference(acc_last, neg_last)
               if empty?(difference), do: {:halt, nil}, else: {:cont, {difference, acc_negs}}
             else
               {:cont, {acc_last, [neg | acc_negs]}}
@@ -2249,9 +2220,6 @@ defmodule Module.Types.Descr do
 
   defp list_tail_unfold(:term), do: @not_non_empty_list
   defp list_tail_unfold(other), do: Map.delete(other, :list)
-
-  defp list_top?(bdd_leaf(:term, :term)), do: true
-  defp list_top?(_), do: false
 
   @doc """
   Returns the element type of a list, assuming the list is proper.
@@ -2295,7 +2263,7 @@ defmodule Module.Types.Descr do
               %{list: bdd} ->
                 Enum.reduce(list_bdd_to_pos_dnf(bdd), none(), fn {list, last, _negs}, acc ->
                   if last == @empty_list or subtype?(last, @empty_list) do
-                    union(acc, list)
+                    bare_union(acc, list)
                   else
                     acc
                   end
@@ -2313,7 +2281,7 @@ defmodule Module.Types.Descr do
               true -> {empty_list?, nil}
             end
           else
-            {empty_list?, union(static_value, dynamic(dynamic_value))}
+            {empty_list?, bare_union(static_value, dynamic(dynamic_value))}
           end
         end
     end
@@ -2345,7 +2313,7 @@ defmodule Module.Types.Descr do
       result =
         Enum.reduce(list_bdd_to_pos_dnf(bdd), none(), fn {list, last, _negs}, acc ->
           if last == @empty_list or subtype?(last, @empty_list) do
-            union(acc, list)
+            bare_union(acc, list)
           else
             throw(:badproperlist)
           end
@@ -2361,59 +2329,17 @@ defmodule Module.Types.Descr do
     {empty_list, none()}
   end
 
-  defp list_intersection(bdd1, bdd2) do
-    cond do
-      list_top?(bdd1) and is_tuple(bdd2) -> bdd2
-      list_top?(bdd2) and is_tuple(bdd1) -> bdd1
-      true -> bdd_intersection(bdd1, bdd2, &list_leaf_intersection/2)
-    end
-  end
+  defp list_union(bdd_leaf(:term, :term) = leaf, _), do: leaf
+  defp list_union(_, bdd_leaf(:term, :term) = leaf), do: leaf
+  defp list_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
-    try do
-      list = non_empty_intersection!(list1, list2)
-      last = non_empty_intersection!(last1, last2)
-      bdd_leaf_new(list, last)
-    catch
-      :empty -> :bdd_bot
-    end
-  end
+  defp list_intersection(bdd_leaf(:term, :term), bdd), do: bdd
+  defp list_intersection(bdd, bdd_leaf(:term, :term)), do: bdd
+  defp list_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
-  defp list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term)),
-    do: :bdd_bot
-
-  defp list_difference(bdd_leaf(:term, :term), bdd2),
-    do: bdd_negation(bdd2)
-
-  # Computes the difference between two BDD (Binary Decision Diagram) list types.
-  # It progressively subtracts each type in bdd2 from all types in bdd1.
-  # The algorithm handles three cases:
-  # 1. Disjoint types: keeps the original type from bdd1
-  # 2. Subtype relationship:
-  #    a) If bdd2 type is a supertype, keeps only the negations
-  #    b) If only the last type differs, subtracts it
-  # 3. Base case: adds bdd2 type to negations of bdd1 type
-  # The result may be larger than the initial bdd1, which is maintained in the accumulator.
-  defp list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2) do
-    if subtype?(list1, list2) do
-      if subtype?(last1, last2),
-        do: :bdd_bot,
-        else: bdd_leaf_new(list1, difference(last1, last2))
-    else
-      bdd_difference(bdd1, bdd2, &list_leaf_difference/3)
-    end
-  end
-
-  defp list_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &list_leaf_difference/3)
-
-  defp list_leaf_difference(bdd_leaf(list1, last1), bdd_leaf(list2, last2), _) do
-    if disjoint?(list1, list2) or disjoint?(last1, last2) do
-      :disjoint
-    else
-      :none
-    end
-  end
+  defp list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term)), do: :bdd_bot
+  defp list_difference(bdd_leaf(:term, :term), bdd2), do: bdd_negation(bdd2)
+  defp list_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
   defp list_empty?(@non_empty_list_top), do: false
 
@@ -2437,7 +2363,7 @@ defmodule Module.Types.Descr do
     empty?(list_type) or empty?(last_type) or
       Enum.reduce_while(negs, last_type, fn bdd_leaf(neg_type, neg_last), acc_last_type ->
         if subtype?(list_type, neg_type) do
-          d = difference(acc_last_type, neg_last)
+          d = bare_difference(acc_last_type, neg_last)
           if empty?(d), do: {:halt, nil}, else: {:cont, d}
         else
           {:cont, acc_last_type}
@@ -2472,7 +2398,7 @@ defmodule Module.Types.Descr do
         dynamic_value = list_hd_static(dynamic)
 
         if non_empty_list_only?(static) and not empty?(dynamic_value) do
-          {:ok, union(dynamic(dynamic_value), list_hd_static(static))}
+          {:ok, opt_union(dynamic(dynamic_value), list_hd_static(static))}
         else
           :badnonemptylist
         end
@@ -2483,7 +2409,7 @@ defmodule Module.Types.Descr do
 
   defp list_hd_static(%{list: bdd}) do
     list_bdd_to_pos_dnf(bdd)
-    |> Enum.reduce(none(), fn {list, _last, _negs}, acc -> union(acc, list) end)
+    |> Enum.reduce(none(), fn {list, _last, _negs}, acc -> opt_union(acc, list) end)
   end
 
   defp list_hd_static(%{}), do: none()
@@ -2512,7 +2438,7 @@ defmodule Module.Types.Descr do
         dynamic_value = list_tl_static(dynamic)
 
         if non_empty_list_only?(static) and not empty?(dynamic_value) do
-          {:ok, union(dynamic(dynamic_value), list_tl_static(static))}
+          {:ok, opt_union(dynamic(dynamic_value), list_tl_static(static))}
         else
           :badnonemptylist
         end
@@ -2532,7 +2458,7 @@ defmodule Module.Types.Descr do
       end
 
     list_bdd_to_pos_dnf(bdd)
-    |> Enum.reduce(initial, fn {_list, last, _negs}, acc -> union(acc, last) end)
+    |> Enum.reduce(initial, fn {_list, last, _negs}, acc -> opt_union(acc, last) end)
   end
 
   defp list_tl_static(%{}), do: none()
@@ -2602,7 +2528,8 @@ defmodule Module.Types.Descr do
       negs =
         Enum.uniq(negs)
         |> Enum.filter(fn bdd_leaf(nlist, nlast) ->
-          not empty?(intersection(list, nlist)) and not empty?(intersection(last, nlast))
+          not empty?(bare_intersection(list, nlist)) and
+            not empty?(bare_intersection(last, nlast))
         end)
 
       add_to_list_normalize(acc, list, last, negs)
@@ -2616,7 +2543,7 @@ defmodule Module.Types.Descr do
     cond do
       subtype?(list, t) and subtype?(last, l) -> [cur | rest]
       subtype?(t, list) and subtype?(l, last) -> [{list, last, []} | rest]
-      equal?(t, list) -> [{t, union(l, last), []} | rest]
+      equal?(t, list) -> [{t, bare_union(l, last), []} | rest]
       true -> [cur | add_to_list_normalize(rest, list, last, [])]
     end
   end
@@ -2676,23 +2603,51 @@ defmodule Module.Types.Descr do
   # `:dynamic` field is not_set, or it contains a type equal to the static component
   # (that is, there are no extra dynamic values).
 
-  defp dynamic_union(:term, other), do: optional_to_term(other)
-  defp dynamic_union(other, :term), do: optional_to_term(other)
+  defp dynamic_union(:term, other, _fun), do: optional_to_term(other)
+  defp dynamic_union(other, :term, _fun), do: optional_to_term(other)
 
-  defp dynamic_union(left, right),
-    do: symmetrical_merge(unfold(left), unfold(right), &union/3)
+  defp dynamic_union(left, right, fun),
+    do: symmetrical_merge(unfold(left), unfold(right), fun)
 
-  defp dynamic_intersection(:term, other), do: remove_optional_static(other)
-  defp dynamic_intersection(other, :term), do: remove_optional_static(other)
+  defp dynamic_intersection(:term, other, _fun), do: remove_optional_static(other)
+  defp dynamic_intersection(other, :term, _fun), do: remove_optional_static(other)
 
-  defp dynamic_intersection(left, right),
-    do: symmetrical_intersection(unfold(left), unfold(right), &intersection/3)
+  defp dynamic_intersection(left, right, fun),
+    do: symmetrical_intersection(unfold(left), unfold(right), fun)
+
+  defp dynamic_difference(left, descr, _fun) when descr == %{}, do: left
+  defp dynamic_difference(left, :term, _fun), do: keep_optional(left)
+
+  defp dynamic_difference(left, right, fun) do
+    iterator_dynamic_difference(:maps.next(:maps.iterator(unfold(right))), unfold(left), fun)
+  end
+
+  defp iterator_dynamic_difference({key, v2, iterator}, map, fun) do
+    acc =
+      case map do
+        %{^key => v1} ->
+          value = fun.(key, v1, v2)
+
+          if value in @empty_difference do
+            Map.delete(map, key)
+          else
+            %{map | key => value}
+          end
+
+        %{} ->
+          map
+      end
+
+    iterator_dynamic_difference(:maps.next(iterator), acc, fun)
+  end
+
+  defp iterator_dynamic_difference(:none, map, _fun), do: map
 
   defp dynamic_to_quoted(descr, opts) do
     cond do
       # We check for :term literally instead of using term_type?
       # because we check for term_type? in to_quoted before we
-      # compute the difference(dynamic, static).
+      # compute the bare_difference(dynamic, static).
       descr == :term ->
         [{:dynamic, [], []}]
 
@@ -2803,23 +2758,18 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_descr_static(tag, fields, domains) do
-    map_new =
-      if not is_fields_empty(domains) do
-        domains =
-          if tag == :open do
-            value = term_or_optional()
-            fields_put_all_new(domains, @domain_key_types, value)
-          else
-            domains
-          end
+  defp map_descr_static(tag, fields, []) do
+    %{map: map_new(tag, fields)}
+  end
 
-        map_new(domains, fields)
-      else
-        map_new(tag, fields)
-      end
+  defp map_descr_static(:open, fields, domains) do
+    value = term_or_optional()
+    domains = fields_put_all_new(domains, @domain_key_types, value)
+    %{map: map_new(domains, fields)}
+  end
 
-    %{map: map_new}
+  defp map_descr_static(_tag, fields, domains) do
+    %{map: map_new(domains, fields)}
   end
 
   defp map_put_domain(domain, domain_keys, value) when is_list(domain_keys) do
@@ -2831,7 +2781,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domain([{k1, v1} | t1], [k1 | keys], _initial, value) do
-    [{k1, union(v1, value)} | map_put_domain(t1, keys, if_set(value), value)]
+    [{k1, bare_union(v1, value)} | map_put_domain(t1, keys, if_set(value), value)]
   end
 
   defp map_put_domain(domain, [k2 | keys], initial, value) do
@@ -2901,270 +2851,26 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_union(bdd_leaf(:open, fields) = leaf, _) when is_fields_empty(fields),
-    do: leaf
-
-  defp map_union(_, bdd_leaf(:open, fields) = leaf) when is_fields_empty(fields),
-    do: leaf
-
-  defp map_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
-    case maybe_optimize_map_union(tag1, fields1, tag2, fields2) do
-      {tag, fields} -> bdd_leaf_new(tag, fields)
-      nil -> bdd_union(bdd_leaf_new(tag1, fields1), bdd_leaf_new(tag2, fields2))
-    end
-  end
-
+  defp map_union(bdd_leaf(:open, []) = leaf, _), do: leaf
+  defp map_union(_, bdd_leaf(:open, []) = leaf), do: leaf
   defp map_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp maybe_optimize_map_union(:open, empty, _, _) when is_fields_empty(empty),
-    do: {:open, @fields_new}
+  defp map_intersection(bdd_leaf(:open, []), bdd), do: bdd
+  defp map_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+  defp map_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
-  defp maybe_optimize_map_union(_, _, :open, empty) when is_fields_empty(empty),
-    do: {:open, @fields_new}
-
-  defp maybe_optimize_map_union(tag1, pos1, tag2, pos2)
-       when is_atom(tag1) and is_atom(tag2) do
-    case map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
-      :all_equal when tag1 == :open -> {tag1, pos1}
-      :all_equal -> {tag2, pos2}
-      {:one_key_difference, key, v1, v2} -> {tag1, fields_store(key, union(v1, v2), pos1)}
-      :left_subtype_of_right -> {tag2, pos2}
-      :right_subtype_of_left -> {tag1, pos1}
-      :none -> nil
-    end
-  end
-
-  defp maybe_optimize_map_union(_, _, _, _), do: nil
-
-  defp map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
-       when k1 < k2 do
-    # Left side has a key the right side does not have,
-    # left can only be a subtype if the right side is open.
-    case status do
-      _ when tag2 != :open ->
-        :none
-
-      :all_equal ->
-        map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
-
-      {:one_key_difference, _, p1, p2} ->
-        if subtype?(p1, p2),
-          do: map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
-          else: :none
-
-      :left_subtype_of_right ->
-        map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
-
-      _ ->
-        :none
-    end
-  end
-
-  defp map_union_strategy([{k1, _} | _] = l1, [{k2, _} | t2], tag1, tag2, status)
-       when k1 > k2 do
-    # Right side has a key the left side does not have,
-    # right can only be a subtype if the left side is open.
-    case status do
-      _ when tag1 != :open ->
-        :none
-
-      :all_equal ->
-        map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
-
-      {:one_key_difference, _, p1, p2} ->
-        if subtype?(p2, p1),
-          do: map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left),
-          else: :none
-
-      :right_subtype_of_left ->
-        map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
-
-      _ ->
-        :none
-    end
-  end
-
-  defp map_union_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
-    # Same key and same value, nothing changes
-    map_union_strategy(t1, t2, tag1, tag2, status)
-  end
-
-  defp map_union_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
-    # They have the same key but different values
-    case status do
-      :all_equal ->
-        cond do
-          # Don't do difference on struct keys
-          k1 != :__struct__ and tag1 == tag2 ->
-            map_union_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
-
-          subtype?(v1, v2) ->
-            map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
-
-          subtype?(v2, v1) ->
-            map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
-
-          true ->
-            :none
-        end
-
-      :left_subtype_of_right ->
-        if subtype?(v1, v2), do: map_union_strategy(t1, t2, tag1, tag2, status), else: :none
-
-      :right_subtype_of_left ->
-        if subtype?(v2, v1), do: map_union_strategy(t1, t2, tag1, tag2, status), else: :none
-
-      {:one_key_difference, _key, p1, p2} ->
-        cond do
-          subtype?(p1, p2) and subtype?(v1, v2) ->
-            map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
-
-          subtype?(p2, p1) and subtype?(v2, v1) ->
-            map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
-
-          true ->
-            :none
-        end
-
-      _ ->
-        :none
-    end
-  end
-
-  defp map_union_strategy([], [], tag1, tag2, status) do
-    case status do
-      :left_subtype_of_right when tag1 == :open and tag2 == :closed -> :none
-      :right_subtype_of_left when tag1 == :closed and tag2 == :open -> :none
-      _ -> status
-    end
-  end
-
-  defp map_union_strategy(l1, l2, tag1, tag2, status) do
-    lhs? = tag2 == :open and l2 == []
-    rhs? = tag1 == :open and l1 == []
-
-    case status do
-      :all_equal when lhs? ->
-        :left_subtype_of_right
-
-      :all_equal when rhs? ->
-        :right_subtype_of_left
-
-      {:one_key_difference, _, p1, p2} ->
-        cond do
-          lhs? and subtype?(p1, p2) -> :left_subtype_of_right
-          rhs? and subtype?(p2, p1) -> :right_subtype_of_left
-          true -> :none
-        end
-
-      :left_subtype_of_right when lhs? ->
-        :left_subtype_of_right
-
-      :right_subtype_of_left when rhs? ->
-        :right_subtype_of_left
-
-      _ ->
-        :none
-    end
-  end
-
-  defp map_intersection(bdd_leaf(:open, fields), bdd) when is_fields_empty(fields), do: bdd
-  defp map_intersection(bdd, bdd_leaf(:open, fields)) when is_fields_empty(fields), do: bdd
-  defp map_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2, &map_leaf_intersection/2)
-
-  defp map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
-    try do
-      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2)
-      bdd_leaf_new(tag, fields)
-    catch
-      :empty -> :bdd_bot
-    end
-  end
-
-  defp map_difference(_, bdd_leaf(:open, fields)) when is_fields_empty(fields),
-    do: :bdd_bot
-
-  defp map_difference(bdd_leaf(:open, fields), {_, _, _, _, _} = bdd2)
-       when is_fields_empty(fields),
-       do: bdd_negation(bdd2)
-
-  defp map_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &map_leaf_difference/3)
-
-  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
-    {found?, v1} =
-      case fields_find(key, fields) do
-        {:ok, value} -> {true, value}
-        :error -> {false, map_key_tag_to_type(tag)}
-      end
-
-    cond do
-      tag == :closed and not found? ->
-        if is_optional_static(v2), do: :subtype, else: :disjoint
-
-      # In case the left-side is open, we will only be adding new keys
-      # to the open map, which makes future eliminations harder.
-      tag == :open and not found? and fields != [] ->
-        :none
-
-      disjoint?(v1, v2) ->
-        :disjoint
-
-      true ->
-        map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
-    end
-  end
-
-  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields), type) do
-    case map_difference_strategy(fields, neg_fields, tag, neg_tag) do
-      :disjoint ->
-        :disjoint
-
-      :left_subtype_of_right ->
-        :subtype
-
-      {:one_key_difference, key, v1, v2} ->
-        map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
-
-      :none ->
-        :none
-    end
-  end
-
-  defp map_leaf_one_key_difference(tag, fields, key, v1, v2, type) do
-    v_diff = difference(v1, v2)
-
-    if empty?(v_diff) do
-      :subtype
-    else
-      a_diff = bdd_leaf_new(tag, fields_store(key, v_diff, fields))
-
-      a_type =
-        case type do
-          :none ->
-            :bdd_bot
-
-          :union ->
-            bdd_leaf_new(tag, fields_store(key, union(v1, v2), fields))
-
-          :intersection ->
-            v_int = intersection(v1, v2)
-
-            if empty?(v_int),
-              do: :bdd_bot,
-              else: bdd_leaf_new(tag, fields_store(key, v_int, fields))
-        end
-
-      {:one_key_difference, a_diff, a_type}
-    end
-  end
+  defp map_difference(_, bdd_leaf(:open, [])), do: :bdd_bot
+  defp map_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2), do: bdd_negation(bdd2)
+  defp map_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
-  defp map_literal_intersection(:open, map1, :open, map2) do
+  defp map_literal_intersection(tag1, map1, tag2, map2, intersection_fun \\ &bare_intersection/2)
+
+  defp map_literal_intersection(:open, map1, :open, map2, intersection_fun) do
     new_fields =
       fields_merge(
-        fn _, type1, type2 -> non_empty_intersection!(type1, type2) end,
+        fn _, type1, type2 -> non_empty_intersection!(type1, type2, intersection_fun) end,
         map1,
         map2
       )
@@ -3173,21 +2879,21 @@ defmodule Module.Types.Descr do
   end
 
   # Both closed: the result is closed.
-  defp map_literal_intersection(:closed, map1, :closed, map2) do
-    {:closed, map_literal_intersection_closed(map1, map2)}
+  defp map_literal_intersection(:closed, map1, :closed, map2, intersection_fun) do
+    {:closed, map_literal_intersection_closed(map1, map2, intersection_fun)}
   end
 
   # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
-  defp map_literal_intersection(:open, open, :closed, closed) do
-    {:closed, map_literal_intersection_open_closed(open, closed)}
+  defp map_literal_intersection(:open, open, :closed, closed, intersection_fun) do
+    {:closed, map_literal_intersection_open_closed(open, closed, intersection_fun)}
   end
 
-  defp map_literal_intersection(:closed, closed, :open, open) do
-    {:closed, map_literal_intersection_open_closed(open, closed)}
+  defp map_literal_intersection(:closed, closed, :open, open, intersection_fun) do
+    {:closed, map_literal_intersection_open_closed(open, closed, intersection_fun)}
   end
 
   # At least one tag is a tag-domain pair.
-  defp map_literal_intersection(tag_or_domains1, map1, tag_or_domains2, map2) do
+  defp map_literal_intersection(tag_or_domains1, map1, tag_or_domains2, map2, intersection_fun) do
     # For a closed map with domains intersected with an open map with domains:
     # 1. The result is closed (more restrictive)
     # 2. We need to check each domain in the open map against the closed map
@@ -3205,7 +2911,7 @@ defmodule Module.Types.Descr do
     # using default values when a key is not present.
     {tag_or_domains,
      fields_merge_with_defaults(map1, default1, map2, default2, fn _key, v1, v2 ->
-       non_empty_intersection!(v1, v2)
+       non_empty_intersection!(v1, v2, intersection_fun)
      end)}
   end
 
@@ -3232,7 +2938,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_domain_intersection_fields([{k, type1} | t1], [{_, type2} | t2]) do
-    inter = intersection(type1, type2)
+    inter = bare_intersection(type1, type2)
 
     if empty_or_optional?(inter) do
       map_domain_intersection_fields(t1, t2)
@@ -3243,24 +2949,29 @@ defmodule Module.Types.Descr do
 
   defp map_domain_intersection_fields(_, _), do: []
 
-  defp map_literal_intersection_open_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+  defp map_literal_intersection_open_closed([{k1, v1} | t1], [{k2, _} | _] = l2, intersection_fun)
+       when k1 < k2 do
     # If the type in the open map is optional, we continue
     case v1 do
-      %{optional: 1} -> map_literal_intersection_open_closed(t1, l2)
+      %{optional: 1} -> map_literal_intersection_open_closed(t1, l2, intersection_fun)
       _ -> throw(:empty)
     end
   end
 
-  defp map_literal_intersection_open_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
+  defp map_literal_intersection_open_closed([{k1, _} | _] = l1, [{k2, v2} | t2], intersection_fun)
+       when k1 > k2 do
     # Anything in the closed map not in open is preserved
-    [{k2, v2} | map_literal_intersection_open_closed(l1, t2)]
+    [{k2, v2} | map_literal_intersection_open_closed(l1, t2, intersection_fun)]
   end
 
-  defp map_literal_intersection_open_closed([{key, v1} | t1], [{_, v2} | t2]) do
-    [{key, non_empty_intersection!(v1, v2)} | map_literal_intersection_open_closed(t1, t2)]
+  defp map_literal_intersection_open_closed([{key, v1} | t1], [{_, v2} | t2], intersection_fun) do
+    [
+      {key, non_empty_intersection!(v1, v2, intersection_fun)}
+      | map_literal_intersection_open_closed(t1, t2, intersection_fun)
+    ]
   end
 
-  defp map_literal_intersection_open_closed(t1, t2) do
+  defp map_literal_intersection_open_closed(t1, t2, _intersection_fun) do
     if Enum.all?(t1, fn {_, v} -> match?(%{optional: 1}, v) end) do
       t2
     else
@@ -3268,27 +2979,32 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_literal_intersection_closed([{k1, v1} | t1], [{k2, _} | _] = l2) when k1 < k2 do
+  defp map_literal_intersection_closed([{k1, v1} | t1], [{k2, _} | _] = l2, intersection_fun)
+       when k1 < k2 do
     if is_optional_static(v1) do
-      map_literal_intersection_closed(t1, l2)
+      map_literal_intersection_closed(t1, l2, intersection_fun)
     else
       throw(:empty)
     end
   end
 
-  defp map_literal_intersection_closed([{k1, _} | _] = l1, [{k2, v2} | t2]) when k1 > k2 do
+  defp map_literal_intersection_closed([{k1, _} | _] = l1, [{k2, v2} | t2], intersection_fun)
+       when k1 > k2 do
     if is_optional_static(v2) do
-      map_literal_intersection_closed(l1, t2)
+      map_literal_intersection_closed(l1, t2, intersection_fun)
     else
       throw(:empty)
     end
   end
 
-  defp map_literal_intersection_closed([{key, v1} | t1], [{_, v2} | t2]) do
-    [{key, non_empty_intersection!(v1, v2)} | map_literal_intersection_closed(t1, t2)]
+  defp map_literal_intersection_closed([{key, v1} | t1], [{_, v2} | t2], intersection_fun) do
+    [
+      {key, non_empty_intersection!(v1, v2, intersection_fun)}
+      | map_literal_intersection_closed(t1, t2, intersection_fun)
+    ]
   end
 
-  defp map_literal_intersection_closed(t1, t2) do
+  defp map_literal_intersection_closed(t1, t2, _intersection_fun) do
     if Enum.any?(t1, fn {_, v} -> not is_optional_static(v) end) or
          Enum.any?(t2, fn {_, v} -> not is_optional_static(v) end) do
       throw(:empty)
@@ -3297,8 +3013,8 @@ defmodule Module.Types.Descr do
     []
   end
 
-  defp non_empty_intersection!(type1, type2) do
-    type = intersection(type1, type2)
+  defp non_empty_intersection!(type1, type2, intersection_fun) do
+    type = intersection_fun.(type1, type2)
     if empty?(type), do: throw(:empty), else: type
   end
 
@@ -3368,7 +3084,7 @@ defmodule Module.Types.Descr do
           if static_optional? or empty?(dynamic_type) do
             :badkey
           else
-            {dynamic_optional?, union(dynamic(dynamic_type), static_type)}
+            {dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badmap
@@ -3400,9 +3116,9 @@ defmodule Module.Types.Descr do
       # Optimization: if there are no negatives
       {tag, fields, []}, acc ->
         case fields_find(key, fields) do
-          {:ok, value} -> union(value, acc)
+          {:ok, value} -> opt_union(value, acc)
           :error when tag == :open -> throw(:open)
-          :error -> map_key_tag_to_type(tag) |> union(acc)
+          :error -> map_key_tag_to_type(tag) |> opt_union(acc)
         end
 
       {tag, fields, negs}, acc ->
@@ -3419,10 +3135,10 @@ defmodule Module.Types.Descr do
               else
                 negs
                 |> map_split_negative_key(key, value, bdd)
-                |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
+                |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
               end
 
-            union(value, acc)
+            opt_union(value, acc)
         end
     end)
   catch
@@ -3434,7 +3150,7 @@ defmodule Module.Types.Descr do
 
   defp map_split_negative_pairs_key(negs, key) do
     Enum.reduce_while(negs, [], fn
-      bdd_leaf(:open, empty), _acc when is_fields_empty(empty) ->
+      bdd_leaf(:open, []), _acc ->
         {:halt, :empty}
 
       bdd_leaf(tag, fields), neg_acc ->
@@ -3459,10 +3175,10 @@ defmodule Module.Types.Descr do
   defp map_pair_projection_keeps_full_snd?(negative, value) do
     neg_values =
       Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
-        union(neg_value, acc)
+        bare_union(neg_value, acc)
       end)
 
-    not empty?(difference(value, neg_values))
+    not empty?(bare_difference(value, neg_values))
   end
 
   defp map_split_negative_key(negs, key, value, bdd) do
@@ -3478,7 +3194,7 @@ defmodule Module.Types.Descr do
   # {t, s} \ {t₁, s₁} = {t \ t₁, s} ∪ {t ∩ t₁, s \ s₁}
   defp map_split_negative(negs, value, bdd, take_fun) do
     Enum.reduce(negs, [{value, bdd}], fn
-      bdd_leaf(:open, empty), _acc when is_fields_empty(empty) ->
+      bdd_leaf(:open, []), _acc ->
         throw(:empty)
 
       bdd_leaf(neg_tag, neg_fields), acc ->
@@ -3503,7 +3219,7 @@ defmodule Module.Types.Descr do
             if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd)) do
               [{value, bdd} | acc]
             else
-              intersection_value = intersection(value, neg_value)
+              intersection_value = bare_intersection(value, neg_value)
 
               if empty?(intersection_value) do
                 [{value, bdd} | acc]
@@ -3533,7 +3249,7 @@ defmodule Module.Types.Descr do
   end
 
   defp prepend_pair_unless_empty_diff(value, neg_value, bdd, acc) do
-    diff_value = difference(value, neg_value)
+    diff_value = bare_difference(value, neg_value)
     if empty?(diff_value), do: acc, else: [{diff_value, bdd} | acc]
   end
 
@@ -3558,7 +3274,7 @@ defmodule Module.Types.Descr do
           with {:ok, dynamic_type} <- map_to_list_static(dynamic, fun) do
             if descr_key?(static, :map) do
               with {:ok, static_type} <- map_to_list_static(static, fun) do
-                {:ok, union(static_type, dynamic(dynamic_type))}
+                {:ok, opt_union(static_type, dynamic(dynamic_type))}
               end
             else
               {:ok, dynamic(dynamic_type)}
@@ -3625,7 +3341,7 @@ defmodule Module.Types.Descr do
                 if empty?(value) do
                   acc
                 else
-                  union(acc, fun.(domain_key_to_descr(domain_key), value))
+                  opt_union(acc, fun.(domain_key_to_descr(domain_key), value))
                 end
               end)
 
@@ -3649,7 +3365,7 @@ defmodule Module.Types.Descr do
                 if empty?(value) do
                   {seen, acc}
                 else
-                  {seen, union(acc, fun.(atom([key]), value))}
+                  {seen, opt_union(acc, fun.(atom([key]), value))}
                 end
               end
             end)
@@ -3751,8 +3467,8 @@ defmodule Module.Types.Descr do
           # We can exceptionally check for none() here because
           # we already check for empty downstream
           if dynamic_found? do
-            {union(static_value, dynamic(dynamic_value)),
-             union(static_descr, dynamic(dynamic_descr)), static_errors ++ dynamic_errors}
+            {opt_union(static_value, dynamic(dynamic_value)),
+             opt_union(static_descr, dynamic(dynamic_descr)), static_errors ++ dynamic_errors}
           else
             {:error, static_errors ++ dynamic_errors}
           end
@@ -3870,8 +3586,10 @@ defmodule Module.Types.Descr do
         acc_errors = if required_key?, do: [{:badkey, key} | acc_errors], else: acc_errors
         {acc_value, acc_descr, acc_errors, acc_found?}
       else
-        acc_value = union(value, acc_value)
-        acc_descr = union(map_put_key_static(descr, key, type_fun.(optional?, value)), acc_descr)
+        acc_value = opt_union(value, acc_value)
+
+        acc_descr =
+          opt_union(map_put_key_static(descr, key, type_fun.(optional?, value)), acc_descr)
 
         # The field will be missing if we are not forcing,
         # we are in static mode and the value is optional.
@@ -3917,7 +3635,7 @@ defmodule Module.Types.Descr do
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_union(value, fn -> fst end), map_union(bdd, snd)}
+          {maybe_opt_union(value, fn -> fst end), opt_map_union(bdd, snd)}
 
         {tag, fields, negs}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
@@ -3937,17 +3655,17 @@ defmodule Module.Types.Descr do
                   do: [],
                   else: map_split_negative_key(negs, key, fst, snd)
 
-              {maybe_union(value, fn ->
+              {maybe_opt_union(value, fn ->
                  if keep_fst? do
                    fst
                  else
-                   Enum.reduce(pairs, none(), &union(elem(&1, 0), &2))
+                   Enum.reduce(pairs, none(), &opt_union(elem(&1, 0), &2))
                  end
                end),
                if keep_snd? do
-                 map_union(bdd, snd)
+                 opt_map_union(bdd, snd)
                else
-                 Enum.reduce(pairs, bdd, &map_union(elem(&1, 1), &2))
+                 Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2))
                end}
           end
       end)
@@ -3967,7 +3685,7 @@ defmodule Module.Types.Descr do
             {seen, acc}
           else
             {_, value} = map_dnf_fetch_static(dnf, key)
-            {Map.put(seen, key, []), union(acc, value)}
+            {Map.put(seen, key, []), opt_union(acc, value)}
           end
         end)
       end)
@@ -4008,12 +3726,12 @@ defmodule Module.Types.Descr do
           cond do
             # Domain has a direct match: valid, union both atom keys and domain value
             not empty?(value) ->
-              acc = if require_type?, do: union(union(atom_acc, acc), value), else: acc
+              acc = if require_type?, do: opt_union(opt_union(atom_acc, acc), value), else: acc
               {true, [:atom | valid], invalid, acc}
 
             # No direct match, but individual atom keys exist: found but domain is invalid
             not empty?(atom_acc) ->
-              acc = if require_type?, do: union(atom_acc, acc), else: acc
+              acc = if require_type?, do: opt_union(atom_acc, acc), else: acc
               {true, valid, [:atom | invalid], acc}
 
             # No match at all
@@ -4023,7 +3741,7 @@ defmodule Module.Types.Descr do
 
         # Non-atom domain key has a match: mark as valid
         not empty?(value) ->
-          acc = if require_type?, do: union(acc, value), else: acc
+          acc = if require_type?, do: opt_union(acc, value), else: acc
           {true, [domain_key | valid], invalid, acc}
 
         # Non-atom domain key not found: mark as invalid
@@ -4086,7 +3804,11 @@ defmodule Module.Types.Descr do
         Enum.reduce(domain_keys, domains, fn domain_key, acc ->
           case fields_find(domain_key, acc) do
             {:ok, value} ->
-              fields_store(domain_key, union(value, type_fun.(true, remove_optional(value))), acc)
+              fields_store(
+                domain_key,
+                opt_union(value, type_fun.(true, remove_optional(value))),
+                acc
+              )
 
             :error ->
               # Likewise, only forced updates may synthesize missing domain keys.
@@ -4149,7 +3871,7 @@ defmodule Module.Types.Descr do
         if descr_key?(dynamic, :map) and map_only?(static) do
           static_descr = map_put_static(static, split_keys, type)
           dynamic_descr = map_put_static(dynamic, split_keys, type)
-          {:ok, union(static_descr, dynamic(dynamic_descr))}
+          {:ok, opt_union(static_descr, dynamic(dynamic_descr))}
         else
           :badmap
         end
@@ -4198,7 +3920,7 @@ defmodule Module.Types.Descr do
   defp map_put_keys_static(dnf, keys, type, acc) do
     Enum.reduce(keys, acc, fn key, acc ->
       {nil, descr} = map_dnf_pop_key_static(dnf, key, nil)
-      union(map_put_key_static(descr, key, type), acc)
+      opt_union(map_put_key_static(descr, key, type), acc)
     end)
   end
 
@@ -4238,7 +3960,7 @@ defmodule Module.Types.Descr do
           if empty?(dynamic_type) do
             :error
           else
-            {:ok, union(dynamic(dynamic_type), static_type)}
+            {:ok, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badmap
@@ -4267,7 +3989,7 @@ defmodule Module.Types.Descr do
   defp map_get_keys(dnf, keys, acc) do
     Enum.reduce(keys, acc, fn atom, acc ->
       {_, value} = map_dnf_fetch_static(dnf, atom)
-      union(value, acc)
+      opt_union(value, acc)
     end)
   end
 
@@ -4277,14 +3999,14 @@ defmodule Module.Types.Descr do
     Enum.reduce(dnf, acc, fn
       # Optimization: if there are no negatives, get the domain tag directly
       {tag, _fields, []}, acc ->
-        map_domain_tag_to_type(tag, domain_key) |> union(acc)
+        map_domain_tag_to_type(tag, domain_key) |> opt_union(acc)
 
       {tag_or_domains, fields, negs}, acc ->
         if init_map_line_empty?(tag_or_domains, fields, negs) do
           acc
         else
           {_found, value, _bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
-          union(value, acc)
+          opt_union(value, acc)
         end
     end)
   end
@@ -4351,10 +4073,10 @@ defmodule Module.Types.Descr do
     {[], [], nil, to_domain_keys(key_descr), []}
   end
 
-  defp non_empty_map_literals_intersection(maps) do
+  defp non_empty_map_literals_intersection(maps, intersection_fun \\ &bare_intersection/2) do
     try do
       Enum.reduce(maps, {:open, []}, fn bdd_leaf(next_tag, next_fields), {tag, fields} ->
-        map_literal_intersection(tag, fields, next_tag, next_fields)
+        map_literal_intersection(tag, fields, next_tag, next_fields, intersection_fun)
       end)
     catch
       :empty -> :empty
@@ -4389,9 +4111,7 @@ defmodule Module.Types.Descr do
   # an intersection or difference is computed, its emptiness is checked again.
   # So they are all necessarily non-empty.
   defp map_line_empty?(_, _pos, []), do: false
-
-  defp map_line_empty?(_, _, [bdd_leaf(:open, neg_fields) | _]) when is_fields_empty(neg_fields),
-    do: true
+  defp map_line_empty?(_, _, [bdd_leaf(:open, []) | _]), do: true
 
   defp map_line_empty?(:open, fs, [bdd_leaf(:closed, _) | negs]),
     do: map_line_empty?(:open, fs, negs)
@@ -4461,8 +4181,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_tag, acc_meet, negs) do
-    diff = difference(type, neg_type)
-    meet = intersection(type, neg_type)
+    diff = bare_difference(type, neg_type)
+    meet = bare_intersection(type, neg_type)
 
     (empty?(diff) or map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs)) and
       (empty?(meet) or map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs))
@@ -4518,7 +4238,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_fields_empty_recur?(key, v1, v2, tag, fields, negs) do
-    diff = difference(v1, v2)
+    diff = bare_difference(v1, v2)
     empty?(diff) or map_line_empty?(tag, fields_store(key, diff, fields), negs)
   end
 
@@ -4560,209 +4280,13 @@ defmodule Module.Types.Descr do
   defp map_pop_domain_bdd(tag, fields, _domain_key),
     do: {false, map_domain_tag_to_type(tag), map_new(tag, fields)}
 
-  # Continue to eliminate negations while length of list of negs decreases
-  defp map_eliminate_while_negs_decrease(tag, fields, []), do: [{tag, fields, []}]
-
-  defp map_eliminate_while_negs_decrease(tag, fields, negs) do
-    try do
-      maybe_eliminate_map_negations(tag, fields, negs)
-    catch
-      :empty -> []
-    else
-      {fields, new_negs} ->
-        if length(new_negs) < length(negs) do
-          map_eliminate_while_negs_decrease(tag, fields, new_negs)
-        else
-          [{tag, fields, new_negs}]
-        end
-    end
-  end
-
-  defp maybe_eliminate_map_negations(tag, fields, negs) do
-    Enum.reduce(negs, {fields, []}, fn neg = bdd_leaf(neg_tag, neg_fields),
-                                       {acc_fields, acc_negs} ->
-      # If the intersection with the negative is empty, we can remove the negative.
-      empty_intersection? =
-        try do
-          _ = map_literal_intersection(tag, acc_fields, neg_tag, neg_fields)
-          false
-        catch
-          :empty -> true
-        end
-
-      if empty_intersection? do
-        {acc_fields, acc_negs}
-      else
-        case map_difference_strategy(acc_fields, neg_fields, tag, neg_tag) do
-          {:one_key_difference, key, v1, v2} ->
-            {fields_store(key, difference(v1, v2), acc_fields), acc_negs}
-
-          :disjoint ->
-            {acc_fields, acc_negs}
-
-          :left_subtype_of_right ->
-            throw(:empty)
-
-          :none ->
-            {acc_fields, [neg | acc_negs]}
-        end
-      end
-    end)
-  end
-
-  defp map_difference_strategy(fields1, fields2, tag1, tag2) do
-    if is_atom(tag1) and is_atom(tag2) do
-      status = if tag1 == tag2 or tag2 == :open, do: :all_equal, else: :none
-      map_difference_strategy(fields1, fields2, tag1, tag2, status)
-    else
-      :none
-    end
-  end
-
-  defp map_difference_strategy([{k1, value} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
-       when k1 < k2 do
-    # Left side has a key the right side does not have,
-    # left can only be a subtype if the right side is open.
-    # If the right side is closed and the key is not optional, they are disjoint.
-    case status do
-      _ when tag2 == :closed ->
-        if not is_optional_static(value) do
-          :disjoint
-        else
-          map_difference_strategy(t1, l2, tag1, tag2, :none)
-        end
-
-      :all_equal ->
-        map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
-
-      {:one_key_difference, _, p1, p2} ->
-        if subtype?(p1, p2),
-          do: map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
-          else: :none
-
-      :left_subtype_of_right ->
-        map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
-
-      _ ->
-        :none
-    end
-  end
-
-  defp map_difference_strategy([{k1, _} | _] = l1, [{k2, value} | t2], tag1, tag2, _status)
-       when k1 > k2 do
-    # Right side has a key the left side does not have,
-    # if left-side is closed, they are disjoint.
-    if tag1 == :closed and not is_optional_static(value) do
-      :disjoint
-    else
-      map_difference_strategy(l1, t2, tag1, tag2, :none)
-    end
-  end
-
-  defp map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
-    # Same key and same value, nothing changes
-    map_difference_strategy(t1, t2, tag1, tag2, status)
-  end
-
-  defp map_difference_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
-    # They have the same key but different values
-    if disjoint?(v1, v2) do
-      :disjoint
-    else
-      case status do
-        :all_equal when tag1 == tag2 ->
-          map_difference_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
-
-        {:one_key_difference, _key, p1, p2} ->
-          if subtype?(p1, p2) and subtype?(v1, v2) do
-            map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
-          else
-            :none
-          end
-
-        _ ->
-          if status in [:all_equal, :left_subtype_of_right] and subtype?(v1, v2),
-            do: map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
-            else: map_difference_strategy(t1, t2, tag1, tag2, :none)
-      end
-    end
-  end
-
-  defp map_difference_strategy([], [], _tag1, _tag2, status) do
-    if status == :all_equal, do: :left_subtype_of_right, else: status
-  end
-
-  defp map_difference_strategy(l1, l2, tag1, tag2, status) do
-    cond do
-      tag2 == :open and l2 == [] ->
-        case status do
-          :all_equal ->
-            :left_subtype_of_right
-
-          {:one_key_difference, _, p1, p2} ->
-            if subtype?(p1, p2), do: :left_subtype_of_right, else: :none
-
-          :left_subtype_of_right ->
-            :left_subtype_of_right
-
-          :none ->
-            :none
-        end
-
-      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, v} -> not is_optional_static(v) end) ->
-        :disjoint
-
-      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, v} -> not is_optional_static(v) end) ->
-        :disjoint
-
-      true ->
-        :none
-    end
-  end
-
-  # Given a dnf, fuse maps when possible
-  # e.g. %{a: integer(), b: atom()} or %{a: float(), b: atom()} into %{a: number(), b: atom()}
-  defp map_fusion(dnf) do
-    # Steps:
-    # 1. Group maps by tags and keys
-    # 2. Try fusions for each group until no fusion is found
-    # 3. Merge the groups back into a dnf
-    {without_negs, with_negs} = Enum.split_with(dnf, fn {_tag, _fields, negs} -> negs == [] end)
-
-    without_negs =
-      without_negs
-      |> Enum.group_by(fn {tag, fields, _} -> {tag, fields_keys(fields)} end)
-      |> Enum.flat_map(fn {_, maps} -> map_non_negated_fuse(maps) end)
-
-    without_negs ++ with_negs
-  end
-
-  defp map_non_negated_fuse(maps) do
-    Enum.reduce(maps, [], fn map, acc ->
-      map_fuse_with_first_fusible(map, acc)
-    end)
-  end
-
-  defp map_fuse_with_first_fusible(map, []), do: [map]
-
-  defp map_fuse_with_first_fusible(map, [candidate | rest]) do
-    {tag1, fields1, []} = map
-    {tag2, fields2, []} = candidate
-
-    case maybe_optimize_map_union(tag1, fields1, tag2, fields2) do
-      nil -> [candidate | map_fuse_with_first_fusible(map, rest)]
-      # we found a fusible candidate, we're done
-      {tag, fields} -> [{tag, fields, []} | rest]
-    end
-  end
-
   defp map_to_quoted(bdd, opts) do
     bdd
     |> map_bdd_to_dnf_with_empty()
     |> Enum.flat_map(fn {tag, fields, negs} ->
-      map_eliminate_while_negs_decrease(tag, fields, negs)
+      opt_map_eliminate_while_negs_decrease(tag, fields, negs)
     end)
-    |> map_fusion()
+    |> opt_map_fusion()
     |> Enum.map(&map_each_to_quoted(&1, opts))
   end
 
@@ -4780,11 +4304,11 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_literal_to_quoted({:closed, empty}, _opts) when is_fields_empty(empty) do
+  defp map_literal_to_quoted({:closed, []}, _opts) do
     {:empty_map, [], []}
   end
 
-  defp map_literal_to_quoted({:open, empty}, _opts) when is_fields_empty(empty) do
+  defp map_literal_to_quoted({:open, []}, _opts) do
     {:map, [], []}
   end
 
@@ -4792,8 +4316,7 @@ defmodule Module.Types.Descr do
     map_literal_to_quoted({tag, fields}, opts)
   end
 
-  defp map_literal_to_quoted({domains, empty}, _opts)
-       when is_fields_empty(domains) and is_fields_empty(empty) do
+  defp map_literal_to_quoted({[], []}, _opts) do
     {:empty_map, [], []}
   end
 
@@ -5013,26 +4536,22 @@ defmodule Module.Types.Descr do
 
   defp tuple_intersection(bdd_leaf(:open, []), bdd), do: bdd
   defp tuple_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+  defp tuple_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
-  defp tuple_intersection(bdd1, bdd2) do
-    bdd_intersection(bdd1, bdd2, &tuple_leaf_intersection/2)
-  end
-
-  defp tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-      {tag, elements} -> bdd_leaf_new(tag, elements)
-      :empty -> :bdd_bot
-    end
-  end
-
-  defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+  defp tuple_literal_intersection(
+         tag1,
+         elements1,
+         tag2,
+         elements2,
+         intersection_fun
+       ) do
     case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
       :disjoint ->
         :empty
 
       _ ->
         try do
-          zip_non_empty_intersection!(elements1, elements2, [])
+          zip_non_empty_intersection!(elements1, elements2, [], intersection_fun)
         catch
           :empty -> :empty
         else
@@ -5043,18 +4562,26 @@ defmodule Module.Types.Descr do
   end
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
-  defp zip_non_empty_intersection!([], types2, acc), do: Enum.reverse(acc, types2)
-  defp zip_non_empty_intersection!(types1, [], acc), do: Enum.reverse(acc, types1)
+  defp zip_non_empty_intersection!([], types2, acc, _intersection_fun),
+    do: Enum.reverse(acc, types2)
 
-  defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc) do
-    zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
+  defp zip_non_empty_intersection!(types1, [], acc, _intersection_fun),
+    do: Enum.reverse(acc, types1)
+
+  defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
+    zip_non_empty_intersection!(
+      rest1,
+      rest2,
+      [non_empty_intersection!(type1, type2, intersection_fun) | acc],
+      intersection_fun
+    )
   end
 
   defp zip_empty_intersection?([], _types2), do: false
   defp zip_empty_intersection?(_types1, []), do: false
 
   defp zip_empty_intersection?([type1 | rest1], [type2 | rest2]) do
-    case empty?(intersection(type1, type2)) do
+    case empty?(bare_intersection(type1, type2)) do
       true -> true
       false -> zip_empty_intersection?(rest1, rest2)
     end
@@ -5074,28 +4601,9 @@ defmodule Module.Types.Descr do
     do: bdd_negation(bdd2)
 
   defp tuple_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &tuple_leaf_difference/3)
+    do: bdd_difference(bdd1, bdd2, &opt_tuple_leaf_difference/3)
 
-  defp tuple_leaf_difference(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2), _) do
-    case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
-      :disjoint -> :disjoint
-      other -> tuple_leaf_difference(elements1, elements2, other == :left_subtype_of_right)
-    end
-  end
-
-  defp tuple_leaf_difference([head1 | tail1], [head2 | tail2], subtype?) do
-    cond do
-      disjoint?(head1, head2) -> :disjoint
-      subtype? and subtype?(head1, head2) -> tuple_leaf_difference(tail1, tail2, subtype?)
-      true -> :none
-    end
-  end
-
-  defp tuple_leaf_difference(_tail1, _tail2, subtype?) do
-    if subtype?, do: :subtype, else: :none
-  end
-
-  defp non_empty_tuple_literals_intersection(tuples) do
+  defp non_empty_tuple_literals_intersection(tuples, intersection_fun \\ &bare_intersection/2) do
     try do
       Enum.reduce(tuples, {:open, []}, fn bdd_leaf(tag1, elements1), {tag2, elements2} ->
         case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
@@ -5104,7 +4612,7 @@ defmodule Module.Types.Descr do
 
           _ ->
             tag = if tag1 == :open and tag2 == :open, do: :open, else: :closed
-            {tag, zip_intersection(elements1, elements2, [])}
+            {tag, zip_intersection(elements1, elements2, [], intersection_fun)}
         end
       end)
     catch
@@ -5119,11 +4627,11 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp zip_intersection([], types2, acc), do: Enum.reverse(acc, types2)
-  defp zip_intersection(types1, [], acc), do: Enum.reverse(acc, types1)
+  defp zip_intersection([], types2, acc, _intersection_fun), do: Enum.reverse(acc, types2)
+  defp zip_intersection(types1, [], acc, _intersection_fun), do: Enum.reverse(acc, types1)
 
-  defp zip_intersection([type1 | rest1], [type2 | rest2], acc) do
-    zip_intersection(rest1, rest2, [intersection(type1, type2) | acc])
+  defp zip_intersection([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
+    zip_intersection(rest1, rest2, [intersection_fun.(type1, type2) | acc], intersection_fun)
   end
 
   defp tuple_empty?(bdd) do
@@ -5167,8 +4675,8 @@ defmodule Module.Types.Descr do
   defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} = List.pop_at(elements, 0, term())
-    diff = difference(ty, neg_type)
-    meet = intersection(ty, neg_type)
+    diff = bare_difference(ty, neg_type)
+    meet = bare_intersection(ty, neg_type)
 
     # In this case, there is no intersection between the positive and this negative.
     # So we should just "go next"
@@ -5223,8 +4731,8 @@ defmodule Module.Types.Descr do
   # - `neg_elements` are the corresponding negative tuple element types.
   #
   # For position i:
-  #   - One branch mismatches here:  (ti \ ui), with earlier positions fixed to intersection(tj, uj).
-  #   - The other recursive path forces match here: intersection(ti, ui) and continues to i+1.
+  #   - One branch mismatches here:  (ti \ ui), with earlier positions fixed to bare_intersection(tj, uj).
+  #   - The other recursive path forces match here: bare_intersection(ti, ui) and continues to i+1.
   #
   # This yields disjoint branches like:
   #   {t1 /\ not u1, t2, t3, ...} OR {t1 /\ u1, t2 /\ not u2, t3, ...} OR {t1/\u1, t2/\u2, t3/\ not u3, ...} ...
@@ -5237,9 +4745,9 @@ defmodule Module.Types.Descr do
       end
 
     # ti \ ui  (i.e., ti and not ui)
-    diff = difference(ty, neg_type)
+    diff = bare_difference(ty, neg_type)
     # ti /\ ui
-    meet = intersection(ty, neg_type)
+    meet = bare_intersection(ty, neg_type)
 
     # Branch where the earliest difference is *here*.
     # Earlier positions are the accumulated matches in `acc`;
@@ -5287,100 +4795,13 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp tuple_union(bdd_leaf(:open, fields) = leaf, _) when is_fields_empty(fields),
-    do: leaf
-
-  defp tuple_union(_, bdd_leaf(:open, fields) = leaf) when is_fields_empty(fields),
-    do: leaf
-
-  defp tuple_union(
-         bdd_leaf(tag1, elements1) = tuple1,
-         bdd_leaf(tag2, elements2) = tuple2
-       ) do
-    case maybe_optimize_tuple_union({tag1, elements1}, {tag2, elements2}) do
-      {tag, elements} -> bdd_leaf_new(tag, elements)
-      nil -> bdd_union(tuple1, tuple2)
-    end
-  end
-
+  defp tuple_union(bdd_leaf(:open, []) = leaf, _), do: leaf
+  defp tuple_union(_, bdd_leaf(:open, []) = leaf), do: leaf
   defp tuple_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
-
-  defp maybe_optimize_tuple_union({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
-    case tuple_union_strategy(tag1, pos1, tag2, pos2) do
-      :all_equal ->
-        tuple1
-
-      {:one_index_difference, index, v1, v2} ->
-        new_pos = List.replace_at(pos1, index, union(v1, v2))
-        {tag1, new_pos}
-
-      :left_subtype_of_right ->
-        tuple2
-
-      :right_subtype_of_left ->
-        tuple1
-
-      :none ->
-        nil
-    end
-  end
-
-  defp tuple_union_strategy(tag1, pos1, tag2, pos2) do
-    case {tag1, tag2} do
-      {tag, tag} when length(pos1) == length(pos2) ->
-        tuple_union_strategy_index(pos1, pos2, 0, :all_equal)
-
-      {:open, _} when length(pos1) <= length(pos2) ->
-        tuple_union_strategy_index(pos1, pos2, 0, :right_subtype_of_left)
-
-      {_, :open} when length(pos1) >= length(pos2) ->
-        tuple_union_strategy_index(pos1, pos2, 0, :left_subtype_of_right)
-
-      {_, _} ->
-        :none
-    end
-  end
-
-  defp tuple_union_strategy_index([v | pos1], [v | pos2], i, status) do
-    tuple_union_strategy_index(pos1, pos2, i + 1, status)
-  end
-
-  defp tuple_union_strategy_index([v1 | pos1], [v2 | pos2], i, status) do
-    case status do
-      :all_equal ->
-        tuple_union_strategy_index(pos1, pos2, i + 1, {:one_index_difference, i, v1, v2})
-
-      {:one_index_difference, _, d1, d2} ->
-        cond do
-          subtype?(d1, d2) and subtype?(v1, v2) ->
-            tuple_union_strategy_index(pos1, pos2, i + 1, :left_subtype_of_right)
-
-          subtype?(d2, d1) and subtype?(v2, v1) ->
-            tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left)
-
-          true ->
-            :none
-        end
-
-      :left_subtype_of_right ->
-        if subtype?(v1, v2),
-          do: tuple_union_strategy_index(pos1, pos2, i + 1, :left_subtype_of_right),
-          else: :none
-
-      :right_subtype_of_left ->
-        if subtype?(v2, v1),
-          do: tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left),
-          else: :none
-    end
-  end
-
-  defp tuple_union_strategy_index(_pos1, _pos2, _i, status) do
-    status
-  end
 
   defp tuple_to_quoted(bdd, opts) do
     tuple_bdd_to_dnf_with_negations(bdd)
-    |> tuple_fusion()
+    |> opt_tuple_fusion()
     |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
 
@@ -5413,49 +4834,6 @@ defmodule Module.Types.Descr do
           end
       end
     end)
-  end
-
-  # Given a union of tuples, fuses the tuple unions when possible,
-  # e.g. {integer(), atom()} or {float(), atom()} into {number(), atom()}
-  # The negations of two fused tuples are just concatenated.
-  #
-  # Steps:
-  # 1. Consider tuples without negations apart from those with
-  # 2. Group tuples by size and tag
-  # 3. Try fusions for each group until no fusion is found
-  # 4. Merge the groups back into a dnf
-  defp tuple_fusion(dnf) do
-    {with_negs, without_negs} =
-      Enum.reduce(dnf, {[], %{}}, fn
-        {tag, elements, []}, {with, without} ->
-          key = {tag, length(elements)}
-          value = {tag, elements}
-          {with, Map.update(without, key, [value], &[value | &1])}
-
-        triplet, {with, without} ->
-          {[triplet | with], without}
-      end)
-
-    Enum.reduce(without_negs, with_negs, fn {_, tuples}, with_negs ->
-      tuples
-      |> Enum.reduce([], fn tuple, acc ->
-        tuple_fuse_with_first_fusible(tuple, acc)
-      end)
-      |> Enum.reduce(with_negs, fn {tag, elements}, with_negs ->
-        [{tag, elements, []} | with_negs]
-      end)
-    end)
-  end
-
-  defp tuple_fuse_with_first_fusible(tuple, []), do: [tuple]
-
-  defp tuple_fuse_with_first_fusible(tuple, [candidate | rest]) do
-    if fused = maybe_optimize_tuple_union(tuple, candidate) do
-      # we found a fusible candidate, we're done
-      [fused | rest]
-    else
-      [candidate | tuple_fuse_with_first_fusible(tuple, rest)]
-    end
   end
 
   defp tuple_literal_to_quoted({:closed, [], []}, _opts), do: {:{}, [], []}
@@ -5502,7 +4880,7 @@ defmodule Module.Types.Descr do
       iex> tuple_fetch(tuple([integer(), atom()]), 0)
       {false, integer()}
 
-      iex> tuple_fetch(union(tuple([integer()]), tuple([integer(), atom()])), 1)
+      iex> tuple_fetch(bare_union(tuple([integer()]), tuple([integer(), atom()])), 1)
       {true, atom()}
 
       iex> tuple_fetch(dynamic(), 0)
@@ -5552,7 +4930,7 @@ defmodule Module.Types.Descr do
           if empty?(dynamic_type) do
             :badindex
           else
-            {static_optional? or dynamic_optional?, union(dynamic(dynamic_type), static_type)}
+            {static_optional? or dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badtuple
@@ -5585,7 +4963,7 @@ defmodule Module.Types.Descr do
       # Optimization: if there are no negatives
       {tag, elements, []}, {acc_optional?, acc_descr} ->
         {optional?, descr} = tuple_fetch_element(elements, index, tag)
-        {optional? or acc_optional?, union(descr, acc_descr)}
+        {optional? or acc_optional?, opt_union(descr, acc_descr)}
 
       {tag, elements, negs}, {acc_optional?, acc_descr} ->
         {_, value, bdd} = tuple_take_element(elements, index, tag)
@@ -5601,11 +4979,11 @@ defmodule Module.Types.Descr do
               else
                 negs
                 |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce(none(), fn {value, _}, acc -> union(value, acc) end)
+                |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
               end
 
             {optional?, descr} = pop_optional_static(value)
-            {optional? or acc_optional?, union(descr, acc_descr)}
+            {optional? or acc_optional?, opt_union(descr, acc_descr)}
         end
     end)
   catch
@@ -5641,7 +5019,7 @@ defmodule Module.Types.Descr do
             if neg_tag == :closed and tuple_empty?(tuple_intersection(bdd, neg_bdd)) do
               [{value, bdd} | acc]
             else
-              intersection_value = intersection(value, neg_value)
+              intersection_value = bare_intersection(value, neg_value)
 
               if empty?(intersection_value) do
                 [{value, bdd} | acc]
@@ -5691,10 +5069,10 @@ defmodule Module.Types.Descr do
   defp tuple_pair_projection_keeps_full_snd?(negative, value) do
     neg_values =
       Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
-        union(neg_value, acc)
+        bare_union(neg_value, acc)
       end)
 
-    not empty?(difference(value, neg_values))
+    not empty?(bare_difference(value, neg_values))
   end
 
   defp tuple_fetch_element([], _, :open), do: {true, term()}
@@ -5740,7 +5118,7 @@ defmodule Module.Types.Descr do
             end
 
           dynamic(dynamic_value)
-          |> union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
+          |> opt_union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
         else
           :badtuple
         end
@@ -5753,9 +5131,9 @@ defmodule Module.Types.Descr do
       cond do
         Enum.any?(elements, &empty?/1) -> none()
         tag == :open -> term()
-        tag == :closed -> Enum.reduce(elements, none(), &union/2)
+        tag == :closed -> Enum.reduce(elements, none(), &opt_union/2)
       end
-      |> union(acc)
+      |> opt_union(acc)
     end)
   end
 
@@ -5789,13 +5167,13 @@ defmodule Module.Types.Descr do
             static_result = tuple_delete_static(static, index)
 
             # Prune for dynamic values that make the operation succeed.
-            dynamic_input = intersection(dynamic, tuple_of_size_at_least(index + 1))
+            dynamic_input = opt_intersection(dynamic, tuple_of_size_at_least(index + 1))
 
             if empty?(dynamic_input) and empty?(static) do
               :badindex
             else
               dynamic_result = tuple_delete_static(dynamic_input, index)
-              union(dynamic(dynamic_result), static_result)
+              opt_union(dynamic(dynamic_result), static_result)
             end
 
           # Highlight the case where the issue is an index out of range from the tuple
@@ -5818,7 +5196,7 @@ defmodule Module.Types.Descr do
       |> Enum.reduce(:bdd_bot, fn
         {tag, elements, []}, acc ->
           {_, _, bdd} = tuple_take_element(elements, index, tag)
-          tuple_union(bdd, acc)
+          opt_tuple_union(bdd, acc)
 
         {tag, elements, negs}, acc ->
           {_, value, bdd} = tuple_take_element(elements, index, tag)
@@ -5829,11 +5207,11 @@ defmodule Module.Types.Descr do
 
             negative ->
               if tuple_pair_projection_keeps_full_snd?(negative, value) do
-                tuple_union(bdd, acc)
+                opt_tuple_union(bdd, acc)
               else
                 negs
                 |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce(acc, fn {_, bdd}, acc -> tuple_union(bdd, acc) end)
+                |> Enum.reduce(acc, fn {_, bdd}, acc -> opt_tuple_union(bdd, acc) end)
               end
           end
       end)
@@ -5865,8 +5243,11 @@ defmodule Module.Types.Descr do
               dynamic_result
             else
               case tuple_insert_at_checked(descr, index, static_type) do
-                static_result when is_descr(static_result) -> union(dynamic_result, static_result)
-                error -> error
+                static_result when is_descr(static_result) ->
+                  opt_union(dynamic_result, static_result)
+
+                error ->
+                  error
               end
             end
 
@@ -5900,13 +5281,13 @@ defmodule Module.Types.Descr do
             static_result = tuple_insert_static(static, index, type)
 
             # Prune for dynamic values that make the intersection succeed
-            dynamic_input = intersection(dynamic, tuple_of_size_at_least(index))
+            dynamic_input = opt_intersection(dynamic, tuple_of_size_at_least(index))
 
             if empty?(dynamic_input) and empty?(static) do
               :badindex
             else
               dynamic_result = tuple_insert_static(dynamic_input, index, type)
-              union(dynamic(dynamic_result), static_result)
+              opt_union(dynamic(dynamic_result), static_result)
             end
 
           # Highlight the case where the issue is an index out of range from the tuple
@@ -6634,7 +6015,7 @@ defmodule Module.Types.Descr do
 
   defp iterator_non_disjoint_intersection?({key, v1, iterator}, map) do
     with %{^key => v2} <- map,
-         value when value not in @empty_intersection <- intersection(key, v1, v2),
+         value when value not in @empty_intersection <- bare_intersection(key, v1, v2),
          false <- empty_key?(key, value) do
       true
     else
@@ -6646,5 +6027,799 @@ defmodule Module.Types.Descr do
 
   defp non_empty_map_or([head | tail], fun) do
     Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
+  end
+
+  ## Optimizations
+
+  @doc """
+  Computes the union of two descrs using optimized composite operations.
+  """
+  def opt_union(:term, other), do: optional_to_term(other)
+  def opt_union(other, :term), do: optional_to_term(other)
+  def opt_union(none, other) when none == @none, do: other
+  def opt_union(other, none) when none == @none, do: other
+
+  def opt_union(left, right) do
+    is_gradual_left = gradual?(left)
+    is_gradual_right = gradual?(right)
+
+    cond do
+      is_gradual_left and not is_gradual_right ->
+        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
+        opt_union_static(left, right_with_dynamic)
+
+      is_gradual_right and not is_gradual_left ->
+        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
+        opt_union_static(left_with_dynamic, right)
+
+      true ->
+        opt_union_static(left, right)
+    end
+  end
+
+  @compile {:inline, opt_union_static: 2}
+  defp opt_union_static(left, right) do
+    symmetrical_merge(left, right, &opt_union/3)
+  end
+
+  defp opt_union(:atom, v1, v2), do: atom_union(v1, v2)
+  defp opt_union(:bitmap, v1, v2), do: v1 ||| v2
+  defp opt_union(:dynamic, v1, v2), do: dynamic_union(v1, v2, &opt_union/3)
+  defp opt_union(:list, v1, v2), do: list_union(v1, v2)
+  defp opt_union(:map, v1, v2), do: opt_map_union(v1, v2)
+  defp opt_union(:optional, 1, 1), do: 1
+  defp opt_union(:tuple, v1, v2), do: opt_tuple_union(v1, v2)
+  defp opt_union(:fun, v1, v2), do: fun_union(v1, v2)
+
+  @doc """
+  Computes the intersection of two descrs using optimized composite operations.
+  """
+  def opt_intersection(:term, other), do: remove_optional(other)
+  def opt_intersection(other, :term), do: remove_optional(other)
+
+  def opt_intersection(left, right) do
+    is_gradual_left = gradual?(left)
+    is_gradual_right = gradual?(right)
+
+    cond do
+      is_gradual_left and not is_gradual_right ->
+        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
+        opt_intersection_static(left, right_with_dynamic)
+
+      is_gradual_right and not is_gradual_left ->
+        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
+        opt_intersection_static(left_with_dynamic, right)
+
+      true ->
+        opt_intersection_static(left, right)
+    end
+  end
+
+  @compile {:inline, opt_intersection_static: 2}
+  defp opt_intersection_static(left, right) do
+    symmetrical_intersection(left, right, &opt_intersection/3)
+  end
+
+  defp opt_intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
+  defp opt_intersection(:bitmap, v1, v2), do: v1 &&& v2
+  defp opt_intersection(:list, v1, v2), do: opt_list_intersection(v1, v2)
+  defp opt_intersection(:map, v1, v2), do: opt_map_intersection(v1, v2)
+  defp opt_intersection(:optional, 1, 1), do: 1
+  defp opt_intersection(:tuple, v1, v2), do: opt_tuple_intersection(v1, v2)
+  defp opt_intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
+
+  defp opt_intersection(:dynamic, v1, v2) do
+    descr = dynamic_intersection(v1, v2, &opt_intersection/3)
+    if descr == @none, do: 0, else: descr
+  end
+
+  @doc """
+  Computes the difference of two descrs using optimized composite operations.
+  """
+  def opt_difference(left, :term), do: keep_optional(left)
+  def opt_difference(left, none) when none == @none, do: left
+
+  def opt_difference(left, right) do
+    if gradual?(left) or gradual?(right) do
+      {left_dynamic, left_static} = pop_dynamic(left)
+      {right_dynamic, right_static} = pop_dynamic(right)
+      dynamic_part = opt_difference_static(left_dynamic, right_static)
+
+      Map.put(opt_difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
+    else
+      opt_difference_static(left, right)
+    end
+  end
+
+  @compile {:inline, opt_difference_static: 2}
+  defp opt_difference_static(left, right) do
+    dynamic_difference(left, right, &opt_difference/3)
+  end
+
+  # Returning 0 from the callback is taken as none() for that subtype.
+  defp opt_difference(:atom, v1, v2), do: atom_difference(v1, v2)
+  defp opt_difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
+  defp opt_difference(:list, v1, v2), do: opt_list_difference(v1, v2)
+  defp opt_difference(:map, v1, v2), do: opt_map_difference(v1, v2)
+  defp opt_difference(:optional, 1, 1), do: 0
+  defp opt_difference(:tuple, v1, v2), do: opt_tuple_difference(v1, v2)
+  defp opt_difference(:fun, v1, v2), do: fun_difference(v1, v2)
+
+  @doc """
+  Compute the negation of a type.
+  """
+  def opt_negation(:term), do: none()
+  def opt_negation(%{} = descr), do: opt_difference(term(), descr)
+
+  @compile {:inline, maybe_opt_union: 2}
+  defp maybe_opt_union(nil, _fun), do: nil
+  defp maybe_opt_union(descr, fun), do: opt_union(descr, fun.())
+
+  defp opt_list_intersection(bdd_leaf(:term, :term), bdd), do: bdd
+  defp opt_list_intersection(bdd, bdd_leaf(:term, :term)), do: bdd
+
+  defp opt_list_intersection(bdd1, bdd2),
+    do: bdd_intersection(bdd1, bdd2, &opt_list_leaf_intersection/2)
+
+  defp opt_list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
+    try do
+      list = non_empty_intersection!(list1, list2, &opt_intersection/2)
+      last = non_empty_intersection!(last1, last2, &opt_intersection/2)
+      bdd_leaf_new(list, last)
+    catch
+      :empty -> :bdd_bot
+    end
+  end
+
+  defp opt_list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term)), do: :bdd_bot
+  defp opt_list_difference(bdd_leaf(:term, :term), bdd2), do: bdd_negation(bdd2)
+
+  # Computes the difference between two BDD (Binary Decision Diagram) list types.
+  # It progressively subtracts each type in bdd2 from all types in bdd1.
+  # The algorithm handles three cases:
+  # 1. Disjoint types: keeps the original type from bdd1
+  # 2. Subtype relationship:
+  #    a) If bdd2 type is a supertype, keeps only the negations
+  #    b) If only the last type differs, subtracts it
+  # 3. Base case: adds bdd2 type to negations of bdd1 type
+  # The result may be larger than the initial bdd1, which is maintained in the accumulator.
+  defp opt_list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2) do
+    if subtype?(list1, list2) do
+      if subtype?(last1, last2),
+        do: :bdd_bot,
+        else: bdd_leaf_new(list1, opt_difference(last1, last2))
+    else
+      bdd_difference(bdd1, bdd2, &opt_list_leaf_difference/3)
+    end
+  end
+
+  defp opt_list_difference(bdd1, bdd2),
+    do: bdd_difference(bdd1, bdd2, &opt_list_leaf_difference/3)
+
+  defp opt_list_leaf_difference(bdd_leaf(list1, last1), bdd_leaf(list2, last2), _) do
+    if disjoint?(list1, list2) or disjoint?(last1, last2) do
+      :disjoint
+    else
+      :none
+    end
+  end
+
+  defp opt_map_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
+    case opt_map_union(tag1, fields1, tag2, fields2) do
+      {tag, fields} -> bdd_leaf_new(tag, fields)
+      nil -> bdd_union(bdd_leaf_new(tag1, fields1), bdd_leaf_new(tag2, fields2))
+    end
+  end
+
+  defp opt_map_union(bdd1, bdd2), do: map_union(bdd1, bdd2)
+
+  defp opt_map_union(:open, [], _, _), do: {:open, @fields_new}
+  defp opt_map_union(_, _, :open, []), do: {:open, @fields_new}
+
+  defp opt_map_union(tag1, pos1, tag2, pos2)
+       when is_atom(tag1) and is_atom(tag2) do
+    case opt_map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
+      :all_equal when tag1 == :open -> {tag1, pos1}
+      :all_equal -> {tag2, pos2}
+      {:one_key_difference, key, v1, v2} -> {tag1, fields_store(key, opt_union(v1, v2), pos1)}
+      :left_subtype_of_right -> {tag2, pos2}
+      :right_subtype_of_left -> {tag1, pos1}
+      :none -> nil
+    end
+  end
+
+  defp opt_map_union(_, _, _, _), do: nil
+
+  defp opt_map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
+       when k1 < k2 do
+    # Left side has a key the right side does not have,
+    # left can only be a subtype if the right side is open.
+    case status do
+      _ when tag2 != :open ->
+        :none
+
+      :all_equal ->
+        opt_map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      {:one_key_difference, _, p1, p2} ->
+        if subtype?(p1, p2),
+          do: opt_map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
+          else: :none
+
+      :left_subtype_of_right ->
+        opt_map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      _ ->
+        :none
+    end
+  end
+
+  defp opt_map_union_strategy([{k1, _} | _] = l1, [{k2, _} | t2], tag1, tag2, status)
+       when k1 > k2 do
+    # Right side has a key the left side does not have,
+    # right can only be a subtype if the left side is open.
+    case status do
+      _ when tag1 != :open ->
+        :none
+
+      :all_equal ->
+        opt_map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
+
+      {:one_key_difference, _, p1, p2} ->
+        if subtype?(p2, p1),
+          do: opt_map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left),
+          else: :none
+
+      :right_subtype_of_left ->
+        opt_map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
+
+      _ ->
+        :none
+    end
+  end
+
+  defp opt_map_union_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
+    # Same key and same value, nothing changes
+    opt_map_union_strategy(t1, t2, tag1, tag2, status)
+  end
+
+  defp opt_map_union_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
+    # They have the same key but different values
+    case status do
+      :all_equal ->
+        cond do
+          # Don't do difference on struct keys
+          k1 != :__struct__ and tag1 == tag2 ->
+            opt_map_union_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
+
+          subtype?(v1, v2) ->
+            opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
+
+          subtype?(v2, v1) ->
+            opt_map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
+
+          true ->
+            :none
+        end
+
+      :left_subtype_of_right ->
+        if subtype?(v1, v2), do: opt_map_union_strategy(t1, t2, tag1, tag2, status), else: :none
+
+      :right_subtype_of_left ->
+        if subtype?(v2, v1), do: opt_map_union_strategy(t1, t2, tag1, tag2, status), else: :none
+
+      {:one_key_difference, _key, p1, p2} ->
+        cond do
+          subtype?(p1, p2) and subtype?(v1, v2) ->
+            opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
+
+          subtype?(p2, p1) and subtype?(v2, v1) ->
+            opt_map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
+
+          true ->
+            :none
+        end
+
+      _ ->
+        :none
+    end
+  end
+
+  defp opt_map_union_strategy([], [], tag1, tag2, status) do
+    case status do
+      :left_subtype_of_right when tag1 == :open and tag2 == :closed -> :none
+      :right_subtype_of_left when tag1 == :closed and tag2 == :open -> :none
+      _ -> status
+    end
+  end
+
+  defp opt_map_union_strategy(l1, l2, tag1, tag2, status) do
+    lhs? = tag2 == :open and l2 == []
+    rhs? = tag1 == :open and l1 == []
+
+    case status do
+      :all_equal when lhs? ->
+        :left_subtype_of_right
+
+      :all_equal when rhs? ->
+        :right_subtype_of_left
+
+      {:one_key_difference, _, p1, p2} ->
+        cond do
+          lhs? and subtype?(p1, p2) -> :left_subtype_of_right
+          rhs? and subtype?(p2, p1) -> :right_subtype_of_left
+          true -> :none
+        end
+
+      :left_subtype_of_right when lhs? ->
+        :left_subtype_of_right
+
+      :right_subtype_of_left when rhs? ->
+        :right_subtype_of_left
+
+      _ ->
+        :none
+    end
+  end
+
+  defp opt_map_intersection(bdd_leaf(:open, []), bdd), do: bdd
+  defp opt_map_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+
+  defp opt_map_intersection(bdd1, bdd2),
+    do: bdd_intersection(bdd1, bdd2, &opt_map_leaf_intersection/2)
+
+  defp opt_map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
+    try do
+      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2, &opt_intersection/2)
+      bdd_leaf_new(tag, fields)
+    catch
+      :empty -> :bdd_bot
+    end
+  end
+
+  defp opt_map_difference(_, bdd_leaf(:open, [])), do: :bdd_bot
+  defp opt_map_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2), do: bdd_negation(bdd2)
+
+  defp opt_map_difference(bdd1, bdd2),
+    do: bdd_difference(bdd1, bdd2, &opt_map_leaf_difference/3)
+
+  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
+    {found?, v1} =
+      case fields_find(key, fields) do
+        {:ok, value} -> {true, value}
+        :error -> {false, map_key_tag_to_type(tag)}
+      end
+
+    cond do
+      tag == :closed and not found? ->
+        if is_optional_static(v2), do: :subtype, else: :disjoint
+
+      # In case the left-side is open, we will only be adding new keys
+      # to the open map, which makes future eliminations harder.
+      tag == :open and not found? and fields != [] ->
+        :none
+
+      disjoint?(v1, v2) ->
+        :disjoint
+
+      true ->
+        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
+    end
+  end
+
+  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields), type) do
+    case opt_map_difference_strategy(fields, neg_fields, tag, neg_tag) do
+      :disjoint ->
+        :disjoint
+
+      :left_subtype_of_right ->
+        :subtype
+
+      {:one_key_difference, key, v1, v2} ->
+        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
+
+      :none ->
+        :none
+    end
+  end
+
+  defp opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type) do
+    v_diff = opt_difference(v1, v2)
+
+    if empty?(v_diff) do
+      :subtype
+    else
+      a_diff = bdd_leaf_new(tag, fields_store(key, v_diff, fields))
+
+      a_type =
+        case type do
+          :none ->
+            :bdd_bot
+
+          :union ->
+            bdd_leaf_new(tag, fields_store(key, opt_union(v1, v2), fields))
+
+          :intersection ->
+            v_int = opt_intersection(v1, v2)
+
+            if empty?(v_int),
+              do: :bdd_bot,
+              else: bdd_leaf_new(tag, fields_store(key, v_int, fields))
+        end
+
+      {:one_key_difference, a_diff, a_type}
+    end
+  end
+
+  defp opt_map_difference_strategy(fields1, fields2, tag1, tag2) do
+    if is_atom(tag1) and is_atom(tag2) do
+      status = if tag1 == tag2 or tag2 == :open, do: :all_equal, else: :none
+      opt_map_difference_strategy(fields1, fields2, tag1, tag2, status)
+    else
+      :none
+    end
+  end
+
+  defp opt_map_difference_strategy([{k1, value} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
+       when k1 < k2 do
+    # Left side has a key the right side does not have,
+    # left can only be a subtype if the right side is open.
+    # If the right side is closed and the key is not optional, they are disjoint.
+    case status do
+      _ when tag2 == :closed ->
+        if not is_optional_static(value) do
+          :disjoint
+        else
+          opt_map_difference_strategy(t1, l2, tag1, tag2, :none)
+        end
+
+      :all_equal ->
+        opt_map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      {:one_key_difference, _, p1, p2} ->
+        if subtype?(p1, p2),
+          do: opt_map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
+          else: :none
+
+      :left_subtype_of_right ->
+        opt_map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
+
+      _ ->
+        :none
+    end
+  end
+
+  defp opt_map_difference_strategy([{k1, _} | _] = l1, [{k2, value} | t2], tag1, tag2, _status)
+       when k1 > k2 do
+    # Right side has a key the left side does not have,
+    # if left-side is closed, they are disjoint.
+    if tag1 == :closed and not is_optional_static(value) do
+      :disjoint
+    else
+      opt_map_difference_strategy(l1, t2, tag1, tag2, :none)
+    end
+  end
+
+  defp opt_map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
+    # Same key and same value, nothing changes
+    opt_map_difference_strategy(t1, t2, tag1, tag2, status)
+  end
+
+  defp opt_map_difference_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
+    # They have the same key but different values
+    if disjoint?(v1, v2) do
+      :disjoint
+    else
+      case status do
+        :all_equal when tag1 == tag2 ->
+          opt_map_difference_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
+
+        {:one_key_difference, _key, p1, p2} ->
+          if subtype?(p1, p2) and subtype?(v1, v2) do
+            opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
+          else
+            :none
+          end
+
+        _ ->
+          if status in [:all_equal, :left_subtype_of_right] and subtype?(v1, v2),
+            do: opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
+            else: opt_map_difference_strategy(t1, t2, tag1, tag2, :none)
+      end
+    end
+  end
+
+  defp opt_map_difference_strategy([], [], _tag1, _tag2, status) do
+    if status == :all_equal, do: :left_subtype_of_right, else: status
+  end
+
+  defp opt_map_difference_strategy(l1, l2, tag1, tag2, status) do
+    cond do
+      tag2 == :open and l2 == [] ->
+        case status do
+          :all_equal ->
+            :left_subtype_of_right
+
+          {:one_key_difference, _, p1, p2} ->
+            if subtype?(p1, p2), do: :left_subtype_of_right, else: :none
+
+          :left_subtype_of_right ->
+            :left_subtype_of_right
+
+          :none ->
+            :none
+        end
+
+      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, v} -> not is_optional_static(v) end) ->
+        :disjoint
+
+      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, v} -> not is_optional_static(v) end) ->
+        :disjoint
+
+      true ->
+        :none
+    end
+  end
+
+  # Continue to eliminate negations while length of list of negs decreases
+  defp opt_map_eliminate_while_negs_decrease(tag, fields, []), do: [{tag, fields, []}]
+
+  defp opt_map_eliminate_while_negs_decrease(tag, fields, negs) do
+    try do
+      opt_map_eliminate_negations(tag, fields, negs)
+    catch
+      :empty -> []
+    else
+      {fields, new_negs} ->
+        if length(new_negs) < length(negs) do
+          opt_map_eliminate_while_negs_decrease(tag, fields, new_negs)
+        else
+          [{tag, fields, new_negs}]
+        end
+    end
+  end
+
+  defp opt_map_eliminate_negations(tag, fields, negs) do
+    Enum.reduce(negs, {fields, []}, fn neg = bdd_leaf(neg_tag, neg_fields),
+                                       {acc_fields, acc_negs} ->
+      # If the intersection with the negative is empty, we can remove the negative.
+      empty_intersection? =
+        try do
+          _ = map_literal_intersection(tag, acc_fields, neg_tag, neg_fields)
+          false
+        catch
+          :empty -> true
+        end
+
+      if empty_intersection? do
+        {acc_fields, acc_negs}
+      else
+        case opt_map_difference_strategy(acc_fields, neg_fields, tag, neg_tag) do
+          {:one_key_difference, key, v1, v2} ->
+            {fields_store(key, opt_difference(v1, v2), acc_fields), acc_negs}
+
+          :disjoint ->
+            {acc_fields, acc_negs}
+
+          :left_subtype_of_right ->
+            throw(:empty)
+
+          :none ->
+            {acc_fields, [neg | acc_negs]}
+        end
+      end
+    end)
+  end
+
+  # Given a dnf, fuse maps when possible
+  # e.g. %{a: integer(), b: atom()} or %{a: float(), b: atom()} into %{a: number(), b: atom()}
+  defp opt_map_fusion(dnf) do
+    # Steps:
+    # 1. Group maps by tags and keys
+    # 2. Try fusions for each group until no fusion is found
+    # 3. Merge the groups back into a dnf
+    {without_negs, with_negs} = Enum.split_with(dnf, fn {_tag, _fields, negs} -> negs == [] end)
+
+    without_negs =
+      without_negs
+      |> Enum.group_by(fn {tag, fields, _} -> {tag, fields_keys(fields)} end)
+      |> Enum.flat_map(fn {_, maps} -> opt_map_non_negated_fuse(maps) end)
+
+    without_negs ++ with_negs
+  end
+
+  defp opt_map_non_negated_fuse(maps) do
+    Enum.reduce(maps, [], fn map, acc ->
+      opt_map_fuse_with_first_fusible(map, acc)
+    end)
+  end
+
+  defp opt_map_fuse_with_first_fusible(map, []), do: [map]
+
+  defp opt_map_fuse_with_first_fusible(map, [candidate | rest]) do
+    {tag1, fields1, []} = map
+    {tag2, fields2, []} = candidate
+
+    case opt_map_union(tag1, fields1, tag2, fields2) do
+      nil -> [candidate | opt_map_fuse_with_first_fusible(map, rest)]
+      # we found a fusible candidate, we're done
+      {tag, fields} -> [{tag, fields, []} | rest]
+    end
+  end
+
+  defp opt_tuple_intersection(bdd_leaf(:open, []), bdd), do: bdd
+  defp opt_tuple_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+
+  defp opt_tuple_intersection(bdd1, bdd2),
+    do: bdd_intersection(bdd1, bdd2, &opt_tuple_leaf_intersection/2)
+
+  defp opt_tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
+    case tuple_literal_intersection(tag1, elements1, tag2, elements2, &opt_intersection/2) do
+      {tag, elements} -> bdd_leaf_new(tag, elements)
+      :empty -> :bdd_bot
+    end
+  end
+
+  defp opt_tuple_difference(_, bdd_leaf(:open, [])),
+    do: :bdd_bot
+
+  defp opt_tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
+    do: bdd_negation(bdd2)
+
+  defp opt_tuple_difference(bdd1, bdd2),
+    do: bdd_difference(bdd1, bdd2, &opt_tuple_leaf_difference/3)
+
+  defp opt_tuple_leaf_difference(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2), _) do
+    case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
+      :disjoint -> :disjoint
+      other -> opt_tuple_leaf_difference(elements1, elements2, other == :left_subtype_of_right)
+    end
+  end
+
+  defp opt_tuple_leaf_difference([head1 | tail1], [head2 | tail2], subtype?) do
+    cond do
+      disjoint?(head1, head2) -> :disjoint
+      subtype? and subtype?(head1, head2) -> opt_tuple_leaf_difference(tail1, tail2, subtype?)
+      true -> :none
+    end
+  end
+
+  defp opt_tuple_leaf_difference(_tail1, _tail2, subtype?) do
+    if subtype?, do: :subtype, else: :none
+  end
+
+  defp opt_tuple_union({tag1, elements1}, {tag2, elements2}) do
+    opt_tuple_union_literal({tag1, elements1}, {tag2, elements2})
+  end
+
+  defp opt_tuple_union(
+         bdd_leaf(tag1, elements1),
+         bdd_leaf(tag2, elements2)
+       ) do
+    case opt_tuple_union_literal({tag1, elements1}, {tag2, elements2}) do
+      {tag, elements} -> bdd_leaf_new(tag, elements)
+      nil -> bdd_union(bdd_leaf_new(tag1, elements1), bdd_leaf_new(tag2, elements2))
+    end
+  end
+
+  defp opt_tuple_union(bdd1, bdd2), do: tuple_union(bdd1, bdd2)
+
+  defp opt_tuple_union_literal({:open, []} = tuple1, _tuple2), do: tuple1
+  defp opt_tuple_union_literal(_tuple1, {:open, []} = tuple2), do: tuple2
+
+  defp opt_tuple_union_literal({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
+    case opt_tuple_union_strategy(tag1, pos1, tag2, pos2) do
+      :all_equal ->
+        tuple1
+
+      {:one_index_difference, index, v1, v2} ->
+        new_pos = List.replace_at(pos1, index, bare_union(v1, v2))
+        {tag1, new_pos}
+
+      :left_subtype_of_right ->
+        tuple2
+
+      :right_subtype_of_left ->
+        tuple1
+
+      :none ->
+        nil
+    end
+  end
+
+  defp opt_tuple_union_strategy(tag1, pos1, tag2, pos2) do
+    case {tag1, tag2} do
+      {tag, tag} when length(pos1) == length(pos2) ->
+        opt_tuple_union_strategy_index(pos1, pos2, 0, :all_equal)
+
+      {:open, _} when length(pos1) <= length(pos2) ->
+        opt_tuple_union_strategy_index(pos1, pos2, 0, :right_subtype_of_left)
+
+      {_, :open} when length(pos1) >= length(pos2) ->
+        opt_tuple_union_strategy_index(pos1, pos2, 0, :left_subtype_of_right)
+
+      {_, _} ->
+        :none
+    end
+  end
+
+  defp opt_tuple_union_strategy_index([v | pos1], [v | pos2], i, status) do
+    opt_tuple_union_strategy_index(pos1, pos2, i + 1, status)
+  end
+
+  defp opt_tuple_union_strategy_index([v1 | pos1], [v2 | pos2], i, status) do
+    case status do
+      :all_equal ->
+        opt_tuple_union_strategy_index(pos1, pos2, i + 1, {:one_index_difference, i, v1, v2})
+
+      {:one_index_difference, _, d1, d2} ->
+        cond do
+          subtype?(d1, d2) and subtype?(v1, v2) ->
+            opt_tuple_union_strategy_index(pos1, pos2, i + 1, :left_subtype_of_right)
+
+          subtype?(d2, d1) and subtype?(v2, v1) ->
+            opt_tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left)
+
+          true ->
+            :none
+        end
+
+      :left_subtype_of_right ->
+        if subtype?(v1, v2),
+          do: opt_tuple_union_strategy_index(pos1, pos2, i + 1, :left_subtype_of_right),
+          else: :none
+
+      :right_subtype_of_left ->
+        if subtype?(v2, v1),
+          do: opt_tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left),
+          else: :none
+    end
+  end
+
+  defp opt_tuple_union_strategy_index(_pos1, _pos2, _i, status) do
+    status
+  end
+
+  # Given a union of tuples, fuses the tuple unions when possible,
+  # e.g. {integer(), atom()} or {float(), atom()} into {number(), atom()}
+  # The negations of two fused tuples are just concatenated.
+  #
+  # Steps:
+  # 1. Consider tuples without negations apart from those with
+  # 2. Group tuples by size and tag
+  # 3. Try fusions for each group until no fusion is found
+  # 4. Merge the groups back into a dnf
+  defp opt_tuple_fusion(dnf) do
+    {with_negs, without_negs} =
+      Enum.reduce(dnf, {[], %{}}, fn
+        {tag, elements, []}, {with, without} ->
+          key = {tag, length(elements)}
+          value = {tag, elements}
+          {with, Map.update(without, key, [value], &[value | &1])}
+
+        triplet, {with, without} ->
+          {[triplet | with], without}
+      end)
+
+    Enum.reduce(without_negs, with_negs, fn {_, tuples}, with_negs ->
+      tuples
+      |> Enum.reduce([], fn tuple, acc ->
+        opt_tuple_fuse_with_first_fusible(tuple, acc)
+      end)
+      |> Enum.reduce(with_negs, fn {tag, elements}, with_negs ->
+        [{tag, elements, []} | with_negs]
+      end)
+    end)
+  end
+
+  defp opt_tuple_fuse_with_first_fusible(tuple, []), do: [tuple]
+
+  defp opt_tuple_fuse_with_first_fusible(tuple, [candidate | rest]) do
+    if fused = opt_tuple_union(tuple, candidate) do
+      # we found a fusible candidate, we're done
+      [fused | rest]
+    else
+      [candidate | opt_tuple_fuse_with_first_fusible(tuple, rest)]
+    end
   end
 end

@@ -385,7 +385,7 @@ defmodule Module.Types do
           _ ->
             inferred
             |> Enum.map(fn {args, _} -> args end)
-            |> Enum.zip_with(fn types -> Enum.reduce(types, &Descr.union/2) end)
+            |> Enum.zip_with(fn types -> Enum.reduce(types, &Descr.opt_union/2) end)
         end
 
       {{:infer, domain, Enum.reverse(inferred)}, mapping, restore_context(body_context, context)}
@@ -462,7 +462,7 @@ defmodule Module.Types do
       # the domain is computed by unioning their inferred types. However, their
       # inferred types often have the different of the previous clauses:
       #
-      #     union(r3 ^ (c3 - c2 - c1), r2 ^ (c2 - c1), r1 ^ c1)
+      #     opt_union(r3 ^ (c3 - c2 - c1), r2 ^ (c2 - c1), r1 ^ c1)
       #
       # Where `rN` represents the refinement in every function body.
       #
@@ -493,9 +493,9 @@ defmodule Module.Types do
       # Furthermore, the signature used in type checking is not refined in any way,
       # so type checking is still sound.
       if arg == head_arg do
-        Descr.union(Descr.upper_bound(no_prev_arg), d)
+        Descr.opt_union(Descr.upper_bound(no_prev_arg), d)
       else
-        Descr.union(arg, d)
+        Descr.opt_union(arg, d)
       end
       | compute_domain(args_types, head_args_types, no_prev_args_types, domain)
     ]
@@ -506,7 +506,7 @@ defmodule Module.Types do
   # We check for term equality of types as an optimization
   # to reduce the amount of check we do at runtime.
   defp add_inferred([{args, existing_return} | tail], args, return, index, acc),
-    do: {index, Enum.reverse(acc, [{args, Descr.union(existing_return, return)} | tail])}
+    do: {index, Enum.reverse(acc, [{args, Descr.opt_union(existing_return, return)} | tail])}
 
   defp add_inferred([head | tail], args, return, index, acc),
     do: add_inferred(tail, args, return, index - 1, [head | acc])
@@ -558,7 +558,7 @@ defmodule Module.Types do
   # Allow exactly one differing argument. That one position is widened
   # with union/2. A second difference means the clauses must stay separate.
   defp union_args([existing_arg | existing], [arg | args], acc, false) do
-    union_args(existing, args, [Descr.union(existing_arg, arg) | acc], true)
+    union_args(existing, args, [Descr.opt_union(existing_arg, arg) | acc], true)
   end
 
   defp union_args([_ | _], [_ | _], _acc, true), do: nil

@@ -694,10 +694,10 @@ defmodule Protocol do
 
           domain =
             Enum.reduce(types_minus_any -- structs, structs_domain, fn impl, acc ->
-              Descr.union(Module.Types.Of.impl(impl, :open), acc)
+              Descr.opt_union(Module.Types.Of.impl(impl, :open), acc)
             end)
 
-          not_domain = Descr.negation(domain)
+          not_domain = Descr.opt_negation(domain)
 
           if Any in types do
             clauses =

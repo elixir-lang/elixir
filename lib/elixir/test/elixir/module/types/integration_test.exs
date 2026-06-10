@@ -138,9 +138,11 @@ defmodule Module.Types.IntegrationTest do
       assert itself_arg.(Itself.Integer) == dynamic(integer())
 
       assert itself_arg.(Itself.List) ==
-               dynamic(union(empty_list(), non_empty_list(term(), term())))
+               dynamic(opt_union(empty_list(), non_empty_list(term(), term())))
 
-      assert itself_arg.(Itself.Map) == dynamic(open_map(__struct__: if_set(negation(atom()))))
+      assert itself_arg.(Itself.Map) ==
+               dynamic(open_map(__struct__: if_set(opt_negation(atom()))))
+
       assert itself_arg.(Itself.Port) == dynamic(port())
       assert itself_arg.(Itself.PID) == dynamic(pid())
       assert itself_arg.(Itself.Reference) == dynamic(reference())

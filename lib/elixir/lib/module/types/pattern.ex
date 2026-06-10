@@ -27,7 +27,7 @@ defmodule Module.Types.Pattern do
     do: previous
 
   defp concat_previous(types, {list, descr}),
-    do: {[types | list], union(descr, args_to_previous(types))}
+    do: {[types | list], opt_union(descr, args_to_previous(types))}
 
   defp args_to_previous([type]), do: upper_bound(type)
   defp args_to_previous(types), do: args_to_static_domain(types)
@@ -39,8 +39,8 @@ defmodule Module.Types.Pattern do
   defp of_pattern_previous(types, {_, descr}, stack) do
     refined_types =
       case types do
-        [type] -> [difference(type, descr)]
-        [_ | _] -> args_to_domain(types) |> difference(descr) |> domain_to_flat_args(types)
+        [type] -> [opt_difference(type, descr)]
+        [_ | _] -> args_to_domain(types) |> opt_difference(descr) |> domain_to_flat_args(types)
       end
 
     # check_previous? is an optimization. If types have not changed,
@@ -349,7 +349,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern_intersect([head | tail], index, acc, pattern_info, tag, stack, context) do
     {tree, expected, pattern} = head
     actual = of_pattern_tree(tree, stack, context)
-    type = intersection(actual, expected)
+    type = opt_intersection(actual, expected)
 
     if empty?(type) do
       context = badpattern_error(pattern, index, tag, stack, context)
@@ -498,7 +498,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_var([{:subpattern, key} | rest], type, context) do
     %{^key => subpattern} = context.subpatterns
-    of_pattern_var(rest, intersection(type, subpattern), context)
+    of_pattern_var(rest, opt_intersection(type, subpattern), context)
   end
 
   defp of_pattern_var([:tail | rest], type, context) do
@@ -518,7 +518,7 @@ defmodule Module.Types.Pattern do
     # This logic mirrors the code in `Apply.compare`
     cond do
       # If it is a singleton, we can always be precise
-      singleton?(type) -> if polarity, do: type, else: negation(type)
+      singleton?(type) -> if polarity, do: type, else: Module.Types.Descr.opt_negation(type)
       # We are checking for `not x == 1` or similar, we can't say anything about x
       polarity == false -> term()
       # We are checking for `x == 1`, make sure x is integer or float
@@ -550,7 +550,7 @@ defmodule Module.Types.Pattern do
     tail
     |> Enum.reduce(
       of_pattern_tree(head, stack, context),
-      &union(of_pattern_tree(&1, stack, context), &2)
+      &opt_union(of_pattern_tree(&1, stack, context), &2)
     )
     |> non_empty_list(of_pattern_tree(suffix, stack, context))
   end
@@ -558,7 +558,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern_tree({:intersection, entries}, stack, context) do
     entries
     |> Enum.map(&of_pattern_tree(&1, stack, context))
-    |> Enum.reduce(&intersection/2)
+    |> Enum.reduce(&opt_intersection/2)
   end
 
   defp of_pattern_tree({:var, version}, _stack, context) do
@@ -690,7 +690,7 @@ defmodule Module.Types.Pattern do
       if static == [] do
         {:intersection, dynamic}
       else
-        {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}
+        {:intersection, [Enum.reduce(static, &opt_intersection/2) | dynamic]}
       end
 
     context = of_var(var, version, [%{root: return, expr: match}], context)
@@ -950,13 +950,13 @@ defmodule Module.Types.Pattern do
     type =
       case {static, dynamic} do
         {static, []} when is_descr(suffix_type) ->
-          non_empty_list(Enum.reduce(static, &union/2), suffix_type)
+          non_empty_list(Enum.reduce(static, &opt_union/2), suffix_type)
 
         {[], dynamic} ->
           {:non_empty_list, dynamic, suffix_type}
 
         {static, dynamic} ->
-          {:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix_type}
+          {:non_empty_list, [Enum.reduce(static, &opt_union/2) | dynamic], suffix_type}
       end
 
     {type, false, context}
@@ -1117,7 +1117,7 @@ defmodule Module.Types.Pattern do
       Enum.map_reduce(prefix, context, &of_guard(&1, term(), expr, stack, &2))
 
     {suffix, context} = of_guard(suffix, term(), expr, stack, context)
-    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+    {non_empty_list(Enum.reduce(prefix, &opt_union/2), suffix), context}
   end
 
   # {left, right}
@@ -1258,7 +1258,7 @@ defmodule Module.Types.Pattern do
   # `:fail` as dynamic as its whole purpose is to cause failures.
   defp of_remote(:orelse, [left, :fail], _call, expected, stack, context) do
     {type, context} = of_guard(left, expected, left, stack, context)
-    {union(type, @dynamic_fail), context}
+    {opt_union(type, @dynamic_fail), context}
   end
 
   defp of_remote(fun, _args, call, expected, stack, context)
@@ -1430,7 +1430,7 @@ defmodule Module.Types.Pattern do
 
     case disjoint? do
       true -> {type, context}
-      false -> {union(to_abort, type), context}
+      false -> {opt_union(to_abort, type), context}
     end
   end
 
@@ -1445,7 +1445,7 @@ defmodule Module.Types.Pattern do
       of_guard(head, expected, head, stack, context)
 
     acc_vars = [{vars, cond_vars} | acc_vars]
-    of_logical_cond(tail, union(acc_type, type), acc_vars, expected, stack, context)
+    of_logical_cond(tail, opt_union(acc_type, type), acc_vars, expected, stack, context)
   end
 
   defp of_logical_cond([], acc_type, acc_vars, _expected, _stack, _context) do
