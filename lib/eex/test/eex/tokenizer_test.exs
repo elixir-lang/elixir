@@ -270,7 +270,7 @@ defmodule EEx.TokenizerTest do
       {:text, ~c"foo ", %{column: 1, line: 1}},
       {:start_expr, ~c"", ~c" if true do ", %{column: 5, line: 1}},
       {:text, ~c"bar", %{column: 21, line: 1}},
-      {:middle_expr, ~c"", ~c" else ", %{column: 24, line: 1}},
+      {:middle_expr, ~c"", ~c" else ", %{block_identifier: :else, column: 24, line: 1}},
       {:text, ~c"baz", %{column: 34, line: 1}},
       {:end_expr, ~c"", ~c" end ", %{column: 37, line: 1}},
       {:eof, %{column: 46, line: 1}}
@@ -286,7 +286,7 @@ defmodule EEx.TokenizerTest do
     exprs = [
       {:start_expr, ~c"=", ~c" if true do ", %{column: 2, line: 1}},
       {:text, ~c"\n TRUE \n", %{column: 20, line: 1}},
-      {:middle_expr, ~c"", ~c" else ", %{column: 3, line: 3}},
+      {:middle_expr, ~c"", ~c" else ", %{block_identifier: :else, column: 3, line: 3}},
       {:text, ~c"\n FALSE \n", %{column: 13, line: 3}},
       {:end_expr, ~c"", ~c" end ", %{column: 3, line: 5}},
       {:eof, %{column: 3, line: 7}}

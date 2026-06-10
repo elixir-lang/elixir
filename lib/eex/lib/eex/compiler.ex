@@ -79,7 +79,7 @@ defmodule EEx.Compiler do
         {:error, message <> code_snippet(state.source, state.indentation, meta), meta}
 
       {:ok, expr, new_line, new_column, rest} ->
-        {key, expr} =
+        {key, expr, extra_meta} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
             {:ok, _line, _column, _warnings, rev_tokens, []} ->
               # We ignore warnings because the code will be tokenized
@@ -87,7 +87,7 @@ defmodule EEx.Compiler do
               token_key(rev_tokens, expr)
 
             {:error, _, _, _, _} ->
-              {:expr, expr}
+              {:expr, expr, %{}}
           end
 
         marker =
@@ -102,8 +102,8 @@ defmodule EEx.Compiler do
             marker
           end
 
-        token = {key, marker, expr, %{line: line, column: column}}
-        trim_and_tokenize(rest, new_line, new_column, state, buffer, acc, &[token | &1])
+        token = {key, marker, expr, Map.merge(%{line: line, column: column}, extra_meta)}
+        trim_and_tokenize(rest, new_line, new_column, state, buffer, acc, &merge_token(token, &1))
     end
   end
 
@@ -125,6 +125,27 @@ defmodule EEx.Compiler do
 
     acc = tokenize_text(buffer, acc)
     tokenize(rest, line, column, state, [{line, column}], fun.(acc))
+  end
+
+  # Merge middle expressions separated only by whitespace so the whitespace is
+  # part of the Elixir expression, not a separate EEx body.
+  defp merge_token(
+         {:middle_expr, ~c"", chars, meta},
+         [{:text, text, text_meta}, {:middle_expr, ~c"", prev_chars, prev_meta} | acc]
+       ) do
+    if only_spaces?(text) and clause_block_identifier?(prev_meta) do
+      [{:middle_expr, ~c"", prev_chars ++ text ++ chars, prev_meta} | acc]
+    else
+      [
+        {:middle_expr, ~c"", chars, meta},
+        {:text, text, text_meta},
+        {:middle_expr, ~c"", prev_chars, prev_meta} | acc
+      ]
+    end
+  end
+
+  defp merge_token(token, acc) do
+    [token | acc]
   end
 
   # Retrieve marker for <%
@@ -177,31 +198,31 @@ defmodule EEx.Compiler do
   defp token_key(rev_tokens, expr) do
     case {Enum.reverse(rev_tokens), drop_eol(rev_tokens)} do
       {[{:end, _} | _], [{:do, _} | _]} ->
-        {:middle_expr, expr}
+        {:middle_expr, expr, %{}}
 
       {_, [{:do, _} | _]} ->
-        {:start_expr, maybe_append_space(expr)}
+        {:start_expr, maybe_append_space(expr), %{}}
 
-      {_, [{:block_identifier, _, _} | _]} ->
-        {:middle_expr, maybe_append_space(expr)}
+      {_, [{:block_identifier, _, identifier} | _]} ->
+        {:middle_expr, maybe_append_space(expr), %{block_identifier: identifier}}
 
       {[{:end, _} | _], [{:stab_op, _, _} | _]} ->
-        {:middle_expr, expr}
+        {:middle_expr, expr, %{}}
 
       {_, [{:stab_op, _, _} | reverse_tokens]} ->
         fn_index = Enum.find_index(reverse_tokens, &match?({:fn, _}, &1)) || :infinity
         end_index = Enum.find_index(reverse_tokens, &match?({:end, _}, &1)) || :infinity
 
         if end_index > fn_index do
-          {:start_expr, expr}
+          {:start_expr, expr, %{}}
         else
-          {:middle_expr, expr}
+          {:middle_expr, expr, %{}}
         end
 
       {tokens, _} ->
         case Enum.drop_while(tokens, &closing_bracket?/1) do
-          [{:end, _} | _] -> {:end_expr, expr}
-          _ -> {:expr, expr}
+          [{:end, _} | _] -> {:end_expr, expr, %{}}
+          _ -> {:expr, expr, %{}}
         end
     end
   end
@@ -475,6 +496,12 @@ defmodule EEx.Compiler do
   defp only_spaces?(chars) do
     Enum.all?(chars, &(&1 in @all_spaces))
   end
+
+  defp clause_block_identifier?(%{block_identifier: identifier}) do
+    identifier in [:else, :rescue, :catch]
+  end
+
+  defp clause_block_identifier?(_meta), do: false
 
   # Changes placeholder to real expression
 
