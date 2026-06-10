@@ -3392,10 +3392,35 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(GenServer.__info__(:struct)) == atom([nil])
 
       assert typecheck!(URI.__info__(:struct)) ==
-               list(closed_map(default: if_set(term()), field: atom()))
+               list(
+                 closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
+               )
 
       assert typecheck!([x], x.__info__(:struct)) ==
-               list(closed_map(default: if_set(term()), field: atom())) |> union(atom([nil]))
+               list(
+                 closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
+               )
+               |> union(atom([nil]))
+
+      # Regression test comparing type keys against runtime map keys.
+      {:list, _, [{:%{}, _, type_pairs}]} = to_quoted(typecheck!(URI.__info__(:struct)))
+
+      type_keys =
+        type_pairs
+        |> Enum.map(fn
+          {{:__block__, _, [key]}, _value} -> key
+          {key, _value} when is_atom(key) -> key
+        end)
+        |> Enum.sort()
+
+      runtime_keys =
+        URI.__info__(:struct)
+        |> Enum.flat_map(&Map.keys/1)
+        |> Enum.uniq()
+        |> Enum.sort()
+
+      assert runtime_keys -- type_keys == []
+      assert type_keys -- runtime_keys == []
     end
 
     test "behaviour_info/1" do
