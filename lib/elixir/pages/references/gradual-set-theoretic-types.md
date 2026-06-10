@@ -231,11 +231,47 @@ Inferring type signatures comes with a series of trade-offs:
 
   * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide "module type inference": our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies, while calls to modules within the same project are assumed to be `dynamic()`. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide type inference across dependencies: our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies, while calls to modules within the same project are assumed to be `dynamic()`. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
 
 Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing, without requiring any effort from them and keeping the expressiveness of the language.
 
-In the long term, Elixir developers who want static typing guarantees must explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages.
+In the long term, Elixir developers who want static typing guarantees may explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages.
+
+### False positives
+
+Elixir's type inference generally avoids emitting false positive type violations: which are warnings emitted by the type checker when there are no runtime errors. However, in some situations, those may happen and are documented below.
+
+#### `for`-comprehensions assume they are executed at least once
+
+For comprehensions in Elixir assume they are executed at least once. Take this code:
+
+```elixir
+def example(x, list) do
+  for _i <- list do
+    Atom.to_string(x)
+  end
+
+  x + 1
+end
+```
+
+`x + 1` will fail because it assumes `x` is an atom from the `Atom.to_string(x)` call, even though the function may raise no runtime error if `list` is an empty list. This is intentional, as it helps find discrepancies inside and outside comprehensions. You can address this by explicitly wrapping the comprehension in a `if list != [] do` block (or similar condition).
+
+#### Struct update syntax must be statically proven
+
+Elixir will warn if you use the struct update syntax and it is not statically proven that the given value does not have said struct type. For example:
+
+```elixir
+user = find_user_by_id(42)
+%User{user | name: "John Doe"}
+```
+
+Even though it is guaranteed at runtime that user is always a `User` struct. If the type system cannot prove it, it will emit a typing violation. This is how stuct updates work by design. In such cases, you can address it by matching on the struct when the user variable is defined:
+
+```elixir
+%User{} = user = find_user_by_id(42)
+%User{user | name: "John Doe"}
+```
 
 ## Roadmap
 
