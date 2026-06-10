@@ -3450,5 +3450,17 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic() or binary()
     end
+
+    defguard is_pair(x) when is_tuple(x) and tuple_size(x) == 2
+
+    test "cond with custom guard" do
+      assert typecheck!(
+               [x],
+               cond do
+                 is_pair(x) -> :pair
+                 is_atom(x) -> :atom
+               end
+             ) == atom([:pair, :atom])
+    end
   end
 end

@@ -347,9 +347,9 @@ defmodule Module.Types.Expr do
     cache_result(meta, stack, context, fn ->
       {body_type, acc_context} =
         reduce_non_empty(clauses, {none(), context}, fn
-          {:->, meta, [[head], body]}, {acc, context}, last? ->
+          {:->, meta, [[head], body]}, {acc, initial_context}, last? ->
             {head_type, context} =
-              of_expr(head, term(), head, %{stack | reverse_arrow: :cache}, context)
+              of_expr(head, term(), head, %{stack | reverse_arrow: :cache}, initial_context)
 
             context =
               maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?)
@@ -360,9 +360,8 @@ defmodule Module.Types.Expr do
             # Keep the context except the warnings, and compute the body
             truthy_context = reset_warnings(truthy_context, context)
             {body_type, body_context} = of_expr(body, expected, expr, stack, truthy_context)
-
             # Reset the context vars to the head definition to compute the falsy type
-            context = Of.reset_vars(body_context, context)
+            context = Of.reset_vars(body_context, initial_context)
 
             context =
               if last? do
