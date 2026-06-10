@@ -3405,7 +3405,6 @@ defmodule Module.Types.ExprTest do
                  closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
                )
                |> opt_union(atom([nil]))
-
     end
 
     test "behaviour_info/1" do
