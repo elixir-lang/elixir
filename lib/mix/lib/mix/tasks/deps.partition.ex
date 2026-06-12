@@ -26,7 +26,16 @@ defmodule Mix.Tasks.Deps.Partition do
     {:ok, {_ip, port}} = :inet.sockname(socket)
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
     force_flag = if force?, do: ~c"--force", else: ~c"--no-force"
-    config = Mix.ProjectStack.peek() |> :erlang.term_to_binary() |> Base.url_encode64()
+
+    config =
+      %{
+        project_stack: Mix.ProjectStack.peek(),
+        compiler_options: Code.compiler_options(),
+        code_path: :code.get_path()
+      }
+      |> :erlang.term_to_binary()
+      |> Base.url_encode64()
+
     tmp_dir = System.tmp_dir()
 
     {config_flag, config_value} =
@@ -252,7 +261,7 @@ defmodule Mix.Tasks.Deps.Partition do
     args = System.argv()
     {opts, []} = OptionParser.parse!(args, strict: @switches)
 
-    peek =
+    payload =
       if config_file = Keyword.get(opts, :config_file) do
         File.read!(config_file)
       else
@@ -260,6 +269,10 @@ defmodule Mix.Tasks.Deps.Partition do
       end
       |> Base.url_decode64!()
       |> :erlang.binary_to_term()
+
+    %{project_stack: peek, compiler_options: compiler_options, code_path: code_path} = payload
+    :code.set_path(code_path)
+    Code.compiler_options(compiler_options)
 
     # This is specific to Mix.install/2 and how it handles compile-time config
     if compile_config = peek.config[:compile_config] do

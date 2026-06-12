@@ -293,10 +293,41 @@ defmodule Mix.Tasks.DepsTest do
       """)
 
       Mix.Project.in_project(:par_sample, ".", fn _ ->
-        output = ExUnit.CaptureIO.capture_io(fn -> Mix.Tasks.Deps.Compile.run([]) end)
-        assert output =~ ~r/\d> Generated git_repo app/
-        assert output =~ ~r/\d> Generated raw_repo app/
-        assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
+        File.mkdir!("tracers")
+
+        File.write!("tracers/par_deps_tracer.ex", """
+        defmodule ParDepsTracer do
+          def trace({:compile_env, _, _, _}, _env) do
+            File.write!("tracer.out", "traced")
+          end
+
+          def trace(_event, _env) do
+            :ok
+          end
+        end
+        """)
+
+        {:ok, _, _} =
+          Kernel.ParallelCompiler.compile_to_path(
+            ["tracers/par_deps_tracer.ex"],
+            "tracers",
+            return_diagnostics: true
+          )
+
+        previous_path = :code.get_path()
+        :code.add_patha(~c"tracers")
+        previous_options = Code.compiler_options(tracers: [ParDepsTracer])
+
+        try do
+          output = ExUnit.CaptureIO.capture_io(fn -> Mix.Tasks.Deps.Compile.run([]) end)
+          assert output =~ ~r/\d> Generated git_repo app/
+          assert output =~ ~r/\d> Generated raw_repo app/
+          assert File.read!("custom/raw_repo/tracer.out") == "traced"
+          assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
+        after
+          Code.compiler_options(previous_options)
+          :code.set_path(previous_path)
+        end
       end)
     end)
   after
