@@ -20,6 +20,7 @@ defmodule Module.ParallelChecker do
           {:max_concurrency, pos_integer()}
           | {:long_verification_threshold, pos_integer()}
           | {:each_long_verification, (module() -> term()) | (module(), pid() -> term())}
+          | {:profile, :time}
           | {atom(), term()}
         ]
 
@@ -117,13 +118,13 @@ defmodule Module.ParallelChecker do
             send(checker, {ref, :cached})
 
             receive do
-              {^ref, :check} ->
+              {^ref, :check, profile} ->
                 # Set the compiler info so we can collect warnings
                 :erlang.put(:elixir_compiler_info, {pid, self()})
 
                 {warnings, errors} =
                   if module_tuple do
-                    check_module(module_tuple, {checker, table}, log?)
+                    check_module(module_tuple, {checker, table}, log?, profile)
                   else
                     {[], []}
                   end
@@ -262,7 +263,7 @@ defmodule Module.ParallelChecker do
 
   ## Module checking
 
-  defp check_module(module_tuple, cache, log?) do
+  defp check_module(module_tuple, cache, log?, profile) do
     {module, file, line, definitions, no_warn_undefined, behaviours, impls, attrs, after_verify} =
       module_tuple
 
@@ -276,9 +277,13 @@ defmodule Module.ParallelChecker do
         definitions
       )
 
+    type_warnings =
+      profile(module, profile, fn ->
+        Module.Types.warnings(module, file, attrs, definitions, no_warn_undefined, cache)
+      end)
+
     {warnings, errors} =
-      module
-      |> Module.Types.warnings(file, attrs, definitions, no_warn_undefined, cache)
+      type_warnings
       |> Kernel.++(behaviour_warnings)
       |> group_diagnostics()
       |> emit_diagnostics(file, log?)
@@ -577,6 +582,7 @@ defmodule Module.ParallelChecker do
       schedulers: schedulers,
       threshold: threshold,
       callback: callback,
+      profile: Keyword.get(options, :profile),
       protocols: [],
       table: table
     }
@@ -653,9 +659,24 @@ defmodule Module.ParallelChecker do
   end
 
   defp run_checkers(%{modules: [{module, pid, ref} | modules]} = state) do
-    send(pid, {ref, :check})
+    send(pid, {ref, :check, state.profile})
     timer = :erlang.send_after(state.threshold, self(), {__MODULE__, :timeout, module, pid})
     spawned = Map.put(state.spawned, module, timer)
     run_checkers(%{state | modules: modules, spawned: spawned})
+  end
+
+  defp profile(module, :time, fun) do
+    {time, result} = :timer.tc(fun)
+
+    IO.puts(
+      :stderr,
+      "[profile] Type checked #{inspect(module)} in #{div(time, 1000)}ms"
+    )
+
+    result
+  end
+
+  defp profile(_module, _profile, fun) do
+    fun.()
   end
 end

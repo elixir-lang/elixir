@@ -197,8 +197,8 @@ defmodule Kernel.ParallelCompiler do
       deprecation warnings, and type checking should run. Defaults to `true`.
       We recommend disabling it only for debugging purposes.
 
-    * `:profile` - if set to `:time` measure the compilation time of each compilation cycle
-       and group pass checker
+    * `:profile` - if set to `:time`, measure the compilation time of each compilation cycle,
+      each module type check, and group pass checker
 
     * `:purge_compiler_modules` - if set to `true`, automatically purge compilation modules
       after compilation (see `Code.purge_compiler_modules/0`)
