@@ -199,43 +199,43 @@ defmodule Kernel.ExpansionTest do
       assert Macro.Env.vars(env) == []
     end
 
-    test "errors on directly recursive definitions" do
+    test "errors on directly cyclic definitions" do
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{x = \{:ok, x\}\}
 
-        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        the variable "x" \(context Kernel.ExpansionTest\) depends on itself through the pattern
         """,
         fn -> expand(quote(do: {x = {:ok, x}} = :ok)) end
       )
 
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{\{x, y\} = \{y, x\}\}
 
-        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        the variable "x" \(context Kernel.ExpansionTest\) depends on itself through the pattern
         """,
         fn -> expand(quote(do: {{x, y} = {y, x}} = :ok)) end
       )
 
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{\{:x, y\} = \{x, :y\}, x = y\}
 
-        the variable "x" \(context Kernel.ExpansionTest\) is defined recursively in function of "y" \(context Kernel.ExpansionTest\)
+        the variable "x" \(context Kernel.ExpansionTest\) depends on "y" \(context Kernel.ExpansionTest\) through the pattern
         """,
         fn -> expand(quote(do: {{:x, y} = {x, :y}, x = y} = :ok)) end
       )
 
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{x = y, y = z, z = x\}
 
@@ -245,7 +245,7 @@ defmodule Kernel.ExpansionTest do
       )
     end
 
-    test "complex recursive variable definitions" do
+    test "complex cyclic variable definitions" do
       assert expand(
                quote do:
                        {%{type: type, client_id: client_id} = message,
@@ -253,7 +253,7 @@ defmodule Kernel.ExpansionTest do
              )
 
       assert_compile_error(
-        ~r"recursive variable definition in patterns",
+        ~r"cyclic variable definition in patterns",
         fn ->
           expand(
             quote do:

@@ -562,16 +562,16 @@ format_error({recursive, Vars, TypeExpr}) ->
   Message =
     case lists:map(fun({Name, Context}) -> elixir_utils:var_info(Name, Context) end, lists:sort(Vars)) of
       [Var] ->
-        io_lib:format("the variable ~ts is defined in function of itself", [Var]);
+        io_lib:format("the variable ~ts depends on itself through the pattern", [Var]);
       [Var1, Var2] ->
-        io_lib:format("the variable ~ts is defined recursively in function of ~ts", [Var1, Var2]);
+        io_lib:format("the variable ~ts depends on ~ts through the pattern", [Var1, Var2]);
       [Head | Tail] ->
         List = lists:foldl(fun(X, Acc) -> [Acc, $,, $\s, X] end, Head, Tail),
         io_lib:format("the following variables form a cycle: ~ts", [List])
     end,
 
   io_lib:format(
-    "recursive variable definition in patterns:~n~n~ts~n~n~ts",
+    "cyclic variable definition in patterns:~n~n~ts~n~n~ts",
     [Code, Message]
   );
 
