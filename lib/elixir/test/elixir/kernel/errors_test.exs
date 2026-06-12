@@ -196,11 +196,11 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "recursive variables on definition" do
+  test "cyclic variables on definition" do
     assert_compile_error(
       [
         "nofile:2:7: ",
-        "recursive variable definition in patterns:",
+        "cyclic variable definition in patterns:",
         "foo(x = y, y = z, z = x)",
         "the following variables form a cycle: \"x\", \"y\", \"z\""
       ],
