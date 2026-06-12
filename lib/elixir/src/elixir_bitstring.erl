@@ -132,7 +132,15 @@ compute_alignment(default, Size, Unit) -> compute_alignment(integer, Size, Unit)
 compute_alignment(integer, default, Unit) -> compute_alignment(integer, 8, Unit);
 compute_alignment(integer, Size, default) -> compute_alignment(integer, Size, 1);
 compute_alignment(bitstring, Size, default) -> compute_alignment(bitstring, Size, 1);
-compute_alignment(binary, _, _) -> 0;
+compute_alignment(binary, default, default) -> 0;
+compute_alignment(binary, default, Unit) when is_integer(Unit) ->
+  case Unit rem 8 of
+    0 -> 0;
+    _ -> unknown
+  end;
+compute_alignment(binary, Size, default) -> compute_alignment(binary, Size, 8);
+compute_alignment(binary, _Size, Unit) when is_integer(Unit), Unit rem 8 == 0 -> 0;
+compute_alignment(binary, _, _) -> unknown;
 compute_alignment(float, _, _) -> 0;
 compute_alignment(utf32, _, _) -> 0;
 compute_alignment(utf16, _, _) -> 0;
@@ -180,6 +188,7 @@ expand_specs(ExprType, Meta, Info, S, OriginalS, E, ExpectSize) ->
   validate_size_required(Meta, ExpectSize, ExprType, MergedType, Size, ES),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
   Alignment = compute_alignment(MergedType, Size, Unit),
+  maybe_warn_binary_alignment(Meta, MergedType, Alignment, ES),
 
   MaybeInferredSize = case {ExpectSize, MergedType, SizeAndUnit} of
     {{infer, PinnedVar}, binary, []} -> [{size, Meta, [{{'.', Meta, [erlang, byte_size]}, Meta, [PinnedVar]}]}];
@@ -307,6 +316,15 @@ validate_size_required(Meta, required, default, Type, default, E) when Type == b
 validate_size_required(_, _, _, _, _, _) ->
   ok.
 
+maybe_warn_binary_alignment(_Meta, binary, Alignment, _E)
+    when is_integer(Alignment), Alignment rem 8 == 0 ->
+  ok;
+maybe_warn_binary_alignment(Meta, binary, Alignment, E) ->
+  %% TODO: Raise on Elixir v1.25
+  elixir_errors:file_warn(Meta, E, ?MODULE, {unaligned_binary_segment, Alignment});
+maybe_warn_binary_alignment(_Meta, _Type, _Alignment, _E) ->
+  ok.
+
 size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
   function_error(Meta, E, ?MODULE, bittype_literal_bitstring),
   [];
@@ -375,6 +393,14 @@ add_spec(Key, Spec) -> [{Key, [], nil} | Spec].
 format_error({unaligned_binary, Expr}) ->
   Message = "expected ~ts to be a binary but its number of bits is not divisible by 8",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
+format_error({unaligned_binary_segment, unknown}) ->
+  "a binary segment must have a size-unit pair that is always divisible by 8. "
+  "Use bitstring instead";
+format_error({unaligned_binary_segment, Alignment}) ->
+  Message =
+    "a binary segment must have a size-unit pair divisible by 8, got a segment size of ~B bits. "
+    "Use bitstring instead",
+  io_lib:format(Message, [Alignment]);
 format_error(unsized_binary) ->
   "a binary field without size is only allowed at the end of a binary pattern, "
   "at the right side of binary concatenation and never allowed in binary generators. "

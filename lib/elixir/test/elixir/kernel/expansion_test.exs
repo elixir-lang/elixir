@@ -2508,14 +2508,21 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: <<x::13*6>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-unit(6)-size(13)>>) |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<x::_*6-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(6)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::_*6-binary>>)) |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(6)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair that is always divisible by 8"
 
-      assert expand(quote(do: <<x::13*6-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::13*6-binary>>)) |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair divisible by 8"
 
-      assert expand(quote(do: <<x::binary-(13 * 6)-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::binary-(13 * 6)-binary>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair divisible by 8"
 
       assert expand(quote(do: <<x::seventeen()>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-size(17)>>) |> clean_bit_modifiers()
@@ -2526,8 +2533,11 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: <<x::seventeen()*seventeen()>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-unit(17)-size(17)>>) |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<x::_*seventeen()-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(17)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::_*seventeen()-binary>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(17)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair that is always divisible by 8"
     end
 
     test "expands binary/bitstring specifiers" do
@@ -2544,6 +2554,18 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(quote(do: <<x::bits>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::bitstring>>) |> clean_bit_modifiers()
+
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::binary-size(1)-unit(4)>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(4)-size(1)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair divisible by 8"
+
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::binary-size(2)-unit(4)>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(4)-size(2)>>) |> clean_bit_modifiers()
+             end) == ""
 
       assert expand(quote(do: <<x::binary-little>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary>>) |> clean_bit_modifiers()
