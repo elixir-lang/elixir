@@ -156,6 +156,50 @@ defmodule Module.Types.IntegrationTest do
 
       assert itself_arg.(Itself.Unknown) == dynamic(open_map(__struct__: atom([Unknown])))
     end
+
+    test "ignores additional callbacks on implementations" do
+      files = %{
+        "p.ex" => """
+        defmodule InjectCallback do
+          defmacro __before_compile__(_env) do
+            quote do
+              @callback extra() :: term()
+            end
+          end
+        end
+
+        defprotocol Injected do
+          @before_compile InjectCallback
+          def f(x)
+        end
+
+        defimpl Injected, for: Atom do
+          def f(_), do: :ok
+          def extra(), do: :extra
+        end
+
+        defprotocol Explicit do
+          @callback extra() :: term()
+          def f(x)
+        end
+
+        defimpl Explicit, for: Atom do
+          def f(_), do: :ok
+          def extra(), do: :extra
+        end
+        """
+      }
+
+      assert capture_compile_warnings(files, []) == """
+                 warning: cannot define @callback extra/0 inside protocol, use def/1 to outline your protocol definition
+                 │
+              20 │   @callback extra() :: term()
+                 │   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                 │
+                 └─ p.ex:20: Explicit (module)
+
+             """
+    end
   end
 
   describe "type checking" do

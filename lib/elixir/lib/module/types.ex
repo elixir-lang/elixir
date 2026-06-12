@@ -136,8 +136,8 @@ defmodule Module.Types do
   defp impl_for(attrs) do
     case List.keyfind(attrs, :__impl__, 0) do
       {:__impl__, [protocol: protocol, for: for]} ->
-        if Code.ensure_loaded?(protocol) and function_exported?(protocol, :behaviour_info, 1) do
-          {for, protocol.behaviour_info(:callbacks)}
+        if Code.ensure_loaded?(protocol) and function_exported?(protocol, :__protocol__, 1) do
+          {for, protocol.__protocol__(:functions)}
         else
           nil
         end
