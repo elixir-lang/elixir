@@ -1342,9 +1342,9 @@ defmodule Keyword do
   """
   @spec pop(t, key, default) :: {value | default, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> {default, keywords}
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {value, delete_key(keywords, key)}
+      false -> {default, keywords}
     end
   end
 
@@ -1369,9 +1369,9 @@ defmodule Keyword do
   @doc since: "1.10.0"
   @spec pop!(t, key) :: {value, t}
   def pop!(keywords, key) when is_list(keywords) and is_atom(key) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> raise KeyError, key: key, term: keywords
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {value, delete_key(keywords, key)}
+      false -> raise KeyError, key: key, term: keywords
     end
   end
 
@@ -1434,9 +1434,9 @@ defmodule Keyword do
   @spec pop_lazy(t, key, (-> value)) :: {value, t}
   def pop_lazy(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> {fun.(), keywords}
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {value, delete_key(keywords, key)}
+      false -> {fun.(), keywords}
     end
   end
 
