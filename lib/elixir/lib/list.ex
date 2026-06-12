@@ -102,7 +102,7 @@ defmodule List do
   Even though the representation changed, the raw data does remain a list of
   integers, which can be handled as such:
 
-      iex> inspect(~c"abc", charlists: :as_list)
+      iex> inspect(~c"abc", charlists: :as_lists)
       "[97, 98, 99]"
       iex> Enum.map(~c"abc", fn num -> 1000 + num end)
       [1097, 1098, 1099]
