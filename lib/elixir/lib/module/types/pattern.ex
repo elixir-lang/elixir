@@ -786,8 +786,12 @@ defmodule Module.Types.Pattern do
 
   # <<...>>>
   defp of_pattern({:<<>>, _meta, args} = node, _path, stack, context) do
-    {type, context} = Of.bitstring(args, :match, stack, context)
-    {type, of_precise_bitstring?(node), context}
+    {type, reused?, context} =
+      Of.bitstring(args, :match, stack, context, false, fn segment, reused?, context ->
+        {reused? or reused_bitstring_segment?(segment, context.vars), context}
+      end)
+
+    {type, of_precise_bitstring?(node) and not reused?, context}
   end
 
   # left ++ right
@@ -985,6 +989,27 @@ defmodule Module.Types.Pattern do
     context = %{context | subpatterns: Map.put(subpatterns, key, nil)}
     {type, precise?, context} = of_pattern(arg, [{:subpattern, key} | path], stack, context)
     {type, precise?, put_in(context.subpatterns[key], of_pattern_tree(type, stack, context))}
+  end
+
+  defp reused_bitstring_segment?({:"::", _, [expr, _type]}, vars) do
+    reused_bitstring_expr?(expr, vars)
+  end
+
+  defp reused_bitstring_segment?(_segment, _vars) do
+    false
+  end
+
+  defp reused_bitstring_expr?({_, meta, _} = var, vars) when is_var(var) do
+    version = Keyword.fetch!(meta, :version)
+    is_map_key(vars, version)
+  end
+
+  defp reused_bitstring_expr?({:<<>>, _, args}, vars) do
+    Enum.any?(args, &reused_bitstring_segment?(&1, vars))
+  end
+
+  defp reused_bitstring_expr?(_expr, _vars) do
+    false
   end
 
   defp of_precise_bitstring?({:<<>>, _meta, [{:"::", _, [expr, {type, _, _}]}]})
