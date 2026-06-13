@@ -1376,6 +1376,10 @@ defmodule Module.Types.PatternTest do
       refute precise?([<<_::binary-size(8)>>])
       refute precise?([<<_::bitstring-size(8)>>])
       refute precise?([<<(<<123>>)::bits>>])
+      refute precise?([x, <<x::binary>>])
+      refute precise?([x, <<x>>])
+      refute precise?([x, <<y, x>>])
+      refute precise?([x, <<(<<x::binary>>)::binary>>])
     end
 
     test "tuples in patterns" do
