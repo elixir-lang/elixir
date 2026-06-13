@@ -266,6 +266,9 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
+  (map_get(context, E) /= nil) andalso Unquote andalso elixir_quote:has_unquotes(Exprs) andalso
+    file_error(Meta, E, ?MODULE, quote_in_pattern_with_unquote),
+
   {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
   {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
   {EContext, SC, EC} = expand(QContext, SP, EP),
@@ -1216,6 +1219,8 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
 format_error({unquote_outside_quote, Unquote}) ->
   %% Unquote can be "unquote" or "unquote_splicing".
   io_lib:format("~p called outside quote", [Unquote]);
+format_error(quote_in_pattern_with_unquote) ->
+  "unquote is not allowed when quote is used inside a pattern or guard";
 format_error({invalid_bind_quoted_for_quote, BQ}) ->
   io_lib:format("invalid :bind_quoted for quote, expected a keyword list of variable names, got: ~ts",
                 ['Elixir.Macro':to_string(BQ)]);
