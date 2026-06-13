@@ -55,6 +55,9 @@ defmodule AccessTest do
 
     assert Access.pop([foo: :bar], :foo) == {:bar, []}
     assert Access.pop([], :foo) == {nil, []}
+
+    assert Access.pop([foo: :bar], :foo, :default) == {:bar, []}
+    assert Access.pop([], :foo, :default) == {:default, []}
   end
 
   test "for maps" do
@@ -74,6 +77,9 @@ defmodule AccessTest do
 
     assert Access.pop(%{foo: :bar}, :foo) == {:bar, %{}}
     assert Access.pop(%{}, :foo) == {nil, %{}}
+
+    assert Access.pop(%{foo: :bar}, :foo, :default) == {:bar, %{}}
+    assert Access.pop(%{}, :foo, :default) == {:default, %{}}
   end
 
   test "for struct" do
@@ -100,6 +106,13 @@ defmodule AccessTest do
 
     assert_raise UndefinedFunctionError, message, fn ->
       Access.pop(struct(Sample, []), :name)
+    end
+
+    message =
+      ~r"function AccessTest.Sample.pop/3 is undefined \(AccessTest.Sample does not implement the Access behaviour"
+
+    assert_raise UndefinedFunctionError, message, fn ->
+      Access.pop(struct(Sample, []), :name, :default)
     end
   end
 

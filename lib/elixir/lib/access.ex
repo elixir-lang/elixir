@@ -482,6 +482,40 @@ defmodule Access do
     raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
   end
 
+  @doc """
+  Removes the entry with a given key from a container (a map, keyword
+  list, or struct that implements the `Access` behaviour).
+
+  Returns a tuple containing the value associated with the key and the
+  updated container. `default` is returned for the value if the key isn't
+  in the container.
+
+  Same as `pop/2` but takes a default value to be returned when the key is not found.
+  """
+  @spec pop(data, key, default) :: {value | default, data} when data: container, default: var
+  def pop(%module{} = container, key, default) do
+    module.pop(container, key, default)
+  rescue
+    exception in UndefinedFunctionError ->
+      raise_undefined_behaviour(
+        exception,
+        module,
+        {^module, :pop, [^container, ^key, ^default], _}
+      )
+  end
+
+  def pop(map, key, default) when is_map(map) do
+    Map.pop(map, key, default)
+  end
+
+  def pop(list, key, default) when is_list(list) do
+    Keyword.pop(list, key, default)
+  end
+
+  def pop(nil, key, _default) do
+    raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
+  end
+
   ## Accessors
 
   @doc """
