@@ -125,7 +125,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # If a dependency was marked as fetched or with an out of date lock
     # or missing the app file, we always compile it from scratch.
-    if force? or Mix.Dep.force_compilable?(dep) do
+    if force? or clean_before_compile?(dep) do
       File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(dep.app)]))
     end
 
@@ -400,6 +400,20 @@ defmodule Mix.Tasks.Deps.Compile do
     else
       deps
     end
+  end
+
+  # Most compilable statuses mean the dependency source, lock, app file, or build
+  # metadata changed in a way that requires removing the old build before
+  # compiling. :envoutdated is different: path dependencies can be incrementally
+  # recompiled from their existing build, but fetched dependencies must be cleaned
+  # first so stale BEAM files do not validate against the new compile environment
+  # before the dependency has a chance to rebuild.
+  defp clean_before_compile?(%Mix.Dep{status: :envoutdated, scm: scm}) do
+    scm.fetchable?()
+  end
+
+  defp clean_before_compile?(dep) do
+    Mix.Dep.compilable?(dep)
   end
 
   defp deps_compile_feedback(app) do
