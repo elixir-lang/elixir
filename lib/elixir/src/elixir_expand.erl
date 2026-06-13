@@ -3,9 +3,6 @@
 %% SPDX-FileCopyrightText: 2012 Plataformatec
 
 -module(elixir_expand).
-
--feature(maybe_expr, enable).
-
 -export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
 -import(elixir_errors, [file_error/4, module_error/4, function_error/4]).
 -include("elixir.hrl").
@@ -269,12 +266,8 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
-  maybe
-    true ?= map_get(context, E) /= nil,
-    true ?= Unquote,
-    true ?= elixir_quote:has_unquotes(Exprs),
-    file_error(Meta, E, ?MODULE, quote_in_pattern_with_unquote)
-  end,
+  (map_get(context, E) /= nil) andalso Unquote andalso elixir_quote:has_unquotes(Exprs) andalso
+    file_error(Meta, E, ?MODULE, quote_in_pattern_with_unquote),
 
   {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
   {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
