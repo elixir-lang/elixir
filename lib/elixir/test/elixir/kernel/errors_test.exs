@@ -456,6 +456,66 @@ defmodule Kernel.ErrorsTest do
                       """
   end
 
+  test "invalid unquote when quote/1 is in a pattern" do
+    assert_eval_raise ArgumentError,
+                      ["unquote/1 is not allowed when quote/1 is used inside a pattern or guard"],
+                      ~c"""
+                      defmodule Kernel.ErrorsTest.InvalidUnquoteInQuotePattern do
+                        def my_fun(ast) do
+                          case ast do
+                            quote(do: foo(unquote(x))) -> x
+                          end
+                        end
+                      end
+                      """
+  end
+
+  test "invalid unquote when quote/1 is in a guard" do
+    assert_eval_raise ArgumentError,
+                      ["unquote/1 is not allowed when quote/1 is used inside a pattern or guard"],
+                      ~c"""
+                      defmodule Kernel.ErrorsTest.InvalidUnquoteInQuoteGuard do
+                        def my_fun(ast, x) do
+                          case ast do
+                            ast when ast == quote(do: foo(unquote(x))) -> x
+                          end
+                        end
+                      end
+                      """
+  end
+
+  test "invalid unquote_splicing when quote/1 is in a pattern" do
+    assert_eval_raise ArgumentError,
+                      [
+                        "unquote_splicing/1 is not allowed when quote/1 is used inside a pattern or guard"
+                      ],
+                      ~c"""
+                      defmodule Kernel.ErrorsTest.InvalidUnquoteSplicingInQuotePattern do
+                        def my_fun(ast) do
+                          case ast do
+                            quote(do: foo(unquote_splicing(x))) -> x
+                          end
+                        end
+                      end
+                      """
+  end
+
+  test "invalid unquote_splicing when quote/1 is in a guard" do
+    assert_eval_raise ArgumentError,
+                      [
+                        "unquote_splicing/1 is not allowed when quote/1 is used inside a pattern or guard"
+                      ],
+                      ~c"""
+                      defmodule Kernel.ErrorsTest.InvalidUnquoteSplicingInQuoteGuard do
+                        def my_fun(ast, x) do
+                          case ast do
+                            ast when ast == quote(do: foo(unquote_splicing(x))) -> x
+                          end
+                        end
+                      end
+                      """
+  end
+
   test "invalid attribute" do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
 

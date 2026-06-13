@@ -315,7 +315,7 @@ is_valid(line, Line) -> is_integer(Line);
 is_valid(file, File) -> is_binary(File);
 is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
 is_valid(generated, Generated) -> is_boolean(Generated);
-is_valid(unquote, Unquote) -> is_boolean(Unquote).
+is_valid(unquote, Unquote) -> is_boolean(Unquote) orelse Unquote == raise.
 
 quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=true}) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
@@ -324,6 +324,12 @@ quote(Expr, Q) ->
   do_quote(Expr, Q).
 
 %% quote/unquote
+
+do_quote({unquote, _, [_]}, #elixir_quote{unquote=raise}) ->
+  argument_error(<<"unquote/1 is not allowed when quote/1 is used inside a pattern or guard">>);
+
+do_quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=raise}) ->
+  argument_error(<<"unquote_splicing/1 is not allowed when quote/1 is used inside a pattern or guard">>);
 
 do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),

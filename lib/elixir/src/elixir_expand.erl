@@ -263,7 +263,12 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
       {[], true}
   end,
 
-  Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
+  Unquote = case E of
+    #{context := nil} -> proplists:get_value(unquote, EOpts, DefaultUnquote);
+    % unquote=raise when quote/1 is called in a guard or pattern
+    _ -> raise
+  end,
+
   Generated = proplists:get_value(generated, EOpts, false),
 
   {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
