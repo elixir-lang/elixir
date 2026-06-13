@@ -549,47 +549,30 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def bitstring(args, kind, stack, context) do
-    {type, nil, context} =
-      bitstring(args, kind, stack, context, nil, fn _segment, nil, context ->
-        {nil, context}
-      end)
-
-    {type, context}
+  def bitstring([], _kind, _stack, context) do
+    {binary(), context}
   end
 
-  def bitstring(args, kind, stack, context, acc, fun) when is_function(fun, 3) do
-    do_bitstring(args, kind, stack, context, acc, fun)
+  def bitstring([head], kind, stack, context) do
+    {alignment, context} = bitstring_segment(head, kind, [head], stack, context)
+    {alignment_to_type(alignment), context}
   end
 
-  defp do_bitstring([], _kind, _stack, context, acc, _fun) do
-    {binary(), acc, context}
+  def bitstring([head | tail], kind, stack, context) do
+    {alignment, context} = bitstring_segment(head, kind, [head, @suffix], stack, context)
+    bitstring_tail(tail, alignment, kind, stack, context)
   end
 
-  defp do_bitstring([head], kind, stack, context, acc, fun) do
-    {alignment, acc, context} = bitstring_segment(head, kind, [head], stack, context, acc, fun)
-    {alignment_to_type(alignment), acc, context}
+  defp bitstring_tail([last], alignment, kind, stack, context) do
+    {seg_alignment, context} = bitstring_segment(last, kind, [@prefix, last], stack, context)
+    {alignment_to_type(alignment(seg_alignment, alignment)), context}
   end
 
-  defp do_bitstring([head | tail], kind, stack, context, acc, fun) do
-    {alignment, acc, context} =
-      bitstring_segment(head, kind, [head, @suffix], stack, context, acc, fun)
+  defp bitstring_tail([head | tail], alignment, kind, stack, context) do
+    {seg_alignment, context} =
+      bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
 
-    bitstring_tail(tail, alignment, kind, stack, context, acc, fun)
-  end
-
-  defp bitstring_tail([last], alignment, kind, stack, context, acc, fun) do
-    {seg_alignment, acc, context} =
-      bitstring_segment(last, kind, [@prefix, last], stack, context, acc, fun)
-
-    {alignment_to_type(alignment(seg_alignment, alignment)), acc, context}
-  end
-
-  defp bitstring_tail([head | tail], alignment, kind, stack, context, acc, fun) do
-    {seg_alignment, acc, context} =
-      bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context, acc, fun)
-
-    bitstring_tail(tail, alignment(seg_alignment, alignment), kind, stack, context, acc, fun)
+    bitstring_tail(tail, alignment(seg_alignment, alignment), kind, stack, context)
   end
 
   defp alignment(left, right) when is_integer(left) and is_integer(right), do: left + right
@@ -599,15 +582,9 @@ defmodule Module.Types.Of do
   defp alignment_to_type(integer) when rem(integer, 8) == 0, do: binary()
   defp alignment_to_type(_integer), do: bitstring_no_binary()
 
-  defp bitstring_segment(segment, kind, args, stack, context, acc, fun) do
-    {acc, context} = fun.(segment, acc, context)
-    {alignment, context} = do_bitstring_segment(segment, kind, args, stack, context)
-    {alignment, acc, context}
-  end
-
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just check the size.
-  defp do_bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
+  defp bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
     {_type, alignment_type} = specifier_type(kind, right)
     {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
@@ -622,7 +599,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp do_bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
+  defp bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
     {type, alignment_type} = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 

@@ -1380,6 +1380,10 @@ defmodule Module.Types.PatternTest do
       refute precise?([x, <<x>>])
       refute precise?([x, <<y, x>>])
       refute precise?([x, <<(<<x::binary>>)::binary>>])
+      refute precise?([<<x::binary>>, x])
+      refute precise?([<<x>>, x])
+      refute precise?([<<y, x>>, x])
+      refute precise?([<<(<<x::binary>>)::binary>>, x])
     end
 
     test "tuples in patterns" do
