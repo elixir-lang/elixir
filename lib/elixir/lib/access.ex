@@ -226,6 +226,8 @@ defmodule Access do
     end
   end
 
+  defguardp is_probably_keyword(list) when list == [] or is_atom(elem(hd(list), 0))
+
   @doc """
   Fetches the value for the given key in a container (a map, keyword
   list, or struct that implements the `Access` behaviour).
@@ -485,7 +487,7 @@ defmodule Access do
   ## Accessors
 
   @doc """
-  Returns a function that accesses the given key in a map/struct.
+  Returns a function that accesses the given key in a map/struct/keyword list.
 
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
@@ -514,30 +516,56 @@ defmodule Access do
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
       {"john", %{user: %{}}}
 
-  An error is raised if the accessed structure is not a map or a struct:
+      iex> keyword = [user: [name: "john"]]
+      iex> get_in(keyword, [Access.key(:unknown, []), Access.key(:name, "john")])
+      "john"
+      iex> get_and_update_in(keyword, [Access.key(:user), Access.key(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [user: [name: "JOHN"]]}
+      iex> pop_in(keyword, [Access.key(:user), Access.key(:name)])
+      {"john", [user: []]}
 
-      iex> get_in([], [Access.key(:foo)])
-      ** (BadMapError) expected a map, got:
-      ...
+  An error is raised if the accessed structure is not a map, struct, or keyword list:
+
+      iex> get_in(123, [Access.key(:foo)])
+      ** (RuntimeError) Access.key/2 expected a map/struct/keyword list, got: ...
+
+      iex> put_in([1, 2, 3], [Access.key(:foo)], :bar)
+      ** (RuntimeError) Access.key/2 expected a map/struct/keyword list, got: ...
   """
-  @spec key(key, term) :: access_fun(data :: struct | map, current_value :: term)
+  @spec key(key, term) :: access_fun(data :: struct | map | keyword, current_value :: term)
   def key(key, default \\ nil) do
     fn
-      :get, data, next ->
+      :get, %{} = data, next ->
         next.(Map.get(data, key, default))
 
-      :get_and_update, data, next ->
+      :get_and_update, %{} = data, next ->
         value = Map.get(data, key, default)
 
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
         end
+
+      :get, data, next when is_probably_keyword(data) ->
+        next.(Keyword.get(data, key, default))
+
+      :get_and_update, data, next when is_probably_keyword(data) ->
+        value = Keyword.get(data, key, default)
+
+        case next.(value) do
+          {get, update} -> {get, Keyword.put(data, key, update)}
+          :pop -> {value, Keyword.delete(data, key)}
+        end
+
+      _op, data, _next ->
+        raise "Access.key/2 expected a map/struct/keyword list, got: #{inspect(data)}"
     end
   end
 
   @doc """
-  Returns a function that accesses the given key in a map/struct.
+  Returns a function that accesses the given key in a map/struct/keyword list.
 
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
@@ -545,6 +573,19 @@ defmodule Access do
   Similar to `key/2`, but the returned function raises if the key does not exist.
 
   ## Examples
+
+      iex> keyword = [user: [name: "john"]]
+      iex> get_in(keyword, [Access.key!(:user), Access.key!(:name)])
+      "john"
+      iex> get_and_update_in(keyword, [Access.key!(:user), Access.key!(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [user: [name: "JOHN"]]}
+      iex> pop_in(keyword, [Access.key!(:user), Access.key!(:name)])
+      {"john", [user: []]}
+      iex> get_in(keyword, [Access.key!(:user), Access.key!(:unknown)])
+      ** (KeyError) key :unknown not found in:
+      ...
 
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:name)])
@@ -574,13 +615,15 @@ defmodule Access do
   `Access.key!/1` is useful when the key is not known in advance
   and must be accessed dynamically.
 
-  An error is raised if the accessed structure is not a map/struct:
+  An error is raised if the accessed structure is not a map/struct/keyword list:
 
-      iex> get_in([], [Access.key!(:foo)])
-      ** (RuntimeError) Access.key!/1 expected a map/struct, got: []
+      iex> get_in(123, [Access.key!(:foo)])
+      ** (RuntimeError) Access.key!/1 expected a map/struct/keyword list, got: 123
 
+      iex> put_in([1, 2, 3], [Access.key!(:foo)], :bar)
+      ** (RuntimeError) Access.key!/1 expected a map/struct/keyword list, got: ...
   """
-  @spec key!(key) :: access_fun(data :: struct | map, current_value :: term)
+  @spec key!(key) :: access_fun(data :: struct | map | keyword, current_value :: term)
   def key!(key) do
     fn
       :get, %{} = data, next ->
@@ -594,8 +637,19 @@ defmodule Access do
           :pop -> {value, Map.delete(data, key)}
         end
 
+      :get, data, next when is_probably_keyword(data) ->
+        next.(Keyword.fetch!(data, key))
+
+      :get_and_update, data, next when is_probably_keyword(data) ->
+        value = Keyword.fetch!(data, key)
+
+        case next.(value) do
+          {get, update} -> {get, Keyword.put(data, key, update)}
+          :pop -> {value, Keyword.delete(data, key)}
+        end
+
       _op, data, _next ->
-        raise "Access.key!/1 expected a map/struct, got: #{inspect(data)}"
+        raise "Access.key!/1 expected a map/struct/keyword list, got: #{inspect(data)}"
     end
   end
 
