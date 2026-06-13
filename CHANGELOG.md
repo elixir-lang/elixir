@@ -488,6 +488,12 @@ def some_fun, do: ~r/foo/
   * [mix test] `:warnings_as_errors` configuration in `:test_elixirc_options` is deprecated. Instead pass the `--warnings-as-errors` flag to `mix test`. Alternatively, you might alias the task: `aliases: [test: "test --warnings-as-errors"]`
   * [Mix.Tasks.Compile] Deprecate `compilers/0` in favor of `Mix.Task.Compiler.compilers/0`
 
+### 5. Potential breaking changes
+
+#### Elixir
+
+  * [Kernel] Using unquote is deprecated when quote is used inside a pattern or guard
+
 ## v1.17
 
 The CHANGELOG for v1.17 releases can be found [in the v1.17 branch](https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md).
