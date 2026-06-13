@@ -173,16 +173,20 @@ defmodule MapSet do
   def symmetric_difference(%MapSet{map: set1} = map_set1, %MapSet{map: set2} = _map_set2) do
     {small, large} = if :sets.size(set1) <= :sets.size(set2), do: {set1, set2}, else: {set2, set1}
 
-    disjointer_fun = fn elem, {small, acc} ->
-      if :sets.is_element(elem, small) do
-        {:sets.del_element(elem, small), acc}
-      else
-        {small, [elem | acc]}
-      end
-    end
+    map =
+      :sets.fold(
+        fn elem, acc ->
+          if :sets.is_element(elem, acc) do
+            :sets.del_element(elem, acc)
+          else
+            :sets.add_element(elem, acc)
+          end
+        end,
+        large,
+        small
+      )
 
-    {new_small, list} = :sets.fold(disjointer_fun, {small, []}, large)
-    %{map_set1 | map: :sets.union(new_small, :sets.from_list(list, version: 2))}
+    %{map_set1 | map: map}
   end
 
   @doc """
