@@ -486,20 +486,12 @@ defmodule Mix.Dep do
   @doc """
   Returns `true` if the dependency is compilable.
   """
+  def compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
+  def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: :compile}), do: true
   def compilable?(%Mix.Dep{status: :envoutdated}), do: true
-  def compilable?(dep), do: force_compilable?(dep)
-
-  @doc """
-  Returns `true` if the dependency is force compilable.
-
-  This is a subset of compilable. This is used in `deps.compile` to
-  clean the build path before compiling.
-  """
-  def force_compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
-  def force_compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
-  def force_compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
-  def force_compilable?(%Mix.Dep{status: :compile}), do: true
-  def force_compilable?(_), do: false
+  def compilable?(_), do: false
 
   @doc """
   Formats a dependency for printing.

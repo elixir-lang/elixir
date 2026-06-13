@@ -73,6 +73,18 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule FetchableGitRepoDepApp do
+    def project do
+      [
+        app: :git_sample,
+        version: "0.1.0",
+        deps: [
+          {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+        ]
+      ]
+    end
+  end
+
   ## deps
 
   test "prints list of dependencies and their status alphabetically" do
@@ -910,7 +922,51 @@ defmodule Mix.Tasks.DepsTest do
       assert Application.spec(:raw_repo, :vsn)
     end)
   after
-    Application.delete_env(:raw_repo, :compile_env, persistent: true)
+    Application.delete_env(:anyapp, :anything, persistent: true)
+  end
+
+  test "recompiles fetchable dependencies when compile env changed" do
+    in_fixture("deps_status", fn ->
+      File.mkdir_p!("config")
+      File.write!("config/config.exs", "import Config\n")
+
+      Mix.Project.push(FetchableGitRepoDepApp)
+      Mix.Tasks.Deps.Get.run([])
+
+      File.write!("deps/git_repo/lib/git_repo.ex", """
+      Application.compile_env(:anyapp, :anything)
+
+      defmodule GitRepo do
+        def hello do
+          "World"
+        end
+      end
+      """)
+
+      Mix.Tasks.Loadconfig.load_compile("config/config.exs")
+      Mix.Task.run("compile", [])
+      assert Application.spec(:git_repo, :vsn)
+
+      File.write!("config/config.exs", """
+      import Config
+      config :anyapp, :anything, :anyvalue
+      """)
+
+      Application.unload(:git_repo)
+      Mix.ProjectStack.pop()
+      Mix.Task.clear()
+      Mix.Project.push(FetchableGitRepoDepApp)
+      purge([GitRepo])
+      Mix.Tasks.Loadconfig.load_compile("config/config.exs")
+
+      Mix.Task.run("compile", [])
+
+      assert_receive {:mix_shell, :info, ["Generated git_repo app"]}
+      assert Application.spec(:git_repo, :vsn)
+    end)
+  after
+    Application.delete_env(:anyapp, :anything, persistent: true)
+    purge([GitRepo, GitRepo.MixProject])
   end
 
   test "does not compile deps that have explicit option" do
