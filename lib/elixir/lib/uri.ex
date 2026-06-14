@@ -1090,15 +1090,18 @@ defimpl String.Chars, for: URI do
           ":path in URI must be empty or an absolute path if URL has a :host, got: #{inspect(uri)}"
   end
 
-  def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
-    uri =
-      case scheme && URI.default_port(scheme) do
-        ^port -> %{uri | port: nil}
-        _ -> uri
-      end
-
+  def to_string(%{
+        host: host,
+        authority: authority,
+        userinfo: userinfo,
+        scheme: scheme,
+        port: port,
+        path: path,
+        query: query,
+        fragment: fragment
+      }) do
     # Based on https://tools.ietf.org/html/rfc3986#section-5.3
-    authority = extract_authority(uri)
+    authority = extract_authority(host, authority, scheme, userinfo, port)
 
     IO.iodata_to_binary([
       if(scheme, do: [scheme, ?:], else: []),
@@ -1109,19 +1112,23 @@ defimpl String.Chars, for: URI do
     ])
   end
 
-  defp extract_authority(%{host: nil, authority: authority}) do
+  defp extract_authority(_host = nil, authority, _scheme, _userinfo, _port) do
     authority
   end
 
-  defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
+  defp extract_authority(host, _authority, scheme, userinfo, port) do
     # According to the grammar at
     # https://tools.ietf.org/html/rfc3986#appendix-A, a "host" can have a colon
     # in it only if it's an IPv6 or "IPvFuture" address, so if there's a colon
     # in the host we can safely surround it with [].
+
     [
       if(userinfo, do: [userinfo | "@"], else: []),
       if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
-      if(port, do: [":" | Integer.to_string(port)], else: [])
+      if(port != nil and (is_nil(scheme) or URI.default_port(scheme) != port),
+        do: [":" | Integer.to_string(port)],
+        else: []
+      )
     ]
   end
 end
