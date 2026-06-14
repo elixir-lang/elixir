@@ -751,6 +751,44 @@ defmodule Module.Types.IntegrationTest do
       purge(A)
     end
 
+    test "does not crash on redefined module with newly added struct" do
+      Code.compile_string("""
+      defmodule RedefinedNestedStruct.Inner do
+        def foo(), do: :nothing
+      end
+      """)
+
+      files = %{
+        "redefined.ex" => """
+        defmodule RedefinedNestedStruct.Inner do
+          defstruct [:value]
+
+          def foo(), do: %__MODULE__{value: 1}
+        end
+        """
+      }
+
+      in_tmp(fn ->
+        paths = generate_files(files)
+
+        {result, _stderr} =
+          with_io(:stderr, fn ->
+            Kernel.ParallelCompiler.compile_to_path(paths, ".", return_diagnostics: true)
+          end)
+
+        assert {:error, errors, %{compile_warnings: warnings, runtime_warnings: []}} = result
+
+        assert [%{message: "struct RedefinedNestedStruct.Inner is undefined " <> _}] = errors
+
+        assert Enum.any?(
+                 warnings,
+                 &(&1.message =~ "redefining module RedefinedNestedStruct.Inner")
+               )
+      end)
+    after
+      purge(RedefinedNestedStruct.Inner)
+    end
+
     @tag :require_ast
     test "regressions" do
       files = %{
