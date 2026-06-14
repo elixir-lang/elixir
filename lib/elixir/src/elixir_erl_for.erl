@@ -320,6 +320,7 @@ no_var_expr(Ann, {string, _, String}) -> [{var, Ann, '_'} || _ <- String];
 no_var_expr(Ann, _) -> [{var, Ann, '_'}].
 
 no_var_size(default) -> default;
+no_var_size({integer, _, _} = Size) -> Size;
 no_var_size(Size) when is_integer(Size) -> Size;
 no_var_size(_) -> throw(unbound_size).
 

@@ -520,6 +520,15 @@ defmodule Kernel.ComprehensionTest do
     assert for(<<s, x::size(s * 8) <- bin>>, into: %{}, do: {s, x}) == %{1 => 1, 2 => 515}
   end
 
+  test "binary for comprehensions with chunk matching" do
+    bin = <<0, 1, 255, 2, 0, 3, 0, 1>>
+
+    assert for(<<0::8, x::8 <- bin>>, do: x) == [1, 3, 1]
+    assert for(<<0::8, x::8 <- bin>>, uniq: true, do: x) == [1, 3]
+    assert for(<<0::8, x::8 <- bin>>, into: "", do: <<x>>) == <<1, 3, 1>>
+    assert for(<<0::8, x::8 <- bin>>, into: %{}, do: {x, x}) == %{1 => 1, 3 => 3}
+  end
+
   test "binary for comprehensions where value is not used" do
     bin = <<1, 2, 3>>
 
