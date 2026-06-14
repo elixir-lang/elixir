@@ -175,10 +175,7 @@ defmodule MapSet do
       if :sets.is_disjoint(set1, set2) do
         :sets.union(set1, set2)
       else
-        {small, large} =
-          if :sets.size(set1) <= :sets.size(set2), do: {set1, set2}, else: {set2, set1}
-
-        :sets.union(:sets.subtract(large, small), :sets.subtract(small, large))
+        :sets.union(:sets.subtract(set1, set2), :sets.subtract(set2, set1))
       end
 
     %{map_set1 | map: map}
