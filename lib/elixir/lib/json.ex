@@ -154,23 +154,21 @@ end
 
 defimpl JSON.Encoder, for: Map do
   def encode(value, encoder) do
-    case :maps.next(:maps.iterator(value)) do
-      :none ->
+    case :maps.to_list(value) do
+      [] ->
         "{}"
 
-      {key, value, iterator} ->
-        [?{, key(key, encoder), ?:, encoder.(value, encoder) | next(iterator, encoder)]
+      [{key, value} | rest] ->
+        [?{, key(key, encoder), ?:, encoder.(value, encoder) | next(rest, encoder)]
     end
   end
 
-  defp next(iterator, encoder) do
-    case :maps.next(iterator) do
-      :none ->
-        "}"
+  defp next([], _encoder) do
+    "}"
+  end
 
-      {key, value, iterator} ->
-        [?,, key(key, encoder), ?:, encoder.(value, encoder) | next(iterator, encoder)]
-    end
+  defp next([{key, value} | rest], encoder) do
+    [?,, key(key, encoder), ?:, encoder.(value, encoder) | next(rest, encoder)]
   end
 
   # Erlang supports only numbers, binaries, and atoms as keys,
