@@ -1125,7 +1125,7 @@ defimpl String.Chars, for: URI do
     [
       if(userinfo, do: [userinfo | "@"], else: []),
       if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
-      if(port && (is_nil(scheme) || URI.default_port(scheme) != port),
+      if(port != nil and (is_nil(scheme) or URI.default_port(scheme) != port),
         do: [":" | Integer.to_string(port)],
         else: []
       )
