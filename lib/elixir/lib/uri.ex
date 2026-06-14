@@ -484,18 +484,19 @@ defmodule URI do
     unpercent(string, "", true)
   end
 
+  defguardp is_hex(char) when char in ?0..?9 or char in ?A..?F or char in ?a..?f
+
   defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
     unpercent(tail, <<acc::binary, ?\s>>, spaces)
   end
 
+  defp unpercent(<<?%, h1, h2, tail::binary>>, acc, spaces)
+       when is_hex(h1) and is_hex(h2) do
+    unpercent(tail, <<acc::binary, bsl(hex_to_dec(h1), 4) + hex_to_dec(h2)>>, spaces)
+  end
+
   defp unpercent(<<?%, tail::binary>>, acc, spaces) do
-    with <<hex1, hex2, tail::binary>> <- tail,
-         dec1 when is_integer(dec1) <- hex_to_dec(hex1),
-         dec2 when is_integer(dec2) <- hex_to_dec(hex2) do
-      unpercent(tail, <<acc::binary, bsl(dec1, 4) + dec2>>, spaces)
-    else
-      _ -> unpercent(tail, <<acc::binary, ?%>>, spaces)
-    end
+    unpercent(tail, <<acc::binary, ?%>>, spaces)
   end
 
   defp unpercent(<<head, tail::binary>>, acc, spaces) do
@@ -508,7 +509,6 @@ defmodule URI do
   defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
   defp hex_to_dec(n) when n in ?a..?f, do: n - ?a + 10
   defp hex_to_dec(n) when n in ?0..?9, do: n - ?0
-  defp hex_to_dec(_n), do: nil
 
   @doc """
   Creates a new URI struct by parsing and validating a string or from an existing URI.
