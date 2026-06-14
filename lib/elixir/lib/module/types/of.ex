@@ -467,32 +467,32 @@ defmodule Module.Types.Of do
   # TODO: Type check the fields match the struct
   def struct_instance(struct, args, expected, meta, stack, context, of_fun)
       when is_atom(struct) do
-    {info, context} = struct_info(struct, :expr, meta, stack, context)
+    {info, context} = struct_info(struct, :expr, meta, stack, context, true)
 
     if is_nil(info) do
-      raise "expected #{inspect(struct)} to return struct metadata, but got none"
+      {dynamic(), context}
+    else
+      # The compiler has already checked the keys are atoms and which ones are required.
+      {args_types, context} =
+        Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
+          value_type =
+            case map_fetch_key(expected, key) do
+              {_, expected_value_type} -> expected_value_type
+              _ -> term()
+            end
+
+          {type, context} = of_fun.(value, value_type, stack, context)
+          {{key, type}, context}
+        end)
+
+      {closed_map([{:__struct__, atom([struct])} | args_types]), context}
     end
-
-    # The compiler has already checked the keys are atoms and which ones are required.
-    {args_types, context} =
-      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
-        value_type =
-          case map_fetch_key(expected, key) do
-            {_, expected_value_type} -> expected_value_type
-            _ -> term()
-          end
-
-        {type, context} = of_fun.(value, value_type, stack, context)
-        {{key, type}, context}
-      end)
-
-    {closed_map([{:__struct__, atom([struct])} | args_types]), context}
   end
 
   @doc """
   Returns `__info__(:struct)` information about a struct.
   """
-  def struct_info(struct, kind, meta, stack, context) do
+  def struct_info(struct, kind, meta, stack, context, must_exist? \\ false) do
     case stack.no_warn_undefined do
       %Macro.Env{} = env ->
         case :elixir_map.maybe_load_struct_info(meta, struct, :soft, env) do
@@ -511,7 +511,7 @@ defmodule Module.Types.Of do
 
           {info, context}
         else
-          error = {:unknown_struct, kind, struct}
+          error = {:unknown_struct, kind, struct, must_exist?}
           {nil, error(error, meta, stack, context)}
         end
     end
@@ -848,19 +848,26 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:unknown_struct, kind, module}) do
-    message =
-      if Code.ensure_loaded?(module) do
-        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
-      else
-        "struct #{inspect(module)} is undefined " <>
-          "(module #{inspect(module)} is not available or is yet to be defined)"
+  def format_diagnostic({:unknown_struct, kind, module, must_exist?}) do
+    detail =
+      case {Code.ensure_loaded?(module), must_exist?} do
+        {true, false} ->
+          "there is such module but it does not define a struct"
+
+        {false, false} ->
+          "module #{inspect(module)} is not available or is yet to be defined"
+
+        {true, true} ->
+          "the module may have been redefined as it no longer defines a struct"
+
+        {false, true} ->
+          "the module was also only available but may have been removed during compilation"
       end
 
     %{
-      message: message,
+      message: "struct #{inspect(module)} is undefined (#{detail})",
       group: true,
-      severity: if(kind == :pattern, do: :error, else: :warning)
+      severity: if(kind == :pattern or must_exist?, do: :error, else: :warning)
     }
   end
 
