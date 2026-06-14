@@ -3130,9 +3130,9 @@ defmodule String do
     {bag2, length2} = string_to_bag(string2, %{}, 0)
 
     diff1 = bag_difference(bag1, bag2)
-    diff2 = bag_difference(bag2, bag1)
+    max_diff = if length1 >= length2, do: diff1, else: diff1 - length1 + length2
 
-    1 - max(diff1, diff2) / max(length1, length2)
+    1 - max_diff / max(length1, length2)
   end
 
   defp string_to_bag(string, bag, length) do
