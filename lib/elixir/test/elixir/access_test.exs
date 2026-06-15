@@ -219,6 +219,61 @@ defmodule AccessTest do
     end
   end
 
+  describe "key/2 and key!/1" do
+    @test_map %{foo: :bar, baz: :qux}
+
+    test "finds key in map" do
+      assert get_in(@test_map, [Access.key(:foo)]) == :bar
+      assert get_in(@test_map, [Access.key(:missing)]) == nil
+
+      assert get_in(@test_map, [Access.key!(:foo)]) == :bar
+
+      assert_raise KeyError, fn ->
+        get_in(@test_map, [Access.key!(:missing)])
+      end
+    end
+
+    test "finds key in struct" do
+      defmodule KeySample do
+        defstruct foo: :bar, baz: :qux
+      end
+
+      assert get_in(struct(KeySample), [Access.key(:foo)]) == :bar
+      assert get_in(struct(KeySample), [Access.key(:missing)]) == nil
+
+      assert get_in(struct(KeySample), [Access.key!(:foo)]) == :bar
+
+      assert_raise KeyError, fn ->
+        get_in(struct(KeySample), [Access.key!(:missing)])
+      end
+    end
+
+    @test_keyword [foo: :bar, baz: :qux]
+
+    test "finds key in keyword list" do
+      assert get_in(@test_keyword, [Access.key(:foo)]) == :bar
+      assert get_in(@test_keyword, [Access.key(:missing)]) == nil
+
+      assert get_in(@test_keyword, [Access.key!(:foo)]) == :bar
+
+      assert_raise KeyError, fn ->
+        get_in(@test_keyword, [Access.key!(:missing)])
+      end
+    end
+
+    test "raises when key/2 access is attempted on [1,2,3]" do
+      assert_raise RuntimeError, ~r"Access.key/2 expected a map/struct/keyword list", fn ->
+        put_in([1, 2, 3], [Access.key(:foo)], :bar)
+      end
+    end
+
+    test "raises when key!/1 access is attempted on [1,2,3]" do
+      assert_raise RuntimeError, ~r"Access.key!/1 expected a map/struct/keyword list", fn ->
+        put_in([1, 2, 3], [Access.key!(:foo)], :bar)
+      end
+    end
+  end
+
   describe "at/1" do
     @test_list [1, 2, 3, 4, 5, 6]
 
