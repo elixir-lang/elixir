@@ -1099,4 +1099,23 @@ defmodule StringTest do
     assert String.bag_distance("\r\t\xFF\v", "\xFF\r\n\xFF") == 0.25
     assert String.split("\r\t\v", "") == ["", "\r", "\t", "\v", ""]
   end
+
+  test "to_existing_atom/2" do
+    # constant
+    assert String.to_existing_atom("foo", [:foo, :bar]) == :foo
+    assert String.to_existing_atom("bar", [:foo, :bar]) == :bar
+
+    assert_raise ArgumentError, fn ->
+      String.to_existing_atom("baz", [:foo, :bar])
+    end
+
+    # variable
+    values = [:foo, :bar]
+    assert String.to_existing_atom("foo", values) == :foo
+    assert String.to_existing_atom("bar", values) == :bar
+
+    assert_raise ArgumentError, fn ->
+      String.to_existing_atom("baz", values)
+    end
+  end
 end

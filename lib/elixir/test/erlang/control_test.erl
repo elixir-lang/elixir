@@ -86,6 +86,22 @@ optimized_inspect_interpolation_test() ->
        {call, _, {remote, _,{atom, _, 'Elixir.Kernel'}, {atom, _, inspect}}, [_]},
        default, [binary]}]} = to_erl("\"#{inspect(1)}\"").
 
+optimized_string_to_existing_atom_test() ->
+  {'case', _, _,
+    [{clause, _,
+      [{bin, _, [{bin_element, _, {string, _, "foo"}, default, default}]}],
+      [],
+      [{atom, _, foo}]},
+     {clause, _,
+      [{bin, _, [{bin_element, _, {string, _, "bar"}, default, default}]}],
+      [],
+      [{atom, _, bar}]},
+     {clause, _,
+      [{var, _, '_'}],
+      [],
+      [{call, _, {remote, _, {atom, _, 'Elixir.String'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
+  } = to_erl("String.to_existing_atom(\"baz\", [:foo, :bar])").
+
 optimized_map_merge_test() ->
   {map, _,
     [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},

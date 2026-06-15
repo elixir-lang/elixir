@@ -3038,7 +3038,7 @@ defmodule String do
       :foo
 
       iex> String.to_existing_atom("unknown", [:foo, :bar])
-      ** (ArgumentError) unexpected atom: :unknown, the allowed values are: [:foo, :bar]
+      ** (ArgumentError) unexpected value: \"unknown\", the allowed atoms are: [:foo, :bar]
 
   """
   @spec to_existing_atom(String.t(), [atom]) :: atom
@@ -3047,11 +3047,21 @@ defmodule String do
     atom = :erlang.binary_to_existing_atom(string, :utf8)
 
     if atom not in allowed_atoms do
-      raise ArgumentError,
-            "unexpected atom: #{inspect(atom)}, the allowed values are: #{inspect(allowed_atoms)}"
+      to_existing_atom_unexpected(string, allowed_atoms)
     end
 
     atom
+  end
+
+  # used just to have a less cryptic stacktrace and consistent error
+  @doc false
+  def __to_existing_atom__(string, allowed_atoms) do
+    to_existing_atom_unexpected(string, allowed_atoms)
+  end
+
+  defp to_existing_atom_unexpected(string, allowed_atoms) do
+    raise ArgumentError,
+          "unexpected value: #{inspect(string)}, the allowed atoms are: #{inspect(allowed_atoms)}"
   end
 
   @doc """
