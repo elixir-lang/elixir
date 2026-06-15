@@ -941,6 +941,7 @@ defmodule Module.Types.DescrTest do
             {closed_map([{domain_key(:integer), gradual}]),
              closed_map([{domain_key(:integer), static}]),
              closed_map([{domain_key(:integer), upper_bound}])},
+            {list(dynamic()), empty_list(), list(term())},
             {non_empty_list(gradual), non_empty_list(static), non_empty_list(upper_bound)},
             {non_empty_list(head, gradual), non_empty_list(head, static),
              non_empty_list(head, upper_bound)}
