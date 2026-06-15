@@ -15,7 +15,7 @@ translate(Meta, Args, S) ->
   {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
 
   % needs to be the original variables, excluding variables from generators
-  InitVars = #{V => K || K := V <- S#elixir_erl.var_names},
+  InitVars = S#elixir_erl.var_names,
 
   case lists:keyfind(reduce, 1, Opts) of
     {reduce, Reduce} -> translate_reduce(Meta, Cases, Expr, Reduce, InitVars, S);
@@ -310,7 +310,8 @@ build_var(Ann, S) ->
   {Name, ST} = elixir_erl_var:build('_', S),
   {{var, Ann, Name}, ST}.
 
-no_unbound_var(ParentAnn, Elements, Vars) ->
+no_unbound_var(ParentAnn, Elements, InitVars) ->
+  Vars = #{V => K || K := V <- InitVars},
   try
     [{bin_element, Ann, NoVarExpr, no_unbound_var_size(Size, Vars), Types} ||
      {bin_element, Ann, Expr, Size, Types} <- Elements,
@@ -322,11 +323,17 @@ no_unbound_var(ParentAnn, Elements, Vars) ->
 no_var_expr(Ann, {string, _, String}) -> [{var, Ann, '_'} || _ <- String];
 no_var_expr(Ann, _) -> [{var, Ann, '_'}].
 
-no_unbound_var_size(default, _Vars) -> default;
-no_unbound_var_size({var, _, Var} = Size, Vars) when is_map_key(Var, Vars) -> Size;
-no_unbound_var_size({integer, _, _} = Size, _Vars) -> Size;
-no_unbound_var_size(Size, _Vars) when is_integer(Size) -> Size;
-no_unbound_var_size(_Size, _vars) -> throw(unbound_size).
+no_unbound_var_size(Size, Vars) ->
+  valid_var_size(Size, Vars) orelse throw(unbound_size),
+  Size.
+
+valid_var_size({var, _, Var}, Vars) when is_map_key(Var, Vars) -> true;
+valid_var_size(default, _Vars) -> true;
+valid_var_size({integer, _, _}, _Vars) -> true;
+valid_var_size(Size, _Vars) when is_integer(Size) -> true;
+valid_var_size({op, _Ann, _Op, Left, Right}, Vars) ->
+  valid_var_size(Left, Vars) andalso valid_var_size(Right, Vars);
+valid_var_size(_Size, _vars) -> false.
 
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.

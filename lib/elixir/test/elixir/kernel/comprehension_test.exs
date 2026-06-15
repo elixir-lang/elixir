@@ -533,6 +533,15 @@ defmodule Kernel.ComprehensionTest do
     assert for(<<0::size(^s), x::size(^s) <- bin>>, uniq: true, do: x) == [1, 3]
     assert for(<<0::size(^s), x::size(^s) <- bin>>, into: "", do: <<x>>) == <<1, 3, 1>>
     assert for(<<0::size(^s), x::size(^s) <- bin>>, into: %{}, do: {x, x}) == %{1 => 1, 3 => 3}
+
+    assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, do: x) == [1, 3, 1]
+    assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, uniq: true, do: x) == [1, 3]
+    assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, into: "", do: <<x>>) == <<1, 3, 1>>
+
+    assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, into: %{}, do: {x, x}) == %{
+             1 => 1,
+             3 => 3
+           }
   end
 
   test "binary for comprehensions where value is not used" do
