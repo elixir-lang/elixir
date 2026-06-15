@@ -310,7 +310,8 @@ unpack_expanded(_Kind, _Meta, _Name, [], _Counter, Acc, Clauses) ->
 
 expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], S, E, Acc) ->
   {ExpandedDefault, SE, _} = elixir_expand:expand(Default, S, E),
-  expand_defaults(Args, SE, E, [{'\\\\', Meta, [Expr, ExpandedDefault]} | Acc]);
+  expand_defaults(Args, elixir_env:reset_read(SE, S), E,
+                  [{'\\\\', Meta, [Expr, ExpandedDefault]} | Acc]);
 expand_defaults([Arg | Args], S, E, Acc) ->
    expand_defaults(Args, S, E, [Arg | Acc]);
 expand_defaults([], S, _E, Acc) ->
