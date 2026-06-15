@@ -1531,6 +1531,9 @@ defmodule Module.Types.Descr do
             {:badarity, [arity | other]}
         end
 
+      :badfun when fun_dynamic == nil ->
+        :badfun
+
       :badfun ->
         # No static arrows: dynamic-only path. Mixed-arity in the dynamic
         # component is fine — we pick the matching-arity arrows and the

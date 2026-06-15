@@ -1255,6 +1255,7 @@ defmodule Module.Types.DescrTest do
     test "non funs" do
       assert fun_apply(term(), [integer()]) == :badfun
       assert fun_apply(integer(), [integer()]) == :badfun
+      assert fun_apply(none(), [integer()]) == :badfun
       assert fun_apply(opt_union(integer(), none_fun(1)), [integer()]) == :badfun
       assert fun_apply(opt_union(integer(), fun([integer()], atom())), [integer()]) == :badfun
       assert fun_apply(opt_union(integer(), dynamic()), [integer()]) == :badfun
