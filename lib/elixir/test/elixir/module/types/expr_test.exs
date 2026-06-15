@@ -1898,6 +1898,28 @@ defmodule Module.Types.ExprTest do
                  x in [:foo, :bar]
              """
     end
+
+    test "String.to_existing_atom/2" do
+      assert typecheck!(
+               [x],
+               String.to_existing_atom(x, [:foo, :bar])
+             ) == atom([:foo, :bar])
+
+      assert typecheck!(
+               [x],
+               (
+                 values = [:foo, :bar]
+                 String.to_existing_atom(x, values)
+               )
+             ) == atom([:foo, :bar])
+
+      assert typecheck!(
+               [x, values],
+               String.to_existing_atom(x, values)
+             ) == dynamic(atom())
+
+      # TODO: check for errors when 1. not a list 2. not atoms
+    end
   end
 
   describe "case" do

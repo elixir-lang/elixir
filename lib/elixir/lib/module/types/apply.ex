@@ -288,7 +288,8 @@ defmodule Module.Types.Apply do
          [{[term(), open_map()], tuple([term(), open_map()]) |> opt_union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
-        {:maps, :values, [{[open_map()], list(term())}]}
+        {:maps, :values, [{[open_map()], list(term())}]},
+        {String, :to_existing_atom, [{[binary(), list(atom())], atom()}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
@@ -708,6 +709,22 @@ defmodule Module.Types.Apply do
           remote_domain(:lists, :member, args, expected, elem(expr, 1), stack, context)
       end
     end
+  end
+
+  defp do_remote(String, :to_existing_atom, [string, atoms], _, expr, stack, context, of_fun) do
+    {string_type, context} = of_fun.(string, binary(), expr, stack, context)
+    {atoms_type, context} = of_fun.(atoms, list(atom()), expr, stack, context)
+
+    atom_type =
+      with {_, atom_type} when atom_type != nil <- list_of(atoms_type),
+           true <- subtype?(atom_type, atom()) do
+        atom_type
+      else
+        _ ->
+          atom()
+      end
+
+    {return(atom_type, [string_type, atoms_type], stack), context}
   end
 
   defp do_remote(mod, fun, args, expected, expr, stack, context, _of_fun) do
