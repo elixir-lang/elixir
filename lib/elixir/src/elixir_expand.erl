@@ -454,32 +454,49 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
       #{Pair := CurrentVersion} ->
         case Prematch of
           {Pre, _Cycle, {bitsize, Original}} ->
-            if
-              map_get(Pair, Pre) /= CurrentVersion ->
+            case {Original, Pre} of
+              {#{Pair := OriginalVersion}, _} when OriginalVersion /= CurrentVersion ->
                 {ok, CurrentVersion};
 
-              is_map_key(Pair, Pre) ->
+              {#{Pair := CurrentVersion}, #{Pair := CurrentVersion}} ->
                 %% TODO: Remove me on Elixir 2.0
                 elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
                 {ok, CurrentVersion};
 
-              not is_map_key(Pair, Original) ->
-                {ok, CurrentVersion};
+              {#{Pair := CurrentVersion}, #{Pair := _}} ->
+                {raise, {unpinned_bitsize_var, Name, Kind}};
 
-              true ->
-                raise
+              {#{Pair := CurrentVersion}, _} ->
+                {raise, {undefined_var, Name, Kind}};
+
+              {_, _} ->
+                {ok, CurrentVersion}
             end;
 
           _ ->
             {ok, CurrentVersion}
         end;
 
+      _ when S#elixir_ex.prematch =:= pin ->
+        {raise, {undefined_var_pin, Name, Kind}};
+
       _ ->
-        case E of
-          #{context := guard} -> raise;
-          #{} when S#elixir_ex.prematch =:= pin -> pin;
-          %% TODO: Remove fallback on on_undefined_variable
-          _ -> elixir_config:get(on_undefined_variable)
+        case lists:keyfind(if_undefined, 1, Meta) of
+          {if_undefined, apply} ->
+            apply;
+
+          {if_undefined, raise} ->
+            {raise, {undefined_var, Name, Kind}};
+
+          _ when ?key(E, context) =:= guard ->
+            {raise, {undefined_var, Name, Kind}};
+
+          _ ->
+            %% TODO: Remove fallback as it should always raise
+            case elixir_config:get(on_undefined_variable) of
+              raise -> {raise, {undefined_var, Name, Kind}};
+              Other -> Other
+            end
         end
     end,
 
@@ -489,30 +506,18 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
       Var = {Name, [{version, PairVersion} | Meta], Kind},
       {Var, S#elixir_ex{unused=var_used(Pair, Meta, PairVersion, Unused)}, E};
 
-    Error ->
-      case lists:keyfind(if_undefined, 1, Meta) of
-        {if_undefined, apply} ->
-          expand({Name, Meta, []}, S, E);
+    {raise, Reason} ->
+      SpanMeta =  elixir_env:calculate_span(Meta, Name),
+      function_error(SpanMeta, E, ?MODULE, Reason),
+      {{Name, SpanMeta, Kind}, S#elixir_ex{tainted_function=true}, E};
 
-        %% TODO: Remove this clause on v2.0 as we will raise by default
-        {if_undefined, raise} ->
-          function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, Meta, Kind}, S#elixir_ex{tainted_function=true}, E};
+    apply ->
+      expand({Name, Meta, []}, S, E);
 
-        %% TODO: Remove this clause on v2.0 as we will no longer support warn
-        _ when Error == warn ->
-          elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_var_to_call, Name}),
-          expand({Name, [{if_undefined, warn} | Meta], []}, S, E);
-
-        _ when Error == pin ->
-          function_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind}),
-          {{Name, Meta, Kind}, S#elixir_ex{tainted_function=true}, E};
-
-        _ when Error == raise ->
-          SpanMeta =  elixir_env:calculate_span(Meta, Name),
-          function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, SpanMeta, Kind}, S#elixir_ex{tainted_function=true}, E}
-      end
+    %% TODO: Remove this clause on v2.0 as we will no longer support warn
+    warn ->
+      elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_var_to_call, Name}),
+      expand({Name, [{if_undefined, warn} | Meta], []}, S, E)
   end;
 
 %% Local calls

@@ -2853,6 +2853,19 @@ defmodule Kernel.ExpansionTest do
       end)
 
       assert_compile_error(
+        ~r/the variable "len".*accessed inside size\(\.\.\.\).*pin operator/s,
+        fn ->
+          code =
+            quote do
+              len = 4
+              {len, <<_::size(len), _::bitstring>>} = {8, <<255, 0>>}
+            end
+
+          expand(code, [])
+        end
+      )
+
+      assert_compile_error(
         ~r"cannot find or invoke local foo/0 inside a bitstring size specifier",
         fn ->
           code =
