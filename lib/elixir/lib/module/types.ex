@@ -266,7 +266,7 @@ defmodule Module.Types do
 
           Enum.reduce(unused_indexes, context, fn clause_index, context ->
             {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
-            stack = %{stack | function: fun_arity}
+            stack = %{stack | function: fun_arity} |> with_file_meta(meta)
             Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
           end)
         else
@@ -299,11 +299,11 @@ defmodule Module.Types do
 
       local_sigs ->
         case finder.(fun_arity) do
-          {mode, {fun_arity, kind, meta, clauses}, expected} ->
+          {mode, {fun_arity, kind, _meta, clauses}, expected} ->
             context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
             {inferred, mapping, context} =
-              local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context)
+              local_handler(mode, fun_arity, kind, clauses, expected, stack, context)
 
             context =
               update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
@@ -316,9 +316,10 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler(:traverse, {_, arity}, _kind, _meta, clauses, _expected, stack, context) do
+  defp local_handler(:traverse, {_, arity}, _kind, clauses, _expected, stack, context) do
     context =
-      Enum.reduce(clauses, context, fn {_meta, _args, _guards, body}, context ->
+      Enum.reduce(clauses, context, fn {meta, _args, _guards, body}, context ->
+        stack = with_file_meta(stack, meta)
         Module.Types.Traverse.of_expr(body, stack, context)
       end)
 
@@ -326,9 +327,9 @@ defmodule Module.Types do
     {inferred, [{0, 0}], context}
   end
 
-  defp local_handler(mode, fun_arity, kind, meta, clauses, expected, stack, context) do
+  defp local_handler(mode, fun_arity, kind, clauses, expected, stack, context) do
     {fun, _arity} = fun_arity
-    stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
+    stack = fresh_stack(stack, mode, fun_arity)
     base_info = {:def, kind, fun, expected}
 
     case clauses do
@@ -341,6 +342,7 @@ defmodule Module.Types do
   end
 
   defp default_local_handler(meta, args, body, base_info, kind, fun, expected, stack, context) do
+    stack = with_file_meta(stack, meta)
     guards = []
     previous = Pattern.init_previous()
     fresh_context = fresh_context(context)
@@ -400,6 +402,7 @@ defmodule Module.Types do
       Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], [], context}, fn
         {meta, args, guards, body},
         {index, total, previous, domain, mapping, inferred, acc_context} ->
+          stack = with_file_meta(stack, meta)
           fresh_context = fresh_context(acc_context)
           info = {base_info, args, guards}
 
