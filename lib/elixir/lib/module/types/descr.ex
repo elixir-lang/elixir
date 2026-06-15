@@ -2162,6 +2162,9 @@ defmodule Module.Types.Descr do
       not dynamic? ->
         dynamic_descr
 
+      static_empty? and empty? ->
+        %{bitmap: @bit_empty_list, dynamic: dynamic_descr}
+
       static_empty? ->
         %{dynamic: dynamic_descr}
 
