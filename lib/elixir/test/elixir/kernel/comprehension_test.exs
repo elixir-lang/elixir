@@ -523,25 +523,28 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions with chunk matching" do
     bin = <<0, 1, 255, 2, 0, 3, 0, 1>>
 
+    # static sizes
     assert for(<<0::8, x::8 <- bin>>, do: x) == [1, 3, 1]
     assert for(<<0::8, x::8 <- bin>>, uniq: true, do: x) == [1, 3]
     assert for(<<0::8, x::8 <- bin>>, into: "", do: <<x>>) == <<1, 3, 1>>
     assert for(<<0::8, x::8 <- bin>>, into: %{}, do: {x, x}) == %{1 => 1, 3 => 3}
 
+    # size from pinned variable
     s = 8
     assert for(<<0::size(^s), x::size(^s) <- bin>>, do: x) == [1, 3, 1]
     assert for(<<0::size(^s), x::size(^s) <- bin>>, uniq: true, do: x) == [1, 3]
     assert for(<<0::size(^s), x::size(^s) <- bin>>, into: "", do: <<x>>) == <<1, 3, 1>>
     assert for(<<0::size(^s), x::size(^s) <- bin>>, into: %{}, do: {x, x}) == %{1 => 1, 3 => 3}
 
+    # operation using fixed integers and pinned variables
     assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, do: x) == [1, 3, 1]
     assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, uniq: true, do: x) == [1, 3]
     assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, into: "", do: <<x>>) == <<1, 3, 1>>
 
-    assert for(<<0::size(^s * 1), x::size(^s * 1) <- bin>>, into: %{}, do: {x, x}) == %{
-             1 => 1,
-             3 => 3
-           }
+    # nested generators
+    assert for(b <- [bin], <<0::size(^s), x::size(^s) <- b>>, do: x) == [1, 3, 1]
+    assert for(b <- [bin], <<0::size(^s), x::size(^s) <- b>>, uniq: true, do: x) == [1, 3]
+    assert for(b <- [bin], <<0::size(^s), x::size(^s) <- b>>, into: "", do: <<x>>) == <<1, 3, 1>>
   end
 
   test "binary for comprehensions where value is not used" do
