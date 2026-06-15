@@ -121,7 +121,7 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
-    * `--dry-run` *(since v1.19.0)* - prints which tests would be run based on current options,
+    * `--dry-run` *(since v1.20.0)* - prints which tests would be run based on current options,
       but does not actually run any tests. This combines with all other options
       like `--stale`, `--only`, `--exclude`, and so on.
 
