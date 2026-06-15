@@ -335,6 +335,39 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
+    test "warning location respects file metadata in clauses" do
+      files = %{
+        "bug.ex" => """
+        defmodule Bug do
+          def render(x)
+
+          @file "template.heex"
+          def render(x) do
+            label = describe(x)
+            _ = label == :only
+            x
+          end
+
+          defp describe(_), do: "page"
+        end
+        """
+      }
+
+      warnings = [
+        """
+        warning: comparison between distinct types found:
+
+            label == :only
+        """,
+        "binary() == :only",
+        "# type: binary()",
+        "# from: template.heex:6:11",
+        "└─ template.heex:7:15: Bug.render/1"
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
     test "unused private clauses" do
       files = %{
         "a.ex" => """
