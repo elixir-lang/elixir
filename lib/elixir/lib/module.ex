@@ -366,7 +366,8 @@ defmodule Module do
   Unlike other hooks, `@on_definition` will only invoke functions and
   never macros. This is to avoid `@on_definition` callbacks from
   redefining functions that have just been defined in favor of more
-  explicit approaches.
+  explicit approaches. They are also invoked in the reverse order of
+  registration.
 
   When just a module is provided, the function is assumed to be
   `__on_definition__/6`.
