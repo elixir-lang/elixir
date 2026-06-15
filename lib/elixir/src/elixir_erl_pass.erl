@@ -717,7 +717,7 @@ rewrite_strategy(Left, Right, Args) ->
 ).
 
 ?reorder('Elixir.Kernel', elem, 2, [Tuple, Index], erlang, element, [increment(Ann, Index), Tuple]);
-?reorder('Elixir.Kernel', put_elem, 2, [Tuple, Index, Term], erlang, element, [increment(Ann, Index), Tuple, Term]);
+?reorder('Elixir.Kernel', put_elem, 3, [Tuple, Index, Term], erlang, setelement, [increment(Ann, Index), Tuple, Term]);
 ?reorder('Elixir.Kernel', is_map_key, 2, [Map, Key], erlang, is_map_key, [Key, Map]);
 ?reorder('Elixir.Map', delete, 2, [Map, Key], maps, remove, [Key, Map]);
 ?reorder('Elixir.Map', fetch, 2, [Map, Key], maps, find, [Key, Map]);
