@@ -1049,6 +1049,8 @@ defmodule List do
   @doc """
   Converts a charlist to an existing atom.
 
+  If the list of expected atoms is known upfront, prefer `to_existing_atom/2`.
+
   Elixir supports conversions from charlists which contain any Unicode
   code point. Raises an `ArgumentError` if the atom does not exist.
 
@@ -1077,6 +1079,46 @@ defmodule List do
   @spec to_existing_atom(charlist) :: atom
   def to_existing_atom(charlist) do
     :erlang.list_to_existing_atom(charlist)
+  end
+
+  @doc """
+  Converts a charlist to one of the `allowed_atoms` or raises.
+
+  Raises an `ArgumentError` if the atom either does not exist or is not within
+  the existing list.
+
+  This should be preferred to `to_existing_atom/1` if the list is known upfront,
+  since there is no risk that the atom has not been loaded.
+
+  ## Examples
+
+      iex> List.to_existing_atom(~c"foo", [:foo, :bar])
+      :foo
+
+      iex> List.to_existing_atom(~c"unknown", [:foo, :bar])
+      ** (ArgumentError) unexpected value: ~c\"unknown\", the allowed atoms are: [:foo, :bar]
+
+  """
+  @spec to_existing_atom(charlist, nonempty_list(a)) :: a when a: atom()
+  def to_existing_atom(charlist, [_ | _] = allowed_atoms) when is_list(charlist) do
+    atom = :erlang.list_to_existing_atom(charlist)
+
+    if atom not in allowed_atoms do
+      to_existing_atom_unexpected(charlist, allowed_atoms)
+    end
+
+    atom
+  end
+
+  # used just to have a less cryptic stacktrace and consistent error
+  @doc false
+  def __to_existing_atom__(charlist, allowed_atoms) do
+    to_existing_atom_unexpected(charlist, allowed_atoms)
+  end
+
+  defp to_existing_atom_unexpected(charlist, allowed_atoms) do
+    raise ArgumentError,
+          "unexpected value: #{inspect(charlist)}, the allowed atoms are: #{inspect(allowed_atoms)}"
   end
 
   @doc """

@@ -102,6 +102,22 @@ optimized_string_to_existing_atom_test() ->
       [{call, _, {remote, _, {atom, _, 'Elixir.String'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
   } = to_erl("String.to_existing_atom(\"baz\", [:foo, :bar])").
 
+optimized_list_to_existing_atom_test() ->
+  {'case', _, _,
+    [{clause, _,
+      [{cons, _, {integer, _, $f}, {cons, _, {integer, _, $o}, {cons, _, {integer, _, $o}, {nil, _}}}}],
+      [],
+      [{atom, _, foo}]},
+     {clause, _,
+      [{cons, _, {integer, _, $b}, {cons, _, {integer, _, $a}, {cons, _, {integer, _, $r}, {nil, _}}}}],
+      [],
+      [{atom, _, bar}]},
+     {clause, _,
+      [{var, _, '_'}],
+      [],
+      [{call, _, {remote, _, {atom, _, 'Elixir.List'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
+  } = to_erl("List.to_existing_atom(~c\"baz\", [:foo, :bar])").
+
 optimized_map_merge_test() ->
   {map, _,
     [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},

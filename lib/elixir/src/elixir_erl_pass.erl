@@ -634,7 +634,7 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[TMap1, TMap2], TS} ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
   end;
-translate_remote('Elixir.String', to_existing_atom, Meta, [String, List], S) ->
+translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'Elixir.String'; Mod == 'Elixir.List' ->
   Ann = ?ann(Meta),
   {[TString, TList], TS} = translate_args([String, List], Ann, S),
 
@@ -644,16 +644,20 @@ translate_remote('Elixir.String', to_existing_atom, Meta, [String, List], S) ->
       LastClause = {clause, Generated,
         [{var, Generated, '_'}],
         [],
-        [{call, Ann, {remote, Ann, {atom, Ann, 'Elixir.String'}, {atom, Ann, '__to_existing_atom__'}}, [TString, TList]}]},
+        [{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, '__to_existing_atom__'}}, [TString, TList]}]},
+      CastAtom = case Mod of
+        'Elixir.String' -> fun atom_to_binary/1;
+        'Elixir.List' -> fun atom_to_list/1
+      end,
       Clauses = [
         {clause, Generated,
-          [{bin, Generated, [{bin_element, Generated, {string, Generated, atom_to_list(Atom)}, default, default}]}],
+          [elixir_erl:elixir_to_erl(CastAtom(Atom), Ann)],
           [],
           [{atom, Ann, Atom}]}
       || Atom <- List] ++ [LastClause],
       {{'case', Generated, TString, Clauses}, TS};
     false ->
-      {{call, Ann, {remote, Ann, {atom, Ann, 'Elixir.String'}, {atom, Ann, to_existing_atom}}, [TString, TList]}, TS}
+      {{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, to_existing_atom}}, [TString, TList]}, TS}
   end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),

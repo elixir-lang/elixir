@@ -3041,7 +3041,7 @@ defmodule String do
       ** (ArgumentError) unexpected value: \"unknown\", the allowed atoms are: [:foo, :bar]
 
   """
-  @spec to_existing_atom(String.t(), nonempty_list(atom)) :: atom
+  @spec to_existing_atom(String.t(), nonempty_list(a)) :: a when a: atom()
   def to_existing_atom(string, [_ | _] = allowed_atoms) when is_binary(string) do
     atom = :erlang.binary_to_existing_atom(string, :utf8)
 

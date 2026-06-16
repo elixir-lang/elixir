@@ -289,7 +289,8 @@ defmodule Module.Types.Apply do
         {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :values, [{[open_map()], list(term())}]},
-        {String, :to_existing_atom, [{[binary(), non_empty_list(atom())], atom()}]}
+        {String, :to_existing_atom, [{[binary(), non_empty_list(atom())], atom()}]},
+        {List, :to_existing_atom, [{[list(integer()), non_empty_list(atom())], atom()}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
@@ -1419,7 +1420,8 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply(String, :to_existing_atom, info, [_string, list] = args_types, stack) do
+  defp remote_apply(mod, :to_existing_atom, info, [_string, list] = args_types, stack)
+       when mod in [String, List] do
     # TODO remove once we add parametric types, this will just be:
     # binary(), non_empty_list(a) -> a when a: atom()
 
