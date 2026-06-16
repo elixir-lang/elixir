@@ -1420,6 +1420,9 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(String, :to_existing_atom, info, [_string, list] = args_types, stack) do
+    # TODO remove once we add parametric types, this will just be:
+    # binary(), non_empty_list(a) -> a when a: atom()
+
     case remote_apply(info, args_types, stack) do
       {:ok, _} ->
         {false, refined_atom} = list_of(list)
