@@ -76,7 +76,7 @@ defmodule Module.Types.Descr do
 
   @not_set %{optional: 1}
   @term_or_optional Map.put(@term, :optional, 1)
-  @term_or_dynamic_optional Map.put(@term, :dynamic, %{optional: 1})
+  @term_or_dynamic_optional Map.put(@term, :dynamic, @term_or_optional)
   @not_atom_or_optional Map.delete(@term_or_optional, :atom)
 
   @empty_intersection [0, :bdd_bot]
