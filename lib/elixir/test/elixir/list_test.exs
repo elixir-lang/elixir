@@ -449,4 +449,23 @@ defmodule ListTest do
       assert List.ascii_printable?(~c"abc" ++ ?d, 3)
     end
   end
+
+  test "to_existing_atom/2" do
+    # constant
+    assert List.to_existing_atom(~c"foo", [:foo, :bar]) == :foo
+    assert List.to_existing_atom(~c"bar", [:foo, :bar]) == :bar
+
+    assert_raise ArgumentError, fn ->
+      List.to_existing_atom(~c"baz", [:foo, :bar])
+    end
+
+    # variable
+    values = [:foo, :bar]
+    assert List.to_existing_atom(~c"foo", values) == :foo
+    assert List.to_existing_atom(~c"bar", values) == :bar
+
+    assert_raise ArgumentError, fn ->
+      List.to_existing_atom(~c"baz", values)
+    end
+  end
 end
