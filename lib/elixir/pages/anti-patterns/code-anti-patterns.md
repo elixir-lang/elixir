@@ -170,9 +170,12 @@ When we use the `String.to_unsafe_atom/1` function to dynamically create an atom
 #### Refactoring
 
 To eliminate this anti-pattern, developers must either:
-* perform explicit conversions by replacing the use of `String.to_unsafe_atom/1` with `String.to_existing_atom/2` and provide the list of expected atoms.
-* manually perform the explicit conversion using pattern-matching to map strings to atoms for instance.
-* use `String.to_existing_atom/1` when the former options are not possible.
+
+  * replace the use of `String.to_unsafe_atom/1` with a list of expected atoms in `String.to_existing_atom/2`
+
+  * use pattern-matching to map strings to their equivalent atoms
+
+  * use `String.to_existing_atom/1` when the former options are not possible
 
 An explicit conversion could be done as follows:
 
@@ -185,8 +188,7 @@ defmodule MyRequestHandler do
 end
 ```
 
-This will only accept valid values and convert `"ok"` as `:ok`, `"error"` as `:error`, and
-`"redirect"` as `:redirect`. Any other value would result in an `ArgumentError`, either because the atom doesn't exist or because it isn't part of the list:
+This will only accept valid values and convert `"ok"` as `:ok`, `"error"` as `:error`, and `"redirect"` as `:redirect`. Any other value would result in an `ArgumentError`, either because the atom doesn't exist or because it isn't part of the list:
 
 ```elixir
 iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" => "all good"})
@@ -195,50 +197,21 @@ iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" 
 
 By explicitly listing all supported statuses, you guarantee that only a limited number of conversions may happen, and that all expected atoms already exist within the system.
 
-An alternative is to use `String.to_existing_atom/1`, which will only convert a string to atom if the atom already exists in the system:
+An alternative is to use pattern matching and explicitly convert each string to its respective atom. This is useful when you need additional logic on differnt branches:
 
 ```elixir
 defmodule MyRequestHandler do
   def parse(%{"status" => status, "message" => message} = _payload) do
-    %{status: String.to_existing_atom(status), message: message}
-  end
-end
-```
-
-```elixir
-iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" => "all good"})
-** (ArgumentError) errors were found at the given arguments:
-
-  * 1st argument: not an already existing atom
-```
-
-In such cases, unlike `String.to_existing_atom/2`, passing an unknown status will raise as long as the status was not defined anywhere as an atom in the system. However, assuming `status` can be either `:ok`, `:error`, or `:redirect`, how can you guarantee those atoms exist? You must ensure those atoms exist somewhere **in the same module** where `String.to_existing_atom/1` is called. For example, if you had this code:
-
-```elixir
-defmodule MyRequestHandler do
-  def parse(%{"status" => status, "message" => message} = _payload) do
-    %{status: String.to_existing_atom(status), message: message}
-  end
-
-  def handle(%{status: status}) do
     case status do
-      :ok -> ...
-      :error -> ...
-      :redirect -> ...
+      "ok" -> %{status: :ok, message: message}
+      "error" -> %{status: :error, message: message}
+      "redirect" -> %{status: :redirect, message: message, code: 302}
     end
   end
 end
 ```
 
-All valid statuses are defined as atoms within the same module, and that's enough. If you want to be explicit, you could also have a function that lists them:
-
-```elixir
-def valid_statuses do
-  [:ok, :error, :redirect]
-end
-```
-
-However, keep in mind using a module attribute or defining the atoms in the module body, outside of a function, are not sufficient, as the module body is only executed during compilation and it is not necessarily part of the compiled module loaded at runtime.
+You may alternatively use `String.to_existing_atom/1`, but keep in mind it does have pitfalls related to code loading. Read the documentation for more information.
 
 ## Long parameter list
 
