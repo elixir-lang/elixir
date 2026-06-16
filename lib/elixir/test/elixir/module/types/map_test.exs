@@ -132,7 +132,7 @@ defmodule Module.Types.MapTest do
       assert typecheck!([x], x |> Map.delete(:key) |> Map.put(:key, "123")) ==
                dynamic(open_map(key: binary()))
 
-      assert typecheck!([x, y], x |> Map.delete(:key) |> Map.put(String.to_atom(y), "123")) ==
+      assert typecheck!([x, y], x |> Map.delete(:key) |> Map.put(String.to_unsafe_atom(y), "123")) ==
                dynamic(open_map(key: if_set(binary())))
     end
   end

@@ -100,7 +100,7 @@ defmodule IEx.Autocomplete do
         expand_dot(path, List.to_string(hint), true, shell)
 
       {:dot_call, path, hint} ->
-        expand_dot_call(path, List.to_atom(hint), shell)
+        expand_dot_call(path, List.to_unsafe_atom(hint), shell)
 
       :expr ->
         expand_container_context(code, :expr, "", shell) || expand_local_or_var("", shell)
@@ -116,7 +116,7 @@ defmodule IEx.Autocomplete do
         expand_aliases("", shell)
 
       {:local_call, local} ->
-        expand_local_call(List.to_atom(local), shell)
+        expand_local_call(List.to_unsafe_atom(local), shell)
 
       {:operator, operator} when operator in ~w(:: -)c ->
         expand_container_context(code, :operator, "", shell) ||
@@ -238,7 +238,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_dot_path({:unquoted_atom, var}, _shell) do
-    {:ok, List.to_atom(var)}
+    {:ok, List.to_unsafe_atom(var)}
   end
 
   defp expand_dot_path(path, shell) do
@@ -249,7 +249,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp recur_expand_dot_path({:var, var}, _shell) do
-    {:ok, [List.to_atom(var)]}
+    {:ok, [List.to_unsafe_atom(var)]}
   end
 
   defp recur_expand_dot_path({:alias, var}, shell) do
@@ -258,7 +258,7 @@ defmodule IEx.Autocomplete do
 
   defp recur_expand_dot_path({:dot, parent, call}, shell) do
     case recur_expand_dot_path(parent, shell) do
-      {:ok, [_ | _] = path} -> {:ok, [List.to_atom(call) | path]}
+      {:ok, [_ | _] = path} -> {:ok, [List.to_unsafe_atom(call) | path]}
       _ -> :error
     end
   end
@@ -339,7 +339,7 @@ defmodule IEx.Autocomplete do
     modules =
       for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true),
           String.starts_with?(name, hint),
-          mod = String.to_atom(full_name),
+          mod = String.to_unsafe_atom(full_name),
           do: {mod, name}
 
     all = aliases ++ modules
@@ -608,7 +608,7 @@ defmodule IEx.Autocomplete do
   defp usable_as_unquoted_module?(name) do
     # Conversion to atom is not a problem because
     # it is only called with existing modules names.
-    Macro.classify_atom(String.to_atom(name)) in [:identifier, :unquoted]
+    Macro.classify_atom(String.to_unsafe_atom(name)) in [:identifier, :unquoted]
   end
 
   defp match_modules(hint, elixir_root?) do

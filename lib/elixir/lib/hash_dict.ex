@@ -265,13 +265,13 @@ defimpl Enumerable, for: HashDict do
 
   def reduce(dict, acc, fun) do
     # Avoid warnings about HashDict being deprecated.
-    module = String.to_atom("HashDict")
+    module = String.to_unsafe_atom("HashDict")
     module.reduce(dict, acc, fun)
   end
 
   def member?(dict, {key, value}) do
     # Avoid warnings about HashDict being deprecated.
-    module = String.to_atom("HashDict")
+    module = String.to_unsafe_atom("HashDict")
     {:ok, match?({:ok, ^value}, module.fetch(dict, key))}
   end
 
@@ -281,7 +281,7 @@ defimpl Enumerable, for: HashDict do
 
   def count(dict) do
     # Avoid warnings about HashDict being deprecated.
-    module = String.to_atom("HashDict")
+    module = String.to_unsafe_atom("HashDict")
     {:ok, module.size(dict)}
   end
 
@@ -296,7 +296,7 @@ defimpl Collectable, for: HashDict do
 
   def into(original) do
     # Avoid warnings about HashDict being deprecated.
-    module = String.to_atom("HashDict")
+    module = String.to_unsafe_atom("HashDict")
 
     collector_fun = fn
       dict, {:cont, {key, value}} -> module.put(dict, key, value)
@@ -315,7 +315,7 @@ defimpl Inspect, for: HashDict do
 
   def inspect(dict, opts) do
     # Avoid warnings about HashDict being deprecated.
-    module = String.to_atom("HashDict")
+    module = String.to_unsafe_atom("HashDict")
     concat(["#HashDict<", Inspect.List.inspect(module.to_list(dict), opts), ">"])
   end
 end

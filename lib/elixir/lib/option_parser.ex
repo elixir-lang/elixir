@@ -852,7 +852,7 @@ defmodule OptionParser do
     |> to_existing_key(allow_nonexistent_atoms?)
   end
 
-  defp to_existing_key(option, true), do: String.to_atom(option)
+  defp to_existing_key(option, true), do: String.to_unsafe_atom(option)
 
   defp to_existing_key(option, false) do
     try do

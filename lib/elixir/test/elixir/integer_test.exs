@@ -224,7 +224,7 @@ defmodule IntegerTest do
   end
 
   test "to_charlist/2" do
-    module = String.to_atom("Elixir.Integer")
+    module = String.to_unsafe_atom("Elixir.Integer")
 
     assert Integer.to_charlist(42) == ~c"42"
     assert Integer.to_charlist(+42) == ~c"42"

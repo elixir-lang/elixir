@@ -85,7 +85,7 @@ defmodule CoverageRecorder do
   ]
 
   defp skip_from_coverage?(file) do
-    mod = file |> Path.basename(".beam") |> String.to_atom()
+    mod = file |> Path.basename(".beam") |> String.to_unsafe_atom()
     mod in @to_skip or match?({:docs_v1, _, _, _, _, %{deprecated: _}, _}, Code.fetch_docs(mod))
   end
 end

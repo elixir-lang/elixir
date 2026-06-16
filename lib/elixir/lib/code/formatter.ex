@@ -1457,7 +1457,7 @@ defmodule Code.Formatter do
             metadata = [
               file: state.file,
               line: meta[:line],
-              sigil: String.to_atom(name),
+              sigil: String.to_unsafe_atom(name),
               modifiers: modifiers,
               opening_delimiter: opening_delimiter
             ]

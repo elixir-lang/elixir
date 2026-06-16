@@ -1137,7 +1137,7 @@ defmodule SystemLimitError do
 
   For example, this can happen if you try to create an atom that is too large:
 
-      iex> String.to_atom(String.duplicate("a", 100_000))
+      iex> String.to_unsafe_atom(String.duplicate("a", 100_000))
       ** (SystemLimitError) a system limit has been reached
   """
 
@@ -1807,7 +1807,7 @@ defmodule UndefinedFunctionError do
 
   defp load_module({name, _path, _loaded?}) do
     name
-    |> List.to_atom()
+    |> List.to_unsafe_atom()
     |> Code.ensure_loaded()
   end
 

@@ -382,7 +382,7 @@ defmodule Kernel.Utils do
                   {new_var, acc}
 
                 %{} ->
-                  generated = String.to_atom("arg" <> Integer.to_string(map_size(acc) + 1))
+                  generated = String.to_unsafe_atom("arg" <> Integer.to_string(map_size(acc) + 1))
                   new_var = Macro.unique_var(generated, module)
                   {new_var, Map.put(acc, pair, {new_var, var})}
               end

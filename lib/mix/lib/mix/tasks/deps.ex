@@ -206,7 +206,7 @@ defmodule Mix.Tasks.Deps do
 
     apps =
       apps
-      |> Enum.map(&String.to_atom/1)
+      |> Enum.map(&String.to_unsafe_atom/1)
       |> Enum.uniq()
 
     # Sort deps when showing all or preserve input order when filtering

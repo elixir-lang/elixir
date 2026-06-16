@@ -134,8 +134,8 @@ defmodule ExUnit.Filters do
   def parse(filters) do
     Enum.map(filters, fn filter ->
       case :binary.split(filter, ":") do
-        [key, value] -> parse_kv(String.to_atom(key), value)
-        [key] -> String.to_atom(key)
+        [key, value] -> parse_kv(String.to_unsafe_atom(key), value)
+        [key] -> String.to_unsafe_atom(key)
       end
     end)
   end

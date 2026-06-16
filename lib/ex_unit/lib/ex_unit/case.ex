@@ -926,7 +926,7 @@ defmodule ExUnit.Case do
 
   defp build_test_name(name) do
     try do
-      String.to_atom(name)
+      String.to_unsafe_atom(name)
     rescue
       SystemLimitError ->
         raise SystemLimitError, """

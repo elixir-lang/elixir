@@ -264,7 +264,7 @@ defmodule Code.Normalizer do
           "Elixir." <> segments ->
             segments
             |> String.split(".")
-            |> Enum.map(&String.to_atom/1)
+            |> Enum.map(&String.to_unsafe_atom/1)
         end
 
       {:__aliases__, meta, segments}
@@ -559,7 +559,7 @@ defmodule Code.Normalizer do
     atom
     |> Atom.to_string()
     |> maybe_escape_literal(state)
-    |> String.to_atom()
+    |> String.to_unsafe_atom()
   end
 
   defp maybe_escape_literal(term, _) do

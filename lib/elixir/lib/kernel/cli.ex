@@ -433,7 +433,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:rpc_eval, node, expr}, _config) when is_list(expr) do
-    node = List.to_atom(node)
+    node = List.to_unsafe_atom(node)
 
     # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
     _ = :net_kernel.connect_node(node)

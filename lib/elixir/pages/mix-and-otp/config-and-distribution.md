@@ -261,7 +261,7 @@ Open up `config/runtime.exs` and add this to the bottom:
 nodes =
   System.get_env("NODES", "")
   |> String.split(",", trim: true)
-  |> Enum.map(&String.to_atom/1)
+  |> Enum.map(&String.to_unsafe_atom/1)
 
 config :kv, :nodes, nodes
 ```

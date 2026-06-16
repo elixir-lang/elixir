@@ -371,6 +371,6 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp module_from_path(path) do
-    path |> Path.basename() |> Path.rootname() |> String.to_atom()
+    path |> Path.basename() |> Path.rootname() |> String.to_unsafe_atom()
   end
 end

@@ -1442,7 +1442,7 @@ defmodule Enum do
     )
 
     # Avoid warnings about Dict
-    dict_module = String.to_atom("Dict")
+    dict_module = String.to_unsafe_atom("Dict")
 
     reduce(reverse(enumerable), dict, fn entry, categories ->
       dict_module.update(categories, fun.(entry), [entry], &[entry | &1])

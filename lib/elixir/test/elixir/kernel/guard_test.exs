@@ -67,7 +67,7 @@ defmodule Kernel.GuardTest do
     defmodule UnquotedInGuardCall do
       @value :foo
 
-      defguard unquote(String.to_atom("is_#{@value}"))(x) when x == unquote(@value)
+      defguard unquote(String.to_unsafe_atom("is_#{@value}"))(x) when x == unquote(@value)
     end
 
     test "guards names can be defined dynamically using unquote" do

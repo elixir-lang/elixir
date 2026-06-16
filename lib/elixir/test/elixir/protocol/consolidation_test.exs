@@ -267,7 +267,7 @@ defmodule Protocol.ConsolidationTest do
         "\n\nGot value:\n\n    :foo\n"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      sample = String.to_atom("Elixir.Protocol.ConsolidationTest.Sample")
+      sample = String.to_unsafe_atom("Elixir.Protocol.ConsolidationTest.Sample")
       sample.ok(:foo)
     end
   end

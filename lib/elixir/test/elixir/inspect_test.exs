@@ -102,7 +102,7 @@ defmodule Inspect.AtomTest do
     assert inspect(:こんにちは世界) == ":こんにちは世界"
 
     nfd = :unicode.characters_to_nfd_binary("olá")
-    assert inspect(String.to_atom(nfd)) == ":\"#{nfd}\""
+    assert inspect(String.to_unsafe_atom(nfd)) == ":\"#{nfd}\""
   end
 end
 

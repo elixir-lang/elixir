@@ -65,10 +65,10 @@ defmodule Mix.Tasks.App.Tree do
           {app, opts}
 
         {opts, [app]} ->
-          {String.to_atom(app), opts}
+          {String.to_unsafe_atom(app), opts}
       end
 
-    excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+    excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_unsafe_atom/1)
     excluded = @default_excluded ++ excluded
 
     callback = fn {app, type} ->

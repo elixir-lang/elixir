@@ -86,7 +86,7 @@ defmodule Mix.Tasks.XrefTest do
 
         Mix.Task.run("compile")
         after_compile.()
-        xref = String.to_atom("Elixir.Mix.Tasks.Xref")
+        xref = String.to_unsafe_atom("Elixir.Mix.Tasks.Xref")
         assert Enum.sort(xref.calls()) == Enum.sort(expected)
       end)
     end

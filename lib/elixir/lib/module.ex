@@ -1148,7 +1148,7 @@ defmodule Module do
   defp simplify_var(var, guess_priority) do
     case Atom.to_string(var) do
       "_" -> {:_, [], guess_priority}
-      "_" <> rest -> {String.to_atom(rest), [], guess_priority}
+      "_" <> rest -> {String.to_unsafe_atom(rest), [], guess_priority}
       _ -> {var, [], nil}
     end
   end
@@ -1159,7 +1159,7 @@ defmodule Module do
     rescue
       ArgumentError -> module
     else
-      module_name -> String.to_atom(Macro.underscore(List.last(module_name)))
+      module_name -> String.to_unsafe_atom(Macro.underscore(List.last(module_name)))
     end
   end
 
