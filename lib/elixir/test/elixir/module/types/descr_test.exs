@@ -1833,6 +1833,16 @@ defmodule Module.Types.DescrTest do
       assert tuple_fetch(tuple(), 0) == :badindex
 
       assert tuple_fetch(projected_negative_tuple(200), 1) == {false, term()}
+
+      # The index is always present once negations push the size lower bound past
+      # it, even though no positive tuple literal proves the bound on its own.
+      assert opt_difference(open_tuple([]), empty_tuple())
+             |> tuple_fetch(0)
+             |> Kernel.then(fn {opt, ty} -> opt == false and equal?(ty, term()) end)
+
+      assert opt_difference(open_tuple([integer()]), tuple([integer()]))
+             |> tuple_fetch(1)
+             |> Kernel.then(fn {opt, ty} -> opt == false and equal?(ty, term()) end)
     end
 
     test "tuple_fetch with dynamic" do

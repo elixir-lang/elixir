@@ -4972,7 +4972,7 @@ defmodule Module.Types.Descr do
         {optional? or acc_optional?, opt_union(descr, acc_descr)}
 
       {tag, elements, negs}, {acc_optional?, acc_descr} ->
-        {_, value, bdd} = tuple_take_element(elements, index, tag)
+        {found?, value, bdd} = tuple_take_element(elements, index, tag)
 
         case tuple_split_negative_pairs_index(negs, index) do
           :empty ->
@@ -4988,12 +4988,36 @@ defmodule Module.Types.Descr do
                 |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
               end
 
-            {optional?, descr} = pop_optional_static(value)
+            # `index` is absent only when the positive does not list it explicitly:
+            # `found?` is true exactly when the positive forces an arity > index, so
+            # every surviving tuple has the index regardless of the negatives. When
+            # `found?` is false the index can be absent, and the projected `value` may
+            # carry a stale :optional marker (term_or_optional/0) that closed negatives
+            # cannot cancel on their own. So we ignore that marker and, only in this
+            # case, check the line's arity directly. This keeps the common present-fetch
+            # path free of the extra BDD work the check would otherwise cost.
+            {_optional?, descr} = pop_optional_static(value)
+
+            optional? =
+              not found? and tuple_line_index_absent?(tag, elements, negs, index)
+
             {optional? or acc_optional?, opt_union(descr, acc_descr)}
         end
     end)
   catch
     :open -> {true, term()}
+  end
+
+  # Returns true if the line `(tag, elements) and not (negs)` contains a tuple whose
+  # arity is not greater than `index`, i.e. a tuple for which `index` is absent. Only
+  # meaningful when the positive itself is shorter than the index (see caller).
+  defp tuple_line_index_absent?(tag, elements, negs, index) do
+    # The short tuples of the positive (arity <= index) are what carry the absent
+    # index; subtracting the negatives tells us whether any of them survive.
+    present = tuple_new(:open, List.duplicate(term(), index + 1))
+    short = tuple_difference(tuple_new(tag, elements), present)
+    short = Enum.reduce(negs, short, fn neg, acc -> tuple_difference(acc, neg) end)
+    not tuple_empty?(short)
   end
 
   # Remove negatives:
