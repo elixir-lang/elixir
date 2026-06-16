@@ -354,6 +354,67 @@ defmodule ExUnit.CallbacksTest do
            """
   end
 
+  test "on_exit accepts optional context" do
+    defmodule OnExitOptionalContextTest do
+      use ExUnit.Case
+
+      def format_context(%ExUnit.TestModule{name: name}), do: inspect(name)
+      def format_context(%ExUnit.Test{state: nil}), do: "passed"
+      def format_context(%ExUnit.Test{state: {:failed, _}}), do: "failed"
+      def format_context(%ExUnit.Test{state: {:excluded, _}}), do: "excluded"
+      def format_context(%ExUnit.Test{state: {:invalid, _}}), do: "invalid"
+      def format_context(%ExUnit.Test{state: {:skipped, _}}), do: "skipped"
+
+      setup do
+        on_exit(fn ->
+          IO.puts("on_exit setup run no context")
+        end)
+
+        on_exit(fn context ->
+          IO.puts("on_exit setup run context: #{format_context(context)}")
+        end)
+
+        :ok
+      end
+
+      setup_all do
+        on_exit(fn ->
+          IO.puts("on_exit setup_all run no context")
+        end)
+
+        on_exit(fn context ->
+          IO.puts("on_exit setup_all run context: #{format_context(context)}")
+        end)
+
+        :ok
+      end
+
+      test "ok" do
+        on_exit(fn ->
+          IO.puts("simple on_exit run no context")
+        end)
+
+        on_exit(fn context ->
+          IO.puts("simple on_exit run context: #{format_context(context)}")
+        end)
+
+        flunk("oops")
+      end
+    end
+
+    no_formatters!()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+           simple on_exit run context: failed
+           simple on_exit run no context
+           on_exit setup run context: failed
+           on_exit setup run no context
+           on_exit setup_all run context: ExUnit.CallbacksTest.OnExitOptionalContextTest
+           on_exit setup_all run no context
+           """
+  end
+
   test "raises an error when using setup/2 with something other than a block" do
     message =
       "setup/2 requires a block as the second argument after the context, got: :start_counter"

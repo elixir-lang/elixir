@@ -537,14 +537,14 @@ defmodule ExUnit.Runner do
       %{test | state: failed(kind, error, prune_stacktrace(__STACKTRACE__))}
   end
 
-  defp exec_on_exit(test_or_case, pid, timeout) do
-    case ExUnit.OnExitHandler.run(pid, timeout) do
+  defp exec_on_exit(test_or_test_module, pid, timeout) do
+    case ExUnit.OnExitHandler.run(pid, test_or_test_module, timeout) do
       :ok ->
-        test_or_case
+        test_or_test_module
 
       {kind, reason, stack} ->
-        state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
-        %{test_or_case | state: state}
+        state = test_or_test_module.state || failed(kind, reason, prune_stacktrace(stack))
+        %{test_or_test_module | state: state}
     end
   end
 

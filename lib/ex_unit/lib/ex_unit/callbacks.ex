@@ -171,6 +171,7 @@ defmodule ExUnit.Callbacks do
   """
 
   @type child_spec_overrides :: Supervisor.child_spec_overrides()
+  @type on_exit_callback :: (-> term) | (%ExUnit.TestModule{} | %ExUnit.Test{} -> term)
 
   @doc false
   def __register__(module) do
@@ -456,11 +457,10 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Registers a callback that runs once the test exits.
+  Registers a `callback` function that runs once the test exits.
 
-  `callback` is a function that receives no arguments and
-  runs in a separate process than the caller. Its return
-  value is irrelevant and is discarded.
+  The `callback` function runs in a separate process than
+  the caller. Its return value is irrelevant and is discarded.
 
   `on_exit/2` is usually called from `setup/1` and `setup_all/1`
   callbacks, often to undo the action performed during the setup.
@@ -471,6 +471,11 @@ defmodule ExUnit.Callbacks do
   `on_exit/2` handler: if you want to override a previous handler, for
   example, use the same `name_or_ref` across multiple `on_exit/2`
   calls.
+
+  The `callback` may optionally accept a single argument. If called inside
+  a `setup/1` callback or inside a test, it is provided an `ExUnit.Test` struct.
+  If called inside a `setup_all/1` callback then it is provided
+  an `ExUnit.TestModule` struct.
 
   If `on_exit/2` is called inside `setup/1` or inside a test, it's
   executed in a blocking fashion after the test exits and *before
@@ -501,13 +506,26 @@ defmodule ExUnit.Callbacks do
         on_exit(:drop_table, fn -> :ok end)
       end
 
+  You can accept an argument in the `callback` to perform conditional cleanup,
+  although (like any `on_exit/2` callback) there is no guarantee it will execute
+  if, for example, the test run is interrupted with `Ctrl`+`C`:
+
+      setup do
+        File.write!("keep_if_failed.json", "{}")
+        on_exit(fn
+          %ExUnit.Test{state: {:failed, _}} -> :ok
+          _ -> File.rm!("keep_if_failed.json")
+        end)
+      end
+
   Relying too much on overriding callbacks like this can lead to test
   cases that are hard to understand and with too many layers of
   indirection. However, it can be useful in some cases or for library
   authors, for example.
   """
-  @spec on_exit(term, (-> term)) :: :ok
-  def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
+  @spec on_exit(term, on_exit_callback) :: :ok
+  def on_exit(name_or_ref \\ make_ref(), callback)
+      when is_function(callback, 0) or is_function(callback, 1) do
     case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
       :ok ->
         :ok
