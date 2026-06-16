@@ -634,6 +634,27 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[TMap1, TMap2], TS} ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
   end;
+translate_remote('Elixir.String', to_existing_atom, Meta, [String, List], S) ->
+  Ann = ?ann(Meta),
+  {[TString, TList], TS} = translate_args([String, List], Ann, S),
+
+  case is_list(List) andalso lists:all(fun is_atom/1, List) of
+    true ->
+      Generated = erl_anno:set_generated(true, Ann),
+      LastClause = {clause, Generated,
+        [{var, Generated, '_'}],
+        [],
+        [{call, Ann, {remote, Ann, {atom, Ann, 'Elixir.String'}, {atom, Ann, '__to_existing_atom__'}}, [TString, TList]}]},
+      Clauses = [
+        {clause, Generated,
+          [{bin, Generated, [{bin_element, Generated, {string, Generated, atom_to_list(Atom)}, default, default}]}],
+          [],
+          [{atom, Ann, Atom}]}
+      || Atom <- List] ++ [LastClause],
+      {{'case', Generated, TString, Clauses}, TS};
+    false ->
+      {{call, Ann, {remote, Ann, {atom, Ann, 'Elixir.String'}, {atom, Ann, to_existing_atom}}, [TString, TList]}, TS}
+  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
 

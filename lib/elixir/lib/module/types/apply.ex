@@ -288,7 +288,8 @@ defmodule Module.Types.Apply do
          [{[term(), open_map()], tuple([term(), open_map()]) |> opt_union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
-        {:maps, :values, [{[open_map()], list(term())}]}
+        {:maps, :values, [{[open_map()], list(term())}]},
+        {String, :to_existing_atom, [{[binary(), non_empty_list(atom())], atom()}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
 
@@ -1415,6 +1416,20 @@ defmodule Module.Types.Apply do
     case map_to_list(map, fn _key, value -> value end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :keys, [map])}
+    end
+  end
+
+  defp remote_apply(String, :to_existing_atom, info, [_string, list] = args_types, stack) do
+    # TODO remove once we add parametric types, this will just be:
+    # binary(), non_empty_list(a) -> a when a: atom()
+
+    case remote_apply(info, args_types, stack) do
+      {:ok, _} ->
+        {false, refined_atom} = list_of(list)
+        {:ok, refined_atom}
+
+      other ->
+        other
     end
   end
 

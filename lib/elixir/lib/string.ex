@@ -2992,6 +2992,8 @@ defmodule String do
   Converts a string to an existing atom or raises if
   the atom does not exist.
 
+  If the list of expected atoms is known upfront, prefer `to_existing_atom/2`.
+
   The maximum atom size is of 255 Unicode code points.
   Raises an `ArgumentError` if the atom does not exist.
 
@@ -3019,6 +3021,46 @@ defmodule String do
   @spec to_existing_atom(String.t()) :: atom
   def to_existing_atom(string) when is_binary(string) do
     :erlang.binary_to_existing_atom(string, :utf8)
+  end
+
+  @doc """
+  Converts a string to one of the `allowed_atoms` or raises.
+
+  Raises an `ArgumentError` if the atom either does not exist or is not within
+  the existing list.
+
+  This should be preferred to `to_existing_atom/1` if the list is known upfront,
+  since there is no risk that the atom has not been loaded.
+
+  ## Examples
+
+      iex> String.to_existing_atom("foo", [:foo, :bar])
+      :foo
+
+      iex> String.to_existing_atom("unknown", [:foo, :bar])
+      ** (ArgumentError) unexpected value: \"unknown\", the allowed atoms are: [:foo, :bar]
+
+  """
+  @spec to_existing_atom(String.t(), nonempty_list(atom)) :: atom
+  def to_existing_atom(string, [_ | _] = allowed_atoms) when is_binary(string) do
+    atom = :erlang.binary_to_existing_atom(string, :utf8)
+
+    if atom not in allowed_atoms do
+      to_existing_atom_unexpected(string, allowed_atoms)
+    end
+
+    atom
+  end
+
+  # used just to have a less cryptic stacktrace and consistent error
+  @doc false
+  def __to_existing_atom__(string, allowed_atoms) do
+    to_existing_atom_unexpected(string, allowed_atoms)
+  end
+
+  defp to_existing_atom_unexpected(string, allowed_atoms) do
+    raise ArgumentError,
+          "unexpected value: #{inspect(string)}, the allowed atoms are: #{inspect(allowed_atoms)}"
   end
 
   @doc """
