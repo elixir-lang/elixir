@@ -1099,7 +1099,7 @@ defmodule List do
       ** (ArgumentError) unexpected value: ~c\"unknown\", the allowed atoms are: [:foo, :bar]
 
   """
-  @spec to_existing_atom(charlist, nonempty_list(atom)) :: atom
+  @spec to_existing_atom(charlist, nonempty_list(a)) :: a when a: atom()
   def to_existing_atom(charlist, [_ | _] = allowed_atoms) when is_list(charlist) do
     atom = :erlang.list_to_existing_atom(charlist)
 
