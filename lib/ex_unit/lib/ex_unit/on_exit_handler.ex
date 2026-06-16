@@ -18,7 +18,7 @@ defmodule ExUnit.OnExitHandler do
     :ok
   end
 
-  @spec add(pid, term, (-> term)) :: :ok | :error
+  @spec add(pid, term, ExUnit.Callbacks.on_exit_callback()) :: :ok | :error
   def add(pid, name_or_ref, callback)
       when is_pid(pid) and (is_function(callback, 0) or is_function(callback, 1)) do
     try do

@@ -486,6 +486,9 @@ defmodule ExUnit.Callbacks do
   called inside a `setup_all/1` callback then `callback` is executed
   after running *all tests* (see `setup_all/1` for more information).
 
+  There is no guarantee a `callback` provided to `on_exit/2` will execute,
+  as, for example, the test run can be interrupted with `Ctrl`+`C`.
+
   ## Examples
 
       setup do
@@ -506,9 +509,7 @@ defmodule ExUnit.Callbacks do
         on_exit(:drop_table, fn -> :ok end)
       end
 
-  You can accept an argument in the `callback` to perform conditional cleanup,
-  although (like any `on_exit/2` callback) there is no guarantee it will execute
-  if, for example, the test run is interrupted with `Ctrl`+`C`:
+  You can accept an argument in the `callback` to perform conditional cleanup:
 
       setup do
         File.write!("keep_if_failed.json", "{}")
