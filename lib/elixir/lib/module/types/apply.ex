@@ -711,22 +711,6 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp do_remote(String, :to_existing_atom, [string, atoms], _, expr, stack, context, of_fun) do
-    {string_type, context} = of_fun.(string, binary(), expr, stack, context)
-    {atoms_type, context} = of_fun.(atoms, list(atom()), expr, stack, context)
-
-    atom_type =
-      with {_, atom_type} when atom_type != nil <- list_of(atoms_type),
-           true <- subtype?(atom_type, atom()) do
-        atom_type
-      else
-        _ ->
-          atom()
-      end
-
-    {return(atom_type, [string_type, atoms_type], stack), context}
-  end
-
   defp do_remote(mod, fun, args, expected, expr, stack, context, _of_fun) do
     remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
   end
@@ -1432,6 +1416,16 @@ defmodule Module.Types.Apply do
     case map_to_list(map, fn _key, value -> value end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
       :badmap -> {:error, badremote(:maps, :keys, [map])}
+    end
+  end
+
+  defp remote_apply(String, :to_existing_atom, info, [_string, list] = args_types, stack) do
+    pre_refined = remote_apply(info, args_types, stack)
+
+    with {:ok, _} <- pre_refined, {false, refined_atom} = list_of(list) do
+      {:ok, refined_atom}
+    else
+      _ -> pre_refined
     end
   end
 

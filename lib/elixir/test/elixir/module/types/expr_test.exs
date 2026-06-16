@@ -1918,7 +1918,20 @@ defmodule Module.Types.ExprTest do
                String.to_existing_atom(x, values)
              ) == dynamic(atom())
 
-      # TODO: check for errors when 1. not a list 2. not atoms
+      assert typeerror!(
+               [x],
+               String.to_existing_atom(:not_a_string, x)
+             ) =~ "incompatible types given to String.to_existing_atom/2"
+
+      assert typeerror!(
+               [x],
+               String.to_existing_atom(x, [:foo, "not atoms"])
+             ) =~ "incompatible types given to String.to_existing_atom/2"
+
+      assert typeerror!(
+               [x],
+               String.to_existing_atom(x, [])
+             ) =~ "incompatible types given to String.to_existing_atom/2"
     end
   end
 
