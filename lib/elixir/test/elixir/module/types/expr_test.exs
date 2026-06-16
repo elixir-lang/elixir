@@ -627,7 +627,7 @@ defmodule Module.Types.ExprTest do
 
   describe "remote capture" do
     test "strong" do
-      assert typecheck!(&String.to_atom/1) == fun([binary()], atom())
+      assert typecheck!(&String.to_unsafe_atom/1) == fun([binary()], atom())
       assert typecheck!(&:erlang.element/2) == fun([integer(), open_tuple([])], dynamic())
     end
 
@@ -1274,12 +1274,12 @@ defmodule Module.Types.ExprTest do
                [key],
                (
                  x = %{String.to_integer(key) => :old}
-                 %{x | String.to_atom(key) => :new}
+                 %{x | String.to_unsafe_atom(key) => :new}
                )
              ) == ~l"""
              expected a map with key of type atom() in map update syntax:
 
-                 %{x | String.to_atom(key) => :new}
+                 %{x | String.to_unsafe_atom(key) => :new}
 
              but got type:
 
@@ -1302,12 +1302,12 @@ defmodule Module.Types.ExprTest do
                [key],
                (
                  x = %{key: :old}
-                 %{x | String.to_atom(key) => :new}
+                 %{x | String.to_unsafe_atom(key) => :new}
                )
              ) == ~l"""
              expected a map with key of type atom() in map update syntax:
 
-                 %{x | String.to_atom(key) => :new}
+                 %{x | String.to_unsafe_atom(key) => :new}
 
              but got type:
 
@@ -1317,7 +1317,7 @@ defmodule Module.Types.ExprTest do
 
                  # type: binary()
                  # from: types_test.ex:LINE-2
-                 String.to_atom(key)
+                 String.to_unsafe_atom(key)
 
              where "x" was given the type:
 
@@ -2218,7 +2218,7 @@ defmodule Module.Types.ExprTest do
 
       assert typewarn!(
                [x],
-               case String.to_atom(x) do
+               case String.to_unsafe_atom(x) do
                  :ok -> 1
                  :ok -> 2
                end

@@ -1024,6 +1024,11 @@ defmodule List do
     :lists.suffix(suffix, list)
   end
 
+  @doc deprecated: "Use to_existing_atom/1 or to_unsafe_atom/1 instead"
+  def to_atom(charlist) do
+    :erlang.list_to_atom(charlist)
+  end
+
   @doc """
   Converts a charlist to an atom.
 
@@ -1034,15 +1039,15 @@ defmodule List do
 
   ## Examples
 
-      iex> List.to_atom(~c"Elixir")
+      iex> List.to_unsafe_atom(~c"Elixir")
       :Elixir
 
-      iex> List.to_atom(~c"🌢 Elixir")
+      iex> List.to_unsafe_atom(~c"🌢 Elixir")
       :"🌢 Elixir"
 
   """
-  @spec to_atom(charlist) :: atom
-  def to_atom(charlist) do
+  @spec to_unsafe_atom(charlist) :: atom
+  def to_unsafe_atom(charlist) do
     :erlang.list_to_atom(charlist)
   end
 

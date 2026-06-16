@@ -148,6 +148,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?kernel, tuple_size, 1, erlang, tuple_size);
 
 ?inline(?list, to_atom, 1, erlang, list_to_atom);
+?inline(?list, to_unsafe_atom, 1, erlang, list_to_atom);
 ?inline(?list, to_existing_atom, 1, erlang, list_to_existing_atom);
 ?inline(?list, to_float, 1, erlang, list_to_float);
 ?inline(?list, to_integer, 1, erlang, list_to_integer);
@@ -207,6 +208,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 
 ?inline(?string, duplicate, 2, binary, copy);
 ?inline(?string, to_atom, 1, erlang, binary_to_atom);
+?inline(?string, to_unsafe_atom, 1, erlang, binary_to_atom);
 ?inline(?string, to_existing_atom, 1, erlang, binary_to_existing_atom);
 ?inline(?string, to_float, 1, erlang, binary_to_float);
 ?inline(?string, to_integer, 1, erlang, binary_to_integer);
