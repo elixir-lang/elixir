@@ -269,38 +269,60 @@ defmodule Keyword do
   @doc since: "1.13.0"
   @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
           {:ok, keyword()} | {:error, [atom]}
+  def validate([], values) when is_list(values), do: {:ok, move_pairs!(values, [])}
+
   def validate(keyword, values) when is_list(keyword) and is_list(values) do
-    validate(keyword, values, [], keyword, [])
+    validate_merge(keyword, values, [], keyword)
   end
 
-  defp validate([{key, _} | keyword], values1, values2, original, bad_keys) when is_atom(key) do
-    case find_key!(key, values1, values2) do
-      {values1, values2} ->
-        validate(keyword, values1, values2, original, bad_keys)
+  defp validate_merge([], values, values_pre, original),
+    do: {:ok, move_pairs!(values, move_pairs!(values_pre, original))}
 
-      :error ->
-        case find_key!(key, values2, values1) do
-          {values1, values2} ->
-            validate(keyword, values1, values2, original, bad_keys)
-
-          :error ->
-            validate(keyword, values1, values2, original, [key | bad_keys])
-        end
+  defp validate_merge([{key, _} = pair | keyword], [head | tail], values_pre, original)
+       when is_atom(key) do
+    case head do
+      ^key -> validate_merge(keyword, tail, values_pre, original)
+      {^key, _} -> validate_merge(keyword, tail, values_pre, original)
+      _ -> validate_merge([pair | keyword], tail, [head | values_pre], original)
     end
   end
 
-  defp validate([], values1, values2, original, []) do
-    {:ok, move_pairs!(values1, move_pairs!(values2, original))}
+  defp validate_merge([{key, _} | keyword], [], values_pre, original) when is_atom(key) do
+    case find_key!(key, values_pre, []) do
+      {new_values, new_values_pre} ->
+        validate_merge(keyword, new_values, new_values_pre, original)
+
+      :error ->
+        validate_fallback(keyword, values_pre, [key])
+    end
   end
 
-  defp validate([], _values1, _values2, _original, bad_keys) do
-    {:error, bad_keys}
+  defp validate_merge([pair | _], _, _, _),
+    do:
+      raise(
+        ArgumentError,
+        "expected a keyword list as first argument, got invalid entry: #{inspect(pair)}"
+      )
+
+  defp validate_fallback([{key, _} | keyword], values, bad_keys)
+       when is_atom(key) do
+    case find_key!(key, values, []) do
+      {rest, acc} ->
+        validate_fallback(keyword, rest ++ acc, bad_keys)
+
+      :error ->
+        validate_fallback(keyword, values, [key | bad_keys])
+    end
   end
 
-  defp validate([pair | _], _values1, _values2, _original, []) do
-    raise ArgumentError,
-          "expected a keyword list as first argument, got invalid entry: #{inspect(pair)}"
-  end
+  defp validate_fallback([], _, bad), do: {:error, bad}
+
+  defp validate_fallback([p | _], _, _),
+    do:
+      raise(
+        ArgumentError,
+        "expected a keyword list as first argument, got invalid entry: #{inspect(p)}"
+      )
 
   defp find_key!(key, [key | rest], acc), do: {rest, acc}
   defp find_key!(key, [{key, _} | rest], acc), do: {rest, acc}
