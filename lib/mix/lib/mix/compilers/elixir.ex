@@ -766,7 +766,7 @@ defmodule Mix.Compilers.Elixir do
   defp purge_modules_in_path(path) do
     with {:ok, beams} <- File.ls(path) do
       Enum.each(beams, fn beam ->
-        module = beam |> Path.rootname() |> String.to_atom()
+        module = beam |> Path.rootname() |> String.to_unsafe_atom()
 
         if Code.loaded?(module) do
           :code.purge(module)

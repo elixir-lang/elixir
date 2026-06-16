@@ -1081,7 +1081,7 @@ defmodule MacroTest do
 
   describe "to_string/2" do
     defp macro_to_string(var, fun \\ fn _ast, string -> string end) do
-      module = String.to_atom("Elixir.Macro")
+      module = String.to_unsafe_atom("Elixir.Macro")
       module.to_string(var, fun)
     end
 

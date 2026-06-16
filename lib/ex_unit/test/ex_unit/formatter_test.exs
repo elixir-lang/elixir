@@ -37,7 +37,7 @@ defmodule ExUnit.FormatterTest do
     long_name = "test " <> String.duplicate("a", 300)
 
     %ExUnit.Test{
-      name: String.to_atom("truncated"),
+      name: String.to_unsafe_atom("truncated"),
       description: long_name,
       module: Hello,
       tags: %{file: __ENV__.file, line: 1}

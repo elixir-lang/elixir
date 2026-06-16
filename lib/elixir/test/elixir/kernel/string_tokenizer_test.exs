@@ -65,8 +65,8 @@ defmodule Kernel.StringTokenizerTest do
   end
 
   test "tokenizes aliases" do
-    assert Code.string_to_quoted!("Ola") |> aliases() == String.to_atom("Ola")
-    assert Code.string_to_quoted!("M_123") |> aliases() == String.to_atom("M_123")
+    assert Code.string_to_quoted!("Ola") |> aliases() == String.to_unsafe_atom("Ola")
+    assert Code.string_to_quoted!("M_123") |> aliases() == String.to_unsafe_atom("M_123")
     assert {:error, _} = Code.string_to_quoted("Óla")
     assert {:error, _} = Code.string_to_quoted("Olá")
     assert {:error, _} = Code.string_to_quoted("Ol@")

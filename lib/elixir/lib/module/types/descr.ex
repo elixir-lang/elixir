@@ -1237,7 +1237,7 @@ defmodule Module.Types.Descr do
           "Elixir." <> segments ->
             segments
             |> String.split(".")
-            |> Enum.map(&String.to_atom/1)
+            |> Enum.map(&String.to_unsafe_atom/1)
         end
 
       {:__aliases__, [], segments}

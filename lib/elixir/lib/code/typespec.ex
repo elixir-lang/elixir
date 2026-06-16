@@ -399,10 +399,10 @@ defmodule Code.Typespec do
   defp erl_to_ex_var(var) do
     case Atom.to_string(var) do
       <<"_", c::utf8, rest::binary>> ->
-        String.to_atom("_#{String.downcase(<<c::utf8>>)}#{rest}")
+        String.to_unsafe_atom("_#{String.downcase(<<c::utf8>>)}#{rest}")
 
       <<c::utf8, rest::binary>> ->
-        String.to_atom("#{String.downcase(<<c::utf8>>)}#{rest}")
+        String.to_unsafe_atom("#{String.downcase(<<c::utf8>>)}#{rest}")
     end
   end
 

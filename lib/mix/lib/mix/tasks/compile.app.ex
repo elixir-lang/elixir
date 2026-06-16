@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Compile.App do
         Enum.sort(
           for entry <- entries,
               String.ends_with?(entry, ".beam"),
-              do: entry |> binary_part(0, byte_size(entry) - 5) |> String.to_atom()
+              do: entry |> binary_part(0, byte_size(entry) - 5) |> String.to_unsafe_atom()
         )
 
       {:error, _} ->

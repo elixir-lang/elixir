@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Deps.Tree do
             Mix.raise("no application given and none found in mix.exs file")
 
         [app] ->
-          app = String.to_atom(app)
+          app = String.to_unsafe_atom(app)
           find_dep(deps, app) || Mix.raise("could not find dependency #{app}")
       end
 
@@ -127,7 +127,7 @@ defmodule Mix.Tasks.Deps.Tree do
 
   defp callback(formatter, deps, opts) do
     umbrella_only? = Keyword.get(opts, :umbrella_only, false)
-    excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+    excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_unsafe_atom/1)
 
     if umbrella_only? && !Mix.Project.parent_umbrella_project_file() do
       Mix.raise("The --umbrella-only option can only be used in umbrella projects")

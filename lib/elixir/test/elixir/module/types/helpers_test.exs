@@ -17,7 +17,7 @@ defmodule Module.Types.HelpersTest do
       assert expr_to_string(quote(do: :erlang.band(a, b))) == "Bitwise.band(a, b)"
       assert expr_to_string(quote(do: :erlang.orelse(a, b))) == "a or b"
       assert expr_to_string(quote(do: :erlang."=:="(a, b))) == "a === b"
-      assert expr_to_string(quote(do: :erlang.list_to_atom(a))) == "List.to_atom(a)"
+      assert expr_to_string(quote(do: :erlang.list_to_atom(a))) == "List.to_unsafe_atom(a)"
       assert expr_to_string(quote(do: :erlang.element(1, a))) == "elem(a, 0)"
       assert expr_to_string(quote(do: :erlang.element(:erlang.+(a, 1), b))) == "elem(b, a)"
       assert expr_to_string(quote(do: :lists.member(a, []))) == "a in []"

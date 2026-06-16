@@ -248,7 +248,7 @@ defmodule Mix.Tasks.Test.Coverage do
 
     for file <- File.ls!(dir), Path.extname(file) == ".beam" do
       with true <- file in consolidated,
-           [_ | _] = path <- :code.which(file |> Path.rootname() |> String.to_atom()) do
+           [_ | _] = path <- :code.which(file |> Path.rootname() |> String.to_unsafe_atom()) do
         path
       else
         _ -> String.to_charlist(Path.join(dir, file))

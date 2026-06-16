@@ -527,7 +527,7 @@ defmodule Macro do
 
   defp generate_arguments(amount, context, fun)
        when is_integer(amount) and amount > 0 and is_atom(context) do
-    for id <- 1..amount, do: fun.(String.to_atom("arg" <> Integer.to_string(id)), context)
+    for id <- 1..amount, do: fun.(String.to_unsafe_atom("arg" <> Integer.to_string(id)), context)
   end
 
   @doc """

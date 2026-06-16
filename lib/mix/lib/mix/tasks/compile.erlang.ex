@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     Erlang.compile_entries(manifest(), sorted, :erl, :beam, opts, fn input, _output ->
       # We're purging the module because a previous compiler (for example, Phoenix)
       # might have already loaded the previous version of it.
-      module = input |> Path.basename(".erl") |> String.to_atom()
+      module = input |> Path.basename(".erl") |> String.to_unsafe_atom()
       :code.purge(module)
       :code.delete(module)
 
@@ -131,7 +131,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       output
       |> Path.basename()
       |> Path.rootname()
-      |> String.to_atom()
+      |> String.to_unsafe_atom()
     end
   end
 
@@ -248,6 +248,6 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp module_from_artifact(artifact) do
-    artifact |> Path.basename() |> Path.rootname() |> String.to_atom()
+    artifact |> Path.basename() |> Path.rootname() |> String.to_unsafe_atom()
   end
 end

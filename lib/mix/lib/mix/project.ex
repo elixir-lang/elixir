@@ -280,7 +280,7 @@ defmodule Mix.Project do
           do: apply(module, state_loader, []),
           else: []
 
-      task = String.to_atom(task || config[:default_task] || "run")
+      task = String.to_unsafe_atom(task || config[:default_task] || "run")
 
       if !System.get_env("MIX_ENV") do
         if env = config[:preferred_envs][task] || @preferred_envs[task] || config[:default_env] do
@@ -480,7 +480,7 @@ defmodule Mix.Project do
 
   defp umbrella_apps(nil, apps_path) do
     case File.ls(apps_path) do
-      {:ok, apps} -> Enum.map(apps, &String.to_atom/1)
+      {:ok, apps} -> Enum.map(apps, &String.to_unsafe_atom/1)
       {:error, _} -> []
     end
   end

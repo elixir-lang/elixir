@@ -2962,6 +2962,11 @@ defmodule String do
     end
   end
 
+  @doc deprecated: "Use to_existing_atom/1 or to_unsafe_atom/1 instead"
+  def to_atom(string) when is_binary(string) do
+    :erlang.binary_to_atom(string, :utf8)
+  end
+
   @doc """
   Converts a string to an existing atom or creates a new one.
 
@@ -2979,12 +2984,12 @@ defmodule String do
 
   ## Examples
 
-      iex> String.to_atom("my_atom")
+      iex> String.to_unsafe_atom("my_atom")
       :my_atom
 
   """
-  @spec to_atom(String.t()) :: atom
-  def to_atom(string) when is_binary(string) do
+  @spec to_unsafe_atom(String.t()) :: atom
+  def to_unsafe_atom(string) when is_binary(string) do
     :erlang.binary_to_atom(string, :utf8)
   end
 

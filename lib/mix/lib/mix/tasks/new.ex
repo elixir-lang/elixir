@@ -209,7 +209,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp reserved_app(name) do
-    atom_name = String.to_atom(name)
+    atom_name = String.to_unsafe_atom(name)
 
     if atom_name in reserved_application_names() or Application.ensure_loaded(atom_name) == :ok do
       "Cannot use application name #{inspect(name)} because it is already used by Erlang/OTP or Elixir"

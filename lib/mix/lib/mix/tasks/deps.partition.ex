@@ -153,7 +153,7 @@ defmodule Mix.Tasks.Deps.Partition do
     receive do
       {:tcp, socket, data} ->
         [app, compiled?] =
-          data |> String.trim() |> String.split(":") |> Enum.map(&String.to_atom/1)
+          data |> String.trim() |> String.split(":") |> Enum.map(&String.to_unsafe_atom/1)
 
         deps = Enum.reject(deps, &(&1.app == app))
         status = Map.replace!(status, app, compiled?)
@@ -313,7 +313,7 @@ defmodule Mix.Tasks.Deps.Partition do
   def client_loop(socket, deps, force?, config) do
     case :gen_tcp.recv(socket, 0, :infinity) do
       {:ok, app} ->
-        app = app |> String.trim() |> String.to_atom()
+        app = app |> String.trim() |> String.to_unsafe_atom()
 
         dep =
           Enum.find(deps, &(&1.app == app)) || raise "could not find dependency #{inspect(app)}"

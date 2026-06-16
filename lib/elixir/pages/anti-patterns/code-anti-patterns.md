@@ -155,7 +155,7 @@ Picture yourself implementing code that converts string values into atoms. These
 ```elixir
 defmodule MyRequestHandler do
   def parse(%{"status" => status, "message" => message} = _payload) do
-    %{status: String.to_atom(status), message: message}
+    %{status: String.to_unsafe_atom(status), message: message}
   end
 end
 ```
@@ -165,11 +165,11 @@ iex> MyRequestHandler.parse(%{"status" => "ok", "message" => "all good"})
 %{status: :ok, message: "all good"}
 ```
 
-When we use the `String.to_atom/1` function to dynamically create an atom, it essentially gains potential access to create arbitrary atoms in our system, causing us to lose control over adhering to the limits established by the BEAM. This issue could be exploited by someone to create enough atoms to shut down a system.
+When we use the `String.to_unsafe_atom/1` function to dynamically create an atom, it essentially gains potential access to create arbitrary atoms in our system, causing us to lose control over adhering to the limits established by the BEAM. This issue could be exploited by someone to create enough atoms to shut down a system.
 
 #### Refactoring
 
-To eliminate this anti-pattern, developers must either perform explicit conversions by mapping strings to atoms or replace the use of `String.to_atom/1` with `String.to_existing_atom/1`. An explicit conversion could be done as follows:
+To eliminate this anti-pattern, developers must either perform explicit conversions by mapping strings to atoms or replace the use of `String.to_unsafe_atom/1` with `String.to_existing_atom/1`. An explicit conversion could be done as follows:
 
 ```elixir
 defmodule MyRequestHandler do

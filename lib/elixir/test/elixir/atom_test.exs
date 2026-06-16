@@ -10,10 +10,10 @@ defmodule AtomTest do
   doctest Atom, except: [:moduledoc]
 
   test "to_string/1" do
-    assert "héllo" |> String.to_atom() |> Atom.to_string() == "héllo"
+    assert "héllo" |> String.to_unsafe_atom() |> Atom.to_string() == "héllo"
   end
 
   test "to_charlist/1" do
-    assert "héllo" |> String.to_atom() |> Atom.to_charlist() == ~c"héllo"
+    assert "héllo" |> String.to_unsafe_atom() |> Atom.to_charlist() == ~c"héllo"
   end
 end

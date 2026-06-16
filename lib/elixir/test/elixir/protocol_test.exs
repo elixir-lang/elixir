@@ -135,7 +135,7 @@ defmodule ProtocolTest do
       """
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      sample = String.to_atom("Elixir.ProtocolTest.Sample")
+      sample = String.to_unsafe_atom("Elixir.ProtocolTest.Sample")
       sample.ok(:foo)
     end
   end

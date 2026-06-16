@@ -65,7 +65,7 @@ defmodule Code.Identifier do
     with "-" <> rest <- Atom.to_string(atom),
          [trailing | reversed] = rest |> String.split("/") |> Enum.reverse(),
          [arity, _inner, _count, ""] <- String.split(trailing, "-") do
-      {reversed |> Enum.reverse() |> Enum.join("/") |> String.to_atom(), arity}
+      {reversed |> Enum.reverse() |> Enum.join("/") |> String.to_unsafe_atom(), arity}
     else
       _ -> :error
     end

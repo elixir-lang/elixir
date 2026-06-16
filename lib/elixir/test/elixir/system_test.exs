@@ -81,10 +81,10 @@ defmodule SystemTest do
     System.put_env(%{@test_var => "MAP_STRING"})
     assert System.get_env(@test_var) == "MAP_STRING"
 
-    System.put_env([{String.to_atom(@test_var), "KW_ATOM"}])
+    System.put_env([{String.to_unsafe_atom(@test_var), "KW_ATOM"}])
     assert System.get_env(@test_var) == "KW_ATOM"
 
-    System.put_env([{String.to_atom(@test_var), nil}])
+    System.put_env([{String.to_unsafe_atom(@test_var), nil}])
     assert System.get_env(@test_var) == nil
   end
 

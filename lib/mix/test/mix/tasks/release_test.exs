@@ -554,7 +554,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
       File.write!("different_config/runtime.exs", """
       import Config
-      config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
+      config :release_test, :static, String.to_unsafe_atom(System.get_env("RELEASE_STATIC"))
       """)
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
@@ -594,7 +594,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         File.write!("config/runtime.exs", """
         import Config
-        config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
+        config :release_test, :static, String.to_unsafe_atom(System.get_env("RELEASE_STATIC"))
         config :release_test, :runtime, mode: :code.get_mode()
         """)
 

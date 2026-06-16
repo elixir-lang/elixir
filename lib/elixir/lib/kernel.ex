@@ -5248,12 +5248,12 @@ defmodule Kernel do
   # defmodule Alias nested
   defp alias_defmodule({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
     module = :elixir_aliases.concat([env.module, h])
-    alias = String.to_atom("Elixir." <> Atom.to_string(h))
+    alias = String.to_unsafe_atom("Elixir." <> Atom.to_string(h))
     opts = [as: alias, warn: false]
 
     case t do
       [] -> {module, module, opts}
-      _ -> {String.to_atom(Enum.join([module | t], ".")), module, opts}
+      _ -> {String.to_unsafe_atom(Enum.join([module | t], ".")), module, opts}
     end
   end
 
@@ -6897,7 +6897,7 @@ defmodule Kernel do
   defp maybe_atomize_calendar(<<alias, _::binary>> = last_part, string)
        when alias >= ?A and alias <= ?Z do
     string = binary_part(string, 0, byte_size(string) - byte_size(last_part) - 1)
-    {String.to_atom("Elixir." <> last_part), string}
+    {String.to_unsafe_atom("Elixir." <> last_part), string}
   end
 
   defp maybe_atomize_calendar(_last_part, string) do
@@ -7008,7 +7008,7 @@ defmodule Kernel do
 
         case mod do
           ?s -> parts
-          ?a -> :lists.map(&String.to_atom/1, parts)
+          ?a -> :lists.map(&String.to_unsafe_atom/1, parts)
           ?c -> :lists.map(&String.to_charlist/1, parts)
         end
 
@@ -7017,7 +7017,7 @@ defmodule Kernel do
 
         case mod do
           ?s -> parts
-          ?a -> quote(do: :lists.map(&String.to_atom/1, unquote(parts)))
+          ?a -> quote(do: :lists.map(&String.to_unsafe_atom/1, unquote(parts)))
           ?c -> quote(do: :lists.map(&String.to_charlist/1, unquote(parts)))
         end
     end

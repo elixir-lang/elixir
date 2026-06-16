@@ -309,7 +309,7 @@ defmodule Mix.Task do
   """
   @spec alias?(task_name) :: boolean
   def alias?(task) when is_binary(task) do
-    alias?(String.to_atom(task))
+    alias?(String.to_unsafe_atom(task))
   end
 
   def alias?(task) when is_atom(task) do
@@ -419,7 +419,7 @@ defmodule Mix.Task do
 
   defp do_run(task, args, apps) when is_binary(task) do
     proj = Mix.Project.get()
-    alias = Mix.Project.config()[:aliases][String.to_atom(task)]
+    alias = Mix.Project.config()[:aliases][String.to_unsafe_atom(task)]
 
     cond do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
@@ -441,7 +441,7 @@ defmodule Mix.Task do
   end
 
   defp recur_umbrella_children_alias(task, args, apps) do
-    alias_key = String.to_atom(task)
+    alias_key = String.to_unsafe_atom(task)
 
     entries =
       Mix.ProjectStack.recur(fn ->
