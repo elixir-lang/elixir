@@ -1420,12 +1420,13 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(String, :to_existing_atom, info, [_string, list] = args_types, stack) do
-    pre_refined = remote_apply(info, args_types, stack)
+    case remote_apply(info, args_types, stack) do
+      {:ok, _} ->
+        {false, refined_atom} = list_of(list)
+        {:ok, refined_atom}
 
-    with {:ok, _} <- pre_refined, {false, refined_atom} = list_of(list) do
-      {:ok, refined_atom}
-    else
-      _ -> pre_refined
+      other ->
+        other
     end
   end
 
