@@ -1933,6 +1933,41 @@ defmodule Module.Types.ExprTest do
                String.to_existing_atom(x, [])
              ) =~ "incompatible types given to String.to_existing_atom/2"
     end
+
+    test "List.to_existing_atom/2" do
+      assert typecheck!(
+               [x],
+               List.to_existing_atom(x, [:foo, :bar])
+             ) == atom([:foo, :bar])
+
+      assert typecheck!(
+               [x],
+               (
+                 values = [:foo, :bar]
+                 List.to_existing_atom(x, values)
+               )
+             ) == atom([:foo, :bar])
+
+      assert typecheck!(
+               [x, values],
+               List.to_existing_atom(x, values)
+             ) == dynamic(atom())
+
+      assert typeerror!(
+               [x],
+               List.to_existing_atom(:not_a_charlist, x)
+             ) =~ "incompatible types given to List.to_existing_atom/2"
+
+      assert typeerror!(
+               [x],
+               List.to_existing_atom(x, [:foo, "not atoms"])
+             ) =~ "incompatible types given to List.to_existing_atom/2"
+
+      assert typeerror!(
+               [x],
+               List.to_existing_atom(x, [])
+             ) =~ "incompatible types given to List.to_existing_atom/2"
+    end
   end
 
   describe "case" do
