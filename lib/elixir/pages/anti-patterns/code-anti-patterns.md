@@ -169,26 +169,31 @@ When we use the `String.to_unsafe_atom/1` function to dynamically create an atom
 
 #### Refactoring
 
-To eliminate this anti-pattern, developers must either perform explicit conversions by mapping strings to atoms or replace the use of `String.to_unsafe_atom/1` with `String.to_existing_atom/1`. An explicit conversion could be done as follows:
+To eliminate this anti-pattern, developers must either:
+* perform explicit conversions by replacing the use of `String.to_unsafe_atom/1` with `String.to_existing_atom/2` and provide the list of expected atoms.
+* manually perform the explicit conversion using pattern-matching to map strings to atoms for instance.
+* use `String.to_existing_atom/1` when the former options are not possible.
+
+An explicit conversion could be done as follows:
 
 ```elixir
 defmodule MyRequestHandler do
   def parse(%{"status" => status, "message" => message} = _payload) do
-    %{status: convert_status(status), message: message}
+    status = String.to_existing_atom(status, [:ok, :error, :redirect])
+    %{status: status, message: message}
   end
-
-  defp convert_status("ok"), do: :ok
-  defp convert_status("error"), do: :error
-  defp convert_status("redirect"), do: :redirect
 end
 ```
 
+This will only accept valid values and convert `"ok"` as `:ok`, `"error"` as `:error`, and
+`"redirect"` as `:redirect`. Any other value would result in an `ArgumentError`, either because the atom doesn't exist or because it isn't part of the list:
+
 ```elixir
 iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" => "all good"})
-** (FunctionClauseError) no function clause matching in MyRequestHandler.convert_status/1
+** (ArgumentError) ...
 ```
 
-By explicitly listing all supported statuses, you guarantee only a limited number of conversions may happen. Passing an invalid status will lead to a function clause error.
+By explicitly listing all supported statuses, you guarantee that only a limited number of conversions may happen, and that all expected atoms already exist within the system.
 
 An alternative is to use `String.to_existing_atom/1`, which will only convert a string to atom if the atom already exists in the system:
 
@@ -207,7 +212,7 @@ iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" 
   * 1st argument: not an already existing atom
 ```
 
-In such cases, passing an unknown status will raise as long as the status was not defined anywhere as an atom in the system. However, assuming `status` can be either `:ok`, `:error`, or `:redirect`, how can you guarantee those atoms exist? You must ensure those atoms exist somewhere **in the same module** where `String.to_existing_atom/1` is called. For example, if you had this code:
+In such cases, unlike `String.to_existing_atom/2`, passing an unknown status will raise as long as the status was not defined anywhere as an atom in the system. However, assuming `status` can be either `:ok`, `:error`, or `:redirect`, how can you guarantee those atoms exist? You must ensure those atoms exist somewhere **in the same module** where `String.to_existing_atom/1` is called. For example, if you had this code:
 
 ```elixir
 defmodule MyRequestHandler do
