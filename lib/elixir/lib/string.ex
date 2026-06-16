@@ -2988,6 +2988,7 @@ defmodule String do
       :my_atom
 
   """
+  @doc since: "1.21.0"
   @spec to_unsafe_atom(String.t()) :: atom
   def to_unsafe_atom(string) when is_binary(string) do
     :erlang.binary_to_atom(string, :utf8)
@@ -3046,6 +3047,7 @@ defmodule String do
       ** (ArgumentError) unexpected value: \"unknown\", the allowed atoms are: [:foo, :bar]
 
   """
+  @doc since: "1.21.0"
   @spec to_existing_atom(String.t(), nonempty_list(a)) :: a when a: atom()
   def to_existing_atom(string, [_ | _] = allowed_atoms) when is_binary(string) do
     atom = :erlang.binary_to_existing_atom(string, :utf8)

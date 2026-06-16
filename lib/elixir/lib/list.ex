@@ -1046,6 +1046,7 @@ defmodule List do
       :"🌢 Elixir"
 
   """
+  @doc since: "1.21.0"
   @spec to_unsafe_atom(charlist) :: atom
   def to_unsafe_atom(charlist) do
     :erlang.list_to_atom(charlist)
@@ -1104,6 +1105,7 @@ defmodule List do
       ** (ArgumentError) unexpected value: ~c\"unknown\", the allowed atoms are: [:foo, :bar]
 
   """
+  @doc since: "1.21.0"
   @spec to_existing_atom(charlist, nonempty_list(a)) :: a when a: atom()
   def to_existing_atom(charlist, [_ | _] = allowed_atoms) when is_list(charlist) do
     atom = :erlang.list_to_existing_atom(charlist)
