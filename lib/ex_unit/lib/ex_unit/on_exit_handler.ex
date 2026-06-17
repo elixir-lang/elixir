@@ -18,9 +18,8 @@ defmodule ExUnit.OnExitHandler do
     :ok
   end
 
-  @spec add(pid, term, ExUnit.Callbacks.on_exit_callback()) :: :ok | :error
-  def add(pid, name_or_ref, callback)
-      when is_pid(pid) and (is_function(callback, 0) or is_function(callback, 1)) do
+  @spec add(pid, term, (%ExUnit.TestModule{} | %ExUnit.Test{} -> term)) :: :ok | :error
+  def add(pid, name_or_ref, callback) when is_pid(pid) and is_function(callback, 1) do
     try do
       :ets.lookup_element(@name, pid, @on_exit)
     rescue
@@ -139,18 +138,10 @@ defmodule ExUnit.OnExitHandler do
   end
 
   defp exec_callback(callback, context) do
-    exec_callback_with_context(callback, context)
+    callback.(context)
     nil
   catch
     kind, error ->
       {kind, error, __STACKTRACE__}
-  end
-
-  defp exec_callback_with_context(callback, _context) when is_function(callback, 0) do
-    callback.()
-  end
-
-  defp exec_callback_with_context(callback, context) when is_function(callback, 1) do
-    callback.(context)
   end
 end
