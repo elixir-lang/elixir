@@ -2962,6 +2962,7 @@ defmodule String do
     end
   end
 
+  # TODO: Deprecate String.to_atom, List.to_atom, and atom interpolation in v1.25
   @doc deprecated: "Use to_existing_atom/1 or to_unsafe_atom/1 instead"
   def to_atom(string) when is_binary(string) do
     :erlang.binary_to_atom(string, :utf8)
