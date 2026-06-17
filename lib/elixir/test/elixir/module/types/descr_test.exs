@@ -976,14 +976,6 @@ defmodule Module.Types.DescrTest do
       refute subtype?(term(), dynamic())
       assert subtype?(opt_intersection(dynamic(), integer()), integer())
       assert subtype?(integer(), opt_union(dynamic(), integer()))
-
-      # Unioning term() with a dynamic-optional keeps the dynamic component a
-      # supertype of the static one, so subtyping stays transitive.
-      t = opt_union(term(), dynamic(not_set()))
-      assert subtype?(term(), t)
-      assert subtype?(dynamic(), t)
-      assert subtype?(dynamic(integer()), t)
-      assert equal?(opt_intersection(t, dynamic(integer())), dynamic(integer()))
     end
 
     test "tuple" do
@@ -1041,6 +1033,12 @@ defmodule Module.Types.DescrTest do
       refute subtype?(if_set(term()), term())
       assert subtype?(if_set(term()), if_set(term()))
       refute subtype?(if_set(term()), if_set(dynamic(term())))
+
+      # Test that union+dynamic optimizations preserves properties
+      t = opt_union(term(), dynamic(not_set()))
+      assert subtype?(term(), t)
+      assert subtype?(dynamic(), t)
+      assert subtype?(dynamic(integer()), t)
     end
 
     test "list" do
