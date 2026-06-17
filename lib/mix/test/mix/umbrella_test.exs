@@ -479,6 +479,41 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "does not recompile after unchanged struct dependency and touched project files" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        File.mkdir_p!("config")
+        File.write!("config/config.exs", "import Config\n")
+        File.write!("apps/foo/lib/foo.ex", "defmodule Foo, do: defstruct [:bar]")
+
+        File.write!("apps/bar/lib/bar.ex", """
+        defmodule Bar do
+          def foo_bar(), do: %Foo{bar: true}
+        end
+        """)
+
+        Mix.Task.run("compile", ["--verbose"])
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        File.write!("apps/foo/lib/foo.ex", File.read!("apps/foo/lib/foo.ex") <> "\n")
+        ensure_touched("apps/foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
+
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+        refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        ensure_touched("mix.exs", "_build/dev/lib/bar/.mix/compile.elixir")
+        ensure_touched("apps/foo/mix.exs", "_build/dev/lib/bar/.mix/compile.elixir")
+        ensure_touched("apps/bar/mix.exs", "_build/dev/lib/bar/.mix/compile.elixir")
+        ensure_touched("config/config.exs", "_build/dev/lib/bar/.mix/compile.elixir")
+
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+        refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+    end)
+  end
+
   test "recompiles after compile through runtime path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->

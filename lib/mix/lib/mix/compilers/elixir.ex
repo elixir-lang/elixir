@@ -658,6 +658,20 @@ defmodule Mix.Compilers.Elixir do
         reduce: {stale_modules, stale_modules, deps_exports, protocols_and_impls()} do
       {modules, exports, deps_exports, protocols_and_impls} ->
         {manifest_modules, manifest_sources} = read_manifest(manifest)
+        all_modules = Enum.map(manifest_modules, fn {mod, _} -> mod end)
+        dep_exports = Map.get(deps_exports, app, %{})
+
+        # Update modules, exports, and dep exports based on removed modules
+        {modules, exports, dep_exports} =
+          Enum.reduce(dep_exports, {modules, exports, dep_exports}, fn
+            {mod, _}, {modules, exports, dep_exports} ->
+              if mod in all_modules do
+                {modules, exports, dep_exports}
+              else
+                {Map.put(modules, mod, true), Map.put(exports, mod, true),
+                 Map.delete(dep_exports, mod)}
+              end
+          end)
 
         dep_modules =
           for {module, module(timestamp: timestamp)} <- manifest_modules,
@@ -671,47 +685,32 @@ defmodule Mix.Compilers.Elixir do
         dep_modules =
           fixpoint_non_compile_modules(manifest_sources, Map.from_keys(dep_modules, true))
 
-        old_exports = Map.get(deps_exports, app, %{})
+        {exports, dep_exports} =
+          Enum.reduce(dep_modules, {exports, dep_exports}, fn {mod, _}, {exports, dep_exports} ->
+            export =
+              if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
+                mod.__info__(:exports_md5)
+              end
 
-        # Update exports
-        {exports, new_exports} =
-          for {module, _} <- dep_modules, reduce: {exports, []} do
-            {exports, new_exports} ->
-              export =
-                if Code.ensure_loaded?(module) and function_exported?(module, :__info__, 1) do
-                  module.__info__(:exports_md5)
-                end
+            # If the exports are the same, then the API did not change,
+            # so we do not mark the export as stale. Note this has to
+            # be very conservative. If the module is not loaded or if
+            # the exports were not there, we need to consider it a stale export.
+            case dep_exports do
+              # They still match, nothing to change
+              %{^mod => ^export} ->
+                {exports, dep_exports}
 
-              # If the exports are the same, then the API did not change,
-              # so we do not mark the export as stale. Note this has to
-              # be very conservative. If the module is not loaded or if
-              # the exports were not there, we need to consider it a stale
-              # export.
-              exports =
-                if export && old_exports[module] == export,
-                  do: exports,
-                  else: Map.put(exports, module, true)
+              # Now, it either matched and they are different, which means there was
+              # an export at some point OR it didn't exist before, which means adding
+              # it as an export is likely a no-op anyway
+              _ ->
+                {Map.put(exports, mod, true), Map.put(dep_exports, mod, export)}
+            end
+          end)
 
-              # Then we store the new export if any
-              new_exports =
-                if export,
-                  do: [{module, export} | new_exports],
-                  else: new_exports
-
-              {exports, new_exports}
-          end
-
-        new_exports = Map.new(new_exports)
-
-        removed =
-          for {module, _} <- old_exports,
-              not is_map_key(new_exports, module),
-              do: {module, true},
-              into: %{}
-
-        modules = modules |> Map.merge(dep_modules) |> Map.merge(removed)
-        exports = Map.merge(exports, removed)
-        deps_exports = Map.put(deps_exports, app, new_exports)
+        modules = Map.merge(modules, dep_modules)
+        deps_exports = Map.put(deps_exports, app, dep_exports)
 
         protocols_and_impls =
           protocols_and_impls_from_modules(manifest_modules, protocols_and_impls)
