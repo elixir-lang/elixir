@@ -526,7 +526,12 @@ defmodule ExUnit.Callbacks do
   """
   @spec on_exit(term, on_exit_callback) :: :ok
   def on_exit(name_or_ref \\ make_ref(), callback)
-      when is_function(callback, 0) or is_function(callback, 1) do
+
+  def on_exit(name_or_ref, callback) when is_function(callback, 0) do
+    on_exit(name_or_ref, fn _ -> callback.() end)
+  end
+
+  def on_exit(name_or_ref, callback) when is_function(callback, 1) do
     case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
       :ok ->
         :ok
