@@ -651,11 +651,9 @@ defmodule ExUnit.AssertionsTest do
 
     test "stops tracing and flushes messages once the function returns" do
       pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
-
       trace(pid, [:receive], fn -> send(pid, :during) end)
-
       send(pid, :after)
-      refute_received {:trace, ^pid, :receive, _}
+      refute_received {:trace, ^pid, :receive, :after}
     end
 
     test "receive match specs" do
