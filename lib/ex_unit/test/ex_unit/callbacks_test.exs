@@ -358,44 +358,25 @@ defmodule ExUnit.CallbacksTest do
     defmodule OnExitOptionalContextTest do
       use ExUnit.Case
 
-      def format_context(%ExUnit.TestModule{name: name}), do: inspect(name)
-      def format_context(%ExUnit.Test{state: nil}), do: "passed"
-      def format_context(%ExUnit.Test{state: {:failed, _}}), do: "failed"
-      def format_context(%ExUnit.Test{state: {:excluded, _}}), do: "excluded"
-      def format_context(%ExUnit.Test{state: {:invalid, _}}), do: "invalid"
-      def format_context(%ExUnit.Test{state: {:skipped, _}}), do: "skipped"
-
       setup do
-        on_exit(fn ->
-          IO.puts("on_exit setup run no context")
-        end)
-
-        on_exit(fn context ->
-          IO.puts("on_exit setup run context: #{format_context(context)}")
+        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
+          IO.puts("on_exit setup run with context")
         end)
 
         :ok
       end
 
       setup_all do
-        on_exit(fn ->
-          IO.puts("on_exit setup_all run no context")
-        end)
-
-        on_exit(fn context ->
-          IO.puts("on_exit setup_all run context: #{format_context(context)}")
+        on_exit(fn %ExUnit.TestModule{name: ExUnit.CallbacksTest.OnExitOptionalContextTest} ->
+          IO.puts("on_exit setup_all run with context")
         end)
 
         :ok
       end
 
       test "ok" do
-        on_exit(fn ->
-          IO.puts("simple on_exit run no context")
-        end)
-
-        on_exit(fn context ->
-          IO.puts("simple on_exit run context: #{format_context(context)}")
+        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
+          IO.puts("simple on_exit run with context")
         end)
 
         flunk("oops")
@@ -406,12 +387,35 @@ defmodule ExUnit.CallbacksTest do
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-           simple on_exit run context: failed
-           simple on_exit run no context
-           on_exit setup run context: failed
-           on_exit setup run no context
-           on_exit setup_all run context: ExUnit.CallbacksTest.OnExitOptionalContextTest
-           on_exit setup_all run no context
+           simple on_exit run with context
+           on_exit setup run with context
+           on_exit setup_all run with context
+           """
+  end
+
+  test "on_exit accepts mixed arities" do
+    defmodule OnExitMixedAritiesTest do
+      use ExUnit.Case
+
+      test "ok" do
+        on_exit(fn ->
+          IO.puts("simple on_exit setup run no context")
+        end)
+
+        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
+          IO.puts("simple on_exit setup run with context")
+        end)
+
+        flunk("oops")
+      end
+    end
+
+    no_formatters!()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+           simple on_exit setup run with context
+           simple on_exit setup run no context
            """
   end
 
