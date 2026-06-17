@@ -243,19 +243,19 @@ defmodule Duration do
 
   """
   @spec add(t, t) :: t
-  def add(%Duration{} = d1, %Duration{} = d2) do
-    {m1, p1} = d1.microsecond
-    {m2, p2} = d2.microsecond
+  def add(%Duration{microsecond: {ms1, p1}} = d1, %Duration{microsecond: {ms2, p2}} = d2) do
+    %{year: y1, month: mo1, week: w1, day: day1, hour: h1, minute: mi1, second: s1} = d1
+    %{year: y2, month: mo2, week: w2, day: day2, hour: h2, minute: mi2, second: s2} = d2
 
     %Duration{
-      year: d1.year + d2.year,
-      month: d1.month + d2.month,
-      week: d1.week + d2.week,
-      day: d1.day + d2.day,
-      hour: d1.hour + d2.hour,
-      minute: d1.minute + d2.minute,
-      second: d1.second + d2.second,
-      microsecond: {m1 + m2, max(p1, p2)}
+      year: y1 + y2,
+      month: mo1 + mo2,
+      week: w1 + w2,
+      day: day1 + day2,
+      hour: h1 + h2,
+      minute: mi1 + mi2,
+      second: s1 + s2,
+      microsecond: {ms1 + ms2, max(p1, p2)}
     }
   end
 
@@ -273,19 +273,19 @@ defmodule Duration do
 
   """
   @spec subtract(t, t) :: t
-  def subtract(%Duration{} = d1, %Duration{} = d2) do
-    {m1, p1} = d1.microsecond
-    {m2, p2} = d2.microsecond
+  def subtract(%Duration{microsecond: {ms1, p1}} = d1, %Duration{microsecond: {ms2, p2}} = d2) do
+    %{year: y1, month: mo1, week: w1, day: day1, hour: h1, minute: mi1, second: s1} = d1
+    %{year: y2, month: mo2, week: w2, day: day2, hour: h2, minute: mi2, second: s2} = d2
 
     %Duration{
-      year: d1.year - d2.year,
-      month: d1.month - d2.month,
-      week: d1.week - d2.week,
-      day: d1.day - d2.day,
-      hour: d1.hour - d2.hour,
-      minute: d1.minute - d2.minute,
-      second: d1.second - d2.second,
-      microsecond: {m1 - m2, max(p1, p2)}
+      year: y1 - y2,
+      month: mo1 - mo2,
+      week: w1 - w2,
+      day: day1 - day2,
+      hour: h1 - h2,
+      minute: mi1 - mi2,
+      second: s1 - s2,
+      microsecond: {ms1 - ms2, max(p1, p2)}
     }
   end
 
@@ -302,14 +302,16 @@ defmodule Duration do
   """
   @spec multiply(t, integer) :: t
   def multiply(%Duration{microsecond: {ms, p}} = duration, integer) when is_integer(integer) do
+    %{year: y, month: mo, week: w, day: d, hour: h, minute: mi, second: s} = duration
+
     %Duration{
-      year: duration.year * integer,
-      month: duration.month * integer,
-      week: duration.week * integer,
-      day: duration.day * integer,
-      hour: duration.hour * integer,
-      minute: duration.minute * integer,
-      second: duration.second * integer,
+      year: y * integer,
+      month: mo * integer,
+      week: w * integer,
+      day: d * integer,
+      hour: h * integer,
+      minute: mi * integer,
+      second: s * integer,
       microsecond: {ms * integer, p}
     }
   end
@@ -327,14 +329,16 @@ defmodule Duration do
   """
   @spec negate(t) :: t
   def negate(%Duration{microsecond: {ms, p}} = duration) do
+    %{year: y, month: mo, week: w, day: d, hour: h, minute: mi, second: s} = duration
+
     %Duration{
-      year: -duration.year,
-      month: -duration.month,
-      week: -duration.week,
-      day: -duration.day,
-      hour: -duration.hour,
-      minute: -duration.minute,
-      second: -duration.second,
+      year: -y,
+      month: -mo,
+      week: -w,
+      day: -d,
+      hour: -h,
+      minute: -mi,
+      second: -s,
       microsecond: {-ms, p}
     }
   end
