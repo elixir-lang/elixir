@@ -987,7 +987,7 @@ defmodule Module.Types.DescrTest do
       refute subtype?(if_set(term()), if_set(dynamic(term())))
 
       # Test that union+dynamic optimizations preserves properties
-      t = opt_union(term(), dynamic(not_set()))
+      t = union(term(), dynamic(not_set()))
       assert subtype?(term(), t)
       assert subtype?(dynamic(), t)
       assert subtype?(dynamic(integer()), t)
