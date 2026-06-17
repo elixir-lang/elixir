@@ -230,6 +230,11 @@ defmodule KeywordTest do
                  fn -> Keyword.validate([three: 3], [:three, 3, :two]) end
   end
 
+  test "validate/2 returns invalid and duplicate keys after matching allowed keys" do
+    assert Keyword.validate([one: 1, two: 2, three: 3, one: 4], [:one, :two]) ==
+             {:error, [:one, :three]}
+  end
+
   test "split_with/2" do
     assert Keyword.split_with([], fn {_k, v} -> rem(v, 2) == 0 end) == {[], []}
 
