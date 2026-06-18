@@ -62,9 +62,10 @@ defmodule ExUnit do
   """
 
   @typedoc """
-  All tests start with a state of `nil`.
+  The state of a test.
 
-  A finished test can be in one of five states:
+  It is meant to reflect whenever a test did not run
+  or fail. It may be one of five states:
 
     1. Passed (also represented by `nil`)
     2. Failed
@@ -76,12 +77,12 @@ defmodule ExUnit do
   @type state ::
           nil
           | {:excluded, binary}
-          | {:failed, failed}
+          | {:failed, errors}
           | {:invalid, ExUnit.TestModule.t()}
           | {:skipped, binary}
 
-  @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
-  @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
+  @typedoc "The errors returned by `ExUnit.Test` and `ExUnit.TestModule`"
+  @type errors :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
 
   @typedoc "A map representing the results of running a test suite"
   @type suite_result :: %{
@@ -147,7 +148,7 @@ defmodule ExUnit do
         which is truncated and hashed when above 250 characters
       * `:module` - the test module
       * `:description` - the test description (the name without truncation)
-      * `:state` - the finished test state (see `t:ExUnit.state/0`)
+      * `:state` - the failed state of the test after it runs (see `t:ExUnit.state/0`)
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
       * `:logs` - the captured logs
@@ -194,7 +195,7 @@ defmodule ExUnit do
 
       * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
 
-      * `:state` - the test error state (see `t:ExUnit.state/0`)
+      * `:state` - the failed state of `setup_all` after it runs (see `t:ExUnit.state/0`)
 
       * `:tags` - all tags in this module
 
