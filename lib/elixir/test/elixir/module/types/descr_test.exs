@@ -630,7 +630,7 @@ defmodule Module.Types.DescrTest do
       assert empty?(opt_difference(none(), dynamic()))
       assert empty?(opt_difference(dynamic(integer()), integer()))
     end
-    
+
     test "optional" do
       # Test that difference preserves optional properties
       x = if_set(dynamic(integer()))
