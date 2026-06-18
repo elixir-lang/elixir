@@ -104,6 +104,14 @@ defmodule Module.Types.DescrTest do
       refute equal?(union(term(), dynamic(if_set(integer()))), dynamic(union(term(), not_set())))
     end
 
+    test "optional" do
+      # Test that union preserves optional properties
+      t = union(term(), dynamic(not_set()))
+      assert subtype?(term(), t)
+      assert subtype?(dynamic(), t)
+      assert subtype?(dynamic(integer()), t)
+    end
+
     test "tuple" do
       assert equal?(union(tuple(), tuple()), tuple())
 
@@ -585,6 +593,14 @@ defmodule Module.Types.DescrTest do
       assert empty?(difference(dynamic(integer()), integer()))
     end
 
+    test "optional" do
+      # Test that difference preserves optional properties
+      x = if_set(dynamic(integer()))
+      term_map = union(integer(), difference(term(), integer()))
+      assert equal?(term_map, term())
+      assert equal?(difference(x, term()), difference(x, term_map))
+    end
+
     test "tuple" do
       assert empty?(difference(open_tuple([atom()]), open_tuple([term()])))
       refute empty?(difference(tuple(), empty_tuple()))
@@ -985,12 +1001,6 @@ defmodule Module.Types.DescrTest do
       refute subtype?(if_set(term()), term())
       assert subtype?(if_set(term()), if_set(term()))
       refute subtype?(if_set(term()), if_set(dynamic(term())))
-
-      # Test that union+dynamic optimizations preserves properties
-      t = union(term(), dynamic(not_set()))
-      assert subtype?(term(), t)
-      assert subtype?(dynamic(), t)
-      assert subtype?(dynamic(integer()), t)
     end
 
     test "list" do
