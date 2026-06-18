@@ -1359,6 +1359,14 @@ defmodule Kernel.ParserTest do
         ["nofile:1:4:", ~s/unexpected token: "#{"\u01DC"}" (column 4, code point U+01DC)/],
         ~c":fooǜ"
       )
+
+      assert_syntax_error(
+        [
+          "nofile:1:7:",
+          ~s/unexpected token: "ǜ" (column 7, code point U+01DC)/
+        ],
+        ~c":cōng_lǜ_green"
+      )
     end
 
     test "keyword missing space" do

@@ -473,48 +473,84 @@ defmodule String.Tokenizer do
     original_acc = :lists.reverse(original_acc)
     acc = :unicode.characters_to_nfc_list(original_acc)
 
-    special =
+    {different?, special} =
       if original_acc == acc do
-        special
+        {false, special}
       else
-        [:nfkc | List.delete(special, :nfkc)]
+        {true, [:nfkc | List.delete(special, :nfkc)]}
       end
 
-    if scriptset != @bottom or chunks_single?(acc) do
-      {kind, acc, rest, length, false, special}
-    else
-      breakdown =
-        for codepoint <- acc do
-          scriptsets =
-            case codepoint_to_scriptset(codepoint) do
-              @top ->
-                ""
+    cond do
+      invalid_prefix = different? && invalid_normalized(original_acc, acc, kind) ->
+        {:error, {:unexpected_token, invalid_prefix}}
 
-              scriptset ->
-                scriptset
-                |> ScriptSet.to_indexes()
-                |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
-                |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
-            end
+      scriptset != @bottom or chunks_single?(acc) ->
+        {kind, acc, rest, length, false, special}
 
-          hex = :io_lib.format(~c"~4.16.0B", [codepoint])
-          "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
-        end
+      true ->
+        breakdown =
+          for codepoint <- acc do
+            scriptsets =
+              case codepoint_to_scriptset(codepoint) do
+                @top ->
+                  ""
 
-      prefix = ~c"invalid mixed-script identifier found: "
+                scriptset ->
+                  scriptset
+                  |> ScriptSet.to_indexes()
+                  |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
+                  |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
+              end
 
-      suffix = ~c"""
+            hex = :io_lib.format(~c"~4.16.0B", [codepoint])
+            "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
+          end
+
+        prefix = ~c"invalid mixed-script identifier found: "
+
+        suffix = ~c"""
 
 
-      Mixed-script identifiers are not supported for security reasons. \
-      '#{acc}' is made of the following scripts:\n
-      #{breakdown}
-      Characters in identifiers from different scripts must be separated \
-      by underscore (_).
-      """
+        Mixed-script identifiers are not supported for security reasons. \
+        '#{acc}' is made of the following scripts:\n
+        #{breakdown}
+        Characters in identifiers from different scripts must be separated \
+        by underscore (_).
+        """
 
-      {:error, {:mixed_script, acc, {prefix, suffix}}}
+        {:error, {:mixed_script, acc, {prefix, suffix}}}
     end
+  end
+
+  defp invalid_normalized(original_acc, acc, kind) do
+    case tokenize(acc) do
+      {^kind, _acc, [], _length, _ascii?, _special} ->
+        false
+
+      {:error, {:unexpected_token, invalid_prefix}} ->
+        invalid_original_prefix(original_acc, invalid_prefix)
+
+      _other ->
+        invalid_original_prefix(original_acc, acc)
+    end
+  end
+
+  defp invalid_original_prefix(original_acc, invalid_normalized_prefix) do
+    invalid_original_prefix(original_acc, invalid_normalized_prefix, [])
+  end
+
+  defp invalid_original_prefix([head | tail], invalid_normalized_prefix, prefix) do
+    prefix = [head | prefix]
+
+    if :unicode.characters_to_nfc_list(:lists.reverse(prefix)) == invalid_normalized_prefix do
+      :lists.reverse(prefix)
+    else
+      invalid_original_prefix(tail, invalid_normalized_prefix, prefix)
+    end
+  end
+
+  defp invalid_original_prefix([], _invalid_normalized_prefix, prefix) do
+    :lists.reverse(prefix)
   end
 
   # Support script mixing via chunked identifiers (UTS 55-5's strong recommends).

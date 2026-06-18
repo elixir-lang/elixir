@@ -43,6 +43,18 @@ defmodule Kernel.StringTokenizerTest do
     assert {:error, _} = Code.string_to_quoted(":@123")
   end
 
+  test "rejects identifiers that normalize to unsupported codepoints" do
+    decomposed_u_with_diaeresis_and_grave = [?u, 0x0308, 0x0300]
+
+    assert String.Tokenizer.tokenize([0x01DC]) == {:error, :empty}
+
+    assert String.Tokenizer.tokenize(decomposed_u_with_diaeresis_and_grave) ==
+             {:error, {:unexpected_token, decomposed_u_with_diaeresis_and_grave}}
+
+    assert String.Tokenizer.tokenize(~c"fooǜlul") ==
+             {:error, {:unexpected_token, ~c"fooǜ"}}
+  end
+
   test "tokenizes keywords" do
     assert Code.string_to_quoted!("[_12: 0]") == [_12: 0]
     assert Code.string_to_quoted!("[ola: 0]") == [ola: 0]
