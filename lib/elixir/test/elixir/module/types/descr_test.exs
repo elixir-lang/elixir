@@ -621,9 +621,10 @@ defmodule Module.Types.DescrTest do
       assert empty?(opt_difference(dynamic(), term()))
       assert empty?(opt_difference(none(), dynamic()))
       assert empty?(opt_difference(dynamic(integer()), integer()))
-
-      # Subtracting term() (the :term fast path) must keep both the static and the
-      # dynamic optional flags, agreeing with the general path on an equal type.
+    end
+    
+    test "optional" do
+      # Test that difference preserves optional properties
       x = if_set(dynamic(integer()))
       term_map = opt_union(integer(), opt_difference(term(), integer()))
       assert equal?(term_map, term())
