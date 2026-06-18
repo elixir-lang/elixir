@@ -562,7 +562,16 @@ defmodule ExUnit.Runner do
 
   # Any other ExUnit.state outcome (test was excluded, skipped, invalid) and
   # the runner shouldn't make it this far to ask the callback to be run anyways
-  defp run_exec_on_exit(_, pid, timeout) do
+
+  defp run_exec_on_exit(%ExUnit.Test{state: {:excluded, _}}, pid, timeout) do
+    :ok
+  end
+
+  defp run_exec_on_exit(%ExUnit.Test{state: {:skipped, _}}, pid, timeout) do
+    :ok
+  end
+
+  defp run_exec_on_exit(%ExUnit.Test{state: {:invalid, _}}, pid, timeout) do
     :ok
   end
 
