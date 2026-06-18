@@ -620,7 +620,12 @@ defmodule Module.Types.DescrTest do
       assert equal?(dynamic(), opt_difference(term(), dynamic()))
       assert empty?(opt_difference(dynamic(), term()))
       assert empty?(opt_difference(none(), dynamic()))
-      assert empty?(opt_difference(dynamic(integer()), integer()))
+      assert opt_difference(dynamic(integer()), integer()) == none()
+      assert opt_difference(dynamic(integer()), integer()) |> opt_negation() == term()
+      assert opt_negation(dynamic(none())) == term()
+      assert bare_difference(dynamic(integer()), integer()) == none()
+      assert bare_difference(dynamic(integer()), integer()) |> bare_negation() == term()
+      assert bare_negation(dynamic(none())) == term()
     end
 
     test "tuple" do

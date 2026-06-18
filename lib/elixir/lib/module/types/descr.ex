@@ -407,6 +407,11 @@ defmodule Module.Types.Descr do
   defp pop_dynamic(:term), do: {:term, :term}
   defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
 
+  @compile {:inline, put_dynamic: 2}
+  defp put_dynamic(_static, dynamic) when dynamic == @none, do: @none
+  defp put_dynamic(:term, :term), do: :term
+  defp put_dynamic(static, dynamic), do: Map.put(static, :dynamic, dynamic)
+
   @doc """
   Computes the union of two descrs.
   """
@@ -502,7 +507,7 @@ defmodule Module.Types.Descr do
       {right_dynamic, right_static} = pop_dynamic(right)
       dynamic_part = bare_difference_static(left_dynamic, right_static)
 
-      Map.put(bare_difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
+      put_dynamic(bare_difference_static(left_static, right_dynamic), dynamic_part)
     else
       bare_difference_static(left, right)
     end
@@ -6131,7 +6136,7 @@ defmodule Module.Types.Descr do
       {right_dynamic, right_static} = pop_dynamic(right)
       dynamic_part = opt_difference_static(left_dynamic, right_static)
 
-      Map.put(opt_difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
+      put_dynamic(opt_difference_static(left_static, right_dynamic), dynamic_part)
     else
       opt_difference_static(left, right)
     end
