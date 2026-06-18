@@ -538,7 +538,7 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_on_exit(test_or_test_module, pid, timeout) do
-    case ExUnit.OnExitHandler.run(pid, test_or_test_module, timeout) do
+    case run_exec_on_exit(test_or_test_module, pid, timeout) do
       :ok ->
         test_or_test_module
 
@@ -546,6 +546,24 @@ defmodule ExUnit.Runner do
         state = test_or_test_module.state || failed(kind, reason, prune_stacktrace(stack))
         %{test_or_test_module | state: state}
     end
+  end
+
+  defp run_exec_on_exit(%ExUnit.TestModule{name: module_name}, pid, timeout) do
+    ExUnit.OnExitHandler.run(pid, module_name, timeout)
+  end
+
+  defp run_exec_on_exit(%ExUnit.Test{state: nil}, pid, timeout) do
+    ExUnit.OnExitHandler.run(pid, :passed, timeout)
+  end
+
+  defp run_exec_on_exit(%ExUnit.Test{state: {:failed, _}}, pid, timeout) do
+    ExUnit.OnExitHandler.run(pid, :failed, timeout)
+  end
+
+  # Any other ExUnit.state outcome (test was excluded, skipped, invalid) and
+  # the runner shouldn't make it this far to ask the callback to be run anyways
+  defp run_exec_on_exit(_, pid, timeout) do
+    :ok
   end
 
   ## Helpers

@@ -336,8 +336,8 @@ defmodule ExUnit.Case do
        `ExUnit.Callbacks.setup/1` callbacks run, in the order they were defined. Then,
        the test itself is executed.
 
-    3. After the test exits, a new process is spawned to run all `ExUnit.Callbacks.on_exit/2`,
-       in the reverse order they were defined.
+    3. After the test exits, a new process is spawned to run all `ExUnit.Callbacks.on_exit/2`
+       callbacks, in the reverse order they were defined.
 
   """
 

@@ -13,6 +13,11 @@ defmodule ExUnit.CallbacksTest do
     [counter: []]
   end
 
+  defp no_formatters! do
+    ExUnit.configure(formatters: [])
+    on_exit(fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end)
+  end
+
   test "callbacks run custom code with context" do
     defmodule CallbacksTest do
       use ExUnit.Case
@@ -212,11 +217,6 @@ defmodule ExUnit.CallbacksTest do
     assert capture_io(fn -> ExUnit.run() end) =~ "Failed: 2 tests"
   end
 
-  defp no_formatters! do
-    ExUnit.configure(formatters: [])
-    on_exit(fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end)
-  end
-
   test "exits with shutdown reason" do
     defmodule OnExitAliveTest do
       use ExUnit.Case
@@ -354,32 +354,32 @@ defmodule ExUnit.CallbacksTest do
            """
   end
 
-  test "on_exit accepts optional context" do
-    defmodule OnExitOptionalContextTest do
+  test "on_exit callback accepts optional status" do
+    defmodule OnExitOptionalStatusTest do
       use ExUnit.Case
 
       setup do
-        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
-          IO.puts("on_exit setup run with context")
+        on_exit(fn _ ->
+          IO.puts("on_exit setup run with status")
         end)
 
         :ok
       end
 
       setup_all do
-        on_exit(fn %ExUnit.TestModule{name: ExUnit.CallbacksTest.OnExitOptionalContextTest} ->
-          IO.puts("on_exit setup_all run with context")
+        on_exit(fn _ ->
+          IO.puts("on_exit setup_all run with status")
         end)
 
         :ok
       end
 
       test "ok" do
-        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
-          IO.puts("simple on_exit run with context")
+        on_exit(fn _ ->
+          IO.puts("simple on_exit run with status")
         end)
 
-        flunk("oops")
+        assert true
       end
     end
 
@@ -387,26 +387,26 @@ defmodule ExUnit.CallbacksTest do
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-           simple on_exit run with context
-           on_exit setup run with context
-           on_exit setup_all run with context
+           simple on_exit run with status
+           on_exit setup run with status
+           on_exit setup_all run with status
            """
   end
 
-  test "on_exit accepts mixed arities" do
+  test "on_exit callback accepts mixed arities" do
     defmodule OnExitMixedAritiesTest do
       use ExUnit.Case
 
       test "ok" do
         on_exit(fn ->
-          IO.puts("simple on_exit setup run no context")
+          IO.puts("simple on_exit setup run no status")
         end)
 
-        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
-          IO.puts("simple on_exit setup run with context")
+        on_exit(fn _ ->
+          IO.puts("simple on_exit setup run with status")
         end)
 
-        flunk("oops")
+        assert true
       end
     end
 
@@ -414,8 +414,113 @@ defmodule ExUnit.CallbacksTest do
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-           simple on_exit setup run with context
-           simple on_exit setup run no context
+           simple on_exit setup run with status
+           simple on_exit setup run no status
+           """
+  end
+
+  test "on_exit callback for setup_all/2 receives module as status" do
+    defmodule OnExitSetupAllStatusTest do
+      use ExUnit.Case
+
+      setup_all do
+        on_exit(fn
+          ExUnit.CallbacksTest.OnExitSetupAllStatusTest ->
+            IO.puts("on_exit setup_all run with expected status")
+
+          _ ->
+            IO.puts("on_exit setup_all run with unexpected status")
+        end)
+
+        :ok
+      end
+
+      test "ok" do
+        assert true
+      end
+    end
+
+    no_formatters!()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+           on_exit setup_all run with expected status
+           """
+  end
+
+  test "on_exit callback for passing tests receives status" do
+    defmodule OnExitSetupPassedStatusTest do
+      use ExUnit.Case
+
+      setup do
+        on_exit(fn
+          :passed ->
+            IO.puts("on_exit setup run with expected status")
+
+          _ ->
+            IO.puts("on_exit setup run with unexpected status")
+        end)
+
+        :ok
+      end
+
+      test "ok" do
+        on_exit(fn
+          :passed ->
+            IO.puts("simple on_exit run with expected status")
+
+          _ ->
+            IO.puts("simple on_exit run with unexpected status")
+        end)
+
+        assert true
+      end
+    end
+
+    no_formatters!()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+           simple on_exit run with expected status
+           on_exit setup run with expected status
+           """
+  end
+
+  test "on_exit callback for failed tests receives status" do
+    defmodule OnExitSetupFailedStatusTest do
+      use ExUnit.Case
+
+      setup do
+        on_exit(fn
+          :failed ->
+            IO.puts("on_exit setup run with expected status")
+
+          _ ->
+            IO.puts("on_exit setup run with unexpected status")
+        end)
+
+        :ok
+      end
+
+      test "ok" do
+        on_exit(fn
+          :failed ->
+            IO.puts("simple on_exit run with expected status")
+
+          _ ->
+            IO.puts("simple on_exit run with unexpected status")
+        end)
+
+        assert false
+      end
+    end
+
+    no_formatters!()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+           simple on_exit run with expected status
+           on_exit setup run with expected status
            """
   end
 

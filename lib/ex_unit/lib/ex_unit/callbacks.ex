@@ -171,7 +171,8 @@ defmodule ExUnit.Callbacks do
   """
 
   @type child_spec_overrides :: Supervisor.child_spec_overrides()
-  @type on_exit_callback :: (-> term) | (%ExUnit.TestModule{} | %ExUnit.Test{} -> term)
+  @type on_exit_status :: :passed | :failed | module
+  @type on_exit_callback :: (-> term) | (on_exit_status -> term)
 
   @doc false
   def __register__(module) do
@@ -472,10 +473,10 @@ defmodule ExUnit.Callbacks do
   example, use the same `name_or_ref` across multiple `on_exit/2`
   calls.
 
-  The `callback` may optionally accept a single argument. If called inside
-  a `setup/1` callback or inside a test, it is provided an `ExUnit.Test` struct.
-  If called inside a `setup_all/1` callback then it is provided
-  an `ExUnit.TestModule` struct.
+  The `callback` may optionally accept a single `t:on_exit_status/0` parameter.
+  If `on_exit/2` is called inside a `setup/1` callback or inside a test,
+  this argument will be an atom representing the test's status.
+  If called inside a `setup_all/1` callback then it will be the test module name.
 
   If `on_exit/2` is called inside `setup/1` or inside a test, it's
   executed in a blocking fashion after the test exits and *before
@@ -514,7 +515,7 @@ defmodule ExUnit.Callbacks do
       setup do
         File.write!("keep_if_failed.json", "{}")
         on_exit(fn
-          %ExUnit.Test{state: {:failed, _}} -> :ok
+          :failed -> :ok
           _ -> File.rm!("keep_if_failed.json")
         end)
       end

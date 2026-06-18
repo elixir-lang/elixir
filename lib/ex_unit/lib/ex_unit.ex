@@ -188,17 +188,11 @@ defmodule ExUnit do
     It is received by formatters and contains the following fields:
 
       * `:file` - (since v1.11.0) the file of the test module
-
       * `:name` - the test module name
-
       * `:parameters` - (since v1.18.0) the test module parameters
-
       * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
-
       * `:state` - the failed state of `setup_all` after it runs (see `t:ExUnit.state/0`)
-
       * `:tags` - all tags in this module
-
       * `:tests` - all tests in this module
 
     """
