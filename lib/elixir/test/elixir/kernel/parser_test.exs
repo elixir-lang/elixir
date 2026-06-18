@@ -1356,16 +1356,20 @@ defmodule Kernel.ParserTest do
 
       # regression test: ǜ (should not suggest back the wrong character)
       assert_syntax_error(
-        ["nofile:1:4:", ~s/unexpected token: "#{"\u01DC"}" (column 4, code point U+01DC)/],
-        ~c":fooǜ"
+        [
+          "nofile:1:4:",
+          ~s/unexpected token: "ǜ" (column 4, code point U+01DC)/
+        ],
+        [?:, ?f, ?o, ?o, 0x01DC, ?l, ?u, ?l]
       )
 
+      # and we should not accept its decomposed form either
       assert_syntax_error(
         [
-          "nofile:1:7:",
-          ~s/unexpected token: "ǜ" (column 7, code point U+01DC)/
+          "nofile:1:6:",
+          ~s/unexpected token: "̀" (column 6, code point U+0300)/
         ],
-        ~c":cōng_lǜ_green"
+        [?:, ?f, ?o, ?o, ?u, 0x0308, 0x0300, ?l, ?u, ?l]
       )
     end
 
