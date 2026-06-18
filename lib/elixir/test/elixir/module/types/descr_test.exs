@@ -114,6 +114,14 @@ defmodule Module.Types.DescrTest do
              )
     end
 
+    test "optional" do
+      # Test that union preserves optional properties
+      t = opt_union(term(), dynamic(not_set()))
+      assert subtype?(term(), t)
+      assert subtype?(dynamic(), t)
+      assert subtype?(dynamic(integer()), t)
+    end
+
     test "tuple" do
       assert equal?(opt_union(tuple(), tuple()), tuple())
 
@@ -1041,12 +1049,6 @@ defmodule Module.Types.DescrTest do
       refute subtype?(if_set(term()), term())
       assert subtype?(if_set(term()), if_set(term()))
       refute subtype?(if_set(term()), if_set(dynamic(term())))
-
-      # Test that union+dynamic optimizations preserves properties
-      t = opt_union(term(), dynamic(not_set()))
-      assert subtype?(term(), t)
-      assert subtype?(dynamic(), t)
-      assert subtype?(dynamic(integer()), t)
     end
 
     test "list" do
