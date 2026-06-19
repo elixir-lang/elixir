@@ -6409,6 +6409,19 @@ defmodule Module.Types.Descr do
       disjoint?(v1, v2) ->
         :disjoint
 
+      # The :union hint feeds `a_union` in bdd_difference/3, which requires
+      # `a_union == a1 ∪ a2` exactly (the dual branch computes D1 \ a_union).
+      # Here the negative `a2` is an open single-key map `%{key => v2}`, so
+      # `a1 ∪ a2` collapses to the single leaf we can build only when the
+      # positive `a1` is itself an open map whose sole key is `key`. For other
+      # positive shapes (closed or open with extra keys), the true union may be
+      # larger than that leaf, which would make the difference too large; decline
+      # the hint and let bdd_difference fall back to the general expansion. The
+      # :none and :intersection hints stay exact for an open single-key negative,
+      # so only :union needs guarding.
+      type == :union and not (tag == :open and match?([{^key, _}], fields)) ->
+        :none
+
       true ->
         opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
     end

@@ -728,6 +728,33 @@ defmodule Module.Types.DescrTest do
       assert opt_difference(closed_map(a: integer()), open_map(b: if_set(integer()))) == none()
     end
 
+    test "map difference with negated left and open single-key right is sound" do
+      # Subtracting an open single-key map from a map that already carries a
+      # negation (a BDD node with a dual branch) must not build an oversized
+      # `a_union` hint. Soundness law: (X \ Y) and Y are always disjoint.
+      # Trigger is BDD-ordering dependent, so we exercise several key pairs.
+      for {k1, k2} <- [{:a, :b}, {:b, :a}, {:b, :c}, {:c, :a}, {:c, :b}, {:b, :d}] do
+        a = closed_map([{k1, atom([:x, :y])}, {k2, pid()}])
+
+        b =
+          closed_map([
+            {k1, if_set(opt_union(atom([:y]), float()))},
+            {k2, opt_union(pid(), opt_union(binary(), integer()))}
+          ])
+
+        c = open_map([{k2, if_set(opt_union(pid(), binary()))}])
+
+        ab = opt_difference(a, b)
+        abc = opt_difference(ab, c)
+
+        # (a \ b) \ c must be disjoint from c, the subtrahend.
+        assert empty?(opt_intersection(abc, c))
+        # a <= c, so (a \ b) \ c collapses to empty.
+        assert subtype?(a, c)
+        assert empty?(abc)
+      end
+    end
+
     test "map double negation with redundant empty map" do
       type =
         closed_map(a: atom())
