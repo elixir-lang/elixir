@@ -1780,6 +1780,7 @@ defmodule Module.Types.DescrTest do
       assert list_of(non_empty_list(integer(), list(term()))) == {false, term()}
       assert list_of(list(integer()) |> opt_union(list(integer(), integer()))) == :badproperlist
       assert list_of(list(integer()) |> opt_union(integer())) == :badproperlist
+      assert list_of(dynamic()) == {true, dynamic()}
       assert list_of(dynamic(list(integer()))) == {true, dynamic(integer())}
       assert list_of(dynamic(list(integer(), atom()))) == {true, nil}
       assert list_of(dynamic(non_empty_list(integer(), atom()))) == :badproperlist
