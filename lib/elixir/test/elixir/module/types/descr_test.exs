@@ -728,6 +728,31 @@ defmodule Module.Types.DescrTest do
       assert opt_difference(closed_map(a: integer()), open_map(b: if_set(integer()))) == none()
     end
 
+    test "map difference of subtype" do
+      for {k1, k2} <- [{:a, :b}, {:b, :a}, {:b, :c}, {:c, :a}, {:c, :b}, {:b, :d}] do
+        a = closed_map([{k1, atom([:x, :y])}, {k2, pid()}])
+
+        b =
+          closed_map([
+            {k1, if_set(opt_union(atom([:y]), float()))},
+            {k2, opt_union(pid(), opt_union(binary(), integer()))}
+          ])
+
+        c = open_map([{k2, if_set(opt_union(pid(), binary()))}])
+
+        # a <= c, while b is unrelated to both a and c.
+        # Therefore (a \ b) <= a <= c and (a \ b) \ c is empty.
+        # The optimized difference should match the bare difference for this shape.
+        ab = opt_difference(a, b)
+
+        assert empty?(bare_difference(ab, c)),
+               "bare difference failed for keys #{inspect({k1, k2})}"
+
+        assert empty?(opt_difference(ab, c)),
+               "opt difference failed for keys #{inspect({k1, k2})}"
+      end
+    end
+
     test "map double negation with redundant empty map" do
       type =
         closed_map(a: atom())
