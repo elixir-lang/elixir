@@ -3098,7 +3098,30 @@ defmodule Module.Types.Descr do
   defp map_difference(bdd1, bdd2),
     do: bdd_difference(bdd1, bdd2, &map_leaf_difference/3)
 
-  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type) do
+  # This clause optimizes differences with an open single-key right side:
+  #
+  #     %{b: atom(), c: pid()} \ %{..., c: if_set(pid() | binary())}
+  #
+  # Depending on the surrounding BDD shape, the difference formulas ask the
+  # leaf comparison for a direct difference plus an optional intersection
+  # or optional union.
+  #
+  # Because the right-hand side is an open map with a single key, this branch
+  # assumes the result can be represented by updating the matching key
+  # on the left-hand side. For this pair, the direct difference is empty and
+  # the intersection is `%{b: atom(), c: pid()}`, which are both correct.
+  #
+  # However, when the formula needs the union, this shortcut would produce
+  # `%{b: atom(), c: if_set(pid() or binary())}` by preserving the left shape.
+  # This is not the semantic union, because the right side also includes maps
+  # without `:b`. In other words, we cannot always union them by updating only
+  # the matching key.
+  #
+  # Therefore, this clause is only used when `type` is `:intersection` or `:none`.
+  # `:union` falls through to the general clause below. The reason we have
+  # this long comment is because this was a regression in the past.
+  defp map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type)
+       when type != :union do
     {found?, v1} =
       case fields_find(key, fields) do
         {:ok, value} -> {true, value}
