@@ -2288,7 +2288,7 @@ defmodule Module.Types.Descr do
       {dynamic, static} ->
         with {empty_list?, static_value} <- list_of_static(static) do
           empty_list? =
-            empty_list? or
+            empty_list? or dynamic == :term or
               match?(
                 %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0,
                 dynamic
