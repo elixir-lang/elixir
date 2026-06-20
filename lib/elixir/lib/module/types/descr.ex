@@ -3784,12 +3784,57 @@ defmodule Module.Types.Descr do
   defp map_update_put_domains(bdd, [], _type_fun, _force?), do: %{map: bdd}
 
   defp map_update_put_domains(bdd, domain_keys, type_fun, force?) do
+    put = fn tag -> map_update_put_domain(tag, domain_keys, type_fun, force?) end
+
     bdd =
-      bdd_map(bdd, fn bdd_leaf(tag, fields) ->
-        bdd_leaf_new(map_update_put_domain(tag, domain_keys, type_fun, force?), fields)
-      end)
+      cond do
+        # A pure disjunction of leaves: the domain-put distributes over the
+        # union, so we can rewrite each leaf in place (and keep the structure
+        # that callers may assert on).
+        map_bdd_positive?(bdd) ->
+          bdd_map(bdd, fn bdd_leaf(tag, fields) -> bdd_leaf_new(put.(tag), fields) end)
+
+        # A non-forced put only changes a leaf that already carries one of the put
+        # domains. When none do, the put is a genuine no-op, so the type
+        # (negations included) is returned unchanged. Unlike a tag-equality check
+        # this is sound: a leaf that *does* carry the domain may broaden to the
+        # same tag yet still move maps across a negation boundary.
+        not force? and not map_bdd_has_domain?(bdd, domain_keys) ->
+          bdd
+
+        # Otherwise the bdd has negated leaves. `bdd_map` would rewrite a negated
+        # leaf, turning `not N` into `not put(N)`, which enlarges the negated set
+        # and wrongly excludes maps the put can actually produce. Over-approximate
+        # soundly instead: the image of `A \ B` is contained in the image of `A`,
+        # so we apply the put to the positive part of each non-empty DNF line and
+        # drop the negations. Empty lines are dropped by
+        # `map_bdd_to_dnf_remove_empty`.
+        true ->
+          bdd
+          |> map_bdd_to_dnf_remove_empty()
+          |> Enum.reduce(:bdd_bot, fn {tag, fields, _negs}, acc ->
+            map_union(bdd_leaf_new(put.(tag), fields), acc)
+          end)
+      end
 
     %{map: bdd}
+  end
+
+  # `bdd_map` rewrites a domain-put exactly only on a pure positive disjunction
+  # of leaves (every node keeps its literal on the constrained-top branch with no
+  # dual branch), where the rewrite distributes over the union. Any dual (negated)
+  # branch means a leaf appears negated, where the rewrite is not sound.
+  defp map_bdd_positive?(:bdd_bot), do: true
+  defp map_bdd_positive?(:bdd_top), do: true
+  defp map_bdd_positive?(bdd_leaf(_, _)), do: true
+  defp map_bdd_positive?({_, _lit, :bdd_top, u, :bdd_bot}), do: map_bdd_positive?(u)
+  defp map_bdd_positive?({_, _, _, _, _}), do: false
+
+  # True when some leaf of the bdd carries one of the given domain keys.
+  defp map_bdd_has_domain?(bdd, domain_keys) do
+    bdd_reduce(bdd, false, fn bdd_leaf(tag, _fields), acc ->
+      acc or (is_list(tag) and Enum.any?(domain_keys, &(fields_find(&1, tag) != :error)))
+    end)
   end
 
   defp map_update_put_domain(tag_or_domains, domain_keys, type_fun, force?) do
