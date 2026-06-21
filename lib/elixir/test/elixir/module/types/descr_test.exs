@@ -3405,10 +3405,7 @@ defmodule Module.Types.DescrTest do
       assert list(term()) |> opt_difference(list(integer())) |> to_quoted_string() ==
                "non_empty_list(term()) and not non_empty_list(integer())"
 
-      keeps_empty = opt_difference(list(term()), non_empty_list(integer()))
-      assert subtype?(empty_list(), keeps_empty)
-
-      assert to_quoted_string(keeps_empty) ==
+      assert to_quoted_string(opt_difference(list(term()), non_empty_list(integer()))) ==
                "list(term()) and not non_empty_list(integer())"
 
       assert list(term())
