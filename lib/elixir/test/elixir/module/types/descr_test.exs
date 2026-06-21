@@ -3416,6 +3416,9 @@ defmodule Module.Types.DescrTest do
       assert list(term()) |> opt_difference(list(integer())) |> to_quoted_string() ==
                "non_empty_list(term()) and not non_empty_list(integer())"
 
+      assert opt_difference(list(term()), non_empty_list(integer())) |> to_quoted_string() ==
+               "list(term()) and not non_empty_list(integer())"
+
       assert list(term())
              |> opt_difference(list(integer()))
              |> opt_difference(list(atom()))
