@@ -2585,7 +2585,7 @@ defmodule Module.Types.Descr do
                   [to_quoted(ty, opts), to_quoted(lst, opts)]
                 end
 
-              {name, [], args}
+              {:non_empty_list, [], args}
             end)
             |> Kernel.then(
               &[
