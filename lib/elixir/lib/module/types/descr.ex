@@ -979,7 +979,13 @@ defmodule Module.Types.Descr do
   domain of a function. It is used to refine dynamic types
   as we traverse the program.
   """
-  def compatible_intersection(other, :term), do: {:ok, remove_optional(other)}
+  def compatible_intersection(other, :term) do
+    if empty?(other) do
+      {:error, other}
+    else
+      {:ok, remove_optional(other)}
+    end
+  end
 
   def compatible_intersection(left, right) do
     {left_dynamic, left_static} = pop_dynamic(left)
