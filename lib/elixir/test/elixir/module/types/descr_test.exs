@@ -1180,6 +1180,17 @@ defmodule Module.Types.DescrTest do
       assert compatible?(dynamic(list(term())), list(integer()))
       assert compatible?(dynamic(list(term(), term())), list(integer(), integer()))
     end
+
+    test "compatible_intersection agrees with compatible? on empty inputs" do
+      refute compatible?(none(), term())
+      assert compatible_intersection(none(), term()) == {:error, none()}
+
+      refute compatible?(dynamic(none()), term())
+      assert compatible_intersection(dynamic(none()), term()) == {:error, dynamic(none())}
+
+      assert compatible_intersection(integer(), term()) == {:ok, integer()}
+      assert compatible_intersection(dynamic(integer()), term()) == {:ok, dynamic(integer())}
+    end
   end
 
   describe "empty?" do
