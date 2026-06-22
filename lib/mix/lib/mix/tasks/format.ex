@@ -104,8 +104,8 @@ defmodule Mix.Tasks.Format do
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
-  automatically when saving a file or via an explicit command or key binding. If
-  such option is not available in your editor of choice, adding the required
+  automatically when saving a file or via an explicit command or key binding.
+  If such option is not available in your editor of choice, adding the required
   integration is usually a matter of invoking:
 
       $ cd $project && mix format $file
@@ -161,6 +161,14 @@ defmodule Mix.Tasks.Format do
   In addition, the order by which you input your plugins is the format order.
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
   the markdown files and sigils before `AnotherMarkdownFormatter`.
+
+  > #### Do not depend on Mix.Project {: .warning}
+  >
+  > You must not access `Mix.Project.config()` or general project configuration
+  > inside your formatter plugins. That's because formatters were designed to
+  > work even outside of a Mix project and the project configuration may be
+  > incomplete or fully missing. All configuration must be given via the
+  > `.formatter.exs` file.
 
   ## Importing dependencies configuration
 
