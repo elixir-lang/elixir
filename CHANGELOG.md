@@ -192,7 +192,7 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
-## v1.20.2-dev
+## v1.20.2 (2026-06-23)
 
 ### 1. Enhancements
 
@@ -207,13 +207,19 @@ You can enable it by setting `elixirc_options: [module_definition: :interpreted]
   * [Kernel] Fix binary comprehensions with sizes when options such as `:uniq` or `:into` are used
   * [Kernel] Improve compiler error messages when `quote` with `unquote` is used inside a pattern or guard
   * [Kernel] Restore the compiler optimization of `Kernel.put_elem/3` to emit `:erlang.setelement/3`
+  * [Module] Fix type checking when applying an empty function type
   * [Module] Fix type checking of bitstring patterns that reuse variables
   * [Module] Fix type information for `__info__(:struct)` to include the `:required` key
+  * [Module] Fix type operations on map and optional keys during difference/intersection, including open keys and empty intersections
+  * [Module] Fix typing of list types involving dynamic or empty lists
+  * [Module] Include bitstrings as a possible domain key in the type system
+  * [Module] Preserve file metadata from each clause in type system warnings
   * [Module] Fix type warnings for protocol implementations whose protocol module defines additional callbacks
   * [Module] Raise clearer type checking errors when an expected struct is removed or redefined during compilation
 
 #### Mix
 
+  * [mix compile] Avoid unnecessary umbrella recompilation when a path dependency's manifest is newer but unchanged
   * [mix deps.compile] Recompile fetched dependencies when their compile-time environment changes
 
 ## v1.20.1 (2026-06-09)
