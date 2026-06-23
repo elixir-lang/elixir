@@ -409,6 +409,11 @@ defmodule Module.Types.Descr do
   defp pop_dynamic(:term), do: {:term, :term}
   defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
 
+  defp put_dynamic(:term, dynamic), do: optional_to_term(%{dynamic: dynamic})
+  defp put_dynamic(static, dynamic) when static == dynamic, do: static
+  defp put_dynamic(_static, dynamic) when dynamic == @none, do: @none
+  defp put_dynamic(static, dynamic), do: Map.put(static, :dynamic, dynamic)
+
   @compile {:inline, maybe_union: 2}
   defp maybe_union(nil, _fun), do: nil
   defp maybe_union(descr, fun), do: union(descr, fun.())
@@ -508,7 +513,8 @@ defmodule Module.Types.Descr do
       {right_dynamic, right_static} = pop_dynamic(right)
       dynamic_part = difference_static(left_dynamic, right_static)
 
-      Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
+      difference_static(left_static, right_dynamic)
+      |> put_dynamic(dynamic_part)
     else
       difference_static(left, right)
     end

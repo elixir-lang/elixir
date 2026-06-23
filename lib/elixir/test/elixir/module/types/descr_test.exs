@@ -590,7 +590,10 @@ defmodule Module.Types.DescrTest do
       assert equal?(dynamic(), difference(term(), dynamic()))
       assert empty?(difference(dynamic(), term()))
       assert empty?(difference(none(), dynamic()))
-      assert empty?(difference(dynamic(integer()), integer()))
+      assert difference(dynamic(integer()), integer()) == none()
+
+      # Covers assembling a result with static :term and dynamic unfolded term.
+      assert difference(term(), %{dynamic: none(), optional: 1}) == term()
     end
 
     test "optional" do
@@ -3258,6 +3261,8 @@ defmodule Module.Types.DescrTest do
 
     test "dynamic (negation)" do
       assert dynamic(negation(integer())) |> to_quoted_string() == "dynamic(not integer())"
+      assert negation(dynamic(none())) == term()
+
       assert negation(dynamic(integer())) |> to_quoted_string() == "dynamic() or not integer()"
 
       assert union(atom(), dynamic(integer())) |> negation() |> to_quoted_string() ==
