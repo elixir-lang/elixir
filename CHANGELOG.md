@@ -20,11 +20,11 @@
   * [Code] Add support for the `:erlc_options` compiler option
   * [Kernel] Warn on binary patterns with segments that are not byte-aligned
   * [Keyword] Optimize `Keyword.pop/3`, `Keyword.pop!/2`, and `Keyword.pop_lazy/3`
-  * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/2`
+  * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/1`
   * [MapSet] Optimize `MapSet.symmetric_difference/2` when set sizes differ
   * [Registry] Optimize exact key matching in lookups
   * [String] Optimize `String.bag_distance/2`
-  * [String] Add `String.to_existing_atom/2` and `String.to_unsafe_atom/2`
+  * [String] Add `String.to_existing_atom/2` and `String.to_unsafe_atom/1`
   * [URI] Optimize percent-decoding and `URI.to_string/1`
 
 #### ExUnit
