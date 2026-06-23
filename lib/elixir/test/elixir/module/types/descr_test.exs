@@ -1053,10 +1053,10 @@ defmodule Module.Types.DescrTest do
 
       assert subtype?(t2, t1)
 
-      # An open map is open in every domain key, including :bitstring.
+      # An open map is open in every domain key, including :bitstring_no_binary.
       open_pid = open_map([{domain_key(:pid), pid()}])
 
-      for d <- [:bitstring, :binary, :integer, :float, :atom, :tuple, :map, :list] do
+      for d <- [:bitstring_no_binary, :binary, :integer, :float, :atom, :tuple, :map, :list] do
         assert subtype?(closed_map([{[d], atom([:x])}]), open_pid)
       end
 
@@ -3816,6 +3816,15 @@ defmodule Module.Types.DescrTest do
     test "map as dictionaries" do
       assert closed_map([{domain_key(:integer), integer()}])
              |> to_quoted_string() == "%{integer() => integer()}"
+
+      assert closed_map([{domain_key(:bitstring_no_binary), integer()}])
+             |> to_quoted_string() == "%{(bitstring() and not binary()) => integer()}"
+
+      assert closed_map([
+               {domain_key(:binary), integer()},
+               {domain_key(:bitstring_no_binary), integer()}
+             ])
+             |> to_quoted_string() == "%{bitstring() => integer()}"
 
       assert closed_map([{domain_key(:integer), not_set()}, {:float, float()}])
              |> to_quoted_string() == "%{integer() => not_set(), float: float()}"

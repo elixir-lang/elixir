@@ -40,7 +40,7 @@ defmodule Module.Types.Descr do
   defguardp fields_size(fields) when length(fields)
 
   @domain_key_types :lists.sort(
-                      [:binary, :bitstring, :integer, :float, :pid, :port, :reference] ++
+                      [:binary, :bitstring_no_binary, :integer, :float, :pid, :port, :reference] ++
                         [:fun, :atom, :tuple, :map, :list]
                     )
 
@@ -2735,7 +2735,10 @@ defmodule Module.Types.Descr do
 
   defp bitmap_to_domain_keys(bitmap, acc) do
     acc = if (bitmap &&& @bit_binary) != 0, do: [:binary | acc], else: acc
-    acc = if (bitmap &&& @bit_bitstring_no_binary) != 0, do: [:bitstring | acc], else: acc
+
+    acc =
+      if (bitmap &&& @bit_bitstring_no_binary) != 0, do: [:bitstring_no_binary | acc], else: acc
+
     acc = if (bitmap &&& @bit_empty_list) != 0, do: [:list | acc], else: acc
     acc = if (bitmap &&& @bit_integer) != 0, do: [:integer | acc], else: acc
     acc = if (bitmap &&& @bit_float) != 0, do: [:float | acc], else: acc
@@ -2746,7 +2749,7 @@ defmodule Module.Types.Descr do
   end
 
   defp domain_key_to_descr(:atom), do: atom()
-  defp domain_key_to_descr(:bitstring), do: bitstring_no_binary()
+  defp domain_key_to_descr(:bitstring_no_binary), do: bitstring_no_binary()
   defp domain_key_to_descr(:binary), do: binary()
   defp domain_key_to_descr(:integer), do: integer()
   defp domain_key_to_descr(:float), do: float()
@@ -4338,20 +4341,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_to_quoted({domains, fields}, opts) when is_list(domains) do
-    domain_fields =
-      for {domain_key, value_type} <- fields_to_list(domains) do
-        non_optional = remove_optional_static(value_type)
-
-        value_quoted =
-          if empty?(non_optional) do
-            {:not_set, [], []}
-          else
-            map_value_to_quoted(non_optional, opts)
-          end
-
-        {{domain_key, [], []}, value_quoted}
-      end
-
+    domain_fields = map_domain_fields_to_quoted(fields_to_list(domains), opts)
     regular_fields_quoted = map_fields_to_quoted(:closed, fields, opts)
     {:%{}, [], domain_fields ++ regular_fields_quoted}
   end
@@ -4386,6 +4376,49 @@ defmodule Module.Types.Descr do
       :open ->
         {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields, opts)]}
     end
+  end
+
+  defp map_domain_fields_to_quoted(
+         [{:binary, value_type}, {:bitstring_no_binary, value_type} | fields],
+         opts
+       ) do
+    [
+      map_domain_field_to_quoted(:bitstring, value_type, opts)
+      | map_domain_fields_to_quoted(fields, opts)
+    ]
+  end
+
+  defp map_domain_fields_to_quoted([{domain_key, value_type} | fields], opts) do
+    [
+      map_domain_field_to_quoted(domain_key, value_type, opts)
+      | map_domain_fields_to_quoted(fields, opts)
+    ]
+  end
+
+  defp map_domain_fields_to_quoted([], _opts) do
+    []
+  end
+
+  defp map_domain_field_to_quoted(domain_key, value_type, opts) do
+    non_optional = remove_optional_static(value_type)
+
+    value_quoted =
+      if empty?(non_optional) do
+        {:not_set, [], []}
+      else
+        map_value_to_quoted(non_optional, opts)
+      end
+
+    key_quoted =
+      case domain_key do
+        :bitstring_no_binary ->
+          {:and, [], [{:bitstring, [], []}, {:not, [], [{:binary, [], []}]}]}
+
+        domain_key ->
+          {domain_key, [], []}
+      end
+
+    {key_quoted, value_quoted}
   end
 
   defp maybe_struct(struct) do
