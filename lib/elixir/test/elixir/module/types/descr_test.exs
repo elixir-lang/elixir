@@ -1001,6 +1001,13 @@ defmodule Module.Types.DescrTest do
 
       assert subtype?(t2, t1)
 
+      # An open map is open in every domain key, including :bitstring.
+      open_pid = open_map([{domain_key(:pid), pid()}])
+
+      for d <- [:bitstring, :binary, :integer, :float, :atom, :tuple, :map, :list] do
+        assert subtype?(closed_map([{[d], atom([:x])}]), open_pid)
+      end
+
       t1_minus_t2 = difference(t1, t2)
       refute empty?(t1_minus_t2)
 
@@ -2169,7 +2176,7 @@ defmodule Module.Types.DescrTest do
 
       assert list(
                Enum.reduce(
-                 [binary(), float(), pid(), port(), reference()] ++
+                 [binary(), bitstring_no_binary(), float(), pid(), port(), reference()] ++
                    [fun(), atom(), tuple(), open_map(), list(term(), term())],
                  tuple([integer(), binary()]),
                  fn domain, acc -> union(acc, tuple([domain, term()])) end

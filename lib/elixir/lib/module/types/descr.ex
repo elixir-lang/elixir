@@ -41,7 +41,7 @@ defmodule Module.Types.Descr do
   defguardp fields_size(fields) when length(fields)
 
   @domain_key_types :lists.sort(
-                      [:binary, :integer, :float, :pid, :port, :reference] ++
+                      [:binary, :bitstring, :integer, :float, :pid, :port, :reference] ++
                         [:fun, :atom, :tuple, :map, :list]
                     )
 
