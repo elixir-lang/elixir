@@ -100,44 +100,56 @@ defmodule Mix.Compilers.Elixir do
 
     {force?, stale, new_deps_config} =
       cond do
-        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key or
-            (Keyword.get(opts, :check_cwd, true) and old_cwd != File.cwd!()) ->
+        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
+          {true, stale, deps_config(local_deps, opts)}
+
+        Keyword.get(opts, :check_cwd, true) and old_cwd != File.cwd!() ->
+          debug_recompile("current working directory has changed")
           {true, stale, deps_config(local_deps, opts)}
 
         deps_changed? or compile_env_apps != [] ->
           new_deps_config = deps_config(local_deps, opts)
+          removed_appsets = old_deps_config.local -- new_deps_config.local
           local_apps = merge_appset(old_deps_config.local, new_deps_config.local, [])
           config_apps = merge_appset(old_deps_config.config, new_deps_config.config, local_apps)
           apps = merge_appset(old_deps_config.lock, new_deps_config.lock, config_apps)
 
-          if Mix.Project.config()[:app] in apps do
-            {true, stale, new_deps_config}
-          else
-            app_modules = Mix.AppLoader.read_cache()
+          cond do
+            removed_appsets != [] ->
+              removed_apps = Keyword.keys(removed_appsets)
+              debug_recompile("path dependencies were removed: #{inspect(removed_apps)}")
+              {true, stale, new_deps_config}
 
-            apps_stale =
-              apps
-              |> deps_on()
-              |> Enum.flat_map(fn {app, _} ->
-                new_modules = Application.spec(app, :modules) || []
+            Mix.Project.config()[:app] in apps ->
+              debug_recompile("dependency configuration changed")
+              {true, stale, new_deps_config}
 
-                if old_modules = app_modules[app] do
-                  :ordsets.union(old_modules, :ordsets.from_list(new_modules))
-                else
-                  new_modules
-                end
-              end)
+            true ->
+              app_modules = Mix.AppLoader.read_cache()
 
-            compile_env_apps = compile_env_apps ++ config_apps
+              apps_stale =
+                apps
+                |> deps_on()
+                |> Enum.flat_map(fn {app, _} ->
+                  new_modules = Application.spec(app, :modules) || []
 
-            compile_env_stale =
-              for {_, source(compile_env: compile_env, modules: modules)} <- all_sources,
-                  Enum.any?(compile_env_apps, &List.keymember?(compile_env, &1, 0)),
-                  module <- modules,
-                  do: module
+                  if old_modules = app_modules[app] do
+                    :ordsets.union(old_modules, :ordsets.from_list(new_modules))
+                  else
+                    new_modules
+                  end
+                end)
 
-            stale = (stale ++ compile_env_stale) ++ apps_stale
-            {false, stale, new_deps_config}
+              compile_env_apps = compile_env_apps ++ config_apps
+
+              compile_env_stale =
+                for {_, source(compile_env: compile_env, modules: modules)} <- all_sources,
+                    Enum.any?(compile_env_apps, &List.keymember?(compile_env, &1, 0)),
+                    module <- modules,
+                    do: module
+
+              stale = (stale ++ compile_env_stale) ++ apps_stale
+              {false, stale, new_deps_config}
           end
 
         true ->
@@ -877,6 +889,12 @@ defmodule Mix.Compilers.Elixir do
   defp merge_appset(old_set, new_set, apps) do
     apps = Enum.reduce(old_set, apps, fn {app, _}, apps -> [app | apps] end)
     Enum.reduce(new_set, apps, fn {app, _}, apps -> [app | apps] end)
+  end
+
+  defp debug_recompile(reason) do
+    if Mix.debug?() do
+      Mix.shell().info("-- Recompiling #{inspect(Mix.Project.config()[:app])} because #{reason}")
+    end
   end
 
   defp deps_on(apps) do

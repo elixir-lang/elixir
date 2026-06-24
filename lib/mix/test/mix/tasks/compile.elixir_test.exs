@@ -819,6 +819,70 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
+  test "recompiles files from path dependencies when optional dep is removed" do
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("path_dep/lib")
+      File.mkdir_p!("optional_dep/lib")
+
+      File.write!("optional_dep/mix.exs", """
+      defmodule OptionalDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :optional_dep,
+            version: "0.1.0"
+          ]
+        end
+      end
+      """)
+
+      File.write!("optional_dep/lib/optional_dep.ex", """
+      defmodule OptionalDep.Response do
+      end
+      """)
+
+      File.write!("path_dep/mix.exs", """
+      defmodule PathDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :path_dep,
+            version: "0.1.0",
+            deps: [{:optional_dep, path: "../optional_dep", optional: true}]
+          ]
+        end
+      end
+      """)
+
+      File.write!("path_dep/lib/path_dep.ex", """
+      defmodule PathDep do
+        IO.puts("OptionalDep is defined: \#{Code.ensure_loaded?(OptionalDep.Response)}")
+      end
+      """)
+
+      Mix.ProjectStack.post_config(
+        deps: [{:path_dep, path: "path_dep"}, {:optional_dep, path: "optional_dep"}]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~
+               "OptionalDep is defined: true"
+
+      Mix.ProjectStack.merge_config(deps: [{:path_dep, path: "path_dep"}])
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([PathDep, PathDep.MixProject, OptionalDep.Response, OptionalDep.MixProject])
+      Application.unload(:path_dep)
+      Application.unload(:optional_dep)
+
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~
+               "OptionalDep is defined: false"
+    end)
+  end
+
   test "does not recompile files from path dependencies when non-child dependency change" do
     # Get Git repo first revision
     [last, first | _] = get_git_repo_revs("git_repo")
