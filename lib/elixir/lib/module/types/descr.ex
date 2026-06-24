@@ -1632,7 +1632,7 @@ defmodule Module.Types.Descr do
 
   defp fun_normalize(%{fun: {:union, bdds}}, arity) do
     case :maps.take(arity, bdds) do
-      {bdd, _rest} ->
+      {bdd, rest} ->
         {domain, arrows} =
           Enum.reduce(fun_bdd_to_pos_dnf(arity, bdd), {term(), []}, fn pos_funs,
                                                                        {domain, arrows} ->
@@ -1640,7 +1640,13 @@ defmodule Module.Types.Descr do
           end)
 
         if arrows == [] do
-          {:badarity, :maps.keys(bdds)}
+          # The function is empty at the requested arity. Report the *other*
+          # arities (never the called one, which would be self-contradictory),
+          # or :badfun when there are none, i.e. the function is empty.
+          case :maps.keys(rest) do
+            [] -> :badfun
+            other -> {:badarity, other}
+          end
         else
           {:ok, domain, arrows}
         end
