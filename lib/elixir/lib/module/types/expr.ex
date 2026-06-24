@@ -687,6 +687,38 @@ defmodule Module.Types.Expr do
     end
   end
 
+  def of_expr(
+        {{:., _, [:erlang, fun]}, _meta, [left, right]} = call,
+        expected,
+        _expr,
+        stack,
+        context
+      )
+      when fun in [:andalso, :orelse] do
+    polarity = fun == :andalso
+    polarity_type = atom([polarity])
+
+    left_expected =
+      case booleaness(expected) do
+        {^polarity, _} -> polarity_type
+        _ -> boolean()
+      end
+
+    {left_type, context} = of_expr(left, left_expected, call, stack, context)
+    {right_type, right_context} = of_expr(right, expected, call, stack, context)
+
+    if subtype?(left_type, polarity_type) do
+      {right_type, right_context}
+    else
+      context =
+        right_context
+        |> Of.reset_vars(context)
+        |> reset_warnings(context)
+
+      {union(atom([not polarity]), right_type), context}
+    end
+  end
+
   def of_expr({{:., _, [remote, name]}, meta, args} = call, expected, _expr, stack, context) do
     {remote_type, context} = of_expr(remote, atom(), call, stack, context)
     {mods, context} = Of.modules(remote_type, name, length(args), call, meta, stack, context)

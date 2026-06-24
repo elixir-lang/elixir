@@ -2276,6 +2276,42 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(false or true) == atom([true])
     end
 
+    test "andalso/orelse do not leak right-hand side refinements" do
+      assert typecheck!(
+               [x],
+               cond do
+                 :erlang.andalso(is_tuple(x), tuple_size(x) == 3) -> {:tuple, x}
+                 is_atom(x) -> {:atom, x}
+                 true -> {:other, x}
+               end
+             )
+             |> equal?(
+               dynamic(
+                 tuple([atom([:tuple]), tuple([term(), term(), term()])])
+                 |> union(tuple([atom([:atom]), atom()]))
+                 |> union(tuple([atom([:other]), negation(atom())]))
+               )
+             )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 :erlang.orelse(is_atom(x), is_tuple(x)) -> {:atom_or_tuple, x}
+                 is_binary(x) -> {:binary, x}
+                 true -> {:other, x}
+               end
+             )
+             |> equal?(
+               dynamic(
+                 tuple([atom([:atom_or_tuple]), term()])
+                 |> union(tuple([atom([:binary]), binary()]))
+                 |> union(
+                   tuple([atom([:other]), negation(union(binary(), union(atom(), tuple())))])
+                 )
+               )
+             )
+    end
+
     test "and reports violations" do
       assert typeerror!([x = 123], x and true) =~ """
              the following conditional expression will always fail:
