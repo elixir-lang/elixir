@@ -3689,6 +3689,34 @@ defmodule Module.Types.DescrTest do
                """
     end
 
+    test "fun union of static and dynamic keeps non-fun components" do
+      # Denormalizing a static/dynamic fun union must not drop the other parts of
+      # the type, nor crash when an arity fails to denormalize.
+
+      # (a) must not raise when denormalization fails for an arity
+      assert opt_difference(fun([term()], atom()), fun([integer()], dynamic(atom())))
+             |> to_quoted_string() ==
+               "dynamic((term() -> atom()) and (integer() -> atom()))"
+
+      # (b) non-fun components must be preserved alongside the denormalized fun
+      assert opt_union(
+               integer(),
+               opt_union(fun([integer()], atom()), dynamic(fun([integer()], atom())))
+             )
+             |> to_quoted_string() == "(integer() -> atom()) or integer()"
+
+      # several components, with a leftover non-denormalized dynamic arity
+      assert opt_union(
+               atom([:tag]),
+               opt_union(
+                 fun([integer()], atom()),
+                 dynamic(opt_union(fun([integer()], atom()), fun([integer(), integer()], atom())))
+               )
+             )
+             |> to_quoted_string() ==
+               "dynamic((integer(), integer() -> atom())) or :tag or (integer() -> atom())"
+    end
+
     test "fun (negation)" do
       assert fun([integer()], atom()) |> opt_negation() |> to_quoted_string() ==
                "not (integer() -> atom())"

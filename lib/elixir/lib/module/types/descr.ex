@@ -1929,14 +1929,20 @@ defmodule Module.Types.Descr do
   # representation. The goal here is to do the opposite of fun_descr
   # and put static and dynamic parts back together to improve
   # pretty printing.
-  defp fun_denormalize(%{fun: {:union, static_repr}}, %{fun: {:union, dynamic_repr}}, opts) do
-    # Denormalize each arity
+  defp fun_denormalize(
+         %{fun: {:union, static_repr}} = static,
+         %{fun: {:union, dynamic_repr}} = dynamic,
+         opts
+       ) do
+    # Denormalize each arity. The accumulator threads the full descrs (not the
+    # raw fun reprs), removing only the arities we successfully denormalize so
+    # the caller still receives valid descrs whose non-fun parts are preserved.
     for {arity, static_bdd} <- static_repr,
         {^arity, dynamic_bdd} <- dynamic_repr,
-        reduce: {static_repr, dynamic_repr, []} do
+        reduce: {static, dynamic, []} do
       {statics, dynamics, acc} ->
         with {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
-          {Map.delete(statics, arity), Map.delete(dynamics, arity), [quoted | acc]}
+          {fun_delete_arity(statics, arity), fun_delete_arity(dynamics, arity), [quoted | acc]}
         else
           _ -> {statics, dynamics, acc}
         end
@@ -1944,9 +1950,20 @@ defmodule Module.Types.Descr do
   end
 
   # If not unions of functions, do not try to denormalize.
-  defp fun_denormalize(static_repr, dynamic_repr, _opts) do
-    {static_repr, dynamic_repr, []}
+  defp fun_denormalize(static, dynamic, _opts) do
+    {static, dynamic, []}
   end
+
+  # Removes `arity` from a descr's function union, dropping the :fun key entirely
+  # once no arities remain.
+  defp fun_delete_arity(%{fun: {:union, repr}} = descr, arity) do
+    case Map.delete(repr, arity) do
+      empty when empty == %{} -> Map.delete(descr, :fun)
+      repr -> %{descr | fun: {:union, repr}}
+    end
+  end
+
+  defp fun_delete_arity(descr, _arity), do: descr
 
   defp fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
     static_pos = fun_bdd_to_pos_dnf(arity, static_bdd)
