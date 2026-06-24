@@ -1378,6 +1378,28 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun_mixed, [integer()]) == {:badarity, [1, 2]}
       assert fun_apply(fun_mixed, [integer(), atom()]) == {:badarity, [2, 1]}
 
+      # A function that is empty at the called arity is :badfun, not a
+      # self-contradictory {:badarity, [called_arity]}.
+      empty_fun =
+        opt_difference(fun([opt_union(integer(), float())], atom()), fun([integer()], atom()))
+
+      assert empty?(empty_fun)
+      assert fun_apply(empty_fun, [integer()]) == :badfun
+
+      # When the function is empty at the called arity but usable at another, the
+      # badarity must list only the *other* arity, never the (empty) called one.
+      # `empty_fun` keeps a structured empty arity-1 entry, which union preserves,
+      # so `usable_at_2` is equal? to a plain 2-arity function yet carries it.
+      usable_at_2 = opt_union(empty_fun, fun([integer(), atom()], boolean()))
+
+      refute empty?(usable_at_2)
+      assert equal?(usable_at_2, fun([integer(), atom()], boolean()))
+
+      # Congruent with the normalized form, and excludes the empty arity 1.
+      assert fun_apply(usable_at_2, [integer()]) == {:badarity, [2]}
+      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
+      assert fun_apply(usable_at_2, [integer(), atom()]) == {:ok, boolean()}
+
       # Function intersection tests (no overlap)
       fun0 = opt_intersection(fun([integer()], atom()), fun([float()], binary()))
       assert fun_apply(fun0, [integer()]) == {:ok, atom()}
