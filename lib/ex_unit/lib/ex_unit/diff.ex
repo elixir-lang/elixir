@@ -289,7 +289,15 @@ defmodule ExUnit.Diff do
           end)
 
         if valid? do
-          {equivalent?, _bindings} = Code.eval_quoted(quoted, Map.to_list(bindings))
+          to_evaluate =
+            quote do
+              case :ok do
+                :ok when unquote(quoted) -> true
+                :ok -> false
+              end
+            end
+
+          {equivalent?, _bindings} = Code.eval_quoted(to_evaluate, Map.to_list(bindings))
           {update_diff_meta(original, equivalent? != true), equivalent? == true}
         else
           {original, false}

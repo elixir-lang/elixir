@@ -33,10 +33,6 @@ erl_fa_to_elixir_fa(Name, Arity) ->
     _ -> {Name, Arity}
   end.
 
-guard_op('andalso', 2) ->
-  true;
-guard_op('orelse', 2) ->
-  true;
 guard_op(Op, Arity) ->
   try erl_internal:op_type(Op, Arity) of
     arith -> true;

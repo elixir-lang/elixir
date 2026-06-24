@@ -981,6 +981,10 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
         is_loaded_and_not_exported(Receiver, Right, Args) andalso
         elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_function, Receiver, Right, length(Args)}),
 
+      %% TODO: Raise on Elixir v2.0
+      (Receiver =:= erlang) andalso ((Right =:= 'orelse') orelse (Right =:= 'andalso')) andalso
+        elixir_errors:file_warn(Meta, E, ?MODULE, {invalid_guard_operator, Right}),
+
       Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, AttachedMeta, EArgs),
       {Rewritten, elixir_env:close_write(SA, S), EA};
 
@@ -1315,6 +1319,8 @@ format_error({options_are_not_keyword, Kind, Opts}) ->
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
+format_error({invalid_guard_operator, Name}) ->
+  io_lib:format(":erlang.~ts/2 must only be used inside guards", [Name]);
 format_error({unpinned_bitsize_var, Name, Kind}) ->
   io_lib:format("the variable ~ts is accessed inside size(...) of a bitstring "
                 "but it was defined outside of the match. You must precede it with the "

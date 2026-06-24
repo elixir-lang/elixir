@@ -52,7 +52,7 @@
 }).
 
 -record(elixir_erl, {
-  %% Can be match, guards or nil
+  %% Can be match, guard or nil
   context=nil,
   %% Extra information about the context, like pin_guard and map_key
   extra=nil,

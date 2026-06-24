@@ -662,7 +662,7 @@ translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'El
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
 
-  case rewrite_strategy(Left, Right, Args) of
+  case rewrite_strategy(Left, Right, Args, S) of
     guard_op ->
       {TArgs, SA} = translate_args(Args, Ann, S),
       %% Rewrite Erlang function calls as operators so they
@@ -700,13 +700,9 @@ optimize_list_membership([], _Count) ->
 optimize_list_membership(_, _Count) ->
   false.
 
-rewrite_strategy(erlang, Right, Args) ->
-  Arity  = length(Args),
-  case elixir_utils:guard_op(Right, Arity) of
-    true -> guard_op;
-    false -> none
-  end;
-rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
+rewrite_strategy(erlang, Right, Args, S) ->
+  guard_op_strategy(Right, length(Args), S);
+rewrite_strategy(Left, shift, [Struct, Opts | RestArgs], _S) when
   Left == 'Elixir.Date';
   Left == 'Elixir.DateTime';
   Left == 'Elixir.NaiveDateTime';
@@ -723,7 +719,7 @@ rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
     false ->
       none
   end;
-rewrite_strategy(Left, Right, Args) ->
+rewrite_strategy(Left, Right, Args, _S) ->
   case inline_pure_function(Left, Right) andalso basic_type_arg(Args) of
     true ->
       try
@@ -734,6 +730,14 @@ rewrite_strategy(Left, Right, Args) ->
       end;
     false ->
       reorder_strategy(Left, Right, length(Args))
+  end.
+
+guard_op_strategy('andalso', 2, #elixir_erl{context=guard}) -> guard_op;
+guard_op_strategy('orelse', 2, #elixir_erl{context=guard}) -> guard_op;
+guard_op_strategy(Op, Arity, _S) ->
+  case elixir_utils:guard_op(Op, Arity) of
+    true -> guard_op;
+    false -> none
   end.
 
 -define(

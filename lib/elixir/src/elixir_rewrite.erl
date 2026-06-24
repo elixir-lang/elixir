@@ -334,6 +334,8 @@ guard(Receiver, DotMeta, Right, Meta, Args, S) ->
 %% need to explicitly forbid as they are allowed in erl_internal.
 allowed_guard(is_record, 2) -> false;
 allowed_guard(is_record, 3) -> false;
+allowed_guard('orelse', 2) -> true;
+allowed_guard('andalso', 2) -> true;
 allowed_guard(Right, Arity) ->
   erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity).
 

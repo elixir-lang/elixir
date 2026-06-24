@@ -329,19 +329,25 @@ defmodule Kernel.Utils do
 
   @spec defguard([Macro.t()], Macro.t(), Macro.Env.t()) :: Macro.t()
   def defguard(args, expr, env) do
-    {^args, vars} = extract_refs_from_args(args)
-    env = :elixir_env.with_vars(%{env | context: :guard}, vars)
-    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+    {_, vars} = extract_refs_from_args(args)
+    guard_expr = expand_defguard(expr, %{env | context: :guard}, vars)
+    body_expr = expand_defguard(expr, %{env | context: nil}, vars)
 
     quote do
       case Macro.Env.in_guard?(__CALLER__) do
         true ->
-          unquote(literal_quote(unquote_every_ref(expr, vars), []))
+          unquote(literal_quote(unquote_every_ref(guard_expr, vars), []))
 
         false ->
-          unquote(literal_quote(unquote_refs_once(expr, vars, env), generated: true))
+          unquote(literal_quote(unquote_refs_once(body_expr, vars, env), generated: true))
       end
     end
+  end
+
+  defp expand_defguard(expr, env, vars) do
+    env = :elixir_env.with_vars(env, vars)
+    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+    expr
   end
 
   defp extract_refs_from_args(args) do
