@@ -1934,19 +1934,18 @@ defmodule Module.Types.Descr do
          %{fun: {:union, dynamic_repr}} = dynamic,
          opts
        ) do
-    # Denormalize each arity. The accumulator threads the full descrs (not the
-    # raw fun reprs), removing only the arities we successfully denormalize so
-    # the caller still receives valid descrs whose non-fun parts are preserved.
-    for {arity, static_bdd} <- static_repr,
-        {^arity, dynamic_bdd} <- dynamic_repr,
-        reduce: {static, dynamic, []} do
-      {statics, dynamics, acc} ->
-        with {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
-          {fun_delete_arity(statics, arity), fun_delete_arity(dynamics, arity), [quoted | acc]}
-        else
-          _ -> {statics, dynamics, acc}
-        end
-    end
+    {static_repr, dynamic_repr, acc} =
+      Enum.reduce(static_repr, {static_repr, dynamic_repr, []}, fn
+        {arity, static_bdd}, {statics, dynamics, acc} ->
+          with %{^arity => dynamic_bdd} <- dynamics,
+               {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
+            {Map.delete(statics, arity), Map.delete(dynamics, arity), [quoted | acc]}
+          else
+            _ -> {statics, dynamics, acc}
+          end
+      end)
+
+    {fun_replace_arities(static, static_repr), fun_replace_arities(dynamic, dynamic_repr), acc}
   end
 
   # If not unions of functions, do not try to denormalize.
@@ -1954,16 +1953,8 @@ defmodule Module.Types.Descr do
     {static, dynamic, []}
   end
 
-  # Removes `arity` from a descr's function union, dropping the :fun key entirely
-  # once no arities remain.
-  defp fun_delete_arity(%{fun: {:union, repr}} = descr, arity) do
-    case Map.delete(repr, arity) do
-      empty when empty == %{} -> Map.delete(descr, :fun)
-      repr -> %{descr | fun: {:union, repr}}
-    end
-  end
-
-  defp fun_delete_arity(descr, _arity), do: descr
+  defp fun_replace_arities(descr, arities) when arities == %{}, do: Map.delete(descr, :fun)
+  defp fun_replace_arities(descr, arities), do: %{descr | fun: {:union, arities}}
 
   defp fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
     static_pos = fun_bdd_to_pos_dnf(arity, static_bdd)
