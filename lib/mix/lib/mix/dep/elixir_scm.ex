@@ -7,17 +7,18 @@
 defmodule Mix.Dep.ElixirSCM do
   @moduledoc false
   @manifest "compile.elixir_scm"
-  @manifest_vsn 2
+  @manifest_vsn 3
 
   def manifest(manifest_path \\ Mix.Project.manifest_path()) do
     Path.join(manifest_path, @manifest)
   end
 
-  def update(manifest_path \\ Mix.Project.manifest_path(), scm, lock) do
+  def update(manifest_path \\ Mix.Project.manifest_path(), scm, lock, deps \\ []) do
     File.mkdir_p!(manifest_path)
 
     manifest_data =
-      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, scm, lock}
+      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, scm, lock,
+       Enum.sort(deps)}
       |> :erlang.term_to_binary()
 
     File.write!(manifest(manifest_path), manifest_data)
@@ -27,10 +28,10 @@ defmodule Mix.Dep.ElixirSCM do
     case File.read(manifest(manifest_path)) do
       {:ok, contents} ->
         try do
-          {@manifest_vsn, vsn, scm, lock} = :erlang.binary_to_term(contents)
-          {:ok, vsn, scm, lock}
+          {@manifest_vsn, vsn, scm, lock, deps} = :erlang.binary_to_term(contents)
+          {:ok, vsn, scm, lock, deps}
         rescue
-          _ -> {:ok, {"1.0.0", ~c"17"}, nil, nil}
+          _ -> {:ok, {"1.0.0", ~c"17"}, nil, nil, []}
         end
 
       _ ->

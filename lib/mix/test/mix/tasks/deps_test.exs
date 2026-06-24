@@ -860,7 +860,7 @@ defmodule Mix.Tasks.DepsTest do
 
       manifest_data =
         :erlang.term_to_binary(
-          {2, {System.version(), :erlang.system_info(:otp_release)}, :scm, nil}
+          {3, {System.version(), :erlang.system_info(:otp_release)}, :scm, nil, []}
         )
 
       File.write!("_build/dev/lib/ok/.mix/compile.elixir_scm", manifest_data)

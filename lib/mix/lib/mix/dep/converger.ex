@@ -144,9 +144,9 @@ defmodule Mix.Dep.Converger do
           end
         end)
 
-      {reject_non_fulfilled_optional(deps), acc, lock}
+      {reject_non_fulfilled_optional_and_validate_app(deps), acc, lock}
     else
-      {reject_non_fulfilled_optional(deps), acc, lock}
+      {reject_non_fulfilled_optional_and_validate_app(deps), acc, lock}
     end
   end
 
@@ -388,12 +388,12 @@ defmodule Mix.Dep.Converger do
     Enum.all?(keys, &(Keyword.fetch(opts1, &1) == Keyword.fetch(opts2, &1)))
   end
 
-  defp reject_non_fulfilled_optional(deps) do
+  defp reject_non_fulfilled_optional_and_validate_app(deps) do
     apps = Enum.map(deps, & &1.app)
 
     for dep <- deps do
       {_discarded, deps} = split_non_fulfilled_optional(dep.deps, apps, dep.opts[:from_umbrella])
-      %{dep | deps: deps}
+      %{dep | deps: deps} |> Mix.Dep.Loader.validate_manifest()
     end
   end
 
@@ -418,12 +418,18 @@ defmodule Mix.Dep.Converger do
     List.first(@managers -- to_exclude) || other_manager || manager
   end
 
-  defp req_mismatch(%Mix.Dep{status: status}, %Mix.Dep{app: app, requirement: requirement}) do
+  defp req_mismatch(%Mix.Dep{status: status} = dep, %Mix.Dep{app: app, requirement: requirement}) do
     with {:ok, vsn} when not is_nil(vsn) <- status,
+         true <- scm_manifest_exists?(dep),
          true <- Mix.Dep.Loader.vsn_match(requirement, vsn, app) != {:ok, true} do
       vsn
     else
       _ -> nil
     end
+  end
+
+  defp scm_manifest_exists?(%Mix.Dep{scm: scm, opts: opts}) do
+    not scm.fetchable?() or
+      File.exists?(Mix.Dep.ElixirSCM.manifest(Path.join(opts[:build], ".mix")))
   end
 end

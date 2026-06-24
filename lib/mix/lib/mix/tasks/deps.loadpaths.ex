@@ -128,7 +128,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       |> Task.async_stream(&check_lock/1, ordered: true, timeout: :infinity)
       |> Enum.map(fn {:ok, dep} -> dep end)
 
-    {not_ok, to_compile} = partition(all, [], [])
+    {not_ok, to_compile} = partition(all, [], [], Mix.debug?())
 
     cond do
       not_ok != [] ->
@@ -142,24 +142,29 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
   end
 
-  defp partition([dep | deps], not_ok, compile) do
+  defp partition([dep | deps], not_ok, compile, debug?) do
     cond do
       Mix.Dep.compilable?(dep) or (Mix.Dep.ok?(dep) and local?(dep)) ->
         if from_umbrella?(dep) do
-          partition(deps, not_ok, compile)
+          partition(deps, not_ok, compile, debug?)
         else
-          partition(deps, not_ok, [dep | compile])
+          if debug? do
+            reason = Mix.Dep.format_status(dep) |> String.split(", please run", parts: 2) |> hd()
+            Mix.shell().info("-- Recompiling #{inspect(dep.app)} because #{reason}")
+          end
+
+          partition(deps, not_ok, [dep | compile], debug?)
         end
 
       Mix.Dep.ok?(dep) ->
-        partition(deps, not_ok, compile)
+        partition(deps, not_ok, compile, debug?)
 
       true ->
-        partition(deps, [dep | not_ok], compile)
+        partition(deps, [dep | not_ok], compile, debug?)
     end
   end
 
-  defp partition([], not_ok, compile) do
+  defp partition([], not_ok, compile, _debug?) do
     {Enum.reverse(not_ok), Enum.reverse(compile)}
   end
 

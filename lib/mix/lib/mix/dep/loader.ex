@@ -111,7 +111,6 @@ defmodule Mix.Dep.Loader do
       end
 
     %{dep | deps: attach_only_and_targets(children, opts)}
-    |> validate_manifest()
     |> validate_app()
   end
 
@@ -412,24 +411,35 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  defp validate_manifest(dep) do
+  @doc false
+  def validate_manifest(dep) do
     if ok?(dep) do
-      %{scm: scm, opts: opts} = dep
+      %{deps: deps, scm: scm, opts: dep_opts} = dep
       vsn = {System.version(), :erlang.system_info(:otp_release)}
-      lock = opts[:lock]
+      lock = dep_opts[:lock]
+      deps = deps |> Enum.map(& &1.app) |> Enum.sort()
+      fetchable? = scm.fetchable?()
 
-      case Mix.Dep.ElixirSCM.read(Path.join(opts[:build], ".mix")) do
-        {:ok, old_vsn, _, _} when old_vsn != vsn ->
+      case Mix.Dep.ElixirSCM.read(Path.join(dep_opts[:build], ".mix")) do
+        {:ok, old_vsn, _, _, _} when old_vsn != vsn ->
           %{dep | status: {:vsnlock, old_vsn}}
 
-        {:ok, _, old_scm, _} when old_scm != scm ->
+        {:ok, _, old_scm, _, _} when old_scm != scm ->
           %{dep | status: {:scmlock, old_scm}}
 
-        {:ok, _, _, old_lock} when old_lock != lock ->
-          if scm.fetchable?(), do: %{dep | status: :compile}, else: dep
+        # Not fetchable, so local dep compilation should take care of it
+        _ when not fetchable? ->
+          dep
+
+        {:ok, _, _, old_lock, _} when old_lock != lock ->
+          %{dep | status: :compile}
+
+        {:ok, _, _, _, old_deps} when old_deps != deps ->
+          changed_deps = (old_deps -- deps) ++ (deps -- old_deps)
+          %{dep | status: {:depschanged, Enum.sort(changed_deps)}}
 
         :error ->
-          if scm.fetchable?(), do: %{dep | status: :compile}, else: dep
+          %{dep | status: :compile}
 
         _ ->
           dep

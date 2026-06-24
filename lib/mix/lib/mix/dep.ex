@@ -339,6 +339,11 @@ defmodule Mix.Dep do
     "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
   end
 
+  def format_status(%Mix.Dep{status: {:depschanged, deps}}) do
+    "the dependency build is outdated because its dependencies changed " <>
+      "(#{Enum.map_join(deps, ", ", &inspect/1)}), please run \"#{mix_env_var()}mix deps.compile\""
+  end
+
   def format_status(%Mix.Dep{status: :envoutdated}) do
     "the dependency compile environment is outdated, please run \"#{mix_env_var()}mix deps.compile\""
   end
@@ -489,6 +494,7 @@ defmodule Mix.Dep do
   def compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
   def compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
   def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:depschanged, _}}), do: true
   def compilable?(%Mix.Dep{status: :compile}), do: true
   def compilable?(%Mix.Dep{status: :envoutdated}), do: true
   def compilable?(_), do: false

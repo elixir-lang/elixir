@@ -691,7 +691,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert File.exists?("_build/dev/lib/sample")
       assert File.exists?("_build/dev/lib/sample/consolidated")
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       Mix.Task.clear()
       File.write!("_build/dev/lib/sample/consolidated/.to_be_removed", "")
@@ -700,7 +700,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
       refute File.exists?("_build/dev/lib/sample/consolidated/.to_be_removed")
@@ -714,14 +714,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       Mix.Task.clear()
       Mix.Dep.ElixirSCM.update("_build/dev/lib/sample/.mix/", UnknownSCM, nil)
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
     end)
   end
@@ -733,14 +733,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       Mix.Task.clear()
       Mix.Dep.ElixirSCM.update("_build/dev/lib/sample/.mix/", Mix.SCM.Path, :whatever)
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       assert Mix.Tasks.Compile.run([]) == {:noop, []}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, :whatever}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, :whatever, []}
     end)
   end
 

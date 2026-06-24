@@ -170,7 +170,7 @@ defmodule Mix.Tasks.Deps.Compile do
     # We should touch fetchable dependencies even if they
     # did not compile otherwise they will always be marked
     # as stale, even when there is nothing to do.
-    fetchable? = touch_fetchable(scm, opts)
+    fetchable? = touch_fetchable(scm, opts, dep.deps)
 
     if compiled? and fetchable? do
       Mix.Task.run("will_recompile")
@@ -199,9 +199,10 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp touch_fetchable(scm, opts) do
+  defp touch_fetchable(scm, opts, deps) do
     if scm.fetchable?() do
-      Mix.Dep.ElixirSCM.update(Path.join(opts[:build], ".mix"), scm, opts[:lock])
+      manifest = Path.join(opts[:build], ".mix")
+      Mix.Dep.ElixirSCM.update(manifest, scm, opts[:lock], Enum.map(deps, & &1.app))
       true
     else
       false

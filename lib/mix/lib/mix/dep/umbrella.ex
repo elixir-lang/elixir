@@ -62,16 +62,20 @@ defmodule Mix.Dep.Umbrella do
     deps = unloaded()
     apps = Enum.map(deps, & &1.app)
 
-    Enum.map(deps, fn umbrella_dep ->
-      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep, nil, false)
+    deps =
+      Enum.map(deps, fn umbrella_dep ->
+        umbrella_dep = Mix.Dep.Loader.load(umbrella_dep, nil, false)
 
-      deps =
-        Enum.filter(umbrella_dep.deps, fn dep ->
-          Mix.Dep.available?(dep) and dep.app in apps
-        end)
+        deps =
+          Enum.filter(umbrella_dep.deps, fn dep ->
+            Mix.Dep.available?(dep) and dep.app in apps
+          end)
 
-      %{umbrella_dep | deps: deps}
-    end)
+        %{umbrella_dep | deps: deps}
+      end)
+      |> Enum.map(&Mix.Dep.Loader.validate_manifest/1)
+
+    deps
     |> Mix.Dep.Converger.topological_sort()
   end
 end

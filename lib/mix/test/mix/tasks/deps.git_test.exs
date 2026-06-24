@@ -764,13 +764,12 @@ defmodule Mix.Tasks.DepsGitTest do
         # Now simulate the post-fetch state:
         #   - The transitive parent has moved on to a stricter requirement
         #     that the build's stale .app vsn ("0.1.0") no longer satisfies.
-        #   - The SCM manifest's stored lock no longer matches opts[:lock],
-        #     signalling that _build is behind the fetched source.
+        #   - The SCM manifest was removed, signalling that _build is behind
+        #     the fetched source.
         update_deps_on_git_repo.("~> 0.2.0")
 
         manifest = "_build/dev/lib/git_repo/.mix/compile.elixir_scm"
-        {2, vsn, scm, _lock} = manifest |> File.read!() |> :erlang.binary_to_term()
-        File.write!(manifest, :erlang.term_to_binary({2, vsn, scm, :stale_lock}))
+        File.rm!(manifest)
 
         Mix.Task.clear()
         Mix.State.clear_cache()
