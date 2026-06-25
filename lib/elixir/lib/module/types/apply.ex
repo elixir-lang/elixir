@@ -1409,7 +1409,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :values, _info, [map], stack) do
     case map_to_list(map, fn _key, value -> value end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :keys, [map])}
+      :badmap -> {:error, badremote(:maps, :values, [map])}
     end
   end
 
