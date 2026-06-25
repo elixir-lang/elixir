@@ -355,6 +355,14 @@ stab_expr -> empty_paren stab_op_eol_and_expr :
                build_op_with_meta([], '$2', parens_meta('$1')).
 stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
                build_op_with_meta([{'when', meta_from_token('$2'), ['$3']}], '$4', parens_meta('$1')).
+stab_expr -> at_op_eol no_parens_zero_expr stab_op_eol_and_expr :
+               error_ambiguous_at_stab('$3').
+stab_expr -> at_op_eol no_parens_one_expr stab_op_eol_and_expr :
+               build_at_stab('$1', '$2', '$3').
+stab_expr -> at_op_eol no_parens_one_ambig_expr stab_op_eol_and_expr :
+               build_at_stab('$1', '$2', '$3').
+stab_expr -> at_op_eol no_parens_many_expr stab_op_eol_and_expr :
+               build_at_stab('$1', '$2', '$3').
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
                build_op(unwrap_when(unwrap_splice('$1')), '$2').
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
@@ -774,6 +782,9 @@ build_unary_op({_Kind, {Line, Column, _}, '//'}, Expr) ->
 build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
+build_at_stab(At, {Call, Meta, Args}, {Op, Right}) ->
+  build_unary_op(At, {Call, Meta, [build_op(Args, Op, Right)]}).
+
 build_nullary_op({_Kind, Location, Op}) ->
   {Op, meta_from_location(Location), []}.
 
@@ -1191,6 +1202,11 @@ return_error_with_meta(Meta, ErrorMessage, ErrorToken) ->
 error_invalid_stab(MetaStab) ->
   return_error_with_meta(MetaStab,
     "unexpected operator ->. If you want to define multiple clauses, the first expression must use ->. "
+    "Syntax error before: ", "'->'").
+
+error_ambiguous_at_stab({Stab, _Right}) ->
+  return_error_with_meta(meta_from_token(Stab),
+    "ambiguous use of @ with ->. If you want a nullary signature, write @sig () -> bar or @sig (-> bar). "
     "Syntax error before: ", "'->'").
 
 error_bad_atom(Token) ->
