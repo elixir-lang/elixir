@@ -13,6 +13,7 @@ Nonterminals
   expr container_expr block_expr access_expr
   no_parens_expr no_parens_zero_expr no_parens_one_expr no_parens_one_ambig_expr
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr sub_matched_expr
+  at_stab_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   dual_op_eol mult_op_eol power_op_eol concat_op_eol xor_op_eol pipe_op_eol
@@ -112,6 +113,7 @@ expr_list -> expr_list eoe expr : ['$3' | annotate_eoe('$2', '$1')].
 expr -> matched_expr : '$1'.
 expr -> no_parens_expr : '$1'.
 expr -> unmatched_expr : '$1'.
+expr -> at_stab_expr : '$1'.
 
 %% In Elixir we have three main call syntaxes: with parentheses,
 %% without parentheses and with do blocks. They are represented
@@ -249,6 +251,13 @@ no_parens_op_expr -> arrow_op_eol no_parens_expr : warn_pipe('$1', '$2'), {'$1',
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
 
+at_stab_expr -> at_op_eol no_parens_one_expr stab_op_eol expr :
+                  build_at_stab('$1', '$2', {'$3', '$4'}).
+at_stab_expr -> at_op_eol no_parens_one_ambig_expr stab_op_eol expr :
+                  build_at_stab('$1', '$2', {'$3', '$4'}).
+at_stab_expr -> at_op_eol no_parens_many_expr stab_op_eol expr :
+                  build_at_stab('$1', '$2', {'$3', '$4'}).
+
 no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_no_parens('$1', '$2').
 no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_no_parens('$1', '$2').
 
@@ -355,14 +364,6 @@ stab_expr -> empty_paren stab_op_eol_and_expr :
                build_op_with_meta([], '$2', parens_meta('$1')).
 stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
                build_op_with_meta([{'when', meta_from_token('$2'), ['$3']}], '$4', parens_meta('$1')).
-stab_expr -> at_op_eol no_parens_zero_expr stab_op_eol_and_expr :
-               error_ambiguous_at_stab('$3').
-stab_expr -> at_op_eol no_parens_one_expr stab_op_eol_and_expr :
-               build_at_stab('$1', '$2', '$3').
-stab_expr -> at_op_eol no_parens_one_ambig_expr stab_op_eol_and_expr :
-               build_at_stab('$1', '$2', '$3').
-stab_expr -> at_op_eol no_parens_many_expr stab_op_eol_and_expr :
-               build_at_stab('$1', '$2', '$3').
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
                build_op(unwrap_when(unwrap_splice('$1')), '$2').
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
@@ -1121,6 +1122,9 @@ check_stab([{'->', _, [_, _]}], _) -> stab;
 check_stab([], none) -> block;
 check_stab([_], none) -> block;
 check_stab([_], Meta) -> error_invalid_stab(Meta);
+check_stab([{'->', Meta, [[{'@', _, [{Call, CallMeta, nil}]}], _]} | T], _)
+    when is_atom(Call) andalso is_list(CallMeta) ->
+  check_stab(T, {ambiguous_at_stab, Meta});
 check_stab([{'->', Meta, [_, _]} | T], _) -> check_stab(T, Meta);
 check_stab([_ | T], MaybeMeta) -> check_stab(T, MaybeMeta).
 
@@ -1199,14 +1203,14 @@ return_error({Line, Column, _}, ErrorMessage, ErrorToken) ->
 return_error_with_meta(Meta, ErrorMessage, ErrorToken) ->
   return_error(Meta, [ErrorMessage, ErrorToken]).
 
+error_invalid_stab({ambiguous_at_stab, MetaStab}) ->
+  return_error_with_meta(MetaStab,
+    "ambiguous use of @ with ->. If you want a nullary signature, write @sig () -> bar or @sig (-> bar). "
+    "Syntax error before: ", "'->'");
+
 error_invalid_stab(MetaStab) ->
   return_error_with_meta(MetaStab,
     "unexpected operator ->. If you want to define multiple clauses, the first expression must use ->. "
-    "Syntax error before: ", "'->'").
-
-error_ambiguous_at_stab({Stab, _Right}) ->
-  return_error_with_meta(meta_from_token(Stab),
-    "ambiguous use of @ with ->. If you want a nullary signature, write @sig () -> bar or @sig (-> bar). "
     "Syntax error before: ", "'->'").
 
 error_bad_atom(Token) ->

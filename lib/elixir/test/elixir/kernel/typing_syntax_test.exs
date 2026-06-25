@@ -7,6 +7,33 @@ defmodule Kernel.TypingSyntaxTest do
   use ExUnit.Case, async: true
 
   describe "@ with -> in quote" do
+    test "wraps the arrow as the attribute call argument at the root" do
+      assert parse_quote("@sig foo -> bar") ==
+               {:@, [line: 1],
+                [
+                  {:sig, [line: 1],
+                   [{:->, [line: 1], [[{:foo, [line: 1], nil}], {:bar, [line: 1], nil}]}]}
+                ]}
+    end
+
+    test "wraps multi-argument arrows as the attribute call argument at the root" do
+      assert parse_quote("@sig foo, bar -> baz") ==
+               {:@, [line: 1],
+                [
+                  {:sig, [line: 1],
+                   [
+                     {:->, [line: 1],
+                      [[{:foo, [line: 1], nil}, {:bar, [line: 1], nil}], {:baz, [line: 1], nil}]}
+                   ]}
+                ]}
+    end
+
+    test "does not parse nullary arrows at the root" do
+      assert_raise SyntaxError, ~r/syntax error before: '->'/, fn ->
+        parse_quote("@sig -> bar")
+      end
+    end
+
     test "wraps the arrow as the attribute call argument" do
       assert parse_quote("""
              quote do
@@ -80,14 +107,21 @@ defmodule Kernel.TypingSyntaxTest do
       end
     end
 
-    test "raises on ambiguous nullary arrows without surrounding expressions" do
-      assert_raise SyntaxError, ~r/write @sig \(\) -> bar or @sig \(-> bar\)/, fn ->
-        parse_quote("""
-        quote do
-          @sig -> bar
-        end
-        """)
-      end
+    test "keeps nullary arrows as do-block stabs without surrounding expressions" do
+      assert parse_quote("""
+             quote do
+               @sig -> bar
+             end
+             """) ==
+               {:quote, [line: 1],
+                [
+                  [
+                    do: [
+                      {:->, [line: 2],
+                       [[{:@, [line: 2], [{:sig, [line: 2], nil}]}], {:bar, [line: 2], nil}]}
+                    ]
+                  ]
+                ]}
     end
 
     test "wraps explicit empty parentheses as the attribute call argument" do
@@ -130,6 +164,39 @@ defmodule Kernel.TypingSyntaxTest do
                        ]}
                   ]
                 ]}
+    end
+
+    test "allows explicit parenthesized arrows with arguments as attribute call arguments" do
+      assert parse_quote("""
+             quote do
+               @sig (foo -> bar)
+             end
+             """) ==
+               {:quote, [line: 1],
+                [
+                  [
+                    do:
+                      {:@, [line: 2],
+                       [
+                         {:sig, [line: 2],
+                          [
+                            [
+                              {:->, [line: 2], [[{:foo, [line: 2], nil}], {:bar, [line: 2], nil}]}
+                            ]
+                          ]}
+                       ]}
+                  ]
+                ]}
+    end
+
+    test "does not allow arrows inside parenthesized attribute calls" do
+      assert_raise SyntaxError, ~r/syntax error before: '->'/, fn ->
+        parse_quote("""
+        quote do
+          @sig(foo -> bar)
+        end
+        """)
+      end
     end
 
     test "applies to attributes other than sig" do
@@ -194,6 +261,101 @@ defmodule Kernel.TypingSyntaxTest do
                             ]}
                          ],
                          {:baz, [line: 2], nil}
+                       ]}
+                    ]
+                  ]
+                ]}
+    end
+
+    test "keeps ambiguous nullary arrows as separate do-block stabs inside stabs" do
+      assert parse_quote("""
+             quote do
+               subject ->
+                 setup
+                 @sig -> result
+             end
+             """) ==
+               {:quote, [line: 1],
+                [
+                  [
+                    do: [
+                      {:->, [line: 2], [[{:subject, [line: 2], nil}], {:setup, [line: 3], nil}]},
+                      {:->, [line: 4],
+                       [
+                         [{:@, [line: 4], [{:sig, [line: 4], nil}]}],
+                         {:result, [line: 4], nil}
+                       ]}
+                    ]
+                  ]
+                ]}
+    end
+
+    test "keeps explicit empty parentheses inside stab bodies" do
+      assert parse_quote(
+               """
+               quote do
+                 subject ->
+                   setup
+                   @sig () -> result
+               end
+               """,
+               emit_warnings: false
+             ) ==
+               {:quote, [line: 1],
+                [
+                  [
+                    do: [
+                      {:->, [line: 2],
+                       [
+                         [{:subject, [line: 2], nil}],
+                         {:__block__, [],
+                          [
+                            {:setup, [line: 3], nil},
+                            {:@, [line: 4],
+                             [
+                               {:sig, [line: 4],
+                                [
+                                  {:->, [line: 4],
+                                   [[{:__block__, [], []}], {:result, [line: 4], nil}]}
+                                ]}
+                             ]}
+                          ]}
+                       ]}
+                    ]
+                  ]
+                ]}
+    end
+
+    test "keeps typed arrows inside stab bodies" do
+      assert parse_quote("""
+             quote do
+               subject ->
+                 setup
+                 @sig input -> output
+             end
+             """) ==
+               {:quote, [line: 1],
+                [
+                  [
+                    do: [
+                      {:->, [line: 2],
+                       [
+                         [{:subject, [line: 2], nil}],
+                         {:__block__, [],
+                          [
+                            {:setup, [line: 3], nil},
+                            {:@, [line: 4],
+                             [
+                               {:sig, [line: 4],
+                                [
+                                  {:->, [line: 4],
+                                   [
+                                     [{:input, [line: 4], nil}],
+                                     {:output, [line: 4], nil}
+                                   ]}
+                                ]}
+                             ]}
+                          ]}
                        ]}
                     ]
                   ]
