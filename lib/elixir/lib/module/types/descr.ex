@@ -1413,10 +1413,10 @@ defmodule Module.Types.Descr do
       {:ok, atom()}
 
       iex> fun_apply(fun([integer()], atom()), [float()])
-      :badarg
+      {:badarg, [integer()], false}
 
-      iex> fun_apply(fun([dynamic()], atom()), [dynamic()])
-      {:ok, atom()}
+      iex> fun_apply(dynamic(fun([integer()], atom())), [integer()])
+      {:ok, dynamic(atom())}
   """
   def fun_apply(:term, _arguments), do: :badfun
 
@@ -5558,11 +5558,14 @@ defmodule Module.Types.Descr do
       iex> tuple_fetch(tuple([integer(), atom()]), 0)
       {false, integer()}
 
-      iex> tuple_fetch(union(tuple([integer()]), tuple([integer(), atom()])), 1)
-      {true, atom()}
+      iex> tuple_fetch(union(tuple([integer()]), tuple([atom()])), 0)
+      {false, union(integer(), atom())}
 
       iex> tuple_fetch(dynamic(), 0)
       {true, dynamic()}
+
+      iex> tuple_fetch(tuple([integer(), atom()]), 2)
+      :badindex
 
       iex> tuple_fetch(integer(), 0)
       :badtuple
