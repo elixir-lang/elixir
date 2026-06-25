@@ -7,8 +7,14 @@ defmodule Kernel.TypingSyntaxTest do
   use ExUnit.Case, async: true
 
   describe "@ with -> in quote" do
-    test "wraps the arrow as the attribute call argument at the root" do
-      assert parse_quote("@sig foo -> bar") ==
+    test "does not parse arrows at the root" do
+      assert_raise SyntaxError, ~r/syntax error before: '->'/, fn ->
+        parse_quote("@sig foo -> bar")
+      end
+    end
+
+    test "wraps parenthesized arrows as the attribute call argument at the root" do
+      assert parse_quote("(@sig foo -> bar)") ==
                {:@, [line: 1],
                 [
                   {:sig, [line: 1],
@@ -16,8 +22,14 @@ defmodule Kernel.TypingSyntaxTest do
                 ]}
     end
 
-    test "wraps multi-argument arrows as the attribute call argument at the root" do
-      assert parse_quote("@sig foo, bar -> baz") ==
+    test "does not parse multi-argument arrows at the root" do
+      assert_raise SyntaxError, ~r/syntax error before: '->'/, fn ->
+        parse_quote("@sig foo, bar -> baz")
+      end
+    end
+
+    test "wraps parenthesized multi-argument arrows as the attribute call argument at the root" do
+      assert parse_quote("(@sig foo, bar -> baz)") ==
                {:@, [line: 1],
                 [
                   {:sig, [line: 1],
@@ -159,14 +171,29 @@ defmodule Kernel.TypingSyntaxTest do
                   [
                     do:
                       {:@, [line: 2],
-                       [
-                         {:sig, [line: 2], [[{:->, [line: 2], [[], {:bar, [line: 2], nil}]}]]}
-                       ]}
+                       [{:sig, [line: 2], [{:->, [line: 2], [[], {:bar, [line: 2], nil}]}]}]}
                   ]
                 ]}
     end
 
-    test "allows explicit parenthesized arrows with arguments as attribute call arguments" do
+    test "normalizes parenthesized arrows to the same AST as arrow arguments" do
+      assert parse_quote("""
+             quote do
+               pre
+               @sig foo -> bar
+               post
+             end
+             """) ==
+               parse_quote("""
+               quote do
+                 pre
+                 @sig (foo -> bar)
+                 post
+               end
+               """)
+    end
+
+    test "normalizes explicit parenthesized arrows with arguments as attribute call arguments" do
       assert parse_quote("""
              quote do
                @sig (foo -> bar)
@@ -179,11 +206,7 @@ defmodule Kernel.TypingSyntaxTest do
                       {:@, [line: 2],
                        [
                          {:sig, [line: 2],
-                          [
-                            [
-                              {:->, [line: 2], [[{:foo, [line: 2], nil}], {:bar, [line: 2], nil}]}
-                            ]
-                          ]}
+                          [{:->, [line: 2], [[{:foo, [line: 2], nil}], {:bar, [line: 2], nil}]}]}
                        ]}
                   ]
                 ]}
