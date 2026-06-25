@@ -584,7 +584,8 @@ defmodule Module.Types.Expr do
             {union(body_type, acc), Of.reset_vars(context, original)}
           else
             error = {:badtimeout, timeout_type, timeout, context}
-            {union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
+            context = error(__MODULE__, error, meta, stack, context)
+            {union(body_type, acc), Of.reset_vars(context, original)}
           end
       end)
       |> dynamic_unless_static(stack)
