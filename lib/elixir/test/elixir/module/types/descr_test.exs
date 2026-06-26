@@ -302,6 +302,13 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "if_set" do
+    test "unfolds recursive nodes" do
+      %{X: node} = recursive(%{X: fn _recur -> integer() end})
+
+      assert if_set(node) == if_set(integer())
+      refute is_map_key(if_set(node), :dynamic)
+    end
+
     test "preserves static parts alongside dynamic term" do
       type = opt_union(atom([:value]), dynamic()) |> if_set()
 
