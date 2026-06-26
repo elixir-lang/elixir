@@ -109,19 +109,18 @@ iex> john.__struct__
 User
 ```
 
-However, structs do not inherit any of the protocols that maps do. For example, you can neither enumerate nor access a struct:
+However, structs do not inherit any of the built-in features that maps do. For example, you can neither enumerate nor access a struct:
 
 ```elixir
 iex> john = %User{}
 %User{age: 27, name: "John"}
 iex> john[:name]
 ** (UndefinedFunctionError) function User.fetch/2 is undefined (User does not implement the Access behaviour)
-             User.fetch(%User{age: 27, name: "John"}, :name)
 iex> Enum.each(john, fn {field, value} -> IO.puts(value) end)
 ** (Protocol.UndefinedError) protocol Enumerable not implemented for %User{age: 27, name: "John"} of type User (a struct)
 ```
 
-Structs alongside protocols provide one of the most important features for Elixir developers: data polymorphism. That's what we will explore in the next chapter.
+As we will learn in future chapters, Elixir does allow developers to attach custom behaviours to structs based on their names, enabling custom data enumeration, pretty printing, and more. This dispatch mechanism is called [protocols](protocols.md) and enables extensible data polymorphism in Elixir.
 
 ## Default values and required keys
 
