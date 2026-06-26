@@ -418,18 +418,12 @@ defmodule Mix.Dep.Converger do
     List.first(@managers -- to_exclude) || other_manager || manager
   end
 
-  defp req_mismatch(%Mix.Dep{status: status} = dep, %Mix.Dep{app: app, requirement: requirement}) do
+  defp req_mismatch(%Mix.Dep{status: status}, %Mix.Dep{app: app, requirement: requirement}) do
     with {:ok, vsn} when not is_nil(vsn) <- status,
-         true <- scm_manifest_exists?(dep),
          true <- Mix.Dep.Loader.vsn_match(requirement, vsn, app) != {:ok, true} do
       vsn
     else
       _ -> nil
     end
-  end
-
-  defp scm_manifest_exists?(%Mix.Dep{scm: scm, opts: opts}) do
-    not scm.fetchable?() or
-      File.exists?(Mix.Dep.ElixirSCM.manifest(Path.join(opts[:build], ".mix")))
   end
 end

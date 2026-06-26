@@ -408,6 +408,28 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "marks fetchable dep for compile when scm manifest is missing" do
+    deps = [{:git_repo, "~> 0.2.0", git: MixTest.Case.fixture_path("git_repo")}]
+
+    with_deps(deps, fn ->
+      in_fixture("no_mixfile", fn ->
+        File.mkdir_p!("deps")
+        File.cp_r!(fixture_path("git_repo"), "deps/git_repo")
+
+        File.mkdir_p!("_build/dev/lib/git_repo/ebin")
+
+        File.write!("_build/dev/lib/git_repo/ebin/git_repo.app", """
+        {application, git_repo, [
+          {vsn,"0.1.0"}
+        ]}.
+        """)
+
+        [git_repo] = Mix.Dep.Converger.converge([])
+        assert git_repo.status == :compile
+      end)
+    end)
+  end
+
   test "marks fetchable dep for compile when stored lock is stale" do
     deps = [{:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}]
 

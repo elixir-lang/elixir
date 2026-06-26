@@ -400,6 +400,9 @@ defmodule Mix.Dep.Loader do
       opts_app == false ->
         dep
 
+      missing_scm_manifest?(dep) ->
+        %{dep | status: :compile}
+
       true ->
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path = Path.expand(path, opts[:build])
@@ -409,6 +412,11 @@ defmodule Mix.Dep.Loader do
           status -> %{dep | status: status}
         end
     end
+  end
+
+  defp missing_scm_manifest?(%Mix.Dep{scm: scm, opts: opts}) do
+    scm.fetchable?() and
+      not File.exists?(Mix.Dep.ElixirSCM.manifest(Path.join(opts[:build], ".mix")))
   end
 
   @doc false
