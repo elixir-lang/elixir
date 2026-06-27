@@ -291,8 +291,11 @@ defmodule ExUnit.Callbacks do
 
     name =
       case Module.get_attribute(module, :ex_unit_describe) do
-        {_line, _message, counter} -> :"__ex_unit_setup_#{counter}_#{length(setup)}"
-        nil -> :"__ex_unit_setup_#{length(setup)}"
+        {_line, _message, counter} ->
+          String.to_unsafe_atom("__ex_unit_setup_#{counter}_#{length(setup)}")
+
+        nil ->
+          String.to_unsafe_atom("__ex_unit_setup_#{length(setup)}")
       end
 
     Module.put_attribute(module, :ex_unit_setup, [name | setup])
@@ -425,7 +428,7 @@ defmodule ExUnit.Callbacks do
   def __setup_all__(module) do
     no_describe!(module)
     setup_all = Module.get_attribute(module, :ex_unit_setup_all)
-    name = :"__ex_unit_setup_all_#{length(setup_all)}"
+    name = String.to_unsafe_atom("__ex_unit_setup_all_#{length(setup_all)}")
     Module.put_attribute(module, :ex_unit_setup_all, [name | setup_all])
     name
   end
@@ -828,7 +831,8 @@ defmodule ExUnit.Callbacks do
           {nil, nil}
 
         callbacks ->
-          {:"__ex_unit_describe_#{map_size(used_describes)}", compile_setup(callbacks, :setup)}
+          {String.to_unsafe_atom("__ex_unit_describe_#{map_size(used_describes)}"),
+           compile_setup(callbacks, :setup)}
       end
 
     used_describes = Map.put(used_describes, message, name)

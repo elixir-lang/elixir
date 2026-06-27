@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Deps.Clean do
     loaded_opts =
       for {switch, key} <- [only: :env, target: :target],
           value = opts[switch],
-          do: {key, :"#{value}"}
+          do: {key, String.to_unsafe_atom("#{value}")}
 
     loaded_deps = Mix.Dep.Converger.converge(loaded_opts)
 

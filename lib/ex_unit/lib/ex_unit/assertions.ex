@@ -361,7 +361,7 @@ defmodule ExUnit.Assertions do
 
     case Macro.expand_once(expr, env) do
       ^expr when not reserved? and not all_quoted_literals? ->
-        vars = for i <- 1..arity, do: Macro.var(:"arg#{i}", __MODULE__)
+        vars = for i <- 1..arity, do: Macro.var(String.to_unsafe_atom("arg#{i}"), __MODULE__)
 
         quoted =
           quote do

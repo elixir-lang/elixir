@@ -33,8 +33,8 @@ defmodule Module.Types.DescrTest do
       opt_difference(
         acc,
         open_map([
-          {:k, open_map([{:"value#{index}", integer()}])},
-          {:"field#{index}", integer()}
+          {:k, open_map([{String.to_unsafe_atom("value#{index}"), integer()}])},
+          {String.to_unsafe_atom("field#{index}"), integer()}
         ])
       )
     end)
@@ -45,7 +45,7 @@ defmodule Module.Types.DescrTest do
       opt_difference(
         acc,
         open_tuple([
-          open_tuple([atom([:"value#{index}"])]),
+          open_tuple([atom([String.to_unsafe_atom("value#{index}")])]),
           integer()
         ])
       )
@@ -3954,7 +3954,10 @@ defmodule Module.Types.DescrTest do
             tuple([atom([:font_style]), atom([:italic])]),
             Enum.reduce(
               for elem1 <- 1..5, elem2 <- 1..5 do
-                tuple([atom([:"f#{elem1}"]), atom([:"s#{elem2}"])])
+                tuple([
+                  atom([String.to_unsafe_atom("f#{elem1}")]),
+                  atom([String.to_unsafe_atom("s#{elem2}")])
+                ])
               end,
               &opt_union/2
             )
@@ -4008,7 +4011,7 @@ defmodule Module.Types.DescrTest do
             {:notifications, boolean()}
           ] ++
             Enum.map(1..50, fn i ->
-              {:"field_#{i}", atom([:"value_#{i}"])}
+              {String.to_unsafe_atom("field_#{i}"), atom([String.to_unsafe_atom("value_#{i}")])}
             end)
         )
 
@@ -4021,7 +4024,7 @@ defmodule Module.Types.DescrTest do
 
       expected =
         for i <- 1..50 do
-          name = :"name_#{i}"
+          name = String.to_unsafe_atom("name_#{i}")
           closed_map([__struct__: atom([name])] ++ [{name, binary()}])
         end
         |> Enum.reduce(&opt_union/2)

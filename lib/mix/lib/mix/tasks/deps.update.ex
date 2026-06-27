@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Deps.Update do
     fetch_opts =
       for {switch, key} <- [only: :env, target: :target],
           value = opts[switch],
-          do: {key, :"#{value}"}
+          do: {key, String.to_unsafe_atom("#{value}")}
 
     cond do
       opts[:all] ->

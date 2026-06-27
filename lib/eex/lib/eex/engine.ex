@@ -195,7 +195,7 @@ defmodule EEx.Engine do
   def handle_expr(state, "=", ast) do
     check_state!(state)
     %{binary: binary, dynamic: dynamic, vars_count: vars_count} = state
-    var = Macro.var(:"arg#{vars_count}", __MODULE__)
+    var = Macro.var(String.to_unsafe_atom("arg#{vars_count}"), __MODULE__)
 
     ast =
       quote do

@@ -304,14 +304,14 @@ defmodule Kernel.QuoteTest do
 
   test "pipe precedence" do
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-             quote(do: foo |> bar |> baz)
+             quote(do: foo |> bar() |> baz())
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
              (quote do
                 foo do
                 end
-                |> bar
-                |> baz
+                |> bar()
+                |> baz()
               end)
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
@@ -319,13 +319,13 @@ defmodule Kernel.QuoteTest do
                 foo
                 |> bar do
                 end
-                |> baz
+                |> baz()
               end)
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
              (quote do
                 foo
-                |> bar
+                |> bar()
                 |> baz do
                 end
               end)
@@ -334,7 +334,7 @@ defmodule Kernel.QuoteTest do
              (quote do
                 foo do
                 end
-                |> bar
+                |> bar()
                 |> baz do
                 end
               end)

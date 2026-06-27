@@ -19,9 +19,10 @@ defmodule Registry.DuplicateTest do
     partitions = config.partitions
 
     listeners =
-      List.wrap(config[:base_listener]) |> Enum.map(&:"#{&1}_#{partitions}_#{inspect(keys)}")
+      List.wrap(config[:base_listener])
+      |> Enum.map(&String.to_unsafe_atom("#{&1}_#{partitions}_#{inspect(keys)}"))
 
-    name = :"#{config.test}_#{partitions}_#{inspect(keys)}"
+    name = String.to_unsafe_atom("#{config.test}_#{partitions}_#{inspect(keys)}")
     opts = [keys: config.keys, name: name, partitions: partitions, listeners: listeners]
     {:ok, _} = start_supervised({Registry, opts})
     %{registry: name, listeners: listeners}
@@ -476,7 +477,7 @@ defmodule Registry.DuplicateTest do
   end
 
   test "rejects invalid tuple syntax", %{partitions: partitions} do
-    name = :"test_invalid_tuple_#{partitions}"
+    name = String.to_unsafe_atom("test_invalid_tuple_#{partitions}")
 
     assert_raise ArgumentError, ~r/expected :keys to be given and be one of/, fn ->
       Registry.start_link(keys: {:duplicate, :invalid}, name: name, partitions: partitions)

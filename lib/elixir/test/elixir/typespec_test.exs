@@ -532,7 +532,7 @@ defmodule TypespecTest do
       assert {:type, _, :map_field_exact, [{:atom, _, :message}, {:type, _, :term, []}]} = arg2
     end
 
-    @fields Enum.map(10..42, &{:"f#{&1}", :ok})
+    @fields Enum.map(10..42, &{String.to_unsafe_atom("f#{&1}"), :ok})
 
     test "@type with a large struct" do
       bytecode =

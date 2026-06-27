@@ -176,7 +176,7 @@ defmodule Mix.Tasks.Archive.Install do
     type = elem(file_info, 2)
     path = zip_path_to_string(path)
 
-    unless type in [:regular, :directory] do
+    if type not in [:regular, :directory] do
       Mix.raise(
         "Installation failed: invalid archive file, #{inspect(path)} is not a regular file or directory"
       )

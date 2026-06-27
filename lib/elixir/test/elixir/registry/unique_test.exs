@@ -16,8 +16,11 @@ defmodule Registry.UniqueTest do
 
   setup config do
     partitions = config.partitions
-    listeners = List.wrap(config[:base_listener]) |> Enum.map(&:"#{&1}_#{partitions}")
-    name = :"#{config.test}_#{partitions}"
+
+    listeners =
+      List.wrap(config[:base_listener]) |> Enum.map(&String.to_unsafe_atom("#{&1}_#{partitions}"))
+
+    name = String.to_unsafe_atom("#{config.test}_#{partitions}")
     opts = [keys: @keys, name: name, partitions: partitions, listeners: listeners]
     {:ok, _} = start_supervised({Registry, opts})
     %{registry: name, listeners: listeners}

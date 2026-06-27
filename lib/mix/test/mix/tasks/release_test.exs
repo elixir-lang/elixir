@@ -10,7 +10,7 @@ defmodule Mix.Tasks.ReleaseTest do
   @erts_version :erlang.system_info(:version)
   @hostname :inet_db.gethostname()
 
-  defmacrop release_node(name), do: :"#{name}@#{@hostname}"
+  defmacrop release_node(name), do: String.to_unsafe_atom("#{name}@#{@hostname}")
 
   describe "customize" do
     test "env, vm.args and overlays templates" do
