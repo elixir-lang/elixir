@@ -751,28 +751,23 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "atoms with interpolations" do
-      assert quoted_to_string(quote(do: String.to_unsafe_atom("foo\n#{bar}\tbaz")), escape: false) ==
+      assert quoted_to_string(quote(do: :"foo\n#{bar}\tbaz"), escape: false) ==
                ~s[:"foo\n\#{bar}\tbaz"]
 
-      assert quoted_to_string(quote(do: String.to_unsafe_atom("foo\n#{bar}\tbaz"))) ==
-               ~S[:"foo\n#{bar}\tbaz"]
+      assert quoted_to_string(quote(do: :"foo\n#{bar}\tbaz")) == ~S[:"foo\n#{bar}\tbaz"]
 
       assert quoted_to_string(quote(do: :"foo\"bar"), escape: false) == ~S[:"foo\"bar"]
       assert quoted_to_string(quote(do: :"foo\"bar")) == ~S[:"foo\"bar"]
 
-      assert quoted_to_string(quote(do: String.to_unsafe_atom("foo#{~s/\n/}bar")), escape: false) ==
+      assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar"), escape: false) ==
                ~S[:"foo#{~s/\n/}bar"]
 
-      assert quoted_to_string(quote(do: String.to_unsafe_atom("foo#{~s/\n/}bar"))) ==
-               ~S[:"foo#{~s/\n/}bar"]
+      assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar")) == ~S[:"foo#{~s/\n/}bar"]
 
-      assert quoted_to_string(quote(do: String.to_unsafe_atom("one\n\"#{2}\"\nthree")),
-               escape: false
-             ) ==
+      assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree"), escape: false) ==
                ~s[:"one\n\\"\#{2}\\"\nthree"]
 
-      assert quoted_to_string(quote(do: String.to_unsafe_atom("one\n\"#{2}\"\nthree"))) ==
-               ~S[:"one\n\"#{2}\"\nthree"]
+      assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree")) == ~S[:"one\n\"#{2}\"\nthree"]
     end
 
     test ":erlang.binary_to_atom/2 edge cases" do

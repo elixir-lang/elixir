@@ -519,7 +519,7 @@ defmodule MacroTest do
     defp abc, do: [:a, :b, :c]
 
     test "pipeline on a single line" do
-      {result, formatted} = dbg_format(abc() |> tl() |> tl() |> Kernel.hd())
+      {result, formatted} = dbg_format(abc() |> tl() |> tl |> Kernel.hd())
       assert result == :c
 
       assert formatted =~ "macro_test.exs"
@@ -541,7 +541,7 @@ defmodule MacroTest do
         dbg_format(
           abc()
           |> tl()
-          |> tl()
+          |> tl
           |> Kernel.hd()
         )
 
@@ -1672,10 +1672,8 @@ defmodule MacroTest do
 
   test "unpipe/1" do
     assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar())) == quote(do: [{foo, 0}, {bar, 0}])
-
-    assert Macro.unpipe(quote(do: foo |> bar() |> baz())) ==
-             quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
+    assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [{foo, 0}, {bar, 0}])
+    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
   end
 
   ## traverse/pre/postwalk
