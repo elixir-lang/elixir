@@ -143,6 +143,9 @@ defmodule Mix.Tasks.Format do
 
     * `:modifiers` (charlist) - list of sigil modifiers.
 
+    * `:opening_delimiter` (string) - the opening delimiter of the sigil being
+      formatted, e.g. `[`, `"`, or `"""` for a heredoc.
+
     * `:extension` (string) - the extension of the file being formatted, e.g. `".md"`.
 
   Now any application can use your formatter as follows:
