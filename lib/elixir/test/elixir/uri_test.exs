@@ -464,8 +464,8 @@ defmodule URITest do
     end
 
     test "base without host" do
-      assert URI.merge("tag:example", "foo") |> to_string == "tag:foo"
-      assert URI.merge("tag:example", "#fragment") |> to_string == "tag:example#fragment"
+      assert URI.merge("tag:example", "foo") |> to_string() == "tag:foo"
+      assert URI.merge("tag:example", "#fragment") |> to_string() == "tag:example#fragment"
     end
 
     test "base without host and path" do

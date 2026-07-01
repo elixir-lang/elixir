@@ -213,13 +213,13 @@ defmodule Macro.Env do
   @doc false
   @deprecated "Use Macro.Env.expand_alias/4 instead"
   def fetch_alias(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
-    do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+    do: Keyword.fetch(aliases, String.to_unsafe_atom("Elixir.#{atom}"))
 
   @doc false
   @deprecated "Use Macro.Env.expand_alias/4 instead"
   def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom)
       when is_atom(atom),
-      do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+      do: Keyword.fetch(aliases, String.to_unsafe_atom("Elixir.#{atom}"))
 
   @doc """
   Returns the modules from which the given `{name, arity}` was

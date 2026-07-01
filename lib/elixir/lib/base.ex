@@ -436,7 +436,7 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [upper: b16_alphabet, lower: to_lower_enc.(b16_alphabet)] do
-    name = :"encode16#{base}"
+    name = String.to_unsafe_atom("encode16#{base}")
     encoded = to_encode_list.(alphabet)
 
     @compile {:inline, [{name, 1}]}
@@ -617,10 +617,10 @@ defmodule Base do
   upper = Enum.with_index(b16_alphabet)
 
   for {base, alphabet} <- [upper: upper, lower: to_lower_dec.(upper), mixed: to_mixed_dec.(upper)] do
-    decode_name = :"decode16#{base}!"
-    validate_name = :"validate16#{base}?"
-    valid_char_name = :"valid_char16#{base}?"
-    valid_word_name = :"valid_word16#{base}?"
+    decode_name = String.to_unsafe_atom("decode16#{base}!")
+    validate_name = String.to_unsafe_atom("validate16#{base}?")
+    valid_char_name = String.to_unsafe_atom("valid_char16#{base}?")
+    valid_word_name = String.to_unsafe_atom("valid_word16#{base}?")
 
     {min, decoded} = to_decode_list.(alphabet)
 
@@ -735,7 +735,7 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [base: b64_alphabet, url: b64url_alphabet] do
-    name = :"encode64#{base}"
+    name = String.to_unsafe_atom("encode64#{base}")
     encoded = to_encode_list.(alphabet)
 
     @compile {:inline, [{name, 1}]}
@@ -1001,12 +1001,12 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [base: b64_alphabet, url: b64url_alphabet] do
-    decode_name = :"decode64#{base}!"
+    decode_name = String.to_unsafe_atom("decode64#{base}!")
 
-    validate_name = :"validate64#{base}?"
-    validate_main_name = :"validate_main64#{validate_name}?"
-    valid_char_name = :"valid_char64#{base}?"
-    valid_word_name = :"valid_word64#{base}?"
+    validate_name = String.to_unsafe_atom("validate64#{base}?")
+    validate_main_name = String.to_unsafe_atom("validate_main64#{validate_name}?")
+    valid_char_name = String.to_unsafe_atom("valid_char64#{base}?")
+    valid_word_name = String.to_unsafe_atom("valid_word64#{base}?")
     {min, decoded} = alphabet |> Enum.with_index() |> to_decode_list.()
 
     # SWAR fast path: 7 bytes per stride, validated via `valid_word64<base>?`
@@ -1314,7 +1314,7 @@ defmodule Base do
         hexupper: b32hex_alphabet,
         hexlower: to_lower_enc.(b32hex_alphabet)
       ] do
-    name = :"encode32#{base}"
+    name = String.to_unsafe_atom("encode32#{base}")
     encoded = to_encode_list.(alphabet)
 
     @compile {:inline, [{name, 1}]}
@@ -1653,16 +1653,16 @@ defmodule Base do
         hexlower: to_lower_dec.(hexupper),
         hexmixed: to_mixed_dec.(hexupper)
       ] do
-    decode_name = :"decode32#{base}!"
-    validate_name = :"validate32#{base}?"
-    validate_main_name = :"validate_main32#{validate_name}?"
-    valid_char_name = :"valid_char32#{base}?"
+    decode_name = String.to_unsafe_atom("decode32#{base}!")
+    validate_name = String.to_unsafe_atom("validate32#{base}?")
+    validate_main_name = String.to_unsafe_atom("validate_main32#{validate_name}?")
+    valid_char_name = String.to_unsafe_atom("valid_char32#{base}?")
     {min, decoded} = to_decode_list.(alphabet)
 
     # SWAR fast path: 7 bytes per stride, validated via `valid_word32<base>?`
     # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
     # 8-byte-multiple `main`) recurses through the single-byte clause.
-    valid_word_name = :"valid_word32#{base}?"
+    valid_word_name = String.to_unsafe_atom("valid_word32#{base}?")
 
     defp unquote(validate_main_name)(<<w::56, rest::binary>>),
       do: unquote(valid_word_name)(w) and unquote(validate_main_name)(rest)

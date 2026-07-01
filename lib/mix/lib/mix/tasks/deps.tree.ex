@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Deps.Tree do
     deps_opts =
       for {switch, key} <- [only: :env, target: :target],
           value = opts[switch],
-          do: {key, :"#{value}"}
+          do: {key, String.to_unsafe_atom("#{value}")}
 
     deps = Mix.Dep.Converger.converge(deps_opts)
 

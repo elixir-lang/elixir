@@ -1192,7 +1192,7 @@ defmodule Module do
   defp expand_key(key, counters) do
     case counters do
       %{^key => count} when is_integer(count) and count >= 1 ->
-        {{:"#{key}#{count}", [], Elixir}, Map.put(counters, key, count - 1)}
+        {{String.to_unsafe_atom("#{key}#{count}"), [], Elixir}, Map.put(counters, key, count - 1)}
 
       _ ->
         {{key, [], Elixir}, counters}
@@ -1225,7 +1225,8 @@ defmodule Module do
   defp merge_signature({var, _, _} = older, {var, _, _}, _), do: older
 
   # Otherwise, returns a generic guess
-  defp merge_signature({_, meta, _}, _newer, i), do: {:"arg#{i}", meta, Elixir}
+  defp merge_signature({_, meta, _}, _newer, i),
+    do: {String.to_unsafe_atom("arg#{i}"), meta, Elixir}
 
   @doc """
   Checks if the module defines the given function or macro.

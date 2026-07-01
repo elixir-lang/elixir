@@ -195,6 +195,7 @@ defmodule Code.Formatter do
     file = Keyword.get(opts, :file, nil)
     sigils = Keyword.get(opts, :sigils, [])
     migrate = Keyword.get(opts, :migrate, false)
+    migrate_atom_interpolations = Keyword.get(opts, :migrate_atom_interpolations, migrate)
     migrate_bitstring_modifiers = Keyword.get(opts, :migrate_bitstring_modifiers, migrate)
     migrate_call_parens_on_pipe = Keyword.get(opts, :migrate_call_parens_on_pipe, migrate)
     migrate_charlists_as_sigils = Keyword.get(opts, :migrate_charlists_as_sigils, migrate)
@@ -223,6 +224,7 @@ defmodule Code.Formatter do
       comments: comments,
       sigils: sigils,
       file: file,
+      migrate_atom_interpolations: migrate_atom_interpolations,
       migrate_bitstring_modifiers: migrate_bitstring_modifiers,
       migrate_call_parens_on_pipe: migrate_call_parens_on_pipe,
       migrate_charlists_as_sigils: migrate_charlists_as_sigils,
@@ -334,14 +336,20 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra(
-         {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} = quoted,
+         {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries} = bitstring, :utf8]} =
+           quoted,
          context,
          state
        ) do
-    if interpolated?(entries) do
-      interpolation_to_algebra(entries, @double_quote, state, ":\"", @double_quote)
-    else
-      remote_to_algebra(quoted, context, state)
+    cond do
+      not interpolated?(entries) ->
+        remote_to_algebra(quoted, context, state)
+
+      state.migrate_atom_interpolations ->
+        quoted_to_algebra(quote(do: String.to_unsafe_atom(unquote(bitstring))), context, state)
+
+      true ->
+        interpolation_to_algebra(entries, @double_quote, state, ":\"", @double_quote)
     end
   end
 

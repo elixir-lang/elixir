@@ -188,7 +188,7 @@ defmodule Mix.Task do
 
     case base do
       <<"Elixir.Mix.Tasks.", rest::binary-size(^part), ".beam">> ->
-        mod = :"Elixir.Mix.Tasks.#{rest}"
+        mod = String.to_unsafe_atom("Elixir.Mix.Tasks.#{rest}")
         ensure_task?(mod) && mod
 
       _ ->

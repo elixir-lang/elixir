@@ -216,7 +216,10 @@ defmodule Mix.Generator do
       require EEx
 
       source = "<% _ = assigns %>" <> contents
-      EEx.function_from_string(:defp, :"#{name}_template", source, [:assigns])
+
+      EEx.function_from_string(:defp, String.to_unsafe_atom("#{name}_template"), source, [
+        :assigns
+      ])
     end
   end
 
@@ -243,7 +246,7 @@ defmodule Mix.Generator do
           _ -> raise ArgumentError, "expected string or from_file: file"
         end
 
-      defp unquote(:"#{name}_text")(), do: unquote(contents)
+      defp unquote(String.to_unsafe_atom("#{name}_text"))(), do: unquote(contents)
     end
   end
 end

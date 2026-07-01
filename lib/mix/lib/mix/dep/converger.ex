@@ -346,11 +346,11 @@ defmodule Mix.Dep.Converger do
           {:ok, value} ->
             case List.wrap(value) -- List.wrap(other_value) do
               [] -> other
-              _ -> %{other | status: {:"diverged#{key}", dep}}
+              _ -> %{other | status: {String.to_unsafe_atom("diverged#{key}"), dep}}
             end
 
           :error ->
-            %{other | status: {:"diverged#{key}", dep}}
+            %{other | status: {String.to_unsafe_atom("diverged#{key}"), dep}}
         end
 
       :error ->
