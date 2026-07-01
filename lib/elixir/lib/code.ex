@@ -769,8 +769,8 @@ defmodule Code do
 
     * `:migrate_atom_interpolations` (since v1.21.0) - when `true`, rewrites
       deprecated atom interpolations to explicit calls to `String.to_unsafe_atom/1`.
-      For example, `:"foo_#{bar}"` becomes `String.to_unsafe_atom("foo_#{bar}")`
-      and `["foo_#{bar}": 1]` becomes `[{String.to_unsafe_atom("foo_#{bar}"), 1}]`.
+      For example, `:"foo_#{bar}"` becomes `String.to_unsafe_atom("foo_#{bar}")`.
+      Interpolated keywords like `["foo_#{bar}": 1]` are **not** migrated.
       Defaults to the value of the `:migrate` option. This option changes the AST.
 
     * `:migrate_bitstring_modifiers` (since v1.18.0) - when `true`,
