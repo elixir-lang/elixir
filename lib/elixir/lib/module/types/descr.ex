@@ -5370,22 +5370,50 @@ defmodule Module.Types.Descr do
 
   defp tuple_insert_static(descr, index, type) do
     Map.update!(descr, :tuple, fn bdd ->
-      bdd_map(bdd, fn bdd_leaf(tag, elements) ->
-        # If the tuple is open, then we want List.insert_at to put the new element at the correct
-        # index, which requires filling the tuple with `term()` values first.
-        # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
-        # intersection with `tuple_of_size_at_least`).
-        elements =
-          if tag == :open and length(elements) < index do
-            tuple_fill(elements, index)
-          else
-            elements
-          end
-
-        bdd_leaf_new(tag, List.insert_at(elements, index, type))
-      end)
+      if tuple_bdd_positive?(bdd) do
+        # A pure disjunction of leaves: the insert distributes over the union, so
+        # we rewrite each leaf in place (preserving the structure callers assert on).
+        bdd_map(bdd, fn bdd_leaf(tag, elements) ->
+          tuple_insert_leaf(tag, elements, index, type)
+        end)
+      else
+        # The bdd carries negations and/or implicit `:bdd_top` positive paths
+        # (e.g. from `tuple_difference(open_tuple([]), _) -> bdd_negation`).
+        # `bdd_map` rewrites only explicit leaves, so it would skip the implicit
+        # top (losing the insert) and wrongly transform negated leaves. Expand to
+        # the exact negation-free positive DNF first, then insert into each leaf.
+        bdd
+        |> tuple_bdd_to_dnf_no_negations()
+        |> Enum.reduce(:bdd_bot, fn {tag, elements}, acc ->
+          tuple_union(tuple_insert_leaf(tag, elements, index, type), acc)
+        end)
+      end
     end)
   end
+
+  # Inserts `type` at `index` into a single tuple literal. If the tuple is open,
+  # `List.insert_at` needs the tuple filled with `term()` up to `index` first.
+  # Closed tuples of an incorrect size are cancelled before reaching here (the
+  # input is intersected/guarded with `tuple_of_size_at_least`).
+  defp tuple_insert_leaf(tag, elements, index, type) do
+    elements =
+      if tag == :open and length(elements) < index do
+        tuple_fill(elements, index)
+      else
+        elements
+      end
+
+    bdd_leaf_new(tag, List.insert_at(elements, index, type))
+  end
+
+  # `bdd_map` rewrites a tuple insert exactly only on a pure positive disjunction
+  # of leaves (every node keeps its literal on the constrained-top branch with no
+  # dual branch). Any dual branch (or implicit `:bdd_top` in negated position)
+  # would be transformed incorrectly or skipped.
+  defp tuple_bdd_positive?(:bdd_bot), do: true
+  defp tuple_bdd_positive?(bdd_leaf(_, _)), do: true
+  defp tuple_bdd_positive?({_, _lit, :bdd_top, u, :bdd_bot}), do: tuple_bdd_positive?(u)
+  defp tuple_bdd_positive?(_), do: false
 
   @doc """
   Replace an element in the tuple at the given (0-based) index.
