@@ -2789,6 +2789,40 @@ defmodule Module.Types.DescrTest do
                {open_map(), open_map(k: binary(), x: term()), []}
     end
 
+    test "domain put on a negated map does not exclude achievable values" do
+      # Putting a domain key must not rewrite negated leaves: `not N` -> `not put(N)`
+      # would enlarge the negation and drop maps the put can produce. The result
+      # must stay disjoint from nothing it can reach, i.e. (X \ Y) and Y disjoint,
+      # and a <= c => (a \ b) \ c is empty.
+
+      # (a) negated closed leaf: %{a: :x} is Map.put(%{a: term()}, :a, :x), in `d`.
+      d = opt_difference(open_map(), empty_map())
+      {:ok, res} = map_put(d, atom(), atom([:x]))
+      assert subtype?(closed_map(a: atom([:x])), res)
+
+      # (b) negated domains-list leaf: %{1 => :y} is Map.put(%{1 => :z}, 1, :y).
+      d2 =
+        opt_difference(
+          open_map([{domain_key(:integer), atom()}]),
+          closed_map([{domain_key(:integer), atom([:y])}])
+        )
+
+      {:ok, res2} = map_put(d2, integer(), atom([:y]))
+      x = opt_difference(closed_map([{domain_key(:integer), atom([:y])}]), empty_map())
+      refute empty?(opt_intersection(x, res2))
+
+      # via map_update/5 (the call Map.put uses) and the dynamic paths
+      {_, resu, _} = map_update(d, atom(), atom([:x]), false, true)
+      assert subtype?(closed_map(a: atom([:x])), resu)
+      {:ok, resd} = map_put(dynamic(d), atom(), atom([:x]))
+      assert subtype?(dynamic(closed_map(a: atom([:x]))), resd)
+      {_, resud, _} = map_update(dynamic(d), atom(), atom([:x]), false, true)
+      assert subtype?(dynamic(closed_map(a: atom([:x]))), resud)
+
+      # A non-forced put whose domain is absent stays an exact no-op.
+      assert map_update(d, binary(), integer(), false, false) == {none(), d, []}
+    end
+
     test "with non-empty open maps does not call the callback with none from absent branches" do
       # This is a test of the map_update_fun/5 with forced?: false parameter.
       # We check that it does not call its typed_fun argument with `none()`
