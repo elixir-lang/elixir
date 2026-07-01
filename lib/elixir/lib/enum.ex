@@ -2671,7 +2671,7 @@ defmodule Enum do
       5050
 
   """
-  @spec reduce_while(t, any, (element, any -> {:cont, any} | {:halt, any})) :: any
+  @spec reduce_while(t, acc, (element, acc -> {:cont, acc} | {:halt, acc})) :: acc
   def reduce_while(enumerable, acc, fun) do
     Enumerable.reduce(enumerable, {:cont, acc}, fun) |> elem(1)
   end
