@@ -897,7 +897,7 @@ defmodule File do
       File.copy("non_existing.txt", "copy.txt")
       #=> {:error, :enoent}
   """
-  @spec copy(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
+  @spec copy(Path.t() | io_device, Path.t() | io_device, non_neg_integer | :infinity) ::
           {:ok, non_neg_integer} | {:error, posix | :badarg | :terminated}
   def copy(source, destination, bytes_count \\ :infinity) do
     source = normalize_path_or_io_device(source)
@@ -918,7 +918,7 @@ defmodule File do
       File.copy!("non_existing.txt", "copy.txt")
       ** (File.CopyError) could not copy from "non_existing.txt" to "copy.txt": no such file or directory
   """
-  @spec copy!(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
+  @spec copy!(Path.t() | io_device, Path.t() | io_device, non_neg_integer | :infinity) ::
           non_neg_integer
   def copy!(source, destination, bytes_count \\ :infinity) do
     case copy(source, destination, bytes_count) do
