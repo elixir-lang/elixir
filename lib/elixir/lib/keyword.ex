@@ -705,13 +705,26 @@ defmodule Keyword do
 
       iex> Keyword.values(a: 1, b: 2)
       [1, 2]
+
       iex> Keyword.values(a: 1, b: 2, a: 3)
       [1, 2, 3]
 
+      iex> Keyword.values([{:a, 1}, {"b", 2}])
+      ** (ArgumentError) expected a keyword list as the first argument, got: [{:a, 1}, {"b", 2}]
   """
   @spec values(t) :: [value]
   def values(keywords) when is_list(keywords) do
-    :lists.map(fn {_, v} -> v end, keywords)
+    :lists.map(
+      fn
+        {key, v} when is_atom(key) ->
+          v
+
+        _ ->
+          raise ArgumentError,
+                "expected a keyword list as the first argument, got: #{inspect(keywords)}"
+      end,
+      keywords
+    )
   end
 
   @doc false
