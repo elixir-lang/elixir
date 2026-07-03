@@ -338,7 +338,7 @@ The last step is to implement `KV.Command.run/1` to run the parsed commands on t
 
 Each function clause dispatches the appropriate command to the appropriate bucket.
 
-You might have noticed we have a function head, `def run(command, socket)`, without a body. In the [Modules and Functions](../getting-started/modules-and-functions.md#default-arguments) chapter, we learned that a bodiless function can be used to declare default arguments for a multi-clause function. Here is another use case where we use a function without a body to document what the arguments are.
+You might have noticed we have a function head, `def run(command, socket)`, without a body. In the [Modules and Functions](../getting-started/modules-and-functions.md#default-arguments) chapter, we learned that function heads can be used to declare default arguments for a multi-clause function. Here is another use case where we use a function head to document what the arguments are.
 
 We have also defined a private function named `lookup/2` to help with the common functionality of looking up a bucket and returning its `pid` if it exists, `{:error, :not_found}` otherwise.
 
