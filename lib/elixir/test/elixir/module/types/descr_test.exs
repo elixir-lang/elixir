@@ -2087,6 +2087,20 @@ defmodule Module.Types.DescrTest do
       # Errors must propagate even when the inserted value is dynamic
       assert tuple_insert_at(integer(), 0, dynamic()) == :badtuple
       assert tuple_insert_at(tuple([atom([:ok])]), 2, dynamic()) == :badindex
+
+      # Must not crash when a gradual descr's static part is a non-normalized
+      # empty (semantically empty but syntactically present) non-tuple component.
+      a1 = opt_union(dynamic(), non_empty_list(integer(), none()))
+      assert equal?(a1, dynamic())
+
+      assert tuple_insert_at(a1, 1, atom([:x]))
+             |> equal?(tuple_insert_at(dynamic(), 1, atom([:x])))
+
+      a2 = opt_union(tuple([dynamic()]), non_empty_list(none()))
+      assert equal?(a2, tuple([dynamic()]))
+
+      assert tuple_insert_at(a2, 1, atom([:x]))
+             |> equal?(tuple_insert_at(tuple([dynamic()]), 1, atom([:x])))
     end
 
     test "tuple_replace_at" do
