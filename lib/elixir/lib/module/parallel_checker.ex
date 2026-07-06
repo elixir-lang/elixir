@@ -71,36 +71,31 @@ defmodule Module.ParallelChecker do
     if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
       spawn_and_register_cache(pid, checker, table, module, List.to_string(beam_location), log?)
     else
-      spawn_and_register_checker(pid, checker, table, module, module_map, signatures, log?)
+      {mode, module_tuple} = cache_from_module_map(table, module_map, signatures)
+      ref = make_ref()
+      spawned = spawn_checker(ref, pid, checker, table, module, module_tuple, log?)
+      register_cache_and_checker(checker, mode, module, spawned, ref)
+      :ok
     end
   end
 
-  defp spawn_and_register_checker(pid, checker, table, module, module_map, signatures, log?) do
-    {mode, module_tuple} = cache_from_module_map(table, module_map, signatures)
-    ref = make_ref()
+  defp spawn_checker(ref, pid, checker, table, module, module_tuple, log?) do
+    spawn(fn ->
+      mon_ref = Process.monitor(pid)
 
-    spawned =
-      spawn(fn ->
-        mon_ref = Process.monitor(pid)
-        checker_receive(mon_ref, ref, pid, checker, table, module, module_tuple, log?)
-      end)
+      receive do
+        {^ref, :check, profile} ->
+          # Set the compiler info so we can collect warnings
+          Process.link(pid)
+          :erlang.put(:elixir_compiler_info, {pid, self()})
+          {warnings, errors} = check_module(module_tuple, {checker, table}, log?, profile)
+          send(pid, {__MODULE__, module, warnings, errors})
+          send(checker, {__MODULE__, :checked, ref})
 
-    register_cache_and_checker(checker, mode, module, spawned, ref)
-  end
-
-  defp checker_receive(mon_ref, ref, pid, checker, table, module, module_tuple, log?) do
-    receive do
-      {^ref, :check, profile} ->
-        # Set the compiler info so we can collect warnings
-        Process.link(pid)
-        :erlang.put(:elixir_compiler_info, {pid, self()})
-        {warnings, errors} = check_module(module_tuple, {checker, table}, log?, profile)
-        send(pid, {__MODULE__, module, warnings, errors})
-        send(checker, {__MODULE__, :checked, ref})
-
-      {:DOWN, ^mon_ref, _, _, _} ->
-        :ok
-    end
+        {:DOWN, ^mon_ref, _, _, _} ->
+          :ok
+      end
+    end)
   end
 
   defp spawn_and_register_cache(pid, checker, table, module, info, log?) do
@@ -127,9 +122,9 @@ defmodule Module.ParallelChecker do
                  {@elixir_checker_version, contents} <- :erlang.binary_to_term(exck) do
               mode = cache_chunk(table, module, contents)
               module_tuple = module_map_to_module_tuple(module_map)
+              spawned = spawn_checker(ref, pid, checker, table, module, module_tuple, log?)
               :ets.insert(table, {module, mode})
-              send(checker, {__MODULE__, :cached, module, self(), ref})
-              checker_receive(mon_ref, ref, pid, checker, table, module, module_tuple, log?)
+              send(checker, {__MODULE__, :cached, module, spawned, ref})
             else
               _ ->
                 # Nothing to check, so we notify everyone we are done
