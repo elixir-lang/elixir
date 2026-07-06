@@ -69,10 +69,25 @@ defmodule Module.ParallelChecker do
     # Protocols may have been consolidated. So if we know their beam location,
     # we discard their module map on purpose and start from file.
     info =
-      if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
-        List.to_string(beam_location)
-      else
-        cache_from_module_map(table, module_map, signatures)
+      cond do
+        beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) ->
+          # Protocols may have been consolidated. So if we know their beam location,
+          # we discard their module map on purpose and start from file.
+          List.to_string(beam_location)
+
+        beam_location != [] and Code.get_compiler_option(:debug_info) != false ->
+          # Non-protocol module with a written beam AND debug_info kept: cache its
+          # signatures now (so cross-module inference sees it), but discard the expanded
+          # module map and re-read the definitions lazily from the beam at check time.
+          # This avoids holding every module's definitions AST simultaneously for the
+          # whole batch. Guarded on debug_info: without it the beam has no debug_info to
+          # re-read at check time, and we must keep the in-memory tuple to check at all.
+          mode = cache_signatures_from_module_map(table, module_map, signatures)
+          {:defer, mode, List.to_string(beam_location)}
+
+        true ->
+          # No beam location (e.g. in-memory compilation): keep the module tuple.
+          cache_from_module_map(table, module_map, signatures)
       end
 
     inner_spawn(pid, checker, table, module, info, log?)
@@ -89,7 +104,7 @@ defmodule Module.ParallelChecker do
           {^ref, :cache} ->
             Process.link(pid)
 
-            {mode, module_tuple} =
+            {mode, deferred} =
               cond do
                 is_binary(info) ->
                   location =
@@ -99,28 +114,53 @@ defmodule Module.ParallelChecker do
                     end
 
                   with {:ok, binary} <- File.read(location),
-                       {:ok,
-                        {_, [{:debug_info, {:debug_info_v1, backend, data}}, {~c"ExCk", checker}]}} <-
-                         :beam_lib.chunks(binary, [:debug_info, ~c"ExCk"]),
-                       {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []),
+                       {:ok, {_, [{~c"ExCk", checker}]}} <-
+                         :beam_lib.chunks(binary, [~c"ExCk"]),
                        {@elixir_checker_version, contents} <- :erlang.binary_to_term(checker) do
-                    {cache_chunk(table, module, contents), module_map_to_module_tuple(module_map)}
+                    # Defer reading+expanding the debug_info (the full definitions AST) from
+                    # :cache to :check. We hold only the beam `location` here, so we do NOT
+                    # retain every module's definitions simultaneously across the whole batch;
+                    # only the `schedulers`-many modules actively being checked materialize
+                    # their tuple. The ExCk signatures are still cached now, so cross-module
+                    # inference sees every module.
+                    {cache_chunk(table, module, contents), {:deferred_beam, location}}
                   else
                     _ -> {:uncached, nil}
                   end
 
+                match?({:defer, _, _}, info) ->
+                  # Freshly-compiled module whose beam is already written: signatures were
+                  # cached at spawn time; defer reconstructing the definitions AST to :check
+                  # (re-read from beam) so we don't retain it for the whole batch.
+                  {:defer, mode, location} = info
+                  {mode, {:deferred_beam, location}}
+
                 is_tuple(info) ->
-                  info
+                  {mode, module_tuple} = info
+                  {mode, {:eager, module_tuple}}
               end
 
             # We only make the module available now, so they are not visible during inference
             :ets.insert(table, {module, mode})
             send(checker, {ref, :cached})
 
+            # Reclaim the transient heap grown while reading/parsing the beam during caching.
+            # Every module's checker process sits blocked here until its turn to be checked;
+            # without this, each retains a multi-hundred-KB heap for the whole batch, which is
+            # the dominant memory term when many modules are verified together.
+            :erlang.garbage_collect()
+
             receive do
               {^ref, :check, profile} ->
                 # Set the compiler info so we can collect warnings
                 :erlang.put(:elixir_compiler_info, {pid, self()})
+
+                module_tuple =
+                  case deferred do
+                    {:deferred_beam, location} -> read_debug_info(module, location)
+                    {:eager, module_tuple} -> module_tuple
+                    nil -> nil
+                  end
 
                 {warnings, errors} =
                   if module_tuple do
@@ -140,6 +180,17 @@ defmodule Module.ParallelChecker do
 
     register(checker, module, spawned, ref)
     :ok
+  end
+
+  defp read_debug_info(module, location) do
+    with {:ok, binary} <- File.read(location),
+         {:ok, {_, [{:debug_info, {:debug_info_v1, backend, data}}]}} <-
+           :beam_lib.chunks(binary, [:debug_info]),
+         {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
+      module_map_to_module_tuple(module_map)
+    else
+      _ -> nil
+    end
   end
 
   @doc """
@@ -482,12 +533,20 @@ defmodule Module.ParallelChecker do
   end
 
   defp cache_from_module_map(table, map, signatures) do
+    cache_signatures_from_module_map(table, map, signatures)
+    {elixir_mode(map.attributes), module_map_to_module_tuple(map)}
+  end
+
+  # Caches a module's exports/signatures into the shared table and returns its mode,
+  # WITHOUT building the (large) module tuple. Used when the definitions will be
+  # re-read from the beam lazily at check time.
+  defp cache_signatures_from_module_map(table, map, signatures) do
     exports =
       behaviour_exports(map) ++
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
     cache_info(table, map.module, exports, Map.new(map.deprecated), signatures)
-    {elixir_mode(map.attributes), module_map_to_module_tuple(map)}
+    elixir_mode(map.attributes)
   end
 
   defp cache_info(table, module, exports, deprecated, sigs) do
@@ -593,17 +652,39 @@ defmodule Module.ParallelChecker do
   def handle_call(:start, _from, %{modules: modules, protocols: protocols, table: table} = state) do
     :ets.insert(table, Enum.map(protocols, &{&1, :uncached}))
 
-    for {_module, pid, ref} <- modules do
+    # Cache modules in bounded waves rather than all at once. Each module's checker
+    # process transiently grows its heap while reading+parsing its beam during caching;
+    # kicking off the whole batch concurrently spikes memory to O(batch) instead of
+    # O(schedulers). We still cache every module before any checking begins (all
+    # `:cached` are drained below), so cross-module inference sees the full set.
+    {initial, rest} = Enum.split(modules, state.schedulers)
+
+    for {_module, pid, ref} <- initial do
       send(pid, {ref, :cache})
     end
 
-    for {_module, _pid, ref} <- modules do
-      receive do
-        {^ref, :cached} -> :ok
-      end
-    end
+    cache_wave(rest, length(initial))
 
     {:reply, length(modules), run_checkers(%{state | protocols: []})}
+  end
+
+  defp cache_wave([], 0), do: :ok
+
+  defp cache_wave([], in_flight) do
+    receive do
+      {_ref, :cached} -> :ok
+    end
+
+    cache_wave([], in_flight - 1)
+  end
+
+  defp cache_wave([{_module, pid, ref} | rest], in_flight) do
+    receive do
+      {_ref, :cached} -> :ok
+    end
+
+    send(pid, {ref, :cache})
+    cache_wave(rest, in_flight)
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
