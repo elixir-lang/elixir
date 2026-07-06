@@ -68,17 +68,42 @@ defmodule Module.ParallelChecker do
   def spawn({pid, {checker, table}}, module, module_map, signatures, beam_location, log?) do
     # Protocols may have been consolidated. So if we know their beam location,
     # we discard their module map on purpose and start from file.
-    info =
-      if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
-        List.to_string(beam_location)
-      else
-        cache_from_module_map(table, module_map, signatures)
-      end
-
-    inner_spawn(pid, checker, table, module, info, log?)
+    if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
+      spawn_and_register_cache(pid, checker, table, module, List.to_string(beam_location), log?)
+    else
+      spawn_and_register_checker(pid, checker, table, module, module_map, signatures, log?)
+    end
   end
 
-  defp inner_spawn(pid, checker, table, module, info, log?) do
+  defp spawn_and_register_checker(pid, checker, table, module, module_map, signatures, log?) do
+    {mode, module_tuple} = cache_from_module_map(table, module_map, signatures)
+    ref = make_ref()
+
+    spawned =
+      spawn(fn ->
+        mon_ref = Process.monitor(pid)
+        checker_receive(mon_ref, ref, pid, checker, table, module, module_tuple, log?)
+      end)
+
+    register_cache_and_checker(checker, mode, module, spawned, ref)
+  end
+
+  defp checker_receive(mon_ref, ref, pid, checker, table, module, module_tuple, log?) do
+    receive do
+      {^ref, :check, profile} ->
+        # Set the compiler info so we can collect warnings
+        Process.link(pid)
+        :erlang.put(:elixir_compiler_info, {pid, self()})
+        {warnings, errors} = check_module(module_tuple, {checker, table}, log?, profile)
+        send(pid, {__MODULE__, module, warnings, errors})
+        send(checker, {__MODULE__, :checked, ref})
+
+      {:DOWN, ^mon_ref, _, _, _} ->
+        :ok
+    end
+  end
+
+  defp spawn_and_register_cache(pid, checker, table, module, info, log?) do
     ref = make_ref()
 
     spawned =
@@ -89,48 +114,28 @@ defmodule Module.ParallelChecker do
           {^ref, :cache} ->
             Process.link(pid)
 
-            {mode, module_tuple} =
-              cond do
-                is_binary(info) ->
-                  location =
-                    case :code.which(module) do
-                      [_ | _] = path -> path
-                      _ -> info
-                    end
-
-                  with {:ok, binary} <- File.read(location),
-                       {:ok,
-                        {_, [{:debug_info, {:debug_info_v1, backend, data}}, {~c"ExCk", checker}]}} <-
-                         :beam_lib.chunks(binary, [:debug_info, ~c"ExCk"]),
-                       {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []),
-                       {@elixir_checker_version, contents} <- :erlang.binary_to_term(checker) do
-                    {cache_chunk(table, module, contents), module_map_to_module_tuple(module_map)}
-                  else
-                    _ -> {:uncached, nil}
-                  end
-
-                is_tuple(info) ->
-                  info
+            location =
+              case :code.which(module) do
+                [_ | _] = path -> path
+                _ -> info
               end
 
-            # We only make the module available now, so they are not visible during inference
-            :ets.insert(table, {module, mode})
-            send(checker, {ref, :cached})
-
-            receive do
-              {^ref, :check, profile} ->
-                # Set the compiler info so we can collect warnings
-                :erlang.put(:elixir_compiler_info, {pid, self()})
-
-                {warnings, errors} =
-                  if module_tuple do
-                    check_module(module_tuple, {checker, table}, log?, profile)
-                  else
-                    {[], []}
-                  end
-
-                send(pid, {__MODULE__, module, warnings, errors})
-                send(checker, {__MODULE__, :done, module})
+            with {:ok, binary} <- File.read(location),
+                 {:ok, {_, [{:debug_info, {:debug_info_v1, backend, data}}, {~c"ExCk", exck}]}} <-
+                   :beam_lib.chunks(binary, [:debug_info, ~c"ExCk"]),
+                 {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []),
+                 {@elixir_checker_version, contents} <- :erlang.binary_to_term(exck) do
+              mode = cache_chunk(table, module, contents)
+              module_tuple = module_map_to_module_tuple(module_map)
+              :ets.insert(table, {module, mode})
+              send(checker, {__MODULE__, :cached, module, self(), ref})
+              checker_receive(mon_ref, ref, pid, checker, table, module, module_tuple, log?)
+            else
+              _ ->
+                # Nothing to check, so we notify everyone we are done
+                :ets.insert(table, {module, :uncached})
+                send(checker, {__MODULE__, :cached, module, nil, ref})
+                send(pid, {__MODULE__, module, [], []})
             end
 
           {:DOWN, ^mon_ref, _, _, _} ->
@@ -138,7 +143,7 @@ defmodule Module.ParallelChecker do
         end
       end)
 
-    register(checker, module, spawned, ref)
+    register_cache(checker, module, spawned, ref)
     :ok
   end
 
@@ -192,7 +197,7 @@ defmodule Module.ParallelChecker do
     log? = not match?({_, false}, value)
 
     for {module, file} <- runtime_files do
-      inner_spawn(self(), checker, table, module, file, log?)
+      spawn_and_register_cache(self(), checker, table, module, file, log?)
     end
 
     count = :gen_server.call(checker, :start, :infinity)
@@ -533,8 +538,12 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:unlock, module, mode}, :infinity)
   end
 
-  defp register(server, module, pid, ref) do
-    :gen_server.cast(server, {:register, module, pid, ref})
+  defp register_cache_and_checker(server, mode, module, pid, ref) do
+    :gen_server.cast(server, {:register_cache_and_checker, mode, module, pid, ref})
+  end
+
+  defp register_cache(server, module, pid, ref) do
+    :gen_server.cast(server, {:register_cache, module, pid, ref})
   end
 
   ## Server callbacks
@@ -577,7 +586,8 @@ defmodule Module.ParallelChecker do
 
     state = %{
       waiting: %{},
-      modules: [],
+      caches: [],
+      checkers: [],
       spawned: %{},
       schedulers: schedulers,
       threshold: threshold,
@@ -590,20 +600,9 @@ defmodule Module.ParallelChecker do
     :gen_server.enter_loop(__MODULE__, [], state)
   end
 
-  def handle_call(:start, _from, %{modules: modules, protocols: protocols, table: table} = state) do
+  def handle_call(:start, _from, %{caches: caches, protocols: protocols, table: table} = state) do
     :ets.insert(table, Enum.map(protocols, &{&1, :uncached}))
-
-    for {_module, pid, ref} <- modules do
-      send(pid, {ref, :cache})
-    end
-
-    for {_module, _pid, ref} <- modules do
-      receive do
-        {^ref, :cached} -> :ok
-      end
-    end
-
-    {:reply, length(modules), run_checkers(%{state | protocols: []})}
+    {:reply, length(caches), run_caches(%{state | protocols: []})}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
@@ -633,10 +632,21 @@ defmodule Module.ParallelChecker do
     {:noreply, state}
   end
 
-  def handle_info({__MODULE__, :done, module}, state) do
-    # Unfortunately we cannot assume uniqueness because the same module
-    # may be defined by mistake several times
-    {timer, spawned} = Map.pop(state.spawned, module)
+  def handle_info({__MODULE__, :cached, module, pid, ref}, state) do
+    {_nil, spawned} = Map.pop(state.spawned, ref)
+
+    state =
+      if pid do
+        %{state | spawned: spawned, checkers: [{module, pid, ref} | state.checkers]}
+      else
+        %{state | spawned: spawned}
+      end
+
+    {:noreply, run_caches(state)}
+  end
+
+  def handle_info({__MODULE__, :checked, ref}, state) do
+    {timer, spawned} = Map.pop(state.spawned, ref)
     timer && Process.cancel_timer(timer)
     {:noreply, run_checkers(%{state | spawned: spawned})}
   end
@@ -645,11 +655,41 @@ defmodule Module.ParallelChecker do
     {:stop, :normal, state}
   end
 
-  def handle_cast({:register, module, pid, ref}, %{modules: modules} = state) do
-    {:noreply, %{state | modules: [{module, pid, ref} | modules]}}
+  def handle_cast({:register_cache, module, pid, ref}, %{caches: caches} = state) do
+    {:noreply, %{state | caches: [{module, pid, ref} | caches]}}
   end
 
-  defp run_checkers(%{modules: []} = state) do
+  def handle_cast(
+        {:register_cache_and_checker, mode, module, pid, ref},
+        %{caches: caches, checkers: checkers} = state
+      ) do
+    {:noreply,
+     %{state | caches: [{module, mode} | caches], checkers: [{module, pid, ref} | checkers]}}
+  end
+
+  defp run_caches(%{caches: [], spawned: spawned} = state) do
+    if spawned == %{}, do: run_checkers(state), else: state
+  end
+
+  defp run_caches(%{spawned: spawned, schedulers: schedulers} = state)
+       when map_size(spawned) >= schedulers do
+    state
+  end
+
+  defp run_caches(%{caches: [cache | caches]} = state) do
+    case cache do
+      {_module, pid, ref} ->
+        send(pid, {ref, :cache})
+        spawned = Map.put(state.spawned, ref, nil)
+        run_caches(%{state | caches: caches, spawned: spawned})
+
+      {module, mode} ->
+        :ets.insert(state.table, {module, mode})
+        run_caches(%{state | caches: caches})
+    end
+  end
+
+  defp run_checkers(%{checkers: []} = state) do
     state
   end
 
@@ -658,11 +698,11 @@ defmodule Module.ParallelChecker do
     state
   end
 
-  defp run_checkers(%{modules: [{module, pid, ref} | modules]} = state) do
+  defp run_checkers(%{checkers: [{module, pid, ref} | checkers]} = state) do
     send(pid, {ref, :check, state.profile})
     timer = :erlang.send_after(state.threshold, self(), {__MODULE__, :timeout, module, pid})
-    spawned = Map.put(state.spawned, module, timer)
-    run_checkers(%{state | modules: modules, spawned: spawned})
+    spawned = Map.put(state.spawned, ref, timer)
+    run_checkers(%{state | checkers: checkers, spawned: spawned})
   end
 
   defp profile(module, :time, fun) do
