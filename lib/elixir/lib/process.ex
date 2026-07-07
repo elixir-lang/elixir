@@ -226,7 +226,7 @@ defmodule Process do
   >
   > The functions `Kernel.exit/1` and `Process.exit/2` are
   > named similarly but provide very different functionalities. The
-  > `Kernel:exit/1` function should be used when the intent is to stop the current
+  > `Kernel.exit/1` function should be used when the intent is to stop the current
   > process while `Process.exit/2` should be used when the intent is to send an
   > exit signal to another process. Note also that `Kernel.exit/1` can be caught
   > with `try/1` while `Process.exit/2` can only be handled by trapping exits and
@@ -1002,7 +1002,7 @@ defmodule Process do
   end
 
   @doc """
-  Add a descriptive term to the current process.
+  Adds a descriptive term to the current process.
 
   The term does not need to be unique, and will be shown in Observer and in
   crash logs.

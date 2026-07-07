@@ -996,7 +996,7 @@ defmodule Application do
   end
 
   @doc """
-  Gets the directory for app.
+  Gets the directory for `app`.
 
   This information is returned based on the code path. Here is an
   example:
@@ -1077,7 +1077,7 @@ defmodule Application do
   @doc """
   Formats the error reason returned by `start/2`,
   `ensure_started/2`, `stop/1`, `load/1` and `unload/1`,
-  returns a string.
+  and returns a string.
   """
   @spec format_error(any) :: String.t()
   def format_error(reason) do

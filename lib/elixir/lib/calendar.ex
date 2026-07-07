@@ -295,7 +295,7 @@ defmodule Calendar do
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
-  Define the rollover moment for the calendar.
+  Defines the rollover moment for the calendar.
 
   This is the moment, in your calendar, when the current day ends
   and the next day starts.
@@ -381,13 +381,13 @@ defmodule Calendar do
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
   @doc """
-  Shifts date by given duration according to its calendar.
+  Shifts date by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}
 
   @doc """
-  Shifts naive datetime by given duration according to its calendar.
+  Shifts naive datetime by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_naive_datetime(
@@ -402,7 +402,7 @@ defmodule Calendar do
             ) :: {year, month, day, hour, minute, second, microsecond}
 
   @doc """
-  Shifts time by given duration according to its calendar.
+  Shifts time by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_time(hour, minute, second, microsecond, Duration.t()) ::

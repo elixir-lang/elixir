@@ -1082,7 +1082,7 @@ defmodule String do
   end
 
   @doc """
-  Replaces all leading occurrences of `match` by `replacement` of `match` in `string`.
+  Replaces all leading occurrences of `match` by `replacement` in `string`.
 
   Returns the string untouched if there are no occurrences.
 
@@ -2979,7 +2979,7 @@ defmodule String do
   By default, the maximum number of atoms is `1_048_576`. This limit
   can be raised or lowered using the VM option `+t`.
 
-  The maximum atom size is of 255 Unicode code points.
+  The maximum atom size is 255 Unicode code points.
 
   Inlined by the compiler.
 
@@ -3001,7 +3001,7 @@ defmodule String do
 
   If the list of expected atoms is known upfront, prefer `to_existing_atom/2`.
 
-  The maximum atom size is of 255 Unicode code points.
+  The maximum atom size is 255 Unicode code points.
   Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.

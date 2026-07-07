@@ -16,7 +16,7 @@ defmodule Config.Reader do
 
   For example, if you expect the target system to have a config file
   in an absolute path, you can add this inside the `def project` portion
-  of  your `mix.exs`:
+  of your `mix.exs`:
 
       releases: [
         demo: [

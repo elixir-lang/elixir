@@ -180,7 +180,7 @@ defmodule DateTime do
   since v1.15.0.
 
   The default unit if none gets passed is `:native`,
-  which results on a default resolution of microseconds.
+  which results in a default resolution of microseconds.
 
   ## Examples
 
@@ -1296,9 +1296,9 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts a number of gregorian seconds to a `DateTime` struct.
+  Converts a number of Gregorian seconds to a `DateTime` struct.
 
-  The returned `DateTime` will have `UTC` timezone, if you want other timezone, please use
+  The returned `DateTime` will have `UTC` timezone, if you want another timezone, please use
   `DateTime.shift_zone/3`.
 
   ## Examples
@@ -1341,7 +1341,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts a `DateTime` struct to a number of gregorian seconds and microseconds.
+  Converts a `DateTime` struct to a number of Gregorian seconds and microseconds.
 
   ## Examples
 

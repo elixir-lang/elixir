@@ -72,7 +72,7 @@ defmodule Duration do
 
   However, once again, it is important to remember that shifting a duration is not
   arithmetic, so you may want to use the functions in this module depending on what
-  you to achieve. Compare the results of both examples below:
+  you want to achieve. Compare the results of both examples below:
 
       # Adding one month after the other
       iex> date = ~D[2016-01-31]

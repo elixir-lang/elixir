@@ -520,8 +520,8 @@ defmodule List do
 
   As in `Enum.sort/2`, avoid using the default sorting function to sort
   structs, as by default it performs structural comparison instead of a
-  semantic one. In such cases, you shall pass a sorting function as third
-  element or any module that implements a `compare/2` function. For example,
+  semantic one. In such cases, you shall pass a sorting function as the third
+  argument or any module that implements a `compare/2` function. For example,
   if you have tuples with user names and their birthday, and you want to
   sort on their birthday, in both ascending and descending order, you should
   do:
@@ -661,7 +661,7 @@ defmodule List do
   end
 
   @doc """
-  Wraps `term` in a list if this is not list.
+  Wraps `term` in a list if it is not a list.
 
   If `term` is already a list, it returns the list.
   If `term` is `nil`, it returns an empty list.

@@ -215,7 +215,7 @@ defmodule Protocol do
         ...
       end
 
-  If you are using `Mix.install/2`, you can do by passing the `consolidate_protocols`
+  If you are using `Mix.install/2`, you can do so by passing the `consolidate_protocols`
   option:
 
       Mix.install(

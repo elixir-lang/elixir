@@ -23,7 +23,7 @@ defmodule Kernel.LexicalTracker do
 
   @doc """
   Invoked during module expansion to annotate a require
-  must be warned if unused.
+  that must be warned if unused.
   """
   def warn_require(pid, meta, module, alias) do
     :gen_server.cast(pid, {:warn_require, module, meta, alias})
@@ -32,7 +32,7 @@ defmodule Kernel.LexicalTracker do
 
   @doc """
   Invoked during module expansion to annotate an alias
-  must be warned if unused.
+  that must be warned if unused.
   """
   def warn_alias(pid, meta, alias, module) do
     :gen_server.cast(pid, {:warn_alias, alias, meta})
@@ -41,7 +41,7 @@ defmodule Kernel.LexicalTracker do
 
   @doc """
   Invoked during module expansion to annotate an import
-  must be warned if unused.
+  that must be warned if unused.
   """
   def warn_import(pid, module) do
     :gen_server.cast(pid, {:warn_import, module})
