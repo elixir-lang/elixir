@@ -201,7 +201,7 @@ defmodule MapSet do
   Checks if two sets are equal.
 
   The comparison between elements is done using `===/2`,
-  which a set with `1` is not equivalent to a set with
+  which means a set with `1` is not equivalent to a set with
   `1.0`.
 
   ## Examples
@@ -340,7 +340,7 @@ defmodule MapSet do
   > If you find yourself doing multiple calls to `MapSet.filter/2`
   > and `MapSet.reject/2` in a pipeline, it is likely more efficient
   > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
-  > a map at the end using `MapSet.new/1`.
+  > a set at the end using `MapSet.new/1`.
 
   ## Examples
 
@@ -404,7 +404,7 @@ defmodule MapSet do
 
   """
   @doc since: "1.15.0"
-  @spec split_with(MapSet.t(), (term() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
+  @spec split_with(t(a), (a -> as_boolean(term))) :: {t(a), t(a)} when a: value
   def split_with(%MapSet{map: map}, fun) when is_function(fun, 1) do
     {while_true, while_false} = Map.split_with(map, fn {key, _} -> fun.(key) end)
     {%MapSet{map: while_true}, %MapSet{map: while_false}}

@@ -25,7 +25,7 @@ defmodule Float do
   and arithmetic due to the fact most decimal fractions cannot be
   represented by a floating-point binary and most operations are not exact,
   but operate on approximations. Those issues are not specific
-  to Elixir, they are a property of floating point representation itself.
+  to Elixir, they are a property of floating-point representation itself.
 
   For example, the numbers 0.1 and 0.01 are two of them, what means the result
   of squaring 0.1 does not give 0.01 neither the closest representable. Here is
@@ -253,7 +253,7 @@ defmodule Float do
   @doc """
   Rounds a float to the smallest float greater than or equal to `number`.
 
-  `ceil/2` also accepts a precision to round a floating-point value down
+  `ceil/2` also accepts a precision to round a floating-point value up
   to an arbitrary number of fractional digits (between 0 and 15).
 
   The operation is performed on the binary floating point, without a
@@ -322,7 +322,7 @@ defmodule Float do
   and therefore the number above is internally represented as 5.567499999,
   which explains the behavior above. If you want exact rounding for decimals,
   you must use a decimal library. The behavior above is also in accordance
-  to reference implementations, such as "Correctly Rounded Binary-Decimal and
+  with reference implementations, such as "Correctly Rounded Binary-Decimal and
   Decimal-Binary Conversions" by David M. Gay.
 
   ## Examples

@@ -10,8 +10,8 @@ defmodule Access do
   keys of any type in a data structure via the `data[key]` syntax.
 
   `Access` supports keyword lists (`Keyword`) and maps (`Map`) out
-  of the box. Keywords supports only atoms keys, keys for maps can
-  be of any type. Both return `nil` if the key does not exist:
+  of the box. Keyword lists support only atom keys, while keys for maps
+  can be of any type. Both return `nil` if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -33,7 +33,7 @@ defmodule Access do
       iex> keywords[:c][:unknown]
       nil
 
-  This works because accessing anything on a `nil` value, returns
+  This works because accessing anything on a `nil` value returns
   `nil` itself:
 
       iex> nil[:a]
@@ -917,7 +917,7 @@ defmodule Access do
       iex> pop_in(list, [Access.filter(&(&1.salary >= 20)), :name])
       {["francine"], [%{name: "john", salary: 10}, %{salary: 30}]}
 
-  When no match is found, an empty list is returned and the update function is never called
+  When no match is found, an empty list is returned and the update function is never called:
 
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary >= 50)), :name])
@@ -1198,7 +1198,7 @@ defmodule Access do
       iex> pop_in(list, [Access.find(&(&1.salary <= 40))])
       {%{name: "john", salary: 10}, [%{name: "francine", salary: 30}]}
 
-  When no match is found, nil is returned and the update function is never called
+  When no match is found, nil is returned and the update function is never called:
 
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.find(&(&1.salary >= 50)), :name])

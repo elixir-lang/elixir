@@ -62,7 +62,7 @@ defmodule Time do
 
   You can pass a time unit to automatically truncate the resulting time.
 
-  The default unit if none gets passed is `:native` which results on a default resolution of microseconds.
+  The default unit if none gets passed is `:native` which results in a default resolution of microseconds.
 
   ## Examples
 
@@ -689,7 +689,7 @@ defmodule Time do
   @doc """
   Compares two time structs.
 
-  Returns `:gt` if first time is later than the second
+  Returns `:gt` if the first time is later than the second
   and `:lt` for vice versa. If the two times are equal
   `:eq` is returned.
 

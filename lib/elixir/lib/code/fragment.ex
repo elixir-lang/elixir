@@ -35,7 +35,7 @@ defmodule Code.Fragment do
   Returns the list of lines in the given string, preserving their line endings.
 
   Only the line endings recognized by the Elixir compiler are
-  considered, namely `\r\n` and `\n`. If you would like the retrieve
+  considered, namely `\r\n` and `\n`. If you would like to retrieve
   lines without their line endings, use `String.split(string, ["\r\n", "\n"])`.
 
   ## Examples
@@ -51,6 +51,7 @@ defmodule Code.Fragment do
 
   """
   @doc since: "1.19.0"
+  @spec lines(String.t()) :: [String.t()]
   def lines(string) do
     lines(string, <<>>)
   end
@@ -657,7 +658,7 @@ defmodule Code.Fragment do
       iex> Code.Fragment.surround_context("foo", {1, 1})
       %{begin: {1, 1}, context: {:local_or_var, ~c"foo"}, end: {1, 4}}
 
-  ## Differences to `cursor_context/2`
+  ## Differences from `cursor_context/2`
 
   Because `surround_context/3` attempts to capture complex expressions,
   it has some differences to `cursor_context/2`:
@@ -671,7 +672,7 @@ defmodule Code.Fragment do
       be a local or variable
 
     * `@` when not followed by any identifier is returned as `{:operator, ~c"@"}`
-      (in contrast to `{:module_attribute, ~c""}` in `cursor_context/2`
+      (in contrast to `{:module_attribute, ~c""}` in `cursor_context/2`)
 
     * This function never returns empty sigils `{:sigil, ~c""}` or empty structs
       `{:struct, ~c""}` as context

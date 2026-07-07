@@ -117,7 +117,7 @@ defmodule Code.Typespec do
   element is spec name and arity and the second is the spec.
 
   The module must have a corresponding BEAM file which can be
-  located by the runtime system. The types will be in the Erlang
+  located by the runtime system. The specs will be in the Erlang
   Abstract Format.
   """
   @spec fetch_specs(module | binary) :: {:ok, [tuple]} | :error
@@ -135,10 +135,10 @@ defmodule Code.Typespec do
   Returns all callbacks available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
-  element is spec name and arity and the second is the spec.
+  element is the callback name and arity and the second is the callback.
 
   The module must have a corresponding BEAM file
-  which can be located by the runtime system. The types will be
+  which can be located by the runtime system. The callbacks will be
   in the Erlang Abstract Format.
   """
   @spec fetch_callbacks(module | binary) :: {:ok, [tuple]} | :error

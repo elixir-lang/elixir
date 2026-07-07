@@ -164,7 +164,7 @@ defmodule NaiveDateTime do
   Returns the "local time" for the machine the Elixir program is running on.
 
   WARNING: This function can cause insidious bugs. It depends on the time zone
-  configuration at run time. This can changed and be set to a time zone that has
+  configuration at run time. This can change and be set to a time zone that has
   daylight saving jumps (spring forward or fall back).
 
   This function can be used to display what the time is right now for the time

@@ -1388,7 +1388,7 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allows  upper case characters (default)
+    * `:upper` - only allows upper case characters (default)
     * `:lower` - only allows lower case characters
     * `:mixed` - allows mixed case characters
 

@@ -108,7 +108,7 @@ defmodule Integer do
   defguard is_even(integer) when is_integer(integer) and (integer &&& 1) == 0
 
   @doc """
-  Computes `base` raised to power of `exponent`.
+  Computes `base` raised to the power of `exponent`.
 
   Both `base` and `exponent` must be integers.
   The exponent must be zero or positive.

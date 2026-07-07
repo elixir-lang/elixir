@@ -683,7 +683,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compatible unit pairs.
 
   See `Duration.from_iso8601/1`.
   """

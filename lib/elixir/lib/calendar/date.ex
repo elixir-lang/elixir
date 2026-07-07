@@ -1047,7 +1047,7 @@ defmodule Date do
   @doc """
   Calculates the quarter of the year of a given `date`.
 
-  Returns the day of the year as an integer. For the ISO 8601
+  Returns the quarter of the year as an integer. For the ISO 8601
   calendar (the default), it is an integer from 1 to 4.
 
   ## Examples
