@@ -10,7 +10,7 @@ defmodule Mix.ProjectStack do
   @timeout :infinity
 
   # compile.lock is not the best name, but the name is completely
-  # opaque and we keep it for backwards compatibility (just in case).
+  # opaque and we keep it for backwards compatibility.
   @manifest "compile.lock"
 
   @typep file :: binary
