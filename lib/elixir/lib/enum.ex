@@ -618,7 +618,7 @@ defmodule Enum do
           acc,
           (element, acc -> {:cont, chunk, acc} | {:cont, acc} | {:halt, acc}),
           (acc -> {:cont, chunk, acc} | {:cont, acc})
-        ) :: Enumerable.t()
+        ) :: [chunk]
         when chunk: any
   def chunk_while(enumerable, acc, chunk_fun, after_fun) do
     {_, {res, acc}} =
