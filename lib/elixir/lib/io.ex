@@ -152,9 +152,8 @@ defmodule IO do
 
   The `device` is iterated as specified by the `line_or_chars` argument:
 
-    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
-      iterated by that number of bytes. This should be the preferred mode for reading
-      non-textual inputs.
+    * if `line_or_chars` is an integer, it represents a number of characters. The device
+      is iterated by that number of characters.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
       CRLF newlines  ("\r\n") are automatically normalized to "\n".
