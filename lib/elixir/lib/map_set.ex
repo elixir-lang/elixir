@@ -396,11 +396,11 @@ defmodule MapSet do
       iex> while_false
       MapSet.new([1, 3])
 
-      iex> {while_true, while_false} = MapSet.split_with(MapSet.new(), fn {_k, v} -> v > 50 end)
+      iex> {while_true, while_false} = MapSet.split_with(MapSet.new([10, 20, 60, 70]), fn v -> v > 50 end)
       iex> while_true
-      MapSet.new([])
+      MapSet.new([60, 70])
       iex> while_false
-      MapSet.new([])
+      MapSet.new([10, 20])
 
   """
   @doc since: "1.15.0"
