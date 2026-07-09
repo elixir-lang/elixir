@@ -766,11 +766,13 @@ defmodule Main do
       stale: stale
     }
 
+    hints = Enum.filter(all, &(&1.verdict == :spec_wider_return))
+
     out =
       case opts[:format] do
         "report" -> render_report(stats, residue, untranslatable, all, gate)
-        "json" -> JSON.encode_to_iodata!(render_json(stats, residue, untranslatable))
-        "prompt" -> render_prompt(stats, residue)
+        "json" -> JSON.encode_to_iodata!(render_json(stats, residue, untranslatable, hints))
+        "prompt" -> render_prompt(stats, residue, untranslatable)
       end
 
     case opts[:output] do
@@ -825,13 +827,18 @@ defmodule Main do
     %{mfa: mfa_string(e), why: e[:why]}
   end
 
-  defp render_json(stats, residue, untranslatable) do
+  # tightening_hints carries the auto-triaged :spec_wider_return entries:
+  # inference proved the return strictly narrower than an exactly-translated
+  # spec. Not gated (specs are deliberately wide contracts), but listed so
+  # documentation-tightening candidates remain identifiable.
+  defp render_json(stats, residue, untranslatable, hints) do
     %{
       elixir: System.version(),
       format_version: 3,
       stats: stats,
       residue: Enum.map(residue, &entry_json/1),
-      untranslatable: Enum.map(untranslatable, &untranslatable_json/1)
+      untranslatable: Enum.map(untranslatable, &untranslatable_json/1),
+      tightening_hints: Enum.map(hints, &entry_json/1)
     }
   end
 
@@ -931,8 +938,8 @@ defmodule Main do
   defp percent(_n, 0), do: "n/a"
   defp percent(n, total), do: "#{Float.round(n * 100 / total, 1)}%"
 
-  defp render_prompt(stats, residue) do
-    json = JSON.encode_to_iodata!(render_json(stats, residue, []))
+  defp render_prompt(stats, residue, untranslatable) do
+    json = JSON.encode_to_iodata!(render_json(stats, residue, untranslatable, []))
 
     [
       """
@@ -940,20 +947,24 @@ defmodule Main do
       @spec declarations and compiler-inferred type signatures. Everything
       mechanically decidable has already been decided:
 
-      - functions where spec and inference agree, or where inference is merely
-        wider (expected conservatism), are NOT included;
-      - "verdict" was computed with semantic subtyping in the checker's own
-        type lattice, slice-wise per spec clause;
+      - functions where spec and inference agree, where inference is merely
+        wider (expected conservatism), or where inference is strictly inside
+        the spec (specs are deliberately wide public contracts) are NOT
+        included;
+      - "verdict" was computed by applying the inferred signature with the
+        checker's own application rule, slice-wise per spec clause, using
+        semantic subtyping in the checker's type lattice;
       - "translation_exact" flags where the spec had to be approximated
         (e.g. non_neg_integer() -> integer()); do not draw conclusions that
-        depend on precision the translation lost.
+        depend on precision the translation lost;
+      - "dynamic_args" is the checker's return prediction for a call with
+        fully-unknown arguments and its relation to the spec return.
 
       For each entry, judge:
       1. contradiction: which side is wrong, and what should change?
-      2. spec_wider_return: is tightening the spec desirable documentation-wise
-         (e.g. a function that never returns [] declared as returning keyword())
-         or is the wider spec intentional API contract?
-      3. mixed: characterize the difference and whether it is actionable.
+      2. mixed: characterize the difference and whether it is actionable.
+      3. untranslatable: which typespec construct is unsupported and whether
+         a sound over-approximation could be added to the translator.
 
       Be concise; order by severity; reference module.function/arity.
 

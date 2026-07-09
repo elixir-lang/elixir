@@ -33,7 +33,6 @@ Calendar.ISO.parse_utc_datetime/1          # mixed
 Calendar.ISO.parse_utc_datetime/2          # mixed
 Calendar.ISO.time_to_iodata/5              # mixed
 Code.Typespec.spec_to_quoted/2             # mixed
-Code.fetch_docs/1                          # untranslatable ({:missing_type, :erl_anno, :location, 0}) -- OTP 28 nominal type; resolves once Code.Typespec returns nominal types
 Config.__env__!/0                          # mixed
 Config.__target__!/0                       # mixed
 Date.from_erl/2                            # mixed
