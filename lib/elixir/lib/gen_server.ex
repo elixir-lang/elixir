@@ -1158,7 +1158,7 @@ defmodule GenServer do
 
   ## Timeouts
 
-  `timeout` is an integer greater than zero which specifies how many
+  `timeout` is a non-negative integer which specifies how many
   milliseconds to wait for a reply, or the atom `:infinity` to wait
   indefinitely. The default value is `5000`. If no reply is received within
   the specified time, the function call fails and the caller exits. If the
