@@ -354,7 +354,7 @@ defmodule Logger.Formatter do
 
   Typically called after formatting when the data cannot be printed.
   """
-  @spec prune(IO.chardata()) :: IO.chardata()
+  @spec prune(term()) :: IO.chardata()
   def prune(binary) when is_binary(binary), do: prune_binary(binary, "")
   def prune([h | t]) when h in 0..1_114_111, do: [h | prune(t)]
   def prune([h | t]), do: [prune(h) | prune(t)]

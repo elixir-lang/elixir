@@ -169,7 +169,7 @@ defmodule Config.Provider do
   Validates a `t:config_path/0`.
   """
   @doc since: "1.9.0"
-  @spec validate_config_path!(config_path) :: :ok
+  @spec validate_config_path!(term()) :: :ok
   def validate_config_path!({:system, name, path})
       when is_binary(name) and is_binary(path),
       do: :ok

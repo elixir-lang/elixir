@@ -1139,7 +1139,7 @@ defmodule List do
       2.2017764
 
   """
-  @spec to_float(charlist) :: float
+  @spec to_float(nonempty_charlist) :: float
   def to_float(charlist) do
     :erlang.list_to_float(charlist)
   end
@@ -1155,7 +1155,7 @@ defmodule List do
       123
 
   """
-  @spec to_integer(charlist) :: integer
+  @spec to_integer(nonempty_charlist) :: integer
   def to_integer(charlist) do
     :erlang.list_to_integer(charlist)
   end
@@ -1173,7 +1173,7 @@ defmodule List do
       1023
 
   """
-  @spec to_integer(charlist, 2..36) :: integer
+  @spec to_integer(nonempty_charlist, 2..36) :: integer
   def to_integer(charlist, base) do
     :erlang.list_to_integer(charlist, base)
   end
