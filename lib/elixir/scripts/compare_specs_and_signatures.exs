@@ -798,7 +798,7 @@ defmodule Main do
     message =
       try do
         %{message: message} = warning_module.format_diagnostic(warning)
-        message |> IO.iodata_to_binary() |> String.split("\n") |> hd()
+        message |> IO.iodata_to_binary() |> String.trim_trailing()
       rescue
         _ -> inspect(warning, limit: 5)
       end
@@ -1089,7 +1089,8 @@ defmodule Main do
         warnings ->
           lines =
             Enum.map_join(warnings, "\n", fn w ->
-              "  #{w.mfa} (#{w.location}): #{w.message}"
+              message = String.replace(w.message, "\n", "\n      ")
+              "  #{w.mfa} (#{w.location}): #{message}"
             end)
 
           [
@@ -1139,13 +1140,20 @@ defmodule Main do
         (e.g. non_neg_integer() -> integer()); do not draw conclusions that
         depend on precision the translation lost;
       - "dynamic_args" is the checker's return prediction for a call with
-        fully-unknown arguments and its relation to the spec return.
+        fully-unknown arguments and its relation to the spec return;
+      - "body_check" is the return type inferred by re-checking the function
+        BODY with arguments assumed spec-typed, and "body_warnings" are the
+        warnings that re-check emitted (informational, not gated).
 
       For each entry, judge:
       1. contradiction: which side is wrong, and what should change?
       2. mixed: characterize the difference and whether it is actionable.
       3. untranslatable: which typespec construct is unsupported and whether
          a sound over-approximation could be added to the translator.
+      4. body_warnings: classify each as defensive code for out-of-spec
+         inputs (expected; no action), a spec narrower than the inputs the
+         function intends to support (spec bug), or a genuinely dead or
+         buggy code path (code bug).
 
       Be concise; order by severity; reference module.function/arity.
 
