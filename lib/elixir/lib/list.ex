@@ -435,7 +435,7 @@ defmodule List do
 
   """
   @doc since: "1.13.0"
-  @spec keyfind!([tuple], any, non_neg_integer) :: any
+  @spec keyfind!([tuple], any, non_neg_integer) :: tuple
   def keyfind!(list, key, position) when is_integer(position) do
     :lists.keyfind(key, position + 1, list) ||
       raise KeyError,
