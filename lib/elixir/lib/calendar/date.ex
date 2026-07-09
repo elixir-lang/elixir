@@ -81,7 +81,7 @@ defmodule Date do
 
   Ranges of dates can be increasing (`first <= last`) and are
   always inclusive. For a decreasing range, use `range/3` with
-  a step of -1 as first argument.
+  a step of -1 as third argument.
 
   ## Examples
 
