@@ -80,7 +80,8 @@ defmodule Code.Typespec do
   Returns all types available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
-  element is the type (`:typep`, `:type` and `:opaque`).
+  element is the type (`:typep`, `:type`, `:opaque` and, on Erlang/OTP 28+,
+  `:nominal`).
 
   The module must have a corresponding BEAM file which can be
   located by the runtime system. The types will be in the Erlang
@@ -95,9 +96,10 @@ defmodule Code.Typespec do
 
         types =
           for {:attribute, _, kind, {name, _, args} = type} <- abstract_code,
-              kind in [:opaque, :type] do
+              kind in [:opaque, :type, :nominal] do
             cond do
               kind == :opaque -> {:opaque, type}
+              kind == :nominal -> {:nominal, type}
               {name, length(args)} in exported_types -> {:type, type}
               true -> {:typep, type}
             end

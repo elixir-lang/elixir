@@ -1438,6 +1438,23 @@ defmodule TypespecTest do
       assert Code.Typespec.fetch_specs(Unknown) == :error
     end
 
+    if System.otp_release() >= "28" do
+      test "retrieval of Erlang nominal types" do
+        forms = [
+          {:attribute, 1, :module, :typespec_nominal_sample},
+          {:attribute, 2, :export_type, [meters: 0]},
+          {:attribute, 3, :nominal, {:meters, {:type, 3, :integer, []}, []}},
+          {:attribute, 4, :type, {:plain, {:type, 4, :atom, []}, []}}
+        ]
+
+        {:ok, :typespec_nominal_sample, beam} = :compile.forms(forms, [:debug_info])
+
+        assert {:ok, types} = Code.Typespec.fetch_types(beam)
+        assert {:nominal, {:meters, {:type, 3, :integer, []}, []}} in types
+        assert {:typep, {:plain, {:type, 4, :atom, []}, []}} in types
+      end
+    end
+
     # This is a test that implements all types specified in lib/elixir/pages/typespecs.md
     test "documented types and their AST" do
       defmodule SomeStruct do
