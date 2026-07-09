@@ -892,8 +892,18 @@ defmodule Main do
             Map.merge(base, %{verdict: :untranslatable, why: inspect(why, limit: 5)})
         end
 
-      _ ->
-        Map.put(base, :verdict, :no_signature)
+      other ->
+        # No inferred signature to compare against. In practice these are
+        # exclusively protocol modules: signature inference is skipped for
+        # protocols (Module.Types, "those will be replaced anyway" -- the
+        # dispatch is rewritten by consolidation).
+        why =
+          case other do
+            {:ok, mode, _deprecated, _sig} -> mode
+            _ -> :missing
+          end
+
+        Map.merge(base, %{verdict: :no_signature, why: why})
     end
   end
 
@@ -1045,8 +1055,10 @@ defmodule Main do
       tightening_hints: Enum.map(hints, &entry_json/1),
       body_warnings: body_warnings,
       # Functions with a spec but no inferred signature: nothing to compare,
-      # so they receive no coverage from this tool -- listed for visibility.
-      no_signature: Enum.map(no_signature, &mfa_string/1),
+      # so they receive no coverage from this tool -- listed for visibility
+      # with the checker mode explaining why (:protocol = inference is
+      # skipped for protocols since consolidation rewrites them).
+      no_signature: Enum.map(no_signature, &%{mfa: mfa_string(&1), why: &1[:why]}),
       # How many compared functions involved an inexact (over-approximated)
       # spec translation somewhere; per-slice precision flags carry details.
       approximate_translations: inexact
