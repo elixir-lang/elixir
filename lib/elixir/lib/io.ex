@@ -522,7 +522,7 @@ defmodule IO do
   end
 
   @doc """
-  Gets a number of bytes from IO device `:stdio`.
+  Gets a number of characters from IO device `:stdio`.
 
   If `:stdio` is a Unicode device, `count` implies
   the number of Unicode code points to be retrieved.
@@ -550,7 +550,7 @@ defmodule IO do
   end
 
   @doc """
-  Gets a number of bytes from the IO `device`.
+  Gets a number of characters from the IO `device`.
 
   If the IO `device` is a Unicode device, `count` implies
   the number of Unicode code points to be retrieved.
