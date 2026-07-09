@@ -666,7 +666,7 @@ defmodule Enum do
       [1, [2], 3, 4, 5, 6]
 
   """
-  @spec concat(t) :: t
+  @spec concat(t) :: list
   def concat(enumerables)
 
   def concat(list) when is_list(list) do
