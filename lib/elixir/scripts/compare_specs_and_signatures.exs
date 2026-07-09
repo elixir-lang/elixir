@@ -42,15 +42,17 @@
 #   --limit N         Limit number of modules after filtering.
 #   --exclusions PATH Acknowledged-findings file: one Module.function/arity
 #                     per line, anything after "#" is a comment. Enables
-#                     STRICT gating: every residue entry must be listed or
-#                     the run fails. Entries that no longer match anything
-#                     are reported as stale (warning, not fatal).
+#                     STRICT gating: every residue AND untranslatable entry
+#                     must be listed or the run fails (an untranslatable spec
+#                     is lost coverage, not a pass). Entries that no longer
+#                     match anything are reported as stale (warning, not
+#                     fatal).
 #   --help            This help.
 #
 # Exit status: 1 if any lattice contradiction exists (spec and inference
 # cannot both be right); with --exclusions additionally 1 if any NEW
-# (unlisted) residue entry appears; 0 otherwise. The analysis is
-# deterministic. CI entry point: `make check_specs`.
+# (unlisted) residue or untranslatable entry appears; 0 otherwise. The
+# analysis is deterministic. CI entry point: `make check_specs`.
 
 apps_default = [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
 
@@ -331,6 +333,14 @@ defmodule SpecToDescr do
     else
       case fetch_type(mod, name, length(args)) do
         {:ok, {params, body}} ->
+          # Argument ASTs are written in the CALLER's module context, but the
+          # body is translated with env.module switched to the callee. A bare
+          # user_type inside an argument (e.g. Keyword.t(ansidata) in IO.ANSI)
+          # would be wrongly resolved in the callee's namespace -- or silently
+          # capture a same-named callee type. Qualify arguments as remote
+          # types against the caller module before substituting.
+          args = Enum.map(args, &qualify(&1, env.module))
+
           subst =
             params
             |> Enum.zip(args)
@@ -345,6 +355,19 @@ defmodule SpecToDescr do
       end
     end
   end
+
+  defp qualify({:user_type, l, n, args}, module) do
+    {:remote_type, l, [{:atom, l, module}, {:atom, l, n}, Enum.map(args, &qualify(&1, module))]}
+  end
+
+  defp qualify({:type, l, n, args}, module) when is_list(args),
+    do: {:type, l, n, Enum.map(args, &qualify(&1, module))}
+
+  defp qualify({:remote_type, l, [m, n, args]}, module),
+    do: {:remote_type, l, [m, n, Enum.map(args, &qualify(&1, module))]}
+
+  defp qualify({:ann_type, l, [v, t]}, module), do: {:ann_type, l, [v, qualify(t, module)]}
+  defp qualify(other, _module), do: other
 
   # `when var: type` specs arrive as bounded_fun.
   def debound({:type, l, :bounded_fun, [fun, constraints]}) do
@@ -634,25 +657,32 @@ defmodule Main do
     all = Enum.flat_map(results, & &1.entries)
     stats = Enum.frequencies_by(all, & &1.verdict)
     residue = Enum.filter(all, &(&1.verdict in @residue))
+    untranslatable = Enum.filter(all, &(&1.verdict == :untranslatable))
 
     exclusions = opts[:exclusions]
     excluded? = &(exclusions != nil and MapSet.member?(exclusions, mfa_string(&1)))
     new_residue = Enum.reject(residue, excluded?)
+    new_untranslatable = Enum.reject(untranslatable, excluded?)
 
     stale =
       if exclusions do
-        current = MapSet.new(residue, &mfa_string/1)
+        current = MapSet.new(residue ++ untranslatable, &mfa_string/1)
         exclusions |> MapSet.difference(current) |> Enum.sort()
       else
         []
       end
 
-    gate = %{exclusions: exclusions, new_residue: new_residue, stale: stale}
+    gate = %{
+      exclusions: exclusions,
+      new_residue: new_residue,
+      new_untranslatable: new_untranslatable,
+      stale: stale
+    }
 
     out =
       case opts[:format] do
-        "report" -> render_report(stats, residue, all, gate)
-        "json" -> JSON.encode_to_iodata!(render_json(stats, residue))
+        "report" -> render_report(stats, residue, untranslatable, all, gate)
+        "json" -> JSON.encode_to_iodata!(render_json(stats, residue, untranslatable))
         "prompt" -> render_prompt(stats, residue)
       end
 
@@ -664,11 +694,12 @@ defmodule Main do
     # Lattice contradictions are mechanical certainties (the
     # over-approximation invariant in SpecToDescr makes disjointness
     # conclusions transfer to the real spec type), so they fail the run for
-    # CI purposes. With --exclusions, any residue entry not explicitly
-    # acknowledged in the file also fails the run; stale exclusions only
-    # warn.
+    # CI purposes. With --exclusions, any residue OR untranslatable entry not
+    # explicitly acknowledged in the file also fails the run -- a spec the
+    # translator cannot handle is lost coverage, not a pass; stale exclusions
+    # only warn.
     contradictions = Enum.filter(new_residue, &(&1.verdict == :contradiction))
-    strict_fail = exclusions != nil and new_residue != []
+    strict_fail = exclusions != nil and (new_residue != [] or new_untranslatable != [])
     if contradictions != [] or strict_fail, do: System.halt(1)
   end
 
@@ -698,16 +729,21 @@ defmodule Main do
     }
   end
 
-  defp render_json(stats, residue) do
+  defp untranslatable_json(e) do
+    %{mfa: mfa_string(e), why: e[:why]}
+  end
+
+  defp render_json(stats, residue, untranslatable) do
     %{
       elixir: System.version(),
       format_version: 3,
       stats: stats,
-      residue: Enum.map(residue, &entry_json/1)
+      residue: Enum.map(residue, &entry_json/1),
+      untranslatable: Enum.map(untranslatable, &untranslatable_json/1)
     }
   end
 
-  defp render_report(stats, residue, all, gate) do
+  defp render_report(stats, residue, untranslatable, all, gate) do
     total = length(all)
     auto = Enum.count(all, &(&1.verdict in @auto))
 
@@ -718,7 +754,7 @@ defmodule Main do
 
         exclusions ->
           new_lines =
-            for e <- gate.new_residue do
+            for e <- gate.new_residue ++ gate.new_untranslatable do
               "  NEW (not in exclusions, FAILS the gate): #{mfa_string(e)} (#{e.verdict})\n"
             end
 
@@ -729,7 +765,8 @@ defmodule Main do
 
           summary =
             "gate: #{MapSet.size(exclusions)} exclusions -- " <>
-              "#{length(gate.new_residue)} new, #{length(gate.stale)} stale\n"
+              "#{length(gate.new_residue) + length(gate.new_untranslatable)} new, " <>
+              "#{length(gate.stale)} stale\n"
 
           Enum.join([summary | new_lines ++ stale_lines])
       end
@@ -737,7 +774,12 @@ defmodule Main do
     # With an exclusions file, acknowledged entries are only counted (header
     # stats keep the full numbers) -- full details are printed for NEW
     # (gate-failing) entries alone, keeping CI output focused on what changed.
-    detail_residue = if gate.exclusions, do: gate.new_residue, else: residue
+    {detail_residue, detail_untranslatable} =
+      if gate.exclusions do
+        {gate.new_residue, gate.new_untranslatable}
+      else
+        {residue, untranslatable}
+      end
 
     header = """
     compare_specs_and_signatures: #{total} spec'd functions
@@ -746,6 +788,11 @@ defmodule Main do
     untranslatable: #{Map.get(stats, :untranslatable, 0)}
     #{gate_section}
     """
+
+    untranslatable_section =
+      for e <- detail_untranslatable do
+        "untranslatable: #{mfa_string(e)}\n    why: #{e[:why]}\n"
+      end
 
     residue_section =
       for e <- Enum.sort_by(detail_residue, &verdict_rank/1) do
@@ -766,7 +813,7 @@ defmodule Main do
         """
       end
 
-    [header, Enum.join(residue_section, "\n")]
+    [header, Enum.join(residue_section, "\n"), Enum.join(untranslatable_section, "\n")]
   end
 
   defp inferred_string(e) do
@@ -783,7 +830,7 @@ defmodule Main do
   defp percent(n, total), do: "#{Float.round(n * 100 / total, 1)}%"
 
   defp render_prompt(stats, residue) do
-    json = JSON.encode_to_iodata!(render_json(stats, residue))
+    json = JSON.encode_to_iodata!(render_json(stats, residue, []))
 
     [
       """

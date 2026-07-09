@@ -4,13 +4,15 @@
 #
 # One Module.function/arity per line; anything after "#" is a comment.
 # Every entry below was triaged on 2026-07-09: intentional API contracts
-# (e.g. Enumerable.t() opacity), aspirational specs, deprecated modules, or
-# spec-translation approximation artifacts -- not checker bugs.
+# (e.g. Enumerable.t() opacity), aspirational specs, deprecated modules,
+# spec-translation approximation artifacts, or specs using constructs the
+# translator cannot express (e.g. Erlang record types) -- not checker bugs.
 #
 # Maintenance: when a spec or inference change removes a divergence, the tool
-# reports the entry as stale -- delete the line. A NEW divergence fails the
-# gate; triage it (is the spec wrong? is inference wrong? is it intentional?)
-# before adding it here with a comment.
+# reports the entry as stale -- delete the line. A NEW divergence or a newly
+# untranslatable spec fails the gate; triage it (is the spec wrong? is
+# inference wrong? is it intentional? does the translator need a new
+# construct?) before adding it here with a comment.
 Access.all/0                               # mixed
 Access.at!/1                               # mixed
 Access.at/1                                # mixed
@@ -44,6 +46,15 @@ DateTime.from_unix/3                       # mixed
 ExUnit.Filters.parse_paths/1               # mixed
 ExUnit.async_run/0                         # mixed
 ExUnit.configuration/0                     # mixed
+File.Stat.from_record/1                    # untranslatable (:record)
+File.Stat.to_record/1                      # untranslatable (:record)
+File.close/1                               # untranslatable (:record)
+File.copy!/3                               # untranslatable (:record)
+File.copy/3                                # untranslatable (:record)
+File.open!/2                               # untranslatable (:record)
+File.open!/3                               # untranslatable (:record)
+File.open/2                                # untranslatable (:record)
+File.open/3                                # untranslatable (:record)
 File.rm_rf/1                               # mixed
 HashDict.new/0                             # spec_wider_return
 HashSet.new/0                              # spec_wider_return
