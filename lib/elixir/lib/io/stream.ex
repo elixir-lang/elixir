@@ -31,7 +31,7 @@ defmodule IO.Stream do
   @type t :: %__MODULE__{
           device: IO.device(),
           raw: boolean(),
-          line_or_bytes: :line | non_neg_integer()
+          line_or_bytes: :line | pos_integer()
         }
 
   @doc false
