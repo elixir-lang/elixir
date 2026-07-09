@@ -39,6 +39,16 @@
 # longer judges string equivalence. The analysis is fully static: no stdlib
 # function is executed.
 #
+# Spec-domain body check (informational, does not gate)
+# -----------------------------------------------------
+# Additionally, the compiler's type checker is re-run over each module's
+# definitions (Module.Types.warnings/7) with every spec'd function's
+# argument domain taken from its TRANSLATED SPEC instead of the default
+# list of dynamics. This reports (a) the warnings the checker emits when
+# arguments are assumed spec-typed -- e.g. clauses or code paths that
+# cannot match spec-conforming inputs -- and (b) the return type inferred
+# under that assumption, compared against the declared spec return.
+#
 # Usage
 # -----
 #   ./bin/elixir lib/elixir/scripts/compare_specs_and_signatures.exs [options]
@@ -49,6 +59,12 @@
 #   --format FORMAT   report (default) | json | prompt
 #   --output PATH     Write output to PATH instead of stdout.
 #   --limit N         Limit number of modules after filtering.
+#   --no-check-bodies Skip the spec-domain body check (see below).
+#   --bodies-domain MODE
+#                     dynamic (default): re-check bodies with arguments set
+#                     to dynamic(spec_type) under the checker's :dynamic
+#                     mode. static: raw spec types under :static mode --
+#                     stricter, more (and more speculative) warnings.
 #   --exclusions PATH Acknowledged-findings file: one Module.function/arity
 #                     per line, anything after "#" is a comment. Enables
 #                     STRICT gating: every residue AND untranslatable entry
@@ -74,6 +90,8 @@ apps_default = [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
       format: :string,
       output: :string,
       limit: :integer,
+      check_bodies: :boolean,
+      bodies_domain: :string,
       exclusions: :string,
       help: :boolean
     ]
@@ -97,6 +115,12 @@ format = opts[:format] || "report"
 
 unless format in ["report", "json", "prompt"] do
   raise "expected --format to be one of: report, json, prompt"
+end
+
+bodies_domain = opts[:bodies_domain] || "dynamic"
+
+unless bodies_domain in ["dynamic", "static"] do
+  raise "expected --bodies-domain to be one of: dynamic, static"
 end
 
 unless Code.ensure_loaded?(Module.Types.Descr) do
@@ -605,7 +629,7 @@ defmodule Main do
 
     results =
       try do
-        Enum.map(modules, &analyze_module(&1, cache))
+        Enum.map(modules, &analyze_module(&1, cache, opts))
       after
         Module.ParallelChecker.stop(cache)
       end
@@ -662,7 +686,7 @@ defmodule Main do
     modules
   end
 
-  defp analyze_module(module, cache) do
+  defp analyze_module(module, cache, opts) do
     exported = MapSet.new(module.__info__(:functions))
 
     specs =
@@ -683,7 +707,115 @@ defmodule Main do
         analyze_function(module, name, arity, spec_clauses, cache, env)
       end)
 
-    %{module: module, entries: entries}
+    {entries, body_warnings} = check_bodies(module, entries, cache, opts)
+    %{module: module, entries: entries, body_warnings: body_warnings}
+  end
+
+  # -- Spec-domain body check ------------------------------------------------
+  #
+  # Re-runs the compiler's type checker over the module's definitions with
+  # each spec'd function's argument domain taken from its translated spec
+  # instead of the default list of dynamics (Module.Types.warnings/7).
+  # Informational: results are reported but never gate.
+
+  defp check_bodies(module, entries, cache, opts) do
+    with true <- opts[:check_bodies],
+         {:ok, defs, attrs, file} <- module_debug_info(module) do
+      mode = opts[:bodies_domain]
+
+      domains =
+        for %{slices: slices} = e <- entries, slices != [], into: %{} do
+          args_union =
+            slices
+            |> Enum.map(& &1.spec_args)
+            |> Enum.zip_with(fn types -> Enum.reduce(types, &opt_union/2) end)
+
+          args =
+            case mode do
+              :dynamic -> Enum.map(args_union, &dynamic/1)
+              :static -> args_union
+            end
+
+          {{e.function, e.arity}, {mode, args}}
+        end
+
+      {warnings, sigs} =
+        Module.Types.warnings(module, file, attrs, defs, :all, cache, fn fun_arity ->
+          case domains do
+            %{^fun_arity => domain} -> domain
+            %{} -> :default
+          end
+        end)
+
+      entries =
+        Enum.map(entries, fn e ->
+          fun_arity = {e[:function], e[:arity]}
+
+          with true <- is_map_key(domains, fun_arity),
+               {_kind, {:infer, _dom, [_ | _] = clauses}, _mapping} <- Map.get(sigs, fun_arity) do
+            ret = clauses |> Enum.map(fn {_args, ret} -> ret end) |> Enum.reduce(&opt_union/2)
+            Map.put(e, :body_check, %{return: ret, relation: body_relation(ret, e)})
+          else
+            _ -> e
+          end
+        end)
+
+      {entries, Enum.map(warnings, &format_body_warning/1)}
+    else
+      _ -> {entries, []}
+    end
+  end
+
+  defp body_relation(ret, e) do
+    spec_ret = Enum.reduce(e.slices, none(), fn s, acc -> opt_union(s.spec_ret, acc) end)
+    ret_u = upper_bound(ret)
+
+    cond do
+      subtype?(ret_u, spec_ret) and subtype?(spec_ret, ret_u) -> :equal
+      subtype?(ret_u, spec_ret) -> :inside_spec
+      subtype?(spec_ret, ret_u) -> :wider_than_spec
+      not empty?(ret_u) and not empty?(spec_ret) and disjoint?(ret_u, spec_ret) -> :disjoint
+      true -> :incomparable
+    end
+  end
+
+  defp module_debug_info(module) do
+    with [_ | _] = path <- :code.which(module),
+         {:ok, binary} <- File.read(path),
+         {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} <-
+           :beam_lib.chunks(binary, [:debug_info]),
+         {:ok, %{definitions: defs, attributes: attrs, file: file}} <-
+           backend.debug_info(:elixir_v1, module, data, []) do
+      {:ok, defs, attrs, file}
+    else
+      _ -> :error
+    end
+  end
+
+  # Warning entries are {module, warning, {file, meta, {mod, fun, arity}}}
+  # as stored by Module.Types.Helpers.
+  defp format_body_warning({warning_module, warning, location}) do
+    message =
+      try do
+        %{message: message} = warning_module.format_diagnostic(warning)
+        message |> IO.iodata_to_binary() |> String.split("\n") |> hd()
+      rescue
+        _ -> inspect(warning, limit: 5)
+      end
+
+    {mfa, position} =
+      case location do
+        {file, meta, {mod, fun, arity}} ->
+          line = if is_list(meta), do: Keyword.get(meta, :line), else: nil
+
+          {"#{inspect(mod)}.#{fun}/#{arity}",
+           "#{Path.relative_to_cwd(to_string(file))}:#{line || "?"}"}
+
+        _ ->
+          {"?", "?"}
+      end
+
+    %{mfa: mfa, message: message, location: position}
   end
 
   defp analyze_function(module, name, arity, spec_clauses, cache, env) do
@@ -768,11 +900,23 @@ defmodule Main do
 
     hints = Enum.filter(all, &(&1.verdict == :spec_wider_return))
 
+    body_warnings =
+      results
+      |> Enum.flat_map(&(&1[:body_warnings] || []))
+      |> Enum.sort_by(&{&1.mfa, &1.location})
+
     out =
       case opts[:format] do
-        "report" -> render_report(stats, residue, untranslatable, all, gate)
-        "json" -> JSON.encode_to_iodata!(render_json(stats, residue, untranslatable, hints))
-        "prompt" -> render_prompt(stats, residue, untranslatable)
+        "report" ->
+          render_report(stats, residue, untranslatable, all, gate, body_warnings)
+
+        "json" ->
+          JSON.encode_to_iodata!(
+            render_json(stats, residue, untranslatable, hints, body_warnings)
+          )
+
+        "prompt" ->
+          render_prompt(stats, residue, untranslatable, body_warnings)
       end
 
     case opts[:output] do
@@ -819,6 +963,11 @@ defmodule Main do
         case e[:dynamic_probe] do
           nil -> nil
           probe -> %{return: to_quoted_string(probe.return), relation: probe.relation}
+        end,
+      body_check:
+        case e[:body_check] do
+          nil -> nil
+          bc -> %{return: to_quoted_string(bc.return), relation: bc.relation}
         end
     }
   end
@@ -831,18 +980,19 @@ defmodule Main do
   # inference proved the return strictly narrower than an exactly-translated
   # spec. Not gated (specs are deliberately wide contracts), but listed so
   # documentation-tightening candidates remain identifiable.
-  defp render_json(stats, residue, untranslatable, hints) do
+  defp render_json(stats, residue, untranslatable, hints, body_warnings) do
     %{
       elixir: System.version(),
       format_version: 3,
       stats: stats,
       residue: Enum.map(residue, &entry_json/1),
       untranslatable: Enum.map(untranslatable, &untranslatable_json/1),
-      tightening_hints: Enum.map(hints, &entry_json/1)
+      tightening_hints: Enum.map(hints, &entry_json/1),
+      body_warnings: body_warnings
     }
   end
 
-  defp render_report(stats, residue, untranslatable, all, gate) do
+  defp render_report(stats, residue, untranslatable, all, gate, body_warnings) do
     total = length(all)
     auto = Enum.count(all, &(&1.verdict in @auto))
 
@@ -913,16 +1063,47 @@ defmodule Main do
               "      dynamic args: #{to_quoted_string(probe.return)} (#{probe.relation})\n"
           end
 
+        body_note =
+          case e[:body_check] do
+            nil ->
+              ""
+
+            bc ->
+              "      body under spec domain: #{to_quoted_string(bc.return)} (#{bc.relation})\n"
+          end
+
         """
         #{e.verdict}: #{mfa_string(e)}
             spec:     #{Enum.join(e.spec_strings, " ||| ")}
             inferred: #{inferred_string(e)}
         #{slice_notes}
-        #{probe_note}
+        #{probe_note}#{body_note}
         """
       end
 
-    [header, Enum.join(residue_section, "\n"), Enum.join(untranslatable_section, "\n")]
+    body_section =
+      case body_warnings do
+        [] ->
+          []
+
+        warnings ->
+          lines =
+            Enum.map_join(warnings, "\n", fn w ->
+              "  #{w.mfa} (#{w.location}): #{w.message}"
+            end)
+
+          [
+            """
+
+            SPEC-DOMAIN BODY CHECK (informational, not gated): \
+            #{length(warnings)} warning(s) when checking bodies against spec-typed arguments
+            #{lines}
+            """
+          ]
+      end
+
+    [header, Enum.join(residue_section, "\n"), Enum.join(untranslatable_section, "\n")] ++
+      body_section
   end
 
   defp inferred_string(e) do
@@ -938,8 +1119,8 @@ defmodule Main do
   defp percent(_n, 0), do: "n/a"
   defp percent(n, total), do: "#{Float.round(n * 100 / total, 1)}%"
 
-  defp render_prompt(stats, residue, untranslatable) do
-    json = JSON.encode_to_iodata!(render_json(stats, residue, untranslatable, []))
+  defp render_prompt(stats, residue, untranslatable, body_warnings) do
+    json = JSON.encode_to_iodata!(render_json(stats, residue, untranslatable, [], body_warnings))
 
     [
       """
@@ -982,5 +1163,7 @@ Main.run(%{
   format: format,
   output: opts[:output],
   limit: opts[:limit],
+  check_bodies: opts[:check_bodies] != false,
+  bodies_domain: String.to_atom(bodies_domain),
   exclusions: exclusions
 })
