@@ -317,6 +317,23 @@ defmodule IO.ANSI.DocsTest do
       assert result == "\e[36mhello world\e[0m\n\e[0m"
     end
 
+    test "star/underscore works before punctuation" do
+      result = format_markdown("**hello world**,")
+      assert result == "\e[1mhello world\e[0m,\n\e[0m"
+
+      result = format_markdown("*hello world*;")
+      assert result == "\e[4mhello world\e[0m;\n\e[0m"
+
+      result = format_markdown("__hello world__:")
+      assert result == "\e[1mhello world\e[0m:\n\e[0m"
+
+      result = format_markdown("_hello world_?")
+      assert result == "\e[4mhello world\e[0m?\n\e[0m"
+
+      result = format_markdown("*hello world*/")
+      assert result == "\e[4mhello world\e[0m/\n\e[0m"
+    end
+
     test "star/underscore/backtick works across words with ansi disabled" do
       result = format_markdown("*hello world*", enabled: false)
       assert result == "*hello world*"
