@@ -300,6 +300,13 @@ defmodule SpecToDescr do
   defp builtin(:map, [], _e, _d), do: {empty_map(), true}
   defp builtin(:map, :any, _e, _d), do: {open_map(), true}
 
+  # Literal map types are CLOSED per Erlang typespec semantics: a map value
+  # belongs to a map type only if every association in the VALUE is matched
+  # by an association in the TYPE, so %{required(:a) => integer()} does NOT
+  # admit extra keys (that requires an explicit optional(any()) => any(),
+  # which is why map() itself is defined as %{optional(any()) => any()} and
+  # handled by the :open_rest branch below). closed_map/1 is therefore the
+  # exact translation, not an under-approximation.
   defp builtin(:map, assocs, env, d) do
     {fields, exact} =
       Enum.map_reduce(assocs, true, fn
@@ -516,6 +523,15 @@ defmodule Verdict do
             not empty?(sret_u) and not empty?(effective) and disjoint?(sret_u, effective) ->
               :contradiction
 
+            # A no_return()/none() spec against a non-empty inferred return
+            # cannot be auto-passed as :inference_wider: the spec claims the
+            # function never returns while inference says it may. It is not a
+            # mechanical :contradiction either -- inference over-approximates,
+            # so a non-empty return does not PROVE returnability. Route to
+            # human judgment.
+            empty?(sret_u) and not empty?(effective) ->
+              :mixed
+
             subtype?(sret_u, effective) and subtype?(effective, sret_u) ->
               :equivalent
 
@@ -717,6 +733,13 @@ defmodule Main do
   # each spec'd function's argument domain taken from its translated spec
   # instead of the default list of dynamics (Module.Types.warnings/7).
   # Informational: results are reported but never gate.
+  #
+  # APPROXIMATION: for multi-clause specs the domain is the PER-POSITION
+  # union of the clause argument types, which admits cartesian combinations
+  # no single spec clause allows (f(atom, atom) | f(int, int) yields
+  # {atom | int, atom | int}). Findings on such functions are tagged
+  # "[union domain]" in the report and :per_position_union in the JSON;
+  # single-clause specs are exact.
 
   defp check_bodies(module, entries, cache, opts) do
     with true <- opts[:check_bodies],
@@ -739,6 +762,11 @@ defmodule Main do
           {{e.function, e.arity}, {mode, args}}
         end
 
+      union_domains =
+        for %{slices: slices} = e <- entries, length(slices) > 1, into: MapSet.new() do
+          {e.function, e.arity}
+        end
+
       {warnings, sigs} =
         Module.Types.warnings(module, file, attrs, defs, :all, cache, fn fun_arity ->
           case domains do
@@ -754,13 +782,21 @@ defmodule Main do
           with true <- is_map_key(domains, fun_arity),
                {_kind, {:infer, _dom, [_ | _] = clauses}, _mapping} <- Map.get(sigs, fun_arity) do
             ret = clauses |> Enum.map(fn {_args, ret} -> ret end) |> Enum.reduce(&opt_union/2)
-            Map.put(e, :body_check, %{return: ret, relation: body_relation(ret, e)})
+
+            domain =
+              if MapSet.member?(union_domains, fun_arity), do: :per_position_union, else: :spec
+
+            Map.put(e, :body_check, %{
+              return: ret,
+              relation: body_relation(ret, e),
+              domain: domain
+            })
           else
             _ -> e
           end
         end)
 
-      {entries, Enum.map(warnings, &format_body_warning/1)}
+      {entries, Enum.map(warnings, &format_body_warning(&1, union_domains))}
     else
       _ -> {entries, []}
     end
@@ -794,7 +830,7 @@ defmodule Main do
 
   # Warning entries are {module, warning, {file, meta, {mod, fun, arity}}}
   # as stored by Module.Types.Helpers.
-  defp format_body_warning({warning_module, warning, location}) do
+  defp format_body_warning({warning_module, warning, location}, union_domains) do
     message =
       try do
         %{message: message} = warning_module.format_diagnostic(warning)
@@ -803,19 +839,24 @@ defmodule Main do
         _ -> inspect(warning, limit: 5)
       end
 
-    {mfa, position} =
+    {mfa, position, fun_arity} =
       case location do
         {file, meta, {mod, fun, arity}} ->
           line = if is_list(meta), do: Keyword.get(meta, :line), else: nil
 
           {"#{inspect(mod)}.#{fun}/#{arity}",
-           "#{Path.relative_to_cwd(to_string(file))}:#{line || "?"}"}
+           "#{Path.relative_to_cwd(to_string(file))}:#{line || "?"}", {fun, arity}}
 
         _ ->
-          {"?", "?"}
+          {"?", "?", nil}
       end
 
-    %{mfa: mfa, message: message, location: position}
+    domain =
+      if fun_arity && MapSet.member?(union_domains, fun_arity),
+        do: :per_position_union,
+        else: :spec
+
+    %{mfa: mfa, message: message, location: position, domain: domain}
   end
 
   defp analyze_function(module, name, arity, spec_clauses, cache, env) do
@@ -899,6 +940,12 @@ defmodule Main do
     }
 
     hints = Enum.filter(all, &(&1.verdict == :spec_wider_return))
+    no_signature = Enum.filter(all, &(&1.verdict == :no_signature))
+
+    inexact =
+      Enum.count(all, fn e ->
+        Enum.any?(e[:slices] || [], &(not (&1.exact_args and &1.exact_ret)))
+      end)
 
     body_warnings =
       results
@@ -908,11 +955,19 @@ defmodule Main do
     out =
       case opts[:format] do
         "report" ->
-          render_report(stats, residue, untranslatable, all, gate, body_warnings)
+          render_report(stats, residue, untranslatable, all, gate, body_warnings, inexact)
 
         "json" ->
           JSON.encode_to_iodata!(
-            render_json(stats, residue, untranslatable, hints, body_warnings)
+            render_json(
+              stats,
+              residue,
+              untranslatable,
+              hints,
+              body_warnings,
+              no_signature,
+              inexact
+            )
           )
 
         "prompt" ->
@@ -967,7 +1022,7 @@ defmodule Main do
       body_check:
         case e[:body_check] do
           nil -> nil
-          bc -> %{return: to_quoted_string(bc.return), relation: bc.relation}
+          bc -> %{return: to_quoted_string(bc.return), relation: bc.relation, domain: bc.domain}
         end
     }
   end
@@ -980,7 +1035,7 @@ defmodule Main do
   # inference proved the return strictly narrower than an exactly-translated
   # spec. Not gated (specs are deliberately wide contracts), but listed so
   # documentation-tightening candidates remain identifiable.
-  defp render_json(stats, residue, untranslatable, hints, body_warnings) do
+  defp render_json(stats, residue, untranslatable, hints, body_warnings, no_signature, inexact) do
     %{
       elixir: System.version(),
       format_version: 3,
@@ -988,11 +1043,17 @@ defmodule Main do
       residue: Enum.map(residue, &entry_json/1),
       untranslatable: Enum.map(untranslatable, &untranslatable_json/1),
       tightening_hints: Enum.map(hints, &entry_json/1),
-      body_warnings: body_warnings
+      body_warnings: body_warnings,
+      # Functions with a spec but no inferred signature: nothing to compare,
+      # so they receive no coverage from this tool -- listed for visibility.
+      no_signature: Enum.map(no_signature, &mfa_string/1),
+      # How many compared functions involved an inexact (over-approximated)
+      # spec translation somewhere; per-slice precision flags carry details.
+      approximate_translations: inexact
     }
   end
 
-  defp render_report(stats, residue, untranslatable, all, gate, body_warnings) do
+  defp render_report(stats, residue, untranslatable, all, gate, body_warnings, inexact) do
     total = length(all)
     auto = Enum.count(all, &(&1.verdict in @auto))
 
@@ -1035,6 +1096,7 @@ defmodule Main do
     auto-triaged: #{auto} (#{percent(auto, total)}) -- #{inspect(Map.take(stats, @auto))}
     residue:      #{length(residue)} -- #{inspect(Map.take(stats, @residue))}
     untranslatable: #{Map.get(stats, :untranslatable, 0)}
+    approximate translations: #{inexact} (per-slice precision flags in JSON)
     #{gate_section}
     """
 
@@ -1090,7 +1152,8 @@ defmodule Main do
           lines =
             Enum.map_join(warnings, "\n", fn w ->
               message = String.replace(w.message, "\n", "\n      ")
-              "  #{w.mfa} (#{w.location}): #{message}"
+              tag = if w.domain == :per_position_union, do: " [union domain]", else: ""
+              "  #{w.mfa} (#{w.location})#{tag}: #{message}"
             end)
 
           [
@@ -1121,7 +1184,10 @@ defmodule Main do
   defp percent(n, total), do: "#{Float.round(n * 100 / total, 1)}%"
 
   defp render_prompt(stats, residue, untranslatable, body_warnings) do
-    json = JSON.encode_to_iodata!(render_json(stats, residue, untranslatable, [], body_warnings))
+    json =
+      JSON.encode_to_iodata!(
+        render_json(stats, residue, untranslatable, [], body_warnings, [], 0)
+      )
 
     [
       """

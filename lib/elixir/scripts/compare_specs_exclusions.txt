@@ -48,6 +48,8 @@ File.rm_rf/1                               # mixed
 IEx.Pry.annotate_quoted/3                  # mixed
 IEx.Pry.whereami/3                         # mixed
 Inspect.Algebra.container_doc_with_opts/6  # mixed
+Kernel.exit/1                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+Kernel.throw/1                             # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
 Keyword.put/3                              # mixed
 Keyword.replace!/3                         # mixed
 Keyword.update!/3                          # mixed
@@ -65,7 +67,11 @@ Macro.unique_var/2                         # mixed
 Mix.Project.get!/0                         # mixed
 Mix.Release.from_config!/3                 # mixed
 Mix.Tasks.Format.formatter_for_file/2      # mixed
+Mix.raise/1                                # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
 NaiveDateTime.from_iso8601/2               # mixed
+Process.hibernate/3                        # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+System.halt/0                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+System.halt/1                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
 Task.async/1                               # mixed
 Task.async/3                               # mixed
 Time.convert/2                             # mixed
