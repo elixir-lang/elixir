@@ -128,7 +128,7 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
-  @type inspect_opts :: [Inspect.Opts.new_opt() | {:label, term}]
+  @type inspect_opts :: [Inspect.Opts.new_opt() | {:label, String.Chars.t()}]
 
   @typedoc """
   Stacktrace information as keyword options for `warn/2`.
