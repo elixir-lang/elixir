@@ -681,8 +681,8 @@ defmodule Enum do
   Concatenates the enumerable on the `right` with the enumerable on the
   `left`.
 
-  This function produces the same result as the `++/2` operator
-  for lists.
+  This function behaves similarly to the `++/2` operator with proper
+  lists, but applied to enumerables.
 
   ## Examples
 
@@ -693,7 +693,7 @@ defmodule Enum do
       [1, 2, 3, 4, 5, 6]
 
   """
-  @spec concat(t, t) :: t
+  @spec concat(Enumerable.t(elem), Enumerable.t(elem)) :: [elem] when elem: term
   def concat(left, right) when is_list(left) and is_list(right) do
     left ++ right
   end
