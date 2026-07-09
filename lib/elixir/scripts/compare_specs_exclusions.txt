@@ -3,10 +3,10 @@
 # (CI entry point: make check_specs).
 #
 # One Module.function/arity per line; anything after "#" is a comment.
-# Every entry below was triaged on 2026-07-09: intentional API contracts
-# (e.g. Enumerable.t() opacity), aspirational specs, deprecated modules,
-# spec-translation approximation artifacts, or specs using constructs the
-# translator cannot express (e.g. Erlang record types) -- not checker bugs.
+# Every entry below was triaged: intentional API contracts and abstractions
+# (e.g. Enumerable.t() opacity), approximation artifacts of the
+# spec-to-descr translation (function types, Macro.t(), iodata()), or specs
+# using constructs the translator cannot express -- not checker bugs.
 #
 # Maintenance: when a spec or inference change removes a divergence, the tool
 # reports the entry as stale -- delete the line. A NEW divergence or a newly
@@ -32,9 +32,8 @@ Calendar.ISO.parse_time/2                  # mixed
 Calendar.ISO.parse_utc_datetime/1          # mixed
 Calendar.ISO.parse_utc_datetime/2          # mixed
 Calendar.ISO.time_to_iodata/5              # mixed
-Code.Typespec.fetch_types/1                # spec_wider_return
 Code.Typespec.spec_to_quoted/2             # mixed
-Config.Provider.init/3                     # spec_wider_return
+Code.fetch_docs/1                          # untranslatable ({:missing_type, :erl_anno, :location, 0}) -- OTP 28 nominal type; resolves once Code.Typespec returns nominal types
 Config.__env__!/0                          # mixed
 Config.__target__!/0                       # mixed
 Date.from_erl/2                            # mixed
@@ -46,105 +45,31 @@ DateTime.from_unix/3                       # mixed
 ExUnit.Filters.parse_paths/1               # mixed
 ExUnit.async_run/0                         # mixed
 ExUnit.configuration/0                     # mixed
-File.Stat.from_record/1                    # untranslatable (:record)
-File.Stat.to_record/1                      # untranslatable (:record)
-File.close/1                               # untranslatable (:record)
-File.copy!/3                               # untranslatable (:record)
-File.copy/3                                # untranslatable (:record)
-File.open!/2                               # untranslatable (:record)
-File.open!/3                               # untranslatable (:record)
-File.open/2                                # untranslatable (:record)
-File.open/3                                # untranslatable (:record)
 File.rm_rf/1                               # mixed
-HashDict.new/0                             # spec_wider_return
-HashSet.new/0                              # spec_wider_return
 IEx.Pry.annotate_quoted/3                  # mixed
 IEx.Pry.whereami/3                         # mixed
-IO.binstream/0                             # spec_wider_return
-IO.binstream/2                             # spec_wider_return
-IO.stream/0                                # spec_wider_return
-IO.stream/2                                # spec_wider_return
 Inspect.Algebra.container_doc_with_opts/6  # mixed
 Keyword.put/3                              # mixed
 Keyword.replace!/3                         # mixed
 Keyword.update!/3                          # mixed
 Keyword.update/4                           # mixed
 Logger.Backends.Internal.add/2             # mixed
-Logger.Formatter.new/1                     # spec_wider_return
 Macro.Env.expand_import/5                  # mixed
 Macro.Env.expand_require/6                 # mixed
-Macro.Env.location/1                       # mixed
 Macro.Env.prepend_tracer/2                 # mixed
 Macro.Env.prune_compile_info/1             # mixed
-Macro.Env.stacktrace/1                     # mixed
 Macro.Env.to_guard/1                       # mixed
 Macro.Env.to_match/1                       # mixed
 Macro.decompose_call/1                     # mixed
 Macro.pipe/3                               # mixed
-Macro.postwalker/1                         # spec_wider_return
-Macro.prewalker/1                          # spec_wider_return
 Macro.unique_var/2                         # mixed
-MapSet.new/0                               # spec_wider_return
 Mix.Project.get!/0                         # mixed
 Mix.Release.from_config!/3                 # mixed
 Mix.Tasks.Format.formatter_for_file/2      # mixed
 NaiveDateTime.from_iso8601/2               # mixed
-Process.delete/1                           # spec_wider_return
-Process.get_label/1                        # spec_wider_return
-Process.put/2                              # spec_wider_return
-Stream.chunk_while/4                       # spec_wider_return
-Stream.concat/1                            # spec_wider_return
-Stream.concat/2                            # spec_wider_return
-Stream.cycle/1                             # spec_wider_return
-Stream.dedup/1                             # spec_wider_return
-Stream.dedup_by/2                          # spec_wider_return
-Stream.drop/2                              # spec_wider_return
-Stream.drop_every/2                        # spec_wider_return
-Stream.drop_while/2                        # spec_wider_return
-Stream.duplicate/2                         # spec_wider_return
-Stream.each/2                              # spec_wider_return
-Stream.filter/2                            # spec_wider_return
-Stream.flat_map/2                          # spec_wider_return
-Stream.from_index/1                        # spec_wider_return
-Stream.intersperse/2                       # spec_wider_return
-Stream.interval/1                          # spec_wider_return
-Stream.into/3                              # spec_wider_return
-Stream.iterate/2                           # spec_wider_return
-Stream.map/2                               # spec_wider_return
-Stream.map_every/3                         # spec_wider_return
-Stream.reject/2                            # spec_wider_return
-Stream.repeatedly/1                        # spec_wider_return
-Stream.resource/3                          # spec_wider_return
-Stream.scan/2                              # spec_wider_return
-Stream.scan/3                              # spec_wider_return
-Stream.take/2                              # spec_wider_return
-Stream.take_every/2                        # spec_wider_return
-Stream.take_while/2                        # spec_wider_return
-Stream.timer/1                             # spec_wider_return
-Stream.transform/3                         # spec_wider_return
-Stream.transform/4                         # spec_wider_return
-Stream.transform/5                         # spec_wider_return
-Stream.unfold/2                            # spec_wider_return
-Stream.uniq/1                              # spec_wider_return
-Stream.uniq_by/2                           # spec_wider_return
-Stream.with_index/2                        # spec_wider_return
-Stream.zip/1                               # spec_wider_return
-Stream.zip/2                               # spec_wider_return
-Stream.zip_with/2                          # spec_wider_return
-Stream.zip_with/3                          # spec_wider_return
-String.splitter/3                          # spec_wider_return
-Supervisor.Spec.supervise/2                # spec_wider_return
-System.compiled_endianness/0               # spec_wider_return
-Task.Supervisor.async_stream/4             # spec_wider_return
-Task.Supervisor.async_stream/6             # spec_wider_return
-Task.Supervisor.async_stream_nolink/4      # spec_wider_return
-Task.Supervisor.async_stream_nolink/6      # spec_wider_return
 Task.async/1                               # mixed
 Task.async/3                               # mixed
-Task.async_stream/3                        # spec_wider_return
-Task.async_stream/5                        # spec_wider_return
 Time.convert/2                             # mixed
 Time.from_iso8601/2                        # mixed
 URI.append_path/2                          # mixed
 URI.append_query/2                         # mixed
-URI.query_decoder/2                        # spec_wider_return

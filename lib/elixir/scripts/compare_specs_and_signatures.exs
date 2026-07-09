@@ -15,15 +15,24 @@
 #   :equivalent        same domain and return (up to the lattice) -> dropped
 #   :inference_wider   spec <= inferred; expected conservatism    -> dropped
 #   :spec_wider_return inferred return strictly inside the spec return with an
-#                      EXACT translation -> spec-tightening candidate
-#   :contradiction     spec and inferred returns are disjoint -> someone is
+#                      EXACT translation -> dropped: specs are public
+#                      contracts, deliberately wider than the implementation
+#                      (still reported in stats/JSON as tightening hints)
+#   :contradiction     spec and inferred returns are disjoint, or the checker
+#                      rejects every spec-conforming call -> someone is
 #                      definitely wrong
 #   :mixed             none of the above -> needs judgment
 #
-# Return comparison is SLICE-WISE: for each spec clause, the effective
-# inferred return is the union of returns of inferred clauses whose domains
-# intersect that spec clause's domain (inferred clauses are overlapping upper
-# bounds, so this is the checker's actual prediction for calls in that slice).
+# Return comparison is SLICE-WISE and uses the checker's own application
+# rule (mirroring Module.Types.Apply.apply_infer/2): for each spec clause,
+# the inferred signature is applied at the spec's argument types -- clauses
+# with positionwise non-disjoint domains contribute their returns; no
+# matching clause means the checker would warn on every call in that slice.
+# Each function is additionally probed with all arguments set to
+# Descr.dynamic() (the fully-unknown gradual caller) and the resulting
+# return's relation to the spec return is reported. Inferred applications
+# always produce dynamic()-wrapped returns regardless of stack.mode; mode
+# only affects strong signatures, which do not occur in ExCk chunks.
 #
 # Only the residue (typically a few % of functions) is emitted for human
 # review, with verdicts and precision flags attached -- the reviewer no
@@ -256,6 +265,13 @@ defmodule SpecToDescr do
     {tuple(elems), exact}
   end
 
+  # Erlang record type #name{...}: a record value is a tuple whose first
+  # element is the record name. Field types are not resolvable from the beam
+  # (record definitions are compile-time), so over-approximate the remaining
+  # elements (sound per the INVARIANT above).
+  defp builtin(:record, [{:atom, _, name} | _field_overrides], _e, _d),
+    do: {open_tuple([atom([name])]), false}
+
   # {:type, _, :map, []} is the empty-map literal %{} (map() arrives as :any)
   defp builtin(:map, [], _e, _d), do: {empty_map(), true}
   defp builtin(:map, :any, _e, _d), do: {open_map(), true}
@@ -402,7 +418,7 @@ defmodule SpecToDescr do
     with {:ok, types} <- Code.Typespec.fetch_types(mod),
          {_kind, {^name, body, params}} <-
            Enum.find(types, fn {kind, {n, _b, p}} ->
-             kind in [:type, :typep, :opaque] and n == name and length(p) == arity
+             kind in [:type, :typep, :opaque, :nominal] and n == name and length(p) == arity
            end) do
       {:ok, {params, body}}
     else
@@ -426,6 +442,9 @@ defmodule Verdict do
   # Returns {verdict, details} where details carry the per-slice data used by
   # reporting.
 
+  # Mirrors Module.Types.Apply @max_clauses.
+  @max_clauses 16
+
   def compare(spec_clauses, iclauses, arity) do
     idom =
       Enum.reduce(iclauses, List.duplicate(none(), arity), fn {args, _}, acc ->
@@ -434,15 +453,23 @@ defmodule Verdict do
 
     slices =
       for {sargs, exact_args, sret, exact_ret} <- spec_clauses do
-        effective = effective_return(sargs, iclauses)
+        applied = checker_apply(iclauses, sargs)
         sret_u = upper_bound(sret)
+
+        effective =
+          case applied do
+            {:ok, ret} -> upper_bound(ret)
+            :badapply -> none()
+          end
 
         # Domains: inference legitimately narrows aspirational spec domains
         # (e.g. Enumerable.t() is term(); inference lists the shapes the body
         # handles) and the checker warning on out-of-inferred-domain calls is
         # usually a true positive. So domains never gate the return verdict;
         # they are only reported, and only a DISJOINT domain position (spec
-        # and inference cannot both be right about any call) escalates.
+        # and inference cannot both be right about any call) escalates -- as
+        # does :badapply on a non-empty spec domain, where the checker's own
+        # application rule rejects EVERY spec-conforming call.
         dom_s_sub_i =
           Enum.zip(sargs, idom)
           |> Enum.all?(fn {s, i} -> subtype?(upper_bound(s), i) end)
@@ -454,9 +481,12 @@ defmodule Verdict do
             not empty?(su) and not empty?(i) and disjoint?(su, i)
           end)
 
+        badapply? =
+          applied == :badapply and Enum.all?(sargs, &(not empty?(upper_bound(&1))))
+
         slice_verdict =
           cond do
-            dom_disjoint ->
+            dom_disjoint or badapply? ->
               :contradiction
 
             not empty?(sret_u) and not empty?(effective) and disjoint?(sret_u, effective) ->
@@ -486,20 +516,71 @@ defmodule Verdict do
         }
       end
 
-    {combine(Enum.map(slices, & &1.verdict)), slices}
+    dynamic_probe = dynamic_args_probe(iclauses, spec_clauses, arity)
+    {combine(Enum.map(slices, & &1.verdict)), slices, dynamic_probe}
   end
 
-  # Effective inferred return for calls inside `sargs`: union of returns of
-  # inferred clauses whose domains intersect it positionwise. Inferred clauses
-  # are overlapping upper bounds, so this is the checker's actual prediction
-  # for that slice.
-  defp effective_return(sargs, iclauses) do
-    iclauses
-    |> Enum.filter(fn {iargs, _ret} ->
-      Enum.zip(sargs, iargs)
-      |> Enum.all?(fn {s, i} -> not disjoint?(upper_bound(s), upper_bound(i)) end)
-    end)
-    |> Enum.reduce(none(), fn {_args, ret}, acc -> opt_union(upper_bound(ret), acc) end)
+  # The checker's own application of an inferred signature, mirroring
+  # Module.Types.Apply.apply_infer/2: clauses whose domains are positionwise
+  # NON-DISJOINT from the argument types contribute their returns; no
+  # matching clause means the checker warns on every such call (:badapply);
+  # more than @max_clauses matching collapse to dynamic(). Inferred
+  # applications always wrap the result in dynamic() regardless of
+  # stack.mode -- the mode only affects strong signatures (via
+  # Apply.return/3), which never appear in ExCk chunks, so running "in
+  # static mode" degenerates to the same computation here.
+  def checker_apply(iclauses, args_types) do
+    matching =
+      Enum.filter(iclauses, fn {iargs, _ret} -> zip_not_disjoint?(args_types, iargs) end)
+
+    cond do
+      matching == [] ->
+        :badapply
+
+      length(matching) > @max_clauses ->
+        {:ok, dynamic()}
+
+      true ->
+        {:ok, matching |> Enum.map(&elem(&1, 1)) |> Enum.reduce(&opt_union/2) |> dynamic()}
+    end
+  end
+
+  defp zip_not_disjoint?([a | as], [e | es]),
+    do: not disjoint?(a, e) and zip_not_disjoint?(as, es)
+
+  defp zip_not_disjoint?([], []), do: true
+
+  # The "wrap all arguments in dynamic()" probe: what the checker infers for
+  # a call site where nothing is known about the arguments (the common
+  # gradual caller). dynamic() is non-disjoint from every non-empty domain,
+  # so every inferred clause applies. Reported per function, not gated: the
+  # inferred domain may legitimately cover inputs outside the spec domain
+  # (defensive clauses), so a wider dynamic-args return is not a spec
+  # violation by itself.
+  defp dynamic_args_probe(iclauses, spec_clauses, arity) do
+    spec_ret_union =
+      Enum.reduce(spec_clauses, none(), fn {_, _, sret, _}, acc ->
+        opt_union(upper_bound(sret), acc)
+      end)
+
+    case checker_apply(iclauses, List.duplicate(dynamic(), arity)) do
+      :badapply ->
+        %{return: none(), relation: :badapply}
+
+      {:ok, ret} ->
+        ret_u = upper_bound(ret)
+
+        relation =
+          cond do
+            subtype?(ret_u, spec_ret_union) and subtype?(spec_ret_union, ret_u) -> :equal
+            subtype?(ret_u, spec_ret_union) -> :inside_spec
+            subtype?(spec_ret_union, ret_u) -> :wider_than_spec
+            disjoint?(ret_u, spec_ret_union) -> :disjoint
+            true -> :incomparable
+          end
+
+        %{return: ret_u, relation: relation}
+    end
   end
 
   @order [:contradiction, :mixed, :spec_wider_return, :inference_wider, :equivalent]
@@ -625,11 +706,12 @@ defmodule Main do
               {dargs, exact_args, dret, exact_ret}
             end)
 
-          {verdict, slices} = Verdict.compare(translated, iclauses, arity)
+          {verdict, slices, dynamic_probe} = Verdict.compare(translated, iclauses, arity)
 
           base
           |> Map.put(:verdict, verdict)
           |> Map.put(:slices, slices)
+          |> Map.put(:dynamic_probe, dynamic_probe)
           |> Map.put(:iclauses, iclauses)
           |> Map.put(:spec_strings, spec_strings(name, spec_clauses))
         catch
@@ -650,8 +732,13 @@ defmodule Main do
 
   # -- Rendering ------------------------------------------------------------
 
-  @auto [:equivalent, :inference_wider, :no_signature]
-  @residue [:contradiction, :mixed, :spec_wider_return]
+  # :spec_wider_return (inference strictly inside the spec return) is
+  # auto-triaged: specs are public contracts and are often deliberately
+  # wider than the implementation (e.g. atom() instead of specific atoms)
+  # to keep room for evolution. It stays a distinct verdict in the stats
+  # and JSON so tightening candidates remain discoverable.
+  @auto [:equivalent, :inference_wider, :spec_wider_return, :no_signature]
+  @residue [:contradiction, :mixed]
 
   defp render(results, opts) do
     all = Enum.flat_map(results, & &1.entries)
@@ -725,7 +812,12 @@ defmodule Main do
             inferred_effective_return: to_quoted_string(s.effective_ret),
             translation_exact: %{args: s.exact_args, return: s.exact_ret}
           }
-        end)
+        end),
+      dynamic_args:
+        case e[:dynamic_probe] do
+          nil -> nil
+          probe -> %{return: to_quoted_string(probe.return), relation: probe.relation}
+        end
     }
   end
 
@@ -805,11 +897,21 @@ defmodule Main do
             "      #{s.verdict}#{approx}: spec ret #{to_quoted_string(s.spec_ret)} vs inferred #{to_quoted_string(s.effective_ret)}"
           end)
 
+        probe_note =
+          case e[:dynamic_probe] do
+            nil ->
+              ""
+
+            probe ->
+              "      dynamic args: #{to_quoted_string(probe.return)} (#{probe.relation})\n"
+          end
+
         """
         #{e.verdict}: #{mfa_string(e)}
             spec:     #{Enum.join(e.spec_strings, " ||| ")}
             inferred: #{inferred_string(e)}
         #{slice_notes}
+        #{probe_note}
         """
       end
 
