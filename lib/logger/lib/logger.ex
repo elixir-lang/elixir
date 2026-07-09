@@ -501,7 +501,7 @@ defmodule Logger do
   """
 
   @type level ::
-          :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
+          :emergency | :alert | :critical | :error | :warning | :notice | :info | :debug
   @type report :: map() | keyword()
   @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()

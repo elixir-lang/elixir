@@ -18,7 +18,13 @@ defmodule File.Stream do
 
   defstruct path: nil, modes: [], line_or_bytes: :line, raw: true, node: nil
 
-  @type t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+          path: Path.t(),
+          modes: [term()],
+          line_or_bytes: :line | pos_integer(),
+          raw: boolean(),
+          node: node()
+        }
 
   @doc false
   def __build__(path, line_or_bytes, modes) do

@@ -754,7 +754,7 @@ defmodule Module do
 
   """
   @doc since: "1.12.0"
-  @spec reserved_attributes() :: map
+  @spec reserved_attributes() :: %{optional(atom()) => %{doc: binary()}}
   def reserved_attributes() do
     %{
       after_compile: %{

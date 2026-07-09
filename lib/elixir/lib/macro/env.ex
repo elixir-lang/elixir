@@ -203,7 +203,7 @@ defmodule Macro.Env do
   Returns a keyword list containing the file and line
   information as keys.
   """
-  @spec location(t) :: keyword
+  @spec location(t) :: [file: file, line: line]
   def location(env)
 
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
@@ -700,7 +700,7 @@ defmodule Macro.Env do
   @doc """
   Returns the environment stacktrace.
   """
-  @spec stacktrace(t) :: list
+  @spec stacktrace(t) :: [{module, atom, arity, keyword}]
   def stacktrace(%{__struct__: Macro.Env} = env) do
     cond do
       is_nil(env.module) ->

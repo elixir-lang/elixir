@@ -201,7 +201,7 @@ defmodule Map do
       %{}
 
   """
-  @spec new :: map
+  @spec new :: %{}
   def new, do: %{}
 
   @doc """
