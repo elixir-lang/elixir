@@ -1685,7 +1685,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Determines if the date given is valid according to the proleptic Gregorian calendar.
+  Determines if the time given is valid.
 
   Leap seconds are not supported by the built-in Calendar.ISO.
 
