@@ -26,7 +26,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: cover install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
+.PHONY: cover install install_man build_plt clean_plt dialyze test check_reproducible check_specs clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL:
 
 #==> Functions
@@ -140,6 +140,11 @@ install: compile
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/$(BINDIR)/"; \
 	done
 	"$(MAKE)" install_man
+
+check_specs: compile
+	$(Q) echo "==> Checking @specs against inferred type signatures..."
+	$(Q) bin/elixir lib/elixir/scripts/compare_specs_and_signatures.exs \
+	     --exclusions lib/elixir/scripts/compare_specs_exclusions.txt
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
