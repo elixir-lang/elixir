@@ -338,8 +338,6 @@ defmodule Node do
 
   The default node is `Node.self/0`, the local node. If `node` is the local node,
   the function also sets the cookie of all other unknown nodes to `cookie`.
-
-  This function will raise `FunctionClauseError` if the given `node` is not alive.
   """
   @spec set_cookie(t, atom) :: true
   def set_cookie(node \\ Node.self(), cookie) when is_atom(cookie) do
