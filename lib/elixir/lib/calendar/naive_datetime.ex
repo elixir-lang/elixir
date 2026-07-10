@@ -570,9 +570,11 @@ defmodule NaiveDateTime do
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
-    units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
-    units1 - units2
+    diff_microsecond =
+      (naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond)) -
+        (naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond))
+
+    System.convert_time_unit(diff_microsecond, :microsecond, unit)
   end
 
   @doc """
