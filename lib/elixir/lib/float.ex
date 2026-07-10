@@ -346,7 +346,7 @@ defmodule Float do
   @spec round(float, precision_range) :: float
   def round(float, precision \\ 0)
 
-  def round(float, 0) when float == 0.0, do: float
+  def round(float, 0) when float === 0.0 or float === -0.0, do: float
 
   def round(float, 0) when is_float(float) do
     case :erlang.round(float) * 1.0 do
