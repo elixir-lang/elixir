@@ -814,7 +814,7 @@ defmodule Keyword do
       [a: 3, b: 2]
 
   """
-  @spec put(t, key, value) :: t
+  @spec put(t, key, value) :: [{key, value}, ...]
   def put(keywords, key, value) when is_list(keywords) and is_atom(key) do
     [{key, value} | delete(keywords, key)]
   end
@@ -1174,7 +1174,7 @@ defmodule Keyword do
       ...
 
   """
-  @spec update!(t, key, (current_value :: value -> new_value :: value)) :: t
+  @spec update!(t, key, (current_value :: value -> new_value :: value)) :: [{key, value}, ...]
   def update!(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
     update!(keywords, key, fun, keywords)
@@ -1212,7 +1212,7 @@ defmodule Keyword do
       [a: 1, b: 11]
 
   """
-  @spec update(t, key, default :: value, (existing_value :: value -> new_value :: value)) :: t
+  @spec update(t, key, default :: value, (existing_value :: value -> new_value :: value)) :: [{key, value}, ...]
   def update(keywords, key, default, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
     update_guarded(keywords, key, default, fun)
