@@ -566,7 +566,7 @@ defmodule Calendar do
   u      | Day of the week                                                         | 1 (Monday), 7 (Sunday)
   x      | Preferred date (without time) representation                            | 2018-10-17
   X      | Preferred time (without date) representation                            | 12:34:56
-  y      | Year as 2-digits                                                        | 01, 01, 86, 18
+  y      | Year as 2-digits                                                        | -01, 01, 86, 18
   Y      | Year                                                                    | -0001, 0001, 1986
   z      | +hhmm/-hhmm time zone offset from UTC (empty string if naive)           | +0300, -0530
   Z      | Time zone abbreviation (empty string if naive)                          | CET, BRST
@@ -623,7 +623,7 @@ defmodule Calendar do
       ...>)
       "серпень"
 
-   Microsecond formatting:
+    Microsecond formatting:
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06Z], "%y-%m-%d %H:%M:%S.%f")
       "19-08-26 13:52:06.0"
