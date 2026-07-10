@@ -731,19 +731,19 @@ defmodule Calendar.ISO do
   defp parse_duration_time(string, acc, allowed) do
     case Integer.parse(string) do
       {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
-        case parse_microsecond(rest) do
-          {{ms, precision}, "S"} ->
-            ms =
-              case string do
-                "-" <> _ ->
-                  -ms
+        with {:second, _allowed} <- find_unit(allowed, ?S),
+             {{ms, precision}, "S"} <- parse_microsecond(rest) do
+          ms =
+            case string do
+              "-" <> _ ->
+                -ms
 
-                _ ->
-                  ms
-              end
+              _ ->
+                ms
+            end
 
-            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
-
+          {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
+        else
           _ ->
             {:error, :invalid_time_component}
         end
