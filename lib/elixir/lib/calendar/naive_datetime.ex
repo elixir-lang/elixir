@@ -672,7 +672,7 @@ defmodule NaiveDateTime do
 
   """
   @doc since: "1.6.0"
-  @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
+  @spec truncate(Calendar.naive_datetime(), :microsecond | :millisecond | :second) :: t()
   def truncate(%NaiveDateTime{microsecond: microsecond} = naive_datetime, precision) do
     %{naive_datetime | microsecond: Calendar.truncate(microsecond, precision)}
   end

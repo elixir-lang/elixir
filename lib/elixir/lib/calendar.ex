@@ -106,6 +106,7 @@ defmodule Calendar do
   @typedoc "Any map or struct that contains the time fields."
   @type time :: %{
           optional(any) => any,
+          calendar: calendar,
           hour: hour,
           minute: minute,
           second: second,
