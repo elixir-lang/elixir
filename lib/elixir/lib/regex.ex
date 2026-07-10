@@ -23,7 +23,7 @@ defmodule Regex do
 
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
-  Keep in mind that all of the structs fields are private. And since
+  Keep in mind that all struct's fields are private. And since
   regexes are compiled, there is no guarantee two regular expressions
   from the same source are equal, for example:
 
@@ -284,10 +284,10 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.import(~r/foo/E)
+      iex> Regex.import(~r/foo/E)
       ~r/foo/
 
-      Regex.import(~r/foo/)
+      iex> Regex.import(~r/foo/)
       ~r/foo/
 
   """
@@ -491,6 +491,7 @@ defmodule Regex do
   and will raise an exception unless the `:strict` option is false.
 
   ## Examples
+
       iex> Regex.to_embed(~r/foo/)
       "(?-imsx:foo)"
 
