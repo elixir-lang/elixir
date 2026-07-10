@@ -230,6 +230,7 @@ defmodule Registry do
           | {:name, registry}
           | {:partitions, pos_integer}
           | {:listeners, [atom]}
+          | {:compressed, boolean}
           | {:meta, [{meta_key, meta_value}]}
 
   @typedoc """
@@ -357,6 +358,8 @@ defmodule Registry do
       and unregister events. The registered process must be monitored by the
       listener if the listener wants to be notified if the registered process
       crashes. Messages sent to listeners are of type `t:listener_message/0`.
+    * `:compressed` - turns on compression for registry's keys ETS tables, reducing
+      memory usage at the cost of additional CPU usage. Defaults to `false`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
   For `:duplicate` registries, you can specify the partitioning strategy
