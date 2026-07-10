@@ -609,6 +609,8 @@ defmodule Mix.Release do
   @spec make_boot_script(t, Path.t(), [{application(), mode()}], [String.t()]) ::
           :ok | {:error, String.t()}
   def make_boot_script(release, path, modes, prepend_paths \\ []) do
+    path = IO.chardata_to_string(path)
+
     with {:ok, rel_spec} <- build_release_spec(release, modes) do
       File.write!(path <> ".rel", consultable(rel_spec))
 
