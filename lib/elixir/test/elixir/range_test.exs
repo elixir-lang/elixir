@@ -103,6 +103,11 @@ defmodule RangeTest do
       assert_overlap(-7..-5, -5..-1)
 
       assert Range.disjoint?(1..1, 1..1) == false
+
+      # Single-element ranges still contain their element regardless of the step
+      assert Range.disjoint?(1..1//-2, 1..1//-2) == false
+      assert Range.disjoint?(3..3//-3, 1..5) == false
+      assert Range.disjoint?(1..5, 3..3//-3) == false
     end
   end
 
