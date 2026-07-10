@@ -748,6 +748,7 @@ defmodule Registry do
 
   """
   @doc since: "1.18.0"
+  @spec lock(registry, term, (-> result)) :: result when result: var
   def lock(registry, lock_key, function)
       when is_atom(registry) and is_function(function, 0) do
     {_kind, partitions, _, pid_ets, _} = info!(registry)
