@@ -3170,10 +3170,13 @@ defmodule String do
       0.75
       iex> String.bag_distance("abcd", "abcd")
       1.0
+      iex> String.bag_distance("", "")
+      1.0
 
   """
   @spec bag_distance(t, t) :: float
   @doc since: "1.8.0"
+  def bag_distance("", ""), do: 1.0
   def bag_distance(_string, ""), do: 0.0
   def bag_distance("", _string), do: 0.0
 
