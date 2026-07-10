@@ -517,6 +517,10 @@ defmodule Range do
   defp normalize(first, last, step) when first > last,
     do: {first - abs(div(first - last, step) * step), first, -step}
 
+  # A single-element range holds the same element regardless of the step, so
+  # make the step positive to keep the progression in disjoint?/2 increasing.
+  defp normalize(first, last, step) when first == last, do: {first, last, abs(step)}
+
   defp normalize(first, last, step), do: {first, last, step}
 
   @doc false
