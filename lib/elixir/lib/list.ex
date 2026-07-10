@@ -1030,10 +1030,20 @@ defmodule List do
   end
 
   @doc """
-  Converts a charlist to an atom.
+  Converts a charlist to an existing atom or creates a new one.
 
   Elixir supports conversions from charlists which contain any Unicode
   code point.
+
+  Warning: this function creates atoms dynamically and atoms are
+  not garbage-collected. Therefore, `charlist` should not be an
+  untrusted value, such as input received from a socket or during
+  a web request. Consider using `to_existing_atom/1` instead.
+
+  By default, the maximum number of atoms is `1_048_576`. This limit
+  can be raised or lowered using the VM option `+t`.
+
+  The maximum atom size is 255 Unicode code points.
 
   Inlined by the compiler.
 
