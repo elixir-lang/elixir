@@ -221,6 +221,29 @@ defmodule NaiveDateTimeTest do
 
       assert NaiveDateTime.diff(%{dt | second: 57}, dt, :second) == 50
     end
+
+    test "truncates the elapsed difference, not each operand (matches DateTime.diff)" do
+      # The true elapsed span is 0.5s (< 1s) and 86399.5s (< 1 day). Sub-second
+      # fractions must not inflate the count: per the "rounds incomplete days to
+      # zero" guarantee, and consistent with the sibling DateTime.diff/3.
+      assert NaiveDateTime.diff(
+               ~N[2000-01-01 00:00:01.200000],
+               ~N[2000-01-01 00:00:00.700000],
+               :second
+             ) == 0
+
+      assert NaiveDateTime.diff(
+               ~N[2000-01-02 00:00:00.200000],
+               ~N[2000-01-01 00:00:00.700000],
+               :day
+             ) == 0
+
+      assert NaiveDateTime.diff(
+               ~N[2000-01-01 00:00:00.001200],
+               ~N[2000-01-01 00:00:00.000700],
+               :millisecond
+             ) == 0
+    end
   end
 
   test "convert/2" do
