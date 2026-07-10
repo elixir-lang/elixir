@@ -1433,7 +1433,7 @@ defmodule Keyword do
     do: {values, acc}
 
   @doc """
-  Lazily returns and removes all values associated with `key` in the keyword list.
+  Lazily returns the first value for `key` and removes all associated entries in the keyword list.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to set up and tear down again.
