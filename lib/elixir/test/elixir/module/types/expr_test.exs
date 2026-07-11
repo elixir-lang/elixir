@@ -148,6 +148,30 @@ defmodule Module.Types.ExprTest do
                    non_empty_list(term(), term())
                """
     end
+
+    test "++" do
+      assert typecheck!([x], [] ++ String.to_integer(x)) == integer()
+      assert typecheck!([x], [x] ++ []) == non_empty_list(dynamic())
+
+      assert typeerror!([x], String.to_integer(x) ++ []) |> strip_ansi() =~
+               ~l"""
+               incompatible types given to Kernel.++/2:
+
+                   String.to_integer(x) ++ []
+
+               given types:
+
+                   integer(), empty_list()
+
+               but expected one of:
+
+                   #1
+                   empty_list(), term()
+
+                   #2
+                   non_empty_list(term()), term()
+               """
+    end
   end
 
   describe "funs" do

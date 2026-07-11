@@ -1094,6 +1094,33 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :++, _info, [left, right], stack) do
+    # TODO: remove once we add parametric types, this will just be:
+    # empty_list(), a -> a
+    # non_empty_list(elem), a -> non_empty_list(elem, a)
+    case list_of(left) do
+      {empty_list?, list_of} ->
+        left_result =
+          if empty_list? do
+            right
+          else
+            none()
+          end
+
+        right_result =
+          if list_of do
+            non_empty_list(list_of, right)
+          else
+            none()
+          end
+
+        {:ok, return(union(left_result, right_result), [left, right], stack)}
+
+      :badproperlist ->
+        {:error, badremote(:erlang, :++, [left, right])}
+    end
+  end
+
   @struct_key atom([:__struct__])
   @nil_atom atom([nil])
 

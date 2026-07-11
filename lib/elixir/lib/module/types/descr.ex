@@ -2292,7 +2292,7 @@ defmodule Module.Types.Descr do
   It returns a two-element tuple. The first element dictates the
   empty list type. The second element returns the value type.
 
-      {boolean(), t() or nil}
+      {true, nil} or {boolean(), t()}
 
   If the value is `nil`, it means that component is missing.
   Note `{false, nil}` is not a valid return type, instead it
@@ -2304,10 +2304,10 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         with {empty_list?, value} <- list_of_static(descr) do
-          if empty?(value) and empty_list? == false do
-            :badproperlist
-          else
-            {empty_list?, value}
+          cond do
+            not empty?(value) -> {empty_list?, value}
+            empty_list? -> {true, nil}
+            true -> :badproperlist
           end
         end
 
@@ -2327,7 +2327,7 @@ defmodule Module.Types.Descr do
 
               %{list: bdd} ->
                 Enum.reduce(list_bdd_to_pos_dnf(bdd), none(), fn {list, last, _negs}, acc ->
-                  if last == @empty_list or subtype?(last, @empty_list) do
+                  if empty_list_type?(last) do
                     union(acc, list)
                   else
                     acc

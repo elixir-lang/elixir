@@ -1735,7 +1735,7 @@ defmodule Module.Types.DescrTest do
     test "list_of" do
       assert list_of(term()) == :badproperlist
       assert list_of(none()) == :badproperlist
-      assert list_of(empty_list()) == {true, none()}
+      assert list_of(empty_list()) == {true, nil}
       assert list_of(union(empty_list(), integer())) == :badproperlist
       assert list_of(non_empty_list(integer())) == {false, integer()}
       assert list_of(non_empty_list(integer(), atom())) == :badproperlist
@@ -1746,7 +1746,9 @@ defmodule Module.Types.DescrTest do
       assert list_of(dynamic()) == {true, dynamic()}
       assert list_of(dynamic(list(integer()))) == {true, dynamic(integer())}
       assert list_of(dynamic(list(integer(), atom()))) == {true, nil}
+      assert list_of(dynamic(list(integer(), term()))) == {true, dynamic()}
       assert list_of(dynamic(non_empty_list(integer(), atom()))) == :badproperlist
+      assert list_of(dynamic(non_empty_list(integer(), term()))) == {false, dynamic()}
       assert list_of(dynamic(union(empty_list(), integer()))) == {true, nil}
 
       # A list that the difference resolves to nothing
