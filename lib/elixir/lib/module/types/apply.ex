@@ -1426,9 +1426,13 @@ defmodule Module.Types.Apply do
     # binary(), non_empty_list(a) -> a when a: atom()
 
     case remote_apply(info, args_types, stack) do
-      {:ok, _} ->
-        {false, refined_atom} = list_of(list)
-        {:ok, refined_atom}
+      {:ok, return_type} ->
+        refined_list = opt_intersection(list, non_empty_list(atom()))
+
+        case list_of(refined_list) do
+          {false, refined_atom} -> {:ok, refined_atom}
+          _ -> {:ok, return_type}
+        end
 
       other ->
         other

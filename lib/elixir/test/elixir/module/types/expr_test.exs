@@ -1918,6 +1918,26 @@ defmodule Module.Types.ExprTest do
                String.to_existing_atom(x, values)
              ) == dynamic(atom())
 
+      assert typecheck!(
+               [value],
+               String.to_existing_atom("foo", Enum.map(value, & &1))
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               String.to_existing_atom("foo", List.wrap(value))
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               String.to_existing_atom("foo", Keyword.keys(value))
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               String.to_existing_atom("foo", [value] ++ [])
+             ) == dynamic(atom())
+
       assert typeerror!(
                [x],
                String.to_existing_atom(:not_a_string, x)
@@ -1951,6 +1971,26 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(
                [x, values],
                List.to_existing_atom(x, values)
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               List.to_existing_atom(~c"foo", Enum.map(value, & &1))
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               List.to_existing_atom(~c"foo", List.wrap(value))
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               List.to_existing_atom(~c"foo", Keyword.keys(value))
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [value],
+               List.to_existing_atom(~c"foo", [value] ++ [])
              ) == dynamic(atom())
 
       assert typeerror!(
