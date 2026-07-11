@@ -521,6 +521,7 @@ defmodule IEx.AutocompleteTest do
     assert ~c"size/1" in entries
 
     assert {:yes, ~c"eger", []} = expand(~c"<<foo::int")
+    assert {:yes, ~c"teger", []} = expand(~c"<<foo::in")
 
     assert {:yes, ~c"", entries} = expand(~c"<<foo::integer-")
     refute ~c"integer" in entries

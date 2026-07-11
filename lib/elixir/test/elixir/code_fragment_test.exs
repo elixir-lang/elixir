@@ -1309,6 +1309,26 @@ defmodule CodeFragmentTest do
       assert cc2q!("&foo/") == s2q!("&foo/__cursor__()")
     end
 
+    test "prunes operator keywords after operators" do
+      for keyword <- ~w(in when and or not) do
+        assert cc2q!("foo + #{keyword}") == s2q!("foo + __cursor__()")
+      end
+
+      for operator <- ["==", "|>", "::", "and"] do
+        assert cc2q!("foo #{operator} in") == s2q!("foo #{operator} __cursor__()")
+      end
+
+      assert cc2q!("! in") == s2q!("!__cursor__()")
+    end
+
+    test "keeps operator keywords after operands" do
+      for operator <- ~w(in when and or) do
+        assert cc2q!("foo #{operator}") == s2q!("foo #{operator} __cursor__()")
+      end
+
+      assert cc2q!("not") == s2q!("not __cursor__()")
+    end
+
     test "keeps function calls without parens" do
       assert cc2q!("alias") == s2q!("__cursor__()")
       assert cc2q!("alias ") == s2q!("alias __cursor__()")
@@ -1382,6 +1402,7 @@ defmodule CodeFragmentTest do
       assert cc2q!("<<foo") == s2q!("<<__cursor__()>>")
       assert cc2q!("<<foo, bar") == s2q!("<<foo, __cursor__()>>")
       assert cc2q!("<<foo, bar::baz") == s2q!("<<foo, bar::__cursor__()>>")
+      assert cc2q!("<<foo::in") == s2q!("<<foo::__cursor__()>>")
     end
 
     test "anonymous functions" do
