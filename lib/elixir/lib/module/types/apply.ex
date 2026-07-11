@@ -217,8 +217,6 @@ defmodule Module.Types.Apply do
         {:erlang, :split_binary, [{[binary(), integer()], tuple([binary(), binary()])}]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
         {:erlang, :trunc, [{[opt_union(integer(), float())], integer()}]},
-
-        # TODO: Replace term()/dynamic() by parametric types
         {:erlang, :++,
          [
            {[empty_list(), term()], dynamic(term())},
@@ -1101,6 +1099,33 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :++, _info, [left, right], stack) do
+    # TODO: remove once we add parametric types, this will just be:
+    # empty_list(), a -> a
+    # non_empty_list(elem), a -> non_empty_list(elem, a)
+    case list_of(left) do
+      {empty_list?, list_of} ->
+        left_result =
+          if empty_list? do
+            right
+          else
+            none()
+          end
+
+        right_result =
+          if list_of do
+            non_empty_list(list_of, right)
+          else
+            none()
+          end
+
+        {:ok, return(opt_union(left_result, right_result), [left, right], stack)}
+
+      :badproperlist ->
+        {:error, badremote(:erlang, :++, [left, right])}
+    end
+  end
+
   @struct_key atom([:__struct__])
   @nil_atom atom([nil])
 
@@ -1422,13 +1447,22 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(mod, :to_existing_atom, info, [_string, list] = args_types, stack)
        when mod in [String, List] do
-    # TODO remove once we add parametric types, this will just be:
+    # TODO: remove once we add parametric types, this will just be:
     # binary(), non_empty_list(a) -> a when a: atom()
 
     case remote_apply(info, args_types, stack) do
       {:ok, _} ->
-        {false, refined_atom} = list_of(list)
-        {:ok, refined_atom}
+        # If list is a dynamic type, remote_apply only guarantees compatibility,
+        # and therefore we may still have improper lists or lists of dynamic().
+        # Note we cannot have static empty lists, as those would fail on remote_apply,
+        # but we can have dynamic empty lists (which we should ignore)
+        case list_of(list) do
+          {_empty_list, refined_atom} when is_descr(refined_atom) ->
+            {:ok, return(opt_intersection(refined_atom, atom()), args_types, stack)}
+
+          :badproperlist ->
+            {:error, badremote(mod, :to_existing_atom, args_types)}
+        end
 
       other ->
         other
