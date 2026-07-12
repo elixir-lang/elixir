@@ -3139,7 +3139,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_fetch_key_static(%{map: bdd}, key) do
-    bdd |> map_bdd_to_dnf_with_empty() |> map_dnf_fetch_static(key)
+    bdd |> map_bdd_to_dnf_remove_empty() |> map_dnf_fetch_static(key)
   end
 
   defp map_fetch_key_static(%{}, _key), do: {false, none()}

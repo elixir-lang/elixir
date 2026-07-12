@@ -2458,6 +2458,14 @@ defmodule Module.Types.DescrTest do
              |> opt_difference(open_map(a: atom([:foo, :bar])))
              |> opt_difference(open_map(a: atom([:foo, :baz])))
              |> map_fetch_key(:a) == {false, integer()}
+
+      t = closed_map(a: term())
+      knife = open_map(c: none())
+      cover = opt_union(t, knife)
+      t2 = opt_difference(cover, opt_difference(cover, t))
+      assert equal?(t, t2)
+      assert map_fetch_key(t, :a) == {false, term()}
+      assert map_fetch_key(t2, :a) == map_fetch_key(t, :a)
     end
 
     # Times out without a projection-only map_fetch_key path
