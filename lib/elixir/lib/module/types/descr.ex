@@ -3813,12 +3813,50 @@ defmodule Module.Types.Descr do
   defp map_update_put_domains(bdd, [], _type_fun, _force?), do: %{map: bdd}
 
   defp map_update_put_domains(bdd, domain_keys, type_fun, force?) do
-    bdd =
-      bdd_map(bdd, fn bdd_leaf(tag, fields) ->
-        bdd_leaf_new(map_update_put_domain(tag, domain_keys, type_fun, force?), fields)
-      end)
+    # The update above (bdd_map over positives and their negations) relies on the
+    # assumption that a negation only matters when it fully cancels the positive.
+    # That breaks for negations that are *disjoint* from their positive literal:
+    # such a negation removes nothing (it is redundant), but updating its domain
+    # makes it start overlapping — and thus wrongly excluding — achievable results.
+    # These redundant negations arise from non-normalized representations (e.g.
+    # (t ∩ s) ∪ (t \ s) keeps a ¬s term disjoint from t). We drop them per DNF
+    # line before updating; genuine negations are left untouched, so this is a
+    # no-op whenever the bdd carries none (preserving the fast path).
+    bdd = bdd |> map_simplify_disjoint_negations() |> bdd_map(fn bdd_leaf(tag, fields) ->
+      bdd_leaf_new(map_update_put_domain(tag, domain_keys, type_fun, force?), fields)
+    end)
 
     %{map: bdd}
+  end
+
+  # Rebuilds a map bdd, dropping negations that are disjoint from (and hence
+  # redundant for) the positive literal of each DNF line. When no such negation
+  # exists, the reconstruction reproduces the original type unchanged.
+  defp map_simplify_disjoint_negations(bdd) do
+    dnf = bdd_to_dnf(bdd)
+
+    if Enum.any?(dnf, fn {_pos, negs} -> negs != [] end) do
+      Enum.reduce(dnf, :bdd_bot, fn {pos, negs}, acc ->
+        case non_empty_map_literals_intersection(pos) do
+          :empty ->
+            acc
+
+          {tag, fields} ->
+            pos_leaf = bdd_leaf_new(tag, fields)
+
+            line =
+              Enum.reduce(negs, pos_leaf, fn neg_leaf, line ->
+                if map_empty?(map_intersection(pos_leaf, neg_leaf)),
+                  do: line,
+                  else: map_difference(line, neg_leaf)
+              end)
+
+            map_union(line, acc)
+        end
+      end)
+    else
+      bdd
+    end
   end
 
   defp map_update_put_domain(tag_or_domains, domain_keys, type_fun, force?) do

@@ -3334,6 +3334,35 @@ defmodule Module.Types.DescrTest do
 
       assert map_put(map, atom([:k]), binary()) == {:ok, open_map(k: binary(), x: term())}
     end
+
+    test "domain put is stable across representations and keeps achievable outcomes" do
+      # A domain put over a representation carrying a redundant (disjoint)
+      # negation must not exclude achievable Map.put outcomes.
+      a =
+        closed_map(
+          a:
+            opt_negation(
+              open_map([
+                {[:port], float()},
+                {:a, closed_map([{[:reference], boolean()}, {:b, boolean()}, {:a, boolean()}])},
+                {:b, opt_difference(fun(1), tuple())}
+              ])
+            )
+        )
+
+      knife = closed_map([{[:map], opt_negation(open_tuple([fun(1)]))}])
+      a2 = opt_union(opt_intersection(a, knife), opt_difference(a, knife))
+      assert equal?(a, a2)
+      {:ok, r1} = map_put(a, atom(), knife)
+      {:ok, r2} = map_put(a2, atom(), knife)
+      assert equal?(r1, r2)
+
+      # The witness %{a: %{}, b: %{}} is achievable (put :b => %{} into %{a: %{}})
+      # and must be a member of both results.
+      witness = closed_map(a: closed_map([]), b: closed_map([]))
+      assert subtype?(witness, r1)
+      assert subtype?(witness, r2)
+    end
   end
 
   describe "disjoint" do
