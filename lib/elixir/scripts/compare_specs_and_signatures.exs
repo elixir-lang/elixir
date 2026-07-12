@@ -962,10 +962,27 @@ defmodule Main do
       |> Enum.flat_map(&(&1[:body_warnings] || []))
       |> Enum.sort_by(&{&1.mfa, &1.location})
 
+    # Return relation of the spec-domain body check across ALL compared
+    # functions (not just the residue): how the return type inferred under
+    # spec-typed arguments relates to the spec return type.
+    body_relations =
+      all
+      |> Enum.filter(& &1[:body_check])
+      |> Enum.frequencies_by(& &1.body_check.relation)
+
     out =
       case opts[:format] do
         "report" ->
-          render_report(stats, residue, untranslatable, all, gate, body_warnings, inexact)
+          render_report(
+            stats,
+            residue,
+            untranslatable,
+            all,
+            gate,
+            body_warnings,
+            inexact,
+            body_relations
+          )
 
         "json" ->
           JSON.encode_to_iodata!(
@@ -976,7 +993,8 @@ defmodule Main do
               hints,
               body_warnings,
               no_signature,
-              inexact
+              inexact,
+              body_relations
             )
           )
 
@@ -1045,11 +1063,25 @@ defmodule Main do
   # inference proved the return strictly narrower than an exactly-translated
   # spec. Not gated (specs are deliberately wide contracts), but listed so
   # documentation-tightening candidates remain identifiable.
-  defp render_json(stats, residue, untranslatable, hints, body_warnings, no_signature, inexact) do
+  defp render_json(
+         stats,
+         residue,
+         untranslatable,
+         hints,
+         body_warnings,
+         no_signature,
+         inexact,
+         body_relations
+       ) do
     %{
       elixir: System.version(),
       format_version: 3,
       stats: stats,
+      # Spec-domain body check over ALL compared functions: frequency of the
+      # set relation between the return type inferred under spec-typed
+      # arguments and the spec return type (:equal, :inside_spec,
+      # :wider_than_spec, :disjoint, :incomparable).
+      body_check_relations: body_relations,
       residue: Enum.map(residue, &entry_json/1),
       untranslatable: Enum.map(untranslatable, &untranslatable_json/1),
       tightening_hints: Enum.map(hints, &entry_json/1),
@@ -1065,9 +1097,16 @@ defmodule Main do
     }
   end
 
-  defp render_report(stats, residue, untranslatable, all, gate, body_warnings, inexact) do
+  defp render_report(stats, residue, untranslatable, all, gate, body_warnings, inexact, relations) do
     total = length(all)
     auto = Enum.count(all, &(&1.verdict in @auto))
+
+    relations_line =
+      if relations == %{} do
+        ""
+      else
+        "body check returns vs spec returns: #{inspect(relations)}\n"
+      end
 
     gate_section =
       case gate.exclusions do
@@ -1109,7 +1148,7 @@ defmodule Main do
     residue:      #{length(residue)} -- #{inspect(Map.take(stats, @residue))}
     untranslatable: #{Map.get(stats, :untranslatable, 0)}
     approximate translations: #{inexact} (per-slice precision flags in JSON)
-    #{gate_section}
+    #{relations_line}#{gate_section}
     """
 
     untranslatable_section =
@@ -1198,7 +1237,7 @@ defmodule Main do
   defp render_prompt(stats, residue, untranslatable, body_warnings) do
     json =
       JSON.encode_to_iodata!(
-        render_json(stats, residue, untranslatable, [], body_warnings, [], 0)
+        render_json(stats, residue, untranslatable, [], body_warnings, [], 0, %{})
       )
 
     [
