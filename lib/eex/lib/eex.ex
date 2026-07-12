@@ -293,7 +293,7 @@ defmodule EEx do
       "foo baz"
 
   """
-  @spec eval_string(String.t(), keyword, [compile_opt]) :: term()
+  @spec eval_string(String.t(), Code.binding(), [compile_opt]) :: term()
   def eval_string(source, bindings \\ [], options \\ [])
       when is_binary(source) and is_list(bindings) and is_list(options) do
     compiled = compile_string(source, options)
@@ -315,7 +315,7 @@ defmodule EEx do
       #=> "foo baz"
 
   """
-  @spec eval_file(Path.t(), keyword, [compile_opt]) :: String.t()
+  @spec eval_file(Path.t(), Code.binding(), [compile_opt]) :: String.t()
   def eval_file(filename, bindings \\ [], options \\ [])
       when is_list(bindings) and is_list(options) do
     filename = IO.chardata_to_string(filename)
