@@ -102,6 +102,12 @@ defmodule IEx.HelpersTest do
                    fn -> break!(PryExampleModule, :unknown, 2) end
     end
 
+    test "errors when setting up a break for unknown expression" do
+      assert_raise ArgumentError, ~r"unknown expression to break on", fn ->
+        break!(123)
+      end
+    end
+
     test "errors for non-Elixir modules" do
       assert_raise RuntimeError,
                    "could not set breakpoint, module :maps was not written in Elixir",
