@@ -51,10 +51,13 @@ Inspect.Algebra.container_doc_with_opts/6  # mixed
 Kernel.exit/1                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
 Kernel.throw/1                             # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
 Keyword.put/3                              # mixed
+List.insert_at/3                           # mixed: inference proves non-empty return but over-approximates the tail; list() spec is correct
 Keyword.replace!/3                         # mixed
 Keyword.update!/3                          # mixed
 Keyword.update/4                           # mixed
 Logger.Backends.Internal.add/2             # mixed
+Macro.Env.location/1                       # mixed: inference proves non-empty return with term() elements; keyword spec is correct
+Macro.Env.stacktrace/1                     # mixed: inference proves non-empty return with wider tuple elements; spec is correct
 Macro.Env.expand_import/5                  # mixed
 Macro.Env.expand_require/6                 # mixed
 Macro.Env.prepend_tracer/2                 # mixed
