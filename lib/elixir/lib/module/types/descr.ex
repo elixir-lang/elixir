@@ -3897,7 +3897,7 @@ defmodule Module.Types.Descr do
   defp map_put_static_value(descr, split_keys, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if descr_key?(descr, :map) and map_only?(descr) do
+        if non_empty_map_only?(descr) do
           {:ok, map_put_static(descr, split_keys, type)}
         else
           :badmap
