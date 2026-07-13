@@ -831,12 +831,16 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @spec flag(:async_dist, boolean) :: boolean
   @spec flag(:error_handler, module) :: module
+  @spec flag(:fullsweep_after, non_neg_integer) :: non_neg_integer
   @spec flag(:max_heap_size, heap_size) :: heap_size
   # :off_heap | :on_heap twice because :erlang.message_queue_data() is not exported
   @spec flag(:message_queue_data, :off_heap | :on_heap) :: :off_heap | :on_heap
   @spec flag(:min_bin_vheap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:min_heap_size, non_neg_integer) :: non_neg_integer
+  @spec flag(:monitor_nodes, term) :: term
+  @spec flag({:monitor_nodes, term}, term) :: term
   @spec flag(:priority, priority_level) :: priority_level
   @spec flag(:save_calls, 0..10_000) :: 0..10_000
   @spec flag(:sensitive, boolean) :: boolean
