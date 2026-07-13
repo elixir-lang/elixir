@@ -79,10 +79,11 @@ defmodule Process do
   @typedoc """
   A process destination.
 
-  A remote or local PID, a local port, a locally registered name, or a tuple in
-  the form of `{registered_name, node}` for a registered name at another node.
+  A remote or local PID, a local port, a process alias, a locally registered name,
+  or a tuple in the form of `{registered_name, node}` for a registered name at
+  another node.
   """
-  @type dest :: pid | port | (registered_name :: atom) | {registered_name :: atom, node}
+  @type dest :: pid | port | alias | (registered_name :: atom) | {registered_name :: atom, node}
 
   @doc """
   Tells whether the given process is alive on the local node.
@@ -339,7 +340,7 @@ defmodule Process do
   @doc """
   Sends a message to the given `dest`.
 
-  `dest` may be a remote or local PID, a local port, a locally
+  `dest` may be a remote or local PID, a local port, a process alias, a locally
   registered name, or a tuple in the form of `{registered_name, node}` for a
   registered name at another node.
 
