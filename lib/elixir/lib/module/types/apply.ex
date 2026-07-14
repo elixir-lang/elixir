@@ -254,7 +254,7 @@ defmodule Module.Types.Apply do
         {Map, :fetch,
          [{[open_map(), term()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
         {Map, :fetch!, [{[open_map(), term()], term()}]},
-        {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
+        {Map, :from_struct, [{[open_map(__struct__: atom())], open_map(__struct__: not_set())}]},
         {Map, :get, [{[open_map(), term()], term()}]},
         {Map, :get, [{[open_map(), term(), term()], term()}]},
         {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
@@ -1129,11 +1129,22 @@ defmodule Module.Types.Apply do
   @struct_key atom([:__struct__])
   @nil_atom atom([nil])
 
-  defp remote_apply(Map, :from_struct, _info, [map] = args_types, stack) do
-    case map_update(map, @struct_key, not_set(), false, true) do
-      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(Map, :from_struct, args_types)}
-      {:error, _errors} -> {:ok, map}
+  defp remote_apply(Map, :from_struct, info, [map] = args_types, stack) do
+    case remote_apply(info, args_types, stack) do
+      {:ok, _type} ->
+        case map_update(map, @struct_key, not_set(), false, true) do
+          {_value, descr, _errors} ->
+            {:ok, return(descr, args_types, stack)}
+
+          :badmap ->
+            {:error, badremote(Map, :from_struct, args_types)}
+
+          {:error, _errors} ->
+            {:error, badremote(Map, :from_struct, args_types)}
+        end
+
+      other ->
+        other
     end
   end
 
