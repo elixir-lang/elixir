@@ -510,6 +510,11 @@ defmodule IEx.AutocompleteTest do
     assert {:no, [], []} = expand(~c"%{unknown | some: \"foo\", unkno")
   end
 
+  test "completion for mixed type map keys in update syntax" do
+    eval("map = %{\"another\" => \"qwe\", some: 1, other: :ok}")
+    assert {:yes, ~c"me: ", []} = expand(~c"%{map | so")
+  end
+
   test "completion for struct var keys" do
     eval("struct = %IEx.AutocompleteTest.MyStruct{}")
     assert expand(~c"struct.my") == {:yes, ~c"_val", []}
