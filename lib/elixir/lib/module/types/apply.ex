@@ -1136,10 +1136,7 @@ defmodule Module.Types.Apply do
           {_value, descr, _errors} ->
             {:ok, return(descr, args_types, stack)}
 
-          :badmap ->
-            {:error, badremote(Map, :from_struct, args_types)}
-
-          {:error, _errors} ->
+          _ ->
             {:error, badremote(Map, :from_struct, args_types)}
         end
 
