@@ -5256,6 +5256,17 @@ defmodule Module.Types.Descr do
 
   # Takes a static tuple type and removes an index from it.
   defp tuple_delete_static(%{tuple: bdd}, index) do
+    # Restrict to tuples that actually have `index` before projecting. Callers
+    # already guarantee this (via the is_proper_size? check), so the intersection
+    # is a semantic no-op, but it makes the element at `index` explicit in the
+    # positive literals. Without it, an open literal whose size lower bound is
+    # only carried by negations (e.g. {...} \ {} \ {term()}) projects that index
+    # to term_or_optional(); the optional marker then pairs with the full
+    # remaining bdd and the result over-approximates (e.g. admits the empty
+    # tuple), losing layout. This is the same optional-marker imprecision the
+    # projection machinery exhibits for tuple_fetch.
+    bdd = tuple_intersection(bdd, tuple_new(:open, List.duplicate(term(), index + 1)))
+
     bdd =
       bdd
       |> tuple_bdd_to_dnf_with_negations()

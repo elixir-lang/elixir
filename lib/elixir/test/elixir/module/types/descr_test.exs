@@ -2000,6 +2000,28 @@ defmodule Module.Types.DescrTest do
       assert dynamic(opt_union(tuple(), integer()))
              |> tuple_delete_at(1)
              |> equal?(dynamic(tuple_of_size_at_least(1)))
+
+      # The result must not depend on the representation. A size lower bound
+      # carried only by negations ({...} \ {} \ {term()} == open_tuple([term(),
+      # term()])) must delete to the same type as the canonical open tuple and
+      # must not over-approximate by admitting shorter tuples (e.g. the empty
+      # tuple).
+      canonical = open_tuple([term(), term()])
+
+      by_negation =
+        open_tuple([])
+        |> opt_difference(tuple([]))
+        |> opt_difference(tuple([term()]))
+
+      assert equal?(canonical, by_negation)
+
+      assert tuple_delete_at(by_negation, 0)
+             |> equal?(tuple_delete_at(canonical, 0))
+
+      assert tuple_delete_at(by_negation, 0)
+             |> equal?(open_tuple([term()]))
+
+      refute subtype?(tuple([]), tuple_delete_at(by_negation, 0))
     end
 
     test "tuple_insert_at" do
