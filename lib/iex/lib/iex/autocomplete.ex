@@ -386,7 +386,7 @@ defmodule IEx.Autocomplete do
       end)
 
     entries =
-      for key when key != :__struct__ <- Map.keys(pairs),
+      for key when is_atom(key) and key != :__struct__ <- Map.keys(pairs),
           name = Atom.to_string(key),
           if(hint == "",
             do: not String.starts_with?(name, "_"),
