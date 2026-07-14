@@ -657,8 +657,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp empty_or_optional?(type), do: empty?(remove_optional(type))
-
   defp empty_key?(key, value), do: empty_key?(key, value, %{})
   defp empty_key?(:fun, value, seen), do: fun_empty?(value, seen)
   defp empty_key?(:map, value, seen), do: map_empty?(value, seen)
@@ -1078,11 +1076,11 @@ defmodule Module.Types.Descr do
 
     cond do
       empty?(left_static) ->
-        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic), %{})
         if empty?(dynamic), do: {:error, left}, else: {:ok, dynamic(dynamic)}
 
       subtype_static?(left_static, right_dynamic) ->
-        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        dynamic = opt_intersection_static(unfold(left_dynamic), unfold(right_dynamic), %{})
         {:ok, opt_union(dynamic(dynamic), left_static)}
 
       true ->
@@ -3109,7 +3107,7 @@ defmodule Module.Types.Descr do
     default2 = map_key_tag_to_type(tag_or_domains2)
 
     # Compute the new domain
-    tag_or_domains = map_domain_intersection(tag_or_domains1, tag_or_domains2)
+    tag_or_domains = map_domain_intersection(tag_or_domains1, tag_or_domains2, seen)
 
     # Go over all fields in map1 and map2 with default atom types atom1 and atom2
     # 1. If key is in both maps, compute non empty intersection (:error if it is none)
@@ -3124,38 +3122,42 @@ defmodule Module.Types.Descr do
   end
 
   # Compute the intersection of two tags or tag-domain pairs.
-  defp map_domain_intersection(:closed, _), do: :closed
-  defp map_domain_intersection(_, :closed), do: :closed
-  defp map_domain_intersection(:open, tag_or_domains), do: tag_or_domains
-  defp map_domain_intersection(tag_or_domains, :open), do: tag_or_domains
+  #
+  # The `seen` set is the emptiness one: recursive domain values reach this
+  # function from within `map_empty?`, and restarting the emptiness check
+  # from scratch on such values would never detect the cycle.
+  defp map_domain_intersection(:closed, _, _seen), do: :closed
+  defp map_domain_intersection(_, :closed, _seen), do: :closed
+  defp map_domain_intersection(:open, tag_or_domains, _seen), do: tag_or_domains
+  defp map_domain_intersection(tag_or_domains, :open, _seen), do: tag_or_domains
 
-  defp map_domain_intersection(domains1, domains2) do
+  defp map_domain_intersection(domains1, domains2, seen) do
     # If the explicit domains are empty, use simple atom tags
-    case map_domain_intersection_fields(domains1, domains2) do
+    case map_domain_intersection_fields(domains1, domains2, seen) do
       [] -> :closed
       new_domains -> new_domains
     end
   end
 
-  defp map_domain_intersection_fields([{k1, _} | t1], [{k2, _} | _] = l2) when k1 < k2 do
-    map_domain_intersection_fields(t1, l2)
+  defp map_domain_intersection_fields([{k1, _} | t1], [{k2, _} | _] = l2, seen) when k1 < k2 do
+    map_domain_intersection_fields(t1, l2, seen)
   end
 
-  defp map_domain_intersection_fields([{k1, _} | _] = l1, [{k2, _} | t2]) when k1 > k2 do
-    map_domain_intersection_fields(l1, t2)
+  defp map_domain_intersection_fields([{k1, _} | _] = l1, [{k2, _} | t2], seen) when k1 > k2 do
+    map_domain_intersection_fields(l1, t2, seen)
   end
 
-  defp map_domain_intersection_fields([{k, type1} | t1], [{_, type2} | t2]) do
+  defp map_domain_intersection_fields([{k, type1} | t1], [{_, type2} | t2], seen) do
     inter = bare_intersection(type1, type2)
 
-    if empty_or_optional?(inter) do
-      map_domain_intersection_fields(t1, t2)
+    if empty_seen?(remove_optional(inter), seen) do
+      map_domain_intersection_fields(t1, t2, seen)
     else
-      [{k, inter} | map_domain_intersection_fields(t1, t2)]
+      [{k, inter} | map_domain_intersection_fields(t1, t2, seen)]
     end
   end
 
-  defp map_domain_intersection_fields(_, _), do: []
+  defp map_domain_intersection_fields(_, _, _seen), do: []
 
   defp map_literal_intersection_open_closed(
          [{k1, v1} | t1],
@@ -3873,7 +3875,7 @@ defmodule Module.Types.Descr do
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_opt_union(value, fn -> fst end), opt_map_union(bdd, snd)}
+          {maybe_opt_union(value, fn -> fst end), opt_map_union(bdd, snd, %{})}
 
         {tag, fields, negs}, {value, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
@@ -3901,9 +3903,9 @@ defmodule Module.Types.Descr do
                  end
                end),
                if keep_snd? do
-                 opt_map_union(bdd, snd)
+                 opt_map_union(bdd, snd, %{})
                else
-                 Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2))
+                 Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2, %{}))
                end}
           end
       end)
@@ -6397,138 +6399,169 @@ defmodule Module.Types.Descr do
 
   ## Optimizations
 
+  # Unlike the bare operations, the optimized operations recurse into tuple
+  # elements, map field values and list heads/tails. On recursive types this
+  # recursion may revisit the same pair of BDDs over and over, never reaching
+  # a base case. To guarantee termination we thread a `seen` set through the
+  # optimized operations, keyed by the operation and the two BDDs being
+  # combined. When a pair is revisited, we fall back to the bare operation on
+  # that pair, which is exact and does not recurse into components.
+  #
+  # The `seen` set must not be reused across entry points: every public
+  # opt_* call starts with a fresh one.
+  #
+  # BDDs embed their hash as the first tuple element (see `bdd_leaf_new`),
+  # so these keys compare cheaply on mismatch.
+  defp opt_bdd_seen(seen, op, kind, bdd1, bdd2) do
+    key = {op, kind, bdd1, bdd2}
+
+    case seen do
+      %{^key => _} -> :seen
+      %{} -> {:ok, Map.put(seen, key, true)}
+    end
+  end
+
   @doc """
   Computes the union of two descrs using optimized composite operations.
   """
-  def opt_union(:term, other), do: optional_to_term(other)
-  def opt_union(other, :term), do: optional_to_term(other)
-  def opt_union(none, other) when none == @none, do: other
-  def opt_union(other, none) when none == @none, do: other
+  def opt_union(left, right), do: opt_union(left, right, %{})
 
-  def opt_union({_, _, _} = left, right),
-    do: opt_union(to_descr(left), to_descr(right))
+  defp opt_union(:term, other, _seen), do: optional_to_term(other)
+  defp opt_union(other, :term, _seen), do: optional_to_term(other)
+  defp opt_union(none, other, _seen) when none == @none, do: other
+  defp opt_union(other, none, _seen) when none == @none, do: other
 
-  def opt_union(left, {_, _, _} = right),
-    do: opt_union(to_descr(left), to_descr(right))
+  defp opt_union({_, _, _} = left, right, seen),
+    do: opt_union(to_descr(left), to_descr(right), seen)
 
-  def opt_union(left, right) do
+  defp opt_union(left, {_, _, _} = right, seen),
+    do: opt_union(to_descr(left), to_descr(right), seen)
+
+  defp opt_union(left, right, seen) do
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(unfold(right), :dynamic, right)
-        opt_union_static(left, right_with_dynamic)
+        opt_union_static(left, right_with_dynamic, seen)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(unfold(left), :dynamic, left)
-        opt_union_static(left_with_dynamic, right)
+        opt_union_static(left_with_dynamic, right, seen)
 
       true ->
-        opt_union_static(left, right)
+        opt_union_static(left, right, seen)
     end
   end
 
-  @compile {:inline, opt_union_static: 2}
-  defp opt_union_static(left, right) do
-    symmetrical_merge(left, right, &opt_union/3)
+  @compile {:inline, opt_union_static: 3}
+  defp opt_union_static(left, right, seen) do
+    symmetrical_merge(left, right, &opt_union(&1, &2, &3, seen))
   end
 
-  defp opt_union(:atom, v1, v2), do: atom_union(v1, v2)
-  defp opt_union(:bitmap, v1, v2), do: v1 ||| v2
-  defp opt_union(:dynamic, v1, v2), do: dynamic_union(v1, v2, &opt_union/3)
-  defp opt_union(:list, v1, v2), do: list_union(v1, v2)
-  defp opt_union(:map, v1, v2), do: opt_map_union(v1, v2)
-  defp opt_union(:optional, 1, 1), do: 1
-  defp opt_union(:tuple, v1, v2), do: opt_tuple_union(v1, v2)
-  defp opt_union(:fun, v1, v2), do: fun_union(v1, v2)
+  defp opt_union(:atom, v1, v2, _seen), do: atom_union(v1, v2)
+  defp opt_union(:bitmap, v1, v2, _seen), do: v1 ||| v2
+
+  defp opt_union(:dynamic, v1, v2, seen),
+    do: dynamic_union(v1, v2, &opt_union(&1, &2, &3, seen))
+
+  defp opt_union(:list, v1, v2, _seen), do: list_union(v1, v2)
+  defp opt_union(:map, v1, v2, seen), do: opt_map_union(v1, v2, seen)
+  defp opt_union(:optional, 1, 1, _seen), do: 1
+  defp opt_union(:tuple, v1, v2, _seen), do: opt_tuple_union(v1, v2)
+  defp opt_union(:fun, v1, v2, _seen), do: fun_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs using optimized composite operations.
   """
-  def opt_intersection(:term, other), do: remove_optional(other)
-  def opt_intersection(other, :term), do: remove_optional(other)
+  def opt_intersection(left, right), do: opt_intersection(left, right, %{})
 
-  def opt_intersection({_, _, _} = left, right),
-    do: opt_intersection(to_descr(left), to_descr(right))
+  defp opt_intersection(:term, other, _seen), do: remove_optional(other)
+  defp opt_intersection(other, :term, _seen), do: remove_optional(other)
 
-  def opt_intersection(left, {_, _, _} = right),
-    do: opt_intersection(to_descr(left), to_descr(right))
+  defp opt_intersection({_, _, _} = left, right, seen),
+    do: opt_intersection(to_descr(left), to_descr(right), seen)
 
-  def opt_intersection(left, right) do
+  defp opt_intersection(left, {_, _, _} = right, seen),
+    do: opt_intersection(to_descr(left), to_descr(right), seen)
+
+  defp opt_intersection(left, right, seen) do
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(unfold(right), :dynamic, right)
-        opt_intersection_static(left, right_with_dynamic)
+        opt_intersection_static(left, right_with_dynamic, seen)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(unfold(left), :dynamic, left)
-        opt_intersection_static(left_with_dynamic, right)
+        opt_intersection_static(left_with_dynamic, right, seen)
 
       true ->
-        opt_intersection_static(left, right)
+        opt_intersection_static(left, right, seen)
     end
   end
 
-  @compile {:inline, opt_intersection_static: 2}
-  defp opt_intersection_static(left, right) do
-    symmetrical_intersection(left, right, &opt_intersection/3)
+  @compile {:inline, opt_intersection_static: 3}
+  defp opt_intersection_static(left, right, seen) do
+    symmetrical_intersection(left, right, &opt_intersection(&1, &2, &3, seen))
   end
 
-  defp opt_intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
-  defp opt_intersection(:bitmap, v1, v2), do: v1 &&& v2
-  defp opt_intersection(:list, v1, v2), do: opt_list_intersection(v1, v2)
-  defp opt_intersection(:map, v1, v2), do: opt_map_intersection(v1, v2)
-  defp opt_intersection(:optional, 1, 1), do: 1
-  defp opt_intersection(:tuple, v1, v2), do: opt_tuple_intersection(v1, v2)
-  defp opt_intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
+  defp opt_intersection(:atom, v1, v2, _seen), do: atom_intersection(v1, v2)
+  defp opt_intersection(:bitmap, v1, v2, _seen), do: v1 &&& v2
+  defp opt_intersection(:list, v1, v2, seen), do: opt_list_intersection(v1, v2, seen)
+  defp opt_intersection(:map, v1, v2, seen), do: opt_map_intersection(v1, v2, seen)
+  defp opt_intersection(:optional, 1, 1, _seen), do: 1
+  defp opt_intersection(:tuple, v1, v2, seen), do: opt_tuple_intersection(v1, v2, seen)
+  defp opt_intersection(:fun, v1, v2, _seen), do: fun_intersection(v1, v2)
 
-  defp opt_intersection(:dynamic, v1, v2) do
-    descr = dynamic_intersection(v1, v2, &opt_intersection/3)
+  defp opt_intersection(:dynamic, v1, v2, seen) do
+    descr = dynamic_intersection(v1, v2, &opt_intersection(&1, &2, &3, seen))
     if descr == @none, do: 0, else: descr
   end
 
   @doc """
   Computes the difference of two descrs using optimized composite operations.
   """
-  def opt_difference(left, :term), do: keep_optional(left)
-  def opt_difference(left, none) when none == @none, do: left
+  def opt_difference(left, right), do: opt_difference(left, right, %{})
 
-  def opt_difference({_, _, _} = left, right),
-    do: opt_difference(to_descr(left), to_descr(right))
+  defp opt_difference(left, :term, _seen), do: keep_optional(left)
+  defp opt_difference(left, none, _seen) when none == @none, do: left
 
-  def opt_difference(left, {_, _, _} = right),
-    do: opt_difference(to_descr(left), to_descr(right))
+  defp opt_difference({_, _, _} = left, right, seen),
+    do: opt_difference(to_descr(left), to_descr(right), seen)
 
-  def opt_difference(left, right) do
+  defp opt_difference(left, {_, _, _} = right, seen),
+    do: opt_difference(to_descr(left), to_descr(right), seen)
+
+  defp opt_difference(left, right, seen) do
     if gradual?(left) or gradual?(right) do
       {left_dynamic, left_static} = pop_dynamic(left)
       {right_dynamic, right_static} = pop_dynamic(right)
-      dynamic_part = opt_difference_static(left_dynamic, right_static)
+      dynamic_part = opt_difference_static(left_dynamic, right_static, seen)
 
-      opt_difference_static(left_static, right_dynamic)
+      opt_difference_static(left_static, right_dynamic, seen)
       |> put_dynamic(dynamic_part)
     else
-      opt_difference_static(left, right)
+      opt_difference_static(left, right, seen)
     end
   end
 
-  @compile {:inline, opt_difference_static: 2}
-  defp opt_difference_static(left, right) do
-    dynamic_difference(left, right, &opt_difference/3)
+  @compile {:inline, opt_difference_static: 3}
+  defp opt_difference_static(left, right, seen) do
+    dynamic_difference(left, right, &opt_difference(&1, &2, &3, seen))
   end
 
   # Returning 0 from the callback is taken as none() for that subtype.
-  defp opt_difference(:atom, v1, v2), do: atom_difference(v1, v2)
-  defp opt_difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
-  defp opt_difference(:list, v1, v2), do: opt_list_difference(v1, v2)
-  defp opt_difference(:map, v1, v2), do: opt_map_difference(v1, v2)
-  defp opt_difference(:optional, 1, 1), do: 0
-  defp opt_difference(:tuple, v1, v2), do: opt_tuple_difference(v1, v2)
-  defp opt_difference(:fun, v1, v2), do: fun_difference(v1, v2)
+  defp opt_difference(:atom, v1, v2, _seen), do: atom_difference(v1, v2)
+  defp opt_difference(:bitmap, v1, v2, _seen), do: v1 - (v1 &&& v2)
+  defp opt_difference(:list, v1, v2, seen), do: opt_list_difference(v1, v2, seen)
+  defp opt_difference(:map, v1, v2, seen), do: opt_map_difference(v1, v2, seen)
+  defp opt_difference(:optional, 1, 1, _seen), do: 0
+  defp opt_difference(:tuple, v1, v2, _seen), do: opt_tuple_difference(v1, v2)
+  defp opt_difference(:fun, v1, v2, _seen), do: fun_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -6544,24 +6577,30 @@ defmodule Module.Types.Descr do
   defp maybe_opt_union(nil, _fun), do: nil
   defp maybe_opt_union(descr, fun), do: opt_union(descr, fun.())
 
-  defp opt_list_intersection(bdd_leaf(:term, :term), bdd), do: bdd
-  defp opt_list_intersection(bdd, bdd_leaf(:term, :term)), do: bdd
+  defp opt_list_intersection(bdd_leaf(:term, :term), bdd, _seen), do: bdd
+  defp opt_list_intersection(bdd, bdd_leaf(:term, :term), _seen), do: bdd
 
-  defp opt_list_intersection(bdd1, bdd2),
-    do: bdd_intersection(bdd1, bdd2, &opt_list_leaf_intersection/2)
+  defp opt_list_intersection(bdd1, bdd2, seen) do
+    case opt_bdd_seen(seen, :intersection, :list, bdd1, bdd2) do
+      :seen -> list_intersection(bdd1, bdd2)
+      {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_list_leaf_intersection(&1, &2, seen))
+    end
+  end
 
-  defp opt_list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2)) do
+  defp opt_list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2), seen) do
+    intersection_fun = &opt_intersection(&1, &2, seen)
+
     try do
-      list = non_empty_intersection!(list1, list2, &opt_intersection/2)
-      last = non_empty_intersection!(last1, last2, &opt_intersection/2)
+      list = non_empty_intersection!(list1, list2, intersection_fun)
+      last = non_empty_intersection!(last1, last2, intersection_fun)
       bdd_leaf_new(list, last)
     catch
       :empty -> :bdd_bot
     end
   end
 
-  defp opt_list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term)), do: :bdd_bot
-  defp opt_list_difference(bdd_leaf(:term, :term), bdd2), do: bdd_negation(bdd2)
+  defp opt_list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term), _seen), do: :bdd_bot
+  defp opt_list_difference(bdd_leaf(:term, :term), bdd2, _seen), do: bdd_negation(bdd2)
 
   # Computes the difference between two BDD (Binary Decision Diagram) list types.
   # It progressively subtracts each type in bdd2 from all types in bdd1.
@@ -6572,17 +6611,23 @@ defmodule Module.Types.Descr do
   #    b) If only the last type differs, subtracts it
   # 3. Base case: adds bdd2 type to negations of bdd1 type
   # The result may be larger than the initial bdd1, which is maintained in the accumulator.
-  defp opt_list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2) do
-    if subtype?(list1, list2) do
-      if subtype?(last1, last2),
-        do: :bdd_bot,
-        else: bdd_leaf_new(list1, opt_difference(last1, last2))
-    else
-      bdd_difference(bdd1, bdd2, &opt_list_leaf_difference/3)
+  defp opt_list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2, seen) do
+    cond do
+      not subtype?(list1, list2) ->
+        bdd_difference(bdd1, bdd2, &opt_list_leaf_difference/3)
+
+      subtype?(last1, last2) ->
+        :bdd_bot
+
+      true ->
+        case opt_bdd_seen(seen, :difference, :list, bdd1, bdd2) do
+          :seen -> list_difference(bdd1, bdd2)
+          {:ok, seen} -> bdd_leaf_new(list1, opt_difference(last1, last2, seen))
+        end
     end
   end
 
-  defp opt_list_difference(bdd1, bdd2),
+  defp opt_list_difference(bdd1, bdd2, _seen),
     do: bdd_difference(bdd1, bdd2, &opt_list_leaf_difference/3)
 
   defp opt_list_leaf_difference(bdd_leaf(list1, last1), bdd_leaf(list2, last2), _) do
@@ -6593,31 +6638,48 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_union(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
-    case opt_map_union(tag1, fields1, tag2, fields2) do
-      {tag, fields} -> bdd_leaf_new(tag, fields)
-      nil -> bdd_union(bdd_leaf_new(tag1, fields1), bdd_leaf_new(tag2, fields2))
+  defp opt_map_union(bdd_leaf(tag1, fields1) = bdd1, bdd_leaf(tag2, fields2) = bdd2, seen) do
+    case opt_bdd_seen(seen, :union, :map, bdd1, bdd2) do
+      :seen ->
+        map_union(bdd1, bdd2)
+
+      {:ok, seen} ->
+        case opt_map_union(tag1, fields1, tag2, fields2, seen) do
+          {tag, fields} -> bdd_leaf_new(tag, fields)
+          nil -> bdd_union(bdd1, bdd2)
+        end
     end
   end
 
-  defp opt_map_union(bdd1, bdd2), do: map_union(bdd1, bdd2)
+  defp opt_map_union(bdd1, bdd2, _seen), do: map_union(bdd1, bdd2)
 
-  defp opt_map_union(:open, [], _, _), do: {:open, @fields_new}
-  defp opt_map_union(_, _, :open, []), do: {:open, @fields_new}
+  defp opt_map_union(:open, [], _, _, _seen), do: {:open, @fields_new}
+  defp opt_map_union(_, _, :open, [], _seen), do: {:open, @fields_new}
 
-  defp opt_map_union(tag1, pos1, tag2, pos2)
+  defp opt_map_union(tag1, pos1, tag2, pos2, seen)
        when is_atom(tag1) and is_atom(tag2) do
     case opt_map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
-      :all_equal when tag1 == :open -> {tag1, pos1}
-      :all_equal -> {tag2, pos2}
-      {:one_key_difference, key, v1, v2} -> {tag1, fields_store(key, opt_union(v1, v2), pos1)}
-      :left_subtype_of_right -> {tag2, pos2}
-      :right_subtype_of_left -> {tag1, pos1}
-      :none -> nil
+      :all_equal when tag1 == :open ->
+        {tag1, pos1}
+
+      :all_equal ->
+        {tag2, pos2}
+
+      {:one_key_difference, key, v1, v2} ->
+        {tag1, fields_store(key, opt_union(v1, v2, seen), pos1)}
+
+      :left_subtype_of_right ->
+        {tag2, pos2}
+
+      :right_subtype_of_left ->
+        {tag1, pos1}
+
+      :none ->
+        nil
     end
   end
 
-  defp opt_map_union(_, _, _, _), do: nil
+  defp opt_map_union(_, _, _, _, _seen), do: nil
 
   defp opt_map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
        when k1 < k2 do
@@ -6751,26 +6813,38 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_intersection(bdd_leaf(:open, []), bdd), do: bdd
-  defp opt_map_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+  defp opt_map_intersection(bdd_leaf(:open, []), bdd, _seen), do: bdd
+  defp opt_map_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
 
-  defp opt_map_intersection(bdd1, bdd2),
-    do: bdd_intersection(bdd1, bdd2, &opt_map_leaf_intersection/2)
+  defp opt_map_intersection(bdd1, bdd2, seen) do
+    case opt_bdd_seen(seen, :intersection, :map, bdd1, bdd2) do
+      :seen -> map_intersection(bdd1, bdd2)
+      {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_map_leaf_intersection(&1, &2, seen))
+    end
+  end
 
-  defp opt_map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2)) do
+  defp opt_map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2), seen) do
     try do
-      {tag, fields} = map_literal_intersection(tag1, fields1, tag2, fields2, &opt_intersection/2)
+      {tag, fields} =
+        map_literal_intersection(tag1, fields1, tag2, fields2, &opt_intersection(&1, &2, seen))
+
       bdd_leaf_new(tag, fields)
     catch
       :empty -> :bdd_bot
     end
   end
 
-  defp opt_map_difference(_, bdd_leaf(:open, [])), do: :bdd_bot
-  defp opt_map_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2), do: bdd_negation(bdd2)
+  defp opt_map_difference(_, bdd_leaf(:open, []), _seen), do: :bdd_bot
 
-  defp opt_map_difference(bdd1, bdd2),
-    do: bdd_difference(bdd1, bdd2, &opt_map_leaf_difference/3)
+  defp opt_map_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2, _seen),
+    do: bdd_negation(bdd2)
+
+  defp opt_map_difference(bdd1, bdd2, seen) do
+    case opt_bdd_seen(seen, :difference, :map, bdd1, bdd2) do
+      :seen -> map_difference(bdd1, bdd2)
+      {:ok, seen} -> bdd_difference(bdd1, bdd2, &opt_map_leaf_difference(&1, &2, &3, seen))
+    end
+  end
 
   # This clause optimizes differences with an open single-key right side:
   #
@@ -6794,7 +6868,7 @@ defmodule Module.Types.Descr do
   # Therefore, this clause is only used when `type` is `:intersection` or `:none`.
   # `:union` falls through to the general clause below. The reason we have
   # this long comment is because this was a regression in the past.
-  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type)
+  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type, seen)
        when type != :union do
     {found?, v1} =
       case fields_find(key, fields) do
@@ -6815,11 +6889,11 @@ defmodule Module.Types.Descr do
         :disjoint
 
       true ->
-        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
+        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type, seen)
     end
   end
 
-  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields), type) do
+  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(neg_tag, neg_fields), type, seen) do
     case opt_map_difference_strategy(fields, neg_fields, tag, neg_tag) do
       :disjoint ->
         :disjoint
@@ -6828,15 +6902,15 @@ defmodule Module.Types.Descr do
         :subtype
 
       {:one_key_difference, key, v1, v2} ->
-        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type)
+        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type, seen)
 
       :none ->
         :none
     end
   end
 
-  defp opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type) do
-    v_diff = opt_difference(v1, v2)
+  defp opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type, seen) do
+    v_diff = opt_difference(v1, v2, seen)
 
     if empty?(v_diff) do
       :subtype
@@ -6849,10 +6923,10 @@ defmodule Module.Types.Descr do
             :bdd_bot
 
           :union ->
-            bdd_leaf_new(tag, fields_store(key, opt_union(v1, v2), fields))
+            bdd_leaf_new(tag, fields_store(key, opt_union(v1, v2, seen), fields))
 
           :intersection ->
-            v_int = opt_intersection(v1, v2)
+            v_int = opt_intersection(v1, v2, seen)
 
             if empty?(v_int),
               do: :bdd_bot,
@@ -7052,21 +7126,27 @@ defmodule Module.Types.Descr do
     {tag1, fields1, []} = map
     {tag2, fields2, []} = candidate
 
-    case opt_map_union(tag1, fields1, tag2, fields2) do
+    case opt_map_union(tag1, fields1, tag2, fields2, %{}) do
       nil -> [candidate | opt_map_fuse_with_first_fusible(map, rest)]
       # we found a fusible candidate, we're done
       {tag, fields} -> [{tag, fields, []} | rest]
     end
   end
 
-  defp opt_tuple_intersection(bdd_leaf(:open, []), bdd), do: bdd
-  defp opt_tuple_intersection(bdd, bdd_leaf(:open, [])), do: bdd
+  defp opt_tuple_intersection(bdd_leaf(:open, []), bdd, _seen), do: bdd
+  defp opt_tuple_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
 
-  defp opt_tuple_intersection(bdd1, bdd2),
-    do: bdd_intersection(bdd1, bdd2, &opt_tuple_leaf_intersection/2)
+  defp opt_tuple_intersection(bdd1, bdd2, seen) do
+    case opt_bdd_seen(seen, :intersection, :tuple, bdd1, bdd2) do
+      :seen -> tuple_intersection(bdd1, bdd2)
+      {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_tuple_leaf_intersection(&1, &2, seen))
+    end
+  end
 
-  defp opt_tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2)) do
-    case tuple_literal_intersection(tag1, elements1, tag2, elements2, &opt_intersection/2) do
+  defp opt_tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2), seen) do
+    intersection_fun = &opt_intersection(&1, &2, seen)
+
+    case tuple_literal_intersection(tag1, elements1, tag2, elements2, intersection_fun) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
       :empty -> :bdd_bot
     end
