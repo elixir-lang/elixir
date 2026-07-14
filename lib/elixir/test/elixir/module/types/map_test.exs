@@ -330,11 +330,8 @@ defmodule Module.Types.MapTest do
 
   describe "Map.from_struct/1" do
     test "checking" do
-      assert typecheck!(Map.from_struct(%{})) ==
-               empty_map()
-
-      assert typecheck!(Map.from_struct(%{key: 123})) ==
-               closed_map(key: integer())
+      assert typecheck!(Map.from_struct(%{__struct__: URI, port: 433})) ==
+               closed_map(port: integer())
 
       assert typecheck!(Map.from_struct(%URI{})) ==
                closed_map(
@@ -359,11 +356,14 @@ defmodule Module.Types.MapTest do
                  _ = Map.from_struct(x)
                  x
                )
-             ) == dynamic(open_map())
+             ) == dynamic(open_map(__struct__: atom()))
     end
 
     test "errors" do
       assert typeerror!([x = []], Map.from_struct(x)) =~
+               "incompatible types given to Map.from_struct/1"
+
+      assert typeerror!(Map.from_struct(%{})) =~
                "incompatible types given to Map.from_struct/1"
     end
   end
