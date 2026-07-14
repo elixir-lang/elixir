@@ -4309,11 +4309,24 @@ defmodule Enum do
         empty.()
 
       _ ->
-        last = last - rem(last - first, step)
+        # The endpoint shortcut is only valid for sorters consistent with
+        # the natural integer order of the range elements, which is known
+        # to hold for the default sorters; any other sorter traverses the
+        # elements, seeded with the first one since the range is not empty
+        if fun == (&<=/2) or fun == (&>=/2) do
+          last = last - rem(last - first, step)
 
-        case fun.(first, last) do
-          true -> first
-          false -> last
+          case fun.(first, last) do
+            true -> first
+            false -> last
+          end
+        else
+          reduce_range(first + step, last, step, first, fn element, acc ->
+            case fun.(acc, element) do
+              true -> acc
+              false -> element
+            end
+          end)
         end
     end
   end
