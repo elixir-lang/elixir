@@ -344,6 +344,7 @@ defmodule EEx do
 
   It returns `{:ok, [token]}` where a token is one of:
 
+    * `{:comment, content, %{column: column, line: line}}`
     * `{:text, content, %{column: column, line: line}}`
     * `{:expr, marker, content, %{column: column, line: line}}`
     * `{:start_expr, marker, content, %{column: column, line: line}}`
