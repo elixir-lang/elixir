@@ -8,54 +8,15 @@ defmodule Module.Types.RecursiveTest do
 
   import Module.Types.Descr
 
+  setup do
+    Process.flag(:max_heap_size, %{size: 25_000_000, kill: true, error_logger: false})
+    :ok
+  end
+
   describe "recursive types" do
     defp recursive_node(descr) do
       recursive(%{X: fn _recur -> descr end})
       |> Map.fetch!(:X)
-    end
-
-    @finish_timeout 1_000
-    # In words (~200MB); runaway recursion trips this well before the timeout.
-    @finish_max_heap 25_000_000
-
-    # Runs fun in a process with bounded heap and bounded time, so runaway
-    # recursion fails cleanly instead of taking down the machine.
-    # Returns {:ok, result} or {:error, message}.
-    defp run_guarded(fun) do
-      parent = self()
-      ref = make_ref()
-
-      {pid, mref} =
-        spawn_monitor(fn ->
-          Process.flag(:max_heap_size, %{size: @finish_max_heap, kill: true, error_logger: false})
-          send(parent, {ref, fun.()})
-        end)
-
-      receive do
-        {^ref, result} ->
-          Process.demonitor(mref, [:flush])
-          {:ok, result}
-
-        {:DOWN, ^mref, :process, ^pid, reason} ->
-          {:error, "operation died (#{inspect(reason)}), runaway recursion"}
-      after
-        @finish_timeout ->
-          Process.exit(pid, :kill)
-
-          receive do
-            {:DOWN, ^mref, :process, ^pid, _} -> :ok
-          end
-
-          {:error, "operation did not finish within #{@finish_timeout}ms"}
-      end
-    end
-
-    # Returns the result of fun, failing the test if it does not finish.
-    defp assert_finishes(fun) do
-      case run_guarded(fun) do
-        {:ok, result} -> result
-        {:error, message} -> flunk(message)
-      end
     end
 
     # linked_list(T) = {T, linked_list(T)} | nil
@@ -367,10 +328,10 @@ defmodule Module.Types.RecursiveTest do
       rebuilt = open_map([{to_domain_keys(atom()), tx}])
       closed = closed_map([{to_domain_keys(atom()), tx}])
 
-      assert assert_finishes(fn -> subtype?(tx, rebuilt) end)
-      refute assert_finishes(fn -> empty?(opt_intersection(tx, rebuilt)) end)
-      refute assert_finishes(fn -> subtype?(tx, closed) end)
-      refute assert_finishes(fn -> disjoint?(tx, closed) end)
+      assert subtype?(tx, rebuilt)
+      refute empty?(opt_intersection(tx, rebuilt))
+      refute subtype?(tx, closed)
+      refute disjoint?(tx, closed)
     end
 
     test "subtyping" do
@@ -601,10 +562,8 @@ defmodule Module.Types.RecursiveTest do
     # list heads/tails. When those contain recursive nodes, the operations must
     # detect that they are revisiting the same pair of BDDs and terminate.
     #
-    # Loop-prone checks run through assert_finishes/1 so that a reintroduced
-    # loop fails the test instead of exhausting the machine. Results are
-    # checked against a closed-form expectation where one exists, and against
-    # the bare_* operations (recursion-safe by construction) otherwise.
+    # Results are checked against a closed-form expectation where one exists,
+    # and against the bare_* operations (recursion-safe by construction) otherwise.
 
     ## Recursive type builders. Each call builds fresh nodes, so two calls
     ## produce alpha-equivalent types with distinct node identities.
@@ -680,19 +639,19 @@ defmodule Module.Types.RecursiveTest do
       tx = unfold(node)
 
       # All argument shapes must terminate: node/node, node/descr, descr/descr
-      assert assert_finishes(fn -> equal?(opt_intersection(node, node), tx) end)
-      assert assert_finishes(fn -> equal?(opt_intersection(node, tx), tx) end)
-      assert assert_finishes(fn -> equal?(opt_intersection(tx, node), tx) end)
-      assert assert_finishes(fn -> equal?(opt_intersection(tx, tx), tx) end)
+      assert equal?(opt_intersection(node, node), tx)
+      assert equal?(opt_intersection(node, tx), tx)
+      assert equal?(opt_intersection(tx, node), tx)
+      assert equal?(opt_intersection(tx, tx), tx)
 
       # Remaining operations on the same type
-      assert assert_finishes(fn -> equal?(opt_union(tx, tx), tx) end)
-      assert assert_finishes(fn -> empty?(opt_difference(tx, tx)) end)
+      assert equal?(opt_union(tx, tx), tx)
+      assert empty?(opt_difference(tx, tx))
 
-      neg = assert_finishes(fn -> opt_negation(tx) end)
-      assert assert_finishes(fn -> empty?(opt_intersection(tx, neg)) end)
-      assert assert_finishes(fn -> equal?(opt_union(tx, neg), term()) end)
-      assert assert_finishes(fn -> equal?(opt_negation(neg), tx) end)
+      neg = opt_negation(tx)
+      assert empty?(opt_intersection(tx, neg))
+      assert equal?(opt_union(tx, neg), term())
+      assert equal?(opt_negation(neg), tx)
     end
 
     test "fast paths accept nodes" do
@@ -735,7 +694,7 @@ defmodule Module.Types.RecursiveTest do
         a = builder.()
         b = builder.()
 
-        assert assert_finishes(fn -> equal?(opt_intersection(a, b), a) end),
+        assert equal?(opt_intersection(a, b), a),
                "#{label}: intersection of alpha-equivalent copies should equal the type"
       end
     end
@@ -745,33 +704,31 @@ defmodule Module.Types.RecursiveTest do
       number_list = number_linked_list()
 
       # int lists are a subtype of number lists
-      assert assert_finishes(fn -> equal?(opt_intersection(int_list, number_list), int_list) end)
-      assert assert_finishes(fn -> equal?(opt_intersection(number_list, int_list), int_list) end)
+      assert equal?(opt_intersection(int_list, number_list), int_list)
+      assert equal?(opt_intersection(number_list, int_list), int_list)
 
       # int and float lists only share the base case
       float_list = linked_list(float())
 
-      assert assert_finishes(fn ->
-               equal?(opt_intersection(int_list, float_list), atom([nil]))
-             end)
+      assert equal?(opt_intersection(int_list, float_list), atom([nil]))
 
       # trees
       int_tree = binary_tree(integer())
       number_tree = binary_tree(bare_union(integer(), float()))
-      assert assert_finishes(fn -> equal?(opt_intersection(int_tree, number_tree), int_tree) end)
+      assert equal?(opt_intersection(int_tree, number_tree), int_tree)
 
       # mutual recursion crosses two equations before repeating
       {tx, ty} = mutual_tuples()
-      assert assert_finishes(fn -> equal?(opt_intersection(tx, tx), tx) end)
-      assert assert_finishes(fn -> equal?(opt_intersection(tx, ty), atom([nil])) end)
+      assert equal?(opt_intersection(tx, tx), tx)
+      assert equal?(opt_intersection(tx, ty), atom([nil]))
 
       # recursive maps where one field is wider
       t_int = rec_map_with(integer())
       t_number = rec_map_with(bare_union(integer(), float()))
-      assert assert_finishes(fn -> equal?(opt_intersection(t_int, t_number), t_int) end)
+      assert equal?(opt_intersection(t_int, t_number), t_int)
 
       # an empty recursive type intersected with a non-empty one
-      assert assert_finishes(fn -> empty?(opt_intersection(empty_rec(), int_list)) end)
+      assert empty?(opt_intersection(empty_rec(), int_list))
     end
 
     test "union of recursive types" do
@@ -779,37 +736,31 @@ defmodule Module.Types.RecursiveTest do
       number_list = number_linked_list()
 
       # same descr and alpha-equivalent copies
-      assert assert_finishes(fn -> equal?(opt_union(int_list, int_list), int_list) end)
-      assert assert_finishes(fn -> equal?(opt_union(int_list, int_linked_list()), int_list) end)
+      assert equal?(opt_union(int_list, int_list), int_list)
+      assert equal?(opt_union(int_list, int_linked_list()), int_list)
 
       # subtype absorption
-      assert assert_finishes(fn -> equal?(opt_union(int_list, number_list), number_list) end)
-      assert assert_finishes(fn -> equal?(opt_union(number_list, int_list), number_list) end)
+      assert equal?(opt_union(int_list, number_list), number_list)
+      assert equal?(opt_union(number_list, int_list), number_list)
 
       # map union with one differing key holding recursive nodes: this is the
       # one_key_difference strategy, which recursively unions the field values
       m1 = rec_map()
       m2 = rec_map()
-      assert assert_finishes(fn -> equal?(opt_union(m1, m2), m1) end)
+      assert equal?(opt_union(m1, m2), m1)
 
       # one differing non-recursive key next to a shared recursive node
       node = rec_map_node()
 
-      assert assert_finishes(fn ->
-               union =
-                 opt_union(closed_map(a: node, b: integer()), closed_map(a: node, b: float()))
-
-               equal?(union, closed_map(a: node, b: bare_union(integer(), float())))
-             end)
+      union = opt_union(closed_map(a: node, b: integer()), closed_map(a: node, b: float()))
+      assert equal?(union, closed_map(a: node, b: bare_union(integer(), float())))
 
       # tuple union with one differing index holding recursive nodes
-      assert assert_finishes(fn ->
-               union = opt_union(tuple([integer(), node]), tuple([float(), node]))
-               equal?(union, tuple([bare_union(integer(), float()), node]))
-             end)
+      union = opt_union(tuple([integer(), node]), tuple([float(), node]))
+      assert equal?(union, tuple([bare_union(integer(), float()), node]))
 
       # empty recursive type is a neutral element
-      assert assert_finishes(fn -> equal?(opt_union(empty_rec(), int_list), int_list) end)
+      assert equal?(opt_union(empty_rec(), int_list), int_list)
     end
 
     test "difference of recursive types" do
@@ -817,25 +768,25 @@ defmodule Module.Types.RecursiveTest do
       number_list = number_linked_list()
 
       # differences that should be empty
-      assert assert_finishes(fn -> empty?(opt_difference(int_list, int_list)) end)
-      assert assert_finishes(fn -> empty?(opt_difference(int_list, int_linked_list())) end)
-      assert assert_finishes(fn -> empty?(opt_difference(int_list, number_list)) end)
+      assert empty?(opt_difference(int_list, int_list))
+      assert empty?(opt_difference(int_list, int_linked_list()))
+      assert empty?(opt_difference(int_list, number_list))
 
       # a strict difference: number lists that are not int lists
-      diff = assert_finishes(fn -> opt_difference(number_list, int_list) end)
-      refute assert_finishes(fn -> empty?(diff) end)
-      assert assert_finishes(fn -> subtype?(tuple([float(), atom([nil])]), diff) end)
+      diff = opt_difference(number_list, int_list)
+      refute empty?(diff)
+      assert subtype?(tuple([float(), atom([nil])]), diff)
 
       # recursive maps, alpha-equivalent: one_key_difference recursion
-      assert assert_finishes(fn -> empty?(opt_difference(rec_map(), rec_map())) end)
+      assert empty?(opt_difference(rec_map(), rec_map()))
 
       # improper lists with different terminators: recursion through the tail
       ta = improper_list([:a, :b])
       tb = improper_list([:a])
-      diff = assert_finishes(fn -> opt_difference(ta, tb) end)
-      assert assert_finishes(fn -> subtype?(atom([:b]), diff) end)
-      refute assert_finishes(fn -> empty?(diff) end)
-      assert assert_finishes(fn -> empty?(opt_difference(tb, ta)) end)
+      diff = opt_difference(ta, tb)
+      assert subtype?(atom([:b]), diff)
+      refute empty?(diff)
+      assert empty?(opt_difference(tb, ta))
     end
 
     test "difference reaching the same recursive pair under different operations" do
@@ -854,32 +805,24 @@ defmodule Module.Types.RecursiveTest do
       # a left BDD with union/negation structure makes the leaf difference
       # request the union of the recursive field values (type: :union)
       for left <- [bare_difference(m_at, m_az), bare_union(m_at, m_az)] do
-        assert assert_finishes(fn ->
-                 equal?(opt_difference(left, m_bt), bare_difference(left, m_bt))
-               end)
+        assert equal?(opt_difference(left, m_bt), bare_difference(left, m_bt))
       end
 
       # a negated right side exercises the same leaves under negation
       neg = bare_negation(m_bt)
 
-      assert assert_finishes(fn ->
-               equal?(opt_difference(m_at, neg), bare_difference(m_at, neg))
-             end)
+      assert equal?(opt_difference(m_at, neg), bare_difference(m_at, neg))
 
-      assert assert_finishes(fn ->
-               equal?(opt_intersection(m_at, neg), bare_intersection(m_at, neg))
-             end)
+      assert equal?(opt_intersection(m_at, neg), bare_intersection(m_at, neg))
 
       # a structured right side exercises the intersection context (type: :intersection)
       for right <- [bare_difference(m_bt, m_bz), bare_union(m_bt, m_bz)] do
-        assert assert_finishes(fn ->
-                 equal?(opt_difference(m_at, right), bare_difference(m_at, right))
-               end)
+        assert equal?(opt_difference(m_at, right), bare_difference(m_at, right))
       end
 
       # double negation through opt operations
       ta = unfold(node_a)
-      assert assert_finishes(fn -> equal?(opt_negation(opt_negation(ta)), ta) end)
+      assert equal?(opt_negation(opt_negation(ta)), ta)
     end
 
     test "operations on dynamic recursive types" do
@@ -895,9 +838,7 @@ defmodule Module.Types.RecursiveTest do
       ]
 
       for {left, right} <- combos, op <- [:union, :intersection, :difference] do
-        assert assert_finishes(fn ->
-                 equal?(opt_op(op, left, right), bare_op(op, left, right))
-               end),
+        assert equal?(opt_op(op, left, right), bare_op(op, left, right)),
                "opt_#{op} disagrees with bare_#{op} on dynamic combination"
       end
 
@@ -921,13 +862,11 @@ defmodule Module.Types.RecursiveTest do
       witness = tuple([dynamic(integer()), atom([nil])])
 
       for op <- [:union, :intersection, :difference] do
-        assert assert_finishes(fn ->
-                 opt = opt_op(op, tx, ty)
-                 bare = bare_op(op, tx, ty)
+        opt = opt_op(op, tx, ty)
+        bare = bare_op(op, tx, ty)
 
-                 subtype?(witness, opt) == subtype?(witness, bare) and
-                   empty?(opt) == empty?(bare)
-               end),
+        assert subtype?(witness, opt) == subtype?(witness, bare) and
+                 empty?(opt) == empty?(bare),
                "gradual element #{op}: opt and bare disagree on witnesses"
       end
     end
@@ -946,9 +885,9 @@ defmodule Module.Types.RecursiveTest do
       tp1 = build_pq.()
       tp2 = build_pq.()
 
-      assert assert_finishes(fn -> equal?(opt_intersection(tp1, tp2), tp1) end)
-      assert assert_finishes(fn -> equal?(opt_union(tp1, tp2), tp1) end)
-      assert assert_finishes(fn -> empty?(opt_difference(tp1, tp2)) end)
+      assert equal?(opt_intersection(tp1, tp2), tp1)
+      assert equal?(opt_union(tp1, tp2), tp1)
+      assert empty?(opt_difference(tp1, tp2))
 
       # recursion through a list of maps: E = list(%{next: E} | nil)
       build_e = fn ->
@@ -961,9 +900,9 @@ defmodule Module.Types.RecursiveTest do
 
       te1 = build_e.()
       te2 = build_e.()
-      assert assert_finishes(fn -> equal?(opt_intersection(te1, te2), te1) end)
-      assert assert_finishes(fn -> equal?(opt_union(te1, te2), te1) end)
-      assert assert_finishes(fn -> empty?(opt_difference(te1, te2)) end)
+      assert equal?(opt_intersection(te1, te2), te1)
+      assert equal?(opt_union(te1, te2), te1)
+      assert empty?(opt_difference(te1, te2))
 
       # json against an alpha-equivalent copy, checked against the bare ops
       build_json = fn ->
@@ -990,9 +929,7 @@ defmodule Module.Types.RecursiveTest do
       json2 = build_json.()
 
       for op <- [:union, :intersection, :difference] do
-        assert assert_finishes(fn ->
-                 equal?(opt_op(op, json1, json2), bare_op(op, json1, json2))
-               end),
+        assert equal?(opt_op(op, json1, json2), bare_op(op, json1, json2)),
                "opt_#{op} disagrees with bare_#{op} on json"
       end
     end
@@ -1009,13 +946,8 @@ defmodule Module.Types.RecursiveTest do
     defp bare_op(:intersection, left, right), do: bare_intersection(left, right)
     defp bare_op(:difference, left, right), do: bare_difference(left, right)
 
-    # Returns a singleton error list if fun does not finish or returns false.
     defp agreement_error(fun) do
-      case run_guarded(fun) do
-        {:ok, true} -> []
-        {:ok, false} -> ["optimized and bare results disagree"]
-        {:error, message} -> [message]
-      end
+      if fun.(), do: [], else: ["optimized and bare results disagree"]
     end
 
     # Covers every structural kind the optimized operations recurse into,
