@@ -3229,11 +3229,6 @@ defmodule Module.Types.Descr do
     []
   end
 
-  defp non_empty_intersection!(type1, type2, intersection_fun) do
-    type = intersection_fun.(type1, type2)
-    if empty?(type), do: throw(:empty), else: type
-  end
-
   defp non_empty_intersection!(type1, type2, intersection_fun, seen) do
     type = intersection_fun.(type1, type2)
     if empty_seen?(type, seen), do: throw(:empty), else: type
@@ -4868,7 +4863,8 @@ defmodule Module.Types.Descr do
          elements1,
          tag2,
          elements2,
-         intersection_fun
+         intersection_fun,
+         seen
        ) do
     case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
       :disjoint ->
@@ -4876,7 +4872,7 @@ defmodule Module.Types.Descr do
 
       _ ->
         try do
-          zip_non_empty_intersection!(elements1, elements2, [], intersection_fun)
+          zip_non_empty_intersection!(elements1, elements2, [], intersection_fun, seen)
         catch
           :empty -> :empty
         else
@@ -4887,18 +4883,25 @@ defmodule Module.Types.Descr do
   end
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
-  defp zip_non_empty_intersection!([], types2, acc, _intersection_fun),
+  defp zip_non_empty_intersection!([], types2, acc, _intersection_fun, _seen),
     do: Enum.reverse(acc, types2)
 
-  defp zip_non_empty_intersection!(types1, [], acc, _intersection_fun),
+  defp zip_non_empty_intersection!(types1, [], acc, _intersection_fun, _seen),
     do: Enum.reverse(acc, types1)
 
-  defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
+  defp zip_non_empty_intersection!(
+         [type1 | rest1],
+         [type2 | rest2],
+         acc,
+         intersection_fun,
+         seen
+       ) do
     zip_non_empty_intersection!(
       rest1,
       rest2,
-      [non_empty_intersection!(type1, type2, intersection_fun) | acc],
-      intersection_fun
+      [non_empty_intersection!(type1, type2, intersection_fun, seen) | acc],
+      intersection_fun,
+      seen
     )
   end
 
@@ -6551,8 +6554,8 @@ defmodule Module.Types.Descr do
     intersection_fun = &opt_intersection(&1, &2, seen)
 
     try do
-      list = non_empty_intersection!(list1, list2, intersection_fun)
-      last = non_empty_intersection!(last1, last2, intersection_fun)
+      list = non_empty_intersection!(list1, list2, intersection_fun, seen)
+      last = non_empty_intersection!(last1, last2, intersection_fun, seen)
       bdd_leaf_new(list, last)
     catch
       :empty -> :bdd_bot
@@ -6792,7 +6795,7 @@ defmodule Module.Types.Descr do
           tag2,
           fields2,
           &opt_intersection(&1, &2, seen),
-          %{}
+          seen
         )
 
       bdd_leaf_new(tag, fields)
@@ -6879,7 +6882,7 @@ defmodule Module.Types.Descr do
   defp opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type, seen) do
     v_diff = opt_difference(v1, v2, seen)
 
-    if empty?(v_diff) do
+    if empty_seen?(v_diff, seen) do
       :subtype
     else
       a_diff = bdd_leaf_new(tag, fields_store(key, v_diff, fields))
@@ -6895,7 +6898,7 @@ defmodule Module.Types.Descr do
           :intersection ->
             v_int = opt_intersection(v1, v2, seen)
 
-            if empty?(v_int),
+            if empty_seen?(v_int, seen),
               do: :bdd_bot,
               else: bdd_leaf_new(tag, fields_store(key, v_int, fields))
         end
@@ -7113,7 +7116,7 @@ defmodule Module.Types.Descr do
   defp opt_tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2), seen) do
     intersection_fun = &opt_intersection(&1, &2, seen)
 
-    case tuple_literal_intersection(tag1, elements1, tag2, elements2, intersection_fun) do
+    case tuple_literal_intersection(tag1, elements1, tag2, elements2, intersection_fun, seen) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
       :empty -> :bdd_bot
     end
