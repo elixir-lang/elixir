@@ -558,9 +558,15 @@ defmodule IEx.Helpers do
       Data type
         Range
       Description
-        This is a struct. Structs are maps with a __struct__ key.
+        This is a struct representing a range of numbers. It is commonly
+        defined using the `first..last//step` syntax. The step is not
+        required and defaults to `1`.
+      Raw representation
+        %Range{first: 1, last: 5, step: 1}
       Reference modules
-        Range, Map
+        Range
+      Implemented protocols
+        Enumerable, IEx.Info, Inspect
 
   """
   def i(term \\ v(-1)) do
