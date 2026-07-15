@@ -2326,9 +2326,6 @@ defmodule Module.Types.Descr do
 
   defp list_new(list_type, last_type), do: bdd_leaf_new(list_type, last_type)
 
-  defp non_empty_list_literals_intersection(list_literals),
-    do: non_empty_list_literals_intersection(list_literals, %{})
-
   defp non_empty_list_literals_intersection(list_literals, seen) do
     {list, last} =
       Enum.reduce(list_literals, {:term, :term}, fn
@@ -2350,7 +2347,7 @@ defmodule Module.Types.Descr do
   defp list_bdd_to_pos_dnf(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {pos_list, negs}, acc ->
-      case non_empty_list_literals_intersection(pos_list) do
+      case non_empty_list_literals_intersection(pos_list, %{}) do
         :empty ->
           acc
 
@@ -3041,7 +3038,7 @@ defmodule Module.Types.Descr do
   defp non_empty_map_only?(descr) do
     case :maps.take(:map, descr) do
       :error -> false
-      {map_bdd, rest} -> empty?(rest) and not map_empty?(map_bdd)
+      {map_bdd, rest} -> empty?(rest) and not map_empty?(map_bdd, %{})
     end
   end
 
@@ -3059,10 +3056,6 @@ defmodule Module.Types.Descr do
 
   defp map_literal_intersection(tag1, map1, tag2, map2),
     do: map_literal_intersection(tag1, map1, tag2, map2, &bare_intersection/2, %{})
-
-  defp map_literal_intersection(tag1, map1, tag2, map2, intersection_fun)
-       when is_function(intersection_fun, 2),
-       do: map_literal_intersection(tag1, map1, tag2, map2, intersection_fun, %{})
 
   # Intersects two map literals; throws if their intersection is empty.
   # Both open: the result is open.
@@ -3409,7 +3402,7 @@ defmodule Module.Types.Descr do
         map_union(neg_bdd, acc)
       end)
 
-    not map_empty?(map_difference(bdd, neg_bdd))
+    not map_empty?(map_difference(bdd, neg_bdd), %{})
   end
 
   defp map_pair_projection_keeps_full_snd?(negative, value) do
@@ -3446,7 +3439,7 @@ defmodule Module.Types.Descr do
           Enum.reduce(acc, [], fn {value, bdd}, acc ->
             diff_bdd = map_difference(bdd, neg_bdd)
 
-            if map_empty?(diff_bdd) do
+            if map_empty?(diff_bdd, %{}) do
               acc
             else
               [{value, diff_bdd} | acc]
@@ -3456,7 +3449,7 @@ defmodule Module.Types.Descr do
           Enum.reduce(acc, [], fn {value, bdd}, acc ->
             # If the negative tag is closed, then they are likely disjoint,
             # so we can drastically cut down the amount of operations.
-            if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd)) do
+            if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd), %{}) do
               [{value, bdd} | acc]
             else
               intersection_value = bare_intersection(value, neg_value)
@@ -3466,7 +3459,7 @@ defmodule Module.Types.Descr do
               else
                 diff_bdd = map_difference(bdd, neg_bdd)
 
-                if map_empty?(diff_bdd) do
+                if map_empty?(diff_bdd, %{}) do
                   prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
                 else
                   acc = [{intersection_value, diff_bdd} | acc]
@@ -4314,15 +4307,12 @@ defmodule Module.Types.Descr do
   end
 
   defp non_empty_map_literals_intersection(maps),
-    do: non_empty_map_literals_intersection(maps, %{}, &bare_intersection/2)
+    do: non_empty_map_literals_intersection(maps, %{})
 
-  defp non_empty_map_literals_intersection(maps, seen) when is_map(seen),
-    do: non_empty_map_literals_intersection(maps, seen, &bare_intersection/2)
-
-  defp non_empty_map_literals_intersection(maps, seen, intersection_fun) do
+  defp non_empty_map_literals_intersection(maps, seen) when is_map(seen) do
     try do
       Enum.reduce(maps, {:open, []}, fn bdd_leaf(next_tag, next_fields), {tag, fields} ->
-        map_literal_intersection(tag, fields, next_tag, next_fields, intersection_fun, seen)
+        map_literal_intersection(tag, fields, next_tag, next_fields, &bare_intersection/2, seen)
       end)
     catch
       :empty -> :empty
@@ -4332,8 +4322,6 @@ defmodule Module.Types.Descr do
   # Short-circuits if it finds a non-empty map literal in the union.
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
-  defp map_empty?(bdd), do: map_empty?(bdd, %{})
-
   defp map_empty?(bdd, seen) do
     key = empty_bdd_seen_key(:map, bdd)
 
@@ -4989,8 +4977,6 @@ defmodule Module.Types.Descr do
     zip_intersection(rest1, rest2, [intersection_fun.(type1, type2) | acc], intersection_fun)
   end
 
-  defp tuple_empty?(bdd), do: tuple_empty?(bdd, %{})
-
   defp tuple_empty?(bdd, seen) do
     key = empty_bdd_seen_key(:tuple, bdd)
 
@@ -5311,7 +5297,7 @@ defmodule Module.Types.Descr do
   defp non_empty_tuple_only?(descr) do
     case :maps.take(:tuple, descr) do
       :error -> false
-      {tuple_bdd, rest} -> empty?(rest) and not tuple_empty?(tuple_bdd)
+      {tuple_bdd, rest} -> empty?(rest) and not tuple_empty?(tuple_bdd, %{})
     end
   end
 
@@ -5374,7 +5360,7 @@ defmodule Module.Types.Descr do
           Enum.reduce(acc, [], fn {value, bdd}, acc ->
             diff_bdd = tuple_difference(bdd, neg_bdd)
 
-            if tuple_empty?(diff_bdd) do
+            if tuple_empty?(diff_bdd, %{}) do
               acc
             else
               [{value, diff_bdd} | acc]
@@ -5384,7 +5370,7 @@ defmodule Module.Types.Descr do
           Enum.reduce(acc, [], fn {value, bdd}, acc ->
             # If the negative tag is closed, then they are likely disjoint,
             # so we can drastically cut down the amount of operations.
-            if neg_tag == :closed and tuple_empty?(tuple_intersection(bdd, neg_bdd)) do
+            if neg_tag == :closed and tuple_empty?(tuple_intersection(bdd, neg_bdd), %{}) do
               [{value, bdd} | acc]
             else
               intersection_value = bare_intersection(value, neg_value)
@@ -5394,7 +5380,7 @@ defmodule Module.Types.Descr do
               else
                 diff_bdd = tuple_difference(bdd, neg_bdd)
 
-                if tuple_empty?(diff_bdd) do
+                if tuple_empty?(diff_bdd, %{}) do
                   prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
                 else
                   acc = [{intersection_value, diff_bdd} | acc]
@@ -5431,7 +5417,7 @@ defmodule Module.Types.Descr do
         tuple_union(neg_bdd, acc)
       end)
 
-    not tuple_empty?(tuple_difference(bdd, neg_bdd))
+    not tuple_empty?(tuple_difference(bdd, neg_bdd), %{})
   end
 
   defp tuple_pair_projection_keeps_full_snd?(negative, value) do
@@ -5711,7 +5697,10 @@ defmodule Module.Types.Descr do
     case descr do
       %{tuple: bdd} ->
         tuple_bdd_positive_size_at_least?(bdd, index) or
-          tuple_empty?(tuple_difference(bdd, tuple_new(:open, List.duplicate(term(), index))))
+          tuple_empty?(
+            tuple_difference(bdd, tuple_new(:open, List.duplicate(term(), index))),
+            %{}
+          )
 
       %{} ->
         true
@@ -6826,7 +6815,14 @@ defmodule Module.Types.Descr do
   defp opt_map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2), seen) do
     try do
       {tag, fields} =
-        map_literal_intersection(tag1, fields1, tag2, fields2, &opt_intersection(&1, &2, seen))
+        map_literal_intersection(
+          tag1,
+          fields1,
+          tag2,
+          fields2,
+          &opt_intersection(&1, &2, seen),
+          %{}
+        )
 
       bdd_leaf_new(tag, fields)
     catch
