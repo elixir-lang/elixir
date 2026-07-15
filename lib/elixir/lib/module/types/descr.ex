@@ -92,9 +92,9 @@ defmodule Module.Types.Descr do
   def term(), do: :term
 
   @compile {:inline, unfold: 1}
-  defp unfold(:term), do: unfolded_term()
-  defp unfold({_, _, _} = node), do: to_descr(node) |> unfold()
-  defp unfold(other), do: other
+  def unfold(:term), do: unfolded_term()
+  def unfold({_, _, _} = node), do: unfold(expand_node(node))
+  def unfold(other), do: other
   defp unfolded_term, do: @term
 
   def atom(as), do: %{atom: atom_new(as)}
@@ -125,10 +125,7 @@ defmodule Module.Types.Descr do
 
   defp make_node(id, state, generator), do: {id, state, generator}
 
-  def to_descr(:term), do: :term
-  def to_descr(descr = %{}), do: descr
-
-  def to_descr({_id, state, generator}) do
+  defp expand_node({_id, state, generator}) do
     recur = fn name ->
       {id, _if_set_id, generator} = Map.fetch!(state, name)
       make_node(id, state, generator)
@@ -432,8 +429,11 @@ defmodule Module.Types.Descr do
   Returns true if the type has a gradual part.
   """
   def gradual?(:term), do: false
-  def gradual?({_, _, _} = node), do: gradual?(to_descr(node))
-  def gradual?(descr), do: is_map_key(descr, :dynamic)
+
+  def gradual?(descr) do
+    descr = unfold(descr)
+    is_map_key(descr, :dynamic)
+  end
 
   @doc """
   Returns true if the type only has a gradual part.
@@ -456,8 +456,11 @@ defmodule Module.Types.Descr do
 
   @compile {:inline, pop_dynamic: 1}
   defp pop_dynamic(:term), do: {:term, :term}
-  defp pop_dynamic({_, _, _} = node), do: pop_dynamic(to_descr(node))
-  defp pop_dynamic(descr), do: Map.pop(descr, :dynamic, descr)
+
+  defp pop_dynamic(descr) do
+    descr = unfold(descr)
+    Map.pop(descr, :dynamic, descr)
+  end
 
   defp put_dynamic(:term, dynamic), do: optional_to_term(%{dynamic: dynamic})
   defp put_dynamic(static, dynamic) when static == dynamic, do: static
@@ -480,23 +483,19 @@ defmodule Module.Types.Descr do
   def bare_union(none, other) when none == @none, do: other
   def bare_union(other, none) when none == @none, do: other
 
-  def bare_union({_, _, _} = left, right),
-    do: bare_union(to_descr(left), to_descr(right))
-
-  def bare_union(left, {_, _, _} = right),
-    do: bare_union(to_descr(left), to_descr(right))
-
   def bare_union(left, right) do
+    left = unfold(left)
+    right = unfold(right)
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
+        right_with_dynamic = Map.put(right, :dynamic, right)
         bare_union_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
+        left_with_dynamic = Map.put(left, :dynamic, left)
         bare_union_static(left_with_dynamic, right)
 
       true ->
@@ -524,23 +523,19 @@ defmodule Module.Types.Descr do
   def bare_intersection(:term, other), do: remove_optional(other)
   def bare_intersection(other, :term), do: remove_optional(other)
 
-  def bare_intersection({_, _, _} = left, right),
-    do: bare_intersection(to_descr(left), to_descr(right))
-
-  def bare_intersection(left, {_, _, _} = right),
-    do: bare_intersection(to_descr(left), to_descr(right))
-
   def bare_intersection(left, right) do
+    left = unfold(left)
+    right = unfold(right)
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
+        right_with_dynamic = Map.put(right, :dynamic, right)
         bare_intersection_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
+        left_with_dynamic = Map.put(left, :dynamic, left)
         bare_intersection_static(left_with_dynamic, right)
 
       true ->
@@ -573,13 +568,10 @@ defmodule Module.Types.Descr do
   def bare_difference(left, :term), do: keep_optional(left)
   def bare_difference(left, none) when none == @none, do: left
 
-  def bare_difference({_, _, _} = left, right),
-    do: bare_difference(to_descr(left), to_descr(right))
-
-  def bare_difference(left, {_, _, _} = right),
-    do: bare_difference(to_descr(left), to_descr(right))
-
   def bare_difference(left, right) do
+    left = if left == :term, do: :term, else: unfold(left)
+    right = unfold(right)
+
     if gradual?(left) or gradual?(right) do
       {left_dynamic, left_static} = pop_dynamic(left)
       {right_dynamic, right_static} = pop_dynamic(right)
@@ -631,7 +623,7 @@ defmodule Module.Types.Descr do
       true
     else
       seen = Map.put(seen, id, true)
-      empty_seen?(to_descr(node), seen)
+      empty_seen?(expand_node(node), seen)
     end
   end
 
@@ -2370,11 +2362,7 @@ defmodule Module.Types.Descr do
   end
 
   defp list_tail_unfold(:term), do: @not_non_empty_list
-
-  defp list_tail_unfold({_, _, _} = node),
-    do: Map.delete(to_descr(node), :list)
-
-  defp list_tail_unfold(other), do: Map.delete(other, :list)
+  defp list_tail_unfold(other), do: Map.delete(unfold(other), :list)
 
   @doc """
   Returns the element type of a list, assuming the list is proper.
@@ -6420,23 +6408,19 @@ defmodule Module.Types.Descr do
   defp opt_union(none, other, _seen) when none == @none, do: other
   defp opt_union(other, none, _seen) when none == @none, do: other
 
-  defp opt_union({_, _, _} = left, right, seen),
-    do: opt_union(to_descr(left), to_descr(right), seen)
-
-  defp opt_union(left, {_, _, _} = right, seen),
-    do: opt_union(to_descr(left), to_descr(right), seen)
-
   defp opt_union(left, right, seen) do
+    left = unfold(left)
+    right = unfold(right)
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
+        right_with_dynamic = Map.put(right, :dynamic, right)
         opt_union_static(left, right_with_dynamic, seen)
 
       is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
+        left_with_dynamic = Map.put(left, :dynamic, left)
         opt_union_static(left_with_dynamic, right, seen)
 
       true ->
@@ -6469,23 +6453,19 @@ defmodule Module.Types.Descr do
   defp opt_intersection(:term, other, _seen), do: remove_optional(other)
   defp opt_intersection(other, :term, _seen), do: remove_optional(other)
 
-  defp opt_intersection({_, _, _} = left, right, seen),
-    do: opt_intersection(to_descr(left), to_descr(right), seen)
-
-  defp opt_intersection(left, {_, _, _} = right, seen),
-    do: opt_intersection(to_descr(left), to_descr(right), seen)
-
   defp opt_intersection(left, right, seen) do
+    left = unfold(left)
+    right = unfold(right)
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
 
     cond do
       is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(unfold(right), :dynamic, right)
+        right_with_dynamic = Map.put(right, :dynamic, right)
         opt_intersection_static(left, right_with_dynamic, seen)
 
       is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(unfold(left), :dynamic, left)
+        left_with_dynamic = Map.put(left, :dynamic, left)
         opt_intersection_static(left_with_dynamic, right, seen)
 
       true ->
@@ -6519,13 +6499,10 @@ defmodule Module.Types.Descr do
   defp opt_difference(left, :term, _seen), do: keep_optional(left)
   defp opt_difference(left, none, _seen) when none == @none, do: left
 
-  defp opt_difference({_, _, _} = left, right, seen),
-    do: opt_difference(to_descr(left), to_descr(right), seen)
-
-  defp opt_difference(left, {_, _, _} = right, seen),
-    do: opt_difference(to_descr(left), to_descr(right), seen)
-
   defp opt_difference(left, right, seen) do
+    left = if left == :term, do: :term, else: unfold(left)
+    right = unfold(right)
+
     if gradual?(left) or gradual?(right) do
       {left_dynamic, left_static} = pop_dynamic(left)
       {right_dynamic, right_static} = pop_dynamic(right)
@@ -6557,10 +6534,10 @@ defmodule Module.Types.Descr do
   """
   def opt_negation(:term), do: none()
 
-  def opt_negation({_, _, _} = node),
-    do: opt_negation(to_descr(node))
-
-  def opt_negation(%{} = descr), do: opt_difference(term(), descr)
+  def opt_negation(descr) do
+    descr = unfold(descr)
+    opt_difference(term(), descr)
+  end
 
   @compile {:inline, maybe_opt_union: 2}
   defp maybe_opt_union(nil, _fun), do: nil

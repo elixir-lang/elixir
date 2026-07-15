@@ -64,7 +64,7 @@ defmodule Module.Types.RecursiveTest do
         X: fn recur -> tuple([descr, recur.(:X)]) |> bare_union(atom([nil])) end
       })
       |> Map.fetch!(:X)
-      |> to_descr()
+      |> unfold()
     end
 
     defp int_linked_list(), do: linked_list(integer())
@@ -79,18 +79,18 @@ defmodule Module.Types.RecursiveTest do
         end
       })
       |> Map.fetch!(:T)
-      |> to_descr()
+      |> unfold()
     end
 
     test "node infrastructure" do
       descr = integer()
 
-      assert to_descr(recursive_node(descr)) == descr
+      assert unfold(recursive_node(descr)) == descr
 
-      assert to_descr(:term) == :term
+      assert unfold(recursive_node(:term)) == unfold(:term)
 
       d = opt_union(integer(), atom())
-      assert to_descr(d) == d
+      assert unfold(d) == d
 
       node =
         recursive(%{
@@ -98,10 +98,10 @@ defmodule Module.Types.RecursiveTest do
         })
         |> Map.fetch!(:X)
 
-      assert to_descr(node) == integer()
+      assert unfold(node) == integer()
 
       d = opt_union(tuple([integer(), atom()]), list(float()))
-      assert to_descr(recursive_node(d)) == d
+      assert unfold(recursive_node(d)) == d
     end
 
     test "constructors accept nodes and descrs" do
@@ -177,7 +177,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      json_value = to_descr(json_value_node)
+      json_value = unfold(json_value_node)
 
       assert subtype?(atom([nil]), json_value)
       assert subtype?(list(binary()), json_value)
@@ -197,7 +197,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      chardata = to_descr(chardata_node)
+      chardata = unfold(chardata_node)
 
       assert subtype?(binary(), chardata)
       assert subtype?(empty_list(), chardata)
@@ -224,8 +224,8 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      texpr = to_descr(nexpr_node)
-      tbinop = to_descr(nbinop_node)
+      texpr = unfold(nexpr_node)
+      tbinop = unfold(nbinop_node)
 
       refute empty?(texpr)
       refute empty?(tbinop)
@@ -245,13 +245,13 @@ defmodule Module.Types.RecursiveTest do
     test "emptiness" do
       # X = {X, X} is empty (no base case)
       %{X: nx} = recursive(%{X: fn recur -> tuple([recur.(:X), recur.(:X)]) end})
-      tx = to_descr(nx)
+      tx = unfold(nx)
 
       assert empty?(tx)
 
       # X = {X} is empty, so {X} is empty too
       %{X: nx} = recursive(%{X: fn recur -> tuple([recur.(:X)]) end})
-      tx = to_descr(nx)
+      tx = unfold(nx)
       ttx = tuple([tx])
 
       assert empty?(tx)
@@ -263,7 +263,7 @@ defmodule Module.Types.RecursiveTest do
           X: fn recur -> bare_union(tuple([integer()]), tuple([recur.(:X), recur.(:X)])) end
         })
 
-      tx = to_descr(nx)
+      tx = unfold(nx)
 
       refute empty?(tx)
 
@@ -275,8 +275,8 @@ defmodule Module.Types.RecursiveTest do
           Y: fn recur -> tuple([boolean(), recur.(:X)]) |> bare_union(atom([nil])) end
         })
 
-      tx = to_descr(node_x)
-      ty = to_descr(node_y)
+      tx = unfold(node_x)
+      ty = unfold(node_y)
 
       refute empty?(tx)
       refute empty?(ty)
@@ -301,8 +301,8 @@ defmodule Module.Types.RecursiveTest do
           Y: fn recur -> tuple([recur.(:X)]) end
         })
 
-      tx = to_descr(nx)
-      ty = to_descr(ny)
+      tx = unfold(nx)
+      ty = unfold(ny)
       refute empty?(tx)
       refute empty?(ty)
 
@@ -328,7 +328,7 @@ defmodule Module.Types.RecursiveTest do
         nodes = recursive(gen)
 
         for {_key, node} <- nodes do
-          t = to_descr(node)
+          t = unfold(node)
 
           if expected_empty do
             assert empty?(t), "#{desc}: expected empty but wasn't"
@@ -352,7 +352,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      tx = to_descr(nx)
+      tx = unfold(nx)
       refute empty?(tx)
     end
 
@@ -363,7 +363,7 @@ defmodule Module.Types.RecursiveTest do
           X: fn recur -> open_map([{to_domain_keys(atom()), recur.(:X)}]) end
         })
 
-      tx = to_descr(node)
+      tx = unfold(node)
       rebuilt = open_map([{to_domain_keys(atom()), tx}])
       closed = closed_map([{to_domain_keys(atom()), tx}])
 
@@ -381,7 +381,7 @@ defmodule Module.Types.RecursiveTest do
           X: fn recur -> non_empty_list(integer(), recur.(:X)) |> bare_union(empty_list()) end
         })
         |> Map.fetch!(:X)
-        |> to_descr()
+        |> unfold()
 
       # [] <: X
       assert subtype?(empty_list(), tx)
@@ -418,7 +418,7 @@ defmodule Module.Types.RecursiveTest do
         end
       }
 
-      tx = recursive(gen)[:X] |> to_descr()
+      tx = recursive(gen)[:X] |> unfold()
       assert equal?(tx, list(integer()))
 
       # X = %{outer: %{inner: X}} | nil
@@ -435,8 +435,8 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      tx = to_descr(nx)
-      ty = to_descr(ny)
+      tx = unfold(nx)
+      ty = unfold(ny)
       assert subtype?(tx, ty), "nested map wrapping map with recursive field"
 
       # X = nil | {integer, X}
@@ -449,8 +449,8 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      tx = to_descr(nx)
-      ty = to_descr(ny)
+      tx = unfold(nx)
+      ty = unfold(ny)
       assert subtype?(tx, ty)
     end
 
@@ -489,8 +489,8 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      tx = to_descr(nx)
-      ty = to_descr(ny)
+      tx = unfold(nx)
+      ty = unfold(ny)
 
       refute empty?(opt_intersection(tx, ty))
       assert equal?(opt_union(tx, ty), tx)
@@ -503,8 +503,8 @@ defmodule Module.Types.RecursiveTest do
           Y: fn recur -> tuple([tuple([recur.(:Y)])]) |> bare_union(tuple([tuple([atom()])])) end
         })
 
-      tx = to_descr(nx)
-      ty = to_descr(ny)
+      tx = unfold(nx)
+      ty = unfold(ny)
       refute empty?(opt_intersection(tx, ty))
       assert equal?(opt_union(tx, ty), tx)
     end
@@ -519,7 +519,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      t = to_descr(nx)
+      t = unfold(nx)
 
       assert {false, type} = tuple_fetch(t, 0)
       assert equal?(type, integer())
@@ -539,7 +539,7 @@ defmodule Module.Types.RecursiveTest do
       %{X: nx} =
         recursive(%{X: fn recur -> tuple([recur.(:X)]) |> bare_union(tuple([atom()])) end})
 
-      tx = to_descr(nx)
+      tx = unfold(nx)
       t = opt_difference(tx, tuple([atom()]))
       assert {false, type} = tuple_fetch(t, 0)
       assert equal?(type, tx)
@@ -554,9 +554,9 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      assert {false, type} = map_fetch_key(to_descr(nx), :a)
+      assert {false, type} = map_fetch_key(unfold(nx), :a)
       assert equal?(type, integer())
-      assert {false, _type} = map_fetch_key(to_descr(nx), :b)
+      assert {false, _type} = map_fetch_key(unfold(nx), :b)
 
       ## list_hd and list_tl on descr with recursive node tail
       # X = non_empty_list(integer(), X) | non_empty_list(integer(), [])
@@ -568,9 +568,9 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      assert {:ok, type} = list_hd(to_descr(nx))
+      assert {:ok, type} = list_hd(unfold(nx))
       assert equal?(type, integer())
-      assert {:ok, _type} = list_tl(to_descr(nx))
+      assert {:ok, _type} = list_tl(unfold(nx))
 
       ## list_hd on descr with recursive node as head element
       # X = non_empty_list(X, []) | non_empty_list(atom(), [])
@@ -582,7 +582,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      assert {:ok, _type} = list_hd(to_descr(nx))
+      assert {:ok, _type} = list_hd(unfold(nx))
 
       ## fun_apply with recursive node argument
       # X = {X} | {atom()}
@@ -621,7 +621,7 @@ defmodule Module.Types.RecursiveTest do
       |> Map.fetch!(:M)
     end
 
-    defp rec_map(), do: to_descr(rec_map_node())
+    defp rec_map(), do: unfold(rec_map_node())
 
     # M = %{a: M, b: descr} | nil
     defp rec_map_with(descr) do
@@ -629,14 +629,14 @@ defmodule Module.Types.RecursiveTest do
         M: fn recur -> closed_map(a: recur.(:M), b: descr) |> bare_union(atom([nil])) end
       })
       |> Map.fetch!(:M)
-      |> to_descr()
+      |> unfold()
     end
 
     # M = %{atom() => M}
     defp domain_map() do
       recursive(%{M: fn recur -> open_map([{to_domain_keys(atom()), recur.(:M)}]) end})
       |> Map.fetch!(:M)
-      |> to_descr()
+      |> unfold()
     end
 
     # L = non_empty_list(integer(), L) | []
@@ -645,7 +645,7 @@ defmodule Module.Types.RecursiveTest do
         L: fn recur -> non_empty_list(integer(), recur.(:L)) |> bare_union(empty_list()) end
       })
       |> Map.fetch!(:L)
-      |> to_descr()
+      |> unfold()
     end
 
     # L = non_empty_list(integer(), L) | atom(terminators) — an improper list
@@ -654,14 +654,14 @@ defmodule Module.Types.RecursiveTest do
         L: fn recur -> non_empty_list(integer(), recur.(:L)) |> bare_union(atom(terminators)) end
       })
       |> Map.fetch!(:L)
-      |> to_descr()
+      |> unfold()
     end
 
     # E = {E, E} — no base case, so semantically empty
     defp empty_rec() do
       recursive(%{E: fn recur -> tuple([recur.(:E), recur.(:E)]) end})
       |> Map.fetch!(:E)
-      |> to_descr()
+      |> unfold()
     end
 
     # X = {integer(), Y} | nil and Y = {boolean(), X} | nil
@@ -672,12 +672,12 @@ defmodule Module.Types.RecursiveTest do
           Y: fn recur -> tuple([boolean(), recur.(:X)]) |> bare_union(atom([nil])) end
         })
 
-      {to_descr(nx), to_descr(ny)}
+      {unfold(nx), unfold(ny)}
     end
 
     test "PR example: X = nil | {integer(), X} intersected with itself" do
       node = int_list_node()
-      tx = to_descr(node)
+      tx = unfold(node)
 
       # All argument shapes must terminate: node/node, node/descr, descr/descr
       assert assert_finishes(fn -> equal?(opt_intersection(node, node), tx) end)
@@ -697,7 +697,7 @@ defmodule Module.Types.RecursiveTest do
 
     test "fast paths accept nodes" do
       node = int_list_node()
-      tx = to_descr(node)
+      tx = unfold(node)
 
       assert equal?(opt_union(none(), node), tx)
       assert equal?(opt_union(node, none()), tx)
@@ -719,7 +719,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
         |> Map.fetch!(:L)
-        |> to_descr()
+        |> unfold()
       end
 
       builders = [
@@ -878,7 +878,7 @@ defmodule Module.Types.RecursiveTest do
       end
 
       # double negation through opt operations
-      ta = to_descr(node_a)
+      ta = unfold(node_a)
       assert assert_finishes(fn -> equal?(opt_negation(opt_negation(ta)), ta) end)
     end
 
@@ -907,7 +907,7 @@ defmodule Module.Types.RecursiveTest do
           X: fn recur -> tuple([dynamic(integer()), recur.(:X)]) |> bare_union(atom([nil])) end
         })
         |> Map.fetch!(:X)
-        |> to_descr()
+        |> unfold()
       end
 
       tx = build.()
@@ -940,7 +940,7 @@ defmodule Module.Types.RecursiveTest do
           Q: fn recur -> tuple([integer(), recur.(:P)]) |> bare_union(atom([nil])) end
         })
         |> Map.fetch!(:P)
-        |> to_descr()
+        |> unfold()
       end
 
       tp1 = build_pq.()
@@ -956,7 +956,7 @@ defmodule Module.Types.RecursiveTest do
           E: fn recur -> list(bare_union(closed_map(next: recur.(:E)), atom([nil]))) end
         })
         |> Map.fetch!(:E)
-        |> to_descr()
+        |> unfold()
       end
 
       te1 = build_e.()
@@ -983,7 +983,7 @@ defmodule Module.Types.RecursiveTest do
           end
         })
         |> Map.fetch!(:Json)
-        |> to_descr()
+        |> unfold()
       end
 
       json1 = build_json.()
