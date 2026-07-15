@@ -4928,13 +4928,7 @@ defmodule Module.Types.Descr do
   defp tuple_difference(bdd1, bdd2),
     do: bdd_difference(bdd1, bdd2)
 
-  defp non_empty_tuple_literals_intersection(tuples),
-    do: non_empty_tuple_literals_intersection(tuples, %{}, &bare_intersection/2)
-
-  defp non_empty_tuple_literals_intersection(tuples, seen) when is_map(seen),
-    do: non_empty_tuple_literals_intersection(tuples, seen, &bare_intersection/2)
-
-  defp non_empty_tuple_literals_intersection(tuples, seen, intersection_fun) do
+  defp non_empty_tuple_literals_intersection(tuples, seen) do
     try do
       Enum.reduce(tuples, {:open, []}, fn bdd_leaf(tag1, elements1), {tag2, elements2} ->
         case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
@@ -4943,7 +4937,7 @@ defmodule Module.Types.Descr do
 
           _ ->
             tag = if tag1 == :open and tag2 == :open, do: :open, else: :closed
-            {tag, zip_intersection(elements1, elements2, [], intersection_fun)}
+            {tag, zip_intersection(elements1, elements2, [], &bare_intersection/2)}
         end
       end)
     catch
@@ -5151,7 +5145,7 @@ defmodule Module.Types.Descr do
   defp tuple_bdd_to_dnf_no_negations(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.flat_map(fn {pos, negs} ->
-      case non_empty_tuple_literals_intersection(pos) do
+      case non_empty_tuple_literals_intersection(pos, %{}) do
         :empty -> []
         {tag, elements} -> tuple_eliminate_negations(tag, elements, negs)
       end
@@ -5164,7 +5158,7 @@ defmodule Module.Types.Descr do
   defp tuple_bdd_to_dnf_with_negations(bdd) do
     bdd_to_dnf(bdd)
     |> Enum.reduce([], fn {pos, negs}, acc ->
-      case non_empty_tuple_literals_intersection(pos) do
+      case non_empty_tuple_literals_intersection(pos, %{}) do
         :empty ->
           acc
 
