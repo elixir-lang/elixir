@@ -5636,26 +5636,31 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_insert_static(descr, _, _) when descr == @none, do: none()
+  defp tuple_insert_static(%{tuple: bdd} = descr, index, type) do
+    %{
+      descr
+      | tuple:
+          bdd_map(bdd, fn bdd_leaf(tag, elements) ->
+            # If the tuple is open, then we want List.insert_at to put the new element at the correct
+            # index, which requires filling the tuple with `term()` values first.
+            # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
+            # intersection with `tuple_of_size_at_least`).
+            elements =
+              if tag == :open and length(elements) < index do
+                tuple_fill(elements, index)
+              else
+                elements
+              end
 
-  defp tuple_insert_static(descr, index, type) do
-    Map.update!(descr, :tuple, fn bdd ->
-      bdd_map(bdd, fn bdd_leaf(tag, elements) ->
-        # If the tuple is open, then we want List.insert_at to put the new element at the correct
-        # index, which requires filling the tuple with `term()` values first.
-        # Closed tuples of an incorrect size will be ignored (they are cancelled by the earlier
-        # intersection with `tuple_of_size_at_least`).
-        elements =
-          if tag == :open and length(elements) < index do
-            tuple_fill(elements, index)
-          else
-            elements
-          end
-
-        bdd_leaf_new(tag, List.insert_at(elements, index, type))
-      end)
-    end)
+            bdd_leaf_new(tag, List.insert_at(elements, index, type))
+          end)
+    }
   end
+
+  # No tuple component: either none() or a semantically-empty static part whose
+  # non-normalized non-tuple components (e.g. an empty list literal) survive
+  # syntactically. There is nothing to insert into, so the result is empty.
+  defp tuple_insert_static(_descr, _index, _type), do: none()
 
   @doc """
   Replace an element in the tuple at the given (0-based) index.
