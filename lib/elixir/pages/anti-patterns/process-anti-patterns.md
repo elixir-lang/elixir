@@ -144,7 +144,7 @@ iex> C.update(agent)
 
 # state of shared information
 iex> D.get(agent)
-[:atom_value, %{a: 123}]
+[:atom_value | %{a: 123}]
 ```
 
 For a `GenServer` and other behaviours, this anti-pattern will manifest when scattering calls to `GenServer.call/3` and `GenServer.cast/2` throughout multiple modules, instead of encapsulating all the interaction with the `GenServer` in a single place.

@@ -46,7 +46,7 @@ iex> require Unless
 iex> Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 nil
 iex> Unless.fun_unless(true, do: IO.puts("this should never be printed"))
-"this should never be printed"
+this should never be printed
 nil
 ```
 
@@ -81,7 +81,7 @@ We can actually verify that this is the case by using `Macro.expand_once/2`:
 iex> expr = quote do: Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 iex> res  = Macro.expand_once(expr, __ENV__)
 iex> IO.puts(Macro.to_string(res))
-if(!true) do
+if !true do
   IO.puts("this should never be printed")
 end
 :ok
@@ -214,11 +214,11 @@ nil
 iex> __ENV__.file
 "iex"
 iex> __ENV__.requires
-[IEx.Helpers, Kernel, Kernel.Typespec]
+[Application, IEx.Helpers, Kernel]
 iex> require Integer
-nil
+Integer
 iex> __ENV__.requires
-[IEx.Helpers, Integer, Kernel, Kernel.Typespec]
+[Application, IEx.Helpers, Integer, Kernel]
 ```
 
 Many of the functions in the `Macro` module expect a `Macro.Env` environment. You can read more about these functions in `Macro` and learn more about the compilation environment in the `Macro.Env`.
