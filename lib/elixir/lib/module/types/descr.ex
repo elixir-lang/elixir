@@ -4400,16 +4400,16 @@ defmodule Module.Types.Descr do
     else
       diff = bare_difference(type, neg_type)
       diff_optional? = optional? and not neg_optional?
-      acc_meet = [{key, {meet, meet_optional?}} | acc_meet]
+      new_acc_meet = [{key, {meet, meet_optional?}} | acc_meet]
 
       if field_empty_seen?(diff, diff_optional?, seen) do
         # The field is a subtype of the negative field, so their intersection is type.
-        map_line_meet_empty?(t1, t2, tag, neg_tag, acc_meet, negs, seen)
+        map_line_meet_empty?(t1, t2, tag, neg_tag, new_acc_meet, negs, seen)
       else
         reverse_meet = Enum.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1])
 
         map_line_empty?(tag, reverse_meet, negs, seen) and
-          map_line_meet_empty?(t1, t2, tag, neg_tag, acc_meet, negs, seen)
+          map_line_meet_empty?(t1, t2, tag, neg_tag, new_acc_meet, negs, seen)
       end
     end
   end
