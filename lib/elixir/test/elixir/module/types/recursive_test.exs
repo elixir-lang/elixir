@@ -89,11 +89,11 @@ defmodule Module.Types.RecursiveTest do
       assert equal?(from_nodes, from_descrs)
 
       n = recursive_node(integer())
-      result = closed_map(a: n)
+      result = closed_map(a: {n, false})
       refute empty?(result)
 
       n = recursive_node(atom())
-      result = open_map(b: n)
+      result = open_map(b: {n, false})
       refute empty?(result)
     end
 
@@ -387,11 +387,12 @@ defmodule Module.Types.RecursiveTest do
       %{X: nx, Y: ny} =
         recursive(%{
           X: fn recur ->
-            closed_map(outer: closed_map(inner: recur.(:X))) |> bare_union(atom([nil]))
+            closed_map(outer: {closed_map(inner: {recur.(:X), false}), false})
+            |> bare_union(atom([nil]))
           end,
           Y: fn recur ->
-            closed_map(outer: closed_map(inner: recur.(:Y)))
-            |> bare_union(closed_map(outer: closed_map(inner: integer())))
+            closed_map(outer: {closed_map(inner: {recur.(:Y), false}), false})
+            |> bare_union(closed_map(outer: {closed_map(inner: {integer(), false}), false}))
             |> bare_union(atom([nil]))
           end
         })
@@ -441,12 +442,12 @@ defmodule Module.Types.RecursiveTest do
       %{X: nx, Y: ny} =
         recursive(%{
           X: fn recur ->
-            closed_map(a: closed_map(a: recur.(:X)))
-            |> bare_union(closed_map(a: closed_map(a: atom())))
+            closed_map(a: {closed_map(a: {recur.(:X), false}), false})
+            |> bare_union(closed_map(a: {closed_map(a: {atom(), false}), false}))
           end,
           Y: fn recur ->
-            closed_map(a: closed_map(a: recur.(:Y)))
-            |> bare_union(closed_map(a: closed_map(a: atom())))
+            closed_map(a: {closed_map(a: {recur.(:Y), false}), false})
+            |> bare_union(closed_map(a: {closed_map(a: {atom(), false}), false}))
           end
         })
 
@@ -510,8 +511,8 @@ defmodule Module.Types.RecursiveTest do
       %{X: nx} =
         recursive(%{
           X: fn recur ->
-            closed_map(a: integer(), b: recur.(:X))
-            |> bare_union(closed_map(a: integer(), b: atom()))
+            closed_map(a: {integer(), false}, b: {recur.(:X), false})
+            |> bare_union(closed_map(a: {integer(), false}, b: {atom(), false}))
           end
         })
 
@@ -576,7 +577,9 @@ defmodule Module.Types.RecursiveTest do
 
     # M = %{a: M} | nil, as a node
     defp rec_map_node() do
-      recursive(%{M: fn recur -> closed_map(a: recur.(:M)) |> bare_union(atom([nil])) end})
+      recursive(%{
+        M: fn recur -> closed_map(a: {recur.(:M), false}) |> bare_union(atom([nil])) end
+      })
       |> Map.fetch!(:M)
     end
 
@@ -585,7 +588,9 @@ defmodule Module.Types.RecursiveTest do
     # M = %{a: M, b: descr} | nil
     defp rec_map_with(descr) do
       recursive(%{
-        M: fn recur -> closed_map(a: recur.(:M), b: descr) |> bare_union(atom([nil])) end
+        M: fn recur ->
+          closed_map(a: {recur.(:M), false}, b: {descr, false}) |> bare_union(atom([nil]))
+        end
       })
       |> Map.fetch!(:M)
       |> unfold()
@@ -752,8 +757,16 @@ defmodule Module.Types.RecursiveTest do
       # one differing non-recursive key next to a shared recursive node
       node = rec_map_node()
 
-      union = opt_union(closed_map(a: node, b: integer()), closed_map(a: node, b: float()))
-      assert equal?(union, closed_map(a: node, b: bare_union(integer(), float())))
+      union =
+        opt_union(
+          closed_map(a: {node, false}, b: {integer(), false}),
+          closed_map(a: {node, false}, b: {float(), false})
+        )
+
+      assert equal?(
+               union,
+               closed_map(a: {node, false}, b: {bare_union(integer(), float()), false})
+             )
 
       # tuple union with one differing index holding recursive nodes
       union = opt_union(tuple([integer(), node]), tuple([float(), node]))
@@ -797,10 +810,10 @@ defmodule Module.Types.RecursiveTest do
       node_a = rec_map_node()
       node_b = rec_map_node()
 
-      m_at = closed_map(a: node_a, t: atom())
-      m_az = closed_map(a: node_a, t: atom([:z]))
-      m_bt = closed_map(a: node_b, t: atom())
-      m_bz = closed_map(a: node_b, t: atom([:z]))
+      m_at = closed_map(a: {node_a, false}, t: {atom(), false})
+      m_az = closed_map(a: {node_a, false}, t: {atom([:z]), false})
+      m_bt = closed_map(a: {node_b, false}, t: {atom(), false})
+      m_bz = closed_map(a: {node_b, false}, t: {atom([:z]), false})
 
       # a left BDD with union/negation structure makes the leaf difference
       # request the union of the recursive field values (type: :union)
@@ -875,7 +888,7 @@ defmodule Module.Types.RecursiveTest do
       # map <-> tuple mutual recursion: P = %{items: Q} | nil, Q = {integer(), P} | nil
       build_pq = fn ->
         recursive(%{
-          P: fn recur -> closed_map(items: recur.(:Q)) |> bare_union(atom([nil])) end,
+          P: fn recur -> closed_map(items: {recur.(:Q), false}) |> bare_union(atom([nil])) end,
           Q: fn recur -> tuple([integer(), recur.(:P)]) |> bare_union(atom([nil])) end
         })
         |> Map.fetch!(:P)
@@ -892,7 +905,7 @@ defmodule Module.Types.RecursiveTest do
       # recursion through a list of maps: E = list(%{next: E} | nil)
       build_e = fn ->
         recursive(%{
-          E: fn recur -> list(bare_union(closed_map(next: recur.(:E)), atom([nil]))) end
+          E: fn recur -> list(bare_union(closed_map(next: {recur.(:E), false}), atom([nil]))) end
         })
         |> Map.fetch!(:E)
         |> unfold()

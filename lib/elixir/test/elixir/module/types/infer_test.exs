@@ -39,8 +39,8 @@ defmodule Module.Types.InferTest do
       end
 
     args = [
-      open_map(__struct__: atom([Point])),
-      open_map(__struct__: atom([Point])),
+      open_map(__struct__: {atom([Point]), false}),
+      open_map(__struct__: {atom([Point]), false}),
       atom([Point]),
       atom([Point])
     ]
@@ -141,10 +141,15 @@ defmodule Module.Types.InferTest do
     number = opt_union(integer(), float())
 
     assert types[{:fun, 1}] ==
-             {:infer, nil, [{[open_map(foo: number, bar: number)], dynamic(number)}]}
+             {:infer, nil,
+              [{[open_map(foo: {number, false}, bar: {number, false})], dynamic(number)}]}
 
     assert types[{:fun_nested, 1}] ==
-             {:infer, nil, [{[open_map(x: open_map(foo: number, bar: number))], dynamic(number)}]}
+             {:infer, nil,
+              [
+                {[open_map(x: {open_map(foo: {number, false}, bar: {number, false}), false})],
+                 dynamic(number)}
+              ]}
   end
 
   test "from Elixir built-in", config do
@@ -234,10 +239,10 @@ defmodule Module.Types.InferTest do
                tuple([
                  binary(),
                  closed_map(
-                   __struct__: atom([module]),
-                   x: binary(),
-                   y: atom([nil]),
-                   z: atom([nil])
+                   __struct__: {atom([module]), false},
+                   x: {binary(), false},
+                   y: {atom([nil]), false},
+                   z: {atom([nil]), false}
                  )
                ])
              )
@@ -250,10 +255,10 @@ defmodule Module.Types.InferTest do
     assert return ==
              dynamic(
                closed_map(
-                 __struct__: atom([module]),
-                 x: binary(),
-                 y: atom([nil]),
-                 z: term()
+                 __struct__: {atom([module]), false},
+                 x: {binary(), false},
+                 y: {atom([nil]), false},
+                 z: {term(), false}
                )
              )
 
@@ -262,10 +267,10 @@ defmodule Module.Types.InferTest do
     assert return ==
              dynamic(
                closed_map(
-                 __struct__: atom([module]),
-                 x: binary(),
-                 y: atom([nil]),
-                 z: term()
+                 __struct__: {atom([module]), false},
+                 x: {binary(), false},
+                 y: {atom([nil]), false},
+                 z: {term(), false}
                )
              )
   end

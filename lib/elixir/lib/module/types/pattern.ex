@@ -534,14 +534,18 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_tree({:open_map, static, dynamic}, stack, context) do
     dynamic =
-      Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, stack, context)} end)
+      Enum.map(dynamic, fn {key, value} ->
+        {key, {of_pattern_tree(value, stack, context), false}}
+      end)
 
     open_map(static ++ dynamic)
   end
 
   defp of_pattern_tree({:closed_map, static, dynamic}, stack, context) do
     dynamic =
-      Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, stack, context)} end)
+      Enum.map(dynamic, fn {key, value} ->
+        {key, {of_pattern_tree(value, stack, context), false}}
+      end)
 
     closed_map(static ++ dynamic)
   end
@@ -721,20 +725,20 @@ defmodule Module.Types.Pattern do
 
       pairs = Map.new(pairs)
       term = term()
-      static = [__struct__: atom([struct])]
+      static = [__struct__: {atom([struct]), false}]
       dynamic = []
 
       {static, dynamic} =
         Enum.reduce(info, {static, dynamic}, fn %{field: field}, {static, dynamic} ->
           case pairs do
             %{^field => value_type} when is_descr(value_type) ->
-              {[{field, value_type} | static], dynamic}
+              {[{field, {value_type, false}} | static], dynamic}
 
             %{^field => value_type} ->
               {static, [{field, value_type} | dynamic]}
 
             _ ->
-              {[{field, term} | static], dynamic}
+              {[{field, {term, false}} | static], dynamic}
           end
         end)
 
@@ -772,7 +776,8 @@ defmodule Module.Types.Pattern do
     {refined, context} = of_match_var(var, atom(), expr, stack, context)
 
     if compatible?(refined, atom()) do
-      of_open_map(args, singleton?(refined), [__struct__: refined], [], path, stack, context)
+      fields = [__struct__: {refined, false}]
+      of_open_map(args, singleton?(refined), fields, [], path, stack, context)
     else
       error = {:badstruct, refined, expr, context}
       {error_type(), false, error(__MODULE__, error, meta, stack, context)}
@@ -861,7 +866,7 @@ defmodule Module.Types.Pattern do
           precise? = precise? and value_precise?
 
           if is_descr(value_type) do
-            {precise?, [{key, value_type} | static], dynamic, context}
+            {precise?, [{key, {value_type, false}} | static], dynamic, context}
           else
             {precise?, static, [{key, value_type} | dynamic], context}
           end
@@ -1165,7 +1170,7 @@ defmodule Module.Types.Pattern do
   # var.field
   def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, expected, expr, stack, context)
       when not is_atom(callee) do
-    {type, context} = of_guard(callee, open_map([{key, expected}]), expr, stack, context)
+    {type, context} = of_guard(callee, open_map([{key, {expected, false}}]), expr, stack, context)
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
