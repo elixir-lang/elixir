@@ -913,7 +913,7 @@ defmodule ExUnit.Assertions do
   def assert_in_delta(value1, value2, delta, message \\ nil)
 
   def assert_in_delta(_, _, delta, _) when delta < 0 do
-    raise ArgumentError, "delta must always be a positive number, got: #{inspect(delta)}"
+    raise ArgumentError, "delta must be a non-negative number, got: #{inspect(delta)}"
   end
 
   def assert_in_delta(value1, value2, delta, message) do
@@ -1171,20 +1171,26 @@ defmodule ExUnit.Assertions do
       refute_in_delta 10, 11, 2
 
   """
-  def refute_in_delta(value1, value2, delta, message \\ nil) do
+  def refute_in_delta(value1, value2, delta, message \\ nil)
+
+  def refute_in_delta(_, _, delta, _) when delta < 0 do
+    raise ArgumentError, "delta must be a non-negative number, got: #{inspect(delta)}"
+  end
+
+  def refute_in_delta(value1, value2, delta, message) do
     diff = abs(value1 - value2)
 
     message =
       if message do
         message <>
           " (difference between #{inspect(value1)} " <>
-          "and #{inspect(value2)} is less than #{inspect(delta)})"
+          "and #{inspect(value2)} is less than or equal to #{inspect(delta)})"
       else
         "Expected the difference between #{inspect(value1)} and " <>
           "#{inspect(value2)} (#{inspect(diff)}) to be more than #{inspect(delta)}"
       end
 
-    refute diff < delta, message
+    refute diff <= delta, message
   end
 
   @doc """
