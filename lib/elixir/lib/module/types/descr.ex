@@ -3050,12 +3050,14 @@ defmodule Module.Types.Descr do
   defp map_domain_intersection_fields(_, _, _seen), do: []
 
   defp map_literal_intersection_open_closed(
-         [{k1, {_v1, optional1?}} | t1],
+         [{k1, f1} | t1],
          [{k2, _} | _] = l2,
          intersection_fun,
          seen
        )
        when k1 < k2 do
+    {_, optional1?} = f1
+
     # If the type in the open map is optional, we continue
     if optional1?,
       do: map_literal_intersection_open_closed(t1, l2, intersection_fun, seen),
@@ -3064,24 +3066,23 @@ defmodule Module.Types.Descr do
 
   defp map_literal_intersection_open_closed(
          [{k1, _} | _] = l1,
-         [{k2, {v2, optional2?}} | t2],
+         [{k2, f2} | t2],
          intersection_fun,
          seen
        )
        when k1 > k2 do
     # Anything in the closed map not in open is preserved
-    [
-      {k2, {v2, optional2?}}
-      | map_literal_intersection_open_closed(l1, t2, intersection_fun, seen)
-    ]
+    [{k2, f2} | map_literal_intersection_open_closed(l1, t2, intersection_fun, seen)]
   end
 
   defp map_literal_intersection_open_closed(
-         [{key, {v1, optional1?}} | t1],
-         [{_, {v2, optional2?}} | t2],
+         [{key, f1} | t1],
+         [{_, f2} | t2],
          intersection_fun,
          seen
        ) do
+    {v1, optional1?} = f1
+    {v2, optional2?} = f2
     optional? = optional1? and optional2?
     type = intersection_fun.(v1, v2)
     if not optional? and empty_seen?(type, seen), do: throw(:empty)
@@ -3101,12 +3102,14 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_closed(
-         [{k1, {_v1, optional1?}} | t1],
+         [{k1, f1} | t1],
          [{k2, _} | _] = l2,
          intersection_fun,
          seen
        )
        when k1 < k2 do
+    {_, optional1?} = f1
+
     if optional1? do
       map_literal_intersection_closed(t1, l2, intersection_fun, seen)
     else
@@ -3116,11 +3119,13 @@ defmodule Module.Types.Descr do
 
   defp map_literal_intersection_closed(
          [{k1, _} | _] = l1,
-         [{k2, {_v2, optional2?}} | t2],
+         [{k2, f2} | t2],
          intersection_fun,
          seen
        )
        when k1 > k2 do
+    {_, optional2?} = f2
+
     if optional2? do
       map_literal_intersection_closed(l1, t2, intersection_fun, seen)
     else
@@ -3128,12 +3133,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_literal_intersection_closed(
-         [{key, {v1, optional1?}} | t1],
-         [{_, {v2, optional2?}} | t2],
-         intersection_fun,
-         seen
-       ) do
+  defp map_literal_intersection_closed([{key, f1} | t1], [{_, f2} | t2], intersection_fun, seen) do
+    {v1, optional1?} = f1
+    {v2, optional2?} = f2
     optional? = optional1? and optional2?
     type = intersection_fun.(v1, v2)
     if not optional? and empty_seen?(type, seen), do: throw(:empty)
@@ -3562,13 +3564,13 @@ defmodule Module.Types.Descr do
 
   This is a more general version of `map_update/5` and has the same return values.
   However, the third argument is an anonymous function that receives the current
-  value and returns `type_fun`. Note the value returned by `type_fun` cannot hold
-  dynamic. Any dynamic conversion must happen before invoking this function.
+  value and whether it is optional. Note the value returned by `type_fun` cannot
+  hold dynamic. Any dynamic conversion must happen before invoking this function.
   """
   def map_update_fun(descr, key_descr, type_fun, return_type? \\ true, force? \\ false) do
     gradual? = gradual?(descr)
 
-    type_fun = fn optional?, value ->
+    type_fun = fn value, optional? ->
       if is_function(type_fun, 1) do
         value = if gradual?, do: dynamic(value), else: value
         {new_value, new_optional?} = type_fun.(value)
@@ -3579,7 +3581,7 @@ defmodule Module.Types.Descr do
         {new_value, optional? or new_optional?}
       else
         value = if gradual?, do: dynamic(value), else: value
-        {new_value, new_optional?} = type_fun.(optional?, value)
+        {new_value, new_optional?} = type_fun.(value, optional?)
 
         new_value =
           if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
@@ -3741,7 +3743,7 @@ defmodule Module.Types.Descr do
       else
         acc_value = opt_union(value, acc_value)
 
-        {new_value, new_optional?} = type_fun.(optional?, value)
+        {new_value, new_optional?} = type_fun.(value, optional?)
 
         acc_descr =
           opt_union(map_put_key_static(descr, key, new_value, new_optional?), acc_descr)
@@ -3956,7 +3958,7 @@ defmodule Module.Types.Descr do
         # the callback may itself typecheck a function application, and
         # applying it to `none()` will raise undue warnings.
         if force?,
-          do: fields_from_keys(domain_keys, elem(type_fun.(true, none()), 0)),
+          do: fields_from_keys(domain_keys, elem(type_fun.(none(), true), 0)),
           else: :closed
 
       # Note: domain_keys may contain duplicates, so we cannot
@@ -3967,14 +3969,14 @@ defmodule Module.Types.Descr do
             {:ok, value} ->
               fields_store(
                 domain_key,
-                opt_union(value, elem(type_fun.(true, value), 0)),
+                opt_union(value, elem(type_fun.(value, true), 0)),
                 acc
               )
 
             :error ->
               # Likewise, only forced updates may synthesize missing domain keys.
               if force?,
-                do: fields_store(domain_key, elem(type_fun.(true, none()), 0), acc),
+                do: fields_store(domain_key, elem(type_fun.(none(), true), 0), acc),
                 else: acc
           end
         end)
@@ -4308,7 +4310,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_meet_empty?(
-         [{k1, {v1, optional1?}} | t1],
+         [{k1, f1} | t1],
          [{k2, _} | _] = l2,
          tag,
          neg_tag,
@@ -4317,45 +4319,27 @@ defmodule Module.Types.Descr do
          seen
        )
        when k1 < k2 do
+    {_, optional1?} = f1
+
     cond do
       # The key is only in the positive map, which means the difference
       # with a negative open tag (all possible types) tag will surely be empty.
       neg_tag == :open ->
-        map_line_meet_empty?(
-          t1,
-          l2,
-          tag,
-          neg_tag,
-          [{k1, {v1, optional1?}} | acc_meet],
-          negs,
-          seen
-        )
+        map_line_meet_empty?(t1, l2, tag, neg_tag, [{k1, f1} | acc_meet], negs, seen)
 
       # In this case the difference will never be empty, so we can skip ahead.
       neg_tag == :closed and not optional1? ->
         throw(:closed)
 
       true ->
-        v2 = map_key_tag_to_field(neg_tag)
-
-        map_line_meet_empty?(
-          k1,
-          {v1, optional1?},
-          v2,
-          t1,
-          l2,
-          tag,
-          neg_tag,
-          acc_meet,
-          negs,
-          seen
-        )
+        f2 = map_key_tag_to_field(neg_tag)
+        map_line_meet_empty?(k1, f1, f2, t1, l2, tag, neg_tag, acc_meet, negs, seen)
     end
   end
 
   defp map_line_meet_empty?(
          [{k1, _} | _] = l1,
-         [{k2, {v2, optional2?}} | t2],
+         [{k2, f2} | t2],
          tag,
          neg_tag,
          acc_meet,
@@ -4366,73 +4350,28 @@ defmodule Module.Types.Descr do
     # The keys is only in the negative map and the positive map is closed,
     # in that case, this field is not_set(), and its difference with the
     # negative map type is empty iff the negative type is optional.
+    {_, optional2?} = f2
+
     if tag == :closed and not optional2? do
       throw(:closed)
     else
-      v1 = map_key_tag_to_field(tag)
-
-      map_line_meet_empty?(
-        k2,
-        v1,
-        {v2, optional2?},
-        l1,
-        t2,
-        tag,
-        neg_tag,
-        acc_meet,
-        negs,
-        seen
-      )
+      f1 = map_key_tag_to_field(tag)
+      map_line_meet_empty?(k2, f1, f2, l1, t2, tag, neg_tag, acc_meet, negs, seen)
     end
   end
 
-  defp map_line_meet_empty?(
-         [{k, {v1, optional1?}} | t1],
-         [{_, {v2, optional2?}} | t2],
-         tag,
-         neg_tag,
-         acc_meet,
-         negs,
-         seen
-       ) do
-    map_line_meet_empty?(
-      k,
-      {v1, optional1?},
-      {v2, optional2?},
-      t1,
-      t2,
-      tag,
-      neg_tag,
-      acc_meet,
-      negs,
-      seen
-    )
+  defp map_line_meet_empty?([{k, f1} | t1], [{_, f2} | t2], tag, neg_tag, acc_meet, negs, seen) do
+    map_line_meet_empty?(k, f1, f2, t1, t2, tag, neg_tag, acc_meet, negs, seen)
   end
 
-  defp map_line_meet_empty?(
-         [{k1, {v1, optional1?}} | t1],
-         [],
-         tag,
-         neg_tag,
-         acc_meet,
-         negs,
-         seen
-       ) do
-    v2 = map_key_tag_to_field(neg_tag)
-    map_line_meet_empty?(k1, {v1, optional1?}, v2, t1, [], tag, neg_tag, acc_meet, negs, seen)
+  defp map_line_meet_empty?([{k1, f1} | t1], [], tag, neg_tag, acc_meet, negs, seen) do
+    f2 = map_key_tag_to_field(neg_tag)
+    map_line_meet_empty?(k1, f1, f2, t1, [], tag, neg_tag, acc_meet, negs, seen)
   end
 
-  defp map_line_meet_empty?(
-         [],
-         [{k2, {v2, optional2?}} | t2],
-         tag,
-         neg_tag,
-         acc_meet,
-         negs,
-         seen
-       ) do
-    v1 = map_key_tag_to_field(tag)
-    map_line_meet_empty?(k2, v1, {v2, optional2?}, [], t2, tag, neg_tag, acc_meet, negs, seen)
+  defp map_line_meet_empty?([], [{k2, f2} | t2], tag, neg_tag, acc_meet, negs, seen) do
+    f1 = map_key_tag_to_field(tag)
+    map_line_meet_empty?(k2, f1, f2, [], t2, tag, neg_tag, acc_meet, negs, seen)
   end
 
   defp map_line_meet_empty?([], [], _tag, _neg_tag, _acc_meet, _negs, _seen) do
@@ -4456,49 +4395,27 @@ defmodule Module.Types.Descr do
 
     if field_empty_seen?(meet, meet_optional?, seen) do
       # This negative map is disjoint from the current line at this field.
-      map_line_empty?(
-        tag,
-        Enum.reverse(acc_meet, [{key, {type, optional?}} | t1]),
-        negs,
-        seen
-      )
+      reverse_meet = Enum.reverse(acc_meet, [{key, {type, optional?}} | t1])
+      map_line_empty?(tag, reverse_meet, negs, seen)
     else
       diff = bare_difference(type, neg_type)
       diff_optional? = optional? and not neg_optional?
+      acc_meet = [{key, {meet, meet_optional?}} | acc_meet]
 
       if field_empty_seen?(diff, diff_optional?, seen) do
         # The field is a subtype of the negative field, so their intersection is type.
-        map_line_meet_empty?(
-          t1,
-          t2,
-          tag,
-          neg_tag,
-          [{key, {meet, meet_optional?}} | acc_meet],
-          negs,
-          seen
-        )
+        map_line_meet_empty?(t1, t2, tag, neg_tag, acc_meet, negs, seen)
       else
-        map_line_empty?(
-          tag,
-          Enum.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1]),
-          negs,
-          seen
-        ) and
-          map_line_meet_empty?(
-            t1,
-            t2,
-            tag,
-            neg_tag,
-            [{key, {meet, meet_optional?}} | acc_meet],
-            negs,
-            seen
-          )
+        reverse_meet = Enum.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1])
+
+        map_line_empty?(tag, reverse_meet, negs, seen) and
+          map_line_meet_empty?(t1, t2, tag, neg_tag, acc_meet, negs, seen)
       end
     end
   end
 
   defp map_line_fields_empty?(
-         [{k1, {v1, optional1?}} | t1],
+         [{k1, f1} | t1],
          [{k2, _} | _] = l2,
          tag,
          neg_tag,
@@ -4507,6 +4424,8 @@ defmodule Module.Types.Descr do
          seen
        )
        when k1 < k2 do
+    {_, optional1?} = f1
+
     cond do
       # The key is only in the positive map, which means the difference
       # with a negative open tag (all possible types) tag will surely be empty.
@@ -4518,22 +4437,16 @@ defmodule Module.Types.Descr do
         throw(:closed)
 
       true ->
-        map_line_fields_empty_recur?(
-          k1,
-          {v1, optional1?},
-          map_key_tag_to_field(neg_tag),
-          tag,
-          fields,
-          negs,
-          seen
-        ) and
+        f2 = map_key_tag_to_field(neg_tag)
+
+        map_line_fields_empty_recur?(k1, f1, f2, tag, fields, negs, seen) and
           map_line_fields_empty?(t1, l2, tag, neg_tag, fields, negs, seen)
     end
   end
 
   defp map_line_fields_empty?(
          [{k1, _} | _] = l1,
-         [{k2, {v2, optional2?}} | t2],
+         [{k2, f2} | t2],
          tag,
          neg_tag,
          fields,
@@ -4544,6 +4457,8 @@ defmodule Module.Types.Descr do
     # The keys is only in the negative map and the positive map is closed,
     # in that case, this field is not_set(), and its difference with the
     # negative map type is empty iff the negative type is optional.
+    {_, optional2?} = f2
+
     if tag == :closed do
       if optional2? do
         map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs, seen)
@@ -4551,62 +4466,26 @@ defmodule Module.Types.Descr do
         throw(:closed)
       end
     else
-      map_line_fields_empty_recur?(
-        k2,
-        map_key_tag_to_field(tag),
-        {v2, optional2?},
-        tag,
-        fields,
-        negs,
-        seen
-      ) and
+      f1 = map_key_tag_to_field(tag)
+
+      map_line_fields_empty_recur?(k2, f1, f2, tag, fields, negs, seen) and
         map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs, seen)
     end
   end
 
-  defp map_line_fields_empty?(
-         [{key, {v1, optional1?}} | t1],
-         [{_, {v2, optional2?}} | t2],
-         tag,
-         neg_tag,
-         fields,
-         negs,
-         seen
-       ) do
-    map_line_fields_empty_recur?(
-      key,
-      {v1, optional1?},
-      {v2, optional2?},
-      tag,
-      fields,
-      negs,
-      seen
-    ) and
+  defp map_line_fields_empty?([{key, f1} | t1], [{_, f2} | t2], tag, neg_tag, fields, negs, seen) do
+    map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen) and
       map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs, seen)
   end
 
   defp map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs, seen) do
-    Enum.all?(t1, fn {key, {v1, optional1?}} ->
-      map_line_fields_empty_recur?(
-        key,
-        {v1, optional1?},
-        map_key_tag_to_field(neg_tag),
-        tag,
-        fields,
-        negs,
-        seen
-      )
+    Enum.all?(t1, fn {key, f1} ->
+      f2 = map_key_tag_to_field(neg_tag)
+      map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
     end) and
-      Enum.all?(t2, fn {key, {v2, optional2?}} ->
-        map_line_fields_empty_recur?(
-          key,
-          map_key_tag_to_field(tag),
-          {v2, optional2?},
-          tag,
-          fields,
-          negs,
-          seen
-        )
+      Enum.all?(t2, fn {key, f2} ->
+        f1 = map_key_tag_to_field(tag)
+        map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
       end)
   end
 
@@ -6943,11 +6822,13 @@ defmodule Module.Types.Descr do
   # this long comment is because this was a regression in the past.
   defp opt_map_leaf_difference(
          bdd_leaf(tag, fields),
-         bdd_leaf(:open, [{key, field2 = {_value2, optional2?}}]),
+         bdd_leaf(:open, [{key, field2}]),
          type,
          seen
        )
        when type != :union do
+    {_, optional2?} = field2
+
     {found?, field1} =
       case fields_find(key, fields) do
         {:ok, field} -> {true, field}
@@ -7025,13 +6906,15 @@ defmodule Module.Types.Descr do
   end
 
   defp opt_map_difference_strategy(
-         [{k1, {_value, optional?}} | t1],
+         [{k1, field} | t1],
          [{k2, _} | _] = l2,
          tag1,
          tag2,
          status
        )
        when k1 < k2 do
+    {_, optional?} = field
+
     # Left side has a key the right side does not have,
     # left can only be a subtype if the right side is open.
     # If the right side is closed and the key is not optional, they are disjoint.
@@ -7061,12 +6944,14 @@ defmodule Module.Types.Descr do
 
   defp opt_map_difference_strategy(
          [{k1, _} | _] = l1,
-         [{k2, {_value, optional?}} | t2],
+         [{k2, field} | t2],
          tag1,
          tag2,
          _status
        )
        when k1 > k2 do
+    {_, optional?} = field
+
     # Right side has a key the left side does not have,
     # if left-side is closed, they are disjoint.
     if tag1 == :closed and not optional? do

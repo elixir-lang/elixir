@@ -1280,7 +1280,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
-    fun = fn optional?, _type -> {value, optional?} end
+    fun = fn _value, optional? -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1290,7 +1290,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace!, _info, [map, key, value] = args_types, stack) do
-    fun = fn optional?, _type -> {value, optional?} end
+    fun = fn _value, optional? -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1317,7 +1317,7 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
-      fun_apply = fn optional?, arg_type ->
+      fun_apply = fn arg_type, optional? ->
         if empty?(arg_type) do
           {default, false}
         else
@@ -1449,7 +1449,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    fun = fn optional?, _type -> {value, optional?} end
+    fun = fn _value, optional? -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1820,8 +1820,8 @@ defmodule Module.Types.Apply do
 
   defp map_put_new(map, key, value, name, args_types, stack) do
     fun = fn
-      true, type -> {opt_union(type, value), false}
-      false, type -> {if(empty?(type), do: value, else: type), false}
+      type, true -> {opt_union(type, value), false}
+      type, false -> {if(empty?(type), do: value, else: type), false}
     end
 
     case map_update_fun(map, key, fun, false, true) do
@@ -1839,7 +1839,7 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
-      fun_apply = fn optional?, arg_type ->
+      fun_apply = fn arg_type, optional? ->
         case fun_apply(fun, [arg_type]) do
           {:ok, res} -> {res, optional?}
           reason -> throw({:badapply, reason, [arg_type]})

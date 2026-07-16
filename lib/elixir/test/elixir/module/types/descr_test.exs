@@ -2944,7 +2944,7 @@ defmodule Module.Types.DescrTest do
       # due to the key being absent in the map.
       type = dynamic(opt_difference(open_map(), empty_map()))
 
-      fun = fn _optional?, value ->
+      fun = fn value, _optional? ->
         send(self(), :callback_invoked)
         {value, false}
       end
