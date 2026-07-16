@@ -4432,13 +4432,22 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_tag, acc_meet, negs, seen) do
-    diff = bare_difference(type, neg_type)
     meet = bare_intersection(type, neg_type)
 
-    (empty_seen?(diff, seen) or
-       map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs, seen)) and
-      (empty_seen?(meet, seen) or
-         map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs, seen))
+    if empty_seen?(meet, seen) do
+      # This negative map is disjoint from the current line at this field.
+      map_line_empty?(tag, Enum.reverse(acc_meet, [{key, type} | t1]), negs, seen)
+    else
+      diff = bare_difference(type, neg_type)
+
+      if empty_seen?(diff, seen) do
+        # The field is a subtype of the negative field, so their intersection is type.
+        map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, type} | acc_meet], negs, seen)
+      else
+        map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs, seen) and
+          map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs, seen)
+      end
+    end
   end
 
   defp map_line_fields_empty?(
