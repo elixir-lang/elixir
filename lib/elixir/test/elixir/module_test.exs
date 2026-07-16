@@ -448,8 +448,7 @@ defmodule ModuleTest do
       ExampleModule |> :code.which() |> :beam_lib.chunks([~c"Dbgi"])
 
     {:debug_info_v1, backend, data} = :erlang.binary_to_term(dbgi)
-    {:ok, core} = backend.debug_info(:core_v1, ExampleModule, data, [])
-    assert is_tuple(core)
+    assert {:ok, core} = backend.debug_info(:core_v1, ExampleModule, data, [])
   end
 
   test "no function in module body" do

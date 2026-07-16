@@ -19,9 +19,8 @@ defmodule FunctionTest do
   doctest Function
   import Function
 
-  @information_keys_for_named [:type, :module, :arity, :name, :env]
-  @information_keys_for_anonymous @information_keys_for_named ++
-                                    [:pid, :index, :new_index, :new_uniq, :uniq]
+  @info_keys_for_named [:type, :module, :arity, :name, :env]
+  @info_keys_for_anonymous @info_keys_for_named ++ [:index, :new_index, :new_uniq, :uniq]
 
   describe "capture/3" do
     test "captures module functions with arity 0" do
@@ -54,7 +53,7 @@ defmodule FunctionTest do
       result = info(f)
 
       for {key, _value} <- result do
-        assert key in @information_keys_for_anonymous
+        assert key in @info_keys_for_anonymous
       end
     end
   end
@@ -63,7 +62,7 @@ defmodule FunctionTest do
     test "returns info for every possible information key for named functions" do
       f = &DummyFunction.zero?/1
 
-      for x <- @information_keys_for_named do
+      for x <- @info_keys_for_named do
         assert {^x, _} = info(f, x)
       end
     end
@@ -71,7 +70,7 @@ defmodule FunctionTest do
     test "returns info for every possible information key for anonymous functions" do
       f = &DummyFunction.zero?/1
 
-      for x <- @information_keys_for_anonymous do
+      for x <- @info_keys_for_anonymous do
         assert {^x, _} = info(f, x)
       end
 
