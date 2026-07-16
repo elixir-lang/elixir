@@ -347,19 +347,22 @@ defmodule Module.Types.Descr do
   # `not_set()` has no meaning outside of map types.
   def not_set(), do: @not_set
 
-  def if_set({_, _, _} = node) do
-    node |> unfold() |> if_set()
-  end
-
   def if_set(:term), do: term_or_optional()
 
   # If type contains a :dynamic part, :optional gets added there.
   def if_set(type) do
-    case type do
-      %{dynamic: :term} when map_size(type) == 1 -> %{dynamic: term_or_optional()}
-      %{dynamic: :term} -> Map.put(%{type | dynamic: term_or_optional()}, :optional, 1)
-      %{dynamic: dyn} -> Map.put(%{type | dynamic: Map.put(dyn, :optional, 1)}, :optional, 1)
-      _ -> Map.put(type, :optional, 1)
+    case unfold(type) do
+      %{dynamic: :term} = descr when map_size(descr) == 1 ->
+        %{dynamic: term_or_optional()}
+
+      %{dynamic: :term} = descr ->
+        Map.put(%{descr | dynamic: term_or_optional()}, :optional, 1)
+
+      %{dynamic: dyn} = descr ->
+        Map.put(%{descr | dynamic: Map.put(dyn, :optional, 1)}, :optional, 1)
+
+      descr ->
+        Map.put(descr, :optional, 1)
     end
   end
 
@@ -2831,13 +2834,13 @@ defmodule Module.Types.Descr do
   # (@domain_key_types) to types, and `fields` is a map of atom keys (:foo, :bar, ...)
   # to types.
   #
-  # For instance, the type `%{atom() => if_set(integer())}` is the type of maps where atom keys
+  # For instance, the type `%{atom() => integer()}` is the type of maps where atom keys
   # map to integers, without any non-atom keys. It is represented using the map literal
-  # `{%{atom: if_set(integer())}, %{}}`, with no defined keys.
+  # `{%{atom: integer()}, %{}}`, with no defined keys. Domain values are implicitly optional.
   #
   # The type `%{..., atom() => integer()}` represents maps with atom keys bound to integers,
   # and other keys bound to any type. It will be represented using a map domain that maps
-  # atom to `if_set(integer())`, and every other domain key to `term_or_optional()`.
+  # atom to `integer()`, and every other domain key to `term()`.
 
   @doc """
   Converts a type into domain keys.
@@ -2915,7 +2918,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_descr_static(:open, fields, domains) do
-    value = term_or_optional()
+    value = term()
     domains = fields_put_all_new(domains, @domain_key_types, value)
     %{map: map_new(domains, fields)}
   end
@@ -2925,7 +2928,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domain(domain, domain_keys, value) when is_list(domain_keys) do
-    map_put_domain(domain, :lists.usort(domain_keys), map_domain_if_set(value), value)
+    value = remove_optional(value)
+    map_put_domain(domain, :lists.usort(domain_keys), value, value)
   end
 
   defp map_put_domain([{k1, v1} | t1], [k2 | _] = keys, initial, value) when k1 < k2 do
@@ -2933,7 +2937,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domain([{k1, v1} | t1], [k1 | keys], _initial, value) do
-    [{k1, bare_union(v1, value)} | map_put_domain(t1, keys, map_domain_if_set(value), value)]
+    [{k1, bare_union(v1, value)} | map_put_domain(t1, keys, value, value)]
   end
 
   defp map_put_domain(domain, [k2 | keys], initial, value) do
@@ -2941,25 +2945,6 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domain(domain, [], _initial, _value), do: domain
-
-  # Map domains store if_set(value). For recursive nodes, keep that application lazy
-  # so constructing the descriptor does not unfold the same map domain forever.
-  defp map_domain_if_set({id, state, _generator} = node) do
-    case if_set_node_id(id, state) do
-      :already_if_set -> node
-      if_set_id -> make_node(if_set_id, state, fn _recur -> node |> unfold() |> if_set() end)
-    end
-  end
-
-  defp map_domain_if_set(value), do: if_set(value)
-
-  defp if_set_node_id(id, state) do
-    Enum.find_value(state, fn
-      {_name, {^id, if_set_id, _generator}} -> if_set_id
-      {_name, {_id, ^id, _generator}} -> :already_if_set
-      _ -> nil
-    end)
-  end
 
   defp map_descr_pairs(pairs) do
     {fields, domains, dynamic_fields, dynamic_domains, dynamic?, static_possible?} =
@@ -2992,16 +2977,18 @@ defmodule Module.Types.Descr do
   # Gets the default type associated to atom keys in a map.
   defp map_key_tag_to_type(:open), do: term_or_optional()
   defp map_key_tag_to_type(:closed), do: not_set()
-  defp map_key_tag_to_type(domains), do: fields_get(domains, :atom, not_set())
 
-  # Gets the domain type association to a map.
-  # In this case, we already remove the optional to simplify upstream.
+  defp map_key_tag_to_type(domains),
+    do: domains |> fields_get(:atom, none()) |> if_set()
+
+  # Gets the domain type association to a map. Domain values are stored without
+  # an optional marker, so no conversion is necessary here.
   @compile {:inline, map_domain_tag_to_type: 1}
   defp map_domain_tag_to_type(:open), do: term()
   defp map_domain_tag_to_type(:closed), do: none()
 
   defp map_domain_tag_to_type(domain, key) when is_list(domain) do
-    remove_optional(fields_get(domain, key, none()))
+    fields_get(domain, key, none())
   end
 
   defp map_domain_tag_to_type(domain, _key) do
@@ -3123,7 +3110,7 @@ defmodule Module.Types.Descr do
   defp map_domain_intersection_fields([{k, type1} | t1], [{_, type2} | t2], seen) do
     inter = bare_intersection(type1, type2)
 
-    if empty_seen?(remove_optional(inter), seen) do
+    if empty_seen?(inter, seen) do
       map_domain_intersection_fields(t1, t2, seen)
     else
       [{k, inter} | map_domain_intersection_fields(t1, t2, seen)]
@@ -3928,8 +3915,7 @@ defmodule Module.Types.Descr do
   # where found? tracks whether at least one domain key was matched in the map.
   defp map_update_get_domains(dnf, domain_keys, acc, require_type?, any_atom_key) do
     Enum.reduce(domain_keys, {false, [], [], acc}, fn domain_key, {found?, valid, invalid, acc} ->
-      # Get the value type for this domain key, excluding optional entries
-      value = map_get_domain_no_optional(dnf, domain_key, none())
+      value = map_get_domain(dnf, domain_key, none())
 
       cond do
         # Atom domains are special: we also check for individually named atom keys
@@ -4008,7 +3994,7 @@ defmodule Module.Types.Descr do
         # the callback may itself typecheck a function application, and
         # applying it to `none()` will raise undue warnings.
         if force?,
-          do: fields_from_keys(domain_keys, if_set(type_fun.(true, none()))),
+          do: fields_from_keys(domain_keys, remove_optional(type_fun.(true, none()))),
           else: :closed
 
       # Note: domain_keys may contain duplicates, so we cannot
@@ -4019,14 +4005,14 @@ defmodule Module.Types.Descr do
             {:ok, value} ->
               fields_store(
                 domain_key,
-                opt_union(value, type_fun.(true, remove_optional(value))),
+                opt_union(value, remove_optional(type_fun.(true, value))),
                 acc
               )
 
             :error ->
               # Likewise, only forced updates may synthesize missing domain keys.
               if force?,
-                do: fields_store(domain_key, if_set(type_fun.(true, none())), acc),
+                do: fields_store(domain_key, remove_optional(type_fun.(true, none())), acc),
                 else: acc
           end
         end)
@@ -4191,8 +4177,8 @@ defmodule Module.Types.Descr do
     acc = map_get_keys(dnf, required_keys, acc)
     acc = map_get_keys(dnf, optional_keys, acc)
     acc = map_get_keys(dnf, map_keys_from_negated_set(maybe_negated_set, bdd), acc)
-    acc = Enum.reduce(required_domains, acc, &map_get_domain_no_optional(dnf, &1, &2))
-    acc = Enum.reduce(optional_domains, acc, &map_get_domain_no_optional(dnf, &1, &2))
+    acc = Enum.reduce(required_domains, acc, &map_get_domain(dnf, &1, &2))
+    acc = Enum.reduce(optional_domains, acc, &map_get_domain(dnf, &1, &2))
     remove_optional(acc)
   end
 
@@ -4206,9 +4192,8 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Take a map bdd and return the union of types for the given key domain.
-  # Notice this already removes the optional field from the domain.
-  defp map_get_domain_no_optional(dnf, domain_key, acc) when is_atom(domain_key) do
+  # Take a map BDD and return the union of present-value types for the given key domain.
+  defp map_get_domain(dnf, domain_key, acc) when is_atom(domain_key) do
     Enum.reduce(dnf, acc, fn
       # Optimization: if there are no negatives, get the domain tag directly
       {tag, _fields, []}, acc ->
@@ -4542,29 +4527,29 @@ defmodule Module.Types.Descr do
   defp map_check_domain_keys?(:closed, _, _seen), do: true
   defp map_check_domain_keys?(_, :open, _seen), do: true
 
-  # An open map is a subtype iff the negative domains are all present as term_or_optional()
+  # An open map is a subtype iff the negative domains all accept term().
   defp map_check_domain_keys?(:open, neg_domains, seen) do
     fields_size(neg_domains) == length(@domain_key_types) and
       Enum.all?(fields_to_list(neg_domains), fn {_domain_key, type} ->
-        subtype_seen?(term_or_optional(), type, seen)
+        subtype_seen?(term(), type, seen)
       end)
   end
 
-  # A positive domains is smaller than a closed map iff all its keys are empty or optional
+  # A positive domain is smaller than a closed map iff all its value types are empty.
   defp map_check_domain_keys?(pos_domains, :closed, seen) do
     Enum.all?(fields_to_list(pos_domains), fn {_domain_key, type} ->
-      empty_seen?(remove_optional(type), seen)
+      empty_seen?(type, seen)
     end)
   end
 
   # Component-wise comparison of domains
   defp map_check_domain_keys?(pos_domains, neg_domains, seen) do
     Enum.all?(fields_to_list(pos_domains), fn {domain_key, type} ->
-      subtype_seen?(type, fields_get(neg_domains, domain_key, not_set()), seen)
+      subtype_seen?(type, fields_get(neg_domains, domain_key, none()), seen)
     end)
   end
 
-  # Pop a domain type, already removing non optional.
+  # Pop a domain's present-value type.
   defp map_pop_domain_bdd(domains, fields, domain_key) when is_list(domains) do
     case fields_take(domain_key, domains) do
       {value, domains} -> {true, value, map_new(domains, fields)}
@@ -4680,13 +4665,11 @@ defmodule Module.Types.Descr do
   end
 
   defp map_domain_field_to_quoted(domain_key, value_type, opts) do
-    non_optional = remove_optional_static(value_type)
-
     value_quoted =
-      if empty?(non_optional) do
+      if empty?(value_type) do
         {:not_set, [], []}
       else
-        map_value_to_quoted(non_optional, opts)
+        to_quoted(value_type, opts)
       end
 
     key_quoted =
