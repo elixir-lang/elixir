@@ -3187,9 +3187,9 @@ defmodule Module.Types.Descr do
   Fetches the type of the value returned by accessing `key` on `map`
   with the assumption that the descr is exclusively a map (or dynamic).
 
-  It returns a two element tuple or `:error`. The first element says
-  if the type is dynamically optional or not, the second element is
-  the type. In static mode, optional keys are not allowed.
+  It returns a two element tuple or `:error`. The first element is the
+  type and the second element says if the type is dynamically optional
+  or not. In static mode, optional keys are not allowed.
 
   Being dynamically optional means that the field may be present
   (while statically optional means we need to consider the field as
@@ -3201,12 +3201,12 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :map) and non_empty_map_only?(descr) do
-          {static_optional?, static_type} = map_fetch_key_static(descr, key)
+          {static_type, static_optional?} = map_fetch_key_static(descr, key)
 
           if static_optional? or empty?(static_type) do
             :badkey
           else
-            {false, static_type}
+            {static_type, false}
           end
         else
           :badmap
@@ -3214,13 +3214,13 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          {dynamic_optional?, dynamic_type} = map_fetch_key_static(dynamic, key)
-          {static_optional?, static_type} = map_fetch_key_static(static, key)
+          {dynamic_type, dynamic_optional?} = map_fetch_key_static(dynamic, key)
+          {static_type, static_optional?} = map_fetch_key_static(static, key)
 
           if static_optional? or empty?(dynamic_type) do
             :badkey
           else
-            {dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
+            {opt_union(dynamic(dynamic_type), static_type), dynamic_optional?}
           end
         else
           :badmap
@@ -3231,12 +3231,8 @@ defmodule Module.Types.Descr do
   # Optimization for bdd leafs
   defp map_fetch_key_static(%{map: bdd_leaf(tag, fields)}, key) do
     case fields_find(key, fields) do
-      {:ok, {value, optional?}} ->
-        {optional?, value}
-
-      :error ->
-        {value, optional?} = map_key_tag_to_field(tag)
-        {optional?, value}
+      {:ok, field} -> field
+      :error -> map_key_tag_to_field(tag)
     end
   end
 
@@ -3244,8 +3240,8 @@ defmodule Module.Types.Descr do
     bdd |> map_bdd_to_dnf_with_empty() |> map_dnf_fetch_static(key)
   end
 
-  defp map_fetch_key_static(%{}, _key), do: {false, none()}
-  defp map_fetch_key_static(:term, _key), do: {true, term()}
+  defp map_fetch_key_static(%{}, _key), do: {none(), false}
+  defp map_fetch_key_static(:term, _key), do: {term(), true}
 
   # Takes a map DNF and returns whether the key is optional and the union of
   # present-value types it can take.
@@ -3285,7 +3281,7 @@ defmodule Module.Types.Descr do
           end
       end)
 
-    {optional?, value}
+    {value, optional?}
   end
 
   defp map_split_negative_pairs_key(negs, key) do
@@ -3500,7 +3496,7 @@ defmodule Module.Types.Descr do
               if Map.has_key?(seen, key) do
                 {seen, acc}
               else
-                {_, value} = map_dnf_fetch_static(dnf, key)
+                {value, _optional?} = map_dnf_fetch_static(dnf, key)
                 seen = Map.put(seen, key, [])
 
                 if empty?(value) do
@@ -3575,7 +3571,7 @@ defmodule Module.Types.Descr do
     type_fun = fn optional?, value ->
       if is_function(type_fun, 1) do
         value = if gradual?, do: dynamic(value), else: value
-        {new_value, new_optional?} = map_update_field(type_fun.(value))
+        {new_value, new_optional?} = type_fun.(value)
 
         new_value =
           if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
@@ -3583,7 +3579,7 @@ defmodule Module.Types.Descr do
         {new_value, optional? or new_optional?}
       else
         value = if gradual?, do: dynamic(value), else: value
-        {new_value, new_optional?} = map_update_field(type_fun.(optional?, value))
+        {new_value, new_optional?} = type_fun.(optional?, value)
 
         new_value =
           if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
@@ -3594,8 +3590,6 @@ defmodule Module.Types.Descr do
 
     map_update_unchecked(descr, key_descr, type_fun, return_type?, force?)
   end
-
-  defp map_update_field({value, optional?}) when is_boolean(optional?), do: {value, optional?}
 
   def map_update_unchecked(:term, _key_descr, _type_fun, _return_type?, _force?), do: :badmap
 
@@ -3727,22 +3721,18 @@ defmodule Module.Types.Descr do
 
   defp map_update_keys(dnf, keys, type_fun, required_key?, force?, static?, acc) do
     Enum.reduce(keys, acc, fn key, {acc_value, acc_descr, acc_errors, acc_found?} ->
-      {{optional?, value}, descr} =
+      {{value, optional?}, descr} =
         case dnf do
           # Optimization: avoid creating term types when updating open maps
           [{:open, fields, []}] ->
             if fields_is_key(key, fields) do
-              {{value, optional?}, descr} =
-                map_dnf_pop_key_static(dnf, key, {none(), false})
-
-              {{optional?, value}, descr}
+              map_dnf_pop_key_static(dnf, key, {none(), false})
             else
-              {{true, term()}, %{map: map_new(:open, fields)}}
+              {{term(), true}, %{map: map_new(:open, fields)}}
             end
 
           _ ->
-            {{value, optional?}, descr} = map_dnf_pop_key_static(dnf, key, {none(), false})
-            {{optional?, value}, descr}
+            map_dnf_pop_key_static(dnf, key, {none(), false})
         end
 
       if not force? and empty?(value) do
@@ -3856,7 +3846,7 @@ defmodule Module.Types.Descr do
           if Map.has_key?(seen, key) do
             {seen, acc}
           else
-            {_, value} = map_dnf_fetch_static(dnf, key)
+            {value, _optional?} = map_dnf_fetch_static(dnf, key)
             {Map.put(seen, key, []), opt_union(acc, value)}
           end
         end)
@@ -3871,7 +3861,7 @@ defmodule Module.Types.Descr do
         if Map.has_key?(acc, key) do
           acc
         else
-          {_, value} = map_dnf_fetch_static(dnf, key)
+          {value, _optional?} = map_dnf_fetch_static(dnf, key)
           not empty?(value) and throw(:found_key)
           Map.put(acc, key, [])
         end
@@ -4159,7 +4149,7 @@ defmodule Module.Types.Descr do
 
   defp map_get_keys(dnf, keys, acc) do
     Enum.reduce(keys, acc, fn atom, acc ->
-      {_, value} = map_dnf_fetch_static(dnf, atom)
+      {value, _optional?} = map_dnf_fetch_static(dnf, atom)
       opt_union(value, acc)
     end)
   end
@@ -4808,7 +4798,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_fields_to_quoted(tag, sorted, opts) do
-    keyword? = Inspect.List.keyword?(Enum.map(sorted, fn {key, _} -> {key, nil} end))
+    keyword? = Inspect.List.keyword?(sorted)
 
     for {key, {type, optional?}} <- sorted,
         not (tag == :open and optional? and term_type?(type)) do
@@ -5351,18 +5341,18 @@ defmodule Module.Types.Descr do
 
   Returns one of:
 
-  - `{false, type}` if the element is always accessible and has the given `type`.
-  - `{true, type}` if the element is dynamically optional and has the given `type`.
+  - `{type, false}` if the element is always accessible and has the given `type`.
+  - `{type, true}` if the element is dynamically optional and has the given `type`.
   - `:badindex` if the index is never accessible in the tuple type.
   - `:badtuple` if the descr is not a tuple type.
 
   ## Examples
 
       iex> tuple_fetch(tuple([integer(), atom()]), 0)
-      {false, integer()}
+      {integer(), false}
 
       iex> tuple_fetch(dynamic(), 0)
-      {true, dynamic()}
+      {dynamic(), true}
 
       iex> tuple_fetch(bare_union(tuple([integer()]), tuple([integer(), atom()])), 1)
       :badindex
@@ -5378,7 +5368,7 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :tuple) and non_empty_tuple_only?(descr) do
-          {static_optional?, static_type} = tuple_fetch_static(descr, key)
+          {static_type, static_optional?} = tuple_fetch_static(descr, key)
 
           # If I access a static tuple at a "open position", we have two options:
           #
@@ -5397,7 +5387,7 @@ defmodule Module.Types.Descr do
           if static_optional? or empty?(static_type) do
             :badindex
           else
-            {false, static_type}
+            {static_type, false}
           end
         else
           :badtuple
@@ -5405,13 +5395,13 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         if descr_key?(dynamic, :tuple) and tuple_only?(static) do
-          {dynamic_optional?, dynamic_type} = tuple_fetch_static(dynamic, key)
-          {static_optional?, static_type} = tuple_fetch_static(static, key)
+          {dynamic_type, dynamic_optional?} = tuple_fetch_static(dynamic, key)
+          {static_type, static_optional?} = tuple_fetch_static(static, key)
 
           if empty?(dynamic_type) do
             :badindex
           else
-            {static_optional? or dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
+            {opt_union(dynamic(dynamic_type), static_type), static_optional? or dynamic_optional?}
           end
         else
           :badtuple
@@ -5430,28 +5420,28 @@ defmodule Module.Types.Descr do
 
   defp tuple_fetch_static(descr, index) when is_integer(index) do
     case descr do
-      :term -> {true, term()}
+      :term -> {term(), true}
       %{tuple: bdd_leaf(tag, elements)} -> tuple_fetch_element(elements, index, tag)
       %{tuple: bdd} -> tuple_bdd_fetch_static(bdd, index)
-      %{} -> {false, none()}
+      %{} -> {none(), false}
     end
   end
 
   defp tuple_bdd_fetch_static(bdd, index) do
     bdd
     |> tuple_bdd_to_dnf_with_negations()
-    |> Enum.reduce({false, none()}, fn
+    |> Enum.reduce({none(), false}, fn
       # Optimization: if there are no negatives
-      {tag, elements, []}, {acc_optional?, acc_descr} ->
-        {optional?, descr} = tuple_fetch_element(elements, index, tag)
-        {optional? or acc_optional?, opt_union(descr, acc_descr)}
+      {tag, elements, []}, {acc_descr, acc_optional?} ->
+        {descr, optional?} = tuple_fetch_element(elements, index, tag)
+        {opt_union(descr, acc_descr), optional? or acc_optional?}
 
-      {tag, elements, negs}, {acc_optional?, acc_descr} ->
+      {tag, elements, negs}, {acc_descr, acc_optional?} ->
         {_, value, bdd} = tuple_take_element(elements, index, tag)
 
         case tuple_split_negative_pairs_index(negs, index) do
           :empty ->
-            {acc_optional?, acc_descr}
+            {acc_descr, acc_optional?}
 
           negative ->
             value =
@@ -5466,11 +5456,11 @@ defmodule Module.Types.Descr do
               end
 
             {descr, optional?} = value
-            {optional? or acc_optional?, opt_union(descr, acc_descr)}
+            {opt_union(descr, acc_descr), optional? or acc_optional?}
         end
     end)
   catch
-    :open -> {true, term()}
+    :open -> {term(), true}
   end
 
   # Remove negatives:
@@ -5558,9 +5548,9 @@ defmodule Module.Types.Descr do
     not field_empty?(field_difference(value, neg_values))
   end
 
-  defp tuple_fetch_element([], _, :open), do: {true, term()}
-  defp tuple_fetch_element([], _, :closed), do: {true, none()}
-  defp tuple_fetch_element([h | _], 0, _tag), do: {false, h}
+  defp tuple_fetch_element([], _, :open), do: {term(), true}
+  defp tuple_fetch_element([], _, :closed), do: {none(), true}
+  defp tuple_fetch_element([h | _], 0, _tag), do: {h, false}
   defp tuple_fetch_element([_ | t], i, tag), do: tuple_fetch_element(t, i - 1, tag)
 
   defp tuple_take_element(elements, index, tag) do
@@ -5575,7 +5565,7 @@ defmodule Module.Types.Descr do
   defp do_tuple_take_element([h | t], i, acc), do: do_tuple_take_element(t, i - 1, [h | acc])
 
   defp tuple_tag_to_field(:open), do: {term(), true}
-  defp tuple_tag_to_field(:closed), do: {none(), true}
+  defp tuple_tag_to_field(:closed), do: {none(), false}
 
   @doc """
   Returns all of the values that are part of a tuple.
@@ -6793,24 +6783,12 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_union_strategy(
-         [{_, field} | t1],
-         [{_, field} | t2],
-         tag1,
-         tag2,
-         status
-       ) do
+  defp opt_map_union_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
     # Same key and same value, nothing changes
     opt_map_union_strategy(t1, t2, tag1, tag2, status)
   end
 
-  defp opt_map_union_strategy(
-         [{k1, field1} | t1],
-         [{_, field2} | t2],
-         tag1,
-         tag2,
-         status
-       ) do
+  defp opt_map_union_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
     # They have the same key but different values
     case status do
       :all_equal ->
@@ -6822,13 +6800,13 @@ defmodule Module.Types.Descr do
               t2,
               tag1,
               tag2,
-              {:one_key_difference, k1, field1, field2}
+              {:one_key_difference, k1, v1, v2}
             )
 
-          field_subtype?(field1, field2) ->
+          field_subtype?(v1, v2) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
 
-          field_subtype?(field2, field1) ->
+          field_subtype?(v2, v1) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
 
           true ->
@@ -6836,21 +6814,21 @@ defmodule Module.Types.Descr do
         end
 
       :left_subtype_of_right ->
-        if field_subtype?(field1, field2),
+        if field_subtype?(v1, v2),
           do: opt_map_union_strategy(t1, t2, tag1, tag2, status),
           else: :none
 
       :right_subtype_of_left ->
-        if field_subtype?(field2, field1),
+        if field_subtype?(v2, v1),
           do: opt_map_union_strategy(t1, t2, tag1, tag2, status),
           else: :none
 
       {:one_key_difference, _key, p1, p2} ->
         cond do
-          field_subtype?(p1, p2) and field_subtype?(field1, field2) ->
+          field_subtype?(p1, p2) and field_subtype?(v1, v2) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
 
-          field_subtype?(p2, p1) and field_subtype?(field2, field1) ->
+          field_subtype?(p2, p1) and field_subtype?(v2, v1) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
 
           true ->
@@ -7098,26 +7076,14 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_difference_strategy(
-         [{_, field} | t1],
-         [{_, field} | t2],
-         tag1,
-         tag2,
-         status
-       ) do
+  defp opt_map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
     # Same key and same value, nothing changes
     opt_map_difference_strategy(t1, t2, tag1, tag2, status)
   end
 
-  defp opt_map_difference_strategy(
-         [{k1, field1} | t1],
-         [{_, field2} | t2],
-         tag1,
-         tag2,
-         status
-       ) do
+  defp opt_map_difference_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
     # They have the same key but different values
-    if field_disjoint?(field1, field2) do
+    if field_disjoint?(v1, v2) do
       :disjoint
     else
       case status do
@@ -7127,11 +7093,11 @@ defmodule Module.Types.Descr do
             t2,
             tag1,
             tag2,
-            {:one_key_difference, k1, field1, field2}
+            {:one_key_difference, k1, v1, v2}
           )
 
         {:one_key_difference, _key, p1, p2} ->
-          if field_subtype?(p1, p2) and field_subtype?(field1, field2) do
+          if field_subtype?(p1, p2) and field_subtype?(v1, v2) do
             opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
           else
             :none
@@ -7139,7 +7105,7 @@ defmodule Module.Types.Descr do
 
         _ ->
           if status in [:all_equal, :left_subtype_of_right] and
-               field_subtype?(field1, field2),
+               field_subtype?(v1, v2),
              do: opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
              else: opt_map_difference_strategy(t1, t2, tag1, tag2, :none)
       end

@@ -305,7 +305,7 @@ defmodule Module.Types.Of do
   """
   def map_fetch(expr, type, field, stack, context) when is_atom(field) do
     case map_fetch_key(type, field) do
-      {_optional?, value_type} ->
+      {value_type, _optional?} ->
         {value_type, context}
 
       reason ->
@@ -428,7 +428,7 @@ defmodule Module.Types.Of do
 
       expected_value_type =
         with {[key], [], []} <- pos_neg_domain,
-             {_, expected_value_type} <- map_fetch_key(expected, key) do
+             {expected_value_type, _optional?} <- map_fetch_key(expected, key) do
           expected_value_type
         else
           _ -> term()
@@ -485,7 +485,7 @@ defmodule Module.Types.Of do
         Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
           value_type =
             case map_fetch_key(expected, key) do
-              {_, expected_value_type} -> expected_value_type
+              {expected_value_type, _optional?} -> expected_value_type
               _ -> term()
             end
 

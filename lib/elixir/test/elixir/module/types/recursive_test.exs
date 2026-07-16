@@ -483,18 +483,18 @@ defmodule Module.Types.RecursiveTest do
 
       t = unfold(nx)
 
-      assert {false, type} = tuple_fetch(t, 0)
+      assert {type, false} = tuple_fetch(t, 0)
       assert equal?(type, integer())
-      assert {false, _type} = tuple_fetch(t, 1)
+      assert {_type, false} = tuple_fetch(t, 1)
 
       result = tuple_values(t)
       assert subtype?(integer(), result)
 
       result = tuple_delete_at(t, 0)
-      assert {false, _type} = tuple_fetch(result, 0)
+      assert {_type, false} = tuple_fetch(result, 0)
 
       result = tuple_insert_at(t, 0, boolean())
-      assert {false, type} = tuple_fetch(result, 0)
+      assert {type, false} = tuple_fetch(result, 0)
       assert equal?(type, boolean())
 
       # X = {X} | {atom()}
@@ -503,7 +503,7 @@ defmodule Module.Types.RecursiveTest do
 
       tx = unfold(nx)
       t = opt_difference(tx, tuple([atom()]))
-      assert {false, type} = tuple_fetch(t, 0)
+      assert {type, false} = tuple_fetch(t, 0)
       assert equal?(type, tx)
 
       ## map_fetch_key on descr with recursive node value
@@ -516,9 +516,9 @@ defmodule Module.Types.RecursiveTest do
           end
         })
 
-      assert {false, type} = map_fetch_key(unfold(nx), :a)
+      assert {type, false} = map_fetch_key(unfold(nx), :a)
       assert equal?(type, integer())
-      assert {false, _type} = map_fetch_key(unfold(nx), :b)
+      assert {_type, false} = map_fetch_key(unfold(nx), :b)
 
       ## list_hd and list_tl on descr with recursive node tail
       # X = non_empty_list(integer(), X) | non_empty_list(integer(), [])

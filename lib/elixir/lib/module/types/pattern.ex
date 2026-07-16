@@ -469,7 +469,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern_var([{:elem, index} | rest], type, context)
        when is_integer(index) do
     case tuple_fetch(type, index) do
-      {_optional?, type} -> of_pattern_var(rest, type, context)
+      {type, _optional?} -> of_pattern_var(rest, type, context)
       _reason -> :error
     end
   end
@@ -477,7 +477,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern_var([{:key, field} | rest], type, context)
        when is_atom(field) do
     case map_fetch_key(type, field) do
-      {_optional?, type} -> of_pattern_var(rest, type, context)
+      {type, _optional?} -> of_pattern_var(rest, type, context)
       _reason -> :error
     end
   end

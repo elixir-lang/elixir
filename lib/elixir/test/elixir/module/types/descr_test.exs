@@ -859,10 +859,10 @@ defmodule Module.Types.DescrTest do
       t_diff = opt_difference(a_number, atom_to_float)
 
       # Removing atom keys that map to float, make the :a key point to integer only.
-      assert map_fetch_key(t_diff, :a) == {false, integer()}
+      assert map_fetch_key(t_diff, :a) == {integer(), false}
       # %{a => number, atom => pid} and not %{atom => float} gives numbers on :a
       assert map_fetch_key(opt_difference(a_number_and_pids, atom_to_float), :a) ==
-               {false, number()}
+               {number(), false}
 
       assert map_fetch_key(t_diff, :foo) == :badkey
 
@@ -1932,12 +1932,12 @@ defmodule Module.Types.DescrTest do
       assert tuple_fetch(tuple([none(), atom()]), 1) == :badtuple
       assert tuple_fetch(tuple([none()]), 0) == :badtuple
 
-      assert tuple_fetch(tuple([integer(), atom()]), 0) == {false, integer()}
-      assert tuple_fetch(tuple([integer(), atom()]), 1) == {false, atom()}
+      assert tuple_fetch(tuple([integer(), atom()]), 0) == {integer(), false}
+      assert tuple_fetch(tuple([integer(), atom()]), 1) == {atom(), false}
       assert tuple_fetch(tuple([integer(), atom()]), 2) == :badindex
 
-      assert tuple_fetch(open_tuple([integer(), atom()]), 0) == {false, integer()}
-      assert tuple_fetch(open_tuple([integer(), atom()]), 1) == {false, atom()}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 0) == {integer(), false}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 1) == {atom(), false}
       assert tuple_fetch(open_tuple([integer(), atom()]), 2) == :badindex
 
       assert tuple_fetch(tuple([integer(), atom()]), -1) == :badindex
@@ -1945,25 +1945,25 @@ defmodule Module.Types.DescrTest do
       assert opt_difference(tuple(), tuple()) |> tuple_fetch(0) == :badtuple
 
       assert tuple([atom()]) |> opt_difference(empty_tuple()) |> tuple_fetch(0) ==
-               {false, atom()}
+               {atom(), false}
 
       assert opt_difference(tuple([opt_union(integer(), atom())]), open_tuple([atom()]))
-             |> tuple_fetch(0) == {false, integer()}
+             |> tuple_fetch(0) == {integer(), false}
 
       assert tuple_fetch(opt_union(tuple([integer(), atom()]), dynamic(open_tuple([atom()]))), 1)
-             |> Kernel.then(fn {opt, ty} -> opt and equal?(ty, opt_union(atom(), dynamic())) end)
+             |> Kernel.then(fn {ty, opt} -> opt and equal?(ty, opt_union(atom(), dynamic())) end)
 
       assert tuple_fetch(opt_union(tuple([integer()]), tuple([atom()])), 0) ==
-               {false, opt_union(integer(), atom())}
+               {opt_union(integer(), atom()), false}
 
       assert tuple([integer(), atom(), opt_union(atom(), integer())])
              |> opt_difference(tuple([integer(), term(), atom()]))
-             |> tuple_fetch(2) == {false, integer()}
+             |> tuple_fetch(2) == {integer(), false}
 
       assert tuple([integer(), atom(), opt_union(opt_union(atom(), integer()), list(term()))])
              |> opt_difference(tuple([integer(), term(), atom()]))
              |> opt_difference(open_tuple([term(), atom(), list(term())]))
-             |> tuple_fetch(2) == {false, integer()}
+             |> tuple_fetch(2) == {integer(), false}
 
       assert tuple([integer(), atom(), integer()])
              |> opt_difference(tuple([integer(), term(), integer()]))
@@ -1971,25 +1971,25 @@ defmodule Module.Types.DescrTest do
 
       assert tuple([integer(), atom(), integer()])
              |> opt_difference(tuple([integer(), term(), atom()]))
-             |> tuple_fetch(2) == {false, integer()}
+             |> tuple_fetch(2) == {integer(), false}
 
       assert tuple_fetch(tuple(), 0) == :badindex
 
-      assert tuple_fetch(projected_negative_tuple(200), 1) == {false, term()}
+      assert tuple_fetch(projected_negative_tuple(200), 1) == {term(), false}
     end
 
     test "tuple_fetch with dynamic" do
-      assert tuple_fetch(dynamic(), 0) == {true, dynamic()}
+      assert tuple_fetch(dynamic(), 0) == {dynamic(), true}
       assert tuple_fetch(dynamic(empty_tuple()), 0) == :badindex
       assert tuple_fetch(dynamic(tuple([integer(), atom()])), 2) == :badindex
       assert tuple_fetch(opt_union(dynamic(), integer()), 0) == :badtuple
       assert tuple_fetch(tuple([none()]), 0) == :badtuple
 
       assert tuple_fetch(dynamic(tuple()), 0)
-             |> Kernel.then(fn {opt, type} -> opt and equal?(type, dynamic()) end)
+             |> Kernel.then(fn {type, opt} -> opt and equal?(type, dynamic()) end)
 
       assert tuple_fetch(opt_union(dynamic(), open_tuple([atom()])), 0) ==
-               {true, opt_union(atom(), dynamic())}
+               {opt_union(atom(), dynamic()), true}
     end
 
     test "tuple_delete_at" do
@@ -2114,7 +2114,7 @@ defmodule Module.Types.DescrTest do
              |> equal?(open_tuple([term(), boolean()]))
 
       inserted = tuple_insert_at(projected_negative_tuple(200), 1, atom([:inserted]))
-      assert tuple_fetch(inserted, 1) == {false, atom([:inserted])}
+      assert tuple_fetch(inserted, 1) == {atom([:inserted]), false}
 
       # Test inserting into a difference of tuples
       assert opt_difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
@@ -2477,50 +2477,50 @@ defmodule Module.Types.DescrTest do
              ) ==
                :badkey
 
-      assert map_fetch_key(closed_map(a: {integer(), false}), :a) == {false, integer()}
+      assert map_fetch_key(closed_map(a: {integer(), false}), :a) == {integer(), false}
 
       assert map_fetch_key(
                opt_union(closed_map(a: {integer(), false}), closed_map(a: {atom(), false})),
                :a
              ) ==
-               {false, opt_union(integer(), atom())}
+               {opt_union(integer(), atom()), false}
 
-      {false, value_type} =
+      {value_type, false} =
         open_map(my_map: {open_map(foo: {integer(), false}), false})
         |> opt_intersection(open_map(my_map: {open_map(bar: {boolean(), false}), false}))
         |> map_fetch_key(:my_map)
 
       assert equal?(value_type, open_map(foo: {integer(), false}, bar: {boolean(), false}))
 
-      {false, value_type} =
+      {value_type, false} =
         closed_map(a: {opt_union(integer(), atom()), false})
         |> opt_difference(open_map(a: {integer(), false}))
         |> map_fetch_key(:a)
 
       assert equal?(value_type, atom())
 
-      {false, value_type} =
+      {value_type, false} =
         closed_map(a: {integer(), false}, b: {atom(), false})
         |> opt_difference(closed_map(a: {integer(), false}, b: {atom([:foo]), false}))
         |> map_fetch_key(:a)
 
       assert equal?(value_type, integer())
 
-      {false, value_type} =
+      {value_type, false} =
         closed_map(a: {integer(), false})
         |> opt_difference(closed_map(a: {atom(), false}))
         |> map_fetch_key(:a)
 
       assert equal?(value_type, integer())
 
-      {false, value_type} =
+      {value_type, false} =
         open_map(a: {integer(), false}, b: {atom(), false})
         |> opt_union(closed_map(a: {tuple(), false}))
         |> map_fetch_key(:a)
 
       assert equal?(value_type, opt_union(integer(), tuple()))
 
-      {false, value_type} =
+      {value_type, false} =
         closed_map(a: {atom(), false})
         |> opt_difference(closed_map(a: {atom([:foo, :bar]), false}))
         |> opt_difference(closed_map(a: {atom([:bar]), false}))
@@ -2535,7 +2535,7 @@ defmodule Module.Types.DescrTest do
              )
              |> opt_difference(open_map(a: {atom([:ok]), false}, b: {integer(), false}))
              |> opt_difference(open_map(a: {atom(), false}, c: {tuple(), false}))
-             |> map_fetch_key(:a) == {false, pid()}
+             |> map_fetch_key(:a) == {pid(), false}
 
       assert closed_map(
                a: {opt_union(atom([:foo]), pid()), false},
@@ -2544,21 +2544,21 @@ defmodule Module.Types.DescrTest do
              )
              |> opt_difference(open_map(a: {atom([:foo]), false}, b: {integer(), false}))
              |> opt_difference(open_map(a: {atom(), false}, c: {tuple(), false}))
-             |> map_fetch_key(:a) == {false, pid()}
+             |> map_fetch_key(:a) == {pid(), false}
 
       assert closed_map(a: {opt_union(atom([:foo, :bar, :baz]), integer()), false})
              |> opt_difference(open_map(a: {atom([:foo, :bar]), false}))
              |> opt_difference(open_map(a: {atom([:foo, :baz]), false}))
-             |> map_fetch_key(:a) == {false, integer()}
+             |> map_fetch_key(:a) == {integer(), false}
     end
 
     # Times out without a projection-only map_fetch_key path
     test "map_fetch_key with projected negative maps" do
-      assert map_fetch_key(projected_negative_map(100), :k) == {false, open_map()}
+      assert map_fetch_key(projected_negative_map(100), :k) == {open_map(), false}
     end
 
     test "map_fetch_key with dynamic" do
-      assert map_fetch_key(dynamic(), :a) == {true, dynamic()}
+      assert map_fetch_key(dynamic(), :a) == {dynamic(), true}
       assert map_fetch_key(opt_union(dynamic(), integer()), :a) == :badmap
 
       assert map_fetch_key(opt_union(dynamic(open_map(a: {integer(), false})), integer()), :a) ==
@@ -2567,9 +2567,9 @@ defmodule Module.Types.DescrTest do
       assert map_fetch_key(opt_union(dynamic(integer()), integer()), :a) == :badmap
 
       assert opt_intersection(dynamic(), open_map(a: {integer(), false}))
-             |> map_fetch_key(:a) == {false, opt_intersection(integer(), dynamic())}
+             |> map_fetch_key(:a) == {opt_intersection(integer(), dynamic()), false}
 
-      {false, type} =
+      {type, false} =
         opt_union(dynamic(integer()), open_map(a: {integer(), false})) |> map_fetch_key(:a)
 
       assert equal?(type, integer())
@@ -2579,7 +2579,7 @@ defmodule Module.Types.DescrTest do
                :badkey
 
       assert opt_union(dynamic(open_map(a: {atom(), false})), open_map(a: {integer(), false}))
-             |> map_fetch_key(:a) == {false, opt_union(dynamic(atom()), integer())}
+             |> map_fetch_key(:a) == {opt_union(dynamic(atom()), integer()), false}
     end
 
     test "map_fetch_key with domain keys" do
@@ -2594,19 +2594,19 @@ defmodule Module.Types.DescrTest do
 
       # Indeed, t2 is equivalent to the empty map
       assert map_fetch_key(opt_difference(t1, t2), :a) == :badkey
-      assert map_fetch_key(opt_difference(t1, t3), :a) == {false, pid()}
+      assert map_fetch_key(opt_difference(t1, t3), :a) == {pid(), false}
 
       t4 = closed_map([{domain_key(:pid), atom()}])
-      assert map_fetch_key(opt_difference(t1, t4) |> opt_difference(t3), :a) == {false, pid()}
+      assert map_fetch_key(opt_difference(t1, t4) |> opt_difference(t3), :a) == {pid(), false}
 
       assert map_fetch_key(closed_map([{domain_key(:atom), pid()}]), :a) == :badkey
 
       assert map_fetch_key(dynamic(closed_map([{domain_key(:atom), pid()}])), :a) ==
-               {true, dynamic(pid())}
+               {dynamic(pid()), true}
 
       assert closed_map([{domain_key(:atom), number()}])
              |> opt_difference(open_map(a: {integer(), true}))
-             |> map_fetch_key(:a) == {false, float()}
+             |> map_fetch_key(:a) == {float(), false}
 
       assert closed_map([{domain_key(:atom), number()}])
              |> opt_difference(closed_map(b: {integer(), true}))
