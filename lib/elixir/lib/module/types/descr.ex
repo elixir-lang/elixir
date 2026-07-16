@@ -5001,15 +5001,22 @@ defmodule Module.Types.Descr do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} = List.pop_at(elements, 0, term())
 
-    # In this case, there is no intersection between the positive and this negative.
-    # So we should just "go next"
-    diff = bare_difference(ty, neg_type)
     meet = bare_intersection(ty, neg_type)
 
-    (empty_seen?(diff, seen) or
-       tuple_line_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs, seen)) and
-      (empty_seen?(meet, seen) or
-         tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs, seen))
+    if empty_seen?(meet, seen) do
+      # This negative tuple is disjoint from the current line at this element.
+      tuple_line_empty?(tag, Enum.reverse(acc_meet, [ty | elements]), negs, seen)
+    else
+      diff = bare_difference(ty, neg_type)
+
+      if empty_seen?(diff, seen) do
+        # The element is a subtype of the negative element, so their intersection is ty.
+        tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, negs, seen)
+      else
+        tuple_line_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs, seen) and
+          tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs, seen)
+      end
+    end
   end
 
   # Determines if the set difference is empty when:
