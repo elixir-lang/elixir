@@ -4517,11 +4517,22 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_tag, acc_meet, negs) do
-    diff = difference(type, neg_type)
     meet = intersection(type, neg_type)
 
-    (empty?(diff) or map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs)) and
-      (empty?(meet) or map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs))
+    if empty?(meet) do
+      # This negative map is disjoint from the current line at this field.
+      map_line_empty?(tag, Enum.reverse(acc_meet, [{key, type} | t1]), negs)
+    else
+      diff = difference(type, neg_type)
+
+      if empty?(diff) do
+        # The field is a subtype of the negative field, so their intersection is type.
+        map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, type} | acc_meet], negs)
+      else
+        map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs) and
+          map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs)
+      end
+    end
   end
 
   defp map_line_fields_empty?([{k1, v1} | t1], [{k2, _} | _] = l2, tag, neg_tag, fields, negs)
@@ -5223,13 +5234,22 @@ defmodule Module.Types.Descr do
   defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} = List.pop_at(elements, 0, term())
-    diff = difference(ty, neg_type)
     meet = intersection(ty, neg_type)
 
-    # In this case, there is no intersection between the positive and this negative.
-    # So we should just "go next"
-    (empty?(diff) or tuple_line_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs)) and
-      (empty?(meet) or tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs))
+    if empty?(meet) do
+      # This negative tuple is disjoint from the current line at this element.
+      tuple_line_empty?(tag, Enum.reverse(acc_meet, [ty | elements]), negs)
+    else
+      diff = difference(ty, neg_type)
+
+      if empty?(diff) do
+        # The element is a subtype of the negative element, so their intersection is ty.
+        tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, negs)
+      else
+        tuple_line_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs) and
+          tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs)
+      end
+    end
   end
 
   # Determines if the set difference is empty when:
