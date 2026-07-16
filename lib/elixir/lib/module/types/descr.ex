@@ -3189,9 +3189,9 @@ defmodule Module.Types.Descr do
   Fetches the type of the value returned by accessing `key` on `map`
   with the assumption that the descr is exclusively a map (or dynamic).
 
-  It returns a two element tuple or `:error`. The first element is the
-  type and the second element says if the type is dynamically optional
-  or not. In static mode, optional keys are not allowed.
+  It returns a two element tuple or `:error`. The first element says
+  if the type is dynamically optional or not, the second element is
+  the type. In static mode, optional keys are not allowed.
 
   Being dynamically optional means that the field may be present
   (while statically optional means we need to consider the field as
@@ -3208,7 +3208,7 @@ defmodule Module.Types.Descr do
           if static_optional? or empty?(static_type) do
             :badkey
           else
-            {static_type, false}
+            {false, static_type}
           end
         else
           :badmap
@@ -3222,7 +3222,7 @@ defmodule Module.Types.Descr do
           if static_optional? or empty?(dynamic_type) do
             :badkey
           else
-            {opt_union(dynamic(dynamic_type), static_type), dynamic_optional?}
+            {dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badmap
@@ -5197,18 +5197,18 @@ defmodule Module.Types.Descr do
 
   Returns one of:
 
-  - `{type, false}` if the element is always accessible and has the given `type`.
-  - `{type, true}` if the element is dynamically optional and has the given `type`.
+  - `{false, type}` if the element is always accessible and has the given `type`.
+  - `{true, type}` if the element is dynamically optional and has the given `type`.
   - `:badindex` if the index is never accessible in the tuple type.
   - `:badtuple` if the descr is not a tuple type.
 
   ## Examples
 
       iex> tuple_fetch(tuple([integer(), atom()]), 0)
-      {integer(), false}
+      {false, integer()}
 
       iex> tuple_fetch(dynamic(), 0)
-      {dynamic(), true}
+      {true, dynamic()}
 
       iex> tuple_fetch(bare_union(tuple([integer()]), tuple([integer(), atom()])), 1)
       :badindex
@@ -5243,7 +5243,7 @@ defmodule Module.Types.Descr do
           if static_optional? or empty?(static_type) do
             :badindex
           else
-            {static_type, false}
+            {false, static_type}
           end
         else
           :badtuple
@@ -5257,7 +5257,7 @@ defmodule Module.Types.Descr do
           if empty?(dynamic_type) do
             :badindex
           else
-            {opt_union(dynamic(dynamic_type), static_type), static_optional? or dynamic_optional?}
+            {static_optional? or dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
           :badtuple

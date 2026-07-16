@@ -222,7 +222,7 @@ defmodule Module.Types.Expr do
       {map_type, context} = of_expr(map, term(), struct, stack, context)
 
       context =
-        with {struct_key_type, false} <- map_fetch_key(map_type, :__struct__),
+        with {false, struct_key_type} <- map_fetch_key(map_type, :__struct__),
              {:finite, [^module]} <- atom_fetch(struct_key_type) do
           context
         else
@@ -754,7 +754,7 @@ defmodule Module.Types.Expr do
   defp of_tuple([elem | elems], index, acc, expected, expr, stack, context) do
     expr_expected =
       case tuple_fetch(expected, index) do
-        {type, _optional?} -> type
+        {_optional?, type} -> type
         _ -> term()
       end
 

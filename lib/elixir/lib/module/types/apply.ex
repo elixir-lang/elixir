@@ -471,7 +471,7 @@ defmodule Module.Types.Apply do
       remote_error({:negindex, index - 1}, :erlang, :element, 2, expr, stack, context)
     else
       case tuple_fetch(tuple_type, index - 1) do
-        {value_type, _optional?} ->
+        {_optional?, value_type} ->
           {return(value_type, [tuple_type], stack), context}
 
         :badtuple ->
@@ -570,7 +570,7 @@ defmodule Module.Types.Apply do
       remote_error({:negindex, index}, Kernel, :elem, 2, expr, stack, context)
     else
       case tuple_fetch(tuple_type, index) do
-        {value_type, _optional?} ->
+        {_optional?, value_type} ->
           {return(value_type, [tuple_type], stack), context}
 
         :badtuple ->
@@ -883,8 +883,8 @@ defmodule Module.Types.Apply do
             disjoint?(left_type, right_type) ->
           {:mismatched_comparison, left_type, right_type}
 
-        match?({_, false}, map_fetch_key(dynamic(left_type), :__struct__)) and
-            match?({_, false}, map_fetch_key(dynamic(right_type), :__struct__)) ->
+        match?({false, _}, map_fetch_key(dynamic(left_type), :__struct__)) and
+            match?({false, _}, map_fetch_key(dynamic(right_type), :__struct__)) ->
           {:struct_comparison, left_type, right_type}
 
         true ->
