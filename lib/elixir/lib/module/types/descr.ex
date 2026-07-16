@@ -6379,12 +6379,10 @@ defmodule Module.Types.Descr do
   # that pair, which is exact and does not recurse into components.
   #
   # The `seen` set must not be reused across entry points: every public
-  # opt_* call starts with a fresh one.
-  #
-  # BDDs embed their hash as the first tuple element (see `bdd_leaf_new`),
-  # so these keys compare cheaply on mismatch.
-  defp opt_bdd_seen(seen, op, kind, bdd1, bdd2) do
-    key = {op, kind, bdd1, bdd2}
+  # opt_* call starts with a fresh one. It is also only used to detect recursion
+  # across depth, never breadth.
+  defp opt_bdd_seen(seen, operation, bdd1, bdd2) do
+    key = {operation, bdd1, bdd2}
 
     case seen do
       %{^key => _} -> :seen
@@ -6541,7 +6539,7 @@ defmodule Module.Types.Descr do
   defp opt_list_intersection(bdd, bdd_leaf(:term, :term), _seen), do: bdd
 
   defp opt_list_intersection(bdd1, bdd2, seen) do
-    case opt_bdd_seen(seen, :intersection, :list, bdd1, bdd2) do
+    case opt_bdd_seen(seen, :list_intersection, bdd1, bdd2) do
       :seen -> list_intersection(bdd1, bdd2)
       {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_list_leaf_intersection(&1, &2, seen))
     end
@@ -6580,7 +6578,7 @@ defmodule Module.Types.Descr do
         :bdd_bot
 
       true ->
-        case opt_bdd_seen(seen, :difference, :list, bdd1, bdd2) do
+        case opt_bdd_seen(seen, :list_difference, bdd1, bdd2) do
           :seen -> list_difference(bdd1, bdd2)
           {:ok, seen} -> bdd_leaf_new(list1, opt_difference(last1, last2, seen))
         end
@@ -6599,7 +6597,7 @@ defmodule Module.Types.Descr do
   end
 
   defp opt_map_union(bdd_leaf(tag1, fields1) = bdd1, bdd_leaf(tag2, fields2) = bdd2, seen) do
-    case opt_bdd_seen(seen, :union, :map, bdd1, bdd2) do
+    case opt_bdd_seen(seen, :map_union, bdd1, bdd2) do
       :seen ->
         map_union(bdd1, bdd2)
 
@@ -6777,7 +6775,7 @@ defmodule Module.Types.Descr do
   defp opt_map_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
 
   defp opt_map_intersection(bdd1, bdd2, seen) do
-    case opt_bdd_seen(seen, :intersection, :map, bdd1, bdd2) do
+    case opt_bdd_seen(seen, :map_intersection, bdd1, bdd2) do
       :seen -> map_intersection(bdd1, bdd2)
       {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_map_leaf_intersection(&1, &2, seen))
     end
@@ -6807,7 +6805,7 @@ defmodule Module.Types.Descr do
     do: bdd_negation(bdd2)
 
   defp opt_map_difference(bdd1, bdd2, seen) do
-    case opt_bdd_seen(seen, :difference, :map, bdd1, bdd2) do
+    case opt_bdd_seen(seen, :map_difference, bdd1, bdd2) do
       :seen -> map_difference(bdd1, bdd2)
       {:ok, seen} -> bdd_difference(bdd1, bdd2, &opt_map_leaf_difference(&1, &2, &3, seen))
     end
@@ -7104,7 +7102,7 @@ defmodule Module.Types.Descr do
   defp opt_tuple_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
 
   defp opt_tuple_intersection(bdd1, bdd2, seen) do
-    case opt_bdd_seen(seen, :intersection, :tuple, bdd1, bdd2) do
+    case opt_bdd_seen(seen, :tuple_intersection, bdd1, bdd2) do
       :seen -> tuple_intersection(bdd1, bdd2)
       {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_tuple_leaf_intersection(&1, &2, seen))
     end
