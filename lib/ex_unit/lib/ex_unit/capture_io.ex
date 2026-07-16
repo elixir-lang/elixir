@@ -82,7 +82,7 @@ defmodule ExUnit.CaptureIO do
 
     * any other pid (since v1.17.0) - captures all IO to the group leader
       of the given process. This option is not safe to run concurrently
-      if the pid is not `self()`. Tests using this value must set `async: false`
+      if the pid is not `self()`. Tests using this value must not set `async: true`
 
   ## Options
 
