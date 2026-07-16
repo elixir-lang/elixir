@@ -3260,7 +3260,7 @@ defmodule Module.Types.Descr do
               :error -> map_key_tag_to_field(tag)
             end
 
-          field_union(field, acc)
+          field_opt_union(field, acc, %{})
 
         {tag, fields, negs}, acc ->
           {field, bdd} = map_pop_key_bdd(tag, fields, key)
@@ -3277,11 +3277,11 @@ defmodule Module.Types.Descr do
                   negs
                   |> map_split_negative_key(key, field, bdd)
                   |> Enum.reduce({none(), false}, fn {field, _}, acc ->
-                    field_union(field, acc)
+                    field_opt_union(field, acc, %{})
                   end)
                 end
 
-              field_union(field, acc)
+              field_opt_union(field, acc, %{})
           end
       end)
 
@@ -3803,7 +3803,7 @@ defmodule Module.Types.Descr do
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_field_union(field, fn -> fst end), opt_map_union(bdd, snd, %{})}
+          {maybe_field_opt_union(field, fn -> fst end, %{}), opt_map_union(bdd, snd, %{})}
 
         {tag, fields, negs}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
@@ -3823,13 +3823,17 @@ defmodule Module.Types.Descr do
                   do: [],
                   else: map_split_negative_key(negs, key, fst, snd)
 
-              {maybe_field_union(field, fn ->
-                 if keep_fst? do
-                   fst
-                 else
-                   Enum.reduce(pairs, {none(), false}, &field_union(elem(&1, 0), &2))
-                 end
-               end),
+              {maybe_field_opt_union(
+                 field,
+                 fn ->
+                   if keep_fst? do
+                     fst
+                   else
+                     Enum.reduce(pairs, {none(), false}, &field_opt_union(elem(&1, 0), &2, %{}))
+                   end
+                 end,
+                 %{}
+               ),
                if keep_snd? do
                  opt_map_union(bdd, snd, %{})
                else
@@ -4904,11 +4908,11 @@ defmodule Module.Types.Descr do
     do: Enum.map(f1, fn {k, v1} -> {k, fun.(k, v1, d2)} end)
 
   defp field_union({value1, optional1?}, {value2, optional2?}) do
-    {opt_union(value1, value2), optional1? or optional2?}
+    {bare_union(value1, value2), optional1? or optional2?}
   end
 
-  defp maybe_field_union(nil, _fun), do: nil
-  defp maybe_field_union(field, fun), do: field_union(field, fun.())
+  defp maybe_field_opt_union(nil, _fun, _seen), do: nil
+  defp maybe_field_opt_union(field, fun, seen), do: field_opt_union(field, fun.(), seen)
 
   defp field_intersection({value1, optional1?}, {value2, optional2?}) do
     {bare_intersection(value1, value2), optional1? and optional2?}
@@ -5456,7 +5460,9 @@ defmodule Module.Types.Descr do
               else
                 negs
                 |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce({none(), false}, fn {field, _}, acc -> field_union(field, acc) end)
+                |> Enum.reduce({none(), false}, fn {field, _}, acc ->
+                  field_opt_union(field, acc, %{})
+                end)
               end
 
             {descr, optional?} = value
