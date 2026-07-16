@@ -539,7 +539,7 @@ defmodule Module.Types.Of do
       if args_types == [] do
         pairs
       else
-        pairs ++ Enum.map(args_types, fn {key, value} -> {key, {value, false}} end)
+        pairs ++ args_types
       end
 
     closed_map(pairs)

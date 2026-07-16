@@ -769,7 +769,7 @@ defmodule Module.Types.Expr do
   ## Try
 
   defp of_rescue(var, exceptions, expr, info, meta, stack, context) do
-    args = [__exception__: term()]
+    args = [__exception__: {term(), false}]
 
     {structs, context} =
       Enum.map_reduce(exceptions, context, fn exception, context ->

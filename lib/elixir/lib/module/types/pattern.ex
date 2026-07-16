@@ -776,15 +776,8 @@ defmodule Module.Types.Pattern do
     {refined, context} = of_match_var(var, atom(), expr, stack, context)
 
     if compatible?(refined, atom()) do
-      of_open_map(
-        args,
-        singleton?(refined),
-        [__struct__: {refined, false}],
-        [],
-        path,
-        stack,
-        context
-      )
+      fields = [__struct__: {refined, false}]
+      of_open_map(args, singleton?(refined), fields, [], path, stack, context)
     else
       error = {:badstruct, refined, expr, context}
       {error_type(), false, error(__MODULE__, error, meta, stack, context)}
