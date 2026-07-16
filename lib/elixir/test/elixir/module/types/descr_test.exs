@@ -2077,6 +2077,18 @@ defmodule Module.Types.DescrTest do
              |> tuple_insert_at(1, float())
              |> equal?(tuple([integer(), float(), atom(), boolean()]))
 
+      # Inserting must be a congruence wrt equal?, even when the positive side is
+      # the implicit top (a negation with :bdd_top branches) rather than an
+      # explicit open leaf. Here t2 == open_tuple([term(), term()]).
+      t2 = opt_difference(open_tuple([]), opt_union(tuple([]), tuple([term()])))
+      assert equal?(t2, open_tuple([term(), term()]))
+
+      assert tuple_insert_at(t2, 2, float())
+             |> equal?(tuple_insert_at(open_tuple([term(), term()]), 2, float()))
+
+      # The inserted index is actually constrained to float().
+      refute subtype?(tuple([integer(), integer(), atom()]), tuple_insert_at(t2, 2, float()))
+
       # Test inserting into a complex union involving dynamic
       assert opt_union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
              |> tuple_insert_at(1, boolean())
