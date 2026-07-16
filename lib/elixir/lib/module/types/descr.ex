@@ -6172,70 +6172,6 @@ defmodule Module.Types.Descr do
     bdd_union(bdd_intersection(cd1, bdd_union(cd2, u2)), bdd_intersection(u1, cd2))
   end
 
-  # Intersections are great because they allow us to cut down
-  # the number of nodes in the tree. So whenever we have a leaf,
-  # we propagate it throughout the whole tree, cutting down nodes.
-  defp bdd_intersection(bdd_leaf(_, _) = leaf1, bdd_leaf(_, _) = leaf2, leaf_intersection) do
-    leaf_intersection.(leaf1, leaf2)
-  end
-
-  defp bdd_intersection(bdd, bdd_leaf(tag, _) = leaf, leaf_intersection) when tag != :open do
-    bdd_non_open_leaf_intersection(leaf, bdd, leaf_intersection)
-  end
-
-  defp bdd_intersection(bdd_leaf(tag, _) = leaf, bdd, leaf_intersection) when tag != :open do
-    bdd_non_open_leaf_intersection(leaf, bdd, leaf_intersection)
-  end
-
-  defp bdd_intersection(bdd1, bdd2, _leaf_intersection) do
-    bdd_intersection(bdd1, bdd2)
-  end
-
-  # Take two BDDs, B1 = {a1, C1, U1, D1} and B2 = a2.
-  #
-  # We have:
-  #
-  #     ((a1 and C1) or U1 or (not a1 and D1)) and a2
-  #     (a1 and a2 and C1) or (a2 and U1) or (a2 and not a1 and D1)
-  #
-  # When C1 = :bdd_top, (a1 and a2) or (a2 and U2) or (a2 and not a1 and D2)
-  # When C2 = :bdd_bot, (a2 and U2) or (a2 and not a1 and D2)
-  defp bdd_non_open_leaf_intersection(leaf1, bdd_leaf(_, _) = leaf2, leaf_intersection) do
-    leaf_intersection.(leaf1, leaf2)
-  end
-
-  defp bdd_non_open_leaf_intersection(leaf, {_, a, :bdd_top, u, d}, leaf_intersection) do
-    leaf_intersection.(a, leaf)
-    |> bdd_union(bdd_non_open_leaf_intersection(leaf, u, leaf_intersection))
-    |> case do
-      result when d == :bdd_bot ->
-        result
-
-      result ->
-        leaf
-        |> bdd_non_open_leaf_intersection(d, leaf_intersection)
-        |> bdd_difference(a)
-        |> bdd_union(result)
-    end
-  end
-
-  defp bdd_non_open_leaf_intersection(leaf, {_, a, :bdd_bot, u, d}, leaf_intersection) do
-    case bdd_non_open_leaf_intersection(leaf, u, leaf_intersection) do
-      result when d == :bdd_bot ->
-        result
-
-      result ->
-        leaf
-        |> bdd_non_open_leaf_intersection(d, leaf_intersection)
-        |> bdd_difference(a)
-        |> bdd_union(result)
-    end
-  end
-
-  defp bdd_non_open_leaf_intersection(bdd1, bdd2, _leaf_intersection) do
-    bdd_intersection(bdd1, bdd2)
-  end
-
   # {lit, c, u, d} = (lit and c) or u or (not lit and d),
   # so its negation is ((lit and not c) or (not lit and not d)) and not u.
   def bdd_negation(:bdd_top), do: :bdd_bot
@@ -6574,12 +6510,14 @@ defmodule Module.Types.Descr do
   defp opt_list_intersection(bdd_leaf(:term, :term), bdd, _seen), do: bdd
   defp opt_list_intersection(bdd, bdd_leaf(:term, :term), _seen), do: bdd
 
-  defp opt_list_intersection(bdd1, bdd2, seen) do
+  defp opt_list_intersection(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, seen) do
     case opt_bdd_seen(seen, :list_intersection, bdd1, bdd2) do
       :seen -> list_intersection(bdd1, bdd2)
-      {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_list_leaf_intersection(&1, &2, seen))
+      {:ok, seen} -> opt_list_leaf_intersection(bdd1, bdd2, seen)
     end
   end
+
+  defp opt_list_intersection(bdd1, bdd2, _seen), do: list_intersection(bdd1, bdd2)
 
   defp opt_list_leaf_intersection(bdd_leaf(list1, last1), bdd_leaf(list2, last2), seen) do
     intersection_fun = &opt_intersection(&1, &2, seen)
@@ -6810,12 +6748,14 @@ defmodule Module.Types.Descr do
   defp opt_map_intersection(bdd_leaf(:open, []), bdd, _seen), do: bdd
   defp opt_map_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
 
-  defp opt_map_intersection(bdd1, bdd2, seen) do
+  defp opt_map_intersection(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, seen) do
     case opt_bdd_seen(seen, :map_intersection, bdd1, bdd2) do
       :seen -> map_intersection(bdd1, bdd2)
-      {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_map_leaf_intersection(&1, &2, seen))
+      {:ok, seen} -> opt_map_leaf_intersection(bdd1, bdd2, seen)
     end
   end
+
+  defp opt_map_intersection(bdd1, bdd2, _seen), do: map_intersection(bdd1, bdd2)
 
   defp opt_map_leaf_intersection(bdd_leaf(tag1, fields1), bdd_leaf(tag2, fields2), seen) do
     try do
@@ -7137,12 +7077,14 @@ defmodule Module.Types.Descr do
   defp opt_tuple_intersection(bdd_leaf(:open, []), bdd, _seen), do: bdd
   defp opt_tuple_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
 
-  defp opt_tuple_intersection(bdd1, bdd2, seen) do
+  defp opt_tuple_intersection(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, seen) do
     case opt_bdd_seen(seen, :tuple_intersection, bdd1, bdd2) do
       :seen -> tuple_intersection(bdd1, bdd2)
-      {:ok, seen} -> bdd_intersection(bdd1, bdd2, &opt_tuple_leaf_intersection(&1, &2, seen))
+      {:ok, seen} -> opt_tuple_leaf_intersection(bdd1, bdd2, seen)
     end
   end
+
+  defp opt_tuple_intersection(bdd1, bdd2, _seen), do: tuple_intersection(bdd1, bdd2)
 
   defp opt_tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2), seen) do
     intersection_fun = &opt_intersection(&1, &2, seen)
