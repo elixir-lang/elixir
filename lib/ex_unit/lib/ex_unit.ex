@@ -377,7 +377,7 @@ defmodule ExUnit do
     * `:rand_algorithm` - algorithm to be used when generating the test seed.
       Available algorithms can be found in Erlang's
       [`:rand`](`:rand`) documentation (see
-      [`:rand.builting_arg/0`](https://www.erlang.org/doc/apps/stdlib/rand.html#t:builtin_alg/0)).
+      [`:rand.builtin_alg/0`](https://www.erlang.org/doc/apps/stdlib/rand.html#t:builtin_alg/0)).
       Available since v1.16.0. Before v1.16.0, the algorithm was hard-coded to
       `:exs1024`. On Elixir v1.16.0 and after, the default changed to `:exsss`;
 
@@ -479,7 +479,7 @@ defmodule ExUnit do
       if Code.ensure_loaded?(module) and function_exported?(module, :__ex_unit__, 1) do
         ExUnit.Server.add_module(module, module.__ex_unit__(:config))
       else
-        raise(ArgumentError, "#{inspect(module)} is not a ExUnit.Case module")
+        raise(ArgumentError, "#{inspect(module)} is not an ExUnit.Case module")
       end
     end
 
@@ -492,7 +492,7 @@ defmodule ExUnit do
   @doc """
   Starts tests asynchronously while test cases are still loading.
 
-  It returns a task that must be given to `await_run/0` when a result
+  It returns a task that must be given to `await_run/1` when a result
   is desired.
   """
   @doc since: "1.12.0"

@@ -68,7 +68,7 @@ defmodule ExUnit.CaptureIO do
     * `:stdio`, `:standard_io` - a shortcut for capturing the group leader
       of the current process. It is equivalent to passing `self()` as the
       first argument. This is safe to run concurrently and captures only
-      the of the current process or any child process spawned inside the
+      the IO of the current process or any child process spawned inside the
       given function
 
     * `:stderr`, `:standard_error` - captures all IO to standard error
@@ -82,7 +82,7 @@ defmodule ExUnit.CaptureIO do
 
     * any other pid (since v1.17.0) - captures all IO to the group leader
       of the given process. This option is not safe to run concurrently
-      if the pid is not `self()`. Tests using this value must set `async: true`
+      if the pid is not `self()`. Tests using this value must set `async: false`
 
   ## Options
 
