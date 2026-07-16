@@ -3245,45 +3245,45 @@ defmodule Module.Types.Descr do
   defp map_fetch_key_static(%{}, _key), do: {none(), false}
   defp map_fetch_key_static(:term, _key), do: {term(), true}
 
-  # Takes a map DNF and returns whether the key is optional and the union of
-  # present-value types it can take.
+  # Takes a map DNF and returns the union of present-value types a key can take
+  # and whether the key is optional.
   defp map_dnf_fetch_static(dnf, key) do
-    {value, optional?} =
-      Enum.reduce(dnf, {none(), false}, fn
-        # Optimization: if there are no negatives
-        {tag, fields, []}, acc ->
-          field =
-            case fields_find(key, fields) do
-              {:ok, field} -> field
-              :error -> map_key_tag_to_field(tag)
-            end
-
-          field_opt_union(field, acc, %{})
-
-        {tag, fields, negs}, acc ->
-          {field, bdd} = map_pop_key_bdd(tag, fields, key)
-
-          case map_split_negative_pairs_key(negs, key) do
-            :empty ->
-              acc
-
-            negative ->
-              field =
-                if map_pair_projection_keeps_full_fst?(negative, bdd) do
-                  field
-                else
-                  negs
-                  |> map_split_negative_key(key, field, bdd)
-                  |> Enum.reduce({none(), false}, fn {field, _}, acc ->
-                    field_opt_union(field, acc, %{})
-                  end)
-                end
-
-              field_opt_union(field, acc, %{})
+    Enum.reduce(dnf, {none(), false}, fn
+      # Optimization: if there are no negatives
+      {tag, fields, []}, acc ->
+        field =
+          case fields_find(key, fields) do
+            {:ok, field} -> field
+            :error when tag == :open -> throw(:open)
+            :error -> map_key_tag_to_field(tag)
           end
-      end)
 
-    {value, optional?}
+        field_opt_union(field, acc, %{})
+
+      {tag, fields, negs}, acc ->
+        {field, bdd} = map_pop_key_bdd(tag, fields, key)
+
+        case map_split_negative_pairs_key(negs, key) do
+          :empty ->
+            acc
+
+          negative ->
+            field =
+              if map_pair_projection_keeps_full_fst?(negative, bdd) do
+                field
+              else
+                negs
+                |> map_split_negative_key(key, field, bdd)
+                |> Enum.reduce({none(), false}, fn {field, _}, acc ->
+                  field_opt_union(field, acc, %{})
+                end)
+              end
+
+            field_opt_union(field, acc, %{})
+        end
+    end)
+  catch
+    :open -> {term(), true}
   end
 
   defp map_split_negative_pairs_key(negs, key) do
@@ -3525,27 +3525,18 @@ defmodule Module.Types.Descr do
   The `return_type?` flag is used for optimizations purposes. If set to false,
   the returned `type` should not be used, as it will be imprecise.
   """
-  def map_update(descr, key_descr, type, return_type? \\ true, force? \\ false)
-
-  def map_update(descr, key_descr, type, return_type?, force?),
-    do: map_update_optional(descr, key_descr, type, false, return_type?, force?)
-
-  def map_update(descr, key_descr, type, optional?, return_type?, force?)
-      when is_boolean(optional?),
-      do: map_update_optional(descr, key_descr, type, optional?, return_type?, force?)
-
-  defp map_update_optional(descr, key_descr, :term, optional?, return_type?, force?) do
-    map_update_unchecked(
-      descr,
-      key_descr,
-      fn _, _ -> {:term, optional?} end,
-      return_type?,
-      force?
-    )
-  end
-
-  defp map_update_optional(descr, key_descr, type, optional?, return_type?, force?) do
+  def map_update(descr, key_descr, type, optional?, return_type? \\ true, force? \\ false)
+      when is_boolean(optional?) do
     case type do
+      :term ->
+        map_update_unchecked(
+          descr,
+          key_descr,
+          fn _, _ -> {:term, optional?} end,
+          return_type?,
+          force?
+        )
+
       %{dynamic: dynamic} ->
         fun = fn _, _ -> {dynamic, optional?} end
         map_update_unchecked(dynamic(descr), key_descr, fun, return_type?, force?)
@@ -3562,7 +3553,7 @@ defmodule Module.Types.Descr do
   `key_descr` is split into optional and required keys and tracked accordingly.
   The gradual aspect of `key_descr` does not impact the return type.
 
-  This is a more general version of `map_update/5` and has the same return values.
+  This is a more general version of `map_update/6` and has the same return values.
   However, the third argument is an anonymous function that receives the current
   value and whether it is optional. Note the value returned by `type_fun` cannot
   hold dynamic. Any dynamic conversion must happen before invoking this function.
@@ -3571,23 +3562,13 @@ defmodule Module.Types.Descr do
     gradual? = gradual?(descr)
 
     type_fun = fn value, optional? ->
-      if is_function(type_fun, 1) do
-        value = if gradual?, do: dynamic(value), else: value
-        {new_value, new_optional?} = type_fun.(value)
+      value = if gradual?, do: dynamic(value), else: value
+      {new_value, new_optional?} = type_fun.(value, optional?)
 
-        new_value =
-          if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
+      new_value =
+        if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
 
-        {new_value, optional? or new_optional?}
-      else
-        value = if gradual?, do: dynamic(value), else: value
-        {new_value, new_optional?} = type_fun.(value, optional?)
-
-        new_value =
-          if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
-
-        {new_value, new_optional?}
-      end
+      {new_value, new_optional?}
     end
 
     map_update_unchecked(descr, key_descr, type_fun, return_type?, force?)
@@ -3795,7 +3776,7 @@ defmodule Module.Types.Descr do
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_field_opt_union(field, fn -> fst end, %{}), opt_map_union(bdd, snd, %{})}
+          {maybe_field_opt_union(field, fn -> fst end), opt_map_union(bdd, snd, %{})}
 
         {tag, fields, negs}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
@@ -3815,17 +3796,13 @@ defmodule Module.Types.Descr do
                   do: [],
                   else: map_split_negative_key(negs, key, fst, snd)
 
-              {maybe_field_opt_union(
-                 field,
-                 fn ->
-                   if keep_fst? do
-                     fst
-                   else
-                     Enum.reduce(pairs, {none(), false}, &field_opt_union(elem(&1, 0), &2, %{}))
-                   end
-                 end,
-                 %{}
-               ),
+              {maybe_field_opt_union(field, fn ->
+                 if keep_fst? do
+                   fst
+                 else
+                   Enum.reduce(pairs, {none(), false}, &field_opt_union(elem(&1, 0), &2, %{}))
+                 end
+               end),
                if keep_snd? do
                  opt_map_union(bdd, snd, %{})
                else
@@ -4780,8 +4757,8 @@ defmodule Module.Types.Descr do
     {bare_union(value1, value2), optional1? or optional2?}
   end
 
-  defp maybe_field_opt_union(nil, _fun, _seen), do: nil
-  defp maybe_field_opt_union(field, fun, seen), do: field_opt_union(field, fun.(), seen)
+  defp maybe_field_opt_union(nil, _fun), do: nil
+  defp maybe_field_opt_union(field, fun), do: field_opt_union(field, fun.(), %{})
 
   defp field_intersection({value1, optional1?}, {value2, optional2?}) do
     {bare_intersection(value1, value2), optional1? and optional2?}
@@ -6674,13 +6651,7 @@ defmodule Module.Types.Descr do
         cond do
           # Don't do difference on struct keys
           k1 != :__struct__ and tag1 == tag2 ->
-            opt_map_union_strategy(
-              t1,
-              t2,
-              tag1,
-              tag2,
-              {:one_key_difference, k1, v1, v2}
-            )
+            opt_map_union_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
 
           field_subtype?(v1, v2) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
@@ -6905,13 +6876,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_difference_strategy(
-         [{k1, field} | t1],
-         [{k2, _} | _] = l2,
-         tag1,
-         tag2,
-         status
-       )
+  defp opt_map_difference_strategy([{k1, field} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
        when k1 < k2 do
     {_, optional?} = field
 
@@ -6942,13 +6907,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_difference_strategy(
-         [{k1, _} | _] = l1,
-         [{k2, field} | t2],
-         tag1,
-         tag2,
-         _status
-       )
+  defp opt_map_difference_strategy([{k1, _} | _] = l1, [{k2, field} | t2], tag1, tag2, _status)
        when k1 > k2 do
     {_, optional?} = field
 
@@ -6973,13 +6932,7 @@ defmodule Module.Types.Descr do
     else
       case status do
         :all_equal when tag1 == tag2 ->
-          opt_map_difference_strategy(
-            t1,
-            t2,
-            tag1,
-            tag2,
-            {:one_key_difference, k1, v1, v2}
-          )
+          opt_map_difference_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
 
         {:one_key_difference, _key, p1, p2} ->
           if field_subtype?(p1, p2) and field_subtype?(v1, v2) do

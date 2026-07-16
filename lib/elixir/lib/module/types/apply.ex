@@ -1264,7 +1264,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :put, _info, [map, key, value] = args_types, stack) do
-    case map_update(map, key, value, false, true) do
+    case map_update(map, key, value, false, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :put, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1412,7 +1412,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :put, _info, [key, value, map] = args_types, stack) do
-    case map_update(map, key, value, false, true) do
+    case map_update(map, key, value, false, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :put, args_types)}
       {:error, _errors} -> {:ok, map}
