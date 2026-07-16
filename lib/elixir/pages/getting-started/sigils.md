@@ -214,7 +214,7 @@ As hinted at the beginning of this chapter, sigils in Elixir are extensible. In 
 
 ```elixir
 iex> sigil_r(<<"foo">>, [?i])
-~r"foo"i
+~r/foo/i
 ```
 
 We can access the documentation for the `~r` sigil via `sigil_r`:

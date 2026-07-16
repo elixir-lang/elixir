@@ -28,7 +28,7 @@ Operators are also represented as such tuples:
 
 ```elixir
 iex> quote do: 1 + 2
-{:+, [context: Elixir, import: Kernel], [1, 2]}
+{:+, [context: Elixir, imports: [{1, Kernel}, {2, Kernel}]], [1, 2]}
 ```
 
 Even a map is represented as a call to `%{}`:
@@ -49,7 +49,8 @@ When quoting more complex expressions, we can see that the code is represented i
 
 ```elixir
 iex> quote do: sum(1, 2 + 3, 4)
-{:sum, [], [1, {:+, [context: Elixir, import: Kernel], [2, 3]}, 4]}
+{:sum, [],
+ [1, {:+, [context: Elixir, imports: [{1, Kernel}, {2, Kernel}]], [2, 3]}, 4]}
 ```
 
 Sometimes, when working with quoted expressions, it may be useful to get the textual code representation back. This can be done with `Macro.to_string/1`:

@@ -266,7 +266,7 @@ user = find_user_by_id(42)
 %User{user | name: "John Doe"}
 ```
 
-Even though it is guaranteed at runtime that user is always a `User` struct. If the type system cannot prove it, it will emit a typing violation. This is how stuct updates work by design. In such cases, you can address it by matching on the struct when the user variable is defined:
+Even though it is guaranteed at runtime that user is always a `User` struct. If the type system cannot prove it, it will emit a typing violation. This is how struct updates work by design. In such cases, you can address it by matching on the struct when the user variable is defined:
 
 ```elixir
 %User{} = user = find_user_by_id(42)
