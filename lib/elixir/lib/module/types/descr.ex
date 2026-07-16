@@ -74,10 +74,7 @@ defmodule Module.Types.Descr do
   @empty_list %{bitmap: @bit_empty_list}
   @not_non_empty_list Map.delete(@term, :list)
 
-  @not_set %{optional: 1}
-  @term_or_optional Map.put(@term, :optional, 1)
-  @term_or_dynamic_optional Map.put(@term, :dynamic, @term_or_optional)
-  @not_atom_or_optional Map.delete(@term_or_optional, :atom)
+  @not_atom Map.delete(@term, :atom)
 
   @empty_intersection [0, :bdd_bot]
   @empty_difference [0, :bdd_bot]
@@ -127,7 +124,7 @@ defmodule Module.Types.Descr do
 
   defp expand_node({_id, state, generator}) do
     recur = fn name ->
-      {id, _if_set_id, generator} = Map.fetch!(state, name)
+      {id, generator} = Map.fetch!(state, name)
       make_node(id, state, generator)
     end
 
@@ -144,10 +141,10 @@ defmodule Module.Types.Descr do
   def recursive(equations) when is_map(equations) do
     state =
       Map.new(equations, fn {name, generator} ->
-        {name, {make_ref(), make_ref(), generator}}
+        {name, {make_ref(), generator}}
       end)
 
-    Map.new(state, fn {name, {id, _if_set_id, generator}} ->
+    Map.new(state, fn {name, {id, generator}} ->
       {name, make_node(id, state, generator)}
     end)
   end
@@ -334,90 +331,6 @@ defmodule Module.Types.Descr do
 
   defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
 
-  ## Optional
-
-  # `not_set()` is a special base type that represents a not_set field in a map.
-  # E.g., `%{a: integer(), b: not_set(), ...}` represents a map with an integer
-  # field `a` and an not_set field `b`, and possibly other fields.
-  #
-  # The `if_set()` modifier is syntactic sugar for specifying the key as a union
-  # of the key type and `not_set()`. For example, `%{:foo => if_set(integer())}`
-  # is equivalent to `%{:foo => integer() or not_set()}`.
-  #
-  # `not_set()` has no meaning outside of map types.
-  def not_set(), do: @not_set
-
-  def if_set(:term), do: term_or_optional()
-
-  # If type contains a :dynamic part, :optional gets added there.
-  def if_set(type) do
-    case unfold(type) do
-      %{dynamic: :term} = descr when map_size(descr) == 1 ->
-        %{dynamic: term_or_optional()}
-
-      %{dynamic: :term} = descr ->
-        Map.put(%{descr | dynamic: term_or_optional()}, :optional, 1)
-
-      %{dynamic: dyn} = descr ->
-        Map.put(%{descr | dynamic: Map.put(dyn, :optional, 1)}, :optional, 1)
-
-      descr ->
-        Map.put(descr, :optional, 1)
-    end
-  end
-
-  defp term_or_optional(), do: @term_or_optional
-
-  @compile {:inline,
-            keep_optional: 1, remove_optional: 1, remove_optional_static: 1, optional_to_term: 1}
-  defp keep_optional(descr) do
-    case descr do
-      %{dynamic: %{optional: 1}, optional: 1} -> %{dynamic: %{optional: 1}, optional: 1}
-      %{dynamic: %{optional: 1}} -> %{dynamic: %{optional: 1}}
-      %{optional: 1} -> %{optional: 1}
-      _ -> @none
-    end
-  end
-
-  defp remove_optional(descr) do
-    case descr do
-      %{dynamic: %{optional: _} = dynamic} when map_size(dynamic) == 1 ->
-        descr
-        |> Map.delete(:dynamic)
-        |> remove_optional_static()
-
-      %{dynamic: %{optional: _} = dynamic} ->
-        descr
-        |> Map.replace!(:dynamic, Map.delete(dynamic, :optional))
-        |> remove_optional_static()
-
-      _ ->
-        remove_optional_static(descr)
-    end
-  end
-
-  defp remove_optional_static(%{} = descr), do: Map.delete(descr, :optional)
-  defp remove_optional_static(descr), do: descr
-
-  defp optional_to_term(descr) do
-    case descr do
-      %{dynamic: %{optional: _}} -> @term_or_dynamic_optional
-      %{optional: _} -> term_or_optional()
-      _ -> :term
-    end
-  end
-
-  defp pop_optional_static(:term), do: {false, :term}
-
-  defp pop_optional_static(%{} = type) do
-    case :maps.take(:optional, type) do
-      :error -> {false, type}
-      {1, type} -> {true, type}
-    end
-  end
-
-  defp pop_optional_static(type), do: {false, type}
-
   ## Set operations
 
   @doc """
@@ -457,7 +370,7 @@ defmodule Module.Types.Descr do
     Map.pop(descr, :dynamic, descr)
   end
 
-  defp put_dynamic(:term, dynamic), do: optional_to_term(%{dynamic: dynamic})
+  defp put_dynamic(:term, _dynamic), do: :term
   defp put_dynamic(static, dynamic) when static == dynamic, do: static
   defp put_dynamic(_static, dynamic) when dynamic == @none, do: @none
   defp put_dynamic(static, dynamic), do: Map.put(static, :dynamic, dynamic)
@@ -473,8 +386,8 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the union of two descrs.
   """
-  def bare_union(:term, other), do: optional_to_term(other)
-  def bare_union(other, :term), do: optional_to_term(other)
+  def bare_union(:term, _other), do: :term
+  def bare_union(_other, :term), do: :term
   def bare_union(none, other) when none == @none, do: other
   def bare_union(other, none) when none == @none, do: other
 
@@ -508,15 +421,14 @@ defmodule Module.Types.Descr do
   defp bare_union(:dynamic, v1, v2), do: dynamic_union(v1, v2, &bare_union/3)
   defp bare_union(:list, v1, v2), do: list_union(v1, v2)
   defp bare_union(:map, v1, v2), do: map_union(v1, v2)
-  defp bare_union(:optional, 1, 1), do: 1
   defp bare_union(:tuple, v1, v2), do: tuple_union(v1, v2)
   defp bare_union(:fun, v1, v2), do: fun_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
   """
-  def bare_intersection(:term, other), do: remove_optional(other)
-  def bare_intersection(other, :term), do: remove_optional(other)
+  def bare_intersection(:term, other), do: other
+  def bare_intersection(other, :term), do: other
 
   def bare_intersection(left, right) do
     left = unfold(left)
@@ -548,7 +460,6 @@ defmodule Module.Types.Descr do
   defp bare_intersection(:bitmap, v1, v2), do: v1 &&& v2
   defp bare_intersection(:list, v1, v2), do: list_intersection(v1, v2)
   defp bare_intersection(:map, v1, v2), do: map_intersection(v1, v2)
-  defp bare_intersection(:optional, 1, 1), do: 1
   defp bare_intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
   defp bare_intersection(:fun, v1, v2), do: fun_intersection(v1, v2)
 
@@ -560,7 +471,7 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the difference between two types.
   """
-  def bare_difference(left, :term), do: keep_optional(left)
+  def bare_difference(_left, :term), do: @none
   def bare_difference(left, none) when none == @none, do: left
 
   def bare_difference(left, right) do
@@ -589,7 +500,6 @@ defmodule Module.Types.Descr do
   defp bare_difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
   defp bare_difference(:list, v1, v2), do: list_difference(v1, v2)
   defp bare_difference(:map, v1, v2), do: map_difference(v1, v2)
-  defp bare_difference(:optional, 1, 1), do: 0
   defp bare_difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
   defp bare_difference(:fun, v1, v2), do: fun_difference(v1, v2)
 
@@ -636,7 +546,6 @@ defmodule Module.Types.Descr do
       descr ->
         not Map.has_key?(descr, :atom) and
           not Map.has_key?(descr, :bitmap) and
-          not Map.has_key?(descr, :optional) and
           (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple, seen)) and
           (not Map.has_key?(descr, :map) or map_empty?(descr.map, seen)) and
           (not Map.has_key?(descr, :list) or list_empty?(descr.list, seen)) and
@@ -675,7 +584,10 @@ defmodule Module.Types.Descr do
 
   defp numberize(:map, bdd) do
     bdd_map(bdd, fn bdd_leaf(tag, fields) ->
-      bdd_leaf_new(tag, fields_map(fn _key, value -> numberize(value) end, fields))
+      bdd_leaf_new(
+        tag,
+        fields_map(fn _key, {value, optional?} -> {numberize(value), optional?} end, fields)
+      )
     end)
   end
 
@@ -694,7 +606,6 @@ defmodule Module.Types.Descr do
   def singleton?(descr), do: static_singleton?(Map.get(descr, :dynamic, descr))
 
   defp static_singleton?(:term), do: false
-  defp static_singleton?(%{optional: _}), do: false
   defp static_singleton?(%{list: _}), do: false
   defp static_singleton?(%{fun: _}), do: false
   defp static_singleton?(descr), do: each_singleton?(descr, [:atom, :bitmap, :map, :tuple], false)
@@ -735,7 +646,9 @@ defmodule Module.Types.Descr do
         :empty
 
       [{:closed, fields, _negs}] ->
-        Enum.all?(fields_to_list(fields), fn {_, v} -> static_singleton?(v) end)
+        Enum.all?(fields_to_list(fields), fn {_, {v, optional?}} ->
+          not optional? and static_singleton?(v)
+        end)
 
       _ ->
         false
@@ -952,7 +865,7 @@ defmodule Module.Types.Descr do
       empty_difference_subtype?(Map.delete(left, :dynamic), Map.delete(right, :dynamic), seen)
   end
 
-  defp empty_difference_subtype?(left, :term, _seen), do: keep_optional(left) == @none
+  defp empty_difference_subtype?(_left, :term, _seen), do: true
 
   defp empty_difference_subtype?(left, right, seen) do
     left = unfold(left)
@@ -989,10 +902,10 @@ defmodule Module.Types.Descr do
 
   This reimplements intersection/2 but aborts as it finds a disjoint part.
   """
-  def disjoint?(:term, other), do: empty?(remove_optional(other))
-  def disjoint?(other, :term), do: empty?(remove_optional(other))
-  def disjoint?(%{dynamic: :term}, other), do: empty?(remove_optional(other))
-  def disjoint?(other, %{dynamic: :term}), do: empty?(remove_optional(other))
+  def disjoint?(:term, other), do: empty?(other)
+  def disjoint?(other, :term), do: empty?(other)
+  def disjoint?(%{dynamic: :term}, other), do: empty?(other)
+  def disjoint?(other, %{dynamic: :term}), do: empty?(other)
 
   # Two gradual types are disjoint if their upper bounds are disjoint.
   def disjoint?(left, right) do
@@ -1048,7 +961,7 @@ defmodule Module.Types.Descr do
     if empty?(other) do
       {:error, other}
     else
-      {:ok, remove_optional(other)}
+      {:ok, other}
     end
   end
 
@@ -2752,23 +2665,23 @@ defmodule Module.Types.Descr do
   # on top of the static type. Though, the latter may be used for printing purposes.
   #
   # There are two ways for a descr to represent a static type: either the
-  # `:dynamic` field is not_set, or it contains a type equal to the static component
+  # `:dynamic` field is absent, or it contains a type equal to the static component
   # (that is, there are no extra dynamic values).
 
-  defp dynamic_union(:term, other, _fun), do: optional_to_term(other)
-  defp dynamic_union(other, :term, _fun), do: optional_to_term(other)
+  defp dynamic_union(:term, _other, _fun), do: :term
+  defp dynamic_union(_other, :term, _fun), do: :term
 
   defp dynamic_union(left, right, fun),
     do: symmetrical_merge(unfold(left), unfold(right), fun)
 
-  defp dynamic_intersection(:term, other, _fun), do: remove_optional_static(other)
-  defp dynamic_intersection(other, :term, _fun), do: remove_optional_static(other)
+  defp dynamic_intersection(:term, other, _fun), do: other
+  defp dynamic_intersection(other, :term, _fun), do: other
 
   defp dynamic_intersection(left, right, fun),
     do: symmetrical_intersection(unfold(left), unfold(right), fun)
 
   defp dynamic_difference(left, descr, _fun) when descr == %{}, do: left
-  defp dynamic_difference(left, :term, _fun), do: keep_optional(left)
+  defp dynamic_difference(_left, :term, _fun), do: @none
 
   defp dynamic_difference(left, right, fun) do
     iterator_dynamic_difference(:maps.next(:maps.iterator(unfold(right))), unfold(left), fun)
@@ -2928,7 +2841,6 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domain(domain, domain_keys, value) when is_list(domain_keys) do
-    value = remove_optional(value)
     map_put_domain(domain, :lists.usort(domain_keys), value, value)
   end
 
@@ -2948,38 +2860,51 @@ defmodule Module.Types.Descr do
 
   defp map_descr_pairs(pairs) do
     {fields, domains, dynamic_fields, dynamic_domains, dynamic?, static_possible?} =
-      Enum.reduce(pairs, {[], @fields_new, [], @fields_new, false, false}, fn {key, value}, acc ->
-        map_descr_pair(key, value, acc)
+      Enum.reduce(pairs, {[], @fields_new, [], @fields_new, false, false}, fn
+        {key, {value, optional?}}, acc when is_atom(key) and is_boolean(optional?) ->
+          map_descr_pair(key, value, optional?, acc)
+
+        {key, value}, acc when is_list(key) ->
+          map_descr_domain(key, value, acc)
       end)
 
     {fields_from_reverse_list(fields), domains, fields_from_reverse_list(dynamic_fields),
      dynamic_domains, dynamic?, static_possible?}
   end
 
-  defp map_descr_pair(
+  defp map_descr_domain(
          key,
          value,
          {fields, domains, dynamic_fields, dynamic_domains, dynamic?, static_empty?}
        ) do
     {dynamic_value, static_value, value_dynamic?} = split_dynamic(value)
     dynamic? = dynamic? or value_dynamic?
+
     static_empty? = static_empty? or static_value == @none
 
-    if is_atom(key) do
-      {[{key, static_value} | fields], domains, [{key, dynamic_value} | dynamic_fields],
-       dynamic_domains, dynamic?, static_empty?}
-    else
-      {fields, map_put_domain(domains, key, static_value), dynamic_fields,
-       map_put_domain(dynamic_domains, key, dynamic_value), dynamic?, static_empty?}
-    end
+    {fields, map_put_domain(domains, key, static_value), dynamic_fields,
+     map_put_domain(dynamic_domains, key, dynamic_value), dynamic?, static_empty?}
+  end
+
+  defp map_descr_pair(
+         key,
+         value,
+         optional?,
+         {fields, domains, dynamic_fields, dynamic_domains, dynamic?, static_empty?}
+       ) do
+    {dynamic_value, static_value, value_dynamic?} = split_dynamic(value)
+    dynamic? = dynamic? or value_dynamic?
+    static_empty? = static_empty? or (not optional? and static_value == @none)
+
+    {[{key, {static_value, optional?}} | fields], domains,
+     [{key, {dynamic_value, optional?}} | dynamic_fields], dynamic_domains, dynamic?,
+     static_empty?}
   end
 
   # Gets the default type associated to atom keys in a map.
-  defp map_key_tag_to_type(:open), do: term_or_optional()
-  defp map_key_tag_to_type(:closed), do: not_set()
-
-  defp map_key_tag_to_type(domains),
-    do: domains |> fields_get(:atom, none()) |> if_set()
+  defp map_key_tag_to_field(:open), do: {term(), true}
+  defp map_key_tag_to_field(:closed), do: {none(), true}
+  defp map_key_tag_to_field(domains), do: {fields_get(domains, :atom, none()), true}
 
   # Gets the domain type association to a map. Domain values are stored without
   # an optional marker, so no conversion is necessary here.
@@ -2994,9 +2919,6 @@ defmodule Module.Types.Descr do
   defp map_domain_tag_to_type(domain, _key) do
     map_domain_tag_to_type(domain)
   end
-
-  defguardp is_optional_static(map)
-            when is_map(map) and is_map_key(map, :optional)
 
   defp map_new(tag, fields), do: bdd_leaf_new(tag, fields)
 
@@ -3029,7 +2951,12 @@ defmodule Module.Types.Descr do
   defp map_literal_intersection(:open, map1, :open, map2, intersection_fun, seen) do
     new_fields =
       fields_merge(
-        fn _, type1, type2 -> non_empty_intersection!(type1, type2, intersection_fun, seen) end,
+        fn _key, {type1, optional1?}, {type2, optional2?} ->
+          optional? = optional1? and optional2?
+          type = intersection_fun.(type1, type2)
+          if not optional? and empty_seen?(type, seen), do: throw(:empty)
+          {type, optional?}
+        end,
         map1,
         map2
       )
@@ -3063,8 +2990,8 @@ defmodule Module.Types.Descr do
     # For a closed map with domains intersected with an open map with domains:
     # 1. The result is closed (more restrictive)
     # 2. We need to check each domain in the open map against the closed map
-    default1 = map_key_tag_to_type(tag_or_domains1)
-    default2 = map_key_tag_to_type(tag_or_domains2)
+    default1 = map_key_tag_to_field(tag_or_domains1)
+    default2 = map_key_tag_to_field(tag_or_domains2)
 
     # Compute the new domain
     tag_or_domains = map_domain_intersection(tag_or_domains1, tag_or_domains2, seen)
@@ -3076,8 +3003,11 @@ defmodule Module.Types.Descr do
     # We do that by computing intersection on all key labels in both map1 and map2,
     # using default values when a key is not present.
     {tag_or_domains,
-     fields_merge_with_defaults(map1, default1, map2, default2, fn _key, v1, v2 ->
-       non_empty_intersection!(v1, v2, intersection_fun, seen)
+     fields_merge_with_defaults(map1, default1, map2, default2, fn _key, {v1, o1}, {v2, o2} ->
+       optional? = o1 and o2
+       type = intersection_fun.(v1, v2)
+       if not optional? and empty_seen?(type, seen), do: throw(:empty)
+       {type, optional?}
      end)}
   end
 
@@ -3120,44 +3050,50 @@ defmodule Module.Types.Descr do
   defp map_domain_intersection_fields(_, _, _seen), do: []
 
   defp map_literal_intersection_open_closed(
-         [{k1, v1} | t1],
+         [{k1, {_v1, optional1?}} | t1],
          [{k2, _} | _] = l2,
          intersection_fun,
          seen
        )
        when k1 < k2 do
     # If the type in the open map is optional, we continue
-    case v1 do
-      %{optional: 1} -> map_literal_intersection_open_closed(t1, l2, intersection_fun, seen)
-      _ -> throw(:empty)
-    end
+    if optional1?,
+      do: map_literal_intersection_open_closed(t1, l2, intersection_fun, seen),
+      else: throw(:empty)
   end
 
   defp map_literal_intersection_open_closed(
          [{k1, _} | _] = l1,
-         [{k2, v2} | t2],
+         [{k2, {v2, optional2?}} | t2],
          intersection_fun,
          seen
        )
        when k1 > k2 do
     # Anything in the closed map not in open is preserved
-    [{k2, v2} | map_literal_intersection_open_closed(l1, t2, intersection_fun, seen)]
+    [
+      {k2, {v2, optional2?}}
+      | map_literal_intersection_open_closed(l1, t2, intersection_fun, seen)
+    ]
   end
 
   defp map_literal_intersection_open_closed(
-         [{key, v1} | t1],
-         [{_, v2} | t2],
+         [{key, {v1, optional1?}} | t1],
+         [{_, {v2, optional2?}} | t2],
          intersection_fun,
          seen
        ) do
+    optional? = optional1? and optional2?
+    type = intersection_fun.(v1, v2)
+    if not optional? and empty_seen?(type, seen), do: throw(:empty)
+
     [
-      {key, non_empty_intersection!(v1, v2, intersection_fun, seen)}
+      {key, {type, optional?}}
       | map_literal_intersection_open_closed(t1, t2, intersection_fun, seen)
     ]
   end
 
   defp map_literal_intersection_open_closed(t1, t2, _intersection_fun, _seen) do
-    if Enum.all?(t1, fn {_, v} -> match?(%{optional: 1}, v) end) do
+    if Enum.all?(t1, fn {_, {_, optional?}} -> optional? end) do
       t2
     else
       throw(:empty)
@@ -3165,13 +3101,13 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_closed(
-         [{k1, v1} | t1],
+         [{k1, {_v1, optional1?}} | t1],
          [{k2, _} | _] = l2,
          intersection_fun,
          seen
        )
        when k1 < k2 do
-    if is_optional_static(v1) do
+    if optional1? do
       map_literal_intersection_closed(t1, l2, intersection_fun, seen)
     else
       throw(:empty)
@@ -3180,28 +3116,33 @@ defmodule Module.Types.Descr do
 
   defp map_literal_intersection_closed(
          [{k1, _} | _] = l1,
-         [{k2, v2} | t2],
+         [{k2, {_v2, optional2?}} | t2],
          intersection_fun,
          seen
        )
        when k1 > k2 do
-    if is_optional_static(v2) do
+    if optional2? do
       map_literal_intersection_closed(l1, t2, intersection_fun, seen)
     else
       throw(:empty)
     end
   end
 
-  defp map_literal_intersection_closed([{key, v1} | t1], [{_, v2} | t2], intersection_fun, seen) do
-    [
-      {key, non_empty_intersection!(v1, v2, intersection_fun, seen)}
-      | map_literal_intersection_closed(t1, t2, intersection_fun, seen)
-    ]
+  defp map_literal_intersection_closed(
+         [{key, {v1, optional1?}} | t1],
+         [{_, {v2, optional2?}} | t2],
+         intersection_fun,
+         seen
+       ) do
+    optional? = optional1? and optional2?
+    type = intersection_fun.(v1, v2)
+    if not optional? and empty_seen?(type, seen), do: throw(:empty)
+    [{key, {type, optional?}} | map_literal_intersection_closed(t1, t2, intersection_fun, seen)]
   end
 
   defp map_literal_intersection_closed(t1, t2, _intersection_fun, _seen) do
-    if Enum.any?(t1, fn {_, v} -> not is_optional_static(v) end) or
-         Enum.any?(t2, fn {_, v} -> not is_optional_static(v) end) do
+    if Enum.any?(t1, fn {_, {_, optional?}} -> not optional? end) or
+         Enum.any?(t2, fn {_, {_, optional?}} -> not optional? end) do
       throw(:empty)
     end
 
@@ -3211,11 +3152,6 @@ defmodule Module.Types.Descr do
   defp non_empty_intersection!(type1, type2, intersection_fun) do
     type = intersection_fun.(type1, type2)
     if empty?(type), do: throw(:empty), else: type
-  end
-
-  defp non_empty_intersection!(type1, type2, intersection_fun, seen) do
-    type = intersection_fun.(type1, type2)
-    if empty_seen?(type, seen), do: throw(:empty), else: type
   end
 
   defp map_bdd_to_dnf_remove_empty(bdd) do
@@ -3295,10 +3231,12 @@ defmodule Module.Types.Descr do
   # Optimization for bdd leafs
   defp map_fetch_key_static(%{map: bdd_leaf(tag, fields)}, key) do
     case fields_find(key, fields) do
-      {:ok, value} -> pop_optional_static(value)
-      :error when tag == :open -> {true, term()}
-      :error when tag == :closed -> {true, none()}
-      :error -> tag |> map_key_tag_to_type() |> pop_optional_static()
+      {:ok, {value, optional?}} ->
+        {optional?, value}
+
+      :error ->
+        {value, optional?} = map_key_tag_to_field(tag)
+        {optional?, value}
     end
   end
 
@@ -3309,43 +3247,45 @@ defmodule Module.Types.Descr do
   defp map_fetch_key_static(%{}, _key), do: {false, none()}
   defp map_fetch_key_static(:term, _key), do: {true, term()}
 
-  # Takes a map DNF and returns the union of types it can take for a given key.
-  # If the key may be undefined, it will contain the `not_set()` type.
+  # Takes a map DNF and returns whether the key is optional and the union of
+  # present-value types it can take.
   defp map_dnf_fetch_static(dnf, key) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives
-      {tag, fields, []}, acc ->
-        case fields_find(key, fields) do
-          {:ok, value} -> opt_union(value, acc)
-          :error when tag == :open -> throw(:open)
-          :error -> map_key_tag_to_type(tag) |> opt_union(acc)
-        end
+    {value, optional?} =
+      Enum.reduce(dnf, {none(), false}, fn
+        # Optimization: if there are no negatives
+        {tag, fields, []}, acc ->
+          field =
+            case fields_find(key, fields) do
+              {:ok, field} -> field
+              :error -> map_key_tag_to_field(tag)
+            end
 
-      {tag, fields, negs}, acc ->
-        {value, bdd} = map_pop_key_bdd(tag, fields, key)
+          field_union(field, acc)
 
-        case map_split_negative_pairs_key(negs, key) do
-          :empty ->
-            acc
+        {tag, fields, negs}, acc ->
+          {field, bdd} = map_pop_key_bdd(tag, fields, key)
 
-          negative ->
-            value =
-              if map_pair_projection_keeps_full_fst?(negative, bdd) do
-                value
-              else
-                negs
-                |> map_split_negative_key(key, value, bdd)
-                |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
-              end
+          case map_split_negative_pairs_key(negs, key) do
+            :empty ->
+              acc
 
-            opt_union(value, acc)
-        end
-    end)
-  catch
-    :open -> {true, term()}
-  else
-    value ->
-      pop_optional_static(value)
+            negative ->
+              field =
+                if map_pair_projection_keeps_full_fst?(negative, bdd) do
+                  field
+                else
+                  negs
+                  |> map_split_negative_key(key, field, bdd)
+                  |> Enum.reduce({none(), false}, fn {field, _}, acc ->
+                    field_union(field, acc)
+                  end)
+                end
+
+              field_union(field, acc)
+          end
+      end)
+
+    {optional?, value}
   end
 
   defp map_split_negative_pairs_key(negs, key) do
@@ -3372,20 +3312,23 @@ defmodule Module.Types.Descr do
     not map_empty?(map_difference(bdd, neg_bdd), %{})
   end
 
-  defp map_pair_projection_keeps_full_snd?(negative, value) do
-    neg_values =
-      Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
-        bare_union(neg_value, acc)
+  defp map_pair_projection_keeps_full_snd?(negative, field) do
+    neg_field =
+      Enum.reduce(negative, {none(), false}, fn {neg_field, _neg_bdd}, acc ->
+        field_union(neg_field, acc)
       end)
 
-    not empty?(bare_difference(value, neg_values))
+    not field_empty?(field_difference(field, neg_field))
   end
 
   defp map_split_negative_key(negs, key, value, bdd) do
     map_split_negative(negs, value, bdd, fn neg_tag, neg_fields ->
       case fields_take(key, neg_fields) do
-        {neg_value, neg_fields} -> {true, neg_value, map_new(neg_tag, neg_fields)}
-        :error -> {false, map_key_tag_to_type(neg_tag), map_new(neg_tag, neg_fields)}
+        {neg_field, neg_fields} ->
+          {true, neg_field, map_new(neg_tag, neg_fields)}
+
+        :error ->
+          {false, map_key_tag_to_field(neg_tag), map_new(neg_tag, neg_fields)}
       end
     end)
   end
@@ -3398,39 +3341,39 @@ defmodule Module.Types.Descr do
         throw(:empty)
 
       bdd_leaf(neg_tag, neg_fields), acc ->
-        {found?, neg_value, neg_bdd} = take_fun.(neg_tag, neg_fields)
+        {found?, neg_field, neg_bdd} = take_fun.(neg_tag, neg_fields)
 
         if not found? and neg_tag == :open do
           # In case the map is open, t \ t₁ is always empty,
           # t ∩ t₁ is always t, so we just need to deal with the bdd.
-          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+          Enum.reduce(acc, [], fn {field, bdd}, acc ->
             diff_bdd = map_difference(bdd, neg_bdd)
 
             if map_empty?(diff_bdd, %{}) do
               acc
             else
-              [{value, diff_bdd} | acc]
+              [{field, diff_bdd} | acc]
             end
           end)
         else
-          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+          Enum.reduce(acc, [], fn {field, bdd}, acc ->
             # If the negative tag is closed, then they are likely disjoint,
             # so we can drastically cut down the amount of operations.
             if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd), %{}) do
-              [{value, bdd} | acc]
+              [{field, bdd} | acc]
             else
-              intersection_value = bare_intersection(value, neg_value)
+              intersection_field = field_intersection(field, neg_field)
 
-              if empty?(intersection_value) do
-                [{value, bdd} | acc]
+              if field_empty?(intersection_field) do
+                [{field, bdd} | acc]
               else
                 diff_bdd = map_difference(bdd, neg_bdd)
 
                 if map_empty?(diff_bdd, %{}) do
-                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                  prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc)
                 else
-                  acc = [{intersection_value, diff_bdd} | acc]
-                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                  acc = [{intersection_field, diff_bdd} | acc]
+                  prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc)
                 end
               end
             end
@@ -3443,14 +3386,14 @@ defmodule Module.Types.Descr do
 
   defp map_pop_key_bdd(tag, fields, key) do
     case fields_take(key, fields) do
-      {value, fields} -> {value, map_new(tag, fields)}
-      :error -> {map_key_tag_to_type(tag), map_new(tag, fields)}
+      {field, fields} -> {field, map_new(tag, fields)}
+      :error -> {map_key_tag_to_field(tag), map_new(tag, fields)}
     end
   end
 
-  defp prepend_pair_unless_empty_diff(value, neg_value, bdd, acc) do
-    diff_value = bare_difference(value, neg_value)
-    if empty?(diff_value), do: acc, else: [{diff_value, bdd} | acc]
+  defp prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc) do
+    diff_field = field_difference(field, neg_field)
+    if field_empty?(diff_field), do: acc, else: [{diff_field, bdd} | acc]
   end
 
   @doc """
@@ -3516,9 +3459,9 @@ defmodule Module.Types.Descr do
 
   defp has_empty_map?(dnf) do
     Enum.any?(dnf, fn {_, fields, negs} ->
-      Enum.all?(fields_to_list(fields), fn {_key, value} -> is_optional_static(value) end) and
+      Enum.all?(fields_to_list(fields), fn {_key, {_value, optional?}} -> optional? end) and
         Enum.all?(negs, fn bdd_leaf(_, fields) ->
-          not Enum.all?(fields_to_list(fields), fn {_key, value} -> is_optional_static(value) end)
+          not Enum.all?(fields_to_list(fields), fn {_key, {_value, optional?}} -> optional? end)
         end)
     end)
   end
@@ -3536,8 +3479,6 @@ defmodule Module.Types.Descr do
 
             domains when is_list(domains) ->
               fields_fold(domains, acc, fn domain_key, value, acc ->
-                value = remove_optional(value)
-
                 if empty?(value) do
                   acc
                 else
@@ -3555,7 +3496,7 @@ defmodule Module.Types.Descr do
       domain_keys_type ->
         {_seen, acc} =
           bdd_reduce(bdd, {%{}, domain_keys_type}, fn bdd_leaf(_tag, fields), seen_acc ->
-            fields_fold(fields, seen_acc, fn key, _type, {seen, acc} ->
+            fields_fold(fields, seen_acc, fn key, {_type, _optional?}, {seen, acc} ->
               if Map.has_key?(seen, key) do
                 {seen, acc}
               else
@@ -3588,17 +3529,31 @@ defmodule Module.Types.Descr do
   """
   def map_update(descr, key_descr, type, return_type? \\ true, force? \\ false)
 
-  def map_update(descr, key_descr, :term, return_type?, force?),
-    do: map_update_unchecked(descr, key_descr, fn _ -> :term end, return_type?, force?)
+  def map_update(descr, key_descr, type, return_type?, force?),
+    do: map_update_optional(descr, key_descr, type, false, return_type?, force?)
 
-  def map_update(descr, key_descr, type, return_type?, force?) do
+  def map_update(descr, key_descr, type, optional?, return_type?, force?)
+      when is_boolean(optional?),
+      do: map_update_optional(descr, key_descr, type, optional?, return_type?, force?)
+
+  defp map_update_optional(descr, key_descr, :term, optional?, return_type?, force?) do
+    map_update_unchecked(
+      descr,
+      key_descr,
+      fn _, _ -> {:term, optional?} end,
+      return_type?,
+      force?
+    )
+  end
+
+  defp map_update_optional(descr, key_descr, type, optional?, return_type?, force?) do
     case type do
       %{dynamic: dynamic} ->
-        fun = fn _, _ -> dynamic end
+        fun = fn _, _ -> {dynamic, optional?} end
         map_update_unchecked(dynamic(descr), key_descr, fun, return_type?, force?)
 
       %{} ->
-        fun = fn _, _ -> type end
+        fun = fn _, _ -> {type, optional?} end
         map_update_unchecked(descr, key_descr, fun, return_type?, force?)
     end
   end
@@ -3619,22 +3574,28 @@ defmodule Module.Types.Descr do
 
     type_fun = fn optional?, value ->
       if is_function(type_fun, 1) do
-        case type_fun.(if gradual?, do: dynamic(value), else: value) do
-          %{dynamic: dynamic} -> dynamic
-          descr -> descr
-        end
+        value = if gradual?, do: dynamic(value), else: value
+        {new_value, new_optional?} = map_update_field(type_fun.(value))
+
+        new_value =
+          if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
+
+        {new_value, optional? or new_optional?}
       else
         value = if gradual?, do: dynamic(value), else: value
+        {new_value, new_optional?} = map_update_field(type_fun.(optional?, value))
 
-        case type_fun.(optional?, value) do
-          %{dynamic: dynamic} -> dynamic
-          descr -> descr
-        end
+        new_value =
+          if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
+
+        {new_value, new_optional?}
       end
     end
 
     map_update_unchecked(descr, key_descr, type_fun, return_type?, force?)
   end
+
+  defp map_update_field({value, optional?}) when is_boolean(optional?), do: {value, optional?}
 
   def map_update_unchecked(:term, _key_descr, _type_fun, _return_type?, _force?), do: :badmap
 
@@ -3730,9 +3691,9 @@ defmodule Module.Types.Descr do
         # initial return type. `map_update_keys_static` will then union into the
         # computed type below, using the original bdd/dnf, not the one with updated domains.
         descr = map_update_put_domains(bdd, domains, type_fun, force?)
-        {remove_optional(value), descr, errors, true}
+        {value, descr, errors, true}
       else
-        {remove_optional(value), none(), errors, false}
+        {value, none(), errors, false}
       end
 
     map_update_keys_static(dnf, required_keys, optional_keys, type_fun, force?, static?, acc)
@@ -3771,15 +3732,17 @@ defmodule Module.Types.Descr do
           # Optimization: avoid creating term types when updating open maps
           [{:open, fields, []}] ->
             if fields_is_key(key, fields) do
-              {value, descr} = map_dnf_pop_key_static(dnf, key, none())
-              {pop_optional_static(value), descr}
+              {{value, optional?}, descr} =
+                map_dnf_pop_key_static(dnf, key, {none(), false})
+
+              {{optional?, value}, descr}
             else
               {{true, term()}, %{map: map_new(:open, fields)}}
             end
 
           _ ->
-            {value, descr} = map_dnf_pop_key_static(dnf, key, none())
-            {pop_optional_static(value), descr}
+            {{value, optional?}, descr} = map_dnf_pop_key_static(dnf, key, {none(), false})
+            {{optional?, value}, descr}
         end
 
       if not force? and empty?(value) do
@@ -3788,8 +3751,10 @@ defmodule Module.Types.Descr do
       else
         acc_value = opt_union(value, acc_value)
 
+        {new_value, new_optional?} = type_fun.(optional?, value)
+
         acc_descr =
-          opt_union(map_put_key_static(descr, key, type_fun.(optional?, value)), acc_descr)
+          opt_union(map_put_key_static(descr, key, new_value, new_optional?), acc_descr)
 
         # The field will be missing if we are not forcing,
         # we are in static mode and the value is optional.
@@ -3805,17 +3770,20 @@ defmodule Module.Types.Descr do
   end
 
   # Directly inserts a key of a given type into every positive and negative map.
-  defp map_put_key_static(%{map: bdd} = descr, key, type) do
+  defp map_put_key_static(%{map: bdd} = descr, key, value, optional?) do
     bdd =
       bdd_map(bdd, fn
-        bdd_leaf(:closed, fields) when type == @not_set -> bdd_leaf_new(:closed, fields)
-        bdd_leaf(tag, fields) -> bdd_leaf_new(tag, fields_store(key, type, fields))
+        bdd_leaf(:closed, fields) when optional? and value == @none ->
+          bdd_leaf_new(:closed, fields)
+
+        bdd_leaf(tag, fields) ->
+          bdd_leaf_new(tag, fields_store(key, {value, optional?}, fields))
       end)
 
     %{descr | map: bdd}
   end
 
-  defp map_put_key_static(descr, _key, _type), do: descr
+  defp map_put_key_static(descr, _key, _value, _optional?), do: descr
 
   # Removes a key from a map type and return its type.
   #
@@ -3830,23 +3798,23 @@ defmodule Module.Types.Descr do
   # Note: if initial is nil, it means the value is not required.
   # So we don't compute it for performance.
   defp map_dnf_pop_key_static(dnf, key, initial) do
-    {value, bdd} =
+    {field, bdd} =
       Enum.reduce(dnf, {initial, :bdd_bot}, fn
         # Optimization: if there are no negatives, we can directly remove the key.
-        {tag, fields, []}, {value, bdd} ->
+        {tag, fields, []}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_opt_union(value, fn -> fst end), opt_map_union(bdd, snd, %{})}
+          {maybe_field_union(field, fn -> fst end), opt_map_union(bdd, snd, %{})}
 
-        {tag, fields, negs}, {value, bdd} ->
+        {tag, fields, negs}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
 
           case map_split_negative_pairs_key(negs, key) do
             :empty ->
-              {value, bdd}
+              {field, bdd}
 
             negative ->
               keep_fst? =
-                value == nil or map_pair_projection_keeps_full_fst?(negative, snd)
+                field == nil or map_pair_projection_keeps_full_fst?(negative, snd)
 
               keep_snd? = map_pair_projection_keeps_full_snd?(negative, fst)
 
@@ -3855,11 +3823,11 @@ defmodule Module.Types.Descr do
                   do: [],
                   else: map_split_negative_key(negs, key, fst, snd)
 
-              {maybe_opt_union(value, fn ->
+              {maybe_field_union(field, fn ->
                  if keep_fst? do
                    fst
                  else
-                   Enum.reduce(pairs, none(), &opt_union(elem(&1, 0), &2))
+                   Enum.reduce(pairs, {none(), false}, &field_union(elem(&1, 0), &2))
                  end
                end),
                if keep_snd? do
@@ -3871,16 +3839,16 @@ defmodule Module.Types.Descr do
       end)
 
     if bdd == :bdd_bot do
-      {value, %{}}
+      {field, %{}}
     else
-      {value, %{map: bdd}}
+      {field, %{map: bdd}}
     end
   end
 
   defp map_update_merge_atom_key(bdd, dnf) do
     {_seen, acc} =
       bdd_reduce(bdd, {%{}, none()}, fn bdd_leaf(_tag, fields), seen_acc ->
-        fields_fold(fields, seen_acc, fn key, _type, {seen, acc} ->
+        fields_fold(fields, seen_acc, fn key, {_type, _optional?}, {seen, acc} ->
           if Map.has_key?(seen, key) do
             {seen, acc}
           else
@@ -3895,7 +3863,7 @@ defmodule Module.Types.Descr do
 
   defp map_update_any_atom_key?(bdd, dnf) do
     bdd_reduce(bdd, %{}, fn bdd_leaf(_tag, fields), acc ->
-      fields_fold(fields, acc, fn key, _type, acc ->
+      fields_fold(fields, acc, fn key, {_type, _optional?}, acc ->
         if Map.has_key?(acc, key) do
           acc
         else
@@ -3994,7 +3962,7 @@ defmodule Module.Types.Descr do
         # the callback may itself typecheck a function application, and
         # applying it to `none()` will raise undue warnings.
         if force?,
-          do: fields_from_keys(domain_keys, remove_optional(type_fun.(true, none()))),
+          do: fields_from_keys(domain_keys, elem(type_fun.(true, none()), 0)),
           else: :closed
 
       # Note: domain_keys may contain duplicates, so we cannot
@@ -4005,14 +3973,14 @@ defmodule Module.Types.Descr do
             {:ok, value} ->
               fields_store(
                 domain_key,
-                opt_union(value, remove_optional(type_fun.(true, value))),
+                opt_union(value, elem(type_fun.(true, value), 0)),
                 acc
               )
 
             :error ->
               # Likewise, only forced updates may synthesize missing domain keys.
               if force?,
-                do: fields_store(domain_key, remove_optional(type_fun.(true, none())), acc),
+                do: fields_store(domain_key, elem(type_fun.(true, none()), 0), acc),
                 else: acc
           end
         end)
@@ -4085,7 +4053,7 @@ defmodule Module.Types.Descr do
       ((map_keys_from_negated_set(maybe_negated_set, bdd) -- optional_keys) -- required_keys) ++
         optional_keys
 
-    type_fun = fn _, _ -> type end
+    type_fun = fn _, _ -> {type, false} end
 
     descr =
       case required_domains ++ optional_domains do
@@ -4094,7 +4062,7 @@ defmodule Module.Types.Descr do
       end
 
     dnf = map_bdd_to_dnf_with_empty(bdd)
-    map_put_keys_static(dnf, required_keys ++ optional_keys, type, descr)
+    map_put_keys_static(dnf, required_keys ++ optional_keys, type, false, descr)
   end
 
   defp map_put_static(%{}, _split_keys, _type) do
@@ -4112,14 +4080,14 @@ defmodule Module.Types.Descr do
       open_map()
     else
       dnf = map_bdd_to_dnf_with_empty(@map_top)
-      map_put_keys_static(dnf, required_keys ++ optional_keys, type, none())
+      map_put_keys_static(dnf, required_keys ++ optional_keys, type, false, none())
     end
   end
 
-  defp map_put_keys_static(dnf, keys, type, acc) do
+  defp map_put_keys_static(dnf, keys, value, optional?, acc) do
     Enum.reduce(keys, acc, fn key, acc ->
       {nil, descr} = map_dnf_pop_key_static(dnf, key, nil)
-      opt_union(map_put_key_static(descr, key, type), acc)
+      opt_union(map_put_key_static(descr, key, value, optional?), acc)
     end)
   end
 
@@ -4179,7 +4147,7 @@ defmodule Module.Types.Descr do
     acc = map_get_keys(dnf, map_keys_from_negated_set(maybe_negated_set, bdd), acc)
     acc = Enum.reduce(required_domains, acc, &map_get_domain(dnf, &1, &2))
     acc = Enum.reduce(optional_domains, acc, &map_get_domain(dnf, &1, &2))
-    remove_optional(acc)
+    acc
   end
 
   defp map_get_static(%{}, _split_keys), do: none()
@@ -4214,7 +4182,7 @@ defmodule Module.Types.Descr do
   defp map_keys_from_negated_set(set, bdd) do
     bdd
     |> bdd_reduce(%{}, fn bdd_leaf(_, fields), acc ->
-      fields_fold(fields, acc, fn atom, _, acc ->
+      fields_fold(fields, acc, fn atom, {_type, _optional?}, acc ->
         if :sets.is_element(atom, set), do: acc, else: Map.put(acc, atom, true)
       end)
     end)
@@ -4314,7 +4282,9 @@ defmodule Module.Types.Descr do
   defp init_map_line_empty?(tag, fields, negs), do: init_map_line_empty?(tag, fields, negs, %{})
 
   defp init_map_line_empty?(tag, fields, negs, seen) do
-    Enum.any?(fields_to_list(fields), fn {_key, type} -> empty_seen?(type, seen) end) or
+    Enum.any?(fields_to_list(fields), fn {_key, {type, optional?}} ->
+      not optional? and empty_seen?(type, seen)
+    end) or
       map_line_empty?(tag, fields, negs, seen)
   end
 
@@ -4344,7 +4314,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_meet_empty?(
-         [{k1, v1} | t1],
+         [{k1, {v1, optional1?}} | t1],
          [{k2, _} | _] = l2,
          tag,
          neg_tag,
@@ -4357,21 +4327,41 @@ defmodule Module.Types.Descr do
       # The key is only in the positive map, which means the difference
       # with a negative open tag (all possible types) tag will surely be empty.
       neg_tag == :open ->
-        map_line_meet_empty?(t1, l2, tag, neg_tag, [{k1, v1} | acc_meet], negs, seen)
+        map_line_meet_empty?(
+          t1,
+          l2,
+          tag,
+          neg_tag,
+          [{k1, {v1, optional1?}} | acc_meet],
+          negs,
+          seen
+        )
 
       # In this case the difference will never be empty, so we can skip ahead.
-      neg_tag == :closed and not is_optional_static(v1) ->
+      neg_tag == :closed and not optional1? ->
         throw(:closed)
 
       true ->
-        v2 = map_key_tag_to_type(neg_tag)
-        map_line_meet_empty?(k1, v1, v2, t1, l2, tag, neg_tag, acc_meet, negs, seen)
+        v2 = map_key_tag_to_field(neg_tag)
+
+        map_line_meet_empty?(
+          k1,
+          {v1, optional1?},
+          v2,
+          t1,
+          l2,
+          tag,
+          neg_tag,
+          acc_meet,
+          negs,
+          seen
+        )
     end
   end
 
   defp map_line_meet_empty?(
          [{k1, _} | _] = l1,
-         [{k2, v2} | t2],
+         [{k2, {v2, optional2?}} | t2],
          tag,
          neg_tag,
          acc_meet,
@@ -4382,61 +4372,139 @@ defmodule Module.Types.Descr do
     # The keys is only in the negative map and the positive map is closed,
     # in that case, this field is not_set(), and its difference with the
     # negative map type is empty iff the negative type is optional.
-    if tag == :closed and not is_optional_static(v2) do
+    if tag == :closed and not optional2? do
       throw(:closed)
     else
-      v1 = map_key_tag_to_type(tag)
-      map_line_meet_empty?(k2, v1, v2, l1, t2, tag, neg_tag, acc_meet, negs, seen)
+      v1 = map_key_tag_to_field(tag)
+
+      map_line_meet_empty?(
+        k2,
+        v1,
+        {v2, optional2?},
+        l1,
+        t2,
+        tag,
+        neg_tag,
+        acc_meet,
+        negs,
+        seen
+      )
     end
   end
 
   defp map_line_meet_empty?(
-         [{k, v1} | t1],
-         [{_, v2} | t2],
+         [{k, {v1, optional1?}} | t1],
+         [{_, {v2, optional2?}} | t2],
          tag,
          neg_tag,
          acc_meet,
          negs,
          seen
        ) do
-    map_line_meet_empty?(k, v1, v2, t1, t2, tag, neg_tag, acc_meet, negs, seen)
+    map_line_meet_empty?(
+      k,
+      {v1, optional1?},
+      {v2, optional2?},
+      t1,
+      t2,
+      tag,
+      neg_tag,
+      acc_meet,
+      negs,
+      seen
+    )
   end
 
-  defp map_line_meet_empty?([{k1, v1} | t1], [], tag, neg_tag, acc_meet, negs, seen) do
-    v2 = map_key_tag_to_type(neg_tag)
-    map_line_meet_empty?(k1, v1, v2, t1, [], tag, neg_tag, acc_meet, negs, seen)
+  defp map_line_meet_empty?(
+         [{k1, {v1, optional1?}} | t1],
+         [],
+         tag,
+         neg_tag,
+         acc_meet,
+         negs,
+         seen
+       ) do
+    v2 = map_key_tag_to_field(neg_tag)
+    map_line_meet_empty?(k1, {v1, optional1?}, v2, t1, [], tag, neg_tag, acc_meet, negs, seen)
   end
 
-  defp map_line_meet_empty?([], [{k2, v2} | t2], tag, neg_tag, acc_meet, negs, seen) do
-    v1 = map_key_tag_to_type(tag)
-    map_line_meet_empty?(k2, v1, v2, [], t2, tag, neg_tag, acc_meet, negs, seen)
+  defp map_line_meet_empty?(
+         [],
+         [{k2, {v2, optional2?}} | t2],
+         tag,
+         neg_tag,
+         acc_meet,
+         negs,
+         seen
+       ) do
+    v1 = map_key_tag_to_field(tag)
+    map_line_meet_empty?(k2, v1, {v2, optional2?}, [], t2, tag, neg_tag, acc_meet, negs, seen)
   end
 
   defp map_line_meet_empty?([], [], _tag, _neg_tag, _acc_meet, _negs, _seen) do
     true
   end
 
-  defp map_line_meet_empty?(key, type, neg_type, t1, t2, tag, neg_tag, acc_meet, negs, seen) do
+  defp map_line_meet_empty?(
+         key,
+         {type, optional?},
+         {neg_type, neg_optional?},
+         t1,
+         t2,
+         tag,
+         neg_tag,
+         acc_meet,
+         negs,
+         seen
+       ) do
     meet = bare_intersection(type, neg_type)
+    meet_optional? = optional? and neg_optional?
 
-    if empty_seen?(meet, seen) do
+    if field_empty_seen?(meet, meet_optional?, seen) do
       # This negative map is disjoint from the current line at this field.
-      map_line_empty?(tag, Enum.reverse(acc_meet, [{key, type} | t1]), negs, seen)
+      map_line_empty?(
+        tag,
+        Enum.reverse(acc_meet, [{key, {type, optional?}} | t1]),
+        negs,
+        seen
+      )
     else
       diff = bare_difference(type, neg_type)
+      diff_optional? = optional? and not neg_optional?
 
-      if empty_seen?(diff, seen) do
+      if field_empty_seen?(diff, diff_optional?, seen) do
         # The field is a subtype of the negative field, so their intersection is type.
-        map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, type} | acc_meet], negs, seen)
+        map_line_meet_empty?(
+          t1,
+          t2,
+          tag,
+          neg_tag,
+          [{key, {meet, meet_optional?}} | acc_meet],
+          negs,
+          seen
+        )
       else
-        map_line_empty?(tag, Enum.reverse(acc_meet, [{key, diff} | t1]), negs, seen) and
-          map_line_meet_empty?(t1, t2, tag, neg_tag, [{key, meet} | acc_meet], negs, seen)
+        map_line_empty?(
+          tag,
+          Enum.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1]),
+          negs,
+          seen
+        ) and
+          map_line_meet_empty?(
+            t1,
+            t2,
+            tag,
+            neg_tag,
+            [{key, {meet, meet_optional?}} | acc_meet],
+            negs,
+            seen
+          )
       end
     end
   end
 
   defp map_line_fields_empty?(
-         [{k1, v1} | t1],
+         [{k1, {v1, optional1?}} | t1],
          [{k2, _} | _] = l2,
          tag,
          neg_tag,
@@ -4452,14 +4520,14 @@ defmodule Module.Types.Descr do
         map_line_fields_empty?(t1, l2, tag, neg_tag, fields, negs, seen)
 
       # In this case the difference will never be empty, so we can skip ahead.
-      neg_tag == :closed and not is_optional_static(v1) ->
+      neg_tag == :closed and not optional1? ->
         throw(:closed)
 
       true ->
         map_line_fields_empty_recur?(
           k1,
-          v1,
-          map_key_tag_to_type(neg_tag),
+          {v1, optional1?},
+          map_key_tag_to_field(neg_tag),
           tag,
           fields,
           negs,
@@ -4471,7 +4539,7 @@ defmodule Module.Types.Descr do
 
   defp map_line_fields_empty?(
          [{k1, _} | _] = l1,
-         [{k2, v2} | t2],
+         [{k2, {v2, optional2?}} | t2],
          tag,
          neg_tag,
          fields,
@@ -4483,42 +4551,85 @@ defmodule Module.Types.Descr do
     # in that case, this field is not_set(), and its difference with the
     # negative map type is empty iff the negative type is optional.
     if tag == :closed do
-      if is_optional_static(v2) do
+      if optional2? do
         map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs, seen)
       else
         throw(:closed)
       end
     else
-      map_line_fields_empty_recur?(k2, map_key_tag_to_type(tag), v2, tag, fields, negs, seen) and
+      map_line_fields_empty_recur?(
+        k2,
+        map_key_tag_to_field(tag),
+        {v2, optional2?},
+        tag,
+        fields,
+        negs,
+        seen
+      ) and
         map_line_fields_empty?(l1, t2, tag, neg_tag, fields, negs, seen)
     end
   end
 
   defp map_line_fields_empty?(
-         [{key, v1} | t1],
-         [{_, v2} | t2],
+         [{key, {v1, optional1?}} | t1],
+         [{_, {v2, optional2?}} | t2],
          tag,
          neg_tag,
          fields,
          negs,
          seen
        ) do
-    map_line_fields_empty_recur?(key, v1, v2, tag, fields, negs, seen) and
+    map_line_fields_empty_recur?(
+      key,
+      {v1, optional1?},
+      {v2, optional2?},
+      tag,
+      fields,
+      negs,
+      seen
+    ) and
       map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs, seen)
   end
 
   defp map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs, seen) do
-    Enum.all?(t1, fn {key, v1} ->
-      map_line_fields_empty_recur?(key, v1, map_key_tag_to_type(neg_tag), tag, fields, negs, seen)
+    Enum.all?(t1, fn {key, {v1, optional1?}} ->
+      map_line_fields_empty_recur?(
+        key,
+        {v1, optional1?},
+        map_key_tag_to_field(neg_tag),
+        tag,
+        fields,
+        negs,
+        seen
+      )
     end) and
-      Enum.all?(t2, fn {key, v2} ->
-        map_line_fields_empty_recur?(key, map_key_tag_to_type(tag), v2, tag, fields, negs, seen)
+      Enum.all?(t2, fn {key, {v2, optional2?}} ->
+        map_line_fields_empty_recur?(
+          key,
+          map_key_tag_to_field(tag),
+          {v2, optional2?},
+          tag,
+          fields,
+          negs,
+          seen
+        )
       end)
   end
 
-  defp map_line_fields_empty_recur?(key, v1, v2, tag, fields, negs, seen) do
+  defp map_line_fields_empty_recur?(
+         key,
+         {v1, optional1?},
+         {v2, optional2?},
+         tag,
+         fields,
+         negs,
+         seen
+       ) do
     diff = bare_difference(v1, v2)
-    empty_seen?(diff, seen) or map_line_empty?(tag, fields_store(key, diff, fields), negs, seen)
+    optional? = optional1? and not optional2?
+
+    field_empty_seen?(diff, optional?, seen) or
+      map_line_empty?(tag, fields_store(key, {diff, optional?}, fields), negs, seen)
   end
 
   # Verify the domain condition from equation (22) in paper ICFP'23 https://www.irif.fr/~gc/papers/icfp23.pdf
@@ -4601,7 +4712,7 @@ defmodule Module.Types.Descr do
     {:empty_map, [], []}
   end
 
-  defp map_literal_to_quoted({:open, [{:__struct__, @not_atom_or_optional}]}, _opts) do
+  defp map_literal_to_quoted({:open, [{:__struct__, {@not_atom, true}}]}, _opts) do
     {:non_struct_map, [], []}
   end
 
@@ -4614,7 +4725,7 @@ defmodule Module.Types.Descr do
   defp map_literal_to_quoted({tag, fields}, opts) do
     case tag do
       :closed ->
-        with {:ok, struct_descr} <- fields_find(:__struct__, fields),
+        with {:ok, {struct_descr, false}} <- fields_find(:__struct__, fields),
              {:finite, [struct]} <- atom_fetch(struct_descr),
              info when is_list(info) <- maybe_struct(struct),
              true <- fields_size(fields) == length(info) + 1,
@@ -4623,10 +4734,10 @@ defmodule Module.Types.Descr do
 
           fields =
             for %{field: field} <- info,
-                type = fields_fetch!(field, fields),
+                {type, optional?} = fields_fetch!(field, fields),
                 # TODO: This should consider the struct default type
-                not collapse? or type != term(),
-                do: {field, type}
+                not collapse? or optional? or type != term(),
+                do: {field, {type, optional?}}
 
           {:%, [],
            [
@@ -4693,10 +4804,10 @@ defmodule Module.Types.Descr do
   end
 
   defp map_fields_to_quoted(tag, sorted, opts) do
-    keyword? = Inspect.List.keyword?(sorted)
+    keyword? = Inspect.List.keyword?(Enum.map(sorted, fn {key, _} -> {key, nil} end))
 
-    for {key, type} <- sorted,
-        not (tag == :open and is_optional_static(type) and term_type?(type)) do
+    for {key, {type, optional?}} <- sorted,
+        not (tag == :open and optional? and term_type?(type)) do
       key =
         if keyword? do
           {:__block__, [format: :keyword], [key]}
@@ -4704,13 +4815,11 @@ defmodule Module.Types.Descr do
           literal_to_quoted(key)
         end
 
-      {key, map_value_to_quoted(type, opts)}
+      {key, map_value_to_quoted(type, optional?, opts)}
     end
   end
 
-  defp map_value_to_quoted(type, opts) do
-    {optional?, type} = pop_optional_static(type)
-
+  defp map_value_to_quoted(type, optional?, opts) do
     cond do
       not optional? -> to_quoted(type, opts)
       empty?(type) -> {:not_set, [], []}
@@ -4793,6 +4902,47 @@ defmodule Module.Types.Descr do
 
   defp fields_merge_with_defaults(f1, _d1, [], d2, fun),
     do: Enum.map(f1, fn {k, v1} -> {k, fun.(k, v1, d2)} end)
+
+  defp field_union({value1, optional1?}, {value2, optional2?}) do
+    {opt_union(value1, value2), optional1? or optional2?}
+  end
+
+  defp maybe_field_union(nil, _fun), do: nil
+  defp maybe_field_union(field, fun), do: field_union(field, fun.())
+
+  defp field_intersection({value1, optional1?}, {value2, optional2?}) do
+    {bare_intersection(value1, value2), optional1? and optional2?}
+  end
+
+  defp field_difference({value1, optional1?}, {value2, optional2?}) do
+    {bare_difference(value1, value2), optional1? and not optional2?}
+  end
+
+  defp field_opt_union({value1, optional1?}, {value2, optional2?}, seen) do
+    {opt_union(value1, value2, seen), optional1? or optional2?}
+  end
+
+  defp field_opt_intersection({value1, optional1?}, {value2, optional2?}, seen) do
+    {opt_intersection(value1, value2, seen), optional1? and optional2?}
+  end
+
+  defp field_opt_difference({value1, optional1?}, {value2, optional2?}, seen) do
+    {opt_difference(value1, value2, seen), optional1? and not optional2?}
+  end
+
+  defp field_subtype?({value1, optional1?}, {value2, optional2?}) do
+    (not optional1? or optional2?) and subtype?(value1, value2)
+  end
+
+  defp field_disjoint?({value1, optional1?}, {value2, optional2?}) do
+    (not optional1? or not optional2?) and disjoint?(value1, value2)
+  end
+
+  defp field_empty?({_value, true}), do: false
+  defp field_empty?({value, false}), do: empty?(value)
+
+  defp field_empty_seen?(_value, true, _seen), do: false
+  defp field_empty_seen?(value, false, seen), do: empty_seen?(value, seen)
 
   ## Tuple
 
@@ -5306,10 +5456,10 @@ defmodule Module.Types.Descr do
               else
                 negs
                 |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce(none(), fn {value, _}, acc -> opt_union(value, acc) end)
+                |> Enum.reduce({none(), false}, fn {field, _}, acc -> field_union(field, acc) end)
               end
 
-            {optional?, descr} = pop_optional_static(value)
+            {descr, optional?} = value
             {optional? or acc_optional?, opt_union(descr, acc_descr)}
         end
     end)
@@ -5330,34 +5480,34 @@ defmodule Module.Types.Descr do
         if not found? and neg_tag == :open do
           # In case the tuple is open, t \ t₁ is always empty,
           # t ∩ t₁ is always t, so we just need to deal with the bdd.
-          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+          Enum.reduce(acc, [], fn {field, bdd}, acc ->
             diff_bdd = tuple_difference(bdd, neg_bdd)
 
             if tuple_empty?(diff_bdd, %{}) do
               acc
             else
-              [{value, diff_bdd} | acc]
+              [{field, diff_bdd} | acc]
             end
           end)
         else
-          Enum.reduce(acc, [], fn {value, bdd}, acc ->
+          Enum.reduce(acc, [], fn {field, bdd}, acc ->
             # If the negative tag is closed, then they are likely disjoint,
             # so we can drastically cut down the amount of operations.
             if neg_tag == :closed and tuple_empty?(tuple_intersection(bdd, neg_bdd), %{}) do
-              [{value, bdd} | acc]
+              [{field, bdd} | acc]
             else
-              intersection_value = bare_intersection(value, neg_value)
+              intersection_field = field_intersection(field, neg_value)
 
-              if empty?(intersection_value) do
-                [{value, bdd} | acc]
+              if field_empty?(intersection_field) do
+                [{field, bdd} | acc]
               else
                 diff_bdd = tuple_difference(bdd, neg_bdd)
 
                 if tuple_empty?(diff_bdd, %{}) do
-                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                  prepend_map_pair_unless_empty_diff(field, neg_value, bdd, acc)
                 else
-                  acc = [{intersection_value, diff_bdd} | acc]
-                  prepend_pair_unless_empty_diff(value, neg_value, bdd, acc)
+                  acc = [{intersection_field, diff_bdd} | acc]
+                  prepend_map_pair_unless_empty_diff(field, neg_value, bdd, acc)
                 end
               end
             end
@@ -5395,11 +5545,11 @@ defmodule Module.Types.Descr do
 
   defp tuple_pair_projection_keeps_full_snd?(negative, value) do
     neg_values =
-      Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
-        bare_union(neg_value, acc)
+      Enum.reduce(negative, {none(), false}, fn {neg_value, _neg_bdd}, acc ->
+        field_union(neg_value, acc)
       end)
 
-    not empty?(bare_difference(value, neg_values))
+    not field_empty?(field_difference(value, neg_values))
   end
 
   defp tuple_fetch_element([], _, :open), do: {true, term()}
@@ -5409,8 +5559,8 @@ defmodule Module.Types.Descr do
 
   defp tuple_take_element(elements, index, tag) do
     case do_tuple_take_element(elements, index, []) do
-      :error -> {false, tuple_tag_to_type(tag), tuple_new(tag, elements)}
-      {value, elements} -> {true, value, tuple_new(tag, elements)}
+      :error -> {false, tuple_tag_to_field(tag), tuple_new(tag, elements)}
+      {value, elements} -> {true, {value, false}, tuple_new(tag, elements)}
     end
   end
 
@@ -5418,8 +5568,8 @@ defmodule Module.Types.Descr do
   defp do_tuple_take_element([h | t], 0, acc), do: {h, Enum.reverse(acc, t)}
   defp do_tuple_take_element([h | t], i, acc), do: do_tuple_take_element(t, i - 1, [h | acc])
 
-  defp tuple_tag_to_type(:open), do: term_or_optional()
-  defp tuple_tag_to_type(:closed), do: none()
+  defp tuple_tag_to_field(:open), do: {term(), true}
+  defp tuple_tag_to_field(:closed), do: {none(), true}
 
   @doc """
   Returns all of the values that are part of a tuple.
@@ -6350,8 +6500,8 @@ defmodule Module.Types.Descr do
   """
   def opt_union(left, right), do: opt_union(left, right, %{})
 
-  defp opt_union(:term, other, _seen), do: optional_to_term(other)
-  defp opt_union(other, :term, _seen), do: optional_to_term(other)
+  defp opt_union(:term, _other, _seen), do: :term
+  defp opt_union(_other, :term, _seen), do: :term
   defp opt_union(none, other, _seen) when none == @none, do: other
   defp opt_union(other, none, _seen) when none == @none, do: other
 
@@ -6388,7 +6538,6 @@ defmodule Module.Types.Descr do
 
   defp opt_union(:list, v1, v2, _seen), do: list_union(v1, v2)
   defp opt_union(:map, v1, v2, seen), do: opt_map_union(v1, v2, seen)
-  defp opt_union(:optional, 1, 1, _seen), do: 1
   defp opt_union(:tuple, v1, v2, _seen), do: opt_tuple_union(v1, v2)
   defp opt_union(:fun, v1, v2, _seen), do: fun_union(v1, v2)
 
@@ -6397,8 +6546,8 @@ defmodule Module.Types.Descr do
   """
   def opt_intersection(left, right), do: opt_intersection(left, right, %{})
 
-  defp opt_intersection(:term, other, _seen), do: remove_optional(other)
-  defp opt_intersection(other, :term, _seen), do: remove_optional(other)
+  defp opt_intersection(:term, other, _seen), do: other
+  defp opt_intersection(other, :term, _seen), do: other
 
   defp opt_intersection(left, right, seen) do
     left = unfold(left)
@@ -6429,7 +6578,6 @@ defmodule Module.Types.Descr do
   defp opt_intersection(:bitmap, v1, v2, _seen), do: v1 &&& v2
   defp opt_intersection(:list, v1, v2, seen), do: opt_list_intersection(v1, v2, seen)
   defp opt_intersection(:map, v1, v2, seen), do: opt_map_intersection(v1, v2, seen)
-  defp opt_intersection(:optional, 1, 1, _seen), do: 1
   defp opt_intersection(:tuple, v1, v2, seen), do: opt_tuple_intersection(v1, v2, seen)
   defp opt_intersection(:fun, v1, v2, _seen), do: fun_intersection(v1, v2)
 
@@ -6443,7 +6591,7 @@ defmodule Module.Types.Descr do
   """
   def opt_difference(left, right), do: opt_difference(left, right, %{})
 
-  defp opt_difference(left, :term, _seen), do: keep_optional(left)
+  defp opt_difference(_left, :term, _seen), do: @none
   defp opt_difference(left, none, _seen) when none == @none, do: left
 
   defp opt_difference(left, right, seen) do
@@ -6472,7 +6620,6 @@ defmodule Module.Types.Descr do
   defp opt_difference(:bitmap, v1, v2, _seen), do: v1 - (v1 &&& v2)
   defp opt_difference(:list, v1, v2, seen), do: opt_list_difference(v1, v2, seen)
   defp opt_difference(:map, v1, v2, seen), do: opt_map_difference(v1, v2, seen)
-  defp opt_difference(:optional, 1, 1, _seen), do: 0
   defp opt_difference(:tuple, v1, v2, _seen), do: opt_tuple_difference(v1, v2)
   defp opt_difference(:fun, v1, v2, _seen), do: fun_difference(v1, v2)
 
@@ -6485,10 +6632,6 @@ defmodule Module.Types.Descr do
     descr = unfold(descr)
     opt_difference(term(), descr)
   end
-
-  @compile {:inline, maybe_opt_union: 2}
-  defp maybe_opt_union(nil, _fun), do: nil
-  defp maybe_opt_union(descr, fun), do: opt_union(descr, fun.())
 
   defp opt_list_intersection(bdd_leaf(:term, :term), bdd, _seen), do: bdd
   defp opt_list_intersection(bdd, bdd_leaf(:term, :term), _seen), do: bdd
@@ -6581,7 +6724,7 @@ defmodule Module.Types.Descr do
         {tag2, pos2}
 
       {:one_key_difference, key, v1, v2} ->
-        {tag1, fields_store(key, opt_union(v1, v2, seen), pos1)}
+        {tag1, fields_store(key, field_opt_union(v1, v2, seen), pos1)}
 
       :left_subtype_of_right ->
         {tag2, pos2}
@@ -6608,7 +6751,7 @@ defmodule Module.Types.Descr do
         opt_map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
 
       {:one_key_difference, _, p1, p2} ->
-        if subtype?(p1, p2),
+        if field_subtype?(p1, p2),
           do: opt_map_union_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
           else: :none
 
@@ -6632,7 +6775,7 @@ defmodule Module.Types.Descr do
         opt_map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left)
 
       {:one_key_difference, _, p1, p2} ->
-        if subtype?(p2, p1),
+        if field_subtype?(p2, p1),
           do: opt_map_union_strategy(l1, t2, tag1, tag2, :right_subtype_of_left),
           else: :none
 
@@ -6644,24 +6787,42 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_union_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
+  defp opt_map_union_strategy(
+         [{_, field} | t1],
+         [{_, field} | t2],
+         tag1,
+         tag2,
+         status
+       ) do
     # Same key and same value, nothing changes
     opt_map_union_strategy(t1, t2, tag1, tag2, status)
   end
 
-  defp opt_map_union_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
+  defp opt_map_union_strategy(
+         [{k1, field1} | t1],
+         [{_, field2} | t2],
+         tag1,
+         tag2,
+         status
+       ) do
     # They have the same key but different values
     case status do
       :all_equal ->
         cond do
           # Don't do difference on struct keys
           k1 != :__struct__ and tag1 == tag2 ->
-            opt_map_union_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
+            opt_map_union_strategy(
+              t1,
+              t2,
+              tag1,
+              tag2,
+              {:one_key_difference, k1, field1, field2}
+            )
 
-          subtype?(v1, v2) ->
+          field_subtype?(field1, field2) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
 
-          subtype?(v2, v1) ->
+          field_subtype?(field2, field1) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
 
           true ->
@@ -6669,17 +6830,21 @@ defmodule Module.Types.Descr do
         end
 
       :left_subtype_of_right ->
-        if subtype?(v1, v2), do: opt_map_union_strategy(t1, t2, tag1, tag2, status), else: :none
+        if field_subtype?(field1, field2),
+          do: opt_map_union_strategy(t1, t2, tag1, tag2, status),
+          else: :none
 
       :right_subtype_of_left ->
-        if subtype?(v2, v1), do: opt_map_union_strategy(t1, t2, tag1, tag2, status), else: :none
+        if field_subtype?(field2, field1),
+          do: opt_map_union_strategy(t1, t2, tag1, tag2, status),
+          else: :none
 
       {:one_key_difference, _key, p1, p2} ->
         cond do
-          subtype?(p1, p2) and subtype?(v1, v2) ->
+          field_subtype?(p1, p2) and field_subtype?(field1, field2) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
 
-          subtype?(p2, p1) and subtype?(v2, v1) ->
+          field_subtype?(p2, p1) and field_subtype?(field2, field1) ->
             opt_map_union_strategy(t1, t2, tag1, tag2, :right_subtype_of_left)
 
           true ->
@@ -6712,8 +6877,8 @@ defmodule Module.Types.Descr do
 
       {:one_key_difference, _, p1, p2} ->
         cond do
-          lhs? and subtype?(p1, p2) -> :left_subtype_of_right
-          rhs? and subtype?(p2, p1) -> :right_subtype_of_left
+          lhs? and field_subtype?(p1, p2) -> :left_subtype_of_right
+          rhs? and field_subtype?(p2, p1) -> :right_subtype_of_left
           true -> :none
         end
 
@@ -6792,28 +6957,33 @@ defmodule Module.Types.Descr do
   # Therefore, this clause is only used when `type` is `:intersection` or `:none`.
   # `:union` falls through to the general clause below. The reason we have
   # this long comment is because this was a regression in the past.
-  defp opt_map_leaf_difference(bdd_leaf(tag, fields), bdd_leaf(:open, [{key, v2}]), type, seen)
+  defp opt_map_leaf_difference(
+         bdd_leaf(tag, fields),
+         bdd_leaf(:open, [{key, field2 = {_value2, optional2?}}]),
+         type,
+         seen
+       )
        when type != :union do
-    {found?, v1} =
+    {found?, field1} =
       case fields_find(key, fields) do
-        {:ok, value} -> {true, value}
-        :error -> {false, map_key_tag_to_type(tag)}
+        {:ok, field} -> {true, field}
+        :error -> {false, map_key_tag_to_field(tag)}
       end
 
     cond do
       tag == :closed and not found? ->
-        if is_optional_static(v2), do: :subtype, else: :disjoint
+        if optional2?, do: :subtype, else: :disjoint
 
       # In case the left-side is open, we will only be adding new keys
       # to the open map, which makes future eliminations harder.
       tag == :open and not found? and fields != [] ->
         :none
 
-      disjoint?(v1, v2) ->
+      field_disjoint?(field1, field2) ->
         :disjoint
 
       true ->
-        opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type, seen)
+        opt_map_leaf_one_key_difference(tag, fields, key, field1, field2, type, seen)
     end
   end
 
@@ -6833,13 +7003,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_leaf_one_key_difference(tag, fields, key, v1, v2, type, seen) do
-    v_diff = opt_difference(v1, v2, seen)
+  defp opt_map_leaf_one_key_difference(tag, fields, key, field1, field2, type, seen) do
+    field_diff = field_opt_difference(field1, field2, seen)
 
-    if empty?(v_diff) do
+    if field_empty?(field_diff) do
       :subtype
     else
-      a_diff = bdd_leaf_new(tag, fields_store(key, v_diff, fields))
+      a_diff = bdd_leaf_new(tag, fields_store(key, field_diff, fields))
 
       a_type =
         case type do
@@ -6847,14 +7017,14 @@ defmodule Module.Types.Descr do
             :bdd_bot
 
           :union ->
-            bdd_leaf_new(tag, fields_store(key, opt_union(v1, v2, seen), fields))
+            bdd_leaf_new(tag, fields_store(key, field_opt_union(field1, field2, seen), fields))
 
           :intersection ->
-            v_int = opt_intersection(v1, v2, seen)
+            field_int = field_opt_intersection(field1, field2, seen)
 
-            if empty?(v_int),
+            if field_empty?(field_int),
               do: :bdd_bot,
-              else: bdd_leaf_new(tag, fields_store(key, v_int, fields))
+              else: bdd_leaf_new(tag, fields_store(key, field_int, fields))
         end
 
       {:one_key_difference, a_diff, a_type}
@@ -6870,14 +7040,20 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_difference_strategy([{k1, value} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
+  defp opt_map_difference_strategy(
+         [{k1, {_value, optional?}} | t1],
+         [{k2, _} | _] = l2,
+         tag1,
+         tag2,
+         status
+       )
        when k1 < k2 do
     # Left side has a key the right side does not have,
     # left can only be a subtype if the right side is open.
     # If the right side is closed and the key is not optional, they are disjoint.
     case status do
       _ when tag2 == :closed ->
-        if not is_optional_static(value) do
+        if not optional? do
           :disjoint
         else
           opt_map_difference_strategy(t1, l2, tag1, tag2, :none)
@@ -6887,7 +7063,7 @@ defmodule Module.Types.Descr do
         opt_map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right)
 
       {:one_key_difference, _, p1, p2} ->
-        if subtype?(p1, p2),
+        if field_subtype?(p1, p2),
           do: opt_map_difference_strategy(t1, l2, tag1, tag2, :left_subtype_of_right),
           else: :none
 
@@ -6899,42 +7075,67 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_difference_strategy([{k1, _} | _] = l1, [{k2, value} | t2], tag1, tag2, _status)
+  defp opt_map_difference_strategy(
+         [{k1, _} | _] = l1,
+         [{k2, {_value, optional?}} | t2],
+         tag1,
+         tag2,
+         _status
+       )
        when k1 > k2 do
     # Right side has a key the left side does not have,
     # if left-side is closed, they are disjoint.
-    if tag1 == :closed and not is_optional_static(value) do
+    if tag1 == :closed and not optional? do
       :disjoint
     else
       opt_map_difference_strategy(l1, t2, tag1, tag2, :none)
     end
   end
 
-  defp opt_map_difference_strategy([{_, v} | t1], [{_, v} | t2], tag1, tag2, status) do
+  defp opt_map_difference_strategy(
+         [{_, field} | t1],
+         [{_, field} | t2],
+         tag1,
+         tag2,
+         status
+       ) do
     # Same key and same value, nothing changes
     opt_map_difference_strategy(t1, t2, tag1, tag2, status)
   end
 
-  defp opt_map_difference_strategy([{k1, v1} | t1], [{_, v2} | t2], tag1, tag2, status) do
+  defp opt_map_difference_strategy(
+         [{k1, field1} | t1],
+         [{_, field2} | t2],
+         tag1,
+         tag2,
+         status
+       ) do
     # They have the same key but different values
-    if disjoint?(v1, v2) do
+    if field_disjoint?(field1, field2) do
       :disjoint
     else
       case status do
         :all_equal when tag1 == tag2 ->
-          opt_map_difference_strategy(t1, t2, tag1, tag2, {:one_key_difference, k1, v1, v2})
+          opt_map_difference_strategy(
+            t1,
+            t2,
+            tag1,
+            tag2,
+            {:one_key_difference, k1, field1, field2}
+          )
 
         {:one_key_difference, _key, p1, p2} ->
-          if subtype?(p1, p2) and subtype?(v1, v2) do
+          if field_subtype?(p1, p2) and field_subtype?(field1, field2) do
             opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right)
           else
             :none
           end
 
         _ ->
-          if status in [:all_equal, :left_subtype_of_right] and subtype?(v1, v2),
-            do: opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
-            else: opt_map_difference_strategy(t1, t2, tag1, tag2, :none)
+          if status in [:all_equal, :left_subtype_of_right] and
+               field_subtype?(field1, field2),
+             do: opt_map_difference_strategy(t1, t2, tag1, tag2, :left_subtype_of_right),
+             else: opt_map_difference_strategy(t1, t2, tag1, tag2, :none)
       end
     end
   end
@@ -6951,7 +7152,7 @@ defmodule Module.Types.Descr do
             :left_subtype_of_right
 
           {:one_key_difference, _, p1, p2} ->
-            if subtype?(p1, p2), do: :left_subtype_of_right, else: :none
+            if field_subtype?(p1, p2), do: :left_subtype_of_right, else: :none
 
           :left_subtype_of_right ->
             :left_subtype_of_right
@@ -6960,10 +7161,10 @@ defmodule Module.Types.Descr do
             :none
         end
 
-      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, v} -> not is_optional_static(v) end) ->
+      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
-      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, v} -> not is_optional_static(v) end) ->
+      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
       true ->
@@ -7006,7 +7207,7 @@ defmodule Module.Types.Descr do
       else
         case opt_map_difference_strategy(acc_fields, neg_fields, tag, neg_tag) do
           {:one_key_difference, key, v1, v2} ->
-            {fields_store(key, opt_difference(v1, v2), acc_fields), acc_negs}
+            {fields_store(key, field_opt_difference(v1, v2, %{}), acc_fields), acc_negs}
 
           :disjoint ->
             {acc_fields, acc_negs}

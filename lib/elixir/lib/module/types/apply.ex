@@ -40,7 +40,13 @@ defmodule Module.Types.Apply do
   fas = list(tuple([atom(), integer()]))
 
   struct_info =
-    list(closed_map(default: if_set(term()), field: atom(), required: if_set(boolean())))
+    list(
+      closed_map(
+        default: {term(), true},
+        field: {atom(), false},
+        required: {boolean(), true}
+      )
+    )
 
   shared_info = [
     attributes: list(tuple([atom(), list(term())])),
@@ -254,7 +260,8 @@ defmodule Module.Types.Apply do
         {Map, :fetch,
          [{[open_map(), term()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
         {Map, :fetch!, [{[open_map(), term()], term()}]},
-        {Map, :from_struct, [{[open_map(__struct__: atom())], open_map(__struct__: not_set())}]},
+        {Map, :from_struct,
+         [{[open_map(__struct__: {atom(), false})], open_map(__struct__: {none(), true})}]},
         {Map, :get, [{[open_map(), term()], term()}]},
         {Map, :get, [{[open_map(), term(), term()], term()}]},
         {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
@@ -990,8 +997,8 @@ defmodule Module.Types.Apply do
     info =
       {:strong, [term(), open_map()],
        [
-         {[term(), open_map([{key, term()}])], atom([true])},
-         {[term(), open_map([{key, not_set()}])], atom([false])}
+         {[term(), open_map([{key, {term(), false}}])], atom([true])},
+         {[term(), open_map([{key, {none(), true}}])], atom([false])}
        ]}
 
     {info, filter_domain(info, expected, 2), context}
@@ -1002,8 +1009,8 @@ defmodule Module.Types.Apply do
     info =
       {:strong, [open_map(), term()],
        [
-         {[open_map([{key, term()}]), term()], atom([true])},
-         {[open_map([{key, not_set()}]), term()], atom([false])}
+         {[open_map([{key, {term(), false}}]), term()], atom([true])},
+         {[open_map([{key, {none(), true}}]), term()], atom([false])}
        ]}
 
     {info, filter_domain(info, expected, 2), context}
@@ -1011,40 +1018,40 @@ defmodule Module.Types.Apply do
 
   def remote_domain(:erlang, :map_get, [key, _], expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [term(), open_map([{key, expected}])]
+    domain = [term(), open_map([{key, {expected, false}}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
   end
 
   def remote_domain(Map, :fetch!, [_, key], expected, _meta, _stack, context) when is_atom(key) do
-    domain = [open_map([{key, expected}]), term()]
+    domain = [open_map([{key, {expected, false}}]), term()]
     {{:strong, nil, [{domain, term()}]}, domain, context}
   end
 
   def remote_domain(:maps, :get, [key, _], expected, _meta, _stack, context) when is_atom(key) do
-    domain = [term(), open_map([{key, expected}])]
+    domain = [term(), open_map([{key, {expected, false}}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
   end
 
   def remote_domain(Map, :replace!, [_, key, _], _expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [open_map([{key, term()}]), term(), term()]
+    domain = [open_map([{key, {term(), false}}]), term(), term()]
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
   def remote_domain(:maps, :update, [key, _, _], _expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [term(), term(), open_map([{key, term()}])]
+    domain = [term(), term(), open_map([{key, {term(), false}}])]
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
   def remote_domain(Map, :pop!, [_, key], _expected, _meta, _stack, context) when is_atom(key) do
-    domain = [open_map([{key, term()}]), term()]
+    domain = [open_map([{key, {term(), false}}]), term()]
     {{:strong, nil, [{domain, tuple([term(), open_map()])}]}, domain, context}
   end
 
   def remote_domain(Map, :update!, [_, key, _], _expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [open_map([{key, term()}]), term(), fun(1)]
+    domain = [open_map([{key, {term(), false}}]), term(), fun(1)]
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
@@ -1132,7 +1139,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :from_struct, info, [map] = args_types, stack) do
     case remote_apply(info, args_types, stack) do
       {:ok, _type} ->
-        case map_update(map, @struct_key, not_set(), false, true) do
+        case map_update(map, @struct_key, none(), true, false, true) do
           {_value, descr, _errors} ->
             {:ok, return(descr, args_types, stack)}
 
@@ -1146,7 +1153,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :delete, _info, [map, key] = args_types, stack) do
-    case map_update(map, key, not_set(), false, true) do
+    case map_update(map, key, none(), true, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :delete, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1223,7 +1230,7 @@ defmodule Module.Types.Apply do
         _ -> args_types
       end
 
-    case map_update(map, key, not_set(), true, false) do
+    case map_update(map, key, none(), true, true, false) do
       {value, descr, _errors} ->
         value = opt_union(value, default)
         {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1239,7 +1246,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :pop_lazy, _info, [map, key, fun] = args_types, stack) do
     case fun_apply(fun, []) do
       {:ok, default} ->
-        case map_update(map, key, not_set(), true, false) do
+        case map_update(map, key, none(), true, true, false) do
           {value, descr, _errors} ->
             value = opt_union(value, default)
             {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1265,7 +1272,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :pop!, _info, [map, key] = args_types, stack) do
-    case map_update(map, key, not_set(), true, false) do
+    case map_update(map, key, none(), true, true, false) do
       {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
       :badmap -> {:error, badremote(Map, :pop!, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1273,7 +1280,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
-    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+    fun = fn optional?, _type -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1283,7 +1290,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace!, _info, [map, key, value] = args_types, stack) do
-    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+    fun = fn optional?, _type -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1312,10 +1319,10 @@ defmodule Module.Types.Apply do
 
       fun_apply = fn optional?, arg_type ->
         if empty?(arg_type) do
-          default
+          {default, false}
         else
           case fun_apply(fun, [arg_type]) do
-            {:ok, res} -> if optional?, do: opt_union(res, default), else: res
+            {:ok, res} -> {if(optional?, do: opt_union(res, default), else: res), false}
             reason -> throw({:badapply, reason, [arg_type]})
           end
         end
@@ -1359,7 +1366,6 @@ defmodule Module.Types.Apply do
         if key_type == dynamic() or key_type == term() do
           {:ok, return(open_map(), args_types, stack)}
         else
-          value_type = if_set(value_type)
           domain_keys = to_domain_keys(key_type)
 
           keys =
@@ -1368,7 +1374,13 @@ defmodule Module.Types.Apply do
               _ -> [domain_keys]
             end
 
-          map = closed_map(Enum.map(keys, &{&1, value_type}))
+          map =
+            closed_map(
+              Enum.map(keys, fn
+                key when is_atom(key) -> {key, {value_type, true}}
+                key -> {key, value_type}
+              end)
+            )
 
           map_and_maybe_empty_map =
             case empty_list? do
@@ -1408,7 +1420,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, not_set(), false, true) do
+    case map_update(map, key, none(), true, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :remove, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1416,7 +1428,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, not_set(), true, false) do
+    case map_update(map, key, none(), true, true, false) do
       {value, descr, _errors} ->
         result = opt_union(tuple([value, descr]), atom([:error]))
         {:ok, return(result, args_types, stack)}
@@ -1437,7 +1449,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+    fun = fn optional?, _type -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1808,8 +1820,8 @@ defmodule Module.Types.Apply do
 
   defp map_put_new(map, key, value, name, args_types, stack) do
     fun = fn
-      true, type -> opt_union(type, value)
-      false, type -> if empty?(type), do: value, else: type
+      true, type -> {opt_union(type, value), false}
+      false, type -> {if(empty?(type), do: value, else: type), false}
     end
 
     case map_update_fun(map, key, fun, false, true) do
@@ -1829,7 +1841,7 @@ defmodule Module.Types.Apply do
 
       fun_apply = fn optional?, arg_type ->
         case fun_apply(fun, [arg_type]) do
-          {:ok, res} -> if optional?, do: if_set(res), else: res
+          {:ok, res} -> {res, optional?}
           reason -> throw({:badapply, reason, [arg_type]})
         end
       end

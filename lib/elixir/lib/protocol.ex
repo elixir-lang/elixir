@@ -691,7 +691,7 @@ defmodule Protocol do
           structs_domain =
             case structs do
               [] -> Descr.none()
-              _ -> Descr.open_map(__struct__: Descr.atom(structs))
+              _ -> Descr.open_map(__struct__: {Descr.atom(structs), false})
             end
 
           domain =

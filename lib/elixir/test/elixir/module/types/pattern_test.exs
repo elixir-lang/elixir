@@ -196,13 +196,13 @@ defmodule Module.Types.PatternTest do
 
     test "variable name fields" do
       assert typecheck!([x = %_{}], x.__struct__) == dynamic(atom())
-      assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
+      assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: {atom(), false}))
 
       assert typecheck!([x = %m{}, m = Point], x) ==
-               dynamic(open_map(__struct__: atom([Point])))
+               dynamic(open_map(__struct__: {atom([Point]), false}))
 
       assert typecheck!([m = Point, x = %m{}], x) ==
-               dynamic(open_map(__struct__: atom([Point])))
+               dynamic(open_map(__struct__: {atom([Point]), false}))
 
       assert typeerror!([m = 123], %^m{} = %Point{}) ==
                ~l"""
@@ -225,9 +225,12 @@ defmodule Module.Types.PatternTest do
 
   describe "maps" do
     test "atom keys in patterns" do
-      assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: {atom([:bar]), false}))
       assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
-      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) ==
+               dynamic(open_map(foo: {atom([:bar]), false}))
+
       assert typecheck!([%{foo: :bar = x}], x) == dynamic(atom([:bar]))
 
       assert typecheck!(
@@ -239,8 +242,10 @@ defmodule Module.Types.PatternTest do
              ) ==
                dynamic(
                  tuple([
-                   open_map(assigns: open_map(app: open_map(slug: term()))),
-                   open_map(slug: term()),
+                   open_map(
+                     assigns: {open_map(app: {open_map(slug: {term(), false}), false}), false}
+                   ),
+                   open_map(slug: {term(), false}),
                    term()
                  ])
                )
@@ -254,8 +259,10 @@ defmodule Module.Types.PatternTest do
              ) ==
                dynamic(
                  tuple([
-                   open_map(assigns: open_map(app: open_map(slug: term()))),
-                   open_map(slug: term()),
+                   open_map(
+                     assigns: {open_map(app: {open_map(slug: {term(), false}), false}), false}
+                   ),
+                   open_map(slug: {term(), false}),
                    term()
                  ])
                )
@@ -263,7 +270,10 @@ defmodule Module.Types.PatternTest do
 
     test "domain keys in patterns" do
       assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
-      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) ==
+               dynamic(open_map(foo: {atom([:bar]), false}))
+
       assert typecheck!([%{"123" => :bar = x}], x) == dynamic(atom([:bar]))
     end
 
@@ -601,7 +611,7 @@ defmodule Module.Types.PatternTest do
     test "not" do
       assert typecheck!([x], not x, x) == dynamic(atom([false]))
 
-      assert typecheck!([x], not x.foo, x) == dynamic(open_map(foo: atom([false])))
+      assert typecheck!([x], not x.foo, x) == dynamic(open_map(foo: {atom([false]), false}))
 
       assert typeerror!([x], not length(x), x) |> strip_ansi() == ~l"""
              incompatible types given to Kernel.not/1:
@@ -654,11 +664,13 @@ defmodule Module.Types.PatternTest do
     end
 
     test "is_struct/1" do
-      assert typecheck!([x], is_struct(x), x) == dynamic(open_map(__struct__: atom()))
-      assert typecheck!([x], is_struct(x, URI), x) == dynamic(open_map(__struct__: atom([URI])))
+      assert typecheck!([x], is_struct(x), x) == dynamic(open_map(__struct__: {atom(), false}))
+
+      assert typecheck!([x], is_struct(x, URI), x) ==
+               dynamic(open_map(__struct__: {atom([URI]), false}))
 
       assert typecheck!([x], not is_struct(x), x)
-             |> equal?(dynamic(opt_negation(open_map(__struct__: atom()))))
+             |> equal?(dynamic(opt_negation(open_map(__struct__: {atom(), false}))))
 
       assert typecheck!([x], not is_struct(x, URI), x) == dynamic()
     end
@@ -677,12 +689,16 @@ defmodule Module.Types.PatternTest do
     end
 
     test "is_map_key/2" do
-      assert typecheck!([x], is_map_key(x, :foo), x) == dynamic(open_map(foo: term()))
-      assert typecheck!([x], :erlang.is_map_key(:foo, x), x) == dynamic(open_map(foo: term()))
-      assert typecheck!([x], not is_map_key(x, :foo), x) == dynamic(open_map(foo: not_set()))
+      assert typecheck!([x], is_map_key(x, :foo), x) == dynamic(open_map(foo: {term(), false}))
+
+      assert typecheck!([x], :erlang.is_map_key(:foo, x), x) ==
+               dynamic(open_map(foo: {term(), false}))
+
+      assert typecheck!([x], not is_map_key(x, :foo), x) ==
+               dynamic(open_map(foo: {none(), true}))
 
       assert typecheck!([x], not :erlang.is_map_key(:foo, x), x) ==
-               dynamic(open_map(foo: not_set()))
+               dynamic(open_map(foo: {none(), true}))
     end
 
     test "elem" do
@@ -704,10 +720,10 @@ defmodule Module.Types.PatternTest do
 
     test "map.field" do
       assert typecheck!([x = %{foo: :bar}], x.bar, x) ==
-               dynamic(open_map(foo: atom([:bar]), bar: atom([true])))
+               dynamic(open_map(foo: {atom([:bar]), false}, bar: {atom([true]), false}))
 
       assert typecheck!([x = %{foo: :bar}], not x.bar, x) ==
-               dynamic(open_map(foo: atom([:bar]), bar: atom([false])))
+               dynamic(open_map(foo: {atom([:bar]), false}, bar: {atom([false]), false}))
 
       assert typeerror!([x = %Point{}], x.foo_bar, :ok) == ~l"""
              the following pattern will never match:
@@ -839,7 +855,13 @@ defmodule Module.Types.PatternTest do
                dynamic(opt_union(integer(), float()))
 
       assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
-               dynamic(open_map(pair: open_tuple([]), x: integer(), y: integer()))
+               dynamic(
+                 open_map(
+                   pair: {open_tuple([]), false},
+                   x: {integer(), false},
+                   y: {integer(), false}
+                 )
+               )
 
       assert typeerror!(
                [x, y],
@@ -1053,7 +1075,7 @@ defmodule Module.Types.PatternTest do
     end
 
     test "with singleton literals and composite types" do
-      assert typecheck!([x], x.key == :ok, x) == dynamic(open_map(key: atom([:ok])))
+      assert typecheck!([x], x.key == :ok, x) == dynamic(open_map(key: {atom([:ok]), false}))
       assert typecheck!([x], hd(x) == :ok, x) == dynamic(non_empty_list(term(), term()))
       assert typecheck!([x], elem(x, 0) == :ok, x) == dynamic(open_tuple([atom([:ok])]))
     end
@@ -1239,7 +1261,7 @@ defmodule Module.Types.PatternTest do
                [x],
                is_map(x) and map_size(x) != 1 and is_map_key(x, :a) and is_map_key(x, :b),
                x
-             ) == dynamic(open_map(a: term(), b: term()))
+             ) == dynamic(open_map(a: {term(), false}, b: {term(), false}))
     end
 
     test "map_size ordered" do

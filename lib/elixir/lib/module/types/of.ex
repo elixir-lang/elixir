@@ -265,7 +265,7 @@ defmodule Module.Types.Of do
     {Function, fun()},
     {Integer, integer()},
     {List, opt_union(empty_list(), non_empty_list(term(), term()))},
-    {Map, open_map(__struct__: if_set(Module.Types.Descr.opt_negation(atom())))},
+    {Map, open_map(__struct__: {Module.Types.Descr.opt_negation(atom()), true})},
     {Port, port()},
     {PID, pid()},
     {Reference, reference()},
@@ -294,7 +294,7 @@ defmodule Module.Types.Of do
     if info = mode == :closed && Code.ensure_loaded?(struct) && struct.__info__(:struct) do
       struct_type(struct, info)
     else
-      open_map(__struct__: atom([struct]))
+      open_map(__struct__: {atom([struct]), false})
     end
   end
 
@@ -365,7 +365,7 @@ defmodule Module.Types.Of do
                 # Because a multiple key may override single keys, we can only
                 # collect single keys while there are no multiples.
                 [key] when multiple == [] ->
-                  {dynamic?, domain, [{key, value_type} | single], multiple}
+                  {dynamic?, domain, [{key, {value_type, false}} | single], multiple}
 
                 _ ->
                   {dynamic?, domain, single, [{pos, value_type} | multiple]}
@@ -382,7 +382,7 @@ defmodule Module.Types.Of do
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            closed_map(non_multiple ++ [{key, type} | t])
+            closed_map(non_multiple ++ [{key, {type, false}} | t])
           end
           |> Enum.reduce(&opt_union/2)
       end
@@ -391,7 +391,11 @@ defmodule Module.Types.Of do
   end
 
   defp union_negated([], new_type, single, multiple) do
-    single = Enum.map(single, fn {key, old_type} -> {key, opt_union(old_type, new_type)} end)
+    single =
+      Enum.map(single, fn
+        {key, {old_type, optional?}} ->
+          {key, {opt_union(old_type, new_type), optional?}}
+      end)
 
     multiple =
       Enum.map(multiple, fn {keys, old_type} -> {keys, opt_union(old_type, new_type)} end)
@@ -401,12 +405,13 @@ defmodule Module.Types.Of do
 
   defp union_negated(negated, new_type, single, multiple) do
     {single, matched} =
-      Enum.map_reduce(single, [], fn {key, old_type}, matched ->
-        if key in negated do
-          {{key, old_type}, [key | matched]}
-        else
-          {{key, opt_union(old_type, new_type)}, matched}
-        end
+      Enum.map_reduce(single, [], fn
+        {key, {old_type, optional?}}, matched ->
+          if key in negated do
+            {{key, {old_type, optional?}}, [key | matched]}
+          else
+            {{key, {opt_union(old_type, new_type), optional?}}, matched}
+          end
       end)
 
     multiple =
@@ -414,7 +419,7 @@ defmodule Module.Types.Of do
         {keys, opt_union(old_type, new_type)}
       end)
 
-    {Enum.map(negated -- matched, fn key -> {key, not_set()} end) ++ single, multiple}
+    {Enum.map(negated -- matched, fn key -> {key, {none(), true}} end) ++ single, multiple}
   end
 
   defp pairs(pairs, expected, stack, context, of_fun) do
@@ -458,7 +463,7 @@ defmodule Module.Types.Of do
         [[]]
 
       [{keys, type} | tail] ->
-        for key <- keys, t <- cartesian_map(tail), do: [{key, type} | t]
+        for key <- keys, t <- cartesian_map(tail), do: [{key, {type, false}} | t]
     end
   end
 
@@ -485,10 +490,10 @@ defmodule Module.Types.Of do
             end
 
           {type, context} = of_fun.(value, value_type, stack, context)
-          {{key, type}, context}
+          {{key, {type, false}}, context}
         end)
 
-      {closed_map([{:__struct__, atom([struct])} | args_types]), context}
+      {closed_map([__struct__: {atom([struct]), false}] ++ args_types), context}
     end
   end
 
@@ -527,9 +532,16 @@ defmodule Module.Types.Of do
   # we introduce typed structs. They are only used by exceptions.
   def struct_type(struct, info, args_types \\ []) do
     term = dynamic()
-    pairs = for %{field: field} <- info, do: {field, term}
-    pairs = [{:__struct__, atom([struct])} | pairs]
-    pairs = if args_types == [], do: pairs, else: pairs ++ args_types
+    pairs = for %{field: field} <- info, do: {field, {term, false}}
+    pairs = [{:__struct__, {atom([struct]), false}} | pairs]
+
+    pairs =
+      if args_types == [] do
+        pairs
+      else
+        pairs ++ Enum.map(args_types, fn {key, value} -> {key, {value, false}} end)
+      end
+
     closed_map(pairs)
   end
 
