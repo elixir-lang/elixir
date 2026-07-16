@@ -1036,6 +1036,20 @@ defmodule ExUnit.AssertionsTest do
     false = refute_in_delta(1.1, 1.5, 0.2)
   end
 
+  test "refute in delta raises when passing a negative delta" do
+    assert_raise ArgumentError, fn ->
+      refute_in_delta(1.1, 1.2, -0.2)
+    end
+  end
+
+  test "refute in delta fails when the difference equals the delta" do
+    refute_in_delta(10, 15, 5)
+    flunk("This should never be tested")
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected the difference between 10 and 15 (5) to be more than 5" = error.message
+  end
+
   test "refute in delta error" do
     refute_in_delta(10, 11, 2)
     flunk("This should never be tested")
@@ -1049,7 +1063,7 @@ defmodule ExUnit.AssertionsTest do
     flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
-      "test message (difference between 10 and 11 is less than 2)" = error.message
+      "test message (difference between 10 and 11 is less than or equal to 2)" = error.message
   end
 
   test "catch_throw with no throw" do
