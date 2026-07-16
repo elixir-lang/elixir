@@ -134,15 +134,7 @@ defmodule Module.Types.Descr do
     generator.(recur)
   end
 
-  # Component emptiness can revisit generated BDDs before reaching the original
-  # recursive node again. Keep the full BDD in the key; the hash is only a discriminator.
-  defp empty_bdd_seen_key(:fun, arity, bdd) do
-    {:bdd_seen, :fun, arity, bdd_hash(bdd), bdd}
-  end
-
-  defp empty_bdd_seen_key(kind, bdd) do
-    {:bdd_seen, kind, bdd_hash(bdd), bdd}
-  end
+  defp empty_bdd_seen_key(kind_or_arity, bdd), do: [kind_or_arity | bdd]
 
   @doc """
   Builds recursive type nodes from mutually recursive equations.
@@ -1817,7 +1809,7 @@ defmodule Module.Types.Descr do
 
   defp fun_empty?({:union, repr}, seen) do
     Enum.all?(repr, fn {arity, bdd} ->
-      key = empty_bdd_seen_key(:fun, arity, bdd)
+      key = empty_bdd_seen_key(arity, bdd)
 
       if :erlang.is_map_key(key, seen) do
         true
