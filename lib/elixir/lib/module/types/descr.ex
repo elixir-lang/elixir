@@ -6101,23 +6101,22 @@ defmodule Module.Types.Descr do
           #
           #     {a, (C1 or U1) and (C2 or U2), :bdd_bot, (D1 or U1) and (D2 or U2)}
           #
-          # However, if we distribute the intersection over the unions, we find a
-          # common term, U1 and U2, leading to:
-          #
-          #     {a1,
-          #      (C1 and (C2 or U2)) or (U1 and C2),
-          #      (U1 and U2),
-          #      (D1 and (D2 or U2)) or (U1 and D2)}
-          #
-          # This formula is longer, meaning more operations, but it does preserve
-          # unions in place whenever possible, especially in the cases where C1
-          # and C2 are top, D1 and D2 are bottom.
+          # When both union branches are equal, keep the common union and apply
+          # absorption to the constrained and dual branches.
+          {:eq, {_, lit, c1, u, d1}, {_, _, c2, u, d2}} ->
+            bdd_node_new(lit, bdd_intersection(c1, c2), u, bdd_intersection(d1, d2))
+
+          # Otherwise normalize the result by splitting on `a` and keeping the
+          # union branch empty. Although this duplicates U1 and U2 into the
+          # constrained and dual branches, it avoids carrying a shared union
+          # through subsequent equal-head intersections, where it can lead to
+          # exponential growth.
           {:eq, {_, lit, c1, u1, d1}, {_, _, c2, u2, d2}} ->
             bdd_node_new(
               lit,
-              bdd_intersection_eq(c1, c2, u1, u2),
-              bdd_intersection(u1, u2),
-              bdd_intersection_eq(d1, d2, u1, u2)
+              bdd_intersection(bdd_union(c1, u1), bdd_union(c2, u2)),
+              :bdd_bot,
+              bdd_intersection(bdd_union(d1, u1), bdd_union(d2, u2))
             )
 
           {:eq, {_, lit, c1, u1, _}, _} ->
@@ -6134,27 +6133,6 @@ defmodule Module.Types.Descr do
           other -> other
         end
     end
-  end
-
-  # The arms of bdd_intersect equal have shape:
-  #
-  # (C1 and C2) or (C1 and U2) or (U1 and C2)
-  # (D1 and D2) or (D1 and U2) or (U1 and D2)
-  #
-  # They are symmetrical, so we optimize it using the formula below,
-  # which also deals with cases that lead to large eliminations.
-  #
-  # The final clause reduces the amount of operations by rewriting it to:
-  # (C1 and (C2 or U2)) or (U1 and C2)
-  defp bdd_intersection_eq(:bdd_top, :bdd_top, _u1, _u2), do: :bdd_top
-
-  defp bdd_intersection_eq(:bdd_bot, cd2, u1, _u2), do: bdd_intersection(u1, cd2)
-  defp bdd_intersection_eq(cd1, :bdd_bot, _u1, u2), do: bdd_intersection(u2, cd1)
-  defp bdd_intersection_eq(cd1, cd2, :bdd_bot, u2), do: bdd_intersection(cd1, bdd_union(cd2, u2))
-  defp bdd_intersection_eq(cd1, cd2, u1, :bdd_bot), do: bdd_intersection(cd2, bdd_union(cd1, u1))
-
-  defp bdd_intersection_eq(cd1, cd2, u1, u2) do
-    bdd_union(bdd_intersection(cd1, bdd_union(cd2, u2)), bdd_intersection(u1, cd2))
   end
 
   # {lit, c, u, d} = (lit and c) or u or (not lit and d),
