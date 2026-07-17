@@ -507,6 +507,7 @@ defmodule IEx.Helpers do
             source
         end
       end)
+      |> Enum.uniq()
 
     {erlang, elixir} = Enum.split_with(sources, &String.ends_with?(&1, ".erl"))
 

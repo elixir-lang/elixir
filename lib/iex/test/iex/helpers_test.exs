@@ -1544,6 +1544,31 @@ defmodule IEx.HelpersTest do
       cleanup_modules([Sample])
     end
 
+    test "reloads Elixir modules from same file" do
+      filename = "sample.ex"
+
+      contents = """
+      defmodule Foo do
+        def hello, do: :foo
+      end
+
+      defmodule Bar do
+        def hello, do: :bar
+      end
+      """
+
+      with_file(filename, contents, fn ->
+        assert Enum.sort(c(filename, ".")) == [Bar, Foo]
+
+        assert capture_io(:stderr, fn ->
+                 assert {:reloaded, modules} = r([Bar, Foo])
+                 assert Enum.sort(modules) == [Bar, Foo]
+               end) =~ "redefining module Foo"
+      end)
+    after
+      cleanup_modules([Bar, Foo])
+    end
+
     test "reloads Erlang modules" do
       assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
         :sample.hello()
