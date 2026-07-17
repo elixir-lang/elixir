@@ -320,7 +320,7 @@ defmodule Module.Types.InferTest do
            ]
   end
 
-  test "from defguard (regression with large code generation)", config do
+  test "from single defguard (regression with large code generation)", config do
     # As long as it type checks in time, we are fine,
     # but it should infer Macro.t in the future.
     infer config do
@@ -331,6 +331,32 @@ defmodule Module.Types.InferTest do
         tftp erl_interface syntax_tools megaco public_key
         common_test xmerl compiler jinterface
       )
+    end
+  end
+
+  test "from multiple defguard (regression with large code generation)", config do
+    infer config do
+      defguardp is_a(meta) when meta.m != :ppppp or meta.t != :nnnnn
+      defguardp is_b(meta) when is_nil(meta.s) or not meta.config.s.tunable
+      defguardp is_c(meta) when is_nil(meta.k) or not meta.config.k.tunable
+      defguardp is_d(meta) when is_nil(meta.t) or not meta.config.t.tunable
+      defguardp is_e(meta) when not meta.config.m.tunable
+      defguardp is_f(meta) when not meta.config.v.tunable
+
+      defguardp is_all_1(meta)
+                when is_a(meta) and is_b(meta) and is_c(meta) and is_d(meta) and
+                       is_e(meta) and is_f(meta)
+
+      defguardp is_all_2(meta)
+                when (meta.m != :ppppp or meta.t != :nnnnn) and
+                       (is_nil(meta.s) or not meta.config.s.tunable) and
+                       (is_nil(meta.k) or not meta.config.k.tunable) and
+                       (is_nil(meta.t) or not meta.config.t.tunable) and
+                       not meta.config.m.tunable and
+                       not meta.config.v.tunable
+
+      def fun_1(%{meta: meta} = _data) when is_all_1(meta), do: :something
+      def fun_2(%{meta: meta} = _data) when is_all_2(meta), do: :something
     end
   end
 
