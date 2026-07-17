@@ -307,6 +307,7 @@ defmodule String do
 
   @type replace_opts :: [global: boolean()]
 
+  @case_modes [:default, :ascii, :greek, :turkic]
   @conditional_mappings [:greek, :turkic]
 
   @doc """
@@ -926,9 +927,7 @@ defmodule String do
   @spec upcase(t, :default | :ascii | :greek | :turkic) :: t
   def upcase(string, mode \\ :default)
 
-  def upcase("", _mode) do
-    ""
-  end
+  def upcase("", mode) when mode in @case_modes, do: ""
 
   def upcase(string, :default) when is_binary(string) do
     String.Unicode.upcase(string, [], :default)
@@ -996,9 +995,7 @@ defmodule String do
   @spec downcase(t, :default | :ascii | :greek | :turkic) :: t
   def downcase(string, mode \\ :default)
 
-  def downcase("", _mode) do
-    ""
-  end
+  def downcase("", mode) when mode in @case_modes, do: ""
 
   def downcase(string, :default) when is_binary(string) do
     String.Unicode.downcase(string, [], :default)
@@ -1057,11 +1054,11 @@ defmodule String do
   @letter_i <<0x0069::utf8>>
   @letter_I_dot_above <<0x0130::utf8>>
 
-  def capitalize(<<@letter_i, right::binary>>, mode) do
+  def capitalize(<<@letter_i, right::binary>>, mode) when mode in @case_modes do
     if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
   end
 
-  def capitalize(string, mode) when is_binary(string) do
+  def capitalize(string, mode) when is_binary(string) and mode in @case_modes do
     case :unicode_util.gc(string) do
       [gc] -> grapheme_to_binary(:string.titlecase([gc]))
       [gc, rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
