@@ -52,7 +52,8 @@ defmodule FunctionTest do
 
       result = info(f)
 
-      for {key, _value} <- result do
+      # pid was removed from Erlang/OTP 30+
+      for {key, _value} <- result, key != :pid do
         assert key in @info_keys_for_anonymous
       end
     end
