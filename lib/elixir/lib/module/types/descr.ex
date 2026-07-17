@@ -6106,18 +6106,39 @@ defmodule Module.Types.Descr do
           {:eq, {_, lit, c1, u, d1}, {_, _, c2, u, d2}} ->
             bdd_node_new(lit, bdd_intersection(c1, c2), u, bdd_intersection(d1, d2))
 
-          # Otherwise normalize the result by splitting on `a` and keeping the
-          # union branch empty. Although this duplicates U1 and U2 into the
-          # constrained and dual branches, it avoids carrying a shared union
-          # through subsequent equal-head intersections, where it can lead to
-          # exponential growth.
           {:eq, {_, lit, c1, u1, d1}, {_, _, c2, u2, d2}} ->
-            bdd_node_new(
-              lit,
-              bdd_intersection(bdd_union(c1, u1), bdd_union(c2, u2)),
-              :bdd_bot,
-              bdd_intersection(bdd_union(d1, u1), bdd_union(d2, u2))
-            )
+            # The intersection can be factored as:
+            #
+            #     {a,
+            #      (C1 and (C2 or U2)) or (U1 and C2),
+            #      U1 and U2,
+            #      (D1 and (D2 or U2)) or (U1 and D2)}
+            #
+            # This form preserves U1 and U2 in a common union branch. It is
+            # beneficial when C1-C2 or D1-D2 start with the same literal, as
+            # at least one pair of equal-head BDDs can be combined immediately.
+            #
+            # Doing this allows us to optimize open_api_spex compilation,
+            # version 3.22.2 (f2c71bf320045b76c4bc2ea9a7a056c8d9092197).
+            #
+            # Otherwise keep the union branch empty: duplicating U1 and U2 is
+            # cheaper than carrying a shared union through subsequent
+            # equal-head intersections, where it can grow exponentially.
+            if same_lit?(c1, c2) or same_lit?(d1, d2) do
+              bdd_node_new(
+                lit,
+                bdd_intersection_eq(c1, c2, u1, u2),
+                bdd_intersection(u1, u2),
+                bdd_intersection_eq(d1, d2, u1, u2)
+              )
+            else
+              bdd_node_new(
+                lit,
+                bdd_intersection(bdd_union(c1, u1), bdd_union(c2, u2)),
+                :bdd_bot,
+                bdd_intersection(bdd_union(d1, u1), bdd_union(d2, u2))
+              )
+            end
 
           {:eq, {_, lit, c1, u1, _}, _} ->
             bdd_node_new(lit, bdd_union(c1, u1), :bdd_bot, :bdd_bot)
@@ -6132,6 +6153,19 @@ defmodule Module.Types.Descr do
           {_, _, bdd, u, bdd} -> bdd_union(bdd, u)
           other -> other
         end
+    end
+  end
+
+  defp same_lit?({_, lit, _, _, _}, {_, lit, _, _, _}), do: true
+  defp same_lit?(_, _), do: false
+
+  defp bdd_intersection_eq(cd1, cd2, u1, u2) do
+    case bdd_intersection(cd1, cd2) do
+      :bdd_top ->
+        :bdd_top
+
+      cd ->
+        bdd_union(cd, bdd_union(bdd_intersection(cd1, u2), bdd_intersection(u1, cd2)))
     end
   end
 
