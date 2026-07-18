@@ -336,10 +336,10 @@ defmodule ExUnit do
       * `:location_info` - filename and tags (defaults to `[:bright, :black]`)
       * `:diff_insert` - color of the insertions on diffs, defaults to `:green`;
       * `:diff_insert_whitespace` - color of the whitespace insertions on diffs,
-        defaults to `IO.ANSI.color_background(2, 0, 0)`;
+        defaults to `IO.ANSI.color_background(0, 2, 0)`;
       * `:diff_delete` - color of the deletions on diffs, defaults to `:red`;
       * `:diff_delete_whitespace` - color of the whitespace deletions on diffs,
-        defaults to `IO.ANSI.color_background(0, 2, 0)`;
+        defaults to `IO.ANSI.color_background(2, 0, 0)`;
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
       filter. For more information, see the "Tags" and "Filters" sections in the
