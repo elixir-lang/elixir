@@ -416,7 +416,10 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
-    if match?("Elixir." <> _, Atom.to_string(key)), do: false, else: keyword?(rest)
+    case Atom.to_string(key) do
+      "Elixir." <> _ -> false
+      _ -> keyword?(rest)
+    end
   end
 
   def keyword?([]), do: true
