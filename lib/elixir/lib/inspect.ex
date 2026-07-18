@@ -416,8 +416,8 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
-    case Atom.to_charlist(key) do
-      [?E, ?l, ?i, ?x, ?i, ?r, ?.] ++ _ -> false
+    case Atom.to_string(key) do
+      "Elixir." <> _ -> false
       _ -> keyword?(rest)
     end
   end
