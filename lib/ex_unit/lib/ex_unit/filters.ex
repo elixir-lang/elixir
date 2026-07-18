@@ -207,23 +207,57 @@ defmodule ExUnit.Filters do
   @spec eval(t, t, map, [ExUnit.Test.t()]) ::
           :ok | {:excluded, String.t()} | {:skipped, String.t()}
   def eval(include, exclude, tags, collection) when is_map(tags) do
-    cond do
-      Enum.any?(include, &has_tag(&1, tags, collection)) ->
-        maybe_skipped(include, tags, collection)
+    eval(include, exclude, tags, collection, nil)
+  end
 
-      excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection)) ->
+  @doc """
+  Same as eval/4 but accepts a pre-computed line index for efficient
+  line-based filtering. The line_index should be built with
+  `build_line_index/1`.
+  """
+  @spec eval(t, t, map, [ExUnit.Test.t()], term) ::
+          :ok | {:excluded, String.t()} | {:skipped, String.t()}
+  def eval(include, exclude, tags, collection, line_index) when is_map(tags) do
+    ctx = {collection, line_index}
+
+    cond do
+      Enum.any?(include, &has_tag(&1, tags, ctx)) ->
+        maybe_skipped(include, tags, ctx)
+
+      excluded = Enum.find_value(exclude, &has_tag(&1, tags, ctx)) ->
         {:excluded, "due to #{excluded} filter"}
 
       true ->
-        maybe_skipped(include, tags, collection)
+        maybe_skipped(include, tags, ctx)
     end
   end
 
-  defp maybe_skipped(include, tags, collection) do
+  @doc """
+  Builds a line index from the test collection for efficient line-based filtering.
+
+  Returns `{describe_lines_set, sorted_lines_tuple}`:
+    - `describe_lines_set`: a MapSet of all `describe_line` values
+    - `sorted_lines_tuple`: a sorted tuple of unique test line numbers
+  """
+  @spec build_line_index([ExUnit.Test.t()]) :: {MapSet.t(), tuple()}
+  def build_line_index(collection) do
+    describe_lines = MapSet.new(collection, fn %{tags: %{describe_line: dl}} -> dl end)
+
+    sorted_lines =
+      collection
+      |> Enum.map(fn %{tags: %{line: l}} -> l end)
+      |> Enum.uniq()
+      |> Enum.sort()
+      |> List.to_tuple()
+
+    {describe_lines, sorted_lines}
+  end
+
+  defp maybe_skipped(include, tags, ctx) do
     case tags do
       %{skip: skip} when is_binary(skip) or skip == true ->
         skip_tags = %{skip: skip}
-        skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tags, collection))
+        skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tags, ctx))
 
         cond do
           skip_included_explicitly? -> :ok
@@ -236,21 +270,30 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:location, path}, %{file: file}, _collection) when is_binary(path) do
+  defp has_tag({:location, path}, %{file: file}, _ctx) when is_binary(path) do
     String.ends_with?(file, path)
   end
 
-  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection)
+  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, ctx)
        when is_binary(path) do
     String.ends_with?(tags.file, path) and
-      lines |> List.wrap() |> Enum.any?(&has_tag({:line, &1}, tags, collection))
+      lines |> List.wrap() |> Enum.any?(&has_tag({:line, &1}, tags, ctx))
   end
 
-  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection)
+  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, {collection, line_index})
        when is_integer(line) do
     cond do
       tags.describe_line == line ->
         true
+
+      line_index != nil ->
+        {describe_lines, sorted_lines} = line_index
+
+        cond do
+          MapSet.member?(describe_lines, line) -> false
+          tags.line <= line and find_closest_line_before(line, sorted_lines) == tags.line -> true
+          true -> false
+        end
 
       describe_block?(line, collection) ->
         false
@@ -260,7 +303,7 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag(pair, tags, _collection) do
+  defp has_tag(pair, tags, _ctx) do
     has_tag(pair, tags)
   end
 
@@ -300,5 +343,22 @@ defmodule ExUnit.Filters do
         :infinity
       end
     end)
+  end
+
+  defp find_closest_line_before(line, sorted_lines) do
+    find_closest_line_before(line, sorted_lines, 0, tuple_size(sorted_lines) - 1)
+  end
+
+  defp find_closest_line_before(_line, _sorted_lines, low, high) when low > high, do: nil
+
+  defp find_closest_line_before(line, sorted_lines, low, high) do
+    mid = div(low + high, 2)
+    mid_line = elem(sorted_lines, mid)
+
+    cond do
+      mid_line == line -> line
+      mid_line < line -> find_closest_line_before(line, sorted_lines, mid + 1, high)
+      true -> find_closest_line_before(line, sorted_lines, low, mid - 1)
+    end
   end
 end

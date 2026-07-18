@@ -283,6 +283,7 @@ defmodule ExUnit.Runner do
     include = config.include
     exclude = config.exclude
     test_ids = config.only_test_ids
+    line_index = ExUnit.Filters.build_line_index(tests)
 
     {to_run, to_skip} =
       for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
@@ -295,7 +296,7 @@ defmodule ExUnit.Runner do
               test_group: group
             })
 
-          case ExUnit.Filters.eval(include, exclude, tags, tests) do
+          case ExUnit.Filters.eval(include, exclude, tags, tests, line_index) do
             :ok -> {[%{test | tags: tags} | to_run], to_skip}
             excluded_or_skipped -> {to_run, [%{test | state: excluded_or_skipped} | to_skip]}
           end
