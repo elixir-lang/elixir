@@ -87,7 +87,7 @@ defmodule ExUnit.EventManager do
   defp notify({sup, event}, msg) do
     :gen_event.notify(event, msg)
 
-    for {_, pid, _, _} <- Supervisor.which_children(sup) do
+    for {_, pid, _, _} <- DynamicSupervisor.which_children(sup) do
       GenServer.cast(pid, msg)
     end
 
