@@ -1386,7 +1386,11 @@ defmodule Module.Types.PatternTest do
     end
 
     test "maps in patterns" do
+      assert precise?([%{}])
       assert precise?([%{ok: _}])
+      assert precise?([%_{}])
+      assert precise?([%x{}])
+      assert precise?([%URI{}])
       assert precise?([%URI{path: _}])
 
       refute precise?([%{ok: 123}])
