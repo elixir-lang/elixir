@@ -777,7 +777,8 @@ defmodule Module.Types.Pattern do
 
     if compatible?(refined, atom()) do
       fields = [__struct__: {refined, false}]
-      of_open_map(args, singleton?(refined), fields, [], path, stack, context)
+      precise? = match?({:_, _, _}, var) or singleton?(refined)
+      of_open_map(args, precise?, fields, [], path, stack, context)
     else
       error = {:badstruct, refined, expr, context}
       {error_type(), false, error(__MODULE__, error, meta, stack, context)}
