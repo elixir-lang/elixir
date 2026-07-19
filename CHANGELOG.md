@@ -192,6 +192,30 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
+## v1.20.3-dev
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel.ParallelCompiler] Batch type checker cache operations to improve compilation times
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Improve type precision of the `++/2` operator
+  * [Kernel] Improve type refinement for `:erlang.andalso/2` and `:erlang.orelse/2`
+  * [Kernel] Fix type checking of tuple insertion on equivalent tuple types
+  * [Kernel] Fix variable refinements leaking from invalid `receive/after` timeout expressions
+  * [Kernel] Fix rendering inferred types containing unions of static and dynamic functions
+  * [Kernel] Ensure typing errors in `:maps.values/1` reference the correct function
+  * [Kernel] Mark `%_{}` patterns as precise so subsequent redundant struct clauses are detected
+
+#### IEx
+
+  * [IEx.Helpers] Fix `break!/1` with unknown expressions
+
 ## v1.20.2 (2026-06-23)
 
 ### 1. Enhancements
