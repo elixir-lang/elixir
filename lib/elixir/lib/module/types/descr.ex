@@ -1875,8 +1875,7 @@ defmodule Module.Types.Descr do
     disjoint?(type1, type2) or disjoint_arguments?(args1, args2)
   end
 
-  defp disjoint_arguments?([], _args2), do: false
-  defp disjoint_arguments?(_args1, []), do: false
+  defp disjoint_arguments?([], []), do: false
 
   defp all_disjoint_arguments?([]), do: true
 
