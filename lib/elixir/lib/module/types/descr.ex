@@ -1871,9 +1871,11 @@ defmodule Module.Types.Descr do
   end
 
   # For two arguments to be disjoint, one of their types must be disjoint.
-  defp disjoint_arguments?(args1, args2) do
-    Enum.any?(Enum.zip(args1, args2), fn {t1, t2} -> disjoint?(t1, t2) end)
+  defp disjoint_arguments?([type1 | args1], [type2 | args2]) do
+    disjoint?(type1, type2) or disjoint_arguments?(args1, args2)
   end
+
+  defp disjoint_arguments?([], []), do: false
 
   defp all_disjoint_arguments?([]), do: true
 
