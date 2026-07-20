@@ -476,8 +476,8 @@ defmodule Range do
   """
   @doc since: "1.8.0"
   @spec disjoint?(t, t) :: boolean
-  def disjoint?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
-    if size(range1) == 0 or size(range2) == 0 do
+  def disjoint?(first1..last1//step1, first2..last2//step2) do
+    if empty?(first1, last1, step1) or empty?(first2, last2, step2) do
       true
     else
       {first1, last1, step1} = normalize(first1, last1, step1)
@@ -513,7 +513,14 @@ defmodule Range do
     end
   end
 
-  @compile inline: [normalize: 3]
+  @compile inline: [empty?: 3, normalize: 3]
+  defp empty?(first, last, step) do
+    case step > 0 do
+      true -> first > last
+      false -> first < last
+    end
+  end
+
   defp normalize(first, last, step) when first > last,
     do: {first - abs(div(first - last, step) * step), first, -step}
 

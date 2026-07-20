@@ -82,6 +82,14 @@ defmodule RangeTest do
   end
 
   describe "disjoint?" do
+    test "empty ranges are disjoint" do
+      for empty <- [10..0//1, 10..0//2, 0..10//-1, 0..10//-2, 0..-1//1] do
+        assert Range.disjoint?(empty, 0..10)
+        assert Range.disjoint?(0..10, empty)
+        assert Range.disjoint?(empty, empty)
+      end
+    end
+
     test "returns true for disjoint ranges" do
       assert_disjoint(1..5, 6..9)
       assert_disjoint(-3..1, 2..3)
