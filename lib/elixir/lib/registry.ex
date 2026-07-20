@@ -22,7 +22,7 @@ defmodule Registry do
   implementation. We explore some of those use cases below.
 
   The registry may also be transparently partitioned with the `:partitions` option,
-  which provides more scalable behavior for running registries on highly concurrent
+  which provides more scalable behavior for running registries in highly concurrent
   environments with thousands or millions of entries.
 
   ## Using in `:via`
@@ -79,7 +79,7 @@ defmodule Registry do
 
   `Registry` has a dispatch mechanism that allows developers to implement custom
   dispatch logic triggered from the caller. For example, let's say we have a
-  duplicate registry started as so:
+  duplicate registry started as follows:
 
       {:ok, _} = Registry.start_link(keys: :duplicate, name: Registry.DispatcherTest)
 
@@ -172,7 +172,7 @@ defmodule Registry do
   the cost of delayed unsubscription. For example, if a process crashes,
   its keys are automatically removed from the registry but the change may
   not propagate immediately. This means certain operations may return processes
-  that are already dead. When such may happen, it will be explicitly stated
+  that are already dead. When this can happen, it will be explicitly stated
   in the function documentation.
 
   However, keep in mind those cases are typically not an issue. After all, a
@@ -218,7 +218,7 @@ defmodule Registry do
   @typedoc "A list of guards to be evaluated when matching on objects in a registry"
   @type guards :: [guard]
 
-  @typedoc "A pattern used to representing the output format part of a match spec"
+  @typedoc "A pattern used to represent the output format part of a match spec"
   @type body :: [term]
 
   @typedoc "A full match spec used when selecting objects in the registry"
@@ -240,8 +240,8 @@ defmodule Registry do
   """
   @typedoc since: "1.15.0"
   @type listener_message ::
-          {:register, registry, key, registry_partition :: pid, value}
-          | {:unregister, registry, key, registry_partition :: pid}
+          {:register, registry, key, pid, value}
+          | {:unregister, registry, key, pid}
 
   @typedoc """
   Options used for `dispatch/4`.
@@ -347,7 +347,7 @@ defmodule Registry do
 
   The registry requires the following keys:
 
-    * `:keys` - chooses if keys are `:unique`, `:duplicate`,
+    * `:keys` - controls whether keys are `:unique`, `:duplicate`,
       `{:duplicate, :key}`, or `{:duplicate, :pid}`
     * `:name` - the name of the registry and its tables
 
@@ -639,7 +639,7 @@ defmodule Registry do
   @doc """
   Finds the `{pid, value}` pair for the given `key` in `registry` in no particular order.
 
-  An empty list if there is no match.
+  Returns an empty list if there is no match.
 
   For unique registries, a single partition lookup is necessary. For
   duplicate registries, all partitions must be looked up.
@@ -737,7 +737,7 @@ defmodule Registry do
 
   This function is useful only when spawning processes is not an option,
   for example, when copying the data to another process could be too
-  expensive. Or when the work must be done within the current process
+  expensive, or when the work must be done within the current process
   for other reasons. In such cases, this function provides a scalable
   mechanism for managing locks on top of the registry's infrastructure.
 
@@ -772,7 +772,7 @@ defmodule Registry do
   For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
   Please note that guard conditions will work only for assigned
   variables like `:"$1"`, `:"$2"`, and so forth.
-  Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
+  Avoid using of special match variables `:"$_"` and `:"$$"`, because they might not work as expected.
 
   An empty list will be returned if there is no match.
 
@@ -842,7 +842,7 @@ defmodule Registry do
       iex> Registry.keys(Registry.UniqueKeysTest, self())
       ["hello"]
 
-  Such is possible for duplicate registries though:
+  This is possible for duplicate registries though:
 
       iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateKeysTest)
       iex> Registry.keys(Registry.DuplicateKeysTest, self())
@@ -1464,12 +1464,12 @@ defmodule Registry do
   end
 
   @doc """
-  Select key, pid, and values registered using full match specs.
+  Selects key, pid, and values registered using full match specs.
 
-  The `spec` consists of a list of three part tuples, in the shape of `[{match_pattern, guards, body}]`.
+  The `spec` consists of a list of three-part tuples, in the shape of `[{match_pattern, guards, body}]`.
 
   The first part, the match pattern, must be a tuple that will match the structure of the
-  the data stored in the registry, which is `{key, pid, value}`. The atom `:_` can be used to
+  data stored in the registry, which is `{key, pid, value}`. The atom `:_` can be used to
   ignore a given value or tuple element, while the atom `:"$1"` can be used to temporarily
   assign part of pattern to a variable for a subsequent comparison. This can be combined
   like `{:"$1", :_, :_}`.
@@ -1481,7 +1481,7 @@ defmodule Registry do
   variables like `:"$1"`, `:"$2"`, and so forth.
 
   The third part, the body, is a list of shapes of the returned entries. Like guards, you have access to
-  assigned variables like `:"$1"`, which you can combine with hard-coded values to freely shape entries
+  assigned variables like `:"$1"`, which you can combine with hard-coded values to freely shape entries.
   Note that tuples have to be wrapped in an additional tuple. To get a result format like
   `%{key: key, pid: pid, value: value}`, assuming you bound those variables in order in the match part,
   you would provide a body like `[%{key: :"$1", pid: :"$2", value: :"$3"}]`. Like guards, you can use
@@ -1823,7 +1823,7 @@ defmodule Registry.Partition do
   @key_info -2
 
   @doc """
-  Returns the name of key partition table.
+  Returns the name of the key partition table.
   """
   @spec key_name(atom, non_neg_integer) :: atom
   def key_name(registry, partition) do
@@ -1831,7 +1831,7 @@ defmodule Registry.Partition do
   end
 
   @doc """
-  Returns the name of pid partition table.
+  Returns the name of the pid partition table.
   """
   @spec pid_name(atom, non_neg_integer) :: atom
   def pid_name(name, partition) do
@@ -1848,7 +1848,7 @@ defmodule Registry.Partition do
   end
 
   @doc """
-  Runs function with a lock.
+  Runs the function with a lock.
   """
   def lock(pid, key, lock) do
     ref = GenServer.call(pid, {:lock, key})
