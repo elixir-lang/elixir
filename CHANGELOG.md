@@ -19,7 +19,6 @@
   * [Access] Add support for keyword lists in `Access.key/2` and `Access.key!/1`
   * [Code] Add support for the `:erlc_options` compiler option
   * [Code.Formatter] Add a `:migrate_atom_interpolations` option
-  * [Code.Typespec] Handle Erlang/OTP 28 nominal types in `Code.Typespec.fetch_types/1`
   * [Kernel] Improve performance of type constructors and complex intersections
   * [Kernel] Warn on binary patterns with segments that are not byte-aligned
   * [Keyword] Optimize `Keyword.pop/3`, `Keyword.pop!/2`, and `Keyword.pop_lazy/3`
