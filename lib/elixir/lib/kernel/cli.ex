@@ -344,7 +344,7 @@ defmodule Kernel.CLI do
     parse_argv(t, %{config | verbose_compile: true})
   end
 
-  defp parse_argv([~c"--profile", "time" | t], %{mode: :elixirc} = config) do
+  defp parse_argv([~c"--profile", ~c"time" | t], %{mode: :elixirc} = config) do
     parse_argv(t, %{config | profile: :time})
   end
 
