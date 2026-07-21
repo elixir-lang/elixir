@@ -234,12 +234,12 @@ defmodule String do
   to the definition of the encoding) is encountered, only one
   code point needs to be rejected.
 
-  This module relies on this behavior to ignore such invalid
-  characters. For example, `length/1` will return
-  a correct result even if an invalid code point is fed into it.
+  Most functions in this module perform self-synchronization too.
+  For example, `downcase/1` will return a downcased string, with
+  any invalid codepoints preserved at their location.
 
   In other words, this module expects invalid data to be detected
-  elsewhere, usually when retrieving data from the external source.
+  at the boundary, typically when retrieving data from the external source.
   For example, a driver that reads strings from a database will be
   responsible to check the validity of the encoding. `String.chunk/2`
   can be used for breaking a string into valid and invalid parts.
