@@ -444,6 +444,13 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(tuple([integer(), integer(), binary()]))
     end
 
+    test "send returns the message" do
+      assert typecheck!(send(self(), {:msg, 1})) == tuple([atom([:msg]), integer()])
+
+      assert typeerror!(send(123, {:msg, 1})) =~
+               "incompatible types given to Kernel.send/2"
+    end
+
     test "undefined function warnings" do
       assert typewarn!(URI.unknown("foo")) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
