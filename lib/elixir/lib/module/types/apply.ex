@@ -1099,6 +1099,13 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :send, info, [_dest, message] = args_types, stack) do
+    case remote_apply(info, args_types, stack) do
+      {:ok, _type} -> {:ok, return(message, args_types, stack)}
+      other -> other
+    end
+  end
+
   defp remote_apply(:erlang, :tl, _info, [list], stack) do
     case list_tl(list) do
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
