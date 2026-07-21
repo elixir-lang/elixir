@@ -444,6 +444,36 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(tuple([integer(), integer(), binary()]))
     end
 
+    test "send returns the message" do
+      assert typecheck!(send(self(), {:msg, 1})) == tuple([atom([:msg]), integer()])
+
+      assert typeerror!(
+               case send(self(), {:msg, 1}) do
+                 :__probe__ -> :probe
+                 _ -> :ok
+               end
+             ) == ~l"""
+             the following clause will never match:
+
+                 :__probe__ ->
+
+             because it attempts to match on the result of:
+
+                 send(self(), {:msg, 1})
+
+             which has type:
+
+                 {:msg, integer()}
+             """
+    end
+
+    test "send with options returns status" do
+      result = atom([:ok, :noconnect, :nosuspend])
+
+      assert typecheck!(:erlang.send(self(), {:msg, 1}, [:nosuspend])) == result
+      assert typecheck!(Process.send(self(), {:msg, 1}, [:noconnect])) == result
+    end
+
     test "undefined function warnings" do
       assert typewarn!(URI.unknown("foo")) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}

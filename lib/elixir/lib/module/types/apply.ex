@@ -109,6 +109,9 @@ defmodule Module.Types.Apply do
     |> opt_union(atom())
     |> opt_union(tuple([atom(), atom()]))
 
+  send_options = list(atom([:noconnect, :nosuspend]))
+  send_result = atom([:ok, :noconnect, :nosuspend])
+
   basic_arith_2_args_clauses = [
     {[integer(), integer()], integer()},
     {[integer(), float()], float()},
@@ -239,6 +242,7 @@ defmodule Module.Types.Apply do
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
+        {:erlang, :send, [{[send_destination, term(), send_options], send_result}]},
         {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
@@ -1097,6 +1101,10 @@ defmodule Module.Types.Apply do
       :badmap -> {:error, badremote(:erlang, :map_get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, "raise"}}
     end
+  end
+
+  defp remote_apply(:erlang, :send, _info, [_dest, message] = args_types, stack) do
+    {:ok, return(message, args_types, stack)}
   end
 
   defp remote_apply(:erlang, :tl, _info, [list], stack) do
