@@ -1784,7 +1784,7 @@ defmodule String do
     do: :unicode.characters_to_binary(acc)
 
   defp do_reverse({:error, <<byte, rest::bits>>}, acc),
-    do: :unicode.characters_to_binary(acc) <> <<byte>> <> do_reverse(:unicode_util.gc(rest), [])
+    do: do_reverse(:unicode_util.gc(rest), []) <> <<byte>> <> :unicode.characters_to_binary(acc)
 
   @doc """
   Returns a string `subject` repeated `n` times.
