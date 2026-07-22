@@ -2064,7 +2064,6 @@ defmodule Calendar.ISO do
 
   defp parse_offset(""), do: {nil, ""}
   defp parse_offset("Z"), do: {0, ""}
-  defp parse_offset("-00:00"), do: :error
 
   defp parse_offset(<<?+, h1, h2, ?:, m1, m2, rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
@@ -2087,7 +2086,8 @@ defmodule Calendar.ISO do
          true <- m1 in ?0..?5 and m2 in ?0..?9,
          hour = (h1 - ?0) * 10 + h2 - ?0,
          min = (m1 - ?0) * 10 + m2 - ?0,
-         true <- hour < 24 do
+         true <- hour < 24,
+         true <- sign == 1 or hour != 0 or min != 0 do
       {(hour * 60 + min) * 60 * sign, rest}
     else
       _ -> :error
