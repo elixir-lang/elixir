@@ -817,6 +817,7 @@ defmodule DateTimeTest do
         |> DateTime.add(-1, :microsecond)
 
       assert DateTime.diff(in_almost_7_days, datetime, :day) == 6
+      assert DateTime.diff(datetime, in_almost_7_days, :day) == -6
     end
 
     test "in microseconds" do
