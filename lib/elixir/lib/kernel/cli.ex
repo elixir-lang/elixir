@@ -49,7 +49,7 @@ defmodule Kernel.CLI do
 
   @doc """
   Runs the given function by catching any failure
-  and printing them to stdout. `at_exit` hooks are
+  and printing them to stderr. `at_exit` hooks are
   also invoked before exiting.
 
   This function is used by Elixir's CLI and also
