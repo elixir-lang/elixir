@@ -1576,15 +1576,15 @@ defmodule DateTime do
   def diff(datetime1, datetime2, unit \\ :second)
 
   def diff(datetime1, datetime2, :day) do
-    diff(datetime1, datetime2, :second) |> div(86400)
+    diff(datetime1, datetime2, :microsecond) |> div(86_400_000_000)
   end
 
   def diff(datetime1, datetime2, :hour) do
-    diff(datetime1, datetime2, :second) |> div(3600)
+    diff(datetime1, datetime2, :microsecond) |> div(3_600_000_000)
   end
 
   def diff(datetime1, datetime2, :minute) do
-    diff(datetime1, datetime2, :second) |> div(60)
+    diff(datetime1, datetime2, :microsecond) |> div(60_000_000)
   end
 
   def diff(

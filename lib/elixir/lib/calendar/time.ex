@@ -901,11 +901,11 @@ defmodule Time do
   def diff(time1, time2, unit \\ :second)
 
   def diff(time1, time2, :hour) do
-    diff(time1, time2, :second) |> div(3600)
+    diff(time1, time2, :microsecond) |> div(3_600_000_000)
   end
 
   def diff(time1, time2, :minute) do
-    diff(time1, time2, :second) |> div(60)
+    diff(time1, time2, :microsecond) |> div(60_000_000)
   end
 
   def diff(

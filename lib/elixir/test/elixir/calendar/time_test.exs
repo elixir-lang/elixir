@@ -113,6 +113,12 @@ defmodule TimeTest do
     assert Time.diff(time1_holocene, time2, :second) == -17883
     assert Time.diff(time1_holocene, time2, :millisecond) == -17_882_889
     assert Time.diff(time1_holocene, time2, :microsecond) == -17_882_889_000
+
+    # Two times of day are always less than 24 hours apart, so neither
+    # direction can amount to a full day.
+    assert Time.diff(~T[23:59:59.999999], ~T[00:00:00.000001], :hour) == 23
+    assert Time.diff(~T[00:00:00.000001], ~T[23:59:59.999999], :hour) == -23
+    assert Time.diff(~T[00:00:00.000001], ~T[23:59:59.999999], :minute) == -1439
   end
 
   test "truncate/2" do

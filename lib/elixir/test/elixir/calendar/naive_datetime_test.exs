@@ -239,6 +239,12 @@ defmodule NaiveDateTimeTest do
              ) == 0
 
       assert NaiveDateTime.diff(
+               ~N[2000-01-01 00:00:00.700000],
+               ~N[2000-01-02 00:00:00.200000],
+               :day
+             ) == 0
+
+      assert NaiveDateTime.diff(
                ~N[2000-01-01 00:00:00.001200],
                ~N[2000-01-01 00:00:00.000700],
                :millisecond

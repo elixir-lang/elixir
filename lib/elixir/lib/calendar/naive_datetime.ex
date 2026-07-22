@@ -541,15 +541,15 @@ defmodule NaiveDateTime do
   def diff(naive_datetime1, naive_datetime2, unit \\ :second)
 
   def diff(naive_datetime1, naive_datetime2, :day) do
-    diff(naive_datetime1, naive_datetime2, :second) |> div(86400)
+    diff(naive_datetime1, naive_datetime2, :microsecond) |> div(86_400_000_000)
   end
 
   def diff(naive_datetime1, naive_datetime2, :hour) do
-    diff(naive_datetime1, naive_datetime2, :second) |> div(3600)
+    diff(naive_datetime1, naive_datetime2, :microsecond) |> div(3_600_000_000)
   end
 
   def diff(naive_datetime1, naive_datetime2, :minute) do
-    diff(naive_datetime1, naive_datetime2, :second) |> div(60)
+    diff(naive_datetime1, naive_datetime2, :microsecond) |> div(60_000_000)
   end
 
   def diff(
