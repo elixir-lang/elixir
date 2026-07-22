@@ -171,7 +171,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:each_long_verification` (since v1.19.0) - for each file that takes more
       than a given timeout (see the `:long_verification_threshold` option) to
-      compile, invoke this callback passing the module as its argument (and
+      verify, invoke this callback passing the module as its argument (and
       optionally the PID of the process verifying the module)
 
     * `:each_module` - for each module compiled, invokes the callback passing
@@ -189,7 +189,7 @@ defmodule Kernel.ParallelCompiler do
       `:each_long_compilation` callback is invoked. Defaults to `10` seconds.
 
     * `:long_verification_threshold` (since v1.19.0) - the timeout (in seconds) to
-      check for modules taking too long to compile. For each module that exceeds the
+      check for modules taking too long to verify. For each module that exceeds the
       threshold, the `:each_long_verification` callback is invoked. Defaults to
       `10` seconds.
 
@@ -212,7 +212,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples.
-      This option must be set to true, except for backwards compatibibility reasons.
+      This option must be set to true, except for backward compatibility reasons.
 
     * `:max_concurrency` - the maximum number of files to compile in parallel.
       Setting this option to 1 will compile files sequentially.
@@ -269,7 +269,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples.
-      This option must be set to true, except for backwards compatibibility reasons.
+      This option must be set to true, except for backward compatibility reasons.
 
   """
   @doc since: "1.6.0"
