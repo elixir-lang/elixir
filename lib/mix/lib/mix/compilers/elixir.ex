@@ -670,18 +670,19 @@ defmodule Mix.Compilers.Elixir do
         reduce: {stale_modules, stale_modules, deps_exports, protocols_and_impls()} do
       {modules, exports, deps_exports, protocols_and_impls} ->
         {manifest_modules, manifest_sources} = read_manifest(manifest)
-        all_modules = Enum.map(manifest_modules, fn {mod, _} -> mod end)
         dep_exports = Map.get(deps_exports, app, %{})
 
         # Update modules, exports, and dep exports based on removed modules
         {modules, exports, dep_exports} =
           Enum.reduce(dep_exports, {modules, exports, dep_exports}, fn
             {mod, _}, {modules, exports, dep_exports} ->
-              if mod in all_modules do
-                {modules, exports, dep_exports}
-              else
-                {Map.put(modules, mod, true), Map.put(exports, mod, true),
-                 Map.delete(dep_exports, mod)}
+              case manifest_modules do
+                %{^mod => _} ->
+                  {modules, exports, dep_exports}
+
+                _ ->
+                  {Map.put(modules, mod, true), Map.put(exports, mod, true),
+                   Map.delete(dep_exports, mod)}
               end
           end)
 
