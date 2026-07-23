@@ -1705,7 +1705,7 @@ defmodule Calendar.ISO do
           boolean
   def valid_time?(hour, minute, second, {ms_value, ms_precision} = _microsecond)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(ms_value) and
-             is_integer(ms_value) do
+             is_integer(ms_precision) do
     is_hour(hour) and is_minute(minute) and is_second(second) and
       is_microsecond(ms_value, ms_precision)
   end
