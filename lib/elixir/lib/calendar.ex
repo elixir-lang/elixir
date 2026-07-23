@@ -914,20 +914,25 @@ defmodule Calendar do
 
   # Year as 2-digits
   defp format_modifiers("y" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      if datetime.year < 0 do
+        [?- | -datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)]
+      else
+        datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)
+      end
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Year
   defp format_modifiers("Y" <> rest, width, pad, datetime, format_options, acc) do
-    {sign, year} =
+    result =
       if datetime.year < 0 do
-        {?-, -datetime.year}
+        [?- | -datetime.year |> Integer.to_string() |> pad_leading(width, pad)]
       else
-        {[], datetime.year}
+        datetime.year |> Integer.to_string() |> pad_leading(width, pad)
       end
 
-    result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
     parse(rest, datetime, format_options, [result | acc])
   end
 
