@@ -479,13 +479,14 @@ defmodule ExUnit.CaptureIOTest do
 
     test "does not leak StringIO when named device does not exist" do
       capture_server = Process.whereis(ExUnit.CaptureServer)
-      {:monitored_by, monitored_by} = Process.info(capture_server, :monitored_by)
+      {:monitored_by, old_monitored_by} = Process.info(capture_server, :monitored_by)
 
       assert_raise RuntimeError, "could not find IO device registered at :unknown_device", fn ->
         capture_io(:unknown_device, fn -> :ok end)
       end
 
-      assert Process.info(capture_server, :monitored_by) == {:monitored_by, monitored_by}
+      {:monitored_by, new_monitored_by} = Process.info(capture_server, :monitored_by)
+      assert new_monitored_by -- old_monitored_by == []
     end
 
     test "no leakage on failures" do
