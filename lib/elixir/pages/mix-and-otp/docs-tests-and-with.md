@@ -181,7 +181,7 @@ defmodule KV.Command do
 end
 ```
 
-Before we implement this function, let's change our server to start using our new `parse/1` and `run/1` functions. Remember, our `read_line/1` function was also crashing when the client closed the socket, so let's take the opportunity to fix it, too. Open up `lib/kv/server.ex` and replace the existing server definition:
+Before we implement this function, let's change our server to start using our new `parse/1` and `run/2` functions. Remember, our `read_line/1` function was also crashing when the client closed the socket, so let's take the opportunity to fix it, too. Open up `lib/kv/server.ex` and replace the existing server definition:
 
 ```elixir
   defp serve(socket) do
@@ -289,7 +289,7 @@ You can read more about `with/1` in our documentation.
 
 ## Running commands
 
-The last step is to implement `KV.Command.run/1` to run the parsed commands on top of buckets. Its implementation is shown below:
+The last step is to implement `KV.Command.run/2` to run the parsed commands on top of buckets. Its implementation is shown below:
 
 ```elixir
   @doc """
@@ -354,7 +354,7 @@ Our server functionality is almost complete. Only tests are missing.
 
 ## Integration tests
 
-`KV.Command.run/1`'s implementation is sending commands directly to the `KV` module, which is using a local registry to name processes. This means if we have two tests sending messages to the same bucket, our tests will conflict with each other (and likely fail). One might think this would be a reason to use mocks and other strategies to keep our tests isolated, but such techniques often make our testing environment too distant from how our code actually runs in production, and you may end-up with bugs lurking.
+`KV.Command.run/2`'s implementation is sending commands directly to the `KV` module, which is using a local registry to name processes. This means if we have two tests sending messages to the same bucket, our tests will conflict with each other (and likely fail). One might think this would be a reason to use mocks and other strategies to keep our tests isolated, but such techniques often make our testing environment too distant from how our code actually runs in production, and you may end-up with bugs lurking.
 
 Luckily, there is a technique that we have been using throughout this guide that would be equally applicable here: it is ok to rely on the local registry as long as each test uses unique names. Using a combination of the test module and test name is more than enough to guarantee that.
 

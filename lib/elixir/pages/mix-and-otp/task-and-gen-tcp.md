@@ -221,7 +221,7 @@ Let's change `start/2` in `lib/kv.ex` once more, to add the task supervisor to o
   end
 ```
 
-We'll now start a `Task.Supervisor` process with name `KV.TaskSupervisor`. Keep in mind that the order children are started matters. For example, the acceptor must come last because, if it comes first, it means our application can start accepting requests before the `Task.Supervisor` is running or before we can locate buckets. Shutting down an application will also stop the children in reverse order, guaranteeing a clean termination.
+We'll now start a `Task.Supervisor` process with name `KV.ServerSupervisor`. Keep in mind that the order children are started matters. For example, the acceptor must come last because, if it comes first, it means our application can start accepting requests before the `Task.Supervisor` is running or before we can locate buckets. Shutting down an application will also stop the children in reverse order, guaranteeing a clean termination.
 
 Now we need to change `loop_acceptor/1` to use `Task.Supervisor` to serve each request:
 

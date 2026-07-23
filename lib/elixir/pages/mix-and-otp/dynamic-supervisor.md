@@ -72,7 +72,7 @@ Given our buckets can already be supervised, you may be thinking to start them a
 
 ```elixir
 children = [
-  {Registry, name: KV, keys: :unique}
+  {Registry, name: KV, keys: :unique},
   {KV.Bucket, name: {:via, Registry, {KV, "shopping"}}}
 ]
 ```
@@ -223,7 +223,7 @@ Not only that, as you create new buckets on the terminal, you should see new pro
 
 ```elixir
 iex> KV.create_bucket("shopping")
-#PID<0.89.0>
+{:ok, #PID<0.89.0>}
 ```
 
 We will leave it up to you to further explore what Observer provides. Note you can double-click any process in the supervision tree to retrieve more information about it, as well as right-click a process to send "a kill signal", a perfect way to emulate failures and see if your supervisor reacts as expected.

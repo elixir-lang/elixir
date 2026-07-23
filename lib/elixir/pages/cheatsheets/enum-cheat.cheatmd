@@ -689,14 +689,14 @@ iex> Enum.map_join(cart, ", ", & &1.fruit)
 "apple, banana, orange"
 ```
 
-### [`intersperse(enum, separator \\ "")`](`Enum.intersperse/2`)
+### [`intersperse(enumerable, separator)`](`Enum.intersperse/2`)
 
 ```elixir
 iex> Enum.intersperse(["apple", "banana", "orange"], ", ")
 ["apple", ", ", "banana", ", ", "orange"]
 ```
 
-### [`map_intersperse(enum, separator \\ "", mapper)`](`Enum.map_intersperse/3`)
+### [`map_intersperse(enumerable, separator, mapper)`](`Enum.map_intersperse/3`)
 
 ```elixir
 iex> Enum.map_intersperse(cart, ", ", & &1.fruit)
@@ -976,7 +976,7 @@ iex> Enum.chunk_every(cart, 2)
 ]
 ```
 
-### [`chunk_every(enum, count, step, leftover \\ [])`](`Enum.chunk_every/2`)
+### [`chunk_every(enum, count, step, leftover \\ [])`](`Enum.chunk_every/4`)
 
 ```elixir
 iex> Enum.chunk_every(cart, 2, 2, [:elements, :to_complete])
@@ -1019,7 +1019,7 @@ iex> Enum.zip(fruits, counts)
 
 See `Enum.zip/1` for zipping many collections at once.
 
-### [`zip_with(enum1, enum2, fun)`](`Enum.zip_with/2`)
+### [`zip_with(enum1, enum2, fun)`](`Enum.zip_with/3`)
 
 ```elixir
 iex> fruits = ["apple", "banana", "orange"]
