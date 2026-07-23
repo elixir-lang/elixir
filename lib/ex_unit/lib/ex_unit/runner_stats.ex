@@ -25,7 +25,7 @@ defmodule ExUnit.RunnerStats do
     GenServer.call(sup, :get_failure_counter)
   end
 
-  @spec increment_failure_counter(pid) :: pos_integer
+  @spec increment_failure_counter(pid, pos_integer) :: non_neg_integer
   def increment_failure_counter(sup, increment \\ 1)
       when is_pid(sup) and is_integer(increment) and increment >= 1 do
     GenServer.call(sup, {:increment_failure_counter, increment})
