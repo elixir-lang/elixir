@@ -472,5 +472,12 @@ defmodule CalendarTest do
       assert Calendar.strftime(Date.new!(-111, 1, 1), "%Y") == "-0111"
       assert Calendar.strftime(Date.new!(-1111, 1, 1), "%Y") == "-1111"
     end
+
+    test "zero padding for negative year as 2-digits" do
+      assert Calendar.strftime(Date.new!(-1, 1, 1), "%y") == "-01"
+      assert Calendar.strftime(Date.new!(-11, 1, 1), "%y") == "-11"
+      assert Calendar.strftime(Date.new!(-100, 1, 1), "%y") == "-00"
+      assert Calendar.strftime(Date.new!(-101, 1, 1), "%y") == "-01"
+    end
   end
 end
