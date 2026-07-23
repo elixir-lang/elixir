@@ -38,6 +38,7 @@ defmodule IEx.Server do
     * `:prefix` - the IEx prefix
     * `:env` - the `Macro.Env` used for the evaluator
     * `:binding` - an initial set of variables for the evaluator
+    * `:dot_iex` - the path to the `.iex.exs` file to load; an empty string skips loading one
     * `:on_eof` - if it should `:stop_evaluator` (default) or `:halt` the system
     * `:register` - if this shell should be registered in the broker (default is `true`)
 
