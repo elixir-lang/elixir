@@ -450,7 +450,7 @@ defmodule IEx do
           alive_prompt: String.t(),
           colors: colors_opts(),
           default_prompt: String.t(),
-          dot_iex: String.t() | nil,
+          dot_iex: String.t(),
           history_size: integer(),
           inspect: inspect_opts(),
           parser: {module(), atom(), [any()]},
