@@ -268,7 +268,7 @@ defmodule ExUnitTest do
     configure_and_reload_on_exit(slowest_modules: 2)
 
     output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d+.\d% of total time:"
+    assert output =~ ~r"Top 2 slowest modules \(\d+\.\d+s\), \d+.\d% of total time:"
     assert output =~ ~r"SlowestTestModule \(.+ms\)"
     assert output =~ ~r"SlowerTestModule \(.+ms\)"
   end
