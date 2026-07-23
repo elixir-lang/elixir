@@ -335,7 +335,7 @@ defmodule ExUnit.CLIFormatter do
     percentage = Float.round(slowest_us / run_us * 100, 1)
 
     [
-      "\nTop #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n\n"
+      "\nTop #{slowest} slowest modules (#{slowest_time}s), #{percentage}% of total time:\n\n"
       | Enum.map(slowest_tests, &format_slow_module/1)
     ]
   end
