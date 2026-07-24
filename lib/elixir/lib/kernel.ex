@@ -4960,6 +4960,7 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
+  @spec binary_slice(binary, integer, non_neg_integer) :: binary
   def binary_slice(binary, start, size)
       when is_binary(binary) and is_integer(start) and is_integer(size) and size >= 0 do
     total = byte_size(binary)
@@ -5033,6 +5034,7 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
+  @spec binary_slice(binary, Range.t()) :: binary
   def binary_slice(binary, first..last//step)
       when is_binary(binary) and step > 0 do
     total = byte_size(binary)
