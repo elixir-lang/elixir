@@ -5286,100 +5286,93 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_bdd_fetch_static(bdd, index) do
-    bdd
-    |> tuple_bdd_to_dnf_with_negations()
-    |> Enum.reduce({none(), false}, fn
-      # Optimization: if there are no negatives
-      {tag, elements, []}, {acc_descr, acc_optional?} ->
-        {descr, optional?} = tuple_fetch_element(elements, index, tag)
-        {opt_union(descr, acc_descr), optional? or acc_optional?}
+    {descr, optional?} =
+      bdd
+      |> tuple_bdd_to_dnf_with_negations()
+      |> Enum.reduce_while({none(), false}, fn
+        # Optimization: if there are no negatives
+        {tag, elements, []}, {acc_descr, acc_optional?} ->
+          {descr, optional?} = tuple_fetch_element(elements, index, tag)
 
-      {tag, elements, negs}, {acc_descr, acc_optional?} ->
-        {_, value, bdd} = tuple_take_element(elements, index, tag)
+          {opt_union(descr, acc_descr), optional? or acc_optional?}
+          |> tuple_fetch_halt_if_saturated()
 
-        case tuple_split_negative_pairs_index(negs, index) do
-          :empty ->
-            {acc_descr, acc_optional?}
+        {tag, elements, negs}, {acc_descr, acc_optional?} = acc ->
+          result =
+            case tuple_take_element(elements, index, tag) do
+              :empty ->
+                acc
 
-          negative ->
-            value =
-              if tuple_pair_projection_keeps_full_fst?(negative, bdd) do
-                value
-              else
-                negs
-                |> tuple_split_negative(index, value, bdd)
-                |> Enum.reduce({none(), false}, fn {field, _}, acc ->
-                  field_opt_union(field, acc, %{})
-                end)
-              end
+              {value, bdd} ->
+                negative = tuple_split_negative_pairs(negs, index)
 
-            {descr, optional?} = value
-            {opt_union(descr, acc_descr), optional? or acc_optional?}
-        end
-    end)
-  catch
-    :open -> {term(), true}
+                value =
+                  if tuple_pair_projection_keeps_full_fst?(negative, bdd) do
+                    value
+                  else
+                    negative
+                    |> tuple_project_negative_pairs(value, bdd)
+                    |> Enum.reduce(none(), fn {field, _}, acc ->
+                      opt_union(field, acc)
+                    end)
+                  end
+
+                {opt_union(value, acc_descr), acc_optional?}
+            end
+
+          tuple_fetch_halt_if_saturated(result)
+      end)
+
+    {descr, optional? or not tuple_of_size_at_least_static?(%{tuple: bdd}, index + 1)}
   end
 
-  # Remove negatives:
-  # {t, s} \ {t₁, s₁} = {t \ t₁, s} ∪ {t ∩ t₁, s \ s₁}
-  defp tuple_split_negative(negs, index, value, bdd) do
-    Enum.reduce(negs, [{value, bdd}], fn
-      bdd_leaf(:open, []), _acc ->
-        throw(:empty)
+  defp tuple_fetch_halt_if_saturated({:term, true} = result), do: {:halt, result}
+  defp tuple_fetch_halt_if_saturated(result), do: {:cont, result}
 
-      bdd_leaf(neg_tag, neg_elements), acc ->
-        {found?, neg_value, neg_bdd} = tuple_take_element(neg_elements, index, neg_tag)
+  # Projects a difference of field/remainder products. The literals
+  # have been mapped through the inverse image of tuple insertion, so
+  # no optional-field cases remain.
+  # Removal formula is {t, s} \ {t₁, s₁} = {t \ t₁, s} ∪ {t ∩ t₁, s \ s₁}
+  defp tuple_project_negative_pairs(negative, value, bdd) do
+    Enum.reduce(negative, [{value, bdd}], fn {neg_value, neg_bdd}, acc ->
+      Enum.reduce(acc, [], fn {field, bdd}, acc ->
+        # If the negative tag is closed, then they are likely disjoint,
+        # so we can drastically cut down the amount of operations.
+        if match?(bdd_leaf(:closed, _), neg_bdd) and
+             tuple_empty?(tuple_intersection(bdd, neg_bdd), %{}) do
+          [{field, bdd} | acc]
+        else
+          intersection_field = opt_intersection(field, neg_value)
 
-        if not found? and neg_tag == :open do
-          # In case the tuple is open, t \ t₁ is always empty,
-          # t ∩ t₁ is always t, so we just need to deal with the bdd.
-          Enum.reduce(acc, [], fn {field, bdd}, acc ->
+          if empty?(intersection_field) do
+            [{field, bdd} | acc]
+          else
             diff_bdd = tuple_difference(bdd, neg_bdd)
 
             if tuple_empty?(diff_bdd, %{}) do
-              acc
+              prepend_tuple_pair_unless_empty_diff(field, neg_value, bdd, acc)
             else
-              [{field, diff_bdd} | acc]
+              acc = [{intersection_field, diff_bdd} | acc]
+              prepend_tuple_pair_unless_empty_diff(field, neg_value, bdd, acc)
             end
-          end)
-        else
-          Enum.reduce(acc, [], fn {field, bdd}, acc ->
-            # If the negative tag is closed, then they are likely disjoint,
-            # so we can drastically cut down the amount of operations.
-            if neg_tag == :closed and tuple_empty?(tuple_intersection(bdd, neg_bdd), %{}) do
-              [{field, bdd} | acc]
-            else
-              intersection_field = field_intersection(field, neg_value)
-
-              if field_empty?(intersection_field) do
-                [{field, bdd} | acc]
-              else
-                diff_bdd = tuple_difference(bdd, neg_bdd)
-
-                if tuple_empty?(diff_bdd, %{}) do
-                  prepend_map_pair_unless_empty_diff(field, neg_value, bdd, acc)
-                else
-                  acc = [{intersection_field, diff_bdd} | acc]
-                  prepend_map_pair_unless_empty_diff(field, neg_value, bdd, acc)
-                end
-              end
-            end
-          end)
+          end
         end
+      end)
     end)
-  catch
-    :empty -> []
   end
 
-  defp tuple_split_negative_pairs_index(negs, index) do
-    Enum.reduce_while(negs, [], fn
-      bdd_leaf(:open, []), _acc ->
-        {:halt, :empty}
+  defp prepend_tuple_pair_unless_empty_diff(value, neg_value, bdd, acc) do
+    diff = opt_difference(value, neg_value)
+    if empty?(diff), do: acc, else: [{diff, bdd} | acc]
+  end
 
-      bdd_leaf(tag, elements), neg_acc ->
-        {_found?, neg_value, neg_bdd} = tuple_take_element(elements, index, tag)
-        {:cont, [{neg_value, neg_bdd} | neg_acc]}
+  # Splits every negative tuple literal into its value/remainder pair at `index`.
+  defp tuple_split_negative_pairs(negs, index) do
+    Enum.reduce(negs, [], fn bdd_leaf(tag, elements), acc ->
+      case tuple_take_element(elements, index, tag) do
+        :empty -> acc
+        pair -> [pair | acc]
+      end
     end)
   end
 
@@ -5399,11 +5392,11 @@ defmodule Module.Types.Descr do
 
   defp tuple_pair_projection_keeps_full_snd?(negative, value) do
     neg_values =
-      Enum.reduce(negative, {none(), false}, fn {neg_value, _neg_bdd}, acc ->
-        field_union(neg_value, acc)
+      Enum.reduce(negative, none(), fn {neg_value, _neg_bdd}, acc ->
+        opt_union(neg_value, acc)
       end)
 
-    not field_empty?(field_difference(value, neg_values))
+    not empty?(opt_difference(value, neg_values))
   end
 
   defp tuple_fetch_element([], _, :open), do: {term(), true}
@@ -5411,19 +5404,20 @@ defmodule Module.Types.Descr do
   defp tuple_fetch_element([h | _], 0, _tag), do: {h, false}
   defp tuple_fetch_element([_ | t], i, tag), do: tuple_fetch_element(t, i - 1, tag)
 
+  # Computes the inverse image of a tuple literal under insertion at `index`:
+  # {value, remainder} represents all pairs whose insertion belongs to the
+  # literal.
   defp tuple_take_element(elements, index, tag) do
     case do_tuple_take_element(elements, index, []) do
-      :error -> {false, tuple_tag_to_field(tag), tuple_new(tag, elements)}
-      {value, elements} -> {true, {value, false}, tuple_new(tag, elements)}
+      :error when tag == :closed -> :empty
+      :error -> {term(), tuple_new(:open, tuple_fill(elements, index))}
+      {value, elements} -> {value, tuple_new(tag, elements)}
     end
   end
 
   defp do_tuple_take_element([], _, _), do: :error
   defp do_tuple_take_element([h | t], 0, acc), do: {h, Enum.reverse(acc, t)}
   defp do_tuple_take_element([h | t], i, acc), do: do_tuple_take_element(t, i - 1, [h | acc])
-
-  defp tuple_tag_to_field(:open), do: {term(), true}
-  defp tuple_tag_to_field(:closed), do: {none(), false}
 
   @doc """
   Returns all of the values that are part of a tuple.
@@ -5526,22 +5520,27 @@ defmodule Module.Types.Descr do
       |> tuple_bdd_to_dnf_with_negations()
       |> Enum.reduce(:bdd_bot, fn
         {tag, elements, []}, acc ->
-          {_, _, bdd} = tuple_take_element(elements, index, tag)
-          opt_tuple_union(bdd, acc)
-
-        {tag, elements, negs}, acc ->
-          {_, value, bdd} = tuple_take_element(elements, index, tag)
-
-          case tuple_split_negative_pairs_index(negs, index) do
+          case tuple_take_element(elements, index, tag) do
             :empty ->
               acc
 
-            negative ->
+            {_value, bdd} ->
+              opt_tuple_union(bdd, acc)
+          end
+
+        {tag, elements, negs}, acc ->
+          case tuple_take_element(elements, index, tag) do
+            :empty ->
+              acc
+
+            {value, bdd} ->
+              negative = tuple_split_negative_pairs(negs, index)
+
               if tuple_pair_projection_keeps_full_snd?(negative, value) do
                 opt_tuple_union(bdd, acc)
               else
-                negs
-                |> tuple_split_negative(index, value, bdd)
+                negative
+                |> tuple_project_negative_pairs(value, bdd)
                 |> Enum.reduce(acc, fn {_, bdd}, acc -> opt_tuple_union(bdd, acc) end)
               end
           end

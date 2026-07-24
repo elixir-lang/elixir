@@ -1976,6 +1976,24 @@ defmodule Module.Types.DescrTest do
       assert tuple_fetch(tuple(), 0) == :badindex
 
       assert tuple_fetch(projected_negative_tuple(200), 1) == {false, term()}
+
+      for minimum_size <- 1..4 do
+        by_negation =
+          Enum.reduce(0..(minimum_size - 1), open_tuple([]), fn arity, acc ->
+            opt_difference(acc, tuple(List.duplicate(term(), arity)))
+          end)
+
+        for index <- 0..(minimum_size - 1) do
+          assert tuple_fetch(by_negation, index) == {false, term()}
+        end
+      end
+
+      # Optionality is not representation-dependent.
+      with_optional = opt_union(tuple([list(term()), empty_map()]), tuple([term()]))
+      rewritten = opt_difference(term(), opt_difference(term(), with_optional))
+      assert equal?(with_optional, rewritten)
+      assert tuple_fetch(with_optional, 1) == :badindex
+      assert tuple_fetch(rewritten, 1) == :badindex
     end
 
     test "tuple_fetch with dynamic" do
@@ -2051,6 +2069,35 @@ defmodule Module.Types.DescrTest do
       assert dynamic(opt_union(tuple(), integer()))
              |> tuple_delete_at(1)
              |> equal?(dynamic(tuple_of_size_at_least(1)))
+
+      # Deletion must be independent of representation.
+      # Size lower bounds carried only by closed negations must project exactly,
+      # at every valid index and independently of their BDD representation.
+      for minimum_size <- 1..6 do
+        canonical = open_tuple(List.duplicate(term(), minimum_size))
+
+        by_negation =
+          Enum.reduce(0..(minimum_size - 1), open_tuple([]), fn arity, acc ->
+            opt_difference(acc, tuple(List.duplicate(term(), arity)))
+          end)
+
+        assert equal?(canonical, by_negation)
+
+        expected = open_tuple(List.duplicate(term(), minimum_size - 1))
+
+        for index <- 0..(minimum_size - 1) do
+          assert by_negation
+                 |> tuple_delete_at(index)
+                 |> equal?(expected)
+        end
+      end
+
+      # An open negative whose explicit prefix stops before the deleted index
+      # must still have an exact insertion inverse image.
+      assert open_tuple([term(), term()])
+             |> opt_difference(open_tuple([atom()]))
+             |> tuple_delete_at(1)
+             |> equal?(opt_difference(open_tuple([term()]), open_tuple([atom()])))
     end
 
     test "tuple_insert_at" do
