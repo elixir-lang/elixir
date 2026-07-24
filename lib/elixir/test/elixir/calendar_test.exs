@@ -340,6 +340,16 @@ defmodule CalendarTest do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%010A") == "00Thursday"
     end
 
+    test "measures padding width in graphemes" do
+      assert Calendar.strftime(%{month: 9}, "%10B", month_names: fn _month -> "вересень" end) ==
+               "  вересень"
+    end
+
+    test "measures preferred format padding width" do
+      assert Calendar.strftime(~N[2019-08-15 17:07:57], "%20c") ==
+               "02019-08-15 17:07:57"
+    end
+
     test "limits width to at most 1024 characters" do
       assert Calendar.strftime(~D[2019-08-15], "%1024d") |> byte_size() == 1024
 
