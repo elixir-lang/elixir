@@ -903,7 +903,7 @@ defmodule Enum do
 
   def drop(enumerable, amount) when is_integer(amount) and amount < 0 do
     {count, fun} = slice_count_and_fun(enumerable, 1)
-    amount = Kernel.min(amount + count, count)
+    amount = amount + count
 
     if amount > 0 do
       fun.(0, amount, 1)
