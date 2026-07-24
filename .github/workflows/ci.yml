@@ -97,6 +97,10 @@ jobs:
           name: TestCoverage
           path: cover/*
 
+      - name: Check specs vs inferred type signatures
+        if: ${{ matrix.deterministic }}
+        run: make check_specs
+
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
         run: taskset 1 make check_reproducible

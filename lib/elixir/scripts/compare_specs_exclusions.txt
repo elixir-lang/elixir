@@ -1,0 +1,83 @@
+# Acknowledged spec-vs-inference divergences, consumed by
+# lib/elixir/scripts/compare_specs_and_signatures.exs --exclusions <this file>
+# (CI entry point: make check_specs).
+#
+# One Module.function/arity per line; anything after "#" is a comment.
+# Every entry below was triaged: intentional API contracts and abstractions
+# (e.g. Enumerable.t() opacity), approximation artifacts of the
+# spec-to-descr translation (function types, Macro.t(), iodata()), or specs
+# using constructs the translator cannot express -- not checker bugs.
+#
+# Maintenance: when a spec or inference change removes a divergence, the tool
+# reports the entry as stale -- delete the line. A NEW divergence or a newly
+# untranslatable spec fails the gate; triage it (is the spec wrong? is
+# inference wrong? is it intentional? does the translator need a new
+# construct?) before adding it here with a comment.
+Access.all/0                               # mixed
+Access.at!/1                               # mixed
+Access.at/1                                # mixed
+Access.elem/1                              # mixed
+Access.filter/1                            # mixed
+Access.find/1                              # mixed
+Access.key!/1                              # mixed
+Access.key/2                               # mixed
+Access.slice/1                             # mixed
+Access.values/0                            # mixed
+Calendar.ISO.date_to_iodata/4              # mixed
+Calendar.ISO.naive_datetime_to_iodata/8    # mixed
+Calendar.ISO.parse_naive_datetime/1        # mixed
+Calendar.ISO.parse_naive_datetime/2        # mixed
+Calendar.ISO.parse_time/1                  # mixed
+Calendar.ISO.parse_time/2                  # mixed
+Calendar.ISO.parse_utc_datetime/1          # mixed
+Calendar.ISO.parse_utc_datetime/2          # mixed
+Calendar.ISO.time_to_iodata/5              # mixed
+Code.Typespec.spec_to_quoted/2             # mixed
+Config.__env__!/0                          # mixed
+Config.__target__!/0                       # mixed
+Date.from_erl/2                            # mixed
+Date.from_iso8601/2                        # mixed
+Date.new/4                                 # mixed
+DateTime.from_iso8601/2                    # mixed
+DateTime.from_iso8601/3                    # mixed
+DateTime.from_unix/3                       # mixed
+ExUnit.Filters.parse_paths/1               # mixed
+ExUnit.async_run/0                         # mixed
+ExUnit.configuration/0                     # mixed
+File.rm_rf/1                               # mixed
+IEx.Pry.annotate_quoted/3                  # mixed
+IEx.Pry.whereami/3                         # mixed
+Inspect.Algebra.container_doc_with_opts/6  # mixed
+Kernel.exit/1                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+Kernel.throw/1                             # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+Keyword.put/3                              # mixed
+List.insert_at/3                           # mixed: inference proves non-empty return but over-approximates the tail; list() spec is correct
+Keyword.replace!/3                         # mixed
+Keyword.update!/3                          # mixed
+Keyword.update/4                           # mixed
+Logger.Backends.Internal.add/2             # mixed
+Macro.Env.location/1                       # mixed: inference proves non-empty return with term() elements; keyword spec is correct
+Macro.Env.stacktrace/1                     # mixed: inference proves non-empty return with wider tuple elements; spec is correct
+Macro.Env.expand_import/5                  # mixed
+Macro.Env.expand_require/6                 # mixed
+Macro.Env.prepend_tracer/2                 # mixed
+Macro.Env.prune_compile_info/1             # mixed
+Macro.Env.to_guard/1                       # mixed
+Macro.Env.to_match/1                       # mixed
+Macro.decompose_call/1                     # mixed
+Macro.pipe/3                               # mixed
+Macro.unique_var/2                         # mixed
+Mix.Project.get!/0                         # mixed
+Mix.Release.from_config!/3                 # mixed
+Mix.Tasks.Format.formatter_for_file/2      # mixed
+Mix.raise/1                                # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+NaiveDateTime.from_iso8601/2               # mixed
+Process.hibernate/3                        # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+System.halt/0                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+System.halt/1                              # mixed: no_return() spec is correct; inference over-approximates the BIF delegation
+Task.async/1                               # mixed
+Task.async/3                               # mixed
+Time.convert/2                             # mixed
+Time.from_iso8601/2                        # mixed
+URI.append_path/2                          # mixed
+URI.append_query/2                         # mixed
