@@ -689,14 +689,14 @@ iex> Enum.map_join(cart, ", ", & &1.fruit)
 "apple, banana, orange"
 ```
 
-### [`intersperse(enumerable, separator)`](`Enum.intersperse/2`)
+### [`intersperse(enum, separator)`](`Enum.intersperse/2`)
 
 ```elixir
 iex> Enum.intersperse(["apple", "banana", "orange"], ", ")
 ["apple", ", ", "banana", ", ", "orange"]
 ```
 
-### [`map_intersperse(enumerable, separator, mapper)`](`Enum.map_intersperse/3`)
+### [`map_intersperse(enum, separator, mapper)`](`Enum.map_intersperse/3`)
 
 ```elixir
 iex> Enum.map_intersperse(cart, ", ", & &1.fruit)
