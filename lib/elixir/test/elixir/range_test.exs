@@ -65,6 +65,10 @@ defmodule RangeTest do
     assert Range.shift(10..0//-2, -2) == 14..4//-2
   end
 
+  test "size of a single-element range with a negative step" do
+    assert Range.size(1..1//-4) == 1
+  end
+
   test "in guard equality" do
     case {1, 1..1} do
       {n, range} when range == n..n//1 -> true
@@ -116,6 +120,10 @@ defmodule RangeTest do
       assert Range.disjoint?(1..1//-2, 1..1//-2) == false
       assert Range.disjoint?(3..3//-3, 1..5) == false
       assert Range.disjoint?(1..5, 3..3//-3) == false
+    end
+
+    test "normalizes unaligned descending ranges to their actual bounds" do
+      refute Range.disjoint?(27..11//-3, 26..0//-5)
     end
   end
 
