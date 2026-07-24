@@ -998,14 +998,14 @@ defmodule Calendar do
     raise ArgumentError, "invalid strftime format: %#{next}"
   end
 
-  defp pad_preferred(result, width, pad) when length(result) < width do
-    pad_preferred([pad | result], width, pad)
+  defp pad_preferred(result, width, pad) do
+    result
+    |> IO.iodata_to_binary()
+    |> pad_leading(width, pad)
   end
 
-  defp pad_preferred(result, _width, _pad), do: result
-
   defp pad_leading(string, count, padding) do
-    to_pad = count - byte_size(string)
+    to_pad = count - String.length(string)
     if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
   end
 
