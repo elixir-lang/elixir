@@ -81,7 +81,7 @@ You can represent all _proper_ lists as `list()`, which also includes the empty 
 
 You can also specify the type of the list element as argument. For example, `list(integer())` represents the values `[]` and `[1, 2, 3]`, but not `[1, "two", 3]`.
 
-Internally, Elixir represents the type `list(a)` as the union two distinct types, `empty_list()` and `not_empty_list(a)`. In other words, `list(integer())` is equivalent to `empty_list() or non_empty_list(integer())`.
+Internally, Elixir represents the type `list(a)` as the union two distinct types, `empty_list()` and `non_empty_list(a)`. In other words, `list(integer())` is equivalent to `empty_list() or non_empty_list(integer())`.
 
 #### Improper lists
 

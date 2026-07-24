@@ -225,9 +225,9 @@ end
 The following spec syntaxes are equivalent:
 
 ```elixir
-@type options [{:name, String.t} | {:max, pos_integer} | {:min, pos_integer}]
+@type options :: [{:name, String.t} | {:max, pos_integer} | {:min, pos_integer}]
 
-@type options [name: String.t, max: pos_integer, min: pos_integer]
+@type options :: [name: String.t, max: pos_integer, min: pos_integer]
 ```
 
 ### User-defined types
@@ -368,10 +368,9 @@ def parse_path(filename, parsers) do
 end
 
 defp parse_extension(filename) do
-  if ext = Path.extname(filename) do
-    {:ok, ext}
-  else
-    {:error, :no_extension}
+  case Path.extname(filename) do
+    "" -> {:error, :no_extension}
+    ext -> {:ok, ext}
   end
 end
 

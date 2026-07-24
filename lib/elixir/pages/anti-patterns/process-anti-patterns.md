@@ -279,7 +279,7 @@ defmodule Counter do
 
   @doc "Bumps the value of the given counter."
   def bump(name \\ __MODULE__, value) do
-    Agent.get_and_update(fn state -> {state, value + state} end)
+    Agent.get_and_update(name, fn state -> {state, value + state} end)
   end
 end
 ```
