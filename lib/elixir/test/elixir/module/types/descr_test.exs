@@ -3339,7 +3339,7 @@ defmodule Module.Types.DescrTest do
       # An empty map component that survives syntactically (open_map(c: none())
       # is a non-normalized empty, equal to none()) must report :badmap like
       # none(), not {:ok, <inhabited>}.
-      a2 = open_map(c: none())
+      a2 = open_map(c: {none(), false})
       assert equal?(none(), a2)
       assert map_put(none(), atom([:a]), integer()) == :badmap
       assert map_put(a2, atom([:a]), integer()) == :badmap
