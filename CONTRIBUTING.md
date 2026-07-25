@@ -223,10 +223,11 @@ agents in Elixir spaces:
     use coding agents to implement it, as long as it follows the AI Contributions
     guidelines below.
 
-  * When automating AI usage on the Elixir codebase for performance improvements
-    or security fixes, pair it with a separate set of agents whose job is to argue
-    against and try to invalidate any proposed change. And treat their approval as
-    advisory: a human must still validate it before opening issues or pull requests.
+  * When automating AI usage on the Elixir codebase for performance improvements,
+    security fixes, or correctness changes to the compiler or type system, pair it
+    with a separate set of agents whose job is to argue against and try to invalidate
+    any proposed change. And treat their approval as advisory: a human must still
+    validate it before opening issues or pull requests.
 
 If any code is written by AI, then you must follow the guidelines below.
 

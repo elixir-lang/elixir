@@ -149,6 +149,30 @@ defmodule Module.Types.ExprTest do
                    non_empty_list(term(), term())
                """
     end
+
+    test "++" do
+      assert typecheck!([x], [] ++ String.to_integer(x)) == integer()
+      assert typecheck!([x], [x] ++ []) == non_empty_list(dynamic())
+
+      assert typeerror!([x], String.to_integer(x) ++ []) |> strip_ansi() =~
+               ~l"""
+               incompatible types given to Kernel.++/2:
+
+                   String.to_integer(x) ++ []
+
+               given types:
+
+                   integer(), empty_list()
+
+               but expected one of:
+
+                   #1
+                   empty_list(), term()
+
+                   #2
+                   non_empty_list(term()), term()
+               """
+    end
   end
 
   describe "funs" do
@@ -407,7 +431,7 @@ defmodule Module.Types.ExprTest do
                  123 = x.baz_bat
                  x
                )
-             ) == dynamic(open_map(foo_bar: atom([:foo]), baz_bat: integer()))
+             ) == dynamic(open_map(foo_bar: {atom([:foo]), false}, baz_bat: {integer(), false}))
     end
 
     test "infers args" do
@@ -418,6 +442,13 @@ defmodule Module.Types.ExprTest do
                  {x, y, z}
                )
              ) == dynamic(tuple([integer(), integer(), binary()]))
+    end
+
+    test "send returns the message" do
+      assert typecheck!(send(self(), {:msg, 1})) == tuple([atom([:msg]), integer()])
+
+      assert typeerror!(send(123, {:msg, 1})) =~
+               "incompatible types given to Kernel.send/2"
     end
 
     test "undefined function warnings" do
@@ -1035,8 +1066,8 @@ defmodule Module.Types.ExprTest do
 
   describe "maps" do
     test "creating maps as records" do
-      assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
-      assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
+      assert typecheck!(%{foo: :bar}) == closed_map(foo: {atom([:bar]), false})
+      assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: {term(), false}))
     end
 
     test "creating maps as records with dynamic keys" do
@@ -1045,7 +1076,7 @@ defmodule Module.Types.ExprTest do
                  foo = :foo
                  %{foo => :first, foo => :second}
                )
-             ) == closed_map(foo: atom([:second]))
+             ) == closed_map(foo: {atom([:second]), false})
 
       assert typecheck!(
                (
@@ -1059,10 +1090,14 @@ defmodule Module.Types.ExprTest do
                )
              )
              |> equal?(
-               closed_map(foo: atom([:second]))
-               |> opt_union(closed_map(bar: atom([:second])))
-               |> opt_union(closed_map(foo: atom([:first]), bar: atom([:second])))
-               |> opt_union(closed_map(bar: atom([:first]), foo: atom([:second])))
+               closed_map(foo: {atom([:second]), false})
+               |> opt_union(closed_map(bar: {atom([:second]), false}))
+               |> opt_union(
+                 closed_map(foo: {atom([:first]), false}, bar: {atom([:second]), false})
+               )
+               |> opt_union(
+                 closed_map(bar: {atom([:first]), false}, foo: {atom([:second]), false})
+               )
              )
     end
 
@@ -1072,10 +1107,7 @@ defmodule Module.Types.ExprTest do
       # Since key cannot override :foo based on position, we preserve it
       assert typecheck!([key], %{key => 456, foo: :bar}) ==
                dynamic(
-                 closed_map([
-                   {to_domain_keys(:term), integer()},
-                   {:foo, atom([:bar])}
-                 ])
+                 closed_map([{to_domain_keys(:term), integer()}, foo: {atom([:bar]), false}])
                )
 
       # Since key can override :foo based on position, we union it
@@ -1083,7 +1115,7 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  closed_map([
                    {to_domain_keys(:term), atom([:baz])},
-                   {:foo, atom([:bar, :baz])}
+                   foo: {atom([:bar, :baz]), false}
                  ])
                )
 
@@ -1095,10 +1127,7 @@ defmodule Module.Types.ExprTest do
                  %{:foo => :bar, key => :baz}
                )
              ) ==
-               closed_map([
-                 {domain_key(:integer), atom([:baz])},
-                 {:foo, atom([:bar])}
-               ])
+               closed_map([{domain_key(:integer), atom([:baz])}, foo: {atom([:bar]), false}])
 
       # Multiple keys are fully overridden for simplicity
       assert typecheck!(
@@ -1110,23 +1139,17 @@ defmodule Module.Types.ExprTest do
                )
              ) ==
                opt_union(
-                 closed_map([
-                   {domain_key(:integer), atom([:new])},
-                   {:foo, atom([:old])}
-                 ]),
-                 closed_map([
-                   {domain_key(:integer), atom([:new])},
-                   {:bar, atom([:old])}
-                 ])
+                 closed_map([{domain_key(:integer), atom([:new])}, foo: {atom([:old]), false}]),
+                 closed_map([{domain_key(:integer), atom([:new])}, bar: {atom([:old]), false}])
                )
     end
 
     test "updating to maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
-               dynamic(open_map(x: atom([:zero])))
+               dynamic(open_map(x: {atom([:zero]), false}))
 
       assert typecheck!([x], %{%{x | x: :zero} | y: :one}) ==
-               dynamic(open_map(x: atom([:zero]), y: atom([:one])))
+               dynamic(open_map(x: {atom([:zero]), false}, y: {atom([:one]), false}))
 
       assert typecheck!(
                (
@@ -1141,10 +1164,14 @@ defmodule Module.Types.ExprTest do
                )
              )
              |> equal?(
-               closed_map(key1: atom([:one]), key2: atom([:two!]))
-               |> opt_union(closed_map(key1: atom([:two!]), key2: atom([:one!])))
-               |> opt_union(closed_map(key1: atom([:one!]), key2: atom([:two!])))
-               |> opt_union(closed_map(key1: atom([:two!]), key2: atom([:two])))
+               closed_map(key1: {atom([:one]), false}, key2: {atom([:two!]), false})
+               |> opt_union(
+                 closed_map(key1: {atom([:two!]), false}, key2: {atom([:one!]), false})
+               )
+               |> opt_union(
+                 closed_map(key1: {atom([:one!]), false}, key2: {atom([:two!]), false})
+               )
+               |> opt_union(closed_map(key1: {atom([:two!]), false}, key2: {atom([:two]), false}))
              )
 
       assert typeerror!([x = :foo], %{x | x: :zero}) == ~l"""
@@ -1259,7 +1286,7 @@ defmodule Module.Types.ExprTest do
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == closed_map(foo: atom([:bar, :baz]))
+             ) == closed_map(foo: {atom([:bar, :baz]), false})
 
       # Override based on position
       assert typecheck!(
@@ -1268,7 +1295,7 @@ defmodule Module.Types.ExprTest do
                  x = %{foo: :bar, baz: :bat}
                  %{x | key => :old, foo: :new}
                )
-             ) == closed_map(foo: atom([:new]), baz: atom([:old, :bat]))
+             ) == closed_map(foo: {atom([:new]), false}, baz: {atom([:old, :bat]), false})
 
       assert typeerror!(
                [key],
@@ -1353,18 +1380,18 @@ defmodule Module.Types.ExprTest do
     test "creating structs" do
       assert typecheck!(%Point{}) ==
                closed_map(
-                 __struct__: atom([Point]),
-                 x: atom([nil]),
-                 y: atom([nil]),
-                 z: integer()
+                 __struct__: {atom([Point]), false},
+                 x: {atom([nil]), false},
+                 y: {atom([nil]), false},
+                 z: {integer(), false}
                )
 
       assert typecheck!(%Point{x: :zero}) ==
                closed_map(
-                 __struct__: atom([Point]),
-                 x: atom([:zero]),
-                 y: atom([nil]),
-                 z: integer()
+                 __struct__: {atom([Point]), false},
+                 x: {atom([:zero]), false},
+                 y: {atom([nil]), false},
+                 z: {integer(), false}
                )
     end
 
@@ -1403,11 +1430,11 @@ defmodule Module.Types.ExprTest do
       integer_date_type =
         dynamic(
           closed_map(
-            __struct__: atom([Date]),
-            day: integer(),
-            calendar: atom(),
-            month: term(),
-            year: term()
+            __struct__: {atom([Date]), false},
+            day: {integer(), false},
+            calendar: {atom(), false},
+            month: {term(), false},
+            year: {term(), false}
           )
         )
 
@@ -1918,6 +1945,16 @@ defmodule Module.Types.ExprTest do
                String.to_existing_atom(x, values)
              ) == dynamic(atom())
 
+      assert typecheck!(
+               [value],
+               String.to_existing_atom("foo", Enum.map(value, & &1))
+             ) == dynamic(atom())
+
+      assert typeerror!(
+               [condition, value],
+               String.to_existing_atom("foo", if(condition, do: value, else: []))
+             ) =~ "incompatible types given to String.to_existing_atom/2"
+
       assert typeerror!(
                [x],
                String.to_existing_atom(:not_a_string, x)
@@ -2151,7 +2188,7 @@ defmodule Module.Types.ExprTest do
 
                  x
                )
-             ) == dynamic(open_map(foo: term()))
+             ) == dynamic(open_map(foo: {term(), false}))
 
       assert typecheck!(
                [x, key],
@@ -2840,14 +2877,14 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  opt_union(
                    closed_map(
-                     __struct__: atom([ArgumentError]),
-                     __exception__: term(),
-                     message: term()
+                     __struct__: {atom([ArgumentError]), false},
+                     __exception__: {term(), false},
+                     message: {term(), false}
                    ),
                    closed_map(
-                     __struct__: atom([RuntimeError]),
-                     __exception__: term(),
-                     message: term()
+                     __struct__: {atom([RuntimeError]), false},
+                     __exception__: {term(), false},
+                     message: {term(), false}
                    )
                  )
                )
@@ -2862,8 +2899,8 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                open_map(
-                 __struct__: atom(),
-                 __exception__: term()
+                 __struct__: {atom(), false},
+                 __exception__: {term(), false}
                )
     end
 
@@ -3467,12 +3504,20 @@ defmodule Module.Types.ExprTest do
 
       assert typecheck!(URI.__info__(:struct)) ==
                list(
-                 closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
+                 closed_map(
+                   default: {term(), true},
+                   field: {atom(), false},
+                   required: {boolean(), true}
+                 )
                )
 
       assert typecheck!([x], x.__info__(:struct)) ==
                list(
-                 closed_map(default: if_set(term()), field: atom(), required: if_set(boolean()))
+                 closed_map(
+                   default: {term(), true},
+                   field: {atom(), false},
+                   required: {boolean(), true}
+                 )
                )
                |> opt_union(atom([nil]))
     end

@@ -102,6 +102,12 @@ defmodule IEx.HelpersTest do
                    fn -> break!(PryExampleModule, :unknown, 2) end
     end
 
+    test "errors when setting up a break for unknown expression" do
+      assert_raise ArgumentError, ~r"unknown expression to break on", fn ->
+        break!(123)
+      end
+    end
+
     test "errors for non-Elixir modules" do
       assert_raise RuntimeError,
                    "could not set breakpoint, module :maps was not written in Elixir",
@@ -1536,6 +1542,31 @@ defmodule IEx.HelpersTest do
     after
       # Clean up old version produced by the r helper
       cleanup_modules([Sample])
+    end
+
+    test "reloads Elixir modules from same file" do
+      filename = "sample.ex"
+
+      contents = """
+      defmodule Foo do
+        def hello, do: :foo
+      end
+
+      defmodule Bar do
+        def hello, do: :bar
+      end
+      """
+
+      with_file(filename, contents, fn ->
+        assert Enum.sort(c(filename, ".")) == [Bar, Foo]
+
+        assert capture_io(:stderr, fn ->
+                 assert {:reloaded, modules} = r([Bar, Foo])
+                 assert Enum.sort(modules) == [Bar, Foo]
+               end) =~ "redefining module Foo"
+      end)
+    after
+      cleanup_modules([Bar, Foo])
     end
 
     test "reloads Erlang modules" do

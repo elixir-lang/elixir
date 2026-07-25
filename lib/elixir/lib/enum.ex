@@ -618,7 +618,7 @@ defmodule Enum do
           acc,
           (element, acc -> {:cont, chunk, acc} | {:cont, acc} | {:halt, acc}),
           (acc -> {:cont, chunk, acc} | {:cont, acc})
-        ) :: Enumerable.t()
+        ) :: [chunk]
         when chunk: any
   def chunk_while(enumerable, acc, chunk_fun, after_fun) do
     {_, {res, acc}} =
@@ -666,7 +666,7 @@ defmodule Enum do
       [1, [2], 3, 4, 5, 6]
 
   """
-  @spec concat(t) :: t
+  @spec concat(Enumerable.t(Enumerable.t(elem))) :: [elem] when elem: term
   def concat(enumerables)
 
   def concat(list) when is_list(list) do
@@ -681,8 +681,8 @@ defmodule Enum do
   Concatenates the enumerable on the `right` with the enumerable on the
   `left`.
 
-  This function produces the same result as the `++/2` operator
-  for lists.
+  This function behaves similarly to the `++/2` operator with proper
+  lists, but applied to enumerables.
 
   ## Examples
 
@@ -693,7 +693,7 @@ defmodule Enum do
       [1, 2, 3, 4, 5, 6]
 
   """
-  @spec concat(t, t) :: t
+  @spec concat(Enumerable.t(elem), Enumerable.t(elem)) :: [elem] when elem: term
   def concat(left, right) when is_list(left) and is_list(right) do
     left ++ right
   end
@@ -4309,11 +4309,24 @@ defmodule Enum do
         empty.()
 
       _ ->
-        last = last - rem(last - first, step)
+        # The endpoint shortcut is only valid for sorters consistent with
+        # the natural integer order of the range elements, which is known
+        # to hold for the default sorters; any other sorter traverses the
+        # elements, seeded with the first one since the range is not empty
+        if fun == (&<=/2) or fun == (&>=/2) do
+          last = last - rem(last - first, step)
 
-        case fun.(first, last) do
-          true -> first
-          false -> last
+          case fun.(first, last) do
+            true -> first
+            false -> last
+          end
+        else
+          reduce_range(first + step, last, step, first, fn element, acc ->
+            case fun.(acc, element) do
+              true -> acc
+              false -> element
+            end
+          end)
         end
     end
   end

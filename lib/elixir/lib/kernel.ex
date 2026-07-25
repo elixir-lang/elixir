@@ -142,7 +142,7 @@ defmodule Kernel do
     * [Patterns and guards](patterns-and-guards.md) - an introduction to patterns,
       guards, and extensions
     * [Syntax reference](syntax-reference.md) - the language syntax reference
-    * [Typespecs reference](typespecs.md)- types and function specifications, including list of types
+    * [Typespecs reference](typespecs.md) - types and function specifications, including list of types
     * [Unicode syntax](unicode-syntax.md) - outlines Elixir support for Unicode
 
   ## Guards
@@ -3088,7 +3088,7 @@ defmodule Kernel do
   @doc """
   Pops a key from the given nested structure.
 
-  Uses the `Access` protocol to traverse the structures
+  Uses the `Access` behaviour to traverse the structures
   according to the given `keys`, unless the `key` is a
   function. If the key is a function, it will be invoked
   as specified in `get_and_update_in/3`.
@@ -4960,6 +4960,7 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
+  @spec binary_slice(binary, integer, non_neg_integer) :: binary
   def binary_slice(binary, start, size)
       when is_binary(binary) and is_integer(start) and is_integer(size) and size >= 0 do
     total = byte_size(binary)
@@ -5033,6 +5034,7 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
+  @spec binary_slice(binary, Range.t()) :: binary
   def binary_slice(binary, first..last//step)
       when is_binary(binary) and step > 0 do
     total = byte_size(binary)
@@ -5147,7 +5149,7 @@ defmodule Kernel do
   warning saying that a module has been redefined.
 
   There are some modules that Elixir does not currently implement but it
-  may be implement in the future. Those modules are reserved and defining
+  may implement in the future. Those modules are reserved and defining
   them will result in a compilation error:
 
       defmodule Any do
@@ -6377,7 +6379,7 @@ defmodule Kernel do
 
   ### Passing timeouts
 
-  You can also pass timeouts directly to this functions, that is, milliseconds or
+  You can also pass timeouts directly to this function, that is, milliseconds or
   the atom `:infinity`. In this case, this function just returns the given argument.
 
   ## Examples

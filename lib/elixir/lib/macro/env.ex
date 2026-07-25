@@ -203,7 +203,7 @@ defmodule Macro.Env do
   Returns a keyword list containing the file and line
   information as keys.
   """
-  @spec location(t) :: keyword
+  @spec location(t) :: [file: file, line: line]
   def location(env)
 
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
@@ -234,7 +234,7 @@ defmodule Macro.Env do
   > This function does not emit compiler tracing events,
   > which may block the compiler from correctly tracking
   > dependencies. Use this function for reflection purposes
-  > but to do not use it to expand imports into qualified
+  > but do not use it to expand imports into qualified
   > calls. Instead, use `expand_import/5`.
 
   ## Examples
@@ -394,7 +394,7 @@ defmodule Macro.Env do
 
     * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
       The function will be invoked with `:functions` or `:macros` argument.
-      It has to return a list of `{function, arity}` key value pairs.
+      It has to return a list of `{function, arity}` key-value pairs.
       If it fails, it defaults to using module metadata based on `module_info/1`.
 
   ## Examples
@@ -700,7 +700,7 @@ defmodule Macro.Env do
   @doc """
   Returns the environment stacktrace.
   """
-  @spec stacktrace(t) :: list
+  @spec stacktrace(t) :: [{module, atom, arity, keyword}]
   def stacktrace(%{__struct__: Macro.Env} = env) do
     cond do
       is_nil(env.module) ->

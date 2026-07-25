@@ -17,26 +17,26 @@ defmodule Module.Types.Expr do
   @try_catch atom([:error, :exit, :throw])
 
   @caller closed_map(
-            __struct__: atom([Macro.Env]),
-            aliases: aliases,
-            context: atom([:match, :guard, nil]),
-            context_modules: list_of_modules,
-            file: binary(),
-            function: opt_union(tuple([atom(), integer()]), atom([nil])),
-            functions: functions_and_macros,
-            lexical_tracker: opt_union(pid(), atom([nil])),
-            line: integer(),
-            macro_aliases: aliases,
-            macros: functions_and_macros,
-            module: atom(),
-            requires: list_of_modules,
-            tracers: list_of_modules,
-            versioned_vars: open_map()
+            __struct__: {atom([Macro.Env]), false},
+            aliases: {aliases, false},
+            context: {atom([:match, :guard, nil]), false},
+            context_modules: {list_of_modules, false},
+            file: {binary(), false},
+            function: {opt_union(tuple([atom(), integer()]), atom([nil])), false},
+            functions: {functions_and_macros, false},
+            lexical_tracker: {opt_union(pid(), atom([nil])), false},
+            line: {integer(), false},
+            macro_aliases: {aliases, false},
+            macros: {functions_and_macros, false},
+            module: {atom(), false},
+            requires: {list_of_modules, false},
+            tracers: {list_of_modules, false},
+            versioned_vars: {open_map(), false}
           )
 
   # We do not make exception dynamic on purpose. If you do a blank rescue,
   # then we will assume you need to statically handle all possible exceptions.
-  @exception open_map(__struct__: atom(), __exception__: term())
+  @exception open_map(__struct__: {atom(), false}, __exception__: {term(), false})
 
   args_or_arity = opt_union(list(term()), integer())
 
@@ -182,7 +182,7 @@ defmodule Module.Types.Expr do
     expected_pairs =
       Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
         case atom_fetch(key_type) do
-          {:finite, [key]} -> [{key, term()}]
+          {:finite, [key]} -> [{key, {term(), false}}]
           _ -> []
         end
       end)
@@ -691,7 +691,9 @@ defmodule Module.Types.Expr do
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)
       when not is_atom(callee) and is_atom(key_or_fun) do
     if Keyword.get(meta, :no_parens, false) do
-      {type, context} = of_expr(callee, open_map([{key_or_fun, expected}]), expr, stack, context)
+      {type, context} =
+        of_expr(callee, open_map([{key_or_fun, {expected, false}}]), expr, stack, context)
+
       Of.map_fetch(call, type, key_or_fun, stack, context)
     else
       {type, context} = of_expr(callee, atom(), call, stack, context)
@@ -752,7 +754,7 @@ defmodule Module.Types.Expr do
   defp of_tuple([elem | elems], index, acc, expected, expr, stack, context) do
     expr_expected =
       case tuple_fetch(expected, index) do
-        {_, type} -> type
+        {_optional?, type} -> type
         _ -> term()
       end
 
@@ -767,7 +769,7 @@ defmodule Module.Types.Expr do
   ## Try
 
   defp of_rescue(var, exceptions, expr, info, meta, stack, context) do
-    args = [__exception__: term()]
+    args = [__exception__: {term(), false}]
 
     {structs, context} =
       Enum.map_reduce(exceptions, context, fn exception, context ->
@@ -1046,7 +1048,7 @@ defmodule Module.Types.Expr do
     do: [{args, return}]
 
   defp literal_map_update(descr, key_descr, value_descr) do
-    case map_update(descr, key_descr, value_descr, false, false) do
+    case map_update(descr, key_descr, value_descr, false, false, false) do
       {_type, descr, []} -> {:ok, descr}
       {_, _, [error | _]} -> error
       :badmap -> :badmap

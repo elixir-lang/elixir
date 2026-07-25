@@ -39,7 +39,7 @@ defmodule Node do
   Currently supported options are:
 
   * `:name_domain` - determines the host name part of the node name. If `:longnames`,
-    fully qualified domain names will be   used which also is the default.
+    fully qualified domain names will be used, which is also the default.
     If `:shortnames`, only the short name of the host will be used.
 
   * `:net_ticktime` - The tick time to use in seconds. Defaults to the value of the
@@ -47,7 +47,7 @@ defmodule Node do
     See [the `kernel` documentation](https://www.erlang.org/doc/apps/kernel/kernel_app.html)
     for more information.
 
-  * `net_tickintensity` - The tick intensity to use. Defaults to the value of the
+  * `:net_tickintensity` - The tick intensity to use. Defaults to the value of the
     `net_tickintensity` configuration under Erlang's `kernel` application.
     See [the `kernel` documentation](https://www.erlang.org/doc/apps/kernel/kernel_app.html)
     for more information.
@@ -338,8 +338,6 @@ defmodule Node do
 
   The default node is `Node.self/0`, the local node. If `node` is the local node,
   the function also sets the cookie of all other unknown nodes to `cookie`.
-
-  This function will raise `FunctionClauseError` if the given `node` is not alive.
   """
   @spec set_cookie(t, atom) :: true
   def set_cookie(node \\ Node.self(), cookie) when is_atom(cookie) do

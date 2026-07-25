@@ -450,7 +450,7 @@ defmodule IEx do
           alive_prompt: String.t(),
           colors: colors_opts(),
           default_prompt: String.t(),
-          dot_iex: String.t() | nil,
+          dot_iex: String.t(),
           history_size: integer(),
           inspect: inspect_opts(),
           parser: {module(), atom(), [any()]},
@@ -785,7 +785,7 @@ defmodule IEx do
     __break__!(ast, module, fun, args, guards, stops, env)
   end
 
-  def __break__!(ast, _stops) do
+  def __break__!(ast, _stops, _env) do
     raise_unknown_break_ast!(ast)
   end
 

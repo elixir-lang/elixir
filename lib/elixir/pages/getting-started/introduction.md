@@ -29,7 +29,7 @@ For now, let's start by running `iex` (or `iex.bat` if you are on Windows PowerS
 Open up `iex` and type the following expressions:
 
 ```elixir
-Erlang/OTP 26 [64-bit] [smp:2:2] [...]
+Erlang/OTP 27 [64-bit] [smp:2:2] [...]
 
 Interactive Elixir - press Ctrl+C to exit
 iex(1)> 40 + 2

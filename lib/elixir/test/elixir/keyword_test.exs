@@ -31,6 +31,8 @@ defmodule KeywordTest do
   test "get_and_update/3 removes duplicates from the input keyword list" do
     assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn value -> {value, value + 10} end) ==
              {1, [a: 11, b: 2]}
+
+    assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn _ -> :pop end) == {1, [b: 2]}
   end
 
   test "get_and_update/3 raises on bad return value from the argument function" do
@@ -50,6 +52,8 @@ defmodule KeywordTest do
   test "get_and_update!/3 removes duplicates from the input keyword list" do
     assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn value -> {value, value + 10} end) ==
              {1, [a: 11, b: 2]}
+
+    assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn _ -> :pop end) == {1, [b: 2]}
   end
 
   test "get_and_update!/3 raises on bad return value from the argument function" do

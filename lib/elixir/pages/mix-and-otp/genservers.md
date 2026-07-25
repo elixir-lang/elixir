@@ -300,7 +300,7 @@ Open up `test/kv/server_test.exs` and add this new test:
 
 The test creates a bucket and subscribes to it. Then it opens up another TCP connection to send commands. For each command sent, we expect the subscribed socket to receive a message.
 
-To make the test pass, we need to change `KV.Command` to parse the new `SUBSCRIBE` command and then run it. Open up `lib/kv/commands.ex` and then first change the `parse/1` definition to the following:
+To make the test pass, we need to change `KV.Command` to parse the new `SUBSCRIBE` command and then run it. Open up `lib/kv/command.ex` and then first change the `parse/1` definition to the following:
 
 ```elixir
   def parse(line) do

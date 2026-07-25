@@ -1297,9 +1297,9 @@ defmodule Code do
     * `:literal_encoder` (since v1.10.0) - how to encode literals in the AST.
       It must be a function that receives two arguments, the literal and its
       metadata, and it must return `{:ok, ast :: Macro.t}` or
-      `{:error, reason :: binary}`. If you return anything than the literal
+      `{:error, reason :: binary}`. If you return anything other than the literal
       itself as the `term`, then the AST is no longer valid. This option
-      may still useful for textual analysis of the source code.
+      may still be useful for textual analysis of the source code.
 
     * `:static_atoms_encoder` - the static atom encoder function, see
       "The `:static_atoms_encoder` function" section below. Note this
@@ -1678,7 +1678,7 @@ defmodule Code do
   @doc """
   Stores all given compilation options.
 
-  Changing the compilation options affect all processes
+  Changing the compilation options affects all processes
   running in a given Erlang VM node. To store individual
   options and for a description of all options, see
   `put_compiler_option/2`.
@@ -1742,7 +1742,7 @@ defmodule Code do
   @doc """
   Stores a compilation option.
 
-  Changing the compilation options affect all processes running in a
+  Changing the compilation options affects all processes running in a
   given Erlang VM node.
 
   Available options are:
@@ -1758,7 +1758,7 @@ defmodule Code do
       remove the `:debug_info` while deploying, tools like `mix release`
       already do such by default.
 
-      Other environments, such as `mix test`, automatically disables this
+      Other environments, such as `mix test`, automatically disable this
       via the `:test_elixirc_options` project configuration, as there is
       typically no need to store debug chunks for test files.
 
@@ -1776,13 +1776,13 @@ defmodule Code do
     * `:ignore_module_conflict` - when `true`, does not warn when a module has
       already been defined. Defaults to `false`.
 
-    * `:infer_signatures` (since v1.18.0) - a list of applications of which modules
-      should be using during type inference. When `false`, it disables module-local
+    * `:infer_signatures` (since v1.18.0) - a list of applications whose modules
+      should be used during type inference. When `false`, it disables module-local
       signature inference used when type checking remote calls to the compiled
       module. Type checking will be executed regardless of the value of this option.
       Mix projects will set this option to your dependencies list in dev/prod, and
       it will disable this option during test (as there is typically no need to infer
-      signature for test files). Outside of Mix projects, it defaults to `[:elixir]`.
+      signatures for test files). Outside of Mix projects, it defaults to `[:elixir]`.
 
     * `:module_definition` (since v1.20.0) - stores if the module definition should
       be `:compiled` (the default) or `:interpreted`. Note this does not affect the
@@ -1805,7 +1805,7 @@ defmodule Code do
 
     * `:on_undefined_variable` (since v1.15.0) - either `:raise` or `:warn`.
       When `:raise` (the default), undefined variables will trigger a compilation
-      error. You may be set it to `:warn` if you want undefined variables to
+      error. You may set it to `:warn` if you want undefined variables to
       emit a warning and expand as to a local call to the zero-arity function
       of the same name (for example, `node` would be expanded as `node()`).
       This `:warn` behavior only exists for compatibility reasons when working

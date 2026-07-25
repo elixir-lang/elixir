@@ -215,7 +215,7 @@ defmodule Protocol do
         ...
       end
 
-  If you are using `Mix.install/2`, you can do by passing the `consolidate_protocols`
+  If you are using `Mix.install/2`, you can do so by passing the `consolidate_protocols`
   option:
 
       Mix.install(
@@ -691,7 +691,7 @@ defmodule Protocol do
           structs_domain =
             case structs do
               [] -> Descr.none()
-              _ -> Descr.open_map(__struct__: Descr.atom(structs))
+              _ -> Descr.open_map(__struct__: {Descr.atom(structs), false})
             end
 
           domain =

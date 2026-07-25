@@ -19,9 +19,9 @@ defprotocol IEx.Info do
   Returns information for the given term.
 
   Information should be returned as a list of `info_name`-`info` tuples,
-  where `info_name` is a string-like value, such as an atom or a string
-  itself, and `info` is a string. `info_name` should be short. `info` can
-  be arbitrarily long and contain newlines.
+  where both `info_name` and `info` are string-like values, such as atoms,
+  strings, or numbers. `info_name` should be short. `info` can be arbitrarily
+  long and contain newlines.
 
   `IEx.Helpers.i/1` will generate (and always display)
   the 'Implemented protocols' and 'Term' sections in the result.
@@ -44,7 +44,7 @@ defprotocol IEx.Info do
       This is mostly relevant for data-structures whose `String.Chars`-implementations
       make use of sigils or other syntactic sugar.
   """
-  @spec info(term()) :: [{info_name :: String.Chars.t(), info :: String.t()}]
+  @spec info(term()) :: [{info_name :: String.Chars.t(), info :: String.Chars.t()}]
   def info(term)
 end
 

@@ -380,9 +380,11 @@ If you really need to define modules dynamically, you can do so via meta-program
 defmodule MyMacro do
   defmacro call_examples(parts) do
     for part <- parts do
+      module = Module.concat(OtherModule, part)
+
       quote do
         # This builds OtherModule.Foo at compile-time
-        OtherModule.unquote(part).example()
+        unquote(module).example()
       end
     end
   end

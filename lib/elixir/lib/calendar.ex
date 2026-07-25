@@ -106,6 +106,7 @@ defmodule Calendar do
   @typedoc "Any map or struct that contains the time fields."
   @type time :: %{
           optional(any) => any,
+          calendar: calendar,
           hour: hour,
           minute: minute,
           second: second,
@@ -295,7 +296,7 @@ defmodule Calendar do
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
-  Define the rollover moment for the calendar.
+  Defines the rollover moment for the calendar.
 
   This is the moment, in your calendar, when the current day ends
   and the next day starts.
@@ -381,13 +382,13 @@ defmodule Calendar do
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
   @doc """
-  Shifts date by given duration according to its calendar.
+  Shifts date by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}
 
   @doc """
-  Shifts naive datetime by given duration according to its calendar.
+  Shifts naive datetime by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_naive_datetime(
@@ -402,7 +403,7 @@ defmodule Calendar do
             ) :: {year, month, day, hour, minute, second, microsecond}
 
   @doc """
-  Shifts time by given duration according to its calendar.
+  Shifts time by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_time(hour, minute, second, microsecond, Duration.t()) ::
@@ -566,7 +567,7 @@ defmodule Calendar do
   u      | Day of the week                                                         | 1 (Monday), 7 (Sunday)
   x      | Preferred date (without time) representation                            | 2018-10-17
   X      | Preferred time (without date) representation                            | 12:34:56
-  y      | Year as 2-digits                                                        | 01, 01, 86, 18
+  y      | Year as 2-digits                                                        | -01, 01, 86, 18
   Y      | Year                                                                    | -0001, 0001, 1986
   z      | +hhmm/-hhmm time zone offset from UTC (empty string if naive)           | +0300, -0530
   Z      | Time zone abbreviation (empty string if naive)                          | CET, BRST
@@ -623,7 +624,7 @@ defmodule Calendar do
       ...>)
       "серпень"
 
-   Microsecond formatting:
+    Microsecond formatting:
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06Z], "%y-%m-%d %H:%M:%S.%f")
       "19-08-26 13:52:06.0"
@@ -913,20 +914,25 @@ defmodule Calendar do
 
   # Year as 2-digits
   defp format_modifiers("y" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      if datetime.year < 0 do
+        [?- | -datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)]
+      else
+        datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)
+      end
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Year
   defp format_modifiers("Y" <> rest, width, pad, datetime, format_options, acc) do
-    {sign, year} =
+    result =
       if datetime.year < 0 do
-        {?-, -datetime.year}
+        [?- | -datetime.year |> Integer.to_string() |> pad_leading(width, pad)]
       else
-        {[], datetime.year}
+        datetime.year |> Integer.to_string() |> pad_leading(width, pad)
       end
 
-    result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -992,14 +998,14 @@ defmodule Calendar do
     raise ArgumentError, "invalid strftime format: %#{next}"
   end
 
-  defp pad_preferred(result, width, pad) when length(result) < width do
-    pad_preferred([pad | result], width, pad)
+  defp pad_preferred(result, width, pad) do
+    result
+    |> IO.iodata_to_binary()
+    |> pad_leading(width, pad)
   end
 
-  defp pad_preferred(result, _width, _pad), do: result
-
   defp pad_leading(string, count, padding) do
-    to_pad = count - byte_size(string)
+    to_pad = count - String.length(string)
     if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
   end
 

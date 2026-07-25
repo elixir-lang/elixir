@@ -49,7 +49,7 @@ defmodule Kernel.CLI do
 
   @doc """
   Runs the given function by catching any failure
-  and printing them to stdout. `at_exit` hooks are
+  and printing them to stderr. `at_exit` hooks are
   also invoked before exiting.
 
   This function is used by Elixir's CLI and also
@@ -344,7 +344,7 @@ defmodule Kernel.CLI do
     parse_argv(t, %{config | verbose_compile: true})
   end
 
-  defp parse_argv([~c"--profile", "time" | t], %{mode: :elixirc} = config) do
+  defp parse_argv([~c"--profile", ~c"time" | t], %{mode: :elixirc} = config) do
     parse_argv(t, %{config | profile: :time})
   end
 

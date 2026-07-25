@@ -20,9 +20,9 @@ defmodule ExUnit.CaseTemplate do
     * The `setup` and `setup_all` callbacks that you define in `MyCase`
       get used in the test case module
 
-  The options that you pass to `use MyCase` get also passed to `use
+  The options that you pass to `use MyCase` are also passed to `use
   ExUnit.Case` under the hood. This means you can do things like `use
-  MyCase, async: true`. You can also access this options in `using/2`.
+  MyCase, async: true`. You can also access these options in `using/2`.
 
   > #### `use ExUnit.CaseTemplate` {: .info}
   >

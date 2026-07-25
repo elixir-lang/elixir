@@ -166,7 +166,7 @@ defmodule Macro do
       of a `__block__` or the right side of `->`. The last expression of the
       block does not have metadata if it is not followed by an end of line
       character (either a newline or `;`). This entry may appear multiple times
-      in the same metadata if the expression is surround by parens
+      in the same metadata if the expression is surrounded by parens
 
     * `:format` - set to `:keyword` when an atom is defined as a keyword.
       It may also be set to `:atom` to distinguish `nil`, `false`, and `true`
@@ -732,7 +732,7 @@ defmodule Macro do
   end
 
   @doc """
-  This functions behaves like `prewalk/3`, but performs a depth-first,
+  This function behaves like `prewalk/3`, but performs a depth-first,
   post-order traversal of quoted expressions using an accumulator.
   """
   @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
@@ -940,7 +940,7 @@ defmodule Macro do
 
   This is useful when a struct needs to be expanded at
   compilation time and the struct being expanded may or may
-  not have been compiled (including structs in the defined
+  not have been compiled (including structs defined
   under the module being compiled). For compiled modules,
   it will invoke `module.__info__(:struct)`.
 
@@ -1034,7 +1034,7 @@ defmodule Macro do
   defp find_invalid(other), do: {:error, other}
 
   @doc """
-  Returns an enumerable that traverses the  `ast` in depth-first,
+  Returns an enumerable that traverses the `ast` in depth-first,
   pre-order traversal.
 
   ## Examples
@@ -1092,7 +1092,7 @@ defmodule Macro do
   end
 
   @doc """
-  Returns an enumerable that traverses the  `ast` in depth-first,
+  Returns an enumerable that traverses the `ast` in depth-first,
   post-order traversal.
 
   ## Examples
@@ -2500,7 +2500,7 @@ defmodule Macro do
 
   ### As a remote call
 
-  Inspect an atom the function name of a remote call.
+  Inspect an atom as the function name of a remote call.
 
       iex> Macro.inspect_atom(:remote_call, :foo)
       "foo"

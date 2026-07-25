@@ -25,8 +25,8 @@ defmodule Kernel.ParallelCompiler do
           each_long_compilation: (Path.t() -> term()) | (Path.t(), pid() -> term()),
           each_long_verification: (module() -> term()) | (module(), pid() -> term()),
           each_module: (Path.t(), module(), binary() -> term()),
-          each_cycle: (-> {:compile, [module()], [Code.diagnostic(:warning)]}
-                          | {:runtime, [module()], [Code.diagnostic(:warning)]}),
+          each_cycle: (-> {:compile, [Path.t()], [Code.diagnostic(:warning)]}
+                          | {:runtime, [{module(), Path.t()}], [Code.diagnostic(:warning)]}),
           long_compilation_threshold: pos_integer(),
           long_verification_threshold: pos_integer(),
           verification: boolean(),
@@ -171,25 +171,25 @@ defmodule Kernel.ParallelCompiler do
 
     * `:each_long_verification` (since v1.19.0) - for each file that takes more
       than a given timeout (see the `:long_verification_threshold` option) to
-      compile, invoke this callback passing the module as its argument (and
+      verify, invoke this callback passing the module as its argument (and
       optionally the PID of the process verifying the module)
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
 
-    * `:each_cycle` - after the given files are compiled, invokes this function
-      that should return the following values:
+    * `:each_cycle` - invoked after each compilation cycle and should return one
+      of the following values:
       * `{:compile, modules, warnings}` - to continue compilation with a list of
-        further modules to compile
+        further module files to compile
       * `{:runtime, modules, warnings}` - to stop compilation and verify the list
-        of modules because dependent modules have changed
+        of `{module, path}` pairs because dependent modules have changed
 
     * `:long_compilation_threshold` - the timeout (in seconds) to check for files
       taking too long to compile. For each file that exceeds the threshold, the
       `:each_long_compilation` callback is invoked. Defaults to `10` seconds.
 
     * `:long_verification_threshold` (since v1.19.0) - the timeout (in seconds) to
-      check for modules taking too long to compile. For each module that exceeds the
+      check for modules taking too long to verify. For each module that exceeds the
       threshold, the `:each_long_verification` callback is invoked. Defaults to
       `10` seconds.
 
@@ -212,7 +212,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples.
-      This option must be set to true, except for backwards compatibibility reasons.
+      This option must be set to true, except for backward compatibility reasons.
 
     * `:max_concurrency` - the maximum number of files to compile in parallel.
       Setting this option to 1 will compile files sequentially.
@@ -269,7 +269,7 @@ defmodule Kernel.ParallelCompiler do
 
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples.
-      This option must be set to true, except for backwards compatibibility reasons.
+      This option must be set to true, except for backward compatibility reasons.
 
   """
   @doc since: "1.6.0"

@@ -88,7 +88,7 @@ defmodule StringIO do
   If options are provided, the result will be `{:ok, pid}`, returning the
   IO device created. The option `:capture_prompt`, when set to `true`, causes
   prompts (which are specified as arguments to `IO.get*` functions) to be
-  included in the device's output. See `options/3` for the list of supported
+  included in the device's output. See `open/3` for the list of supported
   options.
 
   If a function is provided, the device will be created and sent to the

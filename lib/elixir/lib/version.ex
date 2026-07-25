@@ -81,8 +81,10 @@ defmodule Version do
   allowing us to express `~> 2.1` or `~> 2.1-dev`, something that wouldn't be allowed
   when using the common comparison operators.
 
-  When the `:allow_pre` option is set `false` in `Version.match?/3`, the requirement
-  will not match a pre-release version unless the operand is a pre-release version.
+  When the `:allow_pre` option is set `false` in `Version.match?/3`, a pre-release
+  version will not match the `~>`, `>`, and `>=` operators unless the operand is
+  itself a pre-release version. The `<` and `<=` operators are not affected by
+  `:allow_pre` and always match according to precedence.
   The default is to always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false`. See the table below for examples.
 
@@ -99,6 +101,7 @@ defmodule Version do
   `>= 2.1.0`     | `2.2.0-dev` | `true`            | `true`
   `>= 2.1.0`     | `2.2.0-dev` | `false`           | `false`
   `>= 2.1.0-dev` | `2.2.6-dev` | `true` or `false` | `true`
+  `< 2.2.0`      | `2.1.0-dev` | `true` or `false` | `true`
 
   """
 
@@ -282,8 +285,9 @@ defmodule Version do
 
   ## Options
 
-    * `:allow_pre` (boolean) - when `false`, pre-release versions will not match
-      unless the operand is a pre-release version. Defaults to `true`.
+    * `:allow_pre` (boolean) - when `false`, pre-release versions will not match the
+      `~>`, `>`, and `>=` operators unless the operand is a pre-release version;
+      the `<` and `<=` operators are not affected. Defaults to `true`.
       For examples, please refer to the table above under the "Requirements" section.
 
   ## Examples

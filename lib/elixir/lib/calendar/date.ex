@@ -81,7 +81,7 @@ defmodule Date do
 
   Ranges of dates can be increasing (`first <= last`) and are
   always inclusive. For a decreasing range, use `range/3` with
-  a step of -1 as first argument.
+  a step of -1 as third argument.
 
   ## Examples
 
@@ -1047,7 +1047,7 @@ defmodule Date do
   @doc """
   Calculates the quarter of the year of a given `date`.
 
-  Returns the day of the year as an integer. For the ISO 8601
+  Returns the quarter of the year as an integer. For the ISO 8601
   calendar (the default), it is an integer from 1 to 4.
 
   ## Examples

@@ -103,6 +103,16 @@
 -define(ellipsis_op3(T1, T2, T3),
   T1 =:= $., T2 =:= $., T3 =:= $.).
 
+-define(is_operator_type(Type),
+  Type =:= comp_op orelse Type =:= at_op orelse Type =:= unary_op orelse
+  Type =:= and_op orelse Type =:= or_op orelse Type =:= arrow_op orelse
+  Type =:= match_op orelse Type =:= in_op orelse Type =:= in_match_op orelse
+  Type =:= type_op orelse Type =:= dual_op orelse Type =:= mult_op orelse
+  Type =:= power_op orelse Type =:= concat_op orelse Type =:= range_op orelse
+  Type =:= xor_op orelse Type =:= pipe_op orelse Type =:= stab_op orelse
+  Type =:= when_op orelse Type =:= assoc_op orelse Type =:= rel_op orelse
+  Type =:= ternary_op orelse Type =:= capture_op orelse Type =:= ellipsis_op).
+
 %% Deprecated operators
 
 -define(unary_op3(T1, T2, T3),
@@ -1937,6 +1947,11 @@ add_cursor(Line, Column, {prune_and_cursor, _}, Tokens) ->
   ],
   {Column + 12, CursorTokens}.
 
+prune_identifier([{_, _, Keyword}, {OpType, _, _} = Op | Tokens])
+    when ?is_operator_type(OpType),
+         Keyword =:= 'in' orelse Keyword =:= 'when' orelse Keyword =:= 'and' orelse
+         Keyword =:= 'or' orelse Keyword =:= 'not' ->
+  [Op | Tokens];
 prune_identifier([{identifier, _, _} | Tokens]) -> Tokens;
 prune_identifier(Tokens) -> Tokens.
 
@@ -1993,13 +2008,7 @@ prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, []) ->
   Tokens;
 prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, []) ->
   Tokens;
-prune_tokens([{OpType, _, _} | _] = Tokens, [])
-  when OpType =:= comp_op; OpType =:= at_op; OpType =:= unary_op; OpType =:= and_op;
-       OpType =:= or_op; OpType =:= arrow_op; OpType =:= match_op; OpType =:= in_op;
-       OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
-       OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
-       OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
-       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op; OpType =:= ellipsis_op ->
+prune_tokens([{OpType, _, _} | _] = Tokens, []) when ?is_operator_type(OpType) ->
   Tokens;
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener) ->

@@ -62,7 +62,7 @@ defmodule Time do
 
   You can pass a time unit to automatically truncate the resulting time.
 
-  The default unit if none gets passed is `:native` which results on a default resolution of microseconds.
+  The default unit if none gets passed is `:native` which results in a default resolution of microseconds.
 
   ## Examples
 
@@ -496,7 +496,7 @@ defmodule Time do
 
   """
   @doc since: "1.11.0"
-  @spec to_seconds_after_midnight(Calendar.time()) :: {integer(), non_neg_integer()}
+  @spec to_seconds_after_midnight(Calendar.time()) :: {non_neg_integer(), non_neg_integer()}
   def to_seconds_after_midnight(%{microsecond: {microsecond, _precision}} = time) do
     iso_days = {0, to_day_fraction(time)}
     {Calendar.ISO.iso_days_to_unit(iso_days, :second), microsecond}
@@ -689,7 +689,7 @@ defmodule Time do
   @doc """
   Compares two time structs.
 
-  Returns `:gt` if first time is later than the second
+  Returns `:gt` if the first time is later than the second
   and `:lt` for vice versa. If the two times are equal
   `:eq` is returned.
 
@@ -901,11 +901,11 @@ defmodule Time do
   def diff(time1, time2, unit \\ :second)
 
   def diff(time1, time2, :hour) do
-    diff(time1, time2, :second) |> div(3600)
+    diff(time1, time2, :microsecond) |> div(3_600_000_000)
   end
 
   def diff(time1, time2, :minute) do
-    diff(time1, time2, :second) |> div(60)
+    diff(time1, time2, :microsecond) |> div(60_000_000)
   end
 
   def diff(

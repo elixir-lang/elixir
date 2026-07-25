@@ -72,7 +72,7 @@ defmodule Duration do
 
   However, once again, it is important to remember that shifting a duration is not
   arithmetic, so you may want to use the functions in this module depending on what
-  you to achieve. Compare the results of both examples below:
+  you want to achieve. Compare the results of both examples below:
 
       # Adding one month after the other
       iex> date = ~D[2016-01-31]
@@ -130,6 +130,16 @@ defmodule Duration do
             microsecond: {0, 0}
 
   @typedoc """
+  The microsecond component of a duration.
+
+  Unlike `t:Calendar.microsecond/0`, the value may be negative, as
+  durations may represent negative amounts of time. The precision is
+  an integer from 0 to 6 holding the number of significant digits,
+  as in the calendar types.
+  """
+  @type microsecond :: {value :: integer, precision :: 0..6}
+
+  @typedoc """
   The duration struct type.
   """
   @type t :: %Duration{
@@ -140,7 +150,7 @@ defmodule Duration do
           hour: integer,
           minute: integer,
           second: integer,
-          microsecond: Calendar.microsecond()
+          microsecond: microsecond()
         }
 
   @typedoc """
@@ -154,7 +164,7 @@ defmodule Duration do
           | {:hour, integer}
           | {:minute, integer}
           | {:second, integer}
-          | {:microsecond, Calendar.microsecond()}
+          | {:microsecond, microsecond()}
 
   @typedoc """
   The duration type specifies a `%Duration{}` struct or a keyword list of valid duration unit pairs.

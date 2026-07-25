@@ -39,8 +39,8 @@ defmodule Module.Types.InferTest do
       end
 
     args = [
-      open_map(__struct__: atom([Point])),
-      open_map(__struct__: atom([Point])),
+      open_map(__struct__: {atom([Point]), false}),
+      open_map(__struct__: {atom([Point]), false}),
       atom([Point]),
       atom([Point])
     ]
@@ -141,10 +141,15 @@ defmodule Module.Types.InferTest do
     number = opt_union(integer(), float())
 
     assert types[{:fun, 1}] ==
-             {:infer, nil, [{[open_map(foo: number, bar: number)], dynamic(number)}]}
+             {:infer, nil,
+              [{[open_map(foo: {number, false}, bar: {number, false})], dynamic(number)}]}
 
     assert types[{:fun_nested, 1}] ==
-             {:infer, nil, [{[open_map(x: open_map(foo: number, bar: number))], dynamic(number)}]}
+             {:infer, nil,
+              [
+                {[open_map(x: {open_map(foo: {number, false}, bar: {number, false}), false})],
+                 dynamic(number)}
+              ]}
   end
 
   test "from Elixir built-in", config do
@@ -234,10 +239,10 @@ defmodule Module.Types.InferTest do
                tuple([
                  binary(),
                  closed_map(
-                   __struct__: atom([module]),
-                   x: binary(),
-                   y: atom([nil]),
-                   z: atom([nil])
+                   __struct__: {atom([module]), false},
+                   x: {binary(), false},
+                   y: {atom([nil]), false},
+                   z: {atom([nil]), false}
                  )
                ])
              )
@@ -250,10 +255,10 @@ defmodule Module.Types.InferTest do
     assert return ==
              dynamic(
                closed_map(
-                 __struct__: atom([module]),
-                 x: binary(),
-                 y: atom([nil]),
-                 z: term()
+                 __struct__: {atom([module]), false},
+                 x: {binary(), false},
+                 y: {atom([nil]), false},
+                 z: {term(), false}
                )
              )
 
@@ -262,10 +267,10 @@ defmodule Module.Types.InferTest do
     assert return ==
              dynamic(
                closed_map(
-                 __struct__: atom([module]),
-                 x: binary(),
-                 y: atom([nil]),
-                 z: term()
+                 __struct__: {atom([module]), false},
+                 x: {binary(), false},
+                 y: {atom([nil]), false},
+                 z: {term(), false}
                )
              )
   end
@@ -320,7 +325,7 @@ defmodule Module.Types.InferTest do
            ]
   end
 
-  test "from defguard (regression with large code generation)", config do
+  test "from single defguard (regression with large code generation)", config do
     # As long as it type checks in time, we are fine,
     # but it should infer Macro.t in the future.
     infer config do
@@ -331,6 +336,43 @@ defmodule Module.Types.InferTest do
         tftp erl_interface syntax_tools megaco public_key
         common_test xmerl compiler jinterface
       )
+    end
+  end
+
+  test "from multiple defguard (regression with large code generation)", config do
+    infer config do
+      defstruct [:config, :v, :m, :t, :s, :k]
+
+      defguardp is_a(meta) when meta.m != :pp or meta.t != :nn
+      defguardp is_b(meta) when is_nil(meta.s) or not meta.config.s.ok
+      defguardp is_c(meta) when is_nil(meta.k) or not meta.config.k.ok
+      defguardp is_d(meta) when is_nil(meta.t) or not meta.config.t.ok
+      defguardp is_e(meta) when not meta.config.m.ok
+      defguardp is_f(meta) when not meta.config.v.ok
+
+      defguardp is_all(meta)
+                when is_a(meta) and is_b(meta) and is_c(meta) and is_d(meta) and
+                       is_e(meta) and is_f(meta)
+
+      def a_fun(%{meta: %__MODULE__{} = meta} = _assigns) when is_all(meta), do: :something
+
+      def a_fun(%{meta: %__MODULE__{} = meta} = _assigns) do
+        if (meta.m != :pp or meta.t != :nn) and
+             (is_nil(meta.s) or not meta.config.s.ok) and
+             (is_nil(meta.k) or not meta.config.k.ok) and
+             (is_nil(meta.t) or not meta.config.t.ok) and
+             not meta.config.m.ok and
+             not meta.config.v.ok do
+          :something
+        else
+          :another
+        end
+      end
+
+      def z_fun(assigns) do
+        merged = Map.put(assigns, :__given__, assigns)
+        a_fun(merged)
+      end
     end
   end
 

@@ -128,7 +128,7 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
-  @type inspect_opts :: [Inspect.Opts.new_opt() | {:label, term}]
+  @type inspect_opts :: [Inspect.Opts.new_opt() | {:label, String.Chars.t()}]
 
   @typedoc """
   Stacktrace information as keyword options for `warn/2`.
@@ -152,9 +152,9 @@ defmodule IO do
 
   The `device` is iterated as specified by the `line_or_chars` argument:
 
-    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
-      iterated by that number of bytes. This should be the preferred mode for reading
-      non-textual inputs.
+    * if `line_or_chars` is an integer, it is the number of Unicode
+      code points to be retrieved for devices open in Unicode/utf8 mode.
+      Otherwise, it is the number of raw bytes to be retrieved.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
       CRLF newlines  ("\r\n") are automatically normalized to "\n".
@@ -521,7 +521,7 @@ defmodule IO do
   end
 
   @doc """
-  Gets a number of bytes from IO device `:stdio`.
+  Gets a number of characters from IO device `:stdio`.
 
   If `:stdio` is a Unicode device, `count` implies
   the number of Unicode code points to be retrieved.
@@ -549,7 +549,7 @@ defmodule IO do
   end
 
   @doc """
-  Gets a number of bytes from the IO `device`.
+  Gets a number of characters from the IO `device`.
 
   If the IO `device` is a Unicode device, `count` implies
   the number of Unicode code points to be retrieved.

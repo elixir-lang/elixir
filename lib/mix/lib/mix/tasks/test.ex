@@ -444,6 +444,14 @@ defmodule Mix.Tasks.Test do
   the results of all partitions inside `cover/`, you can run `mix test.coverage` to
   get the unified report.
 
+  Avoid passing `--partitions` when retrying failures with `--failed` if each
+  partition runs in its own workspace or on a separate machine, and therefore only
+  records its own failures. Because `--partitions` splits the failed files across
+  partitions, most partitions end up with nothing to run and silently print
+  "There are no tests to run". Instead, run `mix test --failed` on its own so each
+  partition re-runs everything it recorded. This does not apply when all partitions
+  share the same list of failures.
+
   ## The --stale option
 
   The `--stale` command line option attempts to run only the test files which

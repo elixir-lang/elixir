@@ -197,7 +197,7 @@ iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" 
 
 By explicitly listing all supported statuses, you guarantee that only a limited number of conversions may happen, and that all expected atoms already exist within the system.
 
-An alternative is to use pattern matching and explicitly convert each string to its respective atom. This is useful when you need additional logic on differnt branches:
+An alternative is to use pattern matching and explicitly convert each string to its respective atom. This is useful when you need additional logic on different branches:
 
 ```elixir
 defmodule MyRequestHandler do

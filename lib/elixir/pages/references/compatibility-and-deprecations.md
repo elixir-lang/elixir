@@ -122,7 +122,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (`Kernel.is_struct(term, Regex)`) (v1.11)
 [v1.15] | `Logger.warn/2`                                     | `Logger.warning/2` (v1.11)
 [v1.14] | `use Bitwise`                                       | `import Bitwise` (v1.0)
-[v1.14] | `~~~/1`                                             | `bnot/2` (v1.0)
+[v1.14] | `~~~/1`                                             | `bnot/1` (v1.0)
 [v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)
 [v1.14] | Compiled patterns in `String.starts_with?/2`        | Pass a list of strings instead (v1.0)
 [v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)

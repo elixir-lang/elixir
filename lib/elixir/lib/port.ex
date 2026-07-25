@@ -61,7 +61,7 @@ defmodule Port do
     * `{pid, {:connect, new_pid}}` - sets the `new_pid` as the new owner of
       the port. Once a port is opened, the port is linked and connected to the
       caller process and communication to the port only happens through the
-      connected process. This message makes `new_pid` the new connected processes.
+      connected process. This message makes `new_pid` the new connected process.
       Unless the port is dead, the port will reply to the old owner with
       `{port, :connected}`. See `connect/2`.
 
@@ -156,7 +156,7 @@ defmodule Port do
 
   We do not always have control over how third-party software terminates.
   If necessary, one workaround is to wrap the child application in a script that
-  checks whether stdin has been closed.  Here is such a script that has been
+  checks whether stdin has been closed. Here is such a script that has been
   verified to work on bash shells:
 
       #!/usr/bin/env bash

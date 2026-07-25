@@ -65,6 +65,10 @@ defmodule RangeTest do
     assert Range.shift(10..0//-2, -2) == 14..4//-2
   end
 
+  test "size of a single-element range with a negative step" do
+    assert Range.size(1..1//-4) == 1
+  end
+
   test "in guard equality" do
     case {1, 1..1} do
       {n, range} when range == n..n//1 -> true
@@ -82,6 +86,14 @@ defmodule RangeTest do
   end
 
   describe "disjoint?" do
+    test "empty ranges are disjoint" do
+      for empty <- [10..0//1, 10..0//2, 0..10//-1, 0..10//-2, 0..-1//1] do
+        assert Range.disjoint?(empty, 0..10)
+        assert Range.disjoint?(0..10, empty)
+        assert Range.disjoint?(empty, empty)
+      end
+    end
+
     test "returns true for disjoint ranges" do
       assert_disjoint(1..5, 6..9)
       assert_disjoint(-3..1, 2..3)
@@ -103,6 +115,15 @@ defmodule RangeTest do
       assert_overlap(-7..-5, -5..-1)
 
       assert Range.disjoint?(1..1, 1..1) == false
+
+      # Single-element ranges still contain their element regardless of the step
+      assert Range.disjoint?(1..1//-2, 1..1//-2) == false
+      assert Range.disjoint?(3..3//-3, 1..5) == false
+      assert Range.disjoint?(1..5, 3..3//-3) == false
+    end
+
+    test "normalizes unaligned descending ranges to their actual bounds" do
+      refute Range.disjoint?(27..11//-3, 26..0//-5)
     end
   end
 

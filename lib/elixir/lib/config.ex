@@ -233,7 +233,7 @@ defmodule Config do
   Returns the environment this configuration file is executed on.
 
   In Mix projects this function returns the environment this configuration
-  file is executed on. 
+  file is executed on.
   In releases, returns the `MIX_ENV` specified when running `mix release`.
 
   This is most often used to execute conditional code:
@@ -284,8 +284,8 @@ defmodule Config do
 
   In case the file doesn't exist, an error is raised.
 
-  If file is a relative, it will be expanded relatively to the
-  directory the current configuration file is in.
+  If the file is relative, it will be expanded relative to the
+  directory of the current configuration file.
 
   ## Examples
 

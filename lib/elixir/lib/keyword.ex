@@ -38,7 +38,7 @@ defmodule Keyword do
 
   ## Duplicate keys and ordering
 
-  A keyword may have duplicate keys so it is not strictly a key-value
+  A keyword list may have duplicate keys so it is not strictly a key-value
   data type. However, most of the functions in this module work on a
   key-value structure and behave similar to the functions you would
   find in the `Map` module. For example, `Keyword.get/3` will get the first
@@ -517,7 +517,7 @@ defmodule Keyword do
         {get, :lists.reverse(acc, [{key, value} | delete(t, key)])}
 
       :pop ->
-        {current, :lists.reverse(acc, t)}
+        {current, :lists.reverse(acc, delete(t, key))}
 
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
@@ -583,7 +583,7 @@ defmodule Keyword do
         {get, :lists.reverse(acc, [{key, value} | delete(t, key)])}
 
       :pop ->
-        {value, :lists.reverse(acc, t)}
+        {value, :lists.reverse(acc, delete(t, key))}
 
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
@@ -1433,7 +1433,7 @@ defmodule Keyword do
     do: {values, acc}
 
   @doc """
-  Lazily returns and removes all values associated with `key` in the keyword list.
+  Lazily returns the first value for `key` and removes all associated entries in the keyword list.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to set up and tear down again.

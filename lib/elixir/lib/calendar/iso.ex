@@ -683,7 +683,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compatible unit pairs.
 
   See `Duration.from_iso8601/1`.
   """
@@ -731,19 +731,19 @@ defmodule Calendar.ISO do
   defp parse_duration_time(string, acc, allowed) do
     case Integer.parse(string) do
       {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
-        case parse_microsecond(rest) do
-          {{ms, precision}, "S"} ->
-            ms =
-              case string do
-                "-" <> _ ->
-                  -ms
+        with {:second, _allowed} <- find_unit(allowed, ?S),
+             {{ms, precision}, "S"} <- parse_microsecond(rest) do
+          ms =
+            case string do
+              "-" <> _ ->
+                -ms
 
-                _ ->
-                  ms
-              end
+              _ ->
+                ms
+            end
 
-            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
-
+          {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
+        else
           _ ->
             {:error, :invalid_time_component}
         end
@@ -1456,7 +1456,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given naive_datetime into a iodata.
 
-  See `naive_datetime_to_iodata/8` for more information.
+  See `naive_datetime_to_string/8` for more information.
 
   ## Examples
 
@@ -1581,7 +1581,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given datetime into a iodata.
 
-  See `datetime_to_iodata/12` for more information.
+  See `datetime_to_string/12` for more information.
 
   ## Examples
 
@@ -1685,7 +1685,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Determines if the date given is valid according to the proleptic Gregorian calendar.
+  Determines if the time given is valid.
 
   Leap seconds are not supported by the built-in Calendar.ISO.
 
@@ -1705,7 +1705,7 @@ defmodule Calendar.ISO do
           boolean
   def valid_time?(hour, minute, second, {ms_value, ms_precision} = _microsecond)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(ms_value) and
-             is_integer(ms_value) do
+             is_integer(ms_precision) do
     is_hour(hour) and is_minute(minute) and is_second(second) and
       is_microsecond(ms_value, ms_precision)
   end
@@ -2064,7 +2064,6 @@ defmodule Calendar.ISO do
 
   defp parse_offset(""), do: {nil, ""}
   defp parse_offset("Z"), do: {0, ""}
-  defp parse_offset("-00:00"), do: :error
 
   defp parse_offset(<<?+, h1, h2, ?:, m1, m2, rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
@@ -2087,7 +2086,8 @@ defmodule Calendar.ISO do
          true <- m1 in ?0..?5 and m2 in ?0..?9,
          hour = (h1 - ?0) * 10 + h2 - ?0,
          min = (m1 - ?0) * 10 + m2 - ?0,
-         true <- hour < 24 do
+         true <- hour < 24,
+         true <- sign == 1 or hour != 0 or min != 0 do
       {(hour * 60 + min) * 60 * sign, rest}
     else
       _ -> :error

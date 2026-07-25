@@ -2221,7 +2221,7 @@ defmodule File do
   type. If you pass, for example, `[encoding: :utf8]` or
   `[encoding: {:utf16, :little}]` in the modes parameter, the underlying stream
   will use `IO.write/2` and the `String.Chars` protocol to convert the data.
-  See `IO.binwrite/2` and `IO.write/2` .
+  See `IO.binwrite/2` and `IO.write/2`.
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.

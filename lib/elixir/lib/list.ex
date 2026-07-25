@@ -435,7 +435,7 @@ defmodule List do
 
   """
   @doc since: "1.13.0"
-  @spec keyfind!([tuple], any, non_neg_integer) :: any
+  @spec keyfind!([tuple], any, non_neg_integer) :: tuple
   def keyfind!(list, key, position) when is_integer(position) do
     :lists.keyfind(key, position + 1, list) ||
       raise KeyError,
@@ -520,8 +520,8 @@ defmodule List do
 
   As in `Enum.sort/2`, avoid using the default sorting function to sort
   structs, as by default it performs structural comparison instead of a
-  semantic one. In such cases, you shall pass a sorting function as third
-  element or any module that implements a `compare/2` function. For example,
+  semantic one. In such cases, you shall pass a sorting function as the third
+  argument or any module that implements a `compare/2` function. For example,
   if you have tuples with user names and their birthday, and you want to
   sort on their birthday, in both ascending and descending order, you should
   do:
@@ -661,7 +661,7 @@ defmodule List do
   end
 
   @doc """
-  Wraps `term` in a list if this is not list.
+  Wraps `term` in a list if it is not a list.
 
   If `term` is already a list, it returns the list.
   If `term` is `nil`, it returns an empty list.
@@ -1030,10 +1030,22 @@ defmodule List do
   end
 
   @doc """
-  Converts a charlist to an atom.
+  Converts a charlist to an existing atom or creates a new one.
 
   Elixir supports conversions from charlists which contain any Unicode
   code point.
+
+  > #### Dynamic Atom Creation {: .warning}
+  >
+  > This function creates atoms dynamically and atoms are
+  > not garbage-collected. Therefore, `charlist` should not be an
+  > untrusted value, such as input received from a socket or during
+  > a web request. Consider using `to_existing_atom/1` instead.
+
+  By default, the maximum number of atoms is `1_048_576`. This limit
+  can be raised or lowered using the VM option `+t`.
+
+  The maximum atom size is 255 Unicode code points.
 
   Inlined by the compiler.
 
@@ -1139,7 +1151,7 @@ defmodule List do
       2.2017764
 
   """
-  @spec to_float(charlist) :: float
+  @spec to_float(nonempty_charlist) :: float
   def to_float(charlist) do
     :erlang.list_to_float(charlist)
   end
@@ -1155,7 +1167,7 @@ defmodule List do
       123
 
   """
-  @spec to_integer(charlist) :: integer
+  @spec to_integer(nonempty_charlist) :: integer
   def to_integer(charlist) do
     :erlang.list_to_integer(charlist)
   end
@@ -1173,7 +1185,7 @@ defmodule List do
       1023
 
   """
-  @spec to_integer(charlist, 2..36) :: integer
+  @spec to_integer(nonempty_charlist, 2..36) :: integer
   def to_integer(charlist, base) do
     :erlang.list_to_integer(charlist, base)
   end

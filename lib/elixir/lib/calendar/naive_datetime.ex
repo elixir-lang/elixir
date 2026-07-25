@@ -164,7 +164,7 @@ defmodule NaiveDateTime do
   Returns the "local time" for the machine the Elixir program is running on.
 
   WARNING: This function can cause insidious bugs. It depends on the time zone
-  configuration at run time. This can changed and be set to a time zone that has
+  configuration at run time. This can change and be set to a time zone that has
   daylight saving jumps (spring forward or fall back).
 
   This function can be used to display what the time is right now for the time
@@ -541,15 +541,15 @@ defmodule NaiveDateTime do
   def diff(naive_datetime1, naive_datetime2, unit \\ :second)
 
   def diff(naive_datetime1, naive_datetime2, :day) do
-    diff(naive_datetime1, naive_datetime2, :second) |> div(86400)
+    diff(naive_datetime1, naive_datetime2, :microsecond) |> div(86_400_000_000)
   end
 
   def diff(naive_datetime1, naive_datetime2, :hour) do
-    diff(naive_datetime1, naive_datetime2, :second) |> div(3600)
+    diff(naive_datetime1, naive_datetime2, :microsecond) |> div(3_600_000_000)
   end
 
   def diff(naive_datetime1, naive_datetime2, :minute) do
-    diff(naive_datetime1, naive_datetime2, :second) |> div(60)
+    diff(naive_datetime1, naive_datetime2, :microsecond) |> div(60_000_000)
   end
 
   def diff(
@@ -570,9 +570,11 @@ defmodule NaiveDateTime do
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
-    units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
-    units1 - units2
+    diff_microsecond =
+      (naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond)) -
+        (naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond))
+
+    System.convert_time_unit(diff_microsecond, :microsecond, unit)
   end
 
   @doc """
@@ -672,7 +674,7 @@ defmodule NaiveDateTime do
 
   """
   @doc since: "1.6.0"
-  @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
+  @spec truncate(Calendar.naive_datetime(), :microsecond | :millisecond | :second) :: t()
   def truncate(%NaiveDateTime{microsecond: microsecond} = naive_datetime, precision) do
     %{naive_datetime | microsecond: Calendar.truncate(microsecond, precision)}
   end

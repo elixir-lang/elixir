@@ -210,18 +210,18 @@ defmodule SystemTest do
     test "cmd/3 with absolute and relative paths", config do
       echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
-      File.ln_s!(System.find_executable("echo"), echo)
+      File.ln_s!(System.find_executable("sh"), echo)
 
       File.cd!(Path.dirname(echo), fn ->
         # There is a bug in OTP where find_executable is finding
         # entries on the current directory. If this is the case,
         # we should avoid the assertion below.
         if !System.find_executable(@echo) do
-          assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
+          assert :enoent = catch_error(System.cmd(@echo, ["-c", "echo hello"]))
         end
 
         assert {"hello\n", 0} =
-                 System.cmd(Path.join(File.cwd!(), @echo), ["hello"], [{:arg0, "echo"}])
+                 System.cmd(Path.join(File.cwd!(), @echo), ["-c", "echo hello"], [{:arg0, "sh"}])
       end)
     end
 

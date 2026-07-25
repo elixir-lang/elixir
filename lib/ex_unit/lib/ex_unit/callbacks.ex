@@ -552,7 +552,7 @@ defmodule ExUnit.Callbacks do
   The advantage of starting a process under the test supervisor is that
   it is guaranteed to exit before the next test starts. Therefore, you
   don't need to remove the process at the end of your tests via
-  `stop_supervised/1`. You only need to use `stop_supervised/1 ` if you
+  `stop_supervised/1`. You only need to use `stop_supervised/1` if you
   want to remove a process from the supervision tree in the middle of a
   test, as simply shutting down the process would cause it to be restarted
   according to its `:restart` value.

@@ -65,6 +65,9 @@ defmodule Date.RangeTest do
 
       assert Enum.slice(@asc_range_2, 3, 3) == [~D[2000-01-07], ~D[2000-01-09], ~D[2000-01-11]]
       assert Enum.slice(@asc_range_2, -3, 3) == [~D[2000-12-28], ~D[2000-12-30], ~D[2001-01-01]]
+
+      assert Enum.slice(@asc_range_2, 0..4//2) == [~D[2000-01-01], ~D[2000-01-05], ~D[2000-01-09]]
+      assert Enum.slice(@asc_range_2, 1..4//2) == [~D[2000-01-03], ~D[2000-01-07]]
     end
 
     test "for descending range" do
@@ -73,6 +76,14 @@ defmodule Date.RangeTest do
 
       assert Enum.slice(@desc_range_2, 3, 3) == [~D[2000-12-26], ~D[2000-12-24], ~D[2000-12-22]]
       assert Enum.slice(@desc_range_2, -3, 3) == [~D[2000-01-05], ~D[2000-01-03], ~D[2000-01-01]]
+
+      assert Enum.slice(@desc_range_2, 0..4//2) == [
+               ~D[2001-01-01],
+               ~D[2000-12-28],
+               ~D[2000-12-24]
+             ]
+
+      assert Enum.slice(@desc_range_2, 1..4//2) == [~D[2000-12-30], ~D[2000-12-26]]
     end
 
     test "for empty range" do

@@ -258,7 +258,7 @@ defmodule Range do
   def size(range)
   def size(first..last//step) when step > 0 and first > last, do: 0
   def size(first..last//step) when step < 0 and first < last, do: 0
-  def size(first..last//step), do: abs(div(last - first, step)) + 1
+  def size(first..last//step), do: div(last - first, step) + 1
 
   # TODO: Remove me on v2.0
   def size(%{__struct__: Range, first: first, last: last} = range) do
@@ -476,8 +476,8 @@ defmodule Range do
   """
   @doc since: "1.8.0"
   @spec disjoint?(t, t) :: boolean
-  def disjoint?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
-    if size(range1) == 0 or size(range2) == 0 do
+  def disjoint?(first1..last1//step1, first2..last2//step2) do
+    if empty?(first1, last1, step1) or empty?(first2, last2, step2) do
       true
     else
       {first1, last1, step1} = normalize(first1, last1, step1)
@@ -487,7 +487,7 @@ defmodule Range do
         last2 < first1 or last1 < first2 ->
           true
 
-        abs(step1) == 1 and abs(step2) == 1 ->
+        step1 == 1 and step2 == 1 ->
           false
 
         true ->
@@ -513,9 +513,20 @@ defmodule Range do
     end
   end
 
-  @compile inline: [normalize: 3]
+  @compile inline: [empty?: 3, normalize: 3]
+  defp empty?(first, last, step) do
+    case step > 0 do
+      true -> first > last
+      false -> first < last
+    end
+  end
+
   defp normalize(first, last, step) when first > last,
-    do: {first - abs(div(first - last, step) * step), first, -step}
+    do: {first - div(first - last, step) * step, first, -step}
+
+  # A single-element range holds the same element regardless of the step, so
+  # make the step positive to keep the progression in disjoint?/2 increasing.
+  defp normalize(first, last, step) when first == last, do: {first, last, abs(step)}
 
   defp normalize(first, last, step), do: {first, last, step}
 

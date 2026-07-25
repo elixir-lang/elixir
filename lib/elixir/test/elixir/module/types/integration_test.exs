@@ -141,7 +141,7 @@ defmodule Module.Types.IntegrationTest do
                dynamic(opt_union(empty_list(), non_empty_list(term(), term())))
 
       assert itself_arg.(Itself.Map) ==
-               dynamic(open_map(__struct__: if_set(opt_negation(atom()))))
+               dynamic(open_map(__struct__: {opt_negation(atom()), true}))
 
       assert itself_arg.(Itself.Port) == dynamic(port())
       assert itself_arg.(Itself.PID) == dynamic(pid())
@@ -151,10 +151,16 @@ defmodule Module.Types.IntegrationTest do
 
       assert itself_arg.(Itself.Range) ==
                dynamic(
-                 closed_map(__struct__: atom([Range]), first: term(), last: term(), step: term())
+                 closed_map(
+                   __struct__: {atom([Range]), false},
+                   first: {term(), false},
+                   last: {term(), false},
+                   step: {term(), false}
+                 )
                )
 
-      assert itself_arg.(Itself.Unknown) == dynamic(open_map(__struct__: atom([Unknown])))
+      assert itself_arg.(Itself.Unknown) ==
+               dynamic(open_map(__struct__: {atom([Unknown]), false}))
     end
 
     test "ignores additional callbacks on implementations" do
@@ -1963,7 +1969,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v9, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v10, map} = :erlang.binary_to_term(chunk)
     map
   end
 

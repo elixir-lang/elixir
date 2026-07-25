@@ -327,7 +327,7 @@ defmodule Agent do
   passing the agent state. The result of the function invocation is
   returned from this function.
 
-  `timeout` is an integer greater than zero which specifies how many
+  `timeout` is a non-negative integer which specifies how many
   milliseconds are allowed before the agent executes the function and returns
   the result value, or the atom `:infinity` to wait indefinitely. If no result
   is received within the specified time, the function call fails and the caller
@@ -366,7 +366,7 @@ defmodule Agent do
   elements, the first being the value to return (that is, the "get" value)
   and the second one being the new state of the agent.
 
-  `timeout` is an integer greater than zero which specifies how many
+  `timeout` is a non-negative integer which specifies how many
   milliseconds are allowed before the agent executes the function and returns
   the result value, or the atom `:infinity` to wait indefinitely. If no result
   is received within the specified time, the function call fails and the caller
@@ -407,7 +407,7 @@ defmodule Agent do
 
   This function always returns `:ok`.
 
-  `timeout` is an integer greater than zero which specifies how many
+  `timeout` is a non-negative integer which specifies how many
   milliseconds are allowed before the agent executes the function and returns
   the result value, or the atom `:infinity` to wait indefinitely. If no result
   is received within the specified time, the function call fails and the caller

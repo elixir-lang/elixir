@@ -536,7 +536,7 @@ defmodule Base do
     * `:lower` - only allows lower case characters
     * `:mixed` - allows mixed case characters
 
-  An `ArgumentError` exception is raised if the padding is incorrect or
+  An `ArgumentError` exception is raised if the string has an odd length or
   a non-alphabet character is present in the string.
 
   ## Examples
@@ -1388,7 +1388,7 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allows  upper case characters (default)
+    * `:upper` - only allows upper case characters (default)
     * `:lower` - only allows lower case characters
     * `:mixed` - allows mixed case characters
 

@@ -154,9 +154,12 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_time("23:50:07Z") == {:ok, {23, 50, 7, {0, 0}}}
       assert Calendar.ISO.parse_time("23:50:07+01:00") == {:ok, {23, 50, 7, {0, 0}}}
 
-      assert Calendar.ISO.parse_time("2015-01-23 23:50-00:00") == {:error, :invalid_format}
-      assert Calendar.ISO.parse_time("2015-01-23 23:50-00:60") == {:error, :invalid_format}
-      assert Calendar.ISO.parse_time("2015-01-23 23:50-24:00") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_time("23:50:07-00:00") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_time("23:50:07-0000") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_time("23:50:07-00") == {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_time("23:50:07-00:60") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_time("23:50:07-24:00") == {:error, :invalid_format}
     end
 
     test "supports either comma or period millisecond delimiters" do
@@ -244,6 +247,12 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:00") ==
                {:error, :invalid_format}
 
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-0000") ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00") ==
+               {:error, :invalid_format}
+
       assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:60") ==
                {:error, :invalid_format}
 
@@ -319,6 +328,12 @@ defmodule Calendar.ISOTest do
                {:ok, {2015, 1, 24, 2, 20, 7, {123_000, 3}}, -9000}
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:00") ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-0000") ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00") ==
                {:error, :invalid_format}
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:60") ==

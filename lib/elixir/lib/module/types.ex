@@ -232,7 +232,7 @@ defmodule Module.Types do
 
     context =
       Enum.reduce(defs, context(), fn {fun_arity, _kind, meta, _clauses} = def, context ->
-        # Optimized version of finder, since we already the definition
+        # Optimized version of finder, since we already have the definition
         finder = fn _ -> default_domain(:dynamic, def, fun_arity, impl) end
         {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
         context
