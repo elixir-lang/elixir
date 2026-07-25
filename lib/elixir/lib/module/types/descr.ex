@@ -1440,10 +1440,10 @@ defmodule Module.Types.Descr do
       arity = length(arguments)
 
       with {:ok, domain, static_arrows, dynamic_arrows} <-
-             fun_normalize_both(fun_static, fun_dynamic, arity),
-           args_domain = args_to_domain(arguments),
-           static? =
-             fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end) do
+             fun_normalize_both(fun_static, fun_dynamic, arity) do
+        args_domain = args_to_domain(arguments)
+        static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
+
         cond do
           # The domain here is the extended gradual domain computed by
           # fun_normalize_both/3. If the argument does not satisfy it, we
