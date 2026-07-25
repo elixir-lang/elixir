@@ -1434,13 +1434,14 @@ defmodule Module.Types.Descr do
   #      applying dynamic arrows to upper-bounded arguments in dynamic().
   #    - Mixed: union the static result with the dynamic-wrapped dynamic result.
   defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
-    args_domain = args_to_domain(arguments)
-    static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
     arity = length(arguments)
 
     if Enum.any?(arguments, &empty?/1) do
       {:badarg, arguments, true}
     else
+      args_domain = args_to_domain(arguments)
+      static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
+
       with {:ok, domain, static_arrows, dynamic_arrows} <-
              fun_normalize_both(fun_static, fun_dynamic, arity) do
         cond do
