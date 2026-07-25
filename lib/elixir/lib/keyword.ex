@@ -38,7 +38,7 @@ defmodule Keyword do
 
   ## Duplicate keys and ordering
 
-  A keyword may have duplicate keys so it is not strictly a key-value
+  A keyword list may have duplicate keys so it is not strictly a key-value
   data type. However, most of the functions in this module work on a
   key-value structure and behave similar to the functions you would
   find in the `Map` module. For example, `Keyword.get/3` will get the first
