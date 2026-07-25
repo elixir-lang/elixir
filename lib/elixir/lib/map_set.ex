@@ -51,6 +51,15 @@ defmodule MapSet do
   that they share many properties, including logarithmic time complexity. Erlang
   `:sets` (version 2) are implemented on top of maps, so see the documentation
   for `Map` for more information on its execution time complexity.
+
+  > #### Dialyzer opaqueness warnings {: .warning}
+  >
+  > `MapSet` internally relies on the `:sets` module which uses
+  > opaque types. This might cause Dialyzer to report opaqueness violations.
+  > These can be silenced by setting the following module attribute: 
+  >   
+  >     @dialyzer :no_opaque
+
   """
 
   @type value :: term
