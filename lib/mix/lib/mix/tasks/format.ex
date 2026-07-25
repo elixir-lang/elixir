@@ -381,7 +381,7 @@ defmodule Mix.Tasks.Format do
   # nested inside the sigil it was given. The list is rebuilt on each invocation.
   defp prepend_sigils(grouped_sigils, formatter_opts_without_sigils) do
     sigils =
-      Enum.map(sigil_groups, fn {sigil, plugins} ->
+      Enum.map(grouped_sigils, fn {sigil, plugins} ->
         {sigil,
          fn input, opts ->
            formatter_opts = prepend_sigils(grouped_sigils, formatter_opts_without_sigils)
