@@ -3677,6 +3677,16 @@ defmodule Module.Types.DescrTest do
       assert map_put(map, atom([:k]), binary()) ==
                {:ok, open_map(k: {binary(), false}, x: {term(), false})}
     end
+
+    test "is consistent across representations of an empty type" do
+      # An empty map component that survives syntactically (open_map(c: none())
+      # is a non-normalized empty, equal to none()) must report :badmap like
+      # none(), not {:ok, <inhabited>}.
+      a2 = open_map(c: {none(), false})
+      assert equal?(none(), a2)
+      assert map_put(none(), atom([:a]), integer()) == :badmap
+      assert map_put(a2, atom([:a]), integer()) == :badmap
+    end
   end
 
   describe "disjoint" do
