@@ -349,24 +349,17 @@ defmodule Mix.Tasks.Format do
       end
     end
 
-    sigils =
+    flatten_sigils =
       for plugin <- plugins,
           sigil <- find_sigils_from_plugins(plugin, formatter_opts),
           do: {sigil, plugin}
 
-    sigils =
-      sigils
+    formatter_opts =
+      flatten_sigils
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-      |> Enum.map(fn {sigil, plugins} ->
-        {sigil,
-         fn input, opts ->
-           Enum.reduce(plugins, input, fn plugin, input ->
-             plugin.format(input, opts ++ formatter_opts)
-           end)
-         end}
-      end)
+      |> prepend_sigils(Keyword.delete(formatter_opts, :sigils))
 
-    {Keyword.put(formatter_opts, :sigils, sigils),
+    {formatter_opts,
      Enum.map(subs, fn {path, formatter_opts_and_subs} ->
        {path, load_plugins(formatter_opts_and_subs, opts)}
      end)}
@@ -382,6 +375,24 @@ defmodule Mix.Tasks.Format do
     end
 
     plugins
+  end
+
+  # A sigil formatter must receive :sigils itself, so a plugin can format sigils
+  # nested inside the sigil it was given. The list is rebuilt on each invocation.
+  defp prepend_sigils(grouped_sigils, formatter_opts_without_sigils) do
+    sigils =
+      Enum.map(grouped_sigils, fn {sigil, plugins} ->
+        {sigil,
+         fn input, opts ->
+           formatter_opts = prepend_sigils(grouped_sigils, formatter_opts_without_sigils)
+
+           Enum.reduce(plugins, input, fn plugin, input ->
+             plugin.format(input, opts ++ formatter_opts)
+           end)
+         end}
+      end)
+
+    [sigils: sigils] ++ formatter_opts_without_sigils
   end
 
   @typedoc """

@@ -572,6 +572,66 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  defmodule Elixir.SigilOuterPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [sigils: [:O]]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:sigil] == :O
+      [Code.format_string!(contents, opts), ?\n]
+    end
+  end
+
+  defmodule Elixir.SigilInnerPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [sigils: [:I]]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:sigil] == :I
+      String.upcase(contents)
+    end
+  end
+
+  test "uses sigil plugins for sigils nested inside sigils", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [SigilOuterPlugin, SigilInnerPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def nested_sigil_test do
+        ~O'''
+        inner(~I"foo bar")
+        '''
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def nested_sigil_test do
+               ~O'''
+               inner(~I"FOO BAR")
+               '''
+             end
+             """
+    end)
+  end
+
   test "customizes plugin loading", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
