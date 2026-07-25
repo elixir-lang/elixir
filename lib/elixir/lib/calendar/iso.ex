@@ -1176,7 +1176,7 @@ defmodule Calendar.ISO do
   @doc since: "1.8.0"
   @spec year_of_era(year) :: {1..10_000, era}
   def year_of_era(year) when is_year_CE(year), do: {year, 1}
-  def year_of_era(year) when is_year_BCE(year), do: {abs(year) + 1, 0}
+  def year_of_era(year) when is_year_BCE(year), do: {1 - year, 0}
 
   @doc """
   Calendar callback to compute the year and era from the
@@ -1229,7 +1229,7 @@ defmodule Calendar.ISO do
   end
 
   def day_of_era(year, month, day) when is_year_BCE(year) do
-    day = abs(date_to_iso_days(year, month, day) - @iso_epoch)
+    day = @iso_epoch - date_to_iso_days(year, month, day)
     {day, 0}
   end
 
