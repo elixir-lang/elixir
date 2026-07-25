@@ -385,7 +385,6 @@ defmodule Mix.Tasks.Format do
         {sigil,
          fn input, opts ->
            formatter_opts = prepend_sigils(grouped_sigils, formatter_opts_without_sigils)
-  
            Enum.reduce(plugins, input, fn plugin, input ->
              plugin.format(input, opts ++ formatter_opts)
            end)
