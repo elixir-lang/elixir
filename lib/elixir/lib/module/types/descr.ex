@@ -5630,30 +5630,32 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_insert_static(descr, _, _) when descr == @none, do: none()
-
-  defp tuple_insert_static(descr, index, type) do
-    Map.update!(descr, :tuple, fn bdd ->
-      if tuple_bdd_positive?(bdd) do
-        # A pure disjunction of leaves: the insert distributes over the union, so
-        # we rewrite each leaf in place (preserving the structure callers assert on).
-        bdd_map(bdd, fn bdd_leaf(tag, elements) ->
-          tuple_insert_leaf(tag, elements, index, type)
-        end)
-      else
-        # The bdd carries negations and/or implicit `:bdd_top` positive paths
-        # (e.g. from `tuple_difference(open_tuple([]), _) -> bdd_negation`).
-        # `bdd_map` rewrites only explicit leaves, so it would skip the implicit
-        # top (losing the insert) and wrongly transform negated leaves. Expand to
-        # the exact negation-free positive DNF first, then insert into each leaf.
-        bdd
-        |> tuple_bdd_to_dnf_no_negations()
-        |> Enum.reduce(:bdd_bot, fn {tag, elements}, acc ->
-          tuple_union(tuple_insert_leaf(tag, elements, index, type), acc)
-        end)
-      end
-    end)
+  defp tuple_insert_static(%{tuple: bdd} = descr, index, type) do
+    %{
+      descr
+      | tuple:
+          if tuple_bdd_positive?(bdd) do
+            # A pure disjunction of leaves: the insert distributes over the union, so
+            # we rewrite each leaf in place (preserving the structure callers assert on).
+            bdd_map(bdd, fn bdd_leaf(tag, elements) ->
+              tuple_insert_leaf(tag, elements, index, type)
+            end)
+          else
+            # The bdd carries negations and/or implicit `:bdd_top` positive paths
+            # (e.g. from `tuple_difference(open_tuple([]), _) -> bdd_negation`).
+            # `bdd_map` rewrites only explicit leaves, so it would skip the implicit
+            # top (losing the insert) and wrongly transform negated leaves. Expand to
+            # the exact negation-free positive DNF first, then insert into each leaf.
+            bdd
+            |> tuple_bdd_to_dnf_no_negations()
+            |> Enum.reduce(:bdd_bot, fn {tag, elements}, acc ->
+              tuple_union(tuple_insert_leaf(tag, elements, index, type), acc)
+            end)
+          end
+    }
   end
+
+  defp tuple_insert_static(_descr, _index, _type), do: none()
 
   # Inserts `type` at `index` into a single tuple literal. If the tuple is open,
   # `List.insert_at` needs the tuple filled with `term()` up to `index` first.
