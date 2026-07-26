@@ -4198,7 +4198,7 @@ defmodule Enum do
 
   `zip_with/2` can be used to transpose lists of lists:
 
-      iex> Enum.zip_with([[1, 2,], [3, 4]], & &1)
+      iex> Enum.zip_with([[1, 2], [3, 4]], & &1)
       [[1, 3], [2, 4]]
 
   """
