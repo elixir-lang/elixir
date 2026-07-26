@@ -1339,6 +1339,7 @@ defmodule IEx.HelpersTest do
       assert capture_iex("42\n |> IO.inspect(label: \"foo\")") =~ "foo: 42"
       assert capture_iex("[42]\n++ [24]\n|> IO.inspect(label: \"foo\")") =~ "foo: [42, 24]"
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
+      assert capture_iex("4\nnot in [1, 2]") == "4\ntrue"
     end
 
     test "raises if previous expression was a match" do
@@ -1350,6 +1351,9 @@ defmodule IEx.HelpersTest do
 
       assert capture_iex("%{x: x} = map = %{x: 42}\n|> IO.puts()") =~
                "surround the whole pipeline with parentheses '|>'"
+
+      assert capture_iex("x = 4\nnot in [1, 2]") =~
+               "surround the whole pipeline with parentheses 'not in'"
     end
   end
 
