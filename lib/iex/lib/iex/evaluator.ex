@@ -129,6 +129,8 @@ defmodule IEx.Evaluator do
     end
   end
 
+  # We use elem operations, instead of pattern matching,
+  # because "not in" tokenizer tuples have four elements.
   defp adjust_operator([token | _] = _tokens, line, column, _file, _opts, :match)
        when elem(token, 0) in @op_tokens,
        do:
