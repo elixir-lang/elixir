@@ -389,7 +389,7 @@ defmodule Enum do
   """
   @spec all?(t, (element -> as_boolean(term))) :: boolean
   def all?(enumerable, fun) when is_list(enumerable) do
-    predicate_list(enumerable, true, fun)
+    all_list(enumerable, true, fun)
   end
 
   def all?(first..last//step, fun) do
@@ -454,7 +454,7 @@ defmodule Enum do
   """
   @spec any?(t, (element -> as_boolean(term))) :: boolean
   def any?(enumerable, fun) when is_list(enumerable) do
-    predicate_list(enumerable, false, fun)
+    any_list(enumerable, false, fun)
   end
 
   def any?(first..last//step, fun) do
@@ -4428,17 +4428,19 @@ defmodule Enum do
 
   ## any?/2 all?/2
 
-  defp predicate_list([h | t], initial, fun) do
-    if !!fun.(h) == initial do
-      predicate_list(t, initial, fun)
-    else
-      not initial
-    end
-  end
+  # Keep the unused `initial` argument: arity 3 gives the compiler a more efficient
+  # register layout when inlining the recursive calls.
+  @compile {:inline, all_list: 3, any_list: 3}
 
-  defp predicate_list([], initial, _) do
-    initial
-  end
+  defp all_list([h | t], initial, fun),
+    do: !!fun.(h) and all_list(t, initial, fun)
+
+  defp all_list([], _initial, _fun), do: true
+
+  defp any_list([h | t], initial, fun),
+    do: !!fun.(h) or any_list(t, initial, fun)
+
+  defp any_list([], _initial, _fun), do: false
 
   defp predicate_range(first, last, step, initial, fun)
        when step > 0 and first <= last
