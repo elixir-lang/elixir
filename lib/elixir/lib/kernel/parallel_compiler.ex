@@ -100,6 +100,8 @@ defmodule Kernel.ParallelCompiler do
   This function allows a developer to perform such tasks.
   """
   @doc since: "1.16.0"
+  @spec pmap(Enumerable.t(input), (input -> output)) :: [output]
+        when input: term, output: term
   def pmap(collection, fun) when is_function(fun, 1) do
     ref = make_ref()
 
