@@ -152,6 +152,7 @@ defmodule Config do
 
   """
   @doc since: "1.9.0"
+  @spec config(atom(), keyword()) :: keyword()
   def config(root_key, opts) when is_atom(root_key) and is_list(opts) do
     if not Keyword.keyword?(opts) do
       raise ArgumentError, "config/2 expected a keyword list, got: #{inspect(opts)}"
@@ -198,6 +199,7 @@ defmodule Config do
 
   """
   @doc since: "1.9.0"
+  @spec config(atom(), atom(), term()) :: keyword()
   def config(root_key, key, opts) when is_atom(root_key) and is_atom(key) do
     get_config!()
     |> __merge__([{root_key, [{key, opts}]}])
@@ -225,6 +227,7 @@ defmodule Config do
 
   """
   @doc since: "1.18.0"
+  @spec read_config(atom()) :: keyword() | nil
   def read_config(root_key) when is_atom(root_key) do
     get_config!()[root_key]
   end
