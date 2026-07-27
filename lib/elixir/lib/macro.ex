@@ -1856,6 +1856,7 @@ defmodule Macro do
   definition compile-time, and you can use `Macro.expand/2`.
   """
   @doc since: "1.16.0"
+  @spec compile_apply(module(), atom(), [term()], Macro.Env.t()) :: term()
   def compile_apply(mod, fun, args, caller) do
     :elixir_env.trace({:remote_function, [], mod, fun, length(args)}, %{caller | function: nil})
     Kernel.apply(mod, fun, args)
