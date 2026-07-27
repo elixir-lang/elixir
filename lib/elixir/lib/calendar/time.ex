@@ -146,8 +146,9 @@ defmodule Time do
       iex> Time.new(23, 59, 59, 1_000_000)
       {:error, :invalid_time}
 
-      # Invalid precision
-      Time.new(23, 59, 59, {999_999, 10})
+  Invalid precision:
+
+      iex> Time.new(23, 59, 59, {999_999, 10})
       {:error, :invalid_time}
 
   """
