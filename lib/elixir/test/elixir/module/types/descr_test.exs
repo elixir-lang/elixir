@@ -2613,6 +2613,47 @@ defmodule Module.Types.DescrTest do
              |> map_fetch_key(:a) == {false, integer()}
     end
 
+    test "map_fetch_key is independent from empty map literals" do
+      map =
+        opt_union(
+          closed_map(b: {term(), false}),
+          closed_map(a: {none(), false})
+        )
+
+      assert equal?(map, closed_map(b: {term(), false}))
+      assert map_fetch_key(map, :b) == {false, term()}
+
+      # An empty positive product with negatives must not contribute its field.
+      map = closed_map(a: {atom(), false})
+
+      empty =
+        open_map(
+          a: {opt_union(atom(), integer()), false},
+          c: {none(), false}
+        )
+        |> opt_difference(
+          open_map(
+            a: {atom(), false},
+            b: {term(), false}
+          )
+        )
+
+      equivalent = opt_union(map, empty)
+
+      assert empty?(empty)
+      assert equal?(map, equivalent)
+      assert map_fetch_key(equivalent, :a) == map_fetch_key(map, :a)
+
+      # Original issue reproduction.
+      map = closed_map(a: {term(), false})
+      empty = open_map(c: {none(), false})
+      cover = opt_union(map, empty)
+      equivalent = opt_difference(cover, opt_difference(cover, map))
+
+      assert equal?(map, equivalent)
+      assert map_fetch_key(equivalent, :a) == map_fetch_key(map, :a)
+    end
+
     # Times out without a projection-only map_fetch_key path
     test "map_fetch_key with projected negative maps" do
       assert map_fetch_key(projected_negative_map(100), :k) == {false, open_map()}

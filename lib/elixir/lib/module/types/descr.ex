@@ -3252,50 +3252,32 @@ defmodule Module.Types.Descr do
   # and whether the key is optional.
   defp map_dnf_fetch_static(dnf, key) do
     Enum.reduce(dnf, {none(), false}, fn
-      # Optimization: if there are no negatives
-      {tag, fields, []}, acc ->
-        field =
-          case fields_find(key, fields) do
-            {:ok, field} -> field
-            :error when tag == :open -> throw(:open)
-            :error -> map_key_tag_to_field(tag)
-          end
-
-        field_opt_union(field, acc, %{})
-
       {tag, fields, negs}, acc ->
         {field, bdd} = map_pop_key_bdd(tag, fields, key)
 
-        case map_split_negative_pairs_key(negs, key) do
-          :empty ->
-            acc
-
-          negative ->
-            field =
-              if map_pair_projection_keeps_full_fst?(negative, bdd) do
-                field
-              else
-                negs
-                |> map_split_negative_key(key, field, bdd)
-                |> Enum.reduce({none(), false}, fn {field, _}, acc ->
-                  field_opt_union(field, acc, %{})
-                end)
-              end
-
+        # First: if a map has a none() field, then fetching from it is none() too
+        # Then: if there is a negative open_map(), map type is empty
+        with false <- map_empty?(bdd, %{}),
+             negative when negative != :empty <- map_split_negative_pairs_key(negs, key) do
+          if map_pair_projection_keeps_full_fst?(negative, bdd) do
             field_opt_union(field, acc, %{})
+          else
+            negative
+            |> map_remove_negative(field, bdd)
+            |> Enum.reduce(acc, fn {field, _}, acc ->
+              field_opt_union(field, acc, %{})
+            end)
+          end
+        else
+          _ -> acc
         end
     end)
-  catch
-    :open -> {term(), true}
   end
 
   defp map_split_negative_pairs_key(negs, key) do
     Enum.reduce_while(negs, [], fn
-      bdd_leaf(:open, []), _acc ->
-        {:halt, :empty}
-
-      bdd_leaf(tag, fields), neg_acc ->
-        {:cont, [map_pop_key_bdd(tag, fields, key) | neg_acc]}
+      bdd_leaf(:open, []), _acc -> {:halt, :empty}
+      bdd_leaf(tag, fields), neg_acc -> {:cont, [map_pop_key_bdd(tag, fields, key) | neg_acc]}
     end)
   end
 
@@ -3322,64 +3304,33 @@ defmodule Module.Types.Descr do
     not field_empty?(field_difference(field, neg_field))
   end
 
-  defp map_split_negative_key(negs, key, value, bdd) do
-    map_split_negative(negs, value, bdd, fn neg_tag, neg_fields ->
-      case fields_take(key, neg_fields) do
-        {neg_field, neg_fields} ->
-          {true, neg_field, map_new(neg_tag, neg_fields)}
-
-        :error ->
-          {false, map_key_tag_to_field(neg_tag), map_new(neg_tag, neg_fields)}
-      end
-    end)
-  end
-
   # Remove negatives:
   # {t, s} \ {t₁, s₁} = {t \ t₁, s} ∪ {t ∩ t₁, s \ s₁}
-  defp map_split_negative(negs, value, bdd, take_fun) do
-    Enum.reduce(negs, [{value, bdd}], fn
-      bdd_leaf(:open, []), _acc ->
-        throw(:empty)
+  defp map_remove_negative(negative, value, bdd) do
+    Enum.reduce(negative, [{value, bdd}], fn {neg_field, neg_bdd}, acc ->
+      Enum.reduce(acc, [], fn {field, bdd}, acc ->
+        # If the negative tag is closed, then they are likely disjoint,
+        # so we can drastically cut down the amount of operations.
+        if match?(bdd_leaf(:closed, _), neg_bdd) and
+             map_empty?(map_intersection(bdd, neg_bdd), %{}) do
+          [{field, bdd} | acc]
+        else
+          intersection_field = field_intersection(field, neg_field)
 
-      bdd_leaf(neg_tag, neg_fields), acc ->
-        {found?, neg_field, neg_bdd} = take_fun.(neg_tag, neg_fields)
-
-        if not found? and neg_tag == :open do
-          # In case the map is open, t \ t₁ is always empty,
-          # t ∩ t₁ is always t, so we just need to deal with the bdd.
-          Enum.reduce(acc, [], fn {field, bdd}, acc ->
+          if field_empty?(intersection_field) do
+            [{field, bdd} | acc]
+          else
             diff_bdd = map_difference(bdd, neg_bdd)
 
             if map_empty?(diff_bdd, %{}) do
-              acc
+              prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc)
             else
-              [{field, diff_bdd} | acc]
+              acc = [{intersection_field, diff_bdd} | acc]
+              prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc)
             end
-          end)
-        else
-          Enum.reduce(acc, [], fn {field, bdd}, acc ->
-            # If the negative tag is closed, then they are likely disjoint,
-            # so we can drastically cut down the amount of operations.
-            if neg_tag == :closed and map_empty?(map_intersection(bdd, neg_bdd), %{}) do
-              [{field, bdd} | acc]
-            else
-              intersection_field = field_intersection(field, neg_field)
-
-              if field_empty?(intersection_field) do
-                [{field, bdd} | acc]
-              else
-                diff_bdd = map_difference(bdd, neg_bdd)
-
-                if map_empty?(diff_bdd, %{}) do
-                  prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc)
-                else
-                  acc = [{intersection_field, diff_bdd} | acc]
-                  prepend_map_pair_unless_empty_diff(field, neg_field, bdd, acc)
-                end
-              end
-            end
-          end)
+          end
         end
+      end)
     end)
   catch
     :empty -> []
@@ -3797,7 +3748,7 @@ defmodule Module.Types.Descr do
               pairs =
                 if keep_fst? and keep_snd?,
                   do: [],
-                  else: map_split_negative_key(negs, key, fst, snd)
+                  else: map_remove_negative(negative, fst, snd)
 
               {maybe_field_opt_union(field, fn ->
                  if keep_fst? do
