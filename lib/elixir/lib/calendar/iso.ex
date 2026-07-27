@@ -33,8 +33,9 @@ defmodule Calendar.ISO do
   you to format datetimes however else you desire.
 
   Elixir does not support reduced accuracy formats (for example, a date without
-  the day component) nor decimal precisions in the lowest component (such as
-  `10:01:25,5`).
+  the day component) nor decimal precisions in components other than seconds
+  (such as `10:01,5`). Fractional seconds are supported and truncated to
+  microsecond precision.
 
   #### Examples
 
@@ -80,6 +81,11 @@ defmodule Calendar.ISO do
       {:error, :invalid_format}
       iex> Calendar.ISO.parse_time("23")
       {:error, :invalid_format}
+
+  A decimal fraction is accepted on seconds, but not on any other component:
+
+      iex> Calendar.ISO.parse_time("10:01:25,5")
+      {:ok, {10, 1, 25, {500000, 1}}}
 
   ### Extensions
 
@@ -1133,6 +1139,11 @@ defmodule Calendar.ISO do
   Calculates the quarter of the year from the given `year`, `month`, and `day`.
 
   It is an integer from 1 to 4.
+
+  In the ISO calendar, the quarter is determined solely by the month, so the `year`
+  and `day` arguments are ignored. Combination of `year`, `month`, and `day` is not
+  validated as a valid date, unlike in `day_of_year/3`. Use `valid_date?/3` when
+  full date validation is required.
 
   ## Examples
 
