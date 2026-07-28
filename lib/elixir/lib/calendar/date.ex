@@ -160,7 +160,7 @@ defmodule Date do
       ) do
     raise ArgumentError,
           "both dates must have matching calendar and the step must be a " <>
-            "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
+            "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{inspect(step)}"
   end
 
   defp range(first, first_days, last, last_days, calendar, step) do
