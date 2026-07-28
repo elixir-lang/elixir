@@ -465,10 +465,11 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     {language, format, docs} = get_docs(mod, [:function, :macro])
-    spec = get_spec(mod, fun, arity)
+    doc_tuple = find_doc_with_content(docs, fun, arity)
+    spec = get_spec(mod, fun, arity, doc_tuple)
 
     cond do
-      doc_tuple = find_doc_with_content(docs, fun, arity) ->
+      doc_tuple ->
         print_fun(mod, language, format, doc_tuple, spec)
         :ok
 
@@ -590,6 +591,22 @@ defmodule IEx.Introspection do
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
     |> Enum.find(&has_callback?(&1, fun, arity))
+  end
+
+  defp get_spec(module, name, arity, doc_tuple) do
+    case get_spec(module, name, arity) do
+      [] ->
+        case doc_tuple do
+          {{_, ^name, doc_arity}, _, _, _, _} when doc_arity != arity ->
+            get_spec(module, name, doc_arity)
+
+          _ ->
+            []
+        end
+
+      spec ->
+        spec
+    end
   end
 
   defp get_spec(module, name, arity) do

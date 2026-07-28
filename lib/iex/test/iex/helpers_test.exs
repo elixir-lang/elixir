@@ -515,6 +515,13 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(def) end) =~ def_h
     end
 
+    test "prints spec for default arg function" do
+      spec = "@spec recompile([{:force, boolean()}]) :: :ok | :error | :noop"
+
+      assert capture_io(fn -> h(IEx.Helpers.recompile() / 0) end) =~ spec
+      assert capture_io(fn -> h(IEx.Helpers.recompile() / 1) end) =~ spec
+    end
+
     test "prints sigil documentation" do
       assert capture_io(fn -> h(~w//) end) =~ "Handles the sigil `~w` for list of words"
     end
