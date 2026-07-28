@@ -123,7 +123,8 @@ defmodule Task.Supervised do
               args: args,
               reason: {log_value(kind, value), __STACKTRACE__},
               # using :proc_lib over Process because we want the :undefined default, not nil
-              process_label: :proc_lib.get_label(self())
+              process_label: :proc_lib.get_label(self()),
+              orphan_compiler_module?: orphan_compiler_module?(kind, value)
             }
           },
           %{
@@ -135,6 +136,23 @@ defmodule Task.Supervised do
         )
 
         :erlang.raise(:exit, exit_reason(kind, value, __STACKTRACE__), __STACKTRACE__)
+    end
+  end
+
+  defp orphan_compiler_module?(kind, reason) do
+    with :error <- kind,
+         :undef <- reason,
+         {:error_handler, :error_handler} <- :erlang.process_info(self(), :error_handler),
+         {:parent, parent} <- :erlang.process_info(self(), :parent),
+         {:error_handler, Kernel.ErrorHandler} <-
+           (try do
+              :erlang.process_info(parent, :error_handler)
+            rescue
+              _ -> nil
+            end) do
+      true
+    else
+      _ -> false
     end
   end
 

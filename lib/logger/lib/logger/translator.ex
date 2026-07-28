@@ -106,18 +106,30 @@ defmodule Logger.Translator do
            starter: starter,
            function: function,
            args: args,
-           reason: reason,
+           reason: report_reason,
            process_label: process_label
-         }}
+         } = report}
       ) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
 
-    {formatted, reason} = format_reason(reason)
+    {formatted, reason} = format_reason(report_reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
     msg =
-      ["\nFunction: #{inspect(function, opts)}"] ++
-        ["\n    Args: #{inspect(args, opts)}"]
+      case report do
+        %{orphan_compiler_module?: true} when elem(report_reason, 0) == :undef ->
+          [
+            "\n    Hint: if this module is defined somewhere, this error may have happened because processes " <>
+              "were spawned during Elixir's compilation and these processes are unable to load modules defined " <>
+              "by the compiler. In such cases, consider using Kernel.ParallelCompiler.pmap/2 instead"
+          ]
+
+        _ ->
+          []
+      end
+
+    msg =
+      ["\nFunction: #{inspect(function, opts)}\n    Args: #{inspect(args, opts)}"] ++ msg
 
     msg =
       case process_label do
