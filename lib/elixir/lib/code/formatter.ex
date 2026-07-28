@@ -1704,7 +1704,7 @@ defmodule Code.Formatter do
     iodata |> IO.iodata_to_binary() |> string() |> color_doc(:atom, inspect_opts)
   end
 
-  defp integer_to_algebra(text, inspect_otps) do
+  defp integer_to_algebra(text, inspect_opts) do
     case text do
       <<?0, ?x, rest::binary>> ->
         "0x" <> String.upcase(rest)
@@ -1718,15 +1718,15 @@ defmodule Code.Formatter do
       decimal ->
         insert_underscores(decimal)
     end
-    |> color_doc(:number, inspect_otps)
+    |> color_doc(:number, inspect_opts)
   end
 
-  defp float_to_algebra(text, inspect_otps) do
+  defp float_to_algebra(text, inspect_opts) do
     [int_part, decimal_part] = :binary.split(text, ".")
     decimal_part = String.downcase(decimal_part)
 
     string = insert_underscores(int_part) <> "." <> decimal_part
-    color_doc(string, :number, inspect_otps)
+    color_doc(string, :number, inspect_opts)
   end
 
   defp insert_underscores("-" <> digits) do
