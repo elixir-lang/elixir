@@ -162,11 +162,8 @@ defmodule Date.RangeTest do
       Date.range(~D[2000-01-01], ~D[2000-01-31], step)
     end
 
-    step = {1}
-    message = ~r/got: ~D\[2000-01-01\], ~D\[2000-02-01\], \{1\}/
-
-    assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], ~D[2000-02-01], step)
+    assert_raise ArgumentError, ~r/got: ~D\[2000-01-01\], ~D\[2000-02-01\], \{1\}/, fn ->
+      Date.range(~D[2000-01-01], ~D[2000-02-01], {1})
     end
   end
 
