@@ -4429,10 +4429,9 @@ defmodule Enum do
   ## any?/2 all?/2
 
   defp predicate_list([h | t], initial, fun) do
-    if !!fun.(h) == initial do
-      predicate_list(t, initial, fun)
-    else
-      not initial
+    case !!fun.(h) do
+      ^initial -> predicate_list(t, initial, fun)
+      _ -> not initial
     end
   end
 
@@ -4443,10 +4442,9 @@ defmodule Enum do
   defp predicate_range(first, last, step, initial, fun)
        when step > 0 and first <= last
        when step < 0 and first >= last do
-    if !!fun.(first) == initial do
-      predicate_range(first + step, last, step, initial, fun)
-    else
-      not initial
+    case !!fun.(first) do
+      ^initial -> predicate_range(first + step, last, step, initial, fun)
+      _ -> not initial
     end
   end
 
