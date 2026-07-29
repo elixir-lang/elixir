@@ -1313,6 +1313,19 @@ defmodule TypespecTest do
       end)
     end
 
+    test "spec_to_quoted collects nested type vars" do
+      bytecode =
+        test_module do
+          @spec foo(arg1 :: [t], arg2 :: [t]) :: atom() when t: var
+          def foo(_, _), do: :ok
+        end
+
+      [{{:foo, 2}, [spec]}] = specs(bytecode)
+
+      assert Macro.to_string(Code.Typespec.spec_to_quoted(:foo, spec)) ==
+               "foo(arg1 :: [t], arg2 :: [t]) :: atom() when t: var"
+    end
+
     test "spec_to_quoted preserves line metadata for elixir remote types" do
       bytecode =
         test_module do
