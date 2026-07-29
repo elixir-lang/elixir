@@ -258,6 +258,7 @@ defmodule Code do
           | {:locals_without_parens, keyword()}
           | {:force_do_end_blocks, boolean()}
           | {:migrate, boolean()}
+          | {:migrate_atom_interpolations, boolean()}
           | {:migrate_bitstring_modifiers, boolean()}
           | {:migrate_call_parens_on_pipe, boolean()}
           | {:migrate_charlists_as_sigils, boolean()}
@@ -272,6 +273,7 @@ defmodule Code do
           | {:escape, boolean()}
           | {:locals_without_parens, keyword()}
           | {:comments, [term()]}
+          | {:syntax_colors, [{Inspect.Opts.color_key(), IO.ANSI.ansidata()}]}
 
   @typedoc """
   Options for parsing functions that convert strings to quoted expressions.
@@ -285,7 +287,7 @@ defmodule Code do
           unescape: boolean(),
           existing_atoms_only: boolean(),
           token_metadata: boolean(),
-          literal_encoder: (term(), Macro.metadata() -> term()),
+          literal_encoder: (term(), Macro.metadata() -> {:ok, Macro.t()} | {:error, binary()}),
           static_atoms_encoder: (binary(), Macro.metadata() -> {:ok, term()} | {:error, binary()}),
           emit_warnings: boolean()
         ]
@@ -413,7 +415,7 @@ defmodule Code do
       operations.
 
   """
-  @spec append_path(Path.t(), cache: boolean()) :: true | false
+  @spec append_path(Path.t(), cache: boolean()) :: boolean()
   def append_path(path, opts \\ []) do
     apply(:code, :add_pathz, [to_charlist(Path.expand(path)) | cache(opts)]) == true
   end
@@ -552,8 +554,7 @@ defmodule Code do
   This is the list of directories the Erlang VM uses for finding
   module code. The list of files is managed per Erlang VM node.
 
-  The path is expanded with `Path.expand/1` before being deleted. If the
-  path does not exist, this function returns `false`.
+  All paths are expanded with `Path.expand/1` before being deleted.
   """
   @doc since: "1.15.0"
   @spec delete_paths([Path.t()]) :: :ok
@@ -1556,9 +1557,13 @@ defmodule Code do
       `string_to_quoted/2`, setting this option to `false` will prevent it from
       escaping the sequences twice. Defaults to `true`.
 
+    * `:syntax_colors` - a keyword list of colors the output is colorized.
+      See `Inspect.Opts` for more information.
+
   See `format_string!/2` for the full list of formatting options including
-  `:file`, `:line`, `:line_length`, `:locals_without_parens`, `:force_do_end_blocks`,
-  `:syntax_colors`, and all migration options like `:migrate_charlists_as_sigils`.
+  `:file`, `:line`, `:locals_without_parens`, `:force_do_end_blocks`, and all
+  migration options like `:migrate_charlists_as_sigils`. Note `:line_length`
+  does not apply here.
   """
   @doc since: "1.13.0"
   @spec quoted_to_algebra(Macro.t(), [format_opt() | quoted_to_algebra_opt()]) ::
