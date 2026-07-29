@@ -193,8 +193,8 @@ defmodule Code.Typespec do
 
   ## To AST conversion
 
-  defp collect_vars({:ann_type, _anno, args}) when is_list(args) do
-    []
+  defp collect_vars({:ann_type, _anno, [_var, type]}) do
+    collect_vars(type)
   end
 
   defp collect_vars({:type, _anno, _kind, args}) when is_list(args) do
