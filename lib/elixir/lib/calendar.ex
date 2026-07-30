@@ -712,7 +712,7 @@ defmodule Calendar do
 
   # Literally just %
   defp format_modifiers("%" <> rest, width, pad, datetime, format_options, acc) do
-    parse(rest, datetime, format_options, [pad_leading("%", width, pad) | acc])
+    parse(rest, datetime, format_options, [pad_leading_ascii("%", width, pad) | acc])
   end
 
   # Abbreviated name of day
@@ -781,7 +781,7 @@ defmodule Calendar do
 
   # Day of the month
   defp format_modifiers("d" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.day |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.day |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -800,31 +800,35 @@ defmodule Calendar do
 
   # Hour using a 24-hour clock
   defp format_modifiers("H" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.hour |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.hour |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Hour using a 12-hour clock
   defp format_modifiers("I" <> rest, width, pad, datetime, format_options, acc) do
-    result = (rem(datetime.hour + 23, 12) + 1) |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      (rem(datetime.hour + 23, 12) + 1) |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Day of the year
   defp format_modifiers("j" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime |> Date.day_of_year() |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      datetime |> Date.day_of_year() |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Month
   defp format_modifiers("m" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.month |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.month |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Minute
   defp format_modifiers("M" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.minute |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.minute |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -852,19 +856,23 @@ defmodule Calendar do
 
   # Quarter
   defp format_modifiers("q" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime |> Date.quarter_of_year() |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      datetime |> Date.quarter_of_year() |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Second
   defp format_modifiers("S" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.second |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.second |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Day of the week
   defp format_modifiers("u" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime |> Date.day_of_week() |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      datetime |> Date.day_of_week() |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -916,9 +924,9 @@ defmodule Calendar do
   defp format_modifiers("y" <> rest, width, pad, datetime, format_options, acc) do
     result =
       if datetime.year < 0 do
-        [?- | -datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)]
+        [?- | -datetime.year |> rem(100) |> Integer.to_string() |> pad_leading_ascii(width, pad)]
       else
-        datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)
+        datetime.year |> rem(100) |> Integer.to_string() |> pad_leading_ascii(width, pad)
       end
 
     parse(rest, datetime, format_options, [result | acc])
@@ -928,9 +936,9 @@ defmodule Calendar do
   defp format_modifiers("Y" <> rest, width, pad, datetime, format_options, acc) do
     result =
       if datetime.year < 0 do
-        [?- | -datetime.year |> Integer.to_string() |> pad_leading(width, pad)]
+        [?- | -datetime.year |> Integer.to_string() |> pad_leading_ascii(width, pad)]
       else
-        datetime.year |> Integer.to_string() |> pad_leading(width, pad)
+        datetime.year |> Integer.to_string() |> pad_leading_ascii(width, pad)
       end
 
     parse(rest, datetime, format_options, [result | acc])
@@ -979,7 +987,7 @@ defmodule Calendar do
       Integer.to_string(div(absolute_offset, 3600) * 100 + rem(div(absolute_offset, 60), 60))
 
     sign = if utc_offset + std_offset >= 0, do: "+", else: "-"
-    result = "#{sign}#{pad_leading(offset_number, width, pad)}"
+    result = "#{sign}#{pad_leading_ascii(offset_number, width, pad)}"
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -1006,6 +1014,12 @@ defmodule Calendar do
 
   defp pad_leading(string, count, padding) do
     to_pad = count - String.length(string)
+    if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
+  end
+
+  # Similar to `pad_leading/3`, but only for strings that always ASCII-only
+  defp pad_leading_ascii(string, count, padding) do
+    to_pad = count - byte_size(string)
     if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
   end
 
