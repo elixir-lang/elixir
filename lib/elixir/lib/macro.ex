@@ -518,7 +518,7 @@ defmodule Macro do
   @doc since: "1.11.3"
   @spec generate_unique_arguments(0, context :: atom) :: []
   @spec generate_unique_arguments(pos_integer, context) ::
-          [{atom, [counter: integer | {module, integer}], context}, ...]
+          [{atom, [counter: integer | {context, pos_integer()}], context}, ...]
         when context: atom
   def generate_unique_arguments(amount, context),
     do: generate_arguments(amount, context, &unique_var/2)
@@ -576,7 +576,7 @@ defmodule Macro do
 
   """
   @doc since: "1.11.3"
-  @spec unique_var(var, context) :: {var, [counter: integer | {module, integer}], context}
+  @spec unique_var(var, context) :: {var, [counter: integer | {context, pos_integer()}], context}
         when var: atom, context: atom
   def unique_var(var, context) when is_atom(var) and is_atom(context) do
     {var, [counter: :elixir_module.next_counter(context)], context}
