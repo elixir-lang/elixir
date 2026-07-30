@@ -50,7 +50,7 @@ defmodule Code do
 
   You can use `ensure_loaded/1` (as well as `ensure_loaded?/1` and
   `ensure_loaded!/1`) to check if a module is loaded before using it and
-  act.
+  act accordingly.
 
   ## `ensure_compiled/1` and `ensure_compiled!/1`
 
@@ -1394,11 +1394,14 @@ defmodule Code do
   while preserving information like comments and literals position.
 
   Returns `{:ok, quoted_form, comments}` if it succeeds,
-  `{:error, {line, error, token}}` otherwise.
+  `{:error, {location, error, token}}` otherwise, where `location`
+  is keyword metadata containing the line and column of the error.
 
   Comments are maps with the following fields:
 
     * `:line` - The line number of the source code
+
+    * `:column` - The column number of the source code
 
     * `:text` - The full text of the comment, including the leading `#`
 
@@ -1454,7 +1457,9 @@ defmodule Code do
 
   Returns the AST and a list of comments if it succeeds, raises an exception
   otherwise. The exception is a `TokenMissingError` in case a token is missing
-  (usually because the expression is incomplete), `SyntaxError` otherwise.
+  (usually because the expression is incomplete), `MismatchedDelimiterError`
+  (in case of mismatched opening and closing delimiters) and `SyntaxError`
+  otherwise.
 
   Check `string_to_quoted/2` for options information.
   """
@@ -2145,7 +2150,7 @@ defmodule Code do
   If the module being checked is currently in a compiler deadlock,
   this function returns `{:error, :unavailable}`. Unavailable doesn't
   necessarily mean the module doesn't exist, just that it is not currently
-  available, but it (or may not) become available in the future.
+  available, but it may (or may not) become available in the future.
 
   Therefore, if you can only continue if the module is available, use
   `ensure_compiled!/1` instead. In particular, do not do this:
