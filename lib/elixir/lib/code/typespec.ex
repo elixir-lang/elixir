@@ -62,6 +62,7 @@ defmodule Code.Typespec do
   @doc """
   Converts a type clause back to Elixir AST.
   """
+  @spec type_to_quoted(tuple) :: Macro.t()
   def type_to_quoted(type)
 
   def type_to_quoted({{:record, record}, fields, args}) when is_atom(record) do
