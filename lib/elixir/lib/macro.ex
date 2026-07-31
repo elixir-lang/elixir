@@ -1740,9 +1740,9 @@ defmodule Macro do
 
   defp kw_blocks_to_string(kw, fun) do
     Enum.reduce(unquote(kw_keywords), " ", fn x, acc ->
-      case Keyword.has_key?(kw, x) do
-        true -> acc <> kw_block_to_string(x, Keyword.get(kw, x), fun)
-        false -> acc
+      case Keyword.fetch(kw, x) do
+        {:ok, value} -> acc <> kw_block_to_string(x, value, fun)
+        :error -> acc
       end
     end) <> "end"
   end
@@ -1981,10 +1981,9 @@ defmodule Macro do
 
   defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env)
        when is_atom(atom) and is_atom(field) and env.context != :match do
-    if Map.has_key?(env, field) do
-      {maybe_escape_map(Map.get(env, field)), true}
-    else
-      {original, false}
+    case Map.fetch(env, field) do
+      {:ok, value} -> {maybe_escape_map(value), true}
+      :error -> {original, false}
     end
   end
 
