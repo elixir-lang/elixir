@@ -251,27 +251,23 @@ defmodule Module.Types do
       context ->
         {_kind, info, mapping} = Map.fetch!(context.local_sigs, fun_arity)
 
-        if pending != [] do
-          {used_indexes, unused_indexes} =
-            Enum.reduce(mapping, {[], []}, fn {clause_index, type_index},
-                                              {used_indexes, unused_indexes} ->
-              if type_index in pending and not skip_unused_clause?(info, type_index) do
-                {used_indexes, [clause_index | unused_indexes]}
-              else
-                {[clause_index | used_indexes], unused_indexes}
-              end
-            end)
-
-          unused_indexes = Enum.uniq(unused_indexes) -- used_indexes
-
-          Enum.reduce(unused_indexes, context, fn clause_index, context ->
-            {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
-            stack = %{stack | function: fun_arity} |> with_file_meta(meta)
-            Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+        {used_indexes, unused_indexes} =
+          Enum.reduce(mapping, {[], []}, fn {clause_index, type_index},
+                                            {used_indexes, unused_indexes} ->
+            if type_index in pending and not skip_unused_clause?(info, type_index) do
+              {used_indexes, [clause_index | unused_indexes]}
+            else
+              {[clause_index | used_indexes], unused_indexes}
+            end
           end)
-        else
-          context
-        end
+
+        unused_indexes = Enum.uniq(unused_indexes) -- used_indexes
+
+        Enum.reduce(unused_indexes, context, fn clause_index, context ->
+          {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
+          stack = %{stack | function: fun_arity} |> with_file_meta(meta)
+          Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+        end)
     end
   end
 
