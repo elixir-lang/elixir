@@ -696,48 +696,43 @@ defmodule Calendar.ISO do
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom}
   def parse_duration("P" <> string) when byte_size(string) > 0 do
-    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+    parse_duration_date(string, 1, [], 0)
   end
 
   def parse_duration("+P" <> string) when byte_size(string) > 0 do
-    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+    parse_duration_date(string, 1, [], 0)
   end
 
   def parse_duration("-P" <> string) when byte_size(string) > 0 do
-    with {:ok, fields} <- parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
-      {:ok,
-       Enum.map(fields, fn
-         {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
-         {unit, value} -> {unit, -value}
-       end)}
-    end
+    parse_duration_date(string, -1, [], 0)
   end
 
   def parse_duration(_) do
     {:error, :invalid_duration}
   end
 
-  defp parse_duration_date("", acc, _allowed), do: {:ok, acc}
+  defp parse_duration_date("", _sign, acc, _min_position), do: {:ok, acc}
 
-  defp parse_duration_date("T" <> string, acc, _allowed) when byte_size(string) > 0 do
-    parse_duration_time(string, acc, hour: ?H, minute: ?M, second: ?S)
+  defp parse_duration_date("T" <> string, sign, acc, _min_position)
+       when byte_size(string) > 0 do
+    parse_duration_time(string, sign, acc, 0)
   end
 
-  defp parse_duration_date(string, acc, allowed) do
-    with {integer, <<next, rest::binary>>} <- Integer.parse(string),
-         {key, allowed} <- find_unit(allowed, next) do
-      parse_duration_date(rest, [{key, integer} | acc], allowed)
+  defp parse_duration_date(string, sign, acc, min_position) do
+    with {integer, <<unit, rest::binary>>} <- Integer.parse(string),
+         {key, next_min_position} <- find_date_unit(min_position, unit) do
+      parse_duration_date(rest, sign, [{key, integer * sign} | acc], next_min_position)
     else
       _ -> {:error, :invalid_date_component}
     end
   end
 
-  defp parse_duration_time("", acc, _allowed), do: {:ok, acc}
+  defp parse_duration_time("", _sign, acc, _min_position), do: {:ok, acc}
 
-  defp parse_duration_time(string, acc, allowed) do
+  defp parse_duration_time(string, sign, acc, min_position) do
     case Integer.parse(string) do
       {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
-        with {:second, _allowed} <- find_unit(allowed, ?S),
+        with {:second, _next_min_position} <- find_time_unit(min_position, ?S),
              {{ms, precision}, "S"} <- parse_microsecond(rest) do
           ms =
             case string do
@@ -748,16 +743,19 @@ defmodule Calendar.ISO do
                 ms
             end
 
-          {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
+          {:ok, [second: second * sign, microsecond: {ms * sign, precision}] ++ acc}
         else
           _ ->
             {:error, :invalid_time_component}
         end
 
-      {integer, <<next, rest::binary>>} ->
-        case find_unit(allowed, next) do
-          {key, allowed} -> parse_duration_time(rest, [{key, integer} | acc], allowed)
-          false -> {:error, :invalid_time_component}
+      {integer, <<unit, rest::binary>>} ->
+        case find_time_unit(min_position, unit) do
+          {key, next_min_position} ->
+            parse_duration_time(rest, sign, [{key, integer * sign} | acc], next_min_position)
+
+          false ->
+            {:error, :invalid_time_component}
         end
 
       _ ->
@@ -765,9 +763,17 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp find_unit([{key, unit} | rest], unit), do: {key, rest}
-  defp find_unit([_ | rest], unit), do: find_unit(rest, unit)
-  defp find_unit([], _unit), do: false
+  # The minimum position is the earliest unit still allowed, or one past the end.
+  defp find_date_unit(min_position, ?Y) when min_position <= 0, do: {:year, 1}
+  defp find_date_unit(min_position, ?M) when min_position <= 1, do: {:month, 2}
+  defp find_date_unit(min_position, ?W) when min_position <= 2, do: {:week, 3}
+  defp find_date_unit(min_position, ?D) when min_position <= 3, do: {:day, 4}
+  defp find_date_unit(_min_position, _unit), do: false
+
+  defp find_time_unit(min_position, ?H) when min_position <= 0, do: {:hour, 1}
+  defp find_time_unit(min_position, ?M) when min_position <= 1, do: {:minute, 2}
+  defp find_time_unit(min_position, ?S) when min_position <= 2, do: {:second, 3}
+  defp find_time_unit(_min_position, _unit), do: false
 
   @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
