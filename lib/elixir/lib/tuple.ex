@@ -135,7 +135,9 @@ defmodule Tuple do
   def sum(tuple), do: sum(tuple, 1, tuple_size(tuple) + 1, 0)
 
   defp sum(_tuple, top, top, acc), do: acc
-  defp sum(tuple, index, top, acc), do: sum(tuple, index + 1, top, acc + :erlang.element(index, tuple))
+
+  defp sum(tuple, index, top, acc),
+    do: sum(tuple, index + 1, top, acc + :erlang.element(index, tuple))
 
   @doc """
   Computes a product of tuple elements.
