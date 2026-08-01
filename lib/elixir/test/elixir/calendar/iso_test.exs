@@ -125,6 +125,25 @@ defmodule Calendar.ISOTest do
     Calendar.ISO.date_from_iso_days(iso_days)
   end
 
+  describe "parse_duration/1" do
+    test "combines duration and component signs" do
+      assert {:ok, fields} = Calendar.ISO.parse_duration("-P1Y-2MT3H-4.5S")
+
+      assert Map.new(fields) == %{
+               year: -1,
+               month: 2,
+               hour: -3,
+               second: 4,
+               microsecond: {500_000, 1}
+             }
+    end
+
+    test "combines duration and negative zero fractional second signs" do
+      assert Calendar.ISO.parse_duration("-PT-0.6S") ==
+               {:ok, [second: 0, microsecond: {600_000, 1}]}
+    end
+  end
+
   describe "parse_date/1" do
     test "supports both only extended format by default" do
       assert Calendar.ISO.parse_date("20150123") == {:error, :invalid_format}
