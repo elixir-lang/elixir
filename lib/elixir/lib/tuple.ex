@@ -132,10 +132,12 @@ defmodule Tuple do
   """
   @doc since: "1.12.0"
   @spec sum(tuple) :: number()
-  def sum(tuple), do: sum(tuple, tuple_size(tuple))
+  def sum(tuple), do: sum(tuple, 1, tuple_size(tuple) + 1, 0)
 
-  defp sum(_tuple, 0), do: 0
-  defp sum(tuple, index), do: :erlang.element(index, tuple) + sum(tuple, index - 1)
+  defp sum(_tuple, top, top, acc), do: acc
+
+  defp sum(tuple, index, top, acc),
+    do: sum(tuple, index + 1, top, acc + :erlang.element(index, tuple))
 
   @doc """
   Computes a product of tuple elements.
@@ -151,10 +153,12 @@ defmodule Tuple do
   """
   @doc since: "1.12.0"
   @spec product(tuple) :: number()
-  def product(tuple), do: product(tuple, tuple_size(tuple))
+  def product(tuple), do: product(tuple, 1, tuple_size(tuple) + 1, 1)
 
-  defp product(_tuple, 0), do: 1
-  defp product(tuple, index), do: :erlang.element(index, tuple) * product(tuple, index - 1)
+  defp product(_tuple, top, top, acc), do: acc
+
+  defp product(tuple, index, top, acc),
+    do: product(tuple, index + 1, top, acc * :erlang.element(index, tuple))
 
   @doc """
   Converts a tuple to a list.
