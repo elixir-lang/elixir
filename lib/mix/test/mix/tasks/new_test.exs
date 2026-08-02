@@ -16,8 +16,16 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.1.0\""
       end)
 
-      assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
-      assert_file("hello_world/.gitignore")
+      assert_file("hello_world/README.md", fn file ->
+        assert file =~ "# HelloWorld\n"
+        assert String.ends_with?(file, "\n")
+        refute String.ends_with?(file, "\n\n")
+      end)
+
+      assert_file("hello_world/.gitignore", fn file ->
+        assert String.ends_with?(file, "\n")
+        refute String.ends_with?(file, "\n\n")
+      end)
 
       assert_file("hello_world/lib/hello_world.ex", ~r/defmodule HelloWorld do/)
       assert_file("hello_world/test/test_helper.exs", ~r/ExUnit.start()/)
@@ -118,8 +126,16 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "apps_path: \"apps\""
       end)
 
-      assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
-      assert_file("hello_world/.gitignore")
+      assert_file("hello_world/README.md", fn file ->
+        assert file =~ "# HelloWorld\n"
+        assert String.ends_with?(file, "\n")
+        refute String.ends_with?(file, "\n\n")
+      end)
+
+      assert_file("hello_world/.gitignore", fn file ->
+        assert String.ends_with?(file, "\n")
+        refute String.ends_with?(file, "\n\n")
+      end)
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
 
