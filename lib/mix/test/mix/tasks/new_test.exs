@@ -20,11 +20,13 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "# HelloWorld\n"
         assert String.ends_with?(file, "\n")
         refute String.ends_with?(file, "\n\n")
+        refute file =~ "\n\n\n"
       end)
 
       assert_file("hello_world/.gitignore", fn file ->
         assert String.ends_with?(file, "\n")
         refute String.ends_with?(file, "\n\n")
+        refute file =~ "\n\n\n"
       end)
 
       assert_file("hello_world/lib/hello_world.ex", ~r/defmodule HelloWorld do/)
@@ -130,11 +132,13 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "# HelloWorld\n"
         assert String.ends_with?(file, "\n")
         refute String.ends_with?(file, "\n\n")
+        refute file =~ "\n\n\n"
       end)
 
       assert_file("hello_world/.gitignore", fn file ->
         assert String.ends_with?(file, "\n")
         refute String.ends_with?(file, "\n\n")
+        refute file =~ "\n\n\n"
       end)
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
