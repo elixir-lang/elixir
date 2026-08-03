@@ -16,16 +16,8 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.1.0\""
       end)
 
-      assert_file("hello_world/README.md", fn file ->
-        assert file =~ "# HelloWorld\n"
-        assert String.ends_with?(file, "\n")
-        refute String.ends_with?(file, "\n\n")
-      end)
-
-      assert_file("hello_world/.gitignore", fn file ->
-        assert String.ends_with?(file, "\n")
-        refute String.ends_with?(file, "\n\n")
-      end)
+      assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
+      assert_file("hello_world/.gitignore")
 
       assert_file("hello_world/lib/hello_world.ex", ~r/defmodule HelloWorld do/)
       assert_file("hello_world/test/test_helper.exs", ~r/ExUnit.start()/)
@@ -126,16 +118,8 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "apps_path: \"apps\""
       end)
 
-      assert_file("hello_world/README.md", fn file ->
-        assert file =~ "# HelloWorld\n"
-        assert String.ends_with?(file, "\n")
-        refute String.ends_with?(file, "\n\n")
-      end)
-
-      assert_file("hello_world/.gitignore", fn file ->
-        assert String.ends_with?(file, "\n")
-        refute String.ends_with?(file, "\n\n")
-      end)
+      assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
+      assert_file("hello_world/.gitignore")
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
 
@@ -260,6 +244,15 @@ defmodule Mix.Tasks.NewTest do
 
   defp assert_file(file) do
     assert File.regular?(file), "Expected #{file} to exist, but does not"
+    content = File.read!(file)
+
+    # \S\n\z matches non-whitespace followed by a single newline at EOF
+    assert content == "" or content =~ ~r/\S\n\z/,
+           "Expected #{file} to end with a single trailing newline"
+
+    refute content =~ "\n\n\n", "Expected #{file} to not contain consecutive blank lines"
+
+    content
   end
 
   defp assert_file(file, match) do
@@ -268,8 +261,8 @@ defmodule Mix.Tasks.NewTest do
         assert_file(file, &assert(&1 =~ match))
 
       is_function(match, 1) ->
-        assert_file(file)
-        match.(File.read!(file))
+        content = assert_file(file)
+        match.(content)
     end
   end
 end
