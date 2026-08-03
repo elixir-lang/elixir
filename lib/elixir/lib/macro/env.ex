@@ -345,7 +345,7 @@ defmodule Macro.Env do
 
   ## Additional options
 
-  It accepts the same options as `Kernel.SpecialForm.require/2` plus:
+  It accepts the same options as `Kernel.SpecialForms.require/2` plus:
 
     * #{trace_option}
 
@@ -386,7 +386,7 @@ defmodule Macro.Env do
 
   ## Additional options
 
-  It accepts the same options as `Kernel.SpecialForm.import/2` plus:
+  It accepts the same options as `Kernel.SpecialForms.import/2` plus:
 
     * `:emit_warnings` - emit warnings found when defining imports
 
@@ -406,7 +406,7 @@ defmodule Macro.Env do
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
       [{:function, List}]
 
-  It accepts the same options as `Kernel.SpecialForm.import/2`:
+  It accepts the same options as `Kernel.SpecialForms.import/2`:
 
       iex> env = __ENV__
       iex> Macro.Env.lookup_import(env, {:is_odd, 1})
@@ -448,7 +448,7 @@ defmodule Macro.Env do
 
   ## Additional options
 
-  It accepts the same options as `Kernel.SpecialForm.alias/2` plus:
+  It accepts the same options as `Kernel.SpecialForms.alias/2` plus:
 
     * #{trace_option}
 
