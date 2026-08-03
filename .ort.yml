@@ -37,6 +37,11 @@ curations:
       comment: "Apply Trademark Policy to VERSION file"
       detected_license: "NONE"
       concluded_license: "Apache-2.0"
+    - path: ".github/pull_request_template.md"
+      reason: "NOT_DETECTED"
+      comment: "Apply default license to GitHub pull request template"
+      detected_license: "NONE"
+      concluded_license: "Apache-2.0"
 
     # Wrongly Identified
     - path: ".gitignore"
