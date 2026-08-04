@@ -205,12 +205,16 @@ You can enable it by setting `elixirc_options: [module_definition: :interpreted]
 #### Elixir
 
   * [Kernel] Improve type precision of the `++/2` operator
+  * [Kernel] Improve type precision of the `send/2` return type
   * [Kernel] Improve type refinement for `:erlang.andalso/2` and `:erlang.orelse/2`
+  * [Kernel] Fix type checking of `Map.put/3` on empty map types
   * [Kernel] Fix type checking of tuple insertion on equivalent tuple types
+  * [Kernel] Fix type checking of tuple insertion on gradual types with empty static parts
   * [Kernel] Fix variable refinements leaking from invalid `receive/after` timeout expressions
   * [Kernel] Fix rendering inferred types containing unions of static and dynamic functions
   * [Kernel] Ensure typing errors in `:maps.values/1` reference the correct function
   * [Kernel] Mark `%_{}` patterns as precise so subsequent redundant struct clauses are detected
+  * [elixirc] Fix parsing of the `--profile time` option
 
 #### IEx
 
