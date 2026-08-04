@@ -192,7 +192,7 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
-## v1.20.3-dev
+## v1.20.3 (2026-08-04)
 
 ### 1. Enhancements
 
