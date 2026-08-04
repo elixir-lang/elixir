@@ -21,6 +21,7 @@
   * [Code.Formatter] Add a `:migrate_atom_interpolations` option
   * [Kernel] Improve performance of type constructors and complex intersections
   * [Kernel] Warn on binary patterns with segments that are not byte-aligned
+  * [Kernel.ParallelCompiler] Add a hint when spawned processes cannot load modules defined during compilation
   * [Keyword] Optimize `Keyword.pop/3`, `Keyword.pop!/2`, and `Keyword.pop_lazy/3`
   * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/1`
   * [MapSet] Optimize `MapSet.symmetric_difference/2` when set sizes differ
@@ -37,6 +38,10 @@
 
 #### Elixir
 
+  * [Calendar] Fix `Calendar.strftime/3` formatting of negative years with `%y`
+  * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
+  * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
+  * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
   * [Code.Fragment] Fix cursor completion when operator keywords such as `in`, `when`, `and`, `or`, and `not` follow another operator
   * [Date.Range] Fix slicing date ranges with stepped ranges
   * [Duration] Reject duplicate seconds in `Duration.from_iso8601/1`
@@ -44,11 +49,14 @@
   * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
   * [Kernel] Fix expansion of rebound variables in bitstring size expressions
   * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
+  * [Kernel] Fix map field type inference in the presence of empty map types
+  * [Kernel] Fix tuple fetch and deletion type operations across equivalent tuple types
   * [Kernel] Fix variables defined in one default argument leaking into subsequent default arguments
   * [Kernel.Typespec] Preserve metadata when proxying to Elixir typespecs
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
   * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
+  * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
   * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
 
 #### ExUnit
@@ -59,7 +67,7 @@
 #### IEx
 
   * [IEx.Autocomplete] Fix completion crashes on maps with non-atom keys
-  * [IEx.Evaluator] Recognize `**` as a continuation operator
+  * [IEx.Evaluator] Recognize `**` and `not in` as continuation operators
   * [IEx.Helpers] Fix `r/1` when multiple modules are defined in the same file
   * [IEx.Helpers] Fix heap and stack memory calculations in `process_info/1`
 
@@ -70,6 +78,8 @@
   * [mix deps] Recompile path and fetchable dependencies when one of the dependencies they were compiled with is removed
   * [mix deps] Mark fetchable dependencies for compilation when their build exists but their SCM manifest is missing
   * [mix deps.compile] Preserve code paths and compiler options across OS partitions
+  * [mix format] Pass `:sigils` to plugins invoked for sigils, allowing nested sigils to be formatted
+  * [mix new] Avoid trailing whitespace in generated files
 
 ### 3. Hard deprecations
 
