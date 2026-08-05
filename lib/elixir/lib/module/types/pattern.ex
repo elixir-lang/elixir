@@ -1398,7 +1398,7 @@ defmodule Module.Types.Pattern do
     Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
   end
 
-  defp unpack_op({{:., _, [:erlang, fun]}, _, [left, right]}, fun, acc) do
+  defp unpack_op({{:., _, [_mod, fun]}, _, [left, right]}, fun, acc) do
     unpack_op(left, fun, unpack_op(right, fun, acc))
   end
 
