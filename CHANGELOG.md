@@ -206,7 +206,7 @@ You can enable it by setting `elixirc_options: [module_definition: :interpreted]
 
   * [Kernel] Improve type precision of the `++/2` operator
   * [Kernel] Improve type precision of the `send/2` return type
-  * [Kernel] Improve type refinement for `:erlang.andalso/2` and `:erlang.orelse/2`
+  * [Kernel] Improve type refinement for `and/2` and `or/2`
   * [Kernel] Fix type checking of `Map.put/3` on empty map types
   * [Kernel] Fix type checking of tuple insertion on equivalent tuple types
   * [Kernel] Fix type checking of tuple insertion on gradual types with empty static parts
