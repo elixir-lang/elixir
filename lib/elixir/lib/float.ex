@@ -167,40 +167,70 @@ defmodule Float do
     parse_unsigned(binary)
   end
 
-  defp parse_unsigned(<<digit, rest::binary>>) when digit in ?0..?9,
-    do: parse_unsigned(rest, false, false, [digit])
+  defp parse_unsigned(<<digit, rest::binary>> = binary) when digit in ?0..?9,
+    do: parse_mantissa(binary, rest, false)
 
   defp parse_unsigned(binary) when is_binary(binary), do: :error
 
-  defp parse_unsigned(<<digit, rest::binary>>, dot?, e?, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, dot?, e?, [digit | acc])
+  defp parse_mantissa(binary, <<digit, rest::binary>>, dot?) when digit in ?0..?9,
+    do: parse_mantissa(binary, rest, dot?)
 
-  defp parse_unsigned(<<?., digit, rest::binary>>, false, false, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, true, false, [digit, ?. | acc])
+  defp parse_mantissa(binary, <<?., digit, rest::binary>>, false) when digit in ?0..?9,
+    do: parse_mantissa(binary, rest, true)
 
-  defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc)
+  defp parse_mantissa(binary, <<exp_marker, digit, rest::binary>> = tail, dot?)
        when exp_marker in ~c"eE" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, [digit, ?e | add_dot(acc, dot?)])
+       do: parse_exponent(binary, byte_size(binary) - byte_size(tail), rest, dot?)
 
-  defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc)
+  defp parse_mantissa(binary, <<exp_marker, sign, digit, rest::binary>> = tail, dot?)
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, [digit, sign, ?e | add_dot(acc, dot?)])
+       do: parse_exponent(binary, byte_size(binary) - byte_size(tail), rest, dot?)
 
-  # :erlang.binary_to_float/1 can raise an ArgumentError if the e exponent is too big. For example,
-  # "1.0e400". Because of this, we rescue the ArgumentError here and return an error.
-  defp parse_unsigned(rest, dot?, _, acc) do
-    acc
-    |> add_dot(dot?)
-    |> :lists.reverse()
-    |> :erlang.list_to_float()
+  defp parse_mantissa(binary, rest, dot?), do: finish_mantissa(binary, rest, dot?)
+
+  defp parse_exponent(binary, exp_pos, <<digit, rest::binary>>, dot?) when digit in ?0..?9,
+    do: parse_exponent(binary, exp_pos, rest, dot?)
+
+  defp parse_exponent(binary, exp_pos, rest, dot?),
+    do: finish_exponent(binary, exp_pos, rest, dot?)
+
+  defp finish_mantissa(binary, rest, _dot? = true) do
+    {:erlang.binary_to_float(consumed(binary, rest)), rest}
   rescue
     ArgumentError -> :error
-  else
-    float -> {float, rest}
   end
 
-  defp add_dot(acc, true), do: acc
-  defp add_dot(acc, false), do: [?0, ?. | acc]
+  # Bare integer: * 1.0 casts to the nearest float without building a new binary,
+  # and raises ArithmeticError on overflow (for example a 400-digit integer).
+  defp finish_mantissa(binary, rest, _dot? = false) do
+    {:erlang.binary_to_integer(consumed(binary, rest)) * 1.0, rest}
+  rescue
+    ArithmeticError -> :error
+  end
+
+  # binary_to_float/1 raises ArgumentError when the exponent is too big, e.g. "1.0e400".
+  defp finish_exponent(binary, _exp_pos, rest, _dot? = true) do
+    {:erlang.binary_to_float(consumed(binary, rest)), rest}
+  rescue
+    ArgumentError -> :error
+  end
+
+  # No decimal point, so ".0" is spliced in before the exponent (at exp_pos) to
+  # form a valid float literal.
+  defp finish_exponent(binary, exp_pos, rest, _dot? = false) do
+    len = byte_size(binary) - byte_size(rest)
+
+    literal =
+      <<:binary.part(binary, 0, exp_pos)::binary, ?., ?0,
+        :binary.part(binary, exp_pos, len - exp_pos)::binary>>
+
+    {:erlang.binary_to_float(literal), rest}
+  rescue
+    ArgumentError -> :error
+  end
+
+  defp consumed(binary, ""), do: binary
+  defp consumed(binary, rest), do: :binary.part(binary, 0, byte_size(binary) - byte_size(rest))
 
   @doc """
   Rounds a float to the largest float less than or equal to `number`.
