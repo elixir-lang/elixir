@@ -221,8 +221,11 @@ defmodule Float do
     len = byte_size(binary) - byte_size(rest)
 
     literal =
-      <<:binary.part(binary, 0, exp_pos)::binary, ?., ?0,
-        :binary.part(binary, exp_pos, len - exp_pos)::binary>>
+      IO.iodata_to_binary([
+        :binary.part(binary, 0, exp_pos),
+        ".0",
+        :binary.part(binary, exp_pos, len - exp_pos)
+      ])
 
     {:erlang.binary_to_float(literal), rest}
   rescue
