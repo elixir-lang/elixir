@@ -68,7 +68,7 @@ defmodule Code.Normalizer do
 
   # Bit containers
   defp do_normalize({:<<>>, _, args} = quoted, state) when is_list(args) do
-    normalize_bitstring(quoted, state, false)
+    normalize_bitstring(quoted, state, state.escape)
   end
 
   # Atoms with interpolations
@@ -182,7 +182,8 @@ defmodule Code.Normalizer do
         |> patch_meta_line(state.parent_meta)
         |> Keyword.put_new(:delimiter, "\"")
 
-      {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
+      string = normalize_bitstring(string, %{state | parent_meta: meta}, false)
+      {sigil, meta, [string, modifiers]}
     else
       _ ->
         normalize_call(quoted, state)
@@ -401,7 +402,6 @@ defmodule Code.Normalizer do
   defp allow_keyword?(op, arity), do: not is_atom(op) or not Macro.operator?(op, arity)
 
   defp normalize_bitstring({:<<>>, meta, parts}, state, escape_interpolation) do
-    parts = maybe_add_trailing_newline(meta, parts, state)
     meta = patch_meta_line(meta, state.parent_meta)
 
     parts =
@@ -420,6 +420,7 @@ defmodule Code.Normalizer do
         end)
       end
 
+    parts = maybe_add_trailing_newline(meta, parts, state)
     {:<<>>, meta, parts}
   end
 

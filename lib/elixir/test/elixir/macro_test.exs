@@ -1074,6 +1074,13 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
     end
 
+    test "escapes literal parts of interpolated strings" do
+      for source <- [~S["\\n#{x}"], ~S["\\#{x}"], ~S["a\\0#{x}"], ~S["\\u#{x}"], ~S["\\x#{x}"]] do
+        ast = Code.string_to_quoted!(source)
+        assert Macro.to_string(ast) == source
+      end
+    end
+
     test "converts invalid AST with inspect" do
       assert Macro.to_string(1..3) == "1..3"
     end
