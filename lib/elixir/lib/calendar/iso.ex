@@ -2050,33 +2050,23 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp parse_microsecond("." <> rest) do
-    case parse_microsecond(rest, 0, []) do
-      {[], 0, _} ->
-        :error
+  defp parse_microsecond("." <> rest), do: parse_microsecond(rest, rest, 0)
+  defp parse_microsecond("," <> rest), do: parse_microsecond(rest, rest, 0)
+  defp parse_microsecond(rest), do: {{0, 0}, rest}
 
-      {microsecond, precision, rest} ->
-        scale = scale_factor(precision)
-        {{:erlang.list_to_integer(microsecond) * scale, precision}, rest}
-    end
-  end
+  # Digits past the sixth are consumed but do not contribute to the value.
+  defp parse_microsecond(<<head, tail::binary>>, digits, 6) when head in ?0..?9,
+    do: parse_microsecond(tail, digits, 6)
 
-  defp parse_microsecond("," <> rest) do
-    parse_microsecond("." <> rest)
-  end
+  defp parse_microsecond(<<head, tail::binary>>, digits, precision) when head in ?0..?9,
+    do: parse_microsecond(tail, digits, precision + 1)
 
-  defp parse_microsecond(rest) do
-    {{0, 0}, rest}
-  end
+  defp parse_microsecond(_rest, _digits, 0), do: :error
 
-  defp parse_microsecond(<<head, tail::binary>>, 6, acc) when head in ?0..?9,
-    do: parse_microsecond(tail, 6, acc)
-
-  defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
-    do: parse_microsecond(tail, precision + 1, [head | acc])
-
-  defp parse_microsecond(rest, precision, acc) do
-    {:lists.reverse(acc), precision, rest}
+  defp parse_microsecond(rest, digits, precision) do
+    scale = scale_factor(precision)
+    microsecond = :erlang.binary_to_integer(:binary.part(digits, 0, precision)) * scale
+    {{microsecond, precision}, rest}
   end
 
   defp parse_offset(""), do: {nil, ""}
