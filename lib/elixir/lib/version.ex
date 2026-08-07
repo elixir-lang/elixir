@@ -633,17 +633,17 @@ defmodule Version do
     defp require_digits(string) do
       if leading_zero?(string) or byte_size(string) > @max_numeric_component_digits,
         do: :error,
-        else: parse_digits(string, "")
+        else: parse_digits(string)
     end
 
     defp leading_zero?(<<?0, _, _::binary>>), do: true
     defp leading_zero?(_), do: false
 
-    defp parse_digits(<<char, rest::binary>>, acc) when char in ?0..?9,
-      do: parse_digits(rest, <<acc::binary, char>>)
+    defp parse_digits(<<>>), do: :error
 
-    defp parse_digits(<<>>, acc) when byte_size(acc) > 0, do: {:ok, String.to_integer(acc)}
-    defp parse_digits(_, _acc), do: :error
+    defp parse_digits(string) do
+      if all_digits?(string), do: {:ok, :erlang.binary_to_integer(string)}, else: :error
+    end
 
     defp maybe_patch(patch, approximate?)
     defp maybe_patch(nil, true), do: {:ok, nil}
@@ -667,7 +667,7 @@ defmodule Version do
     end
 
     defp convert_parts_to_integer([part | rest], acc) do
-      case parse_digits(part, "") do
+      case parse_digits(part) do
         {:ok, integer} ->
           if leading_zero?(part) do
             :error
