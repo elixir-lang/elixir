@@ -467,8 +467,12 @@ defmodule Time do
           Calendar.microsecond(),
           Calendar.calendar()
         ) :: t
-  def from_seconds_after_midnight(seconds, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
-      when is_integer(seconds) do
+  def from_seconds_after_midnight(
+        seconds,
+        {microsecond, precision} \\ {0, 0},
+        calendar \\ Calendar.ISO
+      )
+      when is_integer(seconds) and microsecond in 0..999_999 and precision in 0..6 do
     seconds_in_day = Integer.mod(seconds, @seconds_per_day)
 
     {hour, minute, second, {_, _}} =
@@ -479,7 +483,7 @@ defmodule Time do
       hour: hour,
       minute: minute,
       second: second,
-      microsecond: microsecond
+      microsecond: {microsecond, precision}
     }
   end
 
