@@ -416,6 +416,14 @@ defmodule PathTest do
     assert Path.join(["/foo", "bar"], ["fiz", "buz"]) == "/foobar/fizbuz"
   end
 
+  test "safe_join/2" do
+    assert {:ok, "foo/bar"} = Path.safe_join("foo", "bar")
+    assert {:ok, "foo"} = Path.safe_join("foo", ".")
+
+    assert :error = Path.safe_join("foo", "../bar")
+    assert :error = Path.safe_join("foo", "/bar")
+  end
+
   test "split/1" do
     assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
