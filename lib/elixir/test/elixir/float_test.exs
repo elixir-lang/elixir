@@ -51,6 +51,19 @@ defmodule FloatTest do
     assert Float.parse(String.duplicate("9", 310) <> ".0") === :error
     assert Float.parse("-" <> String.duplicate("9", 310) <> ".0") === :error
     assert Float.parse(String.duplicate("9", 310) <> ".0foo") === :error
+
+    # Integer without a decimal point (parsed as an integer and cast to float)
+    assert Float.parse("123456789012345678901234567890") === {1.2345678901234568e29, ""}
+    assert Float.parse(String.duplicate("9", 300)) === {1.0e300, ""}
+    assert Float.parse(String.duplicate("9", 310)) === :error
+    assert Float.parse("-" <> String.duplicate("9", 310)) === :error
+    assert Float.parse(String.duplicate("9", 310) <> "foo") === :error
+
+    # Exponent notation without a decimal point, followed by trailing characters
+    assert Float.parse("1e10foo") === {1.0e10, "foo"}
+    assert Float.parse("8e1xy") === {80.0, "xy"}
+    assert Float.parse("5E+2q") === {500.0, "q"}
+    assert Float.parse("8E4 49") === {80000.0, " 49"}
   end
 
   test "floor/1" do
