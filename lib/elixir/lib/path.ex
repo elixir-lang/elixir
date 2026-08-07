@@ -699,6 +699,32 @@ defmodule Path do
     end
   end
 
+  @doc """
+  Safely joins two paths.
+
+  Returns `{:ok, path}` if `right` is safe to append to `left`, or `:error`
+  otherwise. See `safe_relative/2` for the exact safety rules applied to `right`.
+
+  ## Examples
+
+      iex> Path.safe_join("foo", "bar")
+      {:ok, "foo/bar"}
+
+      iex> Path.safe_join("foo", "../bar")
+      :error
+
+      iex> Path.safe_join("foo", "/bar")
+      :error
+
+  """
+  @doc since: "1.21.0"
+  @spec safe_join(t, t) :: {:ok, t} | :error
+  def safe_join(left, right) do
+    with {:ok, right} <- safe_relative(right, left) do
+      {:ok, join(left, right)}
+    end
+  end
+
   @doc ~S"""
   Splits the path into a list at the path separator.
 
