@@ -180,4 +180,16 @@ defmodule TimeTest do
                  ~r/unsupported value 1 for :microsecond. Expected a tuple \{ms, precision\}/,
                  fn -> Time.shift(time, microsecond: 1) end
   end
+
+  test "from_seconds_after_midnight/3" do
+    assert Time.from_seconds_after_midnight(86399, {999_999, 6}) == ~T[23:59:59.999999]
+
+    assert_raise FunctionClauseError, fn ->
+      Time.from_seconds_after_midnight(0, {1_000_000, 6})
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Time.from_seconds_after_midnight(0, {999_999, 7})
+    end
+  end
 end
