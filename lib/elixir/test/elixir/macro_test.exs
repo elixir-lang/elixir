@@ -1081,6 +1081,14 @@ defmodule MacroTest do
       end
     end
 
+    test "escapes C1 control characters without changing their encoding" do
+      for codepoint <- 0x80..0x9F do
+        string = <<codepoint::utf8>>
+        source = Macro.to_string(string)
+        assert {^string, []} = Code.eval_string(source)
+      end
+    end
+
     test "converts invalid AST with inspect" do
       assert Macro.to_string(1..3) == "1..3"
     end
