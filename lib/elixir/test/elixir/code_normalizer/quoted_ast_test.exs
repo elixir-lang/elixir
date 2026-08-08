@@ -636,6 +636,66 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
     end
 
+    test "keyword args that start with do:" do
+      assert quoted_to_string(quote(do: foo(do: a, bar: b))) == "foo(do: a, bar: b)"
+      assert quoted_to_string(quote(do: foo(x, do: a, bar: b))) == "foo(x, do: a, bar: b)"
+      assert quoted_to_string(quote(do: Foo.bar(do: a, baz: b))) == "Foo.bar(do: a, baz: b)"
+
+      assert quoted_to_string(quote(do: for(x <- y, do: x, into: ""))) ==
+               ~S|for x <- y, do: x, into: ""|
+
+      assert quoted_to_string({:foo, [], [[do: 1, do: 2]]}) == "foo(do: 1, do: 2)"
+      assert quoted_to_string(quote(do: foo(bar: b, do: a))) == "foo(bar: b, do: a)"
+      assert quoted_to_string({:foo, [], [[rescue: 1]]}) == "foo(rescue: 1)"
+
+      assert quoted_to_string({:foo, [], [[do: {:__block__, [], [1, 2]}, bar: 3]]}) ==
+               "foo(\n  do:\n    (\n      1\n      2\n    ),\n  bar: 3\n)"
+
+      assert quoted_to_string({:case, [], [{:x, [], nil}, [do: [{:->, [], [[1], 2]}], other: 9]]}) ==
+               "case x, do: (1 -> 2), other: 9"
+
+      assert quoted_to_string(quote(do: foo(do: a))) == "foo do\n  a\nend"
+      assert quoted_to_string(quote(do: foo(do: a, else: b))) == "foo do\n  a\nelse\n  b\nend"
+      assert quoted_to_string(quote(do: foo(do: a, catch: b))) == "foo do\n  a\ncatch\n  b\nend"
+      assert quoted_to_string(quote(do: foo(do: a, after: b))) == "foo do\n  a\nafter\n  b\nend"
+
+      assert quoted_to_string(quote(do: foo(do: a, rescue: b, after: c))) ==
+               "foo do\n  a\nrescue\n  b\nafter\n  c\nend"
+
+      assert quoted_to_string(quote(do: receive(do: (x -> x), after: (100 -> nil)))) ==
+               "receive do\n  x -> x\nafter\n  100 -> nil\nend"
+    end
+
+    test "keyword args that start with do: with do/end in the metadata" do
+      meta = [do: [line: 1], end: [line: 1]]
+
+      assert quoted_to_string({:foo, meta, [[do: 1, bar: 2]]}) == "foo(do: 1, bar: 2)"
+      assert quoted_to_string({:foo, meta, [[do: 1, else: 2]]}) == "foo do\n  1\nelse\n  2\nend"
+    end
+
+    test "keyword args that start with do: are not forced into do-end blocks" do
+      assert quoted_to_string({:foo, [], [[do: 1, bar: 2]]}, force_do_end_blocks: true) ==
+               "foo(do: 1, bar: 2)"
+
+      assert quoted_to_string({:foo, [], [[do: 1, else: 2]]}, force_do_end_blocks: true) ==
+               "foo do\n  1\nelse\n  2\nend"
+    end
+
+    test "keyword args that start with do: round-trip through the parser" do
+      asts = [
+        quote(do: foo(do: a, bar: b)),
+        quote(do: for(x <- y, do: x, into: "")),
+        quote(do: foo(do: a, else: b)),
+        {:foo, [], [[do: 1, do: 2]]},
+        {:foo, [do: [line: 1], end: [line: 1]], [[do: 1, bar: 2]]}
+      ]
+
+      for ast <- asts do
+        string = quoted_to_string(ast)
+        assert string |> Code.string_to_quoted!() |> quoted_to_string() == string
+      end
+    end
+
     test "keyword arg with cursor" do
       input = "def foo, do: :bar, __cursor__()"
       expected = "def foo, [{:do, :bar}, __cursor__()]"
