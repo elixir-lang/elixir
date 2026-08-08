@@ -150,9 +150,14 @@ defmodule Code.Identifier do
     <<acc::binary, char::utf8>>
   end
 
-  defp escape_char(char, acc) when char < 0x100 do
+  defp escape_char(char, acc) when char < 0x80 do
     <<a::4, b::4>> = <<char::8>>
     <<acc::binary, ?\\, ?x, to_hex(a), to_hex(b)>>
+  end
+
+  defp escape_char(char, acc) when char < 0x100 do
+    <<a::4, b::4>> = <<char::8>>
+    <<acc::binary, ?\\, ?u, ?0, ?0, to_hex(a), to_hex(b)>>
   end
 
   defp escape_char(char, acc) when char < 0x10000 do
