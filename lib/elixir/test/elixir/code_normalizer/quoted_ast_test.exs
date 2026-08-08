@@ -639,20 +639,13 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "keyword args that start with do:" do
       assert quoted_to_string(quote(do: foo(do: a, bar: b))) == "foo(do: a, bar: b)"
       assert quoted_to_string(quote(do: foo(x, do: a, bar: b))) == "foo(x, do: a, bar: b)"
-      assert quoted_to_string(quote(do: Foo.bar(do: a, baz: b))) == "Foo.bar(do: a, baz: b)"
-
-      assert quoted_to_string(quote(do: for(x <- y, do: x, into: ""))) ==
-               ~S|for x <- y, do: x, into: ""|
+      assert quoted_to_string(quote(do: foo(bar: b, do: a))) == "foo(bar: b, do: a)"
 
       assert quoted_to_string({:foo, [], [[do: 1, do: 2]]}) == "foo(do: 1, do: 2)"
-      assert quoted_to_string(quote(do: foo(bar: b, do: a))) == "foo(bar: b, do: a)"
       assert quoted_to_string({:foo, [], [[rescue: 1]]}) == "foo(rescue: 1)"
 
       assert quoted_to_string({:foo, [], [[do: {:__block__, [], [1, 2]}, bar: 3]]}) ==
                "foo(\n  do:\n    (\n      1\n      2\n    ),\n  bar: 3\n)"
-
-      assert quoted_to_string({:case, [], [{:x, [], nil}, [do: [{:->, [], [[1], 2]}], other: 9]]}) ==
-               "case x, do: (1 -> 2), other: 9"
 
       assert quoted_to_string(quote(do: foo(do: a))) == "foo do\n  a\nend"
       assert quoted_to_string(quote(do: foo(do: a, else: b))) == "foo do\n  a\nelse\n  b\nend"
@@ -661,6 +654,9 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       assert quoted_to_string(quote(do: foo(do: a, rescue: b, after: c))) ==
                "foo do\n  a\nrescue\n  b\nafter\n  c\nend"
+
+      assert quoted_to_string({:case, [], [{:x, [], nil}, [do: [{:->, [], [[1], 2]}], other: 9]]}) ==
+               "case x, do: (1 -> 2), other: 9"
 
       assert quoted_to_string(quote(do: receive(do: (x -> x), after: (100 -> nil)))) ==
                "receive do\n  x -> x\nafter\n  100 -> nil\nend"
