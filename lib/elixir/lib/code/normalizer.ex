@@ -4,6 +4,8 @@
 defmodule Code.Normalizer do
   @moduledoc false
 
+  @do_end_keywords [:rescue, :catch, :else, :after]
+
   defguard is_literal(x)
            when is_integer(x) or
                   is_float(x) or
@@ -347,18 +349,20 @@ defmodule Code.Normalizer do
         args = normalize_args(args, %{state | parent_meta: meta})
         {form, meta, args}
 
-      Keyword.has_key?(meta, :do) ->
+      Keyword.has_key?(meta, :do) and kw_blocks?(last) ->
         # def foo do :ok end
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
-      match?([{:do, _} | _], last) and Keyword.keyword?(last) ->
+      match?([{:do, _} | _], last) and kw_blocks?(last) ->
         # Non normalized kw blocks
         line = state.parent_meta[:line] || meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
         normalize_kw_blocks(form, meta, args, state)
 
       true ->
+        # The formatter renders do-end blocks from the meta alone
+        meta = Keyword.drop(meta, [:do, :end])
         args = normalize_args(args, %{state | parent_meta: meta})
         {last_arg, leading_args} = List.pop_at(args, -1, [])
 
@@ -396,6 +400,17 @@ defmodule Code.Normalizer do
 
   defp block_keyword?([]), do: true
   defp block_keyword?(_), do: false
+
+  # Anything after the do block that is not a block keyword makes it a keyword list
+  defp kw_blocks?([{:do, _} | rest] = kw) do
+    Keyword.keyword?(kw) and Enum.all?(rest, &match?({key, _} when key in @do_end_keywords, &1))
+  end
+
+  defp kw_blocks?([{{:__block__, _, [:do]}, _} | rest]) do
+    Enum.all?(rest, &match?({{:__block__, _, [key]}, _} when key in @do_end_keywords, &1))
+  end
+
+  defp kw_blocks?(_), do: false
 
   defp allow_keyword?(:when, 2), do: true
   defp allow_keyword?(:{}, _), do: false
