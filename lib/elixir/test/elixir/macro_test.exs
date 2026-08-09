@@ -1081,8 +1081,8 @@ defmodule MacroTest do
       end
     end
 
-    test "escapes C1 control characters without changing their encoding" do
-      for codepoint <- 0x80..0x9F do
+    test "escapes Unicode codepoints without changing their encoding" do
+      for codepoint <- Enum.concat([0x80..0x9F, [0xFFFE, 0xFFFF]]) do
         string = <<codepoint::utf8>>
         source = Macro.to_string(string)
         assert {^string, []} = Code.eval_string(source)
