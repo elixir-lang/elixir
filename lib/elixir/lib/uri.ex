@@ -168,8 +168,8 @@ defmodule URI do
   end
 
   defp encode_kv_pair({key, value}, :rfc3986) do
-    encode(Kernel.to_string(key), &char_unreserved?/1) <>
-      "=" <> encode(Kernel.to_string(value), &char_unreserved?/1)
+    encode_unreserved(Kernel.to_string(key), :percent) <>
+      "=" <> encode_unreserved(Kernel.to_string(value), :percent)
   end
 
   defp encode_kv_pair({key, value}, :www_form) do
@@ -340,6 +340,10 @@ defmodule URI do
     character in @reserved_characters
   end
 
+  defguardp unreserved_char?(character)
+            when character in ?0..?9 or character in ?a..?z or character in ?A..?Z or
+                   character in ~c"~_-."
+
   @doc """
   Checks if `character` is an unreserved one in a URI.
 
@@ -357,8 +361,51 @@ defmodule URI do
   """
   @spec char_unreserved?(byte) :: boolean
   def char_unreserved?(character) do
-    character in ?0..?9 or character in ?a..?z or character in ?A..?Z or character in ~c"~_-."
+    unreserved_char?(character)
   end
+
+  # A 56-bit word remains a small integer on 64-bit BEAM; using 64 bits would
+  # allocate a bignum for the range arithmetic below.
+  @swar_ones 0x01010101010101
+  @swar_mask80 0x80808080808080
+  @swar_threshold 7
+  @compile {:inline, encode_unreserved_byte: 2, hex: 1}
+
+  defmacrop swar_range(word, first, last) do
+    ge = @swar_ones * (0x80 - first)
+    gt = @swar_ones * (0x7F - last)
+
+    quote do
+      bxor(unquote(word) + unquote(ge), unquote(word) + unquote(gt))
+    end
+  end
+
+  # For a range [lo, hi], the high bit of
+  # `bxor(word + (0x80 - lo), word + (0x7F - hi))` is set in exactly the
+  # lanes inside the range. The ASCII check prevents carries between lanes.
+  # Punctuation uses ranges too, avoiding false positives from subtraction-
+  # based zero-byte detectors when a borrow crosses lanes.
+  defguardp unreserved_word?(word)
+            when band(word, @swar_mask80) == 0 and
+                   band(
+                     bor(
+                       bor(
+                         bor(
+                           swar_range(word, ?0, ?9),
+                           swar_range(word, ?A, ?Z)
+                         ),
+                         swar_range(word, ?a, ?z)
+                       ),
+                       bor(
+                         swar_range(word, ?-, ?.),
+                         bor(
+                           swar_range(word, ?_, ?_),
+                           swar_range(word, ?~, ?~)
+                         )
+                       )
+                     ),
+                     @swar_mask80
+                   ) == @swar_mask80
 
   @doc """
   Checks if `character` is allowed unescaped in a URI.
@@ -433,12 +480,132 @@ defmodule URI do
   """
   @spec encode_www_form(binary) :: binary
   def encode_www_form(string) when is_binary(string) do
-    for <<byte <- string>>, into: "" do
-      case percent(byte, &char_unreserved?/1) do
-        "%20" -> "+"
-        percent -> percent
-      end
+    encode_unreserved(string, :www_form)
+  end
+
+  defp encode_unreserved(string, mode) when byte_size(string) < @swar_threshold do
+    case string do
+      <<>> -> string
+      _ -> encode_unreserved_small(string, "", mode)
     end
+  end
+
+  defp encode_unreserved(string, mode), do: encode_unreserved(string, "", mode)
+
+  defp encode_unreserved_small(<<?\s, rest::binary>>, acc, :www_form) do
+    encode_unreserved_small(rest, <<acc::binary, ?+>>, :www_form)
+  end
+
+  defp encode_unreserved_small(<<byte, rest::binary>>, acc, mode)
+       when not unreserved_char?(byte) do
+    encode_unreserved_small(
+      rest,
+      <<acc::binary, ?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>,
+      mode
+    )
+  end
+
+  defp encode_unreserved_small(<<byte, rest::binary>>, acc, mode) do
+    encode_unreserved_small(rest, <<acc::binary, byte>>, mode)
+  end
+
+  defp encode_unreserved_small(<<>>, acc, _mode), do: acc
+
+  defp encode_unreserved(<<?\s, rest::binary>>, acc, :www_form) do
+    encode_unreserved(rest, <<acc::binary, ?+>>, :www_form)
+  end
+
+  # Avoid the word guard when its first byte already makes failure certain.
+  defp encode_unreserved(<<byte, rest::binary>>, acc, mode)
+       when not unreserved_char?(byte) do
+    encode_unreserved(
+      rest,
+      <<acc::binary, ?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>,
+      mode
+    )
+  end
+
+  # Seven bytes are checked with SWAR in each stride.
+  defp encode_unreserved(<<word::56, rest::binary>>, acc, mode)
+       when unreserved_word?(word) do
+    encode_unreserved(rest, <<acc::binary, word::56>>, mode)
+  end
+
+  defp encode_unreserved(<<_::56, _::binary>> = string, acc, mode) do
+    encode_unreserved_fallback(string, acc, mode)
+  end
+
+  defp encode_unreserved(<<>>, acc, _mode), do: acc
+
+  defp encode_unreserved(rest, acc, mode) do
+    encode_unreserved_small(rest, acc, mode)
+  end
+
+  # Consume through the first disallowed byte instead of checking overlapping words.
+  defp encode_unreserved_fallback(<<byte1, byte2, rest::binary>>, acc, mode)
+       when byte_size(rest) >= 5 and not unreserved_char?(byte2) do
+    encoded = encode_unreserved_byte(byte2, mode)
+    encode_unreserved(rest, <<acc::binary, byte1, encoded::binary>>, mode)
+  end
+
+  defp encode_unreserved_fallback(<<byte1, byte2, byte3, rest::binary>>, acc, mode)
+       when byte_size(rest) >= 4 and not unreserved_char?(byte3) do
+    encode_unreserved(
+      rest,
+      <<acc::binary, byte1, byte2, encode_unreserved_byte(byte3, mode)::binary>>,
+      mode
+    )
+  end
+
+  defp encode_unreserved_fallback(<<byte1, byte2, byte3, byte4, rest::binary>>, acc, mode)
+       when byte_size(rest) >= 3 and not unreserved_char?(byte4) do
+    encode_unreserved(
+      rest,
+      <<acc::binary, byte1, byte2, byte3, encode_unreserved_byte(byte4, mode)::binary>>,
+      mode
+    )
+  end
+
+  defp encode_unreserved_fallback(<<byte1, byte2, byte3, byte4, byte5, rest::binary>>, acc, mode)
+       when byte_size(rest) >= 2 and not unreserved_char?(byte5) do
+    encode_unreserved(
+      rest,
+      <<acc::binary, byte1, byte2, byte3, byte4, encode_unreserved_byte(byte5, mode)::binary>>,
+      mode
+    )
+  end
+
+  defp encode_unreserved_fallback(
+         <<byte1, byte2, byte3, byte4, byte5, byte6, rest::binary>>,
+         acc,
+         mode
+       )
+       when byte_size(rest) >= 1 and not unreserved_char?(byte6) do
+    encode_unreserved(
+      rest,
+      <<acc::binary, byte1, byte2, byte3, byte4, byte5,
+        encode_unreserved_byte(byte6, mode)::binary>>,
+      mode
+    )
+  end
+
+  defp encode_unreserved_fallback(
+         <<byte1, byte2, byte3, byte4, byte5, byte6, byte7, rest::binary>>,
+         acc,
+         mode
+       ) do
+    encode_unreserved(
+      rest,
+      <<acc::binary, byte1, byte2, byte3, byte4, byte5, byte6,
+        encode_unreserved_byte(byte7, mode)::binary>>,
+      mode
+    )
+  end
+
+  defp encode_unreserved_byte(?\s, :www_form), do: <<?+>>
+
+  defp encode_unreserved_byte(byte, _mode) do
+    <<?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>
   end
 
   defp percent(char, predicate) do

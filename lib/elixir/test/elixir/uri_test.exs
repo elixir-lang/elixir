@@ -20,6 +20,46 @@ defmodule URITest do
     assert URI.encode_www_form("4test ~1.x") == "4test+~1.x"
     assert URI.encode_www_form("poll:146%") == "poll%3A146%25"
     assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
+
+    boundary_input = :binary.copy("a /%+~_", 10)
+
+    for length <- [0, 1, 2, 3, 4, 5, 6, 7, 8, 62, 63, 64, 65] do
+      input = binary_part(boundary_input, 0, length)
+      assert URI.encode_www_form(input) == encode_www_form_reference(input)
+    end
+
+    safe_prefix = :binary.copy("a", 63)
+    safe = :binary.copy("a", 14)
+
+    for position <- 0..6, byte <- 0..255 do
+      <<prefix::binary-size(^position), _replaced, suffix::binary>> = safe
+      input = <<safe_prefix::binary, prefix::binary, byte, suffix::binary>>
+      assert URI.encode_www_form(input) == encode_www_form_reference(input)
+    end
+  end
+
+  defp encode_unreserved_reference(input) do
+    for <<byte <- input>>, into: "" do
+      if unreserved_reference?(byte) do
+        <<byte>>
+      else
+        "%" <> Base.encode16(<<byte>>)
+      end
+    end
+  end
+
+  defp encode_www_form_reference(input) do
+    for <<byte <- input>>, into: "" do
+      cond do
+        byte == ?\s -> "+"
+        unreserved_reference?(byte) -> <<byte>>
+        true -> "%" <> Base.encode16(<<byte>>)
+      end
+    end
+  end
+
+  defp unreserved_reference?(byte) do
+    byte in ?0..?9 or byte in ?a..?z or byte in ?A..?Z or byte in [?~, ?_, ?-, ?.]
   end
 
   test "encode_query/1,2" do
@@ -38,6 +78,25 @@ defmodule URITest do
 
     assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :www_form) ==
              "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
+
+    boundary_input = :binary.copy("a /%+~_", 10)
+
+    for length <- [0, 1, 2, 3, 4, 5, 6, 7, 8, 62, 63, 64, 65] do
+      input = binary_part(boundary_input, 0, length)
+      expected = encode_unreserved_reference(input)
+      assert URI.encode_query([{input, input}], :rfc3986) == expected <> "=" <> expected
+    end
+
+    safe_prefix = :binary.copy("a", 63)
+    word = :binary.copy("a", 7)
+
+    for position <- 0..6, byte <- 0..255 do
+      <<word_prefix::binary-size(^position), _replaced, word_suffix::binary>> = word
+      input = <<safe_prefix::binary, word_prefix::binary, byte, word_suffix::binary>>
+
+      assert URI.encode_query([{input, ""}], :rfc3986) ==
+               encode_unreserved_reference(input) <> "="
+    end
 
     assert_raise ArgumentError, fn ->
       URI.encode_query([{"foo", ~c"bar"}])
