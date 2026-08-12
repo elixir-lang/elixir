@@ -449,6 +449,12 @@ defmodule Kernel.GuardTest do
           def map_dot(map) when Module.fun(), do: true
         end
       end)
+
+      assert_compile_error("misplaced operator |/2", fn ->
+        defmodule ConsOperator do
+          def cons_operator(value) when value == :a | value == :b, do: true
+        end
+      end)
     end
   end
 
