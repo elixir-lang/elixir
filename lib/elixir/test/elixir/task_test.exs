@@ -630,7 +630,7 @@ defmodule TaskTest do
                [{task2, nil}, {task3, {:exit, :normal}}]
     end
 
-    test "returns once all tasks have replied" do
+    test "returns once all tasks have replied below limit" do
       parent = self()
 
       pid =
