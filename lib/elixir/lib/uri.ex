@@ -168,8 +168,8 @@ defmodule URI do
   end
 
   defp encode_kv_pair({key, value}, :rfc3986) do
-    encode(Kernel.to_string(key), &char_unreserved?/1) <>
-      "=" <> encode(Kernel.to_string(value), &char_unreserved?/1)
+    encode_unreserved(Kernel.to_string(key), :percent) <>
+      "=" <> encode_unreserved(Kernel.to_string(value), :percent)
   end
 
   defp encode_kv_pair({key, value}, :www_form) do
@@ -340,6 +340,10 @@ defmodule URI do
     character in @reserved_characters
   end
 
+  defguardp unreserved_char?(character)
+            when character in ?0..?9 or character in ?a..?z or character in ?A..?Z or
+                   character in ~c"~_-."
+
   @doc """
   Checks if `character` is an unreserved one in a URI.
 
@@ -357,7 +361,7 @@ defmodule URI do
   """
   @spec char_unreserved?(byte) :: boolean
   def char_unreserved?(character) do
-    character in ?0..?9 or character in ?a..?z or character in ?A..?Z or character in ~c"~_-."
+    unreserved_char?(character)
   end
 
   @doc """
@@ -432,14 +436,30 @@ defmodule URI do
 
   """
   @spec encode_www_form(binary) :: binary
+  def encode_www_form(<<>>), do: ""
+
   def encode_www_form(string) when is_binary(string) do
-    for <<byte <- string>>, into: "" do
-      case percent(byte, &char_unreserved?/1) do
-        "%20" -> "+"
-        percent -> percent
-      end
-    end
+    encode_unreserved(string, "", :www_form)
   end
+
+  # Matching upfront keeps the empty case from allocating the accumulator.
+  defp encode_unreserved(<<>>, _mode), do: ""
+
+  defp encode_unreserved(string, mode), do: encode_unreserved(string, "", mode)
+
+  defp encode_unreserved(<<?\s, rest::binary>>, acc, :www_form) do
+    encode_unreserved(rest, <<acc::binary, ?+>>, :www_form)
+  end
+
+  defp encode_unreserved(<<byte, rest::binary>>, acc, mode) when unreserved_char?(byte) do
+    encode_unreserved(rest, <<acc::binary, byte>>, mode)
+  end
+
+  defp encode_unreserved(<<byte, rest::binary>>, acc, mode) do
+    encode_unreserved(rest, <<acc::binary, ?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>, mode)
+  end
+
+  defp encode_unreserved(<<>>, acc, _mode), do: acc
 
   defp percent(char, predicate) do
     if predicate.(char) do
