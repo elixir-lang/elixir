@@ -209,11 +209,8 @@ defmodule EEx.Compiler do
       {[{:end, _} | _], [{:stab_op, _, _} | _]} ->
         {:middle_expr, expr, %{}}
 
-      {_, [{:stab_op, _, _} | reverse_tokens]} ->
-        fn_index = Enum.find_index(reverse_tokens, &match?({:fn, _}, &1)) || :infinity
-        end_index = Enum.find_index(reverse_tokens, &match?({:end, _}, &1)) || :infinity
-
-        if end_index > fn_index do
+      {_, [{:stab_op, _, _} | rev_tokens]} ->
+        if fn_before_end?(rev_tokens) do
           {:start_expr, expr, %{}}
         else
           {:middle_expr, expr, %{}}
@@ -226,6 +223,11 @@ defmodule EEx.Compiler do
         end
     end
   end
+
+  defp fn_before_end?([{:fn, _} | _]), do: true
+  defp fn_before_end?([{:end, _} | _]), do: false
+  defp fn_before_end?([_ | rev_tokens]), do: fn_before_end?(rev_tokens)
+  defp fn_before_end?([]), do: false
 
   defp drop_eol([{:eol, _} | rest]), do: drop_eol(rest)
   defp drop_eol(rest), do: rest
