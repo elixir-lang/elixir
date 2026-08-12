@@ -1248,9 +1248,10 @@ defmodule Task do
         {ref, nil}
       end)
 
+    ref_count = map_size(refs)
     on_timeout = Keyword.get(opts, :on_timeout, :nothing)
     timeout = Keyword.get(opts, :timeout, 5_000)
-    limit = Keyword.get(opts, :limit, map_size(refs))
+    limit = min(Keyword.get(opts, :limit, ref_count), ref_count)
     timeout_ref = make_ref()
 
     timer_ref =
