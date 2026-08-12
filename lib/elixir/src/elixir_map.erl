@@ -299,7 +299,7 @@ format_error({unknown_key_for_struct, Module, Key}) ->
   io_lib:format("unknown key ~ts for struct ~ts",
                 ['Elixir.Macro':to_string(Key), elixir_aliases:inspect(Module)]);
 format_error({invalid_key_for_struct, Key}) ->
-  io_lib:format("invalid key ~ts for struct, struct keys must be atoms, got: ",
+  io_lib:format("invalid key for struct, struct keys must be atoms, got: ~ts",
                 ['Elixir.Macro':to_string(Key)]);
 format_error(ignored_struct_key_in_struct) ->
   "key :__struct__ is ignored when using structs".

@@ -659,13 +659,16 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "invalid keys in structs" do
-      assert_compile_error(~r"invalid key :erlang\.\+\(1, 2\) for struct", fn ->
-        expand(
-          quote do
-            %User{(1 + 2) => :my_value}
-          end
-        )
-      end)
+      assert_compile_error(
+        "invalid key for struct, struct keys must be atoms, got: :erlang.+(1, 2)",
+        fn ->
+          expand(
+            quote do
+              %User{(1 + 2) => :my_value}
+            end
+          )
+        end
+      )
     end
 
     test "unknown key in structs" do
