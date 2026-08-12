@@ -17,9 +17,34 @@ defmodule URITest do
   end
 
   test "encode_www_form/1" do
+    assert URI.encode_www_form("") == ""
     assert URI.encode_www_form("4test ~1.x") == "4test+~1.x"
     assert URI.encode_www_form("poll:146%") == "poll%3A146%25"
     assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
+
+    for byte <- 0..255, input <- [<<byte>>, <<?a, byte, ?z>>] do
+      assert URI.encode_www_form(input) == www_form_reference(input)
+    end
+  end
+
+  defp www_form_reference(input) do
+    for <<byte <- input>>, into: "" do
+      cond do
+        byte == ?\s -> "+"
+        unreserved_reference?(byte) -> <<byte>>
+        true -> "%" <> Base.encode16(<<byte>>)
+      end
+    end
+  end
+
+  defp rfc3986_reference(input) do
+    for <<byte <- input>>, into: "" do
+      if unreserved_reference?(byte), do: <<byte>>, else: "%" <> Base.encode16(<<byte>>)
+    end
+  end
+
+  defp unreserved_reference?(byte) do
+    byte in ?0..?9 or byte in ?a..?z or byte in ?A..?Z or byte in ~c"~_-."
   end
 
   test "encode_query/1,2" do
@@ -38,6 +63,11 @@ defmodule URITest do
 
     assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :www_form) ==
              "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
+
+    for byte <- 0..255, input <- [<<byte>>, <<?a, byte, ?z>>] do
+      expected = rfc3986_reference(input)
+      assert URI.encode_query([{input, input}], :rfc3986) == expected <> "=" <> expected
+    end
 
     assert_raise ArgumentError, fn ->
       URI.encode_query([{"foo", ~c"bar"}])
