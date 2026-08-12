@@ -202,6 +202,7 @@ You can enable it by setting `elixirc_options: [module_definition: :interpreted]
   * [Kernel] Fix inferred type of `:erlang.split_binary/2` when given a bitstring
   * [Kernel] Fix type checker crash on comprehensions with a non-returning `:into` expression
   * [String] Fix final sigma handling in Greek casing
+  * [Task] Fix `Task.yield_many/2` waiting indefinitely when `:limit` exceeds the task count
 
 ## v1.20.3 (2026-08-04)
 
