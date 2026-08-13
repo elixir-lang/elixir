@@ -874,14 +874,21 @@ defmodule KernelTest do
       end
     end
 
-    test "raises when :to targeting the delegating module is given without the :as option" do
-      assert_raise ArgumentError,
-                   ~r/defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option/,
-                   fn ->
-                     defmodule ImplAttributes do
-                       defdelegate foo(), to: __MODULE__
-                     end
-                   end
+    test "raises when a delegate targets itself" do
+      message =
+        ~r/defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option/
+
+      assert_raise ArgumentError, message, fn ->
+        defmodule ImplAttributes do
+          defdelegate foo(), to: __MODULE__
+        end
+      end
+
+      assert_raise ArgumentError, message, fn ->
+        defmodule ImplAttributesSameAs do
+          defdelegate foo(), to: __MODULE__, as: :foo
+        end
+      end
     end
 
     defdelegate my_reverse(list \\ []), to: :lists, as: :reverse

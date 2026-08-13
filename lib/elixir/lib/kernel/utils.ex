@@ -30,11 +30,17 @@ defmodule Kernel.Utils do
   """
   def defdelegate_all(funs, opts, env) do
     to = Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
-    as = Keyword.get(opts, :as)
 
-    if to == env.module and is_nil(as) do
-      raise ArgumentError,
-            "defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option"
+    if to == env.module do
+      # TODO: Remove List.wrap when multiple funs are no longer supported
+      Enum.each(List.wrap(funs), fn fun ->
+        {name, _args, as, _as_args} = defdelegate_each(fun, opts)
+
+        if name == as do
+          raise ArgumentError,
+                "defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option"
+        end
+      end)
     end
 
     if is_list(funs) do
