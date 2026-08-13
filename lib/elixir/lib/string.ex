@@ -2768,9 +2768,8 @@ defmodule String do
     starts_with_string?(string, byte_size(string), prefix)
   end
 
-  def starts_with?(string, prefix) when is_binary(string) and is_list(prefix) do
-    string_size = byte_size(string)
-    Enum.any?(prefix, &starts_with_string?(string, string_size, &1))
+  def starts_with?(string, prefixes) when is_binary(string) and is_list(prefixes) do
+    starts_with_any?(prefixes, string, byte_size(string))
   end
 
   def starts_with?(string, prefix) when is_binary(string) do
@@ -2788,6 +2787,13 @@ defmodule String do
       false
     end
   end
+
+  defp starts_with_any?([prefix | prefixes], string, string_size) do
+    starts_with_string?(string, string_size, prefix) or
+      starts_with_any?(prefixes, string, string_size)
+  end
+
+  defp starts_with_any?([], _string, _string_size), do: false
 
   @doc """
   Returns `true` if `string` ends with any of the suffixes given.
@@ -2816,9 +2822,8 @@ defmodule String do
     ends_with_string?(string, byte_size(string), suffix)
   end
 
-  def ends_with?(string, suffix) when is_binary(string) and is_list(suffix) do
-    string_size = byte_size(string)
-    Enum.any?(suffix, &ends_with_string?(string, string_size, &1))
+  def ends_with?(string, suffixes) when is_binary(string) and is_list(suffixes) do
+    ends_with_any?(suffixes, string, byte_size(string))
   end
 
   @compile {:inline, ends_with_string?: 3}
@@ -2831,6 +2836,13 @@ defmodule String do
       false
     end
   end
+
+  defp ends_with_any?([suffix | suffixes], string, string_size) do
+    ends_with_string?(string, string_size, suffix) or
+      ends_with_any?(suffixes, string, string_size)
+  end
+
+  defp ends_with_any?([], _string, _string_size), do: false
 
   @doc """
   Checks if `string` matches the given regular expression.
