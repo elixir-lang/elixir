@@ -2229,10 +2229,11 @@ defmodule Enum do
       nil
 
   """
-  @spec min_max(t, (element, element -> boolean) | module()) :: {element, element}
-  @spec min_max(t, (-> empty_result)) :: {element, element} | empty_result when empty_result: any
+  @spec min_max(t, (element, element -> boolean) | module()) :: {min :: element, max :: element}
+  @spec min_max(t, (-> empty_result)) :: {min :: element, max :: element} | empty_result
+        when empty_result: any
   @spec min_max(t, (element, element -> boolean) | module(), (-> empty_result)) ::
-          {element, element} | empty_result
+          {min :: element, max :: element} | empty_result
         when empty_result: any
 
   def min_max(enumerable, sorter_or_empty_fallback \\ fn -> raise Enum.EmptyError end)
@@ -2343,14 +2344,14 @@ defmodule Enum do
 
   """
   @spec min_max_by(t, (element -> any), (element, element -> boolean) | module()) ::
-          {element, element} | empty_result
+          {min :: element, max :: element} | empty_result
         when empty_result: any
   @spec min_max_by(
           t,
           (element -> any),
           (element, element -> boolean) | module(),
           (-> empty_result)
-        ) :: {element, element} | empty_result
+        ) :: {min :: element, max :: element} | empty_result
         when empty_result: any
   def min_max_by(
         enumerable,
