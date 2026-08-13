@@ -38,6 +38,16 @@ defmodule DateTest do
     end
   end
 
+  test "to_iso8601/2" do
+    date = ~D[2000-01-01]
+    assert Date.to_iso8601(date) == "2000-01-01"
+    assert Date.to_iso8601(date, :basic) == "20000101"
+
+    holo_date = Calendar.Holocene.date(12001, 1, 1)
+    assert Date.to_iso8601(holo_date) == "2001-01-01"
+    assert Date.to_iso8601(holo_date, :basic) == "20010101"
+  end
+
   test "to_string/1" do
     date = ~D[2000-01-01]
     assert to_string(date) == "2000-01-01"
