@@ -572,6 +572,125 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  defmodule Elixir.ExtensionExDoubleNewlinePlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.ex .exs), sigils: []]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:extension] == ".ex"
+      assert opts[:file] =~ ~r/\/a\.ex$/
+      contents |> String.split("\n") |> Enum.join("\n\n")
+    end
+  end
+
+  defmodule Elixir.ExtensionExUpcasePlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.ex .exs), sigils: []]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:extension] == ".ex"
+      assert opts[:file] =~ ~r/\/a\.ex$/
+      String.upcase(contents)
+    end
+  end
+
+  test "uses plugin from .formatter.exs which targets .ex files, after standard Elixir code formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def   sigil_test( assigns  )  do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+               ~W"FOO BAR BAZ"ABC
+             END
+             """
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs which target .ex files, after standard Elixir code formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExDoubleNewlinePlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def  sigil_test(assigns  )    do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+
+               ~W"FOO BAR BAZ"ABC
+
+             END
+
+             """
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs which target both .ex files and sigils within them, after standard Elixir code formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExDoubleNewlinePlugin, SigilWPlugin, NewlineToDotPlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(   assigns)  do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+
+               ~W"FOO.BAR.BAZ"ABC
+
+             END
+
+             """
+    end)
+  end
+
   defmodule Elixir.SigilOuterPlugin do
     @behaviour Mix.Tasks.Format
 
