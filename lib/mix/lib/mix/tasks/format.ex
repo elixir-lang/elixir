@@ -703,19 +703,25 @@ defmodule Mix.Tasks.Format do
   defp find_formatter_for_file(file, formatter_opts) do
     ext = Path.extname(file)
 
+    base_formatter =
+      cond do
+        ext in ~w(.ex .exs) ->
+          &elixir_format(&1, [file: file] ++ formatter_opts)
+
+        true ->
+          & &1
+      end
+
     cond do
       plugins = find_plugins_for_extension(formatter_opts, ext) ->
         fn input ->
-          Enum.reduce(plugins, input, fn plugin, input ->
+          Enum.reduce(plugins, base_formatter.(input), fn plugin, input ->
             plugin.format(input, [extension: ext, file: file] ++ formatter_opts)
           end)
         end
 
-      ext in ~w(.ex .exs) ->
-        &elixir_format(&1, [file: file] ++ formatter_opts)
-
       true ->
-        & &1
+        base_formatter
     end
   end
 
