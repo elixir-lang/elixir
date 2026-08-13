@@ -422,7 +422,7 @@ defmodule Date do
   def to_iso8601(%{calendar: _} = date, format) when format in [:basic, :extended] do
     date
     |> convert!(Calendar.ISO)
-    |> to_iso8601()
+    |> to_iso8601(format)
   end
 
   @doc """
