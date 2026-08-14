@@ -91,7 +91,7 @@ runs:
       id: ort
       uses: oss-review-toolkit/ort-ci-github-action@086d928d24ef1653dc0777296b312fda5faaaf52 # v1.2.0
       with:
-        image: ghcr.io/oss-review-toolkit/ort-minimal:92.2.0
+        image: ghcr.io/oss-review-toolkit/ort:92.2.0
         run: >-
           labels,
           cache-dependencies,
@@ -107,4 +107,6 @@ runs:
         ort-cli-report-args: >-
           -O CycloneDX=output.file.formats=json,xml
           -O SpdxDocument=outputFileFormats=JSON,YAML
+        ort-cli-scan-args: >-
+          --scanners Provenant
         sw-version: "${{ inputs.version }}"
