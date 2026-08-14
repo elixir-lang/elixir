@@ -362,11 +362,21 @@ defmodule Version do
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
-  def compare(version1, version2) do
-    do_compare(to_matchable(version1, true), to_matchable(version2, true))
+  def compare(
+        %Version{major: major1, minor: minor1, patch: patch1, pre: pre1},
+        %Version{major: major2, minor: minor2, patch: patch2, pre: pre2}
+      ) do
+    do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
   end
 
-  defp do_compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
+  def compare(version1, version2) do
+    {major1, minor1, patch1, pre1, _} = to_matchable(version1, true)
+    {major2, minor2, patch2, pre2, _} = to_matchable(version2, true)
+
+    do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
+  end
+
+  defp do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2) do
     cond do
       major1 > major2 -> :gt
       major1 < major2 -> :lt
