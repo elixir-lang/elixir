@@ -111,13 +111,15 @@ defmodule IO.ANSI do
   end
 
   defsequence = fn name, code, terminator ->
+    sequence = "\e[#{code}#{terminator}"
+
     @spec unquote(name)() :: String.t()
     def unquote(name)() do
-      "\e[#{unquote(code)}#{unquote(terminator)}"
+      unquote(sequence)
     end
 
     defp format_sequence(unquote(name)) do
-      unquote(name)()
+      unquote(sequence)
     end
   end
 
