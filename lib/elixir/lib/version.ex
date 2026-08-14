@@ -370,10 +370,9 @@ defmodule Version do
   end
 
   def compare(version1, version2) do
-    do_compare(to_matchable(version1, true), to_matchable(version2, true))
-  end
+    {major1, minor1, patch1, pre1, _} = to_matchable(version1, true)
+    {major2, minor2, patch2, pre2, _} = to_matchable(version2, true)
 
-  defp do_compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
     do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
   end
 
