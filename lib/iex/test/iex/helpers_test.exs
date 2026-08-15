@@ -1347,6 +1347,8 @@ defmodule IEx.HelpersTest do
       assert capture_iex("[42]\n++ [24]\n|> IO.inspect(label: \"foo\")") =~ "foo: [42, 24]"
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
       assert capture_iex("4\nnot in [1, 2]") == "4\ntrue"
+      assert capture_iex("1\n..3") == "1\n1..3"
+      assert capture_iex("1\n..3//2") == "1\n1..3//2"
     end
 
     test "raises if previous expression was a match" do
@@ -1361,6 +1363,16 @@ defmodule IEx.HelpersTest do
 
       assert capture_iex("x = 4\nnot in [1, 2]") =~
                "surround the whole pipeline with parentheses 'not in'"
+
+      assert capture_iex("x = 1\n..3") =~
+               "surround the whole pipeline with parentheses '..'"
+    end
+
+    test "preserves the nullary range operator" do
+      assert capture_iex("..") == "0..-1//1"
+      assert capture_iex(".. |> Enum.to_list()") == "[]"
+      assert capture_iex(".. == 0..-1//1") == "true"
+      assert capture_iex("x = 1\n..") == "1\n0..-1//1"
     end
   end
 

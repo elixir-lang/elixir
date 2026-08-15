@@ -131,21 +131,42 @@ defmodule IEx.Evaluator do
 
   # We use elem operations, instead of pattern matching,
   # because "not in" tokenizer tuples have four elements.
-  defp adjust_operator([token | _] = _tokens, line, column, _file, _opts, :match)
-       when elem(token, 0) in @op_tokens,
-       do:
-         {:error,
-          {[line: line, column: column],
-           "pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ",
-           "'#{elem(token, 2)}'"}}
+  defp adjust_operator([token | _] = tokens, line, column, file, opts, last_op)
+       when elem(token, 0) == :range_op do
+    # Preserve `..` when a leading value isn't required
+    case :elixir.tokens_to_quoted(tokens, file, opts) do
+      {:ok, _forms, _warnings} ->
+        {:ok, tokens, nil}
 
-  defp adjust_operator([token | _] = tokens, line, column, file, opts, _last_op)
+      {:error, _reason} ->
+        {:ok, prefix, _warnings} =
+          :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
+
+        case :elixir.tokens_to_quoted(prefix ++ tokens, file, opts) do
+          {:ok, _forms, _warnings} -> prepend_operator(prefix, tokens, line, column, last_op)
+          {:error, _reason} -> {:ok, tokens, nil}
+        end
+    end
+  end
+
+  defp adjust_operator([token | _] = tokens, line, column, file, opts, last_op)
        when elem(token, 0) in @op_tokens do
     {:ok, prefix, _warnings} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
-    {:ok, prefix ++ tokens, elem(token, 0)}
+    prepend_operator(prefix, tokens, line, column, last_op)
   end
 
   defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens, nil}
+
+  defp prepend_operator(_prefix, [token | _], line, column, :match) do
+    {:error,
+     {[line: line, column: column],
+      "pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ",
+      "'#{elem(token, 2)}'"}}
+  end
+
+  defp prepend_operator(prefix, [token | _] = tokens, _line, _column, _last_op) do
+    {:ok, prefix ++ tokens, elem(token, 0)}
+  end
 
   @doc """
   Raises an error if the last iex result was itself an error
