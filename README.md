@@ -7,7 +7,7 @@
 <h1>
  <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png">
-  <img alt="Elixir logo" src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/public/images/logo/logo.png" width="200">
+  <img alt="Elixir logo" src= "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_2_6NsDluRuMTGVUWDRWpKIrSHP0OyJidSfk90nvAWu8JepKY2r-B07Y&s=10"  width="200">
  </picture>
 </h1>
 
