@@ -720,14 +720,32 @@ defmodule Time do
   """
   @doc since: "1.4.0"
   @spec compare(Calendar.time(), Calendar.time()) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar} = time1, %{calendar: calendar} = time2) do
-    %{hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}} = time1
-    %{hour: hour2, minute: minute2, second: second2, microsecond: {microsecond2, _}} = time2
-
-    case {{hour1, minute1, second1, microsecond1}, {hour2, minute2, second2, microsecond2}} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
+  def compare(
+        %{
+          hour: hour1,
+          minute: minute1,
+          second: second1,
+          microsecond: {microsecond1, _},
+          calendar: calendar
+        },
+        %{
+          hour: hour2,
+          minute: minute2,
+          second: second2,
+          microsecond: {microsecond2, _},
+          calendar: calendar
+        }
+      ) do
+    cond do
+      hour1 > hour2 -> :gt
+      hour1 < hour2 -> :lt
+      minute1 > minute2 -> :gt
+      minute1 < minute2 -> :lt
+      second1 > second2 -> :gt
+      second1 < second2 -> :lt
+      microsecond1 > microsecond2 -> :gt
+      microsecond1 < microsecond2 -> :lt
+      true -> :eq
     end
   end
 
