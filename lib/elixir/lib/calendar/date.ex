@@ -556,14 +556,18 @@ defmodule Date do
   """
   @doc since: "1.4.0"
   @spec compare(Calendar.date(), Calendar.date()) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar} = date1, %{calendar: calendar} = date2) do
-    %{year: year1, month: month1, day: day1} = date1
-    %{year: year2, month: month2, day: day2} = date2
-
-    case {{year1, month1, day1}, {year2, month2, day2}} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
+  def compare(
+        %{year: year1, month: month1, day: day1, calendar: calendar},
+        %{year: year2, month: month2, day: day2, calendar: calendar}
+      ) do
+    cond do
+      year1 > year2 -> :gt
+      year1 < year2 -> :lt
+      month1 > month2 -> :gt
+      month1 < month2 -> :lt
+      day1 > day2 -> :gt
+      day1 < day2 -> :lt
+      true -> :eq
     end
   end
 
