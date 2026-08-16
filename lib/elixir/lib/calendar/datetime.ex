@@ -1177,7 +1177,7 @@ defmodule DateTime do
     datetime
     |> to_iso_days()
     # Subtract total original offset in order to get UTC and add the new offset
-    |> Calendar.ISO.add_day_fraction_to_iso_days(offset - total_offset, 86400)
+    |> Calendar.ISO.add_time_unit_to_iso_days(offset - total_offset, :second)
     |> calendar.naive_datetime_from_iso_days()
   end
 
@@ -2060,7 +2060,7 @@ defmodule DateTime do
   end
 
   defp apply_tz_offset(iso_days, offset) do
-    Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
+    Calendar.ISO.add_time_unit_to_iso_days(iso_days, -offset, :second)
   end
 
   defp from_map(%{} = datetime_map) do
