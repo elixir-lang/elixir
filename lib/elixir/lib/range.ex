@@ -498,9 +498,9 @@ defmodule Range do
 
           if rem(first2 - first1, gcd) == 0 do
             c = first1 - first2 + step2 - step1
-            t1 = -c / step2 * u
-            t2 = -c / step1 * v
-            t = max(floor(t1) + 1, floor(t2) + 1)
+            t1 = Integer.floor_div(-c * u, step2)
+            t2 = Integer.floor_div(-c * v, step1)
+            t = max(t1 + 1, t2 + 1)
             x = div(c * u + t * step2, gcd) - 1
             y = div(c * v + t * step1, gcd) - 1
 
