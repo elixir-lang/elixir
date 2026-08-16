@@ -125,6 +125,25 @@ defmodule RangeTest do
     test "normalizes unaligned descending ranges to their actual bounds" do
       refute Range.disjoint?(27..11//-3, 26..0//-5)
     end
+
+    test "uses exact arithmetic for large ranges" do
+      # The intersection parameter was previously computed with float
+      # division, which loses precision past 2^53. d sits just below a
+      # representable float that rounds upward, so the float path overshot
+      # the first intersection (d itself, the last element of the first
+      # range) and wrongly reported the ranges as disjoint.
+      d = Integer.pow(2, 59) + 193
+      assert rem(d, 3) == 0
+      assert_overlap(0..d//3, (d - 2)..(d + 10))
+
+      # Beyond the float range (~1.8e308), the float division raised
+      # ArithmeticError for valid integer ranges before the fix.
+      # big - 2 is a multiple of 7, so both ranges are aligned (reversing
+      # preserves their elements) and they intersect at big - 2.
+      big = Integer.pow(10, 320)
+      assert rem(big - 2, 7) == 0
+      assert_overlap(0..(big - 2)//7, (big - 8)..big)
+    end
   end
 
   describe "split" do
