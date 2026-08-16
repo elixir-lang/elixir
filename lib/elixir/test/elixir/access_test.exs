@@ -217,6 +217,26 @@ defmodule AccessTest do
     test "returns empty when the start of the range is greater than the end" do
       assert [] == get_in(@test_list, [Access.slice(2..1//1)])
     end
+
+    test "pops empty when the start of the range is greater than the end" do
+      assert {[], @test_list} == pop_in(@test_list, [Access.slice(2..1//1)])
+    end
+
+    test "pops empty when the range is out of bounds" do
+      assert {[], @test_list} == pop_in(@test_list, [Access.slice(10..20)])
+    end
+
+    test "gets and updates a range with mixed pop and update returns" do
+      assert {[100, 2, 300, 4, 500], [10, 30, 50, 6, 7]} ==
+               get_and_update_in(@test_list, [Access.slice(0..4)], fn value ->
+                 if rem(value, 2) == 0, do: :pop, else: {value * 100, value * 10}
+               end)
+    end
+
+    test "updates a stepped range that starts past the beginning of the list" do
+      assert [1, 2, -3, 4, -5, 6, -7] ==
+               update_in(@test_list, [Access.slice(2..6//2)], &(&1 * -1))
+    end
   end
 
   describe "key/2 and key!/1" do
