@@ -690,7 +690,39 @@ defmodule Macro do
   """
   @spec prewalk(t, (t -> t)) :: t
   def prewalk(ast, fun) when is_function(fun, 1) do
-    elem(prewalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
+    do_prewalk(fun.(ast), fun)
+  end
+
+  # Mirrors do_traverse/4 with an always-pre fun and no accumulator,
+  # avoiding the wrapper closures and tuple threading of traverse/4.
+  # Each clause dispatches on the already-transformed node, so fun's
+  # rewrites are descended into, exactly as in traverse/4.
+  defp do_prewalk({form, meta, args}, fun) when is_atom(form) do
+    {form, meta, do_prewalk_args(args, fun)}
+  end
+
+  defp do_prewalk({form, meta, args}, fun) do
+    form = do_prewalk(fun.(form), fun)
+    {form, meta, do_prewalk_args(args, fun)}
+  end
+
+  defp do_prewalk({left, right}, fun) do
+    left = do_prewalk(fun.(left), fun)
+    {left, do_prewalk(fun.(right), fun)}
+  end
+
+  defp do_prewalk(list, fun) when is_list(list) do
+    do_prewalk_args(list, fun)
+  end
+
+  defp do_prewalk(x, _fun) do
+    x
+  end
+
+  defp do_prewalk_args(args, _fun) when is_atom(args), do: args
+
+  defp do_prewalk_args(args, fun) when is_list(args) do
+    :lists.map(fn x -> do_prewalk(fun.(x), fun) end, args)
   end
 
   @doc """
@@ -728,7 +760,37 @@ defmodule Macro do
   """
   @spec postwalk(t, (t -> t)) :: t
   def postwalk(ast, fun) when is_function(fun, 1) do
-    elem(postwalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
+    do_postwalk(ast, fun)
+  end
+
+  # Mirrors do_traverse/4 with an always-post fun and no accumulator,
+  # avoiding the wrapper closures and tuple threading of traverse/4
+  defp do_postwalk({form, meta, args}, fun) when is_atom(form) do
+    fun.({form, meta, do_postwalk_args(args, fun)})
+  end
+
+  defp do_postwalk({form, meta, args}, fun) do
+    form = do_postwalk(form, fun)
+    fun.({form, meta, do_postwalk_args(args, fun)})
+  end
+
+  defp do_postwalk({left, right}, fun) do
+    left = do_postwalk(left, fun)
+    fun.({left, do_postwalk(right, fun)})
+  end
+
+  defp do_postwalk(list, fun) when is_list(list) do
+    fun.(do_postwalk_args(list, fun))
+  end
+
+  defp do_postwalk(x, fun) do
+    fun.(x)
+  end
+
+  defp do_postwalk_args(args, _fun) when is_atom(args), do: args
+
+  defp do_postwalk_args(args, fun) when is_list(args) do
+    :lists.map(fn x -> do_postwalk(x, fun) end, args)
   end
 
   @doc """
