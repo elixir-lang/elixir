@@ -214,12 +214,51 @@ defmodule Keyword do
   """
   @spec new(Enumerable.t(), (term -> {key, value})) :: t
   def new(pairs, transform) when is_function(transform, 1) do
-    fun = fn el, acc ->
-      {k, v} = transform.(el)
-      put_new(acc, k, v)
-    end
+    new_small(Enum.reverse(pairs), transform, [], 0)
+  end
 
-    :lists.foldl(fun, [], Enum.reverse(pairs))
+  # The reversed traversal with prepend preserves the documented semantics:
+  # the last value prevails and keys are ordered by their last occurrence.
+  #
+  # Below the threshold, duplicate keys are detected by scanning the
+  # accumulator, which beats map bookkeeping while Erlang maps are
+  # copy-on-write flatmaps. At the threshold — where maps switch to a
+  # hash trie — key tracking moves to a map, keeping construction linear.
+  @new_threshold 32
+
+  defp new_small([], _transform, acc, _count), do: acc
+
+  defp new_small(rest, transform, acc, @new_threshold) do
+    seen = :maps.from_keys(:lists.map(fn {key, _value} -> key end, acc), [])
+    new_large(rest, transform, acc, seen)
+  end
+
+  defp new_small([el | rest], transform, acc, count) do
+    {key, value} = transform.(el)
+    new_small_pair(rest, transform, key, value, acc, count)
+  end
+
+  defp new_small_pair(rest, transform, key, value, acc, count) when is_atom(key) do
+    if :lists.keymember(key, 1, acc) do
+      new_small(rest, transform, acc, count)
+    else
+      new_small(rest, transform, [{key, value} | acc], count + 1)
+    end
+  end
+
+  defp new_large([], _transform, acc, _seen), do: acc
+
+  defp new_large([el | rest], transform, acc, seen) do
+    {key, value} = transform.(el)
+    new_large_pair(rest, transform, key, value, acc, seen)
+  end
+
+  defp new_large_pair(rest, transform, key, value, acc, seen) when is_atom(key) do
+    if is_map_key(seen, key) do
+      new_large(rest, transform, acc, seen)
+    else
+      new_large(rest, transform, [{key, value} | acc], Map.put(seen, key, []))
+    end
   end
 
   @doc """
