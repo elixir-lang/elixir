@@ -960,9 +960,12 @@ defmodule List do
   @spec pop_at(list, integer, any) :: {any, list}
   def pop_at(list, index, default \\ nil) when is_integer(index) do
     if index < 0 do
-      do_pop_at(list, length(list) + index, default, [])
+      case length(list) + index do
+        index when index < 0 -> {default, list}
+        index -> do_pop_at(list, index, default, [], list)
+      end
     else
-      do_pop_at(list, index, default, [])
+      do_pop_at(list, index, default, [], list)
     end
   end
 
@@ -1522,15 +1525,16 @@ defmodule List do
 
   # pop_at
 
-  defp do_pop_at([], _index, default, acc) do
-    {default, :lists.reverse(acc)}
+  # The original list is returned when the index is out of bounds
+  defp do_pop_at([], _index, default, _acc, original) do
+    {default, original}
   end
 
-  defp do_pop_at([head | tail], 0, _default, acc) do
+  defp do_pop_at([head | tail], 0, _default, acc, _original) do
     {head, :lists.reverse(acc, tail)}
   end
 
-  defp do_pop_at([head | tail], index, default, acc) do
-    do_pop_at(tail, index - 1, default, [head | acc])
+  defp do_pop_at([head | tail], index, default, acc, original) do
+    do_pop_at(tail, index - 1, default, [head | acc], original)
   end
 end
