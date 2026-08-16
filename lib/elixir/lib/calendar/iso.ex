@@ -1855,6 +1855,9 @@ defmodule Calendar.ISO do
     shift_options = shift_datetime_options(duration)
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
+      {:microsecond, {0, _}}, naive_datetime ->
+        naive_datetime
+
       {_, 0}, naive_datetime ->
         naive_datetime
 
@@ -1884,6 +1887,9 @@ defmodule Calendar.ISO do
     shift_options = shift_time_options(duration)
 
     Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
+      {:microsecond, {0, _}}, time ->
+        time
+
       {_, 0}, time ->
         time
 
