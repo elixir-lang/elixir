@@ -1371,13 +1371,13 @@ defmodule List do
 
   defp myers_difference_with_diff_script(list1, list2, diff_script) do
     path = {0, list1, list2, []}
-    find_script(0, length(list1) + length(list2), [path], diff_script)
+    find_script(0, [path], diff_script)
   end
 
-  defp find_script(envelope, max, paths, diff_script) do
+  defp find_script(envelope, paths, diff_script) do
     case each_diagonal(-envelope, envelope, paths, [], diff_script) do
       {:done, edits} -> compact_reverse(edits, [])
-      {:next, paths} -> find_script(envelope + 1, max, paths, diff_script)
+      {:next, paths} -> find_script(envelope + 1, paths, diff_script)
     end
   end
 
