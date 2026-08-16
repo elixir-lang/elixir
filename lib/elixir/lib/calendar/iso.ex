@@ -1950,8 +1950,27 @@ defmodule Calendar.ISO do
     {hour, minute, second, {microsecond, precision}}
   end
 
+  # This calendar's day fractions always carry microsecond parts (see
+  # time_to_day_fraction/4), so scaling the shift value to microseconds
+  # reaches the equal-denominator clause of add_day_fraction_to_iso_days/3
+  # directly, skipping the general gcd reduction. Nanosecond and integer
+  # units cannot be scaled to microseconds exactly, so they keep the
+  # general path, as do day fractions from other calendars, which fall
+  # back to the gcd clause on the denominator mismatch.
+  def shift_time_unit({_days, _day_fraction} = iso_days, value, :second) do
+    add_day_fraction_to_iso_days(iso_days, value * 1_000_000, @parts_per_day)
+  end
+
+  def shift_time_unit({_days, _day_fraction} = iso_days, value, :millisecond) do
+    add_day_fraction_to_iso_days(iso_days, value * 1_000, @parts_per_day)
+  end
+
+  def shift_time_unit({_days, _day_fraction} = iso_days, value, :microsecond) do
+    add_day_fraction_to_iso_days(iso_days, value, @parts_per_day)
+  end
+
   def shift_time_unit({_days, _day_fraction} = iso_days, value, unit)
-      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
+      when unit == :nanosecond or is_integer(unit) do
     ppd = System.convert_time_unit(86_400, :second, unit)
     add_day_fraction_to_iso_days(iso_days, value, ppd)
   end
