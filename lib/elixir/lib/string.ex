@@ -935,18 +935,28 @@ defmodule String do
   end
 
   def upcase(string, :ascii) when is_binary(string) do
-    IO.iodata_to_binary(upcase_ascii(string))
+    upcase_ascii(string, string, 0)
   end
 
   def upcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
     String.Unicode.upcase(string, [], mode)
   end
 
-  defp upcase_ascii(<<char, rest::bits>>) when char >= ?a and char <= ?z,
-    do: [char - 32 | upcase_ascii(rest)]
+  defp upcase_ascii(<<char, rest::bits>>, original, skip) when char >= ?a and char <= ?z do
+    prefix = binary_part(original, 0, skip)
+    upcase_ascii(rest, <<prefix::binary, char - 32>>)
+  end
 
-  defp upcase_ascii(<<char, rest::bits>>), do: [char | upcase_ascii(rest)]
-  defp upcase_ascii(<<>>), do: []
+  defp upcase_ascii(<<_char, rest::bits>>, original, skip),
+    do: upcase_ascii(rest, original, skip + 1)
+
+  defp upcase_ascii(<<>>, original, _skip), do: original
+
+  defp upcase_ascii(<<char, rest::bits>>, acc) when char >= ?a and char <= ?z,
+    do: upcase_ascii(rest, <<acc::binary, char - 32>>)
+
+  defp upcase_ascii(<<char, rest::bits>>, acc), do: upcase_ascii(rest, <<acc::binary, char>>)
+  defp upcase_ascii(<<>>, acc), do: acc
 
   @doc """
   Converts all characters in the given string to lowercase according to `mode`.
@@ -1005,18 +1015,28 @@ defmodule String do
   end
 
   def downcase(string, :ascii) when is_binary(string) do
-    IO.iodata_to_binary(downcase_ascii(string))
+    downcase_ascii(string, string, 0)
   end
 
   def downcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
     String.Unicode.downcase(string, [], mode)
   end
 
-  defp downcase_ascii(<<char, rest::bits>>) when char >= ?A and char <= ?Z,
-    do: [char + 32 | downcase_ascii(rest)]
+  defp downcase_ascii(<<char, rest::bits>>, original, skip) when char >= ?A and char <= ?Z do
+    prefix = binary_part(original, 0, skip)
+    downcase_ascii(rest, <<prefix::binary, char + 32>>)
+  end
 
-  defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
-  defp downcase_ascii(<<>>), do: []
+  defp downcase_ascii(<<_char, rest::bits>>, original, skip),
+    do: downcase_ascii(rest, original, skip + 1)
+
+  defp downcase_ascii(<<>>, original, _skip), do: original
+
+  defp downcase_ascii(<<char, rest::bits>>, acc) when char >= ?A and char <= ?Z,
+    do: downcase_ascii(rest, <<acc::binary, char + 32>>)
+
+  defp downcase_ascii(<<char, rest::bits>>, acc), do: downcase_ascii(rest, <<acc::binary, char>>)
+  defp downcase_ascii(<<>>, acc), do: acc
 
   @doc """
   Converts the first character in the given string to
