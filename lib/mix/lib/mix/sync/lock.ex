@@ -181,7 +181,7 @@ defmodule Mix.Sync.Lock do
     _ = File.rm(port_path)
     switch_file_create!(port_path, encode_lock_info(port, os_pid))
 
-    case grab_lock(path, port_path, 0) do
+    case grab_lock(path, port, 0) do
       {:ok, _n} ->
         # We grabbed lock_1+, so we need to replace lock_0 and clean up
         take_over(path, port, os_pid)
@@ -198,7 +198,8 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp grab_lock(path, port_path, n) do
+  defp grab_lock(path, port, n) do
+    port_path = Path.join(path, "port_#{port}")
     lock_path = Path.join(path, "lock_#{n}")
 
     case File.ln(port_path, lock_path) do
@@ -206,12 +207,12 @@ defmodule Mix.Sync.Lock do
         {:ok, n}
 
       {:error, :eexist} ->
-        case probe(lock_path) do
+        case probe(lock_path, port) do
           {:ok, probe_socket, os_pid} ->
             {:taken, probe_socket, os_pid}
 
           {:error, _reason} ->
-            grab_lock(path, port_path, n + 1)
+            grab_lock(path, port, n + 1)
         end
 
       {:error, :enoent} ->
@@ -242,8 +243,9 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp probe(port_path) do
+  defp probe(port_path, own_port) do
     with {:ok, port, os_pid} <- fetch_probe_port(port_path),
+         :ok <- ensure_peer_port(port, own_port),
          {:ok, socket} <- connect(port),
          {:ok, socket} <- await_probe_data(socket) do
       {:ok, socket, os_pid}
@@ -262,6 +264,11 @@ defmodule Mix.Sync.Lock do
         {:error, reason}
     end
   end
+
+  # The OS may have re-assigned a dead peer port to us, in which case
+  # we do not attempt to connect to ourselves.
+  defp ensure_peer_port(own_port, own_port), do: {:error, :same_port_as_own}
+  defp ensure_peer_port(_port, _own_port), do: :ok
 
   defp connect(port) do
     # On Windows connecting to an unbound port takes a few seconds to
