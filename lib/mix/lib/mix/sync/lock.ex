@@ -174,13 +174,14 @@ defmodule Mix.Sync.Lock do
     port_path = Path.join(path, "port_#{port}")
     os_pid = System.pid()
 
+    # We remove the port file if it exists, since it may be hard
+    # linked to a lock_N file of a crashed process, and we do not
+    # want to affect that lock_N file. We can do that, because we
+    # own the port now.
+    _ = File.rm(port_path)
     switch_file_create!(port_path, encode_lock_info(port, os_pid))
 
     case grab_lock(path, port_path, 0) do
-      {:ok, 0} ->
-        # We grabbed lock_0, so all good
-        %{socket: socket, path: path}
-
       {:ok, _n} ->
         # We grabbed lock_1+, so we need to replace lock_0 and clean up
         take_over(path, port, os_pid)
@@ -399,6 +400,9 @@ defmodule Mix.Sync.Lock do
   #
   # Note that file content can be replaced only by a single process
   # at a time.
+  #
+  # Note that this function is not atomic, only switch_file_replace!
+  # is atomic, and this is all we need.
   #
   # [1]: https://github.com/elixir-lang/elixir/pull/14793#issuecomment-3338665065
   defp switch_file_create!(path, content) do
