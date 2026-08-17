@@ -178,7 +178,8 @@ defmodule Mix.Sync.Lock do
     # linked to a lock_N file of a crashed process, and we do not
     # want to affect that lock_N file. We can do that, because we
     # own the port now.
-    _ = File.rm(port_path)
+    file_rm_if_exists!(port_path)
+
     switch_file_create!(port_path, encode_lock_info(port, os_pid))
 
     case grab_lock(path, port, 0) do
@@ -475,6 +476,19 @@ defmodule Mix.Sync.Lock do
 
       {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file at position"
+    end
+  end
+
+  defp file_rm_if_exists!(path) do
+    case File.rm(path) do
+      :ok ->
+        :ok
+
+      {:error, :enoent} ->
+        :ok
+
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "remove file", path: path
     end
   end
 end
