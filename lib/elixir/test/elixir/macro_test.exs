@@ -1883,6 +1883,77 @@ defmodule MacroTest do
     end
   end
 
+  describe "classify_atom/1" do
+    test "identifiers" do
+      assert Macro.classify_atom(:foo) == :identifier
+      assert Macro.classify_atom(:foo_bar) == :identifier
+      assert Macro.classify_atom(:foo123) == :identifier
+      assert Macro.classify_atom(:fOO) == :identifier
+      assert Macro.classify_atom(:_) == :identifier
+      assert Macro.classify_atom(:_foo) == :identifier
+      assert Macro.classify_atom(:__foo__) == :identifier
+      assert Macro.classify_atom(:foo?) == :identifier
+      assert Macro.classify_atom(:foo!) == :identifier
+      assert Macro.classify_atom(:_foo?) == :identifier
+      assert Macro.classify_atom(:olá) == :identifier
+      assert Macro.classify_atom(:こんにちは世界) == :identifier
+    end
+
+    test "identifiers with ? or ! in invalid positions" do
+      assert Macro.classify_atom(:"foo!!") == :quoted
+      assert Macro.classify_atom(:"foo??") == :quoted
+      assert Macro.classify_atom(:"foo?!") == :quoted
+      assert Macro.classify_atom(:"foo?bar") == :quoted
+      assert Macro.classify_atom(:"foo!bar") == :quoted
+      assert Macro.classify_atom(:"!foo") == :quoted
+      assert Macro.classify_atom(:"?foo") == :quoted
+    end
+
+    test "aliases" do
+      assert Macro.classify_atom(Foo) == :alias
+      assert Macro.classify_atom(Foo.Bar) == :alias
+      assert Macro.classify_atom(Foo.Bar.Baz) == :alias
+      assert Macro.classify_atom(:"Elixir") == :alias
+      assert Macro.classify_atom(Elixir.Elixir) == :alias
+      assert Macro.classify_atom(:"Elixir.A1_b.C2") == :alias
+    end
+
+    test "atoms prefixed by Elixir that are not aliases" do
+      assert Macro.classify_atom(:Elixirfoo) == :unquoted
+      assert Macro.classify_atom(:ElixirFoo) == :unquoted
+      assert Macro.classify_atom(:"Elixir.") == :quoted
+      assert Macro.classify_atom(:"Elixir.Foo.") == :quoted
+      assert Macro.classify_atom(:"Elixir.foo") == :quoted
+      assert Macro.classify_atom(:"Elixir.foo.Bar") == :quoted
+      assert Macro.classify_atom(:"Elixir.Foo.bar") == :quoted
+      assert Macro.classify_atom(:"Elixir.Foo..Bar") == :quoted
+      assert Macro.classify_atom(:"Elixir.1Foo") == :quoted
+    end
+
+    test "unquoted" do
+      assert Macro.classify_atom(:Foo) == :unquoted
+      assert Macro.classify_atom(:FOO) == :unquoted
+      assert Macro.classify_atom(:foo@bar) == :unquoted
+      assert Macro.classify_atom(:+) == :unquoted
+      assert Macro.classify_atom(:...) == :unquoted
+      assert Macro.classify_atom(:..) == :unquoted
+    end
+
+    test "quoted" do
+      assert Macro.classify_atom(:"::") == :quoted
+      assert Macro.classify_atom(:"^^^") == :quoted
+      assert Macro.classify_atom(:"@foo") == :quoted
+      assert Macro.classify_atom(:"foo bar") == :quoted
+      assert Macro.classify_atom(:"1foo") == :quoted
+      assert Macro.classify_atom(:"foo\n") == :quoted
+      assert Macro.classify_atom(:"") == :quoted
+      assert Macro.classify_atom(:" ") == :quoted
+
+      nfd = :unicode.characters_to_nfd_binary("olá")
+      assert Macro.classify_atom(String.to_unsafe_atom(nfd)) == :quoted
+    end
+  end
+
   test "operator?/2" do
     assert Macro.operator?(:+, 2)
     assert Macro.operator?(:+, 1)
