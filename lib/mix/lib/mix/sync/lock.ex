@@ -131,7 +131,7 @@ defmodule Mix.Sync.Lock do
 
   defp base_path do
     # We include user in the dir to avoid permission conflicts across users
-    Path.join(System.tmp_dir!(), "mix_lock_user#{Mix.Utils.detect_user_id!()}")
+    Path.join(System.tmp_dir!(), "mix_lock_v2_user#{Mix.Utils.detect_user_id!()}")
   end
 
   defp lock_disabled?(), do: System.get_env("MIX_OS_CONCURRENCY_LOCK") in ~w(0 false)
@@ -174,13 +174,15 @@ defmodule Mix.Sync.Lock do
     port_path = Path.join(path, "port_#{port}")
     os_pid = System.pid()
 
+    # We remove the port file if it exists, since it may be hard
+    # linked to a lock_N file of a crashed process, and we do not
+    # want to affect that lock_N file. We can do that, because we
+    # own the port now.
+    file_rm_if_exists!(port_path)
+
     switch_file_create!(port_path, encode_lock_info(port, os_pid))
 
-    case grab_lock(path, port_path, 0) do
-      {:ok, 0} ->
-        # We grabbed lock_0, so all good
-        %{socket: socket, path: path}
-
+    case grab_lock(path, port, 0) do
       {:ok, _n} ->
         # We grabbed lock_1+, so we need to replace lock_0 and clean up
         take_over(path, port, os_pid)
@@ -197,7 +199,8 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp grab_lock(path, port_path, n) do
+  defp grab_lock(path, port, n) do
+    port_path = Path.join(path, "port_#{port}")
     lock_path = Path.join(path, "lock_#{n}")
 
     case File.ln(port_path, lock_path) do
@@ -205,12 +208,12 @@ defmodule Mix.Sync.Lock do
         {:ok, n}
 
       {:error, :eexist} ->
-        case probe(lock_path) do
+        case probe(lock_path, port) do
           {:ok, probe_socket, os_pid} ->
             {:taken, probe_socket, os_pid}
 
           {:error, _reason} ->
-            grab_lock(path, port_path, n + 1)
+            grab_lock(path, port, n + 1)
         end
 
       {:error, :enoent} ->
@@ -241,8 +244,9 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp probe(port_path) do
+  defp probe(port_path, own_port) do
     with {:ok, port, os_pid} <- fetch_probe_port(port_path),
+         :ok <- ensure_peer_port(port, own_port),
          {:ok, socket} <- connect(port),
          {:ok, socket} <- await_probe_data(socket) do
       {:ok, socket, os_pid}
@@ -261,6 +265,11 @@ defmodule Mix.Sync.Lock do
         {:error, reason}
     end
   end
+
+  # The OS may have re-assigned a dead peer port to us, in which case
+  # we do not attempt to connect to ourselves.
+  defp ensure_peer_port(own_port, own_port), do: {:error, :same_port_as_own}
+  defp ensure_peer_port(_port, _own_port), do: :ok
 
   defp connect(port) do
     # On Windows connecting to an unbound port takes a few seconds to
@@ -400,6 +409,9 @@ defmodule Mix.Sync.Lock do
   # Note that file content can be replaced only by a single process
   # at a time.
   #
+  # Note that this function is not atomic, only switch_file_replace!
+  # is atomic, and this is all we need.
+  #
   # [1]: https://github.com/elixir-lang/elixir/pull/14793#issuecomment-3338665065
   defp switch_file_create!(path, content) do
     data = <<0, content::binary, content::binary>>
@@ -464,6 +476,19 @@ defmodule Mix.Sync.Lock do
 
       {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file at position"
+    end
+  end
+
+  defp file_rm_if_exists!(path) do
+    case File.rm(path) do
+      :ok ->
+        :ok
+
+      {:error, :enoent} ->
+        :ok
+
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "remove file", path: path
     end
   end
 end
