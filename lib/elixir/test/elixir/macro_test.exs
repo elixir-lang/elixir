@@ -1897,6 +1897,18 @@ defmodule MacroTest do
       assert Macro.classify_atom(:_foo?) == :identifier
       assert Macro.classify_atom(:olá) == :identifier
       assert Macro.classify_atom(:こんにちは世界) == :identifier
+      assert Macro.classify_atom(:olá?) == :identifier
+      assert Macro.classify_atom(:olá!) == :identifier
+      assert Macro.classify_atom(:日本語) == :identifier
+    end
+
+    test "reserved words are identifiers" do
+      assert Macro.classify_atom(true) == :identifier
+      assert Macro.classify_atom(false) == :identifier
+      assert Macro.classify_atom(nil) == :identifier
+      assert Macro.classify_atom(:do) == :identifier
+      assert Macro.classify_atom(:end) == :identifier
+      assert Macro.classify_atom(:fn) == :identifier
     end
 
     test "identifiers with ? or ! in invalid positions" do
@@ -1937,17 +1949,54 @@ defmodule MacroTest do
       assert Macro.classify_atom(:+) == :unquoted
       assert Macro.classify_atom(:...) == :unquoted
       assert Macro.classify_atom(:..) == :unquoted
+      assert Macro.classify_atom(:foo@) == :unquoted
+      assert Macro.classify_atom(:_foo@bar) == :unquoted
+      assert Macro.classify_atom(:olá@bar) == :unquoted
+      assert Macro.classify_atom(:+) == :unquoted
+      assert Macro.classify_atom(:...) == :unquoted
+      assert Macro.classify_atom(:..) == :unquoted
+
+      # atoms starting with a non-ASCII uppercase letter are not aliases
+      assert Macro.classify_atom(:Ólá) == :unquoted
+      assert Macro.classify_atom(:ΑΒΓ) == :unquoted
+
+      # mixed scripts separated by an underscore tokenize as an alias
+      assert Macro.classify_atom(:T_シャツ) == :unquoted
+    end
+
+    test "textual operators are unquoted, not identifiers" do
+      assert Macro.classify_atom(:when) == :unquoted
+      assert Macro.classify_atom(:and) == :unquoted
+      assert Macro.classify_atom(:or) == :unquoted
+      assert Macro.classify_atom(:not) == :unquoted
+      assert Macro.classify_atom(:in) == :unquoted
+    end
+
+    test "special forms are unquoted, not callable" do
+      assert Macro.classify_atom(:%) == :unquoted
+      assert Macro.classify_atom(:%{}) == :unquoted
+      assert Macro.classify_atom(:{}) == :unquoted
+      assert Macro.classify_atom(:<<>>) == :unquoted
+      assert Macro.classify_atom(:.) == :unquoted
+      assert Macro.classify_atom(:->) == :unquoted
+      assert Macro.classify_atom(:..//) == :unquoted
     end
 
     test "quoted" do
       assert Macro.classify_atom(:"::") == :quoted
       assert Macro.classify_atom(:"^^^") == :quoted
+      assert Macro.classify_atom(:"~~~") == :quoted
+      assert Macro.classify_atom(:"<|>") == :quoted
       assert Macro.classify_atom(:"@foo") == :quoted
       assert Macro.classify_atom(:"foo bar") == :quoted
       assert Macro.classify_atom(:"1foo") == :quoted
       assert Macro.classify_atom(:"foo\n") == :quoted
       assert Macro.classify_atom(:"") == :quoted
       assert Macro.classify_atom(:" ") == :quoted
+      assert Macro.classify_atom(:"🌢") == :quoted
+
+      # mixed-script identifiers cannot be tokenized
+      assert Macro.classify_atom(String.to_atom("аdmin")) == :quoted
 
       nfd = :unicode.characters_to_nfd_binary("olá")
       assert Macro.classify_atom(String.to_unsafe_atom(nfd)) == :quoted
