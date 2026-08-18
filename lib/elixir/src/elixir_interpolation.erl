@@ -171,7 +171,15 @@ unescape_string(String, Map) ->
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
 unescape_chars(String, Map) ->
-  unescape_chars(String, Map, <<>>).
+  case binary:match(String, <<$\\>>) of
+    nomatch ->
+      String;
+
+    {Pos, _} ->
+      <<Part:Pos/binary, Rest/binary>> = String,
+      Acc = <<>>,
+      unescape_chars(Rest, Map, <<Acc/binary, Part/binary>>)
+  end.
 
 unescape_chars(<<$\\, $x, Rest/binary>>, Map, Acc) ->
   case Map(hex) of
