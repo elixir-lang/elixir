@@ -1362,9 +1362,8 @@ defmodule File do
   end
 
   defp copy_file_mode(src, dest) do
-    with {:ok, dest_fileinfo} <- stat(dest),
-         {:ok, src_fileinfo} <- stat(src) do
-      write_stat(dest, %{dest_fileinfo | mode: src_fileinfo.mode})
+    with {:ok, src_fileinfo} <- stat(src) do
+      chmod(dest, src_fileinfo.mode)
     end
   end
 
