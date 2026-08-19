@@ -2683,54 +2683,76 @@ defmodule Macro do
         :unquoted_operator
 
       true ->
-        charlist = Atom.to_charlist(atom)
-
-        if valid_alias?(charlist) do
-          :alias
-        else
-          case :elixir_config.identifier_tokenizer().tokenize(charlist) do
-            {kind, _acc, [], _, _, special} ->
-              cond do
-                kind != :identifier or :lists.member(:at, special) ->
-                  :not_callable
-
-                # identifier_tokenizer used to return errors for non-nfc, but
-                # now it nfc-normalizes everything. However, lack of nfc is
-                # still a good reason to quote an atom when printing.
-                :lists.member(:nfkc, special) ->
-                  :other
-
-                true ->
-                  :identifier
-              end
-
-            _ ->
-              :other
-          end
-        end
+        classify_binary(Atom.to_string(atom), atom)
     end
   end
 
-  defp valid_alias?([?E, ?l, ?i, ?x, ?i, ?r] ++ rest), do: valid_alias_piece?(rest)
-  defp valid_alias?(_other), do: false
+  # ASCII identifiers and aliases are recognized on the binary to avoid building a
+  # charlist and running the (unicode aware) tokenizer, which dominates the cost of
+  # classifying keyword list, map and struct keys.
+  defp classify_binary(<<char, rest::binary>>, atom)
+       when char >= ?a and char <= ?z
+       when char == ?_ do
+    if valid_identifier_rest?(rest), do: :identifier, else: classify_with_tokenizer(atom)
+  end
 
-  defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
-    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
+  defp classify_binary("Elixir" <> rest, atom) do
+    if valid_alias_piece?(rest), do: :alias, else: classify_with_tokenizer(atom)
+  end
 
-  defp valid_alias_piece?([]), do: true
-  defp valid_alias_piece?(_other), do: false
+  defp classify_binary(_binary, atom), do: classify_with_tokenizer(atom)
 
-  defp trim_leading_while_valid_identifier([char | rest])
+  defp classify_with_tokenizer(atom) do
+    case :elixir_config.identifier_tokenizer().tokenize(Atom.to_charlist(atom)) do
+      {kind, _acc, [], _, _, special} ->
+        cond do
+          kind != :identifier or :lists.member(:at, special) ->
+            :not_callable
+
+          # identifier_tokenizer used to return errors for non-nfc, but
+          # now it nfc-normalizes everything. However, lack of nfc is
+          # still a good reason to quote an atom when printing.
+          :lists.member(:nfkc, special) ->
+            :other
+
+          true ->
+            :identifier
+        end
+
+      _ ->
+        :other
+    end
+  end
+
+  defp valid_identifier_rest?(<<char, rest::binary>>)
        when char >= ?a and char <= ?z
        when char >= ?A and char <= ?Z
        when char >= ?0 and char <= ?9
        when char == ?_ do
-    trim_leading_while_valid_identifier(rest)
+    valid_identifier_rest?(rest)
   end
 
-  defp trim_leading_while_valid_identifier(other) do
-    other
+  defp valid_identifier_rest?(<<char>>) when char == ?? when char == ?!, do: true
+  defp valid_identifier_rest?(<<>>), do: true
+  defp valid_identifier_rest?(_other), do: false
+
+  defp valid_alias_piece?(<<?., char, rest::binary>>) when char >= ?A and char <= ?Z,
+    do: valid_alias_piece_rest?(rest)
+
+  defp valid_alias_piece?(<<>>), do: true
+  defp valid_alias_piece?(_other), do: false
+
+  # A helper returning the rest of the binary would build a sub binary per piece,
+  # so branch back into valid_alias_piece?/1 to keep the match context.
+  defp valid_alias_piece_rest?(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    valid_alias_piece_rest?(rest)
   end
+
+  defp valid_alias_piece_rest?(other), do: valid_alias_piece?(other)
 
   @doc """
   Default backend for `Kernel.dbg/2`.
