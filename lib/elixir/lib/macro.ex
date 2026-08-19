@@ -207,16 +207,6 @@ defmodule Macro do
           escape: (binary(), char() -> binary())
         ]
 
-  # Not a defguardp because Macro is compiled before Enum during bootstrap,
-  # and Kernel.defguard/1 relies on Enum.
-  defmacrop is_ascii_identifier_char(char) do
-    quote do
-      (unquote(char) >= ?a and unquote(char) <= ?z) or
-        (unquote(char) >= ?A and unquote(char) <= ?Z) or
-        (unquote(char) >= ?0 and unquote(char) <= ?9) or unquote(char) == ?_
-    end
-  end
-
   @doc """
   Breaks a pipeline expression into a list.
 
@@ -2680,36 +2670,39 @@ defmodule Macro do
   #   * `:other` - any other atom (these are usually escaped when inspected, like
   #     `:"foo and bar"`)
   #
-  defp inner_classify(atom)
-       when atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->],
-       do: :not_callable
-
-  # <|>, ^^^, and ~~~ are deprecated
-  defp inner_classify(atom) when atom in [:"::", :"^^^", :"~~~", :"<|>"],
-    do: :quoted_operator
-
   defp inner_classify(atom) when is_atom(atom) do
-    if operator?(atom, 1) or operator?(atom, 2) do
-      :unquoted_operator
-    else
-      # ASCII identifiers and aliases are recognized on the binary to avoid building a
-      # charlist and running the (unicode aware) tokenizer, which dominates the cost of
-      # classifying keyword list, map and struct keys. Both are matched at once because
-      # the first byte tells them apart and a second match would build a second context.
-      case Atom.to_string(atom) do
-        <<char, rest::binary>> when (char >= ?a and char <= ?z) or char == ?_ ->
-          if ascii_identifier_rest?(rest), do: :identifier, else: tokenizer_classify(atom)
+    cond do
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
+        :not_callable
 
-        "Elixir" <> rest ->
-          if valid_alias_piece?(rest), do: :alias, else: tokenizer_classify(atom)
+      # <|>, ^^^, and ~~~ are deprecated
+      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
+        :quoted_operator
 
-        _other ->
-          tokenizer_classify(atom)
-      end
+      operator?(atom, 1) or operator?(atom, 2) ->
+        :unquoted_operator
+
+      true ->
+        classify_binary(Atom.to_string(atom), atom)
     end
   end
 
-  defp tokenizer_classify(atom) do
+  # ASCII identifiers and aliases are recognized on the binary to avoid building a
+  # charlist and running the (unicode aware) tokenizer, which dominates the cost of
+  # classifying keyword list, map and struct keys.
+  defp classify_binary(<<char, rest::binary>>, atom)
+       when char >= ?a and char <= ?z
+       when char == ?_ do
+    if valid_identifier_rest?(rest), do: :identifier, else: classify_with_tokenizer(atom)
+  end
+
+  defp classify_binary("Elixir" <> rest, atom) do
+    if valid_alias_piece?(rest), do: :alias, else: classify_with_tokenizer(atom)
+  end
+
+  defp classify_binary(_binary, atom), do: classify_with_tokenizer(atom)
+
+  defp classify_with_tokenizer(atom) do
     case :elixir_config.identifier_tokenizer().tokenize(Atom.to_charlist(atom)) do
       {kind, _acc, [], _, _, special} ->
         cond do
@@ -2731,26 +2724,35 @@ defmodule Macro do
     end
   end
 
-  defp ascii_identifier_rest?(<<char, rest::binary>>) when is_ascii_identifier_char(char),
-    do: ascii_identifier_rest?(rest)
+  defp valid_identifier_rest?(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    valid_identifier_rest?(rest)
+  end
 
-  defp ascii_identifier_rest?(<<char>>) when char == ?? or char == ?!, do: true
-  defp ascii_identifier_rest?(<<>>), do: true
-  defp ascii_identifier_rest?(_binary), do: false
-
-  defp valid_alias_piece?(<<>>), do: true
+  defp valid_identifier_rest?(<<char>>) when char == ?? when char == ?!, do: true
+  defp valid_identifier_rest?(<<>>), do: true
+  defp valid_identifier_rest?(_other), do: false
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char >= ?A and char <= ?Z,
     do: valid_alias_piece_rest?(rest)
 
+  defp valid_alias_piece?(<<>>), do: true
   defp valid_alias_piece?(_other), do: false
 
-  # Inside a piece. A helper returning the rest of the binary would build a sub binary
-  # per piece, so branch back into valid_alias_piece?/1 to keep the match context.
-  defp valid_alias_piece_rest?(<<char, rest::binary>>) when is_ascii_identifier_char(char),
-    do: valid_alias_piece_rest?(rest)
+  # A helper returning the rest of the binary would build a sub binary per piece,
+  # so branch back into valid_alias_piece?/1 to keep the match context.
+  defp valid_alias_piece_rest?(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    valid_alias_piece_rest?(rest)
+  end
 
-  defp valid_alias_piece_rest?(rest), do: valid_alias_piece?(rest)
+  defp valid_alias_piece_rest?(other), do: valid_alias_piece?(other)
 
   @doc """
   Default backend for `Kernel.dbg/2`.
