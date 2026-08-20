@@ -3223,6 +3223,10 @@ defmodule Module.Types.ExprTest do
              """
     end
 
+    test ":into with non-returning collectable" do
+      assert typecheck!([list], for(x <- list, into: raise("oops"), do: x)) == none()
+    end
+
     test ":reduce checks" do
       assert typecheck!(
                [list],
