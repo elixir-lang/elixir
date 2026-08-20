@@ -2115,10 +2115,24 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def iso_days_to_unit({days, {parts, ppd}}, unit) do
-    day_microseconds = days * @parts_per_day
-    microseconds = divide_by_parts_per_day(parts, ppd)
-    System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
+  def iso_days_to_unit(iso_days, :second) do
+    floor_div_positive_divisor(iso_days_to_microseconds(iso_days), @microseconds_per_second)
+  end
+
+  def iso_days_to_unit(iso_days, :millisecond) do
+    floor_div_positive_divisor(iso_days_to_microseconds(iso_days), 1_000)
+  end
+
+  def iso_days_to_unit(iso_days, :microsecond) do
+    iso_days_to_microseconds(iso_days)
+  end
+
+  def iso_days_to_unit(iso_days, unit) do
+    System.convert_time_unit(iso_days_to_microseconds(iso_days), :microsecond, unit)
+  end
+
+  defp iso_days_to_microseconds({days, {parts, ppd}}) do
+    days * @parts_per_day + divide_by_parts_per_day(parts, ppd)
   end
 
   @doc false
