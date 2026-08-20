@@ -1746,7 +1746,7 @@ defmodule String do
   end
 
   defp do_replace(subject, [], _, n) do
-    [binary_part(subject, n, byte_size(subject) - n)]
+    binary_part(subject, n, byte_size(subject) - n)
   end
 
   defp do_replace(subject, [{start, length} | matches], replacement, n) do
