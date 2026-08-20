@@ -491,6 +491,21 @@ defmodule DateTimeTest do
     assert DateTime.to_unix(min_datetime) == -377_705_116_800
   end
 
+  test "to_unix/2 with non-default units floors pre-epoch datetimes" do
+    datetime = ~U[1969-12-31 23:59:59.999999Z]
+
+    assert DateTime.to_unix(datetime, :second) == -1
+    assert DateTime.to_unix(datetime, :millisecond) == -1
+    assert DateTime.to_unix(datetime, :microsecond) == -1
+    assert DateTime.to_unix(datetime, :nanosecond) == -1_000
+
+    assert DateTime.from_unix!(-17_412_508_654_473, :millisecond)
+           |> DateTime.to_unix(:millisecond) == -17_412_508_654_473
+
+    assert DateTime.from_unix!(1_000_000_123, :millisecond)
+           |> DateTime.to_unix(:millisecond) == 1_000_000_123
+  end
+
   test "compare/2" do
     datetime1 = %DateTime{
       year: 2000,
