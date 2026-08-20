@@ -870,6 +870,9 @@ defmodule Module.Types.Expr do
 
         {true, false} ->
           {type, :bitstring, context}
+
+        {false, false} ->
+          {type, :none, context}
       end
     else
       {_type, context} =
