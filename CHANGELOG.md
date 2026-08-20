@@ -38,6 +38,7 @@
 
 #### Elixir
 
+  * [Base] Fix `Base.valid64?/2` and `Base.url_valid64?/2` accepting some non-alphabet characters
   * [Calendar] Fix `Calendar.strftime/3` formatting of negative years with `%y`
   * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
   * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision

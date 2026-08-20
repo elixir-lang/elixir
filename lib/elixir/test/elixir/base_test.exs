@@ -263,6 +263,15 @@ defmodule BaseTest do
     refute valid64?("Zm9)")
   end
 
+  test "valid64?/1 returns false on a non-alphabet character before a ?+" do
+    # ?* is ?+ with its low bit flipped, which a per-lane check of the ?+
+    # singleton must not read as a ?+ of its own
+    for pos <- 0..14, char <- ~c"*),^ \t" do
+      string = String.duplicate("A", pos) <> <<char, ?+>> <> String.duplicate("A", 14 - pos)
+      refute valid64?(string), "expected #{inspect(string)} to be invalid"
+    end
+  end
+
   test "valid64?/1 returns false on whitespace unless there's ignore: :whitespace" do
     refute valid64?("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
 
@@ -444,6 +453,14 @@ defmodule BaseTest do
 
   test "url_valid64?/1 returns false on non-alphabet character" do
     refute url_valid64?("Zm9)")
+  end
+
+  test "url_valid64?/1 returns false on a non-alphabet character before a ?- or ?_" do
+    # ?, and ?^ are ?- and ?_ with their low bits flipped
+    for pos <- 0..14, char <- ~c",^*) \t", next <- ~c"-_" do
+      string = String.duplicate("A", pos) <> <<char, next>> <> String.duplicate("A", 14 - pos)
+      refute url_valid64?(string), "expected #{inspect(string)} to be invalid"
+    end
   end
 
   test "url_valid64?/1 returns false on whitespace unless there's ignore: :whitespace" do
