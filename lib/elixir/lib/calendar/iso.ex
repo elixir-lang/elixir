@@ -1740,6 +1740,15 @@ defmodule Calendar.ISO do
   defp sign(total) when total < 0, do: ?-
   defp sign(_), do: ?+
 
+  # Width-2 padding of 0..99 covers most pads when formatting dates and
+  # times (month, day, hour, minute, second, offset). The dense integer
+  # head compiles to a jump table returning a literal binary, avoiding
+  # the Integer.to_string and list allocations of the general clause.
+  for int <- 0..99 do
+    string = int |> Integer.to_string() |> String.pad_leading(2, "0")
+    defp zero_pad(unquote(int), 2), do: unquote(string)
+  end
+
   defp zero_pad(val, count) when val >= 0 and count <= 6 do
     num = Integer.to_string(val)
 
