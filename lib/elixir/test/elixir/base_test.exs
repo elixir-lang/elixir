@@ -264,8 +264,7 @@ defmodule BaseTest do
   end
 
   test "valid64?/1 returns false on a non-alphabet character before a ?+" do
-    # ?* is ?+ with its low bit flipped, which a per-lane check of the ?+
-    # singleton must not read as a ?+ of its own
+    # ?* is ?+ with its low bit flipped
     for pos <- 0..14, char <- ~c"*),^ \t" do
       string = String.duplicate("A", pos) <> <<char, ?+>> <> String.duplicate("A", 14 - pos)
       refute valid64?(string), "expected #{inspect(string)} to be invalid"
@@ -1072,11 +1071,6 @@ defmodule BaseTest do
   end
 
   test "valid? agrees with decode" do
-    # the validators clear seven bytes at a time while the decoders go byte by
-    # byte, so a byte the two read differently is accepted and then fails to
-    # decode. Corrupting adjacent pairs matters as much as single bytes: a word
-    # is only as exact as its narrowest check, and arithmetic on a word carries
-    # between neighbouring bytes.
     probes = ~c"*+,-./09:@AZ[]^_az{~ \t\r\n=\"" ++ [0, 1, 0x7F, 0x80, 0xFF]
     alphabet_edges = ~c"+/-_="
     data = <<0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16>>
