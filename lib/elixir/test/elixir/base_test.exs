@@ -1071,7 +1071,41 @@ defmodule BaseTest do
     assert hex_valid32?("cPNg====", case: :mixed, padding: false)
   end
 
-  # TODO: add valid? tests
+  test "valid? agrees with decode" do
+    # the validators clear seven bytes at a time while the decoders go byte by
+    # byte, so a byte the two read differently is accepted and then fails to
+    # decode. Corrupting adjacent pairs matters as much as single bytes: a word
+    # is only as exact as its narrowest check, and arithmetic on a word carries
+    # between neighbouring bytes.
+    probes = ~c"*+,-./09:@AZ[]^_az{~ \t\r\n=\"" ++ [0, 1, 0x7F, 0x80, 0xFF]
+    alphabet_edges = ~c"+/-_="
+    data = <<0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16>>
+
+    for {encode, decode, valid?} <- [
+          {&encode16/1, &decode16/1, &valid16?/1},
+          {&encode32/1, &decode32/1, &valid32?/1},
+          {&hex_encode32/1, &hex_decode32/1, &hex_valid32?/1},
+          {&encode64/1, &decode64/1, &valid64?/1},
+          {&url_encode64/1, &url_decode64/1, &url_valid64?/1}
+        ],
+        len <- [5, 11, 17],
+        encoded = encode.(binary_part(data, 0, len)),
+        size = byte_size(encoded),
+        pos <- 0..(size - 1),
+        x <- probes,
+        y <- alphabet_edges do
+      head = binary_part(encoded, 0, pos)
+
+      corrupted =
+        if pos + 1 < size,
+          do: head <> <<x, y>> <> binary_part(encoded, pos + 2, size - pos - 2),
+          else: head <> <<x>>
+
+      assert valid?.(corrupted) == match?({:ok, _}, decode.(corrupted)),
+             "valid? and decode disagree on #{inspect(corrupted)}"
+    end
+  end
+
   test "encode then decode is identity" do
     for {encode, decode, valid?} <- [
           {&encode16/2, &decode16!/2, &valid16?/2},
