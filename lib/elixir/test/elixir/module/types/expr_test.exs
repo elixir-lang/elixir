@@ -2230,6 +2230,45 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(opt_union(open_map(), tuple([])))
     end
 
+    test "refine types when there are dead branches on inference" do
+      # Dead branches are excluded from the refinement during static checking
+      # but not during dynamic checking and inference, otherwise they would
+      # narrow the signature of the enclosing function based on how the code
+      # is written (a case clause raising versus a function clause raising).
+      #
+      # Note we compare with equal?/2 because the resulting descr may be kept
+      # in a non-canonical BDD form depending on how the expression expands.
+      result =
+        typedyn!(
+          [x],
+          (
+            case x do
+              {:ok, value} -> value
+              _value -> raise "oops"
+            end
+
+            x
+          )
+        )
+
+      assert equal?(result, dynamic())
+
+      result =
+        typecheck!(
+          [x],
+          (
+            case x do
+              {:ok, value} -> value
+              _value -> raise "oops"
+            end
+
+            x
+          )
+        )
+
+      assert equal?(result, dynamic(tuple([atom([:ok]), term()])))
+    end
+
     test "warns on redundant clauses" do
       assert typewarn!(
                [x],

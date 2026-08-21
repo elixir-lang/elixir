@@ -451,9 +451,9 @@ defmodule Module.Types.Expr do
       end
 
     cache_arrows(meta, stack, fn ->
-      acc = {false, none(), []}
+      acc = {false, none(), [], []}
 
-      {{none?, body_acc, clauses_acc}, context} =
+      {{none?, body_acc, clauses_acc, dead_acc}, context} =
         of_clauses_fun(clauses, [case_type], info, stack, context, acc, fn
           trees, precise?, {:->, _, [_, body]} = clause, context, acc ->
             # Compute the arg type based on the clause itself
@@ -473,20 +473,36 @@ defmodule Module.Types.Expr do
               of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
 
             # Now we compute the return type and the clauses for reverse arrow
-            {none?, body_acc, clauses_acc} = acc
+            {none?, body_acc, clauses_acc, dead_acc} = acc
 
             if precise? and empty?(body_type) do
-              {{true, body_acc, clauses_acc}, context}
+              {{true, body_acc, clauses_acc, [arg_type | dead_acc]}, context}
             else
               [arg_type] = Pattern.of_domain(trees, stack, context)
               clauses_acc = [{arg_type, body_type, clause} | clauses_acc]
-              {{none?, opt_union(body_type, body_acc), clauses_acc}, context}
+              {{none?, opt_union(body_type, body_acc), clauses_acc, dead_acc}, context}
             end
         end)
 
       context =
         if none? or stack.mode != :static do
-          head_type = Enum.reduce(clauses_acc, none(), &opt_union(elem(&1, 0), &2))
+          # Branches that can never return are excluded from the refinement
+          # during static checking, so code after the case sees the subject
+          # negated by their patterns. However, during inference (and dynamic
+          # mode), excluding them would narrow the inferred signature of the
+          # enclosing function depending on how it is written (a case clause
+          # raising versus a function clause raising), so we keep their types.
+          dead_acc =
+            if stack.mode == :static do
+              []
+            else
+              dead_acc
+            end
+
+          head_type =
+            clauses_acc
+            |> Enum.reduce(none(), &opt_union(elem(&1, 0), &2))
+            |> opt_union(Enum.reduce(dead_acc, none(), &opt_union/2))
 
           {_, refined_context} =
             of_expr(

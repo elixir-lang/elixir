@@ -376,6 +376,50 @@ defmodule Module.Types.InferTest do
     end
   end
 
+  test "from expressions (case with dead branches)", config do
+    types =
+      infer config do
+        def case_ok_or_raise!(result) do
+          case result do
+            {:ok, value} -> value
+            value -> raise "Failed to unwrap value #{inspect(value)}"
+          end
+        end
+
+        def clause_ok_or_raise!({:ok, v}), do: v
+        def clause_ok_or_raise!(value), do: raise("Failed to unwrap value #{inspect(value)}")
+      end
+
+    # A dead branch (one that never returns, such as a raise) must not narrow
+    # the inferred domain of its function, matching the equivalent definition
+    # written with multiple clauses.
+    assert {:infer, _, [{[case_arg], _}]} = types[{:case_ok_or_raise!, 1}]
+    assert case_arg |> equal?(term())
+
+    # Note each clause keeps the difference of the previous clauses as its type,
+    # so we assert on the overall domain instead.
+    assert {:infer, [clause_domain], [{[ok_arg], _}, _]} = types[{:clause_ok_or_raise!, 1}]
+    assert ok_arg |> equal?(tuple([atom([:ok]), term()]))
+    assert clause_domain |> equal?(term())
+  end
+
+  test "from expressions (case without dead branches)", config do
+    types =
+      infer config do
+        def f(x) do
+          case x do
+            {:ok, v} -> v
+            {:error, r} -> r
+          end
+        end
+      end
+
+    # Without dead branches, the case subject is still refined on inference,
+    # so non-total cases keep narrowing the domain.
+    assert {:infer, _, [{[arg], _}]} = types[{:f, 1}]
+    assert arg |> equal?(tuple([atom([:error, :ok]), term()]))
+  end
+
   test "from defaults (regression with multiple clauses)", config do
     types =
       infer config do
