@@ -107,9 +107,6 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
         cacc
       end
 
-    cased_letter_categories = :binary.compile_pattern(["Ll", "Lt", "Lu"])
-    case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk"])
-
     {lacc, iacc} =
       cond do
         match?({0, _}, :binary.match(category, cased_letter_categories)) ->
