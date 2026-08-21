@@ -1071,10 +1071,6 @@ defmodule BaseTest do
   end
 
   test "valid? agrees with decode" do
-    probes = ~c"*+,-./09:@AZ[]^_az{~ \t\r\n=\"" ++ [0, 1, 0x7F, 0x80, 0xFF]
-    alphabet_edges = ~c"+/-_="
-    data = <<0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16>>
-
     for {encode, decode, valid?} <- [
           {&encode16/1, &decode16/1, &valid16?/1},
           {&encode32/1, &decode32/1, &valid32?/1},
@@ -1082,21 +1078,28 @@ defmodule BaseTest do
           {&encode64/1, &decode64/1, &valid64?/1},
           {&url_encode64/1, &url_decode64/1, &url_valid64?/1}
         ],
-        len <- [5, 11, 17],
-        encoded = encode.(binary_part(data, 0, len)),
-        size = byte_size(encoded),
-        pos <- 0..(size - 1),
-        x <- probes,
-        y <- alphabet_edges do
-      head = binary_part(encoded, 0, pos)
+        len <- 1..20 do
+      data =
+        0
+        |> :lists.seq(len - 1)
+        |> Enum.shuffle()
+        |> IO.iodata_to_binary()
 
-      corrupted =
-        if pos + 1 < size,
-          do: head <> <<x, y>> <> binary_part(encoded, pos + 2, size - pos - 2),
-          else: head <> <<x>>
+      encoded = encode.(data)
+      size = byte_size(encoded)
 
-      assert valid?.(corrupted) == match?({:ok, _}, decode.(corrupted)),
-             "valid? and decode disagree on #{inspect(corrupted)}"
+      for pos <- 0..(size - 1) do
+        taken = min(2, size - pos)
+        corruption = for _ <- 1..taken, into: <<>>, do: <<:rand.uniform(256) - 1>>
+
+        corrupted =
+          binary_part(encoded, 0, pos) <>
+            corruption <>
+            binary_part(encoded, pos + taken, size - pos - taken)
+
+        assert valid?.(corrupted) == match?({:ok, _}, decode.(corrupted)),
+               "valid? and decode disagree on #{inspect(corrupted)}"
+      end
     end
   end
 
