@@ -1070,46 +1070,13 @@ defmodule BaseTest do
     assert hex_valid32?("cPNg====", case: :mixed, padding: false)
   end
 
-  test "valid? agrees with decode" do
+  test "encode then decode is identity, and valid? agrees with decode" do
     for {encode, decode, valid?} <- [
-          {&encode16/1, &decode16/1, &valid16?/1},
-          {&encode32/1, &decode32/1, &valid32?/1},
-          {&hex_encode32/1, &hex_decode32/1, &hex_valid32?/1},
-          {&encode64/1, &decode64/1, &valid64?/1},
-          {&url_encode64/1, &url_decode64/1, &url_valid64?/1}
-        ],
-        len <- 1..20 do
-      data =
-        0
-        |> :lists.seq(len - 1)
-        |> Enum.shuffle()
-        |> IO.iodata_to_binary()
-
-      encoded = encode.(data)
-      size = byte_size(encoded)
-
-      for pos <- 0..(size - 1) do
-        taken = min(2, size - pos)
-        corruption = for _ <- 1..taken, into: <<>>, do: <<:rand.uniform(256) - 1>>
-
-        corrupted =
-          binary_part(encoded, 0, pos) <>
-            corruption <>
-            binary_part(encoded, pos + taken, size - pos - taken)
-
-        assert valid?.(corrupted) == match?({:ok, _}, decode.(corrupted)),
-               "valid? and decode disagree on #{inspect(corrupted)}"
-      end
-    end
-  end
-
-  test "encode then decode is identity" do
-    for {encode, decode, valid?} <- [
-          {&encode16/2, &decode16!/2, &valid16?/2},
-          {&encode32/2, &decode32!/2, &valid32?/2},
-          {&hex_encode32/2, &hex_decode32!/2, &hex_valid32?/2},
-          {&encode64/2, &decode64!/2, &valid64?/2},
-          {&url_encode64/2, &url_decode64!/2, &url_valid64?/2}
+          {&encode16/2, &decode16/2, &valid16?/2},
+          {&encode32/2, &decode32/2, &valid32?/2},
+          {&hex_encode32/2, &hex_decode32/2, &hex_valid32?/2},
+          {&encode64/2, &decode64/2, &valid64?/2},
+          {&url_encode64/2, &url_decode64/2, &url_valid64?/2}
         ],
         encode_case <- [:upper, :lower],
         decode_case <- [:upper, :lower, :mixed],
@@ -1137,10 +1104,26 @@ defmodule BaseTest do
 
       decode_opts = Keyword.take([case: decode_case, padding: pad?], allowed_opts)
       assert valid?.(encoded, decode_opts)
-      expected = decode.(encoded, decode_opts)
 
-      assert data == expected,
+      assert decode.(encoded, decode_opts) == {:ok, data},
              "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"
+
+      size = byte_size(encoded)
+
+      if size > 0 do
+        pos = :rand.uniform(size) - 1
+        taken = min(2, size - pos)
+        corruption = for _ <- 1..taken, into: <<>>, do: <<:rand.uniform(256) - 1>>
+
+        corrupted =
+          binary_part(encoded, 0, pos) <>
+            corruption <>
+            binary_part(encoded, pos + taken, size - pos - taken)
+
+        assert valid?.(corrupted, decode_opts) ==
+                 match?({:ok, _}, decode.(corrupted, decode_opts)),
+               "valid? and decode disagree on #{inspect(corrupted)}"
+      end
     end
   end
 end
