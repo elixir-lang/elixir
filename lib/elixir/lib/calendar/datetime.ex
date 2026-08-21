@@ -1626,6 +1626,9 @@ defmodule DateTime do
   all converted to microseconds. Negative values will move backwards
   in time and the default precision is `:second`.
 
+  If the datetime is in the `"Etc/UTC"` time zone, this function
+  always succeeds without consulting the `time_zone_database`.
+
   This function relies on a contiguous representation of time,
   ignoring timezone changes. For example, if you add one day when there
   are summer time/daylight saving time changes, it will also change the
@@ -1703,6 +1706,44 @@ defmodule DateTime do
 
   def add(datetime, amount_to_add, :minute, time_zone_database) when is_integer(amount_to_add) do
     add(datetime, amount_to_add * 60, :second, time_zone_database)
+  end
+
+  def add(
+        %{calendar: calendar, time_zone: "Etc/UTC"} = datetime,
+        amount_to_add,
+        unit,
+        _time_zone_database
+      )
+      when is_integer(amount_to_add) do
+    %{microsecond: {_, precision}} = datetime
+
+    if not is_integer(unit) and unit not in ~w(second millisecond microsecond nanosecond)a do
+      raise ArgumentError,
+            "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+    end
+
+    precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
+
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      datetime
+      |> to_iso_days()
+      |> Calendar.ISO.shift_time_unit(amount_to_add, unit)
+      |> calendar.naive_datetime_from_iso_days()
+
+    %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond, precision},
+      time_zone: "Etc/UTC",
+      zone_abbr: "UTC",
+      utc_offset: 0,
+      std_offset: 0
+    }
   end
 
   def add(%{calendar: calendar} = datetime, amount_to_add, unit, time_zone_database)

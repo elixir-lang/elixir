@@ -1047,6 +1047,16 @@ defmodule DateTimeTest do
       end
     end
 
+    test "with Etc/UTC datetime does not consult the time zone database" do
+      dt = ~U[2018-08-28 23:59:59Z]
+
+      assert DateTime.add(dt, 1, :second, EmptyTimeZoneDatabase) == ~U[2018-08-29 00:00:00Z]
+      assert DateTime.add(dt, -1, :day, EmptyTimeZoneDatabase) == ~U[2018-08-27 23:59:59Z]
+
+      assert DateTime.add(dt, 1021, :millisecond, EmptyTimeZoneDatabase) ==
+               ~U[2018-08-29 00:00:00.021Z]
+    end
+
     test "with other calendars" do
       assert ~N[2000-01-01 12:34:15.123456]
              |> NaiveDateTime.convert!(Calendar.Holocene)
