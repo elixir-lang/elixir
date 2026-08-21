@@ -187,21 +187,21 @@ defmodule Base do
 
   # For base64 standard, '/' (0x2F) sits exactly one below '0' (0x30), so we
   # extend the digit range to [0x2F, 0x39], which absorbs '/' into one range
-  # check — saves one Mycroft singleton. Trick lifted from
+  # check — saves one singleton term. Trick lifted from
   # https://lemire.me/blog/2025/04/13/detect-control-characters-quotes-and-backslashes-efficiently-using-swar/
   @swar_ge_slash 0x51515151515151
 
-  # Mycroft zero-byte detection for base64 singletons (+, -, _).
-  # Per lane: high bit set iff `bxor(w, K*ones) - 0x01..01` has its high bit
-  # set, i.e. that byte's V value was 0 → original byte was K. Simplified
-  # (no `bnot V` term) — for ASCII-gated `w`, borrow-propagation false
-  # positives only occur for adjacent bytes that happen to equal `K xor 0x01`,
-  # which is outside the base64 alphabet, so it never matters here.
-  # Pattern follows https://github.com/elixir-lang/elixir/pull/15255.
-  @swar_mask01 0x01010101010101
-  @swar_plus_x7 0x2B2B2B2B2B2B2B
-  @swar_dash_x7 0x2D2D2D2D2D2D2D
-  @swar_under_x7 0x5F5F5F5F5F5F5F
+  # base64's '+', '-' and '_' border no other range, so each is checked as the
+  # degenerate range [c, c]. Mycroft zero-byte detection is one operation
+  # cheaper per singleton but not exact per lane: subtracting 0x01..01 makes a
+  # zero lane borrow from the lane above it, and a lane holding 1 turns that
+  # borrow into 0xFF, so bytes equal to `c bxor 0x01` read as matches too.
+  @swar_ge_plus 0x55555555555555
+  @swar_gt_plus 0x54545454545454
+  @swar_ge_dash 0x53535353535353
+  @swar_gt_dash 0x52525252525252
+  @swar_ge_underscore 0x21212121212121
+  @swar_gt_underscore 0x20202020202020
 
   # Per-byte validity checks (used in both the SWAR clauses for the 8th byte
   # of each stride and in the body of the sub-8-byte tail clauses).
@@ -365,8 +365,8 @@ defmodule Base do
 
   # base64 SWAR word validity: 3 ranges (A-Z, a-z, 0-9) OR'd with singletons.
   # For base, the digit range is extended to [0x2F, 0x39] to absorb '/' as
-  # part of one range (Lemire merge), leaving only '+' as a Mycroft singleton.
-  # For url, the singletons '-' and '_' are detected via two Mycroft terms.
+  # part of one range (Lemire merge), leaving only '+' as a singleton. For url,
+  # '-' and '_' are two more singletons.
   defp valid_word64base?(w) do
     band(w, @swar_mask80) == 0 and
       band(
@@ -378,7 +378,7 @@ defmodule Base do
             ),
             bxor(w + @swar_ge_slash, w + @swar_gt_9)
           ),
-          bxor(w, @swar_plus_x7) - @swar_mask01
+          bxor(w + @swar_ge_plus, w + @swar_gt_plus)
         ),
         @swar_mask80
       ) == @swar_mask80
@@ -396,8 +396,8 @@ defmodule Base do
             bxor(w + @swar_ge_0, w + @swar_gt_9)
           ),
           bor(
-            bxor(w, @swar_dash_x7) - @swar_mask01,
-            bxor(w, @swar_under_x7) - @swar_mask01
+            bxor(w + @swar_ge_dash, w + @swar_gt_dash),
+            bxor(w + @swar_ge_underscore, w + @swar_gt_underscore)
           )
         ),
         @swar_mask80

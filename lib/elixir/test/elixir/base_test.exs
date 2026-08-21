@@ -263,6 +263,14 @@ defmodule BaseTest do
     refute valid64?("Zm9)")
   end
 
+  test "valid64?/1 returns false on a non-alphabet character before a ?+" do
+    # ?* is ?+ with its low bit flipped
+    for pos <- 0..14, char <- ~c"*),^ \t" do
+      string = String.duplicate("A", pos) <> <<char, ?+>> <> String.duplicate("A", 14 - pos)
+      refute valid64?(string), "expected #{inspect(string)} to be invalid"
+    end
+  end
+
   test "valid64?/1 returns false on whitespace unless there's ignore: :whitespace" do
     refute valid64?("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
 
@@ -444,6 +452,14 @@ defmodule BaseTest do
 
   test "url_valid64?/1 returns false on non-alphabet character" do
     refute url_valid64?("Zm9)")
+  end
+
+  test "url_valid64?/1 returns false on a non-alphabet character before a ?- or ?_" do
+    # ?, and ?^ are ?- and ?_ with their low bits flipped
+    for pos <- 0..14, char <- ~c",^*) \t", next <- ~c"-_" do
+      string = String.duplicate("A", pos) <> <<char, next>> <> String.duplicate("A", 14 - pos)
+      refute url_valid64?(string), "expected #{inspect(string)} to be invalid"
+    end
   end
 
   test "url_valid64?/1 returns false on whitespace unless there's ignore: :whitespace" do
@@ -1054,14 +1070,13 @@ defmodule BaseTest do
     assert hex_valid32?("cPNg====", case: :mixed, padding: false)
   end
 
-  # TODO: add valid? tests
-  test "encode then decode is identity" do
+  test "encode then decode is identity, and valid? agrees with decode" do
     for {encode, decode, valid?} <- [
-          {&encode16/2, &decode16!/2, &valid16?/2},
-          {&encode32/2, &decode32!/2, &valid32?/2},
-          {&hex_encode32/2, &hex_decode32!/2, &hex_valid32?/2},
-          {&encode64/2, &decode64!/2, &valid64?/2},
-          {&url_encode64/2, &url_decode64!/2, &url_valid64?/2}
+          {&encode16/2, &decode16/2, &valid16?/2},
+          {&encode32/2, &decode32/2, &valid32?/2},
+          {&hex_encode32/2, &hex_decode32/2, &hex_valid32?/2},
+          {&encode64/2, &decode64/2, &valid64?/2},
+          {&url_encode64/2, &url_decode64/2, &url_valid64?/2}
         ],
         encode_case <- [:upper, :lower],
         decode_case <- [:upper, :lower, :mixed],
@@ -1089,10 +1104,26 @@ defmodule BaseTest do
 
       decode_opts = Keyword.take([case: decode_case, padding: pad?], allowed_opts)
       assert valid?.(encoded, decode_opts)
-      expected = decode.(encoded, decode_opts)
 
-      assert data == expected,
+      assert decode.(encoded, decode_opts) == {:ok, data},
              "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"
+
+      size = byte_size(encoded)
+
+      if size > 0 do
+        pos = :rand.uniform(size) - 1
+        taken = min(2, size - pos)
+        corruption = for _ <- 1..taken, into: <<>>, do: <<:rand.uniform(256) - 1>>
+
+        corrupted =
+          binary_part(encoded, 0, pos) <>
+            corruption <>
+            binary_part(encoded, pos + taken, size - pos - taken)
+
+        assert valid?.(corrupted, decode_opts) ==
+                 match?({:ok, _}, decode.(corrupted, decode_opts)),
+               "valid? and decode disagree on #{inspect(corrupted)}"
+      end
     end
   end
 end
