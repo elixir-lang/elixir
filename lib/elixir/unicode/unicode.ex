@@ -424,44 +424,55 @@ defmodule String.Break do
 
   # trim_trailing
 
-  for cp <- whitespace do
-    # We need to increment @whitespace_max_size as well
-    # as the small table (_s) if we add a new entry here.
-    case byte_size(cp) do
-      3 ->
-        defp do_trim_trailing_l(unquote(cp)), do: -3
+  def trim_trailing(string) when is_binary(string) do
+    size = byte_size(string)
 
-      2 ->
-        defp do_trim_trailing_l(<<_, unquote(cp)>>), do: -2
-        defp do_trim_trailing_s(unquote(cp)), do: <<>>
-
-      1 ->
-        defp do_trim_trailing_l(<<unquote(cp), unquote(cp), unquote(cp)>>), do: -3
-        defp do_trim_trailing_l(<<_, unquote(cp), unquote(cp)>>), do: -2
-        defp do_trim_trailing_l(<<_, _, unquote(cp)>>), do: -1
-
-        defp do_trim_trailing_s(<<x, unquote(cp)>>), do: do_trim_trailing_s(<<x>>)
-        defp do_trim_trailing_s(unquote(cp)), do: <<>>
+    case do_trim_trailing_pos(string, size) do
+      ^size -> string
+      0 -> ""
+      pos -> binary_part(string, 0, pos)
     end
   end
 
-  defp do_trim_trailing_l(_), do: 0
-  defp do_trim_trailing_s(o), do: o
+  for cp <- whitespace do
+    # We need to increment @whitespace_max_size as well as
+    # do_trim_trailing_short/1 if we add a new entry here.
+    case byte_size(cp) do
+      3 ->
+        defp do_trim_trailing_lookahead(unquote(cp)), do: -3
 
-  def trim_trailing(string) when is_binary(string) do
-    trim_trailing(string, byte_size(string))
+      2 ->
+        defp do_trim_trailing_lookahead(<<_, unquote(cp)>>), do: -2
+        defp do_trim_trailing_short(unquote(cp)), do: <<>>
+
+      1 ->
+        <<byte>> = cp
+
+        defp do_trim_trailing_byte(unquote(byte), string, size),
+          do: do_trim_trailing_pos(string, size - 1)
+    end
   end
 
-  defp trim_trailing(string, size) when size < @whitespace_max_size do
-    do_trim_trailing_s(string)
-  end
+  defp do_trim_trailing_lookahead(_), do: 0
+  defp do_trim_trailing_short(o), do: o
 
-  defp trim_trailing(string, size) do
-    trail = binary_part(string, size, -@whitespace_max_size)
+  defp do_trim_trailing_pos(_string, 0), do: 0
 
-    case do_trim_trailing_l(trail) do
-      0 -> string
-      x -> trim_trailing(binary_part(string, 0, size + x), size + x)
+  defp do_trim_trailing_pos(string, size),
+    do: do_trim_trailing_byte(:binary.at(string, size - 1), string, size)
+
+  defp do_trim_trailing_byte(byte, string, size) when byte >= 0x80,
+    do: do_trim_trailing_multibyte(string, size)
+
+  defp do_trim_trailing_byte(_byte, _string, size), do: size
+
+  defp do_trim_trailing_multibyte(string, size) when size < @whitespace_max_size,
+    do: byte_size(do_trim_trailing_short(binary_part(string, 0, size)))
+
+  defp do_trim_trailing_multibyte(string, size) do
+    case do_trim_trailing_lookahead(binary_part(string, size, -@whitespace_max_size)) do
+      0 -> size
+      x -> do_trim_trailing_pos(string, size + x)
     end
   end
 
