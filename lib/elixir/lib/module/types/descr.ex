@@ -3531,42 +3531,46 @@ defmodule Module.Types.Descr do
   def map_update_unchecked(:term, _key_descr, _type_fun, _return_type?, _force?), do: :badmap
 
   def map_update_unchecked(descr, key_descr, type_fun, return_type?, force?) do
-    split_keys = map_split_keys_and_domains(key_descr)
+    if empty?(descr) do
+      :badmap
+    else
+      split_keys = map_split_keys_and_domains(key_descr)
 
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if descr_key?(descr, :map) and map_only?(descr) do
-          {type, descr, errors, found?} =
-            map_update_static(descr, split_keys, type_fun, return_type?, force?, true)
+      case :maps.take(:dynamic, descr) do
+        :error ->
+          if descr_key?(descr, :map) and map_only?(descr) do
+            {type, descr, errors, found?} =
+              map_update_static(descr, split_keys, type_fun, return_type?, force?, true)
 
-          if found? do
-            {type, descr, errors}
+            if found? do
+              {type, descr, errors}
+            else
+              {:error, errors}
+            end
           else
-            {:error, errors}
+            :badmap
           end
-        else
-          :badmap
-        end
 
-      {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          {static_value, static_descr, static_errors, _static_found?} =
-            map_update_static(static, split_keys, type_fun, return_type?, force?, true)
+        {dynamic, static} ->
+          if descr_key?(dynamic, :map) and map_only?(static) do
+            {static_value, static_descr, static_errors, _static_found?} =
+              map_update_static(static, split_keys, type_fun, return_type?, force?, true)
 
-          {dynamic_value, dynamic_descr, dynamic_errors, dynamic_found?} =
-            map_update_static(dynamic, split_keys, type_fun, return_type?, force?, false)
+            {dynamic_value, dynamic_descr, dynamic_errors, dynamic_found?} =
+              map_update_static(dynamic, split_keys, type_fun, return_type?, force?, false)
 
-          # We can exceptionally check for none() here because
-          # we already check for empty downstream
-          if dynamic_found? do
-            {opt_union(static_value, dynamic(dynamic_value)),
-             opt_union(static_descr, dynamic(dynamic_descr)), static_errors ++ dynamic_errors}
+            # We can exceptionally check for none() here because
+            # we already check for empty downstream
+            if dynamic_found? do
+              {opt_union(static_value, dynamic(dynamic_value)),
+               opt_union(static_descr, dynamic(dynamic_descr)), static_errors ++ dynamic_errors}
+            else
+              {:error, static_errors ++ dynamic_errors}
+            end
           else
-            {:error, static_errors ++ dynamic_errors}
+            :badmap
           end
-        else
-          :badmap
-        end
+      end
     end
   end
 
@@ -3730,38 +3734,47 @@ defmodule Module.Types.Descr do
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_field_opt_union(field, fn -> fst end), opt_map_union(bdd, snd, %{})}
+
+          if map_empty?(snd, %{}) do
+            {field, bdd}
+          else
+            {maybe_field_opt_union(field, fn -> fst end), opt_map_union(bdd, snd, %{})}
+          end
 
         {tag, fields, negs}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
 
-          case map_split_negative_pairs_key(negs, key) do
-            :empty ->
-              {field, bdd}
+          if map_empty?(snd, %{}) do
+            {field, bdd}
+          else
+            case map_split_negative_pairs_key(negs, key) do
+              :empty ->
+                {field, bdd}
 
-            negative ->
-              keep_fst? =
-                field == nil or map_pair_projection_keeps_full_fst?(negative, snd)
+              negative ->
+                keep_fst? =
+                  field == nil or map_pair_projection_keeps_full_fst?(negative, snd)
 
-              keep_snd? = map_pair_projection_keeps_full_snd?(negative, fst)
+                keep_snd? = map_pair_projection_keeps_full_snd?(negative, fst)
 
-              pairs =
-                if keep_fst? and keep_snd?,
-                  do: [],
-                  else: map_remove_negative(negative, fst, snd)
+                pairs =
+                  if keep_fst? and keep_snd?,
+                    do: [],
+                    else: map_remove_negative(negative, fst, snd)
 
-              {maybe_field_opt_union(field, fn ->
-                 if keep_fst? do
-                   fst
+                {maybe_field_opt_union(field, fn ->
+                   if keep_fst? do
+                     fst
+                   else
+                     Enum.reduce(pairs, {none(), false}, &field_opt_union(elem(&1, 0), &2, %{}))
+                   end
+                 end),
+                 if keep_snd? do
+                   opt_map_union(bdd, snd, %{})
                  else
-                   Enum.reduce(pairs, {none(), false}, &field_opt_union(elem(&1, 0), &2, %{}))
-                 end
-               end),
-               if keep_snd? do
-                 opt_map_union(bdd, snd, %{})
-               else
-                 Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2, %{}))
-               end}
+                   Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2, %{}))
+                 end}
+            end
           end
       end)
 
@@ -3953,22 +3966,26 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_static_value(descr, split_keys, type) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if non_empty_map_only?(descr) do
-          {:ok, map_put_static(descr, split_keys, type)}
-        else
-          :badmap
-        end
+    if empty?(descr) do
+      :badmap
+    else
+      case :maps.take(:dynamic, descr) do
+        :error ->
+          if non_empty_map_only?(descr) do
+            {:ok, map_put_static(descr, split_keys, type)}
+          else
+            :badmap
+          end
 
-      {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          static_descr = map_put_static(static, split_keys, type)
-          dynamic_descr = map_put_static(dynamic, split_keys, type)
-          {:ok, opt_union(static_descr, dynamic(dynamic_descr))}
-        else
-          :badmap
-        end
+        {dynamic, static} ->
+          if descr_key?(dynamic, :map) and map_only?(static) do
+            static_descr = map_put_static(static, split_keys, type)
+            dynamic_descr = map_put_static(dynamic, split_keys, type)
+            {:ok, opt_union(static_descr, dynamic(dynamic_descr))}
+          else
+            :badmap
+          end
+      end
     end
   end
 
@@ -4030,35 +4047,39 @@ defmodule Module.Types.Descr do
   def map_get(:term, _key_descr), do: :badmap
 
   def map_get(%{} = descr, key_descr) do
-    split_keys = map_split_keys_and_domains(key_descr)
+    if empty?(descr) do
+      :badmap
+    else
+      split_keys = map_split_keys_and_domains(key_descr)
 
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if descr_key?(descr, :map) and map_only?(descr) do
-          type_selected = map_get_static(descr, split_keys)
+      case :maps.take(:dynamic, descr) do
+        :error ->
+          if descr_key?(descr, :map) and map_only?(descr) do
+            type_selected = map_get_static(descr, split_keys)
 
-          if empty?(type_selected) do
-            :error
+            if empty?(type_selected) do
+              :error
+            else
+              {:ok, type_selected}
+            end
           else
-            {:ok, type_selected}
+            :badmap
           end
-        else
-          :badmap
-        end
 
-      {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          static_type = map_get_static(static, split_keys)
-          dynamic_type = map_get_static(dynamic, split_keys)
+        {dynamic, static} ->
+          if descr_key?(dynamic, :map) and map_only?(static) do
+            static_type = map_get_static(static, split_keys)
+            dynamic_type = map_get_static(dynamic, split_keys)
 
-          if empty?(dynamic_type) do
-            :error
+            if empty?(dynamic_type) do
+              :error
+            else
+              {:ok, opt_union(dynamic(dynamic_type), static_type)}
+            end
           else
-            {:ok, opt_union(dynamic(dynamic_type), static_type)}
+            :badmap
           end
-        else
-          :badmap
-        end
+      end
     end
   end
 
@@ -4091,8 +4112,12 @@ defmodule Module.Types.Descr do
   defp map_get_domain(dnf, domain_key, acc) when is_atom(domain_key) do
     Enum.reduce(dnf, acc, fn
       # Optimization: if there are no negatives, get the domain tag directly
-      {tag, _fields, []}, acc ->
-        map_domain_tag_to_type(tag, domain_key) |> opt_union(acc)
+      {tag, fields, []}, acc ->
+        if init_map_line_empty?(tag, fields, []) do
+          acc
+        else
+          map_domain_tag_to_type(tag, domain_key) |> opt_union(acc)
+        end
 
       {tag_or_domains, fields, negs}, acc ->
         if init_map_line_empty?(tag_or_domains, fields, negs) do

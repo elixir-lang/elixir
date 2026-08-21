@@ -3728,6 +3728,49 @@ defmodule Module.Types.DescrTest do
       assert map_put(none(), atom([:a]), integer()) == :badmap
       assert map_put(a2, atom([:a]), integer()) == :badmap
     end
+
+    test "is representation-agnostic for branches containing none() (issue #15688)" do
+      # Repro 1: closed map with required key unioned with empty
+      a = opt_union(closed_map(b: {term(), false}), closed_map(a: {none(), false}))
+      a1 = closed_map(b: {term(), false})
+      assert equal?(a, a1)
+
+      assert map_update(a1, atom([:b]), atom([:x]), false) |> elem(1) |> to_quoted_string() ==
+               "%{b: :x}"
+
+      assert map_update(a, atom([:b]), atom([:x]), false) |> elem(1) |> to_quoted_string() ==
+               "%{b: :x}"
+
+      # Repro 2: empty open line fakes domain
+      b = opt_union(closed_map([]), open_map(a: {none(), false}))
+      assert equal?(b, closed_map([]))
+      assert map_update(b, integer(), atom([:x]), false) == {:error, [baddomain: integer()]}
+
+      assert map_update(empty_map(), integer(), atom([:x]), false) ==
+               {:error, [baddomain: integer()]}
+
+      # Repro 3: inconsistent errors for none() vs closed_map with none field
+      e = closed_map(a: {none(), false})
+      assert empty?(e)
+      assert equal?(e, none())
+      assert map_put(e, atom([:a]), atom([:x])) == :badmap
+      assert map_put(none(), atom([:a]), atom([:x])) == :badmap
+      assert map_get(e, atom([:a])) == :badmap
+      assert map_get(none(), atom([:a])) == :badmap
+      assert map_update(e, atom([:a]), atom([:x]), false) == :badmap
+      assert map_update(none(), atom([:a]), atom([:x]), false) == :badmap
+
+      # Repro 4: gradual path
+      e = open_map(a: {none(), false})
+      assert equal?(e, none())
+      assert map_put(e, atom(), integer()) == :badmap
+      assert map_put(none(), atom(), integer()) == :badmap
+      assert map_put(e, atom(), dynamic()) == :badmap
+      assert map_put(none(), atom(), dynamic()) == :badmap
+
+      # Valid gradual case must not be discarded
+      assert {:ok, _} = map_put(open_map(a: {integer(), false}), atom([:a]), integer())
+    end
   end
 
   describe "disjoint" do
