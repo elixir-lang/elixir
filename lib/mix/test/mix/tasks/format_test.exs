@@ -572,6 +572,305 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  defmodule Elixir.ExtensionExDoubleNewlinePlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.ex .exs), sigils: []]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:extension] == ".ex"
+      assert opts[:file] =~ ~r/\/a\.ex$/
+      contents |> String.split("\n") |> Enum.join("\n\n")
+    end
+  end
+
+  defmodule Elixir.ExtensionExUpcasePlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.ex .exs), sigils: []]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:extension] == ".ex"
+      assert opts[:file] =~ ~r/\/a\.ex$/
+      String.upcase(contents)
+    end
+  end
+
+  defmodule Elixir.StandardElixirCodeFormatPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.ex .exs), sigils: []]
+    end
+
+    def format(contents, opts) do
+      formatted = Code.format_string!(contents, opts)
+      IO.iodata_to_binary([formatted, ?\n])
+    end
+  end
+
+  test "using plugin from .formatter.exs which targets .ex files disables standard Elixir code formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def   sigil_test( assigns  )  do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin applies formatting
+      # - Elixir code formatting does not change whitespace in function signature
+      assert File.read!("a.ex") == """
+             DEF   SIGIL_TEST( ASSIGNS  )  DO
+               ~W"FOO BAR BAZ"ABC
+             END
+             """
+    end)
+  end
+
+  test "using multiple plugins from .formatter.exs which target .ex files disables standard Elixir code formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExDoubleNewlinePlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def  sigil_test(assigns  )    do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin and double-newline plugin apply formatting
+      # - Elixir code formatting does not change whitespace in function signature
+      assert File.read!("a.ex") == """
+             DEF  SIGIL_TEST(ASSIGNS  )    DO
+
+               ~W"FOO BAR BAZ"ABC
+
+             END
+
+             """
+    end)
+  end
+
+  test "using multiple plugins from .formatter.exs which target both .ex files and sigils within them disables both standard Elixir code formatting and plugin sigil formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExDoubleNewlinePlugin, SigilWPlugin, NewlineToDotPlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(   assigns)  do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin and double-newline plugin apply formatting
+      # - Elixir code formatting does not change whitespace in function signature
+      # - Neither sigil plugin (SigilWPlugin, NewlineToDotPlugin) changes sigil
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(   ASSIGNS)  DO
+
+               ~W"FOO BAR BAZ"ABC
+
+             END
+
+             """
+    end)
+  end
+
+  test "using plugin from .formatter.exs which targets .ex files with another plugin to do standard Elixir code formatting first",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [StandardElixirCodeFormatPlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def   sigil_test( assigns  )  do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin applies formatting
+      # - Elixir code formatting updates whitespace in function signature
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+               ~W"FOO BAR BAZ"ABC
+             END
+             """
+    end)
+  end
+
+  test "using multiple plugins from .formatter.exs which target .ex files with another plugin to do standard Elixir code formatting first",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [StandardElixirCodeFormatPlugin, ExtensionExDoubleNewlinePlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def  sigil_test(assigns  )    do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin and double-newline plugin apply formatting
+      # - Elixir code formatting updates whitespace in function signature
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+
+               ~W"FOO BAR BAZ"ABC
+
+             END
+
+             """
+    end)
+  end
+
+  test "using multiple plugins from .formatter.exs which target .ex files with another plugin to do standard Elixir code formatting in the middle",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExDoubleNewlinePlugin, StandardElixirCodeFormatPlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def  sigil_test(assigns  )    do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin applies formatting
+      # - Elixir code formatting overrides ExtensionExDoubleNewlinePlugin formatting
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+               ~W"FOO BAR BAZ"ABC
+             END
+             """
+    end)
+  end
+
+  test "using a plugins from .formatter.exs which target .ex files with another plugin to do standard Elixir code formatting last",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionExDoubleNewlinePlugin, StandardElixirCodeFormatPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def  sigil_test(assigns  )    do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Elixir code formatting overrides ExtensionExDoubleNewlinePlugin formatting
+      assert File.read!("a.ex") == """
+             def sigil_test(assigns) do
+               ~W"foo bar baz"abc
+             end
+             """
+    end)
+  end
+
+  test "using multiple plugins from .formatter.exs which target both .ex files and sigils within them to do standard Elixir code formatting first; also enables plugin sigil formatting",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [StandardElixirCodeFormatPlugin, ExtensionExDoubleNewlinePlugin, SigilWPlugin, NewlineToDotPlugin, ExtensionExUpcasePlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(   assigns)  do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      # Verify that:
+      # - Upcase plugin and double-newline plugin apply formatting
+      # - Elixir code formatting updates whitespace in function signature
+      # - Sigil plugins (SigilWPlugin, NewlineToDotPlugin) both apply their formatting
+      assert File.read!("a.ex") == """
+             DEF SIGIL_TEST(ASSIGNS) DO
+
+               ~W"FOO.BAR.BAZ"ABC
+
+             END
+
+             """
+    end)
+  end
+
   defmodule Elixir.SigilOuterPlugin do
     @behaviour Mix.Tasks.Format
 
