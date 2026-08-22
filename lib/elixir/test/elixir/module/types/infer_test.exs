@@ -124,6 +124,23 @@ defmodule Module.Types.InferTest do
     assert length(clauses) == 2
   end
 
+  test "from patterns (with empty return type)", config do
+    types =
+      infer config do
+        def all_empty(:ok), do: raise("oops")
+        def all_empty(:error), do: raise("oops")
+
+        def mixed({:ok, value}), do: value
+        def mixed(value), do: raise("oops: #{inspect(value)}")
+      end
+
+    assert types[{:all_empty, 1}] ==
+             {:infer, [atom([:ok, :error])], [{[atom([:ok, :error])], dynamic(none())}]}
+
+    assert types[{:mixed, 1}] ==
+             {:infer, nil, [{[tuple([atom([:ok]), term()])], dynamic()}]}
+  end
+
   test "from expressions", config do
     types =
       infer config do
