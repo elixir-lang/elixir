@@ -394,10 +394,9 @@ defmodule Module.Types do
   end
 
   defp infer_local_handler(clauses, base_info, kind, fun, expected, stack, context) do
-    {_, _, _, domain, mapping, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], [], context}, fn
-        {meta, args, guards, body},
-        {index, total, previous, domain, mapping, inferred, acc_context} ->
+    {_, domain, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {Pattern.init_previous(), [], [], context}, fn
+        {meta, args, guards, body}, {previous, domain, inferred, acc_context} ->
           stack = with_file_meta(stack, meta)
           fresh_context = fresh_context(acc_context)
           info = {base_info, args, guards}
@@ -411,9 +410,6 @@ defmodule Module.Types do
 
             args_types = Pattern.of_domain(trees, stack, context)
 
-            {type_index, inferred} =
-              add_inferred(inferred, args_types, return_type, total - 1, [])
-
             domain =
               case domain do
                 [] ->
@@ -424,18 +420,18 @@ defmodule Module.Types do
                   compute_domain(args_types, head_args_types, head_no_previous_args_types, domain)
               end
 
-            if type_index == -1 do
-              mapping = [{index, total} | mapping]
-              {index + 1, total + 1, previous, domain, mapping, inferred, context}
-            else
-              mapping = [{index, type_index} | mapping]
-              {index + 1, total, previous, domain, mapping, inferred, context}
-            end
+            inferred = [{args_types, return_type} | inferred]
+            {previous, domain, inferred, context}
           rescue
             e ->
               internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
           end
       end)
+
+    {clauses_types, mapping} =
+      clauses_types
+      |> Enum.reverse()
+      |> group_clauses()
 
     domain =
       case clauses_types do
@@ -443,8 +439,23 @@ defmodule Module.Types do
         _ -> domain
       end
 
-    inferred = {:infer, domain, Enum.reverse(clauses_types)}
+    inferred = {:infer, domain, clauses_types}
     {inferred, mapping, restore_context(clauses_context, context)}
+  end
+
+  defp group_clauses(clauses) do
+    {_, _, mapping, inferred} =
+      Enum.reduce(clauses, {0, 0, [], []}, fn {args, return}, {index, total, mapping, inferred} ->
+        {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
+
+        if type_index == -1 do
+          {index + 1, total + 1, [{index, total} | mapping], inferred}
+        else
+          {index + 1, total, [{index, type_index} | mapping], inferred}
+        end
+      end)
+
+    {Enum.reverse(inferred), mapping}
   end
 
   defp compute_domain(
