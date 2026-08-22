@@ -686,6 +686,13 @@ defmodule DynamicSupervisor do
     {:reply, reply, state}
   end
 
+  def handle_call({:get_childspec, _id}, _from, state) do
+    # DynamicSupervisor doesn't track children by :id (see "Erlang's
+    # :supervisor module functions" above), so there's no id -> child
+    # lookup to perform here: no id can ever resolve to a tracked child.
+    {:reply, {:error, :not_found}, state}
+  end
+
   def handle_call(:count_children, _from, state) do
     %{children: children} = state
     specs = map_size(children)
