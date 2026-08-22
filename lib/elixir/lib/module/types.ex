@@ -394,15 +394,15 @@ defmodule Module.Types do
   end
 
   defp infer_local_handler(clauses, base_info, kind, fun, expected, stack, context) do
-    {_, domain, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {Pattern.init_previous(), [], [], context}, fn
-        {meta, args, guards, body}, {previous, domain, inferred, acc_context} ->
+    {_, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {Pattern.init_previous(), [], context}, fn
+        {meta, args, guards, body}, {previous, inferred, acc_context} ->
           stack = with_file_meta(stack, meta)
           fresh_context = fresh_context(acc_context)
           info = {base_info, args, guards}
 
           try do
-            {trees, _precise?, head_no_previous_args_types, previous, head_context} =
+            {trees, precise?, head_no_previous_args_types, previous, head_context} =
               Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
             {return_type, context} =
@@ -410,25 +410,22 @@ defmodule Module.Types do
 
             args_types = Pattern.of_domain(trees, stack, context)
 
-            domain =
-              case domain do
-                [] ->
-                  args_types
-
-                _ ->
-                  head_args_types = Pattern.of_domain(trees, stack, head_context)
-                  compute_domain(args_types, head_args_types, head_no_previous_args_types, domain)
+            head_args_types =
+              case inferred do
+                [] -> nil
+                _ -> Pattern.of_domain(trees, stack, head_context)
               end
 
-            inferred = [{args_types, return_type} | inferred]
-            {previous, domain, inferred, context}
+            args_triplet = {args_types, head_args_types, head_no_previous_args_types}
+            inferred = [{args_triplet, return_type, precise?} | inferred]
+            {previous, inferred, context}
           rescue
             e ->
               internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
           end
       end)
 
-    {clauses_types, mapping} =
+    {clauses_types, mapping, domain} =
       clauses_types
       |> Enum.reverse()
       |> group_clauses()
@@ -444,18 +441,28 @@ defmodule Module.Types do
   end
 
   defp group_clauses(clauses) do
-    {_, _, mapping, inferred} =
-      Enum.reduce(clauses, {0, 0, [], []}, fn {args, return}, {index, total, mapping, inferred} ->
-        {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
+    [{{args, _head_args, _head_no_previous_args}, _return, _precise?} | clauses_tail] = clauses
 
-        if type_index == -1 do
-          {index + 1, total + 1, [{index, total} | mapping], inferred}
-        else
-          {index + 1, total, [{index, type_index} | mapping], inferred}
-        end
+    domain =
+      Enum.reduce(clauses_tail, args, fn
+        {{args, head_args, head_no_previous_args}, _return, _precise?}, domain ->
+          compute_domain(args, head_args, head_no_previous_args, domain)
       end)
 
-    {Enum.reverse(inferred), mapping}
+    {_, _, mapping, inferred} =
+      Enum.reduce(clauses, {0, 0, [], []}, fn
+        {{args, _head_args, _head_no_previous_args}, return, _precise?},
+        {index, total, mapping, inferred} ->
+          {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
+
+          if type_index == -1 do
+            {index + 1, total + 1, [{index, total} | mapping], inferred}
+          else
+            {index + 1, total, [{index, type_index} | mapping], inferred}
+          end
+      end)
+
+    {Enum.reverse(inferred), mapping, domain}
   end
 
   defp compute_domain(
