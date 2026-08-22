@@ -720,6 +720,9 @@ defmodule DateTime do
   Other time zone databases can be passed as argument or set globally.
   See the "Time zone database" section in the module docs.
 
+  Shifting to the `"Etc/UTC"` time zone always succeeds without
+  consulting the `time_zone_database`.
+
   ## Examples
 
       iex> {:ok, pacific_datetime} = DateTime.shift_zone(~U[2018-07-16 10:00:00Z], "America/Los_Angeles", FakeTimeZoneDatabase)
@@ -751,6 +754,28 @@ defmodule DateTime do
     |> to_iso_days()
     |> apply_tz_offset(utc_offset + std_offset)
     |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+  end
+
+  defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, "Etc/UTC", _time_zone_db) do
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      calendar.naive_datetime_from_iso_days(iso_days_utc)
+
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond, precision},
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
+
+    {:ok, datetime}
   end
 
   defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, time_zone, time_zone_db) do
@@ -1626,6 +1651,9 @@ defmodule DateTime do
   all converted to microseconds. Negative values will move backwards
   in time and the default precision is `:second`.
 
+  If the datetime is in the `"Etc/UTC"` time zone, this function
+  always succeeds without consulting the `time_zone_database`.
+
   This function relies on a contiguous representation of time,
   ignoring timezone changes. For example, if you add one day when there
   are summer time/daylight saving time changes, it will also change the
@@ -1744,6 +1772,9 @@ defmodule DateTime do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
+  If the datetime is in the `"Etc/UTC"` time zone, this function
+  always succeeds without consulting the `time_zone_database`.
+
   This operation is equivalent to shifting the datetime wall clock
   (in other words, the value as someone in that timezone would see
   on their watch), then applying the time zone offset to convert it
@@ -1811,44 +1842,6 @@ defmodule DateTime do
   @doc since: "1.17.0"
   @spec shift(Calendar.datetime(), Duration.duration(), Calendar.time_zone_database()) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
-
-  def shift(%{calendar: calendar, time_zone: "Etc/UTC"} = datetime, duration, _time_zone_database) do
-    %{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond
-    } = datetime
-
-    {year, month, day, hour, minute, second, microsecond} =
-      calendar.shift_naive_datetime(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        __duration__!(duration)
-      )
-
-    %DateTime{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      time_zone: "Etc/UTC",
-      zone_abbr: "UTC",
-      std_offset: 0,
-      utc_offset: 0
-    }
-  end
 
   def shift(%{calendar: calendar} = datetime, duration, time_zone_database) do
     %{
