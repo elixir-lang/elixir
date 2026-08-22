@@ -441,24 +441,51 @@ defmodule Module.Types do
   end
 
   defp group_clauses(clauses) do
-    [{{args, _head_args, _head_no_previous_args}, _return, _precise?} | clauses_tail] = clauses
+    {_, all_clauses, filtered_clauses, non_empty?} =
+      Enum.reduce(clauses, {0, [], [], false}, fn
+        {_args_triplet, return, precise?} = clause,
+        {index, all_clauses, filtered_clauses, non_empty?} ->
+          empty? = Descr.empty?(return)
+          indexed_clause = {clause, index}
+
+          filtered_clauses =
+            if precise? and empty? do
+              filtered_clauses
+            else
+              [indexed_clause | filtered_clauses]
+            end
+
+          {index + 1, [indexed_clause | all_clauses], filtered_clauses, non_empty? or not empty?}
+      end)
+
+    clauses =
+      if non_empty? do
+        Enum.reverse(filtered_clauses)
+      else
+        Enum.reverse(all_clauses)
+      end
+
+    [
+      {{{args, _head_args, _head_no_previous_args}, _return, _precise?}, _index}
+      | clauses_tail
+    ] = clauses
 
     domain =
       Enum.reduce(clauses_tail, args, fn
-        {{args, head_args, head_no_previous_args}, _return, _precise?}, domain ->
+        {{{args, head_args, head_no_previous_args}, _return, _precise?}, _index}, domain ->
           compute_domain(args, head_args, head_no_previous_args, domain)
       end)
 
-    {_, _, mapping, inferred} =
-      Enum.reduce(clauses, {0, 0, [], []}, fn
-        {{args, _head_args, _head_no_previous_args}, return, _precise?},
-        {index, total, mapping, inferred} ->
+    {_, mapping, inferred} =
+      Enum.reduce(clauses, {0, [], []}, fn
+        {{{args, _head_args, _head_no_previous_args}, return, _precise?}, index},
+        {total, mapping, inferred} ->
           {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
 
           if type_index == -1 do
-            {index + 1, total + 1, [{index, total} | mapping], inferred}
+            {total + 1, [{index, total} | mapping], inferred}
           else
-            {index + 1, total, [{index, type_index} | mapping], inferred}
+            {total, [{index, type_index} | mapping], inferred}
           end
       end)
 
