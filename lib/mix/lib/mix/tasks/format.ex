@@ -173,6 +173,40 @@ defmodule Mix.Tasks.Format do
   > incomplete or fully missing. All configuration must be given via the
   > `.formatter.exs` file.
 
+  Plugins for `.ex` and/or `.exs` file types warrant special consideration
+  because they alter the baseline behavior of `mix format`, as well as the behavior
+  of other plugins that specify sigils:
+
+    * If one or more plugins specify `.ex`/`.exs` files, these plugins will _replace_
+      `mix format`'s usual formatting of Elixir code in matched files. This usual
+      formatting will not happen.
+    * Sigil formatting by other plugins will be disabled, because sigil-plugin
+      handling occurs during `mix format`'s usual Elixir code formatting
+      (whenever a sigil is encountered).
+    * If multiple plugins specify `.ex`/`.exs` files, they will all format those
+      files, in listed order.
+
+  If you want custom formatting of `.ex`/`.exs` files, but don't want to lose
+  baseline formatting or formatting of sigils, you can define a small wrapper
+  plugin which restores normal formatting of code within `.ex` and `.exs` files:
+
+      defmodule ElixirFormatter do
+        @behaviour Mix.Tasks.Format
+
+        def features(_opts) do
+          [sigils: [], extensions: [".ex", ".exs"]]
+        end
+
+        def format(contents, opts) do
+          formatted = Code.format_string!(contents, opts)
+          IO.iodata_to_binary([formatted, ?\\n])
+        end
+      end
+
+  The plugin above can be added anywhere in your `.formatter.exs` plugins list,
+  depending on whether you want standard Elixir code formatting to occur _before_
+  or _after_ formatting of each other plugin.
+
   ## Importing dependencies configuration
 
   This task supports importing formatter configuration from dependencies.
