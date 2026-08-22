@@ -467,9 +467,38 @@ defmodule String.Break do
 
   # Split
 
-  def split(string) do
-    :binary.split(string, unquote(whitespace -- non_breakable), [:global, :trim_all])
+  splittable = whitespace -- non_breakable
+
+  def split(string) when is_binary(string) do
+    split_whitespace(string, string, 0)
   end
+
+  for cp <- splittable do
+    defp split_whitespace(<<unquote(cp), rest::bits>>, string, pos),
+      do: split_whitespace(rest, string, pos + unquote(byte_size(cp)))
+  end
+
+  defp split_whitespace(<<>>, _string, _pos), do: []
+
+  defp split_whitespace(<<_, rest::bits>>, string, pos),
+    do: split_word(rest, string, pos, pos + 1)
+
+  defp split_word(<<byte, rest::bits>>, string, start, pos) when byte in 0x21..0x7F,
+    do: split_word(rest, string, start, pos + 1)
+
+  for cp <- splittable do
+    defp split_word(<<unquote(cp), rest::bits>>, string, start, pos) do
+      [
+        binary_part(string, start, pos - start)
+        | split_whitespace(rest, string, pos + unquote(byte_size(cp)))
+      ]
+    end
+  end
+
+  defp split_word(<<>>, string, start, pos), do: [binary_part(string, start, pos - start)]
+
+  defp split_word(<<_, rest::bits>>, string, start, pos),
+    do: split_word(rest, string, start, pos + 1)
 
   # Decompose
 
