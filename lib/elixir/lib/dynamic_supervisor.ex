@@ -137,6 +137,18 @@ defmodule DynamicSupervisor do
 
   A supervisor is bound to the same name registration rules as a `GenServer`.
   Read more about these rules in the documentation for `GenServer`.
+
+  ## Erlang's `:supervisor` module functions
+
+  `DynamicSupervisor` implements the message-based interface behind
+  `which_children/1` and `count_children/1`, so those (and the equivalent
+  functions in Erlang's `:supervisor` module) can be called against a
+  `DynamicSupervisor` safely. It does not implement the rest of Erlang's
+  `:supervisor` module's public API, though. In particular,
+  dynamically-started children aren't tracked by `:id` the way a static
+  `Supervisor`'s children are, so functions like `:supervisor.get_childspec/2`
+  that look children up by `:id` are not meaningfully supported against a
+  `DynamicSupervisor`.
   """
 
   @behaviour GenServer
