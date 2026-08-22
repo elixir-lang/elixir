@@ -757,6 +757,12 @@ defmodule DynamicSupervisorTest do
     end
   end
 
+  test "handles :get_childspec from :supervisor" do
+    {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
+    assert :supervisor.get_childspec(pid, :whatever) == {:error, :not_found}
+    assert Process.alive?(pid)
+  end
+
   defp sleepy_worker(opts \\ []) do
     mfa = {Task, :start_link, [Process, :sleep, [:infinity]]}
     Supervisor.child_spec(%{id: Task, start: mfa}, opts)
