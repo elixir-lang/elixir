@@ -720,6 +720,9 @@ defmodule DateTime do
   Other time zone databases can be passed as argument or set globally.
   See the "Time zone database" section in the module docs.
 
+  Shifting to the `"Etc/UTC"` time zone always succeeds without
+  consulting the `time_zone_database`.
+
   ## Examples
 
       iex> {:ok, pacific_datetime} = DateTime.shift_zone(~U[2018-07-16 10:00:00Z], "America/Los_Angeles", FakeTimeZoneDatabase)
@@ -751,6 +754,28 @@ defmodule DateTime do
     |> to_iso_days()
     |> apply_tz_offset(utc_offset + std_offset)
     |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+  end
+
+  defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, "Etc/UTC", _time_zone_db) do
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      calendar.naive_datetime_from_iso_days(iso_days_utc)
+
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond, precision},
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
+
+    {:ok, datetime}
   end
 
   defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, time_zone, time_zone_db) do
@@ -1708,44 +1733,6 @@ defmodule DateTime do
     add(datetime, amount_to_add * 60, :second, time_zone_database)
   end
 
-  def add(
-        %{calendar: calendar, time_zone: "Etc/UTC"} = datetime,
-        amount_to_add,
-        unit,
-        _time_zone_database
-      )
-      when is_integer(amount_to_add) do
-    %{microsecond: {_, precision}} = datetime
-
-    if not is_integer(unit) and unit not in ~w(second millisecond microsecond nanosecond)a do
-      raise ArgumentError,
-            "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
-    end
-
-    precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
-
-    {year, month, day, hour, minute, second, {microsecond, _}} =
-      datetime
-      |> to_iso_days()
-      |> Calendar.ISO.shift_time_unit(amount_to_add, unit)
-      |> calendar.naive_datetime_from_iso_days()
-
-    %DateTime{
-      calendar: calendar,
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: {microsecond, precision},
-      time_zone: "Etc/UTC",
-      zone_abbr: "UTC",
-      utc_offset: 0,
-      std_offset: 0
-    }
-  end
-
   def add(%{calendar: calendar} = datetime, amount_to_add, unit, time_zone_database)
       when is_integer(amount_to_add) do
     %{
@@ -1784,6 +1771,9 @@ defmodule DateTime do
   Shifts given `datetime` by `duration` according to its calendar.
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  If the datetime is in the `"Etc/UTC"` time zone, this function
+  always succeeds without consulting the `time_zone_database`.
 
   This operation is equivalent to shifting the datetime wall clock
   (in other words, the value as someone in that timezone would see
@@ -1852,44 +1842,6 @@ defmodule DateTime do
   @doc since: "1.17.0"
   @spec shift(Calendar.datetime(), Duration.duration(), Calendar.time_zone_database()) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
-
-  def shift(%{calendar: calendar, time_zone: "Etc/UTC"} = datetime, duration, _time_zone_database) do
-    %{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond
-    } = datetime
-
-    {year, month, day, hour, minute, second, microsecond} =
-      calendar.shift_naive_datetime(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        __duration__!(duration)
-      )
-
-    %DateTime{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      time_zone: "Etc/UTC",
-      zone_abbr: "UTC",
-      std_offset: 0,
-      utc_offset: 0
-    }
-  end
 
   def shift(%{calendar: calendar} = datetime, duration, time_zone_database) do
     %{
