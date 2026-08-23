@@ -4098,8 +4098,7 @@ defmodule Module.Types.Descr do
         if init_map_line_empty?(tag_or_domains, fields, negs) do
           acc
         else
-          {_found, value, _bdd} = map_pop_domain_bdd(tag_or_domains, fields, domain_key)
-          opt_union(value, acc)
+          map_domain_tag_to_type(tag_or_domains, domain_key) |> opt_union(acc)
         end
     end)
   end
@@ -4463,18 +4462,6 @@ defmodule Module.Types.Descr do
       subtype_seen?(type, fields_get(neg_domains, domain_key, none()), seen)
     end)
   end
-
-  # Pop a domain's present-value type.
-  defp map_pop_domain_bdd(domains, fields, domain_key) when is_list(domains) do
-    case fields_take(domain_key, domains) do
-      {value, domains} -> {true, value, map_new(domains, fields)}
-      :error -> {false, none(), map_new(domains, fields)}
-    end
-  end
-
-  # Open/close key
-  defp map_pop_domain_bdd(tag, fields, _domain_key),
-    do: {false, map_domain_tag_to_type(tag), map_new(tag, fields)}
 
   defp map_to_quoted(bdd, opts) do
     bdd
