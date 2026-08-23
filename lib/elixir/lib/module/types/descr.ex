@@ -2192,7 +2192,7 @@ defmodule Module.Types.Descr do
     list_part =
       case last_type do
         :term ->
-          list_new(:term, :term)
+          @non_empty_list_top
 
         {_, _, _} ->
           list_new(list_type, last_type)
