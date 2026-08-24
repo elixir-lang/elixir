@@ -1008,6 +1008,10 @@ defmodule String do
     IO.iodata_to_binary(downcase_ascii(string))
   end
 
+  def downcase(string, :greek) when is_binary(string) do
+    String.Unicode.downcase_greek(string, [])
+  end
+
   def downcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
     String.Unicode.downcase(string, [], mode)
   end
@@ -1058,17 +1062,37 @@ defmodule String do
   @letter_I_dot_above <<0x0130::utf8>>
 
   def capitalize(<<@letter_i, right::binary>>, mode) do
-    if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
+    capitalized = if mode == :turkic, do: @letter_I_dot_above, else: @letter_I
+    capitalized <> downcase_after_capitalize(right, mode, ?i)
   end
 
   def capitalize(string, mode) when is_binary(string) do
     case :unicode_util.gc(string) do
-      [gc] -> grapheme_to_binary(:string.titlecase([gc]))
-      [gc, rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
-      [gc | rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
-      [] -> ""
-      {:error, <<byte, rest::bits>>} -> <<byte>> <> downcase(rest, mode)
+      [gc] ->
+        grapheme_to_binary(:string.titlecase([gc]))
+
+      [gc, rest] ->
+        grapheme_to_binary(:string.titlecase([gc])) <>
+          downcase_after_capitalize(rest, mode, gc)
+
+      [gc | rest] ->
+        grapheme_to_binary(:string.titlecase([gc])) <>
+          downcase_after_capitalize(rest, mode, gc)
+
+      [] ->
+        ""
+
+      {:error, <<byte, rest::bits>>} ->
+        <<byte>> <> downcase(rest, mode)
     end
+  end
+
+  defp downcase_after_capitalize(rest, :greek, gc) do
+    String.Unicode.downcase_greek(rest, [], grapheme_to_binary(gc))
+  end
+
+  defp downcase_after_capitalize(rest, mode, _gc) do
+    downcase(rest, mode)
   end
 
   @doc false

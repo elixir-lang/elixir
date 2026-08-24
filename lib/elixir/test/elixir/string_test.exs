@@ -232,6 +232,11 @@ defmodule StringTest do
     assert String.downcase("Σ ΣΑΣ Σ", :greek) == "σ σας σ"
     assert String.downcase("ΜΕΣ'ΑΠΟ", :greek) == "μεσ'απο"
     assert String.downcase("ΑΣ'ΤΟΥΣ", :greek) == "ασ'τους"
+    assert String.downcase("AΣ", :greek) == "aς"
+    assert String.downcase("AΣA", :greek) == "aσa"
+    assert String.downcase("A'Σ", :greek) == "a'ς"
+    assert String.downcase("İΣ", :greek) == "i̇ς"
+    assert String.downcase("ⅠΣ", :greek) == "ⅰς"
   end
 
   test "downcase/1 with ascii" do
@@ -273,6 +278,10 @@ defmodule StringTest do
     assert String.capitalize("ııı", :turkic) == "Iıı"
     assert String.capitalize("İii", :turkic) == "İii"
     assert String.capitalize("Iıı", :turkic) == "Iıı"
+
+    assert String.capitalize("AΣ", :greek) == "Aς"
+    assert String.capitalize("iΣ", :greek) == "Iς"
+    assert String.capitalize("1Σ", :greek) == "1σ"
 
     assert String.capitalize(<<138, ?B, ?C>>) == <<138, ?b, ?c>>
 
