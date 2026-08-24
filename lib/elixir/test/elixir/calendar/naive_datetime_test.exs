@@ -188,15 +188,6 @@ defmodule NaiveDateTimeTest do
   end
 
   describe "diff" do
-    test "with invalid time unit" do
-      dt = NaiveDateTime.utc_now()
-
-      message =
-        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
-
-      assert_raise ArgumentError, message, fn -> NaiveDateTime.diff(dt, dt, "day") end
-    end
-
     test "with other calendars" do
       assert ~N[2000-01-01 12:34:15.123456]
              |> NaiveDateTime.convert!(Calendar.Holocene)

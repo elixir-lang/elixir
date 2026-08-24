@@ -892,7 +892,7 @@ defmodule EnumTest do
     assert Enum.reduce([1, 2, 3], fn x, acc -> x + acc end) == 6
 
     assert_raise Enum.EmptyError, fn ->
-      Enum.reduce([], fn x, acc -> x + acc end)
+      Enum.reduce(Process.get(:unused, []), fn x, acc -> x + acc end)
     end
 
     assert_raise Enum.EmptyError, fn ->

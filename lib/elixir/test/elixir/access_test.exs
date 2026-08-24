@@ -29,7 +29,7 @@ defmodule AccessTest do
     assert Access.get(nil, :foo) == nil
 
     assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
-      Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
+      Access.get_and_update(Process.get(:unused, nil), :foo, fn nil -> {:ok, :bar} end)
     end
   end
 

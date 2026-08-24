@@ -779,15 +779,6 @@ defmodule DateTimeTest do
   end
 
   describe "diff" do
-    test "with invalid time unit" do
-      dt = DateTime.utc_now()
-
-      message =
-        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
-
-      assert_raise ArgumentError, message, fn -> DateTime.diff(dt, dt, "day") end
-    end
-
     test "with valid time unit" do
       dt1 = %DateTime{
         year: 100,

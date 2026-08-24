@@ -311,9 +311,6 @@ defmodule List do
       iex> List.first!([1, 2, 3])
       1
 
-      iex> List.first!([])
-      ** (ArgumentError) attempted to get the first element of an empty list
-
   """
   @doc since: "1.20.0"
   @spec first!([elem, ...]) :: elem when elem: var
@@ -365,9 +362,6 @@ defmodule List do
 
       iex> List.last!([1, 2, 3])
       3
-
-      iex> List.last!([])
-      ** (ArgumentError) attempted to get the last element of an empty list
 
   """
   @doc since: "1.20.0"

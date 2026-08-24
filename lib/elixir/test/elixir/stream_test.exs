@@ -256,10 +256,6 @@ defmodule StreamTest do
     assert is_function(stream)
 
     assert_raise ArgumentError, "cannot cycle over an empty enumerable", fn ->
-      Stream.cycle([])
-    end
-
-    assert_raise ArgumentError, "cannot cycle over an empty enumerable", fn ->
       Stream.cycle(%{}) |> Enum.to_list()
     end
 

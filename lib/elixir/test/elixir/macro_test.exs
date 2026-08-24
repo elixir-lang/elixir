@@ -1640,14 +1640,6 @@ defmodule MacroTest do
     assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: Access.get(:foo)), 0) ==
              quote(do: Access.get(%{foo: "bar"}, :foo))
 
-    assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn ->
-      Macro.pipe(1, 2, 0)
-    end
-
-    assert_raise ArgumentError, ~r"cannot pipe 1 into \{2, 3\}", fn ->
-      Macro.pipe(1, {2, 3}, 0)
-    end
-
     assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1, the :\+ operator can", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))
     end

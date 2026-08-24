@@ -2077,9 +2077,9 @@ defmodule Kernel.SpecialForms do
       iex> try do
       ...>   1 / 0
       ...> rescue
-      ...>   x in [ArithmeticError] -> [:rescued, is_exception(x)]
+      ...>   x in [ArithmeticError] -> {:rescued, Exception.message(x)}
       ...> end
-      [:rescued, true]
+      {:rescued, "bad argument in arithmetic expression"}
 
   Rescue different errors with separate clauses:
 
