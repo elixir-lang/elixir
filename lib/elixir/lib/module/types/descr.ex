@@ -1790,7 +1790,7 @@ defmodule Module.Types.Descr do
     # we can simplify the phi function check to a direct subtyping test.
     # This avoids the expensive recursive phi computation by checking only that applying the
     # input to the positive intersection yields a subtype of the return
-    case disjoint_non_empty_domains?({arguments, return}, positives, seen) do
+    case disjoint_non_empty_domains?(arguments, positives, seen) do
       :disjoint_non_empty ->
         apply_disjoint(arguments, positives) |> subtype?(return)
 
@@ -1851,7 +1851,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp disjoint_non_empty_domains?({arguments, _return}, positives, seen) do
+  defp disjoint_non_empty_domains?(arguments, positives, seen) do
     b1 = all_disjoint_arguments?(positives)
 
     b2 =
