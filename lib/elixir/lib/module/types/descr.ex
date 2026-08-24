@@ -2618,17 +2618,17 @@ defmodule Module.Types.Descr do
 
   # Case 3: when a list with negations is united with one of its negations
   defp add_to_list_normalize([{t, l, n} = cur | rest], list, last, []) do
-    case pop_elem(n, bdd_leaf_new(list, last), []) do
-      {true, n1} -> [{t, l, n1} | rest]
-      {false, _} -> [cur | add_to_list_normalize(rest, list, last, n)]
+    case delete_elem(n, bdd_leaf_new(list, last), []) do
+      :error -> [cur | add_to_list_normalize(rest, list, last, n)]
+      n1 -> [{t, l, n1} | rest]
     end
   end
 
   defp add_to_list_normalize(rest, list, last, negs), do: [{list, last, negs} | rest]
 
-  defp pop_elem([key | t], key, acc), do: {true, :lists.reverse(acc, t)}
-  defp pop_elem([h | t], key, acc), do: pop_elem(t, key, [h | acc])
-  defp pop_elem([], _key, acc), do: {false, :lists.reverse(acc)}
+  defp delete_elem([key | t], key, acc), do: :lists.reverse(acc, t)
+  defp delete_elem([h | t], key, acc), do: delete_elem(t, key, [h | acc])
+  defp delete_elem([], _key, _acc), do: :error
 
   ## Dynamic
   #
