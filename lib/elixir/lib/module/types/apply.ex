@@ -213,7 +213,11 @@ defmodule Module.Types.Apply do
         {:erlang, :spawn_link, [{mfargs, pid()}]},
         {:erlang, :spawn_monitor, [{[fun(0)], tuple([pid(), reference()])}]},
         {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
-        {:erlang, :split_binary, [{[binary(), integer()], tuple([binary(), binary()])}]},
+        {:erlang, :split_binary,
+         [
+           {[binary(), integer()], tuple([binary(), binary()])},
+           {[bitstring_no_binary(), integer()], tuple([binary(), bitstring_no_binary()])}
+         ]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
         {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
 
