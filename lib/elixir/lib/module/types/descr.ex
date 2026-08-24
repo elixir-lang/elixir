@@ -85,6 +85,7 @@ defmodule Module.Types.Descr do
   defp descr_key?(descr, key), do: is_map_key(descr, key)
 
   def dynamic(), do: %{dynamic: :term}
+  @compile {:inline, none: 0, term: 0, upper_bound: 1}
   def none(), do: @none
   def term(), do: :term
 
@@ -603,7 +604,7 @@ defmodule Module.Types.Descr do
   Returns if the type is a singleton.
   """
   def singleton?(:term), do: false
-  def singleton?(descr), do: static_singleton?(Map.get(descr, :dynamic, descr))
+  def singleton?(descr), do: static_singleton?(upper_bound(descr))
 
   defp static_singleton?(:term), do: false
   defp static_singleton?(%{list: _}), do: false
@@ -911,8 +912,8 @@ defmodule Module.Types.Descr do
   def disjoint?(left, right) do
     left = unfold(left)
     right = unfold(right)
-    left_upper = Map.get(left, :dynamic, left) |> unfold()
-    right_upper = Map.get(right, :dynamic, right) |> unfold()
+    left_upper = upper_bound(left) |> unfold()
+    right_upper = upper_bound(right) |> unfold()
 
     not non_disjoint_intersection?(left_upper, right_upper)
   end
@@ -1100,7 +1101,7 @@ defmodule Module.Types.Descr do
   def booleaness(:term), do: :maybe_both
 
   def booleaness(%{} = descr) do
-    descr = Map.get(descr, :dynamic, descr)
+    descr = upper_bound(descr)
 
     case descr do
       :term ->
@@ -1155,7 +1156,7 @@ defmodule Module.Types.Descr do
   def truthiness(:term), do: :undefined
 
   def truthiness(%{} = descr) do
-    descr = Map.get(descr, :dynamic, descr)
+    descr = upper_bound(descr)
 
     case descr do
       :term ->
@@ -3519,8 +3520,7 @@ defmodule Module.Types.Descr do
       value = if gradual?, do: dynamic(value), else: value
       {new_value, new_optional?} = type_fun.(value, optional?)
 
-      new_value =
-        if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
+      new_value = upper_bound(new_value)
 
       {new_value, new_optional?}
     end
