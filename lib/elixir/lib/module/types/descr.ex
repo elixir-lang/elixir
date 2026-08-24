@@ -2911,16 +2911,12 @@ defmodule Module.Types.Descr do
 
   # Gets the domain type association to a map. Domain values are stored without
   # an optional marker, so no conversion is necessary here.
-  @compile {:inline, map_domain_tag_to_type: 1}
-  defp map_domain_tag_to_type(:open), do: term()
-  defp map_domain_tag_to_type(:closed), do: none()
+  @compile {:inline, map_domain_tag_to_type: 2}
+  defp map_domain_tag_to_type(:open, _key), do: term()
+  defp map_domain_tag_to_type(:closed, _key), do: none()
 
   defp map_domain_tag_to_type(domain, key) when is_list(domain) do
     fields_get(domain, key, none())
-  end
-
-  defp map_domain_tag_to_type(domain, _key) do
-    map_domain_tag_to_type(domain)
   end
 
   defp map_new(tag, fields), do: bdd_leaf_new(tag, fields)
