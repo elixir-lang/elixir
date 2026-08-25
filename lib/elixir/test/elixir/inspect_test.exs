@@ -278,10 +278,15 @@ defmodule Inspect.ListTest do
 
   test "printable limit" do
     assert inspect(~c"hello world", printable_limit: 4) == ~s(~c"hell" ++ ...)
+    assert inspect(~c"hello", printable_limit: :infinity) == ~s(~c"hello")
     # Non printable characters after the limit don't matter
     assert inspect(~c"hello world" ++ [0], printable_limit: 4) == ~s(~c"hell" ++ ...)
     # Non printable strings aren't affected by printable limit
     assert inspect([0, 1, 2, 3, 4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
+    # Ensure a non-printable value after limit does not crash
+    assert inspect(~c"hello world" ++ [nil], printable_limit: 4) == ~s(~c"hell" ++ ...)
+    # Ensure a non-printable value after default limit does not hang
+    assert String.ends_with?(inspect(List.duplicate(?a, 5000) ++ [nil]), "\" ++ ...")
   end
 
   test "keyword" do
@@ -306,10 +311,20 @@ defmodule Inspect.ListTest do
     assert inspect([0], charlists: :infer) == "[0]"
   end
 
-  test "opt as strings" do
+  test "opt as charlists" do
     assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :as_charlists) == ~s(~c"john\\0doe")
     assert inspect(~c"john", charlists: :as_charlists) == ~s(~c"john")
     assert inspect([0], charlists: :as_charlists) == ~s(~c"\\0")
+    assert inspect([nil], charlists: :as_charlists) == "[nil]"
+    assert inspect([0xD800], charlists: :as_charlists) == "[55296]"
+    assert inspect([1_114_112], charlists: :as_charlists) == "[1114112]"
+    assert inspect([[?a]], charlists: :as_charlists) == ~s([~c"a"])
+
+    assert inspect([?a, ?b, ?c | nil], charlists: :as_charlists, printable_limit: 4) ==
+             "[97, 98, 99 | nil]"
+
+    assert inspect([?a, ?b, ?c | nil], charlists: :as_charlists, printable_limit: 3) ==
+             ~s(~c"abc" ++ ...)
   end
 
   test "opt as lists" do
