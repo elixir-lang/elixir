@@ -331,6 +331,12 @@ defmodule ListTest do
     assert_raise ArgumentError, ~r"cannot convert the given list to a string", fn ->
       List.to_string([:a, :b])
     end
+
+    invalid = List.duplicate(?a, 4096) ++ [nil]
+
+    assert_raise ArgumentError, ~r/got:\n\n\[97, 97, .*\.\.\.\]\n\z/s, fn ->
+      List.to_string(invalid)
+    end
   end
 
   test "to_charlist/1" do
@@ -348,6 +354,12 @@ defmodule ListTest do
 
     assert_raise ArgumentError, ~r"cannot convert the given list to a charlist", fn ->
       List.to_charlist([:a, :b])
+    end
+
+    invalid = List.duplicate(?a, 4096) ++ [nil]
+
+    assert_raise ArgumentError, ~r/got:\n\n\[97, 97, .*\.\.\.\]\n\z/s, fn ->
+      List.to_charlist(invalid)
     end
   end
 

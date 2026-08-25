@@ -1137,7 +1137,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
+        #{inspect(list, charlists: :as_lists)}
         """
     else
       result when is_binary(result) ->
@@ -1189,7 +1189,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
+        #{inspect(list, charlists: :as_lists)}
         """
     else
       result when is_list(result) ->
