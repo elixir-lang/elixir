@@ -2737,6 +2737,29 @@ defmodule Module.Types.DescrTest do
       assert dynamic(list(binary(), float())) |> numberize() ==
                dynamic(list(binary(), number()))
     end
+
+    test "with negations" do
+      # Negations must not be widened: `{1}` belongs to `term() and not {float()}`
+      # and `{1} == {1.0}`, so both must survive numberize.
+      negated = opt_difference(term(), tuple([float()]))
+      assert subtype?(tuple([integer()]), numberize(negated))
+      assert subtype?(tuple([float()]), numberize(negated))
+
+      negated = opt_difference(non_empty_list(integer(), atom()), non_empty_list(float(), atom()))
+      assert subtype?(non_empty_list(integer(), atom()), numberize(negated))
+      assert subtype?(non_empty_list(float(), atom()), numberize(negated))
+
+      negated = opt_difference(open_map(a: {integer(), false}), open_map(a: {float(), false}))
+      assert subtype?(open_map(a: {integer(), false}), numberize(negated))
+      assert subtype?(open_map(a: {float(), false}), numberize(negated))
+
+      # Negations untouched by numberize are kept as is
+      type = opt_difference(tuple(), tuple([binary()]))
+      assert numberize(type) == type
+
+      type = opt_difference(list(integer(), atom()), list(binary(), atom()))
+      assert numberize(type) == opt_difference(list(number(), atom()), list(binary(), atom()))
+    end
   end
 
   describe "map_get" do
