@@ -192,6 +192,17 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
+## v1.20.4-dev
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Base] Fix false positives in Base64 validation
+  * [Kernel] Fix inferred type of `:erlang.split_binary/2` when given a bitstring
+  * [Kernel] Fix type checker crash on comprehensions with a non-returning `:into` expression
+  * [String] Fix final sigma handling in Greek casing
+
 ## v1.20.3 (2026-08-04)
 
 ### 1. Enhancements
