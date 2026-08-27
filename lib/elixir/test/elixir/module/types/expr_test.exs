@@ -451,6 +451,21 @@ defmodule Module.Types.ExprTest do
                "incompatible types given to Kernel.send/2"
     end
 
+    test "raises with arbitrary stacktrace extra info" do
+      assert typecheck!(
+               :erlang.raise(:error, :oops, [
+                 {__MODULE__, :example, 1,
+                  [line: 1, column: 2, file: "example.ex", custom: {:any, :term}]}
+               ])
+             ) == none()
+
+      assert typeerror!(
+               :erlang.raise(:error, :oops, [
+                 {__MODULE__, :example, 1, [line: :unknown]}
+               ])
+             ) =~ "incompatible types given to :erlang.raise/3"
+    end
+
     test "undefined function warnings" do
       assert typewarn!(URI.unknown("foo")) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
@@ -2967,6 +2982,54 @@ defmodule Module.Types.ExprTest do
     end
 
     test "rescue: matches on stacktrace" do
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 _ ->
+                   case __STACKTRACE__ do
+                     [{_, _, _, [{:line, line} | _]} | _] -> line + 1
+                     _ -> 0
+                   end
+               end
+             ) == integer()
+
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 _ ->
+                   case __STACKTRACE__ do
+                     [{_, _, _, [{:file, file} | _]} | _] -> file
+                     _ -> "unknown"
+                   end
+               end
+             ) == opt_union(list(integer()), binary())
+
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 _ ->
+                   case __STACKTRACE__ do
+                     [{_, _, _, [{:error_info, error_info} | _]} | _] -> map_size(error_info)
+                     _ -> 0
+                   end
+               end
+             ) == integer()
+
+      assert typecheck!(
+               try do
+                 raise "oops"
+               rescue
+                 _ ->
+                   case __STACKTRACE__ do
+                     [{_, _, _, [{:column, column} | _]} | _] -> column
+                     _ -> 0
+                   end
+               end
+             ) == term()
+
       assert typeerror!(
                try do
                  :ok

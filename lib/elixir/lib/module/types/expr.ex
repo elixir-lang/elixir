@@ -40,11 +40,14 @@ defmodule Module.Types.Expr do
 
   args_or_arity = opt_union(list(term()), integer())
 
+  custom_info_key = opt_difference(atom(), atom([:file, :line, :error_info]))
+
   extra_info =
     list(
-      tuple([atom([:file]), list(integer())])
+      tuple([atom([:file]), opt_union(list(integer()), binary())])
       |> opt_union(tuple([atom([:line]), integer()]))
       |> opt_union(tuple([atom([:error_info]), open_map()]))
+      |> opt_union(tuple([custom_info_key, term()]))
     )
 
   @stacktrace list(
