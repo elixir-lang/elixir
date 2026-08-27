@@ -586,7 +586,7 @@ defmodule Module.Types.Descr do
   defp numberize(:map, bdd) do
     bdd_map_positive(bdd, fn bdd_leaf(tag, fields) ->
       bdd_leaf_new(
-        tag,
+        numberize_map_tag(tag),
         fields_map(fn _key, {value, optional?} -> {numberize(value), optional?} end, fields)
       )
     end)
@@ -603,6 +603,13 @@ defmodule Module.Types.Descr do
       bdd_leaf_new(numberize(head), numberize(tail))
     end)
   end
+
+  # Map keys are compared exactly by `==`, only their values coerce, so the
+  # domain keys are kept as is and only the types they point to are widened.
+  defp numberize_map_tag(domains) when is_list(domains),
+    do: fields_map(fn _key, value -> numberize(value) end, domains)
+
+  defp numberize_map_tag(tag), do: tag
 
   @doc """
   Returns if the type is a singleton.

@@ -2119,6 +2119,24 @@ defmodule Module.Types.ExprTest do
                "dynamic({:matched, {float() or integer()}}) or :nomatch"
     end
 
+    test "does not discard equal values when narrowing against domain keys" do
+      # `==` coerces map values, so narrowing `x` from `x == y` must widen the
+      # `integer() => integer()` domain value to `integer() => number()`.
+      assert typecheck!(
+               (
+                 y = %{1 => 1}
+                 w = %{1 => 1.0}
+
+                 case w do
+                   x when x == y and map_size(x) == 1 -> {:eq, x}
+                   _ -> :ne
+                 end
+               )
+             )
+             |> to_quoted_string() ==
+               ":ne or {:eq, %{integer() => float()} and not empty_map()}"
+    end
+
     test "consider external variables as not precise" do
       assert typecheck!(
                [x],

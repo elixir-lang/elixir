@@ -2738,6 +2738,17 @@ defmodule Module.Types.DescrTest do
                dynamic(list(binary(), number()))
     end
 
+    test "with domain keys" do
+      # `==` compares map keys exactly but coerces values, so only the types
+      # the domain keys point to are widened.
+      assert closed_map([{domain_key(:integer), integer()}]) |> numberize() ==
+               closed_map([{domain_key(:integer), number()}])
+
+      assert open_map([{domain_key(:tuple), tuple([float()])}, {:a, {integer(), false}}])
+             |> numberize() ==
+               open_map([{domain_key(:tuple), tuple([number()])}, {:a, {number(), false}}])
+    end
+
     test "with negations" do
       # Negations must not be widened: `{1}` belongs to `term() and not {float()}`
       # and `{1} == {1.0}`, so both must survive numberize.
