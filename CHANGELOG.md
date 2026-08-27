@@ -25,6 +25,7 @@
   * [Keyword] Optimize `Keyword.pop/3`, `Keyword.pop!/2`, and `Keyword.pop_lazy/3`
   * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/1`
   * [MapSet] Optimize `MapSet.symmetric_difference/2` when set sizes differ
+  * [Path] Add `Path.safe_join/2`
   * [Registry] Optimize exact key matching in lookups
   * [String] Optimize `String.bag_distance/2`
   * [String] Add `String.to_existing_atom/2` and `String.to_unsafe_atom/1`
@@ -42,22 +43,31 @@
   * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
   * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
   * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
+  * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
   * [Code.Fragment] Fix cursor completion when operator keywords such as `in`, `when`, `and`, `or`, and `not` follow another operator
+  * [Date] Preserve the `:format` option in `Date.to_iso8601/2` with custom calendars
   * [Date.Range] Fix slicing date ranges with stepped ranges
   * [Duration] Reject duplicate seconds in `Duration.from_iso8601/1`
   * [Enum] Fix `Enum.min/2,3` and `Enum.max/2,3` with custom sorters on ranges
   * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
   * [Kernel] Fix expansion of rebound variables in bitstring size expressions
   * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
+  * [Kernel] Fix inferred stacktrace types to allow arbitrary keyword metadata
+  * [Kernel] Fix inferred types for functions with non-returning clauses
   * [Kernel] Fix map field type inference in the presence of empty map types
   * [Kernel] Fix tuple fetch and deletion type operations across equivalent tuple types
   * [Kernel] Fix variables defined in one default argument leaking into subsequent default arguments
+  * [Kernel] Improve the error message for non-atom struct keys
+  * [Kernel] Raise when `|` is used in guards
   * [Kernel.Typespec] Preserve metadata when proxying to Elixir typespecs
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
+  * [Macro] Properly escape C1 control characters and Unicode noncharacters
   * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
+  * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
   * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
   * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
+  * [Time] Validate microseconds in `Time.from_seconds_after_midnight/3`
 
 #### ExUnit
 
@@ -73,6 +83,7 @@
 
 #### Mix
 
+  * [Mix] Prevent synchronization lock files from being overwritten with empty contents
   * [Mix.Release] Accept chardata paths in `Mix.Release.make_boot_script/4`
   * [Mix.SCM.Git] Raise if Git refspecs start with `-`
   * [mix deps] Recompile path and fetchable dependencies when one of the dependencies they were compiled with is removed
