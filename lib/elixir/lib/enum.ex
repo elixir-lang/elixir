@@ -2927,8 +2927,12 @@ defmodule Enum do
     slide_list_last(t, last - 1, [h | acc], start_to_middle)
   end
 
-  defp slide_list_last(rest, _, acc, start_to_middle) do
+  defp slide_list_last(rest, 0, acc, start_to_middle) do
     :lists.reverse(acc, :lists.reverse(start_to_middle, rest))
+  end
+
+  defp slide_list_last([], _, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle))
   end
 
   @doc """
