@@ -192,9 +192,13 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
-## v1.20.4-dev
+## v1.20.4 (2026-08-28)
 
-### 1. Bug fixes
+### 1. Security
+
+  * [List] Avoid recursion when invalid charlists are given to `List.to_string/1` or `List.to_charlist/1` (CVE-2026-75758, GHSA-jf5q-v438-665c)
+
+### 2. Bug fixes
 
 #### Elixir
 
