@@ -64,7 +64,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     all =
       if "--no-optional-deps" in args do
-        for dep <- all, dep.opts[:optional] != true, do: dep
+        required = Mix.Dep.required_apps(all)
+        for dep <- all, dep.app in required, do: dep
       else
         all
       end
