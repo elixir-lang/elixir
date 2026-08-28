@@ -812,8 +812,12 @@ defmodule Module.Types.Pattern do
     version = Keyword.fetch!(meta, :version)
 
     case Enum.reverse(reverse_path) do
-      [%{root: :key} | _] -> {Of.var(var, context), false, context}
-      path -> {{:var, version}, false, of_shared_var(var, version, true, path, context)}
+      [%{root: :key} | _] ->
+        {Of.var(var, context), false, context}
+
+      path ->
+        precise? = singleton?(context.vars[version].type)
+        {{:var, version}, precise?, of_shared_var(var, version, true, path, context)}
     end
   end
 
