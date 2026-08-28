@@ -254,8 +254,13 @@ defmodule Module.Types.MapTest do
 
   describe "Map.has_key?/2" do
     test "checking" do
-      assert typecheck!(Map.has_key?(%{key: 123}, :key)) == boolean()
-      assert typecheck!(:maps.is_key(:key, %{key: 123})) == boolean()
+      assert typecheck!(Map.has_key?(%{key: 123}, :key)) == atom([true])
+      assert typecheck!(Map.has_key?(%{}, :key)) == atom([false])
+      assert typecheck!([key], Map.has_key?(%{key: 123}, key)) == boolean()
+
+      assert typecheck!(:maps.is_key(:key, %{key: 123})) == atom([true])
+      assert typecheck!(:maps.is_key(:key, %{})) == atom([false])
+      assert typecheck!([key], :maps.is_key(key, %{key: 123})) == boolean()
     end
 
     test "errors" do
