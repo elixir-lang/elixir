@@ -234,6 +234,12 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.6 (2026-08-28)
+
+### 1. Security
+
+  * [List] Avoid recursion when invalid charlists are given to `List.to_string/1` or `List.to_charlist/1` (CVE-2026-75758, GHSA-jf5q-v438-665c)
+
 ## v1.19.5 (2026-01-09)
 
 ### 1. Enhancements
