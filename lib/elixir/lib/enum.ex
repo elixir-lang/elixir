@@ -2915,8 +2915,7 @@ defmodule Enum do
   end
 
   defp slide_list_middle(list, 0, last, start_to_middle) do
-    {slid_range, tail} = slide_list_last(list, last + 1, [])
-    slid_range ++ :lists.reverse(start_to_middle, tail)
+    slide_list_last(list, last + 1, [], start_to_middle)
   end
 
   # You asked for a middle index off the end of the list... you get what we've got
@@ -2924,16 +2923,16 @@ defmodule Enum do
     :lists.reverse(acc)
   end
 
-  defp slide_list_last([h | t], last, acc) when last > 0 do
-    slide_list_last(t, last - 1, [h | acc])
+  defp slide_list_last([h | t], last, acc, start_to_middle) when last > 0 do
+    slide_list_last(t, last - 1, [h | acc], start_to_middle)
   end
 
-  defp slide_list_last(rest, 0, acc) do
-    {:lists.reverse(acc), rest}
+  defp slide_list_last(rest, 0, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle, rest))
   end
 
-  defp slide_list_last([], _, acc) do
-    {:lists.reverse(acc), []}
+  defp slide_list_last([], _, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle))
   end
 
   @doc """
