@@ -223,6 +223,12 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
+## v1.18.5 (2026-08-28)
+
+### 1. Security
+
+  * [List] Avoid recursion when invalid charlists are given to `List.to_string/1` or `List.to_charlist/1` (CVE-2026-75758, GHSA-jf5q-v438-665c)
+
 ## v1.18.4 (2025-05-21)
 
 This release includes initial support for Erlang/OTP 28, for those who want to try it out. In such cases, you may use Elixir v1.18.4 precompiled for Erlang/OTP 27, as it is binary compatible with Erlang/OTP 28. Note, however, that Erlang/OTP 28 no longer allows regexes to be defined in the module body and interpolated into an attribute. If you do this:
