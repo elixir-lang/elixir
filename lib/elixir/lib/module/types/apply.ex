@@ -1016,6 +1016,11 @@ defmodule Module.Types.Apply do
     {info, filter_domain(info, expected, 2), context}
   end
 
+  def remote_domain(:maps, :is_key, [key, map], expected, meta, stack, context)
+      when is_atom(key) do
+    remote_domain(:erlang, :is_map_key, [key, map], expected, meta, stack, context)
+  end
+
   def remote_domain(Kernel, :is_map_key, [_map, key], expected, _meta, _stack, context)
       when is_atom(key) do
     info =
@@ -1026,6 +1031,11 @@ defmodule Module.Types.Apply do
        ]}
 
     {info, filter_domain(info, expected, 2), context}
+  end
+
+  def remote_domain(Map, :has_key?, [map, key], expected, meta, stack, context)
+      when is_atom(key) do
+    remote_domain(Kernel, :is_map_key, [map, key], expected, meta, stack, context)
   end
 
   def remote_domain(:erlang, :map_get, [key, _], expected, _meta, _stack, context)
