@@ -2303,6 +2303,89 @@ defmodule Module.Types.ExprTest do
              """
     end
 
+    test "considers singleton-typed pins precise" do
+      assert typewarn!(
+               [x],
+               (
+                 y = :ok
+
+                 case x do
+                   ^y -> :matched
+                   :ok -> :redundant
+                   _ -> :other
+                 end
+               )
+             )
+             |> elem(1) == ~l"""
+             the following clause is redundant:
+
+                 :ok ->
+
+             previous clauses have already matched on the following types:
+
+                 :ok
+             """
+
+      assert typewarn!(
+               [x, y],
+               case y do
+                 :ok ->
+                   case x do
+                     ^y -> :matched
+                     :ok -> :redundant
+                     _ -> :other
+                   end
+
+                 _ ->
+                   :other
+               end
+             )
+             |> elem(1) =~ "the following clause is redundant"
+    end
+
+    test "subtracts singleton-typed pins from later clauses" do
+      assert typecheck!(
+               [x],
+               (
+                 y = :ok
+
+                 case x do
+                   ^y -> raise "matched"
+                   _ -> :other
+                 end
+
+                 x
+               )
+             ) == dynamic(opt_negation(atom([:ok])))
+    end
+
+    test "does not consider non-singleton-typed pins precise" do
+      assert typecheck!(
+               [x = :ok],
+               (
+                 y = Enum.random([:ok, :error])
+
+                 case x do
+                   ^y -> :matched
+                   :ok -> :needed
+                 end
+               )
+             ) == atom([:matched, :needed])
+
+      assert typecheck!(
+               [x],
+               (
+                 y = 123
+
+                 case x do
+                   ^y -> :matched
+                   z when is_integer(z) -> :integer
+                   _ -> :other
+                 end
+               )
+             ) == atom([:matched, :integer, :other])
+    end
+
     test "reports error from clause that will never match" do
       assert typeerror!(
                [x],
