@@ -158,9 +158,17 @@ defmodule Logger.Formatter do
 
     * `:info` - color for info and notice messages. Defaults to: `:normal`
 
+    * `:notice` - color for notice messages. Defaults to: `:blue`
+
     * `:warning` - color for warning messages. Defaults to: `:yellow`
 
-    * `:error` - color for error and higher messages. Defaults to: `:red`
+    * `:error` - color for error messages. Defaults to: `:red`
+
+    * `:critical` - color for critical messages. Defaults to: `:red`
+
+    * `:alert` - color for alert messages. Defaults to: `:red`
+
+    * `:emergency` - color for emergency messages. Defaults to: `:red`
 
   See the `IO.ANSI` module for a list of colors and attributes.
   The color of the message can also be configured per message via
@@ -186,16 +194,20 @@ defmodule Logger.Formatter do
 
   defp colors(colors) do
     %{
-      emergency: Keyword.get(colors, :error, :red),
-      alert: Keyword.get(colors, :error, :red),
-      critical: Keyword.get(colors, :error, :red),
+      emergency: color(colors, :emergency, :error, :red),
+      alert: color(colors, :alert, :error, :red),
+      critical: color(colors, :critical, :error, :red),
       error: Keyword.get(colors, :error, :red),
       warning: Keyword.get(colors, :warning, :yellow),
-      notice: Keyword.get(colors, :info, :normal),
+      notice: color(colors, :notice, :info, :blue),
       info: Keyword.get(colors, :info, :normal),
       debug: Keyword.get(colors, :debug, :cyan),
       enabled: Keyword.get(colors, :enabled, &IO.ANSI.enabled?/0)
     }
+  end
+
+  defp color(colors, level, fallback, default) do
+    Keyword.get_lazy(colors, level, fn -> Keyword.get(colors, fallback, default) end)
   end
 
   @doc false

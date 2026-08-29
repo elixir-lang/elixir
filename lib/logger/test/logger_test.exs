@@ -759,16 +759,38 @@ defmodule LoggerTest do
       assert capture_log(fn -> Logger.info("hello") end) ==
                IO.ANSI.normal() <> "hello" <> IO.ANSI.reset()
 
+      assert capture_log(fn -> Logger.notice("hello") end) ==
+               IO.ANSI.blue() <> "hello" <> IO.ANSI.reset()
+
       assert capture_log(fn -> Logger.warning("hello") end) ==
                IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
 
       assert capture_log(fn -> Logger.error("hello") end) ==
                IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.critical("hello") end) ==
+               IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.alert("hello") end) ==
+               IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.emergency("hello") end) ==
+               IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
     end
 
     @tag formatter: [
            format: "$message",
-           colors: [enabled: true, debug: :magenta, info: :cyan, warning: :magenta, error: :cyan]
+           colors: [
+             enabled: true,
+             debug: :magenta,
+             info: :cyan,
+             notice: :red,
+             warning: :magenta,
+             error: :cyan,
+             critical: :green,
+             alert: :blue,
+             emergency: :black
+           ]
          ]
     test "custom" do
       assert capture_log(fn -> Logger.debug("hello") end) ==
@@ -777,12 +799,42 @@ defmodule LoggerTest do
       assert capture_log(fn -> Logger.info("hello") end) ==
                IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
 
+      assert capture_log(fn -> Logger.notice("hello") end) ==
+               IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+
       assert capture_log(fn -> Logger.warning("hello") end) ==
                IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
 
       assert capture_log(fn -> Logger.error("hello") end) ==
                IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.critical("hello") end) ==
+               IO.ANSI.green() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.alert("hello") end) ==
+               IO.ANSI.blue() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.emergency("hello") end) ==
+               IO.ANSI.black() <> "hello" <> IO.ANSI.reset()
     end
+  end
+
+  @tag formatter: [
+         format: "$message",
+         colors: [enabled: true, info: :magenta, error: :white]
+       ]
+  test "fallbacks" do
+    assert capture_log(fn -> Logger.notice("hello") end) ==
+             IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+
+    assert capture_log(fn -> Logger.critical("hello") end) ==
+             IO.ANSI.white() <> "hello" <> IO.ANSI.reset()
+
+    assert capture_log(fn -> Logger.alert("hello") end) ==
+             IO.ANSI.white() <> "hello" <> IO.ANSI.reset()
+
+    assert capture_log(fn -> Logger.emergency("hello") end) ==
+             IO.ANSI.white() <> "hello" <> IO.ANSI.reset()
   end
 
   describe "OTP integration" do
