@@ -565,6 +565,20 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp do_remote(:erlang, :apply, [fun, args] = all_args, expected, expr, stack, context, of_fun)
+       when is_list(args) do
+    if Enum.any?(args, &match?({:|, _, [_, _]}, &1)) do
+      remote_domain(:erlang, :apply, all_args, expected, elem(expr, 1), stack, context)
+    else
+      {fun_type, context} = of_fun.(fun, dynamic(fun(length(args))), expr, stack, context)
+
+      {args_types, context} =
+        Enum.map_reduce(args, context, &of_fun.(&1, term(), expr, stack, &2))
+
+      fun(fun_type, args_types, expr, stack, context)
+    end
+  end
+
   defp do_remote(Kernel, :elem, [tuple, index], expected, expr, stack, context, of_fun)
        when is_integer(index) do
     tuple_type = open_tuple(List.duplicate(term(), max(index, 0)) ++ [expected])

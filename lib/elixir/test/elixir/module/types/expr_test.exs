@@ -233,6 +233,47 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(atom([:ok, :error]))
     end
 
+    test "apply/2 with literal arguments" do
+      assert typecheck!([], apply(&String.to_integer/1, ["123"])) == integer()
+
+      assert typecheck!(
+               [x],
+               (
+                 apply(x, [1, 2])
+                 x
+               )
+             ) == dynamic(fun(2))
+
+      # Improper lists and dynamic arguments fall back to the generic signature
+      assert typecheck!([x, tail], apply(x, [1 | tail])) == dynamic()
+      assert typecheck!([f, args], apply(f, args)) == dynamic()
+
+      assert typeerror!([a1, a2], apply(&String.to_integer/1, [a1, a2])) == ~l"""
+             expected a 2-arity function on function call:
+
+                 apply(&String.to_integer/1, [a1, a2])
+
+             but got function with arity 1:
+
+                 (binary() -> integer())
+             """
+
+      assert typeerror!([], apply(&String.to_integer/1, [:foo]))
+             |> strip_ansi() == ~l"""
+             incompatible types given on function call:
+
+                 apply(&String.to_integer/1, [:foo])
+
+             given types:
+
+                 :foo
+
+             but function has type:
+
+                 (binary() -> integer())
+             """
+    end
+
     test "warns on redundant clauses" do
       assert typewarn!(fn
                x when is_binary(x) -> x
