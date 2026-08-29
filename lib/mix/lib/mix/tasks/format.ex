@@ -165,30 +165,11 @@ defmodule Mix.Tasks.Format do
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
   the markdown files and sigils before `AnotherMarkdownFormatter`.
 
-  > #### Do not depend on Mix.Project {: .warning}
-  >
-  > You must not access `Mix.Project.config()` or general project configuration
-  > inside your formatter plugins. That's because formatters were designed to
-  > work even outside of a Mix project and the project configuration may be
-  > incomplete or fully missing. All configuration must be given via the
-  > `.formatter.exs` file.
-
-  Plugins for `.ex` and/or `.exs` file types warrant special consideration
-  because they alter the baseline behavior of `mix format`, as well as the behavior
-  of other plugins that specify sigils:
-
-    * If one or more plugins specify `.ex`/`.exs` files, these plugins will _replace_
-      `mix format`'s usual formatting of Elixir code in matched files. This usual
-      formatting will not happen.
-    * Sigil formatting by other plugins will be disabled, because sigil-plugin
-      handling occurs during `mix format`'s usual Elixir code formatting
-      (whenever a sigil is encountered).
-    * If multiple plugins specify `.ex`/`.exs` files, they will all format those
-      files, in listed order.
-
-  If you want custom formatting of `.ex`/`.exs` files, but don't want to lose
-  baseline formatting or formatting of sigils, you can define a small wrapper
-  plugin which restores normal formatting of code within `.ex` and `.exs` files:
+  You can also define plugins for `.ex` and `.exs` files but doing so fully replaces
+  the baseline Elixir formatter and the usual formatting of Elixir code (as well as
+  other sigil plugins) will not happen unless the custom Elixir plugin also calls
+  `Code.format_string!/2`. Therefore, in order to keep the baseline `mix format`
+  behaviour, we recommend custom Elixir formatters to use the template below:
 
       defmodule ElixirFormatter do
         @behaviour Mix.Tasks.Format
@@ -203,9 +184,19 @@ defmodule Mix.Tasks.Format do
         end
       end
 
-  The plugin above can be added anywhere in your `.formatter.exs` plugins list,
-  depending on whether you want standard Elixir code formatting to occur _before_
-  or _after_ formatting of each other plugin.
+  Alternatively, you can use the snippet above as its own formatter and add it
+  anywhere in your `.formatter.exs` plugins list, depending on whether you want
+  standard Elixir code formatting to occur before or after another plugin. If
+  multiple plugins specify `.ex`/`.exs` files, they will all format those files,
+  in listed order.
+
+  > #### Do not depend on Mix.Project {: .warning}
+  >
+  > You must not access `Mix.Project.config()` or general project configuration
+  > inside your formatter plugins. That's because formatters were designed to
+  > work even outside of a Mix project and the project configuration may be
+  > incomplete or fully missing. All configuration must be given via the
+  > `.formatter.exs` file.
 
   ## Importing dependencies configuration
 
