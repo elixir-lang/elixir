@@ -165,6 +165,31 @@ defmodule Mix.Tasks.Format do
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
   the markdown files and sigils before `AnotherMarkdownFormatter`.
 
+  You can also define plugins for `.ex` and `.exs` files but doing so fully replaces
+  the baseline Elixir formatter and the usual formatting of Elixir code (as well as
+  other sigil plugins) will not happen unless the custom Elixir plugin also calls
+  `Code.format_string!/2`. Therefore, in order to keep the baseline `mix format`
+  behaviour, we recommend custom Elixir formatters to use the template below:
+
+      defmodule ElixirFormatter do
+        @behaviour Mix.Tasks.Format
+
+        def features(_opts) do
+          [sigils: [], extensions: [".ex", ".exs"]]
+        end
+
+        def format(contents, opts) do
+          formatted = Code.format_string!(contents, opts)
+          IO.iodata_to_binary([formatted, ?\\n])
+        end
+      end
+
+  Alternatively, you can use the snippet above as its own formatter and add it
+  anywhere in your `.formatter.exs` plugins list, depending on whether you want
+  standard Elixir code formatting to occur before or after another plugin. If
+  multiple plugins specify `.ex`/`.exs` files, they will all format those files,
+  in listed order.
+
   > #### Do not depend on Mix.Project {: .warning}
   >
   > You must not access `Mix.Project.config()` or general project configuration
