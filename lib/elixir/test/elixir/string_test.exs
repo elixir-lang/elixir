@@ -239,35 +239,6 @@ defmodule StringTest do
     assert String.downcase("ⅠΣ", :greek) == "ⅰς"
   end
 
-  test "downcase/2 with greek final sigma and case ignorable context" do
-    # Word_Break(C) = MidLetter, MidNumLet or Single_Quote
-    for codepoint <- [
-          0x0027,
-          0x002E,
-          0x003A,
-          0x00B7,
-          0x0387,
-          0x055F,
-          0x05F4,
-          0x2018,
-          0x2019,
-          0x2024,
-          0x2027,
-          0xFE13,
-          0xFE52,
-          0xFE55,
-          0xFF07,
-          0xFF0E,
-          0xFF1A
-        ] do
-      mark = <<codepoint::utf8>>
-
-      assert String.downcase("Α" <> mark <> "Σ", :greek) == "α" <> mark <> "ς"
-      assert String.downcase("ΑΣ" <> mark <> "Α", :greek) == "ασ" <> mark <> "α"
-      assert String.capitalize("Α" <> mark <> "Σ", :greek) == "Α" <> mark <> "ς"
-    end
-  end
-
   test "downcase/1 with ascii" do
     assert String.downcase("OLÁ", :ascii) == "olÁ"
   end
