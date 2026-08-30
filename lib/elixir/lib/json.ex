@@ -175,6 +175,7 @@ defimpl JSON.Encoder, for: Map do
 
   # Erlang supports only numbers, binaries, and atoms as keys,
   # we support anything that implements the String.Chars protocol.
+  @compile inline: [key: 2]
   defp key(key, encoder) when is_atom(key), do: encoder.(Atom.to_string(key), encoder)
   defp key(key, encoder) when is_binary(key), do: encoder.(key, encoder)
   defp key(key, encoder), do: encoder.(String.Chars.to_string(key), encoder)
