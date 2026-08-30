@@ -176,6 +176,7 @@ defmodule Module.Types.ExprTest do
 
     test "--" do
       assert typecheck!([x], [1, 2, 3] -- x) == list(integer())
+      assert typecheck!([1] -- [1]) == list(integer())
       assert typecheck!([x], [] -- x) == empty_list()
 
       assert typeerror!([x], [1, 2, 3] -- String.to_integer(x)) |> strip_ansi() =~
