@@ -1545,7 +1545,7 @@ defmodule Module.Types.Apply do
           {:ok, fallback}
 
         values ->
-          if empty?(values) and not empty?(tuple) do
+          if empty?(values) do
             {:error, {:badindex, 1, tuple}}
           else
             {:ok, return(values, args_types, stack)}

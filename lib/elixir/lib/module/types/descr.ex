@@ -5355,6 +5355,8 @@ defmodule Module.Types.Descr do
 
   @doc """
   Returns all of the values that are part of a tuple.
+
+  Returns `:badtuple` if the projection is invalid or the tuple descriptor is uninhabited.
   """
   def tuple_values(:term), do: :badtuple
   def tuple_values(descr) when descr == %{}, do: :badtuple
@@ -5369,7 +5371,7 @@ defmodule Module.Types.Descr do
         end
 
       {dynamic, static} ->
-        if tuple_only?(static) and descr_key?(dynamic, :tuple) do
+        if not empty?(descr) and tuple_only?(static) and descr_key?(dynamic, :tuple) do
           dynamic_value =
             case dynamic do
               :term -> term()
