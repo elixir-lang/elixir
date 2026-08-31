@@ -1303,6 +1303,14 @@ defmodule Module.Types.DescrTest do
     end
 
     test "fun_from_inferred_clauses" do
+      # Empty domains
+      assert fun_from_inferred_clauses([{[none()], atom()}]) == fun(1)
+
+      assert fun_from_inferred_clauses([
+               {[none(), integer()], atom()},
+               {[binary(), none()], binary()}
+             ]) == fun(2)
+
       # No overlap
       assert fun_from_inferred_clauses([{[integer()], atom()}, {[float()], binary()}])
              |> equal?(

@@ -217,7 +217,7 @@ defmodule Module.Types.Descr do
   @doc """
   Creates a function from overlapping function clauses.
   """
-  def fun_from_inferred_clauses(args_clauses) do
+  def fun_from_inferred_clauses([{args, _return} | _] = args_clauses) do
     domain_clauses =
       Enum.reduce(args_clauses, [], fn {args, return}, acc ->
         domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
@@ -230,7 +230,10 @@ defmodule Module.Types.Descr do
           args <- domain_to_args(domain),
           do: fun(args, dynamic(union))
 
-    Enum.reduce(funs, &bare_intersection/2)
+    case funs do
+      [] -> fun(length(args))
+      [_ | _] -> Enum.reduce(funs, &bare_intersection/2)
+    end
   end
 
   # If you have a function with multiple clauses, they may overlap,
