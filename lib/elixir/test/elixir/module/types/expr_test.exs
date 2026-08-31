@@ -833,7 +833,39 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([index], :erlang.element(index, {:ok, 123})) ==
                opt_union(atom([:ok]), integer())
 
-      assert typecheck!([index], elem({}, index)) == none()
+      assert typeerror!([index], elem({}, index)) =~
+               ~l"""
+               expected a tuple with at least 1 element in Kernel.elem/2:
+
+                   elem({}, index)
+
+               the given type does not have the given index:
+
+                   {}
+               """
+
+      assert typeerror!([index], :erlang.element(index, {})) =~
+               ~l"""
+               expected a tuple with at least 1 element in :erlang.element/2:
+
+                   :erlang.element(index, {})
+
+               the given type does not have the given index:
+
+                   {}
+               """
+
+      assert typeerror!([tuple = {}, index], elem(tuple, index)) =~
+               ~l"""
+               expected a tuple with at least 1 element in Kernel.elem/2:
+
+                   elem(tuple, index)
+
+               the given type does not have the given index:
+
+                   dynamic({})
+               """
+
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
 

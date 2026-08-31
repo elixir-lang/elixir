@@ -1104,12 +1104,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:erlang, :element, info, [_index, tuple] = args_types, stack) do
-    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
-      case tuple_values(tuple) do
-        :badtuple -> {:ok, fallback}
-        values -> {:ok, return(values, args_types, stack)}
-      end
-    end
+    remote_apply_tuple_element(info, args_types, tuple, stack)
   end
 
   defp remote_apply(:erlang, :tuple_to_list, info, [tuple] = args_types, stack) do
@@ -1126,15 +1121,6 @@ defmodule Module.Types.Apply do
             end
 
           {:ok, return(list_type, args_types, stack)}
-      end
-    end
-  end
-
-  defp remote_apply(Kernel, :elem, info, [tuple, _index] = args_types, stack) do
-    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
-      case tuple_values(tuple) do
-        :badtuple -> {:ok, fallback}
-        values -> {:ok, return(values, args_types, stack)}
       end
     end
   end
@@ -1186,6 +1172,10 @@ defmodule Module.Types.Apply do
       :badproperlist ->
         {:error, badremote(:erlang, :++, [left, right])}
     end
+  end
+
+  defp remote_apply(Kernel, :elem, info, [tuple, _index] = args_types, stack) do
+    remote_apply_tuple_element(info, args_types, tuple, stack)
   end
 
   @struct_key atom([:__struct__])
@@ -1546,6 +1536,22 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(_mod, _fun, info, args_types, stack) do
     remote_apply(info, args_types, stack)
+  end
+
+  defp remote_apply_tuple_element(info, args_types, tuple, stack) do
+    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
+      case tuple_values(tuple) do
+        :badtuple ->
+          {:ok, fallback}
+
+        values ->
+          if empty?(values) and not empty?(tuple) do
+            {:error, {:badindex, 1, tuple}}
+          else
+            {:ok, return(values, args_types, stack)}
+          end
+      end
+    end
   end
 
   defp remote_apply(:none, _args_types, _stack) do
