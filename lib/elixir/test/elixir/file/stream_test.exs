@@ -21,7 +21,8 @@ defmodule File.StreamTest do
     :erpc.call(node, File, :stream!, [src, modes, lines_or_bytes])
   end
 
-  distributed_node = :"secondary@#{node() |> Atom.to_string() |> :binary.split("@") |> tl()}"
+  distributed_node =
+    String.to_unsafe_atom("secondary@#{node() |> Atom.to_string() |> :binary.split("@") |> tl()}")
 
   for {type, node} <- [local: node(), distributed: distributed_node] do
     describe "#{type} node" do

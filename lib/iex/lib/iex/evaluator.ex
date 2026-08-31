@@ -58,7 +58,7 @@ defmodule IEx.Evaluator do
   @break_trigger ~c"#iex:break\n"
 
   @op_tokens [:or_op, :and_op, :comp_op, :rel_op, :arrow_op, :in_op] ++
-               [:three_op, :concat_op, :mult_op]
+               [:concat_op, :mult_op, :power_op]
 
   @doc """
   Default parsing implementation with support for pipes and #iex:break.
@@ -129,18 +129,20 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp adjust_operator([{op_type, _, token} | _] = _tokens, line, column, _file, _opts, :match)
-       when op_type in @op_tokens,
+  # We use elem operations, instead of pattern matching,
+  # because "not in" tokenizer tuples have four elements.
+  defp adjust_operator([token | _] = _tokens, line, column, _file, _opts, :match)
+       when elem(token, 0) in @op_tokens,
        do:
          {:error,
           {[line: line, column: column],
            "pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ",
-           "'#{token}'"}}
+           "'#{elem(token, 2)}'"}}
 
-  defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
-       when op_type in @op_tokens do
+  defp adjust_operator([token | _] = tokens, line, column, file, opts, _last_op)
+       when elem(token, 0) in @op_tokens do
     {:ok, prefix, _warnings} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
-    {:ok, prefix ++ tokens, op_type}
+    {:ok, prefix ++ tokens, elem(token, 0)}
   end
 
   defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens, nil}

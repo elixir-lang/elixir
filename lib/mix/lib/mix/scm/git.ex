@@ -243,6 +243,12 @@ defmodule Mix.SCM.Git do
       [] ->
         opts
 
+      [{refspec, "-" <> _ = value}] ->
+        Mix.raise(
+          "A dependency's #{refspec} must not start with -, got: #{inspect(value)}. " <>
+            "Error on Git dependency: #{redact_uri(opts[:git])}"
+        )
+
       [{_refspec, value}] when is_binary(value) ->
         opts
 

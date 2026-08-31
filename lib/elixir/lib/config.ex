@@ -152,6 +152,7 @@ defmodule Config do
 
   """
   @doc since: "1.9.0"
+  @spec config(atom(), keyword()) :: keyword()
   def config(root_key, opts) when is_atom(root_key) and is_list(opts) do
     if not Keyword.keyword?(opts) do
       raise ArgumentError, "config/2 expected a keyword list, got: #{inspect(opts)}"
@@ -198,6 +199,7 @@ defmodule Config do
 
   """
   @doc since: "1.9.0"
+  @spec config(atom(), atom(), term()) :: keyword()
   def config(root_key, key, opts) when is_atom(root_key) and is_atom(key) do
     get_config!()
     |> __merge__([{root_key, [{key, opts}]}])
@@ -225,6 +227,7 @@ defmodule Config do
 
   """
   @doc since: "1.18.0"
+  @spec read_config(atom()) :: keyword() | nil
   def read_config(root_key) when is_atom(root_key) do
     get_config!()[root_key]
   end
@@ -233,7 +236,7 @@ defmodule Config do
   Returns the environment this configuration file is executed on.
 
   In Mix projects this function returns the environment this configuration
-  file is executed on. 
+  file is executed on.
   In releases, returns the `MIX_ENV` specified when running `mix release`.
 
   This is most often used to execute conditional code:
@@ -284,8 +287,8 @@ defmodule Config do
 
   In case the file doesn't exist, an error is raised.
 
-  If file is a relative, it will be expanded relatively to the
-  directory the current configuration file is in.
+  If the file is relative, it will be expanded relative to the
+  directory of the current configuration file.
 
   ## Examples
 
@@ -377,21 +380,27 @@ defmodule Config do
     end
   end
 
-  defp validate!(config, file) do
-    Enum.all?(config, fn
+  defp validate!(config, file) when is_list(config) do
+    Enum.each(config, fn
       {app, value} when is_atom(app) ->
-        if Keyword.keyword?(value) do
-          true
-        else
+        if not Keyword.keyword?(value) do
           raise ArgumentError,
                 "expected config for app #{inspect(app)} in #{Path.relative_to_cwd(file)} " <>
                   "to return keyword list, got: #{inspect(value)}"
         end
 
-      _ ->
-        false
+      other ->
+        raise ArgumentError,
+              "expected config in #{Path.relative_to_cwd(file)} to be a keyword list " <>
+                "of {atom, keyword} pairs, got entry: #{inspect(other)}"
     end)
 
     config
+  end
+
+  defp validate!(config, file) do
+    raise ArgumentError,
+          "expected config in #{Path.relative_to_cwd(file)} to be a keyword list " <>
+            "of {atom, keyword} pairs, got: #{inspect(config)}"
   end
 end

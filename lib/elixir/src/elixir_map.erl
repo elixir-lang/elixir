@@ -3,7 +3,7 @@
 %% SPDX-FileCopyrightText: 2012 Plataformatec
 
 -module(elixir_map).
--export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/3]).
+-export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/4]).
 -import(elixir_errors, [function_error/4, file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
@@ -126,7 +126,7 @@ validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
 assert_struct_info_if_not_function(Meta, Name, Assocs, #{function := nil} = E) ->
-  case maybe_load_struct_info(Meta, Name, E) of
+  case maybe_load_struct_info(Meta, Name, hard, E) of
     {ok, Info} ->
       [lists:any(fun(Field) -> ?key(Field, field) =:= Key end, Info) orelse
          function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
@@ -139,13 +139,22 @@ assert_struct_info_if_not_function(Meta, Name, Assocs, #{function := nil} = E) -
 assert_struct_info_if_not_function(_Meta, _Name, _Assocs, _E) ->
   ok.
 
-maybe_load_struct_info(Meta, Name, E) ->
+maybe_load_struct_info(Meta, Name, Mode, E) ->
   try
-    case is_open(Name, Meta, E) andalso lookup_struct_info_from_data_tables(Name) of
+    Lookup = in_context(Name, E) orelse is_compiling_struct(Meta, Name, Mode, E),
+
+    case lookup_struct_info_from_data_tables(Name) of
       %% If I am accessing myself and there is no attribute,
       %% don't invoke the fallback to avoid calling loaded code.
       false when ?key(E, module) =:= Name -> nil;
-      false -> Name:'__info__'(struct);
+      false ->
+        %% If we attempted to lookup a definition, we always invoke it, to deal
+        %% with potential race conditions about the table being deleted at the
+        %% time we were looking up.
+        case Lookup orelse erlang:module_loaded(Name) of
+          true -> Name:'__info__'(struct);
+          false -> nil
+        end;
       InfoList -> InfoList
     end
   of
@@ -165,20 +174,8 @@ lookup_struct_info_from_data_tables(Module) ->
 
 load_struct(Meta, Name, Assocs, E) ->
   try
-    maybe_load_struct(Meta, Name, Assocs, E)
-  of
-    {ok, Struct} -> Struct;
-    {error, Desc} -> file_error(Meta, E, ?MODULE, Desc)
-  catch
-    Kind:Reason ->
-      Info = [{Name, '__struct__', 1, [{file, "expanding struct"}]},
-              elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
-      erlang:raise(Kind, Reason, Info)
-  end.
-
-maybe_load_struct(Meta, Name, Assocs, E) ->
-  try
-    case is_open(Name, Meta, E) andalso elixir_def:external_for(Meta, Name, '__struct__', 1, [def]) of
+    case (in_context(Name, E) orelse is_compiling_struct(Meta, Name, hard, E)) andalso
+           elixir_def:external_for(Meta, Name, '__struct__', 1, [def]) of
       %% If I am accessing myself and there is no __struct__ function,
       %% don't invoke the fallback to avoid calling loaded code.
       false when ?key(E, module) =:= Name ->
@@ -207,15 +204,23 @@ maybe_load_struct(Meta, Name, Assocs, E) ->
       [maps:is_key(Key, Struct) orelse
           function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
        || {Key, _} <- Assocs],
-      {ok, Struct};
+      Struct;
 
     #{'__struct__' := StructName} when is_atom(StructName) ->
-      {error, {struct_name_mismatch, Name, StructName}};
+      Desc = {struct_name_mismatch, Name, StructName},
+      file_error(Meta, E, ?MODULE, Desc);
 
     Other ->
-      {error, {invalid_struct_return_value, Name, Other}}
+      Desc = {invalid_struct_return_value, Name, Other},
+      file_error(Meta, E, ?MODULE, Desc)
   catch
-    error:undef -> {error, struct_undef(Name, E)}
+    error:undef ->
+      file_error(Meta, E, ?MODULE, struct_undef(Name, E));
+
+    Kind:Reason ->
+      Info = [{Name, '__struct__', 1, [{file, "expanding struct"}]},
+              elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
+      erlang:raise(Kind, Reason, Info)
   end.
 
 assert_and_trace_struct_assocs(Meta, Name, Assocs, E) ->
@@ -226,17 +231,17 @@ assert_and_trace_struct_assocs(Meta, Name, Assocs, E) ->
   elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
   Keys.
 
-is_open(Name, Meta, E) ->
-  in_context(Name, E) orelse ((code:ensure_loaded(Name) /= {module, Name}) andalso wait_for_struct(Name, Meta, E)).
+is_compiling_struct(Meta, Name, Mode, E) ->
+  (code:ensure_loaded(Name) /= {module, Name}) andalso wait_for_struct(Meta, Name, Mode, E).
 
 in_context(Name, E) ->
   %% We also include the current module because it won't be present
   %% in context module in case the module name is defined dynamically.
   lists:member(Name, [?key(E, module) | ?key(E, context_modules)]).
 
-wait_for_struct(Module, Meta, E) ->
+wait_for_struct(Meta, Module, Mode, E) ->
   (erlang:get(elixir_compiler_info) /= undefined) andalso
-    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, hard, elixir_utils:get_line(Meta, E)) =:= found).
+    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, Mode, elixir_utils:get_line(Meta, E)) =:= found).
 
 struct_undef(Name, E) ->
   case in_context(Name, E) andalso (?key(E, function) == nil) of
@@ -294,7 +299,7 @@ format_error({unknown_key_for_struct, Module, Key}) ->
   io_lib:format("unknown key ~ts for struct ~ts",
                 ['Elixir.Macro':to_string(Key), elixir_aliases:inspect(Module)]);
 format_error({invalid_key_for_struct, Key}) ->
-  io_lib:format("invalid key ~ts for struct, struct keys must be atoms, got: ",
+  io_lib:format("invalid key for struct, struct keys must be atoms, got: ~ts",
                 ['Elixir.Macro':to_string(Key)]);
 format_error(ignored_struct_key_in_struct) ->
   "key :__struct__ is ignored when using structs".

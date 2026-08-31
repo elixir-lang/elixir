@@ -142,7 +142,7 @@ defmodule Kernel do
     * [Patterns and guards](patterns-and-guards.md) - an introduction to patterns,
       guards, and extensions
     * [Syntax reference](syntax-reference.md) - the language syntax reference
-    * [Typespecs reference](typespecs.md)- types and function specifications, including list of types
+    * [Typespecs reference](typespecs.md) - types and function specifications, including list of types
     * [Unicode syntax](unicode-syntax.md) - outlines Elixir support for Unicode
 
   ## Guards
@@ -2109,7 +2109,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: {:case, :!}],
+      [optimize_boolean: true, type_check: {:case, :"!!"}],
       quote do
         case unquote(value) do
           x when unquote(x_is_false_or_nil()) -> false
@@ -3088,7 +3088,7 @@ defmodule Kernel do
   @doc """
   Pops a key from the given nested structure.
 
-  Uses the `Access` protocol to traverse the structures
+  Uses the `Access` behaviour to traverse the structures
   according to the given `keys`, unless the `key` is a
   function. If the key is a function, it will be invoked
   as specified in `get_and_update_in/3`.
@@ -4703,10 +4703,8 @@ defmodule Kernel do
         false
 
       [] ->
-        quote do
-          _ = unquote(left)
-          false
-        end
+        # inlined as false in erlang pass
+        quote(do: :lists.member(unquote(left), []))
 
       [head | tail] = list ->
         case in_body? do
@@ -4723,7 +4721,7 @@ defmodule Kernel do
             in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
 
           _ when in_body? ->
-            quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
+            quote(do: Elixir.Enum.__in__(unquote(left), unquote(right)))
 
           _ ->
             raise_on_invalid_args_in_2(right)
@@ -4962,6 +4960,7 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
+  @spec binary_slice(binary, integer, non_neg_integer) :: binary
   def binary_slice(binary, start, size)
       when is_binary(binary) and is_integer(start) and is_integer(size) and size >= 0 do
     total = byte_size(binary)
@@ -5035,6 +5034,7 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
+  @spec binary_slice(binary, Range.t()) :: binary
   def binary_slice(binary, first..last//step)
       when is_binary(binary) and step > 0 do
     total = byte_size(binary)
@@ -5149,7 +5149,7 @@ defmodule Kernel do
   warning saying that a module has been redefined.
 
   There are some modules that Elixir does not currently implement but it
-  may be implement in the future. Those modules are reserved and defining
+  may implement in the future. Those modules are reserved and defining
   them will result in a compilation error:
 
       defmodule Any do
@@ -5250,12 +5250,12 @@ defmodule Kernel do
   # defmodule Alias nested
   defp alias_defmodule({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
     module = :elixir_aliases.concat([env.module, h])
-    alias = String.to_atom("Elixir." <> Atom.to_string(h))
+    alias = String.to_unsafe_atom("Elixir." <> Atom.to_string(h))
     opts = [as: alias, warn: false]
 
     case t do
       [] -> {module, module, opts}
-      _ -> {String.to_atom(Enum.join([module | t], ".")), module, opts}
+      _ -> {String.to_unsafe_atom(Enum.join([module | t], ".")), module, opts}
     end
   end
 
@@ -5873,11 +5873,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a macro suitable for use in guard expressions.
+  Defines a custom guard with the given name.
 
-  It raises at compile time if the `guard` uses expressions that aren't
-  allowed in [guard clauses](patterns-and-guards.html#guards),
-  and otherwise creates a macro that can be used both inside or outside guards.
+  Once defined, custom guards can be invoked within regular code or in
+  guards. The module that contains the custom guard must be required before usage.
+
+  Custom guards are defined by providing a valid guard expression to
+  the right-hand side of `when`. `defguard` will then expand and validate
+  the expressions as guards. `defguard` will raise at compile time if the
+  guard uses expressions that aren't allowed in [guard clauses](patterns-and-guards.html#guards).
 
   When defining your own guards, consider the
   [naming conventions](naming-conventions.html#is_-prefix-is_foo)
@@ -5885,31 +5889,30 @@ defmodule Kernel do
 
   ## Example
 
+  For example, to define a guard similar to `Integer.is_even/1`, you can write:
+
       defmodule Integer.Guards do
         defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
       end
 
-      defmodule Collatz do
-        @moduledoc "Tools for working with the Collatz sequence."
-        import Integer.Guards
+  which can then be used as:
 
-        @doc "Determines the number of steps `n` takes to reach `1`."
-        # If this function never converges, please let me know what `n` you used.
-        def converge(n) when n > 0, do: step(n, 0)
+      require Integer.Guards
+      Integer.Guards.is_even(3)
+      #=> false
 
-        defp step(1, step_count) do
-          step_count
-        end
+  ## Implementation details
 
-        defp step(n, step_count) when is_even(n) do
-          step(div(n, 2), step_count + 1)
-        end
+  Behind the scenes, `defguard` will generate a macro which can be used
+  inside and outside of guards, preserving their respective semantics.
 
-        defp step(n, step_count) do
-          step(3 * n + 1, step_count + 1)
-        end
-      end
+  When invoked inside a guard, it behaves as if the right-hand side of
+  `when` is injected as part of the guard, replacing the custom guard
+  arguments by the expressions given as inputs.
 
+  When invoked outside of a guard, it preserves regular function calling
+  semantics with one caveat: all arguments are evaluated before invocation,
+  except arguments which are unused, which are then never evaluated.
   """
   @doc since: "1.6.0"
   @spec defguard(Macro.t()) :: Macro.t()
@@ -6277,7 +6280,7 @@ defmodule Kernel do
   step through the code it sees). For general stepping, you can set breakpoints
   using `IEx.break!/4`.
 
-  For more information, [see IEx documentation](https://hexdocs.pm/iex/IEx.html#module-dbg-and-breakpoints).
+  For more information, [see IEx documentation](https://iex.hexdocs.pm/IEx.html#module-dbg-and-breakpoints).
 
   ## Configuring the debug function
 
@@ -6376,7 +6379,7 @@ defmodule Kernel do
 
   ### Passing timeouts
 
-  You can also pass timeouts directly to this functions, that is, milliseconds or
+  You can also pass timeouts directly to this function, that is, milliseconds or
   the atom `:infinity`. In this case, this function just returns the given argument.
 
   ## Examples
@@ -6421,12 +6424,20 @@ defmodule Kernel do
         {microsecond, _precision} = duration.microsecond
         millisecond = :erlang.convert_time_unit(microsecond, :microsecond, :millisecond)
 
-        duration.week * unquote(week_in_ms) +
-          duration.day * unquote(day_in_ms) +
-          duration.hour * unquote(hour_in_ms) +
-          duration.minute * 60_000 +
-          duration.second * 1000 +
-          millisecond
+        total =
+          duration.week * unquote(week_in_ms) +
+            duration.day * unquote(day_in_ms) +
+            duration.hour * unquote(hour_in_ms) +
+            duration.minute * 60_000 +
+            duration.second * 1000 +
+            millisecond
+
+        if total < 0 do
+          raise ArgumentError,
+                "duration must be positive, got: #{inspect(duration)}"
+        end
+
+        total
     end
   end
 
@@ -6888,7 +6899,7 @@ defmodule Kernel do
   defp maybe_atomize_calendar(<<alias, _::binary>> = last_part, string)
        when alias >= ?A and alias <= ?Z do
     string = binary_part(string, 0, byte_size(string) - byte_size(last_part) - 1)
-    {String.to_atom("Elixir." <> last_part), string}
+    {String.to_unsafe_atom("Elixir." <> last_part), string}
   end
 
   defp maybe_atomize_calendar(_last_part, string) do
@@ -6999,7 +7010,7 @@ defmodule Kernel do
 
         case mod do
           ?s -> parts
-          ?a -> :lists.map(&String.to_atom/1, parts)
+          ?a -> :lists.map(&String.to_unsafe_atom/1, parts)
           ?c -> :lists.map(&String.to_charlist/1, parts)
         end
 
@@ -7008,7 +7019,7 @@ defmodule Kernel do
 
         case mod do
           ?s -> parts
-          ?a -> quote(do: :lists.map(&String.to_atom/1, unquote(parts)))
+          ?a -> quote(do: :lists.map(&String.to_unsafe_atom/1, unquote(parts)))
           ?c -> quote(do: :lists.map(&String.to_charlist/1, unquote(parts)))
         end
     end
@@ -7042,7 +7053,7 @@ defmodule Kernel do
       :guard ->
         raise ArgumentError,
               "invalid expression in guard, #{exp} is not allowed in guards. " <>
-                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
+                "To learn more about guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html"
 
       _ ->
         :ok

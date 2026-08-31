@@ -50,7 +50,7 @@ defmodule Code do
 
   You can use `ensure_loaded/1` (as well as `ensure_loaded?/1` and
   `ensure_loaded!/1`) to check if a module is loaded before using it and
-  act.
+  act accordingly.
 
   ## `ensure_compiled/1` and `ensure_compiled!/1`
 
@@ -258,6 +258,7 @@ defmodule Code do
           | {:locals_without_parens, keyword()}
           | {:force_do_end_blocks, boolean()}
           | {:migrate, boolean()}
+          | {:migrate_atom_interpolations, boolean()}
           | {:migrate_bitstring_modifiers, boolean()}
           | {:migrate_call_parens_on_pipe, boolean()}
           | {:migrate_charlists_as_sigils, boolean()}
@@ -272,6 +273,7 @@ defmodule Code do
           | {:escape, boolean()}
           | {:locals_without_parens, keyword()}
           | {:comments, [term()]}
+          | {:syntax_colors, [{Inspect.Opts.color_key(), IO.ANSI.ansidata()}]}
 
   @typedoc """
   Options for parsing functions that convert strings to quoted expressions.
@@ -285,8 +287,8 @@ defmodule Code do
           unescape: boolean(),
           existing_atoms_only: boolean(),
           token_metadata: boolean(),
-          literal_encoder: (term(), Macro.metadata() -> term()),
-          static_atoms_encoder: (atom() -> term()),
+          literal_encoder: (term(), Macro.metadata() -> {:ok, Macro.t()} | {:error, binary()}),
+          static_atoms_encoder: (binary(), Macro.metadata() -> {:ok, term()} | {:error, binary()}),
           emit_warnings: boolean()
         ]
 
@@ -314,7 +316,7 @@ defmodule Code do
     :relative_paths
   ]
 
-  @list_compiler_options [:tracers, :parser_options]
+  @list_compiler_options [:tracers, :parser_options, :erlc_options]
 
   @available_compiler_options @boolean_compiler_options ++
                                 @list_compiler_options ++
@@ -413,7 +415,7 @@ defmodule Code do
       operations.
 
   """
-  @spec append_path(Path.t(), cache: boolean()) :: true | false
+  @spec append_path(Path.t(), cache: boolean()) :: boolean()
   def append_path(path, opts \\ []) do
     apply(:code, :add_pathz, [to_charlist(Path.expand(path)) | cache(opts)]) == true
   end
@@ -552,8 +554,7 @@ defmodule Code do
   This is the list of directories the Erlang VM uses for finding
   module code. The list of files is managed per Erlang VM node.
 
-  The path is expanded with `Path.expand/1` before being deleted. If the
-  path does not exist, this function returns `false`.
+  All paths are expanded with `Path.expand/1` before being deleted.
   """
   @doc since: "1.15.0"
   @spec delete_paths([Path.t()]) :: :ok
@@ -766,6 +767,12 @@ defmodule Code do
 
     * `:migrate` (since v1.18.0) - when `true`, sets all other migration options
       to `true` by default. Defaults to `false`.
+
+    * `:migrate_atom_interpolations` (since v1.21.0) - when `true`, rewrites
+      deprecated atom interpolations to explicit calls to `String.to_unsafe_atom/1`.
+      For example, `:"foo_#{bar}"` becomes `String.to_unsafe_atom("foo_#{bar}")`.
+      Interpolated keywords like `["foo_#{bar}": 1]` are **not** migrated.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
 
     * `:migrate_bitstring_modifiers` (since v1.18.0) - when `true`,
       removes unnecessary parentheses in known bitstring
@@ -1291,9 +1298,9 @@ defmodule Code do
     * `:literal_encoder` (since v1.10.0) - how to encode literals in the AST.
       It must be a function that receives two arguments, the literal and its
       metadata, and it must return `{:ok, ast :: Macro.t}` or
-      `{:error, reason :: binary}`. If you return anything than the literal
+      `{:error, reason :: binary}`. If you return anything other than the literal
       itself as the `term`, then the AST is no longer valid. This option
-      may still useful for textual analysis of the source code.
+      may still be useful for textual analysis of the source code.
 
     * `:static_atoms_encoder` - the static atom encoder function, see
       "The `:static_atoms_encoder` function" section below. Note this
@@ -1319,7 +1326,7 @@ defmodule Code do
   and keyword lists.
 
   The encoder function will receive the atom name (as a binary) and a
-  keyword list with the current file, line and column. It must return
+  keyword list with the current line and column. It must return
   `{:ok, token :: term} | {:error, reason :: binary}`.
 
   The encoder function is supposed to create an atom from the given
@@ -1387,11 +1394,14 @@ defmodule Code do
   while preserving information like comments and literals position.
 
   Returns `{:ok, quoted_form, comments}` if it succeeds,
-  `{:error, {line, error, token}}` otherwise.
+  `{:error, {location, error, token}}` otherwise, where `location`
+  is keyword metadata containing the line and column of the error.
 
   Comments are maps with the following fields:
 
     * `:line` - The line number of the source code
+
+    * `:column` - The column number of the source code
 
     * `:text` - The full text of the comment, including the leading `#`
 
@@ -1447,7 +1457,9 @@ defmodule Code do
 
   Returns the AST and a list of comments if it succeeds, raises an exception
   otherwise. The exception is a `TokenMissingError` in case a token is missing
-  (usually because the expression is incomplete), `SyntaxError` otherwise.
+  (usually because the expression is incomplete), `MismatchedDelimiterError`
+  (in case of mismatched opening and closing delimiters) and `SyntaxError`
+  otherwise.
 
   Check `string_to_quoted/2` for options information.
   """
@@ -1550,9 +1562,13 @@ defmodule Code do
       `string_to_quoted/2`, setting this option to `false` will prevent it from
       escaping the sequences twice. Defaults to `true`.
 
+    * `:syntax_colors` - a keyword list of colors the output is colorized.
+      See `Inspect.Opts` for more information.
+
   See `format_string!/2` for the full list of formatting options including
-  `:file`, `:line`, `:line_length`, `:locals_without_parens`, `:force_do_end_blocks`,
-  `:syntax_colors`, and all migration options like `:migrate_charlists_as_sigils`.
+  `:file`, `:line`, `:locals_without_parens`, `:force_do_end_blocks`, and all
+  migration options like `:migrate_charlists_as_sigils`. Note `:line_length`
+  does not apply here.
   """
   @doc since: "1.13.0"
   @spec quoted_to_algebra(Macro.t(), [format_opt() | quoted_to_algebra_opt()]) ::
@@ -1634,13 +1650,19 @@ defmodule Code do
         nil
 
       :proceed ->
-        loaded =
-          Module.ParallelChecker.verify(fn ->
-            :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
-          end)
+        try do
+          loaded =
+            Module.ParallelChecker.verify(fn ->
+              :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
+            end)
 
-        :elixir_code_server.cast({:required, file})
-        loaded
+          :elixir_code_server.cast({:required, file})
+          loaded
+        catch
+          kind, reason ->
+            :elixir_code_server.call({:release, file})
+            :erlang.raise(kind, reason, __STACKTRACE__)
+        end
     end
   end
 
@@ -1666,7 +1688,7 @@ defmodule Code do
   @doc """
   Stores all given compilation options.
 
-  Changing the compilation options affect all processes
+  Changing the compilation options affects all processes
   running in a given Erlang VM node. To store individual
   options and for a description of all options, see
   `put_compiler_option/2`.
@@ -1730,7 +1752,7 @@ defmodule Code do
   @doc """
   Stores a compilation option.
 
-  Changing the compilation options affect all processes running in a
+  Changing the compilation options affects all processes running in a
   given Erlang VM node.
 
   Available options are:
@@ -1746,12 +1768,16 @@ defmodule Code do
       remove the `:debug_info` while deploying, tools like `mix release`
       already do such by default.
 
-      Other environments, such as `mix test`, automatically disables this
+      Other environments, such as `mix test`, automatically disable this
       via the `:test_elixirc_options` project configuration, as there is
       typically no need to store debug chunks for test files.
 
     * `:docs` - when `true`, retains documentation in the compiled module.
       Defaults to `true`.
+
+    * `:erlc_options` (since v1.21.0) - a list of Erlang compiler options. For example,
+      `erlc_options: [:beam_debug_info, :beam_debug_stack]` emits Erlang/OTP
+      debug metadata for BEAM debuggers. Defaults to `[]`.
 
     * `:ignore_already_consolidated` (since v1.10.0) - when `true`, does not warn
       when a protocol has already been consolidated and a new implementation is added.
@@ -1760,16 +1786,13 @@ defmodule Code do
     * `:ignore_module_conflict` - when `true`, does not warn when a module has
       already been defined. Defaults to `false`.
 
-    * `:infer_signatures` (since v1.18.0) - a list of applications of which modules
-      should be using during type inference. When `false`, it disables module-local
+    * `:infer_signatures` (since v1.18.0) - a list of applications whose modules
+      should be used during type inference. When `false`, it disables module-local
       signature inference used when type checking remote calls to the compiled
       module. Type checking will be executed regardless of the value of this option.
-      Defaults to `true`, which is equivalent to setting it to `[:elixir]` only.
-
-      When setting this option, we recommend running `mix clean` so the modules can be
-      recompiled with the new behaviour. `mix test` automatically disables this option
-      via the `:test_elixirc_options` project configuration, as there is typically no
-      need to infer signatures for test files.
+      Mix projects will set this option to your dependencies list in dev/prod, and
+      it will disable this option during test (as there is typically no need to infer
+      signatures for test files). Outside of Mix projects, it defaults to `[:elixir]`.
 
     * `:module_definition` (since v1.20.0) - stores if the module definition should
       be `:compiled` (the default) or `:interpreted`. Note this does not affect the
@@ -1792,7 +1815,7 @@ defmodule Code do
 
     * `:on_undefined_variable` (since v1.15.0) - either `:raise` or `:warn`.
       When `:raise` (the default), undefined variables will trigger a compilation
-      error. You may be set it to `:warn` if you want undefined variables to
+      error. You may set it to `:warn` if you want undefined variables to
       emit a warning and expand as to a local call to the zero-arity function
       of the same name (for example, `node` would be expanded as `node()`).
       This `:warn` behavior only exists for compatibility reasons when working
@@ -2127,7 +2150,7 @@ defmodule Code do
   If the module being checked is currently in a compiler deadlock,
   this function returns `{:error, :unavailable}`. Unavailable doesn't
   necessarily mean the module doesn't exist, just that it is not currently
-  available, but it (or may not) become available in the future.
+  available, but it may (or may not) become available in the future.
 
   Therefore, if you can only continue if the module is available, use
   `ensure_compiled!/1` instead. In particular, do not do this:

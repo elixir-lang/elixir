@@ -1046,7 +1046,7 @@ defmodule RuntimeError do
       iex> raise "oops!"
       ** (RuntimeError) oops!
 
-  You should use this exceptions sparingly, since most of the time it might be
+  You should use this exception sparingly, since most of the time it might be
   better to define your own exceptions specific to your application or library.
   Sometimes, however, there are situations in which you don't expect a condition to
   happen, but you want to give a meaningful error message if it does. In those cases,
@@ -1137,7 +1137,7 @@ defmodule SystemLimitError do
 
   For example, this can happen if you try to create an atom that is too large:
 
-      iex> String.to_atom(String.duplicate("a", 100_000))
+      iex> String.to_unsafe_atom(String.duplicate("a", 100_000))
       ** (SystemLimitError) a system limit has been reached
   """
 
@@ -1807,7 +1807,7 @@ defmodule UndefinedFunctionError do
 
   defp load_module({name, _path, _loaded?}) do
     name
-    |> List.to_atom()
+    |> List.to_unsafe_atom()
     |> Code.ensure_loaded()
   end
 
@@ -2376,7 +2376,7 @@ defmodule File.Error do
   @moduledoc """
   An exception that is raised when a file operation fails.
 
-  For example, this exception is raised, when trying to read a non existent file:
+  For example, this exception is raised, when trying to read a nonexistent file:
 
       iex> File.read!("nonexistent_file.txt")
       ** (File.Error) could not read file "nonexistent_file.txt": no such file or directory
@@ -2409,7 +2409,7 @@ defmodule File.CopyError do
   @moduledoc """
   An exception that is raised when copying a file fails.
 
-  For example, this exception is raised when trying to copy to file or directory that isn't present:
+  For example, this exception is raised when trying to copy to a file or directory that isn't present:
 
       iex> File.cp_r!("non_existent", "source_dir/subdir")
       ** (File.CopyError) could not copy recursively from "non_existent" to "source_dir/subdir". non_existent: no such file or directory
@@ -2477,7 +2477,7 @@ defmodule File.LinkError do
   @moduledoc """
   An exception that is raised when linking a file fails.
 
-  For example, this exception is raised when trying to link to file that isn't present:
+  For example, this exception is raised when trying to link to a file that isn't present:
 
       iex> File.ln!("existing.txt", "link.txt")
       ** (File.LinkError) could not create hard link from "link.txt" to "existing.txt": no such file or directory

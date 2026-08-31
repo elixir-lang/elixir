@@ -24,9 +24,10 @@ defmodule Registry.Test do
     partitions = config.partitions
 
     listeners =
-      List.wrap(config[:base_listener]) |> Enum.map(&:"#{&1}_#{partitions}_#{inspect(keys)}")
+      List.wrap(config[:base_listener])
+      |> Enum.map(&String.to_unsafe_atom("#{&1}_#{partitions}_#{inspect(keys)}"))
 
-    name = :"#{config.test}_#{partitions}_#{inspect(keys)}"
+    name = String.to_unsafe_atom("#{config.test}_#{partitions}_#{inspect(keys)}")
     opts = [keys: keys, name: name, partitions: partitions, listeners: listeners]
     {:ok, _} = start_supervised({Registry, opts})
     %{registry: name, listeners: listeners}
@@ -95,7 +96,7 @@ defmodule Registry.LockTest do
   setup config do
     keys = config.keys
     partitions = config.partitions
-    name = :"#{config.test}_#{keys}_#{partitions}"
+    name = String.to_unsafe_atom("#{config.test}_#{keys}_#{partitions}")
     opts = [keys: keys, name: name, partitions: partitions]
     {:ok, _} = start_supervised({Registry, opts})
     %{registry: name}

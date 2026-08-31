@@ -14,12 +14,12 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.20           | Development
-1.19           | Bug fixes and security patches
+1.21           | Development
+1.20           | Bug fixes and security patches
+1.19           | Security patches only
 1.18           | Security patches only
 1.17           | Security patches only
 1.16           | Security patches only
-1.15           | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -49,6 +49,7 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Erlang relea
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
+1.21           | 27 - 29
 1.20           | 27 - 29
 1.19           | 26 - 28
 1.18           | 25 - 27
@@ -91,6 +92,7 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.21] | `Macro.Env.fetch_alias/2` (and `fetch_macro_alias`) | `Macro.Env.expand_alias/4` (v1.17)
 [v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>` (v1.15)
 [v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)` (v1.16)
 [v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2` (v1.16)
@@ -120,7 +122,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (`Kernel.is_struct(term, Regex)`) (v1.11)
 [v1.15] | `Logger.warn/2`                                     | `Logger.warning/2` (v1.11)
 [v1.14] | `use Bitwise`                                       | `import Bitwise` (v1.0)
-[v1.14] | `~~~/1`                                             | `bnot/2` (v1.0)
+[v1.14] | `~~~/1`                                             | `bnot/1` (v1.0)
 [v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)
 [v1.14] | Compiled patterns in `String.starts_with?/2`        | Pass a list of strings instead (v1.0)
 [v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)
@@ -138,7 +140,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.11] | `Mix.Project.compile/2`                             | `Mix.Task.run("compile", args)` (v1.0)
 [v1.11] | `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` | The new child specs outlined in `Supervisor` (v1.5)
 [v1.11] | `Supervisor.start_child/2` and `Supervisor.terminate_child/2` | `DynamicSupervisor` (v1.6)
-[v1.11] | `System.stacktrace/1`                               | `__STACKTRACE__` in `try/catch/rescue` (v1.7)
+[v1.11] | `System.stacktrace/0`                               | `__STACKTRACE__` in `try/catch/rescue` (v1.7)
 [v1.10] | `Code.ensure_compiled?/1`                           | `Code.ensure_compiled/1` (v1.0)
 [v1.10] | `Code.load_file/2`                                  | `Code.require_file/2` (v1.0) or `Code.compile_file/2` (v1.7)
 [v1.10] | `Code.loaded_files/0`                               | `Code.required_files/0` (v1.7)
@@ -243,4 +245,5 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.17]: https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md#4-hard-deprecations
 [v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md#4-hard-deprecations
 [v1.19]: https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md#4-hard-deprecations
-[v1.20]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.20]: https://github.com/elixir-lang/elixir/blob/v1.20/CHANGELOG.md#4-hard-deprecations
+[v1.21]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations

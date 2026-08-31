@@ -57,7 +57,7 @@ defmodule Module.Types.Helpers do
   ## Warnings
 
   @doc """
-  Converts an itneger into ordinal.
+  Converts an integer into ordinal.
   """
   def integer_to_ordinal(i) do
     case rem(i, 10) do
@@ -329,7 +329,7 @@ defmodule Module.Types.Helpers do
             end
         end
 
-      {{:., _, [:lists, :member]}, meta, [expr, [_ | _] = args]} = call ->
+      {{:., _, [:lists, :member]}, meta, [expr, args]} = call when is_list(args) ->
         if Enum.any?(args, &match?({:|, _, [_, _]}, &1)) do
           call
         else
@@ -363,7 +363,7 @@ defmodule Module.Types.Helpers do
 
       {:case, meta, [expr, [do: clauses]]} ->
         case meta[:type_check] do
-          {:case, _} ->
+          {:case, op} ->
             case clauses do
               [
                 {:->, _,
@@ -382,7 +382,8 @@ defmodule Module.Types.Helpers do
                    true
                  ]},
                 {:->, _, [[{:_, _, Kernel}], false]}
-              ] ->
+              ]
+              when op == :! ->
                 {:!, meta, [expr]}
 
               [
@@ -402,7 +403,8 @@ defmodule Module.Types.Helpers do
                    right_side
                  ]},
                 {:->, _, [[{var, _, Kernel}], {var, _, Kernel}]}
-              ] ->
+              ]
+              when op == :|| ->
                 {:||, meta, [expr, right_side]}
 
               [
@@ -422,7 +424,8 @@ defmodule Module.Types.Helpers do
                    {var, _, Kernel}
                  ]},
                 {:->, _, [[{:_, _, Kernel}], right_side]}
-              ] ->
+              ]
+              when op == :&& ->
                 {:&&, meta, [expr, right_side]}
 
               [
@@ -442,14 +445,32 @@ defmodule Module.Types.Helpers do
                    else_block
                  ]},
                 {:->, _, [[{:_, _, Kernel}], do_block]}
-              ] ->
+              ]
+              when op == :if ->
                 {:if, meta, [expr, [do: do_block, else: else_block]]}
 
               [
                 {:->, _, [[false], else_block]},
                 {:->, _, [[true], do_block]}
-              ] ->
+              ]
+              when op == :if ->
                 {:if, meta, [expr, [do: do_block, else: else_block]]}
+
+              [
+                {:->, _, [[false], false]},
+                {:->, _, [[true], right]}
+                | _
+              ]
+              when op == :and ->
+                {:and, meta, [expr, right]}
+
+              [
+                {:->, _, [[false], right]},
+                {:->, _, [[true], true]}
+                | _
+              ]
+              when op == :or ->
+                {:or, meta, [expr, right]}
 
               _ ->
                 {:case, meta, [expr, [do: {:..., [], []}]]}

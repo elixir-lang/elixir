@@ -26,12 +26,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: "29.0-rc1"
-          - otp_version: "28.1"
+          - otp_version: "29.0"
             deterministic: true
-          - otp_version: "28.1"
+          - otp_version: "28.4"
             docs: true
             coverage: true
+          - otp_version: "28.1"
           - otp_version: "27.3"
           - otp_version: "27.0"
           - otp_version: master
@@ -42,11 +42,11 @@ jobs:
     env:
       ERLC_OPTS: "warnings_as_errors"
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           otp-version: ${{ matrix.otp_version }}
           gleam-version: "1.11.1"
@@ -92,7 +92,7 @@ jobs:
 
       - name: "Upload Coverage Artifact"
         if: ${{ matrix.coverage }}
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: TestCoverage
           path: cover/*
@@ -115,7 +115,7 @@ jobs:
     strategy:
       matrix:
         otp_version:
-          - "29.0-rc1"
+          - "29.0"
           - "28.1"
           - "27.3"
 
@@ -123,11 +123,11 @@ jobs:
       - name: Configure Git
         run: git config --global core.autocrlf input
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           otp-version: ${{ matrix.otp_version }}
 

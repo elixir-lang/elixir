@@ -75,7 +75,7 @@ defmodule Macro.EnvTest do
   test "to_match/1" do
     quote = quote(do: x in [])
 
-    assert {:__block__, [], [{:=, [], [{:_, [], Kernel}, {:x, [], Macro.EnvTest}]}, false]} =
+    assert {{:., [], [:lists, :member]}, [], [{:x, [], Macro.EnvTest}, []]} =
              Macro.expand_once(quote, __ENV__)
 
     assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false
@@ -97,7 +97,7 @@ defmodule Macro.EnvTest do
 
     test "with errors" do
       message =
-        "invalid :only option for import, expected value to be an atom :functions, :macros, " <>
+        "invalid :only option for import, expected value to be an atom :functions, :macros, :sigils, " <>
           "or a literal keyword list of function names with arity as values, got: "
 
       assert define_import(env(), meta(), Integer, only: :unknown) ==

@@ -212,7 +212,11 @@ end
 
 The example above will define two modules: `Foo` and `Foo.Bar`. The second can be accessed as `Bar` inside `Foo` as long as they are in the same lexical scope.
 
-If, later, the `Bar` module is moved outside the `Foo` module definition, it must be referenced by its full name (`Foo.Bar`) or an alias must be set using the `alias` directive discussed above:
+> #### Module names are isolated {: .info}
+>
+> You don't have to define the `Foo` module before defining the `Foo.Bar` module, as they are effectively independent.
+
+If, later, the `Bar` module is moved outside the `Foo` module definition, it must be referenced by its full name (`Foo.Bar`) or an alias must be set using the `alias` directive, which we will learn in the next chapter:
 
 ```elixir
 defmodule Foo.Bar do
@@ -223,24 +227,3 @@ defmodule Foo do
   # Can still access it as `Bar`
 end
 ```
-
-> #### Module names are isolated {: .info}
->
-> You don't have to define the `Foo` module before defining the `Foo.Bar` module, as they are effectively independent.
-
-Aliasing a module only alias a single module, it doesn't alias any of its parents. Consider the following example:
-
-```elixir
-defmodule Foo do
-  defmodule Bar do
-    defmodule Baz do
-    end
-  end
-end
-
-alias Foo.Bar.Baz
-# The module `Foo.Bar.Baz` is now available as `Baz`
-# However, the module `Foo.Bar` is *not* available as `Bar`
-```
-
-As we will see in later chapters, aliases also work well with macros, to guarantee they are hygienic.

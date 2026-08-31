@@ -441,7 +441,7 @@ defmodule Logger.Formatter do
 
     for part <- Regex.split(regex, str, on: [:head, :tail], trim: true) do
       case part do
-        "$" <> code -> compile_code(String.to_atom(code))
+        "$" <> code -> compile_code(String.to_unsafe_atom(code))
         _ -> part
       end
     end

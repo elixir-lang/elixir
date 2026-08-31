@@ -191,7 +191,7 @@ def({Meta, Args, Guards, Body}, S, E) ->
   {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, {#{}, []}, 0}}, E#{context := match}),
   #elixir_ex{prematch={_, Cycles, _}} = SA,
   validate_cycles(Cycles, Meta, {?key(E, function), Args}, E),
-  {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
+  {EGuards, SG, EG} = guards(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
   {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
   {Meta, EArgs, EGuards, EBody}.
@@ -217,11 +217,21 @@ guarded_head(Meta, WhenMeta, Args, Guard, S, E) ->
   {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard}),
   {[{'when', WhenMeta, EArgs ++ [EGuard]}], SG, EG#{context := nil}}.
 
+guards([Guard | Guards], S, E) ->
+  {EGuard, SG, EG} = guard_expr(Guard, S, E),
+  {EGuards, SE, EE} = guards(Guards, SG, EG),
+  {[EGuard | EGuards], SE, EE};
+guards([], S, E) ->
+  {[], S, E}.
+
 guard({'when', Meta, [Left, Right]}, S, E) ->
   {ELeft, SL, EL}  = guard(Left, S, E),
   {ERight, SR, ER} = guard(Right, SL, EL),
   {{'when', Meta, [ELeft, ERight]}, SR, ER};
 guard(Guard, S, E) ->
+  guard_expr(Guard, S, E).
+
+guard_expr(Guard, S, E) ->
   {EGuard, SG, EG} = elixir_expand:expand(Guard, S, E),
   warn_zero_length_guard(EGuard, EG),
   {EGuard, SG, EG}.
@@ -540,8 +550,8 @@ warn_catch_before_rescue([_ | Rest], Meta, E, Found) ->
   warn_catch_before_rescue(Rest, Meta, E, Found).
 
 origin(Meta, Default) ->
-  case lists:keyfind(origin, 1, Meta) of
-    {origin, Origin} -> Origin;
+  case lists:keyfind(definition, 1, Meta) of
+    {definition, Definition} -> Definition;
     false -> Default
   end.
 
@@ -562,16 +572,16 @@ format_error({recursive, Vars, TypeExpr}) ->
   Message =
     case lists:map(fun({Name, Context}) -> elixir_utils:var_info(Name, Context) end, lists:sort(Vars)) of
       [Var] ->
-        io_lib:format("the variable ~ts is defined in function of itself", [Var]);
+        io_lib:format("the variable ~ts depends on itself through the pattern", [Var]);
       [Var1, Var2] ->
-        io_lib:format("the variable ~ts is defined recursively in function of ~ts", [Var1, Var2]);
+        io_lib:format("the variable ~ts depends on ~ts through the pattern", [Var1, Var2]);
       [Head | Tail] ->
         List = lists:foldl(fun(X, Acc) -> [Acc, $,, $\s, X] end, Head, Tail),
         io_lib:format("the following variables form a cycle: ~ts", [List])
     end,
 
   io_lib:format(
-    "recursive variable definition in patterns:~n~n~ts~n~n~ts",
+    "cyclic variable definition in patterns:~n~n~ts~n~n~ts",
     [Code, Message]
   );
 

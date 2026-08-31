@@ -317,7 +317,7 @@ compile_error(Meta, File, Message) when is_list(Message) ->
 %% Tokenization parsing/errors.
 
 -spec parse_error(elixir:keyword(), binary() | {binary(), binary()},
-                  binary(), binary(), {unicode:charlist(), integer(), integer()}) -> no_return().
+                  binary(), binary(), {unicode:charlist(), integer(), integer(), non_neg_integer()}) -> no_return().
 parse_error(Location, File, Error, <<>>, Input) ->
   Message = case Error of
     <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;

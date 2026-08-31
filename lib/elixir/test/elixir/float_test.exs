@@ -51,6 +51,19 @@ defmodule FloatTest do
     assert Float.parse(String.duplicate("9", 310) <> ".0") === :error
     assert Float.parse("-" <> String.duplicate("9", 310) <> ".0") === :error
     assert Float.parse(String.duplicate("9", 310) <> ".0foo") === :error
+
+    # Integer without a decimal point (parsed as an integer and cast to float)
+    assert Float.parse("123456789012345678901234567890") === {1.2345678901234568e29, ""}
+    assert Float.parse(String.duplicate("9", 300)) === {1.0e300, ""}
+    assert Float.parse(String.duplicate("9", 310)) === :error
+    assert Float.parse("-" <> String.duplicate("9", 310)) === :error
+    assert Float.parse(String.duplicate("9", 310) <> "foo") === :error
+
+    # Exponent notation without a decimal point, followed by trailing characters
+    assert Float.parse("1e10foo") === {1.0e10, "foo"}
+    assert Float.parse("8e1xy") === {80.0, "xy"}
+    assert Float.parse("5E+2q") === {500.0, "q"}
+    assert Float.parse("8E4 49") === {80000.0, " 49"}
   end
 
   test "floor/1" do
@@ -102,6 +115,38 @@ defmodule FloatTest do
       for precision <- 0..15 do
         assert Float.floor(5.0e-324, precision) === 0.0
       end
+    end
+
+    test "with already-exact floats does not bump" do
+      # The integer rounding step must not add 1 when the truncated remainder
+      # is exactly zero (e.g. -1.5 has no content below the 1st decimal place).
+      assert Float.floor(-1.5, 1) === -1.5
+      assert Float.floor(-1.875, 3) === -1.875
+      assert Float.floor(-3.0, 5) === -3.0
+    end
+
+    test "with extremely small floats" do
+      # `tiny_round`: ceil(+) and floor(-) must bump to ±10^-precision.
+      assert Float.floor(-1.0e-200, 5) === -1.0e-5
+      assert Float.floor(-1.0e-200, 15) === -1.0e-15
+      assert Float.floor(1.0e-200, 5) === 0.0
+    end
+
+    test "with already-integer floats" do
+      # |f| >= 2^52 — fast path returns the float unchanged.
+      assert Float.floor(1.0e20, 3) === 1.0e20
+      assert Float.floor(-1.0e20, 3) === -1.0e20
+    end
+
+    test "with very large floats hits the bignum slow path" do
+      # n = round(|f| * 10^p) >= 2^53 — exercises bignum_to_float / align.
+      # The slow path must round-trip representable floats back to themselves.
+      assert Float.floor(2_661_101_816_343_531.5, 1) === 2_661_101_816_343_531.5
+      assert Float.floor(3.0e15, 1) === 3.0e15
+      assert Float.floor(-3.0e15, 1) === -3.0e15
+      assert Float.floor(1.234e15, 3) === 1.234e15
+      assert Float.floor(1.234567e11, 5) === 1.234567e11
+      assert Float.floor(-1.234567e11, 5) === -1.234567e11
     end
   end
 
@@ -163,6 +208,32 @@ defmodule FloatTest do
         assert Float.ceil(-5.0e-324, precision) === -0.0
       end
     end
+
+    test "with already-exact floats does not bump" do
+      assert Float.ceil(1.5, 1) === 1.5
+      assert Float.ceil(1.875, 3) === 1.875
+      assert Float.ceil(3.0, 5) === 3.0
+    end
+
+    test "with extremely small floats" do
+      assert Float.ceil(1.0e-200, 5) === 1.0e-5
+      assert Float.ceil(1.0e-200, 15) === 1.0e-15
+      assert Float.ceil(-1.0e-200, 5) === -0.0
+    end
+
+    test "with already-integer floats" do
+      assert Float.ceil(1.0e20, 3) === 1.0e20
+      assert Float.ceil(-1.0e20, 3) === -1.0e20
+    end
+
+    test "with very large floats hits the bignum slow path" do
+      assert Float.ceil(2_661_101_816_343_531.5, 1) === 2_661_101_816_343_531.5
+      assert Float.ceil(3.0e15, 1) === 3.0e15
+      assert Float.ceil(-3.0e15, 1) === -3.0e15
+      assert Float.ceil(1.234e15, 3) === 1.234e15
+      assert Float.ceil(1.234567e11, 5) === 1.234567e11
+      assert Float.ceil(-1.234567e11, 5) === -1.234567e11
+    end
   end
 
   describe "round/2" do
@@ -202,6 +273,55 @@ defmodule FloatTest do
         assert Float.round(5.0e-324, precision) === 0.0
         assert Float.round(-5.0e-324, precision) === -0.0
       end
+    end
+
+    test "rounds up across a digit boundary" do
+      # Rounding pushes the integer answer to 10^precision; the float-emission
+      # step must produce the next-magnitude value cleanly.
+      assert Float.round(0.9995, 3) === 1.0
+      assert Float.round(0.9999, 3) === 1.0
+      assert Float.round(99.9999, 3) === 100.0
+      assert Float.round(-99.9999, 3) === -100.0
+    end
+
+    test "with already-integer floats" do
+      assert Float.round(1.0e20, 3) === 1.0e20
+      assert Float.round(-1.0e20, 3) === -1.0e20
+      assert Float.round(3.0e15, 3) === 3.0e15
+      assert Float.round(-3.0e15, 3) === -3.0e15
+    end
+
+    test "with very large floats hits the bignum slow path" do
+      assert Float.round(3.0e15, 1) === 3.0e15
+      assert Float.round(-3.0e15, 1) === -3.0e15
+      assert Float.round(1.234e15, 3) === 1.234e15
+      assert Float.round(1.234567e11, 5) === 1.234567e11
+      assert Float.round(-1.234567e11, 5) === -1.234567e11
+
+      assert Float.round(2_251_799_813_685_248.5, 1) === 2_251_799_813_685_248.5
+      assert Float.round(2_251_799_813_685_249.5, 1) === 2_251_799_813_685_249.5
+      assert Float.round(-2_251_799_813_685_248.5, 1) === -2_251_799_813_685_248.5
+      assert Float.round(-2_251_799_813_685_249.5, 1) === -2_251_799_813_685_249.5
+    end
+
+    test "preserves documented tie behavior" do
+      # The actual binary representation of 5.5675 is 5.567499999..., so
+      # half-up rounding correctly gives 5.567 (not 5.568).
+      assert Float.round(5.5675, 3) === 5.567
+      assert Float.round(-5.5675, 3) === -5.567
+      assert Float.round(12.5, 0) === 13.0
+      assert Float.round(-12.5, 0) === -13.0
+    end
+  end
+
+  test "round/2, floor/2, and ceil/2 preserve powers of two" do
+    # Powers of two are exactly representable and have no fractional content,
+    # so rounding at any precision must return the input unchanged.
+    for k <- 0..60 do
+      f = :math.pow(2, k)
+      assert Float.round(f, 1) === f
+      assert Float.floor(f, 1) === f
+      assert Float.ceil(f, 1) === f
     end
   end
 

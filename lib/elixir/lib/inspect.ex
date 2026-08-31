@@ -92,7 +92,7 @@ defprotocol Inspect do
       end
 
       inspect(%Point{x: 1})
-      %Point{x: 1, y: 0}
+      #=> %Point{x: 1, y: 0}
 
   ## Custom implementation
 
@@ -387,13 +387,20 @@ defimpl Inspect, for: List do
     close = color_doc("]", :list, opts)
 
     cond do
-      lists == :as_charlists or (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
-        inspected =
-          case Identifier.escape(IO.chardata_to_string(term), ?", printable_limit) do
-            {escaped, ""} -> [?~, ?c, ?", escaped, ?"]
-            {escaped, _} -> [?~, ?c, ?", escaped, ?", " ++ ..."]
+      (lists == :as_charlists and unicode_list?(term, printable_limit)) or
+          (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
+        {split, tail} =
+          if is_integer(printable_limit) do
+            case Enum.split(term, printable_limit) do
+              {split, []} -> {split, []}
+              {split, _} -> {split, " ++ ..."}
+            end
+          else
+            {term, []}
           end
 
+        {escaped, _} = Identifier.escape(IO.chardata_to_string(split), ?")
+        inspected = [?~, ?c, ?", escaped, ?" | tail]
         color_doc(IO.iodata_to_binary(inspected), :charlist, opts)
 
       keyword?(term) ->
@@ -407,6 +414,19 @@ defimpl Inspect, for: List do
     end
   end
 
+  defp unicode_list?(_, 0), do: true
+
+  defp unicode_list?([char | rest], counter)
+       when char in 0..0xD7FF or char in 0xE000..0x10FFFF,
+       do: unicode_list?(rest, decrement(counter))
+
+  defp unicode_list?([], _counter), do: true
+  defp unicode_list?(_, _counter), do: false
+
+  @compile {:inline, decrement: 1}
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter), do: counter - 1
+
   @doc false
   def keyword({key, value}, opts) do
     key = color_doc(Macro.inspect_atom(:key, key), :atom, opts)
@@ -416,8 +436,8 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
-    case Atom.to_charlist(key) do
-      [?E, ?l, ?i, ?x, ?i, ?r, ?.] ++ _ -> false
+    case Atom.to_string(key) do
+      "Elixir." <> _ -> false
       _ -> keyword?(rest)
     end
   end
@@ -667,6 +687,11 @@ defimpl Inspect, for: Any do
           do: map
 
     Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
+  end
+
+  # A temporary clause to deal with native records until they are officially supported
+  def inspect(native_record, _opts) do
+    :io_lib.format("~p", [native_record]) |> IO.iodata_to_binary()
   end
 
   def inspect_as_struct(map, name, infos, opts) do

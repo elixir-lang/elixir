@@ -88,7 +88,7 @@ defmodule Date.Range do
             step: step
           } = range
         ) do
-      {:ok, size(range), &slice(first + &1 * step, step + &3 - 1, &2, calendar)}
+      {:ok, size(range), &slice(first + &1 * step, step * &3, &2, calendar)}
     end
 
     # TODO: Remove me on v2.0
@@ -185,7 +185,7 @@ defmodule Date.Range do
            last_in_iso_days: last_days,
            step: step
          }),
-         do: abs(div(last_days - first_days, step)) + 1
+         do: div(last_days - first_days, step) + 1
 
     # TODO: Remove me on v2.0
     defp size(

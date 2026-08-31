@@ -1333,9 +1333,9 @@ defmodule Kernel.SpecialForms do
         sum(1, value, 3)
       end
 
-
-  Which the argument for the `:sum` function call is not the
-  expected result:
+  However, the code above does not work as expected, because this
+  injects the representation of the `value` variable,
+  not its contents:
 
       {:sum, [], [1, {:value, [], Elixir}, 3]}
 
@@ -2077,9 +2077,9 @@ defmodule Kernel.SpecialForms do
       iex> try do
       ...>   1 / 0
       ...> rescue
-      ...>   x in [ArithmeticError] -> [:rescued, is_exception(x)]
+      ...>   x in [ArithmeticError] -> {:rescued, Exception.message(x)}
       ...> end
-      [:rescued, true]
+      {:rescued, "bad argument in arithmetic expression"}
 
   Rescue different errors with separate clauses:
 

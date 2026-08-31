@@ -113,7 +113,8 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    validate_app(%{dep | deps: attach_only_and_targets(children, opts)})
+    %{dep | deps: attach_only_and_targets(children, opts)}
+    |> validate_app()
   end
 
   @doc """
@@ -419,6 +420,9 @@ defmodule Mix.Dep.Loader do
       opts_app == false ->
         dep
 
+      missing_scm_manifest?(dep) ->
+        %{dep | status: :compile}
+
       true ->
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path = Path.expand(path, opts[:build])
@@ -427,6 +431,49 @@ defmodule Mix.Dep.Loader do
           {:ok, vsn, app} -> %{dep | status: {:ok, vsn}, opts: [app_properties: app] ++ opts}
           status -> %{dep | status: status}
         end
+    end
+  end
+
+  defp missing_scm_manifest?(%Mix.Dep{scm: scm, opts: opts}) do
+    scm.fetchable?() and
+      not File.exists?(Mix.Dep.ElixirSCM.manifest(Path.join(opts[:build], ".mix")))
+  end
+
+  @doc false
+  def validate_manifest(dep) do
+    if ok?(dep) do
+      %{deps: deps, scm: scm, opts: dep_opts} = dep
+      vsn = {System.version(), :erlang.system_info(:otp_release)}
+      lock = dep_opts[:lock]
+      deps = deps |> Enum.map(& &1.app) |> Enum.sort()
+      fetchable? = scm.fetchable?()
+
+      case Mix.Dep.ElixirSCM.read(Path.join(dep_opts[:build], ".mix")) do
+        {:ok, old_vsn, _, _, _} when old_vsn != vsn ->
+          %{dep | status: {:vsnlock, old_vsn}}
+
+        {:ok, _, old_scm, _, _} when old_scm != scm ->
+          %{dep | status: {:scmlock, old_scm}}
+
+        # Not fetchable, so local dep compilation should take care of it
+        _ when not fetchable? ->
+          dep
+
+        {:ok, _, _, old_lock, _} when old_lock != lock ->
+          %{dep | status: :compile}
+
+        {:ok, _, _, _, old_deps} when old_deps != deps ->
+          changed_deps = (old_deps -- deps) ++ (deps -- old_deps)
+          %{dep | status: {:depschanged, Enum.sort(changed_deps)}}
+
+        :error ->
+          %{dep | status: :compile}
+
+        _ ->
+          dep
+      end
+    else
+      dep
     end
   end
 

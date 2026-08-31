@@ -17,15 +17,22 @@ defmodule Module.Types.HelpersTest do
       assert expr_to_string(quote(do: :erlang.band(a, b))) == "Bitwise.band(a, b)"
       assert expr_to_string(quote(do: :erlang.orelse(a, b))) == "a or b"
       assert expr_to_string(quote(do: :erlang."=:="(a, b))) == "a === b"
-      assert expr_to_string(quote(do: :erlang.list_to_atom(a))) == "List.to_atom(a)"
-      assert expr_to_string(quote(do: :maps.remove(a, b))) == "Map.delete(b, a)"
+      assert expr_to_string(quote(do: :erlang.list_to_atom(a))) == "List.to_unsafe_atom(a)"
       assert expr_to_string(quote(do: :erlang.element(1, a))) == "elem(a, 0)"
       assert expr_to_string(quote(do: :erlang.element(:erlang.+(a, 1), b))) == "elem(b, a)"
+      assert expr_to_string(quote(do: :lists.member(a, []))) == "a in []"
+      assert expr_to_string(quote(do: :lists.member(a, [:foo, :bar]))) == "a in [:foo, :bar]"
     end
 
     test "Kernel macros" do
       case = Macro.expand(quote(do: if(condition, do: :this, else: :that)), __ENV__)
       assert expr_to_string(case) == "if condition do\n  :this\nelse\n  :that\nend"
+
+      case = Macro.expand(quote(do: :this or :that), __ENV__)
+      assert expr_to_string(case) == ":this or :that"
+
+      case = Macro.expand(quote(do: :this and :that), __ENV__)
+      assert expr_to_string(case) == ":this and :that"
 
       case = Macro.expand(quote(do: :this || :that), __ENV__)
       assert expr_to_string(case) == ":this || :that"

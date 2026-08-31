@@ -615,6 +615,73 @@ defmodule ExUnit.AssertionsTest do
     :world = world
   end
 
+  describe "trace" do
+    test "delivers receive trace messages to the calling process" do
+      pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
+
+      trace(pid, [:receive], fn ->
+        send(pid, {:hello, :world})
+        assert_receive {:trace, ^pid, :receive, {:hello, :world}}
+      end)
+    end
+
+    test "delivers send trace messages to the calling process" do
+      parent = self()
+      pid = spawn_link(fn -> receive(do: (:go -> send(parent, :done))) end)
+
+      trace(pid, [:send], fn ->
+        send(pid, :go)
+        assert_receive {:trace, ^pid, :send, :done, ^parent}
+      end)
+    end
+
+    test "traces function calls" do
+      pid = spawn_link(fn -> receive(do: (:go -> Map.get(%{a: 1}, :a))) end)
+
+      trace(pid, [call: {Map, :get, 2}], fn ->
+        send(pid, :go)
+        assert_receive {:trace, ^pid, :call, {Map, :get, [%{a: 1}, :a]}}
+      end)
+    end
+
+    test "returns the value of the function" do
+      pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
+      :result = trace(pid, [:receive], fn -> :result end)
+    end
+
+    test "stops tracing and flushes messages once the function returns" do
+      pid = spawn_link(fn -> receive(do: (_ -> :ok)) end)
+      trace(pid, [:receive], fn -> send(pid, :during) end)
+      send(pid, :after)
+      refute_received {:trace, ^pid, :receive, :after}
+    end
+
+    test "receive match specs" do
+      pid =
+        spawn_link(fn ->
+          receive do
+            _ ->
+              receive do
+                _ -> :ok
+              end
+          end
+        end)
+
+      trace(
+        pid,
+        [receive: {[:_, :_, {:reply, :_}], [], []}, receive: {[:_, :_, {:another, :_}], [], []}],
+        fn ->
+          send(pid, {:reply, :foo})
+          send(pid, {:another, :foo})
+          send(pid, {:other, :bar})
+          assert_receive {:trace, ^pid, :receive, {:reply, :foo}}
+          assert_receive {:trace, ^pid, :receive, {:another, :foo}}
+          refute_receive {:trace, ^pid, :receive, {:other, :bar}}
+        end
+      )
+    end
+  end
+
   test "refute received does not wait" do
     false = refute_received :hello
   end
@@ -969,6 +1036,20 @@ defmodule ExUnit.AssertionsTest do
     false = refute_in_delta(1.1, 1.5, 0.2)
   end
 
+  test "refute in delta raises when passing a negative delta" do
+    assert_raise ArgumentError, fn ->
+      refute_in_delta(1.1, 1.2, -0.2)
+    end
+  end
+
+  test "refute in delta fails when the difference equals the delta" do
+    refute_in_delta(10, 15, 5)
+    flunk("This should never be tested")
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected the difference between 10 and 15 (5) to be more than 5" = error.message
+  end
+
   test "refute in delta error" do
     refute_in_delta(10, 11, 2)
     flunk("This should never be tested")
@@ -982,7 +1063,7 @@ defmodule ExUnit.AssertionsTest do
     flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
-      "test message (difference between 10 and 11 is less than 2)" = error.message
+      "test message (difference between 10 and 11 is less than or equal to 2)" = error.message
   end
 
   test "catch_throw with no throw" do

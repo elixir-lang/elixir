@@ -43,7 +43,7 @@ defmodule OptionParser do
 
   defmodule ParseError do
     @moduledoc """
-    An exception raised when parsing option fails.
+    An exception raised when parsing an option fails.
 
     For example, see `OptionParser.parse!/2`.
     """
@@ -387,7 +387,7 @@ defmodule OptionParser do
         do_parse(rest, config, new_opts, args, invalid, all?)
 
       {:invalid, option, value, rest} ->
-        # the option exist but it has wrong value
+        # the option exists but it has wrong value
         do_parse(rest, config, opts, args, [{option, value} | invalid], all?)
 
       {:undefined, option, _value, rest} ->
@@ -852,7 +852,7 @@ defmodule OptionParser do
     |> to_existing_key(allow_nonexistent_atoms?)
   end
 
-  defp to_existing_key(option, true), do: String.to_atom(option)
+  defp to_existing_key(option, true), do: String.to_unsafe_atom(option)
 
   defp to_existing_key(option, false) do
     try do

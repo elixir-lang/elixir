@@ -801,7 +801,7 @@ defmodule ExUnit.DocTest do
 
       [_] ->
         message =
-          "unknown IEx prompt: #{inspect(line)}.\nAccepted formats are: iex>, iex(1)>, ...>, ...(1)>}"
+          "unknown IEx prompt: #{inspect(line)}.\nAccepted formats are: iex>, iex(1)>, ...>, ...(1)>"
 
         raise Error, line: line_no, module: module, message: message
     end

@@ -135,28 +135,31 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     manifest = manifest()
-    base = xref_exclude_opts(project[:elixirc_options] || [], project)
 
-    opts =
-      base
-      |> Keyword.merge(opts)
-      |> tracers_opts(tracers)
-      |> profile_opts()
+    # Infer signatures should not trigger a full recompile but it does trigger rechecking
+    {infer_signatures, base} =
+      (project[:elixirc_options] || [])
+      |> xref_exclude_opts(project)
+      |> Keyword.pop(:infer_signatures, true)
 
     # Optional dependencies and debug info affect how artifacts are generated
     cache_key =
       {base, srcs, "--no-optional-deps" in args, "--no-debug-info" in args}
 
     opts =
+      base
+      |> Keyword.merge(opts)
+      |> tracers_opts(tracers)
+      |> profile_opts()
+      |> Keyword.put(:infer_signatures, infer_signatures(infer_signatures))
+
+    opts =
       if "--no-protocol-consolidation" in args do
-        # TODO: Deprecate me on Elixir v1.23
+        # TODO: Deprecate this flag on Elixir v1.23
         Keyword.put(opts, :consolidate_protocols, false)
       else
         opts ++ Keyword.take(project, [:consolidate_protocols])
       end
-
-    # Having compilations racing with other is most undesired,
-    # so we wrap the compiler in a lock.
 
     with_logger_app(project, fn ->
       Mix.Project.with_build_lock(project, fn ->
@@ -188,6 +191,36 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 
+  defp infer_signatures(list) when is_list(list), do: :lists.usort([:elixir | list])
+
+  defp infer_signatures(false) do
+    false
+  end
+
+  defp infer_signatures(true) do
+    project = Mix.Project.get!()
+
+    properties =
+      if function_exported?(project, :application, 0), do: project.application(), else: []
+
+    extra_apps =
+      for tuple_or_atom <-
+            Keyword.get(properties, :included_applications, []) ++
+              Keyword.get(properties, :extra_applications, []) do
+        case tuple_or_atom do
+          {app, _} -> app
+          app when is_atom(app) -> app
+        end
+      end
+
+    deps_apps =
+      for %{app: app, opts: opts} <- Mix.Dep.cached(),
+          Keyword.get(opts, :app, true),
+          do: app
+
+    :lists.usort([:elixir | extra_apps] ++ deps_apps)
+  end
+
   # Run this operation in compile.elixir as the compiler can be called directly
   defp with_logger_app(config, fun) do
     app = Keyword.fetch!(config, :app)
@@ -207,6 +240,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     if exclude == [] do
       opts
     else
+      IO.warn(
+        "\"xref: [exclude: ...]\" in your mix.exs file is deprecated, " <>
+          "instead use: \"elixirc_options: [no_warn_undefined: ...]\""
+      )
+
       Keyword.update(opts, :no_warn_undefined, exclude, &(List.wrap(&1) ++ exclude))
     end
   end

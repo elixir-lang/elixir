@@ -1437,7 +1437,7 @@ defmodule Stream do
         do_cycle(cycle, [], cycle, fun.(element, acc), fun)
 
       {_, []} ->
-        do_cycle(cycle, [], cycle, {:cont, acc}, fun)
+        do_cycle(check_cycle_subsequent_element(cycle), [], cycle, {:cont, acc}, fun)
     end
   end
 
@@ -1446,10 +1446,26 @@ defmodule Stream do
   end
 
   defp check_cycle_first_element(reduce) do
+    check_cycle_non_empty(
+      reduce,
+      ArgumentError,
+      "cannot cycle over an empty enumerable"
+    )
+  end
+
+  defp check_cycle_subsequent_element(reduce) do
+    check_cycle_non_empty(
+      reduce,
+      RuntimeError,
+      "cycled enumerable became empty after a previous iteration produced elements"
+    )
+  end
+
+  defp check_cycle_non_empty(reduce, exception, message) do
     fn acc ->
       case reduce.(acc) do
         {state, []} when state in [:done, :halted] and elem(acc, 0) != :halt ->
-          raise ArgumentError, "cannot cycle over an empty enumerable"
+          raise exception, message
 
         other ->
           other

@@ -124,16 +124,6 @@ defmodule Kernel.WithTest do
     assert var == :ok
   end
 
-  test "errors in with" do
-    assert_raise RuntimeError, fn ->
-      with({:ok, res} <- oops(), do: res)
-    end
-
-    assert_raise RuntimeError, fn ->
-      with({:ok, res} <- ok(42), oops(), do: res)
-    end
-  end
-
   test "else conditions" do
     assert (with {:ok, res} <- four() do
               res
@@ -159,18 +149,14 @@ defmodule Kernel.WithTest do
   end
 
   defp four() do
-    4
+    Process.get(:unused, 4)
   end
 
   defp error() do
-    :error
+    Process.get(:unused, :error)
   end
 
   defp ok(num) do
-    {:ok, num}
-  end
-
-  defp oops() do
-    raise("oops")
+    Process.get(:unused, {:ok, num})
   end
 end

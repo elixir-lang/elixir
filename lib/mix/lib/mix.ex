@@ -155,7 +155,7 @@ defmodule Mix do
   > #### Avoiding the application environment {: .warning}
   >
   > The application environment is discouraged for libraries. See Elixir's
-  > [Library Guidelines](https://hexdocs.pm/elixir/library-guidelines.html) for
+  > [Library Guidelines](https://elixir.hexdocs.pm/library-guidelines.html) for
   > more information.
 
   ### Build-time configuration
@@ -356,12 +356,12 @@ defmodule Mix do
     * `MIX_INSTALL_DIR` *(since v1.12.0)* - specifies directory where `Mix.install/2` keeps
        install cache
 
-    * `MIX_OS_CONCURRENCY_LOCK` - when set to `0` or `false`, disables mix compilation locking.
+    * `MIX_OS_CONCURRENCY_LOCK` *(since v1.18.2)* - when set to `0` or `false`, disables mix compilation locking.
       While not recommended, this may be necessary in cases where hard links or TCP sockets are
       not available. When opting for this behaviour, make sure to not start concurrent compilations
       of the same project
 
-    * `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` - when set to a number greater than 1, it enables
+    * `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` *(since v1.19.0)* - when set to a number greater than 1, it enables
       compilation of dependencies over multiple operating system processes. See `mix help deps.compile`
       for more information
 
@@ -398,7 +398,7 @@ defmodule Mix do
 
   If you simply want to change the certificates used by Mix and Hex, you may set
   the `HEX_CACERTS_PATH` environment variable, pointing to a CA certificate file.
-  See [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys).
+  See [`mix hex.config`](https://hex.hexdocs.pm/Mix.Tasks.Hex.Config.html#module-config-keys).
 
   From Erlang/OTP 27.2, it is also possible to change the certificates for your
   project as a whole. To do so, you might add the following to your `config/config.exs`:

@@ -222,7 +222,7 @@ defmodule Mix.Tasks.Compile do
   defp load_protocol(file) do
     case file do
       "Elixir." <> _ ->
-        module = file |> Path.rootname() |> String.to_atom()
+        module = file |> Path.rootname() |> String.to_unsafe_atom()
         :code.purge(module)
         :code.delete(module)
 

@@ -147,7 +147,10 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?kernel, trunc, 1, erlang, trunc);
 ?inline(?kernel, tuple_size, 1, erlang, tuple_size);
 
-?inline(?list, to_atom, 1, erlang, list_to_atom);
+% we just want ex_to_erl, not erl_to_ex
+inner_inline(ex_to_erl, ?list, to_atom, 1) -> {erlang, list_to_atom};
+
+?inline(?list, to_unsafe_atom, 1, erlang, list_to_atom);
 ?inline(?list, to_existing_atom, 1, erlang, list_to_existing_atom);
 ?inline(?list, to_float, 1, erlang, list_to_float);
 ?inline(?list, to_integer, 1, erlang, list_to_integer);
@@ -205,8 +208,11 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?process, unlink, 1, erlang, unlink);
 ?inline(?process, unregister, 1, erlang, unregister);
 
+% we just want ex_to_erl, not erl_to_ex
+inner_inline(ex_to_erl, ?string, to_atom, 1) -> {erlang, binary_to_atom};
+
 ?inline(?string, duplicate, 2, binary, copy);
-?inline(?string, to_atom, 1, erlang, binary_to_atom);
+?inline(?string, to_unsafe_atom, 1, erlang, binary_to_atom);
 ?inline(?string, to_existing_atom, 1, erlang, binary_to_existing_atom);
 ?inline(?string, to_float, 1, erlang, binary_to_float);
 ?inline(?string, to_integer, 1, erlang, binary_to_integer);
@@ -238,8 +244,8 @@ inner_inline(_, _, _, _) -> false.
 %%
 %% Rewrite rules are more complex than regular inlining code
 %% as they may change the number of arguments. However, they
-%% don't add new code (such as case expressions), at best they
-%% perform dead code removal.
+%% cannot change the argument order, as that can change the
+%% code semantics.
 rewrite(?string_chars, DotMeta, to_string, Meta, [Arg]) ->
   case is_always_string(Arg) of
     true -> Arg;
@@ -253,48 +259,21 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 
 ?rewrite(?float, to_charlist, [Arg], erlang, float_to_list, [Arg, [short]]);
 ?rewrite(?float, to_string, [Arg], erlang, float_to_binary, [Arg, [short]]);
-?rewrite(?kernel, is_map_key, [Map, Key], erlang, is_map_key, [Key, Map]);
-?rewrite(?map, delete, [Map, Key], maps, remove, [Key, Map]);
-?rewrite(?map, fetch, [Map, Key], maps, find, [Key, Map]);
-?rewrite(?map, 'fetch!', [Map, Key], maps, get, [Key, Map]);
-?rewrite(?map, 'has_key?', [Map, Key], maps, is_key, [Key, Map]);
-?rewrite(?map, put, [Map, Key, Value], maps, put, [Key, Value, Map]);
-?rewrite(?map, 'replace!', [Map, Key, Value], maps, update, [Key, Value, Map]);
 ?rewrite(?port, monitor, [Arg], erlang, monitor, [port, Arg]);
-?rewrite(?process, group_leader, [Pid, Leader], erlang, group_leader, [Leader, Pid]);
 ?rewrite(?process, monitor, [Arg], erlang, monitor, [process, Arg]);
 ?rewrite(?process, monitor, [Arg, Opts], erlang, monitor, [process, Arg, Opts]);
-?rewrite(?process, send_after, [Dest, Msg, Time], erlang, send_after, [Time, Dest, Msg]);
-?rewrite(?process, send_after, [Dest, Msg, Time, Opts], erlang, send_after, [Time, Dest, Msg, Opts]);
-?rewrite(?tuple, duplicate, [Data, Size], erlang, make_tuple, [Size, Data]);
 
-inner_rewrite(ex_to_erl, Meta, ?tuple, delete_at, [Tuple, Index]) ->
-  {erlang, delete_element, [increment(Meta, Index), Tuple]};
-inner_rewrite(ex_to_erl, Meta, ?tuple, insert_at, [Tuple, Index, Term]) ->
-  {erlang, insert_element, [increment(Meta, Index), Tuple, Term]};
-inner_rewrite(ex_to_erl, Meta, ?kernel, elem, [Tuple, Index]) ->
-  {erlang, element, [increment(Meta, Index), Tuple]};
-inner_rewrite(ex_to_erl, Meta, ?kernel, put_elem, [Tuple, Index, Value]) ->
-  {erlang, setelement, [increment(Meta, Index), Tuple, Value]};
-
-inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [Index, Tuple]) when is_number(Index) ->
-  {?tuple, delete_at, [Tuple, Index - 1], fun([Index, Tuple]) -> [Tuple, Index] end};
-inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [Index, Tuple, Term]) when is_number(Index) ->
-  {?tuple, insert_at, [Tuple, Index - 1, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
+%% These are guard exclusive rewrites
+inner_rewrite(erl_to_ex, _Meta, erlang, is_map_key, [Key, Map]) ->
+  {?kernel, is_map_key, [Map, Key], fun([Key, Map]) -> [Map, Key] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, element, [Index, Tuple]) when is_number(Index) ->
   {?kernel, elem, [Tuple, Index - 1], fun([Index, Tuple]) -> [Tuple, Index] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [Index, Tuple, Term]) when is_number(Index) ->
   {?kernel, put_elem, [Tuple, Index - 1, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
-
-inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
-  {?tuple, delete_at, [Tuple, Index], fun([Index, Tuple]) -> [Tuple, Index] end};
-inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
-  {?tuple, insert_at, [Tuple, Index, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
   {?kernel, elem, [Tuple, Index], fun([Index, Tuple]) -> [Tuple, Index] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
   {?kernel, put_elem, [Tuple, Index, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
-
 inner_rewrite(erl_to_ex, _Meta, erlang, 'orelse', [_, _] = Args) ->
   {?kernel, 'or', Args, fun identity/1};
 inner_rewrite(erl_to_ex, _Meta, erlang, 'andalso', [_, _] = Args) ->
@@ -305,10 +284,8 @@ inner_rewrite(erl_to_ex, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args, fun identity
 
 identity(Arg) -> Arg.
 
-increment(_Meta, Number) when is_number(Number) ->
-  Number + 1;
-increment(Meta, Other) ->
-  {{'.', Meta, [erlang, '+']}, Meta, [Other, 1]}.
+increment(_Meta, Number) when is_number(Number) -> Number + 1;
+increment(Meta, Other) -> {{'.', Meta, [erlang, '+']}, Meta, [Other, 1]}.
 
 %% Match rewrite
 %%
@@ -337,6 +314,12 @@ static_append(_, _, _) -> throw(impossible).
 %% Guard rewrite is similar to regular rewrite, except
 %% it also verifies the resulting function is supported in
 %% guard context - only certain BIFs and operators are.
+guard(?kernel, DotMeta, is_map_key, Meta, [Map, Key], _S) ->
+  {ok, {{'.', DotMeta, [erlang, is_map_key]}, Meta, [Key, Map]}};
+guard(?kernel, DotMeta, elem, Meta, [Tuple, Index], _S) ->
+  {ok, {{'.', DotMeta, [erlang, element]}, Meta, [increment(Meta, Index), Tuple]}};
+guard(?kernel, DotMeta, put_elem, Meta, [Tuple, Index, Value], _S) ->
+  {ok, {{'.', DotMeta, [erlang, setelement]}, Meta, [increment(Meta, Index), Tuple, Value]}};
 guard(Receiver, DotMeta, Right, Meta, Args, S) ->
   case inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args) of
     {erlang, RRight, RArgs} ->
@@ -351,6 +334,8 @@ guard(Receiver, DotMeta, Right, Meta, Args, S) ->
 %% need to explicitly forbid as they are allowed in erl_internal.
 allowed_guard(is_record, 2) -> false;
 allowed_guard(is_record, 3) -> false;
+allowed_guard('orelse', 2) -> true;
+allowed_guard('andalso', 2) -> true;
 allowed_guard(Right, Arity) ->
   erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity).
 

@@ -188,15 +188,6 @@ defmodule NaiveDateTimeTest do
   end
 
   describe "diff" do
-    test "with invalid time unit" do
-      dt = NaiveDateTime.utc_now()
-
-      message =
-        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
-
-      assert_raise ArgumentError, message, fn -> NaiveDateTime.diff(dt, dt, "day") end
-    end
-
     test "with other calendars" do
       assert ~N[2000-01-01 12:34:15.123456]
              |> NaiveDateTime.convert!(Calendar.Holocene)
@@ -220,6 +211,35 @@ defmodule NaiveDateTimeTest do
       }
 
       assert NaiveDateTime.diff(%{dt | second: 57}, dt, :second) == 50
+    end
+
+    test "truncates the elapsed difference, not each operand (matches DateTime.diff)" do
+      # The true elapsed span is 0.5s (< 1s) and 86399.5s (< 1 day). Sub-second
+      # fractions must not inflate the count: per the "rounds incomplete days to
+      # zero" guarantee, and consistent with the sibling DateTime.diff/3.
+      assert NaiveDateTime.diff(
+               ~N[2000-01-01 00:00:01.200000],
+               ~N[2000-01-01 00:00:00.700000],
+               :second
+             ) == 0
+
+      assert NaiveDateTime.diff(
+               ~N[2000-01-02 00:00:00.200000],
+               ~N[2000-01-01 00:00:00.700000],
+               :day
+             ) == 0
+
+      assert NaiveDateTime.diff(
+               ~N[2000-01-01 00:00:00.700000],
+               ~N[2000-01-02 00:00:00.200000],
+               :day
+             ) == 0
+
+      assert NaiveDateTime.diff(
+               ~N[2000-01-01 00:00:00.001200],
+               ~N[2000-01-01 00:00:00.000700],
+               :millisecond
+             ) == 0
     end
   end
 

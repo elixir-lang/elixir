@@ -102,7 +102,7 @@ defmodule List do
   Even though the representation changed, the raw data does remain a list of
   integers, which can be handled as such:
 
-      iex> inspect(~c"abc", charlists: :as_list)
+      iex> inspect(~c"abc", charlists: :as_lists)
       "[97, 98, 99]"
       iex> Enum.map(~c"abc", fn num -> 1000 + num end)
       [1097, 1098, 1099]
@@ -311,9 +311,6 @@ defmodule List do
       iex> List.first!([1, 2, 3])
       1
 
-      iex> List.first!([])
-      ** (ArgumentError) attempted to get the first element of an empty list
-
   """
   @doc since: "1.20.0"
   @spec first!([elem, ...]) :: elem when elem: var
@@ -365,9 +362,6 @@ defmodule List do
 
       iex> List.last!([1, 2, 3])
       3
-
-      iex> List.last!([])
-      ** (ArgumentError) attempted to get the last element of an empty list
 
   """
   @doc since: "1.20.0"
@@ -435,7 +429,7 @@ defmodule List do
 
   """
   @doc since: "1.13.0"
-  @spec keyfind!([tuple], any, non_neg_integer) :: any
+  @spec keyfind!([tuple], any, non_neg_integer) :: tuple
   def keyfind!(list, key, position) when is_integer(position) do
     :lists.keyfind(key, position + 1, list) ||
       raise KeyError,
@@ -520,8 +514,8 @@ defmodule List do
 
   As in `Enum.sort/2`, avoid using the default sorting function to sort
   structs, as by default it performs structural comparison instead of a
-  semantic one. In such cases, you shall pass a sorting function as third
-  element or any module that implements a `compare/2` function. For example,
+  semantic one. In such cases, you shall pass a sorting function as the third
+  argument or any module that implements a `compare/2` function. For example,
   if you have tuples with user names and their birthday, and you want to
   sort on their birthday, in both ascending and descending order, you should
   do:
@@ -661,7 +655,7 @@ defmodule List do
   end
 
   @doc """
-  Wraps `term` in a list if this is not list.
+  Wraps `term` in a list if it is not a list.
 
   If `term` is already a list, it returns the list.
   If `term` is `nil`, it returns an empty list.
@@ -960,9 +954,12 @@ defmodule List do
   @spec pop_at(list, integer, any) :: {any, list}
   def pop_at(list, index, default \\ nil) when is_integer(index) do
     if index < 0 do
-      do_pop_at(list, length(list) + index, default, [])
+      case length(list) + index do
+        index when index < 0 -> {default, list}
+        index -> do_pop_at(list, index, default, [], list)
+      end
     else
-      do_pop_at(list, index, default, [])
+      do_pop_at(list, index, default, [], list)
     end
   end
 
@@ -1024,30 +1021,50 @@ defmodule List do
     :lists.suffix(suffix, list)
   end
 
-  @doc """
-  Converts a charlist to an atom.
-
-  Elixir supports conversions from charlists which contain any Unicode
-  code point.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> List.to_atom(~c"Elixir")
-      :Elixir
-
-      iex> List.to_atom(~c"🌢 Elixir")
-      :"🌢 Elixir"
-
-  """
-  @spec to_atom(charlist) :: atom
+  @doc deprecated: "Use to_existing_atom/1 or to_unsafe_atom/1 instead"
   def to_atom(charlist) do
     :erlang.list_to_atom(charlist)
   end
 
   @doc """
+  Converts a charlist to an existing atom or creates a new one.
+
+  Elixir supports conversions from charlists which contain any Unicode
+  code point.
+
+  > #### Dynamic Atom Creation {: .warning}
+  >
+  > This function creates atoms dynamically and atoms are
+  > not garbage-collected. Therefore, `charlist` should not be an
+  > untrusted value, such as input received from a socket or during
+  > a web request. Consider using `to_existing_atom/1` instead.
+
+  By default, the maximum number of atoms is `1_048_576`. This limit
+  can be raised or lowered using the VM option `+t`.
+
+  The maximum atom size is 255 Unicode code points.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_unsafe_atom(~c"Elixir")
+      :Elixir
+
+      iex> List.to_unsafe_atom(~c"🌢 Elixir")
+      :"🌢 Elixir"
+
+  """
+  @doc since: "1.21.0"
+  @spec to_unsafe_atom(charlist) :: atom
+  def to_unsafe_atom(charlist) do
+    :erlang.list_to_atom(charlist)
+  end
+
+  @doc """
   Converts a charlist to an existing atom.
+
+  If the list of expected atoms is known upfront, prefer `to_existing_atom/2`.
 
   Elixir supports conversions from charlists which contain any Unicode
   code point. Raises an `ArgumentError` if the atom does not exist.
@@ -1080,6 +1097,47 @@ defmodule List do
   end
 
   @doc """
+  Converts a charlist to one of the `allowed_atoms` or raises.
+
+  Raises an `ArgumentError` if the atom either does not exist or is not within
+  the existing list.
+
+  This should be preferred to `to_existing_atom/1` if the list is known upfront,
+  since there is no risk that the atom has not been loaded.
+
+  ## Examples
+
+      iex> List.to_existing_atom(~c"foo", [:foo, :bar])
+      :foo
+
+      iex> List.to_existing_atom(~c"unknown", [:foo, :bar])
+      ** (ArgumentError) unexpected value: ~c\"unknown\", the allowed atoms are: [:foo, :bar]
+
+  """
+  @doc since: "1.21.0"
+  @spec to_existing_atom(charlist, nonempty_list(a)) :: a when a: atom()
+  def to_existing_atom(charlist, [_ | _] = allowed_atoms) when is_list(charlist) do
+    atom = :erlang.list_to_existing_atom(charlist)
+
+    if atom not in allowed_atoms do
+      to_existing_atom_unexpected(charlist, allowed_atoms)
+    end
+
+    atom
+  end
+
+  # used just to have a less cryptic stacktrace and consistent error
+  @doc false
+  def __to_existing_atom__(charlist, allowed_atoms) do
+    to_existing_atom_unexpected(charlist, allowed_atoms)
+  end
+
+  defp to_existing_atom_unexpected(charlist, allowed_atoms) do
+    raise ArgumentError,
+          "unexpected value: #{inspect(charlist)}, the allowed atoms are: #{inspect(allowed_atoms)}"
+  end
+
+  @doc """
   Returns the float whose text representation is `charlist`.
 
   Inlined by the compiler.
@@ -1090,7 +1148,7 @@ defmodule List do
       2.2017764
 
   """
-  @spec to_float(charlist) :: float
+  @spec to_float(nonempty_charlist) :: float
   def to_float(charlist) do
     :erlang.list_to_float(charlist)
   end
@@ -1106,7 +1164,7 @@ defmodule List do
       123
 
   """
-  @spec to_integer(charlist) :: integer
+  @spec to_integer(nonempty_charlist) :: integer
   def to_integer(charlist) do
     :erlang.list_to_integer(charlist)
   end
@@ -1124,7 +1182,7 @@ defmodule List do
       1023
 
   """
-  @spec to_integer(charlist, 2..36) :: integer
+  @spec to_integer(nonempty_charlist, 2..36) :: integer
   def to_integer(charlist, base) do
     :erlang.list_to_integer(charlist, base)
   end
@@ -1193,7 +1251,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
+        #{inspect(list, charlists: :as_lists)}
         """
     else
       result when is_binary(result) ->
@@ -1245,7 +1303,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
+        #{inspect(list, charlists: :as_lists)}
         """
     else
       result when is_list(result) ->
@@ -1310,13 +1368,13 @@ defmodule List do
 
   defp myers_difference_with_diff_script(list1, list2, diff_script) do
     path = {0, list1, list2, []}
-    find_script(0, length(list1) + length(list2), [path], diff_script)
+    find_script(0, [path], diff_script)
   end
 
-  defp find_script(envelope, max, paths, diff_script) do
+  defp find_script(envelope, paths, diff_script) do
     case each_diagonal(-envelope, envelope, paths, [], diff_script) do
       {:done, edits} -> compact_reverse(edits, [])
-      {:next, paths} -> find_script(envelope + 1, max, paths, diff_script)
+      {:next, paths} -> find_script(envelope + 1, paths, diff_script)
     end
   end
 
@@ -1461,15 +1519,16 @@ defmodule List do
 
   # pop_at
 
-  defp do_pop_at([], _index, default, acc) do
-    {default, :lists.reverse(acc)}
+  # The original list is returned when the index is out of bounds
+  defp do_pop_at([], _index, default, _acc, original) do
+    {default, original}
   end
 
-  defp do_pop_at([head | tail], 0, _default, acc) do
+  defp do_pop_at([head | tail], 0, _default, acc, _original) do
     {head, :lists.reverse(acc, tail)}
   end
 
-  defp do_pop_at([head | tail], index, default, acc) do
-    do_pop_at(tail, index - 1, default, [head | acc])
+  defp do_pop_at([head | tail], index, default, acc, original) do
+    do_pop_at(tail, index - 1, default, [head | acc], original)
   end
 end

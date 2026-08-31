@@ -24,6 +24,12 @@ defmodule URI do
 
       [scheme]://[userinfo]@[host]:[port][path]?[query]#[fragment]
 
+  The fields contain the encoded URI components as they appear in the URI
+  itself. For example, a slash inside the userinfo must be stored as `%2F`,
+  not as `/`. Functions such as `parse/1` and `new/1` preserve existing
+  percent-encoded sequences in those fields, and functions such as `to_string/1`
+  expects those fields to already be encoded as needed. Whenever setting or
+  modifying the fields directly, you must encode them accordingly.
 
   Note the `authority` field is deprecated. `parse/1` will still
   populate it for backwards compatibility but you should generally
@@ -162,8 +168,8 @@ defmodule URI do
   end
 
   defp encode_kv_pair({key, value}, :rfc3986) do
-    encode(Kernel.to_string(key), &char_unreserved?/1) <>
-      "=" <> encode(Kernel.to_string(value), &char_unreserved?/1)
+    encode_unreserved(Kernel.to_string(key), :percent) <>
+      "=" <> encode_unreserved(Kernel.to_string(value), :percent)
   end
 
   defp encode_kv_pair({key, value}, :www_form) do
@@ -246,7 +252,7 @@ defmodule URI do
 
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
-        dict_module = String.to_atom("Dict")
+        dict_module = String.to_unsafe_atom("Dict")
         decode_query_into_dict(rest, dict_module.put(dict, key, value), encoding)
     end
   end
@@ -334,6 +340,10 @@ defmodule URI do
     character in @reserved_characters
   end
 
+  defguardp unreserved_char?(character)
+            when character in ?0..?9 or character in ?a..?z or character in ?A..?Z or
+                   character in ~c"~_-."
+
   @doc """
   Checks if `character` is an unreserved one in a URI.
 
@@ -351,7 +361,7 @@ defmodule URI do
   """
   @spec char_unreserved?(byte) :: boolean
   def char_unreserved?(character) do
-    character in ?0..?9 or character in ?a..?z or character in ?A..?Z or character in ~c"~_-."
+    unreserved_char?(character)
   end
 
   @doc """
@@ -426,14 +436,30 @@ defmodule URI do
 
   """
   @spec encode_www_form(binary) :: binary
+  def encode_www_form(<<>>), do: ""
+
   def encode_www_form(string) when is_binary(string) do
-    for <<byte <- string>>, into: "" do
-      case percent(byte, &char_unreserved?/1) do
-        "%20" -> "+"
-        percent -> percent
-      end
-    end
+    encode_unreserved(string, "", :www_form)
   end
+
+  # Matching upfront keeps the empty case from allocating the accumulator.
+  defp encode_unreserved(<<>>, _mode), do: ""
+
+  defp encode_unreserved(string, mode), do: encode_unreserved(string, "", mode)
+
+  defp encode_unreserved(<<?\s, rest::binary>>, acc, :www_form) do
+    encode_unreserved(rest, <<acc::binary, ?+>>, :www_form)
+  end
+
+  defp encode_unreserved(<<byte, rest::binary>>, acc, mode) when unreserved_char?(byte) do
+    encode_unreserved(rest, <<acc::binary, byte>>, mode)
+  end
+
+  defp encode_unreserved(<<byte, rest::binary>>, acc, mode) do
+    encode_unreserved(rest, <<acc::binary, ?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>, mode)
+  end
+
+  defp encode_unreserved(<<>>, acc, _mode), do: acc
 
   defp percent(char, predicate) do
     if predicate.(char) do
@@ -478,18 +504,19 @@ defmodule URI do
     unpercent(string, "", true)
   end
 
+  defguardp is_hex(char) when char in ?0..?9 or char in ?A..?F or char in ?a..?f
+
   defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
     unpercent(tail, <<acc::binary, ?\s>>, spaces)
   end
 
+  defp unpercent(<<?%, h1, h2, tail::binary>>, acc, spaces)
+       when is_hex(h1) and is_hex(h2) do
+    unpercent(tail, <<acc::binary, bsl(hex_to_dec(h1), 4) + hex_to_dec(h2)>>, spaces)
+  end
+
   defp unpercent(<<?%, tail::binary>>, acc, spaces) do
-    with <<hex1, hex2, tail::binary>> <- tail,
-         dec1 when is_integer(dec1) <- hex_to_dec(hex1),
-         dec2 when is_integer(dec2) <- hex_to_dec(hex2) do
-      unpercent(tail, <<acc::binary, bsl(dec1, 4) + dec2>>, spaces)
-    else
-      _ -> unpercent(tail, <<acc::binary, ?%>>, spaces)
-    end
+    unpercent(tail, <<acc::binary, ?%>>, spaces)
   end
 
   defp unpercent(<<head, tail::binary>>, acc, spaces) do
@@ -502,7 +529,6 @@ defmodule URI do
   defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
   defp hex_to_dec(n) when n in ?a..?f, do: n - ?a + 10
   defp hex_to_dec(n) when n in ?0..?9, do: n - ?0
-  defp hex_to_dec(_n), do: nil
 
   @doc """
   Creates a new URI struct by parsing and validating a string or from an existing URI.
@@ -897,6 +923,9 @@ defmodule URI do
   @doc """
   Returns the string representation of the given [URI struct](`t:t/0`).
 
+  This function assembles the URI components into a string, assuming each
+  field is valid and escaped as done by `parse/1` and `new/1`.
+
   ## Examples
 
       iex> uri = URI.parse("http://google.com")
@@ -1030,11 +1059,11 @@ defmodule URI do
     %{uri | query: query}
   end
 
-  def append_query(%URI{} = uri, query) when is_binary(query) do
-    if String.ends_with?(uri.query, "&") do
-      %{uri | query: uri.query <> query}
+  def append_query(%URI{query: current} = uri, query) when is_binary(query) do
+    if String.ends_with?(current, "&") do
+      %{uri | query: current <> query}
     else
-      %{uri | query: uri.query <> "&" <> query}
+      %{uri | query: current <> "&" <> query}
     end
   end
 
@@ -1081,15 +1110,18 @@ defimpl String.Chars, for: URI do
           ":path in URI must be empty or an absolute path if URL has a :host, got: #{inspect(uri)}"
   end
 
-  def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
-    uri =
-      case scheme && URI.default_port(scheme) do
-        ^port -> %{uri | port: nil}
-        _ -> uri
-      end
-
+  def to_string(%{
+        host: host,
+        authority: authority,
+        userinfo: userinfo,
+        scheme: scheme,
+        port: port,
+        path: path,
+        query: query,
+        fragment: fragment
+      }) do
     # Based on https://tools.ietf.org/html/rfc3986#section-5.3
-    authority = extract_authority(uri)
+    authority = extract_authority(host, authority, scheme, userinfo, port)
 
     IO.iodata_to_binary([
       if(scheme, do: [scheme, ?:], else: []),
@@ -1100,19 +1132,23 @@ defimpl String.Chars, for: URI do
     ])
   end
 
-  defp extract_authority(%{host: nil, authority: authority}) do
+  defp extract_authority(_host = nil, authority, _scheme, _userinfo, _port) do
     authority
   end
 
-  defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
+  defp extract_authority(host, _authority, scheme, userinfo, port) do
     # According to the grammar at
     # https://tools.ietf.org/html/rfc3986#appendix-A, a "host" can have a colon
     # in it only if it's an IPv6 or "IPvFuture" address, so if there's a colon
     # in the host we can safely surround it with [].
+
     [
       if(userinfo, do: [userinfo | "@"], else: []),
       if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
-      if(port, do: [":" | Integer.to_string(port)], else: [])
+      if(port != nil and (is_nil(scheme) or URI.default_port(scheme) != port),
+        do: [":" | Integer.to_string(port)],
+        else: []
+      )
     ]
   end
 end

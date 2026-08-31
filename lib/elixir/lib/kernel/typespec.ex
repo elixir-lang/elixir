@@ -860,29 +860,29 @@ defmodule Kernel.Typespec do
     {{:type, location(meta), :nonempty_string, args}, state}
   end
 
-  defp typespec({type, _meta, []}, vars, caller, state) when type in [:charlist, :char_list] do
+  defp typespec({type, meta, []}, vars, caller, state) when type in [:charlist, :char_list] do
     if type == :char_list do
       warning = "the char_list() type is deprecated, use charlist()"
       IO.warn(warning, caller)
     end
 
-    typespec(quote(do: :elixir.charlist()), vars, caller, state)
+    remote_typespec(:charlist, meta, [], vars, caller, state)
   end
 
-  defp typespec({:nonempty_charlist, _meta, []}, vars, caller, state) do
-    typespec(quote(do: :elixir.nonempty_charlist()), vars, caller, state)
+  defp typespec({:nonempty_charlist, meta, []}, vars, caller, state) do
+    remote_typespec(:nonempty_charlist, meta, [], vars, caller, state)
   end
 
-  defp typespec({:struct, _meta, []}, vars, caller, state) do
-    typespec(quote(do: :elixir.struct()), vars, caller, state)
+  defp typespec({:struct, meta, []}, vars, caller, state) do
+    remote_typespec(:struct, meta, [], vars, caller, state)
   end
 
-  defp typespec({:as_boolean, _meta, [arg]}, vars, caller, state) do
-    typespec(quote(do: :elixir.as_boolean(unquote(arg))), vars, caller, state)
+  defp typespec({:as_boolean, meta, [arg]}, vars, caller, state) do
+    remote_typespec(:as_boolean, meta, [arg], vars, caller, state)
   end
 
-  defp typespec({:keyword, _meta, args}, vars, caller, state) when length(args) <= 1 do
-    typespec(quote(do: :elixir.keyword(unquote_splicing(args))), vars, caller, state)
+  defp typespec({:keyword, meta, args}, vars, caller, state) when length(args) <= 1 do
+    remote_typespec(:keyword, meta, args, vars, caller, state)
   end
 
   defp typespec({:fun, meta, args}, vars, caller, state) do
@@ -1005,6 +1005,10 @@ defmodule Kernel.Typespec do
   defp remote_type({remote, meta, name, args}, vars, caller, state) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     {{:remote_type, location(meta), [remote, name, args]}, state}
+  end
+
+  defp remote_typespec(name, meta, args, vars, caller, state) do
+    typespec({{:., meta, [:elixir, name]}, meta, args}, vars, caller, state)
   end
 
   defp collect_union({:|, _, [a, b]}), do: [a | collect_union(b)]

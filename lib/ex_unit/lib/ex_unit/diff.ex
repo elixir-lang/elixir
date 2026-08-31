@@ -289,7 +289,15 @@ defmodule ExUnit.Diff do
           end)
 
         if valid? do
-          {equivalent?, _bindings} = Code.eval_quoted(quoted, Map.to_list(bindings))
+          to_evaluate =
+            quote do
+              case :ok do
+                :ok when unquote(quoted) -> true
+                :ok -> false
+              end
+            end
+
+          {equivalent?, _bindings} = Code.eval_quoted(to_evaluate, Map.to_list(bindings))
           {update_diff_meta(original, equivalent? != true), equivalent? == true}
         else
           {original, false}
@@ -765,16 +773,20 @@ defmodule ExUnit.Diff do
     end
   end
 
+  # if kw represents a struct, this returns the result of `struct.__info__(:struct)`, otherwise nil
   defp struct_module(kw) do
-    {struct, struct_kw} = Keyword.pop(kw, :__struct__)
+    case Enum.split_with(kw, fn {k, _} -> k == :__struct__ end) do
+      {[{_, struct} | _], struct_kw} when is_atom(struct) and struct != nil ->
+        info =
+          Code.ensure_loaded?(struct) and function_exported?(struct, :__info__, 1) and
+            struct.__info__(:struct)
 
-    info =
-      is_atom(struct) and struct != nil and
-        Code.ensure_loaded?(struct) and function_exported?(struct, :__info__, 1) and
-        struct.__info__(:struct)
+        if info && Enum.all?(struct_kw, fn {k, _} -> Enum.any?(info, &(&1.field == k)) end) do
+          struct
+        end
 
-    if info && Enum.all?(struct_kw, fn {k, _} -> Enum.any?(info, &(&1.field == k)) end) do
-      struct
+      _ ->
+        nil
     end
   end
 

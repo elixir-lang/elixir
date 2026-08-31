@@ -21,8 +21,8 @@ defmodule Inspect.Opts do
       is `:decimal` and if it is printable, otherwise in bit syntax. See
       `String.printable?/1` to learn when a string is printable.
 
-    * `:charlists` - when `:as_charlists` all lists will be printed as charlists,
-      non-printable elements will be escaped.
+    * `:charlists` - when `:as_charlists` all charlists will be printed as charlists,
+      non-printable code points will be escaped. Other lists will be printed as lists.
 
       When `:as_lists` all lists will be printed as lists.
 
@@ -46,8 +46,8 @@ defmodule Inspect.Opts do
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
       printable strings and printable charlists which use the `:printable_limit` option.
-      It accepts a positive integer or `:infinity`. It defaults to `100` since
-      `Elixir v1.19.0`, as it has better defaults to deal with nested collections.
+      It accepts a positive integer or `:infinity`. It defaults to `200` since
+      `Elixir v1.20.0`, as it has better defaults to deal with nested collections.
 
     * `:pretty` - if set to `true` enables pretty printing. Defaults to `false`.
 
@@ -90,7 +90,7 @@ defmodule Inspect.Opts do
             charlists: :infer,
             custom_options: [],
             inspect_fun: &Inspect.inspect/2,
-            limit: 100,
+            limit: 200,
             pretty: false,
             printable_limit: 4096,
             safe: true,

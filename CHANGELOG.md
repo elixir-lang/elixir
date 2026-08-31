@@ -4,335 +4,108 @@
   SPDX-FileCopyrightText: 2012 Plataformatec
 -->
 
-# Changelog for Elixir v1.20
+# Changelog for Elixir v1.21
 
-This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
-
-## Type system improvements
-
-This release includes type inference of all constructs.
-
-### Type inference of function definitions
-
-Elixir now performs inference of whole functions. The best way to show the new capabilities are with examples. Take the following code:
-
-```elixir
-def add_foo_and_bar(data) do
-  data.foo + data.bar
-end
-```
-
-Elixir now infers that the function expects a `map` as first argument, and the map must have the keys `.foo` and `.bar` whose values are either `integer()` or `float()`. The return type will be either `integer()` or `float()`.
-
-Here is another example:
-
-```elixir
-def sum_to_string(a, b) do
-  Integer.to_string(a + b)
-end
-```
-
-Even though the `+` operator works with both integers and floats, Elixir infers that `a` and `b` must be both integers, as the result of `+` is given to a function that expects an integer. The inferred type information is then used during type checking to find possible typing errors.
-
-### Type inference of guards
-
-This release also performs inference of guards! Let's see some examples:
-
-```elixir
-def example(x, y) when is_list(x) and is_integer(y)
-```
-
-The code above correctly infers `x` is a list and `y` is an integer.
-
-```elixir
-def example({:ok, x} = y) when is_binary(x) or is_integer(x)
-```
-
-The one above infers x is a binary or an integer, and `y` is a two element tuple with `:ok` as first element and a binary or integer as second.
-
-```elixir
-def example(x) when is_map_key(x, :foo)
-```
-
-The code above infers `x` is a map which has the `:foo` key, represented as `%{..., foo: dynamic()}`. Remember the leading `...` indicates the map may have other keys.
-
-```elixir
-def example(x) when not is_map_key(x, :foo)
-```
-
-And the code above infers `x` does not have the `:foo` key (hence `x.foo` will raise a typing violation), which has the type: `%{..., foo: not_set()}`.
-
-You can also have expressions that assert on the size of data structures:
-
-```elixir
-def example(x) when tuple_size(x) < 3
-```
-
-Elixir will correctly track the tuple has at most two elements, and therefore accessing `elem(x, 3)` will emit a typing violation. In other words, Elixir can look at complex guards, infer types, and use this information to find bugs in our code, without a need to introduce type signatures (yet).
-
-### Typing across clauses
-
-Elixir now infers the type of a given clause based on previous clauses. Let's see an example:
-
-```elixir
-case System.get_env("SOME_VAR") do
-  nil -> :not_found
-  value -> {:ok, String.upcase(value)}
-end
-```
-
-`System.get_env("SOME_VAR")` returns either `nil` or a `binary()`. Because the first clause matches on `nil`, the type system now knows `value` can no longer be `nil`, and therefore it must only be a `binary()`, which allows the second clause to also type check without violations.
-
-This type inference across clauses also helps the type system find redundant clauses and dead code in existing codebases.
-
-### Complete typing of maps keys
-
-Maps were one of the first data-structures we implemented within the Elixir type system however, up to this point, they only supported atom keys. If they had additional keys, those keys were simply marked as `dynamic()`.
-
-As of Elixir v1.20, we can track all possible domains as map keys. For example, the map:
-
-```elixir
-%{123 => "hello", 456.0 => :ok}
-```
-
-will have the type:
-
-```elixir
-%{integer() => binary(), float() => :ok}
-```
-
-It is also possible to mix domain keys, as above, with atom keys, yielding the following:
-
-```elixir
-%{integer() => integer(), root: integer()}
-```
-
-This system is an implementation of [Typing Records, Maps, and Structs, by Giuseppe Castagna (2023)](https://www.irif.fr/~gc/papers/icfp23.pdf).
-
-### Typing of map operations
-
-We have typed the majority of the functions in the `Map` module, allowing the type system to track how keys are added, updated, and removed across all possible key types.
-
-For example, imagine we are calling the following `Map` functions with a variable `map`, which we don't know the exact shape of, and an atom key:
-
-```elixir
-Map.put(map, :key, 123)
-#=> returns type %{..., key: integer()}
-
-Map.delete(map, :key)
-#=> returns type %{..., key: not_set()}
-```
-
-As you can see, we track when keys are set and also when they are removed.
-
-Some operations, like `Map.replace/3`, only replace the key if it exists, and that is also propagated by the type system:
-
-```elixir
-Map.replace(map, :key, 123)
-#=> returns type %{..., key: if_set(integer())}
-```
-
-In other words, if the key exists, it would have been replaced by an integer value. Furthermore, whenever calling a function in the `Map` module and the given key is statically proven to never exist in the map, an error is emitted.
-
-By combining full type inference with bang operations like `Map.fetch!/2`, `Map.pop!/2`, `Map.replace!/3`, and `Map.update!/3`, Elixir is able to propagate information about the desired keys. Take this module:
-
-```elixir
-defmodule User do
-  def name(map), do: Map.fetch!(map, :name)
-end
-
-defmodule CallsUser do
-  def calls_name do
-    User.name(%{})
-  end
-end
-```
-
-The code above has a type violation, which is now caught by the type system:
-
-```text
-    warning: incompatible types given to User.name/1:
-
-        User.name(%{})
-
-    given types:
-
-        %{name: not_set()}
-
-    but expected one of:
-
-        dynamic(%{..., name: term()})
-
-    type warning found at:
-    │
- 16 │     User.name(%{})
-    │         ~
-    │
-    └─ lib/calls_user.ex:7:5: CallsUser.calls_name/0
-```
-
-### Acknowledgements
-
-The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/) and [Tidewave](https://tidewave.ai/).
-
-## v1.20.0-rc.4 (2026-03-31)
-
-This release requires Erlang/OTP 27+ and is compatible with Erlang/OTP 29.
+## v1.21.0-dev
 
 ### 1. Enhancements
 
+#### EEx
+
+  * [EEx] Support splitting middle expressions across EEx clauses
+
 #### Elixir
 
-  * [Code] Add `:dbg_callback` option to eval functions
-  * [Code.Fragment] Allow preserving sigil metadata in `container_cursor_to_quoted`
-  * [File] Add support for `[:raw]` opts in `File.read/2`
-  * [Kernel] Show undefined function errors even when missing variables (this helps debug errors caused when the developer forgets to require a macro)
-  * [Module] Purge and delete modules if `after_compile/2` callback fails
-  * [PartitionSupervisor] Support via tuples in `count_children/1` and `stop/3`
-  * [Process] Add `Process.get_label/1`
+  * [Access] Add support for keyword lists in `Access.key/2` and `Access.key!/1`
+  * [Code] Add support for the `:erlc_options` compiler option
+  * [Code.Formatter] Add a `:migrate_atom_interpolations` option
+  * [Kernel] Improve performance of type constructors and complex intersections
+  * [Kernel] Warn on binary patterns with segments that are not byte-aligned
+  * [Kernel.ParallelCompiler] Add a hint when spawned processes cannot load modules defined during compilation
+  * [Keyword] Optimize `Keyword.pop/3`, `Keyword.pop!/2`, and `Keyword.pop_lazy/3`
+  * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/1`
+  * [MapSet] Optimize `MapSet.symmetric_difference/2` when set sizes differ
+  * [Path] Add `Path.safe_join/2`
+  * [Registry] Optimize exact key matching in lookups
+  * [String] Optimize `String.bag_distance/2`
+  * [String] Add `String.to_existing_atom/2` and `String.to_unsafe_atom/1`
+  * [URI] Optimize percent-decoding and `URI.to_string/1`
 
-#### Mix
+#### ExUnit
 
-  * [mix deps] Allow overriding specific dependencies in `:override`
+  * [ExUnit.Assertions] Add `trace/3` helper
 
 ### 2. Bug fixes
 
 #### Elixir
 
-  * [Integer] Fix `Integer.extended_gcd/2` returning negative GCD for zero base cases
-  * [Integer] Raise when negative out-of-range digits are given to `Integer.undigits/2`
-  * [Kernel] Protocols should not add compile-time dependencies on `Any` implementation
-  * [Kernel] Ensure structs trigger recompilation for type checking purposes (regression)
-  * [Kernel] Ensure type information propagate across `hd/tl` in guards (regression)
-  * [Keyword] Raise `ArgumentError` in `Keyword.from_keys/2` for non-atom keys
-  * [URI] Fix `URI.merge` leaking `:+` marker when base path is empty string
+  * [Calendar] Fix `Calendar.strftime/3` formatting of negative years with `%y`
+  * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
+  * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
+  * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
+  * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
+  * [Code.Fragment] Fix cursor completion when operator keywords such as `in`, `when`, `and`, `or`, and `not` follow another operator
+  * [Date] Preserve the `:format` option in `Date.to_iso8601/2` with custom calendars
+  * [Date.Range] Fix slicing date ranges with stepped ranges
+  * [Duration] Reject duplicate seconds in `Duration.from_iso8601/1`
+  * [Enum] Fix `Enum.min/2,3` and `Enum.max/2,3` with custom sorters on ranges
+  * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
+  * [Kernel] Fix expansion of rebound variables in bitstring size expressions
+  * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
+  * [Kernel] Fix inferred stacktrace types to allow arbitrary keyword metadata
+  * [Kernel] Fix inferred types for functions with non-returning clauses
+  * [Kernel] Fix map field type inference in the presence of empty map types
+  * [Kernel] Fix tuple fetch and deletion type operations across equivalent tuple types
+  * [Kernel] Fix variables defined in one default argument leaking into subsequent default arguments
+  * [Kernel] Improve the error message for non-atom struct keys
+  * [Kernel] Raise when `|` is used in guards
+  * [Kernel.Typespec] Preserve metadata when proxying to Elixir typespecs
+  * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
+  * [Macro] Properly escape C1 control characters and Unicode noncharacters
+  * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
+  * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
+  * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
+  * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
+  * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
+  * [Time] Validate microseconds in `Time.from_seconds_after_midnight/3`
 
 #### ExUnit
 
-  * [ExUnit.Diff] Avoid false positives when diffing bitstrings
-
-#### Mix
-
-  * [mix deps] Use config files to pass project state to avoid argv limits on Windows when using `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
-  * [mix compile] Fix compile env change triggering full recompilation of path dependencies
-  * [mix compile] Add a build lock around protocol consolidation in umbrellas
-  * [mix compile] Ensure compilation of sibling deps do not mark path deps as changed
-  * [mix test] Fix `--warnings-as-errors` not catching misnamed test file warnings
-
-## v1.20.0-rc.3 (2026-03-09)
-
-### 1. Enhancements
+  * [ExUnit.Assertions] Fix `refute_in_delta/4` at the delta boundary and with negative deltas
+  * [ExUnit.CaptureIO] Stop `StringIO` processes when capturing a named device fails
 
 #### IEx
 
-  * [IEx] Optimize autocompleting modules
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Enum] Fix `Enum.slice/2` for ranges with step > 1 sliced by step > 1
-  * [File] Preserve directory permissions in `File.cp_r/3`
-  * [File] Fix `File.cp_r/3` infinite loop with symlink cycles
-  * [File] Fix `File.cp_r/3` infinite loop when copying into subdirectory of source
-  * [File] Warn when defining `@type record()`, fixes CI on Erlang/OTP 29
-  * [File] Fix `File.Stream` `Enumerable.count` for files without trailing newline
-  * [Float] Fix `Float.parse/1` inconsistent error handling for non-scientific notation overflow
-  * [Kernel] Process fields even when structs are unknown (regression)
-  * [Kernel] Improve performance on several corner cases in the type system (regression)
-  * [Kernel] Fix regression when using `Kernel.in/2` in defguard (regression)
-
-## v1.20.0-rc.2 (2026-03-04)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Code] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
-  * [Code] Make module purging opt-in and move temporary module deletion to the background to speed up compilation times
-  * [Integer] Add `Integer.popcount/1`
-  * [Kernel] Add type inference across clauses. For example, if one clause says `x when is_integer(x)`, then the next clause may no longer be an integer
-  * [Kernel] Detect and warn on redundant clauses
-  * [List] Add `List.first!/1` and `List.last!/1`
-  * Add Software Bill of Materials guide to the Documentation
+  * [IEx.Autocomplete] Fix completion crashes on maps with non-atom keys
+  * [IEx.Evaluator] Recognize `**` and `not in` as continuation operators
+  * [IEx.Helpers] Fix `r/1` when multiple modules are defined in the same file
+  * [IEx.Helpers] Fix heap and stack memory calculations in `process_info/1`
 
 #### Mix
 
-  * [mix compile] Add `module_definition: :interpreted` option to `Code` which allows module definitions to be evaluated instead of compiled. In some applications/architectures, this can lead to drastic improvements to compilation times. Note this does not affect the generated `.beam` file, which will have the same performance/behaviour as before
-  * [mix deps] Parallelize dep lock status checks during `deps.loadpaths`, improving boot times in projects with many git dependencies
-
-### 2. Potential breaking changes
-
-#### Elixir
-
-  * `map.foo()` (accessing a map field with parens) and `mod.foo` (invoking a function without parens) will now raise instead of emitting runtime warnings, aligning themselves with the type system behaviour
-
-### 3. Bug fixes
-
-#### IEx
-
-  * [IEx] Ensure warnings emitted during IEx parsing are properly displayed/printed
-  * [IEx] Ensure pry works across remote nodes
-
-#### Mix
-
-  * [mix compile.erlang] Topsort Erlang modules before compilation for proper dependency resolution
-
-## v1.20.0-rc.1 (2026-01-13)
-
-### 1. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Do not crash on map types with struct keys when performing type operations (regression)
-  * [Kernel] Mark the outcome of bitstring types as dynamic (regression)
-  * [Kernel] `<<expr::bitstring>>` will have type `binary` instead of `bitstring` if `expr` is a binary (regression)
-  * [Kernel] Do not crash on conditional variables when calling a function on a module which is represented by a variable (regression)
-
-## v1.20.0-rc.0 (2026-01-09)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Calendar] Optimize `date_from_iso_days` by using the Neri-Schneider algorithm
-  * [Enum] Add `Enum.min_max` sorter
-  * [Integer] Add `Integer.ceil_div/2`
-  * [IO] Add `IO.iodata_empty?/1`
-  * [File] Skip device, named pipes, etc in `File.cp_r/3` instead of erroring with reason `:eio`
-  * [Kernel] Print intermediate results of `dbg` for pipes
-  * [Kernel] Warn on unused requires
-  * [Regex] Add `Regex.import/1` to import regexes defined with `/E`
-
-#### ExUnit
-
-  * [ExUnit.CaptureLog] Add `:formatter` option for custom log formatting
-
-#### Mix
-
-  * [mix deps] Support filtering `mix deps` output
-  * [mix compile] Enforce `:elixirc_paths` to be a list of strings to avoid paths from being discarded (the only documented type was lists of strings)
-  * [mix test] Add `mix test --dry-run`
-
-### 2. Potential breaking changes
-
-#### Elixir
-
-  * `require SomeModule` no longer expands to the given module at compile-time, but it still returns the module at runtime. Note that while Elixir does not guarantee macros will expand to certain constructs, but since this can break code relying on the previous behaviour, such as `require(SomeMod).some_macro()`, we are adding this note to the CHANGELOG
+  * [Mix] Prevent synchronization lock files from being overwritten with empty contents
+  * [Mix.Release] Accept chardata paths in `Mix.Release.make_boot_script/4`
+  * [Mix.SCM.Git] Raise if Git refspecs start with `-`
+  * [mix deps] Recompile path and fetchable dependencies when one of the dependencies they were compiled with is removed
+  * [mix deps] Mark fetchable dependencies for compilation when their build exists but their SCM manifest is missing
+  * [mix deps.compile] Preserve code paths and compiler options across OS partitions
+  * [mix format] Pass `:sigils` to plugins invoked for sigils, allowing nested sigils to be formatted
+  * [mix new] Avoid trailing whitespace in generated files
 
 ### 3. Hard deprecations
 
 #### Elixir
 
-  * [File] `File.stream!(path, modes, lines_or_bytes)` is deprecated in favor of `File.stream!(path, lines_or_bytes, modes)`
-  * [Kernel] Matching on the size inside a bit pattern now requires the pin operator for consistency, such as `<<x::size(^existing_var)>>`
-  * [Kernel.ParallelCompiler] `Kernel.ParallelCompiler.async/1` is deprecated in favor of `Kernel.ParallelCompiler.pmap/2`, which is more performant and addresses known limitations
+  * [Macro.Env] `Macro.Env.fetch_alias/2` and `Macro.Env.fetch_macro_alias/2` are deprecated, use `Macro.Env.expand_alias/4` instead
 
-#### Logger
+### 4. Soft deprecations
 
-  * [Logger] `Logger.*_backend` functions are deprecated in favor of handlers. If you really want to keep on using backends, see the `:logger_backends` package
-  * [Logger] `Logger.enable/1` and `Logger.disable/1` have been deprecated in favor of `Logger.put_process_level/2` and `Logger.delete_process_level/1`
+#### Elixir
 
-## v1.19
+  * [Kernel] Atom interpolation (`:"foo_#{bar}"`) is deprecated in favor of explicit `String.to_unsafe_atom/1`
+  * [List] `List.to_atom/1` is deprecated in favor of `List.to_unsafe_atom/1`
+  * [String] `String.to_atom/1` is deprecated in favor of `String.to_unsafe_atom/1`
 
-The CHANGELOG for v1.19 releases can be found [in the v1.19 branch](https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md).
+## v1.20
+
+The CHANGELOG for v1.20 releases can be found [in the v1.20 branch](https://github.com/elixir-lang/elixir/blob/v1.20/CHANGELOG.md).

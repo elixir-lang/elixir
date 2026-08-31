@@ -31,6 +31,8 @@ defmodule KeywordTest do
   test "get_and_update/3 removes duplicates from the input keyword list" do
     assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn value -> {value, value + 10} end) ==
              {1, [a: 11, b: 2]}
+
+    assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn _ -> :pop end) == {1, [b: 2]}
   end
 
   test "get_and_update/3 raises on bad return value from the argument function" do
@@ -50,6 +52,8 @@ defmodule KeywordTest do
   test "get_and_update!/3 removes duplicates from the input keyword list" do
     assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn value -> {value, value + 10} end) ==
              {1, [a: 11, b: 2]}
+
+    assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn _ -> :pop end) == {1, [b: 2]}
   end
 
   test "get_and_update!/3 raises on bad return value from the argument function" do
@@ -81,7 +85,7 @@ defmodule KeywordTest do
     assert Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new) == [a: 1, b: :new, c: 3]
 
     assert_raise KeyError, "key :b not found in:\n\n    []\n", fn ->
-      Keyword.replace!([], :b, :new)
+      Keyword.replace!(Process.get(:unused, []), :b, :new)
     end
 
     assert_raise KeyError, "key :c not found in:\n\n    [a: 1, b: 2, a: 3]\n", fn ->
@@ -228,6 +232,11 @@ defmodule KeywordTest do
     assert_raise ArgumentError,
                  "expected the second argument to be a list of atoms or tuples, got: 3",
                  fn -> Keyword.validate([three: 3], [:three, 3, :two]) end
+  end
+
+  test "validate/2 returns invalid and duplicate keys after matching allowed keys" do
+    assert Keyword.validate([one: 1, two: 2, three: 3, one: 4], [:one, :two]) ==
+             {:error, [:one, :three]}
   end
 
   test "split_with/2" do

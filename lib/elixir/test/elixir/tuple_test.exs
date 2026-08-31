@@ -19,6 +19,11 @@ defmodule TupleTest do
     assert put_elem({:a, :b, :c}, 1, :d) == {:a, :d, :c}
   end
 
+  test "evaluation order" do
+    assert elem(send(self(), {:a, :b, :c}), send(self(), 1)) == :b
+    assert Process.info(self(), :messages) == {:messages, [{:a, :b, :c}, 1]}
+  end
+
   test "keyword syntax is supported in tuple literals" do
     assert {1, 2, three: :four} == {1, 2, [three: :four]}
   end

@@ -143,7 +143,7 @@ With this change, we are saying that we want to run `KV.Server.accept(4040)` as 
 Now that the server is part of the supervision tree, it should start automatically when we run the application. Run `iex -S mix` to boot the app and use the `telnet` client to make sure that everything still works:
 
 ```console
-$ telnet 127.0.0.1 4321
+$ telnet 127.0.0.1 4040
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
@@ -158,7 +158,7 @@ Yes, it works! However, can it handle more than one client?
 Try to connect two telnet clients at the same time. When you do so, you will notice that the second client doesn't echo:
 
 ```console
-$ telnet 127.0.0.1 4321
+$ telnet 127.0.0.1 4040
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
@@ -221,7 +221,7 @@ Let's change `start/2` in `lib/kv.ex` once more, to add the task supervisor to o
   end
 ```
 
-We'll now start a `Task.Supervisor` process with name `KV.TaskSupervisor`. Keep in mind that the order children are started matters. For example, the acceptor must come last because, if it comes first, it means our application can start accepting requests before the `Task.Supervisor` is running or before we can locate buckets. Shutting down an application will also stop the children in reverse order, guaranteeing a clean termination.
+We'll now start a `Task.Supervisor` process with name `KV.ServerSupervisor`. Keep in mind that the order children are started matters. For example, the acceptor must come last because, if it comes first, it means our application can start accepting requests before the `Task.Supervisor` is running or before we can locate buckets. Shutting down an application will also stop the children in reverse order, guaranteeing a clean termination.
 
 Now we need to change `loop_acceptor/1` to use `Task.Supervisor` to serve each request:
 

@@ -155,6 +155,255 @@ defmodule Base do
     for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
   end
 
+  # SWAR (SIMD Within A Register) fast paths for valid16?/2 and valid32?/2
+  # (non-hex). Each chunk of 8 bytes is validated in one guard: 7 bytes via
+  # bitwise arithmetic on a single 56-bit integer, plus a per-byte range
+  # check for the 8th byte. 56 bits is the largest width that fits in a BEAM
+  # small int on 64-bit (fixnum range is 59-bit signed); at 64 bits every
+  # `w + 0x80..` would allocate a bignum on the heap and the optimisation
+  # would collapse. See https://github.com/erlang/otp/pull/10938 for the
+  # corresponding pattern in OTP.
+  @swar_mask80 0x80808080808080
+
+  # Per-range SWAR constants, broadcast across 7 lanes. Naming convention:
+  #   @swar_ge_X = 0x80 - X  → high bit of `(w + @swar_ge_X)` lane is set
+  #                            iff that byte is ≥ X
+  #   @swar_gt_X = 0x7F - X  → high bit of `(w + @swar_gt_X)` lane is set
+  #                            iff that byte is > X
+  # A byte is in range [lo, hi] iff
+  #   `bxor(w + @swar_ge_lo, w + @swar_gt_hi)` has its high bit set.
+  @swar_ge_0 0x50505050505050
+  @swar_gt_9 0x46464646464646
+  @swar_ge_2 0x4E4E4E4E4E4E4E
+  @swar_gt_7 0x48484848484848
+  @swar_ge_A 0x3F3F3F3F3F3F3F
+  @swar_gt_F 0x39393939393939
+  @swar_gt_V 0x29292929292929
+  @swar_gt_Z 0x25252525252525
+  @swar_ge_a 0x1F1F1F1F1F1F1F
+  @swar_gt_f 0x19191919191919
+  @swar_gt_v 0x09090909090909
+  @swar_gt_z 0x05050505050505
+
+  # For base64 standard, '/' (0x2F) sits exactly one below '0' (0x30), so we
+  # extend the digit range to [0x2F, 0x39], which absorbs '/' into one range
+  # check — saves one singleton term. Trick lifted from
+  # https://lemire.me/blog/2025/04/13/detect-control-characters-quotes-and-backslashes-efficiently-using-swar/
+  @swar_ge_slash 0x51515151515151
+
+  # base64's '+', '-' and '_' border no other range, so each is checked as the
+  # degenerate range [c, c]. Mycroft zero-byte detection is one operation
+  # cheaper per singleton but not exact per lane: subtracting 0x01..01 makes a
+  # zero lane borrow from the lane above it, and a lane holding 1 turns that
+  # borrow into 0xFF, so bytes equal to `c bxor 0x01` read as matches too.
+  @swar_ge_plus 0x55555555555555
+  @swar_gt_plus 0x54545454545454
+  @swar_ge_dash 0x53535353535353
+  @swar_gt_dash 0x52525252525252
+  @swar_ge_underscore 0x21212121212121
+  @swar_gt_underscore 0x20202020202020
+
+  # Per-byte validity checks (used in both the SWAR clauses for the 8th byte
+  # of each stride and in the body of the sub-8-byte tail clauses).
+  @compile {:inline,
+            valid_char16upper?: 1,
+            valid_char16lower?: 1,
+            valid_char16mixed?: 1,
+            valid_char32upper?: 1,
+            valid_char32lower?: 1,
+            valid_char32mixed?: 1,
+            valid_char32hexupper?: 1,
+            valid_char32hexlower?: 1,
+            valid_char32hexmixed?: 1,
+            valid_char64base?: 1,
+            valid_char64url?: 1,
+            valid_word16upper?: 1,
+            valid_word16lower?: 1,
+            valid_word16mixed?: 1,
+            valid_word32upper?: 1,
+            valid_word32lower?: 1,
+            valid_word32mixed?: 1,
+            valid_word32hexupper?: 1,
+            valid_word32hexlower?: 1,
+            valid_word32hexmixed?: 1,
+            valid_word64base?: 1,
+            valid_word64url?: 1}
+
+  defp valid_char16upper?(c), do: c in ?0..?9 or c in ?A..?F
+  defp valid_char16lower?(c), do: c in ?0..?9 or c in ?a..?f
+  defp valid_char16mixed?(c), do: c in ?0..?9 or c in ?A..?F or c in ?a..?f
+
+  defp valid_char32upper?(c), do: c in ?A..?Z or c in ?2..?7
+  defp valid_char32lower?(c), do: c in ?a..?z or c in ?2..?7
+  defp valid_char32mixed?(c), do: c in ?A..?Z or c in ?a..?z or c in ?2..?7
+
+  # Most common range first — letters dominate (22/32) over digits (10/32)
+  # in hex base32, so letters go first in the OR short-circuit.
+  defp valid_char32hexupper?(c), do: c in ?A..?V or c in ?0..?9
+  defp valid_char32hexlower?(c), do: c in ?a..?v or c in ?0..?9
+  defp valid_char32hexmixed?(c), do: c in ?A..?V or c in ?a..?v or c in ?0..?9
+
+  defp valid_char64base?(c),
+    do: c in ?A..?Z or c in ?a..?z or c in ?0..?9 or c == ?+ or c == ?/
+
+  defp valid_char64url?(c),
+    do: c in ?A..?Z or c in ?a..?z or c in ?0..?9 or c == ?- or c == ?_
+
+  # SWAR 7-byte word validity. Structure for each function:
+  #   1. ASCII gate `band(w, MASK80) == 0` — every byte < 0x80 so the
+  #      additions below cannot carry across lanes.
+  #   2. "Each byte is in range A OR range B (OR range C)" gate — OR per-
+  #      range XOR masks (high bit set in lane iff byte in that range), AND
+  #      with MASK80, demand all 7 high bits set.
+  defp valid_word16upper?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bxor(w + @swar_ge_0, w + @swar_gt_9),
+          bxor(w + @swar_ge_A, w + @swar_gt_F)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word16lower?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bxor(w + @swar_ge_0, w + @swar_gt_9),
+          bxor(w + @swar_ge_a, w + @swar_gt_f)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word16mixed?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bor(
+            bxor(w + @swar_ge_0, w + @swar_gt_9),
+            bxor(w + @swar_ge_A, w + @swar_gt_F)
+          ),
+          bxor(w + @swar_ge_a, w + @swar_gt_f)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word32upper?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bxor(w + @swar_ge_A, w + @swar_gt_Z),
+          bxor(w + @swar_ge_2, w + @swar_gt_7)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word32lower?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bxor(w + @swar_ge_a, w + @swar_gt_z),
+          bxor(w + @swar_ge_2, w + @swar_gt_7)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word32mixed?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bor(
+            bxor(w + @swar_ge_A, w + @swar_gt_Z),
+            bxor(w + @swar_ge_a, w + @swar_gt_z)
+          ),
+          bxor(w + @swar_ge_2, w + @swar_gt_7)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word32hexupper?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bxor(w + @swar_ge_0, w + @swar_gt_9),
+          bxor(w + @swar_ge_A, w + @swar_gt_V)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word32hexlower?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bxor(w + @swar_ge_0, w + @swar_gt_9),
+          bxor(w + @swar_ge_a, w + @swar_gt_v)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word32hexmixed?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bor(
+            bxor(w + @swar_ge_0, w + @swar_gt_9),
+            bxor(w + @swar_ge_A, w + @swar_gt_V)
+          ),
+          bxor(w + @swar_ge_a, w + @swar_gt_v)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  # base64 SWAR word validity: 3 ranges (A-Z, a-z, 0-9) OR'd with singletons.
+  # For base, the digit range is extended to [0x2F, 0x39] to absorb '/' as
+  # part of one range (Lemire merge), leaving only '+' as a singleton. For url,
+  # '-' and '_' are two more singletons.
+  defp valid_word64base?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bor(
+            bor(
+              bxor(w + @swar_ge_A, w + @swar_gt_Z),
+              bxor(w + @swar_ge_a, w + @swar_gt_z)
+            ),
+            bxor(w + @swar_ge_slash, w + @swar_gt_9)
+          ),
+          bxor(w + @swar_ge_plus, w + @swar_gt_plus)
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
+  defp valid_word64url?(w) do
+    band(w, @swar_mask80) == 0 and
+      band(
+        bor(
+          bor(
+            bor(
+              bxor(w + @swar_ge_A, w + @swar_gt_Z),
+              bxor(w + @swar_ge_a, w + @swar_gt_z)
+            ),
+            bxor(w + @swar_ge_0, w + @swar_gt_9)
+          ),
+          bor(
+            bxor(w + @swar_ge_dash, w + @swar_gt_dash),
+            bxor(w + @swar_ge_underscore, w + @swar_gt_underscore)
+          )
+        ),
+        @swar_mask80
+      ) == @swar_mask80
+  end
+
   @doc """
   Encodes a binary string into a base 16 encoded string.
 
@@ -187,7 +436,7 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [upper: b16_alphabet, lower: to_lower_enc.(b16_alphabet)] do
-    name = :"encode16#{base}"
+    name = String.to_unsafe_atom("encode16#{base}")
     encoded = to_encode_list.(alphabet)
 
     @compile {:inline, [{name, 1}]}
@@ -287,7 +536,7 @@ defmodule Base do
     * `:lower` - only allows lower case characters
     * `:mixed` - allows mixed case characters
 
-  An `ArgumentError` exception is raised if the padding is incorrect or
+  An `ArgumentError` exception is raised if the string has an odd length or
   a non-alphabet character is present in the string.
 
   ## Examples
@@ -368,28 +617,24 @@ defmodule Base do
   upper = Enum.with_index(b16_alphabet)
 
   for {base, alphabet} <- [upper: upper, lower: to_lower_dec.(upper), mixed: to_mixed_dec.(upper)] do
-    decode_name = :"decode16#{base}!"
-    validate_name = :"validate16#{base}?"
-    valid_char_name = :"valid_char16#{base}?"
+    decode_name = String.to_unsafe_atom("decode16#{base}!")
+    validate_name = String.to_unsafe_atom("validate16#{base}?")
+    valid_char_name = String.to_unsafe_atom("valid_char16#{base}?")
+    valid_word_name = String.to_unsafe_atom("valid_word16#{base}?")
 
     {min, decoded} = to_decode_list.(alphabet)
 
+    # SWAR fast path: 7 bytes per stride, validated entirely via
+    # `valid_word16<base>?` in the body. The `and` short-circuits when SWAR
+    # fails on any byte. Tail bytes (1-6 leftover) recurse through the
+    # single-byte clause below.
+    defp unquote(validate_name)(<<w::56, rest::binary>>),
+      do: unquote(valid_word_name)(w) and unquote(validate_name)(rest)
+
     defp unquote(validate_name)(<<>>), do: true
 
-    defp unquote(validate_name)(<<c1, c2, rest::binary>>) do
-      unquote(valid_char_name)(c1) and
-        unquote(valid_char_name)(c2) and
-        unquote(validate_name)(rest)
-    end
-
-    defp unquote(validate_name)(<<_char, _rest::binary>>), do: false
-
-    @compile {:inline, [{valid_char_name, 1}]}
-    defp unquote(valid_char_name)(char)
-         when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
-         do: true
-
-    defp unquote(valid_char_name)(_char), do: false
+    defp unquote(validate_name)(<<char, rest::binary>>),
+      do: unquote(valid_char_name)(char) and unquote(validate_name)(rest)
 
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
@@ -490,7 +735,7 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [base: b64_alphabet, url: b64url_alphabet] do
-    name = :"encode64#{base}"
+    name = String.to_unsafe_atom("encode64#{base}")
     encoded = to_encode_list.(alphabet)
 
     @compile {:inline, [{name, 1}]}
@@ -756,28 +1001,24 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [base: b64_alphabet, url: b64url_alphabet] do
-    decode_name = :"decode64#{base}!"
+    decode_name = String.to_unsafe_atom("decode64#{base}!")
 
-    validate_name = :"validate64#{base}?"
-    validate_main_name = :"validate_main64#{validate_name}?"
-    valid_char_name = :"valid_char64#{base}?"
+    validate_name = String.to_unsafe_atom("validate64#{base}?")
+    validate_main_name = String.to_unsafe_atom("validate_main64#{validate_name}?")
+    valid_char_name = String.to_unsafe_atom("valid_char64#{base}?")
+    valid_word_name = String.to_unsafe_atom("valid_word64#{base}?")
     {min, decoded} = alphabet |> Enum.with_index() |> to_decode_list.()
+
+    # SWAR fast path: 7 bytes per stride, validated via `valid_word64<base>?`
+    # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
+    # 8-byte-multiple `main`) recurses through the single-byte clause.
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>),
+      do: unquote(valid_word_name)(w) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_main_name)(<<>>), do: true
 
-    defp unquote(validate_main_name)(
-           <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8, rest::binary>>
-         ) do
-      unquote(valid_char_name)(c1) and
-        unquote(valid_char_name)(c2) and
-        unquote(valid_char_name)(c3) and
-        unquote(valid_char_name)(c4) and
-        unquote(valid_char_name)(c5) and
-        unquote(valid_char_name)(c6) and
-        unquote(valid_char_name)(c7) and
-        unquote(valid_char_name)(c8) and
-        unquote(validate_main_name)(rest)
-    end
+    defp unquote(validate_main_name)(<<char, rest::binary>>),
+      do: unquote(valid_char_name)(char) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_name)(<<>>, _pad?), do: true
 
@@ -862,13 +1103,6 @@ defmodule Base do
           false
       end
     end
-
-    @compile {:inline, [{valid_char_name, 1}]}
-    defp unquote(valid_char_name)(char)
-         when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
-         do: true
-
-    defp unquote(valid_char_name)(_char), do: false
 
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
@@ -1080,7 +1314,7 @@ defmodule Base do
         hexupper: b32hex_alphabet,
         hexlower: to_lower_enc.(b32hex_alphabet)
       ] do
-    name = :"encode32#{base}"
+    name = String.to_unsafe_atom("encode32#{base}")
     encoded = to_encode_list.(alphabet)
 
     @compile {:inline, [{name, 1}]}
@@ -1154,7 +1388,7 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allows  upper case characters (default)
+    * `:upper` - only allows upper case characters (default)
     * `:lower` - only allows lower case characters
     * `:mixed` - allows mixed case characters
 
@@ -1419,27 +1653,24 @@ defmodule Base do
         hexlower: to_lower_dec.(hexupper),
         hexmixed: to_mixed_dec.(hexupper)
       ] do
-    decode_name = :"decode32#{base}!"
-    validate_name = :"validate32#{base}?"
-    validate_main_name = :"validate_main32#{validate_name}?"
-    valid_char_name = :"valid_char32#{base}?"
+    decode_name = String.to_unsafe_atom("decode32#{base}!")
+    validate_name = String.to_unsafe_atom("validate32#{base}?")
+    validate_main_name = String.to_unsafe_atom("validate_main32#{validate_name}?")
+    valid_char_name = String.to_unsafe_atom("valid_char32#{base}?")
     {min, decoded} = to_decode_list.(alphabet)
+
+    # SWAR fast path: 7 bytes per stride, validated via `valid_word32<base>?`
+    # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
+    # 8-byte-multiple `main`) recurses through the single-byte clause.
+    valid_word_name = String.to_unsafe_atom("valid_word32#{base}?")
+
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>),
+      do: unquote(valid_word_name)(w) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_main_name)(<<>>), do: true
 
-    defp unquote(validate_main_name)(
-           <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8, rest::binary>>
-         ) do
-      unquote(valid_char_name)(c1) and
-        unquote(valid_char_name)(c2) and
-        unquote(valid_char_name)(c3) and
-        unquote(valid_char_name)(c4) and
-        unquote(valid_char_name)(c5) and
-        unquote(valid_char_name)(c6) and
-        unquote(valid_char_name)(c7) and
-        unquote(valid_char_name)(c8) and
-        unquote(validate_main_name)(rest)
-    end
+    defp unquote(validate_main_name)(<<char, rest::binary>>),
+      do: unquote(valid_char_name)(char) and unquote(validate_main_name)(rest)
 
     defp unquote(validate_name)(<<>>, _pad?), do: true
 
@@ -1518,13 +1749,6 @@ defmodule Base do
           false
       end
     end
-
-    @compile {:inline, [{valid_char_name, 1}]}
-    defp unquote(valid_char_name)(char)
-         when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
-         do: true
-
-    defp unquote(valid_char_name)(_char), do: false
 
     defp unquote(decode_name)(char) do
       index = char - unquote(min)

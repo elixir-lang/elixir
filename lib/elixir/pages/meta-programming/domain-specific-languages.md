@@ -96,7 +96,7 @@ defmodule TestCase do
 
   """
   defmacro test(description, do: block) do
-    function_name = String.to_atom("test " <> description)
+    function_name = String.to_unsafe_atom("test " <> description)
     quote do
       def unquote(function_name)(), do: unquote(block)
     end
@@ -159,7 +159,7 @@ defmodule TestCase do
 
   """
   defmacro test(description, do: block) do
-    function_name = String.to_atom("test " <> description)
+    function_name = String.to_unsafe_atom("test " <> description)
     quote do
       # Prepend the newly defined test to the list of tests
       @tests [unquote(function_name) | @tests]

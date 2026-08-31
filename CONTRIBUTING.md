@@ -55,7 +55,7 @@ To recompile all (including Erlang modules):
 make compile
 ```
 
-After your changes are done, please remember to run `make format` to guarantee
+After your changes are done, run `make format` to guarantee
 all files are properly formatted, then run the full suite with
 `make test`.
 
@@ -71,52 +71,66 @@ updating an existing checkout, run `make clean compile`. You can check
 [the official build status](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml).
 More tasks can be found by reading the [Makefile](Makefile).
 
-We encourage contributors to write tests that capture both existing and newly
-introduced behavior, especially for bug fixes and major changes:
+## Sending a pull request
 
-  * **Bug Fixes:** If you are fixing a bug, please try to include a test that
-    *fails* before your change and *passes* afterward. This makes it easier to
-    confirm that the fix addresses the underlying issue and helps prevent
-    regressions in the future.
+Contributions are done [via pull request](https://help.github.com/articles/using-pull-requests/)
+and must include tests and other relevant proof of work:
+
+  * **Bug Fixes:** If you are fixing a bug, include a test that *fails* before
+    your change and *passes* afterward. This makes it easier to confirm that the
+    fix addresses the underlying issue and helps prevent regressions in the future.
 
   * **New Features or Major Changes:** If you are adding a new feature or making
-    major changes to existing functionality, please add tests that cover the
-    major parts of that functionality. Aim to have the best code coverage possible.
+    major changes to existing functionality, please add assocaited tests. Aim to
+    have the best code coverage possible.
 
-With tests running and passing, you are ready to contribute to Elixir and
-[send a pull request](https://help.github.com/articles/using-pull-requests/).
-We have saved some excellent pull requests we have received in the past in
-case you are looking for some examples:
+  * **Performance improvements:** For performance improvements, please include the
+    benchmark script, with inputs and results, in the pull request description.
+    We recommend using [benchee](https://github.com/bencheeorg/benchee).
 
-  * [Implement Enum.member? - Pull request](https://github.com/elixir-lang/elixir/pull/992)
+Here are some pull requests we have received in the past you can use as reference:
 
-  * [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
+  * [Implement Enum.member?](https://github.com/elixir-lang/elixir/pull/992)
 
-  * [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
+  * [Add String.valid?](https://github.com/elixir-lang/elixir/pull/1058)
+
+  * [Implement capture_io for ExUnit](https://github.com/elixir-lang/elixir/pull/1059)
 
 ## Reviewing changes
 
 Once a pull request is sent, the Elixir team will review your changes.
-We outline our process below to clarify the roles of everyone involved.
-
-All pull requests must be approved by two committers before being merged into
-the repository. If changes are necessary, the team will leave appropriate
-comments requesting changes to the code. Unfortunately, we cannot guarantee a
-pull request will be merged, even when modifications are requested, as the Elixir
-team will re-evaluate the contribution as it changes.
-
-Committers may also push style changes directly to your branch. If you would
-rather manage all changes yourself, you can disable the "Allow edits from maintainers"
-feature when submitting your pull request.
-
-The Elixir team may optionally assign someone to review a pull request.
-If someone is assigned, they must explicitly approve the code before
-another team member can merge it.
+If changes are necessary, the team will leave appropriate comments requesting
+changes to the code. Unfortunately, we cannot guarantee a pull request will
+be merged, even when modifications are requested, as the Elixir team will
+re-evaluate the contribution as it changes.
 
 When the review finishes, your pull request will be squashed and merged
 into the repository. If you have carefully organized your commits and
 believe they should be merged without squashing, please mention it in
 a comment.
+
+## Building documentation
+
+Building the documentation requires that [ExDoc](https://github.com/elixir-lang/ex_doc)
+is cloned and compiled alongside Elixir.
+
+After cloning and compiling Elixir, run:
+
+```sh
+elixir_dir=$(pwd)
+cd .. && git clone https://github.com/elixir-lang/ex_doc.git
+cd ex_doc && "${elixir_dir}/bin/elixir" "${elixir_dir}/bin/mix" do deps.get + compile
+
+# Now we will go back to Elixir's root directory,
+cd "${elixir_dir}"
+
+# and generate HTML and EPUB documents:
+make docs
+```
+
+This will produce documentation sets for `elixir`, `eex`, `ex_unit`, `iex`, `logger`,
+and `mix` under the `doc` directory. If you are planning to contribute documentation,
+[please check our best practices for writing documentation](https://elixir.hexdocs.pm/writing-documentation.html).
 
 ## Licensing and Compliance Requirements
 
@@ -181,25 +195,50 @@ affecting **all external contributors**:
     See <https://developercertificate.org/> for a copy of the Developer Certificate
     of Origin license.
 
-## Building documentation
+## Using AI and coding agents
 
-Building the documentation requires that [ExDoc](https://github.com/elixir-lang/ex_doc)
-is installed and built alongside Elixir.
+While we allow the use of AI on contributions and discussions, please be mindful
+when doing so. Generally speaking, Elixir maintainers already have access to AI
+(like many other developers). Therefore, if we need the feedback or help of a
+coding agent, we can request so ourselves. For this reason, we often find
+the point of view of the human behind the agent more valuable.
 
-After cloning and compiling Elixir, run:
+That said, here are examples of how one might (or might not) use AI and coding
+agents in Elixir spaces:
 
-```sh
-elixir_dir=$(pwd)
-cd .. && git clone https://github.com/elixir-lang/ex_doc.git
-cd ex_doc && "${elixir_dir}/bin/elixir" "${elixir_dir}/bin/mix" do deps.get + compile
+  * When it comes to discussions, using AI to help express yourself is welcome,
+    but avoid directly copy and pasting AI generated content. If there is a language
+    barrier, use AI to translate, review, and improve your text, but do not use AI
+    to respond on your behalf.
 
-# Now we will go back to Elixir's root directory,
-cd "${elixir_dir}"
+  * Do not use coding agents to tackle existing issues unless they have the
+    "Contributions Welcome" label.
 
-# and generate HTML and EPUB documents:
-make docs
-```
+  * If you request a feature on the mailing list and it is accepted, you may
+    use coding agents to implement it, as long as it follows the AI Contributions
+    guidelines below.
 
-This will produce documentation sets for `elixir`, `eex`, `ex_unit`, `iex`, `logger`,
-and `mix` under the `doc` directory. If you are planning to contribute documentation,
-[please check our best practices for writing documentation](https://hexdocs.pm/elixir/writing-documentation.html).
+  * When automating AI usage on the Elixir codebase for performance improvements,
+    security fixes, or correctness changes to the compiler or type system, pair it
+    with a separate set of agents whose job is to argue against and try to invalidate
+    any proposed change. And treat their approval as advisory: a human must still
+    validate it before opening issues or pull requests.
+
+If any code is written by AI, then you must follow the guidelines below.
+
+### AI contributions
+
+AI agents MUST NOT add Signed-off-by tags. Only humans can legally certify the Developer
+Certificate of Origin (DCO). The human submitter is responsible for:
+
+  * Reviewing all AI-generated code
+  * Ensuring compliance with licensing requirements
+  * Adding their own Signed-off-by tag to certify the DCO
+  * Taking full responsibility for the contribution
+  * Disclosing use of AI for comments and code contributions
+
+When AI tools contribute to Elixir, proper attribution helps track the evolving role of
+AI in the development process. Contributions should include an Assisted-by tag in the
+following format:
+
+    Assisted-by: AGENT_NAME:MODEL_VERSION

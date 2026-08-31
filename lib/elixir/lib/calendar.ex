@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 defmodule Calendar do
+  @strftime_max_width 1024
+
   @moduledoc """
   This module defines the responsibilities for working with
   calendars, dates, times and datetimes in Elixir.
@@ -104,6 +106,7 @@ defmodule Calendar do
   @typedoc "Any map or struct that contains the time fields."
   @type time :: %{
           optional(any) => any,
+          calendar: calendar,
           hour: hour,
           minute: minute,
           second: second,
@@ -293,7 +296,7 @@ defmodule Calendar do
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
-  Define the rollover moment for the calendar.
+  Defines the rollover moment for the calendar.
 
   This is the moment, in your calendar, when the current day ends
   and the next day starts.
@@ -379,13 +382,13 @@ defmodule Calendar do
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
   @doc """
-  Shifts date by given duration according to its calendar.
+  Shifts date by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}
 
   @doc """
-  Shifts naive datetime by given duration according to its calendar.
+  Shifts naive datetime by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_naive_datetime(
@@ -400,7 +403,7 @@ defmodule Calendar do
             ) :: {year, month, day, hour, minute, second, microsecond}
 
   @doc """
-  Shifts time by given duration according to its calendar.
+  Shifts time by the given duration according to its calendar.
   """
   @doc since: "1.17.0"
   @callback shift_time(hour, minute, second, microsecond, Duration.t()) ::
@@ -529,6 +532,7 @@ defmodule Calendar do
     * `%`: indicates the start of a formatted section
     * `<padding>`: set the padding (see below)
     * `<width>`: a number indicating the minimum size of the formatted section
+      (maximum #{@strftime_max_width})
     * `<format>`: the format itself (see below)
 
   ### Accepted padding options
@@ -559,11 +563,11 @@ defmodule Calendar do
   P      | "am" or "pm" (noon is "pm", midnight as "am")                           | am, pm
   q      | Quarter                                                                 | 1, 2, 3, 4
   s      | Number of seconds since the Epoch, 1970-01-01 00:00:00+0000 (UTC)       | 1565888877
-  S      | Second                                                                  | 00, 59, 60
+  S      | Second                                                                  | 00, 59
   u      | Day of the week                                                         | 1 (Monday), 7 (Sunday)
   x      | Preferred date (without time) representation                            | 2018-10-17
   X      | Preferred time (without date) representation                            | 12:34:56
-  y      | Year as 2-digits                                                        | 01, 01, 86, 18
+  y      | Year as 2-digits                                                        | -01, 01, 86, 18
   Y      | Year                                                                    | -0001, 0001, 1986
   z      | +hhmm/-hhmm time zone offset from UTC (empty string if naive)           | +0300, -0530
   Z      | Time zone abbreviation (empty string if naive)                          | CET, BRST
@@ -620,7 +624,7 @@ defmodule Calendar do
       ...>)
       "серпень"
 
-   Microsecond formatting:
+    Microsecond formatting:
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06Z], "%y-%m-%d %H:%M:%S.%f")
       "19-08-26 13:52:06.0"
@@ -667,9 +671,13 @@ defmodule Calendar do
   end
 
   defp parse_modifiers(<<digit, rest::binary>>, width, pad, parser_data) when digit in ?0..?9 do
-    new_width = (width || 0) * 10 + (digit - ?0)
+    width = (width || 0) * 10 + (digit - ?0)
 
-    parse_modifiers(rest, new_width, pad, parser_data)
+    if width > @strftime_max_width do
+      raise ArgumentError, "invalid strftime format: width must be at most #{@strftime_max_width}"
+    end
+
+    parse_modifiers(rest, width, pad, parser_data)
   end
 
   # set default padding if none was specified
@@ -704,7 +712,7 @@ defmodule Calendar do
 
   # Literally just %
   defp format_modifiers("%" <> rest, width, pad, datetime, format_options, acc) do
-    parse(rest, datetime, format_options, [pad_leading("%", width, pad) | acc])
+    parse(rest, datetime, format_options, [pad_leading_ascii("%", width, pad) | acc])
   end
 
   # Abbreviated name of day
@@ -773,7 +781,7 @@ defmodule Calendar do
 
   # Day of the month
   defp format_modifiers("d" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.day |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.day |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -792,31 +800,35 @@ defmodule Calendar do
 
   # Hour using a 24-hour clock
   defp format_modifiers("H" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.hour |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.hour |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Hour using a 12-hour clock
   defp format_modifiers("I" <> rest, width, pad, datetime, format_options, acc) do
-    result = (rem(datetime.hour + 23, 12) + 1) |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      (rem(datetime.hour + 23, 12) + 1) |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Day of the year
   defp format_modifiers("j" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime |> Date.day_of_year() |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      datetime |> Date.day_of_year() |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Month
   defp format_modifiers("m" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.month |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.month |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Minute
   defp format_modifiers("M" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.minute |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.minute |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -844,19 +856,23 @@ defmodule Calendar do
 
   # Quarter
   defp format_modifiers("q" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime |> Date.quarter_of_year() |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      datetime |> Date.quarter_of_year() |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Second
   defp format_modifiers("S" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.second |> Integer.to_string() |> pad_leading(width, pad)
+    result = datetime.second |> Integer.to_string() |> pad_leading_ascii(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Day of the week
   defp format_modifiers("u" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime |> Date.day_of_week() |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      datetime |> Date.day_of_week() |> Integer.to_string() |> pad_leading_ascii(width, pad)
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -906,20 +922,25 @@ defmodule Calendar do
 
   # Year as 2-digits
   defp format_modifiers("y" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.year |> rem(100) |> Integer.to_string() |> pad_leading(width, pad)
+    result =
+      if datetime.year < 0 do
+        [?- | -datetime.year |> rem(100) |> Integer.to_string() |> pad_leading_ascii(width, pad)]
+      else
+        datetime.year |> rem(100) |> Integer.to_string() |> pad_leading_ascii(width, pad)
+      end
+
     parse(rest, datetime, format_options, [result | acc])
   end
 
   # Year
   defp format_modifiers("Y" <> rest, width, pad, datetime, format_options, acc) do
-    {sign, year} =
+    result =
       if datetime.year < 0 do
-        {?-, -datetime.year}
+        [?- | -datetime.year |> Integer.to_string() |> pad_leading_ascii(width, pad)]
       else
-        {[], datetime.year}
+        datetime.year |> Integer.to_string() |> pad_leading_ascii(width, pad)
       end
 
-    result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -966,7 +987,7 @@ defmodule Calendar do
       Integer.to_string(div(absolute_offset, 3600) * 100 + rem(div(absolute_offset, 60), 60))
 
     sign = if utc_offset + std_offset >= 0, do: "+", else: "-"
-    result = "#{sign}#{pad_leading(offset_number, width, pad)}"
+    result = "#{sign}#{pad_leading_ascii(offset_number, width, pad)}"
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -985,13 +1006,19 @@ defmodule Calendar do
     raise ArgumentError, "invalid strftime format: %#{next}"
   end
 
-  defp pad_preferred(result, width, pad) when length(result) < width do
-    pad_preferred([pad | result], width, pad)
+  defp pad_preferred(result, width, pad) do
+    result
+    |> IO.iodata_to_binary()
+    |> pad_leading(width, pad)
   end
 
-  defp pad_preferred(result, _width, _pad), do: result
-
   defp pad_leading(string, count, padding) do
+    to_pad = count - String.length(string)
+    if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
+  end
+
+  # Similar to `pad_leading/3`, but only for strings that always ASCII-only
+  defp pad_leading_ascii(string, count, padding) do
     to_pad = count - byte_size(string)
     if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
   end

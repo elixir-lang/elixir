@@ -897,7 +897,7 @@ defmodule File do
       File.copy("non_existing.txt", "copy.txt")
       #=> {:error, :enoent}
   """
-  @spec copy(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
+  @spec copy(Path.t() | io_device, Path.t() | io_device, non_neg_integer | :infinity) ::
           {:ok, non_neg_integer} | {:error, posix | :badarg | :terminated}
   def copy(source, destination, bytes_count \\ :infinity) do
     source = normalize_path_or_io_device(source)
@@ -918,7 +918,7 @@ defmodule File do
       File.copy!("non_existing.txt", "copy.txt")
       ** (File.CopyError) could not copy from "non_existing.txt" to "copy.txt": no such file or directory
   """
-  @spec copy!(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
+  @spec copy!(Path.t() | io_device, Path.t() | io_device, non_neg_integer | :infinity) ::
           non_neg_integer
   def copy!(source, destination, bytes_count \\ :infinity) do
     case copy(source, destination, bytes_count) do
@@ -1103,7 +1103,7 @@ defmodule File do
 
   @doc ~S"""
   Copies the contents in `source` to `destination` recursively, maintaining the
-  source directory structure and modes.
+  source directory structure and regular file modes.
 
   If `source` is a file or a symbolic link to it, `destination` must be a path
   to an existent file, a symbolic link to one, or a path to a non-existent file.
@@ -1114,7 +1114,9 @@ defmodule File do
   If the source is a file, it copies `source` to `destination`. If the `source`
   is a directory, it copies the contents inside source into the `destination` directory.
 
-  If a file already exists in the destination, it invokes the optional `on_conflict`
+  For regular files, their respective file modes are preserved in the destination.
+  Directory modes are preserved only when `:preserve_directory_permissions` is `true`.
+  If a file already exists in the destination, it invokes the optional `:on_conflict`
   callback given as an option. See "Options" for more information.
 
   This function may fail while copying files, in such cases, it will leave the
@@ -1151,6 +1153,11 @@ defmodule File do
       dereferenced and have their contents copied instead when set to `true`. If the dereferenced
       files do not exist, than the operation fails. The default is `false`.
 
+    * `:preserve_directory_permissions` - (since v1.20.0) when `true`, the permissions of
+      source directories are copied to the destination directories after their contents are
+      written. This is useful when source directories are read-only or have restricted
+      permissions that must be preserved. The default is `false`.
+
   ## Examples
 
       # Copies file "a.txt" to "b.txt"
@@ -1176,7 +1183,8 @@ defmodule File do
   """
   @spec cp_r(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
-          dereference_symlinks: boolean()
+          dereference_symlinks: boolean(),
+          preserve_directory_permissions: boolean()
         ) ::
           {:ok, [binary]} | {:error, posix | :badarg | :terminated, binary}
 
@@ -1198,6 +1206,7 @@ defmodule File do
   def cp_r(source, destination, options) when is_list(options) do
     on_conflict = Keyword.get(options, :on_conflict, fn _, _ -> true end)
     dereference? = Keyword.get(options, :dereference_symlinks, false)
+    preserve_directory_permissions? = Keyword.get(options, :preserve_directory_permissions, false)
 
     source =
       source
@@ -1217,7 +1226,14 @@ defmodule File do
     else
       dereference = if dereference?, do: MapSet.new(), else: nil
 
-      case do_cp_r(source, destination, on_conflict, dereference, []) do
+      case do_cp_r(
+             source,
+             destination,
+             on_conflict,
+             dereference,
+             preserve_directory_permissions?,
+             []
+           ) do
         {:error, _, _} = error -> error
         res -> {:ok, res}
       end
@@ -1241,7 +1257,8 @@ defmodule File do
   """
   @spec cp_r!(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
-          dereference_symlinks: boolean()
+          dereference_symlinks: boolean(),
+          preserve_directory_permissions: boolean()
         ) :: [binary]
   def cp_r!(source, destination, options \\ []) do
     case cp_r(source, destination, options) do
@@ -1258,7 +1275,7 @@ defmodule File do
     end
   end
 
-  defp do_cp_r(src, dest, on_conflict, dereference, acc) when is_list(acc) do
+  defp do_cp_r(src, dest, on_conflict, dereference, preserve_dir_perms?, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
         case do_cp_file(src, dest, on_conflict, acc) do
@@ -1278,7 +1295,7 @@ defmodule File do
               {:error, :eloop, src}
             else
               dereference = MapSet.put(dereference, resolved)
-              do_cp_r(resolved, dest, on_conflict, dereference, acc)
+              do_cp_r(resolved, dest, on_conflict, dereference, preserve_dir_perms?, acc)
             end
 
           {:ok, link} ->
@@ -1293,23 +1310,34 @@ defmodule File do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                case copy_file_mode(src, dest) do
-                  :ok ->
-                    Enum.reduce_while(files, [dest | acc], fn x, acc ->
-                      case do_cp_r(
-                             Path.join(src, x),
-                             Path.join(dest, x),
-                             on_conflict,
-                             dereference,
-                             acc
-                           ) do
-                        {:error, _, _} = error -> {:halt, error}
-                        acc -> {:cont, acc}
-                      end
-                    end)
+                files
+                |> Enum.reduce_while([dest | acc], fn x, acc ->
+                  case do_cp_r(
+                         Path.join(src, x),
+                         Path.join(dest, x),
+                         on_conflict,
+                         dereference,
+                         preserve_dir_perms?,
+                         acc
+                       ) do
+                    {:error, _, _} = error -> {:halt, error}
+                    acc -> {:cont, acc}
+                  end
+                end)
+                |> case do
+                  {:error, _, _} = error ->
+                    error
 
-                  {:error, reason} ->
-                    {:error, reason, src}
+                  files when preserve_dir_perms? ->
+                    # Change the directory after writing files in case
+                    # it was originally read only
+                    case copy_file_mode(src, dest) do
+                      :ok -> files
+                      {:error, reason} -> {:error, reason, src}
+                    end
+
+                  files ->
+                    files
                 end
 
               {:error, reason} ->
@@ -1329,14 +1357,13 @@ defmodule File do
   end
 
   # If we reach this clause, there was an error while processing a file.
-  defp do_cp_r(_, _, _, _, acc) do
+  defp do_cp_r(_, _, _, _, _, acc) do
     acc
   end
 
   defp copy_file_mode(src, dest) do
-    with {:ok, dest_fileinfo} <- stat(dest),
-         {:ok, src_fileinfo} <- stat(src) do
-      write_stat(dest, %{dest_fileinfo | mode: src_fileinfo.mode})
+    with {:ok, src_fileinfo} <- stat(src) do
+      chmod(dest, src_fileinfo.mode)
     end
   end
 
@@ -2193,7 +2220,7 @@ defmodule File do
   type. If you pass, for example, `[encoding: :utf8]` or
   `[encoding: {:utf16, :little}]` in the modes parameter, the underlying stream
   will use `IO.write/2` and the `String.Chars` protocol to convert the data.
-  See `IO.binwrite/2` and `IO.write/2` .
+  See `IO.binwrite/2` and `IO.write/2`.
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.

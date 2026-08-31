@@ -9,7 +9,12 @@ defmodule Mix.Tasks.SourceTest do
   import ExUnit.CaptureIO
 
   @moduletag :requires_source
-  @editor System.get_env("ELIXIR_EDITOR")
+
+  if editor = System.get_env("ELIXIR_EDITOR") do
+    defp reset_editor(), do: System.put_env("ELIXIR_EDITOR", unquote(editor))
+  else
+    defp reset_editor(), do: System.delete_env("ELIXIR_EDITOR")
+  end
 
   test "source MODULE", context do
     in_tmp(context.test, fn ->
@@ -77,9 +82,7 @@ defmodule Mix.Tasks.SourceTest do
       assert output =~ ~r"\d+:.*lib/elixir/lib/enum\.ex"
     end)
   after
-    if @editor,
-      do: System.put_env("ELIXIR_EDITOR", @editor),
-      else: System.delete_env("ELIXIR_EDITOR")
+    reset_editor()
   end
 
   test "source --open without editor" do
@@ -90,9 +93,7 @@ defmodule Mix.Tasks.SourceTest do
       Mix.Tasks.Source.run(["--open", "Enum"])
     end
   after
-    if @editor,
-      do: System.put_env("ELIXIR_EDITOR", @editor),
-      else: System.delete_env("ELIXIR_EDITOR")
+    reset_editor()
   end
 
   test "bad arguments" do

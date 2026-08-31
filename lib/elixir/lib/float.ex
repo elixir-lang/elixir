@@ -25,7 +25,7 @@ defmodule Float do
   and arithmetic due to the fact most decimal fractions cannot be
   represented by a floating-point binary and most operations are not exact,
   but operate on approximations. Those issues are not specific
-  to Elixir, they are a property of floating point representation itself.
+  to Elixir, they are a property of floating-point representation itself.
 
   For example, the numbers 0.1 and 0.01 are two of them, what means the result
   of squaring 0.1 does not give 0.01 neither the closest representable. Here is
@@ -167,40 +167,73 @@ defmodule Float do
     parse_unsigned(binary)
   end
 
-  defp parse_unsigned(<<digit, rest::binary>>) when digit in ?0..?9,
-    do: parse_unsigned(rest, false, false, [digit])
+  defp parse_unsigned(<<digit, rest::binary>> = binary) when digit in ?0..?9,
+    do: parse_mantissa(binary, rest, false)
 
   defp parse_unsigned(binary) when is_binary(binary), do: :error
 
-  defp parse_unsigned(<<digit, rest::binary>>, dot?, e?, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, dot?, e?, [digit | acc])
+  defp parse_mantissa(binary, <<digit, rest::binary>>, dot?) when digit in ?0..?9,
+    do: parse_mantissa(binary, rest, dot?)
 
-  defp parse_unsigned(<<?., digit, rest::binary>>, false, false, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, true, false, [digit, ?. | acc])
+  defp parse_mantissa(binary, <<?., digit, rest::binary>>, false) when digit in ?0..?9,
+    do: parse_mantissa(binary, rest, true)
 
-  defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc)
+  defp parse_mantissa(binary, <<exp_marker, digit, rest::binary>> = tail, dot?)
        when exp_marker in ~c"eE" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, [digit, ?e | add_dot(acc, dot?)])
+       do: parse_exponent(binary, byte_size(binary) - byte_size(tail), rest, dot?)
 
-  defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc)
+  defp parse_mantissa(binary, <<exp_marker, sign, digit, rest::binary>> = tail, dot?)
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, [digit, sign, ?e | add_dot(acc, dot?)])
+       do: parse_exponent(binary, byte_size(binary) - byte_size(tail), rest, dot?)
 
-  # :erlang.binary_to_float/1 can raise an ArgumentError if the e exponent is too big. For example,
-  # "1.0e400". Because of this, we rescue the ArgumentError here and return an error.
-  defp parse_unsigned(rest, dot?, _, acc) do
-    acc
-    |> add_dot(dot?)
-    |> :lists.reverse()
-    |> :erlang.list_to_float()
+  defp parse_mantissa(binary, rest, dot?), do: finish_mantissa(binary, rest, dot?)
+
+  defp parse_exponent(binary, exp_pos, <<digit, rest::binary>>, dot?) when digit in ?0..?9,
+    do: parse_exponent(binary, exp_pos, rest, dot?)
+
+  defp parse_exponent(binary, exp_pos, rest, dot?),
+    do: finish_exponent(binary, exp_pos, rest, dot?)
+
+  defp finish_mantissa(binary, rest, _dot? = true) do
+    {:erlang.binary_to_float(consumed(binary, rest)), rest}
   rescue
     ArgumentError -> :error
-  else
-    float -> {float, rest}
   end
 
-  defp add_dot(acc, true), do: acc
-  defp add_dot(acc, false), do: [?0, ?. | acc]
+  # Bare integer: * 1.0 casts to the nearest float without building a new binary,
+  # and raises ArithmeticError on overflow (for example a 400-digit integer).
+  defp finish_mantissa(binary, rest, _dot? = false) do
+    {:erlang.binary_to_integer(consumed(binary, rest)) * 1.0, rest}
+  rescue
+    ArithmeticError -> :error
+  end
+
+  # binary_to_float/1 raises ArgumentError when the exponent is too big, e.g. "1.0e400".
+  defp finish_exponent(binary, _exp_pos, rest, _dot? = true) do
+    {:erlang.binary_to_float(consumed(binary, rest)), rest}
+  rescue
+    ArgumentError -> :error
+  end
+
+  # No decimal point, so ".0" is spliced in before the exponent (at exp_pos) to
+  # form a valid float literal.
+  defp finish_exponent(binary, exp_pos, rest, _dot? = false) do
+    len = byte_size(binary) - byte_size(rest)
+
+    literal =
+      IO.iodata_to_binary([
+        :binary.part(binary, 0, exp_pos),
+        ".0",
+        :binary.part(binary, exp_pos, len - exp_pos)
+      ])
+
+    {:erlang.binary_to_float(literal), rest}
+  rescue
+    ArgumentError -> :error
+  end
+
+  defp consumed(binary, ""), do: binary
+  defp consumed(binary, rest), do: :binary.part(binary, 0, byte_size(binary) - byte_size(rest))
 
   @doc """
   Rounds a float to the largest float less than or equal to `number`.
@@ -253,7 +286,7 @@ defmodule Float do
   @doc """
   Rounds a float to the smallest float greater than or equal to `number`.
 
-  `ceil/2` also accepts a precision to round a floating-point value down
+  `ceil/2` also accepts a precision to round a floating-point value up
   to an arbitrary number of fractional digits (between 0 and 15).
 
   The operation is performed on the binary floating point, without a
@@ -322,7 +355,7 @@ defmodule Float do
   and therefore the number above is internally represented as 5.567499999,
   which explains the behavior above. If you want exact rounding for decimals,
   you must use a decimal library. The behavior above is also in accordance
-  to reference implementations, such as "Correctly Rounded Binary-Decimal and
+  with reference implementations, such as "Correctly Rounded Binary-Decimal and
   Decimal-Binary Conversions" by David M. Gay.
 
   ## Examples
@@ -344,15 +377,12 @@ defmodule Float do
 
   """
   @spec round(float, precision_range) :: float
-  # This implementation is slow since it relies on big integers.
-  # Faster implementations are available on more recent papers
-  # and could be implemented in the future.
   def round(float, precision \\ 0)
 
-  def round(float, 0) when float == 0.0, do: float
+  def round(float, 0) when float === 0.0 or float === -0.0, do: float
 
   def round(float, 0) when is_float(float) do
-    case float |> :erlang.round() |> :erlang.float() do
+    case :erlang.round(float) * 1.0 do
       zero when zero == 0.0 and float < 0.0 -> -0.0
       rounded -> rounded
     end
@@ -366,133 +396,168 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
+  # Decimal-place rounding via exact rational scaling. This is the bignum
+  # core used by reference implementations like David M. Gay's "Correctly
+  # Rounded Binary-Decimal and Decimal-Binary Conversions" (cited in the
+  # @doc above), Python's round(), and Java's BigDecimal.setScale.
+  #
+  # 1. Decompose float exactly: |float| = mantissa / 2^shift.
+  # 2. Scale exactly: |float| * 10^precision = mantissa * 10^precision / 2^shift.
+  #    Because precision is bounded to 0..15, the product fits in ~103 bits
+  #    (53-bit mantissa + ~50-bit power of ten) and BEAM bignums handle it
+  #    directly without approximation.
+  # 3. Round the exact rational to an integer per the requested mode
+  #    (half_up / floor / ceil) using quotient and remainder.
+  # 4. Emit the float closest to rounded_int / 10^precision:
+  #    - fast path: when rounded_int < 2^53, both operands are exactly
+  #      representable as floats and IEEE division is correctly rounded.
+  #    - slow path: bignum alignment + manual mantissa extraction with
+  #      round-to-nearest-even for the trailing bit.
+  #
+  # The integer-rounding decision (step 3) and the binary-emission decision
+  # (step 4) are deliberately independent: step 3 picks the exact rational
+  # the user asked for, step 4 picks the closest float to that rational.
+  # Conflating them is the classic source of double-rounding bugs.
+  #
+  # Faster algorithms exist (Cox 2026's table-based uscale; Ryū / Schubfach
+  # for round-trip printing) but target different problems or assume
+  # fixed-width machine arithmetic that BEAM doesn't expose efficiently.
+  # At precision <= 15, the exact path is small, easy to audit, and fast
+  # enough that a more complex algorithm has not been justified by benchmarks.
   defp round(num, _precision, _rounding) when is_float(num) and num == 0.0, do: num
 
-  defp round(float, precision, rounding) do
-    <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
-    {num, count} = decompose(significant, 1)
-    count = count - exp + 1023
+  defp round(float, precision, mode) do
+    <<sign::1, exp::11, mantissa::52>> = <<float::float>>
 
     cond do
-      # Precision beyond 15 digits
-      count >= 104 ->
-        case rounding do
-          :ceil when sign === 0 -> 1 / power_of_10(precision)
-          :floor when sign === 1 -> -1 / power_of_10(precision)
-          :ceil when sign === 1 -> -0.0
-          :half_up when sign === 1 -> -0.0
-          _ -> 0.0
-        end
+      # Subnormal — tiny but non-zero; treat per-mode (ceil(+) and floor(-) bump
+      # to 10^-precision; everything else rounds to signed zero).
+      exp == 0 ->
+        tiny_round(sign, precision, mode)
 
-      # We are asking more precision than we have
-      count <= precision ->
+      # |float| >= 2^52 — has no fractional bits, return unchanged.
+      exp - 1075 >= 0 ->
         float
 
       true ->
-        # Difference in precision between float and asked precision
-        # We subtract 1 because we need to calculate the remainder too
-        diff = count - precision - 1
-
-        # Get up to latest so we calculate the remainder
-        power_of_10 = power_of_10(diff)
-
-        # Convert the numerand to decimal base
-        num = num * power_of_5(count)
-
-        # Move to the given precision - 1
-        num = div(num, power_of_10)
-        div = div(num, 10)
-        num = rounding(rounding, sign, num, div)
-
-        # Convert back to float without loss
-        # https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
-        den = power_of_10(precision)
-        boundary = den <<< 52
-
-        cond do
-          num == 0 and sign == 1 ->
-            -0.0
-
-          num == 0 ->
-            0.0
-
-          num >= boundary ->
-            {den, exp} = scale_down(num, boundary, 52)
-            decimal_to_float(sign, num, den, exp)
-
-          true ->
-            {num, exp} = scale_up(num, boundary, 52)
-            decimal_to_float(sign, num, den, exp)
-        end
+        mantissa = @power_of_2_to_52 ||| mantissa
+        shift = 1075 - exp
+        do_round(sign, mantissa, shift, precision, mode)
     end
   end
 
-  defp decompose(significant, initial) do
-    decompose(significant, 1, 0, initial)
+  # |float * 10^precision| < 0.5 — integer round is 0; ceil/floor still bump per sign.
+  defp do_round(sign, _mantissa, shift, precision, mode) when shift >= 104 do
+    tiny_round(sign, precision, mode)
   end
 
-  defp decompose(<<1::1, bits::bitstring>>, count, last_count, acc) do
-    decompose(bits, count + 1, count, (acc <<< (count - last_count)) + 1)
-  end
+  defp do_round(sign, mantissa, shift, precision, mode) do
+    power = power_of_10(precision)
+    product = mantissa * power
+    half = 1 <<< (shift - 1)
+    quotient = product >>> shift
+    remainder = product - (quotient <<< shift)
+    rounded_int = round_step(mode, sign, quotient, remainder, half)
 
-  defp decompose(<<0::1, bits::bitstring>>, count, last_count, acc) do
-    decompose(bits, count + 1, last_count, acc)
-  end
+    cond do
+      rounded_int == 0 ->
+        signed_zero(sign)
 
-  defp decompose(<<>>, _count, last_count, acc) do
-    {acc, last_count}
-  end
+      rounded_int < @power_of_2_to_52 <<< 1 ->
+        # Both rounded_int and power fit in 53 bits, so IEEE float division
+        # is correctly rounded.
+        result = rounded_int / power
+        if sign == 1, do: -result, else: result
 
-  defp scale_up(num, boundary, exp) when num >= boundary, do: {num, exp}
-  defp scale_up(num, boundary, exp), do: scale_up(num <<< 1, boundary, exp - 1)
-
-  defp scale_down(num, den, exp) do
-    new_den = den <<< 1
-
-    if num < new_den do
-      {den >>> 52, exp}
-    else
-      scale_down(num, new_den, exp + 1)
+      true ->
+        bignum_to_float(sign, rounded_int, power)
     end
   end
 
-  defp decimal_to_float(sign, num, den, exp) do
-    quo = div(num, den)
-    rem = num - quo * den
+  defp round_step(:half_up, _sign, quotient, remainder, half) do
+    if remainder >= half, do: quotient + 1, else: quotient
+  end
 
-    tmp =
-      case den >>> 1 do
-        den when rem > den -> quo + 1
-        den when rem < den -> quo
-        _ when (quo &&& 1) === 1 -> quo + 1
-        _ -> quo
+  defp round_step(:floor, 0, quotient, _remainder, _half), do: quotient
+  defp round_step(:floor, 1, quotient, remainder, _half) when remainder > 0, do: quotient + 1
+  defp round_step(:floor, 1, quotient, _remainder, _half), do: quotient
+
+  defp round_step(:ceil, 0, quotient, remainder, _half) when remainder > 0, do: quotient + 1
+  defp round_step(:ceil, 0, quotient, _remainder, _half), do: quotient
+  defp round_step(:ceil, 1, quotient, _remainder, _half), do: quotient
+
+  defp signed_zero(0), do: 0.0
+  defp signed_zero(1), do: -0.0
+
+  # Result of rounding a non-zero float whose |float * 10^precision| < 0.5.
+  # ceil(+) → +10^-precision, floor(-) → -10^-precision, others → signed 0.
+  defp tiny_round(0, precision, :ceil), do: 1.0 / power_of_10(precision)
+  defp tiny_round(1, precision, :floor), do: -1.0 / power_of_10(precision)
+  defp tiny_round(sign, _precision, _mode), do: signed_zero(sign)
+
+  # Slow path: emit float closest to `sign * rounded_int / power` when
+  # rounded_int >= 2^53. The binary emission step is always IEEE
+  # round-to-nearest-even, regardless of the integer-rounding mode.
+  defp bignum_to_float(sign, rounded_int, power) do
+    shift_adjust = bit_length(rounded_int) - bit_length(power) - 53
+    {numerator, denominator, exp} = align(rounded_int, power, shift_adjust)
+
+    quotient = div(numerator, denominator)
+    remainder = numerator - quotient * denominator
+    half = denominator >>> 1
+
+    mantissa =
+      cond do
+        remainder > half -> quotient + 1
+        remainder < half -> quotient
+        (quotient &&& 1) === 1 -> quotient + 1
+        true -> quotient
       end
 
-    tmp = tmp - @power_of_2_to_52
-    <<tmp::float>> = <<sign::1, exp + 1023::11, tmp::52>>
-    tmp
+    # Carry-bit normalization: `mantissa` lives in [2^52, 2^53]. The upper
+    # bound `2^53` is reachable when `align/3` returns an upper-bound quotient
+    # or when rounding carries. Rebalance into the canonical [2^52, 2^53)
+    # range so the 52-bit packing below doesn't silently truncate.
+    {mantissa, exp} =
+      if mantissa == @power_of_2_to_52 <<< 1,
+        do: {@power_of_2_to_52, exp + 1},
+        else: {mantissa, exp}
+
+    <<result::float>> = <<sign::1, exp + 1023::11, mantissa - @power_of_2_to_52::52>>
+    result
   end
 
-  defp rounding(:floor, 1, _num, div), do: div + 1
-  defp rounding(:ceil, 0, _num, div), do: div + 1
+  # Pick (numerator, denominator, exp) so that numerator/denominator ∈ [2^52, 2^53)
+  # and the resulting float = numerator/denominator * 2^(exp-52).
+  defp align(rounded_int, power, shift_adjust) when shift_adjust >= 0 do
+    new_power = power <<< shift_adjust
 
-  defp rounding(:half_up, _sign, num, div) do
-    case rem(num, 10) do
-      rem when rem < 5 -> div
-      rem when rem >= 5 -> div + 1
+    if rounded_int < new_power <<< 53,
+      do: {rounded_int, new_power, 52 + shift_adjust},
+      else: {rounded_int, new_power <<< 1, 53 + shift_adjust}
+  end
+
+  defp align(rounded_int, power, shift_adjust) do
+    shifted = rounded_int <<< -shift_adjust
+
+    cond do
+      shifted >= power <<< 53 -> {shifted, power <<< 1, 53 + shift_adjust}
+      shifted >= power <<< 52 -> {shifted, power, 52 + shift_adjust}
+      true -> {shifted <<< 1, power, 51 + shift_adjust}
     end
   end
 
-  defp rounding(_, _, _, div), do: div
+  defp bit_length(0), do: 0
+  defp bit_length(integer) when integer > 0, do: bit_length(integer, 0)
+  defp bit_length(integer, acc) when integer >= 1 <<< 64, do: bit_length(integer >>> 64, acc + 64)
+  defp bit_length(integer, acc) when integer >= 1 <<< 16, do: bit_length(integer >>> 16, acc + 16)
+  defp bit_length(integer, acc) when integer >= 1 <<< 4, do: bit_length(integer >>> 4, acc + 4)
+  defp bit_length(integer, acc) when integer >= 1, do: bit_length(integer >>> 1, acc + 1)
+  defp bit_length(_integer, acc), do: acc
 
-  Enum.reduce(0..104, 1, fn x, acc ->
-    defp power_of_10(unquote(x)), do: unquote(acc)
+  Enum.reduce(0..15, 1, fn exponent, acc ->
+    defp power_of_10(unquote(exponent)), do: unquote(acc)
     acc * 10
-  end)
-
-  Enum.reduce(0..104, 1, fn x, acc ->
-    defp power_of_5(unquote(x)), do: unquote(acc)
-    acc * 5
   end)
 
   @doc """

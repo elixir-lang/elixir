@@ -40,7 +40,7 @@ defmodule Record.Extractor do
   defp from_lib_file(file) do
     [app | path] = :filename.split(String.to_charlist(file))
 
-    case :code.lib_dir(List.to_atom(app)) do
+    case :code.lib_dir(List.to_unsafe_atom(app)) do
       {:error, _} ->
         raise ArgumentError, "lib file #{file} could not be found"
 

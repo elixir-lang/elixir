@@ -78,6 +78,20 @@ defmodule Mix.SCM.GitTest do
     end
   end
 
+  test "raises about Git refspec options starting with dash" do
+    assert_raise Mix.Error, ~r/A dependency's branch must not start with -/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "-main")
+    end
+
+    assert_raise Mix.Error, ~r/A dependency's tag must not start with -/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", tag: "--upload-pack=echo")
+    end
+
+    assert_raise Mix.Error, ~r/A dependency's ref must not start with -/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", ref: "-abcdef0123456789")
+    end
+  end
+
   defp lock(opts \\ []) do
     [lock: {:git, "/repo", "abcdef0123456789", opts}]
   end

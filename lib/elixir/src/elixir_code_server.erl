@@ -59,6 +59,9 @@ handle_call({acquire, Path}, From, Config) ->
 handle_call(required, _From, Config) ->
   {reply, [F || {F, true} <- maps:to_list(Config#elixir_code_server.required)], Config};
 
+handle_call({release, Path}, _From, Config) ->
+  {reply, ok, release(Path, Config)};
+
 handle_call(retrieve_compiler_module, _From, Config) ->
   case Config#elixir_code_server.mod_pool of
     {Used, [Mod | Unused], Counter} ->
@@ -139,6 +142,20 @@ terminate(_Reason, _Config) ->
 
 code_change(_Old, Config, _Extra) ->
   {ok, Config}.
+
+release(Path, Config) ->
+  Current = Config#elixir_code_server.required,
+  case maps:find(Path, Current) of
+    {ok, []} ->
+      Released = maps:remove(Path, Current),
+      Config#elixir_code_server{required=Released};
+    {ok, [Next | Waiting]} ->
+      _ = gen_server:reply(Next, proceed),
+      Released = maps:put(Path, Waiting, Current),
+      Config#elixir_code_server{required=Released};
+    error ->
+      Config
+  end.
 
 compiler_module(I) ->
   list_to_atom("elixir_compiler_" ++ integer_to_list(I)).

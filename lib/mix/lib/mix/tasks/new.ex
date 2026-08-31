@@ -209,7 +209,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp reserved_app(name) do
-    atom_name = String.to_atom(name)
+    atom_name = String.to_unsafe_atom(name)
 
     if atom_name in reserved_application_names() or Application.ensure_loaded(atom_name) == :ok do
       "Cannot use application name #{inspect(name)} because it is already used by Erlang/OTP or Elixir"
@@ -269,8 +269,8 @@ defmodule Mix.Tasks.New do
   embed_template(:readme, """
   # <%= @mod %>
 
-  **TODO: Add description**
-  <%= if @app do %>
+  **TODO: Add description**<%= if @app do %>
+
   ## Installation
 
   If [available in Hex](https://hex.pm/docs/publish), the package can be installed
@@ -286,8 +286,7 @@ defmodule Mix.Tasks.New do
 
   Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
   and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-  be found at <https://hexdocs.pm/<%= @app %>>.
-  <% end %>
+  be found at <https://<%= String.replace(@app, "_", "-") %>.hexdocs.pm>.<% end %>
   """)
 
   embed_template(:formatter, """
@@ -325,11 +324,10 @@ defmodule Mix.Tasks.New do
   erl_crash.dump
 
   # Also ignore archive artifacts (built via "mix archive.build").
-  *.ez
-  <%= if @app do %>
+  *.ez<%= if @app do %>
+
   # Ignore package tarball (built via "mix hex.build").
-  <%= @app %>-*.tar
-  <% end %>
+  <%= @app %>-*.tar<% end %>
   """)
 
   embed_template(:mix_exs, """
@@ -469,7 +467,7 @@ defmodule Mix.Tasks.New do
 
   embed_template(:lib_app, """
   defmodule <%= @mod %>.Application do
-    # See https://hexdocs.pm/elixir/Application.html
+    # See https://elixir.hexdocs.pm/Application.html
     # for more information on OTP Applications
     @moduledoc false
 
@@ -482,7 +480,7 @@ defmodule Mix.Tasks.New do
         # {<%= @mod %>.Worker, arg}
       ]
 
-      # See https://hexdocs.pm/elixir/Supervisor.html
+      # See https://elixir.hexdocs.pm/Supervisor.html
       # for other strategies and supported options
       opts = [strategy: :one_for_one, name: <%= @mod %>.Supervisor]
       Supervisor.start_link(children, opts)

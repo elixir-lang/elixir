@@ -205,7 +205,7 @@ defmodule ExUnit.FailuresManifestTest do
     %ExUnit.Test{
       state: state,
       module: SomeMod,
-      name: :"test #{System.unique_integer()}",
+      name: String.to_unsafe_atom("test #{System.unique_integer()}"),
       tags: %{file: file}
     }
   end

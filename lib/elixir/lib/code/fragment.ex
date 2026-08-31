@@ -27,7 +27,8 @@ defmodule Code.Fragment do
           column: pos_integer(),
           columns: boolean(),
           token_metadata: boolean(),
-          literal_encoder: (term(), Macro.metadata() -> term()),
+          literal_encoder: (term(), Macro.metadata() -> {:ok, Macro.t()} | {:error, binary()}),
+          preserve_sigils: boolean(),
           trailing_fragment: String.t()
         ]
 
@@ -35,7 +36,7 @@ defmodule Code.Fragment do
   Returns the list of lines in the given string, preserving their line endings.
 
   Only the line endings recognized by the Elixir compiler are
-  considered, namely `\r\n` and `\n`. If you would like the retrieve
+  considered, namely `\r\n` and `\n`. If you would like to retrieve
   lines without their line endings, use `String.split(string, ["\r\n", "\n"])`.
 
   ## Examples
@@ -51,6 +52,7 @@ defmodule Code.Fragment do
 
   """
   @doc since: "1.19.0"
+  @spec lines(String.t()) :: [String.t()]
   def lines(string) do
     lines(string, <<>>)
   end
@@ -140,6 +142,9 @@ defmodule Code.Fragment do
     * `{:anonymous_call, inside_caller}` - the context is an anonymous
       call, such as `fun.(` and `@fun.(`.
 
+    * `{:capture_arg, charlist}` - the context is a capture argument,
+      such as `&1`
+
     * `{:module_attribute, charlist}` - the context is a module attribute,
       such as `@hello_wor`
 
@@ -157,8 +162,8 @@ defmodule Code.Fragment do
     * `:none` - no context possible
 
     * `{:sigil, charlist}` - the context is a sigil. It may be either the beginning
-      of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
-      `~>` and `~>>`
+      of a sigil, such as `~` or `~s`. Operators starting with `~`, such as
+      `~>` and `~>>`, are returned as :operator contexts
 
     * `{:struct, inside_struct}` - the context is a struct, such as `%`, `%UR` or `%URI`.
       `inside_struct` can either be a `charlist` in case of a static alias or an
@@ -204,6 +209,7 @@ defmodule Code.Fragment do
           | {:local_arity, charlist}
           | {:local_call, charlist}
           | {:anonymous_call, inside_caller}
+          | {:capture_arg, charlist}
           | {:module_attribute, charlist}
           | {:operator, charlist}
           | {:operator_arity, charlist}
@@ -656,7 +662,7 @@ defmodule Code.Fragment do
       iex> Code.Fragment.surround_context("foo", {1, 1})
       %{begin: {1, 1}, context: {:local_or_var, ~c"foo"}, end: {1, 4}}
 
-  ## Differences to `cursor_context/2`
+  ## Differences from `cursor_context/2`
 
   Because `surround_context/3` attempts to capture complex expressions,
   it has some differences to `cursor_context/2`:
@@ -670,7 +676,7 @@ defmodule Code.Fragment do
       be a local or variable
 
     * `@` when not followed by any identifier is returned as `{:operator, ~c"@"}`
-      (in contrast to `{:module_attribute, ~c""}` in `cursor_context/2`
+      (in contrast to `{:module_attribute, ~c""}` in `cursor_context/2`)
 
     * This function never returns empty sigils `{:sigil, ~c""}` or empty structs
       `{:struct, ~c""}` as context

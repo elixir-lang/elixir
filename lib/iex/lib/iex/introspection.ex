@@ -465,10 +465,11 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     {language, format, docs} = get_docs(mod, [:function, :macro])
-    spec = get_spec(mod, fun, arity)
+    doc_tuple = find_doc_with_content(docs, fun, arity)
+    spec = get_spec(mod, fun, arity, doc_tuple)
 
     cond do
-      doc_tuple = find_doc_with_content(docs, fun, arity) ->
+      doc_tuple ->
         print_fun(mod, language, format, doc_tuple, spec)
         :ok
 
@@ -592,6 +593,22 @@ defmodule IEx.Introspection do
     |> Enum.find(&has_callback?(&1, fun, arity))
   end
 
+  defp get_spec(module, name, arity, doc_tuple) do
+    case get_spec(module, name, arity) do
+      [] ->
+        case doc_tuple do
+          {{_, ^name, doc_arity}, _, _, _, _} when doc_arity != arity ->
+            get_spec(module, name, doc_arity)
+
+          _ ->
+            []
+        end
+
+      spec ->
+        spec
+    end
+  end
+
   defp get_spec(module, name, arity) do
     with {:ok, all_specs} <- Typespec.fetch_specs(module),
          {_, specs} <- List.keyfind(all_specs, {name, arity}, 0) do
@@ -706,7 +723,7 @@ defmodule IEx.Introspection do
 
   def translate_callback_name_arity({name, arity}) do
     case Atom.to_string(name) do
-      "MACRO-" <> macro_name -> {:macrocallback, String.to_atom(macro_name), arity - 1}
+      "MACRO-" <> macro_name -> {:macrocallback, String.to_unsafe_atom(macro_name), arity - 1}
       _ -> {:callback, name, arity}
     end
   end

@@ -11,8 +11,7 @@ defmodule ExUnit.EventManager do
   @doc """
   Starts an event manager that publishes events during the suite run.
 
-  This is what power formatters as well as the
-  internal statistics server for ExUnit.
+  This powers formatters as well as the internal statistics server for ExUnit.
   """
   @spec start_link() :: {:ok, manager}
   def start_link() do
@@ -88,7 +87,7 @@ defmodule ExUnit.EventManager do
   defp notify({sup, event}, msg) do
     :gen_event.notify(event, msg)
 
-    for {_, pid, _, _} <- Supervisor.which_children(sup) do
+    for {_, pid, _, _} <- DynamicSupervisor.which_children(sup) do
       GenServer.cast(pid, msg)
     end
 

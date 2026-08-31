@@ -123,7 +123,8 @@ defmodule Task.Supervised do
               args: args,
               reason: {log_value(kind, value), __STACKTRACE__},
               # using :proc_lib over Process because we want the :undefined default, not nil
-              process_label: :proc_lib.get_label(self())
+              process_label: :proc_lib.get_label(self()),
+              orphan_compiler_module?: orphan_compiler_module?(kind, value)
             }
           },
           %{
@@ -135,6 +136,23 @@ defmodule Task.Supervised do
         )
 
         :erlang.raise(:exit, exit_reason(kind, value, __STACKTRACE__), __STACKTRACE__)
+    end
+  end
+
+  defp orphan_compiler_module?(kind, reason) do
+    with :error <- kind,
+         :undef <- reason,
+         {:error_handler, :error_handler} <- :erlang.process_info(self(), :error_handler),
+         {:parent, parent} <- :erlang.process_info(self(), :parent),
+         {:error_handler, Kernel.ErrorHandler} <-
+           (try do
+              :erlang.process_info(parent, :error_handler)
+            rescue
+              _ -> nil
+            end) do
+      true
+    else
+      _ -> false
     end
   end
 
@@ -317,8 +335,8 @@ defmodule Task.Supervised do
       # this response when the replying task dies (we'll see this in the :down
       # message).
       {{^monitor_ref, position}, reply} ->
-        %{^position => {pid, :running, _element}} = waiting
-        waiting = Map.put(waiting, position, {pid, {:ok, reply}})
+        %{^position => {:running, _element}} = waiting
+        waiting = Map.put(waiting, position, {:ok, reply})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config)
 
       # The task at position "position" died for some reason. We check if it
@@ -331,18 +349,18 @@ defmodule Task.Supervised do
           case waiting do
             # If the task replied, we don't care whether it went down for timeout
             # or for normal reasons.
-            %{^position => {_, {:ok, _} = ok}} ->
+            %{^position => {:ok, _} = ok} ->
               ok
 
             # If the task exited by itself before replying, we emit {:exit, reason}.
-            %{^position => {_, :running, element}}
+            %{^position => {:running, element}}
             when kind == :down ->
               if zip_input_on_exit?, do: {:exit, {element, reason}}, else: {:exit, reason}
 
             # If the task timed out before replying, we either exit (on_timeout: :exit)
             # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
             # dead at this point).
-            %{^position => {_, :running, element}}
+            %{^position => {:running, element}}
             when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
@@ -470,7 +488,7 @@ defmodule Task.Supervised do
     end
   end
 
-  # This function spawns a task for the given "value", and puts the pid of this
+  # This function spawns a task for the given "value", and stores it as running
   # new task in the map of "waiting" tasks, which is returned.
   defp stream_spawn(value, spawned, waiting, config) do
     %{
@@ -489,7 +507,7 @@ defmodule Task.Supervised do
         mfa_with_value = normalize_mfa_with_arg(mfa, value)
         send(pid, {self(), {monitor_ref, spawned}, self(), callers, mfa_with_value})
         stored_value = if zip_input_on_exit?, do: value, else: nil
-        Map.put(waiting, spawned, {pid, :running, stored_value})
+        Map.put(waiting, spawned, {:running, stored_value})
 
       {:max_children, ^monitor_ref} ->
         stream_close(config)

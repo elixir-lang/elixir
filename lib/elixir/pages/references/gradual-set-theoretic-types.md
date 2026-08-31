@@ -81,7 +81,7 @@ You can represent all _proper_ lists as `list()`, which also includes the empty 
 
 You can also specify the type of the list element as argument. For example, `list(integer())` represents the values `[]` and `[1, 2, 3]`, but not `[1, "two", 3]`.
 
-Internally, Elixir represents the type `list(a)` as the union two distinct types, `empty_list()` and `not_empty_list(a)`. In other words, `list(integer())` is equivalent to `empty_list() or non_empty_list(integer())`.
+Internally, Elixir represents the type `list(a)` as the union two distinct types, `empty_list()` and `non_empty_list(a)`. In other words, `list(integer())` is equivalent to `empty_list() or non_empty_list(integer())`.
 
 #### Improper lists
 
@@ -231,19 +231,61 @@ Inferring type signatures comes with a series of trade-offs:
 
   * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide "module type inference": our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies, while calls to modules within the same project are assumed to be `dynamic()`. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir aims to provide type inference across dependencies: our goal is to infer the types of functions considering the current module, Elixir's standard library and your dependencies, while calls to modules within the same project are assumed to be `dynamic()`. Once types are inferred, then the whole project is type checked considering all modules and all types (inferred or otherwise).
 
-Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
+Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing, without requiring any effort from them and keeping the expressiveness of the language.
 
-In the long term, Elixir developers who want typing guarantees must explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages, without performing type inference. In summary, type checking will rely on type signatures and only fallback to inferred types when no signature is available.
+In the long term, Elixir developers who want static typing guarantees may explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages.
+
+### False positives
+
+Elixir's type inference generally avoids emitting false positive type violations: which are warnings emitted by the type checker when there are no runtime errors. However, in some situations, those may happen and are documented below.
+
+#### `for`-comprehensions assume they are executed at least once
+
+For comprehensions in Elixir assume they are executed at least once. Take this code:
+
+```elixir
+def example(x, list) do
+  for _i <- list do
+    Atom.to_string(x)
+  end
+
+  x + 1
+end
+```
+
+`x + 1` will fail because it assumes `x` is an atom from the `Atom.to_string(x)` call, even though the function may raise no runtime error if `list` is an empty list. This is intentional, as it helps find discrepancies inside and outside comprehensions. You can address this by explicitly wrapping the comprehension in a `if list != [] do` block (or similar condition).
+
+#### Struct update syntax must be statically proven
+
+Elixir will warn if you use the struct update syntax and it is not statically proven that the given value does not have said struct type. For example:
+
+```elixir
+user = find_user_by_id(42)
+%User{user | name: "John Doe"}
+```
+
+Even though it is guaranteed at runtime that user is always a `User` struct. If the type system cannot prove it, it will emit a typing violation. This is how struct updates work by design. In such cases, you can address it by matching on the struct when the user variable is defined:
+
+```elixir
+%User{} = user = find_user_by_id(42)
+%User{user | name: "John Doe"}
+```
 
 ## Roadmap
 
-The current milestone is to implement type inference of existing codebases, as well as type checking of all language constructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API. Full type inference of patterns was released in Elixir v1.18, and complete inference is expected as part of Elixir v1.20.
+At this moment, Elixir implements type inference of all language constructs. The goal is to assess performance and collect feedback on the quality of error messages, before introducing user facing types.
 
 If the results are satisfactory, the next milestone will include a mechanism for defining typed structs. Elixir programs frequently pattern match on structs, which reveals information about the struct fields, but it knows nothing about their respective types. By propagating types from structs and their fields throughout the program, we will increase the type system’s ability to find errors while further straining our type system implementation. Proposals including the required changes to the language surface will be sent to the community once we reach this stage.
 
 The third milestone is to introduce set-theoretic type signatures for functions. Unfortunately, the existing Erlang Typespecs are not precise enough for set-theoretic types and they will be phased out of the language and have their postprocessing moved into a separate library once this stage concludes.
+
+## Resources
+
+  * (Paper) ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391)
+  * (Video) ["The foundations of the Elixir type system" by José Valim](https://youtu.be/giYbq4HmfGA)
+  * (Video) ["Precision in type system design" by José Valim](https://youtu.be/Ay-gnCqDw9o?t=102)
 
 ## Acknowledgements
 

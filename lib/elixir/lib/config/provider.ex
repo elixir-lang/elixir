@@ -25,7 +25,7 @@ defmodule Config.Provider do
   For example, imagine you want to list some basic configuration
   on Mix's built-in `config/runtime.exs` file, but you also want
   to support additional configuration files. To do so, you can add
-  this inside the `def project` portion of  your `mix.exs`:
+  this inside the `def project` portion of your `mix.exs`:
 
       releases: [
         demo: [

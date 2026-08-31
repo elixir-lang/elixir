@@ -36,7 +36,7 @@ defmodule GenEvent do
   alternative. GenStage is an external Elixir library maintained by the Elixir
   team; it provides a tool to implement systems that exchange events in a
   demand-driven way with built-in support for back-pressure. See the [GenStage
-  documentation](https://hexdocs.pm/gen_stage) for more information.
+  documentation](https://gen-stage.hexdocs.pm) for more information.
 
   ### `:gen_event`
 

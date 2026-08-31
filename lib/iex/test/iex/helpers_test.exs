@@ -151,16 +151,23 @@ defmodule IEx.HelpersTest do
     @elixir_erl "elixir/src/elixir.erl"
     @lists_erl Application.app_dir(:stdlib, "src/lists.erl")
     @httpc_erl "src/http_client/httpc.erl"
-    @editor System.get_env("ELIXIR_EDITOR")
     @example_module_path "lib/iex/test/test_helper.exs"
 
     test "opens __FILE__ and __LINE__" do
-      System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
+      editor = System.get_env("ELIXIR_EDITOR")
 
-      assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
-               "3:#{__ENV__.file}"
-    after
-      System.put_env("ELIXIR_EDITOR", @editor)
+      try do
+        System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
+
+        assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
+                 "3:#{__ENV__.file}"
+      after
+        if editor do
+          System.put_env("ELIXIR_EDITOR", editor)
+        else
+          System.delete_env("ELIXIR_EDITOR")
+        end
+      end
     end
 
     test "opens Elixir module" do
@@ -500,6 +507,13 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(IEx.Helpers.c() / 1) end) =~ c_h
       assert capture_io(fn -> h(pwd) end) =~ pwd_h
       assert capture_io(fn -> h(def) end) =~ def_h
+    end
+
+    test "prints spec for default arg function" do
+      spec = "@spec recompile([{:force, boolean()}]) :: :ok | :error | :noop"
+
+      assert capture_io(fn -> h(IEx.Helpers.recompile() / 0) end) =~ spec
+      assert capture_io(fn -> h(IEx.Helpers.recompile() / 1) end) =~ spec
     end
 
     test "prints sigil documentation" do
@@ -1326,6 +1340,7 @@ defmodule IEx.HelpersTest do
       assert capture_iex("42\n |> IO.inspect(label: \"foo\")") =~ "foo: 42"
       assert capture_iex("[42]\n++ [24]\n|> IO.inspect(label: \"foo\")") =~ "foo: [42, 24]"
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
+      assert capture_iex("4\nnot in [1, 2]") == "4\ntrue"
     end
 
     test "raises if previous expression was a match" do
@@ -1337,6 +1352,9 @@ defmodule IEx.HelpersTest do
 
       assert capture_iex("%{x: x} = map = %{x: 42}\n|> IO.puts()") =~
                "surround the whole pipeline with parentheses '|>'"
+
+      assert capture_iex("x = 4\nnot in [1, 2]") =~
+               "surround the whole pipeline with parentheses 'not in'"
     end
   end
 
@@ -1529,6 +1547,31 @@ defmodule IEx.HelpersTest do
     after
       # Clean up old version produced by the r helper
       cleanup_modules([Sample])
+    end
+
+    test "reloads Elixir modules from same file" do
+      filename = "sample.ex"
+
+      contents = """
+      defmodule Foo do
+        def hello, do: :foo
+      end
+
+      defmodule Bar do
+        def hello, do: :bar
+      end
+      """
+
+      with_file(filename, contents, fn ->
+        assert Enum.sort(c(filename, ".")) == [Bar, Foo]
+
+        assert capture_io(:stderr, fn ->
+                 assert {:reloaded, modules} = r([Bar, Foo])
+                 assert Enum.sort(modules) == [Bar, Foo]
+               end) =~ "redefining module Foo"
+      end)
+    after
+      cleanup_modules([Bar, Foo])
     end
 
     test "reloads Erlang modules" do

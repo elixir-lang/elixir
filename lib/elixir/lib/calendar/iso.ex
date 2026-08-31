@@ -33,8 +33,9 @@ defmodule Calendar.ISO do
   you to format datetimes however else you desire.
 
   Elixir does not support reduced accuracy formats (for example, a date without
-  the day component) nor decimal precisions in the lowest component (such as
-  `10:01:25,5`).
+  the day component) nor decimal precisions in components other than seconds
+  (such as `10:01,5`). Fractional seconds are supported and truncated to
+  microsecond precision.
 
   #### Examples
 
@@ -80,6 +81,11 @@ defmodule Calendar.ISO do
       {:error, :invalid_format}
       iex> Calendar.ISO.parse_time("23")
       {:error, :invalid_format}
+
+  A decimal fraction is accepted on seconds, but not on any other component:
+
+      iex> Calendar.ISO.parse_time("10:01:25,5")
+      {:ok, {10, 1, 25, {500000, 1}}}
 
   ### Extensions
 
@@ -666,12 +672,12 @@ defmodule Calendar.ISO do
           day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
 
           {{year, month, day}, {hour, minute, second, _}} =
-            case add_day_fraction_to_iso_days({0, day_fraction}, -offset, 86_400) do
+            case add_time_unit_to_iso_days({0, day_fraction}, -offset, :second) do
               {0, day_fraction} ->
                 {{year, month, day}, time_from_day_fraction(day_fraction)}
 
               {extra_days, day_fraction} ->
-                base_days = date_to_iso_days(year, month, day)
+                base_days = valid_date_to_iso_days(year, month, day)
                 {date_from_iso_days(base_days + extra_days), time_from_day_fraction(day_fraction)}
             end
 
@@ -683,75 +689,73 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compatible unit pairs.
 
   See `Duration.from_iso8601/1`.
   """
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom}
   def parse_duration("P" <> string) when byte_size(string) > 0 do
-    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+    parse_duration_date(string, 1, [], 0)
   end
 
   def parse_duration("+P" <> string) when byte_size(string) > 0 do
-    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+    parse_duration_date(string, 1, [], 0)
   end
 
   def parse_duration("-P" <> string) when byte_size(string) > 0 do
-    with {:ok, fields} <- parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
-      {:ok,
-       Enum.map(fields, fn
-         {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
-         {unit, value} -> {unit, -value}
-       end)}
-    end
+    parse_duration_date(string, -1, [], 0)
   end
 
   def parse_duration(_) do
     {:error, :invalid_duration}
   end
 
-  defp parse_duration_date("", acc, _allowed), do: {:ok, acc}
+  defp parse_duration_date("", _sign, acc, _min_position), do: {:ok, acc}
 
-  defp parse_duration_date("T" <> string, acc, _allowed) when byte_size(string) > 0 do
-    parse_duration_time(string, acc, hour: ?H, minute: ?M, second: ?S)
+  defp parse_duration_date("T" <> string, sign, acc, _min_position)
+       when byte_size(string) > 0 do
+    parse_duration_time(string, sign, acc, 0)
   end
 
-  defp parse_duration_date(string, acc, allowed) do
-    with {integer, <<next, rest::binary>>} <- Integer.parse(string),
-         {key, allowed} <- find_unit(allowed, next) do
-      parse_duration_date(rest, [{key, integer} | acc], allowed)
+  defp parse_duration_date(string, sign, acc, min_position) do
+    with {integer, <<unit, rest::binary>>} <- Integer.parse(string),
+         {key, next_min_position} <- find_date_unit(min_position, unit) do
+      parse_duration_date(rest, sign, [{key, integer * sign} | acc], next_min_position)
     else
       _ -> {:error, :invalid_date_component}
     end
   end
 
-  defp parse_duration_time("", acc, _allowed), do: {:ok, acc}
+  defp parse_duration_time("", _sign, acc, _min_position), do: {:ok, acc}
 
-  defp parse_duration_time(string, acc, allowed) do
+  defp parse_duration_time(string, sign, acc, min_position) do
     case Integer.parse(string) do
       {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
-        case parse_microsecond(rest) do
-          {{ms, precision}, "S"} ->
-            ms =
-              case string do
-                "-" <> _ ->
-                  -ms
+        with {:second, _next_min_position} <- find_time_unit(min_position, ?S),
+             {{ms, precision}, "S"} <- parse_microsecond(rest) do
+          ms =
+            case string do
+              "-" <> _ ->
+                -ms
 
-                _ ->
-                  ms
-              end
+              _ ->
+                ms
+            end
 
-            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
-
+          {:ok, [second: second * sign, microsecond: {ms * sign, precision}] ++ acc}
+        else
           _ ->
             {:error, :invalid_time_component}
         end
 
-      {integer, <<next, rest::binary>>} ->
-        case find_unit(allowed, next) do
-          {key, allowed} -> parse_duration_time(rest, [{key, integer} | acc], allowed)
-          false -> {:error, :invalid_time_component}
+      {integer, <<unit, rest::binary>>} ->
+        case find_time_unit(min_position, unit) do
+          {key, next_min_position} ->
+            parse_duration_time(rest, sign, [{key, integer * sign} | acc], next_min_position)
+
+          false ->
+            {:error, :invalid_time_component}
         end
 
       _ ->
@@ -759,9 +763,17 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp find_unit([{key, unit} | rest], unit), do: {key, rest}
-  defp find_unit([_ | rest], unit), do: find_unit(rest, unit)
-  defp find_unit([], _unit), do: false
+  # The minimum position is the earliest unit still allowed, or one past the end.
+  defp find_date_unit(min_position, ?Y) when min_position <= 0, do: {:year, 1}
+  defp find_date_unit(min_position, ?M) when min_position <= 1, do: {:month, 2}
+  defp find_date_unit(min_position, ?W) when min_position <= 2, do: {:week, 3}
+  defp find_date_unit(min_position, ?D) when min_position <= 3, do: {:day, 4}
+  defp find_date_unit(_min_position, _unit), do: false
+
+  defp find_time_unit(min_position, ?H) when min_position <= 0, do: {:hour, 1}
+  defp find_time_unit(min_position, ?M) when min_position <= 1, do: {:minute, 2}
+  defp find_time_unit(min_position, ?S) when min_position <= 2, do: {:second, 3}
+  defp find_time_unit(_min_position, _unit), do: false
 
   @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
@@ -892,12 +904,15 @@ defmodule Calendar.ISO do
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
-  def date_to_iso_days(0, 1, 1), do: 0
-  def date_to_iso_days(1970, 1, 1), do: @unix_epoch_days
-
   def date_to_iso_days(year, month, day) do
     ensure_day_in_month!(year, month, day)
+    valid_date_to_iso_days(year, month, day)
+  end
 
+  defp valid_date_to_iso_days(0, 1, 1), do: 0
+  defp valid_date_to_iso_days(1970, 1, 1), do: @unix_epoch_days
+
+  defp valid_date_to_iso_days(year, month, day) do
     y = if month <= 2, do: year - 1, else: year
     era = if y >= 0, do: div(y, @years_per_era), else: div(y - 399, @years_per_era)
     year_of_era = y - era * @years_per_era
@@ -1131,6 +1146,11 @@ defmodule Calendar.ISO do
 
   It is an integer from 1 to 4.
 
+  In the ISO calendar, the quarter is determined solely by the month, so the `year`
+  and `day` arguments are ignored. Combination of `year`, `month`, and `day` is not
+  validated as a valid date, unlike in `day_of_year/3`. Use `valid_date?/3` when
+  full date validation is required.
+
   ## Examples
 
       iex> Calendar.ISO.quarter_of_year(2016, 1, 31)
@@ -1173,7 +1193,7 @@ defmodule Calendar.ISO do
   @doc since: "1.8.0"
   @spec year_of_era(year) :: {1..10_000, era}
   def year_of_era(year) when is_year_CE(year), do: {year, 1}
-  def year_of_era(year) when is_year_BCE(year), do: {abs(year) + 1, 0}
+  def year_of_era(year) when is_year_BCE(year), do: {1 - year, 0}
 
   @doc """
   Calendar callback to compute the year and era from the
@@ -1226,7 +1246,7 @@ defmodule Calendar.ISO do
   end
 
   def day_of_era(year, month, day) when is_year_BCE(year) do
-    day = abs(date_to_iso_days(year, month, day) - @iso_epoch)
+    day = @iso_epoch - date_to_iso_days(year, month, day)
     {day, 0}
   end
 
@@ -1453,7 +1473,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given naive_datetime into a iodata.
 
-  See `naive_datetime_to_iodata/8` for more information.
+  See `naive_datetime_to_string/8` for more information.
 
   ## Examples
 
@@ -1578,7 +1598,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given datetime into a iodata.
 
-  See `datetime_to_iodata/12` for more information.
+  See `datetime_to_string/12` for more information.
 
   ## Examples
 
@@ -1682,7 +1702,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Determines if the date given is valid according to the proleptic Gregorian calendar.
+  Determines if the time given is valid.
 
   Leap seconds are not supported by the built-in Calendar.ISO.
 
@@ -1702,7 +1722,7 @@ defmodule Calendar.ISO do
           boolean
   def valid_time?(hour, minute, second, {ms_value, ms_precision} = _microsecond)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(ms_value) and
-             is_integer(ms_value) do
+             is_integer(ms_precision) do
     is_hour(hour) and is_minute(minute) and is_second(second) and
       is_microsecond(ms_value, ms_precision)
   end
@@ -1835,6 +1855,9 @@ defmodule Calendar.ISO do
     shift_options = shift_datetime_options(duration)
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
+      {:microsecond, {0, _}}, naive_datetime ->
+        naive_datetime
+
       {_, 0}, naive_datetime ->
         naive_datetime
 
@@ -1864,6 +1887,9 @@ defmodule Calendar.ISO do
     shift_options = shift_time_options(duration)
 
     Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
+      {:microsecond, {0, _}}, time ->
+        time
+
       {_, 0}, time ->
         time
 
@@ -1875,7 +1901,7 @@ defmodule Calendar.ISO do
   @doc false
   def shift_days({year, month, day}, days) do
     {year, month, day} =
-      date_to_iso_days(year, month, day)
+      valid_date_to_iso_days(year, month, day)
       |> Kernel.+(days)
       |> date_from_iso_days()
 
@@ -1926,8 +1952,7 @@ defmodule Calendar.ISO do
 
   def shift_time_unit({_days, _day_fraction} = iso_days, value, unit)
       when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
-    ppd = System.convert_time_unit(86_400, :second, unit)
-    add_day_fraction_to_iso_days(iso_days, value, ppd)
+    add_time_unit_to_iso_days(iso_days, value, unit)
   end
 
   defp shift_time_unit_values({0, _}, {_, original_precision}) do
@@ -2030,38 +2055,27 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp parse_microsecond("." <> rest) do
-    case parse_microsecond(rest, 0, []) do
-      {[], 0, _} ->
-        :error
+  defp parse_microsecond("." <> rest), do: parse_microsecond(rest, rest, 0)
+  defp parse_microsecond("," <> rest), do: parse_microsecond(rest, rest, 0)
+  defp parse_microsecond(rest), do: {{0, 0}, rest}
 
-      {microsecond, precision, rest} ->
-        scale = scale_factor(precision)
-        {{:erlang.list_to_integer(microsecond) * scale, precision}, rest}
-    end
-  end
+  # Digits past the sixth are consumed but do not contribute to the value.
+  defp parse_microsecond(<<head, tail::binary>>, digits, 6) when head in ?0..?9,
+    do: parse_microsecond(tail, digits, 6)
 
-  defp parse_microsecond("," <> rest) do
-    parse_microsecond("." <> rest)
-  end
+  defp parse_microsecond(<<head, tail::binary>>, digits, precision) when head in ?0..?9,
+    do: parse_microsecond(tail, digits, precision + 1)
 
-  defp parse_microsecond(rest) do
-    {{0, 0}, rest}
-  end
+  defp parse_microsecond(_rest, _digits, 0), do: :error
 
-  defp parse_microsecond(<<head, tail::binary>>, 6, acc) when head in ?0..?9,
-    do: parse_microsecond(tail, 6, acc)
-
-  defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
-    do: parse_microsecond(tail, precision + 1, [head | acc])
-
-  defp parse_microsecond(rest, precision, acc) do
-    {:lists.reverse(acc), precision, rest}
+  defp parse_microsecond(rest, digits, precision) do
+    scale = scale_factor(precision)
+    microsecond = :erlang.binary_to_integer(:binary.part(digits, 0, precision)) * scale
+    {{microsecond, precision}, rest}
   end
 
   defp parse_offset(""), do: {nil, ""}
   defp parse_offset("Z"), do: {0, ""}
-  defp parse_offset("-00:00"), do: :error
 
   defp parse_offset(<<?+, h1, h2, ?:, m1, m2, rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
@@ -2084,7 +2098,8 @@ defmodule Calendar.ISO do
          true <- m1 in ?0..?5 and m2 in ?0..?9,
          hour = (h1 - ?0) * 10 + h2 - ?0,
          min = (m1 - ?0) * 10 + m2 - ?0,
-         true <- hour < 24 do
+         true <- hour < 24,
+         true <- sign == 1 or hour != 0 or min != 0 do
       {(hour * 60 + min) * 60 * sign, rest}
     else
       _ -> :error
@@ -2100,10 +2115,43 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def iso_days_to_unit({days, {parts, ppd}}, unit) do
-    day_microseconds = days * @parts_per_day
-    microseconds = divide_by_parts_per_day(parts, ppd)
-    System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
+  def iso_days_to_unit(iso_days, :second) do
+    floor_div_positive_divisor(iso_days_to_microseconds(iso_days), @microseconds_per_second)
+  end
+
+  def iso_days_to_unit(iso_days, :millisecond) do
+    floor_div_positive_divisor(iso_days_to_microseconds(iso_days), 1_000)
+  end
+
+  def iso_days_to_unit(iso_days, :microsecond) do
+    iso_days_to_microseconds(iso_days)
+  end
+
+  def iso_days_to_unit(iso_days, unit) do
+    System.convert_time_unit(iso_days_to_microseconds(iso_days), :microsecond, unit)
+  end
+
+  defp iso_days_to_microseconds({days, {parts, ppd}}) do
+    days * @parts_per_day + divide_by_parts_per_day(parts, ppd)
+  end
+
+  @doc false
+  def add_time_unit_to_iso_days(iso_days, add, :second) do
+    add_day_fraction_to_iso_days(iso_days, add * @microseconds_per_second, @parts_per_day)
+  end
+
+  def add_time_unit_to_iso_days(iso_days, add, :millisecond) do
+    add_day_fraction_to_iso_days(iso_days, add * 1_000, @parts_per_day)
+  end
+
+  def add_time_unit_to_iso_days(iso_days, add, :microsecond) do
+    add_day_fraction_to_iso_days(iso_days, add, @parts_per_day)
+  end
+
+  def add_time_unit_to_iso_days(iso_days, add, unit)
+      when unit == :nanosecond or is_integer(unit) do
+    ppd = System.convert_time_unit(@seconds_per_day, :second, unit)
+    add_day_fraction_to_iso_days(iso_days, add, ppd)
   end
 
   @doc false

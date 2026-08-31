@@ -7,14 +7,14 @@
 <h1>
  <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png">
-  <img alt="Elixir logo" src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo.png" width="200">
+  <img alt="Elixir logo" src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/public/images/logo/logo.png" width="200">
  </picture>
 </h1>
 
 [![CI](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml?query=branch%3Amain)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10187/badge)](https://www.bestpractices.dev/projects/10187)
 
-Elixir is a dynamic, functional language designed for building scalable
+Elixir is a programming language designed for building scalable
 and maintainable applications.
 
 For more about Elixir, installation and documentation,
@@ -122,9 +122,10 @@ variable `ERL_COMPILER_OPTIONS=deterministic`.
 Contributions to Elixir are always welcome! Before you get started, please check
 out our [CONTRIBUTING.md](CONTRIBUTING.md) file. There you will find detailed
 guidelines on how to set up your environment, run the test suite, format your
-code, and submit pull requests. We also include information on our review
-process, licensing requirements, and helpful tips to ensure a smooth
-contribution experience.
+code, and submit pull requests.
+
+Note you must disclose the use of coding agents and AI written code in your
+contributions. See the "Using AI and coding agents" in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Development links
 

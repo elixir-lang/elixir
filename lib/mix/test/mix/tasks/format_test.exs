@@ -572,6 +572,66 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  defmodule Elixir.SigilOuterPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [sigils: [:O]]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:sigil] == :O
+      [Code.format_string!(contents, opts), ?\n]
+    end
+  end
+
+  defmodule Elixir.SigilInnerPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [sigils: [:I]]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:sigil] == :I
+      String.upcase(contents)
+    end
+  end
+
+  test "uses sigil plugins for sigils nested inside sigils", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [SigilOuterPlugin, SigilInnerPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def nested_sigil_test do
+        ~O'''
+        inner(~I"foo bar")
+        '''
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def nested_sigil_test do
+               ~O'''
+               inner(~I"FOO BAR")
+               '''
+             end
+             """
+    end)
+  end
+
   test "customizes plugin loading", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -594,6 +654,51 @@ defmodule Mix.Tasks.FormatTest do
       end
 
       assert Mix.Tasks.Format.formatter_for_file("a.ex", plugin_loader: fn _plugins -> [] end)
+    end)
+  end
+
+  defmodule FormatWithPluginApp do
+    def project do
+      [app: :format_with_plugin, version: "0.1.0"]
+    end
+  end
+
+  test "doesn't compile plugins with --no-compile", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(__MODULE__.FormatWithPluginApp)
+      on_exit(fn -> purge([UncompiledPlugin]) end)
+
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [UncompiledPlugin]
+      ]
+      """)
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/uncompiled_plugin.ex", """
+      defmodule UncompiledPlugin do
+        @behaviour Mix.Tasks.Format
+
+        def features(_opts), do: [extensions: [".ex"]]
+        def format(contents, _opts), do: "# formatted\\n" <> contents
+      end
+      """)
+
+      File.write!("a.ex", """
+      foo bar
+      """)
+
+      assert_raise Mix.Error, "Formatter plugin UncompiledPlugin cannot be found", fn ->
+        Mix.Tasks.Format.run(["--no-compile"])
+      end
+
+      refute_received {:mix_shell, :info, ["Compiling" <> _]}
+
+      assert File.read!("a.ex") == """
+             foo bar
+             """
     end)
   end
 

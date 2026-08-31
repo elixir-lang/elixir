@@ -45,7 +45,7 @@ defmodule ExUnit.CaptureLog do
 
   @type capture_log_opts :: [
           {:level, Logger.level() | nil}
-          | {:formatter, {module(), term()} | nil}
+          | {:formatter, {module(), term()}}
         ]
 
   @doc """

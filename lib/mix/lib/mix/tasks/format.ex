@@ -46,8 +46,8 @@ defmodule Mix.Tasks.Format do
       that have their own formatting rules. Each subdirectory should have a
       `.formatter.exs` that configures how entries in that subdirectory should be
       formatted as. Configuration between `.formatter.exs` are not shared nor
-      inherited. If a `.formatter.exs` lists "lib/app" as a subdirectory, the rules
-      in `.formatter.exs` won't be available in `lib/app/.formatter.exs`.
+      inherited, except for the `:line_length` option.
+
       Note that the parent `.formatter.exs` must not specify files inside the "lib/app"
       subdirectory in its `:inputs` configuration. If this happens, the behaviour of
       which formatter configuration will be picked is unspecified.
@@ -78,6 +78,10 @@ defmodule Mix.Tasks.Format do
 
     * `--dry-run` - does not save files after formatting.
 
+    * `--no-compile` - does not compile, even if compilation is required
+      to load formatter plugins. If a plugin cannot be loaded, an error
+      is raised.
+
     * `--verbose` - prints the names of files that were formatted.
 
     * `--dot-formatter` - path to the file with formatter configuration.
@@ -100,8 +104,8 @@ defmodule Mix.Tasks.Format do
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
-  automatically when saving a file or via an explicit command or key binding. If
-  such option is not available in your editor of choice, adding the required
+  automatically when saving a file or via an explicit command or key binding.
+  If such option is not available in your editor of choice, adding the required
   integration is usually a matter of invoking:
 
       $ cd $project && mix format $file
@@ -139,6 +143,9 @@ defmodule Mix.Tasks.Format do
 
     * `:modifiers` (charlist) - list of sigil modifiers.
 
+    * `:opening_delimiter` (string) - the opening delimiter of the sigil being
+      formatted, e.g. `[`, `"`, or `\"""` for a heredoc.
+
     * `:extension` (string) - the extension of the file being formatted, e.g. `".md"`.
 
   Now any application can use your formatter as follows:
@@ -152,11 +159,44 @@ defmodule Mix.Tasks.Format do
       ]
 
   Notice that, when running the formatter with plugins, your code will be
-  compiled first.
+  compiled first, unless the `--no-compile` flag is given.
 
   In addition, the order by which you input your plugins is the format order.
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
   the markdown files and sigils before `AnotherMarkdownFormatter`.
+
+  You can also define plugins for `.ex` and `.exs` files but doing so fully replaces
+  the baseline Elixir formatter and the usual formatting of Elixir code (as well as
+  other sigil plugins) will not happen unless the custom Elixir plugin also calls
+  `Code.format_string!/2`. Therefore, in order to keep the baseline `mix format`
+  behaviour, we recommend custom Elixir formatters to use the template below:
+
+      defmodule ElixirFormatter do
+        @behaviour Mix.Tasks.Format
+
+        def features(_opts) do
+          [sigils: [], extensions: [".ex", ".exs"]]
+        end
+
+        def format(contents, opts) do
+          formatted = Code.format_string!(contents, opts)
+          IO.iodata_to_binary([formatted, ?\\n])
+        end
+      end
+
+  Alternatively, you can use the snippet above as its own formatter and add it
+  anywhere in your `.formatter.exs` plugins list, depending on whether you want
+  standard Elixir code formatting to occur before or after another plugin. If
+  multiple plugins specify `.ex`/`.exs` files, they will all format those files,
+  in listed order.
+
+  > #### Do not depend on Mix.Project {: .warning}
+  >
+  > You must not access `Mix.Project.config()` or general project configuration
+  > inside your formatter plugins. That's because formatters were designed to
+  > work even outside of a Mix project and the project configuration may be
+  > incomplete or fully missing. All configuration must be given via the
+  > `.formatter.exs` file.
 
   ## Importing dependencies configuration
 
@@ -316,7 +356,7 @@ defmodule Mix.Tasks.Format do
 
     plugins =
       if plugins != [] do
-        Keyword.get(opts, :plugin_loader, &plugin_loader/1).(plugins)
+        Keyword.get(opts, :plugin_loader, &plugin_loader(&1, opts)).(plugins)
       else
         []
       end
@@ -334,39 +374,50 @@ defmodule Mix.Tasks.Format do
       end
     end
 
-    sigils =
+    flatten_sigils =
       for plugin <- plugins,
           sigil <- find_sigils_from_plugins(plugin, formatter_opts),
           do: {sigil, plugin}
 
-    sigils =
-      sigils
+    formatter_opts =
+      flatten_sigils
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-      |> Enum.map(fn {sigil, plugins} ->
+      |> prepend_sigils(Keyword.delete(formatter_opts, :sigils))
+
+    {formatter_opts,
+     Enum.map(subs, fn {path, formatter_opts_and_subs} ->
+       {path, load_plugins(formatter_opts_and_subs, opts)}
+     end)}
+  end
+
+  defp plugin_loader(plugins, opts) do
+    if plugins != [] do
+      Mix.Task.run("loadpaths", if(opts[:no_compile], do: ["--no-compile"], else: []))
+    end
+
+    if !opts[:no_compile] and not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+      Mix.Task.run("compile", [])
+    end
+
+    plugins
+  end
+
+  # A sigil formatter must receive :sigils itself, so a plugin can format sigils
+  # nested inside the sigil it was given. The list is rebuilt on each invocation.
+  defp prepend_sigils(grouped_sigils, formatter_opts_without_sigils) do
+    sigils =
+      Enum.map(grouped_sigils, fn {sigil, plugins} ->
         {sigil,
          fn input, opts ->
+           formatter_opts = prepend_sigils(grouped_sigils, formatter_opts_without_sigils)
+
            Enum.reduce(plugins, input, fn plugin, input ->
              plugin.format(input, opts ++ formatter_opts)
            end)
          end}
       end)
 
-    {Keyword.put(formatter_opts, :sigils, sigils),
-     Enum.map(subs, fn {path, formatter_opts_and_subs} ->
-       {path, load_plugins(formatter_opts_and_subs, opts)}
-     end)}
-  end
-
-  defp plugin_loader(plugins) do
-    if plugins != [] do
-      Mix.Task.run("loadpaths", [])
-    end
-
-    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
-      Mix.Task.run("compile", [])
-    end
-
-    plugins
+    [sigils: sigils] ++ formatter_opts_without_sigils
   end
 
   @typedoc """
@@ -499,7 +550,7 @@ defmodule Mix.Tasks.Format do
 
   defp read_manifest(manifest) do
     with {:ok, binary} <- File.read(manifest),
-         {:ok, {@manifest_vsn, entry, sources}} <- safe_binary_to_term(binary),
+         {:ok, {@manifest_vsn, entry, sources}} <- non_raising_binary_to_term(binary),
          expanded_sources = Enum.flat_map(sources, &Path.wildcard(&1, match_dot: true)),
          false <- Mix.Utils.stale?([Mix.Project.config_mtime() | expanded_sources], [manifest]) do
       {entry, sources}
@@ -508,7 +559,7 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp safe_binary_to_term(binary) do
+  defp non_raising_binary_to_term(binary) do
     {:ok, :erlang.binary_to_term(binary)}
   rescue
     _ -> :error

@@ -176,16 +176,6 @@ defmodule CodeTest do
                {"1", [{:c, 2}, {:b, "1"}, {:a, 1}]}
     end
 
-    test "raises on invalid binding type" do
-      assert_raise ArgumentError, "binding must be a list, got: :not_a_list", fn ->
-        Code.eval_string("1 + 1", :not_a_list)
-      end
-
-      assert_raise ArgumentError, "binding must be a list, got: %{}", fn ->
-        Code.eval_string("1 + 1", %{}, __ENV__)
-      end
-    end
-
     test "keeps caller in stacktrace" do
       try do
         Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
@@ -213,6 +203,33 @@ defmodule CodeTest do
         _ ->
           assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
       end
+    end
+
+    test "prunes internal modules from macro expansion stacktraces" do
+      defmodule PruneStacktraceMacro do
+        defmacro bad do
+          quote do
+            receive 1
+          end
+        end
+      end
+
+      stacktrace =
+        try do
+          Code.eval_quoted(
+            quote do
+              require PruneStacktraceMacro
+              PruneStacktraceMacro.bad()
+            end
+          )
+        rescue
+          CompileError -> __STACKTRACE__
+        end
+
+      refute Enum.any?(
+               stacktrace,
+               &match?({mod, _, _, _} when mod in [:elixir_expand, :elixir_dispatch], &1)
+             )
     end
 
     test "warns when lexical tracker process is dead" do
@@ -260,6 +277,41 @@ defmodule CodeTest do
       ExUnit.CaptureIO.capture_io(fn ->
         assert {1, _binding} = Code.eval_string("dbg(1)", [])
       end)
+    end
+
+    test "nested eval preserves outer :dbg_callback" do
+      opts = [dbg_callback: {__MODULE__, :dbg_callback_add_one, []}]
+
+      assert {{2, []}, _binding} =
+               Code.eval_string(
+                 """
+                 Code.eval_string("dbg(1)")
+                 """,
+                 [],
+                 opts
+               )
+    end
+
+    test "nested eval preserves outer env in exception stacktrace" do
+      env = %{Code.env_for_eval([]) | file: "outer_file.ex"}
+
+      stacktrace =
+        try do
+          Code.eval_string(
+            """
+            Code.eval_string("1 + 1")
+            raise "boom"
+            """,
+            [],
+            env
+          )
+        rescue
+          _ -> __STACKTRACE__
+        end
+
+      assert Enum.any?(stacktrace, fn
+               {_, _, _, meta} -> Keyword.get(meta, :file) == ~c"outer_file.ex"
+             end)
     end
   end
 
@@ -450,6 +502,25 @@ defmodule CodeTest do
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
   after
     Code.unrequire_files([fixture_path("code_sample.exs")])
+  end
+
+  test "require_file/1 releases the file when compilation fails" do
+    path = tmp_path("bad_require_#{System.unique_integer([:positive])}.ex")
+
+    try do
+      File.write!(path, ~s|raise "boom"|)
+
+      assert_raise RuntimeError, "boom", fn ->
+        Code.require_file(path)
+      end
+
+      assert_raise RuntimeError, "boom", fn ->
+        Code.require_file(path)
+      end
+    after
+      File.rm(path)
+      Code.unrequire_files([path])
+    end
   end
 
   test "string_to_quoted!/2 errors take lines/columns/indentation into account" do
@@ -749,13 +820,13 @@ defmodule CodeTest do
     message = "unknown compiler option: :not_a_valid_option"
 
     assert_raise RuntimeError, message, fn ->
-      Code.put_compiler_option(:not_a_valid_option, :foo)
+      Code.put_compiler_option(Process.get(:unused, :not_a_valid_option), :ok)
     end
 
     message = "compiler option :debug_info should be a boolean, got: :not_a_boolean"
 
     assert_raise RuntimeError, message, fn ->
-      Code.put_compiler_option(:debug_info, :not_a_boolean)
+      Code.put_compiler_option(:debug_info, Process.get(:unused, :not_a_boolean))
     end
   end
 
@@ -834,6 +905,34 @@ defmodule Code.SyncTest do
     end
   after
     Code.put_compiler_option(:module_definition, :compiled)
+  end
+
+  if System.otp_release() >= "29" do
+    test "uses erlc_options compiler option" do
+      module = CodeTest.ConfiguredBeamDebugInfo
+      previous = Code.compiler_options(erlc_options: [:beam_debug_info])
+
+      try do
+        assert [{^module, binary}] =
+                 Code.compile_string("""
+                 defmodule CodeTest.ConfiguredBeamDebugInfo do
+                   def sample(value) do
+                     doubled = value * 2
+                     doubled + 1
+                   end
+                 end
+                 """)
+
+        assert {:ok, {_, [{~c"DbgB", <<_version::32, entries::32, _::binary>>}]}} =
+                 :beam_lib.chunks(binary, [~c"DbgB"])
+
+        assert entries > 0
+      after
+        Code.compiler_options(previous)
+        :code.purge(module)
+        :code.delete(module)
+      end
+    end
   end
 
   test "prepend_path" do

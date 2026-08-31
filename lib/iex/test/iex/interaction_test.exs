@@ -185,7 +185,7 @@ defmodule IEx.InteractionTest do
     assert capture_io(:stderr, fn ->
              capture_iex("open('README.md')", [], env: __ENV__)
            end) =~
-             ~r"function open/1 imported from both File and IEx.Helpers"
+             ~r"conflicting open/1 import from modules File and IEx.Helpers"
   end
 
   test "receive exit" do

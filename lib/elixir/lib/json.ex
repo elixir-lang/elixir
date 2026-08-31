@@ -24,7 +24,7 @@ defprotocol JSON.Encoder do
   > #### Leaking Private Information {: .error}
   >
   > Prefer using `:only` to avoid accidentally leaking private information when
-  > new fields are added. Other approaches should be used with auction.
+  > new fields are added. Other approaches should be used with caution.
 
   You can also use `Protocol.derive/3` if you don't own the struct that you want
   to encode to JSON:

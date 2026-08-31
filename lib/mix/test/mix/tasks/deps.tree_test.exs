@@ -7,6 +7,8 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.Deps.TreeTest do
   use MixTest.Case
 
+  import ExUnit.CaptureIO
+
   defmodule ConvergedDepsApp do
     def project do
       [
@@ -160,6 +162,47 @@ defmodule Mix.Tasks.Deps.TreeTest do
                "sample" -> "git_repo" [label=">= 0.1.0"]
              }
              """
+    end)
+  after
+    purge([DepsOnGitRepo.MixProject, GitRepo.MixProject])
+  end
+
+  @expected_dot """
+  digraph "dependency tree" {
+    "sample"
+    "sample" -> "deps_on_git_repo" [label="0.2.0"]
+    "sample" -> "git_repo" [label=">= 0.1.0"]
+  }
+  """
+
+  test "writes the dot graph to a custom file via --output", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(ConvergedDepsApp)
+
+      Mix.Tasks.Deps.Tree.run(["--format", "dot", "--output", "custom.dot"])
+      assert File.read!("custom.dot") == @expected_dot
+      refute File.exists?("deps_tree.dot")
+
+      File.write!("custom.dot", "previous")
+      Mix.Tasks.Deps.Tree.run(["--format", "dot", "--output", "custom.dot"])
+      assert File.read!("custom.dot") == @expected_dot
+      assert File.read!("custom.dot.bak") == "previous"
+    end)
+  after
+    purge([DepsOnGitRepo.MixProject, GitRepo.MixProject])
+  end
+
+  test "writes the dot graph to stdout via --output -", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(ConvergedDepsApp)
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Deps.Tree.run(["--format", "dot", "--output", "-"])
+        end)
+
+      assert output == @expected_dot
+      refute File.exists?("deps_tree.dot")
     end)
   after
     purge([DepsOnGitRepo.MixProject, GitRepo.MixProject])

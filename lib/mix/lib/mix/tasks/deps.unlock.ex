@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Deps.Unlock do
 
       apps != [] ->
         lock = Mix.Dep.Lock.read()
-        apps = Enum.map(apps, &String.to_atom/1)
+        apps = Enum.map(apps, &String.to_unsafe_atom/1)
         unlocked = apps -- Map.keys(lock)
 
         for app <- unlocked do

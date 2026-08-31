@@ -49,7 +49,7 @@ defmodule Kernel.CLI do
 
   @doc """
   Runs the given function by catching any failure
-  and printing them to stdout. `at_exit` hooks are
+  and printing them to stderr. `at_exit` hooks are
   also invoked before exiting.
 
   This function is used by Elixir's CLI and also
@@ -99,9 +99,14 @@ defmodule Kernel.CLI do
   Shared helper for error formatting on CLI tools.
   """
   def format_error(kind, reason, stacktrace) do
+    {banner, rest} = format_error_parts(kind, reason, stacktrace)
+    [banner, rest]
+  end
+
+  defp format_error_parts(kind, reason, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
 
-    iodata =
+    banner =
       case blamed do
         %FunctionClauseError{} ->
           formatted = Exception.format_banner(kind, reason, stacktrace)
@@ -112,7 +117,7 @@ defmodule Kernel.CLI do
           Exception.format_banner(kind, blamed, stacktrace)
       end
 
-    [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
+    {banner, [?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]}
   end
 
   @doc """
@@ -179,7 +184,8 @@ defmodule Kernel.CLI do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    IO.write(:stderr, format_error(kind, reason, stacktrace))
+    {banner, rest} = format_error_parts(kind, reason, stacktrace)
+    IO.write(:stderr, [IO.ANSI.format([:red, banner]), rest])
   end
 
   defp blame_match(%{match?: true, node: node}), do: blame_ansi(:normal, "+", node)
@@ -338,7 +344,7 @@ defmodule Kernel.CLI do
     parse_argv(t, %{config | verbose_compile: true})
   end
 
-  defp parse_argv([~c"--profile", "time" | t], %{mode: :elixirc} = config) do
+  defp parse_argv([~c"--profile", ~c"time" | t], %{mode: :elixirc} = config) do
     parse_argv(t, %{config | profile: :time})
   end
 
@@ -427,7 +433,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:rpc_eval, node, expr}, _config) when is_list(expr) do
-    node = List.to_atom(node)
+    node = List.to_unsafe_atom(node)
 
     # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
     _ = :net_kernel.connect_node(node)

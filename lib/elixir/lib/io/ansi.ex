@@ -111,13 +111,15 @@ defmodule IO.ANSI do
   end
 
   defsequence = fn name, code, terminator ->
+    sequence = "\e[#{code}#{terminator}"
+
     @spec unquote(name)() :: String.t()
     def unquote(name)() do
-      "\e[#{unquote(code)}#{unquote(terminator)}"
+      unquote(sequence)
     end
 
     defp format_sequence(unquote(name)) do
-      unquote(name)()
+      unquote(sequence)
     end
   end
 
@@ -159,7 +161,7 @@ defmodule IO.ANSI do
 
   for font_n <- [1, 2, 3, 4, 5, 6, 7, 8, 9] do
     @doc "Sets alternative font #{font_n}."
-    defsequence.(:"font_#{font_n}", font_n + 10, "m")
+    defsequence.(String.to_unsafe_atom("font_#{font_n}"), font_n + 10, "m")
   end
 
   @doc "Normal color or intensity."
@@ -193,13 +195,13 @@ defmodule IO.ANSI do
     defsequence.(color, code + 30, "m")
 
     @doc "Sets foreground color to light #{color}."
-    defsequence.(:"light_#{color}", code + 90, "m")
+    defsequence.(String.to_unsafe_atom("light_#{color}"), code + 90, "m")
 
     @doc "Sets background color to #{color}."
-    defsequence.(:"#{color}_background", code + 40, "m")
+    defsequence.(String.to_unsafe_atom("#{color}_background"), code + 40, "m")
 
     @doc "Sets background color to light #{color}."
-    defsequence.(:"light_#{color}_background", code + 100, "m")
+    defsequence.(String.to_unsafe_atom("light_#{color}_background"), code + 100, "m")
   end
 
   @doc "Default text color."
@@ -332,7 +334,7 @@ defmodule IO.ANSI do
   end
 
   defp do_format([], [], acc, true, true) do
-    [acc | IO.ANSI.reset()]
+    [acc | reset()]
   end
 
   defp do_format([], [], acc, _emit?, _append_reset) do

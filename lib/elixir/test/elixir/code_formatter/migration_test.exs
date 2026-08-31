@@ -10,6 +10,14 @@ defmodule Code.Formatter.MigrationTest do
 
   @short_length [line_length: 10]
 
+  describe "migrate_atom_interpolations: true" do
+    @opts [migrate_atom_interpolations: true]
+
+    test "replaces atom interpolations" do
+      assert_format ~S/:"foo_#{i}"/, ~S/String.to_unsafe_atom("foo_#{i}")/, @opts
+    end
+  end
+
   describe "migrate_bitstring_modifiers: true" do
     @opts [migrate_bitstring_modifiers: true]
 

@@ -155,6 +155,7 @@ defmodule ExUnit.CaptureServer do
       Process.register(pid, name)
     rescue
       ArgumentError ->
+        close_string_io(pid)
         {:reply, {:error, :no_device}, config}
     else
       _ ->

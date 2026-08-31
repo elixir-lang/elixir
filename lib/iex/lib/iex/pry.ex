@@ -530,7 +530,7 @@ defmodule IEx.Pry do
     # Have an extra binding per argument for case matching.
     case_vars =
       for id <- 1..arity//1 do
-        {String.to_atom("arg" <> Integer.to_string(id)), [version: -id], __MODULE__}
+        {String.to_unsafe_atom("arg" <> Integer.to_string(id)), [version: -id], __MODULE__}
       end
 
     case_head = {:{}, [], case_vars}

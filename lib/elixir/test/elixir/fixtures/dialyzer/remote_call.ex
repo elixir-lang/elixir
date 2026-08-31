@@ -23,7 +23,7 @@ defmodule Dialyzer.RemoteCall do
   end
 
   def mod_var() do
-    module = String.to_atom("Elixir.Hello")
+    module = String.to_unsafe_atom("Elixir.Hello")
     module.fun()
   end
 end

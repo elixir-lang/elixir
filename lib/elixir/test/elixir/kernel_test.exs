@@ -321,8 +321,6 @@ defmodule KernelTest do
   defp struct_or_map?(arg, name) when is_struct(arg, name) or is_map(arg), do: true
   defp struct_or_map?(_arg, _name), do: false
 
-  defp not_atom(), do: "not atom"
-
   test "is_struct/2" do
     assert delegate_is_struct(%{}, Macro.Env) == false
     assert delegate_is_struct([], Macro.Env) == false
@@ -336,7 +334,7 @@ defmodule KernelTest do
     assert guarded_is_struct(%{}, Macro.Env) == false
 
     assert_raise ArgumentError, "argument error", fn ->
-      is_struct(%{}, not_atom())
+      is_struct(%{}, Process.get(:unused, "not atom"))
     end
   end
 
@@ -417,7 +415,7 @@ defmodule KernelTest do
     assert guarded_is_exception(%{}, RuntimeError) == false
 
     assert_raise ArgumentError, "argument error", fn ->
-      delegate_is_exception(%{}, not_atom())
+      delegate_is_exception(%{}, Process.get(:unused, "not atom"))
     end
   end
 
@@ -463,6 +461,11 @@ defmodule KernelTest do
       refute 2 in []
       refute false in []
       refute true in []
+
+      # make sure optimization still evaluates the left-hand side
+      # (do not use assert/refute which handle in/2 differently)
+      send(self(), :foo) in []
+      assert_received :foo
     end
 
     test "with expressions on right side" do
@@ -594,7 +597,7 @@ defmodule KernelTest do
       assert map_dot(%{field: true})
     end
 
-    test "performs all side-effects" do
+    test "performs all side-effects in order" do
       assert 1 in [1, send(self(), 2)]
       assert_received 2
 
@@ -603,9 +606,17 @@ defmodule KernelTest do
 
       assert 2 in [1 | send(self(), [2])]
       assert_received [2]
+
+      send(self(), :first) in send(self(), [:first, :second, :third])
+      assert Process.info(self(), :messages) == {:messages, [:first, [:first, :second, :third]]}
+      assert_received :first
+      assert_received [:first, :second, :third]
+
+      send(self(), 0) in send(self(), -2)..send(self(), 2)//send(self(), 1)
+      assert Process.info(self(), :messages) == {:messages, [0, -2, 2, 1]}
     end
 
-    test "has proper evaluation order" do
+    test "preserves variable semantics" do
       a = 1
       assert 1 in [a = 2, a]
       # silence unused var warning
@@ -691,7 +702,7 @@ defmodule KernelTest do
              """
 
       # Empty list
-      assert expand_to_string(quote(do: :x in [])) =~ "_ = :x\nfalse"
+      assert expand_to_string(quote(do: :x in [])) =~ ":lists.member(:x, [])"
       assert expand_to_string(quote(do: :x in []), :guard) == "false"
 
       # Lists
@@ -1050,10 +1061,6 @@ defmodule KernelTest do
       assert get_and_update_in(struct.foo.bar, &{&1, &1 + 1}) ==
                {41, %StructAccess{bar: nil, foo: %StructAccess{bar: 42, foo: nil}}}
 
-      assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
-        get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
-      end
-
       assert_raise BadMapError, fn ->
         get_and_update_in(users["dave"].age, &{&1, &1 + 1})
       end
@@ -1118,11 +1125,6 @@ defmodule KernelTest do
       users = %{john: nil, meg: %{age: 23}}
       assert pop_in(users.john[:age]) == {nil, %{john: nil, meg: %{age: 23}}}
       assert pop_in(users, [:john, :age]) == {nil, %{meg: %{age: 23}}}
-
-      x = nil
-      assert_raise ArgumentError, fn -> pop_in(x["john"][:age]) end
-      assert_raise ArgumentError, fn -> pop_in(nil["john"][:age]) end
-      assert_raise ArgumentError, fn -> pop_in(nil, ["john", :age]) end
     end
 
     test "with dynamic paths" do
@@ -1542,6 +1544,16 @@ defmodule KernelTest do
       assert_raise ArgumentError, message, fn ->
         to_timeout(Duration.new!(year: 1))
       end
+    end
+
+    test "raises on durations that result in a negative timeout" do
+      assert_raise ArgumentError,
+                   ~r"duration must be positive",
+                   fn -> to_timeout(Duration.new!(second: -1)) end
+
+      assert_raise ArgumentError,
+                   ~r"duration must be positive",
+                   fn -> to_timeout(Duration.new!(hour: 1, minute: -61)) end
     end
 
     test "works with timeouts" do

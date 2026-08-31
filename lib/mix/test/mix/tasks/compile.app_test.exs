@@ -143,6 +143,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
   test "infers applications" do
     in_fixture("no_mixfile", fn ->
+      Mix.ProjectStack.post_config(elixirc_options: [infer_signatures: false])
       Mix.Project.push(CustomDeps)
 
       Mix.Tasks.Compile.Elixir.run([])

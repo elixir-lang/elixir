@@ -79,10 +79,11 @@ defmodule Process do
   @typedoc """
   A process destination.
 
-  A remote or local PID, a local port, a locally registered name, or a tuple in
-  the form of `{registered_name, node}` for a registered name at another node.
+  A remote or local PID, a local port, a process alias, a locally registered name,
+  or a tuple in the form of `{registered_name, node}` for a registered name at
+  another node.
   """
-  @type dest :: pid | port | (registered_name :: atom) | {registered_name :: atom, node}
+  @type dest :: pid | port | alias | (registered_name :: atom) | {registered_name :: atom, node}
 
   @doc """
   Tells whether the given process is alive on the local node.
@@ -226,7 +227,7 @@ defmodule Process do
   >
   > The functions `Kernel.exit/1` and `Process.exit/2` are
   > named similarly but provide very different functionalities. The
-  > `Kernel:exit/1` function should be used when the intent is to stop the current
+  > `Kernel.exit/1` function should be used when the intent is to stop the current
   > process while `Process.exit/2` should be used when the intent is to send an
   > exit signal to another process. Note also that `Kernel.exit/1` can be caught
   > with `try/1` while `Process.exit/2` can only be handled by trapping exits and
@@ -339,7 +340,7 @@ defmodule Process do
   @doc """
   Sends a message to the given `dest`.
 
-  `dest` may be a remote or local PID, a local port, a locally
+  `dest` may be a remote or local PID, a local port, a process alias, a locally
   registered name, or a tuple in the form of `{registered_name, node}` for a
   registered name at another node.
 
@@ -386,8 +387,6 @@ defmodule Process do
   which is not alive or when the given PID exits. Note that timers will not be
   automatically canceled when `dest` is an atom (as the atom resolution is done
   on delivery).
-
-  Inlined by the compiler.
 
   ## Options
 
@@ -832,12 +831,16 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @spec flag(:async_dist, boolean) :: boolean
   @spec flag(:error_handler, module) :: module
+  @spec flag(:fullsweep_after, non_neg_integer) :: non_neg_integer
   @spec flag(:max_heap_size, heap_size) :: heap_size
   # :off_heap | :on_heap twice because :erlang.message_queue_data() is not exported
   @spec flag(:message_queue_data, :off_heap | :on_heap) :: :off_heap | :on_heap
   @spec flag(:min_bin_vheap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:min_heap_size, non_neg_integer) :: non_neg_integer
+  @spec flag(:monitor_nodes, term) :: term
+  @spec flag({:monitor_nodes, term}, term) :: term
   @spec flag(:priority, priority_level) :: priority_level
   @spec flag(:save_calls, 0..10_000) :: 0..10_000
   @spec flag(:sensitive, boolean) :: boolean
@@ -1004,7 +1007,7 @@ defmodule Process do
   end
 
   @doc """
-  Add a descriptive term to the current process.
+  Adds a descriptive term to the current process.
 
   The term does not need to be unique, and will be shown in Observer and in
   crash logs.

@@ -164,7 +164,7 @@ defmodule Mix.CLI do
   end
 
   defp maybe_change_env_and_target(task, project) do
-    task = String.to_atom(task)
+    task = String.to_unsafe_atom(task)
     config = Mix.Project.config()
 
     env = preferred_cli_env(project, task, config)

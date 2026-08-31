@@ -77,8 +77,13 @@ defmodule Config.ProviderTest do
       assert Provider.validate_config_path!("/foo") == :ok
       assert Provider.validate_config_path!({:system, "foo", "bar"}) == :ok
 
-      assert_raise ArgumentError, fn -> Provider.validate_config_path!({:system, 1, 2}) end
-      assert_raise ArgumentError, fn -> Provider.validate_config_path!(~c"baz") end
+      assert_raise ArgumentError, fn ->
+        Provider.validate_config_path!(Process.get(:unused, {:system, 1, 2}))
+      end
+
+      assert_raise ArgumentError, fn ->
+        Provider.validate_config_path!(Process.get(:unused, ~c"baz"))
+      end
     end
 
     test "resolve!" do

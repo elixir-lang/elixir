@@ -74,6 +74,6 @@ unless System.get_env("DRYRUN") do
     "api-username" => "Elixir"
   }
 
-  resp = Req.post!("https://elixirforum.com/posts.json", {:json, post}, headers: headers)
+  resp = Req.post!("https://forum.elixirforum.com/posts.json", {:json, post}, headers: headers)
   IO.puts("#{resp.status} Elixir Forum\n#{inspect(resp.body)}")
 end

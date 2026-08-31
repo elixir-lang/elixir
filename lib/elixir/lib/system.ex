@@ -541,7 +541,7 @@ defmodule System do
   By default, the Erlang VM register traps to the three
   signals:
 
-    * `:sigstop` - gracefully shuts down the VM with `stop/0`
+    * `:sigterm` - gracefully shuts down the VM with `stop/0`
     * `:sigquit` - halts the VM via `halt/0`
     * `:sigusr1` - halts the VM via status code of 1
 
@@ -1026,10 +1026,10 @@ defmodule System do
   > On Unix systems, arguments are passed to a new operating system
   > process as an array of strings but on Windows it is up to the child
   > process to parse them and some Windows programs may apply their own
-  > rules, which are inconsistent with the standard C runtime `argv` parsing
+  > rules, which are inconsistent with the standard C runtime `argv` parsing.
   >
-  > This is particularly troublesome when invoking `.bat` or `.com` files
-  > as these run implicitly through `cmd.exe`, whose argument parsing is
+  > This is particularly troublesome when invoking `.bat`, `.cmd`, or `.com`
+  > files as these run implicitly through `cmd.exe`, whose argument parsing is
   > vulnerable to malicious input and can be used to run arbitrary shell
   > commands.
   >
@@ -1037,7 +1037,7 @@ defmodule System do
   > files or `.com` applications, you must not pass untrusted input as
   > arguments to the program. You may avoid accidentally executing them
   > by explicitly passing the extension of the program you want to run,
-  > such as `.exe`, and double check the program is indeed not a batch
+  > such as `.exe`, and double-checking the program is indeed not a batch
   > file or `.com` application.
 
   ## Options
@@ -1378,6 +1378,17 @@ defmodule System do
 
   @doc """
   Returns the Erlang/OTP release number.
+
+  The version is a single number, the major version of OTP.
+  Erlang/OTP does not provide an API to fetch the exact
+  patch version, see the [*Versions* page](https://www.erlang.org/doc/system/versions.html)
+  in the Erlang documentation for more information.
+
+  ## Examples
+
+      iex> System.otp_release()
+      "#{:erlang.system_info(:otp_release)}"
+
   """
   @spec otp_release :: String.t()
   @doc since: "1.3.0"

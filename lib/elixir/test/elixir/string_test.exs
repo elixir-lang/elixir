@@ -232,6 +232,11 @@ defmodule StringTest do
     assert String.downcase("Σ ΣΑΣ Σ", :greek) == "σ σας σ"
     assert String.downcase("ΜΕΣ'ΑΠΟ", :greek) == "μεσ'απο"
     assert String.downcase("ΑΣ'ΤΟΥΣ", :greek) == "ασ'τους"
+    assert String.downcase("AΣ", :greek) == "aς"
+    assert String.downcase("AΣA", :greek) == "aσa"
+    assert String.downcase("A'Σ", :greek) == "a'ς"
+    assert String.downcase("İΣ", :greek) == "i̇ς"
+    assert String.downcase("ⅠΣ", :greek) == "ⅰς"
   end
 
   test "downcase/1 with ascii" do
@@ -273,6 +278,10 @@ defmodule StringTest do
     assert String.capitalize("ııı", :turkic) == "Iıı"
     assert String.capitalize("İii", :turkic) == "İii"
     assert String.capitalize("Iıı", :turkic) == "Iıı"
+
+    assert String.capitalize("AΣ", :greek) == "Aς"
+    assert String.capitalize("iΣ", :greek) == "Iς"
+    assert String.capitalize("1Σ", :greek) == "1σ"
 
     assert String.capitalize(<<138, ?B, ?C>>) == <<138, ?b, ?c>>
 
@@ -444,6 +453,7 @@ defmodule StringTest do
     assert String.reverse("Hello World") == "dlroW olleH"
     assert String.reverse("Hello ∂og") == "go∂ olleH"
     assert String.reverse("Ā̀stute") == "etutsĀ̀"
+    assert String.reverse("ab" <> <<254, 255>> <> "cd") == "dc" <> <<255, 254>> <> "ba"
     assert String.reverse(String.reverse("Hello World")) == "Hello World"
     assert String.reverse(String.reverse("Hello \r\n World")) == "Hello \r\n World"
   end
@@ -1098,5 +1108,24 @@ defmodule StringTest do
 
     assert String.bag_distance("\r\t\xFF\v", "\xFF\r\n\xFF") == 0.25
     assert String.split("\r\t\v", "") == ["", "\r", "\t", "\v", ""]
+  end
+
+  test "to_existing_atom/2" do
+    # constant
+    assert String.to_existing_atom("foo", [:foo, :bar]) == :foo
+    assert String.to_existing_atom("bar", [:foo, :bar]) == :bar
+
+    assert_raise ArgumentError, fn ->
+      String.to_existing_atom("baz", [:foo, :bar])
+    end
+
+    # variable
+    values = [:foo, :bar]
+    assert String.to_existing_atom("foo", values) == :foo
+    assert String.to_existing_atom("bar", values) == :bar
+
+    assert_raise ArgumentError, fn ->
+      String.to_existing_atom("baz", values)
+    end
   end
 end

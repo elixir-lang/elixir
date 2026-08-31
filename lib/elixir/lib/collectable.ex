@@ -69,6 +69,22 @@ defprotocol Collectable do
       iex> Enum.into([1, 2, 3], MapSet.new())
       MapSet.new([1, 2, 3])
 
+  ## Halting
+
+  The `:halt` flag will be given whenever the collection won't
+  terminate correctly and must be used to clean up existing resources
+  (such as sockets, file handles, etc).
+
+  Note it is not guaranteed that the accumulator given to halt will
+  be the latest version of the accumulator returned by a previous call
+  with `{:cont, elem}`. Therefore, you must track the collected results
+  within the resource you intend to halt.
+
+  This is by design: ensuring halt is always called with the latest
+  accumulator would make pure collectables (the ones that do not implement
+  halt) expensive. However, given the collectables that must implement halt
+  already need to track state, the burden of tracking the accumulator
+  across invocations is put on them.
   """
 
   @type command :: {:cont, term} | :done | :halt

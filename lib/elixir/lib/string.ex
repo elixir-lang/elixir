@@ -234,12 +234,12 @@ defmodule String do
   to the definition of the encoding) is encountered, only one
   code point needs to be rejected.
 
-  This module relies on this behavior to ignore such invalid
-  characters. For example, `length/1` will return
-  a correct result even if an invalid code point is fed into it.
+  Most functions in this module perform self-synchronization too.
+  For example, `downcase/1` will return a downcased string, with
+  any invalid codepoints preserved at their location.
 
   In other words, this module expects invalid data to be detected
-  elsewhere, usually when retrieving data from the external source.
+  at the boundary, typically when retrieving data from the external source.
   For example, a driver that reads strings from a database will be
   responsible to check the validity of the encoding. `String.chunk/2`
   can be used for breaking a string into valid and invalid parts.
@@ -745,7 +745,15 @@ defmodule String do
       iex> String.count("hello world", "")
       12
 
-  The `pattern` can also be a compiled pattern:
+  The `pattern` can also be a list:
+
+      iex> String.count("hello world", ["e", "o"])
+      3
+
+      iex> String.count("hello world", [])
+      0
+
+  Or a compiled pattern:
 
       iex> pattern = :binary.compile_pattern([" ", "!"])
       iex> String.count("foo bar baz!!", pattern)
@@ -755,6 +763,8 @@ defmodule String do
   @spec count(t, pattern | Regex.t()) :: non_neg_integer
   @doc since: "1.19.0"
   def count(string, <<>>), do: length(string) + 1
+
+  def count(_string, []), do: 0
 
   def count(string, pattern) when is_struct(pattern, Regex) do
     Kernel.length(Regex.scan(pattern, string, return: :index))
@@ -925,18 +935,28 @@ defmodule String do
   end
 
   def upcase(string, :ascii) when is_binary(string) do
-    IO.iodata_to_binary(upcase_ascii(string))
+    upcase_ascii(string, string, 0)
   end
 
   def upcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
     String.Unicode.upcase(string, [], mode)
   end
 
-  defp upcase_ascii(<<char, rest::bits>>) when char >= ?a and char <= ?z,
-    do: [char - 32 | upcase_ascii(rest)]
+  defp upcase_ascii(<<char, rest::bits>>, original, skip) when char >= ?a and char <= ?z do
+    prefix = binary_part(original, 0, skip)
+    upcase_ascii(rest, <<prefix::binary, char - 32>>)
+  end
 
-  defp upcase_ascii(<<char, rest::bits>>), do: [char | upcase_ascii(rest)]
-  defp upcase_ascii(<<>>), do: []
+  defp upcase_ascii(<<_char, rest::bits>>, original, skip),
+    do: upcase_ascii(rest, original, skip + 1)
+
+  defp upcase_ascii(<<>>, original, _skip), do: original
+
+  defp upcase_ascii(<<char, rest::bits>>, acc) when char >= ?a and char <= ?z,
+    do: upcase_ascii(rest, <<acc::binary, char - 32>>)
+
+  defp upcase_ascii(<<char, rest::bits>>, acc), do: upcase_ascii(rest, <<acc::binary, char>>)
+  defp upcase_ascii(<<>>, acc), do: acc
 
   @doc """
   Converts all characters in the given string to lowercase according to `mode`.
@@ -995,18 +1015,32 @@ defmodule String do
   end
 
   def downcase(string, :ascii) when is_binary(string) do
-    IO.iodata_to_binary(downcase_ascii(string))
+    downcase_ascii(string, string, 0)
+  end
+
+  def downcase(string, :greek) when is_binary(string) do
+    String.Unicode.downcase_greek(string, [])
   end
 
   def downcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
     String.Unicode.downcase(string, [], mode)
   end
 
-  defp downcase_ascii(<<char, rest::bits>>) when char >= ?A and char <= ?Z,
-    do: [char + 32 | downcase_ascii(rest)]
+  defp downcase_ascii(<<char, rest::bits>>, original, skip) when char >= ?A and char <= ?Z do
+    prefix = binary_part(original, 0, skip)
+    downcase_ascii(rest, <<prefix::binary, char + 32>>)
+  end
 
-  defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
-  defp downcase_ascii(<<>>), do: []
+  defp downcase_ascii(<<_char, rest::bits>>, original, skip),
+    do: downcase_ascii(rest, original, skip + 1)
+
+  defp downcase_ascii(<<>>, original, _skip), do: original
+
+  defp downcase_ascii(<<char, rest::bits>>, acc) when char >= ?A and char <= ?Z,
+    do: downcase_ascii(rest, <<acc::binary, char + 32>>)
+
+  defp downcase_ascii(<<char, rest::bits>>, acc), do: downcase_ascii(rest, <<acc::binary, char>>)
+  defp downcase_ascii(<<>>, acc), do: acc
 
   @doc """
   Converts the first character in the given string to
@@ -1048,17 +1082,37 @@ defmodule String do
   @letter_I_dot_above <<0x0130::utf8>>
 
   def capitalize(<<@letter_i, right::binary>>, mode) do
-    if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
+    capitalized = if mode == :turkic, do: @letter_I_dot_above, else: @letter_I
+    capitalized <> downcase_after_capitalize(right, mode, ?i)
   end
 
   def capitalize(string, mode) when is_binary(string) do
     case :unicode_util.gc(string) do
-      [gc] -> grapheme_to_binary(:string.titlecase([gc]))
-      [gc, rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
-      [gc | rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
-      [] -> ""
-      {:error, <<byte, rest::bits>>} -> <<byte>> <> downcase(rest, mode)
+      [gc] ->
+        grapheme_to_binary(:string.titlecase([gc]))
+
+      [gc, rest] ->
+        grapheme_to_binary(:string.titlecase([gc])) <>
+          downcase_after_capitalize(rest, mode, gc)
+
+      [gc | rest] ->
+        grapheme_to_binary(:string.titlecase([gc])) <>
+          downcase_after_capitalize(rest, mode, gc)
+
+      [] ->
+        ""
+
+      {:error, <<byte, rest::bits>>} ->
+        <<byte>> <> downcase(rest, mode)
     end
+  end
+
+  defp downcase_after_capitalize(rest, :greek, gc) do
+    String.Unicode.downcase_greek(rest, [], grapheme_to_binary(gc))
+  end
+
+  defp downcase_after_capitalize(rest, mode, _gc) do
+    downcase(rest, mode)
   end
 
   @doc false
@@ -1072,7 +1126,7 @@ defmodule String do
   end
 
   @doc """
-  Replaces all leading occurrences of `match` by `replacement` of `match` in `string`.
+  Replaces all leading occurrences of `match` by `replacement` in `string`.
 
   Returns the string untouched if there are no occurrences.
 
@@ -1716,7 +1770,7 @@ defmodule String do
   end
 
   defp do_replace(subject, [], _, n) do
-    [binary_part(subject, n, byte_size(subject) - n)]
+    binary_part(subject, n, byte_size(subject) - n)
   end
 
   defp do_replace(subject, [{start, length} | matches], replacement, n) do
@@ -1774,7 +1828,7 @@ defmodule String do
     do: :unicode.characters_to_binary(acc)
 
   defp do_reverse({:error, <<byte, rest::bits>>}, acc),
-    do: :unicode.characters_to_binary(acc) <> <<byte>> <> do_reverse(:unicode_util.gc(rest), [])
+    do: do_reverse(:unicode_util.gc(rest), []) <> <<byte>> <> :unicode.characters_to_binary(acc)
 
   @doc """
   Returns a string `subject` repeated `n` times.
@@ -2400,7 +2454,7 @@ defmodule String do
       ""
 
   """
-  @spec slice(t, integer, non_neg_integer) :: grapheme
+  @spec slice(t, integer, non_neg_integer) :: t
 
   def slice(_, _, 0) do
     ""
@@ -2952,29 +3006,38 @@ defmodule String do
     end
   end
 
+  # TODO: Deprecate String.to_atom, List.to_atom, and atom interpolation in v1.25
+  @doc deprecated: "Use to_existing_atom/1 or to_unsafe_atom/1 instead"
+  def to_atom(string) when is_binary(string) do
+    :erlang.binary_to_atom(string, :utf8)
+  end
+
   @doc """
   Converts a string to an existing atom or creates a new one.
 
-  Warning: this function creates atoms dynamically and atoms are
-  not garbage-collected. Therefore, `string` should not be an
-  untrusted value, such as input received from a socket or during
-  a web request. Consider using `to_existing_atom/1` instead.
+  > #### Dynamic Atom Creation {: .warning}
+  >
+  > This function creates atoms dynamically and atoms are
+  > not garbage-collected. Therefore, `string` should not be an
+  > untrusted value, such as input received from a socket or during
+  > a web request. Consider using `to_existing_atom/1` instead.
 
   By default, the maximum number of atoms is `1_048_576`. This limit
   can be raised or lowered using the VM option `+t`.
 
-  The maximum atom size is of 255 Unicode code points.
+  The maximum atom size is 255 Unicode code points.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> String.to_atom("my_atom")
+      iex> String.to_unsafe_atom("my_atom")
       :my_atom
 
   """
-  @spec to_atom(String.t()) :: atom
-  def to_atom(string) when is_binary(string) do
+  @doc since: "1.21.0"
+  @spec to_unsafe_atom(String.t()) :: atom
+  def to_unsafe_atom(string) when is_binary(string) do
     :erlang.binary_to_atom(string, :utf8)
   end
 
@@ -2982,7 +3045,9 @@ defmodule String do
   Converts a string to an existing atom or raises if
   the atom does not exist.
 
-  The maximum atom size is of 255 Unicode code points.
+  If the list of expected atoms is known upfront, prefer `to_existing_atom/2`.
+
+  The maximum atom size is 255 Unicode code points.
   Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
@@ -3009,6 +3074,47 @@ defmodule String do
   @spec to_existing_atom(String.t()) :: atom
   def to_existing_atom(string) when is_binary(string) do
     :erlang.binary_to_existing_atom(string, :utf8)
+  end
+
+  @doc """
+  Converts a string to one of the `allowed_atoms` or raises.
+
+  Raises an `ArgumentError` if the atom either does not exist or is not within
+  the existing list.
+
+  This should be preferred to `to_existing_atom/1` if the list is known upfront,
+  since there is no risk that the atom has not been loaded.
+
+  ## Examples
+
+      iex> String.to_existing_atom("foo", [:foo, :bar])
+      :foo
+
+      iex> String.to_existing_atom("unknown", [:foo, :bar])
+      ** (ArgumentError) unexpected value: \"unknown\", the allowed atoms are: [:foo, :bar]
+
+  """
+  @doc since: "1.21.0"
+  @spec to_existing_atom(String.t(), nonempty_list(a)) :: a when a: atom()
+  def to_existing_atom(string, [_ | _] = allowed_atoms) when is_binary(string) do
+    atom = :erlang.binary_to_existing_atom(string, :utf8)
+
+    if atom not in allowed_atoms do
+      to_existing_atom_unexpected(string, allowed_atoms)
+    end
+
+    atom
+  end
+
+  # used just to have a less cryptic stacktrace and consistent error
+  @doc false
+  def __to_existing_atom__(string, allowed_atoms) do
+    to_existing_atom_unexpected(string, allowed_atoms)
+  end
+
+  defp to_existing_atom_unexpected(string, allowed_atoms) do
+    raise ArgumentError,
+          "unexpected value: #{inspect(string)}, the allowed atoms are: #{inspect(allowed_atoms)}"
   end
 
   @doc """
@@ -3108,10 +3214,13 @@ defmodule String do
       0.75
       iex> String.bag_distance("abcd", "abcd")
       1.0
+      iex> String.bag_distance("", "")
+      1.0
 
   """
   @spec bag_distance(t, t) :: float
   @doc since: "1.8.0"
+  def bag_distance("", ""), do: 1.0
   def bag_distance(_string, ""), do: 0.0
   def bag_distance("", _string), do: 0.0
 
@@ -3120,9 +3229,9 @@ defmodule String do
     {bag2, length2} = string_to_bag(string2, %{}, 0)
 
     diff1 = bag_difference(bag1, bag2)
-    diff2 = bag_difference(bag2, bag1)
+    max_diff = if length1 >= length2, do: diff1, else: diff1 - length1 + length2
 
-    1 - max(diff1, diff2) / max(length1, length2)
+    1 - max_diff / max(length1, length2)
   end
 
   defp string_to_bag(string, bag, length) do

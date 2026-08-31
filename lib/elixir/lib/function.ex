@@ -69,7 +69,6 @@ defmodule Function do
           | :name
           | :new_index
           | :new_uniq
-          | :pid
           | :type
           | :uniq
 
@@ -111,8 +110,6 @@ defmodule Function do
 
   When `fun` is an anonymous function (that is, the type is `:local`), the following
   additional keys are returned:
-
-    * `:pid` - PID of the process that originally created the function.
 
     * `:index` - (integer) an index into the module function table.
 
@@ -159,7 +156,7 @@ defmodule Function do
   `:module`, `:name`, `:arity`, `:env`, or `:type`.
 
   For anonymous functions, there is also information about any of the
-  atoms `:index`, `:new_index`, `:new_uniq`, `:uniq`, and `:pid`.
+  atoms `:index`, `:new_index`, `:new_uniq`, and `:uniq`.
   For a named function, the value of any of these items is always the
   atom `:undefined`.
 
@@ -179,8 +176,6 @@ defmodule Function do
       iex> fun = &String.length/1
       iex> Function.info(fun, :name)
       {:name, :length}
-      iex> Function.info(fun, :pid)
-      {:pid, :undefined}
 
   """
   @doc since: "1.7.0"

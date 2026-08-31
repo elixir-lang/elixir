@@ -89,10 +89,6 @@ defmodule ListTest do
   test "first!/1" do
     assert List.first!([1]) == 1
     assert List.first!([1, 2, 3]) == 1
-
-    assert_raise ArgumentError, "attempted to get the first element of an empty list", fn ->
-      List.first!([])
-    end
   end
 
   test "last/1" do
@@ -110,10 +106,6 @@ defmodule ListTest do
   test "last!/1" do
     assert List.last!([1]) == 1
     assert List.last!([1, 2, 3]) == 3
-
-    assert_raise ArgumentError, "attempted to get the last element of an empty list", fn ->
-      List.last!([])
-    end
   end
 
   test "keyfind/4" do
@@ -359,6 +351,12 @@ defmodule ListTest do
     assert_raise ArgumentError, ~r"cannot convert the given list to a string", fn ->
       List.to_string([:a, :b])
     end
+
+    invalid = List.duplicate(?a, 4096) ++ [nil]
+
+    assert_raise ArgumentError, ~r/got:\n\n\[97, 97, .*\.\.\.\]\n\z/s, fn ->
+      List.to_string(invalid)
+    end
   end
 
   test "to_charlist/1" do
@@ -376,6 +374,12 @@ defmodule ListTest do
 
     assert_raise ArgumentError, ~r"cannot convert the given list to a charlist", fn ->
       List.to_charlist([:a, :b])
+    end
+
+    invalid = List.duplicate(?a, 4096) ++ [nil]
+
+    assert_raise ArgumentError, ~r/got:\n\n\[97, 97, .*\.\.\.\]\n\z/s, fn ->
+      List.to_charlist(invalid)
     end
   end
 
@@ -447,6 +451,25 @@ defmodule ListTest do
     test "improper lists" do
       refute List.ascii_printable?(~c"abc" ++ ?d)
       assert List.ascii_printable?(~c"abc" ++ ?d, 3)
+    end
+  end
+
+  test "to_existing_atom/2" do
+    # constant
+    assert List.to_existing_atom(~c"foo", [:foo, :bar]) == :foo
+    assert List.to_existing_atom(~c"bar", [:foo, :bar]) == :bar
+
+    assert_raise ArgumentError, fn ->
+      List.to_existing_atom(~c"baz", [:foo, :bar])
+    end
+
+    # variable
+    values = [:foo, :bar]
+    assert List.to_existing_atom(~c"foo", values) == :foo
+    assert List.to_existing_atom(~c"bar", values) == :bar
+
+    assert_raise ArgumentError, fn ->
+      List.to_existing_atom(~c"baz", values)
     end
   end
 end

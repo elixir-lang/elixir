@@ -9,7 +9,7 @@ defmodule Mix.ProjectTest do
 
   defmodule SampleProject do
     def project do
-      [app: :sample, hello: "world"]
+      [app: :sample, hello: "world", consolidation_path: "consolidated"]
     end
   end
 
@@ -104,6 +104,7 @@ defmodule Mix.ProjectTest do
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
+    assert is_nil(Mix.Project.config()[:consolidation_path])
     assert is_nil(Mix.Project.config()[:deps_app_path])
   end
 

@@ -33,6 +33,9 @@ extract([$\\, $\r, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, 
 extract([$\\, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
   extract_nl(Rest, [$\n, $\\ | Buffer], Output, Line, Scope, Interpol, Last);
 
+extract([$\r, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
+  extract_nl(Rest, [$\n, $\r | Buffer], Output, Line, Scope, Interpol, Last);
+
 extract([$\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
   extract_nl(Rest, [$\n | Buffer], Output, Line, Scope, Interpol, Last);
 
@@ -168,7 +171,15 @@ unescape_string(String, Map) ->
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
 unescape_chars(String, Map) ->
-  unescape_chars(String, Map, <<>>).
+  case binary:match(String, <<$\\>>) of
+    nomatch ->
+      String;
+
+    {Pos, _} ->
+      <<Part:Pos/binary, Rest/binary>> = String,
+      Acc = <<>>,
+      unescape_chars(Rest, Map, <<Acc/binary, Part/binary>>)
+  end.
 
 unescape_chars(<<$\\, $x, Rest/binary>>, Map, Acc) ->
   case Map(hex) of
@@ -208,7 +219,7 @@ unescape_chars(<<>>, _Map, Acc) -> Acc.
 % Unescape Helpers
 
 unescape_hex(<<A, B, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
-  Bytes = list_to_integer([A, B], 16),
+  Bytes = (hex_to_int(A) bsl 4) bor hex_to_int(B),
   unescape_chars(Rest, Map, <<Acc/binary, Bytes>>);
 
 unescape_hex(<<_/binary>>, _Map, _Acc) ->
@@ -248,6 +259,10 @@ append_codepoint(Rest, Map, List, Acc, Base) ->
     error:badarg ->
       throw({error, "invalid or reserved Unicode code point \\u{" ++ List ++ "}", "\\u"})
   end.
+
+hex_to_int(H) when ?is_digit(H) -> H - $0;
+hex_to_int(H) when H >= $A, H =< $F -> H - $A + 10;
+hex_to_int(H) when H >= $a, H =< $f -> H - $a + 10.
 
 unescape_map(newline) -> true;
 unescape_map(unicode) -> true;

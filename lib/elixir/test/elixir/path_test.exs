@@ -416,6 +416,14 @@ defmodule PathTest do
     assert Path.join(["/foo", "bar"], ["fiz", "buz"]) == "/foobar/fizbuz"
   end
 
+  test "safe_join/2" do
+    assert {:ok, "foo/bar"} = Path.safe_join("foo", "bar")
+    assert {:ok, "foo"} = Path.safe_join("foo", ".")
+
+    assert :error = Path.safe_join("foo", "../bar")
+    assert :error = Path.safe_join("foo", "/bar")
+  end
+
   test "split/1" do
     assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
@@ -428,5 +436,29 @@ defmodule PathTest do
     defp strip_drive_letter_if_windows(<<_d, ?:, rest::binary>>), do: rest
   else
     defp strip_drive_letter_if_windows(path), do: path
+  end
+end
+
+defmodule Path.SyncTest do
+  use ExUnit.Case, async: false
+
+  @tag :tmp_dir
+  @tag :unix
+  test "relative_to_cwd/2 returns a binary even when cwd cannot be retrieved", config do
+    {:ok, original} = :file.get_cwd()
+    tmp = Path.join(config.tmp_dir, "deleted")
+    File.mkdir_p!(tmp)
+
+    try do
+      File.cd!(tmp)
+      File.rm_rf!(tmp)
+      assert {:error, _} = :file.get_cwd()
+
+      assert Path.relative_to_cwd("foo/bar") == "foo/bar"
+      assert Path.relative_to_cwd(~c"foo/bar") == "foo/bar"
+      assert Path.relative_to_cwd(["foo", ?/, "bar"]) == "foo/bar"
+    after
+      :file.set_cwd(original)
+    end
   end
 end

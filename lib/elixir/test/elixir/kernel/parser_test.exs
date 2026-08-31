@@ -1149,6 +1149,105 @@ defmodule Kernel.ParserTest do
       )
     end
 
+    test "invalid bare carriage return in source" do
+      # Bare CR at top level (already produces an unexpected-token error)
+      assert_syntax_error(
+        ["nofile:1:1:", "unexpected token: carriage return (column 1, code point U+000D)"],
+        ~c"\r"
+      )
+
+      # CRLF is still a valid line ending at the top level
+      assert Code.string_to_quoted!("x = 1\r\ny = 2") ==
+               {:__block__, [],
+                [
+                  {:=, [line: 1], [{:x, [line: 1], nil}, 1]},
+                  {:=, [line: 2], [{:y, [line: 2], nil}, 2]}
+                ]}
+
+      # Bare CR inside a comment (Trojan Source via comment camouflage)
+      assert_syntax_error(
+        ["nofile:1:1:", "invalid line break character in comment: \\u000D"],
+        ~c"# safe comment" ++ [13] ++ ~c"hidden_code()"
+      )
+
+      # CRLF correctly terminates a comment (still valid)
+      assert Code.string_to_quoted!("# comment\r\nx = 1") ==
+               {:=, [line: 2], [{:x, [line: 2], nil}, 1]}
+
+      # Bare CR inside a string
+      assert_syntax_error(
+        [
+          "nofile:1:12:",
+          "invalid line break character in string: \\u000D. If you want to use such character, use it in its escaped \\u000D form instead"
+        ],
+        [34] ++ ~c"this is a " ++ [13, 34]
+      )
+
+      # Bare CR after backslash inside a string
+      assert_syntax_error(
+        [
+          "nofile:1:13:",
+          "invalid line break character in string: \\u000D. If you want to use such character, use it in its escaped \\u000D form instead"
+        ],
+        [34] ++ ~c"this is a " ++ [?\\, 13, 34]
+      )
+
+      # CRLF inside a string is preserved as content (same as before)
+      assert Code.string_to_quoted!([34] ++ ~c"hello" ++ [13, 10] ++ ~c"world" ++ [34]) ==
+               "hello\r\nworld"
+
+      # Bare CR inside a charlist
+      assert_syntax_error(
+        ["invalid line break character in string: \\u000D"],
+        [39] ++ ~c"this is a " ++ [13, 39]
+      )
+
+      # Bare CR inside a heredoc
+      assert_syntax_error(
+        ["invalid line break character in string: \\u000D"],
+        ~c"\"\"\"\nhello" ++ [13] ++ ~c"world\n\"\"\""
+      )
+
+      # Bare CR inside a sigil
+      assert_syntax_error(
+        ["invalid line break character in string: \\u000D"],
+        ~c"~s(hello" ++ [13] ++ ~c"world)"
+      )
+
+      # Bare CR inside a quoted atom
+      assert_syntax_error(
+        ["invalid line break character in string: \\u000D"],
+        ~c":\"foo" ++ [13] ++ ~c"bar\""
+      )
+
+      # Bare CR inside a quoted keyword
+      assert_syntax_error(
+        ["invalid line break character in string: \\u000D"],
+        ~c"[\"foo" ++ [13] ++ ~c"bar\": 1]"
+      )
+
+      # Bare CR inside a quoted call (quoted identifier)
+      assert_syntax_error(
+        ["invalid line break character in string: \\u000D"],
+        ~c"x.\"foo" ++ [13] ++ ~c"bar\""
+      )
+
+      # Bare CR after ? (char literal)
+      assert_syntax_error(
+        ["nofile:1:1:", "invalid bare carriage return after ?"],
+        ~c"?" ++ [13]
+      )
+
+      # Bare CR after ?\ (char literal escape)
+      assert_syntax_error(
+        ["nofile:1:1:", "invalid bare carriage return after ?\\"],
+        ~c"?\\" ++ [13]
+      )
+
+      # ?\r (the proper escape) is still valid
+      assert Code.string_to_quoted!(~c"?\\r") == ?\r
+    end
+
     test "reserved tokens" do
       assert_syntax_error(["nofile:1:1:", "reserved token: __aliases__"], ~c"__aliases__")
       assert_syntax_error(["nofile:1:1:", "reserved token: __block__"], ~c"__block__")
@@ -1233,7 +1332,7 @@ defmodule Kernel.ParserTest do
         ~s/"foO𝚳" (code points 0x00066 0x0006F 0x0004F 0x1D6B3)/,
         "Hint: You could write the above in a similar way that is accepted by Elixir:",
         ~s/"foOM" (code points 0x00066 0x0006F 0x0004F 0x0004D)/,
-        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
+        "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."
       ]
 
       assert_syntax_error(message, ~c"foO𝚳")
@@ -1250,10 +1349,28 @@ defmodule Kernel.ParserTest do
         ~s/"𝚳" (code points 0x1D6B3)/,
         "Hint: You could write the above in a compatible format that is accepted by Elixir:",
         ~s/"Μ" (code points 0x0039C)/,
-        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
+        "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."
       ]
 
       assert_syntax_error(message, ~c"fooی𝚳")
+
+      # regression test: ǜ (should not suggest back the wrong character)
+      assert_syntax_error(
+        [
+          "nofile:1:4:",
+          ~s/unexpected token: "ǜ" (column 4, code point U+01DC)/
+        ],
+        [?:, ?f, ?o, ?o, 0x01DC, ?l, ?u, ?l]
+      )
+
+      # and we should not accept its decomposed form either
+      assert_syntax_error(
+        [
+          "nofile:1:6:",
+          ~s/unexpected token: "̀" (column 6, code point U+0300)/
+        ],
+        [?:, ?f, ?o, ?o, ?u, 0x0308, 0x0300, ?l, ?u, ?l]
+      )
     end
 
     test "keyword missing space" do

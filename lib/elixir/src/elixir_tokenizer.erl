@@ -103,6 +103,16 @@
 -define(ellipsis_op3(T1, T2, T3),
   T1 =:= $., T2 =:= $., T3 =:= $.).
 
+-define(is_operator_type(Type),
+  Type =:= comp_op orelse Type =:= at_op orelse Type =:= unary_op orelse
+  Type =:= and_op orelse Type =:= or_op orelse Type =:= arrow_op orelse
+  Type =:= match_op orelse Type =:= in_op orelse Type =:= in_match_op orelse
+  Type =:= type_op orelse Type =:= dual_op orelse Type =:= mult_op orelse
+  Type =:= power_op orelse Type =:= concat_op orelse Type =:= range_op orelse
+  Type =:= xor_op orelse Type =:= pipe_op orelse Type =:= stab_op orelse
+  Type =:= when_op orelse Type =:= assoc_op orelse Type =:= rel_op orelse
+  Type =:= ternary_op orelse Type =:= capture_op orelse Type =:= ellipsis_op).
+
 %% Deprecated operators
 
 -define(unary_op3(T1, T2, T3),
@@ -216,6 +226,11 @@ tokenize([$~, H | _T] = Original, Line, Column, Scope, Tokens) when ?is_upcase(H
 % elixir_errors.erl as by default {char, _, _} tokens are "hijacked" by Erlang
 % and printed with Erlang syntax ($a) in the parser's error messages.
 
+%% Reject bare carriage return after ?\ (CR is only valid as part of CRLF line ending).
+tokenize([$?, $\\, $\r | _Rest] = Original, Line, Column, Scope, Tokens) ->
+  Reason = {?LOC(Line, Column), "invalid bare carriage return after ?\\, use ?\\r instead: ", "\\u000D"},
+  error(Reason, Original, Scope, Tokens);
+
 tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
 
@@ -247,6 +262,11 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
     _ ->
       tokenize(T, Line, Column + 3, NewScope, [Token | Tokens])
   end;
+
+%% Reject bare carriage return after ? (CR is only valid as part of CRLF line ending).
+tokenize([$?, $\r | _Rest] = Original, Line, Column, Scope, Tokens) ->
+  Reason = {?LOC(Line, Column), "invalid bare carriage return after ?, use ?\\r instead: ", "\\u000D"},
+  error(Reason, Original, Scope, Tokens);
 
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   NewScope = case handle_char(Char) of
@@ -1396,7 +1416,7 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
       case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
         no_suggestion ->
           %% we append a pointer to more info if we aren't appending a suggestion
-          MoreInfo = "\nSee https://hexdocs.pm/elixir/unicode-syntax.html for more information.",
+          MoreInfo = "\nSee https://elixir.hexdocs.pm/unicode-syntax.html for more information.",
           {error, {?LOC(Line, Column), {Prefix, Suffix ++ MoreInfo}, Wrong}};
 
         {_, {Location, _, SuggestionMessage}} = _SuggestionError ->
@@ -1428,12 +1448,12 @@ suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
     {error, _Reason} ->
        ConfusableSkeleton = 'Elixir.String.Tokenizer.Security':confusable_skeleton(Wrong),
        case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(ConfusableSkeleton) of
-         {_, Simpler, _, _, _, _} ->
+         {_, Simpler, _, _, _, _} when Simpler =/= Wrong ->
            Message = suggest_change("Codepoint failed identifier tokenization, but a simpler form was found.",
                                     Wrong,
                                     "You could write the above in a similar way that is accepted by Elixir:",
                                     Simpler,
-                                    "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."),
+                                    "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."),
            {error, {?LOC(Line, WrongColumn), "unexpected token: ", Message}};
          _other ->
            no_suggestion
@@ -1443,7 +1463,7 @@ suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
                                Wrong,
                                "You could write the above in a compatible format that is accepted by Elixir:",
                                NFKC,
-                               "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."),
+                               "See https://elixir.hexdocs.pm/unicode-syntax.html for more information."),
           {error, {?LOC(Line, WrongColumn), "unexpected token: ", Message}}
     end.
 
@@ -1908,13 +1928,13 @@ add_cursor(_Line, Column, noprune, Tokens) ->
   {Column, Tokens};
 
 add_cursor(Line, Column, {prune_and_cursor, true},
-           [{sigil, {_, _, {Line, Column}} = Location, Name, Parts, Modifier, Identation, Delimiter} | Rest]) ->
+           [{sigil, {_, _, {Line, Column}} = Location, Name, Parts, Modifier, Indentation, Delimiter} | Rest]) ->
   Cursor = {'__cursor__', [{line, Line}, {column, Column}], []},
   CursorModifier = case Modifier of
     false -> Cursor;
     List -> List ++ [Cursor]
   end,
-  {Column + 12, [{sigil, Location, Name, Parts, CursorModifier, Identation, Delimiter} | Rest]};
+  {Column + 12, [{sigil, Location, Name, Parts, CursorModifier, Indentation, Delimiter} | Rest]};
 
 add_cursor(Line, Column, {prune_and_cursor, _}, Tokens) ->
   PrePrunedTokens = prune_identifier(Tokens),
@@ -1927,6 +1947,11 @@ add_cursor(Line, Column, {prune_and_cursor, _}, Tokens) ->
   ],
   {Column + 12, CursorTokens}.
 
+prune_identifier([{_, _, Keyword}, {OpType, _, _} = Op | Tokens])
+    when ?is_operator_type(OpType),
+         Keyword =:= 'in' orelse Keyword =:= 'when' orelse Keyword =:= 'and' orelse
+         Keyword =:= 'or' orelse Keyword =:= 'not' ->
+  [Op | Tokens];
 prune_identifier([{identifier, _, _} | Tokens]) -> Tokens;
 prune_identifier(Tokens) -> Tokens.
 
@@ -1983,13 +2008,7 @@ prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, []) ->
   Tokens;
 prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, []) ->
   Tokens;
-prune_tokens([{OpType, _, _} | _] = Tokens, [])
-  when OpType =:= comp_op; OpType =:= at_op; OpType =:= unary_op; OpType =:= and_op;
-       OpType =:= or_op; OpType =:= arrow_op; OpType =:= match_op; OpType =:= in_op;
-       OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
-       OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
-       OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
-       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op; OpType =:= ellipsis_op ->
+prune_tokens([{OpType, _, _} | _] = Tokens, []) when ?is_operator_type(OpType) ->
   Tokens;
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener) ->

@@ -61,7 +61,7 @@ defmodule Port do
     * `{pid, {:connect, new_pid}}` - sets the `new_pid` as the new owner of
       the port. Once a port is opened, the port is linked and connected to the
       caller process and communication to the port only happens through the
-      connected process. This message makes `new_pid` the new connected processes.
+      connected process. This message makes `new_pid` the new connected process.
       Unless the port is dead, the port will reply to the old owner with
       `{port, :connected}`. See `connect/2`.
 
@@ -88,10 +88,10 @@ defmodule Port do
   > On Unix systems, arguments are passed to a new operating system
   > process as an array of strings but on Windows it is up to the child
   > process to parse them and some Windows programs may apply their own
-  > rules, which are inconsistent with the standard C runtime `argv` parsing
+  > rules, which are inconsistent with the standard C runtime `argv` parsing.
   >
-  > This is particularly troublesome when invoking `.bat` or `.com` files
-  > as these run implicitly through `cmd.exe`, whose argument parsing is
+  > This is particularly troublesome when invoking `.bat`, `.cmd`, or `.com`
+  > files as these run implicitly through `cmd.exe`, whose argument parsing is
   > vulnerable to malicious input and can be used to run arbitrary shell
   > commands.
   >
@@ -99,7 +99,7 @@ defmodule Port do
   > files or `.com` applications, you must not pass untrusted input as
   > arguments to the program. You may avoid accidentally executing them
   > by explicitly passing the extension of the program you want to run,
-  > such as `.exe`, and double check the program is indeed not a batch
+  > such as `.exe`, and double-checking the program is indeed not a batch
   > file or `.com` application.
   >
   > This affects both `spawn` and `spawn_executable`.
@@ -156,7 +156,7 @@ defmodule Port do
 
   We do not always have control over how third-party software terminates.
   If necessary, one workaround is to wrap the child application in a script that
-  checks whether stdin has been closed.  Here is such a script that has been
+  checks whether stdin has been closed. Here is such a script that has been
   verified to work on bash shells:
 
       #!/usr/bin/env bash

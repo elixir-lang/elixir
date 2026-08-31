@@ -62,7 +62,7 @@ defmodule Time do
 
   You can pass a time unit to automatically truncate the resulting time.
 
-  The default unit if none gets passed is `:native` which results on a default resolution of microseconds.
+  The default unit if none gets passed is `:native` which results in a default resolution of microseconds.
 
   ## Examples
 
@@ -146,8 +146,9 @@ defmodule Time do
       iex> Time.new(23, 59, 59, 1_000_000)
       {:error, :invalid_time}
 
-      # Invalid precision
-      Time.new(23, 59, 59, {999_999, 10})
+  Invalid precision:
+
+      iex> Time.new(23, 59, 59, {999_999, 10})
       {:error, :invalid_time}
 
   """
@@ -466,8 +467,12 @@ defmodule Time do
           Calendar.microsecond(),
           Calendar.calendar()
         ) :: t
-  def from_seconds_after_midnight(seconds, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
-      when is_integer(seconds) do
+  def from_seconds_after_midnight(
+        seconds,
+        {microsecond, precision} \\ {0, 0},
+        calendar \\ Calendar.ISO
+      )
+      when is_integer(seconds) and microsecond in 0..999_999 and precision in 0..6 do
     seconds_in_day = Integer.mod(seconds, @seconds_per_day)
 
     {hour, minute, second, {_, _}} =
@@ -478,7 +483,7 @@ defmodule Time do
       hour: hour,
       minute: minute,
       second: second,
-      microsecond: microsecond
+      microsecond: {microsecond, precision}
     }
   end
 
@@ -496,7 +501,7 @@ defmodule Time do
 
   """
   @doc since: "1.11.0"
-  @spec to_seconds_after_midnight(Calendar.time()) :: {integer(), non_neg_integer()}
+  @spec to_seconds_after_midnight(Calendar.time()) :: {non_neg_integer(), non_neg_integer()}
   def to_seconds_after_midnight(%{microsecond: {microsecond, _precision}} = time) do
     iso_days = {0, to_day_fraction(time)}
     {Calendar.ISO.iso_days_to_unit(iso_days, :second), microsecond}
@@ -689,7 +694,7 @@ defmodule Time do
   @doc """
   Compares two time structs.
 
-  Returns `:gt` if first time is later than the second
+  Returns `:gt` if the first time is later than the second
   and `:lt` for vice versa. If the two times are equal
   `:eq` is returned.
 
@@ -715,14 +720,32 @@ defmodule Time do
   """
   @doc since: "1.4.0"
   @spec compare(Calendar.time(), Calendar.time()) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar} = time1, %{calendar: calendar} = time2) do
-    %{hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}} = time1
-    %{hour: hour2, minute: minute2, second: second2, microsecond: {microsecond2, _}} = time2
-
-    case {{hour1, minute1, second1, microsecond1}, {hour2, minute2, second2, microsecond2}} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
+  def compare(
+        %{
+          hour: hour1,
+          minute: minute1,
+          second: second1,
+          microsecond: {microsecond1, _},
+          calendar: calendar
+        },
+        %{
+          hour: hour2,
+          minute: minute2,
+          second: second2,
+          microsecond: {microsecond2, _},
+          calendar: calendar
+        }
+      ) do
+    cond do
+      hour1 > hour2 -> :gt
+      hour1 < hour2 -> :lt
+      minute1 > minute2 -> :gt
+      minute1 < minute2 -> :lt
+      second1 > second2 -> :gt
+      second1 < second2 -> :lt
+      microsecond1 > microsecond2 -> :gt
+      microsecond1 < microsecond2 -> :lt
+      true -> :eq
     end
   end
 
@@ -901,11 +924,11 @@ defmodule Time do
   def diff(time1, time2, unit \\ :second)
 
   def diff(time1, time2, :hour) do
-    diff(time1, time2, :second) |> div(3600)
+    diff(time1, time2, :microsecond) |> div(3_600_000_000)
   end
 
   def diff(time1, time2, :minute) do
-    diff(time1, time2, :second) |> div(60)
+    diff(time1, time2, :microsecond) |> div(60_000_000)
   end
 
   def diff(

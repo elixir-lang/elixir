@@ -121,7 +121,7 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
-    * `--dry-run` *(since v1.19.0)* - prints which tests would be run based on current options,
+    * `--dry-run` *(since v1.20.0)* - prints which tests would be run based on current options,
       but does not actually run any tests. This combines with all other options
       like `--stale`, `--only`, `--exclude`, and so on.
 
@@ -444,6 +444,14 @@ defmodule Mix.Tasks.Test do
   the results of all partitions inside `cover/`, you can run `mix test.coverage` to
   get the unified report.
 
+  Avoid passing `--partitions` when retrying failures with `--failed` if each
+  partition runs in its own workspace or on a separate machine, and therefore only
+  records its own failures. Because `--partitions` splits the failed files across
+  partitions, most partitions end up with nothing to run and silently print
+  "There are no tests to run". Instead, run `mix test --failed` on its own so each
+  partition re-runs everything it recorded. This does not apply when all partitions
+  share the same list of failures.
+
   ## The --stale option
 
   The `--stale` command line option attempts to run only the test files which
@@ -712,7 +720,7 @@ defmodule Mix.Tasks.Test do
         cond do
           warnings_as_errors? and (warnings? or helper_warned? or warn_files != []) and
               failures == 0 ->
-            abort_due_to_warnings()
+            abort_due_to_warnings(shell, opts)
 
           failures > 0 and opts[:raise] ->
             raise_with_shell(shell, "\"mix test\" failed")
@@ -740,7 +748,7 @@ defmodule Mix.Tasks.Test do
       {:noop, _} ->
         cond do
           warnings_as_errors? and warn_files != [] ->
-            abort_due_to_warnings()
+            abort_due_to_warnings(shell, opts)
 
           opts[:stale] ->
             Mix.shell().info("No stale tests")
@@ -784,15 +792,22 @@ defmodule Mix.Tasks.Test do
     {files, directly_included}
   end
 
-  defp abort_due_to_warnings() do
-    message =
-      "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+  defp abort_due_to_warnings(shell, opts) do
+    if opts[:raise] do
+      message =
+        "test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
 
-    IO.puts(:stderr, IO.ANSI.format([:red, message]))
+      raise_with_shell(shell, message)
+    else
+      message =
+        "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
 
-    System.at_exit(fn _ ->
-      exit({:shutdown, 1})
-    end)
+      IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+      System.at_exit(fn _ ->
+        exit({:shutdown, 1})
+      end)
+    end
   end
 
   defp raise_with_shell(shell, message) do

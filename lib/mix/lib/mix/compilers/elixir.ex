@@ -5,8 +5,8 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 34
-  @checkpoint_vsn 4
+  @manifest_vsn 37
+  @checkpoint_vsn 5
 
   import Record
 
@@ -100,48 +100,60 @@ defmodule Mix.Compilers.Elixir do
 
     {force?, stale, new_deps_config} =
       cond do
-        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key or
-            (Keyword.get(opts, :check_cwd, true) and old_cwd != File.cwd!()) ->
-          {true, stale, deps_config(local_deps)}
+        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
+          {true, stale, deps_config(local_deps, opts)}
+
+        Keyword.get(opts, :check_cwd, true) and old_cwd != File.cwd!() ->
+          debug_recompile("current working directory has changed")
+          {true, stale, deps_config(local_deps, opts)}
 
         deps_changed? or compile_env_apps != [] ->
-          new_deps_config = deps_config(local_deps)
+          new_deps_config = deps_config(local_deps, opts)
+          removed_appsets = old_deps_config.local -- new_deps_config.local
           local_apps = merge_appset(old_deps_config.local, new_deps_config.local, [])
           config_apps = merge_appset(old_deps_config.config, new_deps_config.config, local_apps)
           apps = merge_appset(old_deps_config.lock, new_deps_config.lock, config_apps)
 
-          if Mix.Project.config()[:app] in apps do
-            {true, stale, new_deps_config}
-          else
-            app_modules = Mix.AppLoader.read_cache()
+          cond do
+            removed_appsets != [] ->
+              removed_apps = Keyword.keys(removed_appsets)
+              debug_recompile("path dependencies were removed: #{inspect(removed_apps)}")
+              {true, stale, new_deps_config}
 
-            apps_stale =
-              apps
-              |> deps_on()
-              |> Enum.flat_map(fn {app, _} ->
-                new_modules = Application.spec(app, :modules) || []
+            Mix.Project.config()[:app] in apps ->
+              debug_recompile("dependency configuration changed")
+              {true, stale, new_deps_config}
 
-                if old_modules = app_modules[app] do
-                  :ordsets.union(old_modules, :ordsets.from_list(new_modules))
-                else
-                  new_modules
-                end
-              end)
+            true ->
+              app_modules = Mix.AppLoader.read_cache()
 
-            compile_env_apps = compile_env_apps ++ config_apps
+              apps_stale =
+                apps
+                |> deps_on()
+                |> Enum.flat_map(fn {app, _} ->
+                  new_modules = Application.spec(app, :modules) || []
 
-            compile_env_stale =
-              for {_, source(compile_env: compile_env, modules: modules)} <- all_sources,
-                  Enum.any?(compile_env_apps, &List.keymember?(compile_env, &1, 0)),
-                  module <- modules,
-                  do: module
+                  if old_modules = app_modules[app] do
+                    :ordsets.union(old_modules, :ordsets.from_list(new_modules))
+                  else
+                    new_modules
+                  end
+                end)
 
-            stale = (stale ++ compile_env_stale) ++ apps_stale
-            {false, stale, new_deps_config}
+              compile_env_apps = compile_env_apps ++ config_apps
+
+              compile_env_stale =
+                for {_, source(compile_env: compile_env, modules: modules)} <- all_sources,
+                    Enum.any?(compile_env_apps, &List.keymember?(compile_env, &1, 0)),
+                    module <- modules,
+                    do: module
+
+              stale = (stale ++ compile_env_stale) ++ apps_stale
+              {false, stale, new_deps_config}
           end
 
         true ->
-          {false, stale, old_deps_config}
+          {false, stale, update_deps_config(old_deps_config, opts)}
       end
 
     {stale_modules, stale_exports, all_local_exports, protocols_and_impls} =
@@ -163,8 +175,7 @@ defmodule Mix.Compilers.Elixir do
           removed,
           Map.merge(stale_modules, removed_modules),
           Map.merge(stale_exports, removed_modules),
-          dest,
-          timestamp
+          dest
         )
       end
 
@@ -183,7 +194,9 @@ defmodule Mix.Compilers.Elixir do
     consolidate? =
       consolidation_status == :force or (deps_changed? and consolidation_status != :off)
 
-    if stale != [] or stale_modules != %{} or removed != [] or consolidate? do
+    reinfer? = old_deps_config[:infer_signatures] != new_deps_config[:infer_signatures]
+
+    if stale != [] or stale_modules != %{} or removed != [] or consolidate? or reinfer? do
       path = opts[:purge_consolidation_path_if_stale]
 
       if is_binary(path) and Code.delete_path(path) do
@@ -210,7 +223,7 @@ defmodule Mix.Compilers.Elixir do
           consolidation: consolidation
         }
 
-        compiler_loop(manifest, stale, stale_modules, dest, timestamp, opts, state)
+        compiler_loop(manifest, stale, stale_modules, dest, timestamp, reinfer?, opts, state)
       else
         {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
           %{
@@ -293,7 +306,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp deps_config(local_deps) do
+  defp deps_config(local_deps, opts) do
     # If you change this config, you need to bump @manifest_vsn
     %{
       local: Enum.sort(Enum.map(local_deps, &{&1.app, true})),
@@ -302,8 +315,13 @@ defmodule Mix.Compilers.Elixir do
         |> Map.take(Mix.Project.deps_apps())
         |> Enum.sort(),
       config: Enum.sort(Mix.Tasks.Loadconfig.read_compile()),
-      dbg: Application.fetch_env!(:elixir, :dbg_callback)
+      dbg: Application.fetch_env!(:elixir, :dbg_callback),
+      infer_signatures: opts[:infer_signatures]
     }
+  end
+
+  defp update_deps_config(deps_config, opts) do
+    %{deps_config | infer_signatures: opts[:infer_signatures]}
   end
 
   defp local_deps_changed?(deps_config, local_deps) do
@@ -387,36 +405,17 @@ defmodule Mix.Compilers.Elixir do
          removed,
          stale_modules,
          stale_exports,
-         dest,
-         timestamp
+         dest
        ) do
-    {checkpoint_stale_modules, checkpoint_stale_exports} =
+    {checkpoint_stale_modules, checkpoint_stale_exports, checkpoint_changed} =
       case parse_checkpoint(:update, manifest) do
-        {:ok, {_, _} = data} -> data
-        :error -> {%{}, %{}}
+        {:ok, {_, _, _} = data} -> data
+        :error -> {%{}, %{}, %{}}
       end
 
     stale_modules = Map.merge(checkpoint_stale_modules, stale_modules)
     stale_exports = Map.merge(checkpoint_stale_exports, stale_exports)
 
-    # Once we added semantic recompilation, the following can happen:
-    #
-    # 1. The user changes config/mix.exs/__mix_recompile__?
-    # 2. We detect the change, remove .beam files and start recompilation
-    # 3. Recompilation fails
-    # 4. The user reverts the change
-    # 5. The compiler no longer recompiles and the .beam files are missing
-    #
-    # Therefore, it is important for us to checkpoint any state that may
-    # have lead to a compilation and which can now be reverted.
-    if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
-         map_size(stale_exports) != map_size(checkpoint_stale_exports) do
-      write_checkpoint(:update, manifest, {stale_modules, stale_exports})
-    end
-
-    # We don't need to store those in the checkpoint because
-    # these changes come from modules and, when they are stale,
-    # we remove the .beam files and touch sources.
     modules_to_mix_check =
       for {module, module(recompile?: true)} <- all_modules,
           not Map.has_key?(stale_modules, module),
@@ -448,33 +447,45 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      Enum.flat_map(all_sources, fn
+      Enum.reduce(all_sources, checkpoint_changed, fn
         {source,
-         source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)} ->
+         source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)},
+        acc ->
           {last_mtime, last_size} = Map.fetch!(sources_stats, source)
 
           cond do
             Enum.any?(external, &stale_external?(&1, sources_stats)) or
                 has_any_key?(modules_to_recompile, modules) ->
-              # Mark the source as changed so the combination of a timestamp
-              # plus removed beam files (which are removed by update_stale_entries)
-              # causes it to be recompiled. Note we don't raise use touch! because
-              # in case of checkpoints the file may have been removed.
-              File.touch(source, timestamp + 1)
-              [source]
+              Map.put(acc, source, true)
 
             size != last_size or
               has_any_key?(stale_modules, modules) or
                 (last_mtime != mtime and
                    (missing_beam_file?(dest, modules) or digest_changed?(source, digest))) ->
-              [source]
+              Map.put(acc, source, true)
 
             true ->
-              []
+              acc
           end
       end)
 
-    changed = new_paths ++ changed
+    # Once we added semantic recompilation, the following can happen:
+    #
+    # 1. The user changes config/mix.exs/__mix_recompile__?
+    # 2. We detect the change, remove .beam files and start recompilation
+    # 3. Recompilation fails
+    # 4. The user reverts the change
+    # 5. The compiler no longer recompiles and the .beam files are missing
+    #
+    # Therefore, it is important for us to checkpoint any state that may
+    # have lead to a compilation and which can now be reverted.
+    if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
+         map_size(stale_exports) != map_size(checkpoint_stale_exports) or
+         map_size(changed) != map_size(checkpoint_changed) do
+      write_checkpoint(:update, manifest, {stale_modules, stale_exports, changed})
+    end
+
+    changed = new_paths ++ Map.keys(changed)
 
     {modules, exports, changed} =
       update_stale_entries(
@@ -659,6 +670,21 @@ defmodule Mix.Compilers.Elixir do
         reduce: {stale_modules, stale_modules, deps_exports, protocols_and_impls()} do
       {modules, exports, deps_exports, protocols_and_impls} ->
         {manifest_modules, manifest_sources} = read_manifest(manifest)
+        dep_exports = Map.get(deps_exports, app, %{})
+
+        # Update modules, exports, and dep exports based on removed modules
+        {modules, exports, dep_exports} =
+          Enum.reduce(dep_exports, {modules, exports, dep_exports}, fn
+            {mod, _}, {modules, exports, dep_exports} ->
+              case manifest_modules do
+                %{^mod => _} ->
+                  {modules, exports, dep_exports}
+
+                _ ->
+                  {Map.put(modules, mod, true), Map.put(exports, mod, true),
+                   Map.delete(dep_exports, mod)}
+              end
+          end)
 
         dep_modules =
           for {module, module(timestamp: timestamp)} <- manifest_modules,
@@ -672,47 +698,32 @@ defmodule Mix.Compilers.Elixir do
         dep_modules =
           fixpoint_non_compile_modules(manifest_sources, Map.from_keys(dep_modules, true))
 
-        old_exports = Map.get(deps_exports, app, %{})
+        {exports, dep_exports} =
+          Enum.reduce(dep_modules, {exports, dep_exports}, fn {mod, _}, {exports, dep_exports} ->
+            export =
+              if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
+                mod.__info__(:exports_md5)
+              end
 
-        # Update exports
-        {exports, new_exports} =
-          for {module, _} <- dep_modules, reduce: {exports, []} do
-            {exports, new_exports} ->
-              export =
-                if Code.ensure_loaded?(module) and function_exported?(module, :__info__, 1) do
-                  module.__info__(:exports_md5)
-                end
+            # If the exports are the same, then the API did not change,
+            # so we do not mark the export as stale. Note this has to
+            # be very conservative. If the module is not loaded or if
+            # the exports were not there, we need to consider it a stale export.
+            case dep_exports do
+              # They still match, nothing to change
+              %{^mod => ^export} ->
+                {exports, dep_exports}
 
-              # If the exports are the same, then the API did not change,
-              # so we do not mark the export as stale. Note this has to
-              # be very conservative. If the module is not loaded or if
-              # the exports were not there, we need to consider it a stale
-              # export.
-              exports =
-                if export && old_exports[module] == export,
-                  do: exports,
-                  else: Map.put(exports, module, true)
+              # Now, it either matched and they are different, which means there was
+              # an export at some point OR it didn't exist before, which means adding
+              # it as an export is likely a no-op anyway
+              _ ->
+                {Map.put(exports, mod, true), Map.put(dep_exports, mod, export)}
+            end
+          end)
 
-              # Then we store the new export if any
-              new_exports =
-                if export,
-                  do: [{module, export} | new_exports],
-                  else: new_exports
-
-              {exports, new_exports}
-          end
-
-        new_exports = Map.new(new_exports)
-
-        removed =
-          for {module, _} <- old_exports,
-              not is_map_key(new_exports, module),
-              do: {module, true},
-              into: %{}
-
-        modules = modules |> Map.merge(dep_modules) |> Map.merge(removed)
-        exports = Map.merge(exports, removed)
-        deps_exports = Map.put(deps_exports, app, new_exports)
+        modules = Map.merge(modules, dep_modules)
+        deps_exports = Map.put(deps_exports, app, dep_exports)
 
         protocols_and_impls =
           protocols_and_impls_from_modules(manifest_modules, protocols_and_impls)
@@ -767,7 +778,7 @@ defmodule Mix.Compilers.Elixir do
   defp purge_modules_in_path(path) do
     with {:ok, beams} <- File.ls(path) do
       Enum.each(beams, fn beam ->
-        module = beam |> Path.rootname() |> String.to_atom()
+        module = beam |> Path.rootname() |> String.to_unsafe_atom()
 
         if Code.loaded?(module) do
           :code.purge(module)
@@ -879,6 +890,12 @@ defmodule Mix.Compilers.Elixir do
   defp merge_appset(old_set, new_set, apps) do
     apps = Enum.reduce(old_set, apps, fn {app, _}, apps -> [app | apps] end)
     Enum.reduce(new_set, apps, fn {app, _}, apps -> [app | apps] end)
+  end
+
+  defp debug_recompile(reason) do
+    if Mix.debug?() do
+      Mix.shell().info("-- Recompiling #{inspect(Mix.Project.config()[:app])} because #{reason}")
+    end
   end
 
   defp deps_on(apps) do
@@ -1052,7 +1069,7 @@ defmodule Mix.Compilers.Elixir do
   ## Compiler loop
   # The compiler is invoked in a separate process so we avoid blocking its main loop.
 
-  defp compiler_loop(manifest, stale, stale_modules, dest, timestamp, opts, state) do
+  defp compiler_loop(manifest, stale, stale_modules, dest, timestamp, reinfer?, opts, state) do
     ref = make_ref()
     parent = self()
     compilation_threshold = opts[:long_compilation_threshold] || 10
@@ -1072,7 +1089,7 @@ defmodule Mix.Compilers.Elixir do
             compiler_call(parent, ref, {:after_compile, manifest, opts})
           end,
           each_cycle: fn ->
-            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
+            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp, reinfer?})
           end,
           each_file: fn file, lexical ->
             compiler_call(parent, ref, {:each_file, file, lexical, verbose})
@@ -1123,8 +1140,8 @@ defmodule Mix.Compilers.Elixir do
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
-      {^ref, {:each_cycle, stale_modules, dest, timestamp}} ->
-        {response, state} = each_cycle(stale_modules, dest, timestamp, state)
+      {^ref, {:each_cycle, stale_modules, dest, timestamp, reinfer?}} ->
+        {response, state} = each_cycle(stale_modules, dest, timestamp, reinfer?, state)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
@@ -1163,7 +1180,7 @@ defmodule Mix.Compilers.Elixir do
     {:ok, %{state | consolidation: consolidation}}
   end
 
-  defp each_cycle(stale_modules, dest, timestamp, state) do
+  defp each_cycle(stale_modules, dest, timestamp, reinfer?, state) do
     %{
       modules: modules,
       sources: sources,
@@ -1199,54 +1216,74 @@ defmodule Mix.Compilers.Elixir do
       File.touch!(file, timestamp)
     end
 
-    if changed == [] do
-      # We merge stale_modules (which is a map of %{module => true} that the user changed)
-      # into a map of modules we compiled (which is a map of %{module => record}). This is
-      # fine because we only care about the keys.
-      changed_modules = Map.merge(modules, stale_modules)
+    cond do
+      changed != [] ->
+        Mix.Utils.compiling_n(length(changed), :ex)
 
-      # Now we do a simple pass finding anything that directly depends on the modules that
-      # changed. We don't need to compute a fixpoint, because now only the directly affected
-      # matter.
-      {sources, runtime_modules} =
-        Enum.reduce(sources, {sources, []}, fn
-          {source_path, source_entry}, {acc_sources, acc_modules} ->
-            source(export_references: export_refs, runtime_references: runtime_refs) =
-              source_entry
+        # Now we need to detect the new stale_exports.
+        # This is a simplified version of update_stale_sources.
+        {sources, %{}} =
+          Enum.reduce(changed, {sources, stale_exports}, fn file, {acc_sources, acc_modules} ->
+            source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
+            acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
+            {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
+          end)
 
-            if has_any_key?(changed_modules, export_refs) or
-                 has_any_key?(changed_modules, runtime_refs) do
-              acc_sources =
-                Map.replace!(acc_sources, source_path, source(source_entry, runtime_warnings: []))
+        state = %{state | sources: sources, stale_exports: stale_exports}
+        {{:compile, changed, []}, state}
 
-              new_modules =
-                Enum.reject(source(source_entry, :modules), &Map.has_key?(changed_modules, &1))
+      reinfer? ->
+        sources =
+          Map.new(sources, fn {source_path, source_entry} ->
+            {source_path, source(source_entry, runtime_warnings: [])}
+          end)
 
-              {acc_sources, new_modules ++ acc_modules}
-            else
-              {acc_sources, acc_modules}
-            end
-        end)
+        runtime_paths =
+          Enum.map(pending_modules, fn {mod, _} ->
+            {mod, Path.join(dest, Atom.to_string(mod) <> ".beam")}
+          end)
 
-      runtime_paths =
-        Enum.map(runtime_modules, &{&1, Path.join(dest, Atom.to_string(&1) <> ".beam")})
+        state = %{state | sources: sources}
+        {{:runtime, runtime_paths, []}, state}
 
-      state = %{state | sources: sources}
-      {{:runtime, runtime_paths, []}, state}
-    else
-      Mix.Utils.compiling_n(length(changed), :ex)
+      true ->
+        # We merge stale_modules (which is a map of %{module => true} that the user changed)
+        # into a map of modules we compiled (which is a map of %{module => record}). This is
+        # fine because we only care about the keys.
+        changed_modules = Map.merge(modules, stale_modules)
 
-      # Now we need to detect the new stale_exports.
-      # This is a simplified version of update_stale_sources.
-      {sources, %{}} =
-        Enum.reduce(changed, {sources, stale_exports}, fn file, {acc_sources, acc_modules} ->
-          source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
-          acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-          {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
-        end)
+        # Now we do a simple pass finding anything that directly depends on the modules that
+        # changed. We don't need to compute a fixpoint, because now only the directly affected
+        # matter.
+        {sources, runtime_modules} =
+          Enum.reduce(sources, {sources, []}, fn
+            {source_path, source_entry}, {acc_sources, acc_modules} ->
+              source(export_references: export_refs, runtime_references: runtime_refs) =
+                source_entry
 
-      state = %{state | sources: sources, stale_exports: stale_exports}
-      {{:compile, changed, []}, state}
+              if has_any_key?(changed_modules, export_refs) or
+                   has_any_key?(changed_modules, runtime_refs) do
+                acc_sources =
+                  Map.replace!(
+                    acc_sources,
+                    source_path,
+                    source(source_entry, runtime_warnings: [])
+                  )
+
+                new_modules =
+                  Enum.reject(source(source_entry, :modules), &Map.has_key?(changed_modules, &1))
+
+                {acc_sources, new_modules ++ acc_modules}
+              else
+                {acc_sources, acc_modules}
+              end
+          end)
+
+        runtime_paths =
+          Enum.map(runtime_modules, &{&1, Path.join(dest, Atom.to_string(&1) <> ".beam")})
+
+        state = %{state | sources: sources}
+        {{:runtime, runtime_paths, []}, state}
     end
   end
 

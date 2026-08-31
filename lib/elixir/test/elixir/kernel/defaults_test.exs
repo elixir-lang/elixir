@@ -52,6 +52,14 @@ defmodule Kernel.DefaultsTest do
     end)
   end
 
+  test "errors on accessing variable from another default" do
+    assert_compile_error(~r/undefined variable \"x\"/, fn ->
+      defmodule VarDefaultScopeBetweenDefaults do
+        def test(a \\ x = 1, b \\ x), do: {a, b}
+      end
+    end)
+  end
+
   test "errors on multiple defaults" do
     message = ~r"def hello/1 defines defaults multiple times"
 

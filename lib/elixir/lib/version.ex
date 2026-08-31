@@ -18,11 +18,15 @@ defmodule Version do
 
       MAJOR.MINOR.PATCH
 
+  Each numeric component is limited to at most 14 digits.
+
   Pre-releases are supported by optionally appending a hyphen and a series of
   period-separated identifiers immediately following the patch version.
   Identifiers consist of only ASCII alphanumeric characters and hyphens (`[0-9A-Za-z-]`):
 
       "1.0.0-alpha.3"
+
+  Numeric pre-release identifiers are also limited to at most 14 digits.
 
   Build information can be added by appending a plus sign and a series of
   dot-separated identifiers immediately following the patch or pre-release version.
@@ -77,8 +81,10 @@ defmodule Version do
   allowing us to express `~> 2.1` or `~> 2.1-dev`, something that wouldn't be allowed
   when using the common comparison operators.
 
-  When the `:allow_pre` option is set `false` in `Version.match?/3`, the requirement
-  will not match a pre-release version unless the operand is a pre-release version.
+  When the `:allow_pre` option is set `false` in `Version.match?/3`, a pre-release
+  version will not match the `~>`, `>`, and `>=` operators unless the operand is
+  itself a pre-release version. The `<` and `<=` operators are not affected by
+  `:allow_pre` and always match according to precedence.
   The default is to always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false`. See the table below for examples.
 
@@ -95,6 +101,7 @@ defmodule Version do
   `>= 2.1.0`     | `2.2.0-dev` | `true`            | `true`
   `>= 2.1.0`     | `2.2.0-dev` | `false`           | `false`
   `>= 2.1.0-dev` | `2.2.6-dev` | `true` or `false` | `true`
+  `< 2.2.0`      | `2.1.0-dev` | `true` or `false` | `true`
 
   """
 
@@ -278,8 +285,9 @@ defmodule Version do
 
   ## Options
 
-    * `:allow_pre` (boolean) - when `false`, pre-release versions will not match
-      unless the operand is a pre-release version. Defaults to `true`.
+    * `:allow_pre` (boolean) - when `false`, pre-release versions will not match the
+      `~>`, `>`, and `>=` operators unless the operand is a pre-release version;
+      the `<` and `<=` operators are not affected. Defaults to `true`.
       For examples, please refer to the table above under the "Requirements" section.
 
   ## Examples
@@ -354,11 +362,21 @@ defmodule Version do
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
-  def compare(version1, version2) do
-    do_compare(to_matchable(version1, true), to_matchable(version2, true))
+  def compare(
+        %Version{major: major1, minor: minor1, patch: patch1, pre: pre1},
+        %Version{major: major2, minor: minor2, patch: patch2, pre: pre2}
+      ) do
+    do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
   end
 
-  defp do_compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
+  def compare(version1, version2) do
+    {major1, minor1, patch1, pre1, _} = to_matchable(version1, true)
+    {major2, minor2, patch2, pre2, _} = to_matchable(version2, true)
+
+    do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
+  end
+
+  defp do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2) do
     cond do
       major1 > major2 -> :gt
       major1 < major2 -> :lt
@@ -520,6 +538,8 @@ defmodule Version do
   defmodule Parser do
     @moduledoc false
 
+    @max_numeric_component_digits 14
+
     operators = [
       {">=", :>=},
       {"<=", :<=},
@@ -621,17 +641,19 @@ defmodule Version do
     defp require_digits(nil), do: :error
 
     defp require_digits(string) do
-      if leading_zero?(string), do: :error, else: parse_digits(string, "")
+      if leading_zero?(string) or byte_size(string) > @max_numeric_component_digits,
+        do: :error,
+        else: parse_digits(string)
     end
 
     defp leading_zero?(<<?0, _, _::binary>>), do: true
     defp leading_zero?(_), do: false
 
-    defp parse_digits(<<char, rest::binary>>, acc) when char in ?0..?9,
-      do: parse_digits(rest, <<acc::binary, char>>)
+    defp parse_digits(<<>>), do: :error
 
-    defp parse_digits(<<>>, acc) when byte_size(acc) > 0, do: {:ok, String.to_integer(acc)}
-    defp parse_digits(_, _acc), do: :error
+    defp parse_digits(string) do
+      if all_digits?(string), do: {:ok, :erlang.binary_to_integer(string)}, else: :error
+    end
 
     defp maybe_patch(patch, approximate?)
     defp maybe_patch(nil, true), do: {:ok, nil}
@@ -649,8 +671,13 @@ defmodule Version do
       end
     end
 
+    defp convert_parts_to_integer([part | rest], acc)
+         when byte_size(part) > @max_numeric_component_digits do
+      if all_digits?(part), do: :error, else: convert_parts_to_integer(rest, [part | acc])
+    end
+
     defp convert_parts_to_integer([part | rest], acc) do
-      case parse_digits(part, "") do
+      case parse_digits(part) do
         {:ok, integer} ->
           if leading_zero?(part) do
             :error
@@ -666,6 +693,10 @@ defmodule Version do
     defp convert_parts_to_integer([], acc) do
       {:ok, Enum.reverse(acc)}
     end
+
+    defp all_digits?(<<char, rest::binary>>) when char in ?0..?9, do: all_digits?(rest)
+    defp all_digits?(<<>>), do: true
+    defp all_digits?(_other), do: false
 
     defp valid_identifier?(<<char, rest::binary>>)
          when char in ?0..?9

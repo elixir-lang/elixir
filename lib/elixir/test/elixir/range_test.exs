@@ -65,6 +65,10 @@ defmodule RangeTest do
     assert Range.shift(10..0//-2, -2) == 14..4//-2
   end
 
+  test "size of a single-element range with a negative step" do
+    assert Range.size(1..1//-4) == 1
+  end
+
   test "in guard equality" do
     case {1, 1..1} do
       {n, range} when range == n..n//1 -> true
@@ -72,16 +76,20 @@ defmodule RangeTest do
   end
 
   test "step is a non-zero integer" do
-    step = 1.0
-    message = ~r"the step to be a non-zero integer"
-    assert_raise ArgumentError, message, fn -> 1..3//step end
-
     step = 0
     message = ~r"the step to be a non-zero integer"
     assert_raise ArgumentError, message, fn -> 1..3//step end
   end
 
   describe "disjoint?" do
+    test "empty ranges are disjoint" do
+      for empty <- [10..0//1, 10..0//2, 0..10//-1, 0..10//-2, 0..-1//1] do
+        assert Range.disjoint?(empty, 0..10)
+        assert Range.disjoint?(0..10, empty)
+        assert Range.disjoint?(empty, empty)
+      end
+    end
+
     test "returns true for disjoint ranges" do
       assert_disjoint(1..5, 6..9)
       assert_disjoint(-3..1, 2..3)
@@ -103,6 +111,34 @@ defmodule RangeTest do
       assert_overlap(-7..-5, -5..-1)
 
       assert Range.disjoint?(1..1, 1..1) == false
+
+      # Single-element ranges still contain their element regardless of the step
+      assert Range.disjoint?(1..1//-2, 1..1//-2) == false
+      assert Range.disjoint?(3..3//-3, 1..5) == false
+      assert Range.disjoint?(1..5, 3..3//-3) == false
+    end
+
+    test "normalizes unaligned descending ranges to their actual bounds" do
+      refute Range.disjoint?(27..11//-3, 26..0//-5)
+    end
+
+    test "uses exact arithmetic for large ranges" do
+      # The intersection parameter was previously computed with float
+      # division, which loses precision past 2^53. d sits just below a
+      # representable float that rounds upward, so the float path overshot
+      # the first intersection (d itself, the last element of the first
+      # range) and wrongly reported the ranges as disjoint.
+      d = Integer.pow(2, 59) + 193
+      assert rem(d, 3) == 0
+      assert_overlap(0..d//3, (d - 2)..(d + 10))
+
+      # Beyond the float range (~1.8e308), the float division raised
+      # ArithmeticError for valid integer ranges before the fix.
+      # big - 2 is a multiple of 7, so both ranges are aligned (reversing
+      # preserves their elements) and they intersect at big - 2.
+      big = Integer.pow(10, 320)
+      assert rem(big - 2, 7) == 0
+      assert_overlap(0..(big - 2)//7, (big - 8)..big)
     end
   end
 

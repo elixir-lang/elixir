@@ -26,7 +26,7 @@ defmodule EscriptTest do
     # Note: :erl_prim_loader usage with Escript is currently deprecated,
     # but we use it only in tests for convenience
 
-    app = String.to_atom(app_name)
+    app = String.to_unsafe_atom(app_name)
     :erl_prim_loader.list_dir(~c"#{:code.lib_dir(app)}/priv") |> IO.inspect()
   end
 

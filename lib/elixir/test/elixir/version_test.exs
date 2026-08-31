@@ -38,6 +38,26 @@ defmodule VersionTest do
     assert Version.compare("1.5.0-rc.0", "1.5.0-rc0") == :lt
   end
 
+  test "compare/2 with Version structs" do
+    large_major = Bitwise.bsl(1, 256)
+    large_pre = Bitwise.bsl(1, 128)
+    left = %Version{major: large_major, minor: 2, patch: 3, pre: ["alpha", large_pre]}
+    right = %Version{major: large_major, minor: 2, patch: 3, pre: ["alpha", large_pre + 1]}
+
+    assert Version.compare(left, right) == :lt
+    assert Version.compare(right, left) == :gt
+    assert Version.compare(left, %{left | major: large_major + 1}) == :lt
+    assert Version.compare(%{left | minor: 1}, %{left | minor: 2}) == :lt
+    assert Version.compare(%{left | patch: 2}, %{left | patch: 3}) == :lt
+    assert Version.compare(%{left | pre: [1]}, %{left | pre: ["alpha"]}) == :lt
+    assert Version.compare(%{left | pre: ["alpha"]}, %{left | pre: ["alpha", 1]}) == :lt
+    assert Version.compare(%{left | pre: ["alpha"]}, %{left | pre: []}) == :lt
+    assert Version.compare(%{left | pre: []}, %{left | pre: ["alpha"]}) == :gt
+    assert Version.compare(%{left | build: "left"}, %{left | build: "right"}) == :eq
+    assert Version.compare(%{left | major: 1}, "2.0.0") == :lt
+    assert Version.compare("2.0.0", %{left | major: 1}) == :gt
+  end
+
   test "compare/2 with invalid versions" do
     assert_raise Version.InvalidVersionError, fn ->
       Version.compare("1.0", "1.0.0")
@@ -84,8 +104,14 @@ defmodule VersionTest do
     assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]}} =
              Version.parse("1.4.5-6.7.eight")
 
+    assert {:ok, %Version{major: 99_999_999_999_999, minor: 0, patch: 0}} =
+             Version.parse("99999999999999.0.0")
+
     assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} =
              Version.parse("1.4.5-6-g3318bd5+ignore")
+
+    assert {:ok, %Version{major: 1, minor: 0, patch: 0, pre: ["100000000000000-alpha"]}} =
+             Version.parse("1.0.0-100000000000000-alpha")
 
     assert Version.parse("foobar") == :error
     assert Version.parse("2") == :error
@@ -105,6 +131,13 @@ defmodule VersionTest do
     assert Version.parse("02.3.0") == :error
     assert Version.parse("0. 0.0") == :error
     assert Version.parse("0.1.0-&&pre") == :error
+    assert Version.parse("100000000000000.0.0") == :error
+    assert Version.parse("1.100000000000000.0") == :error
+    assert Version.parse("1.0.100000000000000") == :error
+    assert Version.parse("1.0.0-100000000000000") == :error
+
+    assert Version.parse("1.0.0+100000000000000") ==
+             {:ok, %Version{major: 1, minor: 0, patch: 0, build: "100000000000000"}}
   end
 
   test "to_string/1" do
@@ -338,6 +371,7 @@ defmodule VersionTest do
       assert Version.parse_requirement("1.2.3 and or 4.5.6") == :error
       assert Version.parse_requirement(">= 1") == :error
       assert Version.parse_requirement("1.2.3 >=") == :error
+      assert Version.parse_requirement("100000000000000.0.0") == :error
     end
 
     test "inspect/1" do

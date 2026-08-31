@@ -72,6 +72,15 @@ iex> {x, x} = {1, 2}
 ** (MatchError) no match of right hand side value: {1, 2}
 ```
 
+However, a variable cannot be defined through itself in the same pattern. This includes cases where the variable appears on both sides of a nested match operator:
+
+```elixir
+{:ok, x} = {x, :ok}
+%{a: value} = %{b: value}
+```
+
+Such patterns are rejected as cyclic variable definitions. You can rewrite them by matching once and then using guards or separate comparisons for the additional constraints.
+
 The underscore variable (`_`) has a special meaning as it can never be bound to any value. It is especially useful when you don't care about certain value in a pattern:
 
 ```iex

@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # If a dependency was marked as fetched or with an out of date lock
     # or missing the app file, we always compile it from scratch.
-    if force? or Mix.Dep.force_compilable?(dep) do
+    if force? or clean_before_compile?(dep) do
       File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(dep.app)]))
     end
 
@@ -174,7 +174,7 @@ defmodule Mix.Tasks.Deps.Compile do
     # We should touch fetchable dependencies even if they
     # did not compile otherwise they will always be marked
     # as stale, even when there is nothing to do.
-    fetchable? = touch_fetchable(scm, opts)
+    fetchable? = touch_fetchable(scm, opts, dep.deps)
 
     if compiled? and fetchable? do
       Mix.Task.run("will_recompile")
@@ -203,9 +203,10 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp touch_fetchable(scm, opts) do
+  defp touch_fetchable(scm, opts, deps) do
     if scm.fetchable?() do
-      Mix.Dep.ElixirSCM.update(Path.join(opts[:build], ".mix"), scm, opts[:lock])
+      manifest = Path.join(opts[:build], ".mix")
+      Mix.Dep.ElixirSCM.update(manifest, scm, opts[:lock], Enum.map(deps, & &1.app))
       true
     else
       false
@@ -484,6 +485,20 @@ defmodule Mix.Tasks.Deps.Compile do
     else
       deps
     end
+  end
+
+  # Most compilable statuses mean the dependency source, lock, app file, or build
+  # metadata changed in a way that requires removing the old build before
+  # compiling. :envoutdated is different: path dependencies can be incrementally
+  # recompiled from their existing build, but fetched dependencies must be cleaned
+  # first so stale BEAM files do not validate against the new compile environment
+  # before the dependency has a chance to rebuild.
+  defp clean_before_compile?(%Mix.Dep{status: :envoutdated, scm: scm}) do
+    scm.fetchable?()
+  end
+
+  defp clean_before_compile?(dep) do
+    Mix.Dep.compilable?(dep)
   end
 
   defp deps_compile_feedback(app) do

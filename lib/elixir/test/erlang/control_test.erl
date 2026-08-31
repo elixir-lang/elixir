@@ -60,6 +60,23 @@ optimized_or_test() ->
      {clause, _, [{atom, _, true}], [], [{atom, _, true}]}]
   } = to_erl("is_list([]) or :done").
 
+optimized_in_test() ->
+  {'block', _,
+    [{match,_,
+      {var, _, '_'},
+      {call, _, {remote, _, {atom, _, 'Elixir.IO'}, {atom, _, puts}}, [{atom, _, hi}]}},
+    {atom, _, false}]
+  } = to_erl("IO.puts(:hi) in []"),
+  {'block', _,
+    [{match,_,
+      {var, _, '_1'},
+      {call, _, {remote, _, {atom, _, 'Elixir.IO'}, {atom, _, puts}}, [{atom, _, hi}]}},
+    {op, _, 'orelse',
+      {op, _, '=:=', {var, _ , '_1'}, {integer, _, 1}},
+      {op, _, '=:=', {var, _ , '_1'}, {integer, _, 2}}
+      }]
+  } = to_erl("IO.puts(:hi) in [1, 2]").
+
 no_after_in_try_test() ->
   {'try', _, [_], [], [_], []} = to_erl("try do :foo.bar() catch _ -> :ok end").
 
@@ -69,28 +86,37 @@ optimized_inspect_interpolation_test() ->
        {call, _, {remote, _,{atom, _, 'Elixir.Kernel'}, {atom, _, inspect}}, [_]},
        default, [binary]}]} = to_erl("\"#{inspect(1)}\"").
 
-optimized_map_put_test() ->
-  {map, _,
-    [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
-     {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
-  } = to_erl("Map.put(%{a: 1}, :b, 2)").
+optimized_string_to_existing_atom_test() ->
+  {'case', _, _,
+    [{clause, _,
+      [{bin, _, [{bin_element, _, {string, _, "foo"}, default, default}]}],
+      [],
+      [{atom, _, foo}]},
+     {clause, _,
+      [{bin, _, [{bin_element, _, {string, _, "bar"}, default, default}]}],
+      [],
+      [{atom, _, bar}]},
+     {clause, _,
+      [{var, _, '_'}],
+      [],
+      [{call, _, {remote, _, {atom, _, 'Elixir.String'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
+  } = to_erl("String.to_existing_atom(\"baz\", [:foo, :bar])").
 
-optimized_map_put_variable_test() ->
-  {block, _,
-    [_,
-     {map, _, {var, _, _},
-       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}}]
-     }]
-  } = to_erl("x = %{}; Map.put(x, :a, 1)").
-
-optimized_nested_map_put_variable_test() ->
-  {block, _,
-    [_,
-     {map, _, {var, _, _},
-       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
-        {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
-     }]
-  } = to_erl("x = %{}; Map.put(Map.put(x, :a, 1), :b, 2)").
+optimized_list_to_existing_atom_test() ->
+  {'case', _, _,
+    [{clause, _,
+      [{cons, _, {integer, _, $f}, {cons, _, {integer, _, $o}, {cons, _, {integer, _, $o}, {nil, _}}}}],
+      [],
+      [{atom, _, foo}]},
+     {clause, _,
+      [{cons, _, {integer, _, $b}, {cons, _, {integer, _, $a}, {cons, _, {integer, _, $r}, {nil, _}}}}],
+      [],
+      [{atom, _, bar}]},
+     {clause, _,
+      [{var, _, '_'}],
+      [],
+      [{call, _, {remote, _, {atom, _, 'Elixir.List'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
+  } = to_erl("List.to_existing_atom(~c\"baz\", [:foo, :bar])").
 
 optimized_map_merge_test() ->
   {map, _,

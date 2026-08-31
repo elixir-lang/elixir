@@ -188,7 +188,7 @@ defmodule Mix.Task do
 
     case base do
       <<"Elixir.Mix.Tasks.", rest::binary-size(^part), ".beam">> ->
-        mod = :"Elixir.Mix.Tasks.#{rest}"
+        mod = String.to_unsafe_atom("Elixir.Mix.Tasks.#{rest}")
         ensure_task?(mod) && mod
 
       _ ->
@@ -276,7 +276,7 @@ defmodule Mix.Task do
   to be a task optionally followed by its arguments.
   """
   @doc since: "1.11.0"
-  @spec requirements(task_module) :: []
+  @spec requirements(task_module) :: [String.t()]
   def requirements(module) when is_atom(module) do
     {:requirements, requirements} =
       List.keyfind(module.__info__(:attributes), :requirements, 0, {:requirements, []})
@@ -304,12 +304,12 @@ defmodule Mix.Task do
   Returns `false` if the given name is not an alias or if it is not a task.
 
   For more information about task aliasing, take a look at the
-  ["Aliases"](https://hexdocs.pm/mix/Mix.html#module-aliases) section in the
+  ["Aliases"](https://mix.hexdocs.pm/Mix.html#module-aliases) section in the
   docs for `Mix`.
   """
   @spec alias?(task_name) :: boolean
   def alias?(task) when is_binary(task) do
-    alias?(String.to_atom(task))
+    alias?(String.to_unsafe_atom(task))
   end
 
   def alias?(task) when is_atom(task) do
@@ -419,7 +419,7 @@ defmodule Mix.Task do
 
   defp do_run(task, args, apps) when is_binary(task) do
     proj = Mix.Project.get()
-    alias = Mix.Project.config()[:aliases][String.to_atom(task)]
+    alias = Mix.Project.config()[:aliases][String.to_unsafe_atom(task)]
 
     cond do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
@@ -441,7 +441,7 @@ defmodule Mix.Task do
   end
 
   defp recur_umbrella_children_alias(task, args, apps) do
-    alias_key = String.to_atom(task)
+    alias_key = String.to_unsafe_atom(task)
 
     entries =
       Mix.ProjectStack.recur(fn ->

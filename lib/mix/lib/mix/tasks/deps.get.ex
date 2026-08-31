@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Deps.Get do
     fetch_opts =
       for {switch, key} <- [only: :env, target: :target, check_locked: :check_locked],
           value = opts[switch],
-          do: {key, :"#{value}"}
+          do: {key, String.to_unsafe_atom("#{value}")}
 
     apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read(), fetch_opts)
 

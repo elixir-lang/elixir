@@ -215,7 +215,7 @@ defmodule Protocol do
         ...
       end
 
-  If you are using `Mix.install/2`, you can do by passing the `consolidate_protocols`
+  If you are using `Mix.install/2`, you can do so by passing the `consolidate_protocols`
   option:
 
       Mix.install(
@@ -282,7 +282,9 @@ defmodule Protocol do
     type_args = :lists.map(fn _ -> quote(do: term) end, :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    to_var = fn pos -> Macro.var(String.to_atom("arg" <> Integer.to_string(pos)), __MODULE__) end
+    to_var = fn pos ->
+      Macro.var(String.to_unsafe_atom("arg" <> Integer.to_string(pos)), __MODULE__)
+    end
 
     call_args = :lists.map(to_var, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
@@ -689,15 +691,15 @@ defmodule Protocol do
           structs_domain =
             case structs do
               [] -> Descr.none()
-              _ -> Descr.open_map(__struct__: Descr.atom(structs))
+              _ -> Descr.open_map(__struct__: {Descr.atom(structs), false})
             end
 
           domain =
             Enum.reduce(types_minus_any -- structs, structs_domain, fn impl, acc ->
-              Descr.union(Module.Types.Of.impl(impl, :open), acc)
+              Descr.opt_union(Module.Types.Of.impl(impl, :open), acc)
             end)
 
-          not_domain = Descr.negation(domain)
+          not_domain = Descr.opt_negation(domain)
 
           if Any in types do
             clauses =
@@ -1228,7 +1230,7 @@ defmodule Protocol do
   end
 
   def __concat__(left, right) when is_binary(right) do
-    String.to_atom(ensure_prefix(Atom.to_string(left)) <> "." <> right)
+    String.to_unsafe_atom(ensure_prefix(Atom.to_string(left)) <> "." <> right)
   end
 
   defp ensure_prefix("Elixir." <> _ = left), do: left

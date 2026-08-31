@@ -65,7 +65,7 @@ defmodule Code.Identifier do
     with "-" <> rest <- Atom.to_string(atom),
          [trailing | reversed] = rest |> String.split("/") |> Enum.reverse(),
          [arity, _inner, _count, ""] <- String.split(trailing, "-") do
-      {reversed |> Enum.reverse() |> Enum.join("/") |> String.to_atom(), arity}
+      {reversed |> Enum.reverse() |> Enum.join("/") |> String.to_unsafe_atom(), arity}
     else
       _ -> :error
     end
@@ -150,20 +150,20 @@ defmodule Code.Identifier do
     <<acc::binary, char::utf8>>
   end
 
-  defp escape_char(char, acc) when char < 0x100 do
+  defp escape_char(char, acc) when char < 0x80 do
     <<a::4, b::4>> = <<char::8>>
     <<acc::binary, ?\\, ?x, to_hex(a), to_hex(b)>>
   end
 
   defp escape_char(char, acc) when char < 0x10000 do
     <<a::4, b::4, c::4, d::4>> = <<char::16>>
-    <<acc::binary, ?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
+    <<acc::binary, ?\\, ?u, to_hex(a), to_hex(b), to_hex(c), to_hex(d)>>
   end
 
   defp escape_char(char, acc) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::24>>
 
-    <<acc::binary, ?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f),
+    <<acc::binary, ?\\, ?u, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f),
       ?}>>
   end
 

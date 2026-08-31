@@ -3,8 +3,7 @@
 
 ---
 name: Report an issue
-description:
-  Tell us about something that is not working the way we (probably) intend
+description: Tell us about something that is not working the way we (probably) intend
 body:
   - type: markdown
     attributes:
@@ -13,11 +12,17 @@ body:
 
 
         Please, do not use this form for guidance, questions or support.
-        Try instead in [Elixir Forum](https://elixirforum.com),
-        the [IRC Chat](https://web.libera.chat/#elixir),
-        [Stack Overflow](https://stackoverflow.com/questions/tagged/elixir),
-        [Slack](https://elixir-slackin.herokuapp.com),
-        [Discord](https://discord.gg/elixir) or in other online communities.
+        Try instead in [Elixir Forum](https://elixirforum.com) or any of
+        our online communities (Slack, Discord, etc).
+
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: Existing issue
+      description: Please search [existing issues](https://github.com/elixir-lang/elixir/issues) before continuing.
+      options:
+        - label: I have searched existing issues and could not find a duplicate.
+          required: true
 
   - type: textarea
     id: elixir-and-otp-version

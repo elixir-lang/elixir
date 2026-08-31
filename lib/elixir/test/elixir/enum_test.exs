@@ -98,12 +98,12 @@ defmodule EnumTest do
   end
 
   test "chunk/3" do
-    enum = String.to_atom("Elixir.Enum")
+    enum = String.to_unsafe_atom("Elixir.Enum")
     assert enum.chunk(1..5, 2, 1) == Enum.chunk_every(1..5, 2, 1, :discard)
   end
 
   test "chunk/4" do
-    enum = String.to_atom("Elixir.Enum")
+    enum = String.to_unsafe_atom("Elixir.Enum")
     assert enum.chunk(1..5, 2, 1, nil) == Enum.chunk_every(1..5, 2, 1, :discard)
   end
 
@@ -892,7 +892,7 @@ defmodule EnumTest do
     assert Enum.reduce([1, 2, 3], fn x, acc -> x + acc end) == 6
 
     assert_raise Enum.EmptyError, fn ->
-      Enum.reduce([], fn x, acc -> x + acc end)
+      Enum.reduce(Process.get(:unused, []), fn x, acc -> x + acc end)
     end
 
     assert_raise Enum.EmptyError, fn ->
@@ -2096,6 +2096,14 @@ defmodule EnumTest.Range do
     assert Enum.max(1..2, fn -> 0 end) === 2
   end
 
+  test "max/2 with custom sorter" do
+    sorter = fn a, b -> rem(a, 5) >= rem(b, 5) end
+    assert Enum.max(1..10, sorter) == 4
+    assert Enum.max(1..10//2, sorter) == 9
+    assert Enum.max(10..1//-1, sorter) == 9
+    assert Enum.max(1..0//1, sorter, fn -> :empty end) == :empty
+  end
+
   test "max_by/2" do
     assert Enum.max_by(1..1, fn x -> :math.pow(-2, x) end) == 1
     assert Enum.max_by(1..3, fn x -> :math.pow(-2, x) end) == 2
@@ -2137,6 +2145,14 @@ defmodule EnumTest.Range do
   test "min/2 with empty fallback" do
     assert Enum.min(.., fn -> 0 end) === 0
     assert Enum.min(1..2, fn -> 0 end) === 1
+  end
+
+  test "min/2 with custom sorter" do
+    sorter = fn a, b -> rem(a, 5) <= rem(b, 5) end
+    assert Enum.min(1..10, sorter) == 5
+    assert Enum.min(1..10//2, sorter) == 5
+    assert Enum.min(10..1//-1, sorter) == 10
+    assert Enum.min(1..0//1, sorter, fn -> :empty end) == :empty
   end
 
   test "min_by/2" do

@@ -119,6 +119,45 @@ defmodule Mix.Tasks.ArchiveTest do
     end)
   end
 
+  test "archive install rejects parent directory entries" do
+    in_tmp("archive install rejects parent directory entries", fn ->
+      assert {:ok, _} =
+               :zip.create(~c"bad-0.1.0.ez", [
+                 {~c"../outside", "bad"},
+                 {~c"bad-0.1.0/ebin/bad", "bad"}
+               ])
+
+      send(self(), {:mix_shell_input, :yes?, true})
+
+      assert_raise Mix.Error, ~r/invalid archive file/, fn ->
+        Mix.Tasks.Archive.Install.run(["bad-0.1.0.ez"])
+      end
+
+      refute File.exists?(tmp_path("userhome/outside"))
+      refute File.exists?(tmp_path("userhome/.mix/outside"))
+      refute File.dir?(tmp_path("userhome/.mix/archives/bad-0.1.0"))
+    end)
+  end
+
+  test "archive install rejects entries outside the archive root" do
+    in_tmp("archive install rejects entries outside the archive root", fn ->
+      assert {:ok, _} =
+               :zip.create(~c"bad-0.1.0.ez", [
+                 {~c"bad-0.1.0/ebin/bad", "bad"},
+                 {~c"other-0.1.0/ebin/bad", "bad"}
+               ])
+
+      send(self(), {:mix_shell_input, :yes?, true})
+
+      assert_raise Mix.Error, ~r/invalid archive file/, fn ->
+        Mix.Tasks.Archive.Install.run(["bad-0.1.0.ez"])
+      end
+
+      refute File.dir?(tmp_path("userhome/.mix/archives/bad-0.1.0"))
+      refute File.dir?(tmp_path("userhome/.mix/archives/other-0.1.0"))
+    end)
+  end
+
   test "archive install missing file" do
     message = ~r[Expected "./unlikely-to-exist-0.1.0.ez" to be a local file path]
 

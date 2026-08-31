@@ -62,9 +62,10 @@ defmodule ExUnit do
   """
 
   @typedoc """
-  All tests start with a state of `nil`.
+  The state of a test.
 
-  A finished test can be in one of five states:
+  It is meant to reflect whenever a test did not run
+  or fail. It may be one of five states:
 
     1. Passed (also represented by `nil`)
     2. Failed
@@ -76,12 +77,12 @@ defmodule ExUnit do
   @type state ::
           nil
           | {:excluded, binary}
-          | {:failed, failed}
+          | {:failed, errors}
           | {:invalid, ExUnit.TestModule.t()}
           | {:skipped, binary}
 
-  @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
-  @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
+  @typedoc "The errors returned by `ExUnit.Test` and `ExUnit.TestModule`"
+  @type errors :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
 
   @typedoc "A map representing the results of running a test suite"
   @type suite_result :: %{
@@ -147,7 +148,7 @@ defmodule ExUnit do
         which is truncated and hashed when above 250 characters
       * `:module` - the test module
       * `:description` - the test description (the name without truncation)
-      * `:state` - the finished test state (see `t:ExUnit.state/0`)
+      * `:state` - the failed state of the test after it runs (see `t:ExUnit.state/0`)
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
       * `:logs` - the captured logs
@@ -194,7 +195,7 @@ defmodule ExUnit do
 
       * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
 
-      * `:state` - the test error state (see `t:ExUnit.state/0`)
+      * `:state` - the failed state of `setup_all` after it runs (see `t:ExUnit.state/0`)
 
       * `:tags` - all tags in this module
 
@@ -335,10 +336,10 @@ defmodule ExUnit do
       * `:location_info` - filename and tags (defaults to `[:bright, :black]`)
       * `:diff_insert` - color of the insertions on diffs, defaults to `:green`;
       * `:diff_insert_whitespace` - color of the whitespace insertions on diffs,
-        defaults to `IO.ANSI.color_background(2, 0, 0)`;
+        defaults to `IO.ANSI.color_background(0, 2, 0)`;
       * `:diff_delete` - color of the deletions on diffs, defaults to `:red`;
       * `:diff_delete_whitespace` - color of the whitespace deletions on diffs,
-        defaults to `IO.ANSI.color_background(0, 2, 0)`;
+        defaults to `IO.ANSI.color_background(2, 0, 0)`;
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
       filter. For more information, see the "Tags" and "Filters" sections in the
@@ -376,7 +377,7 @@ defmodule ExUnit do
     * `:rand_algorithm` - algorithm to be used when generating the test seed.
       Available algorithms can be found in Erlang's
       [`:rand`](`:rand`) documentation (see
-      [`:rand.builting_arg/0`](https://www.erlang.org/doc/apps/stdlib/rand.html#t:builtin_alg/0)).
+      [`:rand.builtin_alg/0`](https://www.erlang.org/doc/apps/stdlib/rand.html#t:builtin_alg/0)).
       Available since v1.16.0. Before v1.16.0, the algorithm was hard-coded to
       `:exs1024`. On Elixir v1.16.0 and after, the default changed to `:exsss`;
 
@@ -478,7 +479,7 @@ defmodule ExUnit do
       if Code.ensure_loaded?(module) and function_exported?(module, :__ex_unit__, 1) do
         ExUnit.Server.add_module(module, module.__ex_unit__(:config))
       else
-        raise(ArgumentError, "#{inspect(module)} is not a ExUnit.Case module")
+        raise(ArgumentError, "#{inspect(module)} is not an ExUnit.Case module")
       end
     end
 
@@ -491,7 +492,7 @@ defmodule ExUnit do
   @doc """
   Starts tests asynchronously while test cases are still loading.
 
-  It returns a task that must be given to `await_run/0` when a result
+  It returns a task that must be given to `await_run/1` when a result
   is desired.
   """
   @doc since: "1.12.0"
@@ -570,6 +571,8 @@ defmodule ExUnit do
   end
 
   defp maybe_repeated_run(options, seed, load_us, repeat) do
+    options = Keyword.put(options, :remaining_runs, repeat)
+
     case ExUnit.Runner.run(options, load_us) do
       {%{failures: 0}, {async_modules, sync_modules}}
       when repeat > 0 and (sync_modules != [] or async_modules != []) ->

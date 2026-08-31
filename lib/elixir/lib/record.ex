@@ -340,7 +340,7 @@ defmodule Record do
     fields
   end
 
-  # Normalizes of record fields to have default values.
+  # Normalizes record fields to have default values.
   defp fields(kind, fields) do
     normalizer_fun = fn
       {key, value} when is_atom(key) ->

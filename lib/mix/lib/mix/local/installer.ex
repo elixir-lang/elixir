@@ -181,15 +181,17 @@ defmodule Mix.Local.Installer do
     message =
       case previous_files do
         [] ->
-          "Are you sure you want to install #{inspect(src)}?"
+          "Do you trust and want to install #{inspect(src)}?"
 
         [file] ->
           "Found existing entry: #{file}\n" <>
-            "Are you sure you want to replace it with #{inspect(src)}?"
+            "The existing entry will be replaced.\n" <>
+            "Do you trust and want to install #{inspect(src)}?"
 
         files ->
           "Found existing entries: #{Enum.map_join(files, ", ", &Path.basename/1)}\n" <>
-            "Are you sure you want to replace them with #{inspect(src)}?"
+            "The existing entries will be replaced.\n" <>
+            "Do you trust and want to install #{inspect(src)}?"
       end
 
     Mix.shell().yes?(message)
@@ -250,11 +252,11 @@ defmodule Mix.Local.Installer do
       end
 
     dep_opts = [
-      hex: String.to_atom(package_name),
+      hex: String.to_unsafe_atom(package_name),
       repo: hex_repo(opts)
     ]
 
-    {:fetcher, {String.to_atom(app_name), version, dep_opts}}
+    {:fetcher, {String.to_unsafe_atom(app_name), version, dep_opts}}
   end
 
   def parse_args(["hex" | [_package_name | rest]], _opts) do
@@ -281,7 +283,7 @@ defmodule Mix.Local.Installer do
         "new package"
       end
 
-    {:fetcher, {String.to_atom(app_name), git_opts}}
+    {:fetcher, {String.to_unsafe_atom(app_name), git_opts}}
   end
 
   defp ref_to_config("branch", branch), do: [branch: branch]

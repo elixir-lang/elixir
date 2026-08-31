@@ -161,23 +161,7 @@ defmodule Kernel.ErrorsTest do
 
   test "cascading from undefined variables" do
     # Test that we show undefined modules/functions/macros on variable failure,
-    # as sometimes the variable failure come from a missing module or require
-    assert_compile_error(
-      [
-        "nofile:3:23",
-        "undefined variable \"bar\"",
-        "nofile:3:19",
-        "function UnknownModule.foo/1 is undefined (module UnknownModule is not available)"
-      ],
-      ~c"""
-      defmodule Sample do
-        def foo do
-          UnknownModule.foo(bar)
-        end
-      end
-      """
-    )
-
+    # as sometimes the variable failure come from a missing require/export
     assert_compile_error(
       [
         "nofile:3:20",
@@ -212,11 +196,11 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "recursive variables on definition" do
+  test "cyclic variables on definition" do
     assert_compile_error(
       [
         "nofile:2:7: ",
-        "recursive variable definition in patterns:",
+        "cyclic variable definition in patterns:",
         "foo(x = y, y = z, z = x)",
         "the following variables form a cycle: \"x\", \"y\", \"z\""
       ],
@@ -472,6 +456,21 @@ defmodule Kernel.ErrorsTest do
                       """
   end
 
+  test "invalid unquote when quote/1 is in a pattern" do
+    assert_compile_error(
+      ["unquote is not allowed when quote is used inside a pattern or guard"],
+      ~c"""
+      defmodule Kernel.ErrorsTest.InvalidUnquoteInQuotePattern do
+        def my_fun(ast) do
+          case ast do
+            quote(do: foo(unquote(x))) -> x
+          end
+        end
+      end
+      """
+    )
+  end
+
   test "invalid attribute" do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
 
@@ -674,7 +673,7 @@ defmodule Kernel.ErrorsTest do
 
   test "function import conflict" do
     assert_compile_error(
-      ["nofile:3:16", "function exit/1 imported from both :erlang and Kernel, call is ambiguous"],
+      ["nofile:3:16", "conflicting exit/1 import from modules :erlang and Kernel"],
       ~c"""
       defmodule Kernel.ErrorsTest.FunctionImportConflict do
         import :erlang, only: [exit: 1], warn: false
@@ -684,7 +683,7 @@ defmodule Kernel.ErrorsTest do
     )
 
     assert_compile_error(
-      ["nofile:3:17", "function exit/1 imported from both :erlang and Kernel, call is ambiguous"],
+      ["nofile:3:17", "conflicting exit/1 import from modules :erlang and Kernel"],
       ~c"""
       defmodule Kernel.ErrorsTest.FunctionImportConflict do
         import :erlang, only: [exit: 1], warn: false
@@ -698,7 +697,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:3:3",
-        "invalid :only option for import, expected value to be an atom :functions, :macros, or a literal keyword list of function names with arity as values, got: x"
+        "invalid :only option for import, expected value to be an atom :functions, :macros, :sigils, or a literal keyword list of function names with arity as values, got: x"
       ],
       ~c"""
       defmodule Kernel.ErrorsTest.Only do

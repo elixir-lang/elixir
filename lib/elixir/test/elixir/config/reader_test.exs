@@ -52,6 +52,19 @@ defmodule Config.ReaderTest do
                  ~r"expected config for app :sample in .*/bad_app.exs to return keyword list",
                  fn -> Config.Reader.read!(fixture_path("configs/bad_app.exs")) end
 
+    assert_raise ArgumentError,
+                 ~r"expected config .* to be a keyword list of {atom, keyword} pairs",
+                 fn ->
+                   Config.Reader.eval!(
+                     "nofile",
+                     ~s([{"not_atom", [key: :val]}, {:valid, [k: :v]}])
+                   )
+                 end
+
+    assert_raise ArgumentError,
+                 ~r"expected config .* to be a keyword list of {atom, keyword} pairs",
+                 fn -> Config.Reader.eval!("nofile", "[:not_a_pair]") end
+
     assert_raise RuntimeError, "no :env key was given to this configuration file", fn ->
       Config.Reader.read!(fixture_path("configs/env.exs"))
     end

@@ -102,17 +102,15 @@ defmodule MapTest do
   test "take/2" do
     assert Map.take(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{b: 2, c: 3}
     assert Map.take(%{a: 1, b: 2, c: 3}, []) == %{}
-    assert_raise BadMapError, fn -> Map.take(:foo, []) end
+    assert_raise BadMapError, fn -> Map.take(Process.get(:unused, :foo), []) end
   end
 
   test "drop/2" do
     assert Map.drop(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{a: 1}
-    assert_raise BadMapError, fn -> Map.drop(:foo, []) end
   end
 
   test "split/2" do
     assert Map.split(%{a: 1, b: 2, c: 3}, [:b, :c]) == {%{b: 2, c: 3}, %{a: 1}}
-    assert_raise BadMapError, fn -> Map.split(:foo, []) end
   end
 
   test "split_with/2" do
@@ -169,19 +167,9 @@ defmodule MapTest do
     end
   end
 
-  test "put/3 optimized by the compiler" do
-    map = %{a: 1, b: 2}
-
-    assert Map.put(map, :a, 2) == %{a: 2, b: 2}
-    assert Map.put(map, :c, 3) == %{a: 1, b: 2, c: 3}
-
-    assert Map.put(%{map | a: 2}, :a, 3) == %{a: 3, b: 2}
-    assert Map.put(%{map | a: 2}, :b, 3) == %{a: 2, b: 3}
-
-    assert Map.put(map, :a, 2) |> Map.put(:a, 3) == %{a: 3, b: 2}
-    assert Map.put(map, :a, 2) |> Map.put(:c, 3) == %{a: 2, b: 2, c: 3}
-    assert Map.put(map, :c, 3) |> Map.put(:a, 2) == %{a: 2, b: 2, c: 3}
-    assert Map.put(map, :c, 3) |> Map.put(:c, 4) == %{a: 1, b: 2, c: 4}
+  test "put/3 evaluation order" do
+    assert Map.put(send(self(), %{}), send(self(), :key), send(self(), :value)) == %{key: :value}
+    assert Process.info(self(), :messages) == {:messages, [%{}, :key, :value]}
   end
 
   test "merge/2 with map literals optimized by the compiler" do

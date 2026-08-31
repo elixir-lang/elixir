@@ -88,7 +88,7 @@ defmodule Mix.State do
     case System.get_env(varname) do
       nil -> default
       "" -> default
-      value -> String.to_atom(value)
+      value -> String.to_unsafe_atom(value)
     end
   end
 
@@ -112,7 +112,7 @@ defmodule Mix.State do
   defp app_from_code_path(path) do
     case path |> Enum.reverse() |> discard_ebin() |> collect_dir([]) do
       [] -> nil
-      app -> List.to_atom(app)
+      app -> List.to_unsafe_atom(app)
     end
   end
 

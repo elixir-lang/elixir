@@ -263,7 +263,7 @@ defmodule Mix.Sync.PubSub do
 
   defp decode_data(binary) do
     try do
-      {:ok, :erlang.binary_to_term(binary)}
+      {:ok, Mix.Utils.non_executable_binary_to_term(binary)}
     rescue
       _error -> :error
     end

@@ -199,43 +199,43 @@ defmodule Kernel.ExpansionTest do
       assert Macro.Env.vars(env) == []
     end
 
-    test "errors on directly recursive definitions" do
+    test "errors on directly cyclic definitions" do
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{x = \{:ok, x\}\}
 
-        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        the variable "x" \(context Kernel.ExpansionTest\) depends on itself through the pattern
         """,
         fn -> expand(quote(do: {x = {:ok, x}} = :ok)) end
       )
 
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{\{x, y\} = \{y, x\}\}
 
-        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        the variable "x" \(context Kernel.ExpansionTest\) depends on itself through the pattern
         """,
         fn -> expand(quote(do: {{x, y} = {y, x}} = :ok)) end
       )
 
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{\{:x, y\} = \{x, :y\}, x = y\}
 
-        the variable "x" \(context Kernel.ExpansionTest\) is defined recursively in function of "y" \(context Kernel.ExpansionTest\)
+        the variable "x" \(context Kernel.ExpansionTest\) depends on "y" \(context Kernel.ExpansionTest\) through the pattern
         """,
         fn -> expand(quote(do: {{:x, y} = {x, :y}, x = y} = :ok)) end
       )
 
       assert_compile_error(
         ~r"""
-        recursive variable definition in patterns:
+        cyclic variable definition in patterns:
 
         \{x = y, y = z, z = x\}
 
@@ -245,7 +245,7 @@ defmodule Kernel.ExpansionTest do
       )
     end
 
-    test "complex recursive variable definitions" do
+    test "complex cyclic variable definitions" do
       assert expand(
                quote do:
                        {%{type: type, client_id: client_id} = message,
@@ -253,7 +253,7 @@ defmodule Kernel.ExpansionTest do
              )
 
       assert_compile_error(
-        ~r"recursive variable definition in patterns",
+        ~r"cyclic variable definition in patterns",
         fn ->
           expand(
             quote do:
@@ -659,13 +659,16 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "invalid keys in structs" do
-      assert_compile_error(~r"invalid key :erlang\.\+\(1, 2\) for struct", fn ->
-        expand(
-          quote do
-            %User{(1 + 2) => :my_value}
-          end
-        )
-      end)
+      assert_compile_error(
+        "invalid key for struct, struct keys must be atoms, got: :erlang.+(1, 2)",
+        fn ->
+          expand(
+            quote do
+              %User{(1 + 2) => :my_value}
+            end
+          )
+        end
+      )
     end
 
     test "unknown key in structs" do
@@ -679,7 +682,8 @@ defmodule Kernel.ExpansionTest do
 
   describe "quote" do
     test "expanded to raw forms" do
-      assert expand(quote(do: quote(do: hello)), []) == {:{}, [], [:hello, [], __MODULE__]}
+      assert {{:., _, [:elixir_quote, :validate_quote]}, _, [{:{}, [], [:hello, [], __MODULE__]}]} =
+               expand(quote(do: quote(do: hello)), [])
     end
 
     test "raises if the :bind_quoted option is invalid" do
@@ -1217,8 +1221,8 @@ defmodule Kernel.ExpansionTest do
                 [
                   {:->, [line: 1],
                    [
-                     [{:capture, [capture: 1, line: 1], nil}],
-                     {:capture, [capture: 1, line: 1], nil}
+                     [{:"_&", [capture: 1, line: 1], :elixir_fn}],
+                     {:"_&", [capture: 1, line: 1], :elixir_fn}
                    ]}
                 ]}
     end
@@ -2507,14 +2511,21 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: <<x::13*6>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-unit(6)-size(13)>>) |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<x::_*6-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(6)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::_*6-binary>>)) |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(6)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair that is always divisible by 8"
 
-      assert expand(quote(do: <<x::13*6-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::13*6-binary>>)) |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair divisible by 8"
 
-      assert expand(quote(do: <<x::binary-(13 * 6)-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::binary-(13 * 6)-binary>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair divisible by 8"
 
       assert expand(quote(do: <<x::seventeen()>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-size(17)>>) |> clean_bit_modifiers()
@@ -2525,8 +2536,11 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: <<x::seventeen()*seventeen()>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-unit(17)-size(17)>>) |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<x::_*seventeen()-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary-unit(17)>>) |> clean_bit_modifiers()
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::_*seventeen()-binary>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(17)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair that is always divisible by 8"
     end
 
     test "expands binary/bitstring specifiers" do
@@ -2543,6 +2557,18 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(quote(do: <<x::bits>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::bitstring>>) |> clean_bit_modifiers()
+
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::binary-size(1)-unit(4)>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(4)-size(1)>>) |> clean_bit_modifiers()
+             end) =~ "a binary segment must have a size-unit pair divisible by 8"
+
+      assert capture_io(:stderr, fn ->
+               assert expand(quote(do: <<x::binary-size(2)-unit(4)>>))
+                      |> clean_meta([:alignment]) ==
+                        quote(do: <<x()::binary-unit(4)-size(2)>>) |> clean_bit_modifiers()
+             end) == ""
 
       assert expand(quote(do: <<x::binary-little>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary>>) |> clean_bit_modifiers()
@@ -2828,6 +2854,19 @@ defmodule Kernel.ExpansionTest do
 
         expand(code, [])
       end)
+
+      assert_compile_error(
+        ~r/the variable "len".*accessed inside size\(\.\.\.\).*pin operator/s,
+        fn ->
+          code =
+            quote do
+              len = 4
+              {len, <<_::size(len), _::bitstring>>} = {8, <<255, 0>>}
+            end
+
+          expand(code, [])
+        end
+      )
 
       assert_compile_error(
         ~r"cannot find or invoke local foo/0 inside a bitstring size specifier",

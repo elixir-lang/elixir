@@ -28,6 +28,24 @@ defmodule Mix.UtilsTest do
     end)
   end
 
+  test "non_executable_binary_to_term" do
+    value = %{1 => {:foo, ["bar", 2.0, %URI{}, [self() | make_ref()], <<0::4>>]}}
+    assert Mix.Utils.non_executable_binary_to_term(:erlang.term_to_binary(value)) == value
+
+    assert_raise ArgumentError, fn ->
+      Mix.Utils.non_executable_binary_to_term(
+        :erlang.term_to_binary(%{1 => {:foo, [fn -> :bar end]}})
+      )
+    end
+
+    assert_raise ArgumentError, fn ->
+      Mix.Utils.non_executable_binary_to_term(
+        <<131, 100, 0, 7, 103, 114, 105, 102, 102, 105, 110>>,
+        [:safe]
+      )
+    end
+  end
+
   test "command to module" do
     assert Mix.Utils.command_to_module("cheers", Mix.Tasks) == {:module, Mix.Tasks.Cheers}
     assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == {:error, :nofile}
@@ -241,9 +259,7 @@ defmodule Mix.UtilsTest do
 
         assert File.read!("graph.dot") == """
                digraph "graph" {
-                 "foo 
-               bar\r
-               baz"
+                 "foo \nbar\r\nbaz"
                }
                """
       end)

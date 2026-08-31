@@ -75,7 +75,7 @@ iex> trunc(3.58)
 3
 ```
 
-Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, [`is_integer`](`is_integer/1`) can be used to check if a value is an integer or not:
+Finally, as we work with different data types, we will learn that Elixir provides several predicate functions to check for the type of a value. For example, [`is_integer`](`is_integer/1`) can be used to check if a value is an integer or not:
 
 ```elixir
 iex> is_integer(1)
@@ -310,4 +310,4 @@ false
 
 The comparison operators in Elixir can compare across any data type. We say these operators perform _structural comparison_. For more information, you can read our documentation on [Structural vs Semantic comparisons](`Kernel#module-structural-comparison`).
 
-Elixir also provides data-types for expressing collections, such as lists and tuples, which we learn next. When we talk about concurrency and fault-tolerance via processes, we will also discuss ports, pids, and references, but that will come on later chapters. Let's move forward.
+Elixir also provides data-types for expressing collections, such as lists and tuples, which we'll learn next. When we talk about concurrency and fault-tolerance via processes, we will also discuss ports, pids, and references, but that will come in later chapters. Let's move forward.

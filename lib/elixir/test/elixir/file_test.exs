@@ -869,21 +869,26 @@ defmodule FileTest do
       assert src_mode == dest_mode
     end
 
-    test "cp_r preserves directory mode" do
+    test "cp_r preserves directory mode with preserve_directory_permissions: true" do
       src = tmp_path("tmp/src_dir")
       dest = tmp_path("tmp/dest_dir")
       inner = Path.join(src, "inner")
 
       File.mkdir_p!(inner)
-      File.chmod!(inner, 0o700)
+      File.write!(Path.join(inner, "hello"), "world")
+      File.chmod!(inner, 0o500)
 
       try do
-        File.cp_r!(src, dest)
+        File.cp_r!(src, dest, preserve_directory_permissions: true)
 
         %File.Stat{mode: src_mode} = File.stat!(inner)
         %File.Stat{mode: dest_mode} = File.stat!(Path.join(dest, "inner"))
         assert src_mode == dest_mode
+
+        assert File.read!(Path.join(dest, "inner/hello")) == "world"
       after
+        File.chmod!(inner, 0o700)
+        File.chmod!(Path.join(dest, "inner"), 0o700)
         File.rm_rf!(src)
         File.rm_rf!(dest)
       end

@@ -453,11 +453,15 @@ defmodule ExUnit.CallbacksNoTests do
     if :rand.uniform() >= 0 do
       raise "never run"
     end
+
+    :ok
   end
 
   setup do
     if :rand.uniform() >= 0 do
       raise "never run"
     end
+
+    :ok
   end
 end

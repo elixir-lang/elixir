@@ -11,7 +11,7 @@ defmodule Module.Types.Of do
   @prefix quote(do: ...)
   @suffix quote(do: ...)
 
-  @integer_or_float union(integer(), float())
+  @integer_or_float opt_union(integer(), float())
   @integer integer()
   @float float()
   @binary binary()
@@ -31,7 +31,7 @@ defmodule Module.Types.Of do
   @doc """
   Marks a variable with error.
 
-  This purposedly deletes all traces of the variable,
+  This purposely deletes all traces of the variable,
   as it is often invoked when the cause for error is elsewhere.
   """
   def error_var({_, meta, _}, context) do
@@ -106,15 +106,15 @@ defmodule Module.Types.Of do
           context
       end
 
-    case context do
+    case stack do
       _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
         {old_type, context}
 
-      %{pattern_info: %{guard_context: guard_context}} ->
-        new_type = intersection(old_type, type)
+      %{reverse_arrow: reverse_arrow} when reverse_arrow in [:except_none, :include_none] ->
+        new_type = opt_intersection(old_type, type)
 
         case empty?(new_type) do
-          true when guard_context == :orelse ->
+          true when reverse_arrow == :include_none ->
             data = %{
               data
               | type: none(),
@@ -171,7 +171,7 @@ defmodule Module.Types.Of do
         {:ok, error_type(), context}
 
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
-        new_type = intersection(type, old_type)
+        new_type = opt_intersection(type, old_type)
 
         data = %{
           data
@@ -245,7 +245,7 @@ defmodule Module.Types.Of do
         type =
           Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
             %{^version => %{type: type}} = vars
-            union(acc, type)
+            opt_union(acc, type)
           end)
 
         {_, context} = refine_body_var(version, type, expr, stack, context)
@@ -264,8 +264,8 @@ defmodule Module.Types.Of do
     {Float, float()},
     {Function, fun()},
     {Integer, integer()},
-    {List, union(empty_list(), non_empty_list(term(), term()))},
-    {Map, open_map(__struct__: if_set(negation(atom())))},
+    {List, opt_union(empty_list(), non_empty_list(term(), term()))},
+    {Map, open_map(__struct__: {Module.Types.Descr.opt_negation(atom()), true})},
     {Port, port()},
     {PID, pid()},
     {Reference, reference()},
@@ -294,7 +294,7 @@ defmodule Module.Types.Of do
     if info = mode == :closed && Code.ensure_loaded?(struct) && struct.__info__(:struct) do
       struct_type(struct, info)
     else
-      open_map(__struct__: atom([struct]))
+      open_map(__struct__: {atom([struct]), false})
     end
   end
 
@@ -365,7 +365,7 @@ defmodule Module.Types.Of do
                 # Because a multiple key may override single keys, we can only
                 # collect single keys while there are no multiples.
                 [key] when multiple == [] ->
-                  {dynamic?, domain, [{key, value_type} | single], multiple}
+                  {dynamic?, domain, [{key, {value_type, false}} | single], multiple}
 
                 _ ->
                   {dynamic?, domain, single, [{pos, value_type} | multiple]}
@@ -382,36 +382,44 @@ defmodule Module.Types.Of do
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            closed_map(non_multiple ++ [{key, type} | t])
+            closed_map(non_multiple ++ [{key, {type, false}} | t])
           end
-          |> Enum.reduce(&union/2)
+          |> Enum.reduce(&opt_union/2)
       end
 
     {if(dynamic?, do: dynamic(map), else: map), context}
   end
 
   defp union_negated([], new_type, single, multiple) do
-    single = Enum.map(single, fn {key, old_type} -> {key, union(old_type, new_type)} end)
-    multiple = Enum.map(multiple, fn {keys, old_type} -> {keys, union(old_type, new_type)} end)
+    single =
+      Enum.map(single, fn
+        {key, {old_type, optional?}} ->
+          {key, {opt_union(old_type, new_type), optional?}}
+      end)
+
+    multiple =
+      Enum.map(multiple, fn {keys, old_type} -> {keys, opt_union(old_type, new_type)} end)
+
     {single, multiple}
   end
 
   defp union_negated(negated, new_type, single, multiple) do
     {single, matched} =
-      Enum.map_reduce(single, [], fn {key, old_type}, matched ->
-        if key in negated do
-          {{key, old_type}, [key | matched]}
-        else
-          {{key, union(old_type, new_type)}, matched}
-        end
+      Enum.map_reduce(single, [], fn
+        {key, {old_type, optional?}}, matched ->
+          if key in negated do
+            {{key, {old_type, optional?}}, [key | matched]}
+          else
+            {{key, {opt_union(old_type, new_type), optional?}}, matched}
+          end
       end)
 
     multiple =
       Enum.map(multiple, fn {keys, old_type} ->
-        {keys, union(old_type, new_type)}
+        {keys, opt_union(old_type, new_type)}
       end)
 
-    {Enum.map(negated -- matched, fn key -> {key, not_set()} end) ++ single, multiple}
+    {Enum.map(negated -- matched, fn key -> {key, {none(), true}} end) ++ single, multiple}
   end
 
   defp pairs(pairs, expected, stack, context, of_fun) do
@@ -420,7 +428,7 @@ defmodule Module.Types.Of do
 
       expected_value_type =
         with {[key], [], []} <- pos_neg_domain,
-             {_, expected_value_type} <- map_fetch_key(expected, key) do
+             {_optional?, expected_value_type} <- map_fetch_key(expected, key) do
           expected_value_type
         else
           _ -> term()
@@ -455,7 +463,7 @@ defmodule Module.Types.Of do
         [[]]
 
       [{keys, type} | tail] ->
-        for key <- keys, t <- cartesian_map(tail), do: [{key, type} | t]
+        for key <- keys, t <- cartesian_map(tail), do: [{key, {type, false}} | t]
     end
   end
 
@@ -467,35 +475,35 @@ defmodule Module.Types.Of do
   # TODO: Type check the fields match the struct
   def struct_instance(struct, args, expected, meta, stack, context, of_fun)
       when is_atom(struct) do
-    {info, context} = struct_info(struct, :expr, meta, stack, context)
+    {info, context} = struct_info(struct, :expr, meta, stack, context, true)
 
     if is_nil(info) do
-      raise "expected #{inspect(struct)} to return struct metadata, but got none"
+      {dynamic(), context}
+    else
+      # The compiler has already checked the keys are atoms and which ones are required.
+      {args_types, context} =
+        Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
+          value_type =
+            case map_fetch_key(expected, key) do
+              {_optional?, expected_value_type} -> expected_value_type
+              _ -> term()
+            end
+
+          {type, context} = of_fun.(value, value_type, stack, context)
+          {{key, {type, false}}, context}
+        end)
+
+      {closed_map([__struct__: {atom([struct]), false}] ++ args_types), context}
     end
-
-    # The compiler has already checked the keys are atoms and which ones are required.
-    {args_types, context} =
-      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
-        value_type =
-          case map_fetch_key(expected, key) do
-            {_, expected_value_type} -> expected_value_type
-            _ -> term()
-          end
-
-        {type, context} = of_fun.(value, value_type, stack, context)
-        {{key, type}, context}
-      end)
-
-    {closed_map([{:__struct__, atom([struct])} | args_types]), context}
   end
 
   @doc """
   Returns `__info__(:struct)` information about a struct.
   """
-  def struct_info(struct, kind, meta, stack, context) do
+  def struct_info(struct, kind, meta, stack, context, must_exist? \\ false) do
     case stack.no_warn_undefined do
       %Macro.Env{} = env ->
-        case :elixir_map.maybe_load_struct_info(meta, struct, env) do
+        case :elixir_map.maybe_load_struct_info(meta, struct, :soft, env) do
           {:ok, info} -> {info, context}
           {:error, _desc} -> {nil, context}
         end
@@ -511,7 +519,7 @@ defmodule Module.Types.Of do
 
           {info, context}
         else
-          error = {:unknown_struct, kind, struct}
+          error = {:unknown_struct, kind, struct, must_exist?}
           {nil, error(error, meta, stack, context)}
         end
     end
@@ -524,9 +532,16 @@ defmodule Module.Types.Of do
   # we introduce typed structs. They are only used by exceptions.
   def struct_type(struct, info, args_types \\ []) do
     term = dynamic()
-    pairs = for %{field: field} <- info, do: {field, term}
-    pairs = [{:__struct__, atom([struct])} | pairs]
-    pairs = if args_types == [], do: pairs, else: pairs ++ args_types
+    pairs = for %{field: field} <- info, do: {field, {term, false}}
+    pairs = [{:__struct__, {atom([struct]), false}} | pairs]
+
+    pairs =
+      if args_types == [] do
+        pairs
+      else
+        pairs ++ args_types
+      end
+
     closed_map(pairs)
   end
 
@@ -848,19 +863,26 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:unknown_struct, kind, module}) do
-    message =
-      if Code.ensure_loaded?(module) do
-        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
-      else
-        "struct #{inspect(module)} is undefined " <>
-          "(module #{inspect(module)} is not available or is yet to be defined)"
+  def format_diagnostic({:unknown_struct, kind, module, must_exist?}) do
+    detail =
+      case {Code.ensure_loaded?(module), must_exist?} do
+        {true, false} ->
+          "there is such module but it does not define a struct"
+
+        {false, false} ->
+          "module #{inspect(module)} is not available or is yet to be defined"
+
+        {true, true} ->
+          "the module may have been redefined as it no longer defines a struct"
+
+        {false, true} ->
+          "the module was also only available but may have been removed during compilation"
       end
 
     %{
-      message: message,
+      message: "struct #{inspect(module)} is undefined (#{detail})",
       group: true,
-      severity: if(kind == :pattern, do: :error, else: :warning)
+      severity: if(kind == :pattern or must_exist?, do: :error, else: :warning)
     }
   end
 

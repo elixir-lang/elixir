@@ -33,10 +33,6 @@ erl_fa_to_elixir_fa(Name, Arity) ->
     _ -> {Name, Arity}
   end.
 
-guard_op('andalso', 2) ->
-  true;
-guard_op('orelse', 2) ->
-  true;
 guard_op(Op, Arity) ->
   try erl_internal:op_type(Op, Arity) of
     arith -> true;
@@ -232,6 +228,9 @@ returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _]}) when
 
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
   Fun == function_exported; Fun == is_record -> true;
+
+returns_boolean({{'.', _, [lists, member]}, _, [_, _]}) ->
+  true;
 
 returns_boolean({'case', _, [_, [{do, Clauses}]]}) ->
   lists:all(fun

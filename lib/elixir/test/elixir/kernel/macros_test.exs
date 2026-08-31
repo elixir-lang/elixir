@@ -87,7 +87,7 @@ defmodule Kernel.MacrosTest do
   end
 
   test "macros cannot be called dynamically" do
-    x = String.to_atom("Elixir.Nested")
+    x = String.to_unsafe_atom("Elixir.Nested")
     assert_raise UndefinedFunctionError, fn -> x.func() end
   end
 

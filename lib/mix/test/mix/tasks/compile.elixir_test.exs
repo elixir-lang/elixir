@@ -111,8 +111,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
-      Mix.Task.clear()
-      Mix.ProjectStack.merge_config(xref: [exclude: [Foo]])
+      Mix.ProjectStack.merge_config(elixirc_options: [no_warn_undefined: [Foo]])
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end)
@@ -254,6 +253,35 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     Application.delete_env(:sample, :foo, persistent: true)
+  end
+
+  test "recompiles when infer signature changes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def a, do: dbg(:ok)
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def b, do: :ok
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.ProjectStack.merge_config(elixirc_options: [infer_signatures: [:elixir, :logger]])
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
+    end)
   end
 
   defdelegate dbg(code, options, env), to: Macro
@@ -663,7 +691,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert File.exists?("_build/dev/lib/sample")
       assert File.exists?("_build/dev/lib/sample/consolidated")
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       Mix.Task.clear()
       File.write!("_build/dev/lib/sample/consolidated/.to_be_removed", "")
@@ -672,7 +700,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
       refute File.exists?("_build/dev/lib/sample/consolidated/.to_be_removed")
@@ -686,14 +714,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       Mix.Task.clear()
       Mix.Dep.ElixirSCM.update("_build/dev/lib/sample/.mix/", UnknownSCM, nil)
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       Mix.Tasks.Compile.run([])
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
       assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
     end)
   end
@@ -705,14 +733,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, nil, []}
 
       Mix.Task.clear()
       Mix.Dep.ElixirSCM.update("_build/dev/lib/sample/.mix/", Mix.SCM.Path, :whatever)
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", @old_time)
 
       assert Mix.Tasks.Compile.run([]) == {:noop, []}
-      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, :whatever}
+      assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path, :whatever, []}
     end)
   end
 
@@ -789,6 +817,70 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     purge([GitRepo, GitRepo.MixProject])
+  end
+
+  test "recompiles files from path dependencies when optional dep is removed" do
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("path_dep/lib")
+      File.mkdir_p!("optional_dep/lib")
+
+      File.write!("optional_dep/mix.exs", """
+      defmodule OptionalDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :optional_dep,
+            version: "0.1.0"
+          ]
+        end
+      end
+      """)
+
+      File.write!("optional_dep/lib/optional_dep.ex", """
+      defmodule OptionalDep.Response do
+      end
+      """)
+
+      File.write!("path_dep/mix.exs", """
+      defmodule PathDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :path_dep,
+            version: "0.1.0",
+            deps: [{:optional_dep, path: "../optional_dep", optional: true}]
+          ]
+        end
+      end
+      """)
+
+      File.write!("path_dep/lib/path_dep.ex", """
+      defmodule PathDep do
+        IO.puts("OptionalDep is defined: \#{Code.ensure_loaded?(OptionalDep.Response)}")
+      end
+      """)
+
+      Mix.ProjectStack.post_config(
+        deps: [{:path_dep, path: "path_dep"}, {:optional_dep, path: "optional_dep"}]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~
+               "OptionalDep is defined: true"
+
+      Mix.ProjectStack.merge_config(deps: [{:path_dep, path: "path_dep"}])
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([PathDep, PathDep.MixProject, OptionalDep.Response, OptionalDep.MixProject])
+      Application.unload(:path_dep)
+      Application.unload(:optional_dep)
+
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~
+               "OptionalDep is defined: false"
+    end)
   end
 
   test "does not recompile files from path dependencies when non-child dependency change" do
@@ -1865,7 +1957,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "compiles without optional dependencies" do
+  test "compiles with --no-optional-deps" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(GitApp)
       Mix.Tasks.Deps.Get.run([])
@@ -1892,6 +1984,58 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       refute Code.ensure_loaded?(GitRepo)
     end)
+  end
+
+  test "compiles transitive dependencies with --no-optional-deps" do
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("optional_dep/lib")
+      File.mkdir_p!("required_dep/lib")
+
+      File.write!("optional_dep/mix.exs", """
+      defmodule OptionalDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [app: :optional_dep, version: "0.1.0"]
+        end
+      end
+      """)
+
+      File.write!("optional_dep/lib/optional_dep.ex", """
+      defmodule OptionalDep do
+      end
+      """)
+
+      File.write!("required_dep/mix.exs", """
+      defmodule RequiredDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :required_dep,
+            version: "0.1.0",
+            deps: [{:optional_dep, path: "../optional_dep"}]
+          ]
+        end
+      end
+      """)
+
+      Mix.ProjectStack.post_config(
+        deps: [
+          {:optional_dep, path: "optional_dep", optional: true},
+          {:required_dep, path: "required_dep"}
+        ]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert Mix.Tasks.Compile.run(["--no-optional-deps", "--warnings-as-errors"]) ==
+               {:ok, []}
+
+      assert Code.ensure_loaded?(OptionalDep)
+    end)
+  after
+    purge([OptionalDep, OptionalDep.MixProject, RequiredDep.MixProject])
   end
 
   describe "consolidation protocols" do

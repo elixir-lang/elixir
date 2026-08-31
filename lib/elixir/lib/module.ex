@@ -190,7 +190,7 @@ defmodule Module do
 
     * a string (often a heredoc)
     * `false`, which will make the entity invisible to documentation-extraction
-      tools like [`ExDoc`](https://hexdocs.pm/ex_doc/)
+      tools like [`ExDoc`](https://ex-doc.hexdocs.pm/)
     * a keyword list, since Elixir 1.7.0
 
   For example:
@@ -216,7 +216,7 @@ defmodule Module do
 
   As can be seen in the example above, since Elixir 1.7.0 `@doc` and `@typedoc`
   also accept a keyword list that serves as a way to provide arbitrary metadata
-  about the entity. Tools like [`ExDoc`](https://hexdocs.pm/ex_doc/) and
+  about the entity. Tools like [`ExDoc`](https://ex-doc.hexdocs.pm/) and
   `IEx` may use this information to display annotations. A common use
   case is the `:since` key, which may be used to annotate in which version the
   function was introduced.
@@ -263,7 +263,7 @@ defmodule Module do
 
   Tools may use this information to ensure the module is recompiled
   in case any of the external resources change, see for example:
-  [`mix compile.elixir`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html).
+  [`mix compile.elixir`](https://mix.hexdocs.pm/Mix.Tasks.Compile.Elixir.html).
 
   The specified file path provided is interpreted as relative to
   the folder containing the project's `mix.exs`, which is the
@@ -321,7 +321,7 @@ defmodule Module do
 
   Accepts a string (often a heredoc) or `false` where `@moduledoc false`
   will make the module invisible to documentation extraction tools like
-  [`ExDoc`](https://hexdocs.pm/ex_doc/).
+  [`ExDoc`](https://ex-doc.hexdocs.pm/).
 
   Similarly to `@doc` also accepts a keyword list to provide metadata
   about the module. For more details, see the documentation of `@doc`
@@ -366,7 +366,8 @@ defmodule Module do
   Unlike other hooks, `@on_definition` will only invoke functions and
   never macros. This is to avoid `@on_definition` callbacks from
   redefining functions that have just been defined in favor of more
-  explicit approaches.
+  explicit approaches. They are also invoked in the reverse order of
+  registration.
 
   When just a module is provided, the function is assumed to be
   `__on_definition__/6`.
@@ -753,7 +754,7 @@ defmodule Module do
 
   """
   @doc since: "1.12.0"
-  @spec reserved_attributes() :: map
+  @spec reserved_attributes() :: %{optional(atom()) => %{doc: binary()}}
   def reserved_attributes() do
     %{
       after_compile: %{
@@ -1147,7 +1148,7 @@ defmodule Module do
   defp simplify_var(var, guess_priority) do
     case Atom.to_string(var) do
       "_" -> {:_, [], guess_priority}
-      "_" <> rest -> {String.to_atom(rest), [], guess_priority}
+      "_" <> rest -> {String.to_unsafe_atom(rest), [], guess_priority}
       _ -> {var, [], nil}
     end
   end
@@ -1158,7 +1159,7 @@ defmodule Module do
     rescue
       ArgumentError -> module
     else
-      module_name -> String.to_atom(Macro.underscore(List.last(module_name)))
+      module_name -> String.to_unsafe_atom(Macro.underscore(List.last(module_name)))
     end
   end
 
@@ -1191,7 +1192,7 @@ defmodule Module do
   defp expand_key(key, counters) do
     case counters do
       %{^key => count} when is_integer(count) and count >= 1 ->
-        {{:"#{key}#{count}", [], Elixir}, Map.put(counters, key, count - 1)}
+        {{String.to_unsafe_atom("#{key}#{count}"), [], Elixir}, Map.put(counters, key, count - 1)}
 
       _ ->
         {{key, [], Elixir}, counters}
@@ -1224,7 +1225,8 @@ defmodule Module do
   defp merge_signature({var, _, _} = older, {var, _, _}, _), do: older
 
   # Otherwise, returns a generic guess
-  defp merge_signature({_, meta, _}, _newer, i), do: {:"arg#{i}", meta, Elixir}
+  defp merge_signature({_, meta, _}, _newer, i),
+    do: {String.to_unsafe_atom("arg#{i}"), meta, Elixir}
 
   @doc """
   Checks if the module defines the given function or macro.

@@ -618,7 +618,7 @@ defmodule Enum do
           acc,
           (element, acc -> {:cont, chunk, acc} | {:cont, acc} | {:halt, acc}),
           (acc -> {:cont, chunk, acc} | {:cont, acc})
-        ) :: Enumerable.t()
+        ) :: [chunk]
         when chunk: any
   def chunk_while(enumerable, acc, chunk_fun, after_fun) do
     {_, {res, acc}} =
@@ -666,7 +666,7 @@ defmodule Enum do
       [1, [2], 3, 4, 5, 6]
 
   """
-  @spec concat(t) :: t
+  @spec concat(Enumerable.t(Enumerable.t(elem))) :: [elem] when elem: term
   def concat(enumerables)
 
   def concat(list) when is_list(list) do
@@ -681,8 +681,8 @@ defmodule Enum do
   Concatenates the enumerable on the `right` with the enumerable on the
   `left`.
 
-  This function produces the same result as the `++/2` operator
-  for lists.
+  This function behaves similarly to the `++/2` operator with proper
+  lists, but applied to enumerables.
 
   ## Examples
 
@@ -693,7 +693,7 @@ defmodule Enum do
       [1, 2, 3, 4, 5, 6]
 
   """
-  @spec concat(t, t) :: t
+  @spec concat(Enumerable.t(elem), Enumerable.t(elem)) :: [elem] when elem: term
   def concat(left, right) when is_list(left) and is_list(right) do
     left ++ right
   end
@@ -903,7 +903,7 @@ defmodule Enum do
 
   def drop(enumerable, amount) when is_integer(amount) and amount < 0 do
     {count, fun} = slice_count_and_fun(enumerable, 1)
-    amount = Kernel.min(amount + count, count)
+    amount = amount + count
 
     if amount > 0 do
       fun.(0, amount, 1)
@@ -1442,7 +1442,7 @@ defmodule Enum do
     )
 
     # Avoid warnings about Dict
-    dict_module = String.to_atom("Dict")
+    dict_module = String.to_unsafe_atom("Dict")
 
     reduce(reverse(enumerable), dict, fn entry, categories ->
       dict_module.update(categories, fun.(entry), [entry], &[entry | &1])
@@ -2023,11 +2023,16 @@ defmodule Enum do
   operators work by using this function.
   """
   @spec member?(t, element) :: boolean
-  def member?(enumerable, element) when is_list(enumerable) do
+  def member?(enumerable, element) do
+    __in__(element, enumerable)
+  end
+
+  @doc false
+  def __in__(element, enumerable) when is_list(enumerable) do
     :lists.member(element, enumerable)
   end
 
-  def member?(enumerable, element) do
+  def __in__(element, enumerable) do
     case Enumerable.member?(enumerable, element) do
       {:ok, element} when is_boolean(element) ->
         element
@@ -2224,10 +2229,11 @@ defmodule Enum do
       nil
 
   """
-  @spec min_max(t, (element, element -> boolean) | module()) :: {element, element}
-  @spec min_max(t, (-> empty_result)) :: {element, element} | empty_result when empty_result: any
+  @spec min_max(t, (element, element -> boolean) | module()) :: {min :: element, max :: element}
+  @spec min_max(t, (-> empty_result)) :: {min :: element, max :: element} | empty_result
+        when empty_result: any
   @spec min_max(t, (element, element -> boolean) | module(), (-> empty_result)) ::
-          {element, element} | empty_result
+          {min :: element, max :: element} | empty_result
         when empty_result: any
 
   def min_max(enumerable, sorter_or_empty_fallback \\ fn -> raise Enum.EmptyError end)
@@ -2338,14 +2344,14 @@ defmodule Enum do
 
   """
   @spec min_max_by(t, (element -> any), (element, element -> boolean) | module()) ::
-          {element, element} | empty_result
+          {min :: element, max :: element} | empty_result
         when empty_result: any
   @spec min_max_by(
           t,
           (element -> any),
           (element, element -> boolean) | module(),
           (-> empty_result)
-        ) :: {element, element} | empty_result
+        ) :: {min :: element, max :: element} | empty_result
         when empty_result: any
   def min_max_by(
         enumerable,
@@ -2666,7 +2672,7 @@ defmodule Enum do
       5050
 
   """
-  @spec reduce_while(t, any, (element, any -> {:cont, any} | {:halt, any})) :: any
+  @spec reduce_while(t, acc, (element, acc -> {:cont, acc} | {:halt, acc})) :: acc
   def reduce_while(enumerable, acc, fun) do
     Enumerable.reduce(enumerable, {:cont, acc}, fun) |> elem(1)
   end
@@ -2909,8 +2915,7 @@ defmodule Enum do
   end
 
   defp slide_list_middle(list, 0, last, start_to_middle) do
-    {slid_range, tail} = slide_list_last(list, last + 1, [])
-    slid_range ++ :lists.reverse(start_to_middle, tail)
+    slide_list_last(list, last + 1, [], start_to_middle)
   end
 
   # You asked for a middle index off the end of the list... you get what we've got
@@ -2918,16 +2923,16 @@ defmodule Enum do
     :lists.reverse(acc)
   end
 
-  defp slide_list_last([h | t], last, acc) when last > 0 do
-    slide_list_last(t, last - 1, [h | acc])
+  defp slide_list_last([h | t], last, acc, start_to_middle) when last > 0 do
+    slide_list_last(t, last - 1, [h | acc], start_to_middle)
   end
 
-  defp slide_list_last(rest, 0, acc) do
-    {:lists.reverse(acc), rest}
+  defp slide_list_last(rest, 0, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle, rest))
   end
 
-  defp slide_list_last([], _, acc) do
-    {:lists.reverse(acc), []}
+  defp slide_list_last([], _, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle))
   end
 
   @doc """
@@ -4193,7 +4198,7 @@ defmodule Enum do
 
   `zip_with/2` can be used to transpose lists of lists:
 
-      iex> Enum.zip_with([[1, 2,], [3, 4]], & &1)
+      iex> Enum.zip_with([[1, 2], [3, 4]], & &1)
       [[1, 3], [2, 4]]
 
   """
@@ -4304,11 +4309,24 @@ defmodule Enum do
         empty.()
 
       _ ->
-        last = last - rem(last - first, step)
+        # The endpoint shortcut is only valid for sorters consistent with
+        # the natural integer order of the range elements, which is known
+        # to hold for the default sorters; any other sorter traverses the
+        # elements, seeded with the first one since the range is not empty
+        if fun == (&<=/2) or fun == (&>=/2) do
+          last = last - rem(last - first, step)
 
-        case fun.(first, last) do
-          true -> first
-          false -> last
+          case fun.(first, last) do
+            true -> first
+            false -> last
+          end
+        else
+          reduce_range(first + step, last, step, first, fn element, acc ->
+            case fun.(acc, element) do
+              true -> acc
+              false -> element
+            end
+          end)
         end
     end
   end
@@ -4411,10 +4429,9 @@ defmodule Enum do
   ## any?/2 all?/2
 
   defp predicate_list([h | t], initial, fun) do
-    if !!fun.(h) == initial do
-      predicate_list(t, initial, fun)
-    else
-      not initial
+    case !!fun.(h) do
+      ^initial -> predicate_list(t, initial, fun)
+      _ -> not initial
     end
   end
 
@@ -4425,10 +4442,9 @@ defmodule Enum do
   defp predicate_range(first, last, step, initial, fun)
        when step > 0 and first <= last
        when step < 0 and first >= last do
-    if !!fun.(first) == initial do
-      predicate_range(first + step, last, step, initial, fun)
-    else
-      not initial
+    case !!fun.(first) do
+      ^initial -> predicate_range(first + step, last, step, initial, fun)
+      _ -> not initial
     end
   end
 

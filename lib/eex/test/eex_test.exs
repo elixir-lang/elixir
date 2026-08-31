@@ -262,6 +262,37 @@ defmodule EExTest do
       assert_eval("foo 1,2,3", "foo <% require Enum, as: E %><%= E.join [1, 2, 3], \",\" %>")
     end
 
+    test "with expression with else clause split across tags" do
+      template = """
+      <%= with {:ok, x} <- @res do %>
+        <p><%= x %></p>
+      <% else %>
+        <% _ -> %>
+          <p>bad</p>
+      <% end %>
+      """
+
+      assert_eval("\n  <p>ok</p>\n\n", template, [assigns: [res: {:ok, "ok"}]],
+        engine: EEx.SmartEngine
+      )
+
+      assert_eval("\n    <p>bad</p>\n\n", template, [assigns: [res: :error]],
+        engine: EEx.SmartEngine
+      )
+    end
+
+    test "empty clauses separated by whitespace" do
+      template = """
+      <%= case x do %>
+        <% :foo -> %>
+        <% :bar -> %>
+      <% end %>
+      """
+
+      assert_eval("\n  \n", template, x: :foo)
+      assert_eval("\n\n", template, x: :bar)
+    end
+
     test "with end of token" do
       assert_eval("foo bar %>", "foo bar %>")
     end
@@ -522,7 +553,7 @@ defmodule EExTest do
 
       assert message |> Exception.message() |> strip_ansi() =~ """
                   │
-              514 │                   true && @some[\s
+              #{line + 2} │                   true && @some[\s
                   │                                │ └ missing closing delimiter (expected "]")
                   │                                └ unclosed delimiter
              """
@@ -574,6 +605,18 @@ defmodule EExTest do
       assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
+    end
+
+    test "unsupported marker error carries template location metadata" do
+      error =
+        assert_raise EEx.SyntaxError, fn ->
+          EEx.compile_string("<%/ true %>", file: "sample.eex", line: 7)
+        end
+
+      assert error.file == "sample.eex"
+      assert error.line == 7
+      assert error.column == 1
+      assert Exception.message(error) =~ "sample.eex:7:1:"
     end
   end
 

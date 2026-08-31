@@ -37,7 +37,7 @@ defmodule ExUnit.FormatterTest do
     long_name = "test " <> String.duplicate("a", 300)
 
     %ExUnit.Test{
-      name: String.to_atom("truncated"),
+      name: String.to_unsafe_atom("truncated"),
       description: long_name,
       module: Hello,
       tags: %{file: __ENV__.file, line: 1}
@@ -593,13 +593,16 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "inspect failure" do
-    failure = [{:error, catch_assertion(assert :will_fail == struct!(BadInspect)), []}]
+    failure = [
+      {:error, catch_assertion(assert Process.get(:unused, :will_fail) == struct!(BadInspect)),
+       []}
+    ]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ ~s'''
              1) world (Hello)
                 test/ex_unit/formatter_test.exs:1
                 Assertion with == failed
-                code:  assert :will_fail == struct!(BadInspect)
+                code:  assert Process.get(:unused, :will_fail) == struct!(BadInspect)
                 left:  :will_fail
                 right: #Inspect.Error<
              got FunctionClauseError with message:

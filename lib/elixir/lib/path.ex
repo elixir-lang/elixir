@@ -485,7 +485,7 @@ defmodule Path do
   def relative_to_cwd(path, opts \\ []) when is_list(opts) do
     case :file.get_cwd() do
       {:ok, base} -> relative_to(path, IO.chardata_to_string(base), opts)
-      _ -> path
+      _ -> IO.chardata_to_string(path)
     end
   end
 
@@ -696,6 +696,32 @@ defmodule Path do
       binary_part(bin, 0, byte_size(bin) - 1)
     else
       bin
+    end
+  end
+
+  @doc """
+  Safely joins two paths.
+
+  Returns `{:ok, path}` if `right` is safe to append to `left`, or `:error`
+  otherwise. See `safe_relative/2` for the exact safety rules applied to `right`.
+
+  ## Examples
+
+      iex> Path.safe_join("foo", "bar")
+      {:ok, "foo/bar"}
+
+      iex> Path.safe_join("foo", "../bar")
+      :error
+
+      iex> Path.safe_join("foo", "/bar")
+      :error
+
+  """
+  @doc since: "1.21.0"
+  @spec safe_join(t, t) :: {:ok, t} | :error
+  def safe_join(left, right) do
+    with {:ok, right} <- safe_relative(right, left) do
+      {:ok, join(left, right)}
     end
   end
 

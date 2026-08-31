@@ -33,12 +33,20 @@ defmodule Module.Types.Apply do
     |> Enum.map(fn {key, type} when is_atom(key) ->
       tuple([atom([key]), type])
     end)
-    |> Enum.reduce(&union/2)
+    |> Enum.reduce(&opt_union/2)
     |> list()
   end
 
   fas = list(tuple([atom(), integer()]))
-  struct_info = list(closed_map(default: if_set(term()), field: atom()))
+
+  struct_info =
+    list(
+      closed_map(
+        default: {term(), true},
+        field: {atom(), false},
+        required: {boolean(), true}
+      )
+    )
 
   shared_info = [
     attributes: list(tuple([atom(), list(term())])),
@@ -56,7 +64,7 @@ defmodule Module.Types.Apply do
       exports_md5: binary(),
       functions: fas,
       macros: fas,
-      struct: struct_info |> union(atom([nil]))
+      struct: struct_info |> opt_union(atom([nil]))
     ] ++ shared_info
 
   infos =
@@ -72,7 +80,7 @@ defmodule Module.Types.Apply do
        module: atom(),
        functions: fas,
        consolidated?: boolean(),
-       impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))}
+       impls: opt_union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))}
     ]
 
   for {name, clauses} <- infos do
@@ -96,10 +104,10 @@ defmodule Module.Types.Apply do
 
   send_destination =
     pid()
-    |> union(reference())
-    |> union(port())
-    |> union(atom())
-    |> union(tuple([atom(), atom()]))
+    |> opt_union(reference())
+    |> opt_union(port())
+    |> opt_union(atom())
+    |> opt_union(tuple([atom(), atom()]))
 
   basic_arith_2_args_clauses = [
     {[integer(), integer()], integer()},
@@ -108,16 +116,24 @@ defmodule Module.Types.Apply do
     {[float(), float()], float()}
   ]
 
-  args_or_arity = union(list(term()), integer())
-  args_or_none = union(list(term()), atom([:none]))
-  extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
+  args_or_arity = opt_union(list(term()), integer())
+  args_or_none = opt_union(list(term()), atom([:none]))
+  custom_info_key = opt_difference(atom(), atom([:file, :line, :error_info]))
+
+  extra_info =
+    list(
+      tuple([atom([:file]), opt_union(list(integer()), binary())])
+      |> opt_union(tuple([atom([:line]), integer()]))
+      |> opt_union(tuple([atom([:error_info]), open_map()]))
+      |> opt_union(tuple([custom_info_key, term()]))
+    )
 
   raise_stacktrace =
     list(
       tuple([atom(), atom(), args_or_arity, extra_info])
-      |> union(tuple([atom(), atom(), args_or_arity]))
-      |> union(tuple([fun(), args_or_arity, extra_info]))
-      |> union(tuple([fun(), args_or_arity]))
+      |> opt_union(tuple([atom(), atom(), args_or_arity]))
+      |> opt_union(tuple([fun(), args_or_arity, extra_info]))
+      |> opt_union(tuple([fun(), args_or_arity]))
     )
 
   not_signature =
@@ -145,7 +161,8 @@ defmodule Module.Types.Apply do
         {:erlang, :-, [{[integer()], integer()}, {[float()], float()}]},
         {:erlang, :-, basic_arith_2_args_clauses},
         {:erlang, :*, basic_arith_2_args_clauses},
-        {:erlang, :/, [{[union(integer(), float()), union(integer(), float())], float()}]},
+        {:erlang, :/,
+         [{[opt_union(integer(), float()), opt_union(integer(), float())], float()}]},
         {:erlang, :"/=", [{[term(), term()], boolean()}]},
         {:erlang, :"=/=", [{[term(), term()], boolean()}]},
         {:erlang, :<, [{[term(), term()], boolean()}]},
@@ -175,12 +192,12 @@ defmodule Module.Types.Apply do
         {:erlang, :bsr, [{[integer(), integer()], integer()}]},
         {:erlang, :bxor, [{[integer(), integer()], integer()}]},
         {:erlang, :byte_size, [{[bitstring()], integer()}]},
-        {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
+        {:erlang, :ceil, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :div, [{[integer(), integer()], integer()}]},
         {:erlang, :error, [{[term()], none()}]},
         {:erlang, :error, [{[term(), args_or_none], none()}]},
         {:erlang, :error, [{[term(), args_or_none, kw.(error_info: open_map())], none()}]},
-        {:erlang, :floor, [{[union(integer(), float())], integer()}]},
+        {:erlang, :floor, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :function_exported, [{[atom(), atom(), integer()], boolean()}]},
         {:erlang, :integer_to_binary, [{[integer()], binary()}]},
         {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
@@ -198,12 +215,12 @@ defmodule Module.Types.Apply do
         {:erlang, :make_tuple, [{[integer(), term()], tuple()}]},
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
-        {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
+        {:erlang, :node, [{[pid() |> opt_union(reference()) |> opt_union(port())], atom()}]},
         {:erlang, :not, not_signature},
         {:erlang, :or, or_signature},
         {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
-        {:erlang, :round, [{[union(integer(), float())], integer()}]},
+        {:erlang, :round, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},
         {:erlang, :spawn, [{[fun(0)], pid()}]},
         {:erlang, :spawn, [{mfargs, pid()}]},
@@ -211,11 +228,13 @@ defmodule Module.Types.Apply do
         {:erlang, :spawn_link, [{mfargs, pid()}]},
         {:erlang, :spawn_monitor, [{[fun(0)], tuple([pid(), reference()])}]},
         {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
-        {:erlang, :split_binary, [{[binary(), integer()], tuple([binary(), binary()])}]},
+        {:erlang, :split_binary,
+         [
+           {[binary(), integer()], tuple([binary(), binary()])},
+           {[bitstring_no_binary(), integer()], tuple([binary(), bitstring_no_binary()])}
+         ]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
-        {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
-
-        # TODO: Replace term()/dynamic() by parametric types
+        {:erlang, :trunc, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :++,
          [
            {[empty_list(), term()], dynamic(term())},
@@ -236,41 +255,61 @@ defmodule Module.Types.Apply do
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
+        ## Kernel
+        {Kernel, :elem, [{[open_tuple([]), integer()], dynamic()}]},
+        {Kernel, :is_map_key, [{[open_map(), term()], boolean()}]},
+        {Kernel, :put_elem, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
+
         ## Lists
-        {:lists, :member, [{[term(), list(term())], boolean()}]},
+        {:lists, :member,
+         [
+           {[term(), empty_list()], atom([false])},
+           {[term(), non_empty_list(term())], boolean()}
+         ]},
 
         ## Map
-        {Map, :from_struct, [{[open_map()], open_map(__struct__: not_set())}]},
+        {Map, :delete, [{[open_map(), term()], open_map()}]},
+        {Map, :fetch,
+         [{[open_map(), term()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
+        {Map, :fetch!, [{[open_map(), term()], term()}]},
+        {Map, :from_struct,
+         [{[open_map(__struct__: {atom(), false})], open_map(__struct__: {none(), true})}]},
         {Map, :get, [{[open_map(), term()], term()}]},
         {Map, :get, [{[open_map(), term(), term()], term()}]},
         {Map, :get_lazy, [{[open_map(), term(), fun(0)], term()}]},
+        {Map, :has_key?, [{[open_map(), term()], boolean()}]},
         {Map, :pop, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop, [{[open_map(), term(), term()], tuple([term(), open_map()])}]},
         {Map, :pop!, [{[open_map(), term()], tuple([term(), open_map()])}]},
         {Map, :pop_lazy, [{[open_map(), term(), fun(0)], tuple([term(), open_map()])}]},
+        {Map, :put, [{[open_map(), term(), term()], open_map()}]},
         {Map, :put_new, [{[open_map(), term(), term()], open_map()}]},
         {Map, :put_new_lazy, [{[open_map(), term(), fun(0)], open_map()}]},
         {Map, :replace, [{[open_map(), term(), term()], open_map()}]},
+        {Map, :replace!, [{[open_map(), term(), term()], open_map()}]},
         {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
         {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
         {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
+        {Tuple, :delete_at, [{[open_tuple([]), integer()], dynamic(open_tuple([]))}]},
+        {Tuple, :duplicate, [{[term(), integer()], tuple()}]},
+        {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
-         [{[term(), open_map()], tuple([atom([:ok]), term()]) |> union(atom([:error]))}]},
+         [{[term(), open_map()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
         {:maps, :get, [{[term(), open_map()], term()}]},
         {:maps, :is_key, [{[term(), open_map()], boolean()}]},
         {:maps, :keys, [{[open_map()], list(term())}]},
         {:maps, :put, [{[term(), term(), open_map()], open_map()}]},
         {:maps, :remove, [{[term(), open_map()], open_map()}]},
         {:maps, :take,
-         [{[term(), open_map()], tuple([term(), open_map()]) |> union(atom([:error]))}]},
+         [{[term(), open_map()], tuple([term(), open_map()]) |> opt_union(atom([:error]))}]},
         {:maps, :to_list, [{[open_map()], list(tuple([term(), term()]))}]},
         {:maps, :update, [{[term(), term(), open_map()], open_map()}]},
-        {:maps, :values, [{[open_map()], list(term())}]}
+        {:maps, :values, [{[open_map()], list(term())}]},
+        {String, :to_existing_atom, [{[binary(), non_empty_list(atom())], atom()}]},
+        {List, :to_existing_atom, [{[list(integer()), non_empty_list(atom())], atom()}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
-
-    true = Code.ensure_loaded?(mod)
 
     domain_clauses =
       case clauses do
@@ -281,7 +320,7 @@ defmodule Module.Types.Apply do
           domain =
             clauses
             |> Enum.map(fn {args, _} -> args end)
-            |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
+            |> Enum.zip_with(fn types -> Enum.reduce(types, &opt_union/2) end)
 
           {:strong, domain, clauses}
       end
@@ -298,9 +337,9 @@ defmodule Module.Types.Apply do
     is_float: float(),
     is_function: fun(),
     is_integer: integer(),
-    is_list: union(empty_list(), non_empty_list(term(), term())),
+    is_list: opt_union(empty_list(), non_empty_list(term(), term())),
     is_map: open_map(),
-    is_number: union(float(), integer()),
+    is_number: opt_union(float(), integer()),
     is_pid: pid(),
     is_port: port(),
     is_reference: reference(),
@@ -312,7 +351,7 @@ defmodule Module.Types.Apply do
       {:strong, [term()],
        [
          {[type], atom([true])},
-         {[negation(type)], atom([false])}
+         {[Module.Types.Descr.opt_negation(type)], atom([false])}
        ]}
 
     def signature(:erlang, unquote(guard), 1),
@@ -326,7 +365,7 @@ defmodule Module.Types.Apply do
           {:strong, [term(), integer(), integer()],
            [
              {[integer(), integer(), integer()], boolean()},
-             {[negation(integer()), integer(), integer()], atom([false])}
+             {[Module.Types.Descr.opt_negation(integer()), integer(), integer()], atom([false])}
            ]}
         )
       )
@@ -393,6 +432,7 @@ defmodule Module.Types.Apply do
     case sized_order(name, left, right, expected) do
       {arg, expected, precise?, return} ->
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
+        # expected is a static type, so we can use subtype? rather than compatible?
         result = if precise? and subtype?(actual, expected), do: return, else: boolean()
         {result, context}
 
@@ -425,7 +465,7 @@ defmodule Module.Types.Apply do
     # However, during inference, we type it as `a, b -> a and b` only.
     {left_type, context} = of_fun.(left, expected, expr, stack, context)
     {right_type, context} = of_fun.(right, expected, expr, stack, context)
-    result = union(left_type, right_type)
+    result = opt_union(left_type, right_type)
 
     if error = mismatched_ordered_comparison(left_type, right_type, stack) do
       remote_error(error, :erlang, name, 2, expr, stack, context)
@@ -439,15 +479,19 @@ defmodule Module.Types.Apply do
     tuple_type = open_tuple(List.duplicate(term(), max(index - 1, 0)) ++ [expected])
     {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
 
-    case tuple_fetch(tuple_type, index - 1) do
-      {_optional?, value_type} ->
-        {return(value_type, [tuple_type], stack), context}
+    if index < 1 do
+      remote_error({:negindex, index - 1}, :erlang, :element, 2, expr, stack, context)
+    else
+      case tuple_fetch(tuple_type, index - 1) do
+        {_optional?, value_type} ->
+          {return(value_type, [tuple_type], stack), context}
 
-      :badtuple ->
-        remote_error(:erlang, :element, [integer(), tuple_type], expr, stack, context)
+        :badtuple ->
+          remote_error(:erlang, :element, [integer(), tuple_type], expr, stack, context)
 
-      :badindex ->
-        remote_error({:badindex, index, tuple_type}, :erlang, :element, 2, expr, stack, context)
+        :badindex ->
+          remote_error({:badindex, index, tuple_type}, :erlang, :element, 2, expr, stack, context)
+      end
     end
   end
 
@@ -464,17 +508,46 @@ defmodule Module.Types.Apply do
     {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
     {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
 
-    case tuple_insert_at(tuple_type, index - 1, elem_type) do
-      value_type when is_descr(value_type) ->
-        {return(value_type, [tuple_type, elem_type], stack), context}
+    if index < 1 do
+      remote_error({:negindex, index - 1}, :erlang, :insert_element, 3, expr, stack, context)
+    else
+      case tuple_insert_at(tuple_type, index - 1, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
 
-      :badtuple ->
-        args_types = [integer(), tuple_type, elem_type]
-        remote_error(:erlang, :insert_element, args_types, expr, stack, context)
+        :badtuple ->
+          args_types = [integer(), tuple_type, elem_type]
+          remote_error(:erlang, :insert_element, args_types, expr, stack, context)
 
-      :badindex ->
-        error = {:badindex, index - 1, tuple_type}
-        remote_error(error, :erlang, :insert_element, 3, expr, stack, context)
+        :badindex ->
+          error = {:badindex, index - 1, tuple_type}
+          remote_error(error, :erlang, :insert_element, 3, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(:erlang, :setelement, [index, tuple, elem], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index, 1)))
+
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+
+    if index < 1 do
+      remote_error({:negindex, index - 1}, :erlang, :setelement, 3, expr, stack, context)
+    else
+      case tuple_replace_at(tuple_type, index - 1, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
+
+        :badtuple ->
+          args_types = [integer(), tuple_type, elem_type]
+          remote_error(:erlang, :setelement, args_types, expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index, tuple_type}
+          remote_error(error, :erlang, :setelement, 3, expr, stack, context)
+      end
     end
   end
 
@@ -483,16 +556,119 @@ defmodule Module.Types.Apply do
     tuple_type = open_tuple(List.duplicate(term(), max(index, 1)))
     {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
 
-    case tuple_delete_at(tuple_type, index - 1) do
-      value_type when is_descr(value_type) ->
-        {return(value_type, [tuple_type], stack), context}
+    if index < 1 do
+      remote_error({:negindex, index - 1}, :erlang, :delete_element, 2, expr, stack, context)
+    else
+      case tuple_delete_at(tuple_type, index - 1) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type], stack), context}
 
-      :badtuple ->
-        remote_error(:erlang, :delete_element, [integer(), tuple_type], expr, stack, context)
+        :badtuple ->
+          remote_error(:erlang, :delete_element, [integer(), tuple_type], expr, stack, context)
 
-      :badindex ->
-        error = {:badindex, index, tuple_type}
-        remote_error(error, :erlang, :delete_element, 2, expr, stack, context)
+        :badindex ->
+          error = {:badindex, index, tuple_type}
+          remote_error(error, :erlang, :delete_element, 2, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Kernel, :elem, [tuple, index], expected, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index, 0)) ++ [expected])
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Kernel, :elem, 2, expr, stack, context)
+    else
+      case tuple_fetch(tuple_type, index) do
+        {_optional?, value_type} ->
+          {return(value_type, [tuple_type], stack), context}
+
+        :badtuple ->
+          remote_error(Kernel, :elem, [tuple_type, integer()], expr, stack, context)
+
+        :badindex ->
+          remote_error({:badindex, index + 1, tuple_type}, Kernel, :elem, 2, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Kernel, :put_elem, [tuple, index, elem], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index + 1, 1)))
+
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Kernel, :put_elem, 3, expr, stack, context)
+    else
+      case tuple_replace_at(tuple_type, index, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
+
+        :badtuple ->
+          args_types = [tuple_type, integer(), elem_type]
+          remote_error(Kernel, :put_elem, args_types, expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index + 1, tuple_type}
+          remote_error(error, Kernel, :put_elem, 3, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Tuple, :duplicate, [elem, size], _, expr, stack, context, of_fun)
+       when is_integer(size) and size >= 0 do
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+    {return(tuple(List.duplicate(elem_type, size)), [elem_type], stack), context}
+  end
+
+  defp do_remote(Tuple, :insert_at, [tuple, index, elem], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index, 0)))
+
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+    {elem_type, context} = of_fun.(elem, term(), expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Tuple, :insert_at, 3, expr, stack, context)
+    else
+      case tuple_insert_at(tuple_type, index, elem_type) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type, elem_type], stack), context}
+
+        :badtuple ->
+          args_types = [tuple_type, integer(), elem_type]
+          remote_error(Tuple, :insert_at, args_types, expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index, tuple_type}
+          remote_error(error, Tuple, :insert_at, 3, expr, stack, context)
+      end
+    end
+  end
+
+  defp do_remote(Tuple, :delete_at, [tuple, index], _, expr, stack, context, of_fun)
+       when is_integer(index) do
+    tuple_type = open_tuple(List.duplicate(term(), max(index + 1, 1)))
+    {tuple_type, context} = of_fun.(tuple, tuple_type, expr, stack, context)
+
+    if index < 0 do
+      remote_error({:negindex, index}, Tuple, :delete_at, 2, expr, stack, context)
+    else
+      case tuple_delete_at(tuple_type, index) do
+        value_type when is_descr(value_type) ->
+          {return(value_type, [tuple_type], stack), context}
+
+        :badtuple ->
+          remote_error(Tuple, :delete_at, [tuple_type, integer()], expr, stack, context)
+
+        :badindex ->
+          error = {:badindex, index + 1, tuple_type}
+          remote_error(error, Tuple, :delete_at, 2, expr, stack, context)
+      end
     end
   end
 
@@ -514,10 +690,14 @@ defmodule Module.Types.Apply do
               {type, context} = of_fun.(literal, term(), expr, stack, context)
 
               if singleton?(type) do
-                acc = if polarity, do: union(acc, type), else: intersection(acc, negation(type))
+                acc =
+                  if polarity,
+                    do: opt_union(acc, type),
+                    else: opt_intersection(acc, Module.Types.Descr.opt_negation(type))
+
                 {acc, all_singleton?, context}
               else
-                acc = if polarity, do: union(acc, type), else: acc
+                acc = if polarity, do: opt_union(acc, type), else: acc
                 {acc, false, context}
               end
             end)
@@ -525,9 +705,10 @@ defmodule Module.Types.Apply do
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
 
           cond do
-            # Return a precise result
-            singleton? and subtype?(arg_type, expected) ->
-              {return(return, [arg_type, expected], stack), context}
+            # expected can have dynamic terms but, since we have verified
+            # them to be singletons, we can compute the upper bound.
+            singleton? and subtype?(arg_type, upper_bound(expected)) ->
+              {return, context}
 
             # Singleton types with reverse polarity are negated, so we don't check for disjoint
             (singleton? and not polarity) or not is_warning(stack) ->
@@ -554,9 +735,9 @@ defmodule Module.Types.Apply do
 
   @empty_list empty_list()
   @non_empty_list non_empty_list(term())
-  @list union(empty_list(), non_empty_list(term()))
+  @list opt_union(empty_list(), non_empty_list(term()))
   @empty_map empty_map()
-  @non_empty_map difference(open_map(), empty_map())
+  @non_empty_map opt_difference(open_map(), empty_map())
 
   # Limit the size of tuples to 16 entries
   # as otherwise we may create large nodes
@@ -588,26 +769,40 @@ defmodule Module.Types.Apply do
 
         {expected, precise?} =
           case fun do
-            :length when :erlang.xor(polarity, literal > 0) ->
-              {@empty_list, literal == 0}
+            :length when polarity and literal == 0 ->
+              {@empty_list, true}
+
+            :length when not polarity and literal == 0 ->
+              {@non_empty_list, true}
+
+            :length when polarity ->
+              {@non_empty_list, false}
 
             :length ->
-              {@non_empty_list, literal == 0}
+              {@list, false}
 
-            :map_size when :erlang.xor(polarity, literal > 0) ->
-              {@empty_map, literal == 0}
+            :map_size when polarity and literal == 0 ->
+              {@empty_map, true}
+
+            :map_size when not polarity and literal == 0 ->
+              {@non_empty_map, true}
+
+            :map_size when polarity ->
+              {@non_empty_map, false}
 
             :map_size ->
-              {@non_empty_map, literal == 0}
+              {open_map(), false}
 
             :tuple_size when polarity ->
               {tuple(List.duplicate(term(), literal)), true}
 
             :tuple_size ->
-              {difference(open_tuple([]), tuple(List.duplicate(term(), literal))), true}
+              {opt_difference(open_tuple([]), tuple(List.duplicate(term(), literal))), true}
           end
 
         {actual, context} = of_fun.(arg, expected, expr, stack, context)
+
+        # expected here is a static type, so subtyping relation is fine
         result = if precise? and subtype?(actual, expected), do: return, else: boolean()
 
         # We can skip return compare because literal is always an integer,
@@ -633,9 +828,9 @@ defmodule Module.Types.Apply do
         # This logic mirrors the code in `Pattern.of_pattern_tree`
         # If it is a singleton, we can always be precise
         if singleton?(type) do
-          expected = if polarity, do: type, else: negation(type)
+          expected = if polarity, do: type, else: Module.Types.Descr.opt_negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
-          result = if subtype?(arg_type, expected), do: return, else: boolean()
+          result = if subtype?(arg_type, upper_bound(expected)), do: return, else: boolean()
 
           # Because reverse polarity means we will infer negated types
           # (which are naturally disjoint), we skip checks in such cases
@@ -692,17 +887,16 @@ defmodule Module.Types.Apply do
 
   defp mismatched_ordered_comparison(left_type, right_type, stack) do
     if is_warning(stack) do
-      common = intersection(left_type, right_type)
-
       cond do
-        # This check is incomplete. After all, we could have the number type nested
-        # inside a tuple or a list and the comparison would still be valid.
-        # However, nested comparison between distinct numbers is very uncommon,
-        # so we only check the direct value here.
-        empty?(common) and not (number_type?(left_type) and number_type?(right_type)) ->
+        # These checks are incomplete. After all, we could have numbers and
+        # structs nested inside tuples or lists, but we only check the direct
+        # value here.
+        not (number_type?(left_type) and number_type?(right_type)) and
+            disjoint?(left_type, right_type) ->
           {:mismatched_comparison, left_type, right_type}
 
-        match?({false, _}, map_fetch_key(dynamic(common), :__struct__)) ->
+        match?({false, _}, map_fetch_key(dynamic(left_type), :__struct__)) and
+            match?({false, _}, map_fetch_key(dynamic(right_type), :__struct__)) ->
           {:struct_comparison, left_type, right_type}
 
         true ->
@@ -722,8 +916,8 @@ defmodule Module.Types.Apply do
 
       {size, {{:., _, [:erlang, fun]}, _, [arg]}} when is_data_size(fun, size) ->
         case booleaness(expected) do
-          {true, _} -> sized_order(invert_order(name), fun, size, arg, @atom_true)
-          {false, _} -> sized_order(name, fun, size, arg, @atom_false)
+          {true, _} -> sized_order(mirror_order(name), fun, size, arg, @atom_true)
+          {false, _} -> sized_order(invert_order(mirror_order(name)), fun, size, arg, @atom_false)
           _ -> :none
         end
 
@@ -742,13 +936,13 @@ defmodule Module.Types.Apply do
   defp expected_order(_, :<, 0), do: :none
 
   defp expected_order(:tuple_size, :<, size),
-    do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size))), true}
+    do: {opt_difference(open_tuple([]), open_tuple(List.duplicate(term(), size))), true}
 
   defp expected_order(:tuple_size, :"=<", 0),
     do: {tuple([]), true}
 
   defp expected_order(:tuple_size, :"=<", size),
-    do: {difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1))), true}
+    do: {opt_difference(open_tuple([]), open_tuple(List.duplicate(term(), size + 1))), true}
 
   defp expected_order(:tuple_size, :>, size),
     do: {open_tuple(List.duplicate(term(), size + 1)), true}
@@ -775,6 +969,11 @@ defmodule Module.Types.Apply do
   defp invert_order(:>), do: :"=<"
   defp invert_order(:<), do: :>=
 
+  defp mirror_order(:>=), do: :"=<"
+  defp mirror_order(:"=<"), do: :>=
+  defp mirror_order(:>), do: :<
+  defp mirror_order(:<), do: :>
+
   @doc """
   Returns the domain of an unknown module.
 
@@ -799,7 +998,7 @@ defmodule Module.Types.Apply do
       {:strong, [term(), integer()],
        [
          {[type, integer()], atom([true])},
-         {[negation(type), integer()], atom([false])}
+         {[Module.Types.Descr.opt_negation(type), integer()], atom([false])}
        ]}
 
     {info, filter_domain(info, expected, 2), context}
@@ -810,38 +1009,71 @@ defmodule Module.Types.Apply do
     info =
       {:strong, [term(), open_map()],
        [
-         {[term(), open_map([{key, term()}])], atom([true])},
-         {[term(), open_map([{key, not_set()}])], atom([false])}
+         {[term(), open_map([{key, {term(), false}}])], atom([true])},
+         {[term(), open_map([{key, {none(), true}}])], atom([false])}
        ]}
 
     {info, filter_domain(info, expected, 2), context}
   end
 
+  def remote_domain(:maps, :is_key, [key, map], expected, meta, stack, context)
+      when is_atom(key) do
+    remote_domain(:erlang, :is_map_key, [key, map], expected, meta, stack, context)
+  end
+
+  def remote_domain(Kernel, :is_map_key, [_map, key], expected, _meta, _stack, context)
+      when is_atom(key) do
+    info =
+      {:strong, [open_map(), term()],
+       [
+         {[open_map([{key, {term(), false}}]), term()], atom([true])},
+         {[open_map([{key, {none(), true}}]), term()], atom([false])}
+       ]}
+
+    {info, filter_domain(info, expected, 2), context}
+  end
+
+  def remote_domain(Map, :has_key?, [map, key], expected, meta, stack, context)
+      when is_atom(key) do
+    remote_domain(Kernel, :is_map_key, [map, key], expected, meta, stack, context)
+  end
+
   def remote_domain(:erlang, :map_get, [key, _], expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [term(), open_map([{key, expected}])]
+    domain = [term(), open_map([{key, {expected, false}}])]
+    {{:strong, nil, [{domain, term()}]}, domain, context}
+  end
+
+  def remote_domain(Map, :fetch!, [_, key], expected, _meta, _stack, context) when is_atom(key) do
+    domain = [open_map([{key, {expected, false}}]), term()]
     {{:strong, nil, [{domain, term()}]}, domain, context}
   end
 
   def remote_domain(:maps, :get, [key, _], expected, _meta, _stack, context) when is_atom(key) do
-    domain = [term(), open_map([{key, expected}])]
+    domain = [term(), open_map([{key, {expected, false}}])]
     {{:strong, nil, [{domain, term()}]}, domain, context}
+  end
+
+  def remote_domain(Map, :replace!, [_, key, _], _expected, _meta, _stack, context)
+      when is_atom(key) do
+    domain = [open_map([{key, {term(), false}}]), term(), term()]
+    {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
   def remote_domain(:maps, :update, [key, _, _], _expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [term(), term(), open_map([{key, term()}])]
+    domain = [term(), term(), open_map([{key, {term(), false}}])]
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
   def remote_domain(Map, :pop!, [_, key], _expected, _meta, _stack, context) when is_atom(key) do
-    domain = [open_map([{key, term()}]), term()]
+    domain = [open_map([{key, {term(), false}}]), term()]
     {{:strong, nil, [{domain, tuple([term(), open_map()])}]}, domain, context}
   end
 
   def remote_domain(Map, :update!, [_, key, _], _expected, _meta, _stack, context)
       when is_atom(key) do
-    domain = [open_map([{key, term()}]), term(), fun(1)]
+    domain = [open_map([{key, {term(), false}}]), term(), fun(1)]
     {{:strong, nil, [{domain, open_map()}]}, domain, context}
   end
 
@@ -889,6 +1121,13 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :send, info, [_dest, message] = args_types, stack) do
+    case remote_apply(info, args_types, stack) do
+      {:ok, _type} -> {:ok, return(message, args_types, stack)}
+      other -> other
+    end
+  end
+
   defp remote_apply(:erlang, :tl, _info, [list], stack) do
     case list_tl(list) do
       {:ok, value_type} -> {:ok, return(value_type, [list], stack)}
@@ -896,20 +1135,85 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :++, _info, [left, right], stack) do
+    # TODO: remove once we add parametric types, this will just be:
+    # empty_list(), a -> a
+    # non_empty_list(elem), a -> non_empty_list(elem, a)
+    case list_of(left) do
+      {empty_list?, list_of} ->
+        left_result =
+          if empty_list? do
+            right
+          else
+            none()
+          end
+
+        right_result =
+          if list_of do
+            non_empty_list(list_of, right)
+          else
+            none()
+          end
+
+        {:ok, return(opt_union(left_result, right_result), [left, right], stack)}
+
+      :badproperlist ->
+        {:error, badremote(:erlang, :++, [left, right])}
+    end
+  end
+
   @struct_key atom([:__struct__])
   @nil_atom atom([nil])
 
-  defp remote_apply(Map, :from_struct, _info, [map] = args_types, stack) do
-    case map_update(map, @struct_key, not_set(), false, true) do
+  defp remote_apply(Map, :from_struct, info, [map] = args_types, stack) do
+    case remote_apply(info, args_types, stack) do
+      {:ok, _type} ->
+        case map_update(map, @struct_key, none(), true, false, true) do
+          {_value, descr, _errors} ->
+            {:ok, return(descr, args_types, stack)}
+
+          _ ->
+            {:error, badremote(Map, :from_struct, args_types)}
+        end
+
+      other ->
+        other
+    end
+  end
+
+  defp remote_apply(Map, :delete, _info, [map, key] = args_types, stack) do
+    case map_update(map, key, none(), true, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(Map, :from_struct, args_types)}
+      :badmap -> {:error, badremote(Map, :delete, args_types)}
       {:error, _errors} -> {:ok, map}
+    end
+  end
+
+  defp remote_apply(Map, :fetch, _info, [map, key] = args_types, stack) do
+    case map_get(map, key) do
+      {_, value} ->
+        result = tuple([atom([:ok]), value]) |> opt_union(atom([:error]))
+        {:ok, return(result, args_types, stack)}
+
+      :badmap ->
+        {:error, badremote(Map, :fetch, args_types)}
+
+      :error ->
+        {:error, {:badkeydomain, map, key, atom([:error])}}
+    end
+  end
+
+  defp remote_apply(Map, :fetch!, _info, [map, key] = args_types, stack) do
+    case map_get(map, key) do
+      {:ok, value} -> {:ok, return(value, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :fetch!, args_types)}
+      :error -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
   defp remote_apply(Map, :get, _info, [map, key] = args_types, stack) do
     case map_get(map, key) do
-      {:ok, value} -> {:ok, return(union(value, @nil_atom), args_types, stack)}
+      {:ok, value} -> {:ok, return(opt_union(value, @nil_atom), args_types, stack)}
       :badmap -> {:error, badremote(Map, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, @nil_atom}}
     end
@@ -917,7 +1221,7 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(Map, :get, _info, [map, key, default] = args_types, stack) do
     case map_get(map, key) do
-      {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
+      {:ok, value} -> {:ok, return(opt_union(value, default), args_types, stack)}
       :badmap -> {:error, badremote(Map, :get, args_types)}
       :error -> {:error, {:badkeydomain, map, key, default}}
     end
@@ -927,7 +1231,7 @@ defmodule Module.Types.Apply do
     case fun_apply(fun, []) do
       {:ok, default} ->
         case map_get(map, key) do
-          {:ok, value} -> {:ok, return(union(value, default), args_types, stack)}
+          {:ok, value} -> {:ok, return(opt_union(value, default), args_types, stack)}
           :badmap -> {:error, badremote(Map, :get_lazy, args_types)}
           :error -> {:error, {:badkeydomain, map, key, default}}
         end
@@ -955,9 +1259,9 @@ defmodule Module.Types.Apply do
         _ -> args_types
       end
 
-    case map_update(map, key, not_set(), true, false) do
+    case map_update(map, key, none(), true, true, false) do
       {value, descr, _errors} ->
-        value = union(value, default)
+        value = opt_union(value, default)
         {:ok, return(tuple([value, descr]), args_types, stack)}
 
       :badmap ->
@@ -971,9 +1275,9 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :pop_lazy, _info, [map, key, fun] = args_types, stack) do
     case fun_apply(fun, []) do
       {:ok, default} ->
-        case map_update(map, key, not_set(), true, false) do
+        case map_update(map, key, none(), true, true, false) do
           {value, descr, _errors} ->
-            value = union(value, default)
+            value = opt_union(value, default)
             {:ok, return(tuple([value, descr]), args_types, stack)}
 
           :badmap ->
@@ -988,8 +1292,16 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(Map, :put, _info, [map, key, value] = args_types, stack) do
+    case map_update(map, key, value, false, false, true) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :put, args_types)}
+      {:error, _errors} -> {:ok, map}
+    end
+  end
+
   defp remote_apply(Map, :pop!, _info, [map, key] = args_types, stack) do
-    case map_update(map, key, not_set(), true, false) do
+    case map_update(map, key, none(), true, true, false) do
       {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
       :badmap -> {:error, badremote(Map, :pop!, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -997,12 +1309,22 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
-    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+    fun = fn _value, optional? -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "do nothing"}}
+    end
+  end
+
+  defp remote_apply(Map, :replace!, _info, [map, key, value] = args_types, stack) do
+    fun = fn _value, optional? -> {value, optional?} end
+
+    case map_update_fun(map, key, fun, false, false) do
+      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+      :badmap -> {:error, badremote(Map, :replace!, args_types)}
+      {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
     end
   end
 
@@ -1024,12 +1346,12 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
-      fun_apply = fn optional?, arg_type ->
+      fun_apply = fn arg_type, optional? ->
         if empty?(arg_type) do
-          default
+          {default, false}
         else
           case fun_apply(fun, [arg_type]) do
-            {:ok, res} -> if optional?, do: union(res, default), else: res
+            {:ok, res} -> {if(optional?, do: opt_union(res, default), else: res), false}
             reason -> throw({:badapply, reason, [arg_type]})
           end
         end
@@ -1053,7 +1375,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :find, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {_, value} ->
-        result = tuple([atom([:ok]), value]) |> union(atom([:error]))
+        result = tuple([atom([:ok]), value]) |> opt_union(atom([:error]))
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
@@ -1073,7 +1395,6 @@ defmodule Module.Types.Apply do
         if key_type == dynamic() or key_type == term() do
           {:ok, return(open_map(), args_types, stack)}
         else
-          value_type = if_set(value_type)
           domain_keys = to_domain_keys(key_type)
 
           keys =
@@ -1082,12 +1403,18 @@ defmodule Module.Types.Apply do
               _ -> [domain_keys]
             end
 
-          map = closed_map(Enum.map(keys, &{&1, value_type}))
+          map =
+            closed_map(
+              Enum.map(keys, fn
+                key when is_atom(key) -> {key, {value_type, true}}
+                key -> {key, value_type}
+              end)
+            )
 
           map_and_maybe_empty_map =
             case empty_list? do
               true -> map
-              false -> difference(map, empty_map())
+              false -> opt_difference(map, empty_map())
             end
 
           {:ok, return(map_and_maybe_empty_map, args_types, stack)}
@@ -1114,7 +1441,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :put, _info, [key, value, map] = args_types, stack) do
-    case map_update(map, key, value, false, true) do
+    case map_update(map, key, value, false, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :put, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1122,7 +1449,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, not_set(), false, true) do
+    case map_update(map, key, none(), true, false, true) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :remove, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1130,9 +1457,9 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, not_set(), true, false) do
+    case map_update(map, key, none(), true, true, false) do
       {value, descr, _errors} ->
-        result = union(tuple([value, descr]), atom([:error]))
+        result = opt_union(tuple([value, descr]), atom([:error]))
         {:ok, return(result, args_types, stack)}
 
       :badmap ->
@@ -1151,7 +1478,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    fun = fn optional?, _type -> if optional?, do: if_set(value), else: value end
+    fun = fn _value, optional? -> {value, optional?} end
 
     case map_update_fun(map, key, fun, false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
@@ -1163,7 +1490,31 @@ defmodule Module.Types.Apply do
   defp remote_apply(:maps, :values, _info, [map], stack) do
     case map_to_list(map, fn _key, value -> value end) do
       {:ok, list_type} -> {:ok, return(list_type, [map], stack)}
-      :badmap -> {:error, badremote(:maps, :keys, [map])}
+      :badmap -> {:error, badremote(:maps, :values, [map])}
+    end
+  end
+
+  defp remote_apply(mod, :to_existing_atom, info, [_string, list] = args_types, stack)
+       when mod in [String, List] do
+    # TODO: remove once we add parametric types, this will just be:
+    # binary(), non_empty_list(a) -> a when a: atom()
+
+    case remote_apply(info, args_types, stack) do
+      {:ok, _} ->
+        # If list is a dynamic type, remote_apply only guarantees compatibility,
+        # and therefore we may still have improper lists or lists of dynamic().
+        # Note we cannot have static empty lists, as those would fail on remote_apply,
+        # but we can have dynamic empty lists (which we should ignore)
+        case list_of(list) do
+          {_empty_list, refined_atom} when is_descr(refined_atom) ->
+            {:ok, return(opt_intersection(refined_atom, atom()), args_types, stack)}
+
+          :badproperlist ->
+            {:error, badremote(mod, :to_existing_atom, args_types)}
+        end
+
+      other ->
+        other
     end
   end
 
@@ -1206,10 +1557,10 @@ defmodule Module.Types.Apply do
           Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
             case signature(module, fun, arity, meta, stack, context) do
               {{:strong, _, clauses}, context} ->
-                {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+                {opt_union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
 
               {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
-                {union(type, fun_from_inferred_clauses(clauses)), fallback?, context}
+                {opt_union(type, fun_from_inferred_clauses(clauses)), fallback?, context}
 
               {_, context} ->
                 {type, true, context}
@@ -1354,33 +1705,62 @@ defmodule Module.Types.Apply do
   ## Local
 
   def local(fun, args, expected, {_, meta, _} = expr, stack, context, of_fun) do
-    {local_info, domain, context} = local_domain(fun, args, expected, meta, stack, context)
+    {updated_used?, info, domain, context} =
+      local_domain(fun, args, expected, meta, stack, context)
 
     {args_types, context} =
       zip_map_reduce(args, domain, context, &of_fun.(&1, &2, expr, stack, &3))
 
-    local_apply(local_info, fun, args_types, expr, stack, context)
+    case local_apply(updated_used?, info, fun, args_types, expr, stack, context) do
+      {_indexes, type, context} -> {type, context}
+      {type, context} -> {type, context}
+    end
   end
+
+  def local_arrows(fun, args, expected, {_, meta, _} = expr, stack, context, of_fun) do
+    {updated_used?, info, domain, context} =
+      local_domain(fun, args, expected, meta, stack, context)
+
+    {args_types, context} =
+      zip_map_reduce(args, domain, context, &of_fun.(&1, &2, expr, stack, &3))
+
+    case local_apply(updated_used?, info, fun, args_types, expr, stack, context) do
+      {indexes, _type, context} -> {indexes_to_arrows(indexes, info), context}
+      {type, context} -> {[{Enum.map(args, fn _ -> type end), type}], context}
+    end
+  end
+
+  defp indexes_to_arrows(indexes, {_, _domain, clauses}),
+    do: indexes_to_arrows(Enum.reverse(indexes), clauses, 0)
+
+  defp indexes_to_arrows([index | indexes], [clause | clauses], index),
+    do: [clause | indexes_to_arrows(indexes, clauses, index + 1)]
+
+  defp indexes_to_arrows([_ | _] = indexes, [_clause | clauses], index),
+    do: indexes_to_arrows(indexes, clauses, index + 1)
+
+  defp indexes_to_arrows([], _clauses, _index),
+    do: []
 
   defp local_domain(fun, args, expected, meta, stack, context) do
     arity = length(args)
 
     case stack.local_handler.(meta, {fun, arity}, stack, context) do
       false ->
-        {{false, :none}, List.duplicate(term(), arity), context}
+        {false, :none, List.duplicate(term(), arity), context}
 
       {kind, info, context} ->
         update_used? = is_warning(stack) and kind == :defp
 
         if info == :none do
-          {{update_used?, :none}, List.duplicate(term(), arity), context}
+          {update_used?, :none, List.duplicate(term(), arity), context}
         else
-          {{update_used?, info}, filter_domain(info, expected, arity), context}
+          {update_used?, info, filter_domain(info, expected, arity), context}
         end
     end
   end
 
-  defp local_apply({update_used?, :none}, fun, args_types, _expr, _stack, context) do
+  defp local_apply(update_used?, :none, fun, args_types, _expr, _stack, context) do
     if update_used? do
       {dynamic(), put_in(context.local_used[{fun, length(args_types)}], [])}
     else
@@ -1388,7 +1768,7 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp local_apply({update_used?, info}, fun, args_types, expr, stack, context) do
+  defp local_apply(update_used?, info, fun, args_types, expr, stack, context) do
     case local_apply(info, args_types, stack) do
       {indexes, type} ->
         context =
@@ -1400,7 +1780,7 @@ defmodule Module.Types.Apply do
             context
           end
 
-        {type, context}
+        {indexes, type, context}
 
       :error ->
         error = {:badlocal, info, args_types, expr, context}
@@ -1469,8 +1849,8 @@ defmodule Module.Types.Apply do
 
   defp map_put_new(map, key, value, name, args_types, stack) do
     fun = fn
-      true, type -> union(type, value)
-      false, type -> if empty?(type), do: value, else: type
+      type, true -> {opt_union(type, value), false}
+      type, false -> {if(empty?(type), do: value, else: type), false}
     end
 
     case map_update_fun(map, key, fun, false, true) do
@@ -1488,9 +1868,9 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
-      fun_apply = fn optional?, arg_type ->
+      fun_apply = fn arg_type, optional? ->
         case fun_apply(fun, [arg_type]) do
-          {:ok, res} -> if optional?, do: if_set(res), else: res
+          {:ok, res} -> {res, optional?}
           reason -> throw({:badapply, reason, [arg_type]})
         end
       end
@@ -1525,7 +1905,7 @@ defmodule Module.Types.Apply do
     case filter_domain(clauses, expected, [], true) do
       :none -> domain(domain, clauses)
       :all -> domain(domain, clauses)
-      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
+      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &opt_union/2) end)
     end
   end
 
@@ -1549,7 +1929,7 @@ defmodule Module.Types.Apply do
         {used, dynamic()}
 
       {_count, used, returns} ->
-        {used, returns |> Enum.reduce(&union/2) |> dynamic()}
+        {used, returns |> Enum.reduce(&opt_union/2) |> dynamic()}
     end
   end
 
@@ -1566,7 +1946,7 @@ defmodule Module.Types.Apply do
     # as a non disjoint check. So we skip checking compatibility twice.
     with true <- zip_compatible_or_only_gradual?(args_types, domain),
          {count, used, returns} when count > 0 <- apply_clauses(clauses, args_types, 0, 0, [], []) do
-      {used, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
+      {used, returns |> Enum.reduce(&opt_union/2) |> return(args_types, stack)}
     else
       _ -> :error
     end
@@ -1758,6 +2138,29 @@ defmodule Module.Types.Apply do
     }
   end
 
+  def format_diagnostic({{:negindex, index}, mfac, expr, context}) do
+    traces = collect_traces(expr, context)
+    {mod, fun, arity, _converter} = mfac
+    mfa = Exception.format_mfa(mod, fun, arity)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a non-negative integer as index in #{mfa}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got the index:
+
+              #{index}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
   def format_diagnostic({{:badkeydomain, map, key, error}, mfac, expr, context}) do
     {mod, fun, arity, _converter} = mfac
     mfa = Exception.format_mfa(mod, fun, arity)
@@ -1888,7 +2291,7 @@ defmodule Module.Types.Apply do
             clauses =
               case mod.__protocol__(:impls) do
                 {:consolidated, mods} ->
-                  domain = mods |> Enum.map(&Module.Types.Of.impl/1) |> Enum.reduce(&union/2)
+                  domain = mods |> Enum.map(&Module.Types.Of.impl/1) |> Enum.reduce(&opt_union/2)
                   [{[domain], dynamic()}]
 
                 _ ->
@@ -2098,10 +2501,10 @@ defmodule Module.Types.Apply do
              term_type?(actual) do
           actual |> to_quoted() |> Code.Formatter.to_algebra()
         else
-          common = intersection(actual, expected)
+          common = opt_intersection(actual, expected)
 
           uncommon_doc =
-            difference(actual, expected)
+            opt_difference(actual, expected)
             |> to_quoted()
             |> Code.Formatter.to_algebra()
             |> ansi_red()
@@ -2119,17 +2522,17 @@ defmodule Module.Types.Apply do
   end
 
   @composite_types non_empty_list(term(), term())
-                   |> union(tuple())
-                   |> union(open_map())
-                   |> union(fun())
+                   |> opt_union(tuple())
+                   |> opt_union(open_map())
+                   |> opt_union(fun())
 
   # If actual/expected have a composite type, computing the
-  # `intersection(actual, expected) or difference(actual, expected)`
+  # `opt_intersection(actual, expected) or opt_difference(actual, expected)`
   # can lead to an explosion of terms that actually make debugging
   # harder. So we check that at least one of the two operations
   # return none() (i.e. actual is a subtype or they are disjoint).
   defp has_simple_difference?(actual, expected) do
-    composite_types = intersection(actual, @composite_types)
+    composite_types = opt_intersection(actual, @composite_types)
     subtype?(composite_types, expected) or disjoint?(composite_types, expected)
   end
 

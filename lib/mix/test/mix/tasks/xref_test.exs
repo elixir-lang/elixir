@@ -67,12 +67,13 @@ defmodule Mix.Tasks.XrefTest do
       }
 
       output = [
-        %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+        %{line: 3, file: "lib/b.ex", callee: {A, :b, 1}, caller_module: B},
+        %{callee: {:elixir_quote, :unquote, 1}, caller_module: A, file: "lib/a.ex", line: 4},
         %{
-          callee: {:elixir_quote, :shallow_validate_ast, 1},
+          callee: {:elixir_quote, :validate_quote, 1},
           caller_module: A,
           file: "lib/a.ex",
-          line: 4
+          line: 3
         }
       ]
 
@@ -85,7 +86,7 @@ defmodule Mix.Tasks.XrefTest do
 
         Mix.Task.run("compile")
         after_compile.()
-        xref = String.to_atom("Elixir.Mix.Tasks.Xref")
+        xref = String.to_unsafe_atom("Elixir.Mix.Tasks.Xref")
         assert Enum.sort(xref.calls()) == Enum.sort(expected)
       end)
     end

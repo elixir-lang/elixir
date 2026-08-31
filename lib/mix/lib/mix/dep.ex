@@ -72,6 +72,7 @@ defmodule Mix.Dep do
           requirement: String.t() | Regex.t() | nil,
           status: {:ok, String.t() | nil} | atom | tuple,
           opts: keyword,
+          deps: [t],
           top_level: boolean,
           manager: :rebar3 | :mix | :make | :gleam | nil,
           from: String.t(),
@@ -98,6 +99,34 @@ defmodule Mix.Dep do
       load_and_cache()
     end
   end
+
+  @doc """
+  Returns the apps required by non-optional top-level dependencies.
+  """
+  def required_apps(deps) do
+    deps_by_app = Map.new(deps, &{&1.app, &1})
+
+    deps
+    |> Enum.filter(&(&1.top_level and &1.opts[:optional] != true))
+    |> Enum.map(& &1.app)
+    |> required_apps(deps_by_app, MapSet.new())
+  end
+
+  defp required_apps([app | apps], deps, seen) do
+    if app in seen do
+      required_apps(apps, deps, seen)
+    else
+      children =
+        for %{app: child, opts: opts} <- Map.fetch!(deps, app).deps,
+            opts[:optional] != true,
+            Map.has_key?(deps, child),
+            do: child
+
+      required_apps(children ++ apps, deps, MapSet.put(seen, app))
+    end
+  end
+
+  defp required_apps([], _deps, seen), do: seen
 
   @doc """
   Returns loaded dependencies recursively and caches it.
@@ -338,18 +367,21 @@ defmodule Mix.Dep do
     "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
   end
 
+  def format_status(%Mix.Dep{status: {:depschanged, deps}}) do
+    "the dependency build is outdated because its dependencies changed " <>
+      "(#{Enum.map_join(deps, ", ", &inspect/1)}), please run \"#{mix_env_var()}mix deps.compile\""
+  end
+
   def format_status(%Mix.Dep{status: :envoutdated}) do
     "the dependency compile environment is outdated, please run \"#{mix_env_var()}mix deps.compile\""
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, parent, other}} = dep) do
-    override = if parent, do: [parent], else: true
-
+  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
     "the dependency #{app} #{vsn}\n" <>
       dep_status(dep) <>
       "\n  does not match the requirement specified\n" <>
       dep_status(other) <>
-      "\n  Ensure they match or specify one of the above in your deps and set \"override: #{inspect(override)}\""
+      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
@@ -380,16 +412,14 @@ defmodule Mix.Dep do
       dep_status(other) <> "\n  #{recommendation}"
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:diverged, parent, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}\n  " <>
-      override_diverge_recommendation(dep, parent, other)
+      "#{dep_status(dep)}#{dep_status(other)}\n  " <> override_diverge_recommendation(dep, other)
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:overridden, parent, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}\n  " <>
-      override_diverge_recommendation(dep, parent, other)
+      "#{dep_status(dep)}#{dep_status(other)}\n  " <> override_diverge_recommendation(dep, other)
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
@@ -408,14 +438,11 @@ defmodule Mix.Dep do
     "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
   end
 
-  defp override_diverge_recommendation(dep, parent, other) do
+  defp override_diverge_recommendation(dep, other) do
     if dep.opts[:from_umbrella] || other.opts[:from_umbrella] do
       "Please remove the conflicting options from your definition"
     else
-      override = if parent, do: [parent], else: true
-
-      "Ensure they match or specify one of the above in your deps " <>
-        "and set \"override: #{inspect(override)}\""
+      "Ensure they match or specify one of the above in your deps and set \"override: true\""
     end
   end
 
@@ -444,7 +471,10 @@ defmodule Mix.Dep do
   Checks the lock for the given dependency and update its status accordingly.
   """
   def check_lock(%Mix.Dep{scm: scm, opts: opts} = dep) do
-    if available?(dep) do
+    # We only update the lock if the dependency is compilable or available.
+    # That's because a dependency may need compilation but if it has the wrong version,
+    # then the version reporting gets higher priority.
+    if available?(dep) or compilable?(dep) do
       case scm.lock_status(opts) do
         :mismatch ->
           status = if rev = opts[:lock], do: {:lockmismatch, rev}, else: :nolock
@@ -455,41 +485,10 @@ defmodule Mix.Dep do
           %{dep | status: :lockoutdated}
 
         :ok ->
-          check_manifest(dep)
+          dep
       end
     else
       dep
-    end
-  end
-
-  defp check_manifest(%{scm: scm, opts: opts} = dep) do
-    vsn = {System.version(), :erlang.system_info(:otp_release)}
-    lock = opts[:lock]
-
-    case Mix.Dep.ElixirSCM.read(Path.join(opts[:build], ".mix")) do
-      {:ok, old_vsn, _, _} when old_vsn != vsn ->
-        %{dep | status: {:vsnlock, old_vsn}}
-
-      {:ok, _, old_scm, _} when old_scm != scm ->
-        %{dep | status: {:scmlock, old_scm}}
-
-      {:ok, _, _, old_lock} when old_lock != lock ->
-        if scm.fetchable?() do
-          %{dep | status: :compile}
-        else
-          dep
-        end
-
-      :error ->
-        if scm.fetchable?() do
-          %{dep | status: :compile}
-        else
-          dep
-        end
-
-      # If the file is missing, it is handled in the loader
-      _ ->
-        dep
     end
   end
 
@@ -510,9 +509,9 @@ defmodule Mix.Dep do
   @doc """
   Checks if a dependency has diverged.
   """
-  def diverged?(%Mix.Dep{status: {:overridden, _, _}}), do: true
-  def diverged?(%Mix.Dep{status: {:diverged, _, _}}), do: true
-  def diverged?(%Mix.Dep{status: {:divergedreq, _, _, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:overridden, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:diverged, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:divergedreq, _, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedtargets, _}}), do: true
   def diverged?(%Mix.Dep{}), do: false
@@ -520,20 +519,13 @@ defmodule Mix.Dep do
   @doc """
   Returns `true` if the dependency is compilable.
   """
+  def compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
+  def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:depschanged, _}}), do: true
+  def compilable?(%Mix.Dep{status: :compile}), do: true
   def compilable?(%Mix.Dep{status: :envoutdated}), do: true
-  def compilable?(dep), do: force_compilable?(dep)
-
-  @doc """
-  Returns `true` if the dependency is force compilable.
-
-  This is a subset of compilable. This is used in `deps.compile` to
-  clean the build path before compiling.
-  """
-  def force_compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
-  def force_compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
-  def force_compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
-  def force_compilable?(%Mix.Dep{status: :compile}), do: true
-  def force_compilable?(_), do: false
+  def compilable?(_), do: false
 
   @doc """
   Formats a dependency for printing.
@@ -598,7 +590,7 @@ defmodule Mix.Dep do
 
   defp to_app_names(given) do
     Enum.map(given, fn app ->
-      if is_binary(app), do: String.to_atom(app), else: app
+      if is_binary(app), do: String.to_unsafe_atom(app), else: app
     end)
   end
 end

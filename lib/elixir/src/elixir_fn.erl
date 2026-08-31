@@ -155,7 +155,7 @@ escape({'&', Meta, [Pos]}, E, Dict) when is_integer(Pos), Pos > 0 ->
       {Var, Dict};
     error ->
       Next = elixir_module:next_counter(?key(E, module)),
-      Var = {capture, [{counter, Next}, {capture, Pos} | Meta], nil},
+      Var = {'_&', [{counter, Next}, {capture, Pos} | Meta], ?MODULE},
       {Var, orddict:store(Pos, Var, Dict)}
   end;
 escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->

@@ -210,7 +210,7 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(Foo, :こんにちは世界, [1, 2]) == "Foo.こんにちは世界(1, 2)"
 
     nfd = :unicode.characters_to_nfd_binary("olá")
-    assert Exception.format_mfa(Foo, String.to_atom(nfd), [1, 2]) == "Foo.\"#{nfd}\"(1, 2)"
+    assert Exception.format_mfa(Foo, String.to_unsafe_atom(nfd), [1, 2]) == "Foo.\"#{nfd}\"(1, 2)"
   end
 
   test "format_fa/2" do

@@ -67,7 +67,7 @@ defmodule Kernel.GuardTest do
     defmodule UnquotedInGuardCall do
       @value :foo
 
-      defguard unquote(String.to_atom("is_#{@value}"))(x) when x == unquote(@value)
+      defguard unquote(String.to_unsafe_atom("is_#{@value}"))(x) when x == unquote(@value)
     end
 
     test "guards names can be defined dynamically using unquote" do
@@ -449,6 +449,12 @@ defmodule Kernel.GuardTest do
           def map_dot(map) when Module.fun(), do: true
         end
       end)
+
+      assert_compile_error("misplaced operator |/2", fn ->
+        defmodule ConsOperator do
+          def cons_operator(value) when value == :a | value == :b, do: true
+        end
+      end)
     end
   end
 
@@ -480,6 +486,44 @@ defmodule Kernel.GuardTest do
       assert expand_defguard_to_string(:with_reused_vars, args, nil) == """
              {arg1, arg2, arg3} = {1 + 1, 2 + 2, 3 + 3}
              :erlang.+(:erlang.+(:erlang.+(arg1, arg1), arg2), arg3)
+             """
+    end
+
+    defguard with_or_and_or(foo, bar, baz) when foo or (bar and (baz or foo))
+
+    test "expands conditionals" do
+      args = quote(do: [1 + 1, 2 + 2, 3 + 3])
+
+      assert expand_defguard_to_string(:with_or_and_or, args, :guard) == """
+             :erlang.orelse(1 + 1, :erlang.andalso(2 + 2, :erlang.orelse(3 + 3, 1 + 1)))
+             """
+
+      assert expand_defguard_to_string(:with_or_and_or, args, nil) == """
+             {arg1, arg2, arg3} = {1 + 1, 2 + 2, 3 + 3}
+
+             case arg1 do
+               false ->
+                 case arg2 do
+                   false ->
+                     false
+
+                   true ->
+                     case arg3 do
+                       false -> arg1
+                       true -> true
+                       other -> :erlang.error({:badbool, :or, other})
+                     end
+
+                   other ->
+                     :erlang.error({:badbool, :and, other})
+                 end
+
+               true ->
+                 true
+
+               other ->
+                 :erlang.error({:badbool, :or, other})
+             end
              """
     end
 

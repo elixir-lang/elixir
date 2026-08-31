@@ -85,114 +85,6 @@ defmodule Module.Types.IntegrationTest do
              ]
     end
 
-    test "writes exports with inferred map types" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          defstruct [:x, :y, :z]
-
-          def struct_create_with_atom_keys(x) do
-            infer(y = %A{x: x})
-            {x, y}
-          end
-
-          def map_create_with_atom_keys(x) do
-            infer(%{__struct__: A, x: x, y: nil, z: nil})
-            x
-          end
-
-          def map_update_with_atom_keys(x) do
-            infer(%{x | y: nil})
-            x
-          end
-
-          def map_update_with_unknown_keys(x, key) do
-            infer(%{x | key => 123})
-            x
-          end
-
-          defp infer(%A{x: <<_::binary>>, y: nil}) do
-            :ok
-          end
-        end
-        """
-      }
-
-      modules = compile_modules(files)
-      exports = read_chunk(modules[A]).exports |> Map.new()
-
-      return = fn name, arity ->
-        pair = {name, arity}
-        %{^pair => %{sig: {:infer, nil, [{_, return}]}}} = exports
-        return
-      end
-
-      assert return.(:struct_create_with_atom_keys, 1) ==
-               dynamic(
-                 tuple([
-                   binary(),
-                   closed_map(
-                     __struct__: atom([A]),
-                     x: binary(),
-                     y: atom([nil]),
-                     z: atom([nil])
-                   )
-                 ])
-               )
-
-      assert return.(:map_create_with_atom_keys, 1) == dynamic(binary())
-
-      assert return.(:map_update_with_atom_keys, 1) ==
-               dynamic(
-                 closed_map(
-                   __struct__: atom([A]),
-                   x: binary(),
-                   y: atom([nil]),
-                   z: term()
-                 )
-               )
-
-      assert return.(:map_update_with_unknown_keys, 2) ==
-               dynamic(
-                 closed_map(
-                   __struct__: atom([A]),
-                   x: binary(),
-                   y: atom([nil]),
-                   z: term()
-                 )
-               )
-    end
-
-    test "writes exports with inferred function types" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          def captured, do: &to_capture/1
-          defp to_capture(<<"ok">>), do: :ok
-          defp to_capture(<<"error">>), do: :error
-          defp to_capture([_ | _]), do: :list
-        end
-        """
-      }
-
-      modules = compile_modules(files)
-      exports = read_chunk(modules[A]).exports |> Map.new()
-
-      return = fn name, arity ->
-        pair = {name, arity}
-        %{^pair => %{sig: {:infer, nil, [{_, return}]}}} = exports
-        return
-      end
-
-      assert return.(:captured, 0)
-             |> equal?(
-               fun_from_non_overlapping_clauses([
-                 {[binary()], dynamic(atom([:ok, :error]))},
-                 {[non_empty_list(term(), term())], dynamic(atom([:list]))}
-               ])
-             )
-    end
-
     test "writes exports for implementations" do
       files = %{
         "pi.ex" => """
@@ -246,9 +138,11 @@ defmodule Module.Types.IntegrationTest do
       assert itself_arg.(Itself.Integer) == dynamic(integer())
 
       assert itself_arg.(Itself.List) ==
-               dynamic(union(empty_list(), non_empty_list(term(), term())))
+               dynamic(opt_union(empty_list(), non_empty_list(term(), term())))
 
-      assert itself_arg.(Itself.Map) == dynamic(open_map(__struct__: if_set(negation(atom()))))
+      assert itself_arg.(Itself.Map) ==
+               dynamic(open_map(__struct__: {opt_negation(atom()), true}))
+
       assert itself_arg.(Itself.Port) == dynamic(port())
       assert itself_arg.(Itself.PID) == dynamic(pid())
       assert itself_arg.(Itself.Reference) == dynamic(reference())
@@ -257,10 +151,60 @@ defmodule Module.Types.IntegrationTest do
 
       assert itself_arg.(Itself.Range) ==
                dynamic(
-                 closed_map(__struct__: atom([Range]), first: term(), last: term(), step: term())
+                 closed_map(
+                   __struct__: {atom([Range]), false},
+                   first: {term(), false},
+                   last: {term(), false},
+                   step: {term(), false}
+                 )
                )
 
-      assert itself_arg.(Itself.Unknown) == dynamic(open_map(__struct__: atom([Unknown])))
+      assert itself_arg.(Itself.Unknown) ==
+               dynamic(open_map(__struct__: {atom([Unknown]), false}))
+    end
+
+    test "ignores additional callbacks on implementations" do
+      files = %{
+        "p.ex" => """
+        defmodule InjectCallback do
+          defmacro __before_compile__(_env) do
+            quote do
+              @callback extra() :: term()
+            end
+          end
+        end
+
+        defprotocol Injected do
+          @before_compile InjectCallback
+          def f(x)
+        end
+
+        defimpl Injected, for: Atom do
+          def f(_), do: :ok
+          def extra(), do: :extra
+        end
+
+        defprotocol Explicit do
+          @callback extra() :: term()
+          def f(x)
+        end
+
+        defimpl Explicit, for: Atom do
+          def f(_), do: :ok
+          def extra(), do: :extra
+        end
+        """
+      }
+
+      assert capture_compile_warnings(files, []) == """
+                 warning: cannot define @callback extra/0 inside protocol, use def/1 to outline your protocol definition
+                 │
+              20 │   @callback extra() :: term()
+                 │   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                 │
+                 └─ p.ex:20: Explicit (module)
+
+             """
     end
   end
 
@@ -338,8 +282,8 @@ defmodule Module.Types.IntegrationTest do
 
             previous clauses have already matched on the following types:
 
-                not integer(), integer()
                 integer(), term()
+                term(), integer()
 
             │
           4 │   def foo(x, y) when is_integer(x) and is_integer(y), do: :three
@@ -392,6 +336,39 @@ defmodule Module.Types.IntegrationTest do
             │
             └─ a.ex:3:22: A.public/1
         """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "warning location respects file metadata in clauses" do
+      files = %{
+        "bug.ex" => """
+        defmodule Bug do
+          def render(x)
+
+          @file "template.heex"
+          def render(x) do
+            label = describe(x)
+            _ = label == :only
+            x
+          end
+
+          defp describe(_), do: "page"
+        end
+        """
+      }
+
+      warnings = [
+        """
+        warning: comparison between distinct types found:
+
+            label == :only
+        """,
+        "binary() == :only",
+        "# type: binary()",
+        "# from: template.heex:6:11",
+        "└─ template.heex:7:15: Bug.render/1"
       ]
 
       assert_warnings(files, warnings)
@@ -813,6 +790,44 @@ defmodule Module.Types.IntegrationTest do
       purge(A)
     end
 
+    test "does not crash on redefined module with newly added struct" do
+      Code.compile_string("""
+      defmodule RedefinedNestedStruct.Inner do
+        def foo(), do: :nothing
+      end
+      """)
+
+      files = %{
+        "redefined.ex" => """
+        defmodule RedefinedNestedStruct.Inner do
+          defstruct [:value]
+
+          def foo(), do: %__MODULE__{value: 1}
+        end
+        """
+      }
+
+      in_tmp(fn ->
+        paths = generate_files(files)
+
+        {result, _stderr} =
+          with_io(:stderr, fn ->
+            Kernel.ParallelCompiler.compile_to_path(paths, ".", return_diagnostics: true)
+          end)
+
+        assert {:error, errors, %{compile_warnings: warnings, runtime_warnings: []}} = result
+
+        assert [%{message: "struct RedefinedNestedStruct.Inner is undefined " <> _}] = errors
+
+        assert Enum.any?(
+                 warnings,
+                 &(&1.message =~ "redefining module RedefinedNestedStruct.Inner")
+               )
+      end)
+    after
+      purge(RedefinedNestedStruct.Inner)
+    end
+
     @tag :require_ast
     test "regressions" do
       files = %{
@@ -928,7 +943,7 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
-    test "redundant clause checking of mixed open and closed maps" do
+    test "redundant clause checking of mixed open and closed maps (1)" do
       files = %{
         "mixed_open_closed_maps.ex" => """
         defmodule MixedOpenClosedMaps do
@@ -983,31 +998,111 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
+    test "redundant clause checking of mixed open and closed maps (2)" do
+      files = %{
+        "mixed_open_closed_maps.ex" => """
+        defmodule MixedOpenClose.Roles do
+          defstruct engineering_admin: false,
+                    admin: false,
+                    support: false,
+                    service_desk: false,
+                    sales: false
+        end
+
+        defmodule MixedOpenClose.User do
+          defstruct roles: %MixedOpenClose.Roles{}
+        end
+
+        defmodule MixedOpenClose.Policy do
+          alias MixedOpenClose.{User, Roles}
+
+          @admin_actions [
+            :access,
+            :edit,
+            :manage_roles,
+            :global_search,
+            :get_users_with_roles,
+            :deactivate,
+            :reactivate,
+            :confirm_email,
+            :soft_delete
+          ]
+
+          def can?(%User{roles: %Roles{support: true}}, _a, action)
+              when action in [:global_search, :confirm_email, :get_users_with_roles], do: true
+
+          def can?(%User{roles: %Roles{service_desk: true}}, _a, action)
+              when action in [:global_search, :confirm_email], do: true
+
+          def can?(%User{roles: %Roles{sales: true}}, _a, action)
+              when action in [:edit, :confirm_email], do: true
+
+          def can?(%User{roles: roles}, _a, action)
+              when action in @admin_actions and (roles.admin == true or roles.engineering_admin == true),
+              do: true
+
+          def can?(user, %URI{} = uri, action), do: can?(user, uri, action)
+
+          def can?(_a, _b, _c), do: false
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "redundant clause checking of open maps with distinct keys" do
       files = %{
         "large_head.ex" => """
-        defmodule LargeHead do
-          def id(%{node_id: id}) when is_binary(id), do: id
-          def id(%{node: %{id: id}}) when is_binary(id), do: id
-          def id(%{cluster: %{node_id: id}}) when is_binary(id), do: id
-          def id(%{graph: %{node_id: id}}) when is_binary(id), do: id
-          def id(%{vertex: %{node_id: id}}) when is_binary(id), do: id
-          def id(%{collection: %{graph_id: id} = collection}) when is_binary(id), do: id(collection)
-          def id(%{element: %{} = element}), do: id(element)
-          def id(%{cluster_id: id}) when is_binary(id), do: id
-          def id(%{region_id: id}) when is_binary(id), do: id
-          def id(%{graph_id: id}) when is_binary(id), do: id
-          def id(%{vertex_id: id}) when is_binary(id), do: id
-          def id(%{path_id: id}) when is_binary(id), do: id
-          def id(%{tree_id: id}) when is_binary(id), do: id
-          def id(%{collection_id: id}) when is_binary(id), do: id
-          def id(%{segment_id: id}) when is_binary(id), do: id
-          def id(%{edge_id: id}) when is_binary(id), do: id
-          def nested_access(%{graph: graph} = collection) do
-            <<_::binary>> = id(graph)
-            if collection.graph.cluster_id do
-              {graph.id, graph.node_id, collection.graph.cluster_id}
+        defmodule GraphResolver do
+          def resolve(%{resource: node, member: vertex} = edge) do
+            graph_id = fetch_id(edge.resource)
+
+            with %{id: id} <- vertex do
+              {node.project_id, node.id, node.parent_id, [id], graph_id}
             end
+          end
+
+          def fetch_id(%{id: id}) when is_binary(id), do: id
+          def fetch_id(%{account_id: id}) when is_binary(id), do: id
+          def fetch_id(%{account: %{id: id}}) when is_binary(id), do: id
+          def fetch_id(%{team: %{account_id: id}}) when is_binary(id), do: id
+          def fetch_id(%{project: %{account_id: id}}) when is_binary(id), do: id
+          def fetch_id(%{asset: %{account_id: id}}) when is_binary(id), do: id
+
+          def fetch_id(%{collection: %{project_id: id} = collection}) when is_binary(id),
+            do: fetch_id(collection)
+
+          def fetch_id(%{item: %{} = item}), do: fetch_id(item)
+          def fetch_id(%{team_id: id}) when is_binary(id), do: local_id(:team, id)
+          def fetch_id(%{workspace_id: id}) when is_binary(id), do: local_id(:team, id)
+          def fetch_id(%{project_id: id}) when is_binary(id), do: local_id(:project, id)
+          def fetch_id(%{asset_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{portal_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{codex_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{vertex_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{edge_id: id}) when is_binary(id), do: remote_id(id)
+          def fetch_id(%{comment_id: id}) when is_binary(id), do: remote_id(id)
+
+          def fetch_id(%struct{id: id}) do
+            case struct do
+              Team -> local_id(:team, id)
+              Project -> local_id(:project, id)
+              Asset -> remote_id(id)
+              Portal -> remote_id(id)
+              Codex -> remote_id(id)
+              CommentAttachment -> remote_id(id)
+              Vertex -> remote_id(id)
+              Edge -> remote_id(id)
+            end
+          end
+
+          defp local_id(type, id) when type in ~w(project team)a do
+            {:local, type, id}
+          end
+
+          defp remote_id(id) do
+            {:remote, id}
           end
         end
         """
@@ -1874,7 +1969,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v7, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v10, map} = :erlang.binary_to_term(chunk)
     map
   end
 

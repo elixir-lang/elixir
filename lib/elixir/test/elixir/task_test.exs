@@ -630,6 +630,21 @@ defmodule TaskTest do
                [{task2, nil}, {task3, {:exit, :normal}}]
     end
 
+    test "returns once all tasks have replied below limit" do
+      parent = self()
+
+      pid =
+        spawn(fn ->
+          task = Task.async(fn -> :done end)
+          result = Task.yield_many([task], limit: 2, timeout: :infinity)
+          send(parent, {self(), result})
+        end)
+
+      on_exit(fn -> Process.exit(pid, :kill) end)
+
+      assert_receive {^pid, [{%Task{}, {:ok, :done}}]}, 500
+    end
+
     test "returns results from multiple tasks with limit and on timeout" do
       Process.flag(:trap_exit, true)
       task1 = Task.async(fn -> Process.sleep(:infinity) end)

@@ -60,15 +60,29 @@ env_compiler_options() ->
 
 erl_to_core(Forms, Opts) ->
   %% TODO: Remove parse transform handling on Elixir v2.0
-  case [M || {parse_transform, M} <- Opts] of
-    [] ->
+  case requires_abstract_format(Opts, false) of
+    false ->
       v3_core:module(Forms, Opts);
-    _ ->
+
+    beam_debug_info ->
+      {ok, DbgForms} = sys_coverage:beam_debug_info(Forms),
+      v3_core:module(DbgForms, Opts);
+
+    parse_transform ->
       case compile:noenv_forms(Forms, [no_spawn_compiler_process, to_core0, return, no_auto_import | Opts]) of
         {ok, _Module, Core, Warnings} -> {ok, Core, Warnings};
         {error, Errors, Warnings} -> {error, Errors, Warnings}
       end
   end.
+
+requires_abstract_format([{parse_transform, _} | _], _Default) ->
+  parse_transform;
+requires_abstract_format([beam_debug_info | Tail], _Default) ->
+  requires_abstract_format(Tail, beam_debug_info);
+requires_abstract_format([_ | Tail], Default) ->
+  requires_abstract_format(Tail, Default);
+requires_abstract_format([], Default) ->
+  Default.
 
 noenv_forms(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
@@ -138,6 +152,7 @@ format_warnings(Opts, Warnings) ->
 %% Those we implement ourselves
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
+handle_file_warning(_, _File, {_Line, sys_core_fold,{failed,{eval_failure,_,_}}}) -> ok;
 
 %% We skip all of no_match related to no_clause, clause_type, guard, shadow.
 %% Those have too little information and they overlap with the type system.

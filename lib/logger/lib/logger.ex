@@ -501,7 +501,7 @@ defmodule Logger do
   """
 
   @type level ::
-          :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
+          :emergency | :alert | :critical | :error | :warning | :notice | :info | :debug
   @type report :: map() | keyword()
   @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()
@@ -738,9 +738,15 @@ defmodule Logger do
   def configure(options) do
     for {k, v} <- options do
       cond do
-        k == :level -> :logger.set_primary_config(:level, elixir_level_to_erlang_level(v))
-        k in @valid_options -> Application.put_env(:logger, k, v)
-        true -> :ok
+        k == :level ->
+          :ok = :logger.set_primary_config(:level, elixir_level_to_erlang_level(v))
+          Application.put_env(:logger, :level, v)
+
+        k in @valid_options ->
+          Application.put_env(:logger, k, v)
+
+        true ->
+          :ok
       end
     end
 
@@ -753,7 +759,7 @@ defmodule Logger do
           IO.warn_once(
             {__MODULE__, :configure, key},
             fn ->
-              "setting #{inspect(key)} in Logger.configure/2 is deprecated, " <>
+              "setting #{inspect(key)} in Logger.configure/1 is deprecated, " <>
                 "add the :logger_backends dependency and configure it instead"
             end,
             3

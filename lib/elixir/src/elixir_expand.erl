@@ -266,6 +266,9 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
+  (map_get(context, E) /= nil) andalso Unquote andalso elixir_quote:has_unquotes(Exprs) andalso
+    file_error(Meta, E, ?MODULE, quote_in_pattern_with_unquote),
+
   {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
   {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
   {EContext, SC, EC} = expand(QContext, SP, EP),
@@ -287,9 +290,15 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
       _ -> {'{}', [], ['__block__', [], EBinding ++ [EQuoted]]}
     end,
 
-  case EPrelude of
-    [] -> {EBindingQuoted, ES, EQ};
-    _ -> {{'__block__', [], EPrelude ++ [EBindingQuoted]}, ES, EQ}
+  EBlock =
+    case EPrelude of
+      [] -> EBindingQuoted;
+      _ -> {'__block__', [], EPrelude ++ [EBindingQuoted]}
+    end,
+
+  case ?key(E, context) of
+    nil -> {{{'.', Meta, [elixir_quote, validate_quote]}, Meta, [EBlock]}, ES, EQ};
+    _ -> {EBlock, ES, EQ}
   end;
 
 expand({quote, Meta, [_, _]}, _S, E) ->
@@ -445,32 +454,49 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
       #{Pair := CurrentVersion} ->
         case Prematch of
           {Pre, _Cycle, {bitsize, Original}} ->
-            if
-              map_get(Pair, Pre) /= CurrentVersion ->
+            case {Original, Pre} of
+              {#{Pair := OriginalVersion}, _} when OriginalVersion /= CurrentVersion ->
                 {ok, CurrentVersion};
 
-              is_map_key(Pair, Pre) ->
+              {#{Pair := CurrentVersion}, #{Pair := CurrentVersion}} ->
                 %% TODO: Remove me on Elixir 2.0
                 elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
                 {ok, CurrentVersion};
 
-              not is_map_key(Pair, Original) ->
-                {ok, CurrentVersion};
+              {#{Pair := CurrentVersion}, #{Pair := _}} ->
+                {raise, {unpinned_bitsize_var, Name, Kind}};
 
-              true ->
-                raise
+              {#{Pair := CurrentVersion}, _} ->
+                {raise, {undefined_var, Name, Kind}};
+
+              {_, _} ->
+                {ok, CurrentVersion}
             end;
 
           _ ->
             {ok, CurrentVersion}
         end;
 
+      _ when S#elixir_ex.prematch =:= pin ->
+        {raise, {undefined_var_pin, Name, Kind}};
+
       _ ->
-        case E of
-          #{context := guard} -> raise;
-          #{} when S#elixir_ex.prematch =:= pin -> pin;
-          %% TODO: Remove fallback on on_undefined_variable
-          _ -> elixir_config:get(on_undefined_variable)
+        case lists:keyfind(if_undefined, 1, Meta) of
+          {if_undefined, apply} ->
+            apply;
+
+          {if_undefined, raise} ->
+            {raise, {undefined_var, Name, Kind}};
+
+          _ when ?key(E, context) =:= guard ->
+            {raise, {undefined_var, Name, Kind}};
+
+          _ ->
+            %% TODO: Remove fallback as it should always raise
+            case elixir_config:get(on_undefined_variable) of
+              raise -> {raise, {undefined_var, Name, Kind}};
+              Other -> Other
+            end
         end
     end,
 
@@ -480,30 +506,18 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
       Var = {Name, [{version, PairVersion} | Meta], Kind},
       {Var, S#elixir_ex{unused=var_used(Pair, Meta, PairVersion, Unused)}, E};
 
-    Error ->
-      case lists:keyfind(if_undefined, 1, Meta) of
-        {if_undefined, apply} ->
-          expand({Name, Meta, []}, S, E);
+    {raise, Reason} ->
+      SpanMeta =  elixir_env:calculate_span(Meta, Name),
+      function_error(SpanMeta, E, ?MODULE, Reason),
+      {{Name, SpanMeta, Kind}, S#elixir_ex{tainted_function=true}, E};
 
-        %% TODO: Remove this clause on v2.0 as we will raise by default
-        {if_undefined, raise} ->
-          function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, Meta, Kind}, S#elixir_ex{tainted_function=true}, E};
+    apply ->
+      expand({Name, Meta, []}, S, E);
 
-        %% TODO: Remove this clause on v2.0 as we will no longer support warn
-        _ when Error == warn ->
-          elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_var_to_call, Name}),
-          expand({Name, [{if_undefined, warn} | Meta], []}, S, E);
-
-        _ when Error == pin ->
-          function_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind}),
-          {{Name, Meta, Kind}, S#elixir_ex{tainted_function=true}, E};
-
-        _ when Error == raise ->
-          SpanMeta =  elixir_env:calculate_span(Meta, Name),
-          function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, SpanMeta, Kind}, S#elixir_ex{tainted_function=true}, E}
-      end
+    %% TODO: Remove this clause on v2.0 as we will no longer support warn
+    warn ->
+      elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_var_to_call, Name}),
+      expand({Name, [{if_undefined, warn} | Meta], []}, S, E)
   end;
 
 %% Local calls
@@ -964,8 +978,12 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
       SA#elixir_ex.tainted_function andalso is_atom(Receiver) andalso
-        (not is_loaded_and_exported(Receiver, Right, Args)) andalso
+        is_loaded_and_not_exported(Receiver, Right, Args) andalso
         elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_function, Receiver, Right, length(Args)}),
+
+      %% TODO: Raise on Elixir v2.0
+      (Receiver =:= erlang) andalso ((Right =:= 'orelse') orelse (Right =:= 'andalso')) andalso
+        elixir_errors:file_warn(Meta, E, ?MODULE, {invalid_guard_operator, Right}),
 
       Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, AttachedMeta, EArgs),
       {Rewritten, elixir_env:close_write(SA, S), EA};
@@ -987,9 +1005,9 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
-is_loaded_and_exported(Receiver, Fun, Args) ->
+is_loaded_and_not_exported(Receiver, Fun, Args) ->
   (code:ensure_loaded(Receiver) =:= {module, Receiver}) andalso
-    erlang:function_exported(Receiver, Fun, length(Args)).
+    not erlang:function_exported(Receiver, Fun, length(Args)).
 
 attach_runtime_module(Receiver, Meta, S, _E) ->
   case lists:member(Receiver, S#elixir_ex.runtime_modules) of
@@ -1210,6 +1228,8 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
 format_error({unquote_outside_quote, Unquote}) ->
   %% Unquote can be "unquote" or "unquote_splicing".
   io_lib:format("~p called outside quote", [Unquote]);
+format_error(quote_in_pattern_with_unquote) ->
+  "unquote is not allowed when quote is used inside a pattern or guard";
 format_error({invalid_bind_quoted_for_quote, BQ}) ->
   io_lib:format("invalid :bind_quoted for quote, expected a keyword list of variable names, got: ~ts",
                 ['Elixir.Macro':to_string(BQ)]);
@@ -1242,12 +1262,12 @@ format_error({invalid_expr_in_scope, Scope, Kind}) ->
 format_error({invalid_expr_in_guard, Kind}) ->
   Message =
     "invalid expression in guards, ~ts is not allowed in guards. To learn more about "
-    "guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html#guards",
+    "guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html#guards",
   io_lib:format(Message, [Kind]);
 format_error({invalid_expr_in_bitsize, Kind}) ->
   Message =
     "~ts is not allowed inside a bitstring size specifier. The size specifier in matches works like guards. "
-    "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html#guards",
+    "To learn more about guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html#guards",
   io_lib:format(Message, [Kind]);
 format_error({invalid_alias, Expr}) ->
   Message =
@@ -1299,6 +1319,8 @@ format_error({options_are_not_keyword, Kind, Opts}) ->
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
+format_error({invalid_guard_operator, Name}) ->
+  io_lib:format(":erlang.~ts/2 must only be used inside guards", [Name]);
 format_error({unpinned_bitsize_var, Name, Kind}) ->
   io_lib:format("the variable ~ts is accessed inside size(...) of a bitstring "
                 "but it was defined outside of the match. You must precede it with the "

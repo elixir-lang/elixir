@@ -38,7 +38,7 @@ defmodule Keyword do
 
   ## Duplicate keys and ordering
 
-  A keyword may have duplicate keys so it is not strictly a key-value
+  A keyword list may have duplicate keys so it is not strictly a key-value
   data type. However, most of the functions in this module work on a
   key-value structure and behave similar to the functions you would
   find in the `Map` module. For example, `Keyword.get/3` will get the first
@@ -269,38 +269,60 @@ defmodule Keyword do
   @doc since: "1.13.0"
   @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
           {:ok, keyword()} | {:error, [atom]}
+  def validate([], values) when is_list(values), do: {:ok, move_pairs!(values, [])}
+
   def validate(keyword, values) when is_list(keyword) and is_list(values) do
-    validate(keyword, values, [], [], [])
+    validate_merge(keyword, values, [], keyword)
   end
 
-  defp validate([{key, _} = pair | keyword], values1, values2, acc, bad_keys) when is_atom(key) do
-    case find_key!(key, values1, values2) do
-      {values1, values2} ->
-        validate(keyword, values1, values2, [pair | acc], bad_keys)
+  defp validate_merge([], values, values_pre, original),
+    do: {:ok, move_pairs!(values, move_pairs!(values_pre, original))}
 
-      :error ->
-        case find_key!(key, values2, values1) do
-          {values1, values2} ->
-            validate(keyword, values1, values2, [pair | acc], bad_keys)
-
-          :error ->
-            validate(keyword, values1, values2, acc, [key | bad_keys])
-        end
+  defp validate_merge([{key, _} = pair | keyword], [head | tail], values_pre, original)
+       when is_atom(key) do
+    case head do
+      ^key -> validate_merge(keyword, tail, values_pre, original)
+      {^key, _} -> validate_merge(keyword, tail, values_pre, original)
+      _ -> validate_merge([pair | keyword], tail, [head | values_pre], original)
     end
   end
 
-  defp validate([], values1, values2, acc, []) do
-    {:ok, move_pairs!(values1, move_pairs!(values2, acc))}
+  defp validate_merge([{key, _} | keyword], [], values_pre, original) when is_atom(key) do
+    case find_key!(key, values_pre, []) do
+      {new_values, new_values_pre} ->
+        validate_merge(keyword, new_values, new_values_pre, original)
+
+      :error ->
+        validate_fallback(keyword, values_pre, [key])
+    end
   end
 
-  defp validate([], _values1, _values2, _acc, bad_keys) do
-    {:error, bad_keys}
+  defp validate_merge([pair | _], _, _, _),
+    do:
+      raise(
+        ArgumentError,
+        "expected a keyword list as first argument, got invalid entry: #{inspect(pair)}"
+      )
+
+  defp validate_fallback([{key, _} | keyword], values, bad_keys)
+       when is_atom(key) do
+    case find_key!(key, values, []) do
+      {rest, acc} ->
+        validate_fallback(keyword, rest ++ acc, bad_keys)
+
+      :error ->
+        validate_fallback(keyword, values, [key | bad_keys])
+    end
   end
 
-  defp validate([pair | _], _values1, _values2, _acc, []) do
-    raise ArgumentError,
-          "expected a keyword list as first argument, got invalid entry: #{inspect(pair)}"
-  end
+  defp validate_fallback([], _, bad), do: {:error, bad}
+
+  defp validate_fallback([p | _], _, _),
+    do:
+      raise(
+        ArgumentError,
+        "expected a keyword list as first argument, got invalid entry: #{inspect(p)}"
+      )
 
   defp find_key!(key, [key | rest], acc), do: {rest, acc}
   defp find_key!(key, [{key, _} | rest], acc), do: {rest, acc}
@@ -495,7 +517,7 @@ defmodule Keyword do
         {get, :lists.reverse(acc, [{key, value} | delete(t, key)])}
 
       :pop ->
-        {current, :lists.reverse(acc, t)}
+        {current, :lists.reverse(acc, delete(t, key))}
 
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
@@ -561,7 +583,7 @@ defmodule Keyword do
         {get, :lists.reverse(acc, [{key, value} | delete(t, key)])}
 
       :pop ->
-        {value, :lists.reverse(acc, t)}
+        {value, :lists.reverse(acc, delete(t, key))}
 
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
@@ -965,7 +987,7 @@ defmodule Keyword do
       iex> Keyword.equal?([a: 1, b: 2, a: 3], [b: 2, a: 3, a: 1])
       true
 
-  Comparison between values is done with `===/3`,
+  Comparison between values is done with `===/2`,
   which means integers are not equivalent to floats:
 
       iex> Keyword.equal?([a: 1.0], [a: 1])
@@ -1342,9 +1364,9 @@ defmodule Keyword do
   """
   @spec pop(t, key, default) :: {value | default, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> {default, keywords}
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {value, delete_key(keywords, key)}
+      false -> {default, keywords}
     end
   end
 
@@ -1369,9 +1391,9 @@ defmodule Keyword do
   @doc since: "1.10.0"
   @spec pop!(t, key) :: {value, t}
   def pop!(keywords, key) when is_list(keywords) and is_atom(key) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> raise KeyError, key: key, term: keywords
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {value, delete_key(keywords, key)}
+      false -> raise KeyError, key: key, term: keywords
     end
   end
 
@@ -1411,7 +1433,7 @@ defmodule Keyword do
     do: {values, acc}
 
   @doc """
-  Lazily returns and removes all values associated with `key` in the keyword list.
+  Lazily returns the first value for `key` and removes all associated entries in the keyword list.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to set up and tear down again.
@@ -1434,9 +1456,9 @@ defmodule Keyword do
   @spec pop_lazy(t, key, (-> value)) :: {value, t}
   def pop_lazy(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
-    case fetch(keywords, key) do
-      {:ok, value} -> {value, delete(keywords, key)}
-      :error -> {fun.(), keywords}
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {value, delete_key(keywords, key)}
+      false -> {fun.(), keywords}
     end
   end
 

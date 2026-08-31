@@ -88,6 +88,7 @@ start(_Type, _Args) ->
     %% Compiler options
     {debug_info, true},
     {docs, true},
+    {erlc_options, []},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {infer_signatures, [elixir]},
@@ -304,6 +305,9 @@ eval_forms(Tree, Binding, OrigE) ->
   eval_forms(Tree, Binding, OrigE, []).
 eval_forms(Tree, Binding, OrigE, Opts) ->
   Prune = proplists:get_value(prune_binding, Opts, false),
+  %% We save and restore the previous dbg_callback so nested eval calls in
+  %% the same process do not clobber the outer callback.
+  PreviousDbg = erlang:get({elixir, dbg_callback}),
   case proplists:get_value(dbg_callback, Opts) of
     undefined -> ok;
     DbgCallback -> erlang:put({elixir, dbg_callback}, DbgCallback)
@@ -332,7 +336,10 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
         {Value, DumpedBinding, NewE#{versioned_vars := DumpedVars}}
     end
   after
-    erlang:erase({elixir, dbg_callback})
+    case PreviousDbg of
+      undefined -> erlang:erase({elixir, dbg_callback});
+      _ -> erlang:put({elixir, dbg_callback}, PreviousDbg)
+    end
   end.
 
 %% Evaluate Erlang code with careful handling of local and external functions
@@ -341,20 +348,27 @@ erl_eval(Expr, Binding, Env) ->
   LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
   ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
 
+  %% ?elixir_eval_env is used by the external handler.
+  %%
+  %% The reason why we use the process dictionary to pass the environment
+  %% is because we want to avoid passing closures to erl_eval, as that
+  %% would effectively tie the eval code to the Elixir version and it is
+  %% best if it depends solely on Erlang/OTP.
+  %%
+  %% The downside is that functions that escape the eval context will no
+  %% longer have the original environment they came from.
+  %%
+  %% We save and restore the previous env so nested eval calls in the same
+  %% process do not clobber the outer env.
+  PreviousEvalEnv = erlang:get(?elixir_eval_env),
+  erlang:put(?elixir_eval_env, Env),
   try
-    %% ?elixir_eval_env is used by the external handler.
-    %%
-    %% The reason why we use the process dictionary to pass the environment
-    %% is because we want to avoid passing closures to erl_eval, as that
-    %% would effectively tie the eval code to the Elixir version and it is
-    %% best if it depends solely on Erlang/OTP.
-    %%
-    %% The downside is that functions that escape the eval context will no
-    %% longer have the original environment they came from.
-    erlang:put(?elixir_eval_env, Env),
     erl_eval:expr(Expr, Binding, LocalHandler, ExternalHandler)
   after
-    erlang:erase(?elixir_eval_env)
+    case PreviousEvalEnv of
+      undefined -> erlang:erase(?elixir_eval_env);
+      _ -> erlang:put(?elixir_eval_env, PreviousEvalEnv)
+    end
   end.
 
 eval_local_handler(FunName, Args) ->
@@ -439,7 +453,7 @@ quoted_to_erl(Quoted, ErlS, ExS, Env) ->
 
 %% Converts a given string (charlist) into quote expression
 
-string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
+string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_integer(StartColumn), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
     {ok, _Line, _Column, Warnings, Tokens, Terminators} ->
       {ok, lists:reverse(Tokens, Terminators), Warnings};

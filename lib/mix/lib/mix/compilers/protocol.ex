@@ -89,7 +89,10 @@ defmodule Mix.Compilers.Protocol do
 
     cond do
       not Keyword.get(opts, :consolidate_protocols, true) ->
-        clean_consolidated()
+        if Mix.Project.config()[:consolidation_path] == nil do
+          clean_consolidated()
+        end
+
         :off
 
       # We need to reconsolidate all protocols whenever the dependency changes

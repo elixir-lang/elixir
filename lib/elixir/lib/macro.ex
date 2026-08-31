@@ -166,7 +166,7 @@ defmodule Macro do
       of a `__block__` or the right side of `->`. The last expression of the
       block does not have metadata if it is not followed by an end of line
       character (either a newline or `;`). This entry may appear multiple times
-      in the same metadata if the expression is surround by parens
+      in the same metadata if the expression is surrounded by parens
 
     * `:format` - set to `:keyword` when an atom is defined as a keyword.
       It may also be set to `:atom` to distinguish `nil`, `false`, and `true`
@@ -518,7 +518,7 @@ defmodule Macro do
   @doc since: "1.11.3"
   @spec generate_unique_arguments(0, context :: atom) :: []
   @spec generate_unique_arguments(pos_integer, context) ::
-          [{atom, [counter: integer], context}, ...]
+          [{atom, metadata(), context}, ...]
         when context: atom
   def generate_unique_arguments(amount, context),
     do: generate_arguments(amount, context, &unique_var/2)
@@ -527,7 +527,7 @@ defmodule Macro do
 
   defp generate_arguments(amount, context, fun)
        when is_integer(amount) and amount > 0 and is_atom(context) do
-    for id <- 1..amount, do: fun.(String.to_atom("arg" <> Integer.to_string(id)), context)
+    for id <- 1..amount, do: fun.(String.to_unsafe_atom("arg" <> Integer.to_string(id)), context)
   end
 
   @doc """
@@ -576,7 +576,7 @@ defmodule Macro do
 
   """
   @doc since: "1.11.3"
-  @spec unique_var(var, context) :: {var, [counter: integer], context}
+  @spec unique_var(var, context) :: {var, metadata(), context}
         when var: atom, context: atom
   def unique_var(var, context) when is_atom(var) and is_atom(context) do
     {var, [counter: :elixir_module.next_counter(context)], context}
@@ -690,7 +690,39 @@ defmodule Macro do
   """
   @spec prewalk(t, (t -> t)) :: t
   def prewalk(ast, fun) when is_function(fun, 1) do
-    elem(prewalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
+    do_prewalk(fun.(ast), fun)
+  end
+
+  # Mirrors do_traverse/4 with an always-pre fun and no accumulator,
+  # avoiding the wrapper closures and tuple threading of traverse/4.
+  # Each clause dispatches on the already-transformed node, so fun's
+  # rewrites are descended into, exactly as in traverse/4.
+  defp do_prewalk({form, meta, args}, fun) when is_atom(form) do
+    {form, meta, do_prewalk_args(args, fun)}
+  end
+
+  defp do_prewalk({form, meta, args}, fun) do
+    form = do_prewalk(fun.(form), fun)
+    {form, meta, do_prewalk_args(args, fun)}
+  end
+
+  defp do_prewalk({left, right}, fun) do
+    left = do_prewalk(fun.(left), fun)
+    {left, do_prewalk(fun.(right), fun)}
+  end
+
+  defp do_prewalk(list, fun) when is_list(list) do
+    do_prewalk_args(list, fun)
+  end
+
+  defp do_prewalk(x, _fun) do
+    x
+  end
+
+  defp do_prewalk_args(args, _fun) when is_atom(args), do: args
+
+  defp do_prewalk_args(args, fun) when is_list(args) do
+    :lists.map(fn x -> do_prewalk(fun.(x), fun) end, args)
   end
 
   @doc """
@@ -728,11 +760,41 @@ defmodule Macro do
   """
   @spec postwalk(t, (t -> t)) :: t
   def postwalk(ast, fun) when is_function(fun, 1) do
-    elem(postwalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
+    do_postwalk(ast, fun)
+  end
+
+  # Mirrors do_traverse/4 with an always-post fun and no accumulator,
+  # avoiding the wrapper closures and tuple threading of traverse/4
+  defp do_postwalk({form, meta, args}, fun) when is_atom(form) do
+    fun.({form, meta, do_postwalk_args(args, fun)})
+  end
+
+  defp do_postwalk({form, meta, args}, fun) do
+    form = do_postwalk(form, fun)
+    fun.({form, meta, do_postwalk_args(args, fun)})
+  end
+
+  defp do_postwalk({left, right}, fun) do
+    left = do_postwalk(left, fun)
+    fun.({left, do_postwalk(right, fun)})
+  end
+
+  defp do_postwalk(list, fun) when is_list(list) do
+    fun.(do_postwalk_args(list, fun))
+  end
+
+  defp do_postwalk(x, fun) do
+    fun.(x)
+  end
+
+  defp do_postwalk_args(args, _fun) when is_atom(args), do: args
+
+  defp do_postwalk_args(args, fun) when is_list(args) do
+    :lists.map(fn x -> do_postwalk(x, fun) end, args)
   end
 
   @doc """
-  This functions behaves like `prewalk/3`, but performs a depth-first,
+  This function behaves like `prewalk/3`, but performs a depth-first,
   post-order traversal of quoted expressions using an accumulator.
   """
   @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
@@ -940,7 +1002,7 @@ defmodule Macro do
 
   This is useful when a struct needs to be expanded at
   compilation time and the struct being expanded may or may
-  not have been compiled (including structs in the defined
+  not have been compiled (including structs defined
   under the module being compiled). For compiled modules,
   it will invoke `module.__info__(:struct)`.
 
@@ -973,7 +1035,7 @@ defmodule Macro do
   def struct_info!(module, env) when is_atom(module) do
     meta = [line: env.line]
 
-    case :elixir_map.maybe_load_struct_info(meta, module, env) do
+    case :elixir_map.maybe_load_struct_info(meta, module, :hard, env) do
       {:ok, info} ->
         :elixir_env.trace({:struct_expansion, meta, module, []}, env)
         info
@@ -1034,7 +1096,7 @@ defmodule Macro do
   defp find_invalid(other), do: {:error, other}
 
   @doc """
-  Returns an enumerable that traverses the  `ast` in depth-first,
+  Returns an enumerable that traverses the `ast` in depth-first,
   pre-order traversal.
 
   ## Examples
@@ -1092,7 +1154,7 @@ defmodule Macro do
   end
 
   @doc """
-  Returns an enumerable that traverses the  `ast` in depth-first,
+  Returns an enumerable that traverses the `ast` in depth-first,
   post-order traversal.
 
   ## Examples
@@ -1740,9 +1802,9 @@ defmodule Macro do
 
   defp kw_blocks_to_string(kw, fun) do
     Enum.reduce(unquote(kw_keywords), " ", fn x, acc ->
-      case Keyword.has_key?(kw, x) do
-        true -> acc <> kw_block_to_string(x, Keyword.get(kw, x), fun)
-        false -> acc
+      case Keyword.fetch(kw, x) do
+        {:ok, value} -> acc <> kw_block_to_string(x, value, fun)
+        :error -> acc
       end
     end) <> "end"
   end
@@ -1856,6 +1918,7 @@ defmodule Macro do
   definition compile-time, and you can use `Macro.expand/2`.
   """
   @doc since: "1.16.0"
+  @spec compile_apply(module(), atom(), [term()], Macro.Env.t()) :: term()
   def compile_apply(mod, fun, args, caller) do
     :elixir_env.trace({:remote_function, [], mod, fun, length(args)}, %{caller | function: nil})
     Kernel.apply(mod, fun, args)
@@ -1980,10 +2043,9 @@ defmodule Macro do
 
   defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env)
        when is_atom(atom) and is_atom(field) and env.context != :match do
-    if Map.has_key?(env, field) do
-      {maybe_escape_map(Map.get(env, field)), true}
-    else
-      {original, false}
+    case Map.fetch(env, field) do
+      {:ok, value} -> {maybe_escape_map(value), true}
+      :error -> {original, false}
     end
   end
 
@@ -2196,7 +2258,7 @@ defmodule Macro do
   Please check `expand_literals/2` for use cases and pitfalls.
   """
   @doc since: "1.14.1"
-  @spec expand_literals(t(), acc, (t(), acc -> {t(), acc})) :: t() when acc: term()
+  @spec expand_literals(t(), acc, (t(), acc -> {t(), acc})) :: {t(), acc} when acc: term()
   def expand_literals(ast, acc, fun)
 
   def expand_literals({:__aliases__, meta, args}, acc, fun) do
@@ -2500,7 +2562,7 @@ defmodule Macro do
 
   ### As a remote call
 
-  Inspect an atom the function name of a remote call.
+  Inspect an atom as the function name of a remote call.
 
       iex> Macro.inspect_atom(:remote_call, :foo)
       "foo"
@@ -2621,54 +2683,76 @@ defmodule Macro do
         :unquoted_operator
 
       true ->
-        charlist = Atom.to_charlist(atom)
-
-        if valid_alias?(charlist) do
-          :alias
-        else
-          case :elixir_config.identifier_tokenizer().tokenize(charlist) do
-            {kind, _acc, [], _, _, special} ->
-              cond do
-                kind != :identifier or :lists.member(:at, special) ->
-                  :not_callable
-
-                # identifier_tokenizer used to return errors for non-nfc, but
-                # now it nfc-normalizes everything. However, lack of nfc is
-                # still a good reason to quote an atom when printing.
-                :lists.member(:nfkc, special) ->
-                  :other
-
-                true ->
-                  :identifier
-              end
-
-            _ ->
-              :other
-          end
-        end
+        classify_binary(Atom.to_string(atom), atom)
     end
   end
 
-  defp valid_alias?([?E, ?l, ?i, ?x, ?i, ?r] ++ rest), do: valid_alias_piece?(rest)
-  defp valid_alias?(_other), do: false
+  # ASCII identifiers and aliases are recognized on the binary to avoid building a
+  # charlist and running the (unicode aware) tokenizer, which dominates the cost of
+  # classifying keyword list, map and struct keys.
+  defp classify_binary(<<char, rest::binary>>, atom)
+       when char >= ?a and char <= ?z
+       when char == ?_ do
+    if valid_identifier_rest?(rest), do: :identifier, else: classify_with_tokenizer(atom)
+  end
 
-  defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
-    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
+  defp classify_binary("Elixir" <> rest, atom) do
+    if valid_alias_piece?(rest), do: :alias, else: classify_with_tokenizer(atom)
+  end
 
-  defp valid_alias_piece?([]), do: true
-  defp valid_alias_piece?(_other), do: false
+  defp classify_binary(_binary, atom), do: classify_with_tokenizer(atom)
 
-  defp trim_leading_while_valid_identifier([char | rest])
+  defp classify_with_tokenizer(atom) do
+    case :elixir_config.identifier_tokenizer().tokenize(Atom.to_charlist(atom)) do
+      {kind, _acc, [], _, _, special} ->
+        cond do
+          kind != :identifier or :lists.member(:at, special) ->
+            :not_callable
+
+          # identifier_tokenizer used to return errors for non-nfc, but
+          # now it nfc-normalizes everything. However, lack of nfc is
+          # still a good reason to quote an atom when printing.
+          :lists.member(:nfkc, special) ->
+            :other
+
+          true ->
+            :identifier
+        end
+
+      _ ->
+        :other
+    end
+  end
+
+  defp valid_identifier_rest?(<<char, rest::binary>>)
        when char >= ?a and char <= ?z
        when char >= ?A and char <= ?Z
        when char >= ?0 and char <= ?9
        when char == ?_ do
-    trim_leading_while_valid_identifier(rest)
+    valid_identifier_rest?(rest)
   end
 
-  defp trim_leading_while_valid_identifier(other) do
-    other
+  defp valid_identifier_rest?(<<char>>) when char == ?? when char == ?!, do: true
+  defp valid_identifier_rest?(<<>>), do: true
+  defp valid_identifier_rest?(_other), do: false
+
+  defp valid_alias_piece?(<<?., char, rest::binary>>) when char >= ?A and char <= ?Z,
+    do: valid_alias_piece_rest?(rest)
+
+  defp valid_alias_piece?(<<>>), do: true
+  defp valid_alias_piece?(_other), do: false
+
+  # A helper returning the rest of the binary would build a sub binary per piece,
+  # so branch back into valid_alias_piece?/1 to keep the match context.
+  defp valid_alias_piece_rest?(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    valid_alias_piece_rest?(rest)
   end
+
+  defp valid_alias_piece_rest?(other), do: valid_alias_piece?(other)
 
   @doc """
   Default backend for `Kernel.dbg/2`.
@@ -2699,7 +2783,7 @@ defmodule Macro do
       :guard ->
         raise ArgumentError,
               "invalid expression in guard, dbg is not allowed in guards. " <>
-                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
+                "To learn more about guards, visit: https://elixir.hexdocs.pm/patterns-and-guards.html"
 
       _ ->
         :ok

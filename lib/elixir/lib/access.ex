@@ -10,8 +10,8 @@ defmodule Access do
   keys of any type in a data structure via the `data[key]` syntax.
 
   `Access` supports keyword lists (`Keyword`) and maps (`Map`) out
-  of the box. Keywords supports only atoms keys, keys for maps can
-  be of any type. Both return `nil` if the key does not exist:
+  of the box. Keyword lists support only atom keys, while keys for maps
+  can be of any type. Both return `nil` if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -33,7 +33,7 @@ defmodule Access do
       iex> keywords[:c][:unknown]
       nil
 
-  This works because accessing anything on a `nil` value, returns
+  This works because accessing anything on a `nil` value returns
   `nil` itself:
 
       iex> nil[:a]
@@ -225,6 +225,8 @@ defmodule Access do
       reraise exception, __STACKTRACE__
     end
   end
+
+  defguardp is_probably_keyword(list) when list == [] or is_atom(elem(hd(list), 0))
 
   @doc """
   Fetches the value for the given key in a container (a map, keyword
@@ -485,7 +487,7 @@ defmodule Access do
   ## Accessors
 
   @doc """
-  Returns a function that accesses the given key in a map/struct.
+  Returns a function that accesses the given key in a map/struct/keyword list.
 
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
@@ -514,30 +516,56 @@ defmodule Access do
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
       {"john", %{user: %{}}}
 
-  An error is raised if the accessed structure is not a map or a struct:
+      iex> keyword = [user: [name: "john"]]
+      iex> get_in(keyword, [Access.key(:unknown, []), Access.key(:name, "john")])
+      "john"
+      iex> get_and_update_in(keyword, [Access.key(:user), Access.key(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [user: [name: "JOHN"]]}
+      iex> pop_in(keyword, [Access.key(:user), Access.key(:name)])
+      {"john", [user: []]}
 
-      iex> get_in([], [Access.key(:foo)])
-      ** (BadMapError) expected a map, got:
-      ...
+  An error is raised if the accessed structure is not a map, struct, or keyword list:
+
+      iex> get_in(123, [Access.key(:foo)])
+      ** (RuntimeError) Access.key/2 expected a map/struct/keyword list, got: ...
+
+      iex> put_in([1, 2, 3], [Access.key(:foo)], :bar)
+      ** (RuntimeError) Access.key/2 expected a map/struct/keyword list, got: ...
   """
-  @spec key(key, term) :: access_fun(data :: struct | map, current_value :: term)
+  @spec key(key, term) :: access_fun(data :: struct | map | keyword, current_value :: term)
   def key(key, default \\ nil) do
     fn
-      :get, data, next ->
+      :get, %{} = data, next ->
         next.(Map.get(data, key, default))
 
-      :get_and_update, data, next ->
+      :get_and_update, %{} = data, next ->
         value = Map.get(data, key, default)
 
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
         end
+
+      :get, data, next when is_probably_keyword(data) ->
+        next.(Keyword.get(data, key, default))
+
+      :get_and_update, data, next when is_probably_keyword(data) ->
+        value = Keyword.get(data, key, default)
+
+        case next.(value) do
+          {get, update} -> {get, Keyword.put(data, key, update)}
+          :pop -> {value, Keyword.delete(data, key)}
+        end
+
+      _op, data, _next ->
+        raise "Access.key/2 expected a map/struct/keyword list, got: #{inspect(data)}"
     end
   end
 
   @doc """
-  Returns a function that accesses the given key in a map/struct.
+  Returns a function that accesses the given key in a map/struct/keyword list.
 
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
@@ -545,6 +573,19 @@ defmodule Access do
   Similar to `key/2`, but the returned function raises if the key does not exist.
 
   ## Examples
+
+      iex> keyword = [user: [name: "john"]]
+      iex> get_in(keyword, [Access.key!(:user), Access.key!(:name)])
+      "john"
+      iex> get_and_update_in(keyword, [Access.key!(:user), Access.key!(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [user: [name: "JOHN"]]}
+      iex> pop_in(keyword, [Access.key!(:user), Access.key!(:name)])
+      {"john", [user: []]}
+      iex> get_in(keyword, [Access.key!(:user), Access.key!(:unknown)])
+      ** (KeyError) key :unknown not found in:
+      ...
 
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:name)])
@@ -574,13 +615,15 @@ defmodule Access do
   `Access.key!/1` is useful when the key is not known in advance
   and must be accessed dynamically.
 
-  An error is raised if the accessed structure is not a map/struct:
+  An error is raised if the accessed structure is not a map/struct/keyword list:
 
-      iex> get_in([], [Access.key!(:foo)])
-      ** (RuntimeError) Access.key!/1 expected a map/struct, got: []
+      iex> get_in(123, [Access.key!(:foo)])
+      ** (RuntimeError) Access.key!/1 expected a map/struct/keyword list, got: 123
 
+      iex> put_in([1, 2, 3], [Access.key!(:foo)], :bar)
+      ** (RuntimeError) Access.key!/1 expected a map/struct/keyword list, got: ...
   """
-  @spec key!(key) :: access_fun(data :: struct | map, current_value :: term)
+  @spec key!(key) :: access_fun(data :: struct | map | keyword, current_value :: term)
   def key!(key) do
     fn
       :get, %{} = data, next ->
@@ -594,8 +637,19 @@ defmodule Access do
           :pop -> {value, Map.delete(data, key)}
         end
 
+      :get, data, next when is_probably_keyword(data) ->
+        next.(Keyword.fetch!(data, key))
+
+      :get_and_update, data, next when is_probably_keyword(data) ->
+        value = Keyword.fetch!(data, key)
+
+        case next.(value) do
+          {get, update} -> {get, Keyword.put(data, key, update)}
+          :pop -> {value, Keyword.delete(data, key)}
+        end
+
       _op, data, _next ->
-        raise "Access.key!/1 expected a map/struct, got: #{inspect(data)}"
+        raise "Access.key!/1 expected a map/struct/keyword list, got: #{inspect(data)}"
     end
   end
 
@@ -863,7 +917,7 @@ defmodule Access do
       iex> pop_in(list, [Access.filter(&(&1.salary >= 20)), :name])
       {["francine"], [%{name: "john", salary: 10}, %{salary: 30}]}
 
-  When no match is found, an empty list is returned and the update function is never called
+  When no match is found, an empty list is returned and the update function is never called:
 
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary >= 50)), :name])
@@ -880,7 +934,7 @@ defmodule Access do
 
   """
   @doc since: "1.6.0"
-  @spec filter((term -> boolean)) :: access_fun(data :: list, current_value :: list)
+  @spec filter((term -> as_boolean(term))) :: access_fun(data :: list, current_value :: list)
   def filter(func) when is_function(func) do
     fn op, data, next -> filter(op, data, func, next) end
   end
@@ -981,12 +1035,12 @@ defmodule Access do
   end
 
   defp slice(:get_and_update, data, range, next) when is_list(data) do
-    range = normalize_range(range, data)
+    %Range{first: first, last: last, step: step} = normalize_range(range, data)
 
-    if range.first > range.last do
+    if first > last do
       {[], data}
     else
-      get_and_update_slice(data, range, next, [], [], 0)
+      get_and_update_slice(data, first, last, step, next, [], [], 0)
     end
   end
 
@@ -1091,16 +1145,23 @@ defmodule Access do
 
   defp normalize_range(range, _list), do: range
 
-  defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
-    if index in range do
+  defp get_and_update_slice(rest, _first, last, _step, _next, updates, gets, index)
+       when index > last do
+    {:lists.reverse(gets), :lists.reverse(updates, rest)}
+  end
+
+  defp get_and_update_slice([head | rest], first, last, step, next, updates, gets, index) do
+    if index >= first and rem(index - first, step) == 0 do
       case next.(head) do
         :pop ->
-          get_and_update_slice(rest, range, next, updates, [head | gets], index + 1)
+          get_and_update_slice(rest, first, last, step, next, updates, [head | gets], index + 1)
 
         {get, update} ->
           get_and_update_slice(
             rest,
-            range,
+            first,
+            last,
+            step,
             next,
             [update | updates],
             [get | gets],
@@ -1108,11 +1169,11 @@ defmodule Access do
           )
       end
     else
-      get_and_update_slice(rest, range, next, [head | updates], gets, index + 1)
+      get_and_update_slice(rest, first, last, step, next, [head | updates], gets, index + 1)
     end
   end
 
-  defp get_and_update_slice([], _range, _next, updates, gets, _index) do
+  defp get_and_update_slice([], _first, _last, _step, _next, updates, gets, _index) do
     {:lists.reverse(gets), :lists.reverse(updates)}
   end
 
@@ -1139,7 +1200,7 @@ defmodule Access do
       iex> pop_in(list, [Access.find(&(&1.salary <= 40))])
       {%{name: "john", salary: 10}, [%{name: "francine", salary: 30}]}
 
-  When no match is found, nil is returned and the update function is never called
+  When no match is found, nil is returned and the update function is never called:
 
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.find(&(&1.salary >= 50)), :name])

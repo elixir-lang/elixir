@@ -12,7 +12,18 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    IO.puts("Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}")
+    remaining =
+      if opts[:repeat_until_failure] > 0 do
+        ", remaining_runs: #{opts[:remaining_runs]}"
+      else
+        ""
+      end
+
+    IO.puts([
+      "Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}",
+      remaining
+    ])
+
     print_filters(opts, :exclude)
     print_filters(opts, :include)
     IO.puts("")
@@ -324,7 +335,7 @@ defmodule ExUnit.CLIFormatter do
     percentage = Float.round(slowest_us / run_us * 100, 1)
 
     [
-      "\nTop #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n\n"
+      "\nTop #{slowest} slowest modules (#{slowest_time}s), #{percentage}% of total time:\n\n"
       | Enum.map(slowest_tests, &format_slow_module/1)
     ]
   end

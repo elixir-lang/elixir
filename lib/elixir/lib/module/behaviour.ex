@@ -228,11 +228,7 @@ defmodule Module.Behaviour do
   defp behaviour_defined?(callbacks, behaviour) do
     callbacks
     |> Map.values()
-    |> List.flatten()
-    |> Enum.any?(fn
-      {_kind, ^behaviour, _optional?} -> true
-      {_kind, _behaviour, _optional?} -> false
-    end)
+    |> Enum.any?(fn list -> :lists.keymember(behaviour, 2, list) end)
   end
 
   defp warn_missing_impls(%{callbacks: callbacks} = context, _impl_contexts, _defs)

@@ -80,7 +80,8 @@ defmodule Code.Typespec do
   Returns all types available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
-  element is the type (`:typep`, `:type` and `:opaque`).
+  element is the type (`:typep`, `:type`, `:opaque` and, on Erlang/OTP 28+,
+  `:nominal`).
 
   The module must have a corresponding BEAM file which can be
   located by the runtime system. The types will be in the Erlang
@@ -95,9 +96,10 @@ defmodule Code.Typespec do
 
         types =
           for {:attribute, _, kind, {name, _, args} = type} <- abstract_code,
-              kind in [:opaque, :type] do
+              kind in [:opaque, :type, :nominal] do
             cond do
               kind == :opaque -> {:opaque, type}
+              kind == :nominal -> {:nominal, type}
               {name, length(args)} in exported_types -> {:type, type}
               true -> {:typep, type}
             end
@@ -117,7 +119,7 @@ defmodule Code.Typespec do
   element is spec name and arity and the second is the spec.
 
   The module must have a corresponding BEAM file which can be
-  located by the runtime system. The types will be in the Erlang
+  located by the runtime system. The specs will be in the Erlang
   Abstract Format.
   """
   @spec fetch_specs(module | binary) :: {:ok, [tuple]} | :error
@@ -135,10 +137,10 @@ defmodule Code.Typespec do
   Returns all callbacks available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
-  element is spec name and arity and the second is the spec.
+  element is the callback name and arity and the second is the callback.
 
   The module must have a corresponding BEAM file
-  which can be located by the runtime system. The types will be
+  which can be located by the runtime system. The callbacks will be
   in the Erlang Abstract Format.
   """
   @spec fetch_callbacks(module | binary) :: {:ok, [tuple]} | :error
@@ -191,8 +193,8 @@ defmodule Code.Typespec do
 
   ## To AST conversion
 
-  defp collect_vars({:ann_type, _anno, args}) when is_list(args) do
-    []
+  defp collect_vars({:ann_type, _anno, [_var, type]}) do
+    collect_vars(type)
   end
 
   defp collect_vars({:type, _anno, _kind, args}) when is_list(args) do
@@ -399,10 +401,10 @@ defmodule Code.Typespec do
   defp erl_to_ex_var(var) do
     case Atom.to_string(var) do
       <<"_", c::utf8, rest::binary>> ->
-        String.to_atom("_#{String.downcase(<<c::utf8>>)}#{rest}")
+        String.to_unsafe_atom("_#{String.downcase(<<c::utf8>>)}#{rest}")
 
       <<c::utf8, rest::binary>> ->
-        String.to_atom("#{String.downcase(<<c::utf8>>)}#{rest}")
+        String.to_unsafe_atom("#{String.downcase(<<c::utf8>>)}#{rest}")
     end
   end
 

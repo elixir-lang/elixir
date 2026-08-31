@@ -30,7 +30,7 @@ defmodule Code.Normalizer.FormatterASTTest do
 
     {quoted, comments} = Code.string_to_quoted_with_comments!(good, to_quoted_opts)
 
-    to_algebra_opts = [comments: comments, escape: false] ++ opts
+    to_algebra_opts = Keyword.merge([comments: comments, escape: false], opts)
 
     quoted
     |> Code.quoted_to_algebra(to_algebra_opts)
@@ -289,40 +289,80 @@ defmodule Code.Normalizer.FormatterASTTest do
     end
 
     test "with escaped new lines" do
-      assert_same ~S'''
-      """
-      one\
-      #{"two"}\
-      three\
-      """
-      '''
+      source =
+        String.trim(~S'''
+        """
+        one\
+        #{"two"}\
+        three\
+        """
+        ''')
+
+      assert_same source
+
+      # This is the same default as assert_same
+      assert string_to_string(source, unescape: false, escape: false) == source
+
+      # If we unescape, we cannot keep the original representation
+      # but we must keep it as a valid heredoc
+      assert string_to_string(source, unescape: true, escape: true) ==
+               String.trim(~S'''
+               """
+               one#{"two"}three
+               """
+               ''')
+    end
+
+    test "with empty escaped new lines" do
+      source =
+        String.trim(~S'''
+        """
+        one\
+        #{"two"}\
+        three\
+        """
+        ''')
+
+      assert_same source
+
+      # This is the same default as assert_same
+      assert string_to_string(source, unescape: false, escape: false) == source
+
+      # If we unescape, we cannot keep the original representation
+      # but we must keep it as a valid heredoc
+      assert string_to_string(source, unescape: true, escape: true) ==
+               String.trim(~S'''
+               """
+               one#{"two"}three
+               """
+               ''')
     end
   end
 
-  describe "charlist heredocs" do
-    test "without escapes" do
+  test "charlist heredocs" do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      # without escapes
       assert_same ~S"""
       ~c'''
       hello
       '''
       """
-    end
 
-    test "with escapes" do
+      # with escapes
       assert_same ~S"""
       ~c'''
       f\a\b\ro
       '''
       """
 
+      # with quotes
       assert_same ~S"""
       ~c'''
       multiple "\"" quotes
       '''
       """
-    end
 
-    test "with interpolation" do
+      # with interpolation
       assert_same ~S"""
       ~c'''
       one
@@ -340,7 +380,31 @@ defmodule Code.Normalizer.FormatterASTTest do
       three
       '''
       """
-    end
+
+      # with empty escaped new lines
+      source =
+        String.trim(~S"""
+        '''
+        one\
+        #{"two"}\
+        three\
+        '''
+        """)
+
+      assert_same source
+
+      # This is the same default as assert_same
+      assert string_to_string(source, unescape: false, escape: false) == source
+
+      # If we unescape, we cannot keep the original representation
+      # but we must keep it as a valid heredoc
+      assert string_to_string(source, unescape: true, escape: true) ==
+               String.trim(~S"""
+               '''
+               one#{"two"}three
+               '''
+               """)
+    end)
   end
 
   describe "keyword list" do
@@ -466,6 +530,23 @@ defmodule Code.Normalizer.FormatterASTTest do
       foo
       '''rsa
       """
+    end
+
+    test "with empty escaped new lines" do
+      source =
+        String.trim(~S"""
+        ~c'''
+        one\
+        #{"two"}\
+        three\
+        '''
+        """)
+
+      assert_same source
+
+      # Heredoc in sigils always preserves newlines regardless of escape/unescape
+      assert string_to_string(source, unescape: false, escape: false) == source
+      assert string_to_string(source, unescape: true, escape: true) == source
     end
   end
 

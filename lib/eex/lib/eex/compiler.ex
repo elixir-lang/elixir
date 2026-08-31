@@ -79,7 +79,7 @@ defmodule EEx.Compiler do
         {:error, message <> code_snippet(state.source, state.indentation, meta), meta}
 
       {:ok, expr, new_line, new_column, rest} ->
-        {key, expr} =
+        {key, expr, extra_meta} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
             {:ok, _line, _column, _warnings, rev_tokens, []} ->
               # We ignore warnings because the code will be tokenized
@@ -87,7 +87,7 @@ defmodule EEx.Compiler do
               token_key(rev_tokens, expr)
 
             {:error, _, _, _, _} ->
-              {:expr, expr}
+              {:expr, expr, %{}}
           end
 
         marker =
@@ -102,8 +102,8 @@ defmodule EEx.Compiler do
             marker
           end
 
-        token = {key, marker, expr, %{line: line, column: column}}
-        trim_and_tokenize(rest, new_line, new_column, state, buffer, acc, &[token | &1])
+        token = {key, marker, expr, Map.merge(%{line: line, column: column}, extra_meta)}
+        trim_and_tokenize(rest, new_line, new_column, state, buffer, acc, &merge_token(token, &1))
     end
   end
 
@@ -125,6 +125,27 @@ defmodule EEx.Compiler do
 
     acc = tokenize_text(buffer, acc)
     tokenize(rest, line, column, state, [{line, column}], fun.(acc))
+  end
+
+  # Merge middle expressions separated only by whitespace so the whitespace is
+  # part of the Elixir expression, not a separate EEx body.
+  defp merge_token(
+         {:middle_expr, ~c"", chars, meta},
+         [{:text, text, text_meta}, {:middle_expr, ~c"", prev_chars, prev_meta} | acc]
+       ) do
+    if only_spaces?(text) and clause_block_identifier?(prev_meta) do
+      [{:middle_expr, ~c"", prev_chars ++ text ++ chars, prev_meta} | acc]
+    else
+      [
+        {:middle_expr, ~c"", chars, meta},
+        {:text, text, text_meta},
+        {:middle_expr, ~c"", prev_chars, prev_meta} | acc
+      ]
+    end
+  end
+
+  defp merge_token(token, acc) do
+    [token | acc]
   end
 
   # Retrieve marker for <%
@@ -177,34 +198,36 @@ defmodule EEx.Compiler do
   defp token_key(rev_tokens, expr) do
     case {Enum.reverse(rev_tokens), drop_eol(rev_tokens)} do
       {[{:end, _} | _], [{:do, _} | _]} ->
-        {:middle_expr, expr}
+        {:middle_expr, expr, %{}}
 
       {_, [{:do, _} | _]} ->
-        {:start_expr, maybe_append_space(expr)}
+        {:start_expr, maybe_append_space(expr), %{}}
 
-      {_, [{:block_identifier, _, _} | _]} ->
-        {:middle_expr, maybe_append_space(expr)}
+      {_, [{:block_identifier, _, identifier} | _]} ->
+        {:middle_expr, maybe_append_space(expr), %{block_identifier: identifier}}
 
       {[{:end, _} | _], [{:stab_op, _, _} | _]} ->
-        {:middle_expr, expr}
+        {:middle_expr, expr, %{}}
 
-      {_, [{:stab_op, _, _} | reverse_tokens]} ->
-        fn_index = Enum.find_index(reverse_tokens, &match?({:fn, _}, &1)) || :infinity
-        end_index = Enum.find_index(reverse_tokens, &match?({:end, _}, &1)) || :infinity
-
-        if end_index > fn_index do
-          {:start_expr, expr}
+      {_, [{:stab_op, _, _} | rev_tokens]} ->
+        if fn_before_end?(rev_tokens) do
+          {:start_expr, expr, %{}}
         else
-          {:middle_expr, expr}
+          {:middle_expr, expr, %{}}
         end
 
       {tokens, _} ->
         case Enum.drop_while(tokens, &closing_bracket?/1) do
-          [{:end, _} | _] -> {:end_expr, expr}
-          _ -> {:expr, expr}
+          [{:end, _} | _] -> {:end_expr, expr, %{}}
+          _ -> {:expr, expr, %{}}
         end
     end
   end
+
+  defp fn_before_end?([{:fn, _} | _]), do: true
+  defp fn_before_end?([{:end, _} | _]), do: false
+  defp fn_before_end?([_ | rev_tokens]), do: fn_before_end?(rev_tokens)
+  defp fn_before_end?([]), do: false
 
   defp drop_eol([{:eol, _} | rest]), do: drop_eol(rest)
   defp drop_eol(rest), do: rest
@@ -303,7 +326,7 @@ defmodule EEx.Compiler do
       file: file,
       source: source,
       line: line,
-      quoted: [],
+      quoted: %{},
       parser_options: [indentation: indentation] ++ parser_options,
       indentation: indentation
     }
@@ -347,7 +370,7 @@ defmodule EEx.Compiler do
         state.parser_options
 
     expr = Code.string_to_quoted!(chars, options)
-    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
+    buffer = handle_expr(buffer, mark, expr, meta, state)
     generate_buffer(rest, buffer, scope, state)
   end
 
@@ -366,7 +389,7 @@ defmodule EEx.Compiler do
         rest,
         state.engine.handle_begin(buffer),
         [{contents, start_line, start_column} | scope],
-        %{state | quoted: [], line: line}
+        %{state | quoted: %{}, line: line}
       )
 
     if mark == ~c"" and not match?({:=, _, [_, _]}, contents) do
@@ -376,7 +399,7 @@ defmodule EEx.Compiler do
       IO.warn(message, file: state.file, line: meta.line, column: meta.column)
     end
 
-    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
+    buffer = handle_expr(buffer, mark, contents, meta, state)
     generate_buffer(rest, buffer, scope, state)
   end
 
@@ -410,7 +433,7 @@ defmodule EEx.Compiler do
        ) do
     {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
     options = [file: state.file, line: line, column: column] ++ state.parser_options
-    tuples = Code.string_to_quoted!(wrapped, options)
+    tuples = Code.string_to_quoted!(:lists.flatten(wrapped), options)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}
   end
@@ -426,7 +449,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:eof, _meta}], _buffer, [{content, line, column} | _scope], state) do
     message = "expected a closing '<% end %>' for block expression in EEx"
-    expr_meta = non_whitespace_meta(content, line, column, state)
+    expr_meta = non_whitespace_meta(:lists.flatten(content), line, column, state)
     syntax_error!(message, expr_meta, state)
   end
 
@@ -443,10 +466,10 @@ defmodule EEx.Compiler do
 
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
-    key = length(state.quoted)
-    placeholder = ~c"__EEX__(" ++ Integer.to_charlist(key) ++ ~c");"
-    count = current ++ placeholder ++ new_lines ++ chars
-    new_state = %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}
+    key = map_size(state.quoted)
+    placeholder = [~c"__EEX__(", Integer.to_charlist(key), ~c");"]
+    count = [current, placeholder, new_lines, chars]
+    new_state = %{state | quoted: Map.put(state.quoted, key, state.engine.handle_end(buffer))}
 
     {count, new_state}
   end
@@ -476,11 +499,16 @@ defmodule EEx.Compiler do
     Enum.all?(chars, &(&1 in @all_spaces))
   end
 
+  defp clause_block_identifier?(%{block_identifier: identifier}) do
+    identifier in [:else, :rescue, :catch]
+  end
+
+  defp clause_block_identifier?(_meta), do: false
+
   # Changes placeholder to real expression
 
   defp insert_quoted({:__EEX__, _, [key]}, quoted) do
-    {^key, value} = List.keyfind(quoted, key, 0)
-    value
+    Map.fetch!(quoted, key)
   end
 
   defp insert_quoted({left, line, right}, quoted) do
@@ -511,6 +539,20 @@ defmodule EEx.Compiler do
       file: state.file,
       line: meta.line,
       column: meta.column
+  end
+
+  defp handle_expr(buffer, mark, expr, meta, state) do
+    state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
+  rescue
+    e in EEx.SyntaxError ->
+      reraise %{
+                e
+                | file: e.file || state.file,
+                  line: e.line || meta.line,
+                  column: e.column || meta.column,
+                  snippet: e.snippet || code_snippet(state.source, state.indentation, meta)
+              },
+              __STACKTRACE__
   end
 
   defp code_snippet(source, indentation, meta) do

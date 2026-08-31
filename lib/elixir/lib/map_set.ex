@@ -51,13 +51,23 @@ defmodule MapSet do
   that they share many properties, including logarithmic time complexity. Erlang
   `:sets` (version 2) are implemented on top of maps, so see the documentation
   for `Map` for more information on its execution time complexity.
+
+  > #### Dialyzer opaqueness warnings {: .warning}
+  >
+  > `MapSet` internally relies on the `:sets` module which uses
+  > opaque types. This might cause Dialyzer to report opaqueness violations.
+  > These can be silenced by setting the following module attribute: 
+  >   
+  >     @dialyzer :no_opaque
+
   """
 
   @type value :: term
 
   # We don't use @opaque (or `:sets.set` which is opaque) because MapSets can be inlined,
   # either via module attributes or by the compiler.
-  @typep internal(value) :: %{optional(value) => term()}
+  # Defaulting to a broad `term()` type to prevent opaqueness violations.
+  @typep internal(_value) :: term()
 
   @type t(value) :: %__MODULE__{map: internal(value)}
   @type t :: t(term)
@@ -170,18 +180,14 @@ defmodule MapSet do
   @doc since: "1.14.0"
   @spec symmetric_difference(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
   def symmetric_difference(%MapSet{map: set1} = map_set1, %MapSet{map: set2} = _map_set2) do
-    {small, large} = if :sets.size(set1) <= :sets.size(set2), do: {set1, set2}, else: {set2, set1}
-
-    disjointer_fun = fn elem, {small, acc} ->
-      if :sets.is_element(elem, small) do
-        {:sets.del_element(elem, small), acc}
+    map =
+      if :sets.is_disjoint(set1, set2) do
+        :sets.union(set1, set2)
       else
-        {small, [elem | acc]}
+        :sets.union(:sets.subtract(set1, set2), :sets.subtract(set2, set1))
       end
-    end
 
-    {new_small, list} = :sets.fold(disjointer_fun, {small, []}, large)
-    %{map_set1 | map: :sets.union(new_small, :sets.from_list(list, version: 2))}
+    %{map_set1 | map: map}
   end
 
   @doc """
@@ -204,7 +210,7 @@ defmodule MapSet do
   Checks if two sets are equal.
 
   The comparison between elements is done using `===/2`,
-  which a set with `1` is not equivalent to a set with
+  which means a set with `1` is not equivalent to a set with
   `1.0`.
 
   ## Examples
@@ -343,7 +349,7 @@ defmodule MapSet do
   > If you find yourself doing multiple calls to `MapSet.filter/2`
   > and `MapSet.reject/2` in a pipeline, it is likely more efficient
   > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
-  > a map at the end using `MapSet.new/1`.
+  > a set at the end using `MapSet.new/1`.
 
   ## Examples
 
@@ -399,15 +405,15 @@ defmodule MapSet do
       iex> while_false
       MapSet.new([1, 3])
 
-      iex> {while_true, while_false} = MapSet.split_with(MapSet.new(), fn {_k, v} -> v > 50 end)
+      iex> {while_true, while_false} = MapSet.split_with(MapSet.new([10, 20, 60, 70]), fn v -> v > 50 end)
       iex> while_true
-      MapSet.new([])
+      MapSet.new([60, 70])
       iex> while_false
-      MapSet.new([])
+      MapSet.new([10, 20])
 
   """
   @doc since: "1.15.0"
-  @spec split_with(MapSet.t(), (term() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
+  @spec split_with(t(a), (a -> as_boolean(term))) :: {t(a), t(a)} when a: value
   def split_with(%MapSet{map: map}, fun) when is_function(fun, 1) do
     {while_true, while_false} = Map.split_with(map, fn {key, _} -> fun.(key) end)
     {%MapSet{map: while_true}, %MapSet{map: while_false}}

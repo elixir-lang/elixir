@@ -29,7 +29,7 @@ defmodule AccessTest do
     assert Access.get(nil, :foo) == nil
 
     assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
-      Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
+      Access.get_and_update(Process.get(:unused, nil), :foo, fn nil -> {:ok, :bar} end)
     end
   end
 
@@ -216,6 +216,81 @@ defmodule AccessTest do
 
     test "returns empty when the start of the range is greater than the end" do
       assert [] == get_in(@test_list, [Access.slice(2..1//1)])
+    end
+
+    test "pops empty when the start of the range is greater than the end" do
+      assert {[], @test_list} == pop_in(@test_list, [Access.slice(2..1//1)])
+    end
+
+    test "pops empty when the range is out of bounds" do
+      assert {[], @test_list} == pop_in(@test_list, [Access.slice(10..20)])
+    end
+
+    test "gets and updates a range with mixed pop and update returns" do
+      assert {[100, 2, 300, 4, 500], [10, 30, 50, 6, 7]} ==
+               get_and_update_in(@test_list, [Access.slice(0..4)], fn value ->
+                 if rem(value, 2) == 0, do: :pop, else: {value * 100, value * 10}
+               end)
+    end
+
+    test "updates a stepped range that starts past the beginning of the list" do
+      assert [1, 2, -3, 4, -5, 6, -7] ==
+               update_in(@test_list, [Access.slice(2..6//2)], &(&1 * -1))
+    end
+  end
+
+  describe "key/2 and key!/1" do
+    @test_map %{foo: :bar, baz: :qux}
+
+    test "finds key in map" do
+      assert get_in(@test_map, [Access.key(:foo)]) == :bar
+      assert get_in(@test_map, [Access.key(:missing)]) == nil
+
+      assert get_in(@test_map, [Access.key!(:foo)]) == :bar
+
+      assert_raise KeyError, fn ->
+        get_in(@test_map, [Access.key!(:missing)])
+      end
+    end
+
+    test "finds key in struct" do
+      defmodule KeySample do
+        defstruct foo: :bar, baz: :qux
+      end
+
+      assert get_in(struct(KeySample), [Access.key(:foo)]) == :bar
+      assert get_in(struct(KeySample), [Access.key(:missing)]) == nil
+
+      assert get_in(struct(KeySample), [Access.key!(:foo)]) == :bar
+
+      assert_raise KeyError, fn ->
+        get_in(struct(KeySample), [Access.key!(:missing)])
+      end
+    end
+
+    @test_keyword [foo: :bar, baz: :qux]
+
+    test "finds key in keyword list" do
+      assert get_in(@test_keyword, [Access.key(:foo)]) == :bar
+      assert get_in(@test_keyword, [Access.key(:missing)]) == nil
+
+      assert get_in(@test_keyword, [Access.key!(:foo)]) == :bar
+
+      assert_raise KeyError, fn ->
+        get_in(@test_keyword, [Access.key!(:missing)])
+      end
+    end
+
+    test "raises when key/2 access is attempted on [1,2,3]" do
+      assert_raise RuntimeError, ~r"Access.key/2 expected a map/struct/keyword list", fn ->
+        put_in([1, 2, 3], [Access.key(:foo)], :bar)
+      end
+    end
+
+    test "raises when key!/1 access is attempted on [1,2,3]" do
+      assert_raise RuntimeError, ~r"Access.key!/1 expected a map/struct/keyword list", fn ->
+        put_in([1, 2, 3], [Access.key!(:foo)], :bar)
+      end
     end
   end
 

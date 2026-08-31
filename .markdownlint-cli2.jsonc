@@ -5,7 +5,8 @@
     "**/*.md"
   ],
   "ignores": [
-    ".git/**"
+    ".git/**",
+    ".github/**"
   ],
   "gitignore": true,
   "config": {

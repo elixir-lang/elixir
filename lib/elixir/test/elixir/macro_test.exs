@@ -1020,7 +1020,6 @@ defmodule MacroTest do
           with {:ok, width} <- Map.fetch(opts, :width) do
             width
           else
-            other when is_integer(other) -> :int
             other when is_atom(other) -> :atom
           end
         )
@@ -1075,6 +1074,21 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
     end
 
+    test "escapes literal parts of interpolated strings" do
+      for source <- [~S["\\n#{x}"], ~S["\\#{x}"], ~S["a\\0#{x}"], ~S["\\u#{x}"], ~S["\\x#{x}"]] do
+        ast = Code.string_to_quoted!(source)
+        assert Macro.to_string(ast) == source
+      end
+    end
+
+    test "escapes Unicode codepoints without changing their encoding" do
+      for codepoint <- Enum.concat([0x80..0x9F, [0xFFFE, 0xFFFF]]) do
+        string = <<codepoint::utf8>>
+        source = Macro.to_string(string)
+        assert {^string, []} = Code.eval_string(source)
+      end
+    end
+
     test "converts invalid AST with inspect" do
       assert Macro.to_string(1..3) == "1..3"
     end
@@ -1082,7 +1096,7 @@ defmodule MacroTest do
 
   describe "to_string/2" do
     defp macro_to_string(var, fun \\ fn _ast, string -> string end) do
-      module = String.to_atom("Elixir.Macro")
+      module = String.to_unsafe_atom("Elixir.Macro")
       module.to_string(var, fun)
     end
 
@@ -1625,14 +1639,6 @@ defmodule MacroTest do
 
     assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: Access.get(:foo)), 0) ==
              quote(do: Access.get(%{foo: "bar"}, :foo))
-
-    assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn ->
-      Macro.pipe(1, 2, 0)
-    end
-
-    assert_raise ArgumentError, ~r"cannot pipe 1 into \{2, 3\}", fn ->
-      Macro.pipe(1, {2, 3}, 0)
-    end
 
     assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1, the :\+ operator can", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))

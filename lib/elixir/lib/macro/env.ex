@@ -203,23 +203,23 @@ defmodule Macro.Env do
   Returns a keyword list containing the file and line
   information as keys.
   """
-  @spec location(t) :: keyword
+  @spec location(t) :: [file: file, line: line]
   def location(env)
 
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
     [file: file, line: line]
   end
 
-  # TODO: Deprecate on Elixir 1.21 in favor of expand_alias/4
   @doc false
+  @deprecated "Use Macro.Env.expand_alias/4 instead"
   def fetch_alias(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
-    do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+    do: Keyword.fetch(aliases, String.to_unsafe_atom("Elixir.#{atom}"))
 
-  # TODO: Deprecate on Elixir 1.21 in favor of expand_alias/4
   @doc false
+  @deprecated "Use Macro.Env.expand_alias/4 instead"
   def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom)
       when is_atom(atom),
-      do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+      do: Keyword.fetch(aliases, String.to_unsafe_atom("Elixir.#{atom}"))
 
   @doc """
   Returns the modules from which the given `{name, arity}` was
@@ -234,7 +234,7 @@ defmodule Macro.Env do
   > This function does not emit compiler tracing events,
   > which may block the compiler from correctly tracking
   > dependencies. Use this function for reflection purposes
-  > but to do not use it to expand imports into qualified
+  > but do not use it to expand imports into qualified
   > calls. Instead, use `expand_import/5`.
 
   ## Examples
@@ -345,7 +345,7 @@ defmodule Macro.Env do
 
   ## Additional options
 
-  It accepts the same options as `Kernel.SpecialForm.require/2` plus:
+  It accepts the same options as `Kernel.SpecialForms.require/2` plus:
 
     * #{trace_option}
 
@@ -367,7 +367,8 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec define_require(t, Macro.metadata(), module, define_require_opts) :: {:ok, t}
+  @spec define_require(t, Macro.metadata(), module, define_require_opts) ::
+          {:ok, t} | {:error, String.t()}
   def define_require(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
@@ -385,7 +386,7 @@ defmodule Macro.Env do
 
   ## Additional options
 
-  It accepts the same options as `Kernel.SpecialForm.import/2` plus:
+  It accepts the same options as `Kernel.SpecialForms.import/2` plus:
 
     * `:emit_warnings` - emit warnings found when defining imports
 
@@ -393,7 +394,7 @@ defmodule Macro.Env do
 
     * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
       The function will be invoked with `:functions` or `:macros` argument.
-      It has to return a list of `{function, arity}` key value pairs.
+      It has to return a list of `{function, arity}` key-value pairs.
       If it fails, it defaults to using module metadata based on `module_info/1`.
 
   ## Examples
@@ -405,7 +406,7 @@ defmodule Macro.Env do
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
       [{:function, List}]
 
-  It accepts the same options as `Kernel.SpecialForm.import/2`:
+  It accepts the same options as `Kernel.SpecialForms.import/2`:
 
       iex> env = __ENV__
       iex> Macro.Env.lookup_import(env, {:is_odd, 1})
@@ -447,7 +448,7 @@ defmodule Macro.Env do
 
   ## Additional options
 
-  It accepts the same options as `Kernel.SpecialForm.alias/2` plus:
+  It accepts the same options as `Kernel.SpecialForms.alias/2` plus:
 
     * #{trace_option}
 
@@ -699,7 +700,7 @@ defmodule Macro.Env do
   @doc """
   Returns the environment stacktrace.
   """
-  @spec stacktrace(t) :: list
+  @spec stacktrace(t) :: [{module, atom, arity, keyword}]
   def stacktrace(%{__struct__: Macro.Env} = env) do
     cond do
       is_nil(env.module) ->

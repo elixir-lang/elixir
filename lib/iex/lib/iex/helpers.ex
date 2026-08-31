@@ -507,6 +507,7 @@ defmodule IEx.Helpers do
             source
         end
       end)
+      |> Enum.uniq()
 
     {erlang, elixir} = Enum.split_with(sources, &String.ends_with?(&1, ".erl"))
 
@@ -558,9 +559,15 @@ defmodule IEx.Helpers do
       Data type
         Range
       Description
-        This is a struct. Structs are maps with a __struct__ key.
+        This is a struct representing a range of numbers. It is commonly
+        defined using the `first..last//step` syntax. The step is not
+        required and defaults to `1`.
+      Raw representation
+        %Range{first: 1, last: 5, step: 1}
       Reference modules
-        Range, Map
+        Range
+      Implemented protocols
+        Enumerable, IEx.Info, Inspect
 
   """
   def i(term \\ v(-1)) do
@@ -886,7 +893,9 @@ defmodule IEx.Helpers do
   def process_info(pid) do
     with pid when is_pid(pid) <- GenServer.whereis(pid),
          info when is_list(info) <-
-           :erpc.call(node(pid), :erlang, :process_info, [pid, @process_info_keys]) do
+           :erpc.call(node(pid), :erlang, :process_info, [pid, @process_info_keys]),
+         word_size when is_integer(word_size) <-
+           :erpc.call(node(pid), :erlang, :system_info, [:wordsize]) do
       info = Map.new(info)
 
       IO.puts(IEx.color(:eval_result, ["\n# Process ", inspect(pid)]))
@@ -894,7 +903,7 @@ defmodule IEx.Helpers do
       print_process_overview(info)
       print_process_links(info[:links])
       print_process_monitors(info[:monitors])
-      print_process_memory(info)
+      print_process_memory(info, word_size)
       print_process_stacktrace(info[:current_stacktrace])
     else
       _ ->
@@ -950,11 +959,14 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp print_process_memory(info) do
+  defp print_process_memory(info, word_size) do
     print_pane("Memory")
 
-    for key <- [:memory, :total_heap_size, :heap_size, :stack_size] do
-      print_entry(@process_info_label_mapping[key], format_bytes(info[key]))
+    print_entry(@process_info_label_mapping[:memory], format_bytes(info[:memory]))
+
+    # InfoTuple's word-sized items
+    for key <- [:total_heap_size, :heap_size, :stack_size] do
+      print_entry(@process_info_label_mapping[key], format_bytes(info[key] * word_size))
     end
   end
 

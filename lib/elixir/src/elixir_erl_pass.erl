@@ -230,7 +230,7 @@ translate({Name, Meta, Args}, _Ann, S) when is_atom(Name), is_list(Meta), is_lis
 translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, #elixir_erl{context=guard} = S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
   Ann = ?ann(Meta),
-  {TLeft, SL}  = translate(Left, Ann, S),
+  {TLeft, SL} = translate(Left, Ann, S),
   TRight = {atom, Ann, Right},
   {?remote(Ann, erlang, map_get, [TRight, TLeft]), SL};
 
@@ -576,19 +576,10 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
     {clause, Generated, [Var], [[Guard]], [Fast]},
     {clause, Generated, [Var], [], [Slow]}
   ]}, VS};
-translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
+translate_remote(lists, member, Meta, [Expr, []], S) ->
   Ann = ?ann(Meta),
-
-  case translate_args([Key, Value, Map], Ann, S) of
-    {[TKey, TValue, {map, _, InnerMap, Pairs}], TS} ->
-      {{map, Ann, InnerMap, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
-
-    {[TKey, TValue, {map, _, Pairs}], TS} ->
-      {{map, Ann, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
-
-    {[TKey, TValue, TMap], TS} ->
-      {{map, Ann, TMap, [{map_field_assoc, Ann, TKey, TValue}]}, TS}
-  end;
+  {TExpr, S1} = translate(Expr, Ann, S),
+  {{block, Ann, [{match, Ann, {var, Ann, '_'}, TExpr}, {atom, Ann, false}]}, S1};
 translate_remote(lists, member, Meta, [Expr, [Head | Tail] = List], S) ->
   Ann = ?ann(Meta),
 
@@ -643,10 +634,35 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[TMap1, TMap2], TS} ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
   end;
+translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'Elixir.String'; Mod == 'Elixir.List' ->
+  Ann = ?ann(Meta),
+  {[TString, TList], TS} = translate_args([String, List], Ann, S),
+
+  case is_list(List) andalso lists:all(fun is_atom/1, List) of
+    true ->
+      Generated = erl_anno:set_generated(true, Ann),
+      LastClause = {clause, Generated,
+        [{var, Generated, '_'}],
+        [],
+        [{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, '__to_existing_atom__'}}, [TString, TList]}]},
+      CastAtom = case Mod of
+        'Elixir.String' -> fun atom_to_binary/1;
+        'Elixir.List' -> fun atom_to_list/1
+      end,
+      Clauses = [
+        {clause, Generated,
+          [elixir_erl:elixir_to_erl(CastAtom(Atom), Ann)],
+          [],
+          [{atom, Ann, Atom}]}
+      || Atom <- List] ++ [LastClause],
+      {{'case', Generated, TString, Clauses}, TS};
+    false ->
+      {{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, to_existing_atom}}, [TString, TList]}, TS}
+  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
 
-  case rewrite_strategy(Left, Right, Args) of
+  case rewrite_strategy(Left, Right, Args, S) of
     guard_op ->
       {TArgs, SA} = translate_args(Args, Ann, S),
       %% Rewrite Erlang function calls as operators so they
@@ -655,12 +671,18 @@ translate_remote(Left, Right, Meta, Args, S) ->
         [TOne]       -> {{op, Ann, Right, TOne}, SA};
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
       end;
+    {reorder, ErlLeft, ErlRight, FunArgs} ->
+      evaluate_first(Args, Ann, S, fun(ErlArgs) ->
+        TLeft = {atom, Ann, ErlLeft},
+        TRight = {atom, Ann, ErlRight},
+        {call, Ann, {remote, Ann, TLeft, TRight}, FunArgs(Ann, ErlArgs)}
+      end);
     {inline_pure, Result} ->
       Generated = erl_anno:set_generated(true, Ann),
       translate(Result, Generated, S);
     {inline_args, NewArgs} ->
-      {TLeft, SL} = translate(Left, Ann, S),
-      {TArgs, SA} = translate_args(NewArgs, Ann, SL),
+      {TArgs, SA} = translate_args(NewArgs, Ann, S),
+      TLeft = {atom, Ann, Left},
       TRight = {atom, Ann, Right},
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA};
     none ->
@@ -678,13 +700,9 @@ optimize_list_membership([], _Count) ->
 optimize_list_membership(_, _Count) ->
   false.
 
-rewrite_strategy(erlang, Right, Args) ->
-  Arity  = length(Args),
-  case elixir_utils:guard_op(Right, Arity) of
-    true -> guard_op;
-    false -> none
-  end;
-rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
+rewrite_strategy(erlang, Right, Args, S) ->
+  guard_op_strategy(Right, length(Args), S);
+rewrite_strategy(Left, shift, [Struct, Opts | RestArgs], _S) when
   Left == 'Elixir.Date';
   Left == 'Elixir.DateTime';
   Left == 'Elixir.NaiveDateTime';
@@ -701,7 +719,7 @@ rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
     false ->
       none
   end;
-rewrite_strategy(Left, Right, Args) ->
+rewrite_strategy(Left, Right, Args, _S) ->
   case inline_pure_function(Left, Right) andalso basic_type_arg(Args) of
     true ->
       try
@@ -711,8 +729,48 @@ rewrite_strategy(Left, Right, Args) ->
         none
       end;
     false ->
-      none
+      reorder_strategy(Left, Right, length(Args))
   end.
+
+guard_op_strategy('andalso', 2, #elixir_erl{context=guard}) -> guard_op;
+guard_op_strategy('orelse', 2, #elixir_erl{context=guard}) -> guard_op;
+guard_op_strategy(Op, Arity, _S) ->
+  case elixir_utils:guard_op(Op, Arity) of
+    true -> guard_op;
+    false -> none
+  end.
+
+-define(
+  reorder(ExMod, ExFun, ExArity, ExArgs, ErlMod, ErlFun, ErlArgs),
+  reorder_strategy(ExMod, ExFun, ExArity) -> {reorder, ErlMod, ErlFun, fun(Ann, ExArgs) -> _ = Ann, ErlArgs end}
+).
+
+?reorder('Elixir.Kernel', elem, 2, [Tuple, Index], erlang, element, [increment(Ann, Index), Tuple]);
+?reorder('Elixir.Kernel', put_elem, 3, [Tuple, Index, Term], erlang, setelement, [increment(Ann, Index), Tuple, Term]);
+?reorder('Elixir.Kernel', is_map_key, 2, [Map, Key], erlang, is_map_key, [Key, Map]);
+?reorder('Elixir.Map', delete, 2, [Map, Key], maps, remove, [Key, Map]);
+?reorder('Elixir.Map', fetch, 2, [Map, Key], maps, find, [Key, Map]);
+?reorder('Elixir.Map', 'fetch!', 2, [Map, Key], maps, get, [Key, Map]);
+?reorder('Elixir.Map', 'has_key?', 2, [Map, Key], maps, is_key, [Key, Map]);
+?reorder('Elixir.Map', put, 3, [Map, Key, Value], maps, put, [Key, Value, Map]);
+?reorder('Elixir.Map', 'replace!', 3, [Map, Key, Value], maps, update, [Key, Value, Map]);
+?reorder('Elixir.Process', group_leader, 2, [Pid, Leader], erlang, group_leader, [Leader, Pid]);
+?reorder('Elixir.Tuple', delete_at, 2, [Tuple, Index], erlang, delete_element, [increment(Ann, Index), Tuple]);
+?reorder('Elixir.Tuple', duplicate, 2, [Data, Size], erlang, make_tuple, [Size, Data]);
+?reorder('Elixir.Tuple', insert_at, 3, [Tuple, Index, Term], erlang, insert_element, [increment(Ann, Index), Tuple, Term]);
+reorder_strategy(_, _, _) -> none.
+
+increment(_Ann, {integer, Ann, Number}) when is_number(Number) -> {integer, Ann, Number + 1};
+increment(Ann, Other) -> {op, Ann, '+', Other, {integer, Ann, 1}}.
+
+evaluate_first([{Var, _Meta, Ctx} | _Tail] = Args, Ann, S, Fun) when is_atom(Var), is_atom(Ctx) ->
+  {TArgs, ST} = translate_args(Args, Ann, S),
+  {Fun(TArgs), ST};
+evaluate_first(Args, Ann, S, Fun) ->
+  {VarName, SV} = elixir_erl_var:build('_', S),
+  {[Head | Tail], ST} = translate_args(Args, Ann, SV),
+  Var = {var, Ann, VarName},
+  {{block, Ann, [{match, Ann, Var, Head}, Fun([Var | Tail])]}, ST}.
 
 inline_pure_function('Elixir.Duration', 'new!') -> true;
 inline_pure_function('Elixir.MapSet', new) -> true;

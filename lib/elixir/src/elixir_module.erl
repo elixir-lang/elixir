@@ -159,6 +159,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
   {DataSet, DataBag} = Tables,
 
   try
+    CompilerInfo = erlang:get(elixir_compiler_info),
     put_compiler_modules([Module | CompilerModules]),
     {Result, ModuleE, CallbackE} = eval_form(Line, Module, DataBag, Block, Vars, Prune, E),
     CheckerInfo = checker_info(),
@@ -166,6 +167,11 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
     {Binary, PersistedAttributes, Autoload} =
       elixir_erl_compiler:spawn(fun() ->
+        case CompilerInfo of
+          undefined -> undefined;
+          _ -> erlang:put(elixir_compiler_info, CompilerInfo)
+        end,
+
         PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
         Attributes = attributes(DataSet, DataBag, PersistedAttributes),
         AllDefinitions = elixir_def:fetch_definitions(Module, E),
@@ -199,7 +205,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
               'Elixir.Module.Types':infer(Module, File, Attributes, AllDefinitions, UsedPrivate, E, CheckerInfo)
           end,
 
-        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2) ++ elixir_config:get(erlc_options),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
         Impls = bag_lookup_element(DataBag, impls, 2),
 
@@ -574,7 +580,7 @@ bag_lookup_element(Table, Name, Pos) ->
   end.
 
 beam_location(ModuleAsCharlist) ->
-  case get(elixir_compiler_dest) of
+  case erlang:get(elixir_compiler_dest) of
     {Dest, Forceload} when is_binary(Dest) ->
       {filename:join(elixir_utils:characters_to_list(Dest), ModuleAsCharlist ++ ".beam"),
        Forceload};
@@ -585,7 +591,7 @@ beam_location(ModuleAsCharlist) ->
 %% Integration with elixir_compiler that makes the module available
 
 checker_info() ->
-  case get(elixir_checker_info) of
+  case erlang:get(elixir_checker_info) of
     undefined -> {self(), nil};
     _ -> 'Elixir.Module.ParallelChecker':get()
   end.
@@ -601,19 +607,19 @@ spawn_parallel_checker(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation)
   'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation, Log).
 
 make_module_available(Module, Binary, Loaded) ->
-  case get(elixir_module_binaries) of
+  case erlang:get(elixir_module_binaries) of
     Current when is_list(Current) ->
       put(elixir_module_binaries, [{Module, Binary} | Current]);
     _ ->
       ok
   end,
 
-  case get(elixir_compiler_info) of
+  case erlang:get(elixir_compiler_info) of
     undefined ->
       ok;
     {PID, _} ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, Loaded},
+      PID ! {module_available, self(), Ref, erlang:get(elixir_compiler_file), Module, Binary, Loaded},
       receive {Ref, ack} -> ok end
   end.
 

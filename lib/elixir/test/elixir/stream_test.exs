@@ -256,11 +256,11 @@ defmodule StreamTest do
     assert is_function(stream)
 
     assert_raise ArgumentError, "cannot cycle over an empty enumerable", fn ->
-      Stream.cycle([])
+      Stream.cycle(%{}) |> Enum.to_list()
     end
 
     assert_raise ArgumentError, "cannot cycle over an empty enumerable", fn ->
-      Stream.cycle(%{}) |> Enum.to_list()
+      Stream.cycle(%HaltAcc{acc: []}) |> Enum.to_list()
     end
 
     assert Stream.cycle([1, 2, 3]) |> Stream.take(5) |> Enum.to_list() == [1, 2, 3, 1, 2]
@@ -279,6 +279,28 @@ defmodule StreamTest do
   test "cycle/1 with cycle/1 with cycle/1" do
     assert [1] |> Stream.cycle() |> Stream.cycle() |> Stream.cycle() |> Enum.take(5) ==
              [1, 1, 1, 1, 1]
+  end
+
+  test "cycle/1 raises when a subsequent reduce yields no elements" do
+    Process.put(:cycle_counter, 0)
+
+    stream =
+      Stream.resource(
+        fn ->
+          n = Process.get(:cycle_counter)
+          Process.put(:cycle_counter, n + 1)
+          n
+        end,
+        fn
+          0 -> {[:a], :done}
+          _ -> {:halt, :ok}
+        end,
+        fn _ -> :ok end
+      )
+
+    assert_raise RuntimeError,
+                 "cycled enumerable became empty after a previous iteration produced elements",
+                 fn -> Stream.cycle(stream) |> Enum.take(3) end
   end
 
   test "dedup/1 is lazy" do

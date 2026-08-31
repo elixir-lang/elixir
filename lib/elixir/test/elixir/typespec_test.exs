@@ -532,7 +532,7 @@ defmodule TypespecTest do
       assert {:type, _, :map_field_exact, [{:atom, _, :message}, {:type, _, :term, []}]} = arg2
     end
 
-    @fields Enum.map(10..42, &{:"f#{&1}", :ok})
+    @fields Enum.map(10..42, &{String.to_unsafe_atom("f#{&1}"), :ok})
 
     test "@type with a large struct" do
       bytecode =
@@ -1313,6 +1313,50 @@ defmodule TypespecTest do
       end)
     end
 
+    test "spec_to_quoted collects nested type vars" do
+      bytecode =
+        test_module do
+          @spec foo(arg1 :: [t], arg2 :: [t]) :: atom() when t: var
+          def foo(_, _), do: :ok
+        end
+
+      [{{:foo, 2}, [spec]}] = specs(bytecode)
+
+      assert Macro.to_string(Code.Typespec.spec_to_quoted(:foo, spec)) ==
+               "foo(arg1 :: [t], arg2 :: [t]) :: atom() when t: var"
+    end
+
+    test "spec_to_quoted preserves line metadata for elixir remote types" do
+      bytecode =
+        test_module do
+          @spec foo(
+                  keyword,
+                  keyword(term()),
+                  charlist(),
+                  nonempty_charlist(),
+                  struct(),
+                  as_boolean(term())
+                ) ::
+                  :ok
+          def foo(_, _, _, _, _, _), do: :ok
+        end
+
+      [{{:foo, 6}, [spec]}] = specs(bytecode)
+
+      {:type, _, :fun, [{:type, _, :product, args}, _]} = spec
+
+      assert length(args) == 6
+
+      Enum.each(args, fn
+        {:remote_type, {line, column}, [{:atom, _, :elixir}, _, _]} ->
+          assert line > 0
+          assert column > 0
+
+        other ->
+          flunk("expected elixir remote type, got: #{inspect(other)}")
+      end)
+    end
+
     test "spec_to_quoted with maps with __struct__ key" do
       defmodule StructA do
         defstruct [:key]
@@ -1405,6 +1449,23 @@ defmodule TypespecTest do
     test "retrieval invalid data" do
       assert Code.Typespec.fetch_types(Unknown) == :error
       assert Code.Typespec.fetch_specs(Unknown) == :error
+    end
+
+    if System.otp_release() >= "28" do
+      test "retrieval of Erlang nominal types" do
+        forms = [
+          {:attribute, 1, :module, :typespec_nominal_sample},
+          {:attribute, 2, :export_type, [meters: 0]},
+          {:attribute, 3, :nominal, {:meters, {:type, 3, :integer, []}, []}},
+          {:attribute, 4, :type, {:plain, {:type, 4, :atom, []}, []}}
+        ]
+
+        {:ok, :typespec_nominal_sample, beam} = :compile.forms(forms, [:debug_info])
+
+        assert {:ok, types} = Code.Typespec.fetch_types(beam)
+        assert {:nominal, {:meters, {:type, 3, :integer, []}, []}} in types
+        assert {:typep, {:plain, {:type, 4, :atom, []}, []}} in types
+      end
     end
 
     # This is a test that implements all types specified in lib/elixir/pages/typespecs.md

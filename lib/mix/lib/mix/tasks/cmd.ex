@@ -106,7 +106,7 @@ defmodule Mix.Tasks.Cmd do
     apps =
       opts
       |> Keyword.get_values(:app)
-      |> Enum.map(&String.to_atom/1)
+      |> Enum.map(&String.to_unsafe_atom/1)
 
     if apps != [] do
       IO.warn("the --app in mix cmd is deprecated. Use mix do --app instead.")

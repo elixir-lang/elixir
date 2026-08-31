@@ -491,6 +491,21 @@ defmodule DateTimeTest do
     assert DateTime.to_unix(min_datetime) == -377_705_116_800
   end
 
+  test "to_unix/2 with non-default units floors pre-epoch datetimes" do
+    datetime = ~U[1969-12-31 23:59:59.999999Z]
+
+    assert DateTime.to_unix(datetime, :second) == -1
+    assert DateTime.to_unix(datetime, :millisecond) == -1
+    assert DateTime.to_unix(datetime, :microsecond) == -1
+    assert DateTime.to_unix(datetime, :nanosecond) == -1_000
+
+    assert DateTime.from_unix!(-17_412_508_654_473, :millisecond)
+           |> DateTime.to_unix(:millisecond) == -17_412_508_654_473
+
+    assert DateTime.from_unix!(1_000_000_123, :millisecond)
+           |> DateTime.to_unix(:millisecond) == 1_000_000_123
+  end
+
   test "compare/2" do
     datetime1 = %DateTime{
       year: 2000,
@@ -764,15 +779,6 @@ defmodule DateTimeTest do
   end
 
   describe "diff" do
-    test "with invalid time unit" do
-      dt = DateTime.utc_now()
-
-      message =
-        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
-
-      assert_raise ArgumentError, message, fn -> DateTime.diff(dt, dt, "day") end
-    end
-
     test "with valid time unit" do
       dt1 = %DateTime{
         year: 100,
@@ -817,6 +823,7 @@ defmodule DateTimeTest do
         |> DateTime.add(-1, :microsecond)
 
       assert DateTime.diff(in_almost_7_days, datetime, :day) == 6
+      assert DateTime.diff(datetime, in_almost_7_days, :day) == -6
     end
 
     test "in microseconds" do
@@ -945,6 +952,18 @@ defmodule DateTimeTest do
   end
 
   describe "shift_zone" do
+    test "to Etc/UTC does not consult the time zone database" do
+      dt =
+        DateTime.from_naive!(
+          ~N[2018-07-16 12:00:00.123],
+          "Europe/Copenhagen",
+          FakeTimeZoneDatabase
+        )
+
+      assert DateTime.shift_zone(dt, "Etc/UTC", EmptyTimeZoneDatabase) ==
+               {:ok, ~U[2018-07-16 10:00:00.123Z]}
+    end
+
     test "with compatible calendar" do
       holocene_ndt = %NaiveDateTime{
         calendar: Calendar.Holocene,
@@ -1029,6 +1048,16 @@ defmodule DateTimeTest do
       assert_raise ArgumentError, fn ->
         DateTime.add(dt, 1, :second)
       end
+    end
+
+    test "with Etc/UTC datetime does not consult the time zone database" do
+      dt = ~U[2018-08-28 23:59:59Z]
+
+      assert DateTime.add(dt, 1, :second, EmptyTimeZoneDatabase) == ~U[2018-08-29 00:00:00Z]
+      assert DateTime.add(dt, -1, :day, EmptyTimeZoneDatabase) == ~U[2018-08-27 23:59:59Z]
+
+      assert DateTime.add(dt, 1021, :millisecond, EmptyTimeZoneDatabase) ==
+               ~U[2018-08-29 00:00:00.021Z]
     end
 
     test "with other calendars" do
@@ -1168,5 +1197,13 @@ defmodule DateTimeTest do
     assert_raise ArgumentError,
                  "unknown unit :months. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12) end
+  end
+
+  test "shift/3 with Etc/UTC datetime does not consult the time zone database" do
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], [month: 1], EmptyTimeZoneDatabase) ==
+             ~U[2000-02-01 00:00:00Z]
+
+    assert DateTime.shift(~U[2000-01-01 00:00:00.123Z], [hour: -1], EmptyTimeZoneDatabase) ==
+             ~U[1999-12-31 23:00:00.123Z]
   end
 end

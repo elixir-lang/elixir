@@ -165,7 +165,7 @@ defmodule Protocol.ConsolidationTest do
 
     defp exports(binary) do
       {:ok, {_, [{~c"ExCk", check_bin}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-      assert {:elixir_checker_v7, contents} = :erlang.binary_to_term(check_bin)
+      assert {:elixir_checker_v10, contents} = :erlang.binary_to_term(check_bin)
       Map.new(contents.exports)
     end
 
@@ -185,7 +185,7 @@ defmodule Protocol.ConsolidationTest do
       assert clauses == [
                {[Of.impl(ImplStruct, :open)],
                 atom([Sample.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(Of.impl(ImplStruct, :open))], atom([nil])}
+               {[opt_negation(Of.impl(ImplStruct, :open))], atom([nil])}
              ]
 
       assert %{{:impl_for!, 1} => %{sig: {:strong, domain, clauses}}} = exports
@@ -217,7 +217,7 @@ defmodule Protocol.ConsolidationTest do
                {[Of.impl(Map, :open)], atom([WithAny.Map])},
                {[Of.impl(ImplStruct, :open)],
                 atom([WithAny.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(union(Of.impl(ImplStruct, :open), Of.impl(Map, :open)))],
+               {[opt_negation(opt_union(Of.impl(ImplStruct, :open), Of.impl(Map, :open)))],
                 atom([WithAny.Any])}
              ]
 
@@ -267,7 +267,7 @@ defmodule Protocol.ConsolidationTest do
         "\n\nGot value:\n\n    :foo\n"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      sample = String.to_atom("Elixir.Protocol.ConsolidationTest.Sample")
+      sample = String.to_unsafe_atom("Elixir.Protocol.ConsolidationTest.Sample")
       sample.ok(:foo)
     end
   end
