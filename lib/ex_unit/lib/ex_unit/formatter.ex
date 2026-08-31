@@ -422,7 +422,9 @@ defmodule ExUnit.Formatter do
 
   @doc false
   def format_assertion_error(%ExUnit.AssertionError{} = struct) do
-    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "") |> elem(0)
+    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
+    |> elem(0)
+    |> ensure_printable()
   end
 
   @doc """

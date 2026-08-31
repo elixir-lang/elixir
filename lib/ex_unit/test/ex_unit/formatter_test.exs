@@ -667,6 +667,13 @@ defmodule ExUnit.FormatterTest do
     assert formatted =~ "** (RuntimeError) bad payload:"
   end
 
+  test "formats invalid UTF-8 in Exception.message on assertion errors" do
+    message = Exception.message(catch_assertion(flunk("frame bytes: " <> <<0xC3, 0x28, 0xFF>>)))
+
+    assert String.valid?(message)
+    assert message =~ "frame bytes:"
+  end
+
   test "formats long test name using full description" do
     failure = [{:error, catch_error(raise "oops"), []}]
     long = long_test()
