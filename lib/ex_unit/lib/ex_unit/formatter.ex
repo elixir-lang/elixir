@@ -281,16 +281,18 @@ defmodule ExUnit.Formatter do
       parameters: parameters
     } = test
 
-    (test_info(with_counter(counter, "#{description} (#{inspect(module)})"), formatter) <>
-       test_parameters(parameters, formatter) <>
-       test_location(with_location(tags), formatter) <>
-       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-         {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
+    formatted =
+      test_info(with_counter(counter, "#{description} (#{inspect(module)})"), formatter) <>
+        test_parameters(parameters, formatter) <>
+        test_location(with_location(tags), formatter) <>
+        Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
+          {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
 
-         failure_header(failures, index) <>
-           text <> format_stacktrace(stack, module, name, formatter)
-       end))
-    |> ensure_printable()
+          failure_header(failures, index) <>
+            text <> format_stacktrace(stack, module, name, formatter)
+        end)
+
+    ensure_printable(formatted)
   end
 
   @doc false
@@ -322,13 +324,22 @@ defmodule ExUnit.Formatter do
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
     %{name: name, parameters: parameters} = test_module
 
-    (test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
-       test_parameters(parameters, formatter) <>
-       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
-         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
-       end))
-    |> ensure_printable()
+    formatted =
+      test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
+        test_parameters(parameters, formatter) <>
+        Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
+          {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
+
+          failure_header(failures, index) <>
+            text <> format_stacktrace(stack, name, nil, formatter)
+        end)
+
+    ensure_printable(formatted)
+  end
+
+  @doc false
+  def ensure_printable(binary) do
+    if String.valid?(binary), do: binary, else: String.replace_invalid(binary)
   end
 
   ## kind/reason formatting
@@ -355,10 +366,6 @@ defmodule ExUnit.Formatter do
         message = error_info(Exception.format_banner(kind, reason), formatter)
         {message <> format_code(test, stack, formatter), stack}
     end
-  end
-
-  defp ensure_printable(binary) do
-    if String.valid?(binary), do: binary, else: String.replace_invalid(binary)
   end
 
   defp linked_or_trapped_exit({:EXIT, pid}, {reason, [_ | _] = stack})

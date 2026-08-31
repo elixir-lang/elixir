@@ -589,13 +589,9 @@ defmodule ExUnit.CLIFormatter do
 
     output =
       output
-      |> ensure_printable()
+      |> ExUnit.Formatter.ensure_printable()
       |> String.replace("\n", indent)
 
     IO.puts(["     The following output was logged:", indent | output])
-  end
-
-  defp ensure_printable(binary) do
-    if String.valid?(binary), do: binary, else: String.replace_invalid(binary)
   end
 end
