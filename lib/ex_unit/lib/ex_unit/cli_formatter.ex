@@ -595,7 +595,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(["     The following output was logged:", indent | output])
   end
 
-  def ensure_printable(binary) do
+  defp ensure_printable(binary) do
     if String.valid?(binary), do: binary, else: String.replace_invalid(binary)
   end
 end
