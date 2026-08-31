@@ -857,7 +857,7 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
                dynamic(
                  open_map(
-                   pair: {open_tuple([]), false},
+                   pair: {opt_difference(open_tuple([]), tuple([])), false},
                    x: {integer(), false},
                    y: {integer(), false}
                  )

@@ -151,6 +151,8 @@ defmodule Module.Types.Apply do
       {[atom([left]), atom([right])], atom([left or right])}
     end
 
+  non_empty_tuple = opt_difference(open_tuple([]), tuple([]))
+
   for {mod, fun, clauses} <- [
         # :binary
         {:binary, :copy, [{[binary(), integer()], binary()}]},
@@ -241,24 +243,25 @@ defmodule Module.Types.Apply do
            {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
          ]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
-        {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
+        {:erlang, :delete_element, [{[integer(), non_empty_tuple], dynamic(open_tuple([]))}]},
         {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
-        {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
+        {:erlang, :element, [{[integer(), non_empty_tuple], dynamic()}]},
         {:erlang, :insert_element,
-         [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+         [{[integer(), open_tuple([]), term()], dynamic(non_empty_tuple)}]},
         {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
         {:erlang, :map_get, [{[term(), open_map()], term()}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
-        {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :setelement,
+         [{[integer(), non_empty_tuple, term()], dynamic(non_empty_tuple)}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
         ## Kernel
-        {Kernel, :elem, [{[open_tuple([]), integer()], dynamic()}]},
+        {Kernel, :elem, [{[non_empty_tuple, integer()], dynamic()}]},
         {Kernel, :is_map_key, [{[open_map(), term()], boolean()}]},
-        {Kernel, :put_elem, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
+        {Kernel, :put_elem, [{[non_empty_tuple, integer(), term()], dynamic(non_empty_tuple)}]},
 
         ## Lists
         {:lists, :member,
@@ -290,9 +293,9 @@ defmodule Module.Types.Apply do
         {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
         {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
         {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
-        {Tuple, :delete_at, [{[open_tuple([]), integer()], dynamic(open_tuple([]))}]},
+        {Tuple, :delete_at, [{[non_empty_tuple, integer()], dynamic(open_tuple([]))}]},
         {Tuple, :duplicate, [{[term(), integer()], tuple()}]},
-        {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
+        {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(non_empty_tuple)}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
@@ -1113,6 +1116,10 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :element, info, [_index, tuple] = args_types, stack) do
+    remote_apply_tuple_element(info, args_types, tuple, stack)
+  end
+
   defp remote_apply(:erlang, :map_get, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(value, args_types, stack)}
@@ -1160,6 +1167,10 @@ defmodule Module.Types.Apply do
       :badproperlist ->
         {:error, badremote(:erlang, :++, [left, right])}
     end
+  end
+
+  defp remote_apply(Kernel, :elem, info, [tuple, _index] = args_types, stack) do
+    remote_apply_tuple_element(info, args_types, tuple, stack)
   end
 
   @struct_key atom([:__struct__])
@@ -1520,6 +1531,22 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(_mod, _fun, info, args_types, stack) do
     remote_apply(info, args_types, stack)
+  end
+
+  defp remote_apply_tuple_element(info, args_types, tuple, stack) do
+    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
+      case tuple_values(tuple) do
+        :badtuple ->
+          {:ok, fallback}
+
+        values ->
+          if empty?(values) do
+            {:error, {:badindex, 1, tuple}}
+          else
+            {:ok, return(values, args_types, stack)}
+          end
+      end
+    end
   end
 
   defp remote_apply(:none, _args_types, _stack) do

@@ -674,7 +674,9 @@ defmodule Module.Types.ExprTest do
   describe "remote capture" do
     test "strong" do
       assert typecheck!(&String.to_unsafe_atom/1) == fun([binary()], atom())
-      assert typecheck!(&:erlang.element/2) == fun([integer(), open_tuple([])], dynamic())
+
+      assert typecheck!(&:erlang.element/2) ==
+               fun([integer(), opt_difference(open_tuple([]), tuple([]))], dynamic())
     end
 
     test "unknown" do
@@ -823,7 +825,7 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(tuple([atom([:ok]), atom([:error])]))
     end
 
-    test "elem/2" do
+    test "elem/2 with literal index" do
       assert typecheck!(elem({:ok, 123}, 0)) == atom([:ok])
       assert typecheck!(elem({:ok, 123}, 1)) == integer()
       assert typecheck!(:erlang.element(1, {:ok, 123})) == atom([:ok])
@@ -843,13 +845,24 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   {...}, integer()
+                   {...} and not {}, integer()
 
                where "x" was given the type:
 
                    # type: float()
                    # from: types_test.ex:LINE-1
                    <<x::float>>
+               """
+
+      assert typeerror!(elem({}, 0)) ==
+               ~l"""
+               expected a tuple with at least 1 element in Kernel.elem/2:
+
+                   elem({}, 0)
+
+               the given type does not have the given index:
+
+                   {}
                """
 
       assert typeerror!(elem({:ok, 123}, 2)) ==
@@ -873,6 +886,20 @@ defmodule Module.Types.ExprTest do
 
                    -1
                """
+    end
+
+    test "elem/2" do
+      assert typecheck!([index], elem({:ok, 123}, index)) ==
+               opt_union(atom([:ok]), integer())
+
+      assert typecheck!([index], :erlang.element(index, {:ok, 123})) ==
+               opt_union(atom([:ok]), integer())
+
+      assert typeerror!([index], elem({}, index)) =~
+               "incompatible types given to Kernel.elem/2"
+
+      assert typeerror!([index], :erlang.element(index, <<>>)) =~
+               "incompatible types given to :erlang.element/2"
     end
 
     test "Tuple.insert_at/3" do
@@ -963,7 +990,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   {...}, integer()
+                   {...} and not {}, integer()
 
                where "x" was given the type:
 
@@ -1021,7 +1048,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   {...}, integer(), term()
+                   {...} and not {}, integer(), term()
 
                where "x" was given the type:
 
