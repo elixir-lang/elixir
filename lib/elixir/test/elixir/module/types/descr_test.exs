@@ -1303,6 +1303,14 @@ defmodule Module.Types.DescrTest do
     end
 
     test "fun_from_inferred_clauses" do
+      # Empty domains
+      assert fun_from_inferred_clauses([{[none()], atom()}]) == fun(1)
+
+      assert fun_from_inferred_clauses([
+               {[none(), integer()], atom()},
+               {[binary(), none()], binary()}
+             ]) == fun(2)
+
       # No overlap
       assert fun_from_inferred_clauses([{[integer()], atom()}, {[float()], binary()}])
              |> equal?(
@@ -2310,9 +2318,12 @@ defmodule Module.Types.DescrTest do
     test "tuple_values" do
       assert tuple_values(term()) == :badtuple
       assert tuple_values(dynamic()) == dynamic()
+      assert tuple_values(none()) == :badtuple
       assert tuple_values(integer()) == :badtuple
       assert tuple_values(tuple([none()])) == :badtuple
       assert tuple_values(tuple([])) == none()
+      assert tuple_values(dynamic(tuple([none()]))) == :badtuple
+      assert tuple_values(dynamic(tuple([]))) == dynamic(none())
       assert tuple_values(tuple()) == term()
       assert tuple_values(open_tuple([integer()])) == term()
       assert tuple_values(tuple([integer(), atom()])) == opt_union(integer(), atom())
@@ -2343,6 +2354,8 @@ defmodule Module.Types.DescrTest do
 
       assert tuple_values(opt_union(dynamic(tuple([integer()])), tuple([integer()])))
              |> equal?(integer())
+
+      assert tuple_values(opt_union(tuple([]), tuple([integer()]))) == integer()
     end
 
     test "map_to_list" do

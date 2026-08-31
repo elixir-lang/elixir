@@ -859,6 +859,10 @@ defmodule Enum do
 
   """
   @spec dedup_by(t, (element -> term)) :: list
+  def dedup_by([head | tail], fun) do
+    dedup_by_list(tail, fun, fun.(head), [head])
+  end
+
   def dedup_by(enumerable, fun) do
     {list, _} = reduce(enumerable, {[], []}, R.dedup(fun))
     :lists.reverse(list)
@@ -2915,8 +2919,7 @@ defmodule Enum do
   end
 
   defp slide_list_middle(list, 0, last, start_to_middle) do
-    {slid_range, tail} = slide_list_last(list, last + 1, [])
-    slid_range ++ :lists.reverse(start_to_middle, tail)
+    slide_list_last(list, last + 1, [], start_to_middle)
   end
 
   # You asked for a middle index off the end of the list... you get what we've got
@@ -2924,16 +2927,16 @@ defmodule Enum do
     :lists.reverse(acc)
   end
 
-  defp slide_list_last([h | t], last, acc) when last > 0 do
-    slide_list_last(t, last - 1, [h | acc])
+  defp slide_list_last([h | t], last, acc, start_to_middle) when last > 0 do
+    slide_list_last(t, last - 1, [h | acc], start_to_middle)
   end
 
-  defp slide_list_last(rest, 0, acc) do
-    {:lists.reverse(acc), rest}
+  defp slide_list_last(rest, 0, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle, rest))
   end
 
-  defp slide_list_last([], _, acc) do
-    {:lists.reverse(acc), []}
+  defp slide_list_last([], _, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle))
   end
 
   @doc """
@@ -4527,6 +4530,17 @@ defmodule Enum do
   defp dedup_list([value | [value | _] = tail]), do: dedup_list(tail)
   defp dedup_list([value | tail]), do: [value | dedup_list(tail)]
   defp dedup_list([]), do: []
+
+  ## dedup_by
+
+  defp dedup_by_list([head | tail], fun, prev, acc) do
+    case fun.(head) do
+      ^prev -> dedup_by_list(tail, fun, prev, acc)
+      new_val -> dedup_by_list(tail, fun, new_val, [head | acc])
+    end
+  end
+
+  defp dedup_by_list([], _fun, _prev, acc), do: :lists.reverse(acc)
 
   ## drop
 

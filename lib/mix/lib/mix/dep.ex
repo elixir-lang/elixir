@@ -101,6 +101,34 @@ defmodule Mix.Dep do
   end
 
   @doc """
+  Returns the apps required by non-optional top-level dependencies.
+  """
+  def required_apps(deps) do
+    deps_by_app = Map.new(deps, &{&1.app, &1})
+
+    deps
+    |> Enum.filter(&(&1.top_level and &1.opts[:optional] != true))
+    |> Enum.map(& &1.app)
+    |> required_apps(deps_by_app, MapSet.new())
+  end
+
+  defp required_apps([app | apps], deps, seen) do
+    if app in seen do
+      required_apps(apps, deps, seen)
+    else
+      children =
+        for %{app: child, opts: opts} <- Map.fetch!(deps, app).deps,
+            opts[:optional] != true,
+            Map.has_key?(deps, child),
+            do: child
+
+      required_apps(children ++ apps, deps, MapSet.put(seen, app))
+    end
+  end
+
+  defp required_apps([], _deps, seen), do: seen
+
+  @doc """
   Returns loaded dependencies recursively and caches it.
 
   The result is cached for future `cached/0` calls.

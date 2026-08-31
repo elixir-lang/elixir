@@ -217,7 +217,7 @@ defmodule Module.Types.Descr do
   @doc """
   Creates a function from overlapping function clauses.
   """
-  def fun_from_inferred_clauses(args_clauses) do
+  def fun_from_inferred_clauses([{args, _return} | _] = args_clauses) do
     domain_clauses =
       Enum.reduce(args_clauses, [], fn {args, return}, acc ->
         domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
@@ -230,7 +230,10 @@ defmodule Module.Types.Descr do
           args <- domain_to_args(domain),
           do: fun(args, dynamic(union))
 
-    Enum.reduce(funs, &bare_intersection/2)
+    case funs do
+      [] -> fun(length(args))
+      [_ | _] -> Enum.reduce(funs, &bare_intersection/2)
+    end
   end
 
   # If you have a function with multiple clauses, they may overlap,
@@ -5173,10 +5176,9 @@ defmodule Module.Types.Descr do
           # The trouble with allowing the access is that it is a potential runtime
           # error not being caught by the type system.
           #
-          # Furthermore, our choice here, needs to be consistent with elem/put_elem
-          # when the index is the `integer()` type. If we choose to return `:badindex`,
-          # then all elem/put_elem with an `integer()` and the tuple is not dynamic
-          # should also be a static typing error. We chose to go with 1.
+          # This applies when checking a concrete index. Non-literal element/elem
+          # calls use tuple_values/1 instead, since no inaccessible index has been
+          # selected statically.
           if static_optional? or empty?(static_type) do
             :badindex
           else
@@ -5356,6 +5358,8 @@ defmodule Module.Types.Descr do
 
   @doc """
   Returns all of the values that are part of a tuple.
+
+  Returns `:badtuple` if the projection is invalid or the tuple descriptor is uninhabited.
   """
   def tuple_values(:term), do: :badtuple
   def tuple_values(descr) when descr == %{}, do: :badtuple
@@ -5370,7 +5374,7 @@ defmodule Module.Types.Descr do
         end
 
       {dynamic, static} ->
-        if tuple_only?(static) and descr_key?(dynamic, :tuple) do
+        if not empty?(descr) and tuple_only?(static) and descr_key?(dynamic, :tuple) do
           dynamic_value =
             case dynamic do
               :term -> term()

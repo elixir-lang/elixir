@@ -381,8 +381,10 @@ defmodule Module.Types.Of do
           closed_map(non_multiple)
 
         [{keys, type} | tail] ->
-          for key <- keys, t <- cartesian_map(tail) do
-            closed_map(non_multiple ++ [{key, {type, false}} | t])
+          products = cartesian_map(tail)
+
+          for key <- keys, product <- products do
+            closed_map(non_multiple ++ [{key, {type, false}} | product])
           end
           |> Enum.reduce(&opt_union/2)
       end
@@ -463,7 +465,8 @@ defmodule Module.Types.Of do
         [[]]
 
       [{keys, type} | tail] ->
-        for key <- keys, t <- cartesian_map(tail), do: [{key, {type, false}} | t]
+        products = cartesian_map(tail)
+        for key <- keys, product <- products, do: [{key, {type, false}} | product]
     end
   end
 
