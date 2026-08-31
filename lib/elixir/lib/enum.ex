@@ -859,6 +859,10 @@ defmodule Enum do
 
   """
   @spec dedup_by(t, (element -> term)) :: list
+  def dedup_by([head | tail], fun) do
+    dedup_by_list(tail, fun, fun.(head), [head])
+  end
+
   def dedup_by(enumerable, fun) do
     {list, _} = reduce(enumerable, {[], []}, R.dedup(fun))
     :lists.reverse(list)
@@ -4526,6 +4530,17 @@ defmodule Enum do
   defp dedup_list([value | [value | _] = tail]), do: dedup_list(tail)
   defp dedup_list([value | tail]), do: [value | dedup_list(tail)]
   defp dedup_list([]), do: []
+
+  ## dedup_by
+
+  defp dedup_by_list([head | tail], fun, prev, acc) do
+    case fun.(head) do
+      ^prev -> dedup_by_list(tail, fun, prev, acc)
+      new_val -> dedup_by_list(tail, fun, new_val, [head | acc])
+    end
+  end
+
+  defp dedup_by_list([], _fun, _prev, acc), do: :lists.reverse(acc)
 
   ## drop
 
