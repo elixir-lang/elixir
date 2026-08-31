@@ -642,6 +642,31 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats invalid UTF-8 in assertion messages" do
+    failure = [{:error, catch_assertion(flunk("frame bytes: " <> <<0xC3, 0x28, 0xFF>>)), []}]
+    formatted = format_test_failure(test(), failure, 1, 80, &formatter/2)
+
+    assert String.valid?(formatted)
+    assert formatted =~ "1) world (Hello)"
+    assert formatted =~ "frame bytes:"
+  end
+
+  test "formats invalid UTF-8 in exception messages" do
+    failure = [{:error, catch_error(raise "bad payload: " <> <<0xFF, 0xFE>>), []}]
+    formatted = format_test_failure(test(), failure, 1, 80, &formatter/2)
+
+    assert String.valid?(formatted)
+    assert formatted =~ "** (RuntimeError) bad payload:"
+  end
+
+  test "formats invalid UTF-8 in setup_all failure messages" do
+    failure = [{:error, catch_error(raise "bad payload: " <> <<0xFF>>), []}]
+    formatted = format_test_all_failure(test_module(), failure, 1, 80, &formatter/2)
+
+    assert String.valid?(formatted)
+    assert formatted =~ "** (RuntimeError) bad payload:"
+  end
+
   test "formats long test name using full description" do
     failure = [{:error, catch_error(raise "oops"), []}]
     long = long_test()
