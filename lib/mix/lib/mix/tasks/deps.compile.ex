@@ -326,6 +326,7 @@ defmodule Mix.Tasks.Deps.Compile do
       {"gleam",
        [
          "compile-package",
+         "--prod",
          "--target",
          "erlang",
          "--package",
