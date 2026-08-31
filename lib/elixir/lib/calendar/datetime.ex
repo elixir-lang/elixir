@@ -2058,6 +2058,7 @@ defmodule DateTime do
 
   defp from_map(%{} = datetime_map) do
     %DateTime{
+      calendar: datetime_map.calendar,
       year: datetime_map.year,
       month: datetime_map.month,
       day: datetime_map.day,
