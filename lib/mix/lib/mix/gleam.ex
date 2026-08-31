@@ -2,8 +2,8 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 
 defmodule Mix.Gleam do
-  # Version that introduced `gleam export package-information` command
-  @gleam_version_requirement ">= 1.10.0"
+  # Version that introduced generating an .app file 
+  @gleam_version_requirement ">= 1.19.0"
 
   @spec load_config(Path.t()) :: config :: map()
   def load_config(dir) do
@@ -50,7 +50,6 @@ defmodule Mix.Gleam do
           deps: deps ++ dev_deps
         }
         |> maybe_gleam_version(json)
-        |> maybe_erlang_opts(json["erlang"])
 
       {:ok, config}
     else
@@ -87,26 +86,6 @@ defmodule Mix.Gleam do
       nil -> config
       version -> Map.put(config, :gleam, version)
     end
-  end
-
-  defp maybe_erlang_opts(config, nil), do: config
-
-  defp maybe_erlang_opts(config, opts) do
-    application =
-      opts
-      |> Enum.reject(fn {_, value} -> value == nil end)
-      |> Enum.map(fn
-        {"application_start_module", module} when is_binary(module) ->
-          {:mod, {String.to_atom(module), []}}
-
-        {"extra_applications", applications} when is_list(applications) ->
-          {:extra_applications, Enum.map(applications, &String.to_atom/1)}
-
-        {key, value} ->
-          IO.warn("Gleam [erlang] option not supported\n #{key}: #{inspect(value)}")
-      end)
-
-    Map.put(config, :application, application)
   end
 
   @spec requirements!() :: :ok

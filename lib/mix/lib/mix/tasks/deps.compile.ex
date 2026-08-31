@@ -326,7 +326,6 @@ defmodule Mix.Tasks.Deps.Compile do
       {"gleam",
        [
          "compile-package",
-         "--no-beam",
          "--target",
          "erlang",
          "--package",
@@ -339,59 +338,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     shell_cmd!(dep, config, command)
 
-    File.cd!(package, fn -> Mix.Gleam.load_config(".") end)
-    |> push_gleam_project(dep, Keyword.fetch!(config, :deps_path))
-
     Code.prepend_path(Path.join(out, "ebin"), cache: true)
-  end
-
-  defp push_gleam_project(toml, dep, deps_path) do
-    build = Path.expand(dep.opts[:build])
-    src = Path.join(build, "_gleam_artefacts")
-    File.mkdir(Path.join(build, "ebin"))
-
-    # Remove per-environment segment from the path since ProjectStack.push below will append it
-    build_path =
-      Mix.Project.build_path()
-      |> Path.split()
-      |> Enum.drop(-1)
-      |> Path.join()
-
-    config =
-      Mix.Project.deps_config()
-      |> Keyword.merge(
-        app: dep.app,
-        version: toml.version,
-        deps: toml.deps,
-        build_per_environment: true,
-        lockfile: "mix.lock",
-        build_path: build_path,
-        build_scm: dep.scm,
-        deps_path: deps_path,
-        deps_app_path: build,
-        erlc_paths: [src],
-        elixirc_paths: [src],
-        erlc_include_path: Path.join(build, "include")
-      )
-
-    old_env = Mix.env()
-
-    try do
-      env = dep.opts[:env] || :prod
-      Mix.env(env)
-      Mix.ProjectStack.push(dep.app, config, "nofile")
-
-      options = ["--from-mix-deps-compile", "--no-warnings-as-errors", "--no-code-path-pruning"]
-
-      # Somehow running just `compile` task won't work (doesn't compile the .erl files)
-      Mix.Task.run("compile.erlang", options)
-      Mix.Task.run("compile.elixir", options)
-      Mix.Task.run("compile.app", options)
-
-      Mix.ProjectStack.pop()
-    after
-      Mix.env(old_env)
-    end
   end
 
   defp make_command(dep) do
