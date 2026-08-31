@@ -9,19 +9,6 @@ defmodule ExUnit.CLIFormatterTest do
 
   import ExUnit.CaptureIO
 
-  @opts [
-    seed: 0,
-    max_cases: 1,
-    repeat_until_failure: 0,
-    dry_run: false,
-    trace: false,
-    colors: [enabled: false],
-    slowest: 0,
-    slowest_modules: 0,
-    include: [],
-    exclude: []
-  ]
-
   defp failed_test(message, logs) do
     exception =
       try do
@@ -43,7 +30,17 @@ defmodule ExUnit.CLIFormatterTest do
 
   defp run_formatter(events) do
     capture_io(fn ->
-      {:ok, formatter} = GenServer.start(ExUnit.CLIFormatter, @opts)
+      opts =
+        Keyword.merge(ExUnit.configuration(),
+          seed: 0,
+          max_cases: 1,
+          trace: false,
+          colors: [enabled: false],
+          include: [],
+          exclude: []
+        )
+
+      {:ok, formatter} = GenServer.start(ExUnit.CLIFormatter, opts)
 
       for event <- events do
         GenServer.cast(formatter, event)
