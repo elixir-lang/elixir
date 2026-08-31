@@ -1103,6 +1103,42 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :element, info, [_index, tuple] = args_types, stack) do
+    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
+      case tuple_values(tuple) do
+        :badtuple -> {:ok, fallback}
+        values -> {:ok, return(values, args_types, stack)}
+      end
+    end
+  end
+
+  defp remote_apply(:erlang, :tuple_to_list, info, [tuple] = args_types, stack) do
+    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
+      case tuple_values(tuple) do
+        :badtuple ->
+          {:ok, fallback}
+
+        values ->
+          list_type =
+            case tuple_fetch(tuple, 0) do
+              {false, _value} -> non_empty_list(values)
+              _otherwise -> if empty?(values), do: empty_list(), else: list(values)
+            end
+
+          {:ok, return(list_type, args_types, stack)}
+      end
+    end
+  end
+
+  defp remote_apply(Kernel, :elem, info, [tuple, _index] = args_types, stack) do
+    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
+      case tuple_values(tuple) do
+        :badtuple -> {:ok, fallback}
+        values -> {:ok, return(values, args_types, stack)}
+      end
+    end
+  end
+
   defp remote_apply(:erlang, :map_get, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(value, args_types, stack)}

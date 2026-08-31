@@ -5173,10 +5173,9 @@ defmodule Module.Types.Descr do
           # The trouble with allowing the access is that it is a potential runtime
           # error not being caught by the type system.
           #
-          # Furthermore, our choice here, needs to be consistent with elem/put_elem
-          # when the index is the `integer()` type. If we choose to return `:badindex`,
-          # then all elem/put_elem with an `integer()` and the tuple is not dynamic
-          # should also be a static typing error. We chose to go with 1.
+          # This applies when checking a concrete index. Non-literal element/elem
+          # calls use tuple_values/1 instead, since no inaccessible index has been
+          # selected statically.
           if static_optional? or empty?(static_type) do
             :badindex
           else

@@ -828,8 +828,25 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(elem({:ok, 123}, 1)) == integer()
       assert typecheck!(:erlang.element(1, {:ok, 123})) == atom([:ok])
       assert typecheck!(:erlang.element(2, {:ok, 123})) == integer()
+      assert typecheck!([index], elem({1, 2, 3}, index)) == integer()
+
+      assert typecheck!([index], :erlang.element(index, {:ok, 123})) ==
+               opt_union(atom([:ok]), integer())
+
+      assert typecheck!([index], elem({}, index)) == none()
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
+
+      assert typeerror!(
+               [index],
+               case elem({1, 2}, index) do
+                 :probe -> :error
+                 _otherwise -> :ok
+               end
+             ) =~ "which has type:\n\n    integer()"
+
+      assert typeerror!([<<index::float>>], elem({1, 2}, index)) |> strip_ansi() =~
+               "incompatible types given to Kernel.elem/2"
 
       assert typeerror!([<<x::float>>], elem(x, 0)) |> strip_ansi() ==
                ~l"""
@@ -873,6 +890,26 @@ defmodule Module.Types.ExprTest do
 
                    -1
                """
+    end
+
+    test "tuple_to_list/1" do
+      assert typecheck!(:erlang.tuple_to_list({:ok, 123})) ==
+               non_empty_list(opt_union(atom([:ok]), integer()))
+
+      assert typecheck!(Tuple.to_list({})) |> equal?(empty_list())
+      assert typecheck!(hd(Tuple.to_list({:ok, 123}))) == opt_union(atom([:ok]), integer())
+      assert typecheck!([x], hd(Tuple.to_list({x}))) == dynamic()
+
+      assert typecheck!([tuple], is_tuple(tuple), Tuple.to_list(tuple)) ==
+               list(dynamic())
+
+      assert typecheck!(
+               [condition, x = 1],
+               Tuple.to_list(if(condition, do: x, else: {:ok}))
+             ) == non_empty_list(opt_union(atom([:ok]), dynamic(atom([:ok]))))
+
+      assert typeerror!(:erlang.tuple_to_list(123)) |> strip_ansi() =~
+               "incompatible types given to Tuple.to_list/1"
     end
 
     test "Tuple.insert_at/3" do
