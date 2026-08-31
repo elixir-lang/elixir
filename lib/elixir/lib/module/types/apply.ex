@@ -1534,17 +1534,16 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply_tuple_element(info, args_types, tuple, stack) do
+    # TODO: Convert this into a regular type signature {...a} and not {}, integer -> a
     with {:ok, fallback} <- remote_apply(info, args_types, stack) do
       case tuple_values(tuple) do
         :badtuple ->
+          # This is not virtually possible, since remote apply validates the arguments.
+          # So returning the fallback is acceptable.
           {:ok, fallback}
 
         values ->
-          if empty?(values) do
-            {:error, {:badindex, 1, tuple}}
-          else
-            {:ok, return(values, args_types, stack)}
-          end
+          {:ok, return(values, args_types, stack)}
       end
     end
   end
