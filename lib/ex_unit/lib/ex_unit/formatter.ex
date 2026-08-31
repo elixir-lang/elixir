@@ -640,7 +640,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_message(value, formatter) do
-    value = value |> pad_multiline(5)
+    value = pad_multiline(value, 5)
 
     if String.contains?(value, IO.ANSI.reset()) do
       value
