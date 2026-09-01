@@ -322,22 +322,28 @@ defmodule Mix.Tasks.Deps.Compile do
     out = opts[:build]
     package = opts[:dest]
 
-    command =
-      {"gleam",
-       [
-         "compile-package",
-         "--prod",
-         "--target",
-         "erlang",
-         "--package",
-         package,
-         "--out",
-         out,
-         "--lib",
-         lib
-       ]}
+    args = [
+      "compile-package",
+      "--prod",
+      "--target",
+      "erlang",
+      "--package",
+      package,
+      "--out",
+      out,
+      "--lib",
+      lib
+    ]
 
-    shell_cmd!(dep, config, command)
+    case System.cmd("gleam", args, [stderr_to_stdout: true] ++ opts_for_cmd(dep, config, [])) do
+      {_output, 0} ->
+        :ok
+
+      {output, _} ->
+        Mix.raise(
+          "Could not compile dependency #{inspect(dep.app)}, `gleam compile-package` command failed with reason: #{output}"
+        )
+    end
 
     Code.prepend_path(Path.join(out, "ebin"), cache: true)
   end

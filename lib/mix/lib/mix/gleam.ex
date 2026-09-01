@@ -38,7 +38,6 @@ defmodule Mix.Gleam do
           version: version,
           deps: deps
         }
-        |> maybe_gleam_version(json)
 
       {:ok, config}
     else
@@ -70,13 +69,6 @@ defmodule Mix.Gleam do
   defp build_dep_spec(dep, requirement, _opts),
     do: {:error, "Gleam package #{dep} has unsupported requirement: #{inspect(requirement)}"}
 
-  defp maybe_gleam_version(config, json) do
-    case json["gleam"] do
-      nil -> config
-      version -> Map.put(config, :gleam, version)
-    end
-  end
-
   @spec requirements!() :: :ok
   def requirements!() do
     case fetch_gleam_version() do
@@ -86,7 +78,7 @@ defmodule Mix.Gleam do
         else
           {:error,
            "Current Gleam version does not meet minimum requirements " <>
-             "#{@gleam_version_requirement}),  got: #{gleam_version}"}
+             "#{@gleam_version_requirement}, got: #{gleam_version}"}
         end
 
       {:error, message} ->
@@ -112,7 +104,7 @@ defmodule Mix.Gleam do
   end
 
   defp gleam(args) do
-    System.cmd("gleam", args)
+    System.cmd("gleam", args, stderr_to_stdout: true)
   catch
     :error, :enoent ->
       {:error,

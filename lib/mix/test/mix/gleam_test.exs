@@ -21,6 +21,18 @@ defmodule Mix.GleamTest do
     end
   end
 
+  defmodule BrokenGleamAsDep do
+    def project do
+      [
+        app: :broken_gleam_as_dep,
+        version: "0.1.0",
+        deps: [
+          {:broken_gleam_dep, path: MixTest.Case.tmp_path("broken_gleam_dep")}
+        ]
+      ]
+    end
+  end
+
   describe "load_config/1" do
     test "loads gleam.toml" do
       path = MixTest.Case.fixture_path("gleam_dep")
@@ -52,7 +64,6 @@ defmodule Mix.GleamTest do
       assert config == %{
                name: "gael",
                version: "1.0.0",
-               gleam: ">= 1.8.0",
                deps: [
                  {:git_dep, git: "../git_dep", ref: "957b83b"},
                  {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"}
@@ -89,6 +100,27 @@ defmodule Mix.GleamTest do
 
         assert File.exists?("_build/dev/lib/deeper_gleam_dep/ebin/deeper_gleam_dep.app")
         assert :ok == Mix.Tasks.Deps.Loadpaths.run([])
+      end)
+    end
+
+    test "raises the Gleam CLI's own message when compile-package fails" do
+      dep_path = MixTest.Case.tmp_path("broken_gleam_dep")
+      File.rm_rf!(dep_path)
+      File.mkdir_p!(dep_path)
+
+      File.write!(Path.join(dep_path, "gleam.toml"), """
+      name = "broken_gleam_dep"
+      version = "1.0.0"
+      """)
+
+      in_tmp("compile gleam dependency failure", fn ->
+        Mix.Project.push(BrokenGleamAsDep)
+
+        Mix.Tasks.Deps.Get.run([])
+
+        assert_raise Mix.Error, ~r/File IO failure/, fn ->
+          Mix.Tasks.Deps.Compile.run([])
+        end
       end)
     end
   end
