@@ -592,9 +592,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_logs(output) do
     indent = "\n     "
-
     output = String.replace(output, "\n", indent)
-
     IO.puts(["     The following output was logged:", indent | output])
   end
 end

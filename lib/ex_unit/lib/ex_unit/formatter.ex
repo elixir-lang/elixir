@@ -325,9 +325,7 @@ defmodule ExUnit.Formatter do
       test_parameters(parameters, formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
-
-        failure_header(failures, index) <>
-          text <> format_stacktrace(stack, name, nil, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
 
