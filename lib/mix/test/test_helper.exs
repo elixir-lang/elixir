@@ -304,18 +304,7 @@ rebar3_target = Path.join([mix, "elixir", version_dir, "rebar3"])
 File.mkdir_p!(Path.dirname(rebar3_target))
 File.cp!(rebar3_source, rebar3_target)
 
-fixtures = ~w(rebar_dep rebar_override)
-
-Enum.each(fixtures, fn fixture ->
-  source = MixTest.Case.fixture_path(fixture)
-  dest = MixTest.Case.tmp_path(fixture)
-  File.mkdir_p!(dest)
-  File.cp_r!(source, dest)
-end)
-
-## Set up Gleam fixtures
-
-fixtures = ~w(gleam_dep subfolder)
+fixtures = ~w(rebar_dep rebar_override gleam_dep)
 
 Enum.each(fixtures, fn fixture ->
   source = MixTest.Case.fixture_path(fixture)
