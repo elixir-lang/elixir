@@ -1281,4 +1281,27 @@ defmodule ExUnitTest do
   defp max_failures_reached_msg() do
     "--max-failures reached, aborting test suite"
   end
+
+  test "reports failures with invalid UTF-8 in messages" do
+    defmodule InvalidUtf8Test do
+      use ExUnit.Case
+
+      test "poisoned" do
+        flunk("frame bytes: " <> <<0xC3, 0x28, 0xFF>>)
+      end
+
+      test "clean" do
+        flunk("never silenced")
+      end
+    end
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 2, excluded: 0, failures: 2, skipped: 0}
+      end)
+
+    assert String.valid?(output)
+    assert output =~ "frame bytes:"
+    assert output =~ "never silenced"
+  end
 end
