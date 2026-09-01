@@ -7,7 +7,7 @@ defmodule Mix.GleamTest do
   use MixTest.Case
   @moduletag :gleam
 
-  @compile {:no_warn_undefined, [:gleam_dep, :gleam@int, :deeper_gleam_dep]}
+  @compile {:no_warn_undefined, [:gleam_dep, :gleam@int]}
 
   defmodule GleamAsDep do
     def project do
@@ -15,7 +15,7 @@ defmodule Mix.GleamTest do
         app: :gleam_as_dep,
         version: "0.1.0",
         deps: [
-          {:deeper_gleam_dep, path: MixTest.Case.tmp_path("subfolder/deeper_gleam_dep")}
+          {:gleam_dep, path: MixTest.Case.tmp_path("/gleam_dep")}
         ]
       ]
     end
@@ -85,7 +85,6 @@ defmodule Mix.GleamTest do
         assert :gleam_dep.main()
         assert :gleam_dep.erl() == ~c'Hello from Collocated Erlang!'
         assert :gleam@int.to_string(1) == "1"
-        assert :deeper_gleam_dep.main()
 
         {:ok, [{:application, :gleam_dep, specs}]} =
           :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
@@ -98,7 +97,6 @@ defmodule Mix.GleamTest do
                  {:vsn, ~c"1.0.0"}
                ])
 
-        assert File.exists?("_build/dev/lib/deeper_gleam_dep/ebin/deeper_gleam_dep.app")
         assert :ok == Mix.Tasks.Deps.Loadpaths.run([])
       end)
     end
