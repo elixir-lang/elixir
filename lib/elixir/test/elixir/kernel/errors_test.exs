@@ -423,7 +423,7 @@ defmodule Kernel.ErrorsTest do
       end
 
       assert_raise ArgumentError,
-                   "@enforce_keys required keys ([:fo, :bar]) that are not defined in defstruct: [foo: nil]",
+                   "unknown or duplicate keys given to @enforce_keys, got: [:fo, :bar]",
                    fn ->
                      defmodule EnforceKeysError do
                        @enforce_keys [:foo, :fo, :bar]

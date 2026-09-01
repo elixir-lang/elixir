@@ -5589,6 +5589,9 @@ defmodule Kernel do
         defstruct name: nil, age: 10 + 11
       end
 
+  `@enforce_keys` must be set to an atom or a list of unique atoms,
+  all of which must name fields defined by `defstruct/1`
+
   Now trying to build a struct without the name key will fail:
 
       %User{age: 21}
