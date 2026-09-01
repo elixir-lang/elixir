@@ -1,6 +1,6 @@
 name = "gleam_dep"
 version = "1.0.0"
-
+description = "GleamDep description"
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
 #

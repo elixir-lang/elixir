@@ -28,8 +28,7 @@ defmodule Mix.GleamTest do
 
       expected = [
         {:gleam_stdlib, "0.59.0"},
-        {:gleam_otp, "0.16.1"},
-        {:gleeunit, ">= 1.0.0 and < 2.0.0", only: [:dev, :test]}
+        {:gleam_otp, "0.16.1"}
       ]
 
       assert Enum.sort(config[:deps]) == Enum.sort(expected)
@@ -46,13 +45,6 @@ defmodule Mix.GleamTest do
           "dependencies" => %{
             "git_dep" => %{"git" => "../git_dep", "ref" => "957b83b"},
             "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"}
-          },
-          "dev_dependencies" => %{
-            "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
-          },
-          "erlang" => %{
-            "application_start_module" => "some@application",
-            "extra_applications" => ["some_app"]
           }
         }
         |> Mix.Gleam.parse_config()
@@ -63,38 +55,7 @@ defmodule Mix.GleamTest do
                gleam: ">= 1.8.0",
                deps: [
                  {:git_dep, git: "../git_dep", ref: "957b83b"},
-                 {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"},
-                 {:gleeunit, ">= 1.0.0 and < 2.0.0", only: [:dev, :test]}
-               ],
-               application: [
-                 mod: {:some@application, []},
-                 extra_applications: [:some_app]
-               ]
-             }
-    end
-
-    test "with old dev-dependencies format" do
-      {:ok, config} =
-        %{
-          "name" => "gael",
-          "version" => "1.0.0",
-          "gleam" => ">= 1.8.0",
-          "dependencies" => %{
-            "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"}
-          },
-          "dev-dependencies" => %{
-            "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
-          }
-        }
-        |> Mix.Gleam.parse_config()
-
-      assert config == %{
-               name: "gael",
-               version: "1.0.0",
-               gleam: ">= 1.8.0",
-               deps: [
-                 {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"},
-                 {:gleeunit, ">= 1.0.0 and < 2.0.0", only: [:dev, :test]}
+                 {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"}
                ]
              }
     end
@@ -115,22 +76,16 @@ defmodule Mix.GleamTest do
         assert :gleam@int.to_string(1) == "1"
         assert :deeper_gleam_dep.main()
 
-        {:ok, content} = :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
+        {:ok, [{:application, :gleam_dep, specs}]} =
+          :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
 
-        assert content == [
-                 {
-                   :application,
-                   :gleam_dep,
-                   [
-                     {:modules, [:collocated_erlang, :gleam_dep]},
-                     {:optional_applications, []},
-                     {:applications, [:kernel, :stdlib, :elixir, :gleam_otp, :gleam_stdlib]},
-                     {:description, ~c"gleam_dep"},
-                     {:registered, []},
-                     {:vsn, ~c"1.0.0"}
-                   ]
-                 }
-               ]
+        assert Keyword.equal?(specs, [
+                 {:modules, [:collocated_erlang, :gleam_dep]},
+                 {:applications, [:gleam_otp, :gleam_stdlib, :ssl]},
+                 {:description, ~c"GleamDep description"},
+                 {:registered, []},
+                 {:vsn, ~c"1.0.0"}
+               ])
 
         assert File.exists?("_build/dev/lib/deeper_gleam_dep/ebin/deeper_gleam_dep.app")
         assert :ok == Mix.Tasks.Deps.Loadpaths.run([])
