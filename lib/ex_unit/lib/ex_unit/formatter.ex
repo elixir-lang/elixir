@@ -281,18 +281,15 @@ defmodule ExUnit.Formatter do
       parameters: parameters
     } = test
 
-    formatted =
-      test_info(with_counter(counter, "#{description} (#{inspect(module)})"), formatter) <>
-        test_parameters(parameters, formatter) <>
-        test_location(with_location(tags), formatter) <>
-        Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-          {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
+    test_info(with_counter(counter, "#{description} (#{inspect(module)})"), formatter) <>
+      test_parameters(parameters, formatter) <>
+      test_location(with_location(tags), formatter) <>
+      Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
+        {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
 
-          failure_header(failures, index) <>
-            text <> format_stacktrace(stack, module, name, formatter)
-        end)
-
-    ensure_printable(formatted)
+        failure_header(failures, index) <>
+          text <> format_stacktrace(stack, module, name, formatter)
+      end)
   end
 
   @doc false
@@ -324,22 +321,14 @@ defmodule ExUnit.Formatter do
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
     %{name: name, parameters: parameters} = test_module
 
-    formatted =
-      test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
-        test_parameters(parameters, formatter) <>
-        Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-          {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
+    test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
+      test_parameters(parameters, formatter) <>
+      Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
+        {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
 
-          failure_header(failures, index) <>
-            text <> format_stacktrace(stack, name, nil, formatter)
-        end)
-
-    ensure_printable(formatted)
-  end
-
-  @doc false
-  def ensure_printable(binary) do
-    if String.valid?(binary), do: binary, else: String.replace_invalid(binary)
+        failure_header(failures, index) <>
+          text <> format_stacktrace(stack, name, nil, formatter)
+      end)
   end
 
   ## kind/reason formatting
@@ -422,9 +411,7 @@ defmodule ExUnit.Formatter do
 
   @doc false
   def format_assertion_error(%ExUnit.AssertionError{} = struct) do
-    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
-    |> elem(0)
-    |> ensure_printable()
+    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "") |> elem(0)
   end
 
   @doc """
