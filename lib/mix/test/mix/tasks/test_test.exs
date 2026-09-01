@@ -274,6 +274,19 @@ defmodule Mix.Tasks.TestTest do
       System.delete_env("PASS_FAILING_TESTS")
     end
 
+    test "keeps a failing parameterized variant in the manifest even when a passing sibling variant runs after it" do
+      in_fixture("test_failed_parameterize", fn ->
+        # The `:a` variant fails and the `:b` variant passes; `:a` runs first.
+        # Make sure `:a` is still in the manifest and retried. See #15820.
+        output = mix(["test"])
+        assert output =~ "Failed: 1 test"
+
+        output = mix(["test", "--failed"])
+        refute output =~ "There are no tests to run"
+        assert output =~ "Failed: 1 test"
+      end)
+    end
+
     test "marks the whole suite as failed on compilation error" do
       in_fixture("test_failed", fn ->
         File.write!("test/passing_and_failing_test_failed.exs", "raise ~s(oops)")

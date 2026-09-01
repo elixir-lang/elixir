@@ -108,6 +108,49 @@ defmodule ExUnit.FailuresManifestTest do
     end
   end
 
+  describe "put_test/2 with parameterized tests" do
+    test "a passing variant does not erase a failing sibling variant from the manifest" do
+      failing = new_test(@failed)
+      failing = %{failing | parameters: %{value: :a}}
+      passing = %{failing | state: @passed, parameters: %{value: :b}}
+
+      manifest =
+        new()
+        |> put_test(failing)
+        |> put_test(passing)
+
+      assert manifest == %{test_id(failing) => file(failing)}
+    end
+
+    test "distinct failing variants both keep their own manifest entry", context do
+      a_variant = %{new_test(@failed, context) | parameters: %{value: :a}}
+      b_variant = %{new_test(@failed, context) | parameters: %{value: :b}}
+
+      manifest =
+        new()
+        |> put_test(a_variant)
+        |> put_test(b_variant)
+
+      assert manifest == %{
+               test_id(a_variant) => file(a_variant),
+               test_id(b_variant) => file(b_variant)
+             }
+    end
+  end
+
+  describe "test_id/1" do
+    test "disambiguates parameterized variants of the same test" do
+      no_params = new_test(@passed)
+      assert test_id(no_params) == {no_params.module, no_params.name}
+
+      with_params = %{no_params | parameters: %{value: :a}}
+      assert test_id(with_params) == {with_params.module, with_params.name, %{value: :a}}
+
+      with_params_b = %{no_params | parameters: %{value: :b}}
+      assert test_id(with_params) != test_id(with_params_b)
+    end
+  end
+
   describe "write!/2" do
     @tag :tmp_dir
     test "stores a manifest that can later be read with read/1", context do
@@ -209,8 +252,6 @@ defmodule ExUnit.FailuresManifestTest do
       tags: %{file: file}
     }
   end
-
-  defp test_id(test), do: {test.module, test.name}
 
   defp file(test), do: test.tags.file
 

@@ -7,7 +7,7 @@ defmodule ExUnit.FailuresManifest do
 
   @opaque t :: %{optional(ExUnit.test_id()) => test_file :: Path.t()}
 
-  @manifest_vsn 1
+  @manifest_vsn 2
 
   @spec new() :: t
   def new, do: %{}
@@ -18,12 +18,31 @@ defmodule ExUnit.FailuresManifest do
       do: manifest
 
   def put_test(%{} = manifest, %ExUnit.Test{state: nil} = test) do
-    Map.delete(manifest, {test.module, test.name})
+    Map.delete(manifest, test_id(test))
   end
 
   def put_test(%{} = manifest, %ExUnit.Test{state: {failed_state, _}} = test)
       when failed_state in [:failed, :invalid] do
-    Map.put(manifest, {test.module, test.name}, test.tags.file)
+    Map.put(manifest, test_id(test), test.tags.file)
+  end
+
+  @doc """
+  Returns the manifest key for a test.
+
+  Tests without parameters are keyed by `{module, name}`.
+  Parameterized tests are keyed by `{module, name, parameters}` to distinguish the
+  different parameters.
+  """
+  # Keep supporting both variants as `{module, name}` is officially documented in the
+  # `:only_test_ids` option and so may be used by tooling and others, hence we can't
+  # always use the 3-tuple without breaking compatibility.
+  @spec test_id(ExUnit.Test.t()) :: ExUnit.test_id()
+  def test_id(%ExUnit.Test{module: module, name: name, parameters: parameters}) do
+    if parameters == %{} do
+      {module, name}
+    else
+      {module, name, parameters}
+    end
   end
 
   @spec write!(t, Path.t()) :: :ok
@@ -79,7 +98,8 @@ defmodule ExUnit.FailuresManifest do
 
   defp find_deleted_tests([], _file_existence, deleted_tests), do: deleted_tests
 
-  defp find_deleted_tests([{{mod, name} = id, file} | rest] = all, file_existence, acc) do
+  defp find_deleted_tests([{id, file} | rest] = all, file_existence, acc) do
+    {mod, name} = module_and_name(id)
     file_exists = Map.fetch(file_existence, file)
 
     cond do
@@ -104,4 +124,7 @@ defmodule ExUnit.FailuresManifest do
         find_deleted_tests(rest, file_existence, acc)
     end
   end
+
+  defp module_and_name({mod, name}), do: {mod, name}
+  defp module_and_name({mod, name, _parameters}), do: {mod, name}
 end

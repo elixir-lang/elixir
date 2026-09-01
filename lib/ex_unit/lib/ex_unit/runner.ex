@@ -243,7 +243,7 @@ defmodule ExUnit.Runner do
 
     # Prepare tests, selecting which ones should be run or skipped
     {to_run_tests, excluded_and_skipped_tests} =
-      prepare_tests(config, async?, group, test_module.tests)
+      prepare_tests(config, async?, group, test_module.tests, params)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
       EM.test_started(config.manager, excluded_or_skipped_test)
@@ -278,14 +278,14 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp prepare_tests(config, async?, group, tests) do
+  defp prepare_tests(config, async?, group, tests, params) do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
     test_ids = config.only_test_ids
 
     {to_run, to_skip} =
-      for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
+      for test <- tests, include_test?(test_ids, test, params), reduce: {[], []} do
         {to_run, to_skip} ->
           tags =
             Map.merge(test.tags, %{
@@ -304,8 +304,9 @@ defmodule ExUnit.Runner do
     {Enum.reverse(to_run), Enum.reverse(to_skip)}
   end
 
-  defp include_test?(test_ids, test) do
-    test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
+  defp include_test?(test_ids, test, params) do
+    test_ids == nil or MapSet.member?(test_ids, {test.module, test.name}) or
+      MapSet.member?(test_ids, {test.module, test.name, params})
   end
 
   defp run_module_tests(_config, test_module, _async?, []) do

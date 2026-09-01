@@ -92,7 +92,7 @@ defmodule ExUnit do
           total: non_neg_integer
         }
 
-  @type test_id :: {module, name :: atom}
+  @type test_id :: {module, name :: atom} | {module, name :: atom, parameters :: map}
 
   @typedoc """
   Configuration options for ExUnit.
@@ -370,9 +370,11 @@ defmodule ExUnit do
       [`setup_all/1,2`](`ExUnit.Callbacks.setup_all/1`) callbacks
       are counted as failures. Defaults to `:infinity`;
 
-    * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
-      what tests get run. This is typically used by Mix to filter which tests
-      should run;
+    * `:only_test_ids` - a list of `{module_name, test_name}` or
+      `{module_name, test_name, parameters}` tuples that limits what tests run.
+      A `{module_name, test_name}` entry matches every parameterized
+      variant of that test, while `{module_name, test_name, parameters}`
+      matches only the variant with those exact parameters;
 
     * `:rand_algorithm` - algorithm to be used when generating the test seed.
       Available algorithms can be found in Erlang's
