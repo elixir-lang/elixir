@@ -340,6 +340,7 @@ defmodule Module.Types.Descr do
   @doc """
   Returns true if the type has a gradual part.
   """
+  @compile {:inline, gradual?: 1}
   def gradual?(:term), do: false
 
   def gradual?(descr) do
@@ -387,6 +388,19 @@ defmodule Module.Types.Descr do
 
   defp split_dynamic(descr), do: {descr, descr, false}
 
+  @compile {:inline, align_gradual: 2}
+  defp align_gradual(left, right) do
+    left = unfold(left)
+    right = unfold(right)
+
+    case {left, right} do
+      {%{dynamic: _}, %{dynamic: _}} -> {left, right}
+      {%{dynamic: _}, _} -> {left, Map.put(right, :dynamic, right)}
+      {_, %{dynamic: _}} -> {Map.put(left, :dynamic, left), right}
+      {_, _} -> {left, right}
+    end
+  end
+
   @doc """
   Computes the union of two descrs.
   """
@@ -396,23 +410,8 @@ defmodule Module.Types.Descr do
   def bare_union(other, none) when none == @none, do: other
 
   def bare_union(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        bare_union_static(left, right_with_dynamic)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        bare_union_static(left_with_dynamic, right)
-
-      true ->
-        bare_union_static(left, right)
-    end
+    {left, right} = align_gradual(left, right)
+    bare_union_static(left, right)
   end
 
   @compile {:inline, bare_union_static: 2}
@@ -435,23 +434,8 @@ defmodule Module.Types.Descr do
   def bare_intersection(other, :term), do: other
 
   def bare_intersection(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        bare_intersection_static(left, right_with_dynamic)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        bare_intersection_static(left_with_dynamic, right)
-
-      true ->
-        bare_intersection_static(left, right)
-    end
+    {left, right} = align_gradual(left, right)
+    bare_intersection_static(left, right)
   end
 
   @compile {:inline, bare_intersection_static: 2}
@@ -6312,23 +6296,8 @@ defmodule Module.Types.Descr do
   defp opt_union(other, none, _seen) when none == @none, do: other
 
   defp opt_union(left, right, seen) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        opt_union_static(left, right_with_dynamic, seen)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        opt_union_static(left_with_dynamic, right, seen)
-
-      true ->
-        opt_union_static(left, right, seen)
-    end
+    {left, right} = align_gradual(left, right)
+    opt_union_static(left, right, seen)
   end
 
   @compile {:inline, opt_union_static: 3}
@@ -6356,23 +6325,8 @@ defmodule Module.Types.Descr do
   defp opt_intersection(other, :term, _seen), do: other
 
   defp opt_intersection(left, right, seen) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        opt_intersection_static(left, right_with_dynamic, seen)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        opt_intersection_static(left_with_dynamic, right, seen)
-
-      true ->
-        opt_intersection_static(left, right, seen)
-    end
+    {left, right} = align_gradual(left, right)
+    opt_intersection_static(left, right, seen)
   end
 
   @compile {:inline, opt_intersection_static: 3}
