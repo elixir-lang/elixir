@@ -466,9 +466,13 @@ defmodule Module.Types.Apply do
     #     a and not number(), b and not number() -> a and b
     #
     # However, during inference, we type it as `a, b -> a and b` only.
-    {left_type, context} = of_fun.(left, expected, expr, stack, context)
-    {right_type, context} = of_fun.(right, expected, expr, stack, context)
+    # Either argument may be discarded based on term ordering, so the result's
+    # expected type cannot be used to refine either argument.
+    {left_type, context} = of_fun.(left, term(), expr, stack, context)
+    {right_type, context} = of_fun.(right, term(), expr, stack, context)
     result = opt_union(left_type, right_type)
+    refined_result = opt_intersection(result, expected)
+    result = if empty?(refined_result), do: result, else: refined_result
 
     if error = mismatched_ordered_comparison(left_type, right_type, stack) do
       remote_error(error, :erlang, name, 2, expr, stack, context)

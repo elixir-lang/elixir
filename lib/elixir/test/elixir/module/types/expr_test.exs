@@ -1647,6 +1647,44 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(opt_union(integer(), float()))
     end
 
+    test "min/max does not refine discarded arguments from the expected type" do
+      assert typecheck!(
+               (
+                 min(v = 1, 2)
+                 v
+               )
+             ) == integer()
+
+      assert typecheck!(
+               [x],
+               (
+                 :erlang.binary_part(:erlang.max(x, ""), 0, 0)
+                 x
+               )
+             ) == dynamic()
+
+      assert typecheck!(
+               [x],
+               (
+                 :erlang.binary_part(
+                   :erlang.max(v = if(is_integer(x), do: x, else: "x"), ""),
+                   0,
+                   0
+                 )
+
+                 v
+               )
+             ) == opt_union(binary(), dynamic(opt_union(integer(), binary())))
+
+      assert typecheck!(
+               [x],
+               (
+                 div(:erlang.min(v = if(is_binary(x), do: x, else: 1), 0), 1)
+                 v
+               )
+             ) == opt_union(integer(), dynamic(opt_union(integer(), binary())))
+    end
+
     test "warns when comparison is constant" do
       assert typeerror!([x = :foo, y = 321], min(x, y)) ==
                ~l"""
