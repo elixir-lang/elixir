@@ -27,7 +27,7 @@ defmodule ExUnit.FailuresManifestTest do
         |> put_test(invalid_1 = new_test(@invalid, context))
 
       File.cd!(context.tmp_dir, fn ->
-        write!(manifest, @manifest_path)
+        update!(manifest, @manifest_path)
 
         assert info(@manifest_path) ==
                  {MapSet.new([context.file]),
@@ -52,18 +52,19 @@ defmodule ExUnit.FailuresManifestTest do
   end
 
   describe "put_test/2 when the test is not already in the manifest" do
-    test "ignores passed tests since we only care to store failures" do
-      assert put_test(new(), new_test(@passed)) == new()
+    test "records passed tests so they clear failures from a prior run" do
+      test = new_test(@passed)
+      assert put_test(new(), test) == {[test_id(test)], %{}}
     end
 
     test "stores failed tests" do
       test = new_test(@failed)
-      assert put_test(new(), test) == %{test_id(test) => file(test)}
+      assert put_test(new(), test) == {[], %{test_id(test) => file(test)}}
     end
 
     test "stores invalid tests" do
       test = new_test(@invalid)
-      assert put_test(new(), test) == %{test_id(test) => file(test)}
+      assert put_test(new(), test) == {[], %{test_id(test) => file(test)}}
     end
 
     test "ignores skipped tests since we know nothing about their pass/fail status" do
@@ -82,19 +83,19 @@ defmodule ExUnit.FailuresManifestTest do
       {:ok, %{failed_test: failed_test, manifest: manifest}}
     end
 
-    test "removes a newly passed test, since it is no longer failing", context do
+    test "stores passing test separately", context do
       test = %{context.failed_test | state: @passed}
-      assert put_test(context.manifest, test) == new()
+      assert put_test(context.manifest, test) == {[test_id(test)], %{test_id(test) => "file"}}
     end
 
     test "stores failed tests, updating the stored file value", context do
       test = %{context.failed_test | tags: %{file: "some-other-file"}}
-      assert put_test(context.manifest, test) == %{test_id(test) => file(test)}
+      assert put_test(context.manifest, test) == {[], %{test_id(test) => file(test)}}
     end
 
     test "stores invalid tests, updating the stored file value", context do
       test = %{context.failed_test | tags: %{file: "some-other-file"}, state: @invalid}
-      assert put_test(context.manifest, test) == %{test_id(test) => file(test)}
+      assert put_test(context.manifest, test) == {[], %{test_id(test) => file(test)}}
     end
 
     test "ignores skipped tests since we know nothing about their pass/fail status", context do
@@ -108,27 +109,40 @@ defmodule ExUnit.FailuresManifestTest do
     end
   end
 
-  describe "write!/2" do
+  describe "update!/2" do
     @tag :tmp_dir
     test "stores a manifest that can later be read with read/1", context do
       manifest = non_blank_manifest(context)
 
       File.cd!(context.tmp_dir, fn ->
-        assert write!(manifest, @manifest_path) == :ok
-        assert read(@manifest_path) == manifest
+        assert update!(manifest, @manifest_path) == :ok
+        assert read(@manifest_path) == elem(manifest, 1)
       end)
     end
 
     @tag :tmp_dir
-    test "prunes tests from files that no longer exist", context do
+    test "merges the results from this run with the prior manifest", context do
+      failed_test = new_test(@failed, context)
+      passed_test = %{failed_test | state: @passed}
+
+      File.cd!(context.tmp_dir, fn ->
+        assert update!(put_test(new(), failed_test), @manifest_path) == :ok
+        assert update!(put_test(new(), passed_test), @manifest_path) == :ok
+        assert read(@manifest_path) == %{}
+      end)
+    end
+
+    @tag :tmp_dir
+    test "prunes tests from files that no longer exist in the prior manifest", context do
       test = new_test(@failed, %{context | file: "missing_file.exs"})
 
       File.cd!(context.tmp_dir, fn ->
-        new()
-        |> put_test(test)
-        |> write!(@manifest_path)
+        binary = :erlang.term_to_binary({1, %{test_id(test) => file(test)}})
+        File.write!(@manifest_path, binary)
 
-        assert read(@manifest_path) == new()
+        update!(new(), @manifest_path)
+
+        assert read(@manifest_path) == %{}
       end)
     end
 
@@ -138,21 +152,22 @@ defmodule ExUnit.FailuresManifestTest do
       manifest = new() |> put_test(test)
 
       File.cd!(context.tmp_dir, fn ->
-        write!(manifest, @manifest_path)
-        assert read(@manifest_path) == manifest
+        update!(manifest, @manifest_path)
+        assert read(@manifest_path) == elem(manifest, 1)
       end)
     end
 
     @tag :tmp_dir
-    test "prunes tests defined in a function that no longer exists", context do
+    test "prunes tests from functions that no longer exist in the prior manifest", context do
       test = new_test(@failed, %{context | test: :not_a_function_anymore})
 
       File.cd!(context.tmp_dir, fn ->
-        new()
-        |> put_test(test)
-        |> write!(@manifest_path)
+        binary = :erlang.term_to_binary({1, %{test_id(test) => file(test)}})
+        File.write!(@manifest_path, binary)
 
-        assert read(@manifest_path) == new()
+        update!(new(), @manifest_path)
+
+        assert read(@manifest_path) == %{}
       end)
     end
   end
@@ -162,7 +177,7 @@ defmodule ExUnit.FailuresManifestTest do
     test "returns a blank manifest when loading a file that does not exit", context do
       path = Path.join(context.tmp_dir, "missing.manifest")
       refute File.exists?(path)
-      assert read(path) == new()
+      assert read(path) == %{}
     end
 
     @tag :tmp_dir
@@ -170,10 +185,10 @@ defmodule ExUnit.FailuresManifestTest do
       manifest = non_blank_manifest(context)
 
       File.cd!(context.tmp_dir, fn ->
-        assert write!(manifest, @manifest_path) == :ok
+        assert update!(manifest, @manifest_path) == :ok
         corrupted = "corrupted" <> File.read!(@manifest_path)
         File.write!(@manifest_path, corrupted)
-        assert read(@manifest_path) == new()
+        assert read(@manifest_path) == %{}
       end)
     end
 
@@ -182,10 +197,11 @@ defmodule ExUnit.FailuresManifestTest do
       manifest = non_blank_manifest(context)
 
       File.cd!(context.tmp_dir, fn ->
-        assert write!(manifest, @manifest_path) == :ok
-        assert {vsn, ^manifest} = @manifest_path |> File.read!() |> :erlang.binary_to_term()
-        File.write!(@manifest_path, :erlang.term_to_binary({vsn + 1, manifest}))
-        assert read(@manifest_path) == new()
+        assert update!(manifest, @manifest_path) == :ok
+        assert {vsn, failures} = @manifest_path |> File.read!() |> :erlang.binary_to_term()
+        assert failures == elem(manifest, 1)
+        File.write!(@manifest_path, :erlang.term_to_binary({vsn + 1, failures}))
+        assert read(@manifest_path) == %{}
       end)
     end
   end

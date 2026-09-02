@@ -5,30 +5,41 @@
 defmodule ExUnit.FailuresManifest do
   @moduledoc false
 
-  @opaque t :: %{optional(ExUnit.test_id()) => test_file :: Path.t()}
+  @opaque t :: {passed, failed}
+
+  @typep passed :: [ExUnit.test_id()]
+  @typep failed :: %{optional(ExUnit.test_id()) => test_file :: Path.t()}
 
   @manifest_vsn 1
 
   @spec new() :: t
-  def new, do: %{}
+  def new, do: {[], %{}}
 
   @spec put_test(t, ExUnit.Test.t()) :: t
-  def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}})
+  def put_test({_passed, _failed} = manifest, %ExUnit.Test{state: {ignored_state, _}})
       when ignored_state in [:skipped, :excluded],
       do: manifest
 
-  def put_test(%{} = manifest, %ExUnit.Test{state: nil} = test) do
-    Map.delete(manifest, {test.module, test.name})
+  def put_test({passed, failed}, %ExUnit.Test{state: nil} = test) do
+    test_id = {test.module, test.name}
+    {[test_id | passed], failed}
   end
 
-  def put_test(%{} = manifest, %ExUnit.Test{state: {failed_state, _}} = test)
+  def put_test({passed, failed}, %ExUnit.Test{state: {failed_state, _}} = test)
       when failed_state in [:failed, :invalid] do
-    Map.put(manifest, {test.module, test.name}, test.tags.file)
+    test_id = {test.module, test.name}
+    {passed, Map.put(failed, test_id, test.tags.file)}
   end
 
-  @spec write!(t, Path.t()) :: :ok
-  def write!(manifest, file) when is_binary(file) do
-    manifest = prune_deleted_tests(manifest)
+  @spec update!(t, Path.t()) :: :ok
+  def update!({passed, failed}, file) when is_binary(file) do
+    manifest =
+      file
+      |> read()
+      |> prune_deleted_tests()
+      |> Map.drop(passed)
+      |> Map.merge(failed)
+
     binary = :erlang.term_to_binary({@manifest_vsn, manifest})
     Path.dirname(file) |> File.mkdir_p!()
     File.write!(file, binary)
@@ -41,13 +52,13 @@ defmodule ExUnit.FailuresManifest do
     File.write!(file, binary)
   end
 
-  @spec read(Path.t()) :: t
+  @spec read(Path.t()) :: failed
   def read(file) when is_binary(file) do
     with {:ok, binary} <- File.read(file),
          {:ok, {@manifest_vsn, %{} = manifest}} <- safe_binary_to_term(binary) do
       manifest
     else
-      _ -> new()
+      _ -> %{}
     end
   end
 
