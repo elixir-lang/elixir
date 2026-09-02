@@ -9,7 +9,7 @@ defmodule Mix.Gleam do
   def load_config(dir) do
     File.cd!(dir, fn ->
       with {:ok, output} <-
-             gleam(~W(export package-information --out /dev/stdout)),
+             gleam(~W(export package-information)),
            json <- JSON.decode!(output),
            {:ok, gleam_toml} <- Map.fetch(json, "gleam.toml") do
         parse_config(gleam_toml)
