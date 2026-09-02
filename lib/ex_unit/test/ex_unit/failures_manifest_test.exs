@@ -108,6 +108,36 @@ defmodule ExUnit.FailuresManifestTest do
     end
   end
 
+  describe "put_test/3 with a failed_this_run set" do
+    setup do
+      failed_test = new_test(@failed)
+      manifest = put_test(new(), failed_test)
+      {:ok, %{failed_test: failed_test, manifest: manifest}}
+    end
+
+    test "keeps a newly passed test in the manifest when its id is in failed_this_run",
+         context do
+      test = %{context.failed_test | state: @passed}
+      failed_this_run = MapSet.new([test_id(test)])
+
+      assert put_test(context.manifest, test, failed_this_run) == context.manifest
+    end
+
+    test "removes a newly passed test when its id is not in failed_this_run", context do
+      test = %{context.failed_test | state: @passed}
+
+      assert put_test(context.manifest, test, MapSet.new()) == new()
+    end
+
+    test "stores a failed test regardless of failed_this_run", context do
+      expected_manifest = %{test_id(context.failed_test) => file(context.failed_test)}
+
+      failed_this_run = MapSet.new([test_id(context.failed_test)])
+      assert put_test(new(), context.failed_test, failed_this_run) == expected_manifest
+      assert put_test(new(), context.failed_test, MapSet.new()) == expected_manifest
+    end
+  end
+
   describe "write!/2" do
     @tag :tmp_dir
     test "stores a manifest that can later be read with read/1", context do

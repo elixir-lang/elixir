@@ -42,6 +42,12 @@ defmodule ExUnit.RunnerStats do
       excluded: 0,
       failures_manifest_path: opts[:failures_manifest_path],
       failures_manifest: FailuresManifest.new(),
+      # We need to keep track of the tests that specifically failed this run,
+      # so we can prevent a parameterized test variant from overriding another
+      # failing variant.
+      # If we just always didn't override it, we'd never get rid of fails.
+      # See `ExUnit.FailuresManifest.put_test/3`.
+      failed_this_run: MapSet.new(),
       failure_counter: 0,
       pids: []
     }
@@ -64,9 +70,14 @@ defmodule ExUnit.RunnerStats do
   end
 
   def handle_cast({:test_finished, %Test{} = test}, state) do
+    state = track_failed_this_run(state, test)
+
     state =
       state
-      |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, test))
+      |> Map.update!(
+        :failures_manifest,
+        &FailuresManifest.put_test(&1, test, state.failed_this_run)
+      )
       |> Map.update!(:total, &(&1 + 1))
       |> increment_status_counter(test.state)
 
@@ -96,7 +107,10 @@ defmodule ExUnit.RunnerStats do
     state =
       Enum.reduce(successful_tests, state, fn test, acc ->
         acc
-        |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, test))
+        |> Map.update!(
+          :failures_manifest,
+          &FailuresManifest.put_test(&1, test, acc.failed_this_run)
+        )
         |> Map.update!(:failures, &(&1 + 1))
         |> Map.update!(:passed, &(&1 - 1))
       end)
@@ -107,6 +121,13 @@ defmodule ExUnit.RunnerStats do
   def handle_cast(_, state) do
     {:noreply, state}
   end
+
+  defp track_failed_this_run(state, %Test{state: {failed_state, _}} = test)
+       when failed_state in [:failed, :invalid] do
+    Map.update!(state, :failed_this_run, &MapSet.put(&1, {test.module, test.name}))
+  end
+
+  defp track_failed_this_run(state, %Test{}), do: state
 
   defp increment_status_counter(state, tag) when tag in [nil, :passed] do
     Map.update!(state, :passed, &(&1 + 1))

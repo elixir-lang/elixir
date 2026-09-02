@@ -12,16 +12,27 @@ defmodule ExUnit.FailuresManifest do
   @spec new() :: t
   def new, do: %{}
 
-  @spec put_test(t, ExUnit.Test.t()) :: t
-  def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}})
+  @spec put_test(t, ExUnit.Test.t(), MapSet.t(ExUnit.test_id())) :: t
+  def put_test(manifest, test, failed_this_run \\ MapSet.new())
+
+  def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}}, _failed_this_run)
       when ignored_state in [:skipped, :excluded],
       do: manifest
 
-  def put_test(%{} = manifest, %ExUnit.Test{state: nil} = test) do
-    Map.delete(manifest, {test.module, test.name})
+  def put_test(%{} = manifest, %ExUnit.Test{state: nil} = test, failed_this_run) do
+    key = {test.module, test.name}
+
+    if MapSet.member?(failed_this_run, key) do
+      # We have an entry that this test failed earlier in the same run
+      # --> must have been a parameterized variant, in which case keep
+      # it as failed (See #15820)
+      manifest
+    else
+      Map.delete(manifest, key)
+    end
   end
 
-  def put_test(%{} = manifest, %ExUnit.Test{state: {failed_state, _}} = test)
+  def put_test(%{} = manifest, %ExUnit.Test{state: {failed_state, _}} = test, _failed_this_run)
       when failed_state in [:failed, :invalid] do
     Map.put(manifest, {test.module, test.name}, test.tags.file)
   end
