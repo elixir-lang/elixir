@@ -393,10 +393,11 @@ defmodule Module.Types.Descr do
     left = unfold(left)
     right = unfold(right)
 
-    case {gradual?(left), gradual?(right)} do
-      {true, false} -> {left, Map.put(right, :dynamic, right)}
-      {false, true} -> {Map.put(left, :dynamic, left), right}
-      _ -> {left, right}
+    case {left, right} do
+      {%{dynamic: _}, %{dynamic: _}} -> {left, right}
+      {%{dynamic: _}, _} -> {left, Map.put(right, :dynamic, right)}
+      {_, %{dynamic: _}} -> {Map.put(left, :dynamic, left), right}
+      {_, _} -> {left, right}
     end
   end
 
