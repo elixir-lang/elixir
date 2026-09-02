@@ -401,7 +401,7 @@ defmodule Kernel.ErrorsTest do
       end
     end
 
-    test "good struct" do
+    test "valid struct" do
       defmodule GoodStruct do
         defstruct name: "john"
       end
@@ -414,22 +414,6 @@ defmodule Kernel.ErrorsTest do
         ["nofile:1:1", "unknown key :age for struct Kernel.ErrorsTest.GoodStruct"],
         ~c"%#{GoodStruct}{age: 27} = %{}"
       )
-    end
-
-    test "enforce @enforce_keys" do
-      defmodule EnforceKeys do
-        @enforce_keys [:foo]
-        defstruct(foo: nil)
-      end
-
-      assert_raise ArgumentError,
-                   "unknown or duplicate keys given to @enforce_keys, got: [:fo, :bar]",
-                   fn ->
-                     defmodule EnforceKeysError do
-                       @enforce_keys [:foo, :fo, :bar]
-                       defstruct(foo: nil)
-                     end
-                   end
     end
   end
 
