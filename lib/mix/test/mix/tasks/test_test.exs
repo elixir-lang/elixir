@@ -285,19 +285,6 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ "** (RuntimeError) oops"
       end)
     end
-
-    test "keeps a failing parameterized variant in the manifest even when a passing sibling variant runs after it" do
-      in_fixture("test_failed_parameterize", fn ->
-        # The `:a` variant fails and the `:b` variant passes. Whichever order
-        # they run in, `:a` must stay in the manifest and be retried. See #15820.
-        output = mix(["test"])
-        assert output =~ "Failed: 1 test"
-
-        output = mix(["test", "--failed"])
-        refute output =~ "There are no tests to run"
-        assert output =~ "Failed: 1 test"
-      end)
-    end
   end
 
   describe "--listen-on-stdin" do

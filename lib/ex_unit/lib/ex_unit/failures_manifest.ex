@@ -28,7 +28,6 @@ defmodule ExUnit.FailuresManifest do
   def put_test({passed, failed}, %ExUnit.Test{state: {failed_state, _}} = test)
       when failed_state in [:failed, :invalid] do
     test_id = {test.module, test.name}
-
     {passed, Map.put(failed, test_id, test.tags.file)}
   end
 
