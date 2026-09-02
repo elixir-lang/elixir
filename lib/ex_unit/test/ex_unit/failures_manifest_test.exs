@@ -83,20 +83,18 @@ defmodule ExUnit.FailuresManifestTest do
       {:ok, %{failed_test: failed_test, manifest: manifest}}
     end
 
-    test "records a passing parameterized sibling", context do
+    test "stores passing test separately", context do
       test = %{context.failed_test | state: @passed}
-      assert put_test(context.manifest, test) == {[test_id(test)], elem(context.manifest, 1)}
+      assert put_test(context.manifest, test) == {[test_id(test)], %{test_id(test) => "file"}}
     end
 
     test "stores failed tests, updating the stored file value", context do
       test = %{context.failed_test | tags: %{file: "some-other-file"}}
-
       assert put_test(context.manifest, test) == {[], %{test_id(test) => file(test)}}
     end
 
     test "stores invalid tests, updating the stored file value", context do
       test = %{context.failed_test | tags: %{file: "some-other-file"}, state: @invalid}
-
       assert put_test(context.manifest, test) == {[], %{test_id(test) => file(test)}}
     end
 
