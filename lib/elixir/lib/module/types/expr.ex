@@ -159,9 +159,9 @@ defmodule Module.Types.Expr do
 
             # The function may still return a too broad type,
             # so we refine once again to assign the most appropriate to the pattern.
-            # This contextual refinement is safe only if any continuation that observes
-            # bindings introduced by the match runs after `expected` is established or
-            # enforced. Callers must not propagate `expected` into discarded values.
+            # This contextual refinement is safe only if an `expected` type violation
+            # raises before bindings introduced by the match can be observed. Callers
+            # must not pass `expected` into a subexpression whose value may be discarded.
             {opt_intersection(result, expected), context}
           end
 

@@ -467,7 +467,8 @@ defmodule Module.Types.Apply do
     #
     # However, during inference, we type it as `a, b -> a and b` only.
     # Either argument may be discarded based on term ordering, so the result's
-    # expected type cannot be used to refine either argument.
+    # expected type cannot be used to refine either argument. The result itself
+    # flows directly to the consumer, so it can still be contextually refined.
     {left_type, context} = of_fun.(left, term(), expr, stack, context)
     {right_type, context} = of_fun.(right, term(), expr, stack, context)
     result = opt_union(left_type, right_type)
