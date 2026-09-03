@@ -2183,6 +2183,9 @@ defmodule Macro do
   def quoted_literal?({:__aliases__, _, args}),
     do: quoted_literal?(args)
 
+  def quoted_literal?({:__block__, _, [wrapped]}),
+    do: quoted_literal?(wrapped)
+
   def quoted_literal?({:%, _, [left, right]}),
     do: quoted_literal?(left) and quoted_literal?(right)
 
