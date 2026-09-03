@@ -1647,6 +1647,22 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(opt_union(integer(), float()))
     end
 
+    test "does not warn when numbers nested in containers coerce" do
+      # `{1} == {1.0}` is true at runtime, and `[1] < [2.0]` is not constant,
+      # even though the container types are disjoint as sets.
+      assert typecheck!([x = {123}, y = {456.0}], x == y) == boolean()
+      assert typecheck!([x = [123], y = [456.0]], x < y) == boolean()
+      assert typecheck!([x = %{a: 123}, y = %{a: 456.0}], x != y) == boolean()
+
+      # `===` does not coerce, so the nested types stay distinct
+      assert typeerror!([x = {123}, y = {456.0}], x === y) =~
+               "comparison between distinct types found"
+
+      # Neither does a nested type that has no number to coerce with
+      assert typeerror!([x = {123}, y = {"foo"}], x == y) =~
+               "comparison between distinct types found"
+    end
+
     test "warns when comparison is constant" do
       assert typeerror!([x = :foo, y = 321], min(x, y)) ==
                ~l"""

@@ -872,30 +872,33 @@ defmodule Module.Types.Apply do
       skip_check? or not is_warning(stack) ->
         {result, context}
 
-      name in [:==, :"/="] and number_type?(left_type) and number_type?(right_type) ->
+      not disjoint?(left_type, right_type) ->
         {result, context}
 
-      # This check is incomplete. After all, we could have the number type nested
-      # inside a tuple or a list and the comparison would still be valid.
-      # However, nested comparison between distinct numbers is very uncommon,
-      # so we only check the direct value here.
-      disjoint?(left_type, right_type) ->
-        error = {:mismatched_comparison, left_type, right_type}
-        remote_error(error, :erlang, name, 2, expr, stack, context)
+      # `==` coerces integers and floats, at the top-level and nested inside
+      # containers alike, so `{1} == {1.0}` holds even though the types are
+      # disjoint as sets. `numberize/1` closes both sides over that coercion.
+      # `=:=` has no such coercion, so disjointedness settles it right away.
+      name in [:==, :"/="] and not disjoint?(numberize(left_type), numberize(right_type)) ->
+        {result, context}
 
       true ->
-        {result, context}
+        error = {:mismatched_comparison, left_type, right_type}
+        remote_error(error, :erlang, name, 2, expr, stack, context)
     end
   end
 
   defp mismatched_ordered_comparison(left_type, right_type, stack) do
     if is_warning(stack) do
       cond do
-        # These checks are incomplete. After all, we could have numbers and
-        # structs nested inside tuples or lists, but we only check the direct
-        # value here.
-        not (number_type?(left_type) and number_type?(right_type)) and
-            disjoint?(left_type, right_type) ->
+        # Ordered comparisons compare numbers by value, at the top-level and
+        # nested inside containers alike, so `numberize/1` closes both sides
+        # over that coercion before we call them distinct.
+        #
+        # The struct check below is still incomplete: we could have structs
+        # nested inside tuples or lists, but we only check the direct value.
+        disjoint?(left_type, right_type) and
+            disjoint?(numberize(left_type), numberize(right_type)) ->
           {:mismatched_comparison, left_type, right_type}
 
         match?({false, _}, map_fetch_key(dynamic(left_type), :__struct__)) and
