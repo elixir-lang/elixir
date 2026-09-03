@@ -990,16 +990,9 @@ defmodule Calendar.ISO do
   @doc since: "1.4.0"
   @spec days_in_month(year, month) :: 28..31
   @impl true
-  def days_in_month(year, month) when is_year(year) and is_month(month) do
-    days_in_month_guarded(year, month)
-  end
-
-  defp days_in_month_guarded(year, 2) do
-    if leap_year?(year), do: 29, else: 28
-  end
-
-  defp days_in_month_guarded(_, month) when month in [4, 6, 9, 11], do: 30
-  defp days_in_month_guarded(_, _), do: 31
+  def days_in_month(year, 2) when is_year(year), do: if(leap_year?(year), do: 29, else: 28)
+  def days_in_month(year, month) when is_year(year) and month in [4, 6, 9, 11], do: 30
+  def days_in_month(year, month) when is_year(year) and is_month(month), do: 31
 
   @doc """
   Returns how many months there are in the given year.
