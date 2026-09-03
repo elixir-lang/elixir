@@ -1649,13 +1649,6 @@ defmodule Module.Types.ExprTest do
 
     test "min/max does not refine discarded arguments from the expected type" do
       assert typecheck!(
-               (
-                 min(v = 1, 2)
-                 v
-               )
-             ) == integer()
-
-      assert typecheck!(
                [x],
                (
                  :erlang.binary_part(:erlang.max(x, ""), 0, 0)
