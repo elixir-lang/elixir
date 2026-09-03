@@ -1943,3 +1943,18 @@ defmodule MacroTest do
     assert Macro.camelize("") == ""
   end
 end
+
+defmodule Macro.DbgAnsiTest do
+  use ExUnit.Case, async: false
+
+  setup do
+    previous = Application.get_env(:elixir, :ansi_enabled, false)
+    Application.put_env(:elixir, :ansi_enabled, false)
+    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
+  end
+
+  test "dbg/3 respects disabled ANSI" do
+    output = ExUnit.CaptureIO.capture_io(fn -> assert dbg(:ok) == :ok end)
+    refute output =~ "\e["
+  end
+end

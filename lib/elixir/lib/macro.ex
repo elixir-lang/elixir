@@ -3046,6 +3046,8 @@ defmodule Macro do
   @doc false
   def __dbg__(to_debug, header, options) do
     {print_location?, options} = Keyword.pop(options, :print_location, true)
+    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
+    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
     ansi_enabled? = options[:syntax_colors] != []
 
     if print_location? and is_binary(header) do
@@ -3053,8 +3055,6 @@ defmodule Macro do
       :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
     end
 
-    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
-    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
     :ok = IO.write(IO.ANSI.format([formatted, ?\n], ansi_enabled?))
     result
