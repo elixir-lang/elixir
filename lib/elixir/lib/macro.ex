@@ -1257,14 +1257,15 @@ defmodule Macro do
   The mapping function receives an integer representing the code point
   of the character it wants to unescape. There are also the special atoms
   `:newline`, `:unicode`, and `:hex`, which control newline, unicode,
-  and escaping respectively.
+  and escaping respectively, and for which the mapping function must return
+  a boolean.
 
   Here is the default mapping function implemented by Elixir:
 
       def unescape_map(:newline), do: true
       def unescape_map(:unicode), do: true
       def unescape_map(:hex), do: true
-      def unescape_map(?0), do: ?0
+      def unescape_map(?0), do: 0
       def unescape_map(?a), do: ?\a
       def unescape_map(?b), do: ?\b
       def unescape_map(?d), do: ?\d
@@ -1287,7 +1288,11 @@ defmodule Macro do
       Macro.unescape_string("example\\n", &unescape_map(&1))
 
   """
-  @spec unescape_string(String.t(), (non_neg_integer -> non_neg_integer | false)) :: String.t()
+  @spec unescape_string(
+          String.t(),
+          (non_neg_integer | :newline | :unicode | :hex ->
+             non_neg_integer | boolean)
+        ) :: String.t()
   def unescape_string(string, map) do
     :elixir_interpolation.unescape_string(string, map)
   end
