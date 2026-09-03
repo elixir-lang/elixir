@@ -849,17 +849,20 @@ defmodule Module.Types.PatternTest do
 
     test "min/max" do
       assert typecheck!([x, y], is_integer(min(x, y)), min(x, y)) ==
-               dynamic(integer())
+               dynamic()
 
       assert typecheck!([x, y], is_number(min(x, y)), min(x, y)) ==
-               dynamic(opt_union(integer(), float()))
+               dynamic()
+
+      assert typecheck!([x, y], is_integer(min(x, y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
 
       assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
                dynamic(
                  open_map(
                    pair: {opt_difference(open_tuple([]), tuple([])), false},
-                   x: {integer(), false},
-                   y: {integer(), false}
+                   x: {term(), false},
+                   y: {term(), false}
                  )
                )
 
