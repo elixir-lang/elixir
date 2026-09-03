@@ -39,6 +39,12 @@ defmodule Date.RangeTest do
 
     test "empty range" do
       refute Enum.member?(@empty_range, @empty_range.first)
+      refute Enum.member?(@empty_range, @empty_range.last)
+
+      empty_desc = Date.range(~D[2000-01-01], ~D[2001-01-01], -1)
+      refute Enum.member?(empty_desc, empty_desc.first)
+      refute Enum.member?(empty_desc, empty_desc.last)
+      refute Enum.member?(empty_desc, ~D[2000-06-01])
     end
   end
 
