@@ -1321,7 +1321,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Drops all entries corresponding to the given `keys` from the keyword list.
+  Drops the given `keys` from the keyword list.
 
   If a key occurs multiple times, all of its entries are removed when that key
   is included in `keys`.
