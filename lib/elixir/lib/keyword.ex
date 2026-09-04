@@ -1324,7 +1324,7 @@ defmodule Keyword do
   Drops all entries corresponding to the given `keys` from the keyword list.
 
   If a key occurs multiple times, all of its entries are removed when that key
-  is included in `keys`. Duplicate entries for other keys remain.
+  is included in `keys`.
 
   ## Examples
 
