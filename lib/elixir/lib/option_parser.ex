@@ -463,7 +463,7 @@ defmodule OptionParser do
   defp next_with_config(["--" <> option | rest], config) do
     {option, value} = split_option(option)
 
-    if String.contains?(option, ["_"]) do
+    if String.contains?(option, "_") do
       {:undefined, "--" <> option, value, rest}
     else
       tagged = tag_option(option, config)
