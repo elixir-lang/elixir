@@ -743,6 +743,10 @@ defmodule EnumTest do
   test "min_max/1" do
     assert Enum.min_max([1]) == {1, 1}
     assert Enum.min_max([2, 3, 1]) == {1, 3}
+    assert Enum.min_max([5, 4, 3, 2, 1]) == {1, 5}
+    assert Enum.min_max([-10, -20, 0, 10, 20]) == {-20, 20}
+    assert Enum.min_max([3, 1, 4, 1, 5, 9, 2, 6, 5]) == {1, 9}
+    assert Enum.min_max(Enum.to_list(1..1000)) == {1, 1000}
     assert Enum.min_max([[], :a, {}]) == {:a, []}
 
     assert Enum.min_max([1, 1.0]) === {1, 1}
@@ -756,6 +760,8 @@ defmodule EnumTest do
   test "min_max/2" do
     assert Enum.min_max([1], fn -> nil end) == {1, 1}
     assert Enum.min_max([2, 3, 1], fn -> nil end) == {1, 3}
+    assert Enum.min_max([5, 4, 3, 2, 1], fn -> nil end) == {1, 5}
+    assert Enum.min_max([-10, -20, 0, 10, 20], fn -> nil end) == {-20, 20}
     assert Enum.min_max([[], :a, {}], fn -> nil end) == {:a, []}
     assert Enum.min_max([], fn -> {:empty_min, :empty_max} end) == {:empty_min, :empty_max}
     assert Enum.min_max(%{}, fn -> {:empty_min, :empty_max} end) == {:empty_min, :empty_max}

@@ -2240,7 +2240,13 @@ defmodule Enum do
           {min :: element, max :: element} | empty_result
         when empty_result: any
 
+  def min_max(list = [_ | _]), do: min_max_list(list)
+
   def min_max(enumerable, sorter_or_empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def min_max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    min_max_list(list)
+  end
 
   def min_max(first..last//step = range, empty_fallback)
       when is_function(empty_fallback, 0) do
@@ -2398,6 +2404,18 @@ defmodule Enum do
   end
 
   defp min_max_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) == :lt)
+
+  defp min_max_list([h | t]), do: min_max_list(t, h, h)
+
+  defp min_max_list([h | t], min, max) do
+    cond do
+      h < min -> min_max_list(t, h, max)
+      max < h -> min_max_list(t, min, h)
+      true -> min_max_list(t, min, max)
+    end
+  end
+
+  defp min_max_list([], min, max), do: {min, max}
 
   @doc """
   Splits the `enumerable` in two lists according to the given function `fun`.
