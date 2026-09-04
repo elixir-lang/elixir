@@ -2240,8 +2240,6 @@ defmodule Enum do
           {min :: element, max :: element} | empty_result
         when empty_result: any
 
-  def min_max(list = [_ | _]), do: min_max_list(list)
-
   def min_max(enumerable, sorter_or_empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min_max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
