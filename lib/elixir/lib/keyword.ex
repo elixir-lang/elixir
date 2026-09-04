@@ -1323,7 +1323,8 @@ defmodule Keyword do
   @doc """
   Drops the given `keys` from the keyword list.
 
-  Removes duplicate keys from the new keyword list.
+  If a key occurs multiple times, all of its entries are removed when that key
+  is included in `keys`.
 
   ## Examples
 
