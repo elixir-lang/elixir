@@ -469,6 +469,23 @@ defmodule Module.Types.DescrTest do
       refute disjoint?(empty_map(), closed_map(a: {integer(), true}))
     end
 
+    test "maps with optional and required unmatched keys" do
+      for prefix <- [[], [a: {integer(), false}]],
+          fields <- [
+            [b: {integer(), true}, c: {integer(), false}],
+            [b: {integer(), false}, c: {integer(), true}]
+          ],
+          constructor <- [&closed_map/1, &open_map/1] do
+        left = closed_map(prefix)
+        right = constructor.(prefix ++ fields)
+
+        assert opt_intersection(left, right) == none()
+        assert opt_intersection(right, left) == none()
+        assert opt_difference(left, right) == left
+        assert opt_difference(right, left) == right
+      end
+    end
+
     test "map with domain keys" do
       # %{..., int => t1, atom => t2} and %{int => t3}
       # intersection is %{int => t1 and t3, atom => none}

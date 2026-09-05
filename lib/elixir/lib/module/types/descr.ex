@@ -6879,10 +6879,10 @@ defmodule Module.Types.Descr do
             :none
         end
 
-      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, {_, optional?}} -> not optional? end) ->
+      tag1 == :closed and l2 != [] and Enum.any?(l2, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
-      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, {_, optional?}} -> not optional? end) ->
+      tag2 == :closed and l1 != [] and Enum.any?(l1, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
       true ->
