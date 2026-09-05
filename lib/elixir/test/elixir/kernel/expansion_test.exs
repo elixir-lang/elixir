@@ -660,7 +660,7 @@ defmodule Kernel.ExpansionTest do
 
     test "invalid keys in structs" do
       assert_compile_error(
-        "invalid key for struct, struct keys must be static atoms, got: :erlang.+(1, 2)",
+        "invalid key for struct, struct keys must be literal atoms, got: :erlang.+(1, 2)",
         fn ->
           expand(
             quote do
