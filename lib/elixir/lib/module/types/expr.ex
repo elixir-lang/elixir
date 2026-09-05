@@ -11,6 +11,7 @@ defmodule Module.Types.Expr do
   14 = length(Macro.Env.__info__(:struct))
 
   aliases = list(tuple([atom(), atom()]))
+  macro_aliases = list(tuple([atom(), tuple([term(), atom()])]))
   functions_and_macros = list(tuple([atom(), list(tuple([atom(), integer()]))]))
   list_of_modules = list(atom())
 
@@ -26,7 +27,7 @@ defmodule Module.Types.Expr do
             functions: {functions_and_macros, false},
             lexical_tracker: {opt_union(pid(), atom([nil])), false},
             line: {integer(), false},
-            macro_aliases: {aliases, false},
+            macro_aliases: {macro_aliases, false},
             macros: {functions_and_macros, false},
             module: {atom(), false},
             requires: {list_of_modules, false},
