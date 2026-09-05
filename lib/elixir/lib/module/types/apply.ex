@@ -1174,6 +1174,19 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :--, _info, [left, right], stack) do
+    # TODO: remove once we add parametric types, this will just be:
+    # list(a), list(term()) -> list(a)
+    case {list_of(left), list_of(right)} do
+      {{_, list_of}, {_, _}} ->
+        result = if list_of, do: list(list_of), else: empty_list()
+        {:ok, return(result, [left, right], stack)}
+
+      _ ->
+        {:error, badremote(:erlang, :--, [left, right])}
+    end
+  end
+
   defp remote_apply(Kernel, :elem, info, [tuple, _index] = args_types, stack) do
     remote_apply_tuple_element(info, args_types, tuple, stack)
   end

@@ -173,6 +173,15 @@ defmodule Module.Types.ExprTest do
                    non_empty_list(term()), term()
                """
     end
+
+    test "--" do
+      assert typecheck!([x], [1, 2, 3] -- x) == list(integer())
+      assert typecheck!([1] -- [1]) == list(integer())
+      assert typecheck!([x], [] -- x) == empty_list()
+
+      assert typeerror!([x], [1, 2, 3] -- String.to_integer(x)) |> strip_ansi() =~
+               "incompatible types given to Kernel.--/2"
+    end
   end
 
   describe "funs" do
