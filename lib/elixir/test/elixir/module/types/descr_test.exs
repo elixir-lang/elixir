@@ -460,6 +460,16 @@ defmodule Module.Types.DescrTest do
       assert opt_intersection(empty_map(), closed_map(a: {integer(), true})) == empty_map()
       assert opt_intersection(closed_map(a: {integer(), true}), empty_map()) == empty_map()
 
+      assert opt_difference(
+               empty_map(),
+               closed_map(a: {integer(), true}, b: {integer(), false})
+             ) == empty_map()
+
+      assert opt_difference(
+               closed_map(a: {integer(), true}, b: {integer(), false}),
+               empty_map()
+             ) == closed_map(a: {integer(), true}, b: {integer(), false})
+
       assert opt_intersection(
                open_map(a: {integer(), true}),
                closed_map(a: {atom(), true})
