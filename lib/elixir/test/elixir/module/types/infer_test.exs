@@ -292,6 +292,35 @@ defmodule Module.Types.InferTest do
              )
   end
 
+  test "from map updates with mixed atom and non-atom keys", config do
+    types =
+      infer config do
+        def replace(map, flag) do
+          key = if flag, do: :a, else: 1
+          %{map | key => :new}
+        end
+      end
+
+    assert {:infer, _, [{[map, flag], _}]} = types[{:replace, 2}]
+    assert map == open_map()
+    assert equal?(flag, term())
+  end
+
+  test "from map updates with singleton atom keys", config do
+    types =
+      infer config do
+        def replace(map) do
+          key = key()
+          %{map | key => :new}
+        end
+
+        defp key, do: :a
+      end
+
+    assert {:infer, _, [{[map], _}]} = types[{:replace, 1}]
+    assert map == open_map(a: {term(), false})
+  end
+
   test "from captures", config do
     types =
       infer config do

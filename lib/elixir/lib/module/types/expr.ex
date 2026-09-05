@@ -182,11 +182,14 @@ defmodule Module.Types.Expr do
       end)
 
     # The only information we can attach to the expected types is that
-    # certain keys are expected.
+    # certain keys are expected. The whole key type must be a singleton atom,
+    # as atom_fetch/1 may return only the atom subset of a gradual type.
     expected_pairs =
       Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
-        case atom_fetch(key_type) do
-          {:finite, [key]} -> [{key, {term(), false}}]
+        with true <- subtype?(key_type, atom()),
+             {:finite, [key]} <- atom_fetch(key_type) do
+          [{key, {term(), false}}]
+        else
           _ -> []
         end
       end)

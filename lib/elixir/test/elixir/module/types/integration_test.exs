@@ -209,6 +209,23 @@ defmodule Module.Types.IntegrationTest do
   end
 
   describe "type checking" do
+    test "map updates with mixed atom and non-atom keys" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def replace(map, flag) do
+            key = if flag, do: :a, else: 1
+            %{map | key => :new}
+          end
+
+          def run, do: replace(%{1 => :old}, false)
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "inferred remote calls" do
       files = %{
         "a.ex" => """
