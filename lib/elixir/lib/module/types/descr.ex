@@ -7029,13 +7029,10 @@ defmodule Module.Types.Descr do
     opt_tuple_union_literal({tag1, elements1}, {tag2, elements2})
   end
 
-  defp opt_tuple_union(
-         bdd_leaf(tag1, elements1),
-         bdd_leaf(tag2, elements2)
-       ) do
+  defp opt_tuple_union(bdd_leaf(tag1, elements1) = bdd1, bdd_leaf(tag2, elements2) = bdd2) do
     case opt_tuple_union_literal({tag1, elements1}, {tag2, elements2}) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
-      nil -> bdd_union(bdd_leaf_new(tag1, elements1), bdd_leaf_new(tag2, elements2))
+      nil -> bdd_union(bdd1, bdd2)
     end
   end
 
