@@ -218,11 +218,33 @@ defmodule Module.Types do
 
   @doc false
   def warnings(module, file, attrs, defs, no_warn_undefined, cache) do
+    {warnings, _sigs} =
+      warnings(module, file, attrs, defs, no_warn_undefined, cache, fn _ -> :default end)
+
+    warnings
+  end
+
+  # Variant that allows type checking each definition against a custom
+  # argument domain (for example derived from its typespec): `domains`
+  # receives each fun_arity and returns either :default (the usual list of
+  # dynamics) or {mode, [arg_descr]} to be used as the expected argument
+  # types, where mode is :dynamic or :static. Also returns the local
+  # signatures inferred under those domains so callers can compare return
+  # types. Used by lib/elixir/scripts/compare_specs_and_signatures.exs.
+  @doc false
+  def warnings(module, file, attrs, defs, no_warn_undefined, cache, domains) do
     impl = impl_for(attrs)
+
+    domain = fn def, fun_arity ->
+      case domains.(fun_arity) do
+        :default -> default_domain(:dynamic, def, fun_arity, impl)
+        {mode, args} when mode in [:dynamic, :static] and is_list(args) -> {mode, def, args}
+      end
+    end
 
     finder = fn fun_arity ->
       case :lists.keyfind(fun_arity, 1, defs) do
-        {_, _, _, _} = def -> default_domain(:dynamic, def, fun_arity, impl)
+        {_, _, _, _} = def -> domain.(def, fun_arity)
         false -> false
       end
     end
@@ -233,13 +255,13 @@ defmodule Module.Types do
     context =
       Enum.reduce(defs, context(), fn {fun_arity, _kind, meta, _clauses} = def, context ->
         # Optimized version of finder, since we already have the definition
-        finder = fn _ -> default_domain(:dynamic, def, fun_arity, impl) end
+        finder = fn _ -> domain.(def, fun_arity) end
         {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
         context
       end)
 
     context = warn_unused_clauses(defs, stack, context)
-    context.warnings
+    {context.warnings, context.local_sigs}
   end
 
   defp warn_unused_clauses(defs, stack, context) do
