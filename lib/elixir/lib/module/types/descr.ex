@@ -4954,14 +4954,15 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Important: this generates DISJOINT tuples.
+  # Returns tuples whose union is the difference. The size and content
+  # branches may overlap.
   defp tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements}) do
     n = length(elements)
     m = length(neg_elements)
 
-    # Scenarios where the difference is guaranteed to be empty:
+    # Scenarios where the tuples are disjoint, so the positive tuple is unchanged:
     # 1. When removing larger tuples from a fixed-size positive tuple
-    # 2. When removing smaller tuples from larger tuples
+    # 2. When removing smaller fixed-size tuples from larger tuples
     # 3. When there is no intersection between the elements of the two tuples
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) or
          zip_empty_intersection?(elements, neg_elements) do
