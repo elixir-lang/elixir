@@ -211,13 +211,13 @@ defprotocol Inspect do
 
         quote do
           unquote(filtered_guard) and
-            not case unquote(Macro.escape(optional_map)) do
-              %{^var!(field) => var!(default)} ->
-                var!(default) == Map.get(var!(struct), var!(field))
+            not (case unquote(Macro.escape(optional_map)) do
+                   %{^var!(field) => var!(default)} ->
+                     var!(default) == Map.get(var!(struct), var!(field))
 
-              %{} ->
-                false
-            end
+                   %{} ->
+                     false
+                 end)
         end
       end
 

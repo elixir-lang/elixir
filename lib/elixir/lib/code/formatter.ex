@@ -694,13 +694,26 @@ defmodule Code.Formatter do
   end
 
   defp unary_op_to_algebra(op, _meta, arg, context, state) do
-    {doc, state} = quoted_to_algebra(arg, force_many_args_or_operand(context, :operand), state)
+    arg_context = force_many_args_or_operand(context, :operand)
+    {doc, state} = quoted_to_algebra(arg, arg_context, state)
 
-    # not and ! are nestable, all others are not.
     doc =
-      case arg do
-        {^op, _, [_]} when op in [:!, :not] -> doc
-        _ -> wrap_in_parens_if_operator(doc, arg)
+      cond do
+        # not and ! are nestable, all others are not.
+        op in [:!, :not] and match?({^op, _, [_]}, arg) ->
+          doc
+
+        # A call with a do-end block captures everything on its right when
+        # parsed back, so the operand requires parens, otherwise
+        # "!(if x do y end) || z" would be read as "!(if x do y end || z)".
+        # Argument contexts already add those parens themselves and @ is
+        # skipped because the block is the attribute value, as in
+        # "@foo bar do baz end".
+        op != :@ and arg_context != :no_parens_arg and do_end_block_call?(arg, state) ->
+          wrap_in_parens(doc)
+
+        true ->
+          wrap_in_parens_if_operator(doc, arg)
       end
 
     # not requires a space unless the doc was wrapped in parens.
@@ -1358,6 +1371,12 @@ defmodule Code.Formatter do
   end
 
   defp do_end_blocks(_, _, _), do: nil
+
+  defp do_end_block_call?({_fun, meta, args}, state) when is_list(args) do
+    do_end_blocks(meta, List.last(args), state) != nil
+  end
+
+  defp do_end_block_call?(_, _), do: false
 
   defp can_force_do_end_blocks?(rest, state) do
     state.force_do_end_blocks and

@@ -132,6 +132,41 @@ defmodule Code.Formatter.OperatorsTest do
       end
       """
     end
+
+    test "wraps operand with do-end block in parens" do
+      assert_same """
+      !(if x do
+          y
+        end)
+      """
+
+      assert_same """
+      !(if x do
+          y
+        end) || z
+      """
+
+      assert_same """
+      not (case x do
+             _ -> y
+           end) || z
+      """
+
+      assert_same """
+      !!(if x do
+           y
+         end)
+      |> z()
+      """
+    end
+
+    test "does not wrap module attribute value with do-end block in parens" do
+      assert_same """
+      @foo quote do
+        :ok
+      end
+      """
+    end
   end
 
   describe "binary without space" do
