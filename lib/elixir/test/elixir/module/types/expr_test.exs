@@ -2167,6 +2167,49 @@ defmodule Module.Types.ExprTest do
                atom([:non_empty_map, :maybe_empty_map])
     end
 
+    test "does not discard equal values when narrowing against negated types" do
+      # `other` carries a negation (`... and not {float()}`) from the clause
+      # subtraction. Widening integers/floats inside that negation would wrongly
+      # remove `{1}`, even though `{1} == {1.0}` at runtime.
+      assert typecheck!(
+               [v, q],
+               (
+                 other =
+                   case v do
+                     {a} when is_float(a) -> {:float, a}
+                     other -> other
+                   end
+
+                 w = if q, do: {1}, else: {1.5}
+
+                 case w do
+                   x when x == other -> {:matched, x}
+                   _ -> :nomatch
+                 end
+               )
+             )
+             |> to_quoted_string() ==
+               "dynamic({:matched, {float() or integer()}}) or :nomatch"
+    end
+
+    test "does not discard equal values when narrowing against domain keys" do
+      # `==` coerces map values, so narrowing `x` from `x == y` must widen the
+      # `integer() => integer()` domain value to `integer() => number()`.
+      assert typecheck!(
+               (
+                 y = %{1 => 1}
+                 w = %{1 => 1.0}
+
+                 case w do
+                   x when x == y and map_size(x) == 1 -> {:eq, x}
+                   _ -> :ne
+                 end
+               )
+             )
+             |> to_quoted_string() ==
+               ":ne or {:eq, %{integer() => float()} and not empty_map()}"
+    end
+
     test "consider external variables as not precise" do
       assert typecheck!(
                [x],

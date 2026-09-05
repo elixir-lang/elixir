@@ -571,21 +571,32 @@ defmodule Module.Types.Descr do
   defp numberize(:bitmap, bitmap), do: bitmap
 
   defp numberize(:map, bdd) do
-    bdd_map(bdd, fn bdd_leaf(tag, fields) ->
+    bdd_map_positive(bdd, fn bdd_leaf(tag, fields) ->
       bdd_leaf_new(
-        tag,
+        numberize_map_tag(tag),
         fields_map(fn _key, {value, optional?} -> {numberize(value), optional?} end, fields)
       )
     end)
   end
 
   defp numberize(:tuple, bdd) do
-    bdd_map(bdd, fn bdd_leaf(tag, fields) -> bdd_leaf_new(tag, Enum.map(fields, &numberize/1)) end)
+    bdd_map_positive(bdd, fn bdd_leaf(tag, fields) ->
+      bdd_leaf_new(tag, Enum.map(fields, &numberize/1))
+    end)
   end
 
   defp numberize(:list, bdd) do
-    bdd_map(bdd, fn bdd_leaf(head, tail) -> bdd_leaf_new(numberize(head), numberize(tail)) end)
+    bdd_map_positive(bdd, fn bdd_leaf(head, tail) ->
+      bdd_leaf_new(numberize(head), numberize(tail))
+    end)
   end
+
+  # Map keys are compared exactly by `==`, only their values coerce, so the
+  # domain keys are kept as is and only the types they point to are widened.
+  defp numberize_map_tag(domains) when is_list(domains),
+    do: fields_map(fn _key, value -> numberize(value) end, domains)
+
+  defp numberize_map_tag(tag), do: tag
 
   @doc """
   Returns if the type is a singleton.
@@ -6152,6 +6163,39 @@ defmodule Module.Types.Descr do
 
       {_, leaf, left, union, right} ->
         bdd_node_new(fun.(leaf), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun))
+    end
+  end
+
+  # Like `bdd_map/2`, but only rewrites leaves in *positive* position.
+  #
+  # `bdd_map/2` is polarity-blind: on `A and not B` it rewrites `B` too, so a
+  # widening `fun` shrinks the result instead of enlarging it (`numberize/1`
+  # replacing `not {float()}` by `not {number()}` would drop `{1}` from the
+  # result even though `{1} == {1.0}`). Whenever `fun` changes a negated leaf,
+  # we drop the negation altogether: over-approximating is the safe direction
+  # for widening callers. Negations left untouched by `fun` are preserved,
+  # so the common negation-free case keeps its exact shape.
+  defp bdd_map_positive(bdd, fun) do
+    case bdd do
+      :bdd_bot ->
+        :bdd_bot
+
+      :bdd_top ->
+        :bdd_top
+
+      bdd_leaf(_, _) = leaf ->
+        fun.(leaf)
+
+      {_, leaf, left, union, right} ->
+        left = bdd_map_positive(left, fun)
+        union = bdd_map_positive(union, fun)
+        right = bdd_map_positive(right, fun)
+
+        case fun.(leaf) do
+          ^leaf -> bdd_node_new(leaf, left, union, right)
+          new_leaf when right == :bdd_bot -> bdd_node_new(new_leaf, left, union, :bdd_bot)
+          new_leaf -> bdd_union(bdd_intersection(new_leaf, left), bdd_union(union, right))
+        end
     end
   end
 
