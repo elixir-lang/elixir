@@ -29,9 +29,9 @@ defmodule Mix.Tasks.Local.Hex do
       intended for automation in build systems like `make`
 
     * `--if-missing` - performs installation only if Hex is not installed yet,
-      or if the specified version is newer than the installed version; intended
-      to avoid repeatedly reinstalling Hex in automation when a script may be
-      run multiple times
+      or if the specified version is different than the installed version.
+      This is intended to avoid repeatedly reinstalling Hex in automation
+      when a script may be run multiple times
 
   If both options are set, the shell prompt is skipped and Hex is not
   re-installed if it was already installed.
@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Local.Hex do
     should_install? =
       if Keyword.get(opts, :if_missing, false) do
         if version do
-          not Code.ensure_loaded?(Hex) or Version.compare(Hex.version(), version) == :lt
+          not Code.ensure_loaded?(Hex) or Version.compare(Hex.version(), version) != :eq
         else
           not Code.ensure_loaded?(Hex)
         end
