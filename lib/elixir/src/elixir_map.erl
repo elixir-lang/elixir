@@ -225,7 +225,7 @@ load_struct(Meta, Name, Assocs, E) ->
 
 assert_and_trace_struct_assocs(Meta, Name, Assocs, E) ->
   Keys = [begin
-    is_atom(K) orelse function_error(Meta, E, ?MODULE, {invalid_key_for_struct, K}),
+    is_atom(K) orelse file_error(Meta, E, ?MODULE, {invalid_key_for_struct, K}),
     K
   end || {K, _} <- Assocs],
   elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
