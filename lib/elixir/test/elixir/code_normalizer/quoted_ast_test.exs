@@ -514,6 +514,19 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: !(foo > bar))) == "!(foo > bar)"
       assert quoted_to_string(quote(do: @foo(bar))) == "@foo bar"
       assert quoted_to_string(quote(do: identity(&1))) == "identity(&1)"
+
+      quoted =
+        quote do
+          !if a do
+            b
+          end ||
+            !if b do
+              c
+            end
+        end
+
+      string = quoted_to_string(quoted)
+      assert string |> Code.string_to_quoted!() |> quoted_to_string() == string
     end
 
     test "operators with colors" do

@@ -164,10 +164,10 @@ unmatched_expr -> matched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr matched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr no_parens_op_expr : warn_no_parens_after_do_op('$2'), build_op('$1', '$2').
-unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
-unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
-unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
-unmatched_expr -> ellipsis_op expr : build_unary_op('$1', '$2').
+unmatched_expr -> unary_op_eol unmatched_expr : build_unary_op('$1', '$2').
+unmatched_expr -> at_op_eol unmatched_expr : build_unary_op('$1', '$2').
+unmatched_expr -> capture_op_eol unmatched_expr : build_unary_op('$1', '$2').
+unmatched_expr -> ellipsis_op unmatched_expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 no_parens_expr -> matched_expr no_parens_op_expr : build_op('$1', '$2').
