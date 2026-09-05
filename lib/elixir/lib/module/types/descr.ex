@@ -2887,8 +2887,6 @@ defmodule Module.Types.Descr do
     {dynamic_value, static_value, value_dynamic?} = split_dynamic(value)
     dynamic? = dynamic? or value_dynamic?
 
-    static_empty? = static_empty? or static_value == @none
-
     {fields, map_put_domain(domains, key, static_value), dynamic_fields,
      map_put_domain(dynamic_domains, key, dynamic_value), dynamic?, static_empty?}
   end

@@ -980,7 +980,7 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "creation" do
-    test "map hoists dynamic" do
+    test "map handles dynamic values" do
       assert dynamic(open_map(a: {integer(), false})) == open_map(a: {dynamic(integer()), false})
 
       assert opt_union(
@@ -989,15 +989,45 @@ defmodule Module.Types.DescrTest do
              ) ==
                open_map(a: {dynamic(integer()) |> opt_union(binary()), false})
 
-      # For domains too
-      t1 = dynamic(open_map([{domain_key(:integer), integer()}]))
+      # Domains are optional, so their static part must also be preserved
       t2 = open_map([{domain_key(:integer), dynamic(integer())}])
-      assert t1 == t2
+
+      assert t2 ==
+               Map.put(
+                 open_map([{domain_key(:integer), none()}]),
+                 :dynamic,
+                 open_map([{domain_key(:integer), integer()}])
+               )
 
       # Optional dynamic fields also must work
       t1 = dynamic(open_map(a: {integer(), true}))
       t2 = open_map(a: {dynamic(integer()), true})
       assert opt_union(open_map(a: {none(), true}), t1) == t2
+    end
+
+    test "map domains with empty static values preserve the static map" do
+      static = closed_map([{domain_key(:integer), none()}, {:b, {integer(), false}}])
+      gradual = closed_map([{domain_key(:integer), dynamic()}, {:b, {integer(), false}}])
+
+      assert lower_bound(gradual) == static
+      assert upper_bound(fun([gradual], atom())) == fun([static], atom())
+
+      static = open_map([{domain_key(:fun), none()}, {:a, {none(), true}}])
+      gradual = open_map([{domain_key(:fun), none()}, {:a, {dynamic(), true}}])
+
+      assert lower_bound(gradual) == static
+
+      static = open_map([{domain_key(:tuple), none()}, {:b, {integer(), true}}])
+
+      gradual =
+        open_map([
+          {domain_key(:tuple), none()},
+          {:b, {opt_union(integer(), dynamic(float())), true}}
+        ])
+
+      assert lower_bound(gradual) == static
+
+      assert lower_bound(open_map(a: {dynamic(), false})) == none()
     end
 
     test "structural types preserve static part of gradual elements" do
