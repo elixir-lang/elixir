@@ -235,7 +235,7 @@ defmodule Macro do
   `div/2` function, so that the AST for that function will become `{:div, [],
   [100, 5]}` (`div(100, 5)`).
   """
-  @spec unpipe(t()) :: [t()]
+  @spec unpipe(t()) :: [{t(), non_neg_integer}]
   def unpipe(expr) do
     :lists.reverse(unpipe(expr, []))
   end
