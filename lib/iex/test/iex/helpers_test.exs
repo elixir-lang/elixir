@@ -516,6 +516,13 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(IEx.Helpers.recompile() / 1) end) =~ spec
     end
 
+    test "prints spec for default arg macro" do
+      spec = "@spec compile_env(app(), key() | list(), value()) :: value()"
+
+      assert capture_io(fn -> h(Application.compile_env() / 2) end) =~ spec
+      assert capture_io(fn -> h(Application.compile_env() / 3) end) =~ spec
+    end
+
     test "prints sigil documentation" do
       assert capture_io(fn -> h(~w//) end) =~ "Handles the sigil `~w` for list of words"
     end
