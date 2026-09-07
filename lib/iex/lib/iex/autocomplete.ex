@@ -568,7 +568,7 @@ defmodule IEx.Autocomplete do
   defp format_expansion([first | _] = entries, hint) do
     binary = Enum.map(entries, & &1.name)
     length = byte_size(hint)
-    prefix = :binary.longest_common_prefix(binary)
+    prefix = byte_size(String.byte_slice(first.name, 0, :binary.longest_common_prefix(binary)))
 
     if prefix in [0, length] do
       case Enum.group_by(entries, &Map.get(&1, :group, "Exports")) do
