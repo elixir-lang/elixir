@@ -17,8 +17,10 @@
 #    (from https://www.unicode.org/Public/security/VERSION_NUMBER/)
 # 8. Replace IdentifierType.txt by copying original
 #    (from https://www.unicode.org/Public/security/VERSION_NUMBER/)
-# 9. Update String.Unicode.version/0 and on String module docs (version and link)
-# 10. make unicode
+# 9. Replace WordBreakProperty.txt by copying original
+#    (from https://www.unicode.org/Public/VERSION_NUMBER/ucd/auxiliary/)
+# 10. Update String.Unicode.version/0 and on String module docs (version and link)
+# 11. make unicode
 
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
@@ -81,27 +83,20 @@ other_cased_letters =
 #    General_Category(C) = Nonspacing_Mark (Mn), Enclosing_Mark (Me), Format (Cf),
 #                          Modifier_Letter (Lm), or Modifier_Symbol (Sk).
 #
-# Word breaks are defined below based on TR29 (https://unicode.org/reports/tr29/).
 # The categories are computed later.
-case_ignorable = [
-  0x0027,
-  0x002E,
-  0x2018,
-  0x2019,
-  0x2024,
-  0xFE52,
-  0xFF07,
-  0xFF0E,
-  0x00B7,
-  0x0387,
-  0x055F,
-  0x05F4,
-  0x2027,
-  0x003A,
-  0xFE13,
-  0xFE55,
-  0xFF1A
-]
+case_ignorable =
+  Path.join(__DIR__, "WordBreakProperty.txt")
+  |> File.read!()
+  |> String.split(["\r\n", "\n"])
+  |> Enum.reduce([], fn line, acc ->
+    with [range, property] <- :binary.split(line, ";"),
+         [property | _] = String.split(property),
+         true <- property in ["MidLetter", "MidNumLet", "Single_Quote"] do
+      expand_range.(range) ++ acc
+    else
+      _ -> acc
+    end
+  end)
 
 acc = {[], [], case_ignorable, [], %{}, %{}}
 cased_letter_categories = :binary.compile_pattern(["Ll", "Lt", "Lu"])
