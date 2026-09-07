@@ -5562,7 +5562,7 @@ defmodule Kernel do
   when the struct is printed:
 
       defmodule User do
-        @derive {Inspect, only: :name}
+        @derive {Inspect, only: [:name]}
         defstruct name: nil, age: nil
       end
 
