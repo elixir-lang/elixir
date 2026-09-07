@@ -3477,36 +3477,60 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(bitstring())
     end
 
-    test ":into" do
+    test ":into lists" do
       assert typecheck!([binary], for(<<x <- binary>>, do: x)) == list(integer())
       assert typecheck!([binary], for(<<x <- binary>>, do: x, into: [])) == list(integer())
-      assert typecheck!([binary], for(<<x <- binary>>, do: <<x>>, into: "")) |> equal?(binary())
-      assert typecheck!([binary, other], for(<<x <- binary>>, do: x, into: other)) == dynamic()
 
       assert typecheck!([enum], for(x <- enum, do: x)) ==
                opt_union(list(dynamic()), empty_list())
 
       assert typecheck!([enum], for(x <- enum, do: x, into: [])) ==
                opt_union(list(dynamic()), empty_list())
+    end
+
+    test ":into binaries" do
+      assert typecheck!([binary], for(<<x <- binary>>, do: <<x>>, into: "")) |> equal?(binary())
+      assert typecheck!([binary, other], for(<<x <- binary>>, do: x, into: other)) == dynamic()
 
       assert typecheck!([enum], for(x <- enum, do: <<x>>, into: "")) |> equal?(binary())
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
+    end
 
+    test ":into unions" do
       assert typecheck!(
                [binary],
                (
                  into = if :rand.uniform() > 0.5, do: [], else: "0"
-                 for(<<x::float <- binary>>, do: x, into: into)
+                 for(<<x::4-binary <- binary>>, do: x, into: into)
                )
-             ) == opt_union(bitstring(), list(term()))
+             ) == opt_union(binary(), list(binary()))
 
       assert typecheck!(
                [binary, empty_list = []],
                (
                  into = if :rand.uniform() > 0.5, do: empty_list, else: "0"
-                 for(<<x::float <- binary>>, do: x, into: into)
+                 for(<<x::2 <- binary>>, do: <<x::4>>, into: into)
                )
-             ) == opt_union(bitstring(), list(term()))
+             ) ==
+               dynamic(
+                 opt_union(opt_union(bitstring(), empty_list()), list(bitstring_no_binary()))
+               )
+    end
+
+    test ":into bitstrings" do
+      assert typecheck!([items], for(_ <- items, into: <<0::4>>, do: <<1::4>>)) == bitstring()
+
+      assert typecheck!(
+               [items],
+               (
+                 bits = for _ <- items, into: <<0::4>>, do: <<1::4>>
+
+                 case bits do
+                   x when is_binary(x) -> :binary
+                   _ -> :bits
+                 end
+               )
+             ) == atom([:binary, :bits])
     end
 
     test ":into inference" do

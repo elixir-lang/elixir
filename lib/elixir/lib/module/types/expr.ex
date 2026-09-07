@@ -625,34 +625,41 @@ defmodule Module.Types.Expr do
       else
         # TODO: Use the collectable protocol for the output
         into = Keyword.get(opts, :into, [])
-        {into_type, into_kind, context} = for_into(into, meta, stack, context)
 
-        case into_kind do
-          :bitstring ->
-            {block_type, context} = of_expr(block, bitstring(), block, stack, context)
+        {into_kinds, into_type, expected, context} =
+          for_into(into, meta, expected, stack, context)
+
+        {block_type, context} = of_expr(block, expected, block, stack, context)
+
+        result_type =
+          if :non_empty_list in into_kinds do
+            opt_union(into_type, non_empty_list(block_type))
+          else
+            into_type
+          end
+
+        {result_type, context} =
+          if :bitstring in into_kinds do
             intersection = opt_intersection(block_type, bitstring())
 
+            # TODO: currently if :into is a binary, then we expect the body
+            # to return a binary, even if the binary is a gradual type. This
+            # is ok for now because we only check for bitstring if the type
+            # is a subset of empty_list() or bitstring(), but we may want to
+            # relax in the future.
             if empty?(intersection) do
               error = {:badbitbody, block_type, block, context}
               {error_type(), error(__MODULE__, error, meta, stack, context)}
             else
-              {opt_union(into_type, intersection), context}
+              # If into_type is a binary but the block is a bitstring_no_binary(),
+              # then the result may be a bitstring_no_binary().
+              {opt_union(intersection, result_type), context}
             end
+          else
+            {result_type, context}
+          end
 
-          :non_empty_list ->
-            expected =
-              case list_hd(expected) do
-                {:ok, head} -> head
-                _ -> term()
-              end
-
-            {block_type, context} = of_expr(block, expected, block, stack, context)
-            {opt_union(into_type, non_empty_list(block_type)), context}
-
-          :none ->
-            {_, context} = of_expr(block, term(), block, stack, context)
-            {into_type, context}
-        end
+        {if(gradual?(into_type), do: dynamic(result_type), else: result_type), context}
         |> dynamic_unless_static(stack)
       end
     end)
@@ -839,13 +846,20 @@ defmodule Module.Types.Expr do
 
   @into_compile opt_union(bitstring(), empty_list())
 
-  defp for_into([], _meta, _stack, context),
-    do: {empty_list(), :non_empty_list, context}
+  defp maybe_list_hd_or_term(expected) do
+    case list_hd(expected) do
+      {:ok, head} -> head
+      _ -> term()
+    end
+  end
 
-  defp for_into(binary, _meta, _stack, context) when is_binary(binary),
-    do: {binary(), :bitstring, context}
+  defp for_into([], _meta, expected, _stack, context),
+    do: {[:non_empty_list], empty_list(), maybe_list_hd_or_term(expected), context}
 
-  defp for_into(into, meta, stack, context) do
+  defp for_into(binary, _meta, _expected, _stack, context) when is_binary(binary),
+    do: {[:bitstring], binary(), bitstring(), context}
+
+  defp for_into(into, meta, expected, stack, context) do
     meta =
       case into do
         {_, meta, _} -> meta
@@ -862,27 +876,26 @@ defmodule Module.Types.Expr do
     # We use subtype? instead of compatible because we want to handle
     # only bitstring/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
-      case {bitstring_type?(type), empty_list_type?(type)} do
-        # If they can be both be true, then we don't know
-        # what the contents of the block are for
-        {true, true} ->
-          type = opt_union(bitstring(), list(term()))
-          {if(gradual?(type), do: dynamic(type), else: type), :none, context}
+      cond do
+        bitstring_type?(type) ->
+          kinds = if empty_list_type?(type), do: [:bitstring, :non_empty_list], else: [:bitstring]
+          # A comprehension may concatenate the block an arbitrary number of times.
+          # Even if both the initial value and each block are unaligned bitstrings,
+          # repeated concatenation may eventually produce an aligned binary.
+          {kinds, opt_union(binary(), type), bitstring(), context}
 
-        {false, true} ->
-          {type, :non_empty_list, context}
+        empty_list_type?(type) ->
+          {[:non_empty_list], type, maybe_list_hd_or_term(expected), context}
 
-        {true, false} ->
-          {type, :bitstring, context}
-
-        {false, false} ->
-          {type, :none, context}
+        # The type is empty...
+        true ->
+          {[], type, term(), context}
       end
     else
       {_type, context} =
         Apply.remote_apply(info, Collectable, :into, [type], expr, stack, context)
 
-      {dynamic(), :none, context}
+      {[], dynamic(), term(), context}
     end
   end
 
