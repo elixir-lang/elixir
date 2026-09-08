@@ -550,7 +550,12 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
-  defp generate_test_seed(seed, %ExUnit.Test{module: module, name: name}, rand_algorithm) do
+  # Parameterized tests share module and name, so mix the parameters into the seed
+  # to give each parameter set its own random sequence. Tests without parameters keep
+  # the seed they had before, so existing `--seed` reproductions are unaffected.
+  defp generate_test_seed(seed, %ExUnit.Test{} = test, rand_algorithm) do
+    %ExUnit.Test{module: module, name: name, parameters: parameters} = test
+    name = if parameters == %{}, do: name, else: {name, parameters}
     :rand.seed(rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 

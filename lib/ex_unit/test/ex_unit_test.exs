@@ -717,6 +717,27 @@ defmodule ExUnitTest do
     assert_receive {:tmp_dir, tmp_dir2} when tmp_dir1 != tmp_dir2
   end
 
+  test "parameterized tests get a different seed for each parameter set" do
+    Process.register(self(), :parameterized_seed_tests)
+
+    defmodule ParameterizedSeedTests do
+      use ExUnit.Case, async: true, parameterize: [%{value: 1}, %{value: 2}]
+
+      test "hello world" do
+        send(:parameterized_seed_tests, {:rand, :rand.uniform(1_000_000)})
+      end
+    end
+
+    configure_and_reload_on_exit(seed: 1)
+
+    capture_io(fn ->
+      assert ExUnit.run() == %{failures: 0, skipped: 0, total: 2, excluded: 0}
+    end)
+
+    assert_receive {:rand, rand1}
+    assert_receive {:rand, rand2} when rand1 != rand2
+  end
+
   test "empty parameterized tests" do
     defmodule EmptyParameterizedTests do
       use ExUnit.Case, async: true, parameterize: []
