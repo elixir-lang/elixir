@@ -1840,16 +1840,14 @@ defmodule Module.Types.Descr do
   end
 
   defp disjoint_non_empty_domains?(arguments, positives, seen) do
-    b1 = all_disjoint_arguments?(positives)
-
-    b2 =
+    non_empty? =
       Enum.all?(arguments, fn arg -> not empty_seen?(arg, seen) end) and
         all_non_empty_arguments?(positives, seen)
 
     cond do
-      b1 and b2 -> :disjoint_non_empty
-      b2 -> :non_empty
-      true -> nil
+      not non_empty? -> nil
+      all_disjoint_arguments?(positives) -> :disjoint_non_empty
+      true -> :non_empty
     end
   end
 
