@@ -14,6 +14,14 @@ defmodule IO.ANSITest do
              "#{IO.ANSI.green()}#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format(:green, false)) == ""
+
+    assert IO.chardata_to_string(IO.ANSI.format(IO.ANSI.color(3), true)) ==
+             "#{IO.ANSI.color(3)}#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format(IO.ANSI.color(3), false)) == ""
+
+    assert IO.chardata_to_string(IO.ANSI.format(IO.ANSI.color(0, 4, 2), true)) ==
+             "#{IO.ANSI.color(0, 4, 2)}#{IO.ANSI.reset()}"
   end
 
   test "format binary" do
@@ -32,7 +40,11 @@ defmodule IO.ANSITest do
     assert IO.chardata_to_string(IO.ANSI.format([:red, :bright], true)) ==
              "#{IO.ANSI.red()}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
 
+    assert IO.chardata_to_string(IO.ANSI.format([IO.ANSI.color(3), :bright], true)) ==
+             "#{IO.ANSI.color(3)}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
+
     assert IO.chardata_to_string(IO.ANSI.format([:red, :bright], false)) == ""
+    assert IO.chardata_to_string(IO.ANSI.format([IO.ANSI.color(3), :bright], false)) == ""
   end
 
   test "format binary list" do
@@ -52,6 +64,13 @@ defmodule IO.ANSITest do
              "Hello, #{IO.ANSI.red()}world!#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
+
+    data = ["Hello", ?,, 32, IO.ANSI.color(3), "world!"]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+             "Hello, #{IO.ANSI.color(3)}world!#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
   end
 
   test "format nested list" do
@@ -59,6 +78,13 @@ defmodule IO.ANSITest do
 
     assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
              "Hello, nested #{IO.ANSI.red()}world!#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, nested world!"
+
+    data = ["Hello, ", ["nested", 32, IO.ANSI.color(3), "world!"]]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+             "Hello, nested #{IO.ANSI.color(3)}world!#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, nested world!"
   end
@@ -70,6 +96,13 @@ defmodule IO.ANSITest do
              "Hello, #{IO.ANSI.red()}world!#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
+
+    data = ["Hello, ", IO.ANSI.color(3), "world" | "!"]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+             "Hello, #{IO.ANSI.color(3)}world!#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
   end
 
   test "format nested improper list" do
@@ -79,11 +112,23 @@ defmodule IO.ANSITest do
              "Hello, #{IO.ANSI.red()}world!#{IO.ANSI.green()}#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
+
+    data = [["Hello, " | IO.ANSI.color(3)], "world!" | IO.ANSI.color(4)]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+             "Hello, #{IO.ANSI.color(3)}world!#{IO.ANSI.color(4)}#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
   end
 
   test "format fragment" do
     assert IO.chardata_to_string(IO.ANSI.format_fragment([:red, "Hello!"], true)) ==
              "#{IO.ANSI.red()}Hello!"
+
+    assert IO.chardata_to_string(
+             IO.ANSI.format_fragment([IO.ANSI.color(0, 4, 2), "Hello!"], true)
+           ) ==
+             "#{IO.ANSI.color(0, 4, 2)}Hello!"
   end
 
   test "format invalid sequence" do

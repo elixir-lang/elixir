@@ -316,13 +316,22 @@ defmodule IO.ANSI do
     do_format(term, [rest | rem], acc, emit?, append_reset)
   end
 
-  defp do_format(term, rem, acc, true, append_reset) when is_atom(term) do
-    do_format([], rem, [acc | format_sequence(term)], true, !!append_reset)
+  defp do_format(term, rem, acc, emit?, append_reset) when is_atom(term) do
+    if emit? do
+      do_format([], rem, [acc | format_sequence(term)], true, !!append_reset)
+    else
+      format_sequence(term)
+      do_format([], rem, acc, false, append_reset)
+    end
   end
 
-  defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
-    format_sequence(term)
-    do_format([], rem, acc, false, append_reset)
+  defp do_format(<<"\e[", x, "8;5;", _::binary>> = term, rem, acc, emit?, append_reset)
+       when x in [?3, ?4] do
+    if emit? do
+      do_format([], rem, [acc | term], true, !!append_reset)
+    else
+      do_format([], rem, acc, false, append_reset)
+    end
   end
 
   defp do_format(term, rem, acc, emit?, append_reset) when not is_list(term) do
