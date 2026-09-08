@@ -755,7 +755,7 @@ defmodule Module.Types.Descr do
     # In here we compute the score of negations.
     # If we have more than 6, we print it as a negated type.
     result =
-      Enum.sum_by(Map.to_list(descr), fn
+      Enum.sum_by(descr, fn
         {:tuple, bdd} -> print_as_negated_bdd(bdd, @tuple_top)
         {:map, bdd} -> print_as_negated_bdd(bdd, @map_top)
         {:list, bdd} -> print_as_negated_bdd(bdd, @non_empty_list_top)
