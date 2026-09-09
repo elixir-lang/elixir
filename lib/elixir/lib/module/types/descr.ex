@@ -3456,10 +3456,16 @@ defmodule Module.Types.Descr do
   `key_descr` is split into optional and required keys and tracked accordingly.
   The gradual aspect of `key_descr` does not impact the return type.
 
+  `optional?` describes if the key is optional (in case of atoms).
+
   It returns `{type, descr, errors}`, `:badmap`, `{:error, errors}`.
   The list of `errors` may be empty, which implies a bad domain.
+
   The `return_type?` flag is used for optimizations purposes. If set to false,
   the returned `type` should not be used, as it will be imprecise.
+
+  If `force?` is false, the key is expected to exist. When true, it forces
+  the key into existence.
   """
   def map_update(descr, key_descr, type, optional?, return_type? \\ true, force? \\ false)
       when is_boolean(optional?) do

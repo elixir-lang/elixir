@@ -1186,7 +1186,7 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "updating to maps as records" do
+    test "updating maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: {atom([:zero]), false}))
 
@@ -1321,7 +1321,7 @@ defmodule Module.Types.ExprTest do
              """
     end
 
-    test "updating to maps as dictionaries" do
+    test "updating maps as dictionaries" do
       assert typecheck!(
                [key],
                (
@@ -1394,6 +1394,22 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-3
                  x = %{key: :old}
              """
+    end
+
+    test "updating maps with mixed record/dictionary keys" do
+      # Static keys
+      assert typecheck!(
+               [map],
+               (
+                 key = if :rand.uniform() > 0.5, do: "key", else: :key
+                 {%{map | key => :value}, map}
+               )
+             ) ==
+               dynamic(tuple([open_map(), open_map()]))
+
+      # Dynamic keys
+      assert typecheck!([map, key], key in ["key", :key], {%{map | key => :value}, map}) ==
+               dynamic(tuple([open_map(), open_map()]))
     end
 
     test "nested map" do

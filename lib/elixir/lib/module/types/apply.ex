@@ -713,8 +713,8 @@ defmodule Module.Types.Apply do
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
 
           cond do
-            # expected can have dynamic terms but, since we have verified
-            # them to be singletons, we can compute the upper bound.
+            # We want to check that arg_type is always within the expected one,
+            # even with dynamic, in order to return the exact boolean result
             singleton? and subtype?(arg_type, upper_bound(expected)) ->
               {return, context}
 
@@ -839,6 +839,9 @@ defmodule Module.Types.Apply do
         if singleton?(type) do
           expected = if polarity, do: type, else: Module.Types.Descr.opt_negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
+
+          # We want to check that arg_type is always within the expected one,
+          # even with dynamic, in order to return the exact boolean result
           result = if subtype?(arg_type, upper_bound(expected)), do: return, else: boolean()
 
           # Because reverse polarity means we will infer negated types

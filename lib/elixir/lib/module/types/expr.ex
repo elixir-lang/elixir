@@ -182,10 +182,11 @@ defmodule Module.Types.Expr do
       end)
 
     # The only information we can attach to the expected types is that
-    # certain keys are expected.
+    # certain keys are expected. And we can only do so if the key has
+    # no other components, even dynamic ones (hence upper bound).
     expected_pairs =
       Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
-        case atom_fetch(key_type) do
+        case atom_fetch(upper_bound(key_type)) do
           {:finite, [key]} -> [{key, {term(), false}}]
           _ -> []
         end
