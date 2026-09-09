@@ -2151,11 +2151,11 @@ defmodule Calendar.ISO do
   end
 
   def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, add_ppd) do
-    parts = parts * add_ppd
-    add = add * ppd
     gcd = Integer.gcd(ppd, add_ppd)
-    result_parts = div(parts + add, gcd)
-    result_ppd = div(ppd * add_ppd, gcd)
+    ppd_factor = div(ppd, gcd)
+    add_ppd_factor = div(add_ppd, gcd)
+    result_parts = parts * add_ppd_factor + add * ppd_factor
+    result_ppd = ppd * add_ppd_factor
     normalize_iso_days(days, result_parts, result_ppd)
   end
 
