@@ -218,10 +218,10 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_precise_head([], guards, _expected, _previous, _tag, stack, context) do
+  defp of_precise_head([], guards, _expected, _previous, tag, stack, context) do
     %{vars: vars} = context
-    {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
-    {[], guard_precise?, false, [], of_changed(Map.keys(changed), stack, context)}
+    {guard_precise?, context} = of_guards(guards, %{}, vars, tag, stack, context)
+    {[], guard_precise?, false, [], context}
   end
 
   defp of_precise_head(patterns, guards, expected, previous, tag, stack, context) do
@@ -232,21 +232,23 @@ defmodule Module.Types.Pattern do
       of_pattern_args_zip(patterns, expected, 0, [], true, stack, context)
 
     {pattern_info, context} = pop_pattern_info(context)
-    {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
 
     with {:ok, types} <-
            of_pattern_intersect(trees, 0, [], pattern_info, tag, stack, context),
          # We compute the args types before we do the intersection with previous clauses
          args_types =
            (with false <- empty_previous?(previous),
-                 {:ok, context} <-
-                   of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+                 {:ok, changed, context} <-
+                   of_pattern_refine(types, pattern_info, tag, stack, context) do
+              {_guard_precise?, context} = of_guards(guards, changed, vars, tag, stack, context)
               trees_to_args_types(trees, stack, context)
             else
               _ -> nil
             end),
          {types, check_previous?} = of_pattern_previous(types, previous, stack),
-         {:ok, context} <- of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+         {:ok, changed, context} <- of_pattern_refine(types, pattern_info, tag, stack, context) do
+      {guard_precise?, context} = of_guards(guards, changed, vars, tag, stack, context)
+
       {trees, pattern_precise? and guard_precise?, check_previous?,
        args_types || trees_to_args_types(trees, stack, context), context}
     else
@@ -311,8 +313,9 @@ defmodule Module.Types.Pattern do
 
     with {:ok, types} <-
            of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
-         {:ok, context} <-
-           of_pattern_refine(types, %{}, pattern_info, tag, stack, context) do
+         {:ok, changed, context} <-
+           of_pattern_refine(types, pattern_info, tag, stack, context) do
+      context = of_changed(Map.keys(changed), stack, context)
       {of_pattern_tree(tree, stack, context), context}
     else
       {:error, context} -> {expected, context}
@@ -331,15 +334,14 @@ defmodule Module.Types.Pattern do
       of_pattern(pattern, [%{root: {:arg, 0}, expr: expr}], stack, context)
 
     {pattern_info, context} = pop_pattern_info(context)
-    {guard_precise?, changed, context} = of_guards(guards, vars, stack, context)
-
     args = [{tree, expected, pattern}]
     tag = {op, expr, expected}
 
     with {:ok, types} <-
            of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
-         {:ok, context} <-
-           of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+         {:ok, changed, context} <-
+           of_pattern_refine(types, pattern_info, tag, stack, context) do
+      {guard_precise?, context} = of_guards(guards, changed, vars, tag, stack, context)
       {args, pattern_precise? and guard_precise?, context}
     else
       {:error, context} -> {args, false, context}
@@ -364,10 +366,10 @@ defmodule Module.Types.Pattern do
     {:ok, Enum.reverse(acc)}
   end
 
-  defp of_pattern_refine(types, changed, pattern_info, tag, stack, context) do
+  defp of_pattern_refine(types, pattern_info, tag, stack, context) do
     pattern_info
     |> Enum.reverse()
-    |> Enum.reduce({changed, context}, fn {version, _pinned, node}, {changed, context} ->
+    |> Enum.reduce({%{}, context}, fn {version, _pinned, node}, {changed, context} ->
       %{var: var, expr: expr, root: root, path: path} = node
 
       {actual, index} =
@@ -401,7 +403,7 @@ defmodule Module.Types.Pattern do
     context -> {:error, error_vars(pattern_info, context)}
   else
     {changed, context} ->
-      {:ok, of_changed(Map.keys(changed), stack, context)}
+      {:ok, changed, context}
   end
 
   defp error_vars(pattern_info, context) do
@@ -1031,11 +1033,17 @@ defmodule Module.Types.Pattern do
   @atom_true atom([true])
   @atom_false atom([false])
 
-  defp of_guards([], _vars, _stack, context) do
-    {true, %{}, context}
+  defp of_guards([], changed, _vars, _tag, stack, context) do
+    context = of_changed(Map.keys(changed), stack, context)
+    {true, context}
   end
 
-  defp of_guards(guards, vars, stack, context) do
+  defp of_guards([true], changed, _vars, _tag, stack, context) do
+    context = of_changed(Map.keys(changed), stack, context)
+    {true, context}
+  end
+
+  defp of_guards(guards, changed, vars, tag, stack, context) do
     stack = %{stack | reverse_arrow: :except_none}
 
     context =
@@ -1043,26 +1051,27 @@ defmodule Module.Types.Pattern do
         parent_version: nil,
         vars: vars,
         subpatterns_vars: %{},
-        changed: %{}
+        changed: changed
       })
 
-    {precise?, context} = of_guards(guards, stack, context)
+    {precise?, context} = of_guards(guards, tag, stack, context)
     {%{vars: vars, changed: changed}, context} = pop_pattern_info(context)
-    {is_map(vars) and precise?, changed, context}
+    context = of_changed(Map.keys(changed), stack, context)
+    {is_map(vars) and precise?, context}
   end
 
-  defp of_guards([guard], stack, context) do
+  defp of_guards([guard], tag, stack, context) do
     {type, context} = of_guard(guard, stack, context)
-    maybe_badguard(type, guard, stack, context)
+    maybe_badguard(type, guard, tag, stack, context)
   end
 
-  defp of_guards(guards, stack, context) do
+  defp of_guards(guards, tag, stack, context) do
     %{vars: vars, conditional_vars: conditional_vars} = context
 
     {vars_conds, {precise?, context}} =
       Enum.map_reduce(guards, {true, context}, fn guard, {precise?, context} ->
         {type, context} = of_guard(guard, stack, %{context | vars: vars, conditional_vars: %{}})
-        {guard_precise?, context} = maybe_badguard(type, guard, stack, context)
+        {guard_precise?, context} = maybe_badguard(type, guard, tag, stack, context)
         %{vars: vars, conditional_vars: cond_vars} = context
         {{vars, cond_vars}, {guard_precise? and precise?, context}}
       end)
@@ -1084,7 +1093,7 @@ defmodule Module.Types.Pattern do
      %{context | pattern_info: %{pattern_info | parent_version: parent_version}}}
   end
 
-  defp maybe_badguard(type, guard, stack, context) do
+  defp maybe_badguard(type, guard, tag, stack, context) do
     case booleaness(type) do
       :maybe_both ->
         {false, context}
@@ -1093,8 +1102,8 @@ defmodule Module.Types.Pattern do
         {maybe_or_always == :always, context}
 
       _false_tuple_or_none ->
-        error = {:badguard, type, guard, context}
-        {false, error(__MODULE__, error, error_meta(guard, stack), stack, context)}
+        error = {:badguard, tag, guard, type, context}
+        {false, error(__MODULE__, error, stack.meta, stack, context)}
     end
   end
 
@@ -1493,24 +1502,75 @@ defmodule Module.Types.Pattern do
     }
   end
 
-  def format_diagnostic({:badguard, type, expr, context}) do
+  def format_diagnostic({:badguard, info, guard, type, context}) do
+    {expr, message} =
+      with {{:case, meta, expr, type}, _} <- info,
+           {:case, op} <- meta[:type_check],
+           true <- op in [:||, :!, :"!!"] do
+        message =
+          case op do
+            :|| ->
+              additional =
+                with {:case, meta, [_, _]} <- expr,
+                     {:case, :||} <- meta[:type_check] do
+                  "(shown as ... below) "
+                else
+                  _ -> ""
+                end
+
+              """
+              the right-hand side of || #{additional}will never execute:
+
+                  #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
+
+              because the left-hand side always evaluates to:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            :! ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string({:!, [], [expr]}) |> indent(4)}
+
+              will always evaluate to false because its inner expression has type:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            :"!!" ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
+
+              will always evaluate to true because its inner expression has type:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+          end
+
+        {expr, message}
+      else
+        _ ->
+          {guard,
+           """
+           this guard will never succeed:
+
+               #{expr_to_string(guard) |> indent(4)}
+
+           because it returns type:
+
+               #{to_quoted_string(type) |> indent(4)}
+           """}
+      end
+
     traces = collect_traces(expr, context)
 
     %{
       details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          this guard will never succeed:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          because it returns type:
-
-              #{to_quoted_string(type) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
+      message: IO.iodata_to_binary([message, format_traces(traces)])
     }
   end
 
@@ -1567,7 +1627,7 @@ defmodule Module.Types.Pattern do
             """
             the right-hand side of || will always execute:
 
-                #{expr_to_string(expr) |> indent(4)}
+                #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
 
             because the left-hand side always evaluates to:
 
@@ -1704,25 +1764,6 @@ defmodule Module.Types.Pattern do
       {:case, op} ->
         message =
           cond do
-            op == :|| ->
-              additional =
-                with {:case, meta, [_, _]} <- expr,
-                     {:case, :||} <- meta[:type_check] do
-                  "(shown as ... below) "
-                else
-                  _ -> ""
-                end
-
-              """
-              the right-hand side of || #{additional}will never be executed:
-
-                  #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
-
-              because the left-hand side always evaluates to:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-
             op in [:and, :or] ->
               {first_message, second_message} =
                 case booleaness(type) do
@@ -1738,28 +1779,6 @@ defmodule Module.Types.Pattern do
                   #{expr_to_string(expr) |> indent(4)}
 
               #{second_message}:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-
-            op == :! ->
-              """
-              the following conditional expression:
-
-                  #{expr_to_string({:!, [], [expr]}) |> indent(4)}
-
-              will always evaluate to false because its inner expression has type:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-
-            op == :"!!" ->
-              """
-              the following conditional expression:
-
-                  #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
-
-              will always evaluate to true because its inner expression has type:
 
                   #{to_quoted_string(type) |> indent(4)}
               """

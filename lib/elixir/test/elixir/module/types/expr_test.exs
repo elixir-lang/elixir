@@ -2680,18 +2680,17 @@ defmodule Module.Types.ExprTest do
 
     test "|| reports violations" do
       assert typeerror!([x = 123], x || true) =~ """
-             the right-hand side of || will never be executed:
+             the right-hand side of || will never execute:
 
                  x || ...
 
              because the left-hand side always evaluates to:
 
                  integer()
-
              """
 
       assert typeerror!([x = 123], System.get_env("foo") || x || true) =~ """
-             the right-hand side of || (shown as ... below) will never be executed:
+             the right-hand side of || (shown as ... below) will never execute:
 
                  System.get_env("foo") || x || ...
 
@@ -2704,7 +2703,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([x = false], x || true) |> elem(1) =~ """
              the right-hand side of || will always execute:
 
-                 x
+                 x || ...
 
              because the left-hand side always evaluates to:
 

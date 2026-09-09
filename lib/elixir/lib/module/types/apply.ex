@@ -725,7 +725,8 @@ defmodule Module.Types.Apply do
             # Nothing in common between left and right, emit a warning
             disjoint?(arg_type, expected) ->
               error = {:mismatched_comparison, arg_type, list(expected)}
-              remote_error(error, :lists, :member, 2, expr, stack, context)
+              {_, context} = remote_error(error, :lists, :member, 2, expr, stack, context)
+              {if(polarity, do: @atom_false, else: @atom_true), context}
 
             true ->
               {return(boolean(), [arg_type, expected], stack), context}
