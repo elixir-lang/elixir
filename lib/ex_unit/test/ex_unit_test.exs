@@ -1018,21 +1018,36 @@ defmodule ExUnitTest do
     end
 
     test "repeats tests up to the configured number of times" do
-      defmodule TestRepeatUntilFailureReached do
-        use ExUnit.Case
+      {:ok, agent} =
+        Agent.start_link(fn -> [] end, name: :ex_unit_repeat_until_failure_async_order)
+
+      defmodule TestRepeatUntilFailureReachedOne do
+        use ExUnit.Case, async: true
 
         @tag :skip
         test "skipped #{__ENV__.line}", do: assert(false)
 
-        test __ENV__.line, do: assert(true)
-        test __ENV__.line, do: assert(true)
-        test __ENV__.line, do: assert(true)
+        test __ENV__.line do
+          Agent.update(:ex_unit_repeat_until_failure_async_order, &[__MODULE__ | &1])
+        end
+
+        test __ENV__.line do
+          Agent.update(:ex_unit_repeat_until_failure_async_order, &[__MODULE__ | &1])
+        end
 
         @tag :exclude
         test "excluded #{__ENV__.line}", do: assert(false)
       end
 
-      configure_and_reload_on_exit(repeat_until_failure: 5)
+      defmodule TestRepeatUntilFailureReachedTwo do
+        use ExUnit.Case, async: true
+
+        test __ENV__.line do
+          Agent.update(:ex_unit_repeat_until_failure_async_order, &[__MODULE__ | &1])
+        end
+      end
+
+      configure_and_reload_on_exit(repeat_until_failure: 5, max_cases: 1)
 
       output =
         capture_io(fn ->
@@ -1044,19 +1059,44 @@ defmodule ExUnitTest do
       assert length(runs) == 6
       assert output =~ "remaining_runs: 5"
       assert output =~ "remaining_runs: 0"
+
+      assert Agent.get(agent, &Enum.reverse/1) ==
+               List.duplicate(
+                 [
+                   TestRepeatUntilFailureReachedOne,
+                   TestRepeatUntilFailureReachedOne,
+                   TestRepeatUntilFailureReachedTwo
+                 ],
+                 6
+               )
+               |> List.flatten()
     end
 
     test "repeats tests up to the configured number of times with groups" do
-      defmodule TestGroupedRepeatUntilFailureReached do
+      {:ok, agent} =
+        Agent.start_link(fn -> [] end, name: :ex_unit_repeat_until_failure_group_order)
+
+      defmodule TestGroupedRepeatUntilFailureReachedOne do
         use ExUnit.Case, async: true, group: :example
-        test __ENV__.line, do: assert(true)
+
+        test __ENV__.line do
+          Agent.update(:ex_unit_repeat_until_failure_group_order, &[__MODULE__ | &1])
+        end
       end
 
-      configure_and_reload_on_exit(repeat_until_failure: 5)
+      defmodule TestGroupedRepeatUntilFailureReachedTwo do
+        use ExUnit.Case, async: true, group: :example
+
+        test __ENV__.line do
+          Agent.update(:ex_unit_repeat_until_failure_group_order, &[__MODULE__ | &1])
+        end
+      end
+
+      configure_and_reload_on_exit(repeat_until_failure: 5, max_cases: 1)
 
       output =
         capture_io(fn ->
-          assert ExUnit.run() == %{total: 1, failures: 0, skipped: 0, excluded: 0}
+          assert ExUnit.run() == %{total: 2, failures: 0, skipped: 0, excluded: 0}
         end)
 
       runs = String.split(output, "Running ExUnit", trim: true)
@@ -1064,6 +1104,21 @@ defmodule ExUnitTest do
       assert length(runs) == 6
       assert output =~ "remaining_runs: 5"
       assert output =~ "remaining_runs: 0"
+
+      assert Agent.get(agent, &Enum.reverse/1) == [
+               TestGroupedRepeatUntilFailureReachedOne,
+               TestGroupedRepeatUntilFailureReachedTwo,
+               TestGroupedRepeatUntilFailureReachedOne,
+               TestGroupedRepeatUntilFailureReachedTwo,
+               TestGroupedRepeatUntilFailureReachedOne,
+               TestGroupedRepeatUntilFailureReachedTwo,
+               TestGroupedRepeatUntilFailureReachedOne,
+               TestGroupedRepeatUntilFailureReachedTwo,
+               TestGroupedRepeatUntilFailureReachedOne,
+               TestGroupedRepeatUntilFailureReachedTwo,
+               TestGroupedRepeatUntilFailureReachedOne,
+               TestGroupedRepeatUntilFailureReachedTwo
+             ]
     end
 
     test "stops on failure" do
