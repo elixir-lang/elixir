@@ -1904,13 +1904,7 @@ defmodule Calendar.ISO do
     total_months = year * months_in_year + month + months - 1
 
     new_year = floor_div_positive_divisor(total_months, months_in_year)
-
-    new_month =
-      case rem(total_months, months_in_year) + 1 do
-        new_month when new_month < 1 -> new_month + months_in_year
-        new_month -> new_month
-      end
-
+    new_month = total_months - new_year * months_in_year + 1
     new_day = min(day, days_in_month(new_year, new_month))
 
     {new_year, new_month, new_day}
