@@ -886,7 +886,7 @@ defmodule OptionParser do
         msg = "#{option} : Unknown option"
         msg <> ". Did you mean #{String.replace(option, "_", "-")}?"
       else
-        "#{option} : Missing argument of type #{type}"
+        "#{option} : Missing argument of type #{format_type(type)}"
       end
     else
       msg = "#{option} : Unknown option"
@@ -908,7 +908,7 @@ defmodule OptionParser do
          {:error, {reason, position}} <- Regex.compile(value, "u") do
       "#{option} : Invalid regular expression #{inspect(value)}: #{reason} at position #{position}"
     else
-      _ -> "#{option} : Expected type #{type}, got #{inspect(value)}"
+      _ -> "#{option} : Expected type #{format_type(type)}, got #{inspect(value)}"
     end
   end
 
@@ -922,6 +922,14 @@ defmodule OptionParser do
       types[key]
     end
   end
+
+  defp format_type(type) when is_list(type) do
+    type |> List.delete(:keep) |> List.first(:string) |> format_type()
+  end
+
+  defp format_type(:keep), do: format_type(:string)
+
+  defp format_type(type) when is_atom(type), do: Atom.to_string(type)
 
   defp did_you_mean(option, types) do
     key = option |> String.trim_leading("-") |> String.replace("-", "_")

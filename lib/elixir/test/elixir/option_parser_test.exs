@@ -162,6 +162,14 @@ defmodule OptionParserTest do
                  end
   end
 
+  test "parse!/2 raises for a missing argument with :keep" do
+    assert_raise OptionParser.ParseError,
+                 ~r/--port : Missing argument of type integer/,
+                 fn ->
+                   OptionParser.parse!(["--port"], switches: [port: [:integer, :keep]])
+                 end
+  end
+
   test "parse!/2 lists all supported options and aliases" do
     expected_suggestion =
       """
@@ -206,6 +214,16 @@ defmodule OptionParserTest do
       argv = ["--number", "lib", "test/enum_test.exs"]
       OptionParser.parse_head!(argv, strict: [number: :integer])
     end
+  end
+
+  test "parse_head!/2 raises for an invalid argument with :keep" do
+    assert_raise OptionParser.ParseError,
+                 ~r/--port : Expected type integer, got "oops"/,
+                 fn ->
+                   OptionParser.parse_head!(["--port", "oops"],
+                     switches: [port: [:integer, :keep]]
+                   )
+                 end
   end
 
   describe "arguments" do
