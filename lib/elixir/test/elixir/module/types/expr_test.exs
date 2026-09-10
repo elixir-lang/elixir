@@ -1412,6 +1412,39 @@ defmodule Module.Types.ExprTest do
                dynamic(tuple([open_map(), open_map()]))
     end
 
+    test "inferred maps" do
+      # Singleton keys must exist but its old value is unconstrained
+      assert typecheck!(
+               [x],
+               (
+                 %{a: 1, b: 2} = %{x | a: 1}
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}, b: {integer(), false}))
+
+      assert typecheck!(
+               [x],
+               (
+                 %{a: 1, b: 2} = %{x | a: 1, b: 2}
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}, b: {term(), false}))
+
+      # Non-singleton domain keys
+      assert typecheck!(
+               [x],
+               (
+                 key = if :rand.uniform() > 0.5, do: :a, else: :b
+                 map = %{a: 1, b: 2, c: 3}
+                 ^map = %{x | key => 0}
+                 x
+               )
+             ) ==
+               dynamic(open_map())
+    end
+
     test "nested map" do
       assert typecheck!([x = %{}], x.foo.bar) == dynamic()
     end

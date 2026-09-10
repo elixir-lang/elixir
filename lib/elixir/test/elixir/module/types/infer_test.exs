@@ -274,22 +274,13 @@ defmodule Module.Types.InferTest do
                closed_map(
                  __struct__: {atom([module]), false},
                  x: {binary(), false},
-                 y: {atom([nil]), false},
+                 y: {term(), false},
                  z: {term(), false}
                )
              )
 
     assert {:infer, _, [{_, return}]} = types[{:map_update_with_unknown_keys, 2}]
-
-    assert return ==
-             dynamic(
-               closed_map(
-                 __struct__: {atom([module]), false},
-                 x: {binary(), false},
-                 y: {atom([nil]), false},
-                 z: {term(), false}
-               )
-             )
+    assert return == dynamic(open_map())
   end
 
   test "from captures", config do

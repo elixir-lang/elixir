@@ -181,18 +181,7 @@ defmodule Module.Types.Expr do
         {{key_type, value_type}, context}
       end)
 
-    # The only information we can attach to the expected types is that
-    # certain keys are expected. And we can only do so if the key has
-    # no other components, even dynamic ones (hence upper bound).
-    expected_pairs =
-      Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
-        case atom_fetch(upper_bound(key_type)) do
-          {:finite, [key]} -> [{key, {term(), false}}]
-          _ -> []
-        end
-      end)
-
-    expected = opt_intersection(expected, open_map(expected_pairs))
+    expected = expected_map_update(pairs_types, expected)
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
@@ -1065,6 +1054,46 @@ defmodule Module.Types.Expr do
 
   defp add_inferred([], args, return),
     do: [{args, return}]
+
+  # In map update syntax, fields that are replaced by the update need
+  # to exist in the original map, but their old values are not constrained
+  # by what the consumer expects of the new values. Fields that are not
+  # replaced keep whatever constraint the consumer has on them.
+  #
+  # One way to implement this function is to compute the union of any
+  # non-singleton key and then call map_update(type, union, term, true, false, false).
+  # The downside of this approach is that %{x | key => value} will generate
+  # a union with all possible keys set to term, which is not terribly useful.
+  # So in case there is a non-singleton key, we fallback to an open_map.
+  # The alternative implementation would only fallback to open_map if the
+  # update of either required or optional keys fail.
+  defp expected_map_update(pairs_types, expected) do
+    {all_singleton?, required_keys} =
+      Enum.reduce(pairs_types, {true, []}, fn {key_type, _}, {all_singleton?, required_keys} ->
+        # The only consider a key as required if it has no other components,
+        # even dynamic ones (hence upper bound).
+        case atom_fetch(upper_bound(key_type)) do
+          {:finite, [key]} -> {all_singleton?, [key | required_keys]}
+          _ -> {false, required_keys}
+        end
+      end)
+
+    with true <- all_singleton?,
+         {:ok, expected} <- put_required_keys(expected, required_keys) do
+      expected
+    else
+      _ -> open_map(Enum.map(required_keys, &{&1, {term(), false}}))
+    end
+  end
+
+  defp put_required_keys(type, [key | keys]) do
+    case map_put_key(type, key, term()) do
+      {:ok, type} -> put_required_keys(type, keys)
+      _ -> :error
+    end
+  end
+
+  defp put_required_keys(type, []), do: {:ok, type}
 
   defp literal_map_update(descr, key_descr, value_descr) do
     case map_update(descr, key_descr, value_descr, false, false, false) do
