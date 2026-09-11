@@ -705,6 +705,12 @@ defmodule Path do
   Returns `{:ok, path}` if `right` is safe to append to `left`, or `:error`
   otherwise. See `safe_relative/2` for the exact safety rules applied to `right`.
 
+  > #### Race conditions {: .warning}
+  >
+  > This function does not guarantee safety if an attacker has access to
+  > the file system. In such cases, someone may change your filesystem
+  > after you check for safety (also known as a time-of-check/time-of-use race).
+
   ## Examples
 
       iex> Path.safe_join("foo", "bar")
@@ -917,6 +923,12 @@ defmodule Path do
       the root of `relative_to`.
 
     * A symbolic link in the path points to something above the root of `relative_to`.
+
+  > #### Race conditions {: .warning}
+  >
+  > This function does not guarantee safety if an attacker has access to
+  > the file system. In such cases, someone may change your filesystem
+  > after you check for safety (also known as a time-of-check/time-of-use race).
 
   ## Examples
 
