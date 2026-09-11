@@ -497,15 +497,18 @@ defmodule Range do
           {gcd, u, v} = Integer.extended_gcd(-step1, step2)
 
           if rem(first2 - first1, gcd) == 0 do
-            c = first1 - first2 + step2 - step1
-            t1 = Integer.floor_div(-c * u, step2)
-            t2 = Integer.floor_div(-c * v, step1)
-            t = max(t1 + 1, t2 + 1)
-            x = div(c * u + t * step2, gcd) - 1
-            y = div(c * v + t * step1, gcd) - 1
+            factor = div(first1 - first2, gcd)
 
-            x < 0 or first1 + x * step1 > last1 or
-              y < 0 or first2 + y * step2 > last2
+            # The first nonnegative index in the later progression gives
+            # the first intersection at or beyond both starts.
+            intersection =
+              if first1 >= first2 do
+                first1 + Integer.mod(factor * u, div(step2, gcd)) * step1
+              else
+                first2 + Integer.mod(factor * v, div(step1, gcd)) * step2
+              end
+
+            intersection > last1 or intersection > last2
           else
             true
           end
