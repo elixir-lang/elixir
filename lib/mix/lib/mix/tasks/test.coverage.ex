@@ -279,7 +279,7 @@ defmodule Mix.Tasks.Test.Coverage do
       summary(ok, modules, summary_opts)
     end
 
-    html(modules, opts)
+    output(modules, opts)
   end
 
   defp ignored?(mod, ignores) do
@@ -289,13 +289,15 @@ defmodule Mix.Tasks.Test.Coverage do
   defp ignored_any?(mod, %Regex{} = re), do: Regex.match?(re, inspect(mod))
   defp ignored_any?(mod, other), do: mod == other
 
-  defp html(modules, opts) do
+  defp output(modules, opts) do
     output = Keyword.get(opts, :output, "cover")
+    {format, extension, analyse_opts} = format_options(Keyword.get(opts, :format, :html))
     File.mkdir_p!(output)
 
     modules
     |> Enum.map(fn mod ->
-      pid = :cover.async_analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
+      path = ~c"#{output}/#{mod}.#{extension}"
+      pid = :cover.async_analyse_to_file(mod, path, analyse_opts)
       Process.monitor(pid)
     end)
     |> Enum.each(fn ref ->
@@ -305,7 +307,14 @@ defmodule Mix.Tasks.Test.Coverage do
       end
     end)
 
-    Mix.shell().info("Generated HTML coverage results in #{inspect(output)} directory")
+    Mix.shell().info("Generated #{format} coverage results in #{inspect(output)} directory")
+  end
+
+  defp format_options(:html), do: {"HTML", "html", [:html]}
+  defp format_options(:text), do: {"text", "txt", []}
+
+  defp format_options(format) do
+    Mix.raise("Unknown coverage format #{inspect(format)}, expected :html or :text")
   end
 
   defp summary(results, keep, summary_opts) do
