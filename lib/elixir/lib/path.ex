@@ -902,8 +902,8 @@ defmodule Path do
 
   See `safe_relative/2` for a non-deprecated version of this API.
   """
-  # TODO: Deprecate me on Elixir v1.19
-  @doc since: "1.14.0", deprecated: "Use safe_relative/2 instead"
+  # TODO: Remove me on Elixir v2.0
+  @deprecated "Use safe_relative/2 instead"
   @spec safe_relative_to(t, t) :: {:ok, binary} | :error
   def safe_relative_to(path, cwd) do
     safe_relative(path, cwd)

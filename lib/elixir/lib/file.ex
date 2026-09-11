@@ -1039,7 +1039,7 @@ defmodule File do
           :ok | {:error, posix | :badarg | :terminated}
   def cp(source_file, destination_file, options \\ [])
 
-  # TODO: Deprecate me on Elixir v1.19
+  # TODO: Remove me on Elixir v2.0
   def cp(source_file, destination_file, callback) when is_function(callback, 2) do
     IO.warn_once(
       {__MODULE__, :cp},
@@ -1190,7 +1190,7 @@ defmodule File do
 
   def cp_r(source, destination, options \\ [])
 
-  # TODO: Deprecate me on Elixir v1.19
+  # TODO: Remove me on Elixir v2.0
   def cp_r(source, destination, callback) when is_function(callback, 2) do
     IO.warn_once(
       {__MODULE__, :cp_r},
