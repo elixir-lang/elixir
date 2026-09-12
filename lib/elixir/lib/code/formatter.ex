@@ -14,8 +14,6 @@ defmodule Code.Formatter do
   @sigil_c_single "~c'"
   @sigil_c_heredoc "~c\"\"\""
   @newlines 2
-  @min_line 0
-  @max_line 9_999_999
   @empty empty()
   @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
@@ -160,15 +158,9 @@ defmodule Code.Formatter do
   """
   @spec to_algebra(Macro.t(), keyword()) :: Inspect.Algebra.t()
   def to_algebra(quoted, opts \\ []) do
-    comments = Keyword.get(opts, :comments, [])
+    state = state(opts)
 
-    state =
-      comments
-      |> Enum.map(&format_comment/1)
-      |> gather_comments()
-      |> state(opts)
-
-    {doc, _} = block_to_algebra(quoted, @min_line, @max_line, state)
+    {doc, _} = block_to_algebra(quoted, state)
     doc
   end
 
@@ -189,7 +181,7 @@ defmodule Code.Formatter do
       end)
   end
 
-  defp state(comments, opts) do
+  defp state(opts) do
     force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
     locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
     file = Keyword.get(opts, :file, nil)
@@ -221,7 +213,6 @@ defmodule Code.Formatter do
       locals_without_parens: locals_without_parens ++ locals_without_parens(),
       operand_nesting: 2,
       skip_eol: false,
-      comments: comments,
       sigils: sigils,
       file: file,
       migrate_atom_interpolations: migrate_atom_interpolations,
@@ -243,74 +234,117 @@ defmodule Code.Formatter do
   defp format_comment_text("# " <> rest), do: "# " <> rest
   defp format_comment_text("#" <> rest), do: "# " <> rest
 
+  defp format_comments(comments, position \\ :trailing)
+
   # If there is a no new line before, we can't gather all followup comments.
-  defp gather_comments([%{previous_eol_count: 0} = comment | comments]) do
+  defp format_comments([%{previous_eol_count: 0} = comment | comments], :trailing) do
+    comment = format_comment(comment, :trailing, comments)
     comment = %{comment | previous_eol_count: @newlines}
-    [comment | gather_comments(comments)]
+    [comment | format_comments(comments, :trailing)]
   end
 
-  defp gather_comments([comment | comments]) do
+  defp format_comments([comment | comments], position) do
+    comment = format_comment(comment, position, comments)
     %{line: line, next_eol_count: next_eol_count, text: doc} = comment
 
     {next_eol_count, comments, doc} =
-      gather_followup_comments(line + 1, next_eol_count, comments, doc)
+      format_followup_comments(line + 1, next_eol_count, comments, doc, position)
 
     comment = %{comment | next_eol_count: next_eol_count, text: doc}
-    [comment | gather_comments(comments)]
+    [comment | format_comments(comments, position)]
   end
 
-  defp gather_comments([]) do
-    []
-  end
+  defp format_comments([], _position), do: []
 
-  defp gather_followup_comments(line, _, [%{line: line} = comment | comments], doc)
-       when comment.previous_eol_count != 0 do
+  defp format_followup_comments(line, _, [%{line: line} = comment | comments], doc, position)
+       when comment.previous_eol_count != 0 or position == :leading do
+    comment = format_comment(comment, position, comments)
     %{next_eol_count: next_eol_count, text: text} = comment
-    gather_followup_comments(line + 1, next_eol_count, comments, line(doc, text))
+    format_followup_comments(line + 1, next_eol_count, comments, line(doc, text), position)
   end
 
-  defp gather_followup_comments(_line, next_eol_count, comments, doc) do
+  defp format_followup_comments(_line, next_eol_count, comments, doc, _position) do
     {next_eol_count, comments, doc}
   end
 
+  defp format_comment(%{previous_eol_count: 0} = comment, :leading, []) do
+    format_comment(%{comment | previous_eol_count: 1, next_eol_count: 1})
+  end
+
+  defp format_comment(%{previous_eol_count: 0} = comment, :leading, _comments) do
+    format_comment(%{comment | previous_eol_count: 1})
+  end
+
+  defp format_comment(comment, _position, _comments), do: format_comment(comment)
+
   # Special AST nodes from compiler feedback
 
-  defp quoted_to_algebra({{:special, :clause_args}, _meta, [args]}, _context, state) do
+  defp quoted_to_algebra({form, meta, args} = quoted, context, state) when is_list(meta) do
+    if comments = meta[:leading_comments] do
+      quoted = {form, Keyword.delete(meta, :leading_comments), args}
+      {doc, state} = quoted_to_algebra_without_comments(quoted, context, state)
+      {prepend_comments(doc, format_comments(comments, :leading)), state}
+    else
+      quoted_to_algebra_without_comments(quoted, context, state)
+    end
+  end
+
+  defp quoted_to_algebra(quoted, context, state) do
+    quoted_to_algebra_without_comments(quoted, context, state)
+  end
+
+  defp quoted_to_algebra_without_comments(
+         {{:special, :clause_args}, _meta, [args]},
+         _context,
+         state
+       ) do
     {doc, state} = clause_args_to_algebra(args, state)
     {group(doc), state}
   end
 
-  defp quoted_to_algebra({{:special, :bitstring_segment}, _meta, [arg, last]}, _context, state) do
+  defp quoted_to_algebra_without_comments(
+         {{:special, :bitstring_segment}, _meta, [arg, last]},
+         _context,
+         state
+       ) do
     bitstring_segment_to_algebra({arg, -1}, state, last)
   end
 
-  defp quoted_to_algebra({var, _meta, var_context}, _context, state) when is_atom(var_context) do
+  defp quoted_to_algebra_without_comments({var, _meta, var_context}, _context, state)
+       when is_atom(var_context) do
     {var |> Atom.to_string() |> string() |> color_doc(:variable, state.inspect_opts), state}
   end
 
-  defp quoted_to_algebra({:<<>>, meta, entries}, _context, state) do
-    cond do
-      entries == [] ->
-        {"<<>>", state}
+  defp quoted_to_algebra_without_comments({:<<>>, meta, entries}, _context, state) do
+    {doc, state} =
+      cond do
+        entries == [] ->
+          {"<<>>", state}
 
-      not interpolated?(entries) ->
-        bitstring_to_algebra(meta, entries, state)
+        not interpolated?(entries) ->
+          bitstring_to_algebra(meta, entries, state)
 
-      meta[:delimiter] == ~s["""] ->
-        {doc, state} =
-          entries
-          |> prepend_heredoc_line()
-          |> interpolation_to_algebra(~s["""], state, @double_heredoc, @double_heredoc)
+        meta[:delimiter] == ~s["""] ->
+          {doc, state} =
+            entries
+            |> prepend_heredoc_line()
+            |> interpolation_to_algebra(~s["""], state, @double_heredoc, @double_heredoc)
 
-        {force_unfit(doc), state}
+          {force_unfit(doc), state}
 
-      true ->
-        interpolation_to_algebra(entries, @double_quote, state, @double_quote, @double_quote)
+        true ->
+          interpolation_to_algebra(entries, @double_quote, state, @double_quote, @double_quote)
+      end
+
+    if meta[:delimiter] do
+      {append_comments(doc, Keyword.get(meta, :trailing_comments, [])), state}
+    else
+      {doc, state}
     end
   end
 
   # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {{:., _, [List, :to_charlist]}, meta, [entries]} = quoted,
          context,
          state
@@ -335,7 +369,7 @@ defmodule Code.Formatter do
     end
   end
 
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries} = bitstring, :utf8]} =
            quoted,
          context,
@@ -354,7 +388,11 @@ defmodule Code.Formatter do
   end
 
   # foo[bar]
-  defp quoted_to_algebra({{:., _, [Access, :get]}, meta, [target, arg]}, _context, state) do
+  defp quoted_to_algebra_without_comments(
+         {{:., _, [Access, :get]}, meta, [target, arg]},
+         _context,
+         state
+       ) do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     {access_doc, state} =
@@ -370,7 +408,11 @@ defmodule Code.Formatter do
   # %Foo{}
   # %name{foo: 1}
   # %name{bar | foo: 1}
-  defp quoted_to_algebra({:%, _, [name, {:%{}, meta, args}]}, _context, state) do
+  defp quoted_to_algebra_without_comments(
+         {:%, _, [name, {:%{}, meta, args}]},
+         _context,
+         state
+       ) do
     {name_doc, state} = quoted_to_algebra(name, :parens_arg, state)
     map_to_algebra(meta, name_doc, args, state)
   end
@@ -378,26 +420,35 @@ defmodule Code.Formatter do
   # %{foo: 1}
   # %{foo => bar}
   # %{name | foo => bar}
-  defp quoted_to_algebra({:%{}, meta, args}, _context, state) do
+  defp quoted_to_algebra_without_comments({:%{}, meta, args}, _context, state) do
     map_to_algebra(meta, @empty, args, state)
   end
 
   # {}
   # {1, 2}
-  defp quoted_to_algebra({:{}, meta, args}, _context, state) do
+  defp quoted_to_algebra_without_comments({:{}, meta, args}, _context, state) do
     tuple_to_algebra(meta, args, :flex_break, state)
   end
 
-  defp quoted_to_algebra({:__block__, meta, [{left, right}]}, _context, state) do
+  defp quoted_to_algebra_without_comments(
+         {:__block__, meta, [{left, right}]},
+         _context,
+         state
+       ) do
     tuple_to_algebra(meta, [left, right], :flex_break, state)
   end
 
   # (left -> right)
-  defp quoted_to_algebra({:__block__, _, [[{:->, _, _} | _] = clauses]}, _context, state) do
-    paren_fun_to_algebra(clauses, @max_line, @min_line, state)
+  defp quoted_to_algebra_without_comments(
+         {:__block__, _, [[{:->, _, _} | _] = clauses]},
+         _context,
+         state
+       ) do
+    paren_fun_to_algebra(clauses, state)
   end
 
-  defp quoted_to_algebra({:__block__, meta, [list]}, _context, state) when is_list(list) do
+  defp quoted_to_algebra_without_comments({:__block__, meta, [list]}, _context, state)
+       when is_list(list) do
     case meta[:delimiter] do
       ~s['''] ->
         {opener, quotes} = get_charlist_quotes(:heredoc, state)
@@ -415,7 +466,8 @@ defmodule Code.Formatter do
     end
   end
 
-  defp quoted_to_algebra({:__block__, meta, [string]}, _context, state) when is_binary(string) do
+  defp quoted_to_algebra_without_comments({:__block__, meta, [string]}, _context, state)
+       when is_binary(string) do
     if meta[:delimiter] == ~s["""] do
       string = escape_heredoc(string, ~s["""])
 
@@ -434,21 +486,23 @@ defmodule Code.Formatter do
     end
   end
 
-  defp quoted_to_algebra({:__block__, meta, [atom]}, _context, state) when is_atom(atom) do
+  defp quoted_to_algebra_without_comments({:__block__, meta, [atom]}, _context, state)
+       when is_atom(atom) do
     {atom_to_algebra(atom, meta, state.inspect_opts), state}
   end
 
-  defp quoted_to_algebra({:__block__, meta, [integer]}, _context, state)
+  defp quoted_to_algebra_without_comments({:__block__, meta, [integer]}, _context, state)
        when is_integer(integer) do
     {Keyword.fetch!(meta, :token) |> integer_to_algebra(state.inspect_opts), state}
   end
 
-  defp quoted_to_algebra({:__block__, meta, [float]}, _context, state) when is_float(float) do
+  defp quoted_to_algebra_without_comments({:__block__, meta, [float]}, _context, state)
+       when is_float(float) do
     {Keyword.fetch!(meta, :token) |> float_to_algebra(state.inspect_opts), state}
   end
 
   # (unquote_splicing(...))
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {:__block__, _meta, [{:unquote_splicing, meta, [_] = args}]},
          context,
          state
@@ -457,20 +511,21 @@ defmodule Code.Formatter do
     {wrap_in_parens(doc), state}
   end
 
-  defp quoted_to_algebra({:__block__, _meta, [arg]}, context, state) do
+  defp quoted_to_algebra_without_comments({:__block__, _meta, [arg]}, context, state) do
     quoted_to_algebra(arg, context, state)
   end
 
-  defp quoted_to_algebra({:__block__, _meta, []}, _context, state) do
+  defp quoted_to_algebra_without_comments({:__block__, _meta, []}, _context, state) do
     {color_doc("nil", nil, state.inspect_opts), state}
   end
 
-  defp quoted_to_algebra({:__block__, meta, args} = block, _context, state) when is_list(args) do
-    {block, state} = block_to_algebra(block, line(meta), closing_line(meta), state)
+  defp quoted_to_algebra_without_comments({:__block__, _meta, args} = block, _context, state)
+       when is_list(args) do
+    {block, state} = block_to_algebra(block, state)
     {surround("(", block, ")"), state}
   end
 
-  defp quoted_to_algebra({:__aliases__, _meta, [head | tail]}, context, state) do
+  defp quoted_to_algebra_without_comments({:__aliases__, _meta, [head | tail]}, context, state) do
     {doc, state} =
       if is_atom(head) do
         {Atom.to_string(head), state}
@@ -488,22 +543,26 @@ defmodule Code.Formatter do
   # &Mod.remote/1
   # & &1
   # & &1 + &2
-  defp quoted_to_algebra({:&, _, [arg]}, context, state) do
+  defp quoted_to_algebra_without_comments({:&, _, [arg]}, context, state) do
     capture_to_algebra(arg, context, state)
   end
 
-  defp quoted_to_algebra({:@, meta, [arg]}, context, state) do
+  defp quoted_to_algebra_without_comments({:@, meta, [arg]}, context, state) do
     module_attribute_to_algebra(meta, arg, context, state)
   end
 
   # not(left in right)
   # left not in right
-  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]}]}, context, state) do
+  defp quoted_to_algebra_without_comments(
+         {:not, meta, [{:in, _, [left, right]}]},
+         context,
+         state
+       ) do
     binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
   end
 
   # disable migrate_call_parens_on_pipe within defmacro
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {atom, _, [{:|>, _, _}, _]} = ast,
          context,
          %{migrate_call_parens_on_pipe: true} = state
@@ -512,7 +571,7 @@ defmodule Code.Formatter do
     quoted_to_algebra(ast, context, %{state | migrate_call_parens_on_pipe: false})
   end
 
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {atom, _, [{:unless, _, _}, _]} = ast,
          context,
          %{migrate_unless: true} = state
@@ -522,7 +581,7 @@ defmodule Code.Formatter do
   end
 
   # rewrite unless as if!
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {:unless, meta, [condition, block]},
          context,
          %{migrate_unless: true} = state
@@ -531,7 +590,7 @@ defmodule Code.Formatter do
   end
 
   # a |> b() |> unless(...) => a |> b() |> Kernel.!() |> unless(...)
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {:|>, meta1, [{:|>, _, _} = condition, {:unless, meta2, [block]}]},
          context,
          %{migrate_unless: true} = state
@@ -546,7 +605,7 @@ defmodule Code.Formatter do
   end
 
   # condition |> unless(...) => negated(condition) |> unless(...)
-  defp quoted_to_algebra(
+  defp quoted_to_algebra_without_comments(
          {:|>, meta1, [condition, {:unless, meta2, [block]}]},
          context,
          %{migrate_unless: true} = state
@@ -559,7 +618,7 @@ defmodule Code.Formatter do
   end
 
   # ..
-  defp quoted_to_algebra({:.., _meta, []}, context, state) do
+  defp quoted_to_algebra_without_comments({:.., _meta, []}, context, state) do
     if context in [:no_parens_arg, :no_parens_one_arg] do
       {"(..)", state}
     else
@@ -568,39 +627,41 @@ defmodule Code.Formatter do
   end
 
   # ...
-  defp quoted_to_algebra({:..., _meta, []}, _context, state) do
+  defp quoted_to_algebra_without_comments({:..., _meta, []}, _context, state) do
     {"...", state}
   end
 
   # 1..2//3
-  defp quoted_to_algebra({:..//, meta, [left, middle, right]}, context, state) do
+  defp quoted_to_algebra_without_comments({:..//, meta, [left, middle, right]}, context, state) do
     quoted_to_algebra({:"//", meta, [{:.., meta, [left, middle]}, right]}, context, state)
   end
 
-  defp quoted_to_algebra({:fn, meta, [_ | _] = clauses}, _context, state) do
-    anon_fun_to_algebra(clauses, line(meta), closing_line(meta), state, eol?(meta, state))
+  defp quoted_to_algebra_without_comments({:fn, meta, [_ | _] = clauses}, _context, state) do
+    anon_fun_to_algebra(clauses, state, eol?(meta, state))
   end
 
-  defp quoted_to_algebra({fun, meta, args}, context, state) when is_atom(fun) and is_list(args) do
+  defp quoted_to_algebra_without_comments({fun, meta, args}, context, state)
+       when is_atom(fun) and is_list(args) do
     with :error <- maybe_sigil_to_algebra(fun, meta, args, state),
          :error <- maybe_unary_op_to_algebra(fun, meta, args, context, state),
          :error <- maybe_binary_op_to_algebra(fun, meta, args, context, state),
          do: local_to_algebra(fun, meta, args, context, state)
   end
 
-  defp quoted_to_algebra({_, _, args} = quoted, context, state) when is_list(args) do
+  defp quoted_to_algebra_without_comments({_, _, args} = quoted, context, state)
+       when is_list(args) do
     remote_to_algebra(quoted, context, state)
   end
 
   # [keyword: :list] (inner part)
   # %{:foo => :bar} (inner part)
-  defp quoted_to_algebra(list, context, state) when is_list(list) do
+  defp quoted_to_algebra_without_comments(list, context, state) when is_list(list) do
     many_args_to_algebra(list, state, &quoted_to_algebra(&1, context, &2))
   end
 
   # keyword: :list
   # key => value
-  defp quoted_to_algebra({left_arg, right_arg}, context, state) do
+  defp quoted_to_algebra_without_comments({left_arg, right_arg}, context, state) do
     {left, op, right, state} =
       if keyword_key?(left_arg) do
         {left, state} =
@@ -640,29 +701,43 @@ defmodule Code.Formatter do
   # Other foreign structures, such as maps and structs,
   # may appear from Macro.to_string, so we stick a limit,
   # although they won't be formatted accordingly.
-  defp quoted_to_algebra(unknown, _context, state) do
+  defp quoted_to_algebra_without_comments(unknown, _context, state) do
     {inspect(unknown, printable_limit: :infinity), state}
   end
 
   ## Blocks
 
-  defp block_to_algebra([{:->, _, _} | _] = paren_fun, min_line, max_line, state) do
-    paren_fun_to_algebra(paren_fun, min_line, max_line, state)
+  defp block_to_algebra([{:->, _, _} | _] = paren_fun, state) do
+    paren_fun_to_algebra(paren_fun, state)
   end
 
-  defp block_to_algebra({:__block__, _, []}, min_line, max_line, state) do
-    block_args_to_algebra([], min_line, max_line, state)
+  defp block_to_algebra({:__block__, meta, []}, state) do
+    block_args_to_algebra([], formatted_trailing_comments(meta), state)
+    |> prepend_block_comments(meta)
   end
 
-  defp block_to_algebra({:__block__, _, [_, _ | _] = args}, min_line, max_line, state) do
-    block_args_to_algebra(args, min_line, max_line, state)
+  defp block_to_algebra({:__block__, meta, [_, _ | _] = args}, state) do
+    block_args_to_algebra(args, formatted_trailing_comments(meta), state)
+    |> prepend_block_comments(meta)
   end
 
-  defp block_to_algebra(block, min_line, max_line, state) do
-    block_args_to_algebra([block], min_line, max_line, state)
+  defp block_to_algebra({:__block__, meta, [_]} = block, state) do
+    {trailing_comments, meta} = Keyword.pop(meta, :trailing_comments, [])
+
+    if trailing_comments != [] and meta[:closing] == nil do
+      {:__block__, _, [arg]} = block
+      {doc, state} = quoted_to_algebra({:__block__, meta, [arg]}, :block, state)
+      {append_comments(doc, trailing_comments), state}
+    else
+      block_args_to_algebra([block], [], state)
+    end
   end
 
-  defp block_args_to_algebra(args, min_line, max_line, state) do
+  defp block_to_algebra(block, state) do
+    block_args_to_algebra([block], [], state)
+  end
+
+  defp block_args_to_algebra(args, trailing_comments, state) do
     quoted_to_algebra = fn {kind, meta, _} = arg, _args, state ->
       newlines = meta[:end_of_expression][:newlines] || 1
       {doc, state} = quoted_to_algebra(arg, :block, state)
@@ -670,13 +745,18 @@ defmodule Code.Formatter do
     end
 
     {args_docs, _comments?, state} =
-      quoted_to_algebra_with_comments(args, [], min_line, max_line, state, quoted_to_algebra)
+      quoted_to_algebra_with_comments(args, [], trailing_comments, state, quoted_to_algebra)
 
     case args_docs do
       [] -> {@empty, state}
       [line] -> {line, state}
       lines -> {lines |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
     end
+  end
+
+  defp prepend_block_comments({doc, state}, meta) do
+    comments = meta |> Keyword.get(:leading_comments, []) |> format_comments(:leading)
+    {prepend_comments(doc, comments), state}
   end
 
   defp block_next_line(:@), do: @empty
@@ -748,14 +828,7 @@ defmodule Code.Formatter do
     left_context = left_op_context(context)
     right_context = right_op_context(context)
 
-    min_line =
-      case left_arg do
-        {_, left_meta, _} -> line(left_meta)
-        _ -> line(meta)
-      end
-
-    {operands, max_line} =
-      unwrap_right(right_arg, op, meta, right_context, [{{:root, left_context}, left_arg}])
+    operands = unwrap_right(right_arg, op, right_context, [{{:root, left_context}, left_arg}])
 
     fun = fn
       {{:root, context}, arg}, _args, state ->
@@ -768,8 +841,7 @@ defmodule Code.Formatter do
         {{concat(op_string, doc), @empty, 1}, state}
     end
 
-    {doc, state} =
-      operand_to_algebra_with_comments(operands, meta, min_line, max_line, context, state, fun)
+    {doc, state} = operand_to_algebra_with_comments(operands, meta, state, fun)
 
     if keyword?(right_arg) and context in [:parens_arg, :no_parens_arg] do
       {wrap_in_parens(doc), state}
@@ -783,10 +855,7 @@ defmodule Code.Formatter do
     op_info = augmented_binary_op(op)
     left_context = left_op_context(context)
     right_context = right_op_context(context)
-    max_line = line(meta)
-
-    {pipes, min_line} =
-      unwrap_pipes(left_arg, meta, left_context, [{{op, right_context}, right_arg}])
+    pipes = unwrap_pipes(left_arg, left_context, [{{op, right_context}, right_arg}])
 
     fun = fn
       {{:root, context}, arg}, _args, state ->
@@ -800,7 +869,7 @@ defmodule Code.Formatter do
         {{concat(op_string, doc), @empty, 1}, state}
     end
 
-    operand_to_algebra_with_comments(pipes, meta, min_line, max_line, context, state, fun)
+    operand_to_algebra_with_comments(pipes, meta, state, fun)
   end
 
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting) do
@@ -837,7 +906,7 @@ defmodule Code.Formatter do
 
     op_doc = color_doc(op_string, :operator, state.inspect_opts)
     doc = concat(concat(group(left), op_doc), group(right))
-    {doc, state}
+    {append_comments(doc, Keyword.get(meta, :trailing_comments, [])), state}
   end
 
   # TODO: We can remove this workaround once we remove
@@ -899,13 +968,9 @@ defmodule Code.Formatter do
       op_string = Atom.to_string(op)
 
       cond do
-        # If we have the same operator and it is in the correct side,
-        # we don't add parens unless it is explicitly required.
         parent_assoc == side and op == parent_op and op not in @required_parens_even_when_parent ->
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, nesting)
 
-        # If the operator requires parens (most of them do) or we are mixing logical operators
-        # or the precedence is inverted or it is in the wrong side, then we *need* parenthesis.
         (parent_op in @required_parens_on_binary_operands and op not in @no_space_binary_operators) or
           (op in @required_parens_logical_binary_operands and
              parent_op in @required_parens_logical_binary_operands) or parent_prec > prec or
@@ -915,7 +980,6 @@ defmodule Code.Formatter do
 
           {wrap_in_parens(operand), state}
 
-        # Otherwise, we rely on precedence but also nest.
         true ->
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, 2)
       end
@@ -931,71 +995,31 @@ defmodule Code.Formatter do
     end
   end
 
-  defp unwrap_pipes({op, meta, [left, right]}, _meta, context, acc)
+  defp unwrap_pipes({op, _meta, [left, right]}, context, acc)
        when op in @pipeline_operators do
     left_context = left_op_context(context)
     right_context = right_op_context(context)
-    unwrap_pipes(left, meta, left_context, [{{op, right_context}, right} | acc])
+    unwrap_pipes(left, left_context, [{{op, right_context}, right} | acc])
   end
 
-  defp unwrap_pipes(left, meta, context, acc) do
-    min_line =
-      case left do
-        {_, meta, _} -> line(meta)
-        _ -> line(meta)
-      end
-
-    {[{{:root, context}, left} | acc], min_line}
+  defp unwrap_pipes(left, context, acc) do
+    [{{:root, context}, left} | acc]
   end
 
-  defp unwrap_right({op, meta, [left, right]}, op, _meta, context, acc) do
+  defp unwrap_right({op, _meta, [left, right]}, op, context, acc) do
     left_context = left_op_context(context)
     right_context = right_op_context(context)
-    unwrap_right(right, op, meta, right_context, [{{:left, left_context}, left} | acc])
+    unwrap_right(right, op, right_context, [{{:left, left_context}, left} | acc])
   end
 
-  defp unwrap_right(right, _op, meta, context, acc) do
+  defp unwrap_right(right, _op, context, acc) do
     acc = [{{:right, context}, right} | acc]
-    {Enum.reverse(acc), line(meta)}
+    Enum.reverse(acc)
   end
 
-  defp operand_to_algebra_with_comments(operands, meta, min_line, max_line, context, state, fun) do
-    # If we are in a no_parens_one_arg expression, we actually cannot
-    # extract comments from the first operand, because it would rewrite:
-    #
-    #     @spec function(x) ::
-    #             # Comment
-    #             any
-    #           when x: any
-    #
-    # to:
-    #
-    #     @spec # Comment
-    #           function(x) ::
-    #             any
-    #           when x: any
-    #
-    # Instead we get:
-    #
-    #     @spec function(x) ::
-    #             any
-    #           # Comment
-    #           when x: any
-    #
-    # Which may look counter-intuitive but it actually makes sense,
-    # as the closest possible location for the comment is the when
-    # operator.
-    {operands, acc, state} =
-      if context == :no_parens_one_arg do
-        [operand | operands] = operands
-        {doc_triplet, state} = fun.(operand, :unused, state)
-        {operands, [doc_triplet], state}
-      else
-        {operands, [], state}
-      end
-
+  defp operand_to_algebra_with_comments(operands, meta, state, fun) do
     {docs, comments?, state} =
-      quoted_to_algebra_with_comments(operands, acc, min_line, max_line, state, fun)
+      quoted_to_algebra_with_comments(operands, [], formatted_trailing_comments(meta), state, fun)
 
     if comments? or eol?(meta, state) do
       {docs |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
@@ -1214,6 +1238,8 @@ defmodule Code.Formatter do
 
           _ ->
             no_parens? = parens not in [:required, :skip_if_only_do_end]
+            meta = Keyword.delete(meta, :trailing_comments)
+
             call_args_to_algebra_no_blocks(meta, rest, no_parens?, list_to_keyword?, " do", state)
         end
 
@@ -1234,7 +1260,7 @@ defmodule Code.Formatter do
 
   defp call_args_to_algebra_no_blocks(meta, args, skip_parens?, list_to_keyword?, extra, state) do
     {left, right} = split_last(args)
-    {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?, skip_parens?, state.comments)
+    {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?, skip_parens?)
 
     context =
       if left == [] and not keyword? do
@@ -1255,7 +1281,7 @@ defmodule Code.Formatter do
         {left_doc, _join, state} =
           args_to_algebra_with_comments(
             left,
-            Keyword.delete(meta, :closing),
+            Keyword.drop(meta, [:closing, :trailing_comments]),
             skip_parens?,
             :force_comma,
             join,
@@ -1351,9 +1377,7 @@ defmodule Code.Formatter do
 
   defp do_end_blocks(meta, [{{:__block__, _, [:do]}, _} | rest] = blocks, state) do
     if meta?(meta, :do) or can_force_do_end_blocks?(rest, state) do
-      blocks
-      |> Enum.map(fn {{:__block__, meta, [key]}, value} -> {key, line(meta), value} end)
-      |> do_end_blocks_with_range(end_line(meta))
+      Enum.map(blocks, fn {{:__block__, _, [key]}, value} -> {key, value} end)
     end
   end
 
@@ -1364,25 +1388,17 @@ defmodule Code.Formatter do
       Enum.all?(rest, fn {{:__block__, _, [key]}, _} -> key in @do_end_keywords end)
   end
 
-  defp do_end_blocks_with_range([{key1, line1, value1}, {_, line2, _} = h | t], end_line) do
-    [{key1, line1, line2, value1} | do_end_blocks_with_range([h | t], end_line)]
-  end
+  defp do_end_blocks_to_algebra([{:do, value} | blocks], state) do
+    {acc, state} = do_end_block_to_algebra(@empty, value, state)
 
-  defp do_end_blocks_with_range([{key, line, value}], end_line) do
-    [{key, line, end_line, value}]
-  end
-
-  defp do_end_blocks_to_algebra([{:do, line, end_line, value} | blocks], state) do
-    {acc, state} = do_end_block_to_algebra(@empty, line, end_line, value, state)
-
-    Enum.reduce(blocks, {acc, state}, fn {key, line, end_line, value}, {acc, state} ->
-      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), line, end_line, value, state)
+    Enum.reduce(blocks, {acc, state}, fn {key, value}, {acc, state} ->
+      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), value, state)
       {line(acc, doc), state}
     end)
   end
 
-  defp do_end_block_to_algebra(key_doc, line, end_line, value, state) do
-    case clauses_to_algebra(value, line, end_line, state) do
+  defp do_end_block_to_algebra(key_doc, value, state) do
+    case clauses_to_algebra(value, state) do
       {@empty, state} -> {key_doc, state}
       {value_doc, state} -> {key_doc |> line(value_doc) |> nest(2), state}
     end
@@ -1447,7 +1463,7 @@ defmodule Code.Formatter do
   end
 
   defp interpolation_to_algebra(quoted, %{skip_eol: skip_eol} = state) do
-    {doc, state} = block_to_algebra(quoted, @max_line, @min_line, %{state | skip_eol: true})
+    {doc, state} = block_to_algebra(quoted, %{state | skip_eol: true})
     {no_limit(surround("\#{", doc, "}")), %{state | skip_eol: skip_eol}}
   end
 
@@ -1799,9 +1815,6 @@ defmodule Code.Formatter do
   defp heredoc_line(_), do: line()
 
   defp args_to_algebra_with_comments(args, meta, skip_parens?, last_arg_mode, join, state, fun) do
-    min_line = line(meta)
-    max_line = closing_line(meta)
-
     arg_to_algebra = fn arg, args, state ->
       {doc, state} = fun.(arg, state)
 
@@ -1836,7 +1849,13 @@ defmodule Code.Formatter do
       end
 
     {args_docs, comments?, state} =
-      quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, arg_to_algebra)
+      quoted_to_algebra_with_comments(
+        args,
+        acc,
+        formatted_trailing_comments(meta),
+        state,
+        arg_to_algebra
+      )
 
     cond do
       args_docs == [] ->
@@ -1855,16 +1874,34 @@ defmodule Code.Formatter do
 
   ## Anonymous functions
 
-  # fn -> block end
   defp anon_fun_to_algebra(
-         [{:->, meta, [[], body]}] = clauses,
-         _min_line,
-         max_line,
+         [{:->, meta, args}] = clauses,
+         state,
+         multi_clauses_style
+       ) do
+    if comments = meta[:leading_comments] do
+      clauses = [{:->, Keyword.delete(meta, :leading_comments), args}]
+
+      {doc, state} =
+        anon_fun_to_algebra_without_comments(clauses, state, multi_clauses_style)
+
+      {prepend_comments(doc, format_comments(comments, :leading)), state}
+    else
+      anon_fun_to_algebra_without_comments(clauses, state, multi_clauses_style)
+    end
+  end
+
+  defp anon_fun_to_algebra(clauses, state, multi_clauses_style) do
+    anon_fun_to_algebra_without_comments(clauses, state, multi_clauses_style)
+  end
+
+  # fn -> block end
+  defp anon_fun_to_algebra_without_comments(
+         [{:->, _meta, [[], body]}] = clauses,
          state,
          _multi_clauses_style
        ) do
-    min_line = line(meta)
-    {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
+    {body_doc, state} = block_to_algebra(body, state)
     break_or_line = clause_break_or_line(clauses, state)
 
     doc =
@@ -1884,16 +1921,13 @@ defmodule Code.Formatter do
   # fn x ->
   #   y
   # end
-  defp anon_fun_to_algebra(
-         [{:->, meta, [args, body]}] = clauses,
-         _min_line,
-         max_line,
+  defp anon_fun_to_algebra_without_comments(
+         [{:->, _meta, [args, body]}] = clauses,
          state,
          false = _multi_clauses_style
        ) do
-    min_line = line(meta)
-    {args_doc, state} = clause_args_to_algebra(args, min_line, state)
-    {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
+    {args_doc, state} = clause_args_to_algebra_with_comments(args, state)
+    {body_doc, state} = block_to_algebra(body, state)
 
     head =
       args_doc
@@ -1924,17 +1958,16 @@ defmodule Code.Formatter do
   #   args2 ->
   #     block2
   # end
-  defp anon_fun_to_algebra(clauses, min_line, max_line, state, _multi_clauses_style) do
-    {clauses_doc, state} = clauses_to_algebra(clauses, min_line, max_line, state)
+  defp anon_fun_to_algebra_without_comments(clauses, state, _multi_clauses_style) do
+    {clauses_doc, state} = clauses_to_algebra(clauses, state)
     {"fn" |> line(clauses_doc) |> nest(2) |> line("end") |> force_unfit(), state}
   end
 
   ## Type functions
 
   # (-> block)
-  defp paren_fun_to_algebra([{:->, meta, [[], body]}] = clauses, _min_line, max_line, state) do
-    min_line = line(meta)
-    {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
+  defp paren_fun_to_algebra([{:->, _meta, [[], body]}] = clauses, state) do
+    {body_doc, state} = block_to_algebra(body, state)
 
     doc =
       "(-> "
@@ -1949,10 +1982,9 @@ defmodule Code.Formatter do
   # (x -> y)
   # (x ->
   #    y)
-  defp paren_fun_to_algebra([{:->, meta, [args, body]}] = clauses, _min_line, max_line, state) do
-    min_line = line(meta)
-    {args_doc, state} = clause_args_to_algebra(args, min_line, state)
-    {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
+  defp paren_fun_to_algebra([{:->, _meta, [args, body]}] = clauses, state) do
+    {args_doc, state} = clause_args_to_algebra_with_comments(args, state)
+    {body_doc, state} = block_to_algebra(body, state)
     break_or_line = clause_break_or_line(clauses, state)
 
     doc =
@@ -1974,8 +2006,8 @@ defmodule Code.Formatter do
   #   args2 ->
   #     block2
   # )
-  defp paren_fun_to_algebra(clauses, min_line, max_line, state) do
-    {clauses_doc, state} = clauses_to_algebra(clauses, min_line, max_line, state)
+  defp paren_fun_to_algebra(clauses, state) do
+    {clauses_doc, state} = clauses_to_algebra(clauses, state)
     {"(" |> line(clauses_doc) |> nest(2) |> line(")") |> force_unfit(), state}
   end
 
@@ -1998,13 +2030,13 @@ defmodule Code.Formatter do
     if multi_line_clauses?(clauses, state), do: force_unfit(doc), else: doc
   end
 
-  defp clauses_to_algebra([{:->, _, _} | _] = clauses, min_line, max_line, state) do
-    [clause | clauses] = add_max_line_to_last_clause(clauses, max_line)
-    {clause_doc, state} = clause_to_algebra(clause, min_line, state)
+  defp clauses_to_algebra([{:->, _, _} | _] = clauses, state) do
+    [clause | clauses] = clauses
+    {clause_doc, state} = clause_to_algebra(clause, state)
 
     {clauses_doc, state} =
       Enum.reduce(clauses, {clause_doc, state}, fn clause, {doc_acc, state_acc} ->
-        {clause_doc, state_acc} = clause_to_algebra(clause, min_line, state_acc)
+        {clause_doc, state_acc} = clause_to_algebra(clause, state_acc)
 
         doc_acc =
           doc_acc
@@ -2017,26 +2049,36 @@ defmodule Code.Formatter do
     {clauses_doc |> maybe_force_clauses([clause | clauses], state) |> group(), state}
   end
 
-  defp clauses_to_algebra(other, min_line, max_line, state) do
-    case block_to_algebra(other, min_line, max_line, state) do
+  defp clauses_to_algebra(other, state) do
+    case block_to_algebra(other, state) do
       {@empty, state} -> {@empty, state}
       {doc, state} -> {group(doc), state}
     end
   end
 
-  defp clause_to_algebra({:->, meta, [[], body]}, _min_line, state) do
-    {body_doc, state} = block_to_algebra(body, line(meta), closing_line(meta), state)
+  defp clause_to_algebra({:->, meta, args} = clause, state) do
+    if comments = meta[:leading_comments] do
+      clause = {:->, Keyword.delete(meta, :leading_comments), args}
+      {doc, state} = clause_to_algebra_without_comments(clause, state)
+      {prepend_comments(doc, format_comments(comments, :leading)), state}
+    else
+      clause_to_algebra_without_comments(clause, state)
+    end
+  end
+
+  defp clause_to_algebra_without_comments({:->, _meta, [[], body]}, state) do
+    {body_doc, state} = block_to_algebra(body, state)
     {"() ->" |> glue(body_doc) |> nest(2), state}
   end
 
-  defp clause_to_algebra({:->, meta, [args, body]}, min_line, state) do
+  defp clause_to_algebra_without_comments({:->, _meta, [args, body]}, state) do
     %{operand_nesting: nesting} = state
 
     state = %{state | operand_nesting: nesting + 2}
-    {args_doc, state} = clause_args_to_algebra(args, min_line, state)
+    {args_doc, state} = clause_args_to_algebra_with_comments(args, state)
 
     state = %{state | operand_nesting: nesting}
-    {body_doc, state} = block_to_algebra(body, min_line, closing_line(meta), state)
+    {body_doc, state} = block_to_algebra(body, state)
 
     doc =
       args_doc
@@ -2048,22 +2090,14 @@ defmodule Code.Formatter do
     {doc, state}
   end
 
-  defp add_max_line_to_last_clause([{op, meta, args}], max_line) do
-    [{op, [closing: [line: max_line]] ++ meta, args}]
-  end
-
-  defp add_max_line_to_last_clause([clause | clauses], max_line) do
-    [clause | add_max_line_to_last_clause(clauses, max_line)]
-  end
-
-  defp clause_args_to_algebra(args, min_line, state) do
+  defp clause_args_to_algebra_with_comments(args, state) do
     arg_to_algebra = fn arg, _args, state ->
       {doc, state} = clause_args_to_algebra(arg, state)
       {{doc, @empty, 1}, state}
     end
 
     {args_docs, comments?, state} =
-      quoted_to_algebra_with_comments([args], [], min_line, @min_line, state, arg_to_algebra)
+      quoted_to_algebra_with_comments([args], [], [], state, arg_to_algebra)
 
     if comments? do
       {Enum.reduce(args_docs, &line(&2, &1)), state}
@@ -2099,116 +2133,151 @@ defmodule Code.Formatter do
 
   ## Quoted helpers for comments
 
-  defp quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, fun) do
-    {pre_comments, state} =
-      get_and_update_in(state.comments, fn comments ->
-        Enum.split_while(comments, fn %{line: line} -> line <= min_line end)
-      end)
-
+  defp quoted_to_algebra_with_comments(args, acc, trailing_comments, state, fun) do
     {reverse_docs, comments?, state} =
-      if state.comments == [] do
-        each_quoted_to_algebra_without_comments(args, acc, state, fun)
-      else
-        each_quoted_to_algebra_with_comments(args, acc, max_line, state, false, fun)
+      each_quoted_to_algebra_with_comments(args, acc, state, false, fun)
+
+    reverse_docs = add_comments_to_acc(reverse_docs, trailing_comments)
+    docs = merge_algebra_with_comments(Enum.reverse(reverse_docs), @empty)
+    {docs, comments? or trailing_comments != [], state}
+  end
+
+  defp each_quoted_to_algebra_with_comments([], acc, state, comments?, _fun) do
+    {acc, comments?, state}
+  end
+
+  defp each_quoted_to_algebra_with_comments([arg | args], acc, state, comments?, fun) do
+    {leading_comments, trailing_comments, next_eol_count, trailing_comments_outside?, arg} =
+      pop_comments(arg)
+
+    acc = add_comments_to_acc(acc, leading_comments)
+    {doc_triplet, state} = fun.(arg, args, state)
+    doc_triplet = put_next_eol_count(doc_triplet, next_eol_count)
+    acc = add_comments_to_acc([doc_triplet | acc], trailing_comments)
+
+    each_quoted_to_algebra_with_comments(
+      args,
+      acc,
+      state,
+      comments? or leading_comments != [] or trailing_comments != [] or
+        trailing_comments_outside?,
+      fun
+    )
+  end
+
+  defp pop_comments(quoted) do
+    {leading, trailing, next_eol_count, quoted} =
+      pop_comments(quoted, true, true)
+
+    trailing_comments_outside? =
+      case quoted do
+        {:<<>>, meta, _} when is_list(meta) ->
+          meta[:delimiter] != nil and meta[:trailing_comments] != nil
+
+        _ ->
+          false
       end
 
-    docs = merge_algebra_with_comments(Enum.reverse(reverse_docs), @empty)
-    {docs, comments?, update_in(state.comments, &(pre_comments ++ &1))}
+    {format_comments(leading, :leading), format_comments(trailing), next_eol_count,
+     trailing_comments_outside?, quoted}
   end
 
-  defp each_quoted_to_algebra_without_comments([], acc, state, _fun) do
-    {acc, false, state}
+  defp pop_comments({form, meta, args}, pop_leading?, pop_trailing?) when is_list(meta) do
+    pop_trailing? = pop_trailing? and meta[:closing] == nil and meta[:end] == nil
+    comments = meta[:leading_comments]
+
+    next_eol_count =
+      case is_list(comments) && List.last(comments) do
+        %{previous_eol_count: 0, next_eol_count: count} -> count
+        _ -> 1
+      end
+
+    {leading, meta} = pop_comment_metadata(meta, :leading_comments, pop_leading?)
+    {trailing, meta} = pop_comment_metadata(meta, :trailing_comments, pop_trailing?)
+    {leading, trailing, next_eol_count, {form, meta, args}}
   end
 
-  defp each_quoted_to_algebra_without_comments([arg | args], acc, state, fun) do
-    {doc_triplet, state} = fun.(arg, args, state)
-    acc = [doc_triplet | acc]
-    each_quoted_to_algebra_without_comments(args, acc, state, fun)
+  defp pop_comments({left, right}, pop_leading?, pop_trailing?) do
+    {leading, trailing, left_eol_count, left} =
+      pop_comments(left, pop_leading?, pop_trailing?)
+
+    {right_leading, right_trailing, right_eol_count, right} =
+      pop_comments(
+        right,
+        pop_leading? and leading == [],
+        pop_trailing? and trailing == []
+      )
+
+    {leading ++ right_leading, trailing ++ right_trailing, max(left_eol_count, right_eol_count),
+     {left, right}}
   end
 
-  defp each_quoted_to_algebra_with_comments([], acc, max_line, state, comments?, _fun) do
-    {acc, comments, comments?} = extract_comments_before(max_line, acc, state.comments, comments?)
-    {acc, comments?, %{state | comments: comments}}
+  defp pop_comments(list, pop_leading?, pop_trailing?) when is_list(list) do
+    {list, {leading, trailing, next_eol_count}} =
+      Enum.map_reduce(list, {[], [], 1}, fn quoted, {leading, trailing, next_eol_count} ->
+        {new_leading, new_trailing, new_eol_count, quoted} =
+          pop_comments(quoted, pop_leading?, pop_trailing?)
+
+        {quoted,
+         {leading ++ new_leading, trailing ++ new_trailing, max(next_eol_count, new_eol_count)}}
+      end)
+
+    {leading, trailing, next_eol_count, list}
   end
 
-  defp each_quoted_to_algebra_with_comments([arg | args], acc, max_line, state, comments?, fun) do
-    case traverse_line(arg, {@max_line, @min_line}) do
-      {@max_line, @min_line} ->
-        {doc_triplet, state} = fun.(arg, args, state)
-        acc = [doc_triplet | acc]
-        each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
+  defp pop_comments(quoted, _pop_leading?, _pop_trailing?), do: {[], [], 1, quoted}
 
-      {doc_start, doc_end} ->
-        {acc, comments, comments?} =
-          extract_comments_before(doc_start, acc, state.comments, comments?)
+  defp pop_comment_metadata(meta, key, true), do: Keyword.pop(meta, key, [])
+  defp pop_comment_metadata(meta, _key, false), do: {[], meta}
 
-        {doc_triplet, state} = fun.(arg, args, %{state | comments: comments})
-
-        {acc, comments, comments?} =
-          extract_comments_trailing(doc_start, doc_end, acc, state.comments, comments?)
-
-        acc = [adjust_trailing_newlines(doc_triplet, doc_end, comments) | acc]
-        state = %{state | comments: comments}
-        each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
-    end
+  defp put_next_eol_count({doc, next_line, newlines}, count) do
+    {doc, next_line, max(newlines, count)}
   end
 
-  defp extract_comments_before(max, acc, [%{line: line} = comment | rest], _) when line < max do
-    %{previous_eol_count: previous, next_eol_count: next, text: doc} = comment
-    acc = [{doc, @empty, next} | add_previous_to_acc(acc, previous)]
-    extract_comments_before(max, acc, rest, true)
+  defp formatted_trailing_comments(meta) do
+    meta
+    |> Keyword.get(:trailing_comments, [])
+    |> format_comments()
   end
 
-  defp extract_comments_before(_max, acc, rest, comments?) do
-    {acc, rest, comments?}
+  defp add_comments_to_acc(acc, comments) do
+    Enum.reduce(comments, acc, fn comment, acc ->
+      %{previous_eol_count: previous, next_eol_count: next, text: doc} = comment
+      [{doc, @empty, next} | add_previous_to_acc(acc, previous)]
+    end)
   end
 
-  defp add_previous_to_acc([{doc, next_line, newlines} | acc], previous) when newlines < previous,
+  defp add_previous_to_acc([{doc, next_line, _newlines} | acc], previous),
     do: [{doc, next_line, previous} | acc]
 
   defp add_previous_to_acc(acc, _previous),
     do: acc
 
-  defp extract_comments_trailing(min, max, acc, [%{line: line, text: doc_comment} | rest], _)
-       when line >= min and line <= max do
-    acc = [{doc_comment, @empty, 1} | acc]
-    extract_comments_trailing(min, max, acc, rest, true)
+  defp append_comments(doc, []) do
+    doc
   end
 
-  defp extract_comments_trailing(_min, _max, acc, rest, comments?) do
-    {acc, rest, comments?}
-  end
+  defp append_comments(doc, comments) do
+    acc = if doc == @empty, do: [], else: [{doc, @empty, 1}]
 
-  # If the document is immediately followed by comment which is followed by newlines,
-  # its newlines wouldn't have considered the comment, so we need to adjust it.
-  defp adjust_trailing_newlines({doc, next_line, newlines}, doc_end, [%{line: line} | _])
-       when newlines > 1 and line == doc_end + 1 do
-    {doc, next_line, 1}
-  end
-
-  defp adjust_trailing_newlines(doc_triplet, _, _), do: doc_triplet
-
-  defp traverse_line({expr, meta, args}, {min, max}) do
-    # This is a hot path, so use :lists.keyfind/3 instead Keyword.fetch!/2
-    acc =
-      case :lists.keyfind(:line, 1, meta) do
-        {:line, line} -> {min(line, min), max(line, max)}
-        false -> {min, max}
-      end
-
-    traverse_line(args, traverse_line(expr, acc))
-  end
-
-  defp traverse_line({left, right}, acc) do
-    traverse_line(right, traverse_line(left, acc))
-  end
-
-  defp traverse_line(args, acc) when is_list(args) do
-    Enum.reduce(args, acc, &traverse_line/2)
-  end
-
-  defp traverse_line(_, acc) do
     acc
+    |> add_comments_to_acc(format_comments(comments))
+    |> Enum.reverse()
+    |> merge_algebra_with_comments(@empty)
+    |> Enum.reduce(&line(&2, &1))
+  end
+
+  defp prepend_comments(doc, []) do
+    doc
+  end
+
+  defp prepend_comments(doc, comments) do
+    comments = add_comments_to_acc([], comments)
+
+    [{doc, @empty, 1} | comments]
+    |> Enum.reverse()
+    |> merge_algebra_with_comments(@empty)
+    |> Enum.reduce(&line(&2, &1))
   end
 
   # Below are the rules for line rendering in the formatter:
@@ -2393,43 +2462,30 @@ defmodule Code.Formatter do
     false
   end
 
-  defp eol_or_comments?(meta, %{comments: comments} = state) do
-    eol?(meta, state) or
-      (
-        min_line = line(meta)
-        max_line = closing_line(meta)
-        Enum.any?(comments, fn %{line: line} -> line > min_line and line < max_line end)
-      )
+  defp eol_or_comments?(meta, state) do
+    eol?(meta, state) or meta[:has_comments] == true
   end
 
   # A literal list is a keyword or (... -> ...)
-  defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?, _skip_parens?, _comments) do
+  defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?, _skip_parens?) do
     {keyword?(arg), arg}
   end
 
   # This is a list of tuples, it can be converted to keywords.
   defp last_arg_to_keyword(
-         {:__block__, meta, [[_ | _] = arg]} = block,
+         {:__block__, _meta, [[_ | _] = arg]} = block,
          true,
-         skip_parens?,
-         comments
+         skip_parens?
        ) do
     cond do
       not keyword?(arg) ->
         {false, block}
 
+      skip_parens? and leading_comments?(hd(arg)) ->
+        {false, block}
+
       skip_parens? ->
-        block_line = line(meta)
-        {{_, arg_meta, _}, _} = hd(arg)
-        first_line = line(arg_meta)
-
-        case Enum.drop_while(comments, fn %{line: line} -> line <= block_line end) do
-          [%{line: line} | _] when line <= first_line ->
-            {false, block}
-
-          _ ->
-            {true, arg}
-        end
+        {true, arg}
 
       true ->
         {true, arg}
@@ -2437,9 +2493,15 @@ defmodule Code.Formatter do
   end
 
   # Otherwise we don't have a keyword.
-  defp last_arg_to_keyword(arg, _list_to_keyword?, _skip_parens?, _comments) do
+  defp last_arg_to_keyword(arg, _list_to_keyword?, _skip_parens?) do
     {false, arg}
   end
+
+  defp leading_comments?({{_, meta, _}, _}) when is_list(meta) do
+    Keyword.has_key?(meta, :leading_comments)
+  end
+
+  defp leading_comments?(_), do: false
 
   defp force_args?(args) do
     match?([_ | _], args) and force_args?(args, %{})
@@ -2457,7 +2519,6 @@ defmodule Code.Formatter do
       end
 
     cond do
-      # Line may be missing from non-formatter AST
       is_nil(line) -> force_args?(args, lines)
       Map.has_key?(lines, line) -> false
       true -> force_args?(args, Map.put(lines, line, true))
@@ -2487,18 +2548,6 @@ defmodule Code.Formatter do
 
   defp meta?(meta, key) do
     is_list(meta[key])
-  end
-
-  defp line(meta) do
-    meta[:line] || @max_line
-  end
-
-  defp end_line(meta) do
-    meta[:end][:line] || @min_line
-  end
-
-  defp closing_line(meta) do
-    meta[:closing][:line] || @min_line
   end
 
   defp escape_atom(string, char) do

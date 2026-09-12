@@ -1121,6 +1121,7 @@ defmodule Code do
 
     to_quoted_opts =
       [
+        columns: true,
         unescape: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
         token_metadata: true,
@@ -1128,8 +1129,7 @@ defmodule Code do
       ] ++ opts
 
     {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
-    to_algebra_opts = [comments: comments] ++ opts
-    doc = Code.Formatter.to_algebra(forms, to_algebra_opts)
+    doc = Code.Formatter.to_algebra(attach_comments(forms, comments), opts)
     Inspect.Algebra.format(doc, line_length)
   end
 
@@ -1574,10 +1574,340 @@ defmodule Code do
   @spec quoted_to_algebra(Macro.t(), [format_opt() | quoted_to_algebra_opt()]) ::
           Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
+    {comments, opts} = Keyword.pop(opts, :comments, [])
+
     quoted
     |> Code.Normalizer.normalize(opts)
+    |> attach_comments(comments)
     |> Code.Formatter.to_algebra(opts)
   end
+
+  defp attach_comments(quoted, []), do: quoted
+
+  defp attach_comments(quoted, comments) do
+    {quoted, comments, _comment_info} =
+      attach_comments_to_quoted(quoted, comments, nil, false)
+
+    comments = separate_trailing_comments(quoted, comments)
+    append_comments_block(quoted, comments)
+  end
+
+  defp attach_comments_to_quoted({_, meta, _} = quoted, comments, boundary, collect?)
+       when is_list(meta) do
+    {{form, meta, args}, comments} = maybe_attach_leading_comments(quoted, comments)
+    {form, comments, form_info} = attach_comments_to_quoted(form, comments, nil, collect?)
+    {child_boundary, node_boundary} = comments_boundaries(form, meta, boundary)
+    collect_children? = collect? or (form == :<<>> and meta[:delimiter] != nil)
+
+    {args, comments, args_info} =
+      attach_comments_to_quoted(args, comments, child_boundary, collect_children?)
+
+    {child_comments?, nested_leading, nested_trailing} =
+      merge_comment_info(form_info, args_info)
+
+    meta = put_comments(meta, :leading_comments, nested_leading)
+    meta = put_comments(meta, :trailing_comments, nested_trailing)
+    {meta, args} = promote_binary_left_leading_comments(form, meta, args)
+    args = promote_nested_binary_leading_comments(form, args)
+
+    {quoted, comments, has_comments?} =
+      attach_trailing_comments(
+        {form, meta, args},
+        comments,
+        node_boundary,
+        child_comments?
+      )
+
+    collect_node_comments(quoted, comments, has_comments?, collect?)
+  end
+
+  defp attach_comments_to_quoted({left, right}, comments, boundary, collect?) do
+    {left, comments, left_info} = attach_comments_to_quoted(left, comments, nil, collect?)
+    {right, comments, right_info} = attach_comments_to_quoted(right, comments, boundary, collect?)
+    {{left, right}, comments, merge_comment_info(left_info, right_info)}
+  end
+
+  defp attach_comments_to_quoted([quoted], comments, boundary, collect?) do
+    {quoted, comments, info} = attach_comments_to_quoted(quoted, comments, boundary, collect?)
+    {[quoted], comments, info}
+  end
+
+  defp attach_comments_to_quoted(
+         [
+           {{:__block__, _, [key]}, _} = quoted,
+           {{:__block__, next_meta, [next_key]}, _} = next | quoted_tail
+         ],
+         comments,
+         boundary,
+         collect?
+       )
+       when key in [:do, :rescue, :catch, :else, :after] and
+              next_key in [:rescue, :catch, :else, :after] do
+    {quoted, comments, info} =
+      attach_comments_to_quoted(quoted, comments, next_meta[:line], collect?)
+
+    {quoted_tail, comments, tail_info} =
+      attach_comments_to_quoted([next | quoted_tail], comments, boundary, collect?)
+
+    {[quoted | quoted_tail], comments, merge_comment_info(info, tail_info)}
+  end
+
+  defp attach_comments_to_quoted([quoted | quoted_tail], comments, boundary, collect?) do
+    {quoted, comments, info} = attach_comments_to_quoted(quoted, comments, nil, collect?)
+
+    {quoted_tail, comments, tail_info} =
+      attach_comments_to_quoted(quoted_tail, comments, boundary, collect?)
+
+    {[quoted | quoted_tail], comments, merge_comment_info(info, tail_info)}
+  end
+
+  defp attach_comments_to_quoted([], comments, _boundary, _collect?) do
+    {[], comments, {false, [], []}}
+  end
+
+  defp attach_comments_to_quoted(quoted, comments, _boundary, _collect?) do
+    {quoted, comments, {false, [], []}}
+  end
+
+  defp merge_comment_info(
+         {left_has_comments?, left_leading, left_trailing},
+         {right_has_comments?, right_leading, right_trailing}
+       ) do
+    {left_has_comments? or right_has_comments?, left_leading ++ right_leading,
+     left_trailing ++ right_trailing}
+  end
+
+  defp collect_node_comments(quoted, comments, has_comments?, false) do
+    {quoted, comments, {has_comments?, [], []}}
+  end
+
+  defp collect_node_comments({form, meta, args}, comments, has_comments?, true) do
+    {leading, meta} = Keyword.pop(meta, :leading_comments, [])
+    {trailing, meta} = Keyword.pop(meta, :trailing_comments, [])
+    {inline, trailing} = Enum.split_with(trailing, &(&1.previous_eol_count == 0))
+    {{form, meta, args}, comments, {has_comments?, leading ++ inline, trailing}}
+  end
+
+  defp promote_binary_left_leading_comments(form, meta, [left, right] = args)
+       when is_atom(form) do
+    with {associativity, _} <- Code.Identifier.binary_op(form),
+         [comment | _] = comments <- node_leading_comments(left) do
+      column = node_column(left)
+
+      promote? =
+        comment.previous_eol_count > 1 or
+          (associativity == :left and comment.previous_eol_count == 1 and column != nil and
+             comment.column <= column)
+
+      if promote? do
+        {_comments, left} = pop_node_leading_comments(left)
+        meta = put_comments(meta, :leading_comments, comments)
+        meta = Keyword.put(meta, :has_comments, true)
+        {meta, [left, right]}
+      else
+        {meta, args}
+      end
+    else
+      _ -> {meta, args}
+    end
+  end
+
+  defp promote_binary_left_leading_comments(_form, meta, args), do: {meta, args}
+
+  defp promote_nested_binary_leading_comments(
+         form,
+         [left, {nested_form, nested_meta, [nested_left, nested_right]} = right]
+       )
+       when is_atom(form) and is_atom(nested_form) and form != nested_form do
+    with {_, _} <- Code.Identifier.binary_op(form),
+         {_, _} <- Code.Identifier.binary_op(nested_form),
+         comments when comments != [] <- node_leading_comments(nested_left) do
+      column = node_column(nested_left)
+
+      {comments, left_comments} =
+        Enum.split_with(comments, fn comment ->
+          comment.previous_eol_count != 0 and (column == nil or comment.column <= column)
+        end)
+
+      if comments == [] do
+        [left, right]
+      else
+        {_comments, nested_left} = pop_node_leading_comments(nested_left)
+        nested_left = put_node_leading_comments(nested_left, left_comments)
+        nested_meta = put_comments(nested_meta, :leading_comments, comments)
+        nested_meta = Keyword.put(nested_meta, :has_comments, true)
+        right = {nested_form, nested_meta, [nested_left, nested_right]}
+        [left, right]
+      end
+    else
+      _ -> [left, right]
+    end
+  end
+
+  defp promote_nested_binary_leading_comments(_form, args), do: args
+
+  defp pop_node_leading_comments({form, meta, args}) when is_list(meta) do
+    {comments, meta} = Keyword.pop(meta, :leading_comments, [])
+    {comments, {form, meta, args}}
+  end
+
+  defp pop_node_leading_comments(quoted), do: {[], quoted}
+
+  defp node_leading_comments({_, meta, _}) when is_list(meta) do
+    Keyword.get(meta, :leading_comments, [])
+  end
+
+  defp node_leading_comments(_quoted), do: []
+
+  defp node_column({{:., _, [target | _]}, _, _}), do: node_column(target)
+  defp node_column({_, meta, _}) when is_list(meta), do: meta[:column]
+  defp node_column(_quoted), do: nil
+
+  defp put_node_leading_comments(quoted, []), do: quoted
+
+  defp put_node_leading_comments({form, meta, args}, comments) do
+    {form, put_comments(meta, :leading_comments, comments), args}
+  end
+
+  defp maybe_attach_leading_comments({:->, _, [[_ | _], _]} = quoted, comments) do
+    {quoted, comments}
+  end
+
+  defp maybe_attach_leading_comments({form, _, [_, _]} = quoted, comments)
+       when is_atom(form) do
+    case Code.Identifier.binary_op(form) do
+      {_, _} -> {quoted, comments}
+      :error -> attach_leading_comments(quoted, comments)
+    end
+  end
+
+  defp maybe_attach_leading_comments(quoted, comments) do
+    attach_leading_comments(quoted, comments)
+  end
+
+  defp append_comments_block(quoted, []), do: quoted
+
+  defp append_comments_block({:__block__, meta, args}, comments) do
+    if meta[:closing] do
+      {:__block__, [trailing_comments: comments], [{:__block__, meta, args}]}
+    else
+      meta = Keyword.update(meta, :trailing_comments, comments, &(&1 ++ comments))
+      {:__block__, meta, args}
+    end
+  end
+
+  defp append_comments_block(quoted, comments) do
+    {:__block__, [trailing_comments: comments], [quoted]}
+  end
+
+  defp separate_trailing_comments(quoted, [comment | comments]) do
+    if trailing_comment_separator?(quoted) and comment.previous_eol_count > 0 do
+      [%{comment | previous_eol_count: max(comment.previous_eol_count, 2)} | comments]
+    else
+      [comment | comments]
+    end
+  end
+
+  defp separate_trailing_comments(_quoted, []), do: []
+
+  defp trailing_comment_separator?({:__block__, _, args}) when is_list(args) do
+    case List.last(args) do
+      nil -> false
+      quoted -> trailing_comment_separator?(quoted)
+    end
+  end
+
+  defp trailing_comment_separator?({_, meta, args}) when is_list(meta) and is_list(args) do
+    meta[:closing] == nil
+  end
+
+  defp trailing_comment_separator?(_), do: false
+
+  defp attach_leading_comments({:__block__, _meta, []} = quoted, comments) do
+    {quoted, comments}
+  end
+
+  defp attach_leading_comments({form, meta, args}, comments) when is_list(meta) do
+    case comments_line(meta) do
+      nil ->
+        {{form, meta, args}, comments}
+
+      line ->
+        {leading, comments} = Enum.split_while(comments, &(&1.line <= line))
+
+        meta = put_comments(meta, :leading_comments, leading)
+        meta = if leading == [], do: meta, else: Keyword.put(meta, :has_comments, true)
+        {{form, meta, args}, comments}
+    end
+  end
+
+  defp attach_leading_comments(quoted, comments), do: {quoted, comments}
+
+  defp attach_trailing_comments(
+         {form, meta, args},
+         comments,
+         boundary,
+         child_comments?
+       )
+       when is_list(meta) do
+    attach_trailing_comments_to_node(form, meta, args, comments, boundary, child_comments?)
+  end
+
+  defp attach_trailing_comments_to_node(form, meta, args, comments, boundary, child_comments?) do
+    case boundary do
+      nil ->
+        has_comments? = meta[:leading_comments] != nil or child_comments?
+        {{form, meta, args}, comments, has_comments?}
+
+      line ->
+        {trailing, comments} = Enum.split_while(comments, &(&1.line < line))
+        meta = put_comments(meta, :trailing_comments, trailing)
+
+        has_comments? = meta[:leading_comments] != nil or trailing != [] or child_comments?
+
+        meta = if has_comments?, do: Keyword.put(meta, :has_comments, true), else: meta
+        {{form, meta, args}, comments, has_comments?}
+    end
+  end
+
+  defp comments_line(meta), do: meta[:line]
+
+  defp comments_boundaries(:., _meta, boundary), do: {boundary, boundary}
+
+  defp comments_boundaries(_form, meta, boundary) do
+    case comments_end_line(meta, [:end, :closing]) do
+      nil ->
+        {comments_boundary(meta, boundary), boundary}
+
+      line ->
+        boundary = min_comments_boundary(line, boundary)
+        {boundary, boundary}
+    end
+  end
+
+  defp comments_boundary(meta, boundary) do
+    case comments_end_line(meta, [:end_of_expression]) do
+      nil -> boundary
+      line -> min_comments_boundary(line, boundary)
+    end
+  end
+
+  defp min_comments_boundary(line, nil), do: line
+  defp min_comments_boundary(line, boundary), do: min(line, boundary)
+
+  defp comments_end_line(meta, keys) do
+    keys
+    |> Enum.flat_map(fn key ->
+      case meta[key] do
+        metadata when is_list(metadata) -> Keyword.get_values(metadata, :line)
+        _ -> []
+      end
+    end)
+    |> Enum.max(fn -> nil end)
+  end
+
+  defp put_comments(meta, _key, []), do: meta
+  defp put_comments(meta, key, comments), do: Keyword.put(meta, key, comments)
 
   @doc """
   Evaluates the given file.

@@ -605,8 +605,8 @@ defmodule Code.Formatter.IntegrationTest do
     """
 
     assert_format bad, """
-    # Comment
     raise function(x) ::
+            # Comment
             any
     """
 
@@ -619,8 +619,8 @@ defmodule Code.Formatter.IntegrationTest do
 
     assert_format bad, """
     raise function(x) ::
+            # Comment
             any
-          # Comment
           when x: any
     """
 
@@ -633,8 +633,8 @@ defmodule Code.Formatter.IntegrationTest do
 
     assert_format bad, """
     @spec function(x) ::
+            # Comment
             any
-          # Comment
           when x: any
     """
 
@@ -648,8 +648,8 @@ defmodule Code.Formatter.IntegrationTest do
 
     assert_format bad, """
     @spec function(x) ::
+            # Comment
             any
-          # Comment
           when x
           when y
     """

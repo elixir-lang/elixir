@@ -44,6 +44,36 @@ defmodule Code.Formatter.CommentsTest do
       :hello
       # after comment
       """
+
+      assert_same """
+      :hello
+
+      # before world
+      :world
+      """
+
+      assert_same """
+      def hello do
+        :hello
+
+        # before world
+        :world
+      end
+      """
+
+      assert_same """
+      :world
+
+      # trailing comment after empty line
+      """
+
+      assert_same """
+      def hello do
+        :world
+
+        # trailing comment after empty line
+      end
+      """
     end
 
     test "on expressions" do
@@ -69,10 +99,10 @@ defmodule Code.Formatter.CommentsTest do
 
       good = """
       # this is foo
-      # this is bar
-      # this is baz
       foo ++
+        # this is bar
         bar ++
+        # this is baz
         baz
       """
 
@@ -482,6 +512,16 @@ defmodule Code.Formatter.CommentsTest do
 
       # after
       """
+
+      assert_same ~S"""
+      def hello(view) do
+        assert view
+               |> element("selector")
+               |> has_element?()
+
+        # after
+      end
+      """
     end
 
     test "local with no parens and keywords inside before and after" do
@@ -762,6 +802,14 @@ defmodule Code.Formatter.CommentsTest do
         # comment
       end
       """
+
+      assert_same ~S"""
+      assert do
+        assert render_async(view) =~ "missing"
+
+        # comment
+      end
+      """
     end
 
     test "with comment inside before and after and multiple keywords" do
@@ -1009,6 +1057,50 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with comments between repeated operators" do
+      assert_same """
+      defguard is_confusing(char)
+               # BOM
+               when char == 0xFEFF
+               # Mathematical invisibles
+               when char in 0x2061..0x2064
+      """
+    end
+
+    test "with comments before multiline operators" do
+      assert_same """
+      def empty?(list, tail, negatives, seen) do
+        tail = unfold(tail)
+        # Explain how the negative lists are handled:
+        # 1. Ignore negative lists that do not overlap.
+        # 2. Remove the matching part from the tail.
+        empty_seen?(list, seen) or empty_seen?(tail, seen) or
+          Enum.reduce_while(negatives, tail, fn negative, tail ->
+            difference(tail, negative)
+          end)
+          |> is_nil()
+      end
+      """
+    end
+
+    test "with comments before pipelines in anonymous functions" do
+      assert_same """
+      fun = fn ->
+        # Why this uses native time
+        System.system_time()
+        |> System.convert_time_unit(:native, :microsecond)
+      end
+      """
+
+      assert_same """
+      Keyword.put_new_lazy(opts, :seed, fn ->
+        # Native time has better precision
+        System.system_time()
+        |> System.convert_time_unit(:native, :microsecond)
+      end)
+      """
+    end
+
     test "handles nodes without meta info" do
       assert_same "(a -> b) |> (c -> d)"
       assert_same "(a -> b) when c: d"
@@ -1052,6 +1144,38 @@ defmodule Code.Formatter.CommentsTest do
         one,
         two,
         three
+      ]
+      """
+    end
+
+    test "with comments after a nested container" do
+      assert_same """
+      [
+        groups: [
+          String,
+          URI
+        ]
+
+        ## Automatically detected groups
+        # Deprecated: []
+      ]
+      """
+
+      assert_same """
+      [
+        groups_for_modules: [
+          Basics: [
+            String
+          ],
+          "Code & Macros": [
+            Code,
+            Macro
+          ]
+
+          ## Automatically detected groups
+          # Deprecated: []
+        ],
+        next: :value
       ]
       """
     end
