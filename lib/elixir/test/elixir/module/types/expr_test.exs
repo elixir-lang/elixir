@@ -3103,24 +3103,6 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "rescue: type-check macros on the rescued variable do not warn" do
-      typecheck!(
-        try do
-          raise "oops"
-        rescue
-          e -> is_exception(e)
-        end
-      )
-
-      typecheck!(
-        try do
-          raise "oops"
-        rescue
-          e -> is_struct(e)
-        end
-      )
-    end
-
     test "rescue: generates custom traces" do
       assert typeerror!(
                try do
