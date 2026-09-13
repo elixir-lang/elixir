@@ -1625,6 +1625,17 @@ defmodule Module.Types.ExprTest do
                  p = %Point{..., x: 123}
              """
     end
+
+    test "type-check macros on known types do not warn" do
+      assert typecheck!([x = %Point{}], is_struct(x)) == boolean()
+      assert typecheck!([x = %ArgumentError{}], is_exception(x)) == boolean()
+      assert typecheck!([x = %Point{}], is_non_struct_map(x)) == boolean()
+      assert typecheck!([x = %{}], is_non_struct_map(x)) == boolean()
+
+      assert typecheck!([x = %{}], is_struct(x)) == boolean()
+      assert typecheck!([x = 123], is_struct(x)) == boolean()
+      assert typecheck!([x = %Point{}], is_exception(x)) == boolean()
+    end
   end
 
   describe "comparison" do

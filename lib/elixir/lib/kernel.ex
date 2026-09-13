@@ -2624,7 +2624,7 @@ defmodule Kernel do
   defmacro is_struct(term) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(term) do
             %_{} -> true
             _ -> false
@@ -2712,7 +2712,7 @@ defmodule Kernel do
   defmacro is_non_struct_map(term) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(term) do
             %_{} -> false
             %{} -> true
@@ -2750,7 +2750,7 @@ defmodule Kernel do
   defmacro is_exception(term) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(term) do
             %_{__exception__: _} -> true
             _ -> false
@@ -2787,7 +2787,7 @@ defmodule Kernel do
   defmacro is_exception(term, name) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(name) do
             name when is_atom(name) ->
               case unquote(term) do
