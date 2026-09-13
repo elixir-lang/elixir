@@ -108,7 +108,8 @@ defmodule Module.Types.IntegrationTest do
             Tuple,
             Any,
             Range,
-            Unknown
+            Unknown,
+            GenServer
           ] do
           def itself(data), do: data
           def this_wont_warn(:ok), do: :ok
@@ -120,6 +121,9 @@ defmodule Module.Types.IntegrationTest do
 
       assert stderr =~
                "you are implementing a protocol for Unknown but said module is not available"
+
+      assert stderr =~
+               "you are implementing a protocol for GenServer but said module does not provide a struct"
 
       refute stderr =~ "this_wont_warn"
 
@@ -161,31 +165,9 @@ defmodule Module.Types.IntegrationTest do
 
       assert itself_arg.(Itself.Unknown) ==
                dynamic(open_map(__struct__: {atom([Unknown]), false}))
-    end
 
-    test "writes exports for implementations of Erlang modules" do
-      files = %{
-        "pe.ex" => """
-        defprotocol Erl do
-          def erl(data)
-        end
-
-        defimpl Erl, for: :gen_server do
-          def erl(data), do: data
-        end
-        """
-      }
-
-      modules = compile_modules(files)
-
-      {_, %{sig: {:infer, nil, [{[domain], _return}]}}} =
-        List.keyfind(
-          read_chunk(modules[Module.concat(Erl, :gen_server)]).exports,
-          {:erl, 1},
-          0
-        )
-
-      assert domain == open_map(__struct__: {atom([:gen_server]), false})
+      assert itself_arg.(Itself.GenServer) ==
+               dynamic(open_map(__struct__: {atom([GenServer]), false}))
     end
 
     test "ignores additional callbacks on implementations" do
