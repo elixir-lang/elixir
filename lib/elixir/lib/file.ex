@@ -1818,7 +1818,7 @@ defmodule File do
       cannot cope with the character range of the data, an error occurs and the
       file will be closed.
 
-    * `:delayed_write`, `:raw`, `:ram`, `:read_ahead`, `:sync`, `{:encoding, ...}`,
+    * `:delayed_write`, `:directory`, `:raw`, `:ram`, `:read_ahead`, `:sync`, `{:encoding, ...}`,
       `{:read_ahead, pos_integer}`, `{:delayed_write, non_neg_integer, non_neg_integer}` -
       for more information about these options see `:file.open/2`.
 
@@ -1859,7 +1859,7 @@ defmodule File do
       File.close(file)
 
   """
-  @spec open(Path.t(), [mode | :ram]) ::
+  @spec open(Path.t(), [mode | :ram | :directory]) ::
           {:ok, io_device | file_descriptor} | {:error, posix | :badarg | :system_limit}
   @spec open(Path.t(), (io_device | file_descriptor -> res)) ::
           {:ok, res} | {:error, posix | :badarg | :system_limit}
@@ -1898,7 +1898,7 @@ defmodule File do
       end)
       #=> {:ok, "file content"}
   """
-  @spec open(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) ::
+  @spec open(Path.t(), [mode | :ram | :directory], (io_device | file_descriptor -> res)) ::
           {:ok, res} | {:error, posix | :badarg | :system_limit}
         when res: var
   def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
@@ -1928,7 +1928,7 @@ defmodule File do
       end)
       #=> "file content"
   """
-  @spec open!(Path.t(), [mode | :ram]) :: io_device | file_descriptor
+  @spec open!(Path.t(), [mode | :ram | :directory]) :: io_device | file_descriptor
   @spec open!(Path.t(), (io_device | file_descriptor -> res)) :: res when res: var
   def open!(path, modes_or_function \\ []) do
     case open(path, modes_or_function) do
@@ -1955,7 +1955,8 @@ defmodule File do
       end)
       #=> "file content"
   """
-  @spec open!(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) :: res when res: var
+  @spec open!(Path.t(), [mode | :ram | :directory], (io_device | file_descriptor -> res)) :: res
+        when res: var
   def open!(path, modes, function) do
     case open(path, modes, function) do
       {:ok, function_result} ->
