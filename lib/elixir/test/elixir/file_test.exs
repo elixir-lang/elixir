@@ -1044,6 +1044,11 @@ defmodule FileTest do
       assert File.close(file) == :ok
     end
 
+    test "open directory" do
+      {:ok, dir} = File.open(".", [:read, :directory])
+      assert File.close(dir) == :ok
+    end
+
     test "open file with charlist" do
       {:ok, file} = File.open(fixture_path("file.txt"), [:charlist])
       assert IO.gets(file, "") == ~c"FOO\n"
