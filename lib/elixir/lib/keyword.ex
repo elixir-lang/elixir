@@ -1250,7 +1250,7 @@ defmodule Keyword do
   """
   @spec split(t, [key]) :: {t, t}
   def split(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.partition(fn {key, _value} -> key in keys end, keywords)
+    :lists.partition(fn {key, _value} -> :lists.member(key, keys) end, keywords)
   end
 
   @doc """
