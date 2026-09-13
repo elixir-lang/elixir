@@ -33,7 +33,7 @@ defmodule Module.Types.Pattern do
   defp args_to_previous(types), do: args_to_static_domain(types)
 
   defp of_pattern_previous(types, {[], _}, _stack) do
-    {types, false}
+    {types, nil}
   end
 
   defp of_pattern_previous(types, {_, descr}, stack) do
@@ -43,10 +43,14 @@ defmodule Module.Types.Pattern do
         [_ | _] -> args_to_domain(types) |> opt_difference(descr) |> domain_to_flat_args(types)
       end
 
-    # check_previous? is an optimization. If types have not changed,
+    # refined_types is an optimization. If types have not changed,
     # it means args_types and previous are disjoint, and any further
     # refinement will keep them disjoint, so no need to check for previous.
-    {refined_types, stack.mode != :infer and types != refined_types}
+    if stack.mode != :infer and types != refined_types do
+      {refined_types, refined_types}
+    else
+      {refined_types, nil}
+    end
   end
 
   defp previous_to_string({list, _}) do
@@ -183,45 +187,50 @@ defmodule Module.Types.Pattern do
   def of_head(patterns, guards, expected, previous, tag, meta, stack, original) do
     stack = %{stack | meta: meta}
 
-    {trees, precise?, check_previous?, args_types, context} =
+    # There is a separate errored? flag because failed is only set if the
+    # code is not generated. But we need to know if it errored? separetely
+    # to decide if the clause is included in the return type or not.
+    {trees, precise?, errored?, refined_types, args_types, context} =
       of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
-    if context.failed and stack.mode != :infer and not empty_previous?(previous) and
-         Keyword.get(meta, :generated, false) != true do
+    if context.failed and stack.mode != :infer and not empty_previous?(previous) do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
-        {other_trees, _, _, _, %{failed: true} = other_context} ->
-          {other_trees, false, args_types, previous, other_context}
+        {other_trees, _, _, _, _, %{failed: true} = other_context} ->
+          {other_trees, false, true, args_types, previous, other_context}
 
-        {other_trees, _, _, args_types, other_context} ->
+        {other_trees, _, _, _, args_types, other_context} ->
           if previous_subtype?(args_types, previous) do
             warning = {:redundant, tag, expected, args_types, previous, other_context}
             context = warn(__MODULE__, warning, meta, stack, other_context)
-            {other_trees, false, args_types, previous, context}
+            {other_trees, false, true, args_types, previous, context}
           else
-            {trees, false, args_types, previous, context}
+            {trees, false, true, args_types, previous, context}
           end
       end
     else
       cond do
-        check_previous? and previous_subtype?(args_types, previous) ->
+        refined_types != nil and
+            (Enum.any?(refined_types, &empty?/1) or previous_subtype?(args_types, previous)) ->
           warning = {:redundant, tag, expected, args_types, previous, context}
-          {trees, false, args_types, previous, warn(__MODULE__, warning, meta, stack, context)}
+
+          {trees, false, true, args_types, previous,
+           warn(__MODULE__, warning, meta, stack, context)}
 
         precise? ->
-          {trees, true, args_types, concat_previous(args_types, previous), context}
+          {trees, true, errored?, args_types, concat_previous(args_types, previous), context}
 
         true ->
-          {trees, false, args_types, previous, context}
+          {trees, false, errored?, args_types, previous, context}
       end
     end
   end
 
   defp of_precise_head([], guards, _expected, _previous, tag, stack, context) do
     %{vars: vars} = context
-    {guard_precise?, context} = of_guards(guards, %{}, vars, tag, stack, context)
-    {[], guard_precise?, false, [], context}
+    {guard_precise?, guard_errored?, context} = of_guards(guards, %{}, vars, tag, stack, context)
+    {[], guard_precise?, guard_errored?, nil, [], context}
   end
 
   defp of_precise_head(patterns, guards, expected, previous, tag, stack, context) do
@@ -240,20 +249,23 @@ defmodule Module.Types.Pattern do
            (with false <- empty_previous?(previous),
                  {:ok, changed, context} <-
                    of_pattern_refine(types, pattern_info, tag, stack, context) do
-              {_guard_precise?, context} = of_guards(guards, changed, vars, tag, stack, context)
+              {_guard_precise?, _errored?, context} =
+                of_guards(guards, changed, vars, tag, stack, context)
+
               trees_to_args_types(trees, stack, context)
             else
               _ -> nil
             end),
-         {types, check_previous?} = of_pattern_previous(types, previous, stack),
+         {types, refined_types} = of_pattern_previous(types, previous, stack),
          {:ok, changed, context} <- of_pattern_refine(types, pattern_info, tag, stack, context) do
-      {guard_precise?, context} = of_guards(guards, changed, vars, tag, stack, context)
+      {guard_precise?, guard_errored?, context} =
+        of_guards(guards, changed, vars, tag, stack, context)
 
-      {trees, pattern_precise? and guard_precise?, check_previous?,
+      {trees, pattern_precise? and guard_precise?, guard_errored?, refined_types,
        args_types || trees_to_args_types(trees, stack, context), context}
     else
       {:error, context} ->
-        {trees, false, false, trees_to_args_types(trees, stack, context), context}
+        {trees, false, true, nil, trees_to_args_types(trees, stack, context), context}
     end
   end
 
@@ -341,7 +353,7 @@ defmodule Module.Types.Pattern do
            of_pattern_intersect(args, 0, [], pattern_info, tag, stack, context),
          {:ok, changed, context} <-
            of_pattern_refine(types, pattern_info, tag, stack, context) do
-      {guard_precise?, context} = of_guards(guards, changed, vars, tag, stack, context)
+      {guard_precise?, _errored?, context} = of_guards(guards, changed, vars, tag, stack, context)
       {args, pattern_precise? and guard_precise?, context}
     else
       {:error, context} -> {args, false, context}
@@ -1035,12 +1047,12 @@ defmodule Module.Types.Pattern do
 
   defp of_guards([], changed, _vars, _tag, stack, context) do
     context = of_changed(Map.keys(changed), stack, context)
-    {true, context}
+    {true, false, context}
   end
 
   defp of_guards([true], changed, _vars, _tag, stack, context) do
     context = of_changed(Map.keys(changed), stack, context)
-    {true, context}
+    {true, false, context}
   end
 
   defp of_guards(guards, changed, vars, tag, stack, context) do
@@ -1054,10 +1066,10 @@ defmodule Module.Types.Pattern do
         changed: changed
       })
 
-    {precise?, context} = of_guards(guards, tag, stack, context)
+    {precise?, errored?, context} = of_guards(guards, tag, stack, context)
     {%{vars: vars, changed: changed}, context} = pop_pattern_info(context)
     context = of_changed(Map.keys(changed), stack, context)
-    {is_map(vars) and precise?, context}
+    {is_map(vars) and precise?, errored?, context}
   end
 
   defp of_guards([guard], tag, stack, context) do
@@ -1068,12 +1080,15 @@ defmodule Module.Types.Pattern do
   defp of_guards(guards, tag, stack, context) do
     %{vars: vars, conditional_vars: conditional_vars} = context
 
-    {vars_conds, {precise?, context}} =
-      Enum.map_reduce(guards, {true, context}, fn guard, {precise?, context} ->
+    {vars_conds, {precise?, errored?, context}} =
+      Enum.map_reduce(guards, {true, true, context}, fn guard, {precise?, errored?, context} ->
         {type, context} = of_guard(guard, stack, %{context | vars: vars, conditional_vars: %{}})
-        {guard_precise?, context} = maybe_badguard(type, guard, tag, stack, context)
+
+        {guard_precise?, guard_errored?, context} =
+          maybe_badguard(type, guard, tag, stack, context)
+
         %{vars: vars, conditional_vars: cond_vars} = context
-        {{vars, cond_vars}, {guard_precise? and precise?, context}}
+        {{vars, cond_vars}, {guard_precise? and precise?, guard_errored? and errored?, context}}
       end)
 
     expr = Enum.reduce(guards, {:_, [], []}, &{:when, [], [&2, &1]})
@@ -1084,7 +1099,7 @@ defmodule Module.Types.Pattern do
         conditional_vars: conditional_vars
     }
 
-    {precise? and Of.all_same_conditional_vars?(vars_conds),
+    {precise? and Of.all_same_conditional_vars?(vars_conds), errored?,
      Of.reduce_conditional_vars(vars_conds, expr, stack, context)}
   end
 
@@ -1096,14 +1111,14 @@ defmodule Module.Types.Pattern do
   defp maybe_badguard(type, guard, tag, stack, context) do
     case booleaness(type) do
       :maybe_both ->
-        {false, context}
+        {false, false, context}
 
       {true, maybe_or_always} ->
-        {maybe_or_always == :always, context}
+        {maybe_or_always == :always, false, context}
 
       _false_tuple_or_none ->
         error = {:badguard, tag, guard, type, context}
-        {false, error(__MODULE__, error, stack.meta, stack, context)}
+        {false, true, error(__MODULE__, error, stack.meta, stack, context)}
     end
   end
 

@@ -417,7 +417,7 @@ defmodule Module.Types.Expr do
           previous = Pattern.init_previous()
           info = {{:case, meta, case_expr, case_type}, head}
 
-          {_, _, _, _, context} =
+          {_, _, _, _, _, context} =
             Pattern.of_head(patterns, guards, [case_type], previous, info, meta, stack, context)
 
           {_, context} = of_expr(body, expected, body, stack, context)
@@ -437,19 +437,13 @@ defmodule Module.Types.Expr do
       of_expr(case_expr, term(), case_expr, %{stack | reverse_arrow: :cache}, base_context)
 
     info = {:case, meta, case_expr, case_type}
-
-    generated? =
-      if Macro.quoted_literal?(case_expr) do
-        true
-      else
-        case_expr |> get_meta() |> Keyword.get(:generated, false)
-      end
+    literal? = Macro.quoted_literal?(case_expr)
 
     # If the expression is generated or the construct is a literal,
     # it is most likely a macro code. However, if no clause is matched,
     # we should still check for that.
     clauses =
-      if generated? do
+      if literal? or case_expr |> get_meta() |> Keyword.get(:generated, false) do
         for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
       else
         clauses
@@ -460,19 +454,13 @@ defmodule Module.Types.Expr do
 
       {{none?, body_acc, clauses_acc}, context} =
         of_clauses_fun(clauses, [case_type], info, stack, context, acc, fn
-          trees, precise?, {:->, _, [_, body]} = clause, context, acc ->
+          trees, precise?, errored?, {:->, _, [_, body]} = clause, context, acc ->
             # Compute the arg type based on the clause itself
             [arg_type] = Pattern.of_domain(trees, stack, context)
 
             # Now we refine the case_expr context and use it to compute the body
-            {_, refined_context} =
-              of_expr(
-                case_expr,
-                arg_type,
-                case_expr,
-                %{stack | reverse_arrow: :except_none},
-                context
-              )
+            reverse_stack = %{stack | reverse_arrow: :except_none}
+            {_, refined_context} = of_expr(case_expr, arg_type, case_expr, reverse_stack, context)
 
             {body_type, context} =
               of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
@@ -480,7 +468,7 @@ defmodule Module.Types.Expr do
             # Now we compute the return type and the clauses for reverse arrow
             {none?, body_acc, clauses_acc} = acc
 
-            if precise? and empty?(body_type) do
+            if (precise? and empty?(body_type)) or (errored? and not literal?) do
               {{true, body_acc, clauses_acc}, context}
             else
               [arg_type] = Pattern.of_domain(trees, stack, context)
@@ -521,13 +509,22 @@ defmodule Module.Types.Expr do
 
       {acc, context} =
         of_clauses_fun(clauses, domain, :fn, stack, context, [], fn
-          trees, _precise?, {:->, _, [_, body]}, context, acc ->
+          trees, _precise?, errored?, {:->, _, [_, body]}, context, acc ->
             {body_type, context} = of_expr(body, term(), body, stack, context)
-            args_types = Pattern.of_domain(trees, stack, context)
-            {add_inferred(acc, args_types, body_type), context}
+
+            if errored? do
+              {acc, context}
+            else
+              args_types = Pattern.of_domain(trees, stack, context)
+              {add_inferred(acc, args_types, body_type), context}
+            end
         end)
 
-      {fun_from_inferred_clauses(acc), context}
+      if acc == [] do
+        {fun(length(domain)), context}
+      else
+        {fun_from_inferred_clauses(acc), context}
+      end
     end)
   end
 
@@ -1003,9 +1000,10 @@ defmodule Module.Types.Expr do
   end
 
   defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
-    of_acc = fn _args_types, _precise?, {:->, _, [_, body]}, context, acc ->
+    of_acc = fn _args_types, _precise?, errored?, {:->, _, [_, body]}, context, acc ->
       {body_type, context} = of_expr(body, expected, body, stack, context)
-      {opt_union(acc, body_type), context}
+      acc = if errored?, do: acc, else: opt_union(acc, body_type)
+      {acc, context}
     end
 
     of_clauses_fun(clauses, domain, base_info, stack, context, acc, of_acc)
@@ -1021,10 +1019,10 @@ defmodule Module.Types.Expr do
           {patterns, guards} = extract_head(head)
           info = {base_info, head}
 
-          {trees, precise?, _, previous, context} =
+          {trees, precise?, errored?, _, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
-          {acc, context} = of_acc.(trees, precise?, clause, context, acc)
+          {acc, context} = of_acc.(trees, precise?, errored?, clause, context, acc)
           {acc, previous, context |> set_failed(failed?) |> Of.reset_vars(original)}
       end)
 
