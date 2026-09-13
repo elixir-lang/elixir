@@ -468,6 +468,18 @@ defmodule Module.Types.ExprTest do
                ])
              ) == none()
 
+      assert typecheck!(
+               :erlang.raise(:error, :oops, [
+                 {__MODULE__, :example, 1, [file: [~c"src/", ["example" | ".ex"]]]}
+               ])
+             ) == none()
+
+      assert typeerror!(
+               :erlang.raise(:error, :oops, [
+                 {__MODULE__, :example, 1, [file: [~c"src/", [:invalid]]]}
+               ])
+             ) =~ "incompatible types given to :erlang.raise/3"
+
       assert typeerror!(
                :erlang.raise(:error, :oops, [
                  {__MODULE__, :example, 1, [line: :unknown]}
@@ -3470,10 +3482,8 @@ defmodule Module.Types.ExprTest do
                      _ -> "unknown"
                    end
                end
-             ) ==
-               binary()
-               |> opt_union(empty_list())
-               |> opt_union(non_empty_list(term(), opt_union(binary(), empty_list())))
+             )
+             |> equal?(chardata())
 
       assert typecheck!(
                try do
