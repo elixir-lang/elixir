@@ -1396,6 +1396,87 @@ defmodule Module.Types.ExprTest do
              """
     end
 
+    test "updating maps does not constrain the replaced values" do
+      # The replaced key must exist but its old value is unconstrained
+      assert typecheck!(
+               [x],
+               (
+                 %{a: 1} = %{x | a: 1}
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}))
+
+      assert typecheck!(
+               [x],
+               (
+                 %{x | a: 1}.a + 1
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}))
+
+      assert typecheck!(
+               [x],
+               (
+                 %{a: 1, b: 2} = %{x | a: 1, b: 2}
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}, b: {term(), false}))
+
+      # Constraints on fields that are not replaced still propagate
+      assert typecheck!(
+               [x],
+               (
+                 %{a: 1, b: 2} = %{x | a: 1}
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}, b: {integer(), false}))
+
+      assert typecheck!(
+               [x],
+               (
+                 %{x | a: 1}.b + 1
+                 x
+               )
+             ) ==
+               dynamic(open_map(a: {term(), false}, b: {opt_union(integer(), float()), false}))
+
+      # Finite computed keys erase only their fields and require none of them
+      assert typecheck!(
+               [x],
+               (
+                 key = if :rand.uniform() > 0.5, do: :a, else: :b
+                 %{a: 1, c: 2} = %{x | key => 1}
+                 x
+               )
+             )
+             |> equal?(dynamic(open_map(c: {integer(), false})))
+
+      assert typecheck!(
+               [x],
+               (
+                 key = if :rand.uniform() > 0.5, do: :a, else: :b
+                 %{x | key => 1, c: 2}.c + 1
+                 x
+               )
+             )
+             |> equal?(dynamic(open_map(c: {term(), false})))
+
+      # Unbounded computed keys may replace any field, so no value constraint propagates
+      assert typecheck!(
+               [x, key],
+               is_atom(key),
+               (
+                 %{a: 1, b: 2} = %{x | key => 1}
+                 x
+               )
+             ) ==
+               dynamic(open_map())
+    end
+
     test "updating maps with mixed record/dictionary keys" do
       # Static keys
       assert typecheck!(

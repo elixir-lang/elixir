@@ -181,18 +181,19 @@ defmodule Module.Types.Expr do
         {{key_type, value_type}, context}
       end)
 
-    # The only information we can attach to the expected types is that
-    # certain keys are expected. And we can only do so if the key has
-    # no other components, even dynamic ones (hence upper bound).
-    expected_pairs =
-      Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
-        case atom_fetch(upper_bound(key_type)) do
-          {:finite, [key]} -> [{key, {term(), false}}]
-          _ -> []
-        end
-      end)
-
-    expected = opt_intersection(expected, open_map(expected_pairs))
+    # The expected type describes the result of the update, not the
+    # original map. Fields that are replaced by the update need to exist
+    # in the original map, but their old values are not constrained by
+    # what the consumer expects of the new values. Fields that are not
+    # replaced keep whatever constraint the consumer has on them.
+    #
+    # A key that is a single atom must exist in the original map. A key
+    # that is a finite set of atoms may replace any of those fields, so
+    # their constraints are erased without requiring them to exist. Any
+    # other key (infinite atoms or non-atom domains) may replace any field,
+    # so all value constraints are dropped and only the statically known
+    # keys are kept as required.
+    expected = map_update_expected(pairs_types, expected)
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
@@ -926,6 +927,55 @@ defmodule Module.Types.Expr do
   end
 
   ## General helpers
+
+  # Computes the expected type of the map being updated in %{map | ...}
+  # from the expected type of the update result. See the map update
+  # clause in of_expr/5 for the rationale.
+  defp map_update_expected(pairs_types, expected) do
+    keys =
+      Enum.reduce_while(pairs_types, [], fn {key_type, _value_type}, acc ->
+        case atom_fetch(upper_bound(key_type)) do
+          {:finite, [key]} -> {:cont, [{:required, key} | acc]}
+          {:finite, keys} -> {:cont, [{:optional, keys} | acc]}
+          _ -> {:halt, :unknown}
+        end
+      end)
+
+    with keys when keys != :unknown <- keys,
+         {:ok, result} <- erase_updated_keys(keys, opt_intersection(expected, open_map())) do
+      result
+    else
+      _ -> open_map(map_update_required_keys(pairs_types))
+    end
+  end
+
+  defp erase_updated_keys(keys, acc) do
+    Enum.reduce_while(keys, {:ok, acc}, fn
+      {:required, key}, {:ok, acc} ->
+        # term() erases the constraint but still requires the key to exist
+        case map_put_key(acc, key, term()) do
+          {:ok, acc} -> {:cont, {:ok, acc}}
+          :badmap -> {:halt, :badmap}
+        end
+
+      {:optional, keys}, {:ok, acc} ->
+        # Any of the keys may be replaced, so erase all of them without
+        # asserting the existence of any particular one
+        case map_update(acc, atom(keys), term(), true, false, true) do
+          {_type, acc, _errors} -> {:cont, {:ok, acc}}
+          _ -> {:halt, :badmap}
+        end
+    end)
+  end
+
+  defp map_update_required_keys(pairs_types) do
+    Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
+      case atom_fetch(upper_bound(key_type)) do
+        {:finite, [key]} -> [{key, {term(), false}}]
+        _ -> []
+      end
+    end)
+  end
 
   defp apply_many([], fun, args, expected, expr, stack, context) do
     Apply.remote(fun, args, expected, expr, stack, context, &of_expr/5)
