@@ -35,7 +35,7 @@ defmodule Kernel.LexicalTracker do
   that must be warned if unused.
   """
   def warn_alias(pid, meta, alias, module) do
-    :gen_server.cast(pid, {:warn_alias, alias, meta})
+    :gen_server.cast(pid, {:warn_alias, alias, module, meta})
     module
   end
 
@@ -87,8 +87,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def alias_dispatch(pid, module) when is_atom(module) do
-    :gen_server.cast(pid, {:alias_dispatch, module})
+  def alias_dispatch(pid, alias, module) when is_atom(alias) and is_atom(module) do
+    :gen_server.cast(pid, {:alias_dispatch, alias, module})
   end
 
   @doc false
@@ -157,7 +157,7 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def handle_call(:unused_aliases, _from, state) do
-    aliases = for {alias, meta} when is_list(meta) <- state.aliases, do: {alias, meta}
+    aliases = for {{alias, _}, meta} when is_list(meta) <- state.aliases, do: {alias, meta}
     {:reply, Enum.sort(aliases), state}
   end
 
@@ -176,7 +176,7 @@ defmodule Kernel.LexicalTracker do
     unused_requires =
       for {module, {meta, alias}} <- state.requires,
           Map.get(references, module) != :compile do
-        {module, meta, alias, Map.get(aliases, alias) == :used}
+        {module, meta, alias, Map.get(aliases, {alias, module}) == :used}
       end
 
     {:reply, Enum.sort(unused_requires), state}
@@ -223,8 +223,8 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | imports: imports, references: references}}
   end
 
-  def handle_cast({:alias_dispatch, module}, state) do
-    {:noreply, put_in(state.aliases[module], :used)}
+  def handle_cast({:alias_dispatch, alias, module}, state) do
+    {:noreply, put_in(state.aliases[{alias, module}], :used)}
   end
 
   def handle_cast({:import_quoted, module, function, arities}, state) do
@@ -266,10 +266,12 @@ defmodule Kernel.LexicalTracker do
     {:noreply, put_in(state.imports[module], Map.from_keys(keys, meta))}
   end
 
-  def handle_cast({:warn_alias, alias, meta}, %{aliases: aliases} = state) do
+  def handle_cast({:warn_alias, alias, module, meta}, %{aliases: aliases} = state) do
+    key = {alias, module}
+
     case aliases do
-      %{^alias => :used} -> {:noreply, state}
-      %{} -> {:noreply, %{state | aliases: Map.put(aliases, alias, meta)}}
+      %{^key => :used} -> {:noreply, state}
+      %{} -> {:noreply, %{state | aliases: Map.put(aliases, key, meta)}}
     end
   end
 
