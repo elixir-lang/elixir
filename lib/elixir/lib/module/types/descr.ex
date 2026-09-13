@@ -4834,6 +4834,9 @@ defmodule Module.Types.Descr do
   defp tuple_difference(_, bdd_leaf(:open, [])),
     do: :bdd_bot
 
+  defp tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
+    do: if(entries == [], do: bdd_leaf_new(:open, [:term]), else: open)
+
   defp tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
     do: bdd_negation(bdd2)
 
@@ -5363,17 +5366,13 @@ defmodule Module.Types.Descr do
         end
 
       {dynamic, static} ->
-        if not empty?(descr) and tuple_only?(static) and descr_key?(dynamic, :tuple) do
-          dynamic_value =
-            case dynamic do
-              :term -> term()
-              %{tuple: bdd} -> process_tuples_values(bdd)
-            end
-
-          dynamic(dynamic_value)
+        with true <- tuple_only?(static) and descr_key?(dynamic, :tuple),
+             %{tuple: bdd} = unfold(dynamic),
+             false <- tuple_empty?(bdd, %{}) do
+          dynamic(process_tuples_values(bdd))
           |> opt_union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
         else
-          :badtuple
+          _ -> :badtuple
         end
     end
   end
@@ -7004,6 +7003,9 @@ defmodule Module.Types.Descr do
 
   defp opt_tuple_difference(_, bdd_leaf(:open, [])),
     do: :bdd_bot
+
+  defp opt_tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
+    do: if(entries == [], do: bdd_leaf_new(:open, [:term]), else: open)
 
   defp opt_tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
     do: bdd_negation(bdd2)

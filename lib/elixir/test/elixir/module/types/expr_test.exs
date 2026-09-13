@@ -845,7 +845,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   {...} and not {}, integer()
+                   {term(), ...}, integer()
 
                where "x" was given the type:
 
@@ -990,7 +990,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   {...} and not {}, integer()
+                   {term(), ...}, integer()
 
                where "x" was given the type:
 
@@ -1048,7 +1048,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   {...} and not {}, integer(), term()
+                   {term(), ...}, integer(), term()
 
                where "x" was given the type:
 

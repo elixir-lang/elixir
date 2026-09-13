@@ -657,8 +657,10 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple" do
+      # Assert we unfold the difference of empty tuples as it is common
+      assert opt_difference(tuple(), empty_tuple()) == open_tuple([term()])
+
       assert empty?(opt_difference(open_tuple([atom()]), open_tuple([term()])))
-      refute empty?(opt_difference(tuple(), empty_tuple()))
       refute tuple_of_size_at_least(2) |> opt_difference(tuple_of_size(2)) |> empty?()
       assert tuple_of_size_at_least(2) |> opt_difference(tuple_of_size_at_least(1)) |> empty?()
       assert tuple_of_size_at_least(3) |> opt_difference(tuple_of_size_at_least(3)) |> empty?()
