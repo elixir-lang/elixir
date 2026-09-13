@@ -42,7 +42,6 @@ defmodule Kernel.DialyzerTest do
       Exception,
       ExUnit.AssertionError,
       ExUnit.Assertions,
-      File,
       IO,
       Kernel,
       Kernel.Utils,

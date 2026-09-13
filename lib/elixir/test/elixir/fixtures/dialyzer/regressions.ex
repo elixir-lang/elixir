@@ -21,6 +21,4 @@ defmodule Dialyzer.Regressions do
 
   @spec inlined_uri :: URI.t()
   def inlined_uri, do: URI.new!("example.com")
-
-  def file_open_directory, do: File.open("/", [:read, :raw, :directory])
 end
