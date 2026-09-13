@@ -1625,6 +1625,34 @@ defmodule Module.Types.ExprTest do
                  p = %Point{..., x: 123}
              """
     end
+
+    test "type-check macros on known types do not warn" do
+      typecheck!([x = %Point{}], is_struct(x))
+      typecheck!([x = %ArgumentError{}], is_exception(x))
+      typecheck!([x = %Point{}], is_non_struct_map(x))
+      typecheck!([x = %{}], is_non_struct_map(x))
+
+      typecheck!(
+        (
+          x = %{}
+          is_struct(x)
+        )
+      )
+
+      typecheck!(
+        (
+          x = 123
+          is_struct(x)
+        )
+      )
+
+      typecheck!(
+        (
+          e = %ArgumentError{}
+          is_exception(e, ArgumentError)
+        )
+      )
+    end
   end
 
   describe "comparison" do
@@ -3073,6 +3101,24 @@ defmodule Module.Types.ExprTest do
                  __struct__: {atom(), false},
                  __exception__: {term(), false}
                )
+    end
+
+    test "rescue: type-check macros on the rescued variable do not warn" do
+      typecheck!(
+        try do
+          raise "oops"
+        rescue
+          e -> is_exception(e)
+        end
+      )
+
+      typecheck!(
+        try do
+          raise "oops"
+        rescue
+          e -> is_struct(e)
+        end
+      )
     end
 
     test "rescue: generates custom traces" do

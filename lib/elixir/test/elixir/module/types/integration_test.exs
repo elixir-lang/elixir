@@ -917,6 +917,25 @@ defmodule Module.Types.IntegrationTest do
         defmodule C do
           def example, do: to_string([?a, ?b | "!"])
         end
+        """,
+        # do not warn on clauses that belong to type-check macro expansions
+        "d.ex" => """
+        defmodule D do
+          def uri?(%URI{} = uri), do: is_struct(uri)
+
+          def blank_rescue(fun) do
+            try do
+              fun.()
+            rescue
+              x -> is_exception(x)
+            end
+          end
+
+          def assignment do
+            x = %{}
+            {is_struct(x), is_exception(%ArgumentError{}, ArgumentError)}
+          end
+        end
         """
       }
 
