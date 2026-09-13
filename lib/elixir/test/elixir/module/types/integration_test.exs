@@ -163,6 +163,31 @@ defmodule Module.Types.IntegrationTest do
                dynamic(open_map(__struct__: {atom([Unknown]), false}))
     end
 
+    test "writes exports for implementations of Erlang modules" do
+      files = %{
+        "pe.ex" => """
+        defprotocol Erl do
+          def erl(data)
+        end
+
+        defimpl Erl, for: :gen_server do
+          def erl(data), do: data
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+
+      {_, %{sig: {:infer, nil, [{[domain], _return}]}}} =
+        List.keyfind(
+          read_chunk(modules[Module.concat(Erl, :gen_server)]).exports,
+          {:erl, 1},
+          0
+        )
+
+      assert domain == open_map(__struct__: {atom([:gen_server]), false})
+    end
+
     test "ignores additional callbacks on implementations" do
       files = %{
         "p.ex" => """

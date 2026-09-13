@@ -291,7 +291,11 @@ defmodule Module.Types.Of do
     # so we need to deal with such cases accordingly.
     # TODO: Assume implementation is available on Elixir v2.0.
     # A warning is emitted since v1.19+.
-    if info = mode == :closed && Code.ensure_loaded?(struct) && struct.__info__(:struct) do
+    info =
+      mode == :closed and Code.ensure_loaded?(struct) and
+        function_exported?(struct, :__info__, 1) and struct.__info__(:struct)
+
+    if info do
       struct_type(struct, info)
     else
       open_map(__struct__: {atom([struct]), false})
