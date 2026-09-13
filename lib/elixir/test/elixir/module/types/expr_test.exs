@@ -3160,10 +3160,8 @@ defmodule Module.Types.ExprTest do
                      _ -> "unknown"
                    end
                end
-             ) ==
-               binary()
-               |> opt_union(empty_list())
-               |> opt_union(non_empty_list(term(), opt_union(binary(), empty_list())))
+             )
+             |> equal?(chardata())
 
       assert typecheck!(
                try do
