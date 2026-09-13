@@ -120,9 +120,16 @@ defmodule Module.Types.Apply do
   args_or_none = opt_union(list(term()), atom([:none]))
   custom_info_key = opt_difference(atom(), atom([:file, :line, :error_info]))
 
+  # OTP declares the file entry in stacktrace_extrainfo() as unicode:chardata(),
+  # which also admits nested and improper (binary tailed) lists
+  chardata =
+    binary()
+    |> opt_union(empty_list())
+    |> opt_union(non_empty_list(term(), opt_union(binary(), empty_list())))
+
   extra_info =
     list(
-      tuple([atom([:file]), opt_union(list(integer()), binary())])
+      tuple([atom([:file]), chardata])
       |> opt_union(tuple([atom([:line]), integer()]))
       |> opt_union(tuple([atom([:error_info]), open_map()]))
       |> opt_union(tuple([custom_info_key, term()]))
