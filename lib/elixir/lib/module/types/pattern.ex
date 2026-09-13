@@ -1337,14 +1337,14 @@ defmodule Module.Types.Pattern do
               context
           end
 
-        {type, vars_conds} =
-          of_logical_cond([left | right], none(), [], expected, stack, cond_context)
+        {type, vars_conds, precise?} =
+          of_logical_cond([left | right], {none(), [], true}, expected, stack, cond_context)
 
-        # We will be precise if all branches changed the same variable
+        # We will be precise if all branches are precise and changed the same variable
         context =
           update_in(context.pattern_info.vars, fn
             false -> false
-            vars -> Of.all_same_conditional_vars?(vars_conds) and vars
+            vars -> precise? and Of.all_same_conditional_vars?(vars_conds) and vars
           end)
 
         {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
@@ -1407,6 +1407,22 @@ defmodule Module.Types.Pattern do
     of_guard(var, expected, call, stack, context)
   end
 
+  defp of_remote(fun, args, call, expected, stack, %{pattern_info: %{vars: _}} = context)
+       when fun in [:min, :max] do
+    {type, context} =
+      Apply.remote(:erlang, fun, args, term(), call, stack, context, &of_guard/5)
+
+    refined = opt_intersection(type, expected)
+
+    if empty?(refined) or equal?(type, refined) do
+      {type, context}
+    else
+      # Refining the result does not restrict either operand, so it cannot
+      # establish that the guard succeeds for every value in their types.
+      {refined, put_in(context.pattern_info.vars, false)}
+    end
+  end
+
   defp of_remote(fun, args, call, expected, stack, context) do
     Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
   end
@@ -1467,16 +1483,17 @@ defmodule Module.Types.Pattern do
     of_logical_all(tail, disjoint?, expected, to_abort, stack, context)
   end
 
-  defp of_logical_cond([head | tail], acc_type, acc_vars, expected, stack, context) do
-    {type, %{vars: vars, conditional_vars: cond_vars}} =
+  defp of_logical_cond([head | tail], {acc_type, acc_vars, precise?}, expected, stack, context) do
+    {type, %{vars: vars, conditional_vars: cond_vars, pattern_info: pattern_info}} =
       of_guard(head, expected, head, stack, context)
 
     acc_vars = [{vars, cond_vars} | acc_vars]
-    of_logical_cond(tail, opt_union(acc_type, type), acc_vars, expected, stack, context)
+    acc = {opt_union(acc_type, type), acc_vars, precise? and is_map(pattern_info.vars)}
+    of_logical_cond(tail, acc, expected, stack, context)
   end
 
-  defp of_logical_cond([], acc_type, acc_vars, _expected, _stack, _context) do
-    {acc_type, acc_vars}
+  defp of_logical_cond([], acc, _expected, _stack, _context) do
+    acc
   end
 
   ## Helpers

@@ -469,6 +469,7 @@ defmodule Module.Types.Apply do
     # Either argument may be discarded based on term ordering, so the result's
     # expected type cannot be used to refine either argument. The result itself
     # flows directly to the consumer, so it can still be contextually refined.
+    # Guards handle this refinement separately to track its effect on precision.
     {left_type, context} = of_fun.(left, term(), expr, stack, context)
     {right_type, context} = of_fun.(right, term(), expr, stack, context)
     result = opt_union(left_type, right_type)

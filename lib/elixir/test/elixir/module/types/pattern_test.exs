@@ -1472,6 +1472,19 @@ defmodule Module.Types.PatternTest do
       refute precise?([x, y], is_integer(x) when is_binary(y))
     end
 
+    test "min/max type guards" do
+      refute precise?([x, y], is_integer(min(x, y)))
+      refute precise?([x, y], is_integer(max(x, y)))
+      refute precise?([x, y], is_atom(min(x, y)))
+      refute precise?([x, y], is_atom(max(x, y)))
+      refute precise?([x, y], not is_integer(min(x, y)))
+      refute precise?([x, y], is_integer(min(x, y)) or is_atom(max(x, y)))
+      refute precise?([x, y], is_integer(abs(min(x, y))))
+
+      assert precise?([x, y], is_integer(x) and is_integer(y) and is_integer(min(x, y)))
+      assert precise?([x, y], is_atom(x) and is_atom(y) and is_atom(max(x, y)))
+    end
+
     test "sized guards" do
       # Tuples: everything goes
       assert precise?([x], tuple_size(x) == 0)

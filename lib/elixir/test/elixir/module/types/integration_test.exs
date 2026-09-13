@@ -296,6 +296,46 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
+    test "min/max type guards do not make catch-all clauses redundant" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def min_integer(a, b) when is_integer(min(a, b)), do: :match
+          def min_integer(_, _), do: :fallback
+
+          def min_atom(a, b) when is_atom(min(a, b)), do: :match
+          def min_atom(_, _), do: :fallback
+
+          def min_not_integer(a, b) when not is_integer(min(a, b)), do: :match
+          def min_not_integer(_, _), do: :fallback
+
+          def min_integer_or_atom(a, b) when is_integer(min(a, b)) or is_atom(min(a, b)), do: :match
+          def min_integer_or_atom(_, _), do: :fallback
+
+          def min_abs_integer(a, b) when is_integer(abs(min(a, b))), do: :match
+          def min_abs_integer(_, _), do: :fallback
+
+          def max_integer(a, b) when is_integer(max(a, b)), do: :match
+          def max_integer(_, _), do: :fallback
+
+          def max_atom(a, b) when is_atom(max(a, b)), do: :match
+          def max_atom(_, _), do: :fallback
+
+          def max_not_integer(a, b) when not is_integer(max(a, b)), do: :match
+          def max_not_integer(_, _), do: :fallback
+
+          def max_integer_or_atom(a, b) when is_integer(max(a, b)) or is_atom(max(a, b)), do: :match
+          def max_integer_or_atom(_, _), do: :fallback
+
+          def max_abs_integer(a, b) when is_integer(abs(max(a, b))), do: :match
+          def max_abs_integer(_, _), do: :fallback
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "captures with impossible clauses" do
       files = %{
         "impossible_clauses.ex" => """
