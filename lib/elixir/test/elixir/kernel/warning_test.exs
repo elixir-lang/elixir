@@ -941,6 +941,22 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unused duplicated alias" do
+    assert_warn_compile(
+      ["nofile:2:3", "unused alias Baz"],
+      """
+      defmodule Sample do
+        alias Foo.Baz
+        alias Foo.Baz
+
+        def baz, do: Baz
+      end
+      """
+    )
+  after
+    purge(Sample)
+  end
+
   test "unused alias due to shadowing" do
     assert_warn_compile(
       ["nofile:2:3", "unused alias Baz"],
