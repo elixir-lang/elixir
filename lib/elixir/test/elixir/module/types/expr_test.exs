@@ -3160,7 +3160,10 @@ defmodule Module.Types.ExprTest do
                      _ -> "unknown"
                    end
                end
-             ) == opt_union(list(integer()), binary())
+             ) ==
+               binary()
+               |> opt_union(empty_list())
+               |> opt_union(non_empty_list(term(), opt_union(binary(), empty_list())))
 
       assert typecheck!(
                try do
