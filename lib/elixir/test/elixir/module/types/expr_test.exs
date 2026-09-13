@@ -1632,9 +1632,9 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = %Point{}], is_non_struct_map(x)) == atom([true])
       assert typecheck!([x = %{}], is_non_struct_map(x)) == atom([true])
 
-      assert typecheck!([x = %{}],  is_struct(x)) == atom([false])
-      assert typecheck!([x = 123],  is_struct(x)) == atom([false])
-      assert typecheck!([x = %Point{}],  is_exception(x)) == atom([false])
+      assert typecheck!([x = %{}], is_struct(x)) == atom([false])
+      assert typecheck!([x = 123], is_struct(x)) == atom([false])
+      assert typecheck!([x = %Point{}], is_exception(x)) == atom([false])
     end
   end
 
