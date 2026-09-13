@@ -1575,11 +1575,9 @@ defmodule Code do
           Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
     {comments, opts} = Keyword.pop(opts, :comments, [])
-
-    quoted
-    |> Code.Normalizer.normalize(opts)
-    |> attach_comments(comments)
-    |> Code.Formatter.to_algebra(opts)
+    quoted = Code.Normalizer.normalize(quoted, opts)
+    quoted = attach_comments(quoted, comments)
+    Code.Formatter.to_algebra(quoted, opts)
   end
 
   defp attach_comments(quoted, []), do: quoted
@@ -1896,14 +1894,15 @@ defmodule Code do
   defp min_comments_boundary(line, boundary), do: min(line, boundary)
 
   defp comments_end_line(meta, keys) do
-    keys
-    |> Enum.flat_map(fn key ->
-      case meta[key] do
-        metadata when is_list(metadata) -> Keyword.get_values(metadata, :line)
-        _ -> []
-      end
-    end)
-    |> Enum.max(fn -> nil end)
+    lines =
+      Enum.flat_map(keys, fn key ->
+        case meta[key] do
+          metadata when is_list(metadata) -> Keyword.get_values(metadata, :line)
+          _ -> []
+        end
+      end)
+
+    Enum.max(lines, fn -> nil end)
   end
 
   defp put_comments(meta, _key, []), do: meta
