@@ -57,7 +57,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add aliases", config do
-    D.alias_dispatch(config[:pid], String)
+    D.alias_dispatch(config[:pid], String, String)
     assert D.references(config[:pid]) == {[], [], [], []}
   end
 
@@ -113,25 +113,39 @@ defmodule Kernel.LexicalTrackerTest do
     D.warn_require(config[:pid], [], String, S)
     D.remote_dispatch(config[:pid], String, :runtime)
     assert D.collect_unused_requires(config[:pid]) == [{String, [], S, false}]
-    D.alias_dispatch(config[:pid], S)
+    D.alias_dispatch(config[:pid], S, String)
     assert D.collect_unused_requires(config[:pid]) == [{String, [], S, true}]
   end
 
   test "unused aliases", config do
-    D.warn_alias(config[:pid], [], String, String)
-    assert D.collect_unused_aliases(config[:pid]) == [{String, []}]
+    D.warn_alias(config[:pid], [], S, String)
+    assert D.collect_unused_aliases(config[:pid]) == [{S, []}]
   end
 
   test "used aliases are not unused", config do
-    D.warn_alias(config[:pid], [], String, String)
-    D.alias_dispatch(config[:pid], String)
+    D.warn_alias(config[:pid], [], S, String)
+    D.alias_dispatch(config[:pid], S, String)
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
   test "used aliases are not unused in reverse order", config do
-    D.alias_dispatch(config[:pid], String)
-    D.warn_alias(config[:pid], [], String, String)
+    D.alias_dispatch(config[:pid], S, String)
+    D.warn_alias(config[:pid], [], S, String)
     assert D.collect_unused_aliases(config[:pid]) == []
+  end
+
+  test "unused aliases when target module differs", config do
+    D.warn_alias(config[:pid], [], S, String)
+    D.warn_alias(config[:pid], [], S, Stream)
+    D.alias_dispatch(config[:pid], S, Stream)
+    assert D.collect_unused_aliases(config[:pid]) == [{S, []}]
+  end
+
+  test "used aliases when duplicated", config do
+    D.warn_alias(config[:pid], [], S, String)
+    D.warn_alias(config[:pid], [], S, String)
+    D.alias_dispatch(config[:pid], S, String)
+    assert D.collect_unused_aliases(config[:pid]) == [{S, []}]
   end
 
   describe "references" do

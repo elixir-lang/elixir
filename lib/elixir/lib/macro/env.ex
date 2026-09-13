@@ -518,7 +518,7 @@ defmodule Macro.Env do
   If there is no alias or the alias starts with `Elixir.`
   (which disables aliasing), then `:error` is returned:
 
-      iex> alias List, as: MyList
+      iex> alias List, as: MyList, warn: false
       iex> Macro.Env.expand_alias(__ENV__, [], [:Elixir, MyList])
       :error
       iex> Macro.Env.expand_alias(__ENV__, [], [:AnotherList])
