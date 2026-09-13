@@ -1627,31 +1627,14 @@ defmodule Module.Types.ExprTest do
     end
 
     test "type-check macros on known types do not warn" do
-      typecheck!([x = %Point{}], is_struct(x))
-      typecheck!([x = %ArgumentError{}], is_exception(x))
-      typecheck!([x = %Point{}], is_non_struct_map(x))
-      typecheck!([x = %{}], is_non_struct_map(x))
+      assert typecheck!([x = %Point{}], is_struct(x)) == atom([true])
+      assert typecheck!([x = %ArgumentError{}], is_exception(x)) == atom([true])
+      assert typecheck!([x = %Point{}], is_non_struct_map(x)) == atom([true])
+      assert typecheck!([x = %{}], is_non_struct_map(x)) == atom([true])
 
-      typecheck!(
-        (
-          x = %{}
-          is_struct(x)
-        )
-      )
-
-      typecheck!(
-        (
-          x = 123
-          is_struct(x)
-        )
-      )
-
-      typecheck!(
-        (
-          e = %ArgumentError{}
-          is_exception(e, ArgumentError)
-        )
-      )
+      assert typecheck!([x = %{}],  is_struct(x)) == atom([false])
+      assert typecheck!([x = 123],  is_struct(x)) == atom([false])
+      assert typecheck!([x = %Point{}],  is_exception(x)) == atom([false])
     end
   end
 
