@@ -134,6 +134,13 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
+  test "unused aliases when target module differs", config do
+    D.warn_alias(config[:pid], [], S, String)
+    D.warn_alias(config[:pid], [], S, Stream)
+    D.alias_dispatch(config[:pid], S, Stream)
+    assert D.collect_unused_aliases(config[:pid]) == [{S, []}]
+  end
+
   describe "references" do
     test "typespecs do not tag aliases nor types" do
       Code.eval_string("""
