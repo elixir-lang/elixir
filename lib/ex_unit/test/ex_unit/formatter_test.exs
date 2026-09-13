@@ -10,7 +10,20 @@ defmodule ExUnit.FormatterTest do
   import ExUnit.Formatter
   doctest ExUnit.Formatter
 
+  defmacrop generated(expr) do
+    Macro.prewalk(
+      expr,
+      &Macro.update_meta(&1, fn meta -> Keyword.put(meta, :generated, true) end)
+    )
+  end
+
   defmacrop catch_assertion(expr) do
+    expr =
+      Macro.prewalk(
+        expr,
+        &Macro.update_meta(&1, fn meta -> Keyword.put(meta, :generated, true) end)
+      )
+
     quote do
       try do
         unquote(expr)
@@ -97,7 +110,7 @@ defmodule ExUnit.FormatterTest do
   test "formats test exits with function clause mfa" do
     {error, stack} =
       try do
-        Access.fetch(Process.get(:unused, :foo), :bar)
+        generated(Access.fetch(:foo, :bar))
       catch
         :error, error -> {error, __STACKTRACE__}
       end
@@ -179,7 +192,7 @@ defmodule ExUnit.FormatterTest do
   test "formats test EXITs with function clause errors" do
     {error, stack} =
       try do
-        Access.fetch(Process.get(:unused, :foo), :bar)
+        generated(Access.fetch(:foo, :bar))
       catch
         :error, error -> {error, __STACKTRACE__}
       end
@@ -429,7 +442,7 @@ defmodule ExUnit.FormatterTest do
   test "blames function clause error" do
     {error, stack} =
       try do
-        Access.fetch(Process.get(:unused, :foo), :bar)
+        generated(Access.fetch(:foo, :bar))
       rescue
         exception -> {exception, __STACKTRACE__}
       end
@@ -594,15 +607,14 @@ defmodule ExUnit.FormatterTest do
 
   test "inspect failure" do
     failure = [
-      {:error, catch_assertion(assert Process.get(:unused, :will_fail) == struct!(BadInspect)),
-       []}
+      {:error, catch_assertion(assert :will_fail == struct!(BadInspect)), []}
     ]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ ~s'''
              1) world (Hello)
                 test/ex_unit/formatter_test.exs:1
                 Assertion with == failed
-                code:  assert Process.get(:unused, :will_fail) == struct!(BadInspect)
+                code:  assert :will_fail == struct!(BadInspect)
                 left:  :will_fail
                 right: #Inspect.Error<
              got FunctionClauseError with message:
