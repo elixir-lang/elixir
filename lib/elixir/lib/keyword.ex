@@ -1250,16 +1250,7 @@ defmodule Keyword do
   """
   @spec split(t, [key]) :: {t, t}
   def split(keywords, keys) when is_list(keywords) and is_list(keys) do
-    fun = fn {k, v}, {take, drop} ->
-      case k in keys do
-        true -> {[{k, v} | take], drop}
-        false -> {take, [{k, v} | drop]}
-      end
-    end
-
-    acc = {[], []}
-    {take, drop} = :lists.foldl(fun, acc, keywords)
-    {:lists.reverse(take), :lists.reverse(drop)}
+    :lists.partition(fn {key, _value} -> :lists.member(key, keys) end, keywords)
   end
 
   @doc """
