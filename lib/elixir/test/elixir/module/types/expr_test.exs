@@ -3216,7 +3216,8 @@ defmodule Module.Types.ExprTest do
                      _ -> "unknown"
                    end
                end
-             ) == opt_union(list(integer()), binary())
+             )
+             |> equal?(chardata())
 
       assert typecheck!(
                try do
