@@ -1839,8 +1839,14 @@ defmodule Code do
         {{form, meta, args}, comments}
 
       line ->
-        {trailing, comments} = Enum.split_while(comments, &(&1.line < line))
-        meta = put_comments(meta, :trailing_comments, trailing)
+        {attached, comments} = Enum.split_while(comments, &(&1.line < line))
+
+        key =
+          if form == :__block__ and args == [],
+            do: :leading_comments,
+            else: :trailing_comments
+
+        meta = put_comments(meta, key, attached)
         {{form, meta, args}, comments}
     end
   end

@@ -2273,8 +2273,9 @@ defmodule Code.Formatter do
 
   defp prepend_comments(doc, comments) do
     comments = add_comments_to_acc([], comments)
+    comments = if doc == @empty, do: comments, else: [{doc, @empty, 1} | comments]
 
-    [{doc, @empty, 1} | comments]
+    comments
     |> Enum.reverse()
     |> merge_algebra_with_comments(@empty)
     |> Enum.reduce(&line(&2, &1))
