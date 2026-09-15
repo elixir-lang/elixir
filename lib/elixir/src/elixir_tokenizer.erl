@@ -1727,8 +1727,8 @@ tokenize_sigil([$~ | T], Line, Column, Scope, Tokens) ->
     {ok, Name, Rest, NewLine, NewColumn, NewScope, NewTokens} ->
       tokenize_sigil_contents(Rest, Name, NewLine, NewColumn, NewScope, NewTokens);
 
-    {error, Message, Token} ->
-      Reason = {?LOC(Line, Column), Message, Token},
+    {error, Message} ->
+      Reason = {?LOC(Line, Column), Message, [$~ | T]},
       error(Reason, T, Scope, Tokens)
   end.
 
@@ -1738,9 +1738,8 @@ tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_downcase(
 tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_upcase(S) ->
     tokenize_upper_sigil_name(T, [S], Line, Column + 1, Scope, Tokens).
 
-tokenize_lower_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
-  SigilName = lists:reverse(NameAcc) ++ Original,
-  {error, sigil_name_error(), [$~] ++ SigilName};
+tokenize_lower_sigil_name([S | _T], [_ | _], _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
+  {error, sigil_name_error()};
 tokenize_lower_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
   {ok, lists:reverse(NameAcc), T, Line, Column, Scope, Tokens}.
 
@@ -1749,9 +1748,8 @@ tokenize_lower_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
 tokenize_upper_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S); ?is_digit(S) ->
   tokenize_upper_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
 % With a lowercase letter and a non-empty NameAcc we return an error.
-tokenize_upper_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
-  SigilName = lists:reverse(NameAcc) ++ Original,
-  {error,  sigil_name_error(), [$~] ++ SigilName};
+tokenize_upper_sigil_name([S | _T], [_ | _], _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
+  {error, sigil_name_error()};
 % We finished the letters, so the name is over.
 tokenize_upper_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
   {ok, lists:reverse(NameAcc), T, Line, Column, Scope, Tokens}.
