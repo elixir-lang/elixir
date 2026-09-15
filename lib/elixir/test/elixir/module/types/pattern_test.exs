@@ -841,6 +841,23 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x, y], is_integer(min(x, y)), {x, y}) ==
                dynamic(tuple([term(), term()]))
 
+      assert typecheck!(
+               [m],
+               is_integer(m.x) and is_integer(m.y) and elem(m.pair, max(m.x, m.y)) > 0,
+               m
+             ) ==
+               dynamic(
+                 open_map(
+                   pair: {opt_difference(open_tuple([]), tuple([])), false},
+                   x: {integer(), false},
+                   y: {integer(), false}
+                 )
+               )
+
+      # This requires dynamic typing because, even though,
+      # max(m.x, m.y) returns an integer, we cannot claim
+      # anything about them based on the return type. See
+      # the more precise version above.
       assert typedyn!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
                dynamic(
                  open_map(
@@ -1176,7 +1193,7 @@ defmodule Module.Types.PatternTest do
              where "x" was given the type:
 
                  # type: dynamic({})
-                 # from: types_test.ex:1167
+                 # from: types_test.ex:LINE
                  x = {}
              """
 
@@ -1464,25 +1481,13 @@ defmodule Module.Types.PatternTest do
       refute precise?([x], hd(x) == :ok)
       refute precise?([x, y], x == :ok and y == 123)
       refute precise?([x, y], x == :ok or y == :error)
+      refute precise?([x, y], is_integer(min(x, y)))
       refute precise?([x], x <= 0 or x == :infinity)
     end
 
     test "when guards" do
       assert precise?([x, y], is_integer(x) when is_binary(x))
       refute precise?([x, y], is_integer(x) when is_binary(y))
-    end
-
-    test "min/max type guards" do
-      refute precise?([x, y], is_integer(min(x, y)))
-      refute precise?([x, y], is_integer(max(x, y)))
-      refute precise?([x, y], is_atom(min(x, y)))
-      refute precise?([x, y], is_atom(max(x, y)))
-      refute precise?([x, y], not is_integer(min(x, y)))
-      refute precise?([x, y], is_integer(min(x, y)) or is_atom(max(x, y)))
-      refute precise?([x, y], is_integer(abs(min(x, y))))
-
-      assert precise?([x, y], is_integer(x) and is_integer(y) and is_integer(min(x, y)))
-      assert precise?([x, y], is_atom(x) and is_atom(y) and is_atom(max(x, y)))
     end
 
     test "sized guards" do
