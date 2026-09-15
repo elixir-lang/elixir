@@ -27,16 +27,21 @@ defmodule IO.ANSI do
       formatted_text = IO.ANSI.blue_background() <> "Example" <> IO.ANSI.reset()
       IO.puts(formatted_text)
 
+      formatted_text = IO.ANSI.color_background(3) <> "Example" <> IO.ANSI.reset()
+      IO.puts(formatted_text)
+
   A higher level and more convenient API is also available via `IO.ANSI.format/1`,
-  where you use atoms to represent each ANSI escape sequence and by default
+  where you use atoms or tuple to represent each ANSI escape sequence and by default
   checks if ANSI is enabled:
 
       IO.puts(IO.ANSI.format([:blue_background, "Example"]))
 
+      IO.puts(IO.ANSI.format([{:color_background, 3}, "Example"]))
+
   In case ANSI is disabled, the ANSI escape sequences are simply discarded.
   """
 
-  @type ansicode :: atom
+  @type ansicode :: atom | tuple
   @type ansilist ::
           maybe_improper_list(char | ansicode | binary | ansilist, binary | ansicode | [])
   @type ansidata :: ansilist | ansicode | binary
@@ -261,6 +266,22 @@ defmodule IO.ANSI do
   @spec cursor_left(pos_integer) :: String.t()
   def cursor_left(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}D"
 
+  defp format_sequence({:color, code}) do
+    color(code)
+  end
+
+  defp format_sequence({:color_background, code}) do
+    color_background(code)
+  end
+
+  defp format_sequence({:color, r, g, b}) do
+    color(r, g, b)
+  end
+
+  defp format_sequence({:color_background, r, g, b}) do
+    color_background(r, g, b)
+  end
+
   defp format_sequence(other) do
     raise ArgumentError, "invalid ANSI sequence specification: #{inspect(other)}"
   end
@@ -316,11 +337,11 @@ defmodule IO.ANSI do
     do_format(term, [rest | rem], acc, emit?, append_reset)
   end
 
-  defp do_format(term, rem, acc, true, append_reset) when is_atom(term) do
+  defp do_format(term, rem, acc, true, append_reset) when is_atom(term) or is_tuple(term) do
     do_format([], rem, [acc | format_sequence(term)], true, !!append_reset)
   end
 
-  defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
+  defp do_format(term, rem, acc, false, append_reset) when is_atom(term) or is_tuple(term) do
     format_sequence(term)
     do_format([], rem, acc, false, append_reset)
   end

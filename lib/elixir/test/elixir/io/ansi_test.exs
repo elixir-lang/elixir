@@ -33,6 +33,27 @@ defmodule IO.ANSITest do
              "#{IO.ANSI.red()}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format([:red, :bright], false)) == ""
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color, 3}, :bright], true)) ==
+             "#{IO.ANSI.color(3)}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color, 3}, :bright], false)) == ""
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color, 0, 4, 2}, :bright], true)) ==
+             "#{IO.ANSI.color(0, 4, 2)}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color, 0, 4, 2}, :bright], false)) == ""
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color_background, 3}, :bright], true)) ==
+             "#{IO.ANSI.color_background(3)}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color_background, 3}, :bright], false)) == ""
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color_background, 0, 4, 2}, :bright], true)) ==
+             "#{IO.ANSI.color_background(0, 4, 2)}#{IO.ANSI.bright()}#{IO.ANSI.reset()}"
+
+    assert IO.chardata_to_string(IO.ANSI.format([{:color_background, 0, 4, 2}, :bright], false)) ==
+             ""
   end
 
   test "format binary list" do
@@ -46,10 +67,10 @@ defmodule IO.ANSITest do
   end
 
   test "format mixed list" do
-    data = ["Hello", ?,, 32, :red, "world!"]
+    data = ["Hello", {:color, 3}, ?,, 32, :red, "world!"]
 
     assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
-             "Hello, #{IO.ANSI.red()}world!#{IO.ANSI.reset()}"
+             "Hello#{IO.ANSI.color(3)}, #{IO.ANSI.red()}world!#{IO.ANSI.reset()}"
 
     assert IO.chardata_to_string(IO.ANSI.format(data, false)) == "Hello, world!"
   end
