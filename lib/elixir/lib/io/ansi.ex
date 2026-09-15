@@ -111,7 +111,7 @@ defmodule IO.ANSI do
   end
 
   defsequence = fn name, code, terminator ->
-    sequence = "\e[#{code}#{terminator}"
+    sequence = if terminator, do: "\e[#{code}#{terminator}", else: code
 
     @spec unquote(name)() :: String.t()
     def unquote(name)() do
@@ -126,10 +126,18 @@ defmodule IO.ANSI do
   @doc "Resets all attributes."
   defsequence.(:reset, 0, "m")
 
-  @doc "Bright (increased intensity) or bold."
+  @doc "Bold or increased intensity."
+  @doc since: "1.21.0"
+  defsequence.(:bold, 1, "m")
+
+  @doc "Bold or increased intensity (alias for `bold/0`)."
   defsequence.(:bright, 1, "m")
 
-  @doc "Faint (decreased intensity). Not widely supported."
+  @doc "Dim or decreased intensity."
+  @doc since: "1.21.0"
+  defsequence.(:dim, 2, "m")
+
+  @doc "Faint (decreased intensity) (alias for `dim/0`)."
   defsequence.(:faint, 2, "m")
 
   @doc "Italic: on. Not widely supported. Sometimes treated as inverse."
@@ -139,6 +147,11 @@ defmodule IO.ANSI do
   defsequence.(:underline, 4, "m")
 
   @doc "Blink: slow. Less than 150 per minute."
+  @doc since: "1.21.0"
+  defsequence.(:blink, 5, "m")
+
+  @doc "Blink: slow. Less than 150 per minute."
+  @doc deprecated: "Use blink/0 instead."
   defsequence.(:blink_slow, 5, "m")
 
   @doc "Blink: rapid. MS-DOS ANSI.SYS; 150 per minute or more; not widely supported."
@@ -148,12 +161,23 @@ defmodule IO.ANSI do
   defsequence.(:inverse, 7, "m")
 
   @doc "Image: negative. Swap foreground and background."
+  @doc deprecated: "Use inverse/0 instead."
   defsequence.(:reverse, 7, "m")
 
+  @doc "Invisible. Not widely supported."
+  @doc since: "1.21.0"
+  defsequence.(:invisible, 8, "m")
+
   @doc "Conceal. Not widely supported."
+  @doc deprecated: "Use invisible/0 instead."
   defsequence.(:conceal, 8, "m")
 
+  @doc "Strikethrough. Not widely supported."
+  @doc since: "1.21.0"
+  defsequence.(:strikethrough, 9, "m")
+
   @doc "Crossed-out. Characters legible, but marked for deletion. Not widely supported."
+  @doc deprecated: "Use strikethrough/0 instead."
   defsequence.(:crossed_out, 9, "m")
 
   @doc "Sets primary (default) font."
@@ -165,12 +189,30 @@ defmodule IO.ANSI do
   end
 
   @doc "Normal color or intensity."
+  @doc since: "1.21.0"
+  defsequence.(:bold_off, 22, "m")
+
+  @doc "Normal color or intensity (alias for `normal/0`)."
+  @doc since: "1.21.0"
+  defsequence.(:dim_off, 22, "m")
+
+  @doc "Normal color or intensity (alias for `normal/0`)."
   defsequence.(:normal, 22, "m")
 
+  @doc "Italic: off."
+  @doc since: "1.21.0"
+  defsequence.(:italic_off, 23, "m")
+
   @doc "Not italic."
+  @doc deprecated: "Use italic_off/0 instead."
   defsequence.(:not_italic, 23, "m")
 
+  @doc "Underline: off."
+  @doc since: "1.21.0"
+  defsequence.(:underline_off, 24, "m")
+
   @doc "Underline: none."
+  @doc deprecated: "Use underline_off/0 instead."
   defsequence.(:no_underline, 24, "m")
 
   @doc "Blink: off."
@@ -180,12 +222,23 @@ defmodule IO.ANSI do
   defsequence.(:inverse_off, 27, "m")
 
   @doc "Image: positive. Normal foreground and background."
+  @doc deprecated: "Use inverse_off/0 instead."
   defsequence.(:reverse_off, 27, "m")
 
+  @doc "Invisible: off."
+  @doc since: "1.21.0"
+  defsequence.(:invisible_off, 28, "m")
+
   @doc "Reveal: Not concealed."
+  @doc deprecated: "Use invisible_off/0 instead."
   defsequence.(:reveal, 28, "m")
 
+  @doc "Strikethrough: off."
+  @doc since: "1.21.0"
+  defsequence.(:strikethrough_off, 29, "m")
+
   @doc "Not crossed-out."
+  @doc deprecated: "Use strikethrough_off/0 instead."
   defsequence.(:not_crossed_out, 29, "m")
 
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
@@ -217,12 +270,22 @@ defmodule IO.ANSI do
   defsequence.(:encircled, 52, "m")
 
   @doc "Overlined."
+  @doc since: "1.21.0"
+  defsequence.(:overline, 53, "m")
+
+  @doc "Overlined."
+  @doc deprecated: "Use overline/0 instead."
   defsequence.(:overlined, 53, "m")
 
   @doc "Not framed or encircled."
   defsequence.(:not_framed_encircled, 54, "m")
 
   @doc "Not overlined."
+  @doc since: "1.21.0"
+  defsequence.(:overline_off, 55, "m")
+
+  @doc "Not overlined."
+  @doc deprecated: "Use overline_off/0 instead."
   defsequence.(:not_overlined, 55, "m")
 
   @doc "Clears screen."
@@ -232,6 +295,11 @@ defmodule IO.ANSI do
   defsequence.(:clear_line, "2", "K")
 
   @doc "Sends cursor home."
+  @doc since: "1.21.0"
+  defsequence.(:cursor_home, "", "H")
+
+  @doc "Sends cursor home."
+  @doc deprecated: "Use cursor_home/0 instead."
   defsequence.(:home, "", "H")
 
   @doc """
@@ -253,13 +321,31 @@ defmodule IO.ANSI do
   @spec cursor_down(pos_integer) :: String.t()
   def cursor_down(lines \\ 1) when is_integer(lines) and lines >= 1, do: "\e[#{lines}B"
 
+  @doc "Sends cursor one column forward."
+  @doc since: "1.21.0"
+  defsequence.(:cursor_forward, "", "C")
+
+  @doc "Sends cursor one column to the right."
+  @doc deprecated: "Use cursor_forward/0 instead."
+  @spec cursor_right() :: String.t()
+  def cursor_right(), do: "\e[1C"
+
   @doc "Sends cursor `columns` to the right."
   @spec cursor_right(pos_integer) :: String.t()
-  def cursor_right(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}C"
+  def cursor_right(columns) when is_integer(columns) and columns >= 1, do: "\e[#{columns}C"
+
+  @doc "Sends cursor one column backward."
+  @doc since: "1.21.0"
+  defsequence.(:cursor_backward, "\b", nil)
+
+  @doc "Sends cursor one column to the left."
+  @doc deprecated: "Use cursor_backward/0 instead."
+  @spec cursor_left() :: String.t()
+  def cursor_left(), do: "\e[1D"
 
   @doc "Sends cursor `columns` to the left."
   @spec cursor_left(pos_integer) :: String.t()
-  def cursor_left(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}D"
+  def cursor_left(columns) when is_integer(columns) and columns >= 1, do: "\e[#{columns}D"
 
   defp format_sequence(other) do
     raise ArgumentError, "invalid ANSI sequence specification: #{inspect(other)}"
