@@ -579,7 +579,7 @@ defmodule ExUnit.CLIFormatter do
     failure: :red,
     error_info: :red,
     extra_info: :cyan,
-    location_info: [:bright, :black]
+    location_info: :light_black
   ]
 
   defp colors(opts) do
