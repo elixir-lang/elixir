@@ -841,7 +841,24 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x, y], is_integer(min(x, y)), {x, y}) ==
                dynamic(tuple([term(), term()]))
 
-      assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
+      assert typecheck!(
+               [m],
+               is_integer(m.x) and is_integer(m.y) and elem(m.pair, max(m.x, m.y)) > 0,
+               m
+             ) ==
+               dynamic(
+                 open_map(
+                   pair: {opt_difference(open_tuple([]), tuple([])), false},
+                   x: {integer(), false},
+                   y: {integer(), false}
+                 )
+               )
+
+      # This requires dynamic typing because, even though,
+      # max(m.x, m.y) returns an integer, we cannot claim
+      # anything about them based on the return type. See
+      # the more precise version above.
+      assert typedyn!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
                dynamic(
                  open_map(
                    pair: {opt_difference(open_tuple([]), tuple([])), false},
@@ -1176,7 +1193,7 @@ defmodule Module.Types.PatternTest do
              where "x" was given the type:
 
                  # type: dynamic({})
-                 # from: types_test.ex:1167
+                 # from: types_test.ex:LINE
                  x = {}
              """
 
@@ -1464,6 +1481,7 @@ defmodule Module.Types.PatternTest do
       refute precise?([x], hd(x) == :ok)
       refute precise?([x, y], x == :ok and y == 123)
       refute precise?([x, y], x == :ok or y == :error)
+      refute precise?([x, y], is_integer(min(x, y)))
       refute precise?([x], x <= 0 or x == :infinity)
     end
 
