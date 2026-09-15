@@ -841,7 +841,7 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x, y], is_integer(min(x, y)), {x, y}) ==
                dynamic(tuple([term(), term()]))
 
-      assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
+      assert typedyn!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
                dynamic(
                  open_map(
                    pair: {opt_difference(open_tuple([]), tuple([])), false},
