@@ -2416,16 +2416,16 @@ defmodule Code.Formatter do
   end
 
   defp next_break_fits?({:{}, meta, _args}, state) do
-    eol_or_comments?(meta, state)
+    eol?(meta, state)
   end
 
   defp next_break_fits?({:__block__, meta, [{_, _}]}, state) do
-    eol_or_comments?(meta, state)
+    eol?(meta, state)
   end
 
   defp next_break_fits?({:<<>>, meta, [_ | _] = entries}, state) do
     meta[:delimiter] == ~s["""] or
-      (not interpolated?(entries) and eol_or_comments?(meta, state))
+      (not interpolated?(entries) and eol?(meta, state))
   end
 
   # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
@@ -2460,10 +2460,6 @@ defmodule Code.Formatter do
 
   defp next_break_fits?(_, _state) do
     false
-  end
-
-  defp eol_or_comments?(meta, state) do
-    eol?(meta, state) or meta[:has_comments] == true
   end
 
   # A literal list is a keyword or (... -> ...)

@@ -1583,8 +1583,7 @@ defmodule Code do
   defp attach_comments(quoted, []), do: quoted
 
   defp attach_comments(quoted, comments) do
-    {quoted, comments, _comment_info} =
-      attach_comments_to_quoted(quoted, comments, nil, false)
+    {quoted, comments, _comment_info} = attach_comments_to_quoted(quoted, comments, nil, false)
 
     comments = separate_trailing_comments(quoted, comments)
     append_comments_block(quoted, comments)
@@ -1600,23 +1599,16 @@ defmodule Code do
     {args, comments, args_info} =
       attach_comments_to_quoted(args, comments, child_boundary, collect_children?)
 
-    {child_comments?, nested_leading, nested_trailing} =
-      merge_comment_info(form_info, args_info)
+    {nested_leading, nested_trailing} = merge_comment_info(form_info, args_info)
 
     meta = put_comments(meta, :leading_comments, nested_leading)
     meta = put_comments(meta, :trailing_comments, nested_trailing)
     {meta, args} = promote_binary_left_leading_comments(form, meta, args)
     args = promote_nested_binary_leading_comments(form, args)
 
-    {quoted, comments, has_comments?} =
-      attach_trailing_comments(
-        {form, meta, args},
-        comments,
-        node_boundary,
-        child_comments?
-      )
+    {quoted, comments} = attach_trailing_comments({form, meta, args}, comments, node_boundary)
 
-    collect_node_comments(quoted, comments, has_comments?, collect?)
+    collect_node_comments(quoted, comments, collect?)
   end
 
   defp attach_comments_to_quoted({left, right}, comments, boundary, collect?) do
@@ -1660,30 +1652,29 @@ defmodule Code do
   end
 
   defp attach_comments_to_quoted([], comments, _boundary, _collect?) do
-    {[], comments, {false, [], []}}
+    {[], comments, {[], []}}
   end
 
   defp attach_comments_to_quoted(quoted, comments, _boundary, _collect?) do
-    {quoted, comments, {false, [], []}}
+    {quoted, comments, {[], []}}
   end
 
   defp merge_comment_info(
-         {left_has_comments?, left_leading, left_trailing},
-         {right_has_comments?, right_leading, right_trailing}
+         {left_leading, left_trailing},
+         {right_leading, right_trailing}
        ) do
-    {left_has_comments? or right_has_comments?, left_leading ++ right_leading,
-     left_trailing ++ right_trailing}
+    {left_leading ++ right_leading, left_trailing ++ right_trailing}
   end
 
-  defp collect_node_comments(quoted, comments, has_comments?, false) do
-    {quoted, comments, {has_comments?, [], []}}
+  defp collect_node_comments(quoted, comments, false) do
+    {quoted, comments, {[], []}}
   end
 
-  defp collect_node_comments({form, meta, args}, comments, has_comments?, true) do
+  defp collect_node_comments({form, meta, args}, comments, true) do
     {leading, meta} = Keyword.pop(meta, :leading_comments, [])
     {trailing, meta} = Keyword.pop(meta, :trailing_comments, [])
     {inline, trailing} = Enum.split_with(trailing, &(&1.previous_eol_count == 0))
-    {{form, meta, args}, comments, {has_comments?, leading ++ inline, trailing}}
+    {{form, meta, args}, comments, {leading ++ inline, trailing}}
   end
 
   defp promote_binary_left_leading_comments(form, meta, [left, right] = args)
@@ -1700,7 +1691,6 @@ defmodule Code do
       if promote? do
         {_comments, left} = pop_node_leading_comments(left)
         meta = put_comments(meta, :leading_comments, comments)
-        meta = Keyword.put(meta, :has_comments, true)
         {meta, [left, right]}
       else
         {meta, args}
@@ -1733,7 +1723,6 @@ defmodule Code do
         {_comments, nested_left} = pop_node_leading_comments(nested_left)
         nested_left = put_node_leading_comments(nested_left, left_comments)
         nested_meta = put_comments(nested_meta, :leading_comments, comments)
-        nested_meta = Keyword.put(nested_meta, :has_comments, true)
         right = {nested_form, nested_meta, [nested_left, nested_right]}
         [left, right]
       end
@@ -1834,37 +1823,25 @@ defmodule Code do
         {leading, comments} = Enum.split_while(comments, &(&1.line <= line))
 
         meta = put_comments(meta, :leading_comments, leading)
-        meta = if leading == [], do: meta, else: Keyword.put(meta, :has_comments, true)
         {{form, meta, args}, comments}
     end
   end
 
   defp attach_leading_comments(quoted, comments), do: {quoted, comments}
 
-  defp attach_trailing_comments(
-         {form, meta, args},
-         comments,
-         boundary,
-         child_comments?
-       )
-       when is_list(meta) do
-    attach_trailing_comments_to_node(form, meta, args, comments, boundary, child_comments?)
+  defp attach_trailing_comments({form, meta, args}, comments, boundary) when is_list(meta) do
+    attach_trailing_comments_to_node(form, meta, args, comments, boundary)
   end
 
-  defp attach_trailing_comments_to_node(form, meta, args, comments, boundary, child_comments?) do
+  defp attach_trailing_comments_to_node(form, meta, args, comments, boundary) do
     case boundary do
       nil ->
-        has_comments? = meta[:leading_comments] != nil or child_comments?
-        {{form, meta, args}, comments, has_comments?}
+        {{form, meta, args}, comments}
 
       line ->
         {trailing, comments} = Enum.split_while(comments, &(&1.line < line))
         meta = put_comments(meta, :trailing_comments, trailing)
-
-        has_comments? = meta[:leading_comments] != nil or trailing != [] or child_comments?
-
-        meta = if has_comments?, do: Keyword.put(meta, :has_comments, true), else: meta
-        {{form, meta, args}, comments, has_comments?}
+        {{form, meta, args}, comments}
     end
   end
 
