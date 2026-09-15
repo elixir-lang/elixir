@@ -318,7 +318,7 @@ defmodule Code.Formatter do
   defp quoted_to_algebra_without_comments({:<<>>, meta, entries}, _context, state) do
     {doc, state} =
       cond do
-        meta[:inner_comments] ->
+        meta[:closing][:leading_comments] ->
           bitstring_to_algebra(meta, entries, state)
 
         entries == [] ->
@@ -719,7 +719,7 @@ defmodule Code.Formatter do
     {doc, state} =
       if meta[:closing] do
         {doc, state} = block_args_to_algebra(args, [], state)
-        {prepend_comments(doc, formatted_inner_comments(meta)), state}
+        {prepend_comments(doc, formatted_closing_leading_comments(meta)), state}
       else
         block_args_to_algebra(args, formatted_trailing_comments(meta), state)
       end
@@ -1288,7 +1288,7 @@ defmodule Code.Formatter do
         {left_doc, _join, state} =
           args_to_algebra_with_comments(
             left,
-            Keyword.drop(meta, [:closing, :inner_comments, :trailing_comments]),
+            Keyword.drop(meta, [:closing, :trailing_comments]),
             skip_parens?,
             :force_comma,
             join,
@@ -1855,8 +1855,8 @@ defmodule Code.Formatter do
           {args, [], state}
       end
 
-    inner_comments = formatted_inner_comments(meta)
-    acc = add_comments_to_acc(acc, inner_comments)
+    closing_leading_comments = formatted_closing_leading_comments(meta)
+    acc = add_comments_to_acc(acc, closing_leading_comments)
 
     {args_docs, comments?, state} =
       quoted_to_algebra_with_comments(
@@ -1867,7 +1867,7 @@ defmodule Code.Formatter do
         arg_to_algebra
       )
 
-    comments? = comments? or inner_comments != []
+    comments? = comments? or closing_leading_comments != []
 
     cond do
       args_docs == [] ->
@@ -2238,14 +2238,11 @@ defmodule Code.Formatter do
     |> format_comments()
   end
 
-  defp formatted_inner_comments(meta) do
-    if meta[:closing] do
-      meta
-      |> Keyword.get(:inner_comments, [])
-      |> format_comments()
-    else
-      []
-    end
+  defp formatted_closing_leading_comments(meta) do
+    meta
+    |> Keyword.get(:closing, [])
+    |> Keyword.get(:leading_comments, [])
+    |> format_comments()
   end
 
   defp add_comments_to_acc(acc, comments) do

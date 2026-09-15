@@ -1599,7 +1599,7 @@ defmodule Code do
     {args, comments, args_info} =
       attach_comments_to_quoted(args, comments, child_boundary, collect_children?)
 
-    {meta, comments} = attach_inner_comments(form, meta, comments)
+    {meta, comments} = attach_closing_leading_comments(form, meta, comments)
     {nested_leading, nested_trailing} = merge_comment_info(form_info, args_info)
 
     meta = put_comments(meta, :leading_comments, nested_leading)
@@ -1850,16 +1850,17 @@ defmodule Code do
 
   defp comments_line(meta), do: meta[:line]
 
-  defp attach_inner_comments(:., meta, comments), do: {meta, comments}
+  defp attach_closing_leading_comments(:., meta, comments), do: {meta, comments}
 
-  defp attach_inner_comments(_form, meta, comments) do
+  defp attach_closing_leading_comments(_form, meta, comments) do
     case comments_end_line(meta, [:closing]) do
       nil ->
         {meta, comments}
 
       line ->
-        {inner, comments} = Enum.split_while(comments, &(&1.line < line))
-        {put_comments(meta, :inner_comments, inner), comments}
+        {leading, comments} = Enum.split_while(comments, &(&1.line < line))
+        closing = put_comments(meta[:closing], :leading_comments, leading)
+        {Keyword.put(meta, :closing, closing), comments}
     end
   end
 
