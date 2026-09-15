@@ -716,15 +716,7 @@ defmodule Code.Formatter do
   end
 
   defp block_to_algebra({:__block__, meta, [_, _ | _] = args}, state) do
-    {doc, state} =
-      if meta[:closing] do
-        {doc, state} = block_args_to_algebra(args, [], state)
-        {prepend_comments(doc, formatted_closing_leading_comments(meta)), state}
-      else
-        block_args_to_algebra(args, formatted_trailing_comments(meta), state)
-      end
-
-    {doc, state}
+    block_args_to_algebra(args, formatted_trailing_comments(meta), state)
     |> prepend_block_comments(meta)
   end
 

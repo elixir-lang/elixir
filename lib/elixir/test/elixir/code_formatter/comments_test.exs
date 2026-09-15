@@ -328,7 +328,33 @@ defmodule Code.Formatter.CommentsTest do
     end
   end
 
-  describe "parens blocks" do
+  describe "parens block within root" do
+    test "with leading and trailing comments" do
+      bad = ~S"""
+      # before
+      (
+        # middle-before
+        expr1
+        # middle
+        expr2
+        # middle-end
+      )
+      # after
+      """
+
+      assert_format bad, ~S"""
+      # before
+      # middle-before
+      expr1
+      # middle
+      expr2
+      # middle-end
+      # after
+      """
+    end
+  end
+
+  describe "parens blocks within call" do
     test "with comment outside before and after" do
       assert_same ~S"""
       # comment
@@ -348,7 +374,7 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
-    test "with trailing comments" do
+    test "with leading and trailing comments on the same line" do
       # This is ambiguous so we move the comment out
       ambiguous = ~S"""
       assert ( # comment
@@ -383,7 +409,7 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
-    test "with comment inside before and after" do
+    test "with leading and trailing comments on separate lines" do
       assert_same ~S"""
       assert (
                # comment
@@ -398,6 +424,22 @@ defmodule Code.Formatter.CommentsTest do
                world
                # comment
              )
+      """
+    end
+
+    test "with leading and trailing comments on parens call" do
+      assert_same ~S"""
+      assert(
+        # before
+        (
+          # middle-before
+          expr1
+          # middle
+          expr2
+          # middle-end
+        )
+        # after
+      )
       """
     end
   end
