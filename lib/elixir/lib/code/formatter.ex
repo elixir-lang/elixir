@@ -318,6 +318,9 @@ defmodule Code.Formatter do
   defp quoted_to_algebra_without_comments({:<<>>, meta, entries}, _context, state) do
     {doc, state} =
       cond do
+        meta[:inner_comments] ->
+          bitstring_to_algebra(meta, entries, state)
+
         entries == [] ->
           {"<<>>", state}
 
@@ -336,11 +339,7 @@ defmodule Code.Formatter do
           interpolation_to_algebra(entries, @double_quote, state, @double_quote, @double_quote)
       end
 
-    if meta[:delimiter] do
-      {append_comments(doc, Keyword.get(meta, :trailing_comments, [])), state}
-    else
-      {doc, state}
-    end
+    {doc, state}
   end
 
   # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
@@ -717,14 +716,22 @@ defmodule Code.Formatter do
   end
 
   defp block_to_algebra({:__block__, meta, [_, _ | _] = args}, state) do
-    block_args_to_algebra(args, formatted_trailing_comments(meta), state)
+    {doc, state} =
+      if meta[:closing] do
+        {doc, state} = block_args_to_algebra(args, [], state)
+        {prepend_comments(doc, formatted_inner_comments(meta)), state}
+      else
+        block_args_to_algebra(args, formatted_trailing_comments(meta), state)
+      end
+
+    {doc, state}
     |> prepend_block_comments(meta)
   end
 
   defp block_to_algebra({:__block__, meta, [_]} = block, state) do
     {trailing_comments, meta} = Keyword.pop(meta, :trailing_comments, [])
 
-    if trailing_comments != [] and meta[:closing] == nil do
+    if trailing_comments != [] do
       {:__block__, _, [arg]} = block
       {doc, state} = quoted_to_algebra({:__block__, meta, [arg]}, :block, state)
       {append_comments(doc, trailing_comments), state}
@@ -1281,7 +1288,7 @@ defmodule Code.Formatter do
         {left_doc, _join, state} =
           args_to_algebra_with_comments(
             left,
-            Keyword.drop(meta, [:closing, :trailing_comments]),
+            Keyword.drop(meta, [:closing, :inner_comments, :trailing_comments]),
             skip_parens?,
             :force_comma,
             join,
@@ -1848,14 +1855,19 @@ defmodule Code.Formatter do
           {args, [], state}
       end
 
+    inner_comments = formatted_inner_comments(meta)
+    acc = add_comments_to_acc(acc, inner_comments)
+
     {args_docs, comments?, state} =
       quoted_to_algebra_with_comments(
         args,
         acc,
-        formatted_trailing_comments(meta),
+        [],
         state,
         arg_to_algebra
       )
+
+    comments? = comments? or inner_comments != []
 
     cond do
       args_docs == [] ->
@@ -2147,8 +2159,7 @@ defmodule Code.Formatter do
   end
 
   defp each_quoted_to_algebra_with_comments([arg | args], acc, state, comments?, fun) do
-    {leading_comments, trailing_comments, next_eol_count, trailing_comments_outside?, arg} =
-      pop_comments(arg)
+    {leading_comments, trailing_comments, next_eol_count, arg} = pop_comments(arg)
 
     acc = add_comments_to_acc(acc, leading_comments)
     {doc_triplet, state} = fun.(arg, args, state)
@@ -2159,31 +2170,18 @@ defmodule Code.Formatter do
       args,
       acc,
       state,
-      comments? or leading_comments != [] or trailing_comments != [] or
-        trailing_comments_outside?,
+      comments? or leading_comments != [] or trailing_comments != [],
       fun
     )
   end
 
   defp pop_comments(quoted) do
-    {leading, trailing, next_eol_count, quoted} =
-      pop_comments(quoted, true, true)
+    {leading, trailing, next_eol_count, quoted} = pop_comments(quoted, true, true)
 
-    trailing_comments_outside? =
-      case quoted do
-        {:<<>>, meta, _} when is_list(meta) ->
-          meta[:delimiter] != nil and meta[:trailing_comments] != nil
-
-        _ ->
-          false
-      end
-
-    {format_comments(leading, :leading), format_comments(trailing), next_eol_count,
-     trailing_comments_outside?, quoted}
+    {format_comments(leading, :leading), format_comments(trailing), next_eol_count, quoted}
   end
 
   defp pop_comments({form, meta, args}, pop_leading?, pop_trailing?) when is_list(meta) do
-    pop_trailing? = pop_trailing? and meta[:closing] == nil and meta[:end] == nil
     comments = meta[:leading_comments]
 
     next_eol_count =
@@ -2238,6 +2236,16 @@ defmodule Code.Formatter do
     meta
     |> Keyword.get(:trailing_comments, [])
     |> format_comments()
+  end
+
+  defp formatted_inner_comments(meta) do
+    if meta[:closing] do
+      meta
+      |> Keyword.get(:inner_comments, [])
+      |> format_comments()
+    else
+      []
+    end
   end
 
   defp add_comments_to_acc(acc, comments) do

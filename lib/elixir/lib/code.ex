@@ -1599,6 +1599,7 @@ defmodule Code do
     {args, comments, args_info} =
       attach_comments_to_quoted(args, comments, child_boundary, collect_children?)
 
+    {meta, comments} = attach_inner_comments(form, meta, comments)
     {nested_leading, nested_trailing} = merge_comment_info(form_info, args_info)
 
     meta = put_comments(meta, :leading_comments, nested_leading)
@@ -1774,13 +1775,9 @@ defmodule Code do
 
   defp append_comments_block(quoted, []), do: quoted
 
-  defp append_comments_block({:__block__, meta, args}, comments) do
-    if meta[:closing] do
-      {:__block__, [trailing_comments: comments], [{:__block__, meta, args}]}
-    else
-      meta = Keyword.update(meta, :trailing_comments, comments, &(&1 ++ comments))
-      {:__block__, meta, args}
-    end
+  defp append_comments_block({form, meta, args}, comments) when is_list(meta) do
+    meta = Keyword.update(meta, :trailing_comments, comments, &(&1 ++ comments))
+    {form, meta, args}
   end
 
   defp append_comments_block(quoted, comments) do
@@ -1853,6 +1850,19 @@ defmodule Code do
 
   defp comments_line(meta), do: meta[:line]
 
+  defp attach_inner_comments(:., meta, comments), do: {meta, comments}
+
+  defp attach_inner_comments(_form, meta, comments) do
+    case comments_end_line(meta, [:closing]) do
+      nil ->
+        {meta, comments}
+
+      line ->
+        {inner, comments} = Enum.split_while(comments, &(&1.line < line))
+        {put_comments(meta, :inner_comments, inner), comments}
+    end
+  end
+
   defp comments_boundaries(:., _meta, boundary), do: {boundary, boundary}
 
   defp comments_boundaries(_form, meta, boundary) do
@@ -1861,8 +1871,7 @@ defmodule Code do
         {comments_boundary(meta, boundary), boundary}
 
       line ->
-        boundary = min_comments_boundary(line, boundary)
-        {boundary, boundary}
+        {min_comments_boundary(line, boundary), boundary}
     end
   end
 

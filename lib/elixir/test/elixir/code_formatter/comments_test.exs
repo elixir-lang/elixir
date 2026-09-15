@@ -1340,6 +1340,12 @@ defmodule Code.Formatter.CommentsTest do
     end
 
     test "with comments inside bitstrings before and after" do
+      assert_same """
+      <<
+        # comment
+      >>
+      """
+
       bad = ~S"""
       <<
         # 1. one
