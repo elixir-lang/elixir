@@ -1091,6 +1091,7 @@ defmodule MacroTest do
 
     test "converts invalid AST with inspect" do
       assert Macro.to_string(1..3) == "1..3"
+      assert Macro.to_string({Foo, :cache, ["a", []]}) == ~S({Foo, :cache, ["a", []]})
     end
   end
 

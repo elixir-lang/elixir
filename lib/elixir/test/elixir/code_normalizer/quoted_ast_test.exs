@@ -848,10 +848,12 @@ defmodule Code.Normalizer.QuotedASTTest do
   end
 
   describe "quoted_to_algebra/2 with invalid" do
-    test "block" do
+    test "args" do
       assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
                "{:__block__, [], {:bar, [], []}}"
+    end
 
+    test "block" do
       assert quoted_to_string({:foo, [], [{:do, :ok}, :not_keyword]}) ==
                "foo({:do, :ok}, :not_keyword)"
 
@@ -859,7 +861,11 @@ defmodule Code.Normalizer.QuotedASTTest do
                "foo([{:do, :ok}, :not_keyword])"
     end
 
-    test "ode" do
+    test "metadata" do
+      assert quoted_to_string({Foo, :cache, ["a", []]}) == ~S({Foo, :cache, ["a", []]})
+    end
+
+    test "structs" do
       assert quoted_to_string(1..3) == "1..3"
     end
   end

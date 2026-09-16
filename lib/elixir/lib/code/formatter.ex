@@ -289,6 +289,10 @@ defmodule Code.Formatter do
     end
   end
 
+  defp quoted_to_algebra({_, meta, _} = quoted, _context, state) when not is_list(meta) do
+    {inspect(quoted, printable_limit: :infinity), state}
+  end
+
   defp quoted_to_algebra(quoted, context, state) do
     quoted_to_algebra_without_comments(quoted, context, state)
   end
