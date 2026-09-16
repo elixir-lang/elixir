@@ -968,11 +968,15 @@ defmodule Code.Formatter do
     with {op, meta, [left, right]} <- operand,
          op_info = augmented_binary_op(op),
          {_assoc, prec} <- op_info do
+      {leading_comments, meta} = Keyword.pop(meta, :leading_comments, [])
+      leading_comments = format_comments(leading_comments, :leading)
       op_string = Atom.to_string(op)
 
       cond do
         parent_assoc == side and op == parent_op and op not in @required_parens_even_when_parent ->
-          binary_op_to_algebra(op, op_string, meta, left, right, context, state, nesting)
+          op
+          |> binary_op_to_algebra(op_string, meta, left, right, context, state, nesting)
+          |> prepend_binary_operand_comments(leading_comments)
 
         (parent_op in @required_parens_on_binary_operands and op not in @no_space_binary_operators) or
           (op in @required_parens_logical_binary_operands and
@@ -981,10 +985,18 @@ defmodule Code.Formatter do
           {operand, state} =
             binary_op_to_algebra(op, op_string, meta, left, right, context, state, 2)
 
-          {wrap_in_parens(operand), state}
+          operand = prepend_comments(operand, leading_comments)
+
+          if leading_comments == [] do
+            {wrap_in_parens(operand), state}
+          else
+            {"(" |> line(operand) |> nest(2) |> line(")") |> force_unfit(), state}
+          end
 
         true ->
-          binary_op_to_algebra(op, op_string, meta, left, right, context, state, 2)
+          op
+          |> binary_op_to_algebra(op_string, meta, left, right, context, state, 2)
+          |> prepend_binary_operand_comments(leading_comments)
       end
     else
       {:&, _, [arg]}
@@ -996,6 +1008,10 @@ defmodule Code.Formatter do
       _ ->
         quoted_to_algebra(operand, context, state)
     end
+  end
+
+  defp prepend_binary_operand_comments({doc, state}, comments) do
+    {prepend_comments(doc, comments), state}
   end
 
   defp unwrap_pipes({op, _meta, [left, right]}, context, acc)

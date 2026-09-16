@@ -1099,6 +1099,22 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with comments before mixed operators" do
+      assert_same """
+      foo =
+        # comment on some
+        some +
+          # comment on other
+          other +
+          # comment on a * b
+          a * b /
+            (
+              # comment on c + d
+              c + d
+            )
+      """
+    end
+
     test "with comments between repeated operators" do
       assert_same """
       defguard is_confusing(char)
