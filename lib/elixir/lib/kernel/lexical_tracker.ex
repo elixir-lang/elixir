@@ -157,11 +157,7 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def handle_call(:unused_aliases, _from, state) do
-    aliases =
-      for {alias, occurences} <- state.aliases,
-          {_, meta} when is_list(meta) <- occurences,
-          do: {alias, meta}
-
+    aliases = for {{alias, _}, meta} when is_list(meta) <- state.aliases, do: {alias, meta}
     {:reply, Enum.sort(aliases), state}
   end
 
@@ -180,7 +176,7 @@ defmodule Kernel.LexicalTracker do
     unused_requires =
       for {module, {meta, alias}} <- state.requires,
           Map.get(references, module) != :compile do
-        {module, meta, alias, aliases[alias][module] == :used}
+        {module, meta, alias, Map.get(aliases, {alias, module}) == :used}
       end
 
     {:reply, Enum.sort(unused_requires), state}
@@ -228,14 +224,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:alias_dispatch, alias, module}, state) do
-    occurences =
-      case state.aliases do
-        # just replace the last occurence (which comes first since reversed)
-        %{^alias => occurences} -> :lists.keyreplace(module, 1, occurences, {module, :used})
-        _ -> [{module, :used}]
-      end
-
-    {:noreply, put_in(state.aliases[alias], occurences)}
+    {:noreply, put_in(state.aliases[{alias, module}], :used)}
   end
 
   def handle_cast({:import_quoted, module, function, arities}, state) do
@@ -278,14 +267,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:warn_alias, alias, module, meta}, %{aliases: aliases} = state) do
-    occurences = Map.get(aliases, alias, [])
+    key = {alias, module}
 
-    case Keyword.get(occurences, module) do
-      :used ->
-        {:noreply, state}
-
-      _ ->
-        {:noreply, %{state | aliases: Map.put(aliases, alias, [{module, meta}] ++ occurences)}}
+    case aliases do
+      %{^key => :used} -> {:noreply, state}
+      %{} -> {:noreply, %{state | aliases: Map.put(aliases, key, meta)}}
     end
   end
 
