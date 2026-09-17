@@ -162,12 +162,16 @@ defmodule File do
   This function follows symbolic links, so if a symbolic link points to a
   regular file, `true` is returned.
 
+  Since v1.21, this function also accepts an open `t:io_device/0`. This lets
+  you inspect a handle you already hold without reopening the file, and
+  avoids time-of-check to time-of-use races.
+
   ## Options
 
   The supported options are:
 
     * `:raw` - a single atom to bypass the file server and only check
-      for the file locally
+      for the file locally. Ignored when the first argument is an IO device.
 
   ## Examples
 
@@ -175,10 +179,11 @@ defmodule File do
       #=> true
 
   """
-  @spec regular?(Path.t(), [regular_option]) :: boolean
+  @spec regular?(Path.t() | io_device, [regular_option]) :: boolean
         when regular_option: :raw
-  def regular?(path, opts \\ []) do
-    :elixir_utils.read_file_type(IO.chardata_to_string(path), opts) == {:ok, :regular}
+  def regular?(path_or_io_device, opts \\ []) do
+    :elixir_utils.read_file_type(normalize_path_or_io_device(path_or_io_device), opts) ==
+      {:ok, :regular}
   end
 
   @doc """
@@ -187,12 +192,15 @@ defmodule File do
   This function follows symbolic links, so if a symbolic link points to a
   directory, `true` is returned.
 
+  Since v1.21, this function also accepts an open `t:io_device/0`. To obtain
+  a directory handle, call `open/2` with the `:directory` option.
+
   ## Options
 
   The supported options are:
 
     * `:raw` - a single atom to bypass the file server and only check
-      for the file locally
+      for the file locally. Ignored when the first argument is an IO device.
 
   ## Examples
 
@@ -212,10 +220,11 @@ defmodule File do
       #=> true
 
   """
-  @spec dir?(Path.t(), [dir_option]) :: boolean
+  @spec dir?(Path.t() | io_device, [dir_option]) :: boolean
         when dir_option: :raw
-  def dir?(path, opts \\ []) do
-    :elixir_utils.read_file_type(IO.chardata_to_string(path), opts) == {:ok, :directory}
+  def dir?(path_or_io_device, opts \\ []) do
+    :elixir_utils.read_file_type(normalize_path_or_io_device(path_or_io_device), opts) ==
+      {:ok, :directory}
   end
 
   @doc """
@@ -224,12 +233,16 @@ defmodule File do
   It can be a regular file, directory, socket, symbolic link, named pipe, or device file.
   Returns `false` for symbolic links pointing to non-existing targets.
 
+  Since v1.21, this function also accepts an open `t:io_device/0`. A live IO
+  device backed by an open file returns `true`. After the device is closed,
+  the underlying operation fails and this function returns `false`.
+
   ## Options
 
   The supported options are:
 
     * `:raw` - a single atom to bypass the file server and only check
-      for the file locally
+      for the file locally. Ignored when the first argument is an IO device.
 
   ## Examples
 
@@ -243,11 +256,11 @@ defmodule File do
       #=> true
 
   """
-  @spec exists?(Path.t(), [exists_option]) :: boolean
+  @spec exists?(Path.t() | io_device, [exists_option]) :: boolean
         when exists_option: :raw
-  def exists?(path, opts \\ []) do
+  def exists?(path_or_io_device, opts \\ []) do
     opts = [{:time, :posix}] ++ opts
-    match?({:ok, _}, :file.read_file_info(IO.chardata_to_string(path), opts))
+    match?({:ok, _}, :file.read_file_info(normalize_path_or_io_device(path_or_io_device), opts))
   end
 
   @doc """
@@ -458,6 +471,10 @@ defmodule File do
   `File.Stat` struct. Returns `{:error, reason}` with
   the same reasons as `read/1` if a failure occurs.
 
+  Since v1.21, this function also accepts an open `t:io_device/0`. This lets
+  you stat a handle you already hold without reopening the file, and avoids
+  time-of-check to time-of-use races.
+
   ## Options
 
   The accepted options are:
@@ -482,11 +499,12 @@ defmodule File do
       File.stat("non_existing.txt", time: :posix)
       #=> {:error, :enoent}
   """
-  @spec stat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix | :badarg}
-  def stat(path, opts \\ []) do
+  @spec stat(Path.t() | io_device, stat_options) ::
+          {:ok, File.Stat.t()} | {:error, posix | :badarg}
+  def stat(path_or_io_device, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
 
-    case :file.read_file_info(IO.chardata_to_string(path), opts) do
+    case :file.read_file_info(normalize_path_or_io_device(path_or_io_device), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
 
@@ -507,9 +525,9 @@ defmodule File do
       File.stat!("non_existing.txt", time: :posix)
       ** (File.Error) could not read file stats "non_existing.txt": no such file or directory
   """
-  @spec stat!(Path.t(), stat_options) :: File.Stat.t()
-  def stat!(path, opts \\ []) do
-    case stat(path, opts) do
+  @spec stat!(Path.t() | io_device, stat_options) :: File.Stat.t()
+  def stat!(path_or_io_device, opts \\ []) do
+    case stat(path_or_io_device, opts) do
       {:ok, info} ->
         info
 
@@ -517,7 +535,7 @@ defmodule File do
         raise File.Error,
           reason: reason,
           action: "read file stats",
-          path: IO.chardata_to_string(path)
+          path: normalize_path_or_io_device(path_or_io_device)
     end
   end
 
