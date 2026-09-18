@@ -1329,7 +1329,7 @@ defmodule Keyword do
   """
   @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(fn {k, _} -> k not in keys end, keywords)
+    :lists.filter(fn {k, _} -> not :lists.member(k, keys) end, keywords)
   end
 
   @doc """
