@@ -119,6 +119,39 @@ defmodule Module.Types.Descr do
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
 
+  @doc """
+  The recursive `unicode:chardata()` type, as declared by Erlang/OTP:
+
+      chardata() = charlist() | unicode_binary()
+      charlist() = maybe_improper_list(char() | unicode_binary() | charlist(),
+                                       unicode_binary() | [])
+
+  """
+  def chardata() do
+    %{chardata: node} =
+      recursive(
+        %{
+          chardata: &__MODULE__.chardata_equation/1,
+          chardata_head: &__MODULE__.chardata_head_equation/1
+        },
+        __MODULE__
+      )
+
+    node
+  end
+
+  @doc false
+  def chardata_equation(recur) do
+    binary()
+    |> bare_union(empty_list())
+    |> bare_union(non_empty_list(recur.(:chardata_head), bare_union(binary(), empty_list())))
+  end
+
+  # The head has its own equation because a node cannot be unfolded from
+  # within its own generator, and unions unfold their operands.
+  @doc false
+  def chardata_head_equation(recur), do: bare_union(integer(), recur.(:chardata))
+
   ## Nodes
 
   defp make_node(id, state, generator), do: {id, state, generator}
@@ -138,11 +171,19 @@ defmodule Module.Types.Descr do
   Builds recursive type nodes from mutually recursive equations.
 
   Generators receive `recur`, which returns the node for a named equation.
+
+  Each equation is identified by a unique reference, which means the
+  resulting nodes cannot be escaped into compiled code. Give a `scope`
+  to identify the equations by `{scope, name}` instead. In such cases,
+  the scope must be unique across all recursive types it may meet and
+  the generators must be remote captures, so the nodes are made of
+  literals that `Macro.escape/1` supports.
   """
-  def recursive(equations) when is_map(equations) do
+  def recursive(equations, scope \\ nil) when is_map(equations) do
     state =
       Map.new(equations, fn {name, generator} ->
-        {name, {make_ref(), generator}}
+        id = if scope == nil, do: make_ref(), else: {scope, name}
+        {name, {id, generator}}
       end)
 
     Map.new(state, fn {name, {id, generator}} ->
@@ -651,13 +692,21 @@ defmodule Module.Types.Descr do
     * `:collapse_structs` - do not show struct fields that match
       their default type
   """
-  def to_quoted(descr, opts \\ []) do
+  def to_quoted(descr, opts \\ [])
+
+  # Recursive types are printed by name, as unfolding them would not terminate.
+  def to_quoted({id, _state, _generator}, _opts), do: {recursive_name(id), [], []}
+
+  def to_quoted(descr, opts) do
     if term_type?(descr) do
       {:term, [], []}
     else
       non_term_type_to_quoted(descr, opts)
     end
   end
+
+  defp recursive_name({_scope, name}) when is_atom(name), do: name
+  defp recursive_name(_id), do: :recursive
 
   defp non_term_type_to_quoted(descr, opts) do
     {dynamic, static, extra} =
