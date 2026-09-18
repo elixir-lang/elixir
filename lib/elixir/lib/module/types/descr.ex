@@ -3293,22 +3293,22 @@ defmodule Module.Types.Descr do
   def map_fetch_key(%{} = descr, key) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if descr_key?(descr, :map) and non_empty_map_only?(descr) do
-          {static_type, static_optional?} = map_fetch_key_static(descr, key)
-
+        with true <- descr_key?(descr, :map) and map_only?(descr),
+             {static_type, static_optional?} <- map_fetch_key_static(descr, key, true) do
           if static_optional? or empty?(static_type) do
             :badkey
           else
             {false, static_type}
           end
         else
-          :badmap
+          false -> :badmap
+          :badmap -> :badmap
         end
 
       {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          {dynamic_type, dynamic_optional?} = map_fetch_key_static(dynamic, key)
-          {static_type, static_optional?} = map_fetch_key_static(static, key)
+        with true <- descr_key?(dynamic, :map) and map_only?(static),
+             {dynamic_type, dynamic_optional?} <- map_fetch_key_static(dynamic, key, true) do
+          {static_type, static_optional?} = map_fetch_key_static(static, key, false)
 
           if static_optional? or empty?(dynamic_type) do
             :badkey
@@ -3316,7 +3316,8 @@ defmodule Module.Types.Descr do
             {dynamic_optional?, opt_union(dynamic(dynamic_type), static_type)}
           end
         else
-          :badmap
+          false -> :badmap
+          :badmap -> :badmap
         end
     end
   end
@@ -3333,12 +3334,15 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_fetch_key_static(%{map: bdd}, key) do
-    bdd |> map_bdd_to_dnf_with_empty() |> map_dnf_fetch_static(key)
+  defp map_fetch_key_static(%{map: bdd}, key, badmap_when_empty?) do
+    case map_bdd_to_dnf_remove_empty(bdd) do
+      [] -> if badmap_when_empty?, do: :badmap, else: {none(), false}
+      dnf -> map_dnf_fetch_static(dnf, key)
+    end
   end
 
-  defp map_fetch_key_static(%{}, _key), do: {none(), false}
-  defp map_fetch_key_static(:term, _key), do: {term(), true}
+  defp map_fetch_key_static(%{}, _key, _badmap_when_empty?), do: {none(), false}
+  defp map_fetch_key_static(:term, _key, _badmap_when_empty?), do: {term(), true}
 
   # Takes a map DNF and returns the union of present-value types a key can take
   # and whether the key is optional.
@@ -4087,8 +4091,8 @@ defmodule Module.Types.Descr do
   defp map_put_static_value(descr, split_keys, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if non_empty_map_only?(descr) do
-          {:ok, map_put_static(descr, split_keys, type)}
+        if descr_key?(descr, :map) and map_only?(descr) do
+          map_put_static(descr, split_keys, type)
         else
           :badmap
         end
@@ -4104,7 +4108,8 @@ defmodule Module.Types.Descr do
 
           {:ok, opt_union(static_descr, dynamic(dynamic_descr))}
         else
-          :badmap
+          false -> :badmap
+          :badmap -> :badmap
         end
     end
   end
