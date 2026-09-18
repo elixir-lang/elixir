@@ -47,10 +47,10 @@ defmodule Module.Types.Descr do
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
   @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
-  @map_top {:erlang.phash2([:open | @fields_new]), :open, @fields_new}
+  @map_top {2 * :erlang.phash2([:open | @fields_new]), :open, @fields_new}
   @non_empty_list_top {:erlang.phash2([:term | :term]), :term, :term}
   @tuple_top {:erlang.phash2([:open | []]), :open, []}
-  @map_empty {-:erlang.phash2(@fields_new), :closed, @fields_new}
+  @map_empty {-2 * :erlang.phash2(@fields_new), :closed, @fields_new}
 
   defmacrop bdd_leaf(arg1, arg2) do
     quote do
@@ -584,7 +584,7 @@ defmodule Module.Types.Descr do
 
   defp numberize(:map, bdd) do
     bdd_map(bdd, fn bdd_leaf(tag, fields) ->
-      bdd_leaf_new(
+      map_new(
         tag,
         fields_map(fn _key, {value, optional?} -> {numberize(value), optional?} end, fields)
       )
@@ -2923,16 +2923,104 @@ defmodule Module.Types.Descr do
     map_domain_tag_to_type(domain)
   end
 
-  defp map_new(tag, fields), do: bdd_leaf_new(tag, fields)
+  # Map leaf ids reserve their low two bits for a conservative
+  # emptiness cache: 0 is non-empty and 1 is unknown. Definitely empty
+  # literals are normalized to :bdd_bot.
+  # This allows cheap `map_leaf_empty?` checks.
+  defp map_new(tag, fields) do
+    case Enum.reduce_while(fields, 0, fn
+           {_key, {_type, true}}, state ->
+             {:cont, state}
 
-  defp map_only?(descr), do: empty?(Map.delete(descr, :map))
+           {_key, {type, false}}, state ->
+             case descr_emptiness(type) do
+               :empty -> {:halt, :empty}
+               :non_empty -> {:cont, state}
+               :unknown -> {:cont, 1}
+             end
+         end) do
+      :empty ->
+        :bdd_bot
 
-  defp non_empty_map_only?(descr) do
-    case :maps.take(:map, descr) do
-      :error -> false
-      {map_bdd, rest} -> empty?(rest) and not map_empty?(map_bdd, %{})
+      state ->
+        {id, _, _} = leaf = bdd_leaf_new(tag, fields)
+        put_elem(leaf, 0, id * 2 + state)
     end
   end
+
+  defp descr_emptiness(:term), do: :non_empty
+
+  defp descr_emptiness(descr) when is_map(descr) do
+    Enum.reduce_while(descr, :empty, fn {component, value}, acc ->
+      case component_emptiness(component, value) do
+        :non_empty -> {:halt, :non_empty}
+        :unknown -> {:cont, :unknown}
+        :empty -> {:cont, acc}
+      end
+    end)
+  end
+
+  defp descr_emptiness(_descr), do: :unknown
+
+  defp component_emptiness(:bitmap, bitmap) when bitmap != 0,
+    do: :non_empty
+
+  defp component_emptiness(:atom, {atom_type, atom_set}) do
+    if atom_type == :negation or :sets.is_empty(atom_set) do
+      :non_empty
+    else
+      :unknown
+    end
+  end
+
+  defp component_emptiness(:tuple, {id, tag, elements})
+       when is_integer(id) and tag in [:open, :closed] do
+    Enum.reduce_while(elements, :non_empty, fn element, _acc ->
+      case descr_emptiness(element) do
+        :non_empty -> {:cont, :non_empty}
+        state -> {:halt, state}
+      end
+    end)
+  end
+
+  defp component_emptiness(:list, {id, head, tail}) when is_integer(id) do
+    case {descr_emptiness(head), descr_emptiness(tail)} do
+      {:empty, _} -> :empty
+      {_, :empty} -> :empty
+      {:non_empty, :non_empty} -> :non_empty
+      _ -> :unknown
+    end
+  end
+
+  defp component_emptiness(:fun, {:negation, _}), do: :non_empty
+
+  defp component_emptiness(:fun, {:union, arities}) do
+    if Enum.any?(Map.values(arities), &match?(bdd_leaf(_, _), &1)) do
+      :non_empty
+    else
+      :unknown
+    end
+  end
+
+  defp component_emptiness(:map, :bdd_bot), do: :empty
+
+  defp component_emptiness(:map, {id, _tag, _fields}) do
+    case id &&& 1 do
+      0 -> :non_empty
+      _ -> :unknown
+    end
+  end
+
+  defp component_emptiness(_component, _value), do: :unknown
+
+  defp map_leaf_empty?({id, tag, fields}) do
+    case id &&& 1 do
+      0 -> false
+      _ -> init_map_line_empty?(tag, fields, [])
+    end
+  end
+
+  defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
   defp map_union(bdd_leaf(:open, []) = leaf, _), do: leaf
   defp map_union(_, bdd_leaf(:open, []) = leaf), do: leaf
@@ -3234,10 +3322,14 @@ defmodule Module.Types.Descr do
   end
 
   # Optimization for bdd leafs
-  defp map_fetch_key_static(%{map: bdd_leaf(tag, fields)}, key) do
+  defp map_fetch_key_static(%{map: bdd_leaf(tag, fields) = leaf}, key, badmap_when_empty?) do
+    if map_leaf_empty?(leaf) do
+      if badmap_when_empty?, do: :badmap, else: {none(), false}
+    else
     case fields_find(key, fields) do
       {:ok, field} -> field
       :error -> map_key_tag_to_field(tag)
+      end
     end
   end
 
@@ -3565,12 +3657,52 @@ defmodule Module.Types.Descr do
             {:error, static_errors ++ dynamic_errors}
           end
         else
-          :badmap
+          false -> :badmap
+          :badmap -> :badmap
         end
     end
   end
 
-  defp map_update_static(%{map: bdd}, split_keys, type_fun, return_type?, force?, static?) do
+  # Update leaf case
+  defp map_update_static(
+         %{map: bdd_leaf(tag, fields) = leaf},
+         split_keys,
+         operation,
+         return_type?,
+         force?,
+         static?
+       ) do
+    if map_leaf_empty?(leaf) do
+          :badmap
+    else
+      map_update_static_dnf(
+        leaf,
+        [{tag, fields, []}],
+        split_keys,
+        operation,
+        return_type?,
+        force?,
+        static?
+      )
+    end
+  end
+
+  defp map_update_static(%{map: bdd}, split_keys, operation, return_type?, force?, static?) do
+    case map_bdd_to_dnf_remove_empty(bdd) do
+      [] -> :badmap
+      dnf -> map_update_static_dnf(bdd, dnf, split_keys, operation, return_type?, force?, static?)
+    end
+  end
+
+  defp map_update_static(%{}, _split_keys, _operation, _return_type?, _force?, _static?) do
+    {none(), none(), [], false}
+  end
+
+  defp map_update_static(:term, split_keys, operation, return_type?, force?, static?) do
+    map_update_static(%{map: @map_top}, split_keys, operation, return_type?, force?, static?)
+  end
+
+  defp map_update_static_dnf(bdd, dnf, split_keys, operation, return_type?, force?, static?) do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
@@ -3701,10 +3833,10 @@ defmodule Module.Types.Descr do
     bdd =
       bdd_map(bdd, fn
         bdd_leaf(:closed, fields) when optional? and value == @none ->
-          bdd_leaf_new(:closed, fields)
+          map_new(:closed, fields)
 
         bdd_leaf(tag, fields) ->
-          bdd_leaf_new(tag, fields_store(key, {value, optional?}, fields))
+          map_new(tag, fields_store(key, {value, optional?}, fields))
       end)
 
     %{descr | map: bdd}
@@ -3962,13 +4094,26 @@ defmodule Module.Types.Descr do
         end
 
       {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          static_descr = map_put_static(static, split_keys, type)
-          dynamic_descr = map_put_static(dynamic, split_keys, type)
+        with true <- descr_key?(dynamic, :map) and map_only?(static),
+             {:ok, dynamic_descr} <- map_put_static(dynamic, split_keys, type) do
+          static_descr =
+            case map_put_static(static, split_keys, type) do
+              :badmap -> none()
+              {:ok, descr} -> descr
+            end
+
           {:ok, opt_union(static_descr, dynamic(dynamic_descr))}
         else
           :badmap
         end
+    end
+  end
+
+  defp map_put_static(%{map: bdd_leaf(tag, fields) = leaf}, split_keys, type) do
+    if map_leaf_empty?(leaf) do
+      :badmap
+    else
+      {:ok, map_put_static_dnf(leaf, [{tag, fields, []}], split_keys, type)}
     end
   end
 
@@ -6180,7 +6325,19 @@ defmodule Module.Types.Descr do
         fun.(leaf)
 
       {_, leaf, left, union, right} ->
-        bdd_node_new(fun.(leaf), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun))
+        case fun.(leaf) do
+          :bdd_bot ->
+            # (false and left) or union or (not false and right)
+            bdd_union(bdd_map(union, fun), bdd_map(right, fun))
+
+          mapped_leaf ->
+            bdd_node_new(
+              mapped_leaf,
+              bdd_map(left, fun),
+              bdd_map(union, fun),
+              bdd_map(right, fun)
+            )
+        end
     end
   end
 
@@ -6522,7 +6679,7 @@ defmodule Module.Types.Descr do
 
       {:ok, seen} ->
         case opt_map_union(tag1, fields1, tag2, fields2, seen) do
-          {tag, fields} -> bdd_leaf_new(tag, fields)
+          {tag, fields} -> map_new(tag, fields)
           nil -> bdd_union(bdd1, bdd2)
         end
     end
@@ -6718,7 +6875,7 @@ defmodule Module.Types.Descr do
           %{}
         )
 
-      bdd_leaf_new(tag, fields)
+      map_new(tag, fields)
     catch
       :empty -> :bdd_bot
     end
@@ -6812,7 +6969,7 @@ defmodule Module.Types.Descr do
     if field_empty?(field_diff) do
       :subtype
     else
-      a_diff = bdd_leaf_new(tag, fields_store(key, field_diff, fields))
+      a_diff = map_new(tag, fields_store(key, field_diff, fields))
 
       a_type =
         case type do
@@ -6820,14 +6977,14 @@ defmodule Module.Types.Descr do
             :bdd_bot
 
           :union ->
-            bdd_leaf_new(tag, fields_store(key, field_opt_union(field1, field2, seen), fields))
+            map_new(tag, fields_store(key, field_opt_union(field1, field2, seen), fields))
 
           :intersection ->
             field_int = field_opt_intersection(field1, field2, seen)
 
             if field_empty?(field_int),
               do: :bdd_bot,
-              else: bdd_leaf_new(tag, fields_store(key, field_int, fields))
+              else: map_new(tag, fields_store(key, field_int, fields))
         end
 
       {:one_key_difference, a_diff, a_type}
