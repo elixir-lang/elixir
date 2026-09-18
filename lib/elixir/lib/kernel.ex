@@ -6926,8 +6926,9 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~w` for list of words.
 
-  It returns a list of "words" split by whitespace. Character unescaping and
-  interpolation happens for each word.
+  It returns a list of "words" split by whitespace. Character
+  unescaping and interpolation happens for each word before
+  splitting.
 
   ## Modifiers
 
