@@ -344,7 +344,7 @@ defmodule Mix.Tasks.Test.Coverage do
           counts
       end
 
-    module_results = for module <- keep, do: {module_coverage(counts, module), module}
+    module_results = for module <- keep, do: {percentage(counts[module]), module}
     {module_results, total_coverage(counts)}
   end
 
@@ -354,10 +354,6 @@ defmodule Mix.Tasks.Test.Coverage do
       {covered + covered_acc, not_covered + not_covered_acc}
     end)
     |> percentage()
-  end
-
-  defp module_coverage(counts, module) do
-    counts |> Map.fetch!(module) |> percentage()
   end
 
   defp percentage({0, 0}), do: 100.0
