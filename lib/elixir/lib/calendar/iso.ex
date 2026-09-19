@@ -137,10 +137,17 @@ defmodule Calendar.ISO do
 
   @behaviour Calendar
 
+  import Bitwise, only: [band: 2, >>>: 2, <<<: 2]
+
   @unix_epoch 62_167_219_200
   unix_start = (315_537_897_600 + @unix_epoch) * -1_000_000
   unix_end = 315_569_519_999_999_999 - @unix_epoch * 1_000_000
   @unix_range_microseconds unix_start..unix_end
+
+  # Weekday conversion
+  @days_per_week 7
+  @weekday_multiplier div(1 <<< 30, @days_per_week)
+  @weekday_bias_base (1 <<< 27) + (1 <<< 23)
 
   defguardp is_format(term) when term in [:basic, :extended]
 
@@ -1096,18 +1103,27 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def iso_days_to_day_of_week(iso_days, starting_on) do
-    Integer.mod(iso_days + day_of_week_offset(starting_on), 7) + 1
+  # Adapted from https://www.benjoffe.com/fast-day-of-week
+  # Bounds keep arithmetic within signed 60-bit small integers on 64-bit BEAM.
+  def iso_days_to_day_of_week(days, starting_on) when days in -75_497_467..58_720_260 do
+    bias = day_of_week_bias(starting_on)
+    band((days * @weekday_multiplier + bias) >>> 27, 7)
   end
 
-  defp day_of_week_offset(:default), do: 5
-  defp day_of_week_offset(:wednesday), do: 3
-  defp day_of_week_offset(:thursday), do: 2
-  defp day_of_week_offset(:friday), do: 1
-  defp day_of_week_offset(:saturday), do: 0
-  defp day_of_week_offset(:sunday), do: 6
-  defp day_of_week_offset(:monday), do: 5
-  defp day_of_week_offset(:tuesday), do: 4
+  def iso_days_to_day_of_week(days, starting_on) do
+    days = rem(days, @days_per_week)
+    iso_days_to_day_of_week(days, starting_on)
+  end
+
+  @compile {:inline, day_of_week_bias: 1}
+  defp day_of_week_bias(:default), do: @weekday_bias_base - 2 * @weekday_multiplier
+  defp day_of_week_bias(:monday), do: @weekday_bias_base - 2 * @weekday_multiplier
+  defp day_of_week_bias(:tuesday), do: @weekday_bias_base - 3 * @weekday_multiplier
+  defp day_of_week_bias(:wednesday), do: @weekday_bias_base - 4 * @weekday_multiplier
+  defp day_of_week_bias(:thursday), do: @weekday_bias_base + 2 * @weekday_multiplier
+  defp day_of_week_bias(:friday), do: @weekday_bias_base + @weekday_multiplier
+  defp day_of_week_bias(:saturday), do: @weekday_bias_base
+  defp day_of_week_bias(:sunday), do: @weekday_bias_base - @weekday_multiplier
 
   @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
