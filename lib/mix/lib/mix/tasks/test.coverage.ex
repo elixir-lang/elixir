@@ -331,7 +331,7 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp gather_coverage(results, keep) do
-    counts = Map.new(keep, &{&1, {0, 0}})
+    counts = Map.from_keys(keep, {0, 0})
 
     # When gathering coverage results, we need to skip any
     # entry with line equal to 0 as those are generated code.
