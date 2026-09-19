@@ -205,6 +205,9 @@ defmodule Calendar.ISO do
   @microseconds_per_second 1_000_000
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
+  # Combine ASCII digit offsets so each field needs only one subtraction.
+  @two_digit_ascii_offset ?0 * 11
+  @four_digit_ascii_offset ?0 * 1111
   @datetime_seps [?\s, ?T]
   @ext_date_sep ?-
   @ext_time_sep ?:
@@ -240,9 +243,9 @@ defmodule Calendar.ISO do
           y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
           d2 >= ?0 and d2 <= ?9,
         {
-          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
-          (m1 - ?0) * 10 + (m2 - ?0),
-          (d1 - ?0) * 10 + (d2 - ?0)
+          y1 * 1000 + y2 * 100 + y3 * 10 + y4 - @four_digit_ascii_offset,
+          m1 * 10 + m2 - @two_digit_ascii_offset,
+          d1 * 10 + d2 - @two_digit_ascii_offset
         }
       ]
     end
@@ -255,9 +258,9 @@ defmodule Calendar.ISO do
         h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
           i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
         {
-          (h1 - ?0) * 10 + (h2 - ?0),
-          (i1 - ?0) * 10 + (i2 - ?0),
-          (s1 - ?0) * 10 + (s2 - ?0)
+          h1 * 10 + h2 - @two_digit_ascii_offset,
+          i1 * 10 + i2 - @two_digit_ascii_offset,
+          s1 * 10 + s2 - @two_digit_ascii_offset
         }
       ]
     end
@@ -2095,8 +2098,8 @@ defmodule Calendar.ISO do
   defp parse_offset(sign, h1, h2, m1, m2, rest) do
     with true <- h1 in ?0..?2 and h2 in ?0..?9,
          true <- m1 in ?0..?5 and m2 in ?0..?9,
-         hour = (h1 - ?0) * 10 + h2 - ?0,
-         min = (m1 - ?0) * 10 + m2 - ?0,
+         hour = h1 * 10 + h2 - @two_digit_ascii_offset,
+         min = m1 * 10 + m2 - @two_digit_ascii_offset,
          true <- hour < 24,
          true <- sign == 1 or hour != 0 or min != 0 do
       {(hour * 60 + min) * 60 * sign, rest}
