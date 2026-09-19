@@ -331,40 +331,37 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp gather_coverage(results, keep) do
-    keep_set = MapSet.new(keep)
-
     # When gathering coverage results, we need to skip any
     # entry with line equal to 0 as those are generated code.
-    # We use ETS for performance, to avoid working with nested maps.
-    table = :ets.new(__MODULE__, [:set, :private])
-
-    try do
+    counts =
       for {{module, line}, {covered, not_covered}} <- results,
-          module in keep_set,
-          line != 0 do
-        :ets.update_counter(table, module, [{2, covered}, {3, not_covered}], {module, 0, 0})
+          line != 0,
+          reduce: Map.new(keep, &{&1, {0, 0}}) do
+        %{^module => {covered_acc, not_covered_acc}} = counts ->
+          %{counts | module => {covered + covered_acc, not_covered + not_covered_acc}}
+
+        counts ->
+          counts
       end
 
-      module_results = for module <- keep, do: {read_cover_results(table, module), module}
-      {module_results, read_cover_results(table, :_)}
-    after
-      :ets.delete(table)
-    end
+    module_results = for module <- keep, do: {read_cover_results(counts, module), module}
+    {module_results, read_cover_results(counts, :_)}
   end
 
-  defp read_cover_results(table, module) do
-    {covered, not_covered} =
-      table
-      |> :ets.match_object({module, :_, :_})
-      |> Enum.reduce({0, 0}, fn {_, covered, not_covered}, {covered_acc, not_covered_acc} ->
-        {covered + covered_acc, not_covered + not_covered_acc}
-      end)
-
-    percentage(covered, not_covered)
+  defp read_cover_results(counts, :_) do
+    counts
+    |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}}, {covered_acc, not_covered_acc} ->
+      {covered + covered_acc, not_covered + not_covered_acc}
+    end)
+    |> percentage()
   end
 
-  defp percentage(0, 0), do: 100.0
-  defp percentage(covered, not_covered), do: covered / (covered + not_covered) * 100
+  defp read_cover_results(counts, module) do
+    counts |> Map.fetch!(module) |> percentage()
+  end
+
+  defp percentage({0, 0}), do: 100.0
+  defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
 
   defp print_summary(results, totals, true), do: print_summary(results, totals, [])
 
