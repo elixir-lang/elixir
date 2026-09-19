@@ -331,12 +331,12 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp gather_coverage(results, keep) do
+    counts = Map.new(keep, &{&1, {0, 0}})
+
     # When gathering coverage results, we need to skip any
     # entry with line equal to 0 as those are generated code.
     counts =
-      for {{module, line}, {covered, not_covered}} <- results,
-          line != 0,
-          reduce: Map.new(keep, &{&1, {0, 0}}) do
+      for {{module, line}, {covered, not_covered}} <- results, line != 0, reduce: counts do
         %{^module => {covered_acc, not_covered_acc}} = counts ->
           %{counts | module => {covered + covered_acc, not_covered + not_covered_acc}}
 
