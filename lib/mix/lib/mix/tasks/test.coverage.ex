@@ -335,19 +335,13 @@ defmodule Mix.Tasks.Test.Coverage do
 
     # When gathering coverage results, we need to skip any
     # entry with line equal to 0 as those are generated code.
-    #
-    # We may also have multiple entries on the same line.
-    # Each line is only considered once.
-    #
-    # We use ETS for performance, to avoid working with nested maps.
     table = :ets.new(__MODULE__, [:set, :private])
 
     try do
-      for {{module, line}, cov} <- results, module in keep_set, line != 0 do
-        case cov do
-          {1, 0} -> :ets.insert(table, {{module, line}, true})
-          {0, 1} -> :ets.insert_new(table, {{module, line}, false})
-        end
+      for {{module, line}, {covered, not_covered}} <- results,
+          module in keep_set,
+          line != 0 do
+        :ets.update_counter(table, module, [{2, covered}, {3, not_covered}], {module, 0, 0})
       end
 
       module_results = for module <- keep, do: {read_cover_results(table, module), module}
@@ -358,8 +352,13 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp read_cover_results(table, module) do
-    covered = :ets.select_count(table, [{{{module, :_}, true}, [], [true]}])
-    not_covered = :ets.select_count(table, [{{{module, :_}, false}, [], [true]}])
+    {covered, not_covered} =
+      table
+      |> :ets.match_object({module, :_, :_})
+      |> Enum.reduce({0, 0}, fn {_, covered, not_covered}, {covered_acc, not_covered_acc} ->
+        {covered + covered_acc, not_covered + not_covered_acc}
+      end)
+
     percentage(covered, not_covered)
   end
 
