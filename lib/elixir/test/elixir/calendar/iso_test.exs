@@ -96,6 +96,8 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.iso_days_to_day_of_week(days, starting_on) ==
                Integer.mod(days + offset, 7) + 1
     end
+    
+    :ok
   end
 
   describe "day_of_era/3" do
