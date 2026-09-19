@@ -78,6 +78,26 @@ defmodule Calendar.ISOTest do
     end
   end
 
+  test "iso_days_to_day_of_week/2 at fast-path boundaries" do
+    offsets = [
+      default: 5,
+      monday: 5,
+      tuesday: 4,
+      wednesday: 3,
+      thursday: 2,
+      friday: 1,
+      saturday: 0,
+      sunday: 6
+    ]
+
+    for boundary <- [-75_497_467, 58_720_260],
+        days <- (boundary - 7)..(boundary + 7),
+        {starting_on, offset} <- offsets do
+      assert Calendar.ISO.iso_days_to_day_of_week(days, starting_on) ==
+               Integer.mod(days + offset, 7) + 1
+    end
+  end
+
   describe "day_of_era/3" do
     test "raises with invalid dates" do
       assert_raise ArgumentError, "invalid date: 2018-02-30", fn ->
