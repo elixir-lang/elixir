@@ -344,17 +344,15 @@ defmodule Mix.Tasks.Test.Coverage do
           counts
       end
 
-    module_results = for module <- keep, do: {percentage(counts[module]), module}
-    {module_results, total_coverage(counts)}
+    {Enum.map(keep, &{percentage(counts[&1]), &1}), total_coverage(counts)}
   end
 
   defp total_coverage(counts) do
-    counts
-    |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}}, {covered_acc, not_covered_acc} ->
-      {covered + covered_acc, not_covered + not_covered_acc}
-    end)
-    |> percentage()
+    percentage(Enum.reduce(counts, {0, 0}, &add_coverage_totals/2))
   end
+
+  defp add_coverage_totals({_, {covered, not_covered}}, {covered_acc, not_covered_acc}),
+    do: {covered + covered_acc, not_covered + not_covered_acc}
 
   defp percentage({0, 0}), do: 100.0
   defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
