@@ -344,11 +344,11 @@ defmodule Mix.Tasks.Test.Coverage do
           counts
       end
 
-    module_results = for module <- keep, do: {read_cover_results(counts, module), module}
-    {module_results, read_cover_results(counts, :_)}
+    module_results = for module <- keep, do: {module_coverage(counts, module), module}
+    {module_results, total_coverage(counts)}
   end
 
-  defp read_cover_results(counts, :_) do
+  defp total_coverage(counts) do
     counts
     |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}}, {covered_acc, not_covered_acc} ->
       {covered + covered_acc, not_covered + not_covered_acc}
@@ -356,7 +356,7 @@ defmodule Mix.Tasks.Test.Coverage do
     |> percentage()
   end
 
-  defp read_cover_results(counts, module) do
+  defp module_coverage(counts, module) do
     counts |> Map.fetch!(module) |> percentage()
   end
 
