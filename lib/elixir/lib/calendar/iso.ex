@@ -1038,8 +1038,10 @@ defmodule Calendar.ISO do
   @doc since: "1.3.0"
   @spec leap_year?(year) :: boolean()
   @impl true
+  @compile {:inline, leap_year?: 1}
   def leap_year?(year) when is_year(year) do
-    rem(year, 4) === 0 and (rem(year, 100) !== 0 or rem(year, 400) === 0)
+    # Neri-Schneider test via Ben Joffe: https://www.benjoffe.com/fast-leap-year
+    band(year, 3) === 0 and (band(year, 15) === 0 or rem(year, 100) !== 0)
   end
 
   @doc false

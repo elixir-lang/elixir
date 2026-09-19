@@ -8,6 +8,16 @@ defmodule Calendar.ISOTest do
   use ExUnit.Case, async: true
   doctest Calendar.ISO
 
+  test "leap_year?/1 with zero, negative centuries, and large integers" do
+    assert Calendar.ISO.leap_year?(0)
+    assert Calendar.ISO.leap_year?(-400)
+    refute Calendar.ISO.leap_year?(-100)
+    assert Calendar.ISO.leap_year?(400_000_000_000_000_000_000)
+    refute Calendar.ISO.leap_year?(400_000_000_000_000_000_100)
+    assert Calendar.ISO.leap_year?(-400_000_000_000_000_000_000)
+    refute Calendar.ISO.leap_year?(-400_000_000_000_000_000_100)
+  end
+
   describe "date_from_iso_days" do
     test "with positive dates" do
       assert {0, 1, 1} == iso_day_roundtrip(0, 1, 1)
