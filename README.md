@@ -6,7 +6,7 @@
 
 <h1>
  <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/public/downloads/logos/elixir-light.svg">
   <img alt="Elixir logo" src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/public/images/logo/logo.png" width="200">
  </picture>
 </h1>
