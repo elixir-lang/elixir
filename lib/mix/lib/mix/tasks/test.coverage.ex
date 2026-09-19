@@ -335,6 +335,7 @@ defmodule Mix.Tasks.Test.Coverage do
 
     # When gathering coverage results, we need to skip any
     # entry with line equal to 0 as those are generated code.
+    # We use ETS for performance, to avoid working with nested maps.
     table = :ets.new(__MODULE__, [:set, :private])
 
     try do
