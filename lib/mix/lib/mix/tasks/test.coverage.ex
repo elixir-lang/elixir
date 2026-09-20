@@ -352,9 +352,8 @@ defmodule Mix.Tasks.Test.Coverage do
     do: update_coverage(counts, module, covered, not_covered)
 
   defp update_coverage(counts, module, covered, not_covered) do
-    case counts do
-      %{^module => {c, n}} -> %{counts | module => {c + covered, n + not_covered}}
-      _ -> counts
+    with %{^module => {c, n}} <- counts do
+      %{counts | module => {c + covered, n + not_covered}}
     end
   end
 
