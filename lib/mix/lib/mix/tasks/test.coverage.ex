@@ -331,21 +331,34 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp gather_coverage(results, keep) do
-    counts = Map.from_keys(keep, {0, 0})
-
-    # When gathering coverage results, we need to skip any
-    # entry with line equal to 0 as those are generated code.
-    counts =
-      for {{module, line}, {covered, not_covered}} <- results, line != 0, reduce: counts do
-        %{^module => {covered_acc, not_covered_acc}} = counts ->
-          %{counts | module => {covered + covered_acc, not_covered + not_covered_acc}}
-
-        counts ->
-          counts
-      end
-
+    counts = gather_coverage(results, Map.from_keys(keep, {0, 0}), nil, 0, 0)
     {module_results, totals} = Enum.map_reduce(counts, {0, 0}, &gather_module/2)
     {module_results, percentage(totals)}
+  end
+
+  # Batch consecutive entries for a module to avoid updating the map for every line.
+  # Add each batch to the existing counts so interleaved modules also work.
+  # Entries with line equal to 0 are generated code and must be skipped.
+  defp gather_coverage([{{_, 0}, _} | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, counts, module, covered, not_covered)
+
+  defp gather_coverage([{{module, _}, {c, n}} | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, counts, module, covered + c, not_covered + n)
+
+  defp gather_coverage([{{next, _}, {c, n}} | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, update_coverage(counts, module, covered, not_covered), next, c, n)
+
+  defp gather_coverage([_ | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, counts, module, covered, not_covered)
+
+  defp gather_coverage([], counts, module, covered, not_covered),
+    do: update_coverage(counts, module, covered, not_covered)
+
+  defp update_coverage(counts, module, covered, not_covered) do
+    case counts do
+      %{^module => {c, n}} -> %{counts | module => {c + covered, n + not_covered}}
+      _ -> counts
+    end
   end
 
   defp gather_module({module, {covered, not_covered} = counts}, {covered_acc, not_covered_acc}),
