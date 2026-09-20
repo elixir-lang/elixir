@@ -205,6 +205,9 @@ defmodule Calendar.ISO do
   @microseconds_per_second 1_000_000
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
+  @minutes_from_seconds_reciprocal div(1 <<< 32, @seconds_per_minute) + 1
+  @hours_from_seconds_reciprocal div(1 <<< 32, @seconds_per_hour) + 1
+
   # Combine ASCII digit offsets so each field needs only one subtraction.
   @two_digit_ascii_offset ?0 * 11
   @four_digit_ascii_offset ?0 * 1111
@@ -2210,9 +2213,13 @@ defmodule Calendar.ISO do
     {date, time}
   end
 
+  # Adapted from https://www.benjoffe.com/fast-time-of-day
   defp seconds_to_time(seconds) when seconds in 0..@last_second_of_the_day do
-    {hour, rest_seconds} = div_rem(seconds, @seconds_per_hour)
-    {minute, second} = div_rem(rest_seconds, @seconds_per_minute)
+    total_minutes = (seconds * @minutes_from_seconds_reciprocal) >>> 32
+    hour = (seconds * @hours_from_seconds_reciprocal) >>> 32
+
+    minute = band(total_minutes + hour * 4, 63)
+    second = band(seconds + total_minutes * 4, 63)
 
     {hour, minute, second}
   end
