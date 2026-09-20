@@ -673,17 +673,20 @@ defmodule Calendar.ISO do
           {:error, :missing_offset}
 
         true ->
-          day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
+          seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second - offset
+          {extra_days, seconds} = div_rem(seconds, @seconds_per_day)
 
-          {{year, month, day}, {hour, minute, second, _}} =
-            case add_time_unit_to_iso_days({0, day_fraction}, -offset, :second) do
-              {0, day_fraction} ->
-                {{year, month, day}, time_from_day_fraction(day_fraction)}
+          {year, month, day} =
+            case extra_days do
+              0 ->
+                {year, month, day}
 
-              {extra_days, day_fraction} ->
+              _ ->
                 base_days = valid_date_to_iso_days(year, month, day)
-                {date_from_iso_days(base_days + extra_days), time_from_day_fraction(day_fraction)}
+                date_from_iso_days(base_days + extra_days)
             end
+
+          {hour, minute, second} = seconds_to_time(seconds)
 
           {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
       end
