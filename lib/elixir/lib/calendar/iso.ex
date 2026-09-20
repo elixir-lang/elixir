@@ -203,8 +203,12 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60
   @last_second_of_the_day @seconds_per_day - 1
   @microseconds_per_second 1_000_000
+  @microseconds_per_minute @seconds_per_minute * @microseconds_per_second
+  @microseconds_per_hour @seconds_per_hour * @microseconds_per_second
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
+  @minutes_reciprocal div(1 <<< 42, @microseconds_per_minute >>> 8) + 1
+  @seconds_reciprocal div(1 <<< 40, @microseconds_per_second >>> 6) + 1
   @minutes_from_seconds_reciprocal div(1 <<< 32, @seconds_per_minute) + 1
   @hours_from_seconds_reciprocal div(1 <<< 32, @seconds_per_hour) + 1
 
@@ -893,15 +897,23 @@ defmodule Calendar.ISO do
 
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
     total_microseconds = divide_by_parts_per_day(parts_in_day, parts_per_day)
+    {hours, microseconds_in_hour} = div_rem(total_microseconds, @microseconds_per_hour)
 
-    {hours, rest_microseconds1} =
-      div_rem(total_microseconds, @seconds_per_hour * @microseconds_per_second)
-
-    {minutes, rest_microseconds2} =
-      div_rem(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
-
-    {seconds, microseconds} = div_rem(rest_microseconds2, @microseconds_per_second)
+    {minutes, seconds, microseconds} = microseconds_in_hour_to_time(microseconds_in_hour)
     {hours, minutes, seconds, {microseconds, 6}}
+  end
+
+  # Adapted from https://www.benjoffe.com/fast-time-of-day
+  @compile {:inline, microseconds_in_hour_to_time: 1}
+  defp microseconds_in_hour_to_time(microseconds_in_hour)
+       when microseconds_in_hour in 0..(@microseconds_per_hour - 1)//1 do
+    # Pre-shifts keep reciprocal products within small integers on 64-bit BEAM.
+    minutes = ((microseconds_in_hour >>> 8) * @minutes_reciprocal) >>> 42
+    seconds_in_hour = ((microseconds_in_hour >>> 6) * @seconds_reciprocal) >>> 40
+
+    microseconds = microseconds_in_hour - seconds_in_hour * @microseconds_per_second
+    seconds = band(seconds_in_hour + minutes * 4, 63)
+    {minutes, seconds, microseconds}
   end
 
   defp divide_by_parts_per_day(parts_in_day, @parts_per_day), do: parts_in_day
