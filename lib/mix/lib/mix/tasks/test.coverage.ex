@@ -331,40 +331,37 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp gather_coverage(results, keep) do
-    keep_set = MapSet.new(keep)
+    counts = gather_coverage(results, Map.from_keys(keep, {0, 0}), nil, 0, 0)
+    {module_results, totals} = Enum.map_reduce(counts, {0, 0}, &gather_module/2)
+    {module_results, percentage(totals)}
+  end
 
-    # When gathering coverage results, we need to skip any
-    # entry with line equal to 0 as those are generated code.
-    # We use ETS for performance, to avoid working with nested maps.
-    table = :ets.new(__MODULE__, [:set, :private])
+  # Batch consecutive entries for a module to avoid updating the map for every line.
+  # Add each batch to the existing counts so interleaved modules also work.
+  # Entries with line equal to 0 are generated code and must be skipped.
+  defp gather_coverage([{{_, 0}, _} | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, counts, module, covered, not_covered)
 
-    try do
-      for {{module, line}, {covered, not_covered}} <- results,
-          module in keep_set,
-          line != 0 do
-        :ets.update_counter(table, module, [{2, covered}, {3, not_covered}], {module, 0, 0})
-      end
+  defp gather_coverage([{{module, _}, {c, n}} | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, counts, module, covered + c, not_covered + n)
 
-      module_results = for module <- keep, do: {read_cover_results(table, module), module}
-      {module_results, read_cover_results(table, :_)}
-    after
-      :ets.delete(table)
+  defp gather_coverage([{{next, _}, {c, n}} | rest], counts, module, covered, not_covered),
+    do: gather_coverage(rest, update_coverage(counts, module, covered, not_covered), next, c, n)
+
+  defp gather_coverage([], counts, module, covered, not_covered),
+    do: update_coverage(counts, module, covered, not_covered)
+
+  defp update_coverage(counts, module, covered, not_covered) do
+    with %{^module => {c, n}} <- counts do
+      %{counts | module => {c + covered, n + not_covered}}
     end
   end
 
-  defp read_cover_results(table, module) do
-    {covered, not_covered} =
-      table
-      |> :ets.match_object({module, :_, :_})
-      |> Enum.reduce({0, 0}, fn {_, covered, not_covered}, {covered_acc, not_covered_acc} ->
-        {covered + covered_acc, not_covered + not_covered_acc}
-      end)
+  defp gather_module({module, {covered, not_covered} = counts}, {covered_acc, not_covered_acc}),
+    do: {{percentage(counts), module}, {covered + covered_acc, not_covered + not_covered_acc}}
 
-    percentage(covered, not_covered)
-  end
-
-  defp percentage(0, 0), do: 100.0
-  defp percentage(covered, not_covered), do: covered / (covered + not_covered) * 100
+  defp percentage({0, 0}), do: 100.0
+  defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
 
   defp print_summary(results, totals, true), do: print_summary(results, totals, [])
 
