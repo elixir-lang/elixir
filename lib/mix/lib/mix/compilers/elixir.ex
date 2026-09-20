@@ -900,27 +900,26 @@ defmodule Mix.Compilers.Elixir do
 
   defp deps_on(apps) do
     apps = Map.from_keys(apps, true)
-    deps_on(Mix.Dep.cached(), apps, [], false)
+    deps_on(Mix.Dep.cached(), apps)
   end
 
-  defp deps_on([%{app: app, deps: deps} = dep | cached_deps], apps, acc, stored?) do
+  defp deps_on([%{app: app, deps: deps} | cached_deps], apps) do
     cond do
       # We have already seen this dep
       Map.has_key?(apps, app) ->
-        deps_on(cached_deps, apps, acc, stored?)
+        deps_on(cached_deps, apps)
 
       # It depends on one of the apps, store it
       Enum.any?(deps, &Map.has_key?(apps, &1.app)) ->
-        deps_on(cached_deps, Map.put(apps, app, true), acc, true)
+        deps_on(cached_deps, Map.put(apps, app, true))
 
-      # Otherwise we will check it later
+      # Otherwise it is unaffected
       true ->
-        deps_on(cached_deps, apps, [dep | acc], stored?)
+        deps_on(cached_deps, apps)
     end
   end
 
-  defp deps_on([], apps, cached_deps, true), do: deps_on(cached_deps, apps, [], false)
-  defp deps_on([], apps, _cached_deps, false), do: apps
+  defp deps_on([], apps), do: apps
 
   ## Manifest handling
 
