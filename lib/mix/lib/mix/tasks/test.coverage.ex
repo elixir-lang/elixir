@@ -348,9 +348,6 @@ defmodule Mix.Tasks.Test.Coverage do
   defp gather_coverage([{{next, _}, {c, n}} | rest], counts, module, covered, not_covered),
     do: gather_coverage(rest, update_coverage(counts, module, covered, not_covered), next, c, n)
 
-  defp gather_coverage([_ | rest], counts, module, covered, not_covered),
-    do: gather_coverage(rest, counts, module, covered, not_covered)
-
   defp gather_coverage([], counts, module, covered, not_covered),
     do: update_coverage(counts, module, covered, not_covered)
 
