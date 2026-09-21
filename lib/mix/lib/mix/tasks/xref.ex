@@ -1049,24 +1049,21 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp source_tree(file_references, keys) do
-    keys
-    |> Enum.reduce({%{}, %{}}, fn key, {acc, seen} ->
-      source_tree(file_references, key, acc, seen)
+    Enum.reduce(keys, %{}, fn key, acc ->
+      source_tree(file_references, key, acc)
     end)
-    |> elem(0)
   end
 
-  defp source_tree(file_references, key, acc, seen) do
+  defp source_tree(file_references, key, acc) do
     nodes = file_references[key]
 
-    if is_nil(nodes) or Map.has_key?(seen, key) do
-      {acc, seen}
+    if is_nil(nodes) or Map.has_key?(acc, key) do
+      acc
     else
       acc = Map.put(acc, key, nodes)
-      seen = Map.put(seen, key, true)
 
-      Enum.reduce(nodes, {acc, seen}, fn {key, _type}, {acc, seen} ->
-        source_tree(file_references, key, acc, seen)
+      Enum.reduce(nodes, acc, fn {key, _type}, acc ->
+        source_tree(file_references, key, acc)
       end)
     end
   end
