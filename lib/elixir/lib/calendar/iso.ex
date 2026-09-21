@@ -1923,18 +1923,14 @@ defmodule Calendar.ISO do
   @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
           {hour, minute, second, microsecond}
   def shift_time(hour, minute, second, microsecond, duration) do
-    shift_options = shift_time_options(duration)
+    case duration_to_seconds_and_microseconds(duration) do
+      {0, {0, _}} ->
+        {hour, minute, second, microsecond}
 
-    Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
-      {:microsecond, {0, _}}, time ->
-        time
-
-      {_, 0}, time ->
-        time
-
-      {time_unit, value}, time ->
-        shift_time_unit(time, value, time_unit)
-    end)
+      {seconds, shift_microsecond} ->
+        time = {hour, minute, second + seconds, microsecond}
+        shift_time_unit(time, shift_microsecond, :microsecond)
+    end
   end
 
   @doc false
@@ -2039,7 +2035,8 @@ defmodule Calendar.ISO do
     }
   end
 
-  defp shift_time_options(%Duration{
+  @compile {:inline, duration_to_seconds_and_microseconds: 1}
+  defp duration_to_seconds_and_microseconds(%Duration{
          year: 0,
          month: 0,
          week: 0,
@@ -2049,13 +2046,10 @@ defmodule Calendar.ISO do
          second: second,
          microsecond: microsecond
        }) do
-    [
-      second: hour * 3600 + minute * 60 + second,
-      microsecond: microsecond
-    ]
+    {(hour * 60 + minute) * 60 + second, microsecond}
   end
 
-  defp shift_time_options(_duration) do
+  defp duration_to_seconds_and_microseconds(_duration) do
     raise ArgumentError,
           "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond"
   end

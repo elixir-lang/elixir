@@ -650,49 +650,62 @@ defmodule Calendar.ISOTest do
     end
   end
 
-  test "shift_time/2" do
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(hour: 1)) == {1, 0, 0, {0, 0}}
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(hour: -1)) == {23, 0, 0, {0, 0}}
+  describe "shift_time/5" do
+    test "shifts by duration" do
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(hour: 1)) == {1, 0, 0, {0, 0}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(minute: 30)) ==
-             {0, 30, 0, {0, 0}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(hour: -1)) ==
+               {23, 0, 0, {0, 0}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(minute: -30)) ==
-             {23, 30, 0, {0, 0}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(minute: 30)) ==
+               {0, 30, 0, {0, 0}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(second: 30)) ==
-             {0, 0, 30, {0, 0}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(minute: -30)) ==
+               {23, 30, 0, {0, 0}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(second: -30)) ==
-             {23, 59, 30, {0, 0}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(second: 30)) ==
+               {0, 0, 30, {0, 0}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6})) ==
-             {0, 0, 0, {100, 6}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(second: -30)) ==
+               {23, 59, 30, {0, 0}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {-100, 6})) ==
-             {23, 59, 59, {999_900, 6}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6})) ==
+               {0, 0, 0, {100, 6}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {2000, 4})) ==
-             {0, 0, 0, {2000, 4}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {-100, 6})) ==
+               {23, 59, 59, {999_900, 6}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {-2000, 4})) ==
-             {23, 59, 59, {998_000, 4}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {2000, 4})) ==
+               {0, 0, 0, {2000, 4}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {3500, 6}, Duration.new!(microsecond: {-2000, 4})) ==
-             {0, 0, 0, {1500, 4}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(microsecond: {-2000, 4})) ==
+               {23, 59, 59, {998_000, 4}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {3500, 4}, Duration.new!(minute: 5)) ==
-             {0, 5, 0, {3500, 4}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {3500, 6}, Duration.new!(microsecond: {-2000, 4})) ==
+               {0, 0, 0, {1500, 4}}
 
-    assert Calendar.ISO.shift_time(0, 0, 0, {3500, 6}, Duration.new!(hour: 4)) ==
-             {4, 0, 0, {3500, 6}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {3500, 4}, Duration.new!(minute: 5)) ==
+               {0, 5, 0, {3500, 4}}
 
-    assert Calendar.ISO.shift_time(
-             23,
-             59,
-             59,
-             {999_900, 6},
-             Duration.new!(hour: 4, microsecond: {100, 6})
-           ) == {4, 0, 0, {0, 6}}
+      assert Calendar.ISO.shift_time(0, 0, 0, {3500, 6}, Duration.new!(hour: 4)) ==
+               {4, 0, 0, {3500, 6}}
+
+      assert Calendar.ISO.shift_time(
+               23,
+               59,
+               59,
+               {999_900, 6},
+               Duration.new!(hour: 4, microsecond: {100, 6})
+             ) == {4, 0, 0, {0, 6}}
+    end
+
+    test "updates precision when time shifts cancel" do
+      for second <- [-1, 1], precision <- [2, 6] do
+        duration = Duration.new!(second: second, microsecond: {-second * 1_000_000, precision})
+
+        assert Calendar.ISO.shift_time(12, 0, 0, {120_000, 3}, duration) ==
+                 {12, 0, 0, {120_000, precision}}
+      end
+    end
   end
 end
