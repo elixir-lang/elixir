@@ -629,6 +629,37 @@ defmodule Calendar.ISOTest do
            ) == {1999, 12, 31, 22, 55, 0, {0, 0}}
   end
 
+  test "shift_naive_datetime/8 applies months before combined time shifts" do
+    duration = Duration.new!(month: 1, second: 1, microsecond: {200_000, 6})
+
+    assert Calendar.ISO.shift_naive_datetime(2024, 1, 30, 23, 59, 59, {900_000, 3}, duration) ==
+             {2024, 3, 1, 0, 0, 1, {100_000, 6}}
+
+    duration = Duration.new!(month: -1, second: -1, microsecond: {-200_000, 6})
+
+    assert Calendar.ISO.shift_naive_datetime(2024, 3, 31, 0, 0, 0, {100_000, 3}, duration) ==
+             {2024, 2, 28, 23, 59, 58, {900_000, 6}}
+  end
+
+  test "shift_naive_datetime/8 preserves precision for zero microsecond shifts" do
+    for second <- [-1, 0, 1], precision <- [0, 6] do
+      duration = Duration.new!(second: second, microsecond: {0, precision})
+
+      assert Calendar.ISO.shift_naive_datetime(2024, 1, 31, 12, 0, 30, {120_000, 3}, duration) ==
+               {2024, 1, 31, 12, 0, 30 + second, {120_000, 3}}
+    end
+  end
+
+  test "shift_naive_datetime/8 updates precision when time shifts cancel" do
+    for second <- [-1, 1], precision <- [2, 6] do
+      duration =
+        Duration.new!(month: 1, second: second, microsecond: {-second * 1_000_000, precision})
+
+      assert Calendar.ISO.shift_naive_datetime(2024, 1, 31, 12, 0, 0, {120_000, 3}, duration) ==
+               {2024, 2, 29, 12, 0, 0, {120_000, precision}}
+    end
+  end
+
   test "shift_time/2" do
     assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(hour: 1)) == {1, 0, 0, {0, 0}}
     assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new!(hour: -1)) == {23, 0, 0, {0, 0}}

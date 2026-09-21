@@ -1881,23 +1881,32 @@ defmodule Calendar.ISO do
           microsecond,
           Duration.t()
         ) :: {year, month, day, hour, minute, second, microsecond}
-  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
-    shift_options = shift_datetime_options(duration)
+  def shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        {value, _} = microsecond,
+        duration
+      ) do
+    {months, seconds, shift_microsecond} = shift_datetime_units(duration)
 
-    Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
-      {:microsecond, {0, _}}, naive_datetime ->
-        naive_datetime
+    {year, month, day} =
+      if months == 0, do: {year, month, day}, else: shift_months({year, month, day}, months)
 
-      {_, 0}, naive_datetime ->
-        naive_datetime
+    datetime = {year, month, day, hour, minute, second, microsecond}
+    {microseconds, precision} = shift_time_unit_values(shift_microsecond, microsecond)
 
-      {:month, value}, {year, month, day, hour, minute, second, microsecond} ->
-        {new_year, new_month, new_day} = shift_months({year, month, day}, value)
-        {new_year, new_month, new_day, hour, minute, second, microsecond}
+    if seconds == 0 and microseconds == 0 do
+      datetime
+    else
+      total_microseconds = seconds * @microseconds_per_second + microseconds
 
-      {time_unit, value}, naive_datetime ->
-        shift_time_unit(naive_datetime, value, time_unit)
-    end)
+      datetime = put_elem(datetime, 6, {value, precision})
+      shift_time_unit(datetime, total_microseconds, :microsecond)
+    end
   end
 
   @doc """
@@ -2012,7 +2021,8 @@ defmodule Calendar.ISO do
           "cannot shift date by time scale unit. Expected :year, :month, :week, :day"
   end
 
-  defp shift_datetime_options(%Duration{
+  @compile {:inline, shift_datetime_units: 1}
+  defp shift_datetime_units(%Duration{
          year: year,
          month: month,
          week: week,
@@ -2022,11 +2032,11 @@ defmodule Calendar.ISO do
          second: second,
          microsecond: microsecond
        }) do
-    [
-      month: year * 12 + month,
-      second: week * 7 * 86_400 + day * 86_400 + hour * 3600 + minute * 60 + second,
-      microsecond: microsecond
-    ]
+    {
+      year * 12 + month,
+      (((week * @days_per_week + day) * 24 + hour) * 60 + minute) * 60 + second,
+      microsecond
+    }
   end
 
   defp shift_time_options(%Duration{
