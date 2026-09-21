@@ -1556,17 +1556,22 @@ defmodule Module.Types.Descr do
 
   defp fun_other_non_empty_arities(%{fun: {:union, bdds}}, arity) do
     case :maps.take(arity, bdds) do
-      {_bdd, rest} ->
-        for {a, b} <- rest,
-            not Enum.all?(bdd_to_dnf(b), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
-            do: a
-
-      :error ->
-        []
+      {_bdd, rest} -> bdds_non_empty_arities(rest)
+      :error -> []
     end
   end
 
   defp fun_other_non_empty_arities(_, _), do: []
+
+  # Returns the arities of the given BDD map whose function type is not empty.
+  # An empty bucket carries no value, so it must never be reported as a
+  # supported arity (otherwise we would return :badarity for a function type
+  # that is actually empty, or reject a live arity in favour of a dead one).
+  defp bdds_non_empty_arities(bdds) do
+    for {arity, bdd} <- bdds,
+        not Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
+        do: arity
+  end
 
   # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
   #
@@ -1602,9 +1607,10 @@ defmodule Module.Types.Descr do
 
         if arrows == [] do
           # The function is empty at the requested arity. Report the *other*
-          # arities (never the called one, which would be self-contradictory),
-          # or :badfun when there are none, i.e. the function is empty.
-          case :maps.keys(rest) do
+          # non-empty arities (never the called one, which would be
+          # self-contradictory), or :badfun when there are none, i.e. the
+          # function is empty.
+          case bdds_non_empty_arities(rest) do
             [] -> :badfun
             other -> {:badarity, other}
           end
@@ -1613,7 +1619,10 @@ defmodule Module.Types.Descr do
         end
 
       :error ->
-        {:badarity, :maps.keys(bdds)}
+        case bdds_non_empty_arities(bdds) do
+          [] -> :badfun
+          other -> {:badarity, other}
+        end
     end
   end
 
