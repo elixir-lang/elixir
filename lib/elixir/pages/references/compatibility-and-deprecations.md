@@ -21,7 +21,9 @@ Elixir version | Support
 1.17           | Security patches only
 1.16           | Security patches only
 
-New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
+New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann) and on the [GitHub releases page](https://github.com/elixir-lang/elixir/releases).
+
+You may also see [all releases](https://github.com/elixir-lang/elixir/releases) and [consult all disclosed vulnerabilities](https://github.com/elixir-lang/elixir/security) on GitHub.
 
 There are currently no plans for a major v2 release.
 
