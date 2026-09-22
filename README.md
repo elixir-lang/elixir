@@ -20,20 +20,6 @@ and maintainable applications.
 For more about Elixir, installation and documentation,
 [check Elixir's website](https://elixir-lang.org/).
 
-## Policies
-
-New releases are announced in the [announcement mailing list][8].
-You can subscribe by sending an email to <elixir-lang-ann+subscribe@googlegroups.com>
-and replying to the confirmation email.
-
-All security releases [will be tagged with `[security]`][10]. For more
-information, please read our [Security Policy][9].
-
-All interactions in our official communication channels follow our
-[Code of Conduct][1].
-
-All contributions are required to conform to our [Open Source Policy][11].
-
 ## Bug reports
 
 For reporting bugs, [visit our issue tracker][2] and follow the steps
@@ -64,27 +50,17 @@ by commenting on existing issues and submitting pull requests. Please
 remember to keep the tone positive and be kind! For more information,
 see the [Code of Conduct][1].
 
-## Discussions, support, and help
-
-For general discussions, support, and help, please use the community
-spaces [listed on the sidebar of the Elixir website](https://elixir-lang.org/),
-such as forums, chat platforms, etc, where the wider community will be available
-to help you.
-
 ## Proposing new features
 
-We encourage you to first propose new features in the community spaces
-listed above. These discussions help refine ideas and gather feedback before
-submission. Our website also includes [a general outline of the language
+You can submit proposals to the [Elixir Core mailing list][3], either through
+the web interface or by subscribing to it at <elixir-lang-core+subscribe@googlegroups.com>.
+Remember to include a clear problem description, compare the proposed solution
+to existing alternatives in the Elixir ecosystem (and in other languages if
+possible), and consider the potential impact your changes will have on the
+codebase and community. For these reasons, we strongly advise you to refine
+ideas and gather feedback in community spaces (ElixirForum, Discord, etc)
+before submission. Our website includes [a general outline of the language
 history and its current development focus](https://elixir-lang.org/development.html).
-
-Once you are ready, you can submit your proposal to the [Elixir Core
-mailing list][3], either through the web interface or by subscribing to
-it at <elixir-lang-core+subscribe@googlegroups.com>. Remember to include
-a clear problem description, compare the proposed solution to existing
-alternatives in the Elixir ecosystem (and in other languages if possible),
-and consider the potential impact your changes will have on the codebase and
-community.
 
 Once a proposal is accepted, it will be added to [the issue tracker][2].
 Features and bug fixes that have already been merged and will be included
@@ -127,27 +103,22 @@ code, and submit pull requests.
 Note you must disclose the use of coding agents and AI written code in your
 contributions. See the "Using AI and coding agents" in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Development links
+## Important links
 
   * [Elixir Documentation][6]
   * [Elixir Core Mailing list (development)][3]
-  * [Announcement mailing list][8]
   * [Code of Conduct][1]
-  * [Issue tracker][2]
+  * [Issues tracker][2]
   * [Changelog][7]
   * [Security Policy][9]
-  * **[#elixir][4]** on [Libera.Chat][5] IRC
+  * [Open Source Policy][11]
 
   [1]: CODE_OF_CONDUCT.md
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-core
-  [4]: https://web.libera.chat/#elixir
-  [5]: https://libera.chat
   [6]: https://elixir-lang.org/docs.html
   [7]: CHANGELOG.md
-  [8]: https://groups.google.com/group/elixir-lang-ann
   [9]: SECURITY.md
-  [10]: https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date
   [11]: OPEN_SOURCE_POLICY.md
 
 ## License
