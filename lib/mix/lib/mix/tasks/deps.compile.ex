@@ -324,7 +324,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     args = [
       "compile-package",
-      "--prod",
+      "--src-only",
       "--target",
       "erlang",
       "--package",
