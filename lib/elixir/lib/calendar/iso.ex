@@ -1844,18 +1844,14 @@ defmodule Calendar.ISO do
   @impl true
   @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   def shift_date(year, month, day, duration) do
-    shift_options = shift_date_options(duration)
+    date = {year, month, day}
 
-    Enum.reduce(shift_options, {year, month, day}, fn
-      {_, 0}, date ->
-        date
-
-      {:month, value}, date ->
-        shift_months(date, value)
-
-      {:day, value}, date ->
-        shift_days(date, value)
-    end)
+    case shift_date_units(duration) do
+      {0, 0} -> date
+      {months, 0} -> shift_months(date, months)
+      {0, days} -> shift_days(date, days)
+      {months, days} -> date |> shift_months(months) |> shift_days(days)
+    end
   end
 
   @doc """
@@ -2000,7 +1996,8 @@ defmodule Calendar.ISO do
     {value, original_precision}
   end
 
-  defp shift_date_options(%Duration{
+  @compile {:inline, shift_date_units: 1}
+  defp shift_date_units(%Duration{
          year: year,
          month: month,
          week: week,
@@ -2010,13 +2007,10 @@ defmodule Calendar.ISO do
          second: 0,
          microsecond: {0, _precision}
        }) do
-    [
-      month: year * 12 + month,
-      day: week * 7 + day
-    ]
+    {year * 12 + month, week * @days_per_week + day}
   end
 
-  defp shift_date_options(_duration) do
+  defp shift_date_units(_duration) do
     raise ArgumentError,
           "cannot shift date by time scale unit. Expected :year, :month, :week, :day"
   end
