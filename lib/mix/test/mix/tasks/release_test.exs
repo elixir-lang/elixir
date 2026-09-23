@@ -370,6 +370,25 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  test "assembles a bootable release with :erts as one of its applications" do
+    in_fixture("release_test", fn ->
+      config = [releases: [release_test: [applications: [erts: :permanent]]]]
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        root = Path.absname("_build/dev/rel/release_test")
+        Mix.Task.run("release")
+
+        assert root |> Path.join("erts-#{@erts_version}/bin/erl") |> File.exists?()
+        assert root |> Path.join("lib/erts-#{@erts_version}/ebin/erts.app") |> File.exists?()
+
+        open_port(Path.join(root, "bin/release_test"), [~c"start"])
+
+        assert %{release_name: "release_test"} =
+                 wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+      end)
+    end)
+  end
+
   test "assembles a rebootable release with runtime configuration" do
     in_fixture("release_test", fn ->
       config = [releases: [runtime_config: [reboot_system_after_config: true]]]
