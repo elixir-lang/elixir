@@ -1131,8 +1131,8 @@ defmodule Mix.Tasks.Release do
     {consolidation_path, release} = build_rel(release, config)
 
     [
-      # erts-VSN/
-      :erts,
+      # erts-VSN/ - written as __MODULE__ to avoid conflicting with :erts app
+      __MODULE__,
       # releases/VERSION/consolidated
       {:consolidated, consolidation_path},
       # bin/
@@ -1148,7 +1148,7 @@ defmodule Mix.Tasks.Release do
       #     iex.bat
       {:executables, Keyword.get(release.options, :include_executables_for, [:unix, :windows])}
       # lib/APP_NAME-APP_VSN/
-      | Map.keys(Map.delete(release.applications, :erts))
+      | Map.keys(release.applications)
     ]
     |> Task.async_stream(&copy(&1, release), ordered: false, timeout: :infinity)
     |> Stream.run()
@@ -1392,7 +1392,7 @@ defmodule Mix.Tasks.Release do
 
   ## Copy operations
 
-  defp copy(:erts, release) do
+  defp copy(__MODULE__, release) do
     _ = Mix.Release.copy_erts(release)
     :ok
   end
