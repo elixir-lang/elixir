@@ -1148,10 +1148,7 @@ defmodule Mix.Tasks.Release do
       #     iex.bat
       {:executables, Keyword.get(release.options, :include_executables_for, [:unix, :windows])}
       # lib/APP_NAME-APP_VSN/
-      #
-      # Tagged so an application named :erts is not mistaken for the
-      # erts-VSN/ step above, which would copy ERTS twice concurrently.
-      | Enum.map(Map.keys(release.applications), &{:app, &1})
+      | Map.keys(Map.delete(release.applications, :erts))
     ]
     |> Task.async_stream(&copy(&1, release), ordered: false, timeout: :infinity)
     |> Stream.run()
@@ -1400,7 +1397,7 @@ defmodule Mix.Tasks.Release do
     :ok
   end
 
-  defp copy({:app, app}, release) do
+  defp copy(app, release) when is_atom(app) do
     Mix.Release.copy_app(release, app)
   end
 
