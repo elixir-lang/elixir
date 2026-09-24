@@ -1728,7 +1728,7 @@ defmodule Calendar.ISO do
   @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    is_month(month) and day in 1..days_in_month(year, month)
+    is_month(month) and day in 1..days_in_month_guarded(year, month)
   end
 
   @doc """
