@@ -843,6 +843,26 @@ defmodule DateTimeTest do
 
       assert DateTime.diff(datetime1, datetime2, :microsecond) == -1234
     end
+
+    test "truncates fractional seconds towards zero" do
+      earlier = ~U[2026-09-24 11:20:42.634900Z]
+      later = ~U[2026-09-24 11:20:42.634901Z]
+
+      assert DateTime.diff(later, earlier) == 0
+      assert DateTime.diff(earlier, later) == 0
+
+      two_hours_later = DateTime.add(later, 2, :hour)
+      assert DateTime.diff(earlier, two_hours_later) == -7200
+      assert DateTime.diff(two_hours_later, earlier) == 7200
+    end
+
+    test "truncates after applying timezone offsets" do
+      earlier = ~U[2026-09-24 11:20:42.000000Z]
+      later = %{~U[2026-09-24 11:20:42.500000Z] | utc_offset: 1}
+
+      assert DateTime.diff(later, earlier) == 0
+      assert DateTime.diff(earlier, later) == 0
+    end
   end
 
   describe "from_naive" do

@@ -1628,9 +1628,13 @@ defmodule DateTime do
         (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond))
 
     offset_diff = utc_offset2 + std_offset2 - (utc_offset1 + std_offset1)
+    diff = naive_diff + offset_diff * 1_000_000
 
-    System.convert_time_unit(naive_diff, :microsecond, unit) +
-      System.convert_time_unit(offset_diff, :second, unit)
+    if diff < 0 do
+      -System.convert_time_unit(-diff, :microsecond, unit)
+    else
+      System.convert_time_unit(diff, :microsecond, unit)
+    end
   end
 
   @doc """
