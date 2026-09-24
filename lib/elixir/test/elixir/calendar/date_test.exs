@@ -204,6 +204,19 @@ defmodule DateTest do
                  fn -> Date.convert!(~D[2016-02-03], FakeCalendar) end
   end
 
+  test "from_gregorian_days/2" do
+    assert Date.from_gregorian_days(730_485, Calendar.Holocene) ==
+             Calendar.Holocene.date(12000, 01, 01)
+
+    assert Date.from_gregorian_days(-1, Calendar.Holocene) ==
+             Calendar.Holocene.date(9999, 12, 31)
+
+    for days <- [-1_000_000, 0, 1, 1_000_000] do
+      date = Date.from_gregorian_days(days, Calendar.Holocene)
+      assert Date.to_gregorian_days(date) == days
+    end
+  end
+
   test "add/2" do
     assert Date.add(~D[0000-01-01], 3_652_424) == ~D[9999-12-31]
     assert Date.add(~D[0000-01-01], 3_652_425) == Date.new!(10000, 1, 1)
