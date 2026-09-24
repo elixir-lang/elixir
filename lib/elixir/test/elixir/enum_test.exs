@@ -948,8 +948,20 @@ defmodule EnumTest do
     assert Enum.reverse_slice([1, 2, 3], 0, 1) == [1, 2, 3]
     assert Enum.reverse_slice([1, 2, 3], 0, 2) == [2, 1, 3]
     assert Enum.reverse_slice([1, 2, 3], 0, 20_000_000) == [3, 2, 1]
+    assert Enum.reverse_slice([1, 2, 3], 1, 2) == [1, 3, 2]
     assert Enum.reverse_slice([1, 2, 3], 100, 2) == [1, 2, 3]
     assert Enum.reverse_slice([1, 2, 3], 10, 10) == [1, 2, 3]
+
+    list = [1, 2, 3, 4, 5]
+
+    for size <- 0..5, start <- 0..(size + 1), count <- 0..(size + 1) do
+      sublist = Enum.take(list, size)
+      {prefix, rest} = Enum.split(sublist, start)
+      {slice, suffix} = Enum.split(rest, count)
+      assert Enum.reverse_slice(sublist, start, count) == prefix ++ Enum.reverse(slice) ++ suffix
+    end
+
+    assert_runs_enumeration_only_once(&Enum.reverse_slice(&1, 1, 2))
   end
 
   describe "slide/3" do
