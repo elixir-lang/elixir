@@ -1633,7 +1633,7 @@ defmodule Code.Formatter do
     string = format_to_string(doc)
 
     if (i == 0 and String.starts_with?(string, ["~", "<<"])) or
-         (i == last and String.ends_with?(string, [">>"])) do
+         (i == last and String.ends_with?(string, ">>")) do
       wrap_in_parens(doc)
     else
       doc
