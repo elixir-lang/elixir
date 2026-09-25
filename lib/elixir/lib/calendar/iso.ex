@@ -1198,7 +1198,7 @@ defmodule Calendar.ISO do
   @impl true
   def quarter_of_year(year, month, day)
       when is_year(year) and is_month(month) and is_day(day) do
-    div(month - 1, 3) + 1
+    (month * 5 + 14) >>> 4
   end
 
   @doc """
