@@ -1403,7 +1403,7 @@ defmodule Inspect.Algebra do
   defp apply_nesting(_, _, :reset), do: 0
   defp apply_nesting(i, _, j), do: i + j
 
-  for i <- 0..64 do
+  for i <- 0..16 do
     defp spaces(unquote(i)) do
       unquote(:binary.copy(" ", i))
     end
