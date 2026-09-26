@@ -1181,20 +1181,7 @@ defmodule Inspect.Algebra do
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
   #
   @typep mode :: :flat | :flat_no_break | :break | :break_no_flat
-
-  @typep entries ::
-           maybe_improper_list(
-             {integer(), mode(), t()} | :group_over,
-             {:tail, boolean(), entries} | []
-           )
-
-  @spec fits?(
-          width :: non_neg_integer() | :infinity,
-          column :: non_neg_integer(),
-          break? :: boolean(),
-          entries
-        ) :: boolean()
-
+           
   @spec fits?(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
@@ -1204,6 +1191,11 @@ defmodule Inspect.Algebra do
           t(),
           entries
         ) :: boolean()
+        when entries:
+               maybe_improper_list(
+                 {integer(), mode(), t()} | :group_over,
+                 {:tail, boolean(), entries} | []
+               )
 
   # We need at least a break to consider the document does not fit since a
   # large document without breaks has no option but fitting its current line.
@@ -1218,9 +1210,7 @@ defmodule Inspect.Algebra do
   # If we get to the end of the group and if fits, it is because
   # something already broke elsewhere, so we can consider the group
   # fits. This only appears when checking if a flex break and fitting.
-
-  defp fits?(_w, _k, b?, [:group_over | _]),
-    do: b?
+  defp fits?(_w, _k, b?, [:group_over | _]), do: b?
 
   defp fits?(w, k, b?, [{i, m, doc} | t]), do: fits?(w, k, b?, i, m, doc, t)
 
@@ -1290,19 +1280,13 @@ defmodule Inspect.Algebra do
   @spec format(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
-          [{integer(), mode(), t()} | :group_over],
-          binary
-        ) :: iodata
-
-  @spec format(
-          width :: non_neg_integer() | :infinity,
-          column :: non_neg_integer(),
           indent :: integer(),
           mode(),
           t(),
           [{integer(), mode(), t()} | :group_over],
           binary
         ) :: iodata
+
   defp format(_, _, [], acc), do: acc
   defp format(w, k, [:group_over | t], acc), do: format(w, k, t, acc)
   defp format(w, k, [{i, m, doc} | t], acc), do: format(w, k, i, m, doc, t, acc)
