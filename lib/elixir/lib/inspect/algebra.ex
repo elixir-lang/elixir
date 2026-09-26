@@ -1181,7 +1181,7 @@ defmodule Inspect.Algebra do
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
   #
   @typep mode :: :flat | :flat_no_break | :break | :break_no_flat
-           
+
   @spec fits?(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
