@@ -194,7 +194,15 @@ At this point, you may ask, why not a union? As a real-world example, take a t-s
 
   * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and maybe other colors)
 
-Since the t-shirt has both colors, we could say it belongs to the union of green and yellow t-shirts, but doing so would not capture the fact it is both green and yellow. Therefore it is more precise to say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it is not useful to define the union of two functions in Elixir, so the compiler will point you to the right direction if you specify the wrong one.
+Since the t-shirt has both colors, we could say it belongs to the union of green and yellow t-shirts, but doing so would not capture the fact it is both green and yellow. Therefore it is more precise to say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection.
+
+An alternative example: consider a function that takes a list of integers or booleans and a function to map them to something else.
+If we type it like this: `(list(integer() or boolean()), ((integer() -> integer()) or (boolean() -> boolean()))) -> list(integer() or boolean())`,
+then we have a bug in our code: function that only works with booleans (`boolean() -> boolean()`) would satisfy the type described as the second
+argument to our function. However, we can have both integers AND booleans in our list and our function must support both of these types. Thus,
+`(integer() -> integer()) and (boolean() -> boolean())` would narrow the type to functions that support both integers and booleans as input arguments, making our code bug-free.
+
+In practice, it is not useful to define the union of two functions in Elixir, so the compiler will point you to the right direction if you specify the wrong one.
 
 ## The `dynamic()` type
 
