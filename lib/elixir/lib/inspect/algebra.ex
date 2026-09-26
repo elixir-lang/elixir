@@ -1167,7 +1167,7 @@ defmodule Inspect.Algebra do
   """
   @spec format(t, non_neg_integer | :infinity) :: iodata
   def format(doc, width) when is_doc(doc) and is_width(width) do
-    format(width, 0, [{0, :flat, doc}], <<>>)
+    format(width, 0, 0, :flat, doc, [], <<>>)
   end
 
   # Type representing the document mode to be rendered:
@@ -1186,6 +1186,9 @@ defmodule Inspect.Algebra do
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
           break? :: boolean(),
+          indent :: integer(),
+          mode(),
+          t(),
           entries
         ) :: boolean()
         when entries:
@@ -1207,110 +1210,116 @@ defmodule Inspect.Algebra do
   # If we get to the end of the group and if fits, it is because
   # something already broke elsewhere, so we can consider the group
   # fits. This only appears when checking if a flex break and fitting.
+  defp fits?(_w, _k, b?, [:group_over | _]), do: b?
 
-  defp fits?(_w, _k, b?, [:group_over | _]),
-    do: b?
+  defp fits?(w, k, b?, [{i, m, doc} | t]), do: fits?(w, k, b?, i, m, doc, t)
 
   ## Flat no break
 
-  defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
-    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+  defp fits?(w, k, b?, i, _, doc_fits(x, :disabled), t),
+    do: fits?(w, k, b?, i, :flat_no_break, x, t)
 
-  defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
-    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+  defp fits?(w, k, b?, i, :flat_no_break, doc_fits(x, _), t),
+    do: fits?(w, k, b?, i, :flat_no_break, x, t)
 
-  defp fits?(w, k, b?, [{i, _, doc_group(x, :pessimistic)} | t]),
-    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+  defp fits?(w, k, b?, i, _, doc_group(x, :pessimistic), t),
+    do: fits?(w, k, b?, i, :flat_no_break, x, t)
 
-  defp fits?(w, k, b?, [{i, :flat_no_break, doc_group(x, _)} | t]),
-    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+  defp fits?(w, k, b?, i, :flat_no_break, doc_group(x, _), t),
+    do: fits?(w, k, b?, i, :flat_no_break, x, t)
 
   ## Breaks no flat
 
-  defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
-    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+  defp fits?(w, k, b?, i, _, doc_fits(x, :enabled), t),
+    do: fits?(w, k, b?, i, :break_no_flat, x, t)
 
-  defp fits?(w, k, b?, [{i, _, doc_group(x, :optimistic)} | t]),
-    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+  defp fits?(w, k, b?, i, _, doc_group(x, :optimistic), t),
+    do: fits?(w, k, b?, i, :break_no_flat, x, t)
 
-  defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
-    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+  defp fits?(w, k, b?, i, :break_no_flat, doc_force(x), t),
+    do: fits?(w, k, b?, i, :break_no_flat, x, t)
 
-  defp fits?(_, _, _, [{_, :break_no_flat, doc_break(_, _)} | _]), do: true
-  defp fits?(_, _, _, [{_, :break_no_flat, doc_line()} | _]), do: true
+  defp fits?(_, _, _, _, :break_no_flat, doc_break(_, _), _), do: true
+  defp fits?(_, _, _, _, :break_no_flat, doc_line(), _), do: true
 
   ## Breaks
 
-  defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
-  defp fits?(_, _, _, [{_, :break, doc_line()} | _]), do: true
+  defp fits?(_, _, _, _, :break, doc_break(_, _), _), do: true
+  defp fits?(_, _, _, _, :break, doc_line(), _), do: true
 
-  defp fits?(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
-    do: fits?(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
+  defp fits?(w, k, b?, i, :break, doc_group(x, _), t),
+    do: fits?(w, k, b?, i, :flat, x, {:tail, b?, t})
 
   ## Catch all
 
-  defp fits?(w, _, _, [{i, _, doc_line()} | t]), do: fits?(w, i, false, t)
-  defp fits?(w, k, b?, [{_, _, doc_nil()} | t]), do: fits?(w, k, b?, t)
-  defp fits?(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, b?, t)
-  defp fits?(w, k, b?, [{i, m, doc_color(x, _)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
-  defp fits?(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, b?, t)
-  defp fits?(w, k, b?, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), b?, t)
-  defp fits?(_, _, _, [{_, _, doc_force(_)} | _]), do: false
-  defp fits?(w, k, _, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), true, t)
-  defp fits?(w, k, b?, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
+  defp fits?(w, _, _, i, _, doc_line(), t), do: fits?(w, i, false, t)
+  defp fits?(w, k, b?, _, _, doc_nil(), t), do: fits?(w, k, b?, t)
+  defp fits?(w, _, b?, i, _, doc_collapse(_), t), do: fits?(w, i, b?, t)
+  defp fits?(w, k, b?, i, m, doc_color(x, _), t), do: fits?(w, k, b?, i, m, x, t)
+  defp fits?(w, k, b?, _, _, doc_string(_, l), t), do: fits?(w, k + l, b?, t)
+  defp fits?(w, k, b?, _, _, s, t) when is_binary(s), do: fits?(w, k + byte_size(s), b?, t)
+  defp fits?(_, _, _, _, _, doc_force(_), _), do: false
+  defp fits?(w, k, _, _, _, doc_break(s, _), t), do: fits?(w, k + byte_size(s), true, t)
+  defp fits?(w, k, b?, i, m, doc_nest(x, _, :break), t), do: fits?(w, k, b?, i, m, x, t)
 
-  defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
-    do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
+  defp fits?(w, k, b?, i, m, doc_nest(x, j, _), t),
+    do: fits?(w, k, b?, apply_nesting(i, k, j), m, x, t)
 
-  defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
-    do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])
+  defp fits?(w, k, b?, i, m, doc_cons(x, y), t),
+    do: fits?(w, k, b?, i, m, x, [{i, m, y} | t])
 
-  defp fits?(w, k, b?, [{i, m, doc_group(x, _)} | t]),
-    do: fits?(w, k, b?, [{i, m, x} | {:tail, b?, t}])
+  defp fits?(w, k, b?, i, m, doc_group(x, _), t),
+    do: fits?(w, k, b?, i, m, x, {:tail, b?, t})
 
-  defp fits?(w, k, b?, [{i, m, doc_limit(x, :infinity)} | t]) when w != :infinity,
-    do: fits?(:infinity, k, b?, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t])
+  defp fits?(w, k, b?, i, m, doc_limit(x, :infinity), t) when w != :infinity,
+    do: fits?(:infinity, k, b?, i, :flat, x, [{i, m, doc_limit(empty(), w)} | t])
 
-  defp fits?(_w, k, b?, [{i, m, doc_limit(x, w)} | t]),
-    do: fits?(w, k, b?, [{i, m, x} | t])
+  defp fits?(_w, k, b?, i, m, doc_limit(x, w), t),
+    do: fits?(w, k, b?, i, m, x, t)
 
   @spec format(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
-          [{integer, mode, t} | :group_over],
+          indent :: integer(),
+          mode(),
+          t(),
+          [{integer(), mode(), t()} | :group_over],
           binary
         ) :: iodata
-  defp format(_, _, [], acc), do: acc
 
-  defp format(w, k, [{_, _, doc_nil()} | t], acc),
+  defp format(_, _, [], acc), do: acc
+  defp format(w, k, [:group_over | t], acc), do: format(w, k, t, acc)
+  defp format(w, k, [{i, m, doc} | t], acc), do: format(w, k, i, m, doc, t, acc)
+
+  defp format(w, k, _, _, doc_nil(), t, acc),
     do: format(w, k, t, acc)
 
-  defp format(w, _, [{i, _, doc_line()} | t], acc),
+  defp format(w, _, i, _, doc_line(), t, acc),
     do: format(w, i, t, <<acc::binary, indent(i)::binary>>)
 
-  defp format(w, k, [{i, m, doc_cons(x, y)} | t], acc),
-    do: format(w, k, [{i, m, x}, {i, m, y} | t], acc)
+  defp format(w, k, i, m, doc_cons(x, y), t, acc),
+    do: format(w, k, i, m, x, [{i, m, y} | t], acc)
 
-  defp format(w, k, [{i, m, doc_color(x, c)} | t], acc),
-    do: format(w, k, [{i, m, x} | t], <<acc::binary, c::binary>>)
+  defp format(w, k, i, m, doc_color(x, c), t, acc),
+    do: format(w, k, i, m, x, t, <<acc::binary, c::binary>>)
 
-  defp format(w, k, [{_, _, doc_string(s, l)} | t], acc),
+  defp format(w, k, _, _, doc_string(s, l), t, acc),
     do: format(w, k + l, t, <<acc::binary, s::binary>>)
 
-  defp format(w, k, [{_, _, s} | t], acc) when is_binary(s),
+  defp format(w, k, _, _, s, t, acc) when is_binary(s),
     do: format(w, k + byte_size(s), t, <<acc::binary, s::binary>>)
 
-  defp format(w, k, [{i, m, doc_force(x)} | t], acc),
-    do: format(w, k, [{i, m, x} | t], acc)
+  defp format(w, k, i, m, doc_force(x), t, acc),
+    do: format(w, k, i, m, x, t, acc)
 
-  defp format(w, k, [{i, m, doc_fits(x, _)} | t], acc),
-    do: format(w, k, [{i, m, x} | t], acc)
+  defp format(w, k, i, m, doc_fits(x, _), t, acc),
+    do: format(w, k, i, m, x, t, acc)
 
-  defp format(w, _, [{i, _, doc_collapse(max)} | t], acc),
+  defp format(w, _, i, _, doc_collapse(max), t, acc),
     do: [acc | collapse(List.wrap(format(w, i, t, <<>>)), max, 0, i)]
 
   # Flex breaks are conditional to the document and the mode
-  defp format(w, k, [{i, m, doc_break(s, :flex)} | t], acc) do
+  defp format(w, k, i, m, doc_break(s, :flex), t, acc) do
     k = k + byte_size(s)
 
     if w == :infinity or m == :flat or fits?(w, k, true, t) do
@@ -1321,7 +1330,7 @@ defmodule Inspect.Algebra do
   end
 
   # Strict breaks are conditional to the mode
-  defp format(w, k, [{i, mode, doc_break(s, :strict)} | t], acc) do
+  defp format(w, k, i, mode, doc_break(s, :strict), t, acc) do
     if mode == :break do
       format(w, i, t, <<acc::binary, indent(i)::binary>>)
     else
@@ -1330,47 +1339,44 @@ defmodule Inspect.Algebra do
   end
 
   # Nesting is conditional to the mode.
-  defp format(w, k, [{i, mode, doc_nest(x, j, nest)} | t], acc) do
+  defp format(w, k, i, mode, doc_nest(x, j, nest), t, acc) do
     if nest == :always or (nest == :break and mode == :break) do
-      format(w, k, [{apply_nesting(i, k, j), mode, x} | t], acc)
+      format(w, k, apply_nesting(i, k, j), mode, x, t, acc)
     else
-      format(w, k, [{i, mode, x} | t], acc)
+      format(w, k, i, mode, x, t, acc)
     end
   end
 
   # Groups must do the fitting decision.
-  defp format(w, k, [:group_over | t], acc) do
-    format(w, k, t, acc)
-  end
 
   # TODO: Deprecate me in Elixir v1.23
-  defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t], acc) do
-    format(w, k, [{i, :break, x} | t], acc)
+  defp format(w, k, i, :break, doc_group(x, :inherit), t, acc) do
+    format(w, k, i, :break, x, t, acc)
   end
 
-  defp format(w, k, [{i, :flat, doc_group(x, :optimistic)} | t], acc) do
-    if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
-      format(w, k, [{i, :flat, x}, :group_over | t], acc)
+  defp format(w, k, i, :flat, doc_group(x, :optimistic), t, acc) do
+    if w == :infinity or fits?(w, k, false, i, :flat, x, t) do
+      format(w, k, i, :flat, x, [:group_over | t], acc)
     else
-      format(w, k, [{i, :break, x}, :group_over | t], acc)
+      format(w, k, i, :break, x, [:group_over | t], acc)
     end
   end
 
-  defp format(w, k, [{i, _, doc_group(x, _)} | t], acc) do
-    if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
-      format(w, k, [{i, :flat, x}, :group_over | t], acc)
+  defp format(w, k, i, _, doc_group(x, _), t, acc) do
+    if w == :infinity or fits?(w, k, false, i, :flat, x, []) do
+      format(w, k, i, :flat, x, [:group_over | t], acc)
     else
-      format(w, k, [{i, :break, x}, :group_over | t], acc)
+      format(w, k, i, :break, x, [:group_over | t], acc)
     end
   end
 
   # Limit is set to infinity and then reverts
-  defp format(w, k, [{i, m, doc_limit(x, :infinity)} | t], acc) when w != :infinity do
-    format(:infinity, k, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t], acc)
+  defp format(w, k, i, m, doc_limit(x, :infinity), t, acc) when w != :infinity do
+    format(:infinity, k, i, :flat, x, [{i, m, doc_limit(empty(), w)} | t], acc)
   end
 
-  defp format(_w, k, [{i, m, doc_limit(x, w)} | t], acc) do
-    format(w, k, [{i, m, x} | t], acc)
+  defp format(_w, k, i, m, doc_limit(x, w), t, acc) do
+    format(w, k, i, m, x, t, acc)
   end
 
   defp collapse(["\n" <> rest | t], max, count, i) do
