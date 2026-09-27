@@ -292,27 +292,45 @@ defmodule URI do
     Stream.unfold(query, &decode_next_query_pair(&1, encoding))
   end
 
-  defp decode_next_query_pair("", _encoding) do
+  defp decode_next_query_pair(<<>>, _encoding) do
     nil
   end
 
   defp decode_next_query_pair(query, encoding) do
-    {undecoded_next_pair, rest} =
-      case :binary.split(query, "&") do
-        [next_pair, rest] -> {next_pair, rest}
-        [next_pair] -> {next_pair, ""}
-      end
+    parse_next_key(query, query, 0, encoding)
+  end
 
-    next_pair =
-      case :binary.split(undecoded_next_pair, "=") do
-        [key, value] ->
-          {decode_with_encoding(key, encoding), decode_with_encoding(value, encoding)}
+  defp parse_next_key(<<?=, rest::binary>>, original, skip, encoding) do
+    key = binary_part(original, 0, skip) |> decode_with_encoding(encoding)
+    parse_next_val(rest, rest, 0, key, encoding)
+  end
 
-        [key] ->
-          {decode_with_encoding(key, encoding), ""}
-      end
+  defp parse_next_key(<<?&, rest::binary>>, original, skip, encoding) do
+    key = binary_part(original, 0, skip) |> decode_with_encoding(encoding)
+    {{key, ""}, rest}
+  end
 
-    {next_pair, rest}
+  defp parse_next_key(<<_char, rest::binary>>, original, skip, encoding) do
+    parse_next_key(rest, original, skip + 1, encoding)
+  end
+
+  defp parse_next_key(<<>>, original, skip, encoding) do
+    key = binary_part(original, 0, skip) |> decode_with_encoding(encoding)
+    {{key, ""}, ""}
+  end
+
+  defp parse_next_val(<<?&, rest::binary>>, original, skip, key, encoding) do
+    val = binary_part(original, 0, skip) |> decode_with_encoding(encoding)
+    {{key, val}, rest}
+  end
+
+  defp parse_next_val(<<_char, rest::binary>>, original, skip, key, encoding) do
+    parse_next_val(rest, original, skip + 1, key, encoding)
+  end
+
+  defp parse_next_val(<<>>, original, skip, key, encoding) do
+    val = binary_part(original, 0, skip) |> decode_with_encoding(encoding)
+    {{key, val}, ""}
   end
 
   defp decode_with_encoding(string, :www_form) do
