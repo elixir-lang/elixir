@@ -1196,6 +1196,7 @@ defmodule Inspect.Algebra do
                  {integer(), mode(), t()} | :group_over,
                  {:tail, boolean(), entries} | []
                )
+               | {:tail, boolean(), entries}
 
   # We need at least a break to consider the document does not fit since a
   # large document without breaks has no option but fitting its current line.
