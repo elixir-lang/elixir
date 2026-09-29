@@ -1237,7 +1237,7 @@ defmodule Module.Types.Apply do
         _ -> args_types
       end
 
-    case map_update(map, key, none(), true, true, false) do
+    case map_update(map, key, none(), true, true, false, :keep) do
       {value, descr, _errors} ->
         value = opt_union(value, default)
         {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1253,7 +1253,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :pop_lazy, _info, [map, key, fun] = args_types, stack) do
     case fun_apply(fun, []) do
       {:ok, default} ->
-        case map_update(map, key, none(), true, true, false) do
+        case map_update(map, key, none(), true, true, false, :keep) do
           {value, descr, _errors} ->
             value = opt_union(value, default)
             {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1287,9 +1287,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
-    fun = fn _value, optional? -> {value, optional?} end
-
-    case map_update_fun(map, key, fun, false, false) do
+    case map_update(map, key, upper_bound(value), false, false, false, :keep) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "do nothing"}}
@@ -1297,9 +1295,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace!, _info, [map, key, value] = args_types, stack) do
-    fun = fn _value, optional? -> {value, optional?} end
-
-    case map_update_fun(map, key, fun, false, false) do
+    case map_update(map, key, upper_bound(value), false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace!, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1324,18 +1320,20 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
+      # `fun` is the inferred function type; this adapter computes its return type.
       fun_apply = fn arg_type, optional? ->
         if empty?(arg_type) do
           {default, false}
         else
-          case fun_apply(fun, [arg_type]) do
-            {:ok, res} -> {if(optional?, do: opt_union(res, default), else: res), false}
+          case fun_apply_or_none(fun, [arg_type]) do
+            {:ok, res, _status} -> {if(optional?, do: opt_union(res, default), else: res), false}
             reason -> throw({:badapply, reason, [arg_type]})
           end
         end
       end
 
-      map_update_fun(map, key, fun_apply, false, true)
+      map_update_fun(map, key, fun_apply, true, true)
+      |> map_update_check_callback(fun, gradual?(map))
     catch
       {:badapply, reason, args_types} ->
         {:error, {:badapply, fun, args_types, reason}}
@@ -1456,9 +1454,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    fun = fn _value, optional? -> {value, optional?} end
-
-    case map_update_fun(map, key, fun, false, false) do
+    case map_update(map, key, upper_bound(value), false, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :update, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1826,15 +1822,22 @@ defmodule Module.Types.Apply do
   ## Map helpers
 
   defp map_put_new(map, key, value, name, args_types, stack) do
-    fun = fn
-      type, true -> {opt_union(type, value), false}
-      type, false -> {if(empty?(type), do: value, else: type), false}
-    end
+    # No update is needed when every possible key is already required.
+    with {:finite, [_ | _] = keys} <- atom_fetch(upper_bound(key)),
+         true <- Enum.all?(keys, &match?({false, _}, map_fetch_key(map, &1))) do
+      {:ok, return(map, args_types, stack)}
+    else
+      _ ->
+        fun = fn
+          type, true -> {opt_union(type, value), false}
+          type, false -> {if(empty?(type), do: value, else: type), false}
+        end
 
-    case map_update_fun(map, key, fun, false, true) do
-      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(Map, name, args_types)}
-      {:error, _errors} -> {:ok, map}
+        case map_update_fun(map, key, fun, false, true) do
+          {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+          :badmap -> {:error, badremote(Map, name, args_types)}
+          {:error, _errors} -> {:ok, map}
+        end
     end
   end
 
@@ -1846,14 +1849,18 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
+      # Apply the inferred function type to each old field type, without executing it.
       fun_apply = fn arg_type, optional? ->
-        case fun_apply(fun, [arg_type]) do
-          {:ok, res} -> {res, optional?}
+        case fun_apply_or_none(fun, [arg_type]) do
+          {:ok, res, _status} -> {res, optional?}
           reason -> throw({:badapply, reason, [arg_type]})
         end
       end
 
-      map_update_fun(map, key, fun_apply, false, false)
+      on_missing = if name == :replace_lazy, do: :keep, else: :reject
+
+      map_update_fun(map, key, fun_apply, true, false, on_missing)
+      |> map_update_check_callback(fun, gradual?(map))
     catch
       {:badapply, reason, args_types} ->
         {:error, {:badapply, fun, args_types, reason}}
@@ -1865,6 +1872,23 @@ defmodule Module.Types.Apply do
   end
 
   ## Application helpers
+
+  # Check all old values together: a single unmatched fragment must not reject the update.
+  defp map_update_check_callback({old_values, _descr, _errors} = result, fun, gradual?) do
+    unless empty?(old_values) do
+      arguments = [if(gradual?, do: dynamic(old_values), else: old_values)]
+
+      case fun_apply_or_none(fun, arguments) do
+        {:ok, _result, :ok} -> :ok
+        {:ok, _result, reason} -> throw({:badapply, reason, arguments})
+        reason -> throw({:badapply, reason, arguments})
+      end
+    end
+
+    result
+  end
+
+  defp map_update_check_callback(result, _fun, _gradual?), do: result
 
   defp domain(nil, [{domain, _}]), do: domain
   defp domain(domain, _clauses), do: domain

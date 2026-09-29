@@ -209,6 +209,30 @@ defmodule Module.Types.IntegrationTest do
   end
 
   describe "type checking" do
+    test "Map.update callback with a struct field selected through a map lookup" do
+      files = %{
+        "map_update_struct.ex" => """
+        defmodule MapUpdateStruct do
+          defstruct users: %{}, groups: %{}
+
+          @field %{user: :users, group: :groups}
+
+          def put(%__MODULE__{} = state, kind, id, %{} = value)
+              when is_map_key(@field, kind) and is_binary(id) do
+            Map.update(state, @field[kind], %{id => value}, &Map.put(&1, id, value))
+          end
+
+          def put2(%__MODULE__{} = state, kind, id, %{} = value)
+              when kind in [:user, :group] and is_binary(id) do
+            Map.update(state, @field[kind], %{id => value}, &Map.put(&1, id, value))
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "inferred remote calls" do
       files = %{
         "a.ex" => """

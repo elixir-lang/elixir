@@ -1286,7 +1286,7 @@ defmodule Module.Types.ExprTest do
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == closed_map(foo: {atom([:bar, :baz]), false})
+             ) == closed_map(foo: {atom([:baz]), false})
 
       # Override based on position
       assert typecheck!(
