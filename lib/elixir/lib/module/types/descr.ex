@@ -2946,16 +2946,12 @@ defmodule Module.Types.Descr do
 
   # Gets the domain type association to a map. Domain values are stored without
   # an optional marker, so no conversion is necessary here.
-  @compile {:inline, map_domain_tag_to_type: 1}
-  defp map_domain_tag_to_type(:open), do: term()
-  defp map_domain_tag_to_type(:closed), do: none()
+  @compile {:inline, map_domain_tag_to_type: 2}
+  defp map_domain_tag_to_type(:open, _key), do: term()
+  defp map_domain_tag_to_type(:closed, _key), do: none()
 
   defp map_domain_tag_to_type(domain, key) when is_list(domain) do
     fields_get(domain, key, none())
-  end
-
-  defp map_domain_tag_to_type(domain, _key) do
-    map_domain_tag_to_type(domain)
   end
 
   # Map leaf ids reserve their lowest bit for a conservative
@@ -3614,10 +3610,17 @@ defmodule Module.Types.Descr do
   `key_descr` is split into optional and required keys and tracked accordingly.
   The gradual aspect of `key_descr` does not impact the return type.
 
+  `optional?` describes if the key is optional (in case of atoms).
+
   It returns `{type, descr, errors}`, `:badmap`, `{:error, errors}`.
   The list of `errors` may be empty, which implies a bad domain.
+
   The `return_type?` flag is used for optimizations purposes. If set to false,
   the returned `type` should not be used, as it will be imprecise.
+
+  With the default `on_missing` policy:
+  If `force?` is false, the key is expected to exist. When true, it forces
+  the key into existence.
 
   `on_missing` says what to do when the key is absent: `:apply` applies the update,
   `:keep` leaves the map unchanged, and `:reject` excludes that case from the result.
@@ -4187,26 +4190,6 @@ defmodule Module.Types.Descr do
 
   defp map_domain_protect_fields(_tag, fields, _domain, _atom_keys), do: fields
 
-  defp map_project_domain_field(tag, fields, negs, domain_key) do
-    {field, bdd} = map_pop_domain_bdd(tag, fields, domain_key)
-
-    case map_split_negative_pairs_domain(negs, domain_key) do
-      :empty ->
-        {none(), false}
-
-      negative ->
-        if map_pair_projection_keeps_full_fst?(negative, bdd) do
-          field
-        else
-          Enum.reduce(
-            map_remove_negative(negative, field, bdd),
-            {none(), false},
-            &field_opt_union(elem(&1, 0), &2, %{})
-          )
-        end
-    end
-  end
-
   defp map_replace_domain(:open, _domain_key, :term), do: :open
 
   defp map_replace_domain(:open, domain_key, type) do
@@ -4446,16 +4429,11 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Take a map BDD and return the union of present-value types for the given key domain.
+  # The DNF lines are already nonempty, so every value allowed by their domain
+  # can occur at a fresh key, even when the line has negatives.
   defp map_get_domain(dnf, domain_key, acc) when is_atom(domain_key) do
-    Enum.reduce(dnf, acc, fn
-      # Optimization: if there are no negatives, get the domain tag directly
-      {tag_or_domains, _fields, []}, acc ->
-        map_domain_tag_to_type(tag_or_domains, domain_key) |> opt_union(acc)
-
-      {tag_or_domains, fields, negs}, acc ->
-        {value, _optional?} = map_project_domain_field(tag_or_domains, fields, negs, domain_key)
-        opt_union(value, acc)
+    Enum.reduce(dnf, acc, fn {tag_or_domains, _fields, _negs}, acc ->
+      map_domain_tag_to_type(tag_or_domains, domain_key) |> opt_union(acc)
     end)
   end
 
