@@ -98,6 +98,7 @@ defmacro if(clause, do: expression) do
     case unquote(clause) do
       x when x in [false, nil] -> nil
       _ -> unquote(expression)
+    end
   end
 end
 ```

@@ -2624,7 +2624,7 @@ defmodule Kernel do
   defmacro is_struct(term) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(term) do
             %_{} -> true
             _ -> false
@@ -2712,7 +2712,7 @@ defmodule Kernel do
   defmacro is_non_struct_map(term) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(term) do
             %_{} -> false
             %{} -> true
@@ -2750,7 +2750,7 @@ defmodule Kernel do
   defmacro is_exception(term) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(term) do
             %_{__exception__: _} -> true
             _ -> false
@@ -2787,7 +2787,7 @@ defmodule Kernel do
   defmacro is_exception(term, name) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(name) do
             name when is_atom(name) ->
               case unquote(term) do
@@ -5562,7 +5562,7 @@ defmodule Kernel do
   when the struct is printed:
 
       defmodule User do
-        @derive {Inspect, only: :name}
+        @derive {Inspect, only: [:name]}
         defstruct name: nil, age: nil
       end
 
@@ -5588,6 +5588,9 @@ defmodule Kernel do
         @enforce_keys [:name]
         defstruct name: nil, age: 10 + 11
       end
+
+  `@enforce_keys` must be set to an atom or a list of unique atoms,
+  all of which must name fields defined by `defstruct/1`
 
   Now trying to build a struct without the name key will fail:
 
@@ -6923,8 +6926,9 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~w` for list of words.
 
-  It returns a list of "words" split by whitespace. Character unescaping and
-  interpolation happens for each word.
+  It returns a list of "words" split by whitespace. Character
+  unescaping and interpolation happens for each word before
+  splitting.
 
   ## Modifiers
 

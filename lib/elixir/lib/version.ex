@@ -362,11 +362,21 @@ defmodule Version do
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
-  def compare(version1, version2) do
-    do_compare(to_matchable(version1, true), to_matchable(version2, true))
+  def compare(
+        %Version{major: major1, minor: minor1, patch: patch1, pre: pre1},
+        %Version{major: major2, minor: minor2, patch: patch2, pre: pre2}
+      ) do
+    do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
   end
 
-  defp do_compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
+  def compare(version1, version2) do
+    {major1, minor1, patch1, pre1, _} = to_matchable(version1, true)
+    {major2, minor2, patch2, pre2, _} = to_matchable(version2, true)
+
+    do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2)
+  end
+
+  defp do_compare(major1, minor1, patch1, pre1, major2, minor2, patch2, pre2) do
     cond do
       major1 > major2 -> :gt
       major1 < major2 -> :lt
@@ -633,17 +643,17 @@ defmodule Version do
     defp require_digits(string) do
       if leading_zero?(string) or byte_size(string) > @max_numeric_component_digits,
         do: :error,
-        else: parse_digits(string, "")
+        else: parse_digits(string)
     end
 
     defp leading_zero?(<<?0, _, _::binary>>), do: true
     defp leading_zero?(_), do: false
 
-    defp parse_digits(<<char, rest::binary>>, acc) when char in ?0..?9,
-      do: parse_digits(rest, <<acc::binary, char>>)
+    defp parse_digits(<<>>), do: :error
 
-    defp parse_digits(<<>>, acc) when byte_size(acc) > 0, do: {:ok, String.to_integer(acc)}
-    defp parse_digits(_, _acc), do: :error
+    defp parse_digits(string) do
+      if all_digits?(string), do: {:ok, :erlang.binary_to_integer(string)}, else: :error
+    end
 
     defp maybe_patch(patch, approximate?)
     defp maybe_patch(nil, true), do: {:ok, nil}
@@ -667,7 +677,7 @@ defmodule Version do
     end
 
     defp convert_parts_to_integer([part | rest], acc) do
-      case parse_digits(part, "") do
+      case parse_digits(part) do
         {:ok, integer} ->
           if leading_zero?(part) do
             :error

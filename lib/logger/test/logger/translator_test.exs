@@ -665,6 +665,30 @@ defmodule Logger.TranslatorTest do
     assert {%UndefinedFunctionError{function: :undef}, [_ | _]} = task_metadata[:crash_reason]
   end
 
+  test "translates Task undef function crash with orphan compiler module" do
+    # Start once so all modules are loaded
+    Task.start(__MODULE__, :undef, [])
+
+    assert capture_log(fn ->
+             try do
+               :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
+               {:ok, pid} = Task.start(__MODULE__, :undef, [])
+               ref = Process.monitor(pid)
+               receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+             after
+               :erlang.process_flag(:error_handler, :error_handler)
+             end
+           end) =~
+             "Hint: if this module is defined somewhere, this error may have happened because processes were spawned during Elixir's compilation"
+
+    assert_receive {:event,
+                    {:report,
+                     %{
+                       label: {Task.Supervisor, :terminating},
+                       report: %{orphan_compiler_module?: true}
+                     }}, _task_metadata}
+  end
+
   test "translates Task raising ErlangError" do
     parent = self()
 

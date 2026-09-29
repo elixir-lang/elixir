@@ -85,6 +85,7 @@ defmodule Module.Types.Descr do
   defp descr_key?(descr, key), do: is_map_key(descr, key)
 
   def dynamic(), do: %{dynamic: :term}
+  @compile {:inline, none: 0, term: 0, upper_bound: 1}
   def none(), do: @none
   def term(), do: :term
 
@@ -216,7 +217,7 @@ defmodule Module.Types.Descr do
   @doc """
   Creates a function from overlapping function clauses.
   """
-  def fun_from_inferred_clauses(args_clauses) do
+  def fun_from_inferred_clauses([{args, _return} | _] = args_clauses) do
     domain_clauses =
       Enum.reduce(args_clauses, [], fn {args, return}, acc ->
         domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
@@ -229,7 +230,10 @@ defmodule Module.Types.Descr do
           args <- domain_to_args(domain),
           do: fun(args, dynamic(union))
 
-    Enum.reduce(funs, &bare_intersection/2)
+    case funs do
+      [] -> fun(length(args))
+      [_ | _] -> Enum.reduce(funs, &bare_intersection/2)
+    end
   end
 
   # If you have a function with multiple clauses, they may overlap,
@@ -336,6 +340,7 @@ defmodule Module.Types.Descr do
   @doc """
   Returns true if the type has a gradual part.
   """
+  @compile {:inline, gradual?: 1}
   def gradual?(:term), do: false
 
   def gradual?(descr) do
@@ -383,6 +388,19 @@ defmodule Module.Types.Descr do
 
   defp split_dynamic(descr), do: {descr, descr, false}
 
+  @compile {:inline, align_gradual: 2}
+  defp align_gradual(left, right) do
+    left = unfold(left)
+    right = unfold(right)
+
+    case {left, right} do
+      {%{dynamic: _}, %{dynamic: _}} -> {left, right}
+      {%{dynamic: _}, _} -> {left, Map.put(right, :dynamic, right)}
+      {_, %{dynamic: _}} -> {Map.put(left, :dynamic, left), right}
+      {_, _} -> {left, right}
+    end
+  end
+
   @doc """
   Computes the union of two descrs.
   """
@@ -392,23 +410,8 @@ defmodule Module.Types.Descr do
   def bare_union(other, none) when none == @none, do: other
 
   def bare_union(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        bare_union_static(left, right_with_dynamic)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        bare_union_static(left_with_dynamic, right)
-
-      true ->
-        bare_union_static(left, right)
-    end
+    {left, right} = align_gradual(left, right)
+    bare_union_static(left, right)
   end
 
   @compile {:inline, bare_union_static: 2}
@@ -431,23 +434,8 @@ defmodule Module.Types.Descr do
   def bare_intersection(other, :term), do: other
 
   def bare_intersection(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        bare_intersection_static(left, right_with_dynamic)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        bare_intersection_static(left_with_dynamic, right)
-
-      true ->
-        bare_intersection_static(left, right)
-    end
+    {left, right} = align_gradual(left, right)
+    bare_intersection_static(left, right)
   end
 
   @compile {:inline, bare_intersection_static: 2}
@@ -603,7 +591,7 @@ defmodule Module.Types.Descr do
   Returns if the type is a singleton.
   """
   def singleton?(:term), do: false
-  def singleton?(descr), do: static_singleton?(Map.get(descr, :dynamic, descr))
+  def singleton?(descr), do: static_singleton?(upper_bound(descr))
 
   defp static_singleton?(:term), do: false
   defp static_singleton?(%{list: _}), do: false
@@ -911,8 +899,8 @@ defmodule Module.Types.Descr do
   def disjoint?(left, right) do
     left = unfold(left)
     right = unfold(right)
-    left_upper = Map.get(left, :dynamic, left) |> unfold()
-    right_upper = Map.get(right, :dynamic, right) |> unfold()
+    left_upper = upper_bound(left) |> unfold()
+    right_upper = upper_bound(right) |> unfold()
 
     not non_disjoint_intersection?(left_upper, right_upper)
   end
@@ -1100,7 +1088,7 @@ defmodule Module.Types.Descr do
   def booleaness(:term), do: :maybe_both
 
   def booleaness(%{} = descr) do
-    descr = Map.get(descr, :dynamic, descr)
+    descr = upper_bound(descr)
 
     case descr do
       :term ->
@@ -1155,7 +1143,7 @@ defmodule Module.Types.Descr do
   def truthiness(:term), do: :undefined
 
   def truthiness(%{} = descr) do
-    descr = Map.get(descr, :dynamic, descr)
+    descr = upper_bound(descr)
 
     case descr do
       :term ->
@@ -1603,17 +1591,22 @@ defmodule Module.Types.Descr do
 
   defp fun_other_non_empty_arities(%{fun: {:union, bdds}}, arity) do
     case :maps.take(arity, bdds) do
-      {_bdd, rest} ->
-        for {a, b} <- rest,
-            not Enum.all?(bdd_to_dnf(b), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
-            do: a
-
-      :error ->
-        []
+      {_bdd, rest} -> bdds_non_empty_arities(rest)
+      :error -> []
     end
   end
 
   defp fun_other_non_empty_arities(_, _), do: []
+
+  # Returns the arities of the given BDD map whose function type is not empty.
+  # An empty bucket carries no value, so it must never be reported as a
+  # supported arity (otherwise we would return :badarity for a function type
+  # that is actually empty, or reject a live arity in favour of a dead one).
+  defp bdds_non_empty_arities(bdds) do
+    for {arity, bdd} <- bdds,
+        not Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
+        do: arity
+  end
 
   # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
   #
@@ -1649,9 +1642,10 @@ defmodule Module.Types.Descr do
 
         if arrows == [] do
           # The function is empty at the requested arity. Report the *other*
-          # arities (never the called one, which would be self-contradictory),
-          # or :badfun when there are none, i.e. the function is empty.
-          case :maps.keys(rest) do
+          # non-empty arities (never the called one, which would be
+          # self-contradictory), or :badfun when there are none, i.e. the
+          # function is empty.
+          case bdds_non_empty_arities(rest) do
             [] -> :badfun
             other -> {:badarity, other}
           end
@@ -1660,7 +1654,10 @@ defmodule Module.Types.Descr do
         end
 
       :error ->
-        {:badarity, :maps.keys(bdds)}
+        case bdds_non_empty_arities(bdds) do
+          [] -> :badfun
+          other -> {:badarity, other}
+        end
     end
   end
 
@@ -1825,7 +1822,7 @@ defmodule Module.Types.Descr do
     # we can simplify the phi function check to a direct subtyping test.
     # This avoids the expensive recursive phi computation by checking only that applying the
     # input to the positive intersection yields a subtype of the return
-    case disjoint_non_empty_domains?({arguments, return}, positives, seen) do
+    case disjoint_non_empty_domains?(arguments, positives, seen) do
       :disjoint_non_empty ->
         apply_disjoint(arguments, positives) |> subtype?(return)
 
@@ -1886,17 +1883,15 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp disjoint_non_empty_domains?({arguments, _return}, positives, seen) do
-    b1 = all_disjoint_arguments?(positives)
-
-    b2 =
+  defp disjoint_non_empty_domains?(arguments, positives, seen) do
+    non_empty? =
       Enum.all?(arguments, fn arg -> not empty_seen?(arg, seen) end) and
         all_non_empty_arguments?(positives, seen)
 
     cond do
-      b1 and b2 -> :disjoint_non_empty
-      b2 -> :non_empty
-      true -> nil
+      not non_empty? -> nil
+      all_disjoint_arguments?(positives) -> :disjoint_non_empty
+      true -> :non_empty
     end
   end
 
@@ -2227,7 +2222,7 @@ defmodule Module.Types.Descr do
     list_part =
       case last_type do
         :term ->
-          list_new(:term, :term)
+          @non_empty_list_top
 
         {_, _, _} ->
           list_new(list_type, last_type)
@@ -2653,17 +2648,17 @@ defmodule Module.Types.Descr do
 
   # Case 3: when a list with negations is united with one of its negations
   defp add_to_list_normalize([{t, l, n} = cur | rest], list, last, []) do
-    case pop_elem(n, bdd_leaf_new(list, last), []) do
-      {true, n1} -> [{t, l, n1} | rest]
-      {false, _} -> [cur | add_to_list_normalize(rest, list, last, n)]
+    case delete_elem(n, bdd_leaf_new(list, last), []) do
+      :error -> [cur | add_to_list_normalize(rest, list, last, n)]
+      n1 -> [{t, l, n1} | rest]
     end
   end
 
   defp add_to_list_normalize(rest, list, last, negs), do: [{list, last, negs} | rest]
 
-  defp pop_elem([key | t], key, acc), do: {true, :lists.reverse(acc, t)}
-  defp pop_elem([h | t], key, acc), do: pop_elem(t, key, [h | acc])
-  defp pop_elem([], _key, acc), do: {false, :lists.reverse(acc)}
+  defp delete_elem([key | t], key, acc), do: :lists.reverse(acc, t)
+  defp delete_elem([h | t], key, acc), do: delete_elem(t, key, [h | acc])
+  defp delete_elem([], _key, _acc), do: :error
 
   ## Dynamic
   #
@@ -3670,8 +3665,7 @@ defmodule Module.Types.Descr do
       value = if gradual?, do: dynamic(value), else: value
       {new_value, new_optional?} = type_fun.(value, optional?)
 
-      new_value =
-        if is_map(new_value), do: Map.get(new_value, :dynamic, new_value), else: new_value
+      new_value = upper_bound(new_value)
 
       {new_value, new_optional?}
     end
@@ -5190,6 +5184,9 @@ defmodule Module.Types.Descr do
   defp tuple_difference(_, bdd_leaf(:open, [])),
     do: :bdd_bot
 
+  defp tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
+    do: if(entries == [], do: bdd_leaf_new(:open, [:term]), else: open)
+
   defp tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
     do: bdd_negation(bdd2)
 
@@ -5314,14 +5311,15 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Important: this generates DISJOINT tuples.
+  # Returns tuples whose union is the difference. The size and content
+  # branches may overlap.
   defp tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements}) do
     n = length(elements)
     m = length(neg_elements)
 
-    # Scenarios where the difference is guaranteed to be empty:
+    # Scenarios where the tuples are disjoint, so the positive tuple is unchanged:
     # 1. When removing larger tuples from a fixed-size positive tuple
-    # 2. When removing smaller tuples from larger tuples
+    # 2. When removing smaller fixed-size tuples from larger tuples
     # 3. When there is no intersection between the elements of the two tuples
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) or
          zip_empty_intersection?(elements, neg_elements) do
@@ -5520,10 +5518,9 @@ defmodule Module.Types.Descr do
           # The trouble with allowing the access is that it is a potential runtime
           # error not being caught by the type system.
           #
-          # Furthermore, our choice here, needs to be consistent with elem/put_elem
-          # when the index is the `integer()` type. If we choose to return `:badindex`,
-          # then all elem/put_elem with an `integer()` and the tuple is not dynamic
-          # should also be a static typing error. We chose to go with 1.
+          # This applies when checking a concrete index. Non-literal element/elem
+          # calls use tuple_values/1 instead, since no inaccessible index has been
+          # selected statically.
           if static_optional? or empty?(static_type) do
             :badindex
           else
@@ -5703,6 +5700,8 @@ defmodule Module.Types.Descr do
 
   @doc """
   Returns all of the values that are part of a tuple.
+
+  Returns `:badtuple` if the projection is invalid or the tuple descriptor is uninhabited.
   """
   def tuple_values(:term), do: :badtuple
   def tuple_values(descr) when descr == %{}, do: :badtuple
@@ -5717,17 +5716,13 @@ defmodule Module.Types.Descr do
         end
 
       {dynamic, static} ->
-        if tuple_only?(static) and descr_key?(dynamic, :tuple) do
-          dynamic_value =
-            case dynamic do
-              :term -> term()
-              %{tuple: bdd} -> process_tuples_values(bdd)
-            end
-
-          dynamic(dynamic_value)
+        with true <- tuple_only?(static) and descr_key?(dynamic, :tuple),
+             %{tuple: bdd} = unfold(dynamic),
+             false <- tuple_empty?(bdd, %{}) do
+          dynamic(process_tuples_values(bdd))
           |> opt_union(process_tuples_values(Map.get(static, :tuple, :bdd_bot)))
         else
-          :badtuple
+          _ -> :badtuple
         end
     end
   end
@@ -6667,23 +6662,8 @@ defmodule Module.Types.Descr do
   defp opt_union(other, none, _seen) when none == @none, do: other
 
   defp opt_union(left, right, seen) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        opt_union_static(left, right_with_dynamic, seen)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        opt_union_static(left_with_dynamic, right, seen)
-
-      true ->
-        opt_union_static(left, right, seen)
-    end
+    {left, right} = align_gradual(left, right)
+    opt_union_static(left, right, seen)
   end
 
   @compile {:inline, opt_union_static: 3}
@@ -6711,23 +6691,8 @@ defmodule Module.Types.Descr do
   defp opt_intersection(other, :term, _seen), do: other
 
   defp opt_intersection(left, right, seen) do
-    left = unfold(left)
-    right = unfold(right)
-    is_gradual_left = gradual?(left)
-    is_gradual_right = gradual?(right)
-
-    cond do
-      is_gradual_left and not is_gradual_right ->
-        right_with_dynamic = Map.put(right, :dynamic, right)
-        opt_intersection_static(left, right_with_dynamic, seen)
-
-      is_gradual_right and not is_gradual_left ->
-        left_with_dynamic = Map.put(left, :dynamic, left)
-        opt_intersection_static(left_with_dynamic, right, seen)
-
-      true ->
-        opt_intersection_static(left, right, seen)
-    end
+    {left, right} = align_gradual(left, right)
+    opt_intersection_static(left, right, seen)
   end
 
   @compile {:inline, opt_intersection_static: 3}
@@ -7280,10 +7245,10 @@ defmodule Module.Types.Descr do
             :none
         end
 
-      tag1 == :closed and l2 != [] and Enum.all?(l2, fn {_, {_, optional?}} -> not optional? end) ->
+      tag1 == :closed and l2 != [] and Enum.any?(l2, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
-      tag2 == :closed and l1 != [] and Enum.all?(l1, fn {_, {_, optional?}} -> not optional? end) ->
+      tag2 == :closed and l1 != [] and Enum.any?(l1, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
       true ->
@@ -7401,6 +7366,9 @@ defmodule Module.Types.Descr do
   defp opt_tuple_difference(_, bdd_leaf(:open, [])),
     do: :bdd_bot
 
+  defp opt_tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
+    do: if(entries == [], do: bdd_leaf_new(:open, [:term]), else: open)
+
   defp opt_tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
     do: bdd_negation(bdd2)
 
@@ -7431,12 +7399,12 @@ defmodule Module.Types.Descr do
   end
 
   defp opt_tuple_union(
-         bdd_leaf(tag1, elements1),
-         bdd_leaf(tag2, elements2)
+         bdd_leaf(tag1, elements1) = bdd1,
+         bdd_leaf(tag2, elements2) = bdd2
        ) do
     case opt_tuple_union_literal({tag1, elements1}, {tag2, elements2}) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
-      nil -> bdd_union(bdd_leaf_new(tag1, elements1), bdd_leaf_new(tag2, elements2))
+      nil -> bdd_union(bdd1, bdd2)
     end
   end
 

@@ -162,16 +162,8 @@ defmodule Kernel.Utils do
     # TODO: Make it raise on v2.0
     warn_on_duplicate_struct_key(:lists.keysort(1, fields), env)
 
-    foreach = fn
-      key when is_atom(key) ->
-        :ok
-
-      key ->
-        raise ArgumentError, "keys given to @enforce_keys must be atoms, got: #{inspect(key)}"
-    end
-
-    :lists.foreach(foreach, enforce_keys)
-    struct = :maps.from_list([__struct__: module] ++ fields)
+    field_map = :maps.from_list(fields)
+    struct = :maps.put(:__struct__, module, field_map)
     escaped_struct = :elixir_quote.escape(struct, {:struct, module}, false)
 
     body =
@@ -215,7 +207,7 @@ defmodule Kernel.Utils do
           end
       end
 
-    case enforce_keys -- :maps.keys(struct) do
+    case enforce_keys -- :maps.keys(field_map) do
       [] ->
         mapper = fn {key, val} ->
           %{field: key, default: val, required: :lists.member(key, enforce_keys)}
@@ -225,10 +217,9 @@ defmodule Kernel.Utils do
         derive = :lists.map(fn {_, value} -> value end, :ets.take(bag, {:accumulate, :derive}))
         {struct, :lists.reverse(derive), escaped_struct, quote(do: kv), body}
 
-      error_keys ->
+      invalid_keys ->
         raise ArgumentError,
-              "@enforce_keys required keys (#{inspect(error_keys)}) that are not defined in defstruct: " <>
-                "#{inspect(fields)}"
+              "unknown or duplicate keys given to @enforce_keys, got: #{inspect(invalid_keys)}"
     end
   end
 

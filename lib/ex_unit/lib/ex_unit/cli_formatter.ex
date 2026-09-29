@@ -436,7 +436,13 @@ defmodule ExUnit.CLIFormatter do
       true -> IO.puts("\n")
     end
 
-    IO.puts(formatted)
+    formatted
+    |> ensure_printable()
+    |> IO.puts()
+  end
+
+  defp ensure_printable(binary) do
+    if String.valid?(binary), do: binary, else: String.replace_invalid(binary)
   end
 
   defp format_type_counts(type_counter) do
@@ -573,7 +579,7 @@ defmodule ExUnit.CLIFormatter do
     failure: :red,
     error_info: :red,
     extra_info: :cyan,
-    location_info: [:bright, :black]
+    location_info: :light_black
   ]
 
   defp colors(opts) do

@@ -118,7 +118,15 @@ defmodule Module.Types.Apply do
 
   args_or_arity = opt_union(list(term()), integer())
   args_or_none = opt_union(list(term()), atom([:none]))
-  extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
+  custom_info_key = opt_difference(atom(), atom([:file, :line, :error_info]))
+
+  extra_info =
+    list(
+      tuple([atom([:file]), opt_union(list(integer()), binary())])
+      |> opt_union(tuple([atom([:line]), integer()]))
+      |> opt_union(tuple([atom([:error_info]), open_map()]))
+      |> opt_union(tuple([custom_info_key, term()]))
+    )
 
   raise_stacktrace =
     list(
@@ -142,6 +150,8 @@ defmodule Module.Types.Apply do
     for left <- [true, false], right <- [true, false] do
       {[atom([left]), atom([right])], atom([left or right])}
     end
+
+  non_empty_tuple = opt_difference(open_tuple([]), tuple([]))
 
   for {mod, fun, clauses} <- [
         # :binary
@@ -220,7 +230,11 @@ defmodule Module.Types.Apply do
         {:erlang, :spawn_link, [{mfargs, pid()}]},
         {:erlang, :spawn_monitor, [{[fun(0)], tuple([pid(), reference()])}]},
         {:erlang, :spawn_monitor, [{mfargs, tuple([pid(), reference()])}]},
-        {:erlang, :split_binary, [{[binary(), integer()], tuple([binary(), binary()])}]},
+        {:erlang, :split_binary,
+         [
+           {[binary(), integer()], tuple([binary(), binary()])},
+           {[bitstring_no_binary(), integer()], tuple([binary(), bitstring_no_binary()])}
+         ]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
         {:erlang, :trunc, [{[opt_union(integer(), float())], integer()}]},
         {:erlang, :++,
@@ -229,24 +243,25 @@ defmodule Module.Types.Apply do
            {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
          ]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
-        {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
+        {:erlang, :delete_element, [{[integer(), non_empty_tuple], dynamic(open_tuple([]))}]},
         {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
-        {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
+        {:erlang, :element, [{[integer(), non_empty_tuple], dynamic()}]},
         {:erlang, :insert_element,
-         [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+         [{[integer(), open_tuple([]), term()], dynamic(non_empty_tuple)}]},
         {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
         {:erlang, :map_get, [{[term(), open_map()], term()}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
-        {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :setelement,
+         [{[integer(), non_empty_tuple, term()], dynamic(non_empty_tuple)}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]},
 
         ## Kernel
-        {Kernel, :elem, [{[open_tuple([]), integer()], dynamic()}]},
+        {Kernel, :elem, [{[non_empty_tuple, integer()], dynamic()}]},
         {Kernel, :is_map_key, [{[open_map(), term()], boolean()}]},
-        {Kernel, :put_elem, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
+        {Kernel, :put_elem, [{[non_empty_tuple, integer(), term()], dynamic(non_empty_tuple)}]},
 
         ## Lists
         {:lists, :member,
@@ -278,9 +293,9 @@ defmodule Module.Types.Apply do
         {Map, :replace_lazy, [{[open_map(), term(), fun(1)], open_map()}]},
         {Map, :update, [{[open_map(), term(), term(), fun(1)], open_map()}]},
         {Map, :update!, [{[open_map(), term(), fun(1)], open_map()}]},
-        {Tuple, :delete_at, [{[open_tuple([]), integer()], dynamic(open_tuple([]))}]},
+        {Tuple, :delete_at, [{[non_empty_tuple, integer()], dynamic(open_tuple([]))}]},
         {Tuple, :duplicate, [{[term(), integer()], tuple()}]},
-        {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(open_tuple([]))}]},
+        {Tuple, :insert_at, [{[open_tuple([]), integer(), term()], dynamic(non_empty_tuple)}]},
         {:maps, :from_keys, [{[list(term()), term()], open_map()}]},
         {:maps, :find,
          [{[term(), open_map()], tuple([atom([:ok]), term()]) |> opt_union(atom([:error]))}]},
@@ -437,7 +452,7 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp do_remote(:erlang, name, [left, right], expected, expr, stack, context, of_fun)
+  defp do_remote(:erlang, name, [left, right], _expected, expr, stack, context, of_fun)
        when name in [:min, :max] do
     # While comparison between distinct types are allowed,
     # we check for disjointedness, so we effectively require
@@ -451,8 +466,11 @@ defmodule Module.Types.Apply do
     #     a and not number(), b and not number() -> a and b
     #
     # However, during inference, we type it as `a, b -> a and b` only.
-    {left_type, context} = of_fun.(left, expected, expr, stack, context)
-    {right_type, context} = of_fun.(right, expected, expr, stack, context)
+    # Either argument may be discarded based on term ordering, so the expected
+    # type imposes no restriction on either argument nor on the result: all we
+    # know is that the result is one of the two, so it is always their union.
+    {left_type, context} = of_fun.(left, term(), expr, stack, context)
+    {right_type, context} = of_fun.(right, term(), expr, stack, context)
     result = opt_union(left_type, right_type)
 
     if error = mismatched_ordered_comparison(left_type, right_type, stack) do
@@ -693,8 +711,8 @@ defmodule Module.Types.Apply do
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
 
           cond do
-            # expected can have dynamic terms but, since we have verified
-            # them to be singletons, we can compute the upper bound.
+            # We want to check that arg_type is always within the expected one,
+            # even with dynamic, in order to return the exact boolean result
             singleton? and subtype?(arg_type, upper_bound(expected)) ->
               {return, context}
 
@@ -705,7 +723,8 @@ defmodule Module.Types.Apply do
             # Nothing in common between left and right, emit a warning
             disjoint?(arg_type, expected) ->
               error = {:mismatched_comparison, arg_type, list(expected)}
-              remote_error(error, :lists, :member, 2, expr, stack, context)
+              {_, context} = remote_error(error, :lists, :member, 2, expr, stack, context)
+              {if(polarity, do: @atom_false, else: @atom_true), context}
 
             true ->
               {return(boolean(), [arg_type, expected], stack), context}
@@ -818,6 +837,9 @@ defmodule Module.Types.Apply do
         if singleton?(type) do
           expected = if polarity, do: type, else: Module.Types.Descr.opt_negation(type)
           {arg_type, context} = of_fun.(arg, expected, expr, stack, context)
+
+          # We want to check that arg_type is always within the expected one,
+          # even with dynamic, in order to return the exact boolean result
           result = if subtype?(arg_type, upper_bound(expected)), do: return, else: boolean()
 
           # Because reverse polarity means we will infer negated types
@@ -1004,6 +1026,11 @@ defmodule Module.Types.Apply do
     {info, filter_domain(info, expected, 2), context}
   end
 
+  def remote_domain(:maps, :is_key, [key, map], expected, meta, stack, context)
+      when is_atom(key) do
+    remote_domain(:erlang, :is_map_key, [key, map], expected, meta, stack, context)
+  end
+
   def remote_domain(Kernel, :is_map_key, [_map, key], expected, _meta, _stack, context)
       when is_atom(key) do
     info =
@@ -1014,6 +1041,11 @@ defmodule Module.Types.Apply do
        ]}
 
     {info, filter_domain(info, expected, 2), context}
+  end
+
+  def remote_domain(Map, :has_key?, [map, key], expected, meta, stack, context)
+      when is_atom(key) do
+    remote_domain(Kernel, :is_map_key, [map, key], expected, meta, stack, context)
   end
 
   def remote_domain(:erlang, :map_get, [key, _], expected, _meta, _stack, context)
@@ -1091,6 +1123,10 @@ defmodule Module.Types.Apply do
     end
   end
 
+  defp remote_apply(:erlang, :element, info, [_index, tuple] = args_types, stack) do
+    remote_apply_tuple_element(info, args_types, tuple, stack)
+  end
+
   defp remote_apply(:erlang, :map_get, _info, [key, map] = args_types, stack) do
     case map_get(map, key) do
       {:ok, value} -> {:ok, return(value, args_types, stack)}
@@ -1138,6 +1174,23 @@ defmodule Module.Types.Apply do
       :badproperlist ->
         {:error, badremote(:erlang, :++, [left, right])}
     end
+  end
+
+  defp remote_apply(:erlang, :--, _info, [left, right], stack) do
+    # TODO: remove once we add parametric types, this will just be:
+    # list(a), list(term()) -> list(a)
+    case {list_of(left), list_of(right)} do
+      {{_, list_of}, {_, _}} ->
+        result = if list_of, do: list(list_of), else: empty_list()
+        {:ok, return(result, [left, right], stack)}
+
+      _ ->
+        {:error, badremote(:erlang, :--, [left, right])}
+    end
+  end
+
+  defp remote_apply(Kernel, :elem, info, [tuple, _index] = args_types, stack) do
+    remote_apply_tuple_element(info, args_types, tuple, stack)
   end
 
   @struct_key atom([:__struct__])
@@ -1494,6 +1547,21 @@ defmodule Module.Types.Apply do
 
   defp remote_apply(_mod, _fun, info, args_types, stack) do
     remote_apply(info, args_types, stack)
+  end
+
+  defp remote_apply_tuple_element(info, args_types, tuple, stack) do
+    # TODO: Convert this into a regular type signature {...a} and not {}, integer -> a
+    with {:ok, fallback} <- remote_apply(info, args_types, stack) do
+      case tuple_values(tuple) do
+        :badtuple ->
+          # This is not virtually possible, since remote apply validates the arguments.
+          # So returning the fallback is acceptable.
+          {:ok, fallback}
+
+        values ->
+          {:ok, return(values, args_types, stack)}
+      end
+    end
   end
 
   defp remote_apply(:none, _args_types, _stack) do

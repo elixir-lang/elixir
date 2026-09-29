@@ -933,6 +933,42 @@ defmodule FileTest do
       refute File.regular?("#{__ENV__.file}.unknown")
     end
 
+    test "regular with io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+
+      try do
+        assert File.regular?(io)
+      after
+        File.close(io)
+      end
+
+      {:ok, dir_io} = File.open(fixture_path(), [:read, :directory])
+
+      try do
+        refute File.regular?(dir_io)
+      after
+        File.close(dir_io)
+      end
+    end
+
+    test "dir? with io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+
+      try do
+        refute File.dir?(io)
+      after
+        File.close(io)
+      end
+
+      {:ok, dir_io} = File.open(fixture_path(), [:read, :directory])
+
+      try do
+        assert File.dir?(dir_io)
+      after
+        File.close(dir_io)
+      end
+    end
+
     test "exists" do
       assert File.exists?(__ENV__.file)
       assert File.exists?(fixture_path())
@@ -940,6 +976,16 @@ defmodule FileTest do
 
       refute File.exists?(fixture_path("missing.txt"))
       refute File.exists?("_missing.txt")
+    end
+
+    test "exists with io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+
+      try do
+        assert File.exists?(io)
+      after
+        File.close(io)
+      end
     end
 
     test "exists with dangling symlink" do
@@ -1042,6 +1088,11 @@ defmodule FileTest do
       {:ok, file} = File.open(fixture_path("file.txt"))
       assert IO.gets(file, "") == "FOO\n"
       assert File.close(file) == :ok
+    end
+
+    test "open directory" do
+      {:ok, dir} = File.open(".", [:read, :directory])
+      assert File.close(dir) == :ok
     end
 
     test "open file with charlist" do
@@ -1526,6 +1577,28 @@ defmodule FileTest do
     test "stat! with invalid_file" do
       assert_raise File.Error, fn ->
         File.stat!("./invalid_file")
+      end
+    end
+
+    test "stat with io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+
+      try do
+        {:ok, info} = File.stat(io)
+        assert info.type == :regular
+        assert info.mtime
+      after
+        File.close(io)
+      end
+    end
+
+    test "stat! with io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+
+      try do
+        assert File.stat!(io).type == :regular
+      after
+        File.close(io)
       end
     end
 

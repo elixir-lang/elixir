@@ -38,6 +38,16 @@ defmodule DateTest do
     end
   end
 
+  test "to_iso8601/2" do
+    date = ~D[2000-01-01]
+    assert Date.to_iso8601(date) == "2000-01-01"
+    assert Date.to_iso8601(date, :basic) == "20000101"
+
+    holo_date = Calendar.Holocene.date(12001, 1, 1)
+    assert Date.to_iso8601(holo_date) == "2001-01-01"
+    assert Date.to_iso8601(holo_date, :basic) == "20010101"
+  end
+
   test "to_string/1" do
     date = ~D[2000-01-01]
     assert to_string(date) == "2000-01-01"
@@ -192,6 +202,19 @@ defmodule DateTest do
     assert_raise ArgumentError,
                  "cannot convert ~D[2016-02-03] to target calendar FakeCalendar, reason: :incompatible_calendars",
                  fn -> Date.convert!(~D[2016-02-03], FakeCalendar) end
+  end
+
+  test "from_gregorian_days/2" do
+    assert Date.from_gregorian_days(730_485, Calendar.Holocene) ==
+             Calendar.Holocene.date(12000, 01, 01)
+
+    assert Date.from_gregorian_days(-1, Calendar.Holocene) ==
+             Calendar.Holocene.date(9999, 12, 31)
+
+    for days <- [-1_000_000, 0, 1, 1_000_000] do
+      date = Date.from_gregorian_days(days, Calendar.Holocene)
+      assert Date.to_gregorian_days(date) == days
+    end
   end
 
   test "add/2" do

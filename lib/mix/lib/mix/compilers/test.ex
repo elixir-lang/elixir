@@ -250,7 +250,7 @@ defmodule Mix.Compilers.Test do
             do: module,
             into: MapSet.new()
 
-      stale_modules = find_all_dependent_on(stale_modules, elixir_modules, elixir_sources)
+      stale_modules = find_all_dependent_on(stale_modules, elixir_sources)
 
       for {source, source(runtime_references: r, compile_references: c)} <- test_sources,
           Enum.any?(r, &(&1 in stale_modules)) or Enum.any?(c, &(&1 in stale_modules)),
@@ -261,31 +261,31 @@ defmodule Mix.Compilers.Test do
     end
   end
 
-  defp find_all_dependent_on(modules, elixir_modules, elixir_sources, resolved \\ MapSet.new()) do
+  defp find_all_dependent_on(modules, elixir_sources, resolved \\ MapSet.new()) do
     new_modules =
       for module <- modules,
           module not in resolved,
-          dependent_module <- dependent_modules(module, elixir_modules, elixir_sources),
+          dependent_module <- dependent_modules(module, elixir_sources),
           do: dependent_module,
           into: modules
 
     if MapSet.size(new_modules) == MapSet.size(modules) do
       new_modules
     else
-      find_all_dependent_on(new_modules, elixir_modules, elixir_sources, modules)
+      find_all_dependent_on(new_modules, elixir_sources, modules)
     end
   end
 
-  defp dependent_modules(module, modules, sources) do
-    for {source,
+  defp dependent_modules(module, sources) do
+    for {_,
          CE.source(
            runtime_references: r,
            compile_references: c,
-           export_references: e
+           export_references: e,
+           modules: modules
          )} <- sources,
         module in r or module in c or module in e,
-        {dependent_module, CE.module(sources: sources)} <- modules,
-        source in sources,
+        dependent_module <- modules,
         do: dependent_module
   end
 

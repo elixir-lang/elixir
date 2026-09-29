@@ -720,6 +720,9 @@ defmodule DateTime do
   Other time zone databases can be passed as argument or set globally.
   See the "Time zone database" section in the module docs.
 
+  Shifting to the `"Etc/UTC"` time zone always succeeds without
+  consulting the `time_zone_database`.
+
   ## Examples
 
       iex> {:ok, pacific_datetime} = DateTime.shift_zone(~U[2018-07-16 10:00:00Z], "America/Los_Angeles", FakeTimeZoneDatabase)
@@ -751,6 +754,28 @@ defmodule DateTime do
     |> to_iso_days()
     |> apply_tz_offset(utc_offset + std_offset)
     |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+  end
+
+  defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, "Etc/UTC", _time_zone_db) do
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      calendar.naive_datetime_from_iso_days(iso_days_utc)
+
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond, precision},
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
+
+    {:ok, datetime}
   end
 
   defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, time_zone, time_zone_db) do
@@ -1177,7 +1202,7 @@ defmodule DateTime do
     datetime
     |> to_iso_days()
     # Subtract total original offset in order to get UTC and add the new offset
-    |> Calendar.ISO.add_day_fraction_to_iso_days(offset - total_offset, 86400)
+    |> Calendar.ISO.add_time_unit_to_iso_days(offset - total_offset, :second)
     |> calendar.naive_datetime_from_iso_days()
   end
 
@@ -1603,9 +1628,13 @@ defmodule DateTime do
         (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond))
 
     offset_diff = utc_offset2 + std_offset2 - (utc_offset1 + std_offset1)
+    diff = naive_diff + offset_diff * 1_000_000
 
-    System.convert_time_unit(naive_diff, :microsecond, unit) +
-      System.convert_time_unit(offset_diff, :second, unit)
+    if diff < 0 do
+      -System.convert_time_unit(-diff, :microsecond, unit)
+    else
+      System.convert_time_unit(diff, :microsecond, unit)
+    end
   end
 
   @doc """
@@ -1625,6 +1654,9 @@ defmodule DateTime do
   `t:System.time_unit/0` for convenience but ultimately they are
   all converted to microseconds. Negative values will move backwards
   in time and the default precision is `:second`.
+
+  If the datetime is in the `"Etc/UTC"` time zone, this function
+  always succeeds without consulting the `time_zone_database`.
 
   This function relies on a contiguous representation of time,
   ignoring timezone changes. For example, if you add one day when there
@@ -1744,6 +1776,9 @@ defmodule DateTime do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
+  If the datetime is in the `"Etc/UTC"` time zone, this function
+  always succeeds without consulting the `time_zone_database`.
+
   This operation is equivalent to shifting the datetime wall clock
   (in other words, the value as someone in that timezone would see
   on their watch), then applying the time zone offset to convert it
@@ -1811,44 +1846,6 @@ defmodule DateTime do
   @doc since: "1.17.0"
   @spec shift(Calendar.datetime(), Duration.duration(), Calendar.time_zone_database()) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
-
-  def shift(%{calendar: calendar, time_zone: "Etc/UTC"} = datetime, duration, _time_zone_database) do
-    %{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond
-    } = datetime
-
-    {year, month, day, hour, minute, second, microsecond} =
-      calendar.shift_naive_datetime(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        __duration__!(duration)
-      )
-
-    %DateTime{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      time_zone: "Etc/UTC",
-      zone_abbr: "UTC",
-      std_offset: 0,
-      utc_offset: 0
-    }
-  end
 
   def shift(%{calendar: calendar} = datetime, duration, time_zone_database) do
     %{
@@ -2060,11 +2057,12 @@ defmodule DateTime do
   end
 
   defp apply_tz_offset(iso_days, offset) do
-    Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
+    Calendar.ISO.add_time_unit_to_iso_days(iso_days, -offset, :second)
   end
 
   defp from_map(%{} = datetime_map) do
     %DateTime{
+      calendar: datetime_map.calendar,
       year: datetime_map.year,
       month: datetime_map.month,
       day: datetime_map.day,

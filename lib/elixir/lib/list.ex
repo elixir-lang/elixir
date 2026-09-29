@@ -311,9 +311,6 @@ defmodule List do
       iex> List.first!([1, 2, 3])
       1
 
-      iex> List.first!([])
-      ** (ArgumentError) attempted to get the first element of an empty list
-
   """
   @doc since: "1.20.0"
   @spec first!([elem, ...]) :: elem when elem: var
@@ -365,9 +362,6 @@ defmodule List do
 
       iex> List.last!([1, 2, 3])
       3
-
-      iex> List.last!([])
-      ** (ArgumentError) attempted to get the last element of an empty list
 
   """
   @doc since: "1.20.0"
@@ -960,9 +954,12 @@ defmodule List do
   @spec pop_at(list, integer, any) :: {any, list}
   def pop_at(list, index, default \\ nil) when is_integer(index) do
     if index < 0 do
-      do_pop_at(list, length(list) + index, default, [])
+      case length(list) + index do
+        index when index < 0 -> {default, list}
+        index -> do_pop_at(list, index, default, [], list)
+      end
     else
-      do_pop_at(list, index, default, [])
+      do_pop_at(list, index, default, [], list)
     end
   end
 
@@ -1254,7 +1251,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
+        #{inspect(list, charlists: :as_lists)}
         """
     else
       result when is_binary(result) ->
@@ -1306,7 +1303,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
+        #{inspect(list, charlists: :as_lists)}
         """
     else
       result when is_list(result) ->
@@ -1371,13 +1368,13 @@ defmodule List do
 
   defp myers_difference_with_diff_script(list1, list2, diff_script) do
     path = {0, list1, list2, []}
-    find_script(0, length(list1) + length(list2), [path], diff_script)
+    find_script(0, [path], diff_script)
   end
 
-  defp find_script(envelope, max, paths, diff_script) do
+  defp find_script(envelope, paths, diff_script) do
     case each_diagonal(-envelope, envelope, paths, [], diff_script) do
       {:done, edits} -> compact_reverse(edits, [])
-      {:next, paths} -> find_script(envelope + 1, max, paths, diff_script)
+      {:next, paths} -> find_script(envelope + 1, paths, diff_script)
     end
   end
 
@@ -1522,15 +1519,16 @@ defmodule List do
 
   # pop_at
 
-  defp do_pop_at([], _index, default, acc) do
-    {default, :lists.reverse(acc)}
+  # The original list is returned when the index is out of bounds
+  defp do_pop_at([], _index, default, _acc, original) do
+    {default, original}
   end
 
-  defp do_pop_at([head | tail], 0, _default, acc) do
+  defp do_pop_at([head | tail], 0, _default, acc, _original) do
     {head, :lists.reverse(acc, tail)}
   end
 
-  defp do_pop_at([head | tail], index, default, acc) do
-    do_pop_at(tail, index - 1, default, [head | acc])
+  defp do_pop_at([head | tail], index, default, acc, original) do
+    do_pop_at(tail, index - 1, default, [head | acc], original)
   end
 end

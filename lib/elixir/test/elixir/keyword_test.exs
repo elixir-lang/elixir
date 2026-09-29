@@ -85,7 +85,7 @@ defmodule KeywordTest do
     assert Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new) == [a: 1, b: :new, c: 3]
 
     assert_raise KeyError, "key :b not found in:\n\n    []\n", fn ->
-      Keyword.replace!([], :b, :new)
+      Keyword.replace!(Process.get(:unused, []), :b, :new)
     end
 
     assert_raise KeyError, "key :c not found in:\n\n    [a: 1, b: 2, a: 3]\n", fn ->

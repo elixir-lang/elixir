@@ -859,6 +859,10 @@ defmodule Enum do
 
   """
   @spec dedup_by(t, (element -> term)) :: list
+  def dedup_by([head | tail], fun) do
+    dedup_by_list(tail, fun, fun.(head), [head])
+  end
+
   def dedup_by(enumerable, fun) do
     {list, _} = reduce(enumerable, {[], []}, R.dedup(fun))
     :lists.reverse(list)
@@ -2229,13 +2233,18 @@ defmodule Enum do
       nil
 
   """
-  @spec min_max(t, (element, element -> boolean) | module()) :: {element, element}
-  @spec min_max(t, (-> empty_result)) :: {element, element} | empty_result when empty_result: any
+  @spec min_max(t, (element, element -> boolean) | module()) :: {min :: element, max :: element}
+  @spec min_max(t, (-> empty_result)) :: {min :: element, max :: element} | empty_result
+        when empty_result: any
   @spec min_max(t, (element, element -> boolean) | module(), (-> empty_result)) ::
-          {element, element} | empty_result
+          {min :: element, max :: element} | empty_result
         when empty_result: any
 
   def min_max(enumerable, sorter_or_empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def min_max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    min_max_list(list)
+  end
 
   def min_max(first..last//step = range, empty_fallback)
       when is_function(empty_fallback, 0) do
@@ -2343,14 +2352,14 @@ defmodule Enum do
 
   """
   @spec min_max_by(t, (element -> any), (element, element -> boolean) | module()) ::
-          {element, element} | empty_result
+          {min :: element, max :: element} | empty_result
         when empty_result: any
   @spec min_max_by(
           t,
           (element -> any),
           (element, element -> boolean) | module(),
           (-> empty_result)
-        ) :: {element, element} | empty_result
+        ) :: {min :: element, max :: element} | empty_result
         when empty_result: any
   def min_max_by(
         enumerable,
@@ -2393,6 +2402,18 @@ defmodule Enum do
   end
 
   defp min_max_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) == :lt)
+
+  defp min_max_list([h | t]), do: min_max_list(t, h, h)
+
+  defp min_max_list([h | t], min, max) do
+    cond do
+      h < min -> min_max_list(t, h, max)
+      max < h -> min_max_list(t, min, h)
+      true -> min_max_list(t, min, max)
+    end
+  end
+
+  defp min_max_list([], min, max), do: {min, max}
 
   @doc """
   Splits the `enumerable` in two lists according to the given function `fun`.
@@ -2755,14 +2776,25 @@ defmodule Enum do
   @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
   def reverse_slice(enumerable, start_index, count)
       when is_integer(start_index) and start_index >= 0 and is_integer(count) and count >= 0 do
-    list = reverse(enumerable)
-    length = length(list)
-    count = Kernel.min(count, length - start_index)
+    list = to_list(enumerable)
 
-    if count > 0 do
-      reverse_slice(list, length, start_index + count, count, [])
-    else
-      :lists.reverse(list)
+    cond do
+      count <= 1 ->
+        list
+
+      start_index == 0 ->
+        {slice, rest} = head_slice(list, count, [])
+        slice ++ rest
+
+      true ->
+        case head_slice(list, start_index, []) do
+          {_, []} ->
+            list
+
+          {prefix, rest} ->
+            {slice, rest} = head_slice(rest, count, [])
+            :lists.reverse(prefix, slice ++ rest)
+        end
     end
   end
 
@@ -2914,8 +2946,7 @@ defmodule Enum do
   end
 
   defp slide_list_middle(list, 0, last, start_to_middle) do
-    {slid_range, tail} = slide_list_last(list, last + 1, [])
-    slid_range ++ :lists.reverse(start_to_middle, tail)
+    slide_list_last(list, last + 1, [], start_to_middle)
   end
 
   # You asked for a middle index off the end of the list... you get what we've got
@@ -2923,16 +2954,16 @@ defmodule Enum do
     :lists.reverse(acc)
   end
 
-  defp slide_list_last([h | t], last, acc) when last > 0 do
-    slide_list_last(t, last - 1, [h | acc])
+  defp slide_list_last([h | t], last, acc, start_to_middle) when last > 0 do
+    slide_list_last(t, last - 1, [h | acc], start_to_middle)
   end
 
-  defp slide_list_last(rest, 0, acc) do
-    {:lists.reverse(acc), rest}
+  defp slide_list_last(rest, 0, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle, rest))
   end
 
-  defp slide_list_last([], _, acc) do
-    {:lists.reverse(acc), []}
+  defp slide_list_last([], _, acc, start_to_middle) do
+    :lists.reverse(acc, :lists.reverse(start_to_middle))
   end
 
   @doc """
@@ -4429,10 +4460,9 @@ defmodule Enum do
   ## any?/2 all?/2
 
   defp predicate_list([h | t], initial, fun) do
-    if !!fun.(h) == initial do
-      predicate_list(t, initial, fun)
-    else
-      not initial
+    case !!fun.(h) do
+      ^initial -> predicate_list(t, initial, fun)
+      _ -> not initial
     end
   end
 
@@ -4443,10 +4473,9 @@ defmodule Enum do
   defp predicate_range(first, last, step, initial, fun)
        when step > 0 and first <= last
        when step < 0 and first >= last do
-    if !!fun.(first) == initial do
-      predicate_range(first + step, last, step, initial, fun)
-    else
-      not initial
+    case !!fun.(first) do
+      ^initial -> predicate_range(first + step, last, step, initial, fun)
+      _ -> not initial
     end
   end
 
@@ -4528,6 +4557,17 @@ defmodule Enum do
   defp dedup_list([value | [value | _] = tail]), do: dedup_list(tail)
   defp dedup_list([value | tail]), do: [value | dedup_list(tail)]
   defp dedup_list([]), do: []
+
+  ## dedup_by
+
+  defp dedup_by_list([head | tail], fun, prev, acc) do
+    case fun.(head) do
+      ^prev -> dedup_by_list(tail, fun, prev, acc)
+      new_val -> dedup_by_list(tail, fun, new_val, [head | acc])
+    end
+  end
+
+  defp dedup_by_list([], _fun, _prev, acc), do: :lists.reverse(acc)
 
   ## drop
 
@@ -4696,16 +4736,8 @@ defmodule Enum do
 
   ## reverse_slice
 
-  defp reverse_slice(rest, idx, idx, count, acc) do
-    {slice, rest} = head_slice(rest, count, [])
-    :lists.reverse(rest, :lists.reverse(slice, acc))
-  end
-
-  defp reverse_slice([elem | rest], idx, start, count, acc) do
-    reverse_slice(rest, idx - 1, start, count, [elem | acc])
-  end
-
   defp head_slice(rest, 0, acc), do: {acc, rest}
+  defp head_slice([], _count, acc), do: {acc, []}
 
   defp head_slice([elem | rest], count, acc) do
     head_slice(rest, count - 1, [elem | acc])

@@ -1035,12 +1035,12 @@ defmodule Access do
   end
 
   defp slice(:get_and_update, data, range, next) when is_list(data) do
-    range = normalize_range(range, data)
+    %Range{first: first, last: last, step: step} = normalize_range(range, data)
 
-    if range.first > range.last do
+    if first > last do
       {[], data}
     else
-      get_and_update_slice(data, range, next, [], [], 0)
+      get_and_update_slice(data, first, last, step, next, [], [], 0)
     end
   end
 
@@ -1145,21 +1145,23 @@ defmodule Access do
 
   defp normalize_range(range, _list), do: range
 
-  defp get_and_update_slice(rest, %Range{last: last}, _next, updates, gets, index)
+  defp get_and_update_slice(rest, _first, last, _step, _next, updates, gets, index)
        when index > last do
     {:lists.reverse(gets), :lists.reverse(updates, rest)}
   end
 
-  defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
-    if index in range do
+  defp get_and_update_slice([head | rest], first, last, step, next, updates, gets, index) do
+    if index >= first and rem(index - first, step) == 0 do
       case next.(head) do
         :pop ->
-          get_and_update_slice(rest, range, next, updates, [head | gets], index + 1)
+          get_and_update_slice(rest, first, last, step, next, updates, [head | gets], index + 1)
 
         {get, update} ->
           get_and_update_slice(
             rest,
-            range,
+            first,
+            last,
+            step,
             next,
             [update | updates],
             [get | gets],
@@ -1167,11 +1169,11 @@ defmodule Access do
           )
       end
     else
-      get_and_update_slice(rest, range, next, [head | updates], gets, index + 1)
+      get_and_update_slice(rest, first, last, step, next, [head | updates], gets, index + 1)
     end
   end
 
-  defp get_and_update_slice([], _range, _next, updates, gets, _index) do
+  defp get_and_update_slice([], _first, _last, _step, _next, updates, gets, _index) do
     {:lists.reverse(gets), :lists.reverse(updates)}
   end
 

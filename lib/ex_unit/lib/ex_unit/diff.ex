@@ -542,16 +542,16 @@ defmodule ExUnit.Diff do
 
   defp myers_difference_list(left, right, env) do
     path = {0, left, right, {[], [], env}}
-    find_diff(0, length(left) + length(right), [path])
+    find_diff(0, [path])
   end
 
-  defp find_diff(envelope, max, paths) do
+  defp find_diff(envelope, paths) do
     case each_diagonal(-envelope, envelope, paths, []) do
       {:done, {edit1, edit2, env}} ->
         list_script_to_diff(Enum.reverse(edit1), Enum.reverse(edit2), true, [], [], env)
 
       {:next, paths} ->
-        find_diff(envelope + 1, max, paths)
+        find_diff(envelope + 1, paths)
     end
   end
 

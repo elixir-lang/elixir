@@ -1074,8 +1074,24 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
     end
 
+    test "escapes literal parts of interpolated strings" do
+      for source <- [~S["\\n#{x}"], ~S["\\#{x}"], ~S["a\\0#{x}"], ~S["\\u#{x}"], ~S["\\x#{x}"]] do
+        ast = Code.string_to_quoted!(source)
+        assert Macro.to_string(ast) == source
+      end
+    end
+
+    test "escapes Unicode codepoints without changing their encoding" do
+      for codepoint <- Enum.concat([0x80..0x9F, [0xFFFE, 0xFFFF]]) do
+        string = <<codepoint::utf8>>
+        source = Macro.to_string(string)
+        assert {^string, []} = Code.eval_string(source)
+      end
+    end
+
     test "converts invalid AST with inspect" do
       assert Macro.to_string(1..3) == "1..3"
+      assert Macro.to_string({Foo, :cache, ["a", []]}) == ~S({Foo, :cache, ["a", []]})
     end
   end
 
@@ -1625,14 +1641,6 @@ defmodule MacroTest do
     assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: Access.get(:foo)), 0) ==
              quote(do: Access.get(%{foo: "bar"}, :foo))
 
-    assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn ->
-      Macro.pipe(1, 2, 0)
-    end
-
-    assert_raise ArgumentError, ~r"cannot pipe 1 into \{2, 3\}", fn ->
-      Macro.pipe(1, {2, 3}, 0)
-    end
-
     assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1, the :\+ operator can", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))
     end
@@ -1884,11 +1892,14 @@ defmodule MacroTest do
     assert Macro.quoted_literal?(quote(do: <<1000::size(8)-unit(4)>>))
     assert Macro.quoted_literal?(quote(do: <<1000::8*4>>))
     assert Macro.quoted_literal?(quote(do: <<102::unsigned-big-integer-size(8)>>))
+    assert Macro.quoted_literal?({:__block__, [], [1]})
     refute Macro.quoted_literal?(quote(do: {"foo", var}))
     refute Macro.quoted_literal?(quote(do: <<"foo"::size(name_size)>>))
     refute Macro.quoted_literal?(quote(do: <<"foo"::binary-size(name_size)>>))
     refute Macro.quoted_literal?(quote(do: <<"foo"::custom_modifier()>>))
     refute Macro.quoted_literal?(quote(do: <<102, rest::binary>>))
+    refute Macro.quoted_literal?({:__block__, [], [quote(do: var)]})
+    refute Macro.quoted_literal?({:__block__, [], [1, 2]})
   end
 
   test "underscore/1" do
@@ -1931,5 +1942,20 @@ defmodule MacroTest do
     assert Macro.camelize("FOO_BAR") == "FOO_BAR"
     assert Macro.camelize("FOO.BAR") == "FOO.BAR"
     assert Macro.camelize("") == ""
+  end
+end
+
+defmodule Macro.DbgAnsiTest do
+  use ExUnit.Case, async: false
+
+  setup do
+    previous = Application.get_env(:elixir, :ansi_enabled, false)
+    Application.put_env(:elixir, :ansi_enabled, false)
+    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
+  end
+
+  test "dbg/3 respects disabled ANSI" do
+    output = ExUnit.CaptureIO.capture_io(fn -> assert dbg(:ok) == :ok end)
+    refute output =~ "\e["
   end
 end

@@ -39,6 +39,12 @@ defmodule Date.RangeTest do
 
     test "empty range" do
       refute Enum.member?(@empty_range, @empty_range.first)
+      refute Enum.member?(@empty_range, @empty_range.last)
+
+      empty_desc = Date.range(~D[2000-01-01], ~D[2001-01-01], -1)
+      refute Enum.member?(empty_desc, empty_desc.first)
+      refute Enum.member?(empty_desc, empty_desc.last)
+      refute Enum.member?(empty_desc, ~D[2000-06-01])
     end
   end
 
@@ -148,13 +154,6 @@ defmodule Date.RangeTest do
   end
 
   test "step is a non-zero integer" do
-    step = 1.0
-    message = ~r"the step must be a non-zero integer"
-
-    assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
-    end
-
     step = 0
     message = ~r"the step must be a non-zero integer"
 

@@ -206,7 +206,7 @@ defmodule Kernel.CLI do
   end
 
   @elixir_internals [:elixir, :elixir_aliases, :elixir_clauses, :elixir_compiler, :elixir_def] ++
-                      [:elixir_def, :elixir_dispatch, :elixir_expand, :elixir_lexical] ++
+                      [:elixir_dispatch, :elixir_expand, :elixir_lexical] ++
                       [:elixir_map, :elixir_module] ++
                       [:elixir_erl, :elixir_erl_clauses, :elixir_erl_compiler, :elixir_erl_pass] ++
                       [Kernel.ErrorHandler, Module.ParallelChecker]

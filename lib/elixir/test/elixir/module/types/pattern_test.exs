@@ -157,7 +157,7 @@ defmodule Module.Types.PatternTest do
 
              where "y" was given the type:
 
-                 # type: atom()
+                 # type: dynamic(atom())
                  # from: types_test.ex:LINE
                  is_atom(y)
              """
@@ -632,7 +632,7 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the type:
 
-                 # type: list(term())
+                 # type: dynamic(list(term()))
                  # from: types_test.ex:LINE
                  length(x)
              """
@@ -653,11 +653,11 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the types:
 
-                 # type: empty_list() or non_empty_list(term(), term())
+                 # type: dynamic(empty_list() or non_empty_list(term(), term()))
                  # from: types_test.ex:LINE
                  is_list(x)
 
-                 # type: non_empty_list(term(), term())
+                 # type: dynamic(non_empty_list(term(), term()))
                  # from: types_test.ex:LINE
                  hd(x)
              """
@@ -726,52 +726,36 @@ defmodule Module.Types.PatternTest do
                dynamic(open_map(foo: {atom([:bar]), false}, bar: {atom([false]), false}))
 
       assert typeerror!([x = %Point{}], x.foo_bar, :ok) == ~l"""
-             the following pattern will never match:
+             unknown key .foo_bar in expression:
 
-                 x = %Point{}
+                 x.foo_bar
+
+             the given type does not have the given key:
+
+                 dynamic(%Point{x: term(), y: term(), z: term()})
 
              where "x" was given the type:
 
-                 # type: %{..., foo_bar: true}
+                 # type: dynamic(%Point{})
                  # from: types_test.ex:LINE
-                 x.foo_bar
+                 x = %Point{}
              """
     end
 
-    test "map_get" do
-      # Below we have a precision warning because the map key is term.
-      # We could solve this in the same we say solved hd/tl in guards,
-      # but we explicitly chose not to (for now) for the following reasons:
-      #
-      # 1. We don't expose `:erlang.map_get` in Elixir, only `map.foo`,
-      #    which is an atom key and will be precise
-      #
-      # 2. The typing violation below will also happen once we add type
-      #    signatures and `%{x => v}` returns anything but a `boolean()`
-      #    (but it will work if you declare the value type only as boolean())
-      #
-      # 3. It also works if you explicitly match on `== true`, which
-      #    effectively forces the return given to `not` to be boolean
-      #
-      # Furthermore, we currently use it to test we don't split term types
-      # in error messages (as we don't have type signatures).
-      assert typeerror!([key, map], not :erlang.map_get(key, map), map) =~ """
-             incompatible types given to Kernel.not/1:
+    test "nested map_get" do
+      assert typecheck!(
+               (
+                 some_record = {:ok, %{"foo" => %{"bar" => 123}}}
 
-                 not :erlang.map_get(key, map)
+                 case some_record do
+                   {:ok, data} when :erlang.map_get("bar", :erlang.map_get("foo", data)) == 123 ->
+                     :ok
 
-             given types:
-
-                 term()
-
-             but expected one of:
-
-                 #1
-                 true
-
-                 #2
-                 false
-             """
+                   _ ->
+                     :error
+                 end
+               )
+             ) == atom([:ok, :error])
     end
 
     test "when checks" do
@@ -841,7 +825,7 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the type:
 
-                 # type: atom() or binary()
+                 # type: dynamic(atom() or binary())
                  # from: types_test.ex:LINE
                  is_binary(x) or is_atom(x)
              """
@@ -849,17 +833,37 @@ defmodule Module.Types.PatternTest do
 
     test "min/max" do
       assert typecheck!([x, y], is_integer(min(x, y)), min(x, y)) ==
-               dynamic(integer())
+               dynamic()
 
       assert typecheck!([x, y], is_number(min(x, y)), min(x, y)) ==
-               dynamic(opt_union(integer(), float()))
+               dynamic()
 
-      assert typecheck!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
+      assert typecheck!([x, y], is_integer(min(x, y)), {x, y}) ==
+               dynamic(tuple([term(), term()]))
+
+      assert typecheck!(
+               [m],
+               is_integer(m.x) and is_integer(m.y) and elem(m.pair, max(m.x, m.y)) > 0,
+               m
+             ) ==
                dynamic(
                  open_map(
-                   pair: {open_tuple([]), false},
+                   pair: {opt_difference(open_tuple([]), tuple([])), false},
                    x: {integer(), false},
                    y: {integer(), false}
+                 )
+               )
+
+      # This requires dynamic typing because, even though,
+      # max(m.x, m.y) returns an integer, we cannot claim
+      # anything about them based on the return type. See
+      # the more precise version above.
+      assert typedyn!([m], elem(m.pair, max(m.x, m.y)) > 0, m) ==
+               dynamic(
+                 open_map(
+                   pair: {opt_difference(open_tuple([]), tuple([])), false},
+                   x: {term(), false},
+                   y: {term(), false}
                  )
                )
 
@@ -917,7 +921,7 @@ defmodule Module.Types.PatternTest do
 
                where "x" was given the type:
 
-                   # type: atom() or binary()
+                   # type: dynamic(atom() or binary())
                    # from: types_test.ex:LINE-1
                    :erlang.or(is_binary(x), is_atom(x))
                """
@@ -976,15 +980,19 @@ defmodule Module.Types.PatternTest do
 
     test "incompatible pattern and guards" do
       assert typeerror!([x = {}], is_integer(x), x) == ~l"""
-             the following pattern will never match:
+             this guard will never succeed:
 
-                 x = {}
+                 is_integer(x)
+
+             because it returns type:
+
+                 false
 
              where "x" was given the type:
 
-                 # type: integer()
+                 # type: dynamic({})
                  # from: types_test.ex:LINE
-                 is_integer(x)
+                 x = {}
              """
     end
   end
@@ -1142,39 +1150,51 @@ defmodule Module.Types.PatternTest do
 
     test "warnings" do
       assert typeerror!([x = {}], x == 0, x) =~ ~l"""
-             the following pattern will never match:
+             comparison between distinct types found:
 
-                 x = {}
+                 x == 0
+
+             given types:
+
+                 dynamic({}) == integer()
 
              where "x" was given the type:
 
-                 # type: float() or integer()
+                 # type: dynamic({})
                  # from: types_test.ex:LINE
-                 x == 0
+                 x = {}
              """
 
       assert typeerror!([x = {}], x == :foo, x) =~ ~l"""
-             the following pattern will never match:
+             comparison between distinct types found:
 
-                 x = {}
+                 x == :foo
+
+             given types:
+
+                 dynamic({}) == :foo
 
              where "x" was given the type:
 
-                 # type: :foo
+                 # type: dynamic({})
                  # from: types_test.ex:LINE
-                 x == :foo
+                 x = {}
              """
 
       assert typeerror!([x = {}], not (x != :foo), x) =~ ~l"""
-             the following pattern will never match:
+             comparison between distinct types found:
 
-                 x = {}
+                 x != :foo
+
+             given types:
+
+                 dynamic({}) != :foo
 
              where "x" was given the type:
 
-                 # type: :foo
+                 # type: dynamic({})
                  # from: types_test.ex:LINE
-                 x != :foo
+                 x = {}
              """
 
       # We cannot warn in this case because the inference itself will lead to disjoint types
@@ -1461,6 +1481,7 @@ defmodule Module.Types.PatternTest do
       refute precise?([x], hd(x) == :ok)
       refute precise?([x, y], x == :ok and y == 123)
       refute precise?([x, y], x == :ok or y == :error)
+      refute precise?([x, y], is_integer(min(x, y)))
       refute precise?([x], x <= 0 or x == :infinity)
     end
 

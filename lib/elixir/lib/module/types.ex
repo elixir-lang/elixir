@@ -251,27 +251,23 @@ defmodule Module.Types do
       context ->
         {_kind, info, mapping} = Map.fetch!(context.local_sigs, fun_arity)
 
-        if pending != [] do
-          {used_indexes, unused_indexes} =
-            Enum.reduce(mapping, {[], []}, fn {clause_index, type_index},
-                                              {used_indexes, unused_indexes} ->
-              if type_index in pending and not skip_unused_clause?(info, type_index) do
-                {used_indexes, [clause_index | unused_indexes]}
-              else
-                {[clause_index | used_indexes], unused_indexes}
-              end
-            end)
-
-          unused_indexes = Enum.uniq(unused_indexes) -- used_indexes
-
-          Enum.reduce(unused_indexes, context, fn clause_index, context ->
-            {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
-            stack = %{stack | function: fun_arity} |> with_file_meta(meta)
-            Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+        {used_indexes, unused_indexes} =
+          Enum.reduce(mapping, {[], []}, fn {clause_index, type_index},
+                                            {used_indexes, unused_indexes} ->
+            if type_index in pending and not skip_unused_clause?(info, type_index) do
+              {used_indexes, [clause_index | unused_indexes]}
+            else
+              {[clause_index | used_indexes], unused_indexes}
+            end
           end)
-        else
-          context
-        end
+
+        unused_indexes = Enum.uniq(unused_indexes) -- used_indexes
+
+        Enum.reduce(unused_indexes, context, fn clause_index, context ->
+          {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
+          stack = %{stack | function: fun_arity} |> with_file_meta(meta)
+          Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+        end)
     end
   end
 
@@ -349,7 +345,7 @@ defmodule Module.Types do
     info = {base_info, args, guards}
 
     try do
-      {trees, _, _, _, head_context} =
+      {trees, _, _, _, _, head_context} =
         Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
       # Compute the intersected arrows from the function call
@@ -398,16 +394,15 @@ defmodule Module.Types do
   end
 
   defp infer_local_handler(clauses, base_info, kind, fun, expected, stack, context) do
-    {_, _, _, domain, mapping, clauses_types, clauses_context} =
-      Enum.reduce(clauses, {0, 0, Pattern.init_previous(), [], [], [], context}, fn
-        {meta, args, guards, body},
-        {index, total, previous, domain, mapping, inferred, acc_context} ->
+    {_, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {Pattern.init_previous(), [], context}, fn
+        {meta, args, guards, body}, {previous, inferred, acc_context} ->
           stack = with_file_meta(stack, meta)
           fresh_context = fresh_context(acc_context)
           info = {base_info, args, guards}
 
           try do
-            {trees, _precise?, head_no_previous_args_types, previous, head_context} =
+            {trees, precise?, _errored?, head_no_previous_args_types, previous, head_context} =
               Pattern.of_head(args, guards, expected, previous, info, meta, stack, fresh_context)
 
             {return_type, context} =
@@ -415,31 +410,25 @@ defmodule Module.Types do
 
             args_types = Pattern.of_domain(trees, stack, context)
 
-            {type_index, inferred} =
-              add_inferred(inferred, args_types, return_type, total - 1, [])
-
-            domain =
-              case domain do
-                [] ->
-                  args_types
-
-                _ ->
-                  head_args_types = Pattern.of_domain(trees, stack, head_context)
-                  compute_domain(args_types, head_args_types, head_no_previous_args_types, domain)
+            head_args_types =
+              case inferred do
+                [] -> nil
+                _ -> Pattern.of_domain(trees, stack, head_context)
               end
 
-            if type_index == -1 do
-              mapping = [{index, total} | mapping]
-              {index + 1, total + 1, previous, domain, mapping, inferred, context}
-            else
-              mapping = [{index, type_index} | mapping]
-              {index + 1, total, previous, domain, mapping, inferred, context}
-            end
+            args_triplet = {args_types, head_args_types, head_no_previous_args_types}
+            inferred = [{args_triplet, return_type, precise?} | inferred]
+            {previous, inferred, context}
           rescue
             e ->
               internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
           end
       end)
+
+    {clauses_types, mapping, domain} =
+      clauses_types
+      |> Enum.reverse()
+      |> group_clauses()
 
     domain =
       case clauses_types do
@@ -447,8 +436,60 @@ defmodule Module.Types do
         _ -> domain
       end
 
-    inferred = {:infer, domain, Enum.reverse(clauses_types)}
+    inferred = {:infer, domain, clauses_types}
     {inferred, mapping, restore_context(clauses_context, context)}
+  end
+
+  defp group_clauses(clauses) do
+    {_, all_clauses, filtered_clauses, non_empty?} =
+      Enum.reduce(clauses, {0, [], [], false}, fn
+        {_args_triplet, return, precise?} = clause,
+        {index, all_clauses, filtered_clauses, non_empty?} ->
+          empty? = Descr.empty?(return)
+          indexed_clause = {clause, index}
+
+          filtered_clauses =
+            if precise? and empty? do
+              filtered_clauses
+            else
+              [indexed_clause | filtered_clauses]
+            end
+
+          {index + 1, [indexed_clause | all_clauses], filtered_clauses, non_empty? or not empty?}
+      end)
+
+    clauses =
+      if non_empty? do
+        Enum.reverse(filtered_clauses)
+      else
+        Enum.reverse(all_clauses)
+      end
+
+    [
+      {{{args, _head_args, _head_no_previous_args}, _return, _precise?}, _index}
+      | clauses_tail
+    ] = clauses
+
+    domain =
+      Enum.reduce(clauses_tail, args, fn
+        {{{args, head_args, head_no_previous_args}, _return, _precise?}, _index}, domain ->
+          compute_domain(args, head_args, head_no_previous_args, domain)
+      end)
+
+    {_, mapping, inferred} =
+      Enum.reduce(clauses, {0, [], []}, fn
+        {{{args, _head_args, _head_no_previous_args}, return, _precise?}, index},
+        {total, mapping, inferred} ->
+          {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
+
+          if type_index == -1 do
+            {total + 1, [{index, total} | mapping], inferred}
+          else
+            {total, [{index, type_index} | mapping], inferred}
+          end
+      end)
+
+    {Enum.reverse(inferred), mapping, domain}
   end
 
   defp compute_domain(

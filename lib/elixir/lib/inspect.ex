@@ -387,13 +387,20 @@ defimpl Inspect, for: List do
     close = color_doc("]", :list, opts)
 
     cond do
-      lists == :as_charlists or (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
-        inspected =
-          case Identifier.escape(IO.chardata_to_string(term), ?", printable_limit) do
-            {escaped, ""} -> [?~, ?c, ?", escaped, ?"]
-            {escaped, _} -> [?~, ?c, ?", escaped, ?", " ++ ..."]
+      (lists == :as_charlists and unicode_list?(term, printable_limit)) or
+          (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
+        {split, tail} =
+          if is_integer(printable_limit) do
+            case Enum.split(term, printable_limit) do
+              {split, []} -> {split, []}
+              {split, _} -> {split, " ++ ..."}
+            end
+          else
+            {term, []}
           end
 
+        {escaped, _} = Identifier.escape(IO.chardata_to_string(split), ?")
+        inspected = [?~, ?c, ?", escaped, ?" | tail]
         color_doc(IO.iodata_to_binary(inspected), :charlist, opts)
 
       keyword?(term) ->
@@ -406,6 +413,19 @@ defimpl Inspect, for: List do
         container_doc_with_opts(open, term, close, opts, &to_doc_with_opts/2, separator: sep)
     end
   end
+
+  defp unicode_list?(_, 0), do: true
+
+  defp unicode_list?([char | rest], counter)
+       when char in 0..0xD7FF or char in 0xE000..0x10FFFF,
+       do: unicode_list?(rest, decrement(counter))
+
+  defp unicode_list?([], _counter), do: true
+  defp unicode_list?(_, _counter), do: false
+
+  @compile {:inline, decrement: 1}
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter), do: counter - 1
 
   @doc false
   def keyword({key, value}, opts) do

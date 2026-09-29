@@ -106,26 +106,47 @@ defmodule Logger.Translator do
            starter: starter,
            function: function,
            args: args,
-           reason: reason,
+           reason: report_reason,
            process_label: process_label
-         }}
+         } = report}
       ) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
 
-    {formatted, reason} = format_reason(reason)
+    {formatted, reason} = format_reason(report_reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
     msg =
-      ["\nFunction: #{inspect(function, opts)}"] ++
-        ["\n    Args: #{inspect(args, opts)}"]
+      case report do
+        %{orphan_compiler_module?: true} when elem(report_reason, 0) == :undef ->
+          [
+            "\n    Hint: if this module is defined somewhere, this error may have happened because processes " <>
+              "were spawned during Elixir's compilation and these processes are unable to load modules defined " <>
+              "by the compiler. In such cases, consider using Kernel.ParallelCompiler.pmap/2 instead"
+          ]
+
+        _ ->
+          []
+      end
+
+    msg =
+      ["\nFunction: ", inspect(function, opts), "\n    Args: ", inspect(args, opts) | msg]
 
     msg =
       case process_label do
         :undefined -> msg
-        _ -> ["\nProcess Label: #{inspect(process_label, opts)}"] ++ msg
+        _ -> ["\nProcess Label: ", inspect(process_label, opts) | msg]
       end
 
-    msg = ["Task #{inspect(name)} started from #{inspect(starter)} terminating", formatted] ++ msg
+    msg =
+      [
+        "Task ",
+        inspect(name),
+        " started from ",
+        inspect(starter),
+        " terminating",
+        formatted
+        | msg
+      ]
 
     {:ok, msg, metadata}
   end
@@ -139,12 +160,19 @@ defmodule Logger.Translator do
         {formatted, reason} = format_reason(reason)
         metadata = [crash_reason: reason] ++ registered_name(name)
 
-        msg =
-          ["GenServer #{inspect(name)} terminating", formatted] ++
-            ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
+        msg = [
+          "GenServer ",
+          inspect(name),
+          " terminating",
+          formatted,
+          "\nLast message",
+          format_from(client),
+          ": ",
+          inspect(last, opts)
+        ]
 
         if min_level == :debug do
-          msg = [msg, "\nState: #{inspect(state, opts)}" | format_client(client)]
+          msg = [msg, "\nState: ", inspect(state, opts) | format_client(client)]
           {:ok, msg, metadata}
         else
           {:ok, msg, metadata}
@@ -324,8 +352,8 @@ defmodule Logger.Translator do
 
     msg =
       [":gen_statem ", inspect(name), " terminating", formatted, label_msg] ++
-        ["\nQueue: #{inspect(queue, inspect_opts)}"] ++
-        ["\nPostponed: #{inspect(postponed, inspect_opts)}"]
+        ["\nQueue: ", inspect(queue, inspect_opts)] ++
+        ["\nPostponed: ", inspect(postponed, inspect_opts)]
 
     if min_level == :debug do
       msg = [
@@ -333,7 +361,9 @@ defmodule Logger.Translator do
         "\nState: ",
         inspect(state, inspect_opts),
         "\nCallback mode: ",
-        "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
+        inspect(callback_mode, inspect_opts),
+        ", state_enter: ",
+        Atom.to_string(state_enter?)
         | format_client_info(client)
       ]
 
@@ -706,18 +736,20 @@ defmodule Logger.Translator do
   ## Deprecated helpers
 
   defp format_from([]), do: ""
-  defp format_from([from]), do: " (from #{inspect(from)})"
-  defp format_from([from, stacktrace]) when is_list(stacktrace), do: " (from #{inspect(from)})"
+  defp format_from([from]), do: [" (from ", inspect(from), ")"]
+
+  defp format_from([from, stacktrace]) when is_list(stacktrace),
+    do: [" (from ", inspect(from), ")"]
 
   defp format_from([from, node_name]) when is_atom(node_name),
-    do: " (from #{inspect(from)} on #{inspect(node_name)})"
+    do: [" (from ", inspect(from), " on ", inspect(node_name), ")"]
 
   defp format_client([from]) do
-    "\nClient #{inspect(from)} is dead"
+    ["\nClient ", inspect(from), " is dead"]
   end
 
   defp format_client([from, stacktrace]) when is_list(stacktrace) do
-    ["\nClient #{inspect(from)} is alive\n" | format_stacktrace(stacktrace)]
+    ["\nClient ", inspect(from), " is alive\n" | format_stacktrace(stacktrace)]
   end
 
   defp format_client(_) do

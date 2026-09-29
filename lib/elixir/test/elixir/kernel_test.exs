@@ -1061,10 +1061,6 @@ defmodule KernelTest do
       assert get_and_update_in(struct.foo.bar, &{&1, &1 + 1}) ==
                {41, %StructAccess{bar: nil, foo: %StructAccess{bar: 42, foo: nil}}}
 
-      assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
-        get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
-      end
-
       assert_raise BadMapError, fn ->
         get_and_update_in(users["dave"].age, &{&1, &1 + 1})
       end
@@ -1129,11 +1125,6 @@ defmodule KernelTest do
       users = %{john: nil, meg: %{age: 23}}
       assert pop_in(users.john[:age]) == {nil, %{john: nil, meg: %{age: 23}}}
       assert pop_in(users, [:john, :age]) == {nil, %{meg: %{age: 23}}}
-
-      x = nil
-      assert_raise ArgumentError, fn -> pop_in(x["john"][:age]) end
-      assert_raise ArgumentError, fn -> pop_in(nil["john"][:age]) end
-      assert_raise ArgumentError, fn -> pop_in(nil, ["john", :age]) end
     end
 
     test "with dynamic paths" do

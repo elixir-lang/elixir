@@ -743,6 +743,10 @@ defmodule EnumTest do
   test "min_max/1" do
     assert Enum.min_max([1]) == {1, 1}
     assert Enum.min_max([2, 3, 1]) == {1, 3}
+    assert Enum.min_max([5, 4, 3, 2, 1]) == {1, 5}
+    assert Enum.min_max([-10, -20, 0, 10, 20]) == {-20, 20}
+    assert Enum.min_max([3, 1, 4, 1, 5, 9, 2, 6, 5]) == {1, 9}
+    assert Enum.min_max(Enum.to_list(1..1000)) == {1, 1000}
     assert Enum.min_max([[], :a, {}]) == {:a, []}
 
     assert Enum.min_max([1, 1.0]) === {1, 1}
@@ -756,6 +760,8 @@ defmodule EnumTest do
   test "min_max/2" do
     assert Enum.min_max([1], fn -> nil end) == {1, 1}
     assert Enum.min_max([2, 3, 1], fn -> nil end) == {1, 3}
+    assert Enum.min_max([5, 4, 3, 2, 1], fn -> nil end) == {1, 5}
+    assert Enum.min_max([-10, -20, 0, 10, 20], fn -> nil end) == {-20, 20}
     assert Enum.min_max([[], :a, {}], fn -> nil end) == {:a, []}
     assert Enum.min_max([], fn -> {:empty_min, :empty_max} end) == {:empty_min, :empty_max}
     assert Enum.min_max(%{}, fn -> {:empty_min, :empty_max} end) == {:empty_min, :empty_max}
@@ -892,7 +898,7 @@ defmodule EnumTest do
     assert Enum.reduce([1, 2, 3], fn x, acc -> x + acc end) == 6
 
     assert_raise Enum.EmptyError, fn ->
-      Enum.reduce([], fn x, acc -> x + acc end)
+      Enum.reduce(Process.get(:unused, []), fn x, acc -> x + acc end)
     end
 
     assert_raise Enum.EmptyError, fn ->
@@ -942,8 +948,20 @@ defmodule EnumTest do
     assert Enum.reverse_slice([1, 2, 3], 0, 1) == [1, 2, 3]
     assert Enum.reverse_slice([1, 2, 3], 0, 2) == [2, 1, 3]
     assert Enum.reverse_slice([1, 2, 3], 0, 20_000_000) == [3, 2, 1]
+    assert Enum.reverse_slice([1, 2, 3], 1, 2) == [1, 3, 2]
     assert Enum.reverse_slice([1, 2, 3], 100, 2) == [1, 2, 3]
     assert Enum.reverse_slice([1, 2, 3], 10, 10) == [1, 2, 3]
+
+    list = [1, 2, 3, 4, 5]
+
+    for size <- 0..5, start <- 0..(size + 1), count <- 0..(size + 1) do
+      sublist = Enum.take(list, size)
+      {prefix, rest} = Enum.split(sublist, start)
+      {slice, suffix} = Enum.split(rest, count)
+      assert Enum.reverse_slice(sublist, start, count) == prefix ++ Enum.reverse(slice) ++ suffix
+    end
+
+    assert_runs_enumeration_only_once(&Enum.reverse_slice(&1, 1, 2))
   end
 
   describe "slide/3" do

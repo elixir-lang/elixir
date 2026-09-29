@@ -271,6 +271,19 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c"map.foo") == {:no, ~c"", []}
   end
 
+  test "map atom key completion does not split Unicode codepoints" do
+    eval(~s(map = %{école: "school", être: "to be"}))
+    assert expand(~c"map.") == {:yes, ~c"", [~c"école", ~c"être"]}
+  end
+
+  test "map atom key completion preserves complete Unicode prefixes" do
+    eval(~s(map = %{français_école: "school", français_être: "to be"}))
+    assert expand(~c"map.f") == {:yes, ~c"rançais_", []}
+
+    assert expand(~c"map.français_") ==
+             {:yes, ~c"", [~c"français_école", ~c"français_être"]}
+  end
+
   test "nested map atom key completion is supported" do
     eval("map = %{nested: %{deeply: %{foo: 1, bar_1: 23, bar_2: 14, mod: String, num: 1}}}")
     assert expand(~c"map.nested.deeply.f") == {:yes, ~c"oo", []}

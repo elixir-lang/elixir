@@ -768,8 +768,8 @@ defmodule Kernel.SpecialForms do
   It is used in typespecs to specify the type of a variable,
   function or of a type itself:
 
-      @type number :: integer | float
-      @spec add(number, number) :: number
+      @type num :: integer | float
+      @spec add(num, num) :: num
 
   It may also be used in bit strings to specify the type
   of a given bit segment:
@@ -2077,9 +2077,9 @@ defmodule Kernel.SpecialForms do
       iex> try do
       ...>   1 / 0
       ...> rescue
-      ...>   x in [ArithmeticError] -> [:rescued, is_exception(x)]
+      ...>   x in [ArithmeticError] -> {:rescued, Exception.message(x)}
       ...> end
-      [:rescued, true]
+      {:rescued, "bad argument in arithmetic expression"}
 
   Rescue different errors with separate clauses:
 

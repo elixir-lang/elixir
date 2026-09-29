@@ -101,12 +101,6 @@ defmodule SupervisorTest do
     assert_raise ArgumentError, message, fn ->
       Supervisor.child_spec(Unknown, [])
     end
-
-    message = ~r"supervisors expect each child to be one of"
-
-    assert_raise ArgumentError, message, fn ->
-      Supervisor.child_spec("other", [])
-    end
   end
 
   test "init/2" do

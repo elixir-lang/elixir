@@ -613,19 +613,25 @@ defmodule Mix.UmbrellaTest do
         end
         """)
 
-        Mix.Task.run("compile")
-        assert File.regular?("_build/dev/lib/bar/consolidated/Elixir.Foo.beam")
-        assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
+        consolidated = "_build/dev/lib/bar/consolidated/Elixir.Foo.beam"
 
-        # Mark protocol as outdated
-        File.touch!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam", {{2010, 1, 1}, {0, 0, 0}})
+        Mix.Task.run("compile")
+        assert File.regular?(consolidated)
+
+        # Do not reconsolidate when the path dependency is unchanged
+        File.touch!(consolidated, {{2010, 1, 1}, {0, 0, 0}})
+        Mix.Task.clear()
+        assert Mix.Task.run("compile") == {:noop, []}
+        assert File.stat!(consolidated).mtime == {{2010, 1, 1}, {0, 0, 0}}
+
+        # Reconsolidate the outdated protocol when the path dependency changes
         force_recompilation("../foo/lib/foo.ex")
         ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
         Mix.Task.clear()
         Mix.Task.run("compile")
 
         # Check new timestamp
-        mtime = File.stat!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam").mtime
+        mtime = File.stat!(consolidated).mtime
         assert mtime > {{2010, 1, 1}, {0, 0, 0}}
       end)
     end)

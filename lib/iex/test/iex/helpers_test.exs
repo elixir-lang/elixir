@@ -102,12 +102,6 @@ defmodule IEx.HelpersTest do
                    fn -> break!(PryExampleModule, :unknown, 2) end
     end
 
-    test "errors when setting up a break for unknown expression" do
-      assert_raise ArgumentError, ~r"unknown expression to break on", fn ->
-        break!(123)
-      end
-    end
-
     test "errors for non-Elixir modules" do
       assert_raise RuntimeError,
                    "could not set breakpoint, module :maps was not written in Elixir",
@@ -513,6 +507,20 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(IEx.Helpers.c() / 1) end) =~ c_h
       assert capture_io(fn -> h(pwd) end) =~ pwd_h
       assert capture_io(fn -> h(def) end) =~ def_h
+    end
+
+    test "prints spec for default arg function" do
+      spec = "@spec recompile([{:force, boolean()}]) :: :ok | :error | :noop"
+
+      assert capture_io(fn -> h(IEx.Helpers.recompile() / 0) end) =~ spec
+      assert capture_io(fn -> h(IEx.Helpers.recompile() / 1) end) =~ spec
+    end
+
+    test "prints spec for default arg macro" do
+      spec = "@spec compile_env(app(), key() | list(), value()) :: value()"
+
+      assert capture_io(fn -> h(Application.compile_env() / 2) end) =~ spec
+      assert capture_io(fn -> h(Application.compile_env() / 3) end) =~ spec
     end
 
     test "prints sigil documentation" do

@@ -1957,7 +1957,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "compiles without optional dependencies" do
+  test "compiles with --no-optional-deps" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(GitApp)
       Mix.Tasks.Deps.Get.run([])
@@ -1984,6 +1984,58 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       refute Code.ensure_loaded?(GitRepo)
     end)
+  end
+
+  test "compiles transitive dependencies with --no-optional-deps" do
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("optional_dep/lib")
+      File.mkdir_p!("required_dep/lib")
+
+      File.write!("optional_dep/mix.exs", """
+      defmodule OptionalDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [app: :optional_dep, version: "0.1.0"]
+        end
+      end
+      """)
+
+      File.write!("optional_dep/lib/optional_dep.ex", """
+      defmodule OptionalDep do
+      end
+      """)
+
+      File.write!("required_dep/mix.exs", """
+      defmodule RequiredDep.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :required_dep,
+            version: "0.1.0",
+            deps: [{:optional_dep, path: "../optional_dep"}]
+          ]
+        end
+      end
+      """)
+
+      Mix.ProjectStack.post_config(
+        deps: [
+          {:optional_dep, path: "optional_dep", optional: true},
+          {:required_dep, path: "required_dep"}
+        ]
+      )
+
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert Mix.Tasks.Compile.run(["--no-optional-deps", "--warnings-as-errors"]) ==
+               {:ok, []}
+
+      assert Code.ensure_loaded?(OptionalDep)
+    end)
+  after
+    purge([OptionalDep, OptionalDep.MixProject, RequiredDep.MixProject])
   end
 
   describe "consolidation protocols" do

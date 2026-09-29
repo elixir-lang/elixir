@@ -460,6 +460,16 @@ defmodule Module.Types.DescrTest do
       assert opt_intersection(empty_map(), closed_map(a: {integer(), true})) == empty_map()
       assert opt_intersection(closed_map(a: {integer(), true}), empty_map()) == empty_map()
 
+      assert opt_difference(
+               empty_map(),
+               closed_map(a: {integer(), true}, b: {integer(), false})
+             ) == empty_map()
+
+      assert opt_difference(
+               closed_map(a: {integer(), true}, b: {integer(), false}),
+               empty_map()
+             ) == closed_map(a: {integer(), true}, b: {integer(), false})
+
       assert opt_intersection(
                open_map(a: {integer(), true}),
                closed_map(a: {atom(), true})
@@ -647,8 +657,10 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple" do
+      # Assert we unfold the difference of empty tuples as it is common
+      assert opt_difference(tuple(), empty_tuple()) == open_tuple([term()])
+
       assert empty?(opt_difference(open_tuple([atom()]), open_tuple([term()])))
-      refute empty?(opt_difference(tuple(), empty_tuple()))
       refute tuple_of_size_at_least(2) |> opt_difference(tuple_of_size(2)) |> empty?()
       assert tuple_of_size_at_least(2) |> opt_difference(tuple_of_size_at_least(1)) |> empty?()
       assert tuple_of_size_at_least(3) |> opt_difference(tuple_of_size_at_least(3)) |> empty?()
@@ -1303,6 +1315,14 @@ defmodule Module.Types.DescrTest do
     end
 
     test "fun_from_inferred_clauses" do
+      # Empty domains
+      assert fun_from_inferred_clauses([{[none()], atom()}]) == fun(1)
+
+      assert fun_from_inferred_clauses([
+               {[none(), integer()], atom()},
+               {[binary(), none()], binary()}
+             ]) == fun(2)
+
       # No overlap
       assert fun_from_inferred_clauses([{[integer()], atom()}, {[float()], binary()}])
              |> equal?(
@@ -1438,6 +1458,34 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(usable_at_2, [integer()]) == {:badarity, [2]}
       assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
       assert fun_apply(usable_at_2, [integer(), atom()]) == {:ok, boolean()}
+
+      # A function that is empty at *every* arity is :badfun at any arity, even
+      # when other (also empty) arity entries are structurally present. An empty
+      # entry must never be reported as a supported arity.
+      empty_at_1 = opt_difference(fun([integer()], atom()), fun([integer()], term()))
+
+      empty_at_2 =
+        opt_difference(fun([integer(), atom()], atom()), fun([integer(), atom()], term()))
+
+      empty_both = opt_union(empty_at_1, empty_at_2)
+
+      assert empty?(empty_both)
+      assert fun_apply(empty_both, [integer()]) == :badfun
+      assert fun_apply(empty_both, [integer(), atom()]) == :badfun
+
+      # Same when the called arity has no entry at all and the only entries
+      # present are empty ones.
+      assert fun_apply(empty_at_2, [integer()]) == :badfun
+      assert fun_apply(dynamic(empty_at_2), [integer()]) == :badfun
+
+      # An empty static arity must not shadow a live dynamic one: `live_at_2` is
+      # semantically equal to its dynamic arity-2 part, so applying it to two
+      # arguments must succeed instead of reporting the dead arity 1.
+      live_at_2 = opt_union(empty_at_1, dynamic(fun([integer(), atom()], boolean())))
+
+      assert equal?(live_at_2, dynamic(fun([integer(), atom()], boolean())))
+      assert fun_apply(live_at_2, [integer(), atom()]) == {:ok, dynamic(boolean())}
+      assert fun_apply(live_at_2, [integer()]) == {:badarity, [2]}
 
       # Function intersection tests (no overlap)
       fun0 = opt_intersection(fun([integer()], atom()), fun([float()], binary()))
@@ -2310,9 +2358,12 @@ defmodule Module.Types.DescrTest do
     test "tuple_values" do
       assert tuple_values(term()) == :badtuple
       assert tuple_values(dynamic()) == dynamic()
+      assert tuple_values(none()) == :badtuple
       assert tuple_values(integer()) == :badtuple
       assert tuple_values(tuple([none()])) == :badtuple
       assert tuple_values(tuple([])) == none()
+      assert tuple_values(dynamic(tuple([none()]))) == :badtuple
+      assert tuple_values(dynamic(tuple([]))) == dynamic(none())
       assert tuple_values(tuple()) == term()
       assert tuple_values(open_tuple([integer()])) == term()
       assert tuple_values(tuple([integer(), atom()])) == opt_union(integer(), atom())
@@ -2343,6 +2394,8 @@ defmodule Module.Types.DescrTest do
 
       assert tuple_values(opt_union(dynamic(tuple([integer()])), tuple([integer()])))
              |> equal?(integer())
+
+      assert tuple_values(opt_union(tuple([]), tuple([integer()]))) == integer()
     end
 
     test "map_to_list" do

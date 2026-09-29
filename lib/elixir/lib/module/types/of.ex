@@ -291,7 +291,11 @@ defmodule Module.Types.Of do
     # so we need to deal with such cases accordingly.
     # TODO: Assume implementation is available on Elixir v2.0.
     # A warning is emitted since v1.19+.
-    if info = mode == :closed && Code.ensure_loaded?(struct) && struct.__info__(:struct) do
+    info =
+      mode == :closed and Code.ensure_loaded?(struct) and
+        function_exported?(struct, :__info__, 1) and struct.__info__(:struct)
+
+    if info do
       struct_type(struct, info)
     else
       open_map(__struct__: {atom([struct]), false})
@@ -381,8 +385,10 @@ defmodule Module.Types.Of do
           closed_map(non_multiple)
 
         [{keys, type} | tail] ->
-          for key <- keys, t <- cartesian_map(tail) do
-            closed_map(non_multiple ++ [{key, {type, false}} | t])
+          products = cartesian_map(tail)
+
+          for key <- keys, product <- products do
+            closed_map(non_multiple ++ [{key, {type, false}} | product])
           end
           |> Enum.reduce(&opt_union/2)
       end
@@ -463,7 +469,8 @@ defmodule Module.Types.Of do
         [[]]
 
       [{keys, type} | tail] ->
-        for key <- keys, t <- cartesian_map(tail), do: [{key, {type, false}} | t]
+        products = cartesian_map(tail)
+        for key <- keys, product <- products, do: [{key, {type, false}} | product]
     end
   end
 

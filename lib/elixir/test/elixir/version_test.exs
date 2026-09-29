@@ -38,6 +38,26 @@ defmodule VersionTest do
     assert Version.compare("1.5.0-rc.0", "1.5.0-rc0") == :lt
   end
 
+  test "compare/2 with Version structs" do
+    large_major = Bitwise.bsl(1, 256)
+    large_pre = Bitwise.bsl(1, 128)
+    left = %Version{major: large_major, minor: 2, patch: 3, pre: ["alpha", large_pre]}
+    right = %Version{major: large_major, minor: 2, patch: 3, pre: ["alpha", large_pre + 1]}
+
+    assert Version.compare(left, right) == :lt
+    assert Version.compare(right, left) == :gt
+    assert Version.compare(left, %{left | major: large_major + 1}) == :lt
+    assert Version.compare(%{left | minor: 1}, %{left | minor: 2}) == :lt
+    assert Version.compare(%{left | patch: 2}, %{left | patch: 3}) == :lt
+    assert Version.compare(%{left | pre: [1]}, %{left | pre: ["alpha"]}) == :lt
+    assert Version.compare(%{left | pre: ["alpha"]}, %{left | pre: ["alpha", 1]}) == :lt
+    assert Version.compare(%{left | pre: ["alpha"]}, %{left | pre: []}) == :lt
+    assert Version.compare(%{left | pre: []}, %{left | pre: ["alpha"]}) == :gt
+    assert Version.compare(%{left | build: "left"}, %{left | build: "right"}) == :eq
+    assert Version.compare(%{left | major: 1}, "2.0.0") == :lt
+    assert Version.compare("2.0.0", %{left | major: 1}) == :gt
+  end
+
   test "compare/2 with invalid versions" do
     assert_raise Version.InvalidVersionError, fn ->
       Version.compare("1.0", "1.0.0")

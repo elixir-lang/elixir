@@ -27,7 +27,8 @@ defmodule Code.Fragment do
           column: pos_integer(),
           columns: boolean(),
           token_metadata: boolean(),
-          literal_encoder: (term(), Macro.metadata() -> term()),
+          literal_encoder: (term(), Macro.metadata() -> {:ok, Macro.t()} | {:error, binary()}),
+          preserve_sigils: boolean(),
           trailing_fragment: String.t()
         ]
 
@@ -141,6 +142,9 @@ defmodule Code.Fragment do
     * `{:anonymous_call, inside_caller}` - the context is an anonymous
       call, such as `fun.(` and `@fun.(`.
 
+    * `{:capture_arg, charlist}` - the context is a capture argument,
+      such as `&1`
+
     * `{:module_attribute, charlist}` - the context is a module attribute,
       such as `@hello_wor`
 
@@ -158,8 +162,8 @@ defmodule Code.Fragment do
     * `:none` - no context possible
 
     * `{:sigil, charlist}` - the context is a sigil. It may be either the beginning
-      of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
-      `~>` and `~>>`
+      of a sigil, such as `~` or `~s`. Operators starting with `~`, such as
+      `~>` and `~>>`, are returned as :operator contexts
 
     * `{:struct, inside_struct}` - the context is a struct, such as `%`, `%UR` or `%URI`.
       `inside_struct` can either be a `charlist` in case of a static alias or an

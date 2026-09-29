@@ -200,7 +200,7 @@ This anti-pattern is of special importance to library authors and whenever writi
 
   * some frameworks, such as [Phoenix](https://phoenixframework.org), allow developers to raise exceptions in their code and uses a protocol to convert these exceptions into semantic HTTP responses
 
-This anti-pattern was formerly known as [Using exceptions for control-flow](https://github.com/lucasvegi/Elixir-Code-Smells#using-exceptions-for-control-flow).
+In cases where you have a complex algorithm and you must abort in the middle of a computation, you may use `throw` to abort and handle it with a `try/catch`, which was designed explicitly for this purpose. However, you must always catch what you throw, it must never be exposed as part of your library definition.
 
 ## Primitive obsession
 

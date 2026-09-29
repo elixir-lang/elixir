@@ -174,7 +174,7 @@ defmodule Mix.Release do
       version_path: Path.join([path, "releases", version]),
       erts_source: erts_source,
       erts_version: erts_version,
-      applications: Map.delete(loaded_apps, :erts),
+      applications: loaded_apps,
       boot_scripts: %{start: start_boot, start_clean: start_clean_boot},
       config_providers: config_providers,
       options: opts,

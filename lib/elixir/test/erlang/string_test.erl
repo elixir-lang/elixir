@@ -117,6 +117,23 @@ string_with_lower_case_hex_interpolation_test() ->
 string_with_upper_case_hex_interpolation_test() ->
   {<<"jklmno">>, _} = eval("\"\\x6A\\x6B\\x6C\\x6D\\x6E\\x6F\"").
 
+string_with_mixed_case_hex_interpolation_test() ->
+  {<<171>>, _} = eval("\"\\xaB\""),
+  {<<171>>, _} = eval("\"\\xAb\"").
+
+string_with_hex_boundaries_test() ->
+  {<<0>>, _} = eval("\"\\x00\""),
+  {<<255>>, _} = eval("\"\\xff\""),
+  {<<255>>, _} = eval("\"\\xFF\"").
+
+string_with_hex_stops_after_two_digits_test() ->
+  {<<195, $a>>, _} = eval("\"\\xc3a\"").
+
+string_with_incomplete_hex_test() ->
+  ?assertError(#{'__struct__' := 'Elixir.SyntaxError'}, eval("\"\\x\"")),
+  ?assertError(#{'__struct__' := 'Elixir.SyntaxError'}, eval("\"\\x0\"")),
+  ?assertError(#{'__struct__' := 'Elixir.SyntaxError'}, eval("\"\\xc\"")).
+
 string_without_interpolation_and_escaped_test() ->
   {<<"f#o">>, _} = eval("\"f\\#o\"").
 

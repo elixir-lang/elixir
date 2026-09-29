@@ -21,7 +21,9 @@ Elixir version | Support
 1.17           | Security patches only
 1.16           | Security patches only
 
-New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
+New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann) and on the [GitHub releases page](https://github.com/elixir-lang/elixir/releases).
+
+You may also see [all releases](https://github.com/elixir-lang/elixir/releases) and [consult all disclosed vulnerabilities](https://github.com/elixir-lang/elixir/security) on GitHub.
 
 There are currently no plans for a major v2 release.
 
@@ -140,7 +142,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.11] | `Mix.Project.compile/2`                             | `Mix.Task.run("compile", args)` (v1.0)
 [v1.11] | `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` | The new child specs outlined in `Supervisor` (v1.5)
 [v1.11] | `Supervisor.start_child/2` and `Supervisor.terminate_child/2` | `DynamicSupervisor` (v1.6)
-[v1.11] | `System.stacktrace/1`                               | `__STACKTRACE__` in `try/catch/rescue` (v1.7)
+[v1.11] | `System.stacktrace/0`                               | `__STACKTRACE__` in `try/catch/rescue` (v1.7)
 [v1.10] | `Code.ensure_compiled?/1`                           | `Code.ensure_compiled/1` (v1.0)
 [v1.10] | `Code.load_file/2`                                  | `Code.require_file/2` (v1.0) or `Code.compile_file/2` (v1.7)
 [v1.10] | `Code.loaded_files/0`                               | `Code.required_files/0` (v1.7)

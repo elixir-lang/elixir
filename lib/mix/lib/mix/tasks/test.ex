@@ -121,6 +121,9 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
+    * `--coverage-format` - sets the format for coverage reports. It must be
+      either `html` or `text`. Only has an effect when used with `--cover`
+
     * `--dry-run` *(since v1.20.0)* - prints which tests would be run based on current options,
       but does not actually run any tests. This combines with all other options
       like `--stale`, `--only`, `--exclude`, and so on.
@@ -181,8 +184,9 @@ defmodule Mix.Tasks.Test do
     * `--partitions` - sets the amount of partitions to split tests in. It must be
       a number greater than zero. If set to one, it acts a no-op. If more than one,
       then you must also set the `MIX_TEST_PARTITION` environment variable with the
-      partition to use in the current test run. See the "Operating system process
-      partitioning" section for more information
+      partition to use in the current test run. See the
+      ["Operating system process partitioning"](#module-operating-system-process-partitioning)
+      section for more information
 
     * `--preload-modules` - preloads all modules defined in applications
 
@@ -374,6 +378,9 @@ defmodule Mix.Tasks.Test do
     * `:output` - the output directory for cover results.
       Defaults to `"cover"`.
 
+    * `:format` - the format for coverage reports. It must be either `:html`
+      or `:text`. Defaults to `:html`.
+
     * `:summary` - at the end of each coverage run, a summary of each
       module is printed, with results in red or green depending on whether
       the percentage is below or above a given threshold. The task will
@@ -411,6 +418,16 @@ defmodule Mix.Tasks.Test do
   compilation path and the `test_coverage` options as arguments.
   It must return either `nil` or an anonymous function of zero arity that
   will run after the test suite is done.
+
+  ### Agentic usage
+
+  Coding agents have two options to automate coverage usage:
+
+    * Use `--coverage-format text` to emit coverage reports using text files.
+      Agents can then grep for " 0 .. |" to find uncoverage lines
+
+    * Use `--export-coverage file` to export the coverage results and then use
+      Erlang's `:cover` module to programatically analyze it
 
   ## Operating system process partitioning
 
@@ -495,6 +512,7 @@ defmodule Mix.Tasks.Test do
     force: :boolean,
     color: :boolean,
     cover: :boolean,
+    coverage_format: :string,
     export_coverage: :string,
     trace: :boolean,
     max_cases: :integer,
@@ -617,10 +635,7 @@ defmodule Mix.Tasks.Test do
         compile_path = Mix.Project.compile_path(project)
         partition = partitioned? && System.get_env("MIX_TEST_PARTITION")
 
-        cover =
-          @cover
-          |> Keyword.put(:export, opts[:export_coverage] || partition)
-          |> Keyword.merge(project[:test_coverage] || [])
+        cover = process_cover_opts(opts, project[:test_coverage] || [], partition)
 
         cover[:tool].start(compile_path, cover)
       end
@@ -763,6 +778,22 @@ defmodule Mix.Tasks.Test do
 
         :ok
     end
+  end
+
+  @doc false
+  def process_cover_opts(opts, test_coverage, partition) do
+    @cover
+    |> Keyword.put(:export, opts[:export_coverage] || partition)
+    |> Keyword.merge(test_coverage)
+    |> put_coverage_format(opts[:coverage_format])
+  end
+
+  defp put_coverage_format(cover, nil), do: cover
+  defp put_coverage_format(cover, "html"), do: Keyword.put(cover, :format, :html)
+  defp put_coverage_format(cover, "text"), do: Keyword.put(cover, :format, :text)
+
+  defp put_coverage_format(_cover, format) do
+    Mix.raise("Unknown coverage format #{inspect(format)}, expected \"html\" or \"text\"")
   end
 
   # similar to Mix.Utils.extract_files/2, but returns a list of directly included test files,

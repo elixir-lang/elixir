@@ -118,6 +118,8 @@ defmodule Mix.Tasks.Compile.All do
       end)
 
     if "--no-optional-deps" in args do
+      required = Mix.Dep.required_apps(Mix.Dep.cached())
+      optional = Enum.reject(optional, &(&1 in required))
       all -- optional
     else
       all

@@ -269,8 +269,8 @@ defmodule Mix.Tasks.New do
   embed_template(:readme, """
   # <%= @mod %>
 
-  **TODO: Add description**
-  <%= if @app do %>
+  **TODO: Add description**<%= if @app do %>
+
   ## Installation
 
   If [available in Hex](https://hex.pm/docs/publish), the package can be installed
@@ -286,8 +286,7 @@ defmodule Mix.Tasks.New do
 
   Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
   and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-  be found at <https://<%= String.replace(@app, "_", "-") %>.hexdocs.pm>.
-  <% end %>
+  be found at <https://<%= String.replace(@app, "_", "-") %>.hexdocs.pm>.<% end %>
   """)
 
   embed_template(:formatter, """
@@ -325,11 +324,10 @@ defmodule Mix.Tasks.New do
   erl_crash.dump
 
   # Also ignore archive artifacts (built via "mix archive.build").
-  *.ez
-  <%= if @app do %>
+  *.ez<%= if @app do %>
+
   # Ignore package tarball (built via "mix hex.build").
-  <%= @app %>-*.tar
-  <% end %>
+  <%= @app %>-*.tar<% end %>
   """)
 
   embed_template(:mix_exs, """

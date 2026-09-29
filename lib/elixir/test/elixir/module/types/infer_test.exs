@@ -124,6 +124,23 @@ defmodule Module.Types.InferTest do
     assert length(clauses) == 2
   end
 
+  test "from patterns (with empty return type)", config do
+    types =
+      infer config do
+        def all_empty(:ok), do: raise("oops")
+        def all_empty(:error), do: raise("oops")
+
+        def mixed({:ok, value}), do: value
+        def mixed(value), do: raise("oops: #{inspect(value)}")
+      end
+
+    assert types[{:all_empty, 1}] ==
+             {:infer, [atom([:ok, :error])], [{[atom([:ok, :error])], dynamic(none())}]}
+
+    assert types[{:mixed, 1}] ==
+             {:infer, nil, [{[tuple([atom([:ok]), term()])], dynamic()}]}
+  end
+
   test "from expressions", config do
     types =
       infer config do
@@ -257,22 +274,13 @@ defmodule Module.Types.InferTest do
                closed_map(
                  __struct__: {atom([module]), false},
                  x: {binary(), false},
-                 y: {atom([nil]), false},
+                 y: {term(), false},
                  z: {term(), false}
                )
              )
 
     assert {:infer, _, [{_, return}]} = types[{:map_update_with_unknown_keys, 2}]
-
-    assert return ==
-             dynamic(
-               closed_map(
-                 __struct__: {atom([module]), false},
-                 x: {binary(), false},
-                 y: {atom([nil]), false},
-                 z: {term(), false}
-               )
-             )
+    assert return == dynamic(open_map())
   end
 
   test "from captures", config do

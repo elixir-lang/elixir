@@ -244,6 +244,15 @@ defmodule Mix.Tasks.NewTest do
 
   defp assert_file(file) do
     assert File.regular?(file), "Expected #{file} to exist, but does not"
+    content = File.read!(file)
+
+    # \S\n\z matches non-whitespace followed by a single newline at EOF
+    assert content == "" or content =~ ~r/\S\n\z/,
+           "Expected #{file} to end with a single trailing newline"
+
+    refute content =~ "\n\n\n", "Expected #{file} to not contain consecutive blank lines"
+
+    content
   end
 
   defp assert_file(file, match) do
@@ -252,8 +261,8 @@ defmodule Mix.Tasks.NewTest do
         assert_file(file, &assert(&1 =~ match))
 
       is_function(match, 1) ->
-        assert_file(file)
-        match.(File.read!(file))
+        content = assert_file(file)
+        match.(content)
     end
   end
 end

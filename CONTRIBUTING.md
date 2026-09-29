@@ -55,7 +55,7 @@ To recompile all (including Erlang modules):
 make compile
 ```
 
-After your changes are done, please remember to run `make format` to guarantee
+After your changes are done, run `make format` to guarantee
 all files are properly formatted, then run the full suite with
 `make test`.
 
@@ -71,43 +71,38 @@ updating an existing checkout, run `make clean compile`. You can check
 [the official build status](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml).
 More tasks can be found by reading the [Makefile](Makefile).
 
-We encourage contributors to write tests that capture both existing and newly
-introduced behavior, especially for bug fixes and major changes:
+## Sending a pull request
 
-  * **Bug Fixes:** If you are fixing a bug, please try to include a test that
-    *fails* before your change and *passes* afterward. This makes it easier to
-    confirm that the fix addresses the underlying issue and helps prevent
-    regressions in the future.
+Contributions are done [via pull request](https://help.github.com/articles/using-pull-requests/)
+and must include tests and other relevant proof of work:
+
+  * **Bug Fixes:** If you are fixing a bug, include a test that *fails* before
+    your change and *passes* afterward. This makes it easier to confirm that the
+    fix addresses the underlying issue and helps prevent regressions in the future.
 
   * **New Features or Major Changes:** If you are adding a new feature or making
-    major changes to existing functionality, please add tests that cover the
-    major parts of that functionality. Aim to have the best code coverage possible.
+    major changes to existing functionality, please add assocaited tests. Aim to
+    have the best code coverage possible.
 
-With tests running and passing, you are ready to contribute to Elixir and
-[send a pull request](https://help.github.com/articles/using-pull-requests/).
-We have saved some excellent pull requests we have received in the past in
-case you are looking for some examples:
+  * **Performance improvements:** For performance improvements, please include the
+    benchmark script, with inputs and results, in the pull request description.
+    We recommend using [benchee](https://github.com/bencheeorg/benchee).
 
-  * [Implement Enum.member? - Pull request](https://github.com/elixir-lang/elixir/pull/992)
+Here are some pull requests we have received in the past you can use as reference:
 
-  * [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
+  * [Implement Enum.member?](https://github.com/elixir-lang/elixir/pull/992)
 
-  * [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
+  * [Add String.valid?](https://github.com/elixir-lang/elixir/pull/1058)
+
+  * [Implement capture_io for ExUnit](https://github.com/elixir-lang/elixir/pull/1059)
 
 ## Reviewing changes
 
 Once a pull request is sent, the Elixir team will review your changes.
-We outline our process below to clarify the roles of everyone involved.
-
-All pull requests must be reviewed before being merged into the repository.
 If changes are necessary, the team will leave appropriate comments requesting
 changes to the code. Unfortunately, we cannot guarantee a pull request will
 be merged, even when modifications are requested, as the Elixir team will
 re-evaluate the contribution as it changes.
-
-The Elixir team may optionally assign someone to review a pull request.
-If someone is assigned, they must explicitly approve the code before
-another team member can merge it.
 
 When the review finishes, your pull request will be squashed and merged
 into the repository. If you have carefully organized your commits and
@@ -117,7 +112,7 @@ a comment.
 ## Building documentation
 
 Building the documentation requires that [ExDoc](https://github.com/elixir-lang/ex_doc)
-is installed and built alongside Elixir.
+is cloned and compiled alongside Elixir.
 
 After cloning and compiling Elixir, run:
 

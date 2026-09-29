@@ -108,7 +108,8 @@ defmodule Module.Types.IntegrationTest do
             Tuple,
             Any,
             Range,
-            Unknown
+            Unknown,
+            GenServer
           ] do
           def itself(data), do: data
           def this_wont_warn(:ok), do: :ok
@@ -120,6 +121,9 @@ defmodule Module.Types.IntegrationTest do
 
       assert stderr =~
                "you are implementing a protocol for Unknown but said module is not available"
+
+      assert stderr =~
+               "you are implementing a protocol for GenServer but said module does not provide a struct"
 
       refute stderr =~ "this_wont_warn"
 
@@ -161,6 +165,9 @@ defmodule Module.Types.IntegrationTest do
 
       assert itself_arg.(Itself.Unknown) ==
                dynamic(open_map(__struct__: {atom([Unknown]), false}))
+
+      assert itself_arg.(Itself.GenServer) ==
+               dynamic(open_map(__struct__: {atom([GenServer]), false}))
     end
 
     test "ignores additional callbacks on implementations" do
@@ -314,6 +321,66 @@ defmodule Module.Types.IntegrationTest do
             │       ~
             │
             └─ a.ex:4:7: A.foo/2
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "captures with impossible clauses" do
+      files = %{
+        "impossible_clauses.ex" => """
+        defmodule ImpossibleClauses do
+          def anonymous, do: fn x = 1 = :a -> x end
+          def local_capture, do: &local/1
+
+          defp local(x = 1 = :a), do: x
+          def remote(x = 1 = :a), do: x
+        end
+        """,
+        "remote_capture.ex" => """
+        defmodule ImpossibleRemoteCapture do
+          def capture, do: &ImpossibleClauses.remote/1
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: the following pattern will never match:
+
+                x = 1 = :a
+
+            type warning found at:
+            │
+          2 │   def anonymous, do: fn x = 1 = :a -> x end
+            │                           ~
+            │
+            └─ impossible_clauses.ex:2:27: ImpossibleClauses.anonymous/0
+        """,
+        """
+            warning: the 1st pattern in clause will never match:
+
+                x = 1 = :a
+
+            type warning found at:
+            │
+          5 │   defp local(x = 1 = :a), do: x
+            │                ~
+            │
+            └─ impossible_clauses.ex:5:16: ImpossibleClauses.local/1
+        """,
+        """
+            warning: the 1st pattern in clause will never match:
+
+                x = 1 = :a
+
+            type warning found at:
+            │
+          6 │   def remote(x = 1 = :a), do: x
+            │                ~
+            │
+            └─ impossible_clauses.ex:6:16: ImpossibleClauses.remote/1
         """
       ]
 

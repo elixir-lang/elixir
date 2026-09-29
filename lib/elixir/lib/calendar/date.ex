@@ -160,7 +160,7 @@ defmodule Date do
       ) do
     raise ArgumentError,
           "both dates must have matching calendar and the step must be a " <>
-            "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
+            "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{inspect(step)}"
   end
 
   defp range(first, first_days, last, last_days, calendar, step) do
@@ -422,7 +422,7 @@ defmodule Date do
   def to_iso8601(%{calendar: _} = date, format) when format in [:basic, :extended] do
     date
     |> convert!(Calendar.ISO)
-    |> to_iso8601()
+    |> to_iso8601(format)
   end
 
   @doc """
@@ -508,7 +508,7 @@ defmodule Date do
   @doc since: "1.11.0"
   @spec from_gregorian_days(integer(), Calendar.calendar()) :: t
   def from_gregorian_days(days, calendar \\ Calendar.ISO) when is_integer(days) do
-    from_iso_days({days, 0}, calendar)
+    from_iso_days({days, {0, 86_400}}, calendar)
   end
 
   @doc """
@@ -556,14 +556,18 @@ defmodule Date do
   """
   @doc since: "1.4.0"
   @spec compare(Calendar.date(), Calendar.date()) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar} = date1, %{calendar: calendar} = date2) do
-    %{year: year1, month: month1, day: day1} = date1
-    %{year: year2, month: month2, day: day2} = date2
-
-    case {{year1, month1, day1}, {year2, month2, day2}} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
+  def compare(
+        %{year: year1, month: month1, day: day1, calendar: calendar},
+        %{year: year2, month: month2, day: day2, calendar: calendar}
+      ) do
+    cond do
+      year1 > year2 -> :gt
+      year1 < year2 -> :lt
+      month1 > month2 -> :gt
+      month1 < month2 -> :lt
+      day1 > day2 -> :gt
+      day1 < day2 -> :lt
+      true -> :eq
     end
   end
 

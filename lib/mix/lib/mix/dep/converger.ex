@@ -414,8 +414,7 @@ defmodule Mix.Dep.Converger do
   end
 
   defp sort_manager(other_manager, manager, false) do
-    to_exclude = @managers -- (List.wrap(other_manager) ++ List.wrap(manager))
-    List.first(@managers -- to_exclude) || other_manager || manager
+    Enum.find(@managers, &(&1 == other_manager or &1 == manager)) || other_manager || manager
   end
 
   defp req_mismatch(%Mix.Dep{status: status}, %Mix.Dep{app: app, requirement: requirement}) do
