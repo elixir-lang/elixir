@@ -92,13 +92,11 @@ defmodule Mix.Tasks.Compile.Elixir do
       Defaults to `["lib"]`.
 
     * `:elixirc_options` - compilation options that apply to Elixir's compiler.
-      It supports many of the options above  plus the options listed in
-      `Code.put_compiler_option/2`. In case conflicting options are given,
-      the ones given through the command line are used.
-
-    * `[xref: [exclude: ...]]` - a list of `module` or `{module, function, arity}`
-      that should not be warned on in case on undefined modules or undefined
-      application warnings.
+      It supports many of the options above plus the options listed in
+      `Code.put_compiler_option/2`. For example, use
+      `elixirc_options: [check_cwd: false]` to not recompile when the current working
+      directory changes. In case conflicting options are given, the ones given through
+      the command line are used.
 
   """
 
