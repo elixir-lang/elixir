@@ -343,23 +343,24 @@ defmodule StringIO do
   end
 
   defp get_chars(input, :unicode, count) do
-    with {:ok, count} <- split_at(input, count, 0) do
-      <<chars::binary-size(^count), rest::binary>> = input
+    with {:ok, rest} <- split_at(input, count) do
+      size = byte_size(input) - byte_size(rest)
+      <<chars::binary-size(^size), _::binary>> = input
       {chars, rest}
     end
   end
 
-  defp split_at(_, 0, acc),
-    do: {:ok, acc}
+  defp split_at(input, 0),
+    do: {:ok, input}
 
-  defp split_at(<<h::utf8, t::binary>>, count, acc),
-    do: split_at(t, count - 1, acc + byte_size(<<h::utf8>>))
+  defp split_at(<<_::utf8, rest::binary>>, count),
+    do: split_at(rest, count - 1)
 
-  defp split_at(<<_, _::binary>>, _count, _acc),
+  defp split_at(<<_, _::binary>>, _count),
     do: {:error, :invalid_unicode}
 
-  defp split_at(<<>>, _count, acc),
-    do: {:ok, acc}
+  defp split_at(<<>>, _count),
+    do: {:ok, <<>>}
 
   ## get_line
 
