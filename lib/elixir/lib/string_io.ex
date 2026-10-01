@@ -365,7 +365,7 @@ defmodule StringIO do
   ## get_line
 
   defp get_line(encoding, prompt, %{input: input} = state) do
-    case bytes_until_eol(input, encoding, 0) do
+    case bytes_until_eol(input, encoding, byte_size(input)) do
       {:split, 0} ->
         {:eof, state_after_read(state, "", prompt, 1)}
 
@@ -413,7 +413,7 @@ defmodule StringIO do
   end
 
   defp get_until(chars, encoding, mod, fun, args, continuation, count) do
-    case bytes_until_eol(chars, encoding, 0) do
+    case bytes_until_eol(chars, encoding, byte_size(chars)) do
       {kind, size} when kind in [:split, :replace_split] ->
         <<line::binary-size(^size), rest::binary>> = chars
 
@@ -466,16 +466,20 @@ defmodule StringIO do
     %{state | input: remainder, output: output}
   end
 
-  defp bytes_until_eol("", _, count), do: {:split, count}
-  defp bytes_until_eol(<<"\r\n"::binary, _::binary>>, _, count), do: {:replace_split, count + 2}
-  defp bytes_until_eol(<<"\n"::binary, _::binary>>, _, count), do: {:split, count + 1}
+  defp bytes_until_eol("", _, size), do: {:split, size}
 
-  defp bytes_until_eol(<<head::utf8, tail::binary>>, :unicode, count) do
-    bytes_until_eol(tail, :unicode, count + byte_size(<<head::utf8>>))
+  defp bytes_until_eol(<<"\r\n"::binary, rest::binary>>, _, size),
+    do: {:replace_split, size - byte_size(rest)}
+
+  defp bytes_until_eol(<<"\n"::binary, rest::binary>>, _, size),
+    do: {:split, size - byte_size(rest)}
+
+  defp bytes_until_eol(<<_::utf8, rest::binary>>, :unicode, size) do
+    bytes_until_eol(rest, :unicode, size)
   end
 
-  defp bytes_until_eol(<<_, tail::binary>>, :latin1, count) do
-    bytes_until_eol(tail, :latin1, count + 1)
+  defp bytes_until_eol(<<_, rest::binary>>, :latin1, size) do
+    bytes_until_eol(rest, :latin1, size)
   end
 
   defp bytes_until_eol(<<_::binary>>, _, _), do: :error
