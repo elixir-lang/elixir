@@ -2150,30 +2150,35 @@ defmodule String do
 
   def chunk("", _), do: []
 
-  def chunk(string, trait) when is_binary(string) and trait in [:valid, :printable] do
-    {cp, _} = next_codepoint(string)
-    pred_fn = make_chunk_pred(trait)
-    do_chunk(string, pred_fn.(cp), pred_fn)
+  def chunk(string, :valid) when is_binary(string) do
+    if valid?(string), do: [string], else: chunk_fallback(string, &valid?/1)
   end
 
-  defp do_chunk(string, flag, pred_fn), do: do_chunk(string, [], <<>>, flag, pred_fn)
+  def chunk(string, :printable) when is_binary(string) do
+    if printable?(string), do: [string], else: chunk_fallback(string, &printable?/1)
+  end
 
-  defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
-
-  defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
-
-  defp do_chunk(string, acc, chunk, flag, pred_fn) do
+  defp chunk_fallback(string, pred_fn) do
     {cp, rest} = next_codepoint(string)
+    do_chunk(rest, string, 0, byte_size(cp), pred_fn.(cp), pred_fn, [])
+  end
 
-    if pred_fn.(cp) != flag do
-      do_chunk(rest, [chunk | acc], cp, not flag, pred_fn)
+  defp do_chunk(<<>>, orig, start, len, _flag, _pred_fn, acc) do
+    Enum.reverse(acc, [binary_part(orig, start, len)])
+  end
+
+  defp do_chunk(string, orig, start, len, flag, pred_fn, acc) do
+    {cp, rest} = next_codepoint(string)
+    cp_flag = pred_fn.(cp)
+
+    if cp_flag == flag do
+      do_chunk(rest, orig, start, len + byte_size(cp), flag, pred_fn, acc)
     else
-      do_chunk(rest, acc, chunk <> cp, flag, pred_fn)
+      do_chunk(rest, orig, start + len, byte_size(cp), cp_flag, pred_fn, [
+        binary_part(orig, start, len) | acc
+      ])
     end
   end
-
-  defp make_chunk_pred(:valid), do: &valid?/1
-  defp make_chunk_pred(:printable), do: &printable?/1
 
   @doc ~S"""
   Returns Unicode graphemes in the string as per Extended Grapheme
