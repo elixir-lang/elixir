@@ -407,7 +407,7 @@ defmodule Float do
   #    (53-bit mantissa + ~50-bit power of ten) and BEAM bignums handle it
   #    directly without approximation.
   # 3. Round the exact rational to an integer per the requested mode
-  #    (half_up / floor / ceil) using quotient and remainder.
+  #    (half_up / floor / ceil) using bit shifts on the scaled product.
   # 4. Emit the float closest to rounded_int / 10^precision:
   #    - fast path: when rounded_int < 2^53, both operands are exactly
   #      representable as floats and IEEE division is correctly rounded.
@@ -454,10 +454,7 @@ defmodule Float do
   defp do_round(sign, mantissa, shift, precision, mode) do
     power = power_of_10(precision)
     product = mantissa * power
-    half = 1 <<< (shift - 1)
-    quotient = product >>> shift
-    remainder = product - (quotient <<< shift)
-    rounded_int = round_step(mode, sign, quotient, remainder, half)
+    rounded_int = round_step(mode, sign, product, shift)
 
     cond do
       rounded_int == 0 ->
@@ -474,17 +471,19 @@ defmodule Float do
     end
   end
 
-  defp round_step(:half_up, _sign, quotient, remainder, half) do
-    if remainder >= half, do: quotient + 1, else: quotient
+  # Half-up: floor(x + 1/2) == floor((floor(2x) + 1) / 2), where x = product / 2^shift.
+  defp round_step(:half_up, _sign, product, shift) do
+    ((product >>> (shift - 1)) + 1) >>> 1
   end
 
-  defp round_step(:floor, 0, quotient, _remainder, _half), do: quotient
-  defp round_step(:floor, 1, quotient, remainder, _half) when remainder > 0, do: quotient + 1
-  defp round_step(:floor, 1, quotient, _remainder, _half), do: quotient
+  # Rounding the magnitude up (floor of a negative, ceil of a positive):
+  # ceil(x) == -floor(-x).
+  defp round_step(mode, sign, product, shift)
+       when (mode == :floor and sign == 1) or (mode == :ceil and sign == 0) do
+    -(-product >>> shift)
+  end
 
-  defp round_step(:ceil, 0, quotient, remainder, _half) when remainder > 0, do: quotient + 1
-  defp round_step(:ceil, 0, quotient, _remainder, _half), do: quotient
-  defp round_step(:ceil, 1, quotient, _remainder, _half), do: quotient
+  defp round_step(_mode, _sign, product, shift), do: product >>> shift
 
   defp signed_zero(0), do: 0.0
   defp signed_zero(1), do: -0.0
