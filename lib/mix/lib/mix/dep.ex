@@ -163,7 +163,7 @@ defmodule Mix.Dep do
 
     app = Keyword.fetch!(config, :app)
     seen = populate_seen(MapSet.new(), [app])
-    children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
+    {_, children} = Enum.reduce(Enum.reverse(deps), {seen, []}, &collect_children(&1, &2, app))
 
     top_level =
       for dep <- deps,
@@ -183,6 +183,15 @@ defmodule Mix.Dep do
           %{dep | top_level: false, opts: Keyword.delete(opts, :optional)}
       end
     end)
+  end
+
+  defp collect_children(dep, {seen, children} = acc, app) do
+    if MapSet.member?(seen, dep.app) do
+      seen = Enum.reduce(dep.deps, seen, &MapSet.put(&2, &1.app))
+      {seen, if(dep.app == app, do: children, else: [dep | children])}
+    else
+      acc
+    end
   end
 
   defp converge_and_load(opts) do
