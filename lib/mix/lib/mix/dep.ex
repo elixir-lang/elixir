@@ -162,8 +162,6 @@ defmodule Mix.Dep do
                 "Please invoke one of \"deps.loadpaths\", \"loadpaths\", or \"compile\" Mix task"
 
     app = Keyword.fetch!(config, :app)
-    seen = populate_seen(MapSet.new(), [app])
-    {_, children} = Enum.reduce(Enum.reverse(deps), {seen, []}, &collect_children(&1, &2, app))
 
     top_level =
       for dep <- deps,
@@ -171,6 +169,10 @@ defmodule Mix.Dep do
           child <- dep.deps,
           do: {child.app, Keyword.get(child.opts, :optional, false)},
           into: %{}
+
+    deps = if map_size(top_level) == 0, do: [], else: deps
+    seen = MapSet.new([app])
+    {_, children} = Enum.reduce(Enum.reverse(deps), {seen, []}, &collect_children(&1, &2, app))
 
     Enum.map(children, fn %{app: app, opts: opts} = dep ->
       # optional only matters at the top level. Any non-top level dependency
