@@ -628,6 +628,18 @@ defmodule Module.Types.RecursiveTest do
       |> unfold()
     end
 
+    test "required recursive map fields defer emptiness checks" do
+      map =
+        recursive(%{
+          M: fn recur -> closed_map(a: {recur.(:M), false}) end
+        })
+        |> Map.fetch!(:M)
+        |> unfold()
+
+      assert empty?(map)
+      assert map_fetch_key(dynamic(map), :a) == :badmap
+    end
+
     # X = {integer(), Y} | nil and Y = {boolean(), X} | nil
     defp mutual_tuples() do
       %{X: nx, Y: ny} =
