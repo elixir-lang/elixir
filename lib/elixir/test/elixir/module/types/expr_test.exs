@@ -3595,6 +3595,42 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  opt_union(opt_union(bitstring(), empty_list()), list(bitstring_no_binary()))
                )
+
+      # The list path accepts any element, so the body is not restricted to bitstrings
+      assert typecheck!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) == opt_union(binary(), list(opt_union(atom([:ok]), binary())))
+
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(opt_union(atom([:ok]), binary()))))
+
+      assert typecheck!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) == opt_union(binary(), list(atom([:ok])))
+
+      assert typecheck!(
+               [flag, value],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: value, into: into)
+                 value
+               )
+             ) == dynamic()
     end
 
     test ":into bitstrings" do

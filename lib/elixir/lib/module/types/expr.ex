@@ -634,7 +634,10 @@ defmodule Module.Types.Expr do
             # is ok for now because we only check for bitstring if the type
             # is a subset of empty_list() or bitstring(), but we may want to
             # relax in the future.
-            if empty?(intersection) do
+            #
+            # If the collectable may also be a list, the body may be valid
+            # on that path, so we only error when the list path is impossible.
+            if empty?(intersection) and :non_empty_list not in into_kinds do
               error = {:badbitbody, block_type, block, context}
               {error_type(), error(__MODULE__, error, meta, stack, context)}
             else
@@ -864,12 +867,16 @@ defmodule Module.Types.Expr do
     # only bitstring/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
       cond do
+        # A comprehension may concatenate the block an arbitrary number of times.
+        # Even if both the initial value and each block are unaligned bitstrings,
+        # repeated concatenation may eventually produce an aligned binary.
+        bitstring_type?(type) and empty_list_type?(type) ->
+          # The collectable may be a list, which accepts any element,
+          # so we cannot restrict the body to bitstrings.
+          {[:bitstring, :non_empty_list], opt_union(binary(), type), term(), context}
+
         bitstring_type?(type) ->
-          kinds = if empty_list_type?(type), do: [:bitstring, :non_empty_list], else: [:bitstring]
-          # A comprehension may concatenate the block an arbitrary number of times.
-          # Even if both the initial value and each block are unaligned bitstrings,
-          # repeated concatenation may eventually produce an aligned binary.
-          {kinds, opt_union(binary(), type), bitstring(), context}
+          {[:bitstring], opt_union(binary(), type), bitstring(), context}
 
         empty_list_type?(type) ->
           {[:non_empty_list], type, maybe_list_hd_or_term(expected), context}
