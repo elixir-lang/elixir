@@ -2971,6 +2971,13 @@ defmodule Module.Types.DescrTest do
     test "with projected negative maps" do
       assert map_get(projected_negative_map(100), atom([:k])) == {:ok, open_map()}
     end
+
+    test "with term() key considers atom fields" do
+      map = closed_map(a: {integer(), false})
+      assert map_get(map, term()) == {:ok, integer()}
+      assert map_get(map, term()) == map_get(map, atom())
+      assert map_get(open_map(a: {integer(), false}), term()) == {:ok, term()}
+    end
   end
 
   describe "map_update" do
@@ -3474,6 +3481,15 @@ defmodule Module.Types.DescrTest do
       assert type == term()
       assert equal?(descr, open_map(__struct__: {opt_negation(atom()), true}))
     end
+
+    test "with term() key considers atom fields" do
+      {value, descr, _errors} =
+        map_update(closed_map(a: {integer(), false}), term(), atom([:x]), false)
+
+      assert equal?(value, integer())
+      assert subtype?(closed_map(a: {atom([:x]), false}), descr)
+      assert subtype?(closed_map(a: {integer(), false}), descr)
+    end
   end
 
   describe "map_put" do
@@ -3780,6 +3796,12 @@ defmodule Module.Types.DescrTest do
       assert equal?(none(), a2)
       assert map_put(none(), atom([:a]), integer()) == :badmap
       assert map_put(a2, atom([:a]), integer()) == :badmap
+    end
+
+    test "with term() key considers atom fields" do
+      {:ok, descr} = map_put(closed_map(a: {integer(), false}), term(), pid())
+      assert subtype?(closed_map(a: {pid(), false}), descr)
+      assert subtype?(closed_map(a: {integer(), false}), descr)
     end
   end
 

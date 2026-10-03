@@ -4149,6 +4149,10 @@ defmodule Module.Types.Descr do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains}
   end
 
+  defp map_split_keys_and_domains(:term) do
+    map_split_keys_and_domains(unfolded_term())
+  end
+
   defp map_split_keys_and_domains(%{atom: {:union, atoms}} = key_descr) do
     {:sets.to_list(atoms), [], nil, to_domain_keys(key_descr), []}
   end
