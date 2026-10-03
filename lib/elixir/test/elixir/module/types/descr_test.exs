@@ -3935,6 +3935,16 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() ==
                "dynamic(empty_list() or non_empty_list(integer(), float() or pid()))"
 
+      # Keep branch exclusions separate
+      assert list(atom([:a, :b, :c]))
+             |> opt_difference(bare_intersection(list(atom([:a, :b])), list(atom([:b, :d]))))
+             |> opt_union(bare_intersection(list(atom([:b, :d])), list(atom([:b, :c, :d]))))
+             |> to_quoted_string() ==
+               """
+               (list(:a or :b) and not non_empty_list(:b or :d)) or
+                 (list(:a or :b or :c) and not non_empty_list(:a or :b)) or list(:b or :d)\
+               """
+
       list_with_tail =
         non_empty_list(atom(), opt_union(integer(), empty_list()))
         |> opt_difference(non_empty_list(atom([:ok]), integer()))
