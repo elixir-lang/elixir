@@ -834,7 +834,7 @@ defmodule Access do
 
   defp get_and_update_at([head | rest], 0, next, updates, _default_fun) do
     case next.(head) do
-      {get, update} -> {get, :lists.reverse([update | updates], rest)}
+      {get, update} -> {get, :lists.reverse(updates, [update | rest])}
       :pop -> {head, :lists.reverse(updates, rest)}
     end
   end
@@ -1240,7 +1240,7 @@ defmodule Access do
   defp get_and_update_find([head | rest], updates, predicate, next) do
     if predicate.(head) do
       case next.(head) do
-        {get, update} -> {get, :lists.reverse([update | updates], rest)}
+        {get, update} -> {get, :lists.reverse(updates, [update | rest])}
         :pop -> {head, :lists.reverse(updates, rest)}
       end
     else
