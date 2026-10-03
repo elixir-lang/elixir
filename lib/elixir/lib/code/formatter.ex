@@ -1657,13 +1657,16 @@ defmodule Code.Formatter do
     {surround(left_bracket, args_doc, right_bracket), state}
   end
 
-  defp map_to_algebra(meta, name_doc, [{:|, _, [left, right]}], state) do
-    join = if eol?(meta, state), do: :line, else: :break
+  defp map_to_algebra(meta, name_doc, [{:|, pipe_meta, [left, right]}], state) do
+    trailing_comments = Keyword.get(pipe_meta, :trailing_comments, [])
+    join = if eol?(meta, state) or trailing_comments != [], do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
     {left_doc, state} = fun.(left, state)
 
     {right_doc, _join, state} =
       args_to_algebra_with_comments(right, meta, false, :none, join, state, fun)
+
+    right_doc = append_comments(right_doc, trailing_comments)
 
     args_doc =
       left_doc

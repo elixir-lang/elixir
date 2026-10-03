@@ -760,6 +760,23 @@ defmodule Code.Normalizer.QuotedASTTest do
                end
              ) == "@foo [1, foo: :bar]"
     end
+
+    test "comments after nodes without closing metadata" do
+      comments = [
+        %{line: 2, column: 3, previous_eol_count: 1, next_eol_count: 1, text: "# comment"}
+      ]
+
+      list = &{:__block__, [line: 1, closing: [line: 3]], [[&1]]}
+
+      assert quoted_to_string(list.({:{}, [line: 1], [:a, :b, [c: :d]]}), comments: comments) ==
+               "[\n  {:a, :b, c: :d}\n  # comment\n]"
+
+      assert quoted_to_string(list.({:foo, [], [1]}), comments: comments) ==
+               "[\n  foo(1)\n  # comment\n]"
+
+      assert quoted_to_string(list.({:+, [], [1, 2]}), comments: comments) ==
+               "[\n  1 + 2\n  # comment\n]"
+    end
   end
 
   describe "quoted_to_algebra/2 escapes" do

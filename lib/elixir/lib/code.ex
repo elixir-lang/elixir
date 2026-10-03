@@ -1865,21 +1865,12 @@ defmodule Code do
   end
 
   defp comments_boundaries(:., _meta, boundary), do: {boundary, boundary}
+  defp comments_boundaries(:->, _meta, boundary), do: {boundary, boundary}
 
   defp comments_boundaries(_form, meta, boundary) do
     case comments_end_line(meta, [:end, :closing]) do
-      nil ->
-        {comments_boundary(meta, boundary), boundary}
-
-      line ->
-        {min_comments_boundary(line, boundary), boundary}
-    end
-  end
-
-  defp comments_boundary(meta, boundary) do
-    case comments_end_line(meta, [:end_of_expression]) do
-      nil -> boundary
-      line -> min_comments_boundary(line, boundary)
+      nil -> {nil, boundary}
+      line -> {min_comments_boundary(line, boundary), boundary}
     end
   end
 

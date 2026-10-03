@@ -442,6 +442,24 @@ defmodule Code.Formatter.CommentsTest do
       )
       """
     end
+
+    test "with trailing comments on single expression" do
+      bad = ~S"""
+      foo do
+        (
+          hello + world
+          # comment
+        )
+      end
+      """
+
+      assert_format bad, ~S"""
+      foo do
+        hello + world
+        # comment
+      end
+      """
+    end
   end
 
   describe "access" do
@@ -1156,6 +1174,43 @@ defmodule Code.Formatter.CommentsTest do
         System.system_time()
         |> System.convert_time_unit(:native, :microsecond)
       end)
+      """
+    end
+
+    test "with comments after operators" do
+      assert_same """
+      foo(
+        a + b
+        # comment
+      )
+      """
+
+      assert_same """
+      [
+        @foo
+        # comment
+      ]
+      """
+
+      assert_same """
+      [
+        a | b
+        # comment
+      ]
+      """
+
+      bad = """
+      %{foo | bar: a + b
+        # comment
+      }
+      """
+
+      assert_format bad, """
+      %{
+        foo
+        | bar: a + b
+          # comment
+      }
       """
     end
 
