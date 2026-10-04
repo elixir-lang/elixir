@@ -241,8 +241,8 @@ defmodule Mix.Dep do
 
     deps =
       if opts[:include_children] do
-        seen = populate_seen(MapSet.new(), apps)
-        get_deps(all_deps, Enum.uniq(get_children(all_deps, seen, apps)))
+        seen = get_children(all_deps, MapSet.new(apps), apps)
+        Enum.filter(all_deps, &MapSet.member?(seen, &1.app))
       else
         get_deps(all_deps, apps)
       end
@@ -260,7 +260,7 @@ defmodule Mix.Dep do
     Enum.filter(all_deps, &(&1.app in apps))
   end
 
-  defp get_children(_all_deps, _seen, []), do: []
+  defp get_children(_all_deps, seen, []), do: seen
 
   defp get_children(all_deps, seen, apps) do
     children_apps =
@@ -269,7 +269,7 @@ defmodule Mix.Dep do
           app not in seen,
           do: app
 
-    apps ++ get_children(all_deps, populate_seen(seen, children_apps), children_apps)
+    get_children(all_deps, populate_seen(seen, children_apps), children_apps)
   end
 
   defp populate_seen(seen, apps) do
