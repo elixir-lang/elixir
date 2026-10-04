@@ -1337,7 +1337,7 @@ defmodule Module.Types.ExprTest do
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == closed_map(foo: {atom([:bar, :baz]), false})
+             ) == closed_map(foo: {atom([:baz]), false})
 
       # Override based on position
       assert typecheck!(
@@ -1406,6 +1406,8 @@ defmodule Module.Types.ExprTest do
     end
 
     test "updating maps with mixed record/dictionary keys" do
+      expected = dynamic(tuple([opt_difference(open_map(), empty_map()), open_map()]))
+
       # Static keys
       assert typecheck!(
                [map],
@@ -1413,12 +1415,12 @@ defmodule Module.Types.ExprTest do
                  key = if :rand.uniform() > 0.5, do: "key", else: :key
                  {%{map | key => :value}, map}
                )
-             ) ==
-               dynamic(tuple([open_map(), open_map()]))
+             )
+             |> equal?(expected)
 
       # Dynamic keys
-      assert typecheck!([map, key], key in ["key", :key], {%{map | key => :value}, map}) ==
-               dynamic(tuple([open_map(), open_map()]))
+      assert typecheck!([map, key], key in ["key", :key], {%{map | key => :value}, map})
+             |> equal?(expected)
     end
 
     test "inferred maps" do
