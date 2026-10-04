@@ -216,6 +216,24 @@ defmodule Module.Types.IntegrationTest do
   end
 
   describe "type checking" do
+    test "list subpatterns do not leak between functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a([x | _]), do: x
+          def b(y) when is_list(y), do: 1
+          def b(z), do: z
+        end
+
+        defmodule B do
+          def run, do: String.length(A.b([1]))
+        end
+        """
+      }
+
+      assert_warnings(files, ["incompatible types given to String.length/1"])
+    end
+
     test "inferred remote calls" do
       files = %{
         "a.ex" => """

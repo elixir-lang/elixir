@@ -706,15 +706,22 @@ defmodule Module.Types do
   end
 
   defp fresh_context(context) do
-    %{context | vars: %{}, failed: false, reverse_arrows: %{}}
+    %{context | vars: %{}, subpatterns: %{}, failed: false, reverse_arrows: %{}}
   end
 
   defp restore_context(later_context, %{
          vars: vars,
+         subpatterns: subpatterns,
          failed: failed,
          reverse_arrows: reverse_arrows
        }) do
-    %{later_context | vars: vars, failed: failed, reverse_arrows: reverse_arrows}
+    %{
+      later_context
+      | vars: vars,
+        subpatterns: subpatterns,
+        failed: failed,
+        reverse_arrows: reverse_arrows
+    }
   end
 
   ## Diagnostics
