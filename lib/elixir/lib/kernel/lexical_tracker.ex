@@ -67,11 +67,6 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_require(pid, module, meta) when is_atom(module) do
-    :gen_server.cast(pid, {:add_require, module, meta})
-  end
-
-  @doc false
   def add_import(pid, module, fas, meta, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_import, module, fas, meta, warn})
   end
