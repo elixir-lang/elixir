@@ -241,8 +241,7 @@ defmodule Mix.Dep do
 
     deps =
       if opts[:include_children] do
-        seen = populate_seen(MapSet.new(), apps)
-        seen = get_children(all_deps, seen, apps)
+        seen = get_children(all_deps, MapSet.new(apps), apps)
         Enum.filter(all_deps, &MapSet.member?(seen, &1.app))
       else
         get_deps(all_deps, apps)
