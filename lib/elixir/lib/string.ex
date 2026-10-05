@@ -2180,9 +2180,11 @@ defmodule String do
     do: drop_printable(rest, true)
 
   defp drop_printable(<<codepoint::utf8, rest::binary>> = string, matches?) do
-    if is_printable_codepoint(codepoint) == matches?,
-      do: drop_printable(rest, matches?),
-      else: string
+    if is_printable_codepoint(codepoint) == matches? do
+      drop_printable(rest, matches?)
+    else
+      string
+    end
   end
 
   defp drop_printable(<<_, rest::binary>>, false), do: drop_printable(rest, false)
