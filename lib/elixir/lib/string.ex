@@ -313,7 +313,7 @@ defmodule String do
   defguardp is_printable_codepoint(codepoint)
             when codepoint in 0x20..0x7F or
                    codepoint in ?\a..?\r or codepoint == ?\e or
-                   codepoint >= 0xA0 and codepoint not in 0xFFFE..0xFFFF
+                   (codepoint >= 0xA0 and codepoint not in 0xFFFE..0xFFFF)
 
   # ::56 packs seven bytes into an integer; the mask checks each byte's high bit.
   defguardp is_ascii(bytes) when Bitwise.band(bytes, 0x80808080808080) == 0
