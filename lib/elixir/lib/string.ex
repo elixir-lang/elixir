@@ -309,15 +309,11 @@ defmodule String do
 
   @conditional_mappings [:greek, :turkic]
 
-  # ::utf8 already rejects surrogates and code points above 0x10FFFF.
-  defguardp is_printable_non_ascii_codepoint(codepoint)
-            when codepoint >= 0xA0 and codepoint not in 0xFFFE..0xFFFF
-
   # Checks one Unicode code point decoded by ::utf8, including printable control characters.
   defguardp is_printable_codepoint(codepoint)
             when codepoint in 0x20..0x7F or
                    codepoint in ?\a..?\r or codepoint == ?\e or
-                   is_printable_non_ascii_codepoint(codepoint)
+                   codepoint >= 0xA0 and codepoint not in 0xFFFE..0xFFFF
 
   # ::56 packs seven bytes into an integer; the mask checks each byte's high bit.
   defguardp is_ascii(bytes) when Bitwise.band(bytes, 0x80808080808080) == 0
@@ -354,7 +350,11 @@ defmodule String do
       when is_binary(string) and
              (character_limit == :infinity or
                 (is_integer(character_limit) and character_limit >= 0)) do
-    recur_printable?(string, character_limit)
+    if character_limit == :infinity do
+      drop_printable(string, true) == ""
+    else
+      recur_printable?(string, character_limit)
+    end
   end
 
   defp recur_printable?(<<_::binary>>, 0), do: true
@@ -362,16 +362,11 @@ defmodule String do
 
   defp recur_printable?(<<codepoint::utf8, rest::binary>>, character_limit)
        when is_printable_codepoint(codepoint) do
-    recur_printable?(rest, decrement(character_limit))
+    recur_printable?(rest, character_limit - 1)
   end
 
   defp recur_printable?(_string, _character_limit) do
     false
-  end
-
-  @compile {:inline, decrement: 1}
-  defp decrement(character_limit) do
-    if character_limit == :infinity, do: :infinity, else: character_limit - 1
   end
 
   @doc ~S"""
@@ -2157,66 +2152,41 @@ defmodule String do
   def chunk("", _), do: []
 
   def chunk(string, trait) when is_binary(string) and trait in [:valid, :printable] do
+    do_chunk(string, true, trait, [])
+  end
+
+  defp do_chunk(string, matches?, trait, acc) do
     rest =
       case trait do
-        :valid -> drop_valid_utf8_prefix(string)
-        :printable -> drop_printable_prefix(string)
+        :valid -> drop_valid(string, matches?)
+        :printable -> drop_printable(string, matches?)
       end
 
-    if byte_size(rest) == byte_size(string) do
-      do_chunk(string, false, trait, [])
-    else
-      add_chunk(string, rest, true, trait, [])
-    end
+    size = byte_size(string) - byte_size(rest)
+    acc = if size == 0, do: acc, else: [binary_part(string, 0, size) | acc]
+
+    if rest == "", do: :lists.reverse(acc), else: do_chunk(rest, not matches?, trait, acc)
   end
 
-  defp do_chunk(string, matches?, :valid, acc) do
-    rest = if matches?, do: drop_valid_utf8_prefix(string), else: drop_invalid_utf8_prefix(string)
+  defp drop_valid(<<bytes::56, rest::binary>>, true) when is_ascii(bytes),
+    do: drop_valid(rest, true)
 
-    add_chunk(string, rest, matches?, :valid, acc)
+  defp drop_valid(<<_::utf8, rest::binary>>, true), do: drop_valid(rest, true)
+  defp drop_valid(<<_::utf8, _::binary>> = rest, false), do: rest
+  defp drop_valid(<<_, rest::binary>>, false), do: drop_valid(rest, false)
+  defp drop_valid(rest, _matches?), do: rest
+
+  defp drop_printable(<<bytes::56, rest::binary>>, true) when is_printable_ascii_bytes(bytes),
+    do: drop_printable(rest, true)
+
+  defp drop_printable(<<codepoint::utf8, rest::binary>> = string, matches?) do
+    if is_printable_codepoint(codepoint) == matches?,
+      do: drop_printable(rest, matches?),
+      else: string
   end
 
-  defp do_chunk(string, matches?, :printable, acc) do
-    rest = if matches?, do: drop_printable_prefix(string), else: drop_unprintable_prefix(string)
-
-    add_chunk(string, rest, matches?, :printable, acc)
-  end
-
-  defp add_chunk(string, <<>>, _matches?, _trait, acc) do
-    :lists.reverse(acc, [string])
-  end
-
-  defp add_chunk(string, rest, matches?, trait, acc) do
-    chunk = binary_part(string, 0, byte_size(string) - byte_size(rest))
-    do_chunk(rest, not matches?, trait, [chunk | acc])
-  end
-
-  defp drop_valid_utf8_prefix(<<bytes::56, rest::binary>>) when is_ascii(bytes) do
-    drop_valid_utf8_prefix(rest)
-  end
-
-  defp drop_valid_utf8_prefix(<<_::utf8, rest::binary>>), do: drop_valid_utf8_prefix(rest)
-  defp drop_valid_utf8_prefix(rest), do: rest
-
-  defp drop_invalid_utf8_prefix(<<_::utf8, _::binary>> = rest), do: rest
-  defp drop_invalid_utf8_prefix(<<_, rest::binary>>), do: drop_invalid_utf8_prefix(rest)
-  defp drop_invalid_utf8_prefix(<<>>), do: <<>>
-
-  defp drop_printable_prefix(<<bytes::56, rest::binary>>) when is_printable_ascii_bytes(bytes),
-    do: drop_printable_prefix(rest)
-
-  defp drop_printable_prefix(<<codepoint::utf8, rest::binary>>)
-       when is_printable_codepoint(codepoint),
-       do: drop_printable_prefix(rest)
-
-  defp drop_printable_prefix(rest), do: rest
-
-  defp drop_unprintable_prefix(<<codepoint::utf8, tail::binary>> = rest) do
-    if is_printable_codepoint(codepoint), do: rest, else: drop_unprintable_prefix(tail)
-  end
-
-  defp drop_unprintable_prefix(<<_, rest::binary>>), do: drop_unprintable_prefix(rest)
-  defp drop_unprintable_prefix(<<>>), do: <<>>
+  defp drop_printable(<<_, rest::binary>>, false), do: drop_printable(rest, false)
+  defp drop_printable(rest, _matches?), do: rest
 
   @doc ~S"""
   Returns Unicode graphemes in the string as per Extended Grapheme
