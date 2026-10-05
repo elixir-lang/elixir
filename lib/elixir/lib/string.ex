@@ -347,14 +347,14 @@ defmodule String do
   @spec printable?(t, 0) :: true
   @spec printable?(t, pos_integer | :infinity) :: boolean
   def printable?(string, character_limit \\ :infinity)
-      when is_binary(string) and
-             (character_limit == :infinity or
-                (is_integer(character_limit) and character_limit >= 0)) do
-    if character_limit == :infinity do
-      drop_printable(string, true) == ""
-    else
-      recur_printable?(string, character_limit)
-    end
+
+  def printable?(string, :infinity) when is_binary(string) do
+    drop_printable(string, true) == ""
+  end
+
+  def printable?(string, character_limit)
+      when is_binary(string) and is_integer(character_limit) and character_limit >= 0 do
+    recur_printable?(string, character_limit)
   end
 
   defp recur_printable?(<<_::binary>>, 0), do: true
