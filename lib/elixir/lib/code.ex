@@ -1739,8 +1739,6 @@ defmodule Code do
     {comments, {form, meta, args}}
   end
 
-  defp pop_node_leading_comments(quoted), do: {[], quoted}
-
   defp node_leading_comments({_, meta, _}) when is_list(meta) do
     Keyword.get(meta, :leading_comments, [])
   end

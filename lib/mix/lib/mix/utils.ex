@@ -1084,17 +1084,6 @@ defmodule Mix.Utils do
     [?#, ?{, inner, ?}]
   end
 
-  defp to_erl_term(map) when is_map(map) do
-    inner =
-      Enum.map_intersperse(
-        :maps.to_list(:maps.iterator(map, :reversed)),
-        ?,,
-        fn {key, value} -> [to_erl_term(key), "=>", to_erl_term(value)] end
-      )
-
-    [?#, ?{, inner, ?}]
-  end
-
   defp to_erl_term(function) when is_function(function) do
     fun_info = Function.info(function)
 
