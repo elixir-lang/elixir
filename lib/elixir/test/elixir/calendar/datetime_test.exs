@@ -618,6 +618,10 @@ defmodule DateTimeTest do
     # Test passing non-struct map when converting to same calendar returns DateTime struct
     assert DateTime.convert(Map.from_struct(datetime_iso), Calendar.ISO) ==
              {:ok, datetime_iso}
+
+    # Test passing non-struct map when converting to same calendar keeps its calendar
+    assert DateTime.convert(Map.from_struct(datetime_hol), Calendar.Holocene) ==
+             {:ok, datetime_hol}
   end
 
   test "from_iso8601/1 with tz offsets" do
@@ -776,6 +780,13 @@ defmodule DateTimeTest do
 
     assert DateTime.truncate(%{datetime | microsecond: {123_456, 6}}, :second) ==
              %{datetime | microsecond: {0, 0}}
+
+    # A custom calendar of the given map must be kept
+    datetime_hol = %{datetime | calendar: Calendar.Holocene, year: 12017}
+    datetime_hol_map = Map.from_struct(datetime_hol)
+
+    assert DateTime.truncate(%{datetime_hol_map | microsecond: {123_456, 6}}, :second) ==
+             %{datetime_hol | microsecond: {0, 0}}
   end
 
   describe "diff" do
@@ -831,6 +842,26 @@ defmodule DateTimeTest do
       datetime2 = DateTime.add(datetime1, 1234, :microsecond)
 
       assert DateTime.diff(datetime1, datetime2, :microsecond) == -1234
+    end
+
+    test "truncates fractional seconds towards zero" do
+      earlier = ~U[2026-09-24 11:20:42.634900Z]
+      later = ~U[2026-09-24 11:20:42.634901Z]
+
+      assert DateTime.diff(later, earlier) == 0
+      assert DateTime.diff(earlier, later) == 0
+
+      two_hours_later = DateTime.add(later, 2, :hour)
+      assert DateTime.diff(earlier, two_hours_later) == -7200
+      assert DateTime.diff(two_hours_later, earlier) == 7200
+    end
+
+    test "truncates after applying timezone offsets" do
+      earlier = ~U[2026-09-24 11:20:42.000000Z]
+      later = %{~U[2026-09-24 11:20:42.500000Z] | utc_offset: 1}
+
+      assert DateTime.diff(later, earlier) == 0
+      assert DateTime.diff(earlier, later) == 0
     end
   end
 

@@ -610,10 +610,15 @@ defmodule IEx.Introspection do
   end
 
   defp get_spec(module, name, arity) do
+    macro? = macro_exported?(module, name, arity)
+    name_arity = if macro?, do: {:elixir_utils.macro_name(name), arity + 1}, else: {name, arity}
+
     with {:ok, all_specs} <- Typespec.fetch_specs(module),
-         {_, specs} <- List.keyfind(all_specs, {name, arity}, 0) do
+         {_, specs} <- List.keyfind(all_specs, name_arity, 0) do
       formatted =
         Enum.map(specs, fn spec ->
+          spec = if macro?, do: unpack_caller(spec), else: spec
+
           Typespec.spec_to_quoted(name, spec)
           |> format_typespec(:spec, 2)
         end)

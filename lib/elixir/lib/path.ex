@@ -705,6 +705,12 @@ defmodule Path do
   Returns `{:ok, path}` if `right` is safe to append to `left`, or `:error`
   otherwise. See `safe_relative/2` for the exact safety rules applied to `right`.
 
+  > #### Race conditions {: .warning}
+  >
+  > This function does not guarantee safety if an attacker has access to
+  > the file system. In such cases, someone may change your filesystem
+  > after you check for safety (also known as a time-of-check/time-of-use race).
+
   ## Examples
 
       iex> Path.safe_join("foo", "bar")
@@ -896,8 +902,8 @@ defmodule Path do
 
   See `safe_relative/2` for a non-deprecated version of this API.
   """
-  # TODO: Deprecate me on Elixir v1.19
-  @doc since: "1.14.0", deprecated: "Use safe_relative/2 instead"
+  # TODO: Remove me on Elixir v2.0
+  @deprecated "Use safe_relative/2 instead"
   @spec safe_relative_to(t, t) :: {:ok, binary} | :error
   def safe_relative_to(path, cwd) do
     safe_relative(path, cwd)
@@ -917,6 +923,12 @@ defmodule Path do
       the root of `relative_to`.
 
     * A symbolic link in the path points to something above the root of `relative_to`.
+
+  > #### Race conditions {: .warning}
+  >
+  > This function does not guarantee safety if an attacker has access to
+  > the file system. In such cases, someone may change your filesystem
+  > after you check for safety (also known as a time-of-check/time-of-use race).
 
   ## Examples
 

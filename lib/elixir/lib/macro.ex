@@ -235,7 +235,7 @@ defmodule Macro do
   `div/2` function, so that the AST for that function will become `{:div, [],
   [100, 5]}` (`div(100, 5)`).
   """
-  @spec unpipe(t()) :: [t()]
+  @spec unpipe(t()) :: [{t(), non_neg_integer}]
   def unpipe(expr) do
     :lists.reverse(unpipe(expr, []))
   end
@@ -1257,14 +1257,15 @@ defmodule Macro do
   The mapping function receives an integer representing the code point
   of the character it wants to unescape. There are also the special atoms
   `:newline`, `:unicode`, and `:hex`, which control newline, unicode,
-  and escaping respectively.
+  and escaping respectively, and for which the mapping function must return
+  a boolean.
 
   Here is the default mapping function implemented by Elixir:
 
       def unescape_map(:newline), do: true
       def unescape_map(:unicode), do: true
       def unescape_map(:hex), do: true
-      def unescape_map(?0), do: ?0
+      def unescape_map(?0), do: 0
       def unescape_map(?a), do: ?\a
       def unescape_map(?b), do: ?\b
       def unescape_map(?d), do: ?\d
@@ -1287,7 +1288,11 @@ defmodule Macro do
       Macro.unescape_string("example\\n", &unescape_map(&1))
 
   """
-  @spec unescape_string(String.t(), (non_neg_integer -> non_neg_integer | false)) :: String.t()
+  @spec unescape_string(
+          String.t(),
+          (non_neg_integer | :newline | :unicode | :hex ->
+             non_neg_integer | boolean)
+        ) :: String.t()
   def unescape_string(string, map) do
     :elixir_interpolation.unescape_string(string, map)
   end
@@ -2183,6 +2188,9 @@ defmodule Macro do
   def quoted_literal?({:__aliases__, _, args}),
     do: quoted_literal?(args)
 
+  def quoted_literal?({:__block__, _, [wrapped]}),
+    do: quoted_literal?(wrapped)
+
   def quoted_literal?({:%, _, [left, right]}),
     do: quoted_literal?(left) and quoted_literal?(right)
 
@@ -3038,6 +3046,8 @@ defmodule Macro do
   @doc false
   def __dbg__(to_debug, header, options) do
     {print_location?, options} = Keyword.pop(options, :print_location, true)
+    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
+    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
     ansi_enabled? = options[:syntax_colors] != []
 
     if print_location? and is_binary(header) do
@@ -3045,8 +3055,6 @@ defmodule Macro do
       :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
     end
 
-    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
-    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
     :ok = IO.write(IO.ANSI.format([formatted, ?\n], ansi_enabled?))
     result

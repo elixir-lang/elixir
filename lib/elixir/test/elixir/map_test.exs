@@ -422,17 +422,42 @@ defmodule MapTest do
     end
   end
 
-  test "defstruct raises on invalid enforce_keys" do
-    message = "keys given to @enforce_keys must be atoms, got: \"foo\""
+  test "defstruct raises on unknown or duplicate enforce_keys" do
+    assert_raise ArgumentError,
+                 "unknown or duplicate keys given to @enforce_keys, got: [\"foo\"]",
+                 fn ->
+                   defmodule TestMod do
+                     @enforce_keys "foo"
+                     defstruct [:foo]
+                   end
+                 end
 
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string("""
-      defmodule TestMod do
-        @enforce_keys "foo"
-        defstruct [:foo]
-      end
-      """)
-    end
+    assert_raise ArgumentError,
+                 "unknown or duplicate keys given to @enforce_keys, got: [:foo, :bar]",
+                 fn ->
+                   defmodule TestMod do
+                     @enforce_keys [:foo, :bar, :foo, :bar]
+                     defstruct [:foo, :bar]
+                   end
+                 end
+
+    assert_raise ArgumentError,
+                 "unknown or duplicate keys given to @enforce_keys, got: [:unknown]",
+                 fn ->
+                   defmodule TestMod do
+                     @enforce_keys [:unknown]
+                     defstruct [:foo]
+                   end
+                 end
+
+    assert_raise ArgumentError,
+                 "unknown or duplicate keys given to @enforce_keys, got: [:__struct__]",
+                 fn ->
+                   defmodule TestMod do
+                     @enforce_keys [:__struct__]
+                     defstruct [:foo]
+                   end
+                 end
   end
 
   test "struct always expands context module" do

@@ -37,21 +37,19 @@ defmodule Date.Range do
             first_in_iso_days: first_days,
             last_in_iso_days: last_days,
             step: step
-          } = range,
+          },
           %Date{calendar: calendar} = date
         ) do
       {days, _} = Date.to_iso_days(date)
 
-      cond do
-        empty?(range) ->
-          {:ok, false}
+      in_range? =
+        if step > 0 do
+          first_days <= days and days <= last_days and rem(days - first_days, step) == 0
+        else
+          last_days <= days and days <= first_days and rem(days - first_days, step) == 0
+        end
 
-        first_days <= last_days ->
-          {:ok, first_days <= days and days <= last_days and rem(days - first_days, step) == 0}
-
-        true ->
-          {:ok, last_days <= days and days <= first_days and rem(days - first_days, step) == 0}
-      end
+      {:ok, in_range?}
     end
 
     def member?(%Date.Range{step: _}, _) do
@@ -194,33 +192,6 @@ defmodule Date.Range do
          ) do
       step = if first_days <= last_days, do: 1, else: -1
       size(Map.put(date_range, :step, step))
-    end
-
-    defp empty?(%Date.Range{
-           first_in_iso_days: first_days,
-           last_in_iso_days: last_days,
-           step: step
-         })
-         when step > 0 and first_days > last_days,
-         do: true
-
-    defp empty?(%Date.Range{
-           first_in_iso_days: first_days,
-           last_in_iso_days: last_days,
-           step: step
-         })
-         when step < 0 and first_days < last_days,
-         do: true
-
-    defp empty?(%Date.Range{step: _}), do: false
-
-    # TODO: Remove me on v2.0
-    defp empty?(
-           %{__struct__: Date.Range, first_in_iso_days: first_days, last_in_iso_days: last_days} =
-             date_range
-         ) do
-      step = if first_days <= last_days, do: 1, else: -1
-      empty?(Map.put(date_range, :step, step))
     end
   end
 

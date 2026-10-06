@@ -1250,16 +1250,7 @@ defmodule Keyword do
   """
   @spec split(t, [key]) :: {t, t}
   def split(keywords, keys) when is_list(keywords) and is_list(keys) do
-    fun = fn {k, v}, {take, drop} ->
-      case k in keys do
-        true -> {[{k, v} | take], drop}
-        false -> {take, [{k, v} | drop]}
-      end
-    end
-
-    acc = {[], []}
-    {take, drop} = :lists.foldl(fun, acc, keywords)
-    {:lists.reverse(take), :lists.reverse(drop)}
+    :lists.partition(fn {key, _value} -> :lists.member(key, keys) end, keywords)
   end
 
   @doc """
@@ -1323,7 +1314,8 @@ defmodule Keyword do
   @doc """
   Drops the given `keys` from the keyword list.
 
-  Removes duplicate keys from the new keyword list.
+  If a key occurs multiple times, all of its entries are removed when that key
+  is included in `keys`.
 
   ## Examples
 
@@ -1337,7 +1329,7 @@ defmodule Keyword do
   """
   @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(fn {k, _} -> k not in keys end, keywords)
+    :lists.filter(fn {k, _} -> not :lists.member(k, keys) end, keywords)
   end
 
   @doc """

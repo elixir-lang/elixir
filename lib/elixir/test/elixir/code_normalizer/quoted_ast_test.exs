@@ -514,6 +514,19 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: !(foo > bar))) == "!(foo > bar)"
       assert quoted_to_string(quote(do: @foo(bar))) == "@foo bar"
       assert quoted_to_string(quote(do: identity(&1))) == "identity(&1)"
+
+      quoted =
+        quote do
+          !if a do
+            b
+          end ||
+            !if b do
+              c
+            end
+        end
+
+      string = quoted_to_string(quoted)
+      assert string |> Code.string_to_quoted!() |> quoted_to_string() == string
     end
 
     test "operators with colors" do
@@ -747,6 +760,23 @@ defmodule Code.Normalizer.QuotedASTTest do
                end
              ) == "@foo [1, foo: :bar]"
     end
+
+    test "comments after nodes without closing metadata" do
+      comments = [
+        %{line: 2, column: 3, previous_eol_count: 1, next_eol_count: 1, text: "# comment"}
+      ]
+
+      list = &{:__block__, [line: 1, closing: [line: 3]], [[&1]]}
+
+      assert quoted_to_string(list.({:{}, [line: 1], [:a, :b, [c: :d]]}), comments: comments) ==
+               "[\n  {:a, :b, c: :d}\n  # comment\n]"
+
+      assert quoted_to_string(list.({:foo, [], [1]}), comments: comments) ==
+               "[\n  foo(1)\n  # comment\n]"
+
+      assert quoted_to_string(list.({:+, [], [1, 2]}), comments: comments) ==
+               "[\n  1 + 2\n  # comment\n]"
+    end
   end
 
   describe "quoted_to_algebra/2 escapes" do
@@ -835,10 +865,12 @@ defmodule Code.Normalizer.QuotedASTTest do
   end
 
   describe "quoted_to_algebra/2 with invalid" do
-    test "block" do
+    test "args" do
       assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
                "{:__block__, [], {:bar, [], []}}"
+    end
 
+    test "block" do
       assert quoted_to_string({:foo, [], [{:do, :ok}, :not_keyword]}) ==
                "foo({:do, :ok}, :not_keyword)"
 
@@ -846,7 +878,11 @@ defmodule Code.Normalizer.QuotedASTTest do
                "foo([{:do, :ok}, :not_keyword])"
     end
 
-    test "ode" do
+    test "metadata" do
+      assert quoted_to_string({Foo, :cache, ["a", []]}) == ~S({Foo, :cache, ["a", []]})
+    end
+
+    test "structs" do
       assert quoted_to_string(1..3) == "1..3"
     end
   end

@@ -686,6 +686,13 @@ defmodule Kernel.Typespec do
     {{:type, location(meta), :range, [left, right]}, state}
   end
 
+  defp typespec({:..//, _meta, [_first, _last, _step]} = range, _vars, caller, _state) do
+    compile_error(
+      caller,
+      "ranges with steps are not supported in typespecs, got: #{Macro.to_string(range)}"
+    )
+  end
+
   # Handle special forms
   defp typespec({:__MODULE__, _, atom}, vars, caller, state) when is_atom(atom) do
     typespec(caller.module, vars, caller, state)

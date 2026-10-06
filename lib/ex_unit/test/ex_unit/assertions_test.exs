@@ -45,6 +45,13 @@ defmodule ExUnit.AssertionsTest do
   defmacro sigil_l({:<<>>, _, [string]}, _), do: Code.string_to_quoted!(string, [])
   defmacro argless_macro(), do: raise("should not be invoked")
 
+  defmacrop generated(expr) do
+    Macro.prewalk(
+      expr,
+      &Macro.update_meta(&1, fn meta -> Keyword.put(meta, :generated, true) end)
+    )
+  end
+
   defmacrop assert_ok(arg) do
     quote do
       assert {:ok, val} = ok(unquote(arg))
@@ -52,7 +59,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   defmacrop assert_ok_with_pin_from_quoted_var(arg) do
-    quote do
+    quote generated: true do
       kind = :ok
       assert {^kind, value} = unquote(arg)
     end
@@ -125,7 +132,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert arguments are not kept for operators" do
     try do
-      assert !Process.get(:unused, Value.truthy())
+      generated(assert !Value.truthy())
       flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
@@ -239,7 +246,7 @@ defmodule ExUnit.AssertionsTest do
   @test_mod_attribute %{key: :value}
   test "assert match with module attribute" do
     try do
-      assert {@test_mod_attribute, 1} = Value.tuple()
+      generated(assert {@test_mod_attribute, 1} = Value.tuple())
     rescue
       error in [ExUnit.AssertionError] ->
         assert "{%{key: :value}, 1}" == Macro.to_string(error.left)
@@ -337,12 +344,12 @@ defmodule ExUnit.AssertionsTest do
     true = assert match?({2, 1}, Value.tuple())
 
     try do
-      assert match?({:ok, _}, Process.get(:unused, :ok))
+      generated(assert match?({:ok, _}, :ok))
       flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
-        "assert match?({:ok, _}, Process.get(:unused, :ok))" = Macro.to_string(error.expr)
+        "assert match?({:ok, _}, :ok)" = Macro.to_string(error.expr)
         ":ok" = Macro.to_string(error.right)
     end
   end
@@ -351,7 +358,7 @@ defmodule ExUnit.AssertionsTest do
     true = assert match?(tuple when is_tuple(tuple), Value.tuple())
 
     try do
-      assert match?(tuple when not is_tuple(tuple), error(true))
+      generated(assert match?(tuple when not is_tuple(tuple), error(true)))
       flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
@@ -457,7 +464,7 @@ defmodule ExUnit.AssertionsTest do
     timeout = ok(1)
 
     try do
-      assert_receive {~l(_a)}, timeout
+      generated(assert_receive {~l(_a)}, timeout)
     rescue
       error in [ArgumentError] ->
         "timeout must be a non-negative integer, got: {:ok, 1}" = error.message
@@ -745,7 +752,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when no match" do
     try do
-      assert {:ok, _} = error(true)
+      generated(assert {:ok, _} = error(true))
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
@@ -756,7 +763,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when falsy but not match" do
     try do
-      assert {:ok, _x} = nil
+      generated(assert {:ok, _x} = nil)
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
@@ -1116,7 +1123,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "AssertionError.message/1 is nicely formatted" do
-    assert :a = :b
+    generated(assert :a = :b)
   rescue
     error in [ExUnit.AssertionError] ->
       """
@@ -1129,7 +1136,7 @@ defmodule ExUnit.AssertionsTest do
       """ = Exception.message(error)
   end
 
-  defp ok(val), do: Process.get(:unused, {:ok, val})
-  defp error(val), do: Process.get(:unused, {:error, val})
+  defp ok(val), do: {:ok, val}
+  defp error(val), do: {:error, val}
   defp not_equal(left, right), do: left != right
 end

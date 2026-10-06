@@ -12,6 +12,12 @@ defmodule Mix.Dep.Converger do
   Topologically sorts the given dependencies.
   """
   def topological_sort(deps) do
+    Enum.map(topological_sort_apps(deps), fn app ->
+      Enum.find(deps, fn %Mix.Dep{app: other_app} -> app == other_app end)
+    end)
+  end
+
+  defp topological_sort_apps(deps) do
     graph = :digraph.new()
 
     try do
@@ -29,17 +35,12 @@ defmodule Mix.Dep.Converger do
         end)
       end)
 
-      if apps = :digraph_utils.topsort(graph) do
-        Enum.map(apps, fn app ->
-          Enum.find(deps, fn %Mix.Dep{app: other_app} -> app == other_app end)
-        end)
-      else
+      :digraph_utils.topsort(graph) ||
         Mix.raise(
           "Could not sort dependencies. " <>
             "The following dependencies form a cycle: " <>
             Enum.join(Mix.Utils.find_cycle!(graph), ", ")
         )
-      end
     after
       :digraph.delete(graph)
     end
@@ -109,7 +110,7 @@ defmodule Mix.Dep.Converger do
 
     if not diverged? and use_remote? do
       # Make sure there are no cycles before calling the remote converger
-      topological_sort(deps)
+      topological_sort_apps(deps)
 
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
@@ -414,8 +415,7 @@ defmodule Mix.Dep.Converger do
   end
 
   defp sort_manager(other_manager, manager, false) do
-    to_exclude = @managers -- (List.wrap(other_manager) ++ List.wrap(manager))
-    List.first(@managers -- to_exclude) || other_manager || manager
+    Enum.find(@managers, &(&1 == other_manager or &1 == manager)) || other_manager || manager
   end
 
   defp req_mismatch(%Mix.Dep{status: status}, %Mix.Dep{app: app, requirement: requirement}) do

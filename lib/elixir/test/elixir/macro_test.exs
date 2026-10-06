@@ -1091,6 +1091,7 @@ defmodule MacroTest do
 
     test "converts invalid AST with inspect" do
       assert Macro.to_string(1..3) == "1..3"
+      assert Macro.to_string({Foo, :cache, ["a", []]}) == ~S({Foo, :cache, ["a", []]})
     end
   end
 
@@ -1891,11 +1892,14 @@ defmodule MacroTest do
     assert Macro.quoted_literal?(quote(do: <<1000::size(8)-unit(4)>>))
     assert Macro.quoted_literal?(quote(do: <<1000::8*4>>))
     assert Macro.quoted_literal?(quote(do: <<102::unsigned-big-integer-size(8)>>))
+    assert Macro.quoted_literal?({:__block__, [], [1]})
     refute Macro.quoted_literal?(quote(do: {"foo", var}))
     refute Macro.quoted_literal?(quote(do: <<"foo"::size(name_size)>>))
     refute Macro.quoted_literal?(quote(do: <<"foo"::binary-size(name_size)>>))
     refute Macro.quoted_literal?(quote(do: <<"foo"::custom_modifier()>>))
     refute Macro.quoted_literal?(quote(do: <<102, rest::binary>>))
+    refute Macro.quoted_literal?({:__block__, [], [quote(do: var)]})
+    refute Macro.quoted_literal?({:__block__, [], [1, 2]})
   end
 
   test "underscore/1" do
@@ -1938,5 +1942,20 @@ defmodule MacroTest do
     assert Macro.camelize("FOO_BAR") == "FOO_BAR"
     assert Macro.camelize("FOO.BAR") == "FOO.BAR"
     assert Macro.camelize("") == ""
+  end
+end
+
+defmodule Macro.DbgAnsiTest do
+  use ExUnit.Case, async: false
+
+  setup do
+    previous = Application.get_env(:elixir, :ansi_enabled, false)
+    Application.put_env(:elixir, :ansi_enabled, false)
+    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
+  end
+
+  test "dbg/3 respects disabled ANSI" do
+    output = ExUnit.CaptureIO.capture_io(fn -> assert dbg(:ok) == :ok end)
+    refute output =~ "\e["
   end
 end

@@ -33,6 +33,31 @@ defmodule Kernel.ParserTest do
   end
 
   describe "unary ops" do
+    test "with do-end blocks" do
+      assert parse!("!if a do b end || !if b do c end") ==
+               parse!("!(if a do b end) || !(if b do c end)")
+
+      assert parse!("not case x do y -> z end and w") ==
+               parse!("not(case x do y -> z end) and w")
+
+      assert parse!("!!if a do b end || c") == parse!("!!(if a do b end) || c")
+      assert parse!("-if a do b end + c") == parse!("-(if a do b end) + c")
+      assert parse!("@if a do b end || c") == parse!("@(if a do b end) || c")
+
+      assert parse!("&if a do b end || c") == parse!("&(if a do b end || c)")
+      assert parse!("&if a do b end when c") == parse!("(&(if a do b end)) when c")
+      assert parse!("...if a do b end || c") == parse!("...(if a do b end || c)")
+      assert parse!("...if a do b end when c") == parse!("(...(if a do b end)) when c")
+
+      assert parse!("!@if a do b end || c") == parse!("!@(if a do b end) || c")
+      assert parse!("!&if a do b end || c") == parse!("!(&(if a do b end || c))")
+      assert parse!("&!if a do b end || c") == parse!("&(!(if a do b end) || c)")
+      assert parse!("...!if a do b end || c") == parse!("...(!(if a do b end) || c)")
+
+      assert parse!("!foo a, b") == parse!("!foo(a, b)")
+      assert parse!("!foo || if a do b end") == parse!("!foo || (if a do b end)")
+    end
+
     test "in keywords" do
       assert parse!("f(!: :ok)") == {:f, [line: 1], [[!: :ok]]}
       assert parse!("f @: :ok") == {:f, [line: 1], [[@: :ok]]}

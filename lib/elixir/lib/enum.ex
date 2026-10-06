@@ -859,6 +859,10 @@ defmodule Enum do
 
   """
   @spec dedup_by(t, (element -> term)) :: list
+  def dedup_by([head | tail], fun) do
+    dedup_by_list(tail, fun, fun.(head), [head])
+  end
+
   def dedup_by(enumerable, fun) do
     {list, _} = reduce(enumerable, {[], []}, R.dedup(fun))
     :lists.reverse(list)
@@ -2238,6 +2242,10 @@ defmodule Enum do
 
   def min_max(enumerable, sorter_or_empty_fallback \\ fn -> raise Enum.EmptyError end)
 
+  def min_max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    min_max_list(list)
+  end
+
   def min_max(first..last//step = range, empty_fallback)
       when is_function(empty_fallback, 0) do
     case Range.size(range) do
@@ -2394,6 +2402,18 @@ defmodule Enum do
   end
 
   defp min_max_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) == :lt)
+
+  defp min_max_list([h | t]), do: min_max_list(t, h, h)
+
+  defp min_max_list([h | t], min, max) do
+    cond do
+      h < min -> min_max_list(t, h, max)
+      max < h -> min_max_list(t, min, h)
+      true -> min_max_list(t, min, max)
+    end
+  end
+
+  defp min_max_list([], min, max), do: {min, max}
 
   @doc """
   Splits the `enumerable` in two lists according to the given function `fun`.
@@ -2756,14 +2776,25 @@ defmodule Enum do
   @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
   def reverse_slice(enumerable, start_index, count)
       when is_integer(start_index) and start_index >= 0 and is_integer(count) and count >= 0 do
-    list = reverse(enumerable)
-    length = length(list)
-    count = Kernel.min(count, length - start_index)
+    list = to_list(enumerable)
 
-    if count > 0 do
-      reverse_slice(list, length, start_index + count, count, [])
-    else
-      :lists.reverse(list)
+    cond do
+      count <= 1 ->
+        list
+
+      start_index == 0 ->
+        {slice, rest} = head_slice(list, count, [])
+        slice ++ rest
+
+      true ->
+        case head_slice(list, start_index, []) do
+          {_, []} ->
+            list
+
+          {prefix, rest} ->
+            {slice, rest} = head_slice(rest, count, [])
+            :lists.reverse(prefix, slice ++ rest)
+        end
     end
   end
 
@@ -4527,6 +4558,17 @@ defmodule Enum do
   defp dedup_list([value | tail]), do: [value | dedup_list(tail)]
   defp dedup_list([]), do: []
 
+  ## dedup_by
+
+  defp dedup_by_list([head | tail], fun, prev, acc) do
+    case fun.(head) do
+      ^prev -> dedup_by_list(tail, fun, prev, acc)
+      new_val -> dedup_by_list(tail, fun, new_val, [head | acc])
+    end
+  end
+
+  defp dedup_by_list([], _fun, _prev, acc), do: :lists.reverse(acc)
+
   ## drop
 
   defp drop_list(list, 0), do: list
@@ -4694,16 +4736,8 @@ defmodule Enum do
 
   ## reverse_slice
 
-  defp reverse_slice(rest, idx, idx, count, acc) do
-    {slice, rest} = head_slice(rest, count, [])
-    :lists.reverse(rest, :lists.reverse(slice, acc))
-  end
-
-  defp reverse_slice([elem | rest], idx, start, count, acc) do
-    reverse_slice(rest, idx - 1, start, count, [elem | acc])
-  end
-
   defp head_slice(rest, 0, acc), do: {acc, rest}
+  defp head_slice([], _count, acc), do: {acc, []}
 
   defp head_slice([elem | rest], count, acc) do
     head_slice(rest, count - 1, [elem | acc])

@@ -1130,15 +1130,11 @@ defmodule Mix.Tasks.Format do
   end
 
   defp do_insert_cr_symbols([], right, {left_acc, right_acc}) do
-    left = Enum.reverse(left_acc)
-    right = right_acc |> Enum.reverse() |> Enum.concat(right)
-    {left, right}
+    {Enum.reverse(left_acc), Enum.reverse(right_acc, right)}
   end
 
   defp do_insert_cr_symbols(left, [], {left_acc, right_acc}) do
-    left = left_acc |> Enum.reverse() |> Enum.concat(left)
-    right = Enum.reverse(right_acc)
-    {left, right}
+    {Enum.reverse(left_acc, left), Enum.reverse(right_acc)}
   end
 
   defp insert_cr_symbol(left, right) do

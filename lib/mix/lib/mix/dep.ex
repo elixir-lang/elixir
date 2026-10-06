@@ -163,7 +163,7 @@ defmodule Mix.Dep do
 
     app = Keyword.fetch!(config, :app)
     seen = populate_seen(MapSet.new(), [app])
-    children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
+    {_, children} = Enum.reduce(Enum.reverse(deps), {seen, []}, &collect_children(&1, &2, app))
 
     top_level =
       for dep <- deps,
@@ -183,6 +183,15 @@ defmodule Mix.Dep do
           %{dep | top_level: false, opts: Keyword.delete(opts, :optional)}
       end
     end)
+  end
+
+  defp collect_children(dep, {seen, children} = acc, app) do
+    if MapSet.member?(seen, dep.app) do
+      seen = Enum.reduce(dep.deps, seen, &MapSet.put(&2, &1.app))
+      {seen, if(dep.app == app, do: children, else: [dep | children])}
+    else
+      acc
+    end
   end
 
   defp converge_and_load(opts) do
@@ -232,8 +241,8 @@ defmodule Mix.Dep do
 
     deps =
       if opts[:include_children] do
-        seen = populate_seen(MapSet.new(), apps)
-        get_deps(all_deps, Enum.uniq(get_children(all_deps, seen, apps)))
+        seen = get_children(all_deps, MapSet.new(apps), apps)
+        Enum.filter(all_deps, &MapSet.member?(seen, &1.app))
       else
         get_deps(all_deps, apps)
       end
@@ -251,7 +260,7 @@ defmodule Mix.Dep do
     Enum.filter(all_deps, &(&1.app in apps))
   end
 
-  defp get_children(_all_deps, _seen, []), do: []
+  defp get_children(_all_deps, seen, []), do: seen
 
   defp get_children(all_deps, seen, apps) do
     children_apps =
@@ -260,7 +269,7 @@ defmodule Mix.Dep do
           app not in seen,
           do: app
 
-    apps ++ get_children(all_deps, populate_seen(seen, children_apps), children_apps)
+    get_children(all_deps, populate_seen(seen, children_apps), children_apps)
   end
 
   defp populate_seen(seen, apps) do

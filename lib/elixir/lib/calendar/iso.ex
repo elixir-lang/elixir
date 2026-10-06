@@ -137,10 +137,17 @@ defmodule Calendar.ISO do
 
   @behaviour Calendar
 
+  import Bitwise, only: [band: 2, >>>: 2, <<<: 2]
+
   @unix_epoch 62_167_219_200
   unix_start = (315_537_897_600 + @unix_epoch) * -1_000_000
   unix_end = 315_569_519_999_999_999 - @unix_epoch * 1_000_000
   @unix_range_microseconds unix_start..unix_end
+
+  # Weekday conversion
+  @days_per_week 7
+  @weekday_multiplier div(1 <<< 30, @days_per_week)
+  @weekday_bias_base (1 <<< 27) + (1 <<< 23)
 
   defguardp is_format(term) when term in [:basic, :extended]
 
@@ -196,8 +203,18 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60
   @last_second_of_the_day @seconds_per_day - 1
   @microseconds_per_second 1_000_000
+  @microseconds_per_minute @seconds_per_minute * @microseconds_per_second
+  @microseconds_per_hour @seconds_per_hour * @microseconds_per_second
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
+  @minutes_reciprocal div(1 <<< 42, @microseconds_per_minute >>> 8) + 1
+  @seconds_reciprocal div(1 <<< 40, @microseconds_per_second >>> 6) + 1
+  @minutes_from_seconds_reciprocal div(1 <<< 32, @seconds_per_minute) + 1
+  @hours_from_seconds_reciprocal div(1 <<< 32, @seconds_per_hour) + 1
+
+  # Combine ASCII digit offsets so each field needs only one subtraction.
+  @two_digit_ascii_offset ?0 * 11
+  @four_digit_ascii_offset ?0 * 1111
   @datetime_seps [?\s, ?T]
   @ext_date_sep ?-
   @ext_time_sep ?:
@@ -233,9 +250,9 @@ defmodule Calendar.ISO do
           y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
           d2 >= ?0 and d2 <= ?9,
         {
-          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
-          (m1 - ?0) * 10 + (m2 - ?0),
-          (d1 - ?0) * 10 + (d2 - ?0)
+          y1 * 1000 + y2 * 100 + y3 * 10 + y4 - @four_digit_ascii_offset,
+          m1 * 10 + m2 - @two_digit_ascii_offset,
+          d1 * 10 + d2 - @two_digit_ascii_offset
         }
       ]
     end
@@ -248,9 +265,9 @@ defmodule Calendar.ISO do
         h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
           i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
         {
-          (h1 - ?0) * 10 + (h2 - ?0),
-          (i1 - ?0) * 10 + (i2 - ?0),
-          (s1 - ?0) * 10 + (s2 - ?0)
+          h1 * 10 + h2 - @two_digit_ascii_offset,
+          i1 * 10 + i2 - @two_digit_ascii_offset,
+          s1 * 10 + s2 - @two_digit_ascii_offset
         }
       ]
     end
@@ -423,16 +440,13 @@ defmodule Calendar.ISO do
   @spec parse_date(String.t(), format) ::
           {:ok, {year, month, day}}
           | {:error, atom}
-  def parse_date(string, format) when is_binary(string) and is_format(format),
-    do: parse_date_guarded(string, format)
-
-  defp parse_date_guarded("-" <> string, format),
+  def parse_date("-" <> string, format) when is_format(format),
     do: do_parse_date(string, -1, format)
 
-  defp parse_date_guarded("+" <> string, format),
+  def parse_date("+" <> string, format) when is_format(format),
     do: do_parse_date(string, 1, format)
 
-  defp parse_date_guarded(string, format),
+  def parse_date(string, format) when is_binary(string) and is_format(format),
     do: do_parse_date(string, 1, format)
 
   defp do_parse_date(unquote(match_basic_date), multiplier, :basic) when unquote(guard_date) do
@@ -508,16 +522,13 @@ defmodule Calendar.ISO do
   @spec parse_naive_datetime(String.t(), format) ::
           {:ok, {year, month, day, hour, minute, second, microsecond}}
           | {:error, atom}
-  def parse_naive_datetime(string, format) when is_binary(string) and is_format(format),
-    do: parse_naive_datetime_guarded(string, format)
-
-  defp parse_naive_datetime_guarded("-" <> string, format),
+  def parse_naive_datetime("-" <> string, format) when is_format(format),
     do: do_parse_naive_datetime(string, -1, format)
 
-  defp parse_naive_datetime_guarded("+" <> string, format),
+  def parse_naive_datetime("+" <> string, format) when is_format(format),
     do: do_parse_naive_datetime(string, 1, format)
 
-  defp parse_naive_datetime_guarded(string, format),
+  def parse_naive_datetime(string, format) when is_binary(string) and is_format(format),
     do: do_parse_naive_datetime(string, 1, format)
 
   defp do_parse_naive_datetime(
@@ -612,16 +623,13 @@ defmodule Calendar.ISO do
   @spec parse_utc_datetime(String.t(), format) ::
           {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
           | {:error, atom}
-  def parse_utc_datetime(string, format) when is_binary(string) and is_format(format),
-    do: parse_utc_datetime_guarded(string, format)
-
-  defp parse_utc_datetime_guarded("-" <> string, format),
+  def parse_utc_datetime("-" <> string, format) when is_format(format),
     do: do_parse_utc_datetime(string, -1, format)
 
-  defp parse_utc_datetime_guarded("+" <> string, format),
+  def parse_utc_datetime("+" <> string, format) when is_format(format),
     do: do_parse_utc_datetime(string, 1, format)
 
-  defp parse_utc_datetime_guarded(string, format),
+  def parse_utc_datetime(string, format) when is_binary(string) and is_format(format),
     do: do_parse_utc_datetime(string, 1, format)
 
   defp do_parse_utc_datetime(
@@ -669,17 +677,20 @@ defmodule Calendar.ISO do
           {:error, :missing_offset}
 
         true ->
-          day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
+          seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second - offset
+          {extra_days, seconds} = div_rem(seconds, @seconds_per_day)
 
-          {{year, month, day}, {hour, minute, second, _}} =
-            case add_time_unit_to_iso_days({0, day_fraction}, -offset, :second) do
-              {0, day_fraction} ->
-                {{year, month, day}, time_from_day_fraction(day_fraction)}
+          {year, month, day} =
+            case extra_days do
+              0 ->
+                {year, month, day}
 
-              {extra_days, day_fraction} ->
+              _ ->
                 base_days = valid_date_to_iso_days(year, month, day)
-                {date_from_iso_days(base_days + extra_days), time_from_day_fraction(day_fraction)}
+                date_from_iso_days(base_days + extra_days)
             end
+
+          {hour, minute, second} = seconds_to_time(seconds)
 
           {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
       end
@@ -886,15 +897,23 @@ defmodule Calendar.ISO do
 
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
     total_microseconds = divide_by_parts_per_day(parts_in_day, parts_per_day)
+    {hours, microseconds_in_hour} = div_rem(total_microseconds, @microseconds_per_hour)
 
-    {hours, rest_microseconds1} =
-      div_rem(total_microseconds, @seconds_per_hour * @microseconds_per_second)
-
-    {minutes, rest_microseconds2} =
-      div_rem(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
-
-    {seconds, microseconds} = div_rem(rest_microseconds2, @microseconds_per_second)
+    {minutes, seconds, microseconds} = microseconds_in_hour_to_time(microseconds_in_hour)
     {hours, minutes, seconds, {microseconds, 6}}
+  end
+
+  # Adapted from https://www.benjoffe.com/fast-time-of-day
+  @compile {:inline, microseconds_in_hour_to_time: 1}
+  defp microseconds_in_hour_to_time(microseconds_in_hour)
+       when microseconds_in_hour in 0..(@microseconds_per_hour - 1)//1 do
+    # Pre-shifts keep reciprocal products within small integers on 64-bit BEAM.
+    minutes = ((microseconds_in_hour >>> 8) * @minutes_reciprocal) >>> 42
+    seconds_in_hour = ((microseconds_in_hour >>> 6) * @seconds_reciprocal) >>> 40
+
+    microseconds = microseconds_in_hour - seconds_in_hour * @microseconds_per_second
+    seconds = band(seconds_in_hour + minutes * 4, 63)
+    {minutes, seconds, microseconds}
   end
 
   defp divide_by_parts_per_day(parts_in_day, @parts_per_day), do: parts_in_day
@@ -1037,8 +1056,10 @@ defmodule Calendar.ISO do
   @doc since: "1.3.0"
   @spec leap_year?(year) :: boolean()
   @impl true
+  @compile {:inline, leap_year?: 1}
   def leap_year?(year) when is_year(year) do
-    rem(year, 4) === 0 and (rem(year, 100) !== 0 or rem(year, 400) === 0)
+    # Neri-Schneider test via Ben Joffe: https://www.benjoffe.com/fast-leap-year
+    band(year, 3) === 0 and (band(year, 15) === 0 or rem(year, 100) !== 0)
   end
 
   @doc false
@@ -1105,18 +1126,27 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def iso_days_to_day_of_week(iso_days, starting_on) do
-    Integer.mod(iso_days + day_of_week_offset(starting_on), 7) + 1
+  # Adapted from https://www.benjoffe.com/fast-day-of-week
+  # Bounds keep arithmetic within signed 60-bit small integers on 64-bit BEAM.
+  def iso_days_to_day_of_week(days, starting_on) when days in -75_497_467..58_720_260 do
+    bias = day_of_week_bias(starting_on)
+    band((days * @weekday_multiplier + bias) >>> 27, 7)
   end
 
-  defp day_of_week_offset(:default), do: 5
-  defp day_of_week_offset(:wednesday), do: 3
-  defp day_of_week_offset(:thursday), do: 2
-  defp day_of_week_offset(:friday), do: 1
-  defp day_of_week_offset(:saturday), do: 0
-  defp day_of_week_offset(:sunday), do: 6
-  defp day_of_week_offset(:monday), do: 5
-  defp day_of_week_offset(:tuesday), do: 4
+  def iso_days_to_day_of_week(days, starting_on) do
+    days = rem(days, @days_per_week)
+    iso_days_to_day_of_week(days, starting_on)
+  end
+
+  @compile {:inline, day_of_week_bias: 1}
+  defp day_of_week_bias(:default), do: @weekday_bias_base - 2 * @weekday_multiplier
+  defp day_of_week_bias(:monday), do: @weekday_bias_base - 2 * @weekday_multiplier
+  defp day_of_week_bias(:tuesday), do: @weekday_bias_base - 3 * @weekday_multiplier
+  defp day_of_week_bias(:wednesday), do: @weekday_bias_base - 4 * @weekday_multiplier
+  defp day_of_week_bias(:thursday), do: @weekday_bias_base + 2 * @weekday_multiplier
+  defp day_of_week_bias(:friday), do: @weekday_bias_base + @weekday_multiplier
+  defp day_of_week_bias(:saturday), do: @weekday_bias_base
+  defp day_of_week_bias(:sunday), do: @weekday_bias_base - @weekday_multiplier
 
   @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
@@ -1698,7 +1728,7 @@ defmodule Calendar.ISO do
   @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    is_month(month) and day in 1..days_in_month(year, month)
+    is_month(month) and day in 1..days_in_month_guarded(year, month)
   end
 
   @doc """
@@ -1814,18 +1844,14 @@ defmodule Calendar.ISO do
   @impl true
   @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   def shift_date(year, month, day, duration) do
-    shift_options = shift_date_options(duration)
+    date = {year, month, day}
 
-    Enum.reduce(shift_options, {year, month, day}, fn
-      {_, 0}, date ->
-        date
-
-      {:month, value}, date ->
-        shift_months(date, value)
-
-      {:day, value}, date ->
-        shift_days(date, value)
-    end)
+    case shift_date_units(duration) do
+      {0, 0} -> date
+      {months, 0} -> shift_months(date, months)
+      {0, days} -> shift_days(date, days)
+      {months, days} -> date |> shift_months(months) |> shift_days(days)
+    end
   end
 
   @doc """
@@ -1851,23 +1877,32 @@ defmodule Calendar.ISO do
           microsecond,
           Duration.t()
         ) :: {year, month, day, hour, minute, second, microsecond}
-  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
-    shift_options = shift_datetime_options(duration)
+  def shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        {value, _} = microsecond,
+        duration
+      ) do
+    {months, seconds, shift_microsecond} = shift_datetime_units(duration)
 
-    Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
-      {:microsecond, {0, _}}, naive_datetime ->
-        naive_datetime
+    {year, month, day} =
+      if months == 0, do: {year, month, day}, else: shift_months({year, month, day}, months)
 
-      {_, 0}, naive_datetime ->
-        naive_datetime
+    datetime = {year, month, day, hour, minute, second, microsecond}
+    {microseconds, precision} = shift_time_unit_values(shift_microsecond, microsecond)
 
-      {:month, value}, {year, month, day, hour, minute, second, microsecond} ->
-        {new_year, new_month, new_day} = shift_months({year, month, day}, value)
-        {new_year, new_month, new_day, hour, minute, second, microsecond}
+    if seconds == 0 and microseconds == 0 do
+      datetime
+    else
+      total_microseconds = seconds * @microseconds_per_second + microseconds
 
-      {time_unit, value}, naive_datetime ->
-        shift_time_unit(naive_datetime, value, time_unit)
-    end)
+      datetime = put_elem(datetime, 6, {value, precision})
+      shift_time_unit(datetime, total_microseconds, :microsecond)
+    end
   end
 
   @doc """
@@ -1884,18 +1919,14 @@ defmodule Calendar.ISO do
   @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
           {hour, minute, second, microsecond}
   def shift_time(hour, minute, second, microsecond, duration) do
-    shift_options = shift_time_options(duration)
+    case duration_to_seconds_and_microseconds(duration) do
+      {0, {0, _}} ->
+        {hour, minute, second, microsecond}
 
-    Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
-      {:microsecond, {0, _}}, time ->
-        time
-
-      {_, 0}, time ->
-        time
-
-      {time_unit, value}, time ->
-        shift_time_unit(time, value, time_unit)
-    end)
+      {seconds, shift_microsecond} ->
+        time = {hour, minute, second + seconds, microsecond}
+        shift_time_unit(time, shift_microsecond, :microsecond)
+    end
   end
 
   @doc false
@@ -1913,13 +1944,7 @@ defmodule Calendar.ISO do
     total_months = year * months_in_year + month + months - 1
 
     new_year = floor_div_positive_divisor(total_months, months_in_year)
-
-    new_month =
-      case rem(total_months, months_in_year) + 1 do
-        new_month when new_month < 1 -> new_month + months_in_year
-        new_month -> new_month
-      end
-
+    new_month = total_months - new_year * months_in_year + 1
     new_day = min(day, days_in_month(new_year, new_month))
 
     {new_year, new_month, new_day}
@@ -1967,7 +1992,8 @@ defmodule Calendar.ISO do
     {value, original_precision}
   end
 
-  defp shift_date_options(%Duration{
+  @compile {:inline, shift_date_units: 1}
+  defp shift_date_units(%Duration{
          year: year,
          month: month,
          week: week,
@@ -1977,18 +2003,16 @@ defmodule Calendar.ISO do
          second: 0,
          microsecond: {0, _precision}
        }) do
-    [
-      month: year * 12 + month,
-      day: week * 7 + day
-    ]
+    {year * 12 + month, week * @days_per_week + day}
   end
 
-  defp shift_date_options(_duration) do
+  defp shift_date_units(_duration) do
     raise ArgumentError,
           "cannot shift date by time scale unit. Expected :year, :month, :week, :day"
   end
 
-  defp shift_datetime_options(%Duration{
+  @compile {:inline, shift_datetime_units: 1}
+  defp shift_datetime_units(%Duration{
          year: year,
          month: month,
          week: week,
@@ -1998,14 +2022,15 @@ defmodule Calendar.ISO do
          second: second,
          microsecond: microsecond
        }) do
-    [
-      month: year * 12 + month,
-      second: week * 7 * 86_400 + day * 86_400 + hour * 3600 + minute * 60 + second,
-      microsecond: microsecond
-    ]
+    {
+      year * 12 + month,
+      (((week * @days_per_week + day) * 24 + hour) * 60 + minute) * 60 + second,
+      microsecond
+    }
   end
 
-  defp shift_time_options(%Duration{
+  @compile {:inline, duration_to_seconds_and_microseconds: 1}
+  defp duration_to_seconds_and_microseconds(%Duration{
          year: 0,
          month: 0,
          week: 0,
@@ -2015,13 +2040,10 @@ defmodule Calendar.ISO do
          second: second,
          microsecond: microsecond
        }) do
-    [
-      second: hour * 3600 + minute * 60 + second,
-      microsecond: microsecond
-    ]
+    {(hour * 60 + minute) * 60 + second, microsecond}
   end
 
-  defp shift_time_options(_duration) do
+  defp duration_to_seconds_and_microseconds(_duration) do
     raise ArgumentError,
           "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond"
   end
@@ -2033,8 +2055,8 @@ defmodule Calendar.ISO do
     total = System.convert_time_unit(integer, unit, :microsecond)
 
     if total in @unix_range_microseconds do
-      microseconds = Integer.mod(total, @microseconds_per_second)
-      seconds = @unix_epoch + floor_div_positive_divisor(total, @microseconds_per_second)
+      {seconds, microseconds} = div_rem(total, @microseconds_per_second)
+      seconds = @unix_epoch + seconds
       precision = precision_for_unit(unit)
       {date, time} = iso_seconds_to_datetime(seconds)
       {:ok, date, time, {microseconds, precision}}
@@ -2055,23 +2077,21 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp parse_microsecond("." <> rest), do: parse_microsecond(rest, rest, 0)
-  defp parse_microsecond("," <> rest), do: parse_microsecond(rest, rest, 0)
+  defp parse_microsecond("." <> rest), do: parse_microsecond(rest, 0, 0)
+  defp parse_microsecond("," <> rest), do: parse_microsecond(rest, 0, 0)
   defp parse_microsecond(rest), do: {{0, 0}, rest}
 
   # Digits past the sixth are consumed but do not contribute to the value.
-  defp parse_microsecond(<<head, tail::binary>>, digits, 6) when head in ?0..?9,
-    do: parse_microsecond(tail, digits, 6)
+  defp parse_microsecond(<<head, tail::binary>>, value, 6) when head in ?0..?9,
+    do: parse_microsecond(tail, value, 6)
 
-  defp parse_microsecond(<<head, tail::binary>>, digits, precision) when head in ?0..?9,
-    do: parse_microsecond(tail, digits, precision + 1)
+  defp parse_microsecond(<<head, tail::binary>>, value, precision) when head in ?0..?9,
+    do: parse_microsecond(tail, value * 10 + head - ?0, precision + 1)
 
-  defp parse_microsecond(_rest, _digits, 0), do: :error
+  defp parse_microsecond(_rest, _value, 0), do: :error
 
-  defp parse_microsecond(rest, digits, precision) do
-    scale = scale_factor(precision)
-    microsecond = :erlang.binary_to_integer(:binary.part(digits, 0, precision)) * scale
-    {{microsecond, precision}, rest}
+  defp parse_microsecond(rest, value, precision) do
+    {{value * scale_factor(precision), precision}, rest}
   end
 
   defp parse_offset(""), do: {nil, ""}
@@ -2096,8 +2116,8 @@ defmodule Calendar.ISO do
   defp parse_offset(sign, h1, h2, m1, m2, rest) do
     with true <- h1 in ?0..?2 and h2 in ?0..?9,
          true <- m1 in ?0..?5 and m2 in ?0..?9,
-         hour = (h1 - ?0) * 10 + h2 - ?0,
-         min = (m1 - ?0) * 10 + m2 - ?0,
+         hour = h1 * 10 + h2 - @two_digit_ascii_offset,
+         min = m1 * 10 + m2 - @two_digit_ascii_offset,
          true <- hour < 24,
          true <- sign == 1 or hour != 0 or min != 0 do
       {(hour * 60 + min) * 60 * sign, rest}
@@ -2160,11 +2180,11 @@ defmodule Calendar.ISO do
   end
 
   def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, add_ppd) do
-    parts = parts * add_ppd
-    add = add * ppd
     gcd = Integer.gcd(ppd, add_ppd)
-    result_parts = div(parts + add, gcd)
-    result_ppd = div(ppd * add_ppd, gcd)
+    ppd_factor = div(ppd, gcd)
+    add_ppd_factor = div(add_ppd, gcd)
+    result_parts = parts * add_ppd_factor + add * ppd_factor
+    result_ppd = ppd * add_ppd_factor
     normalize_iso_days(days, result_parts, result_ppd)
   end
 
@@ -2206,9 +2226,13 @@ defmodule Calendar.ISO do
     {date, time}
   end
 
+  # Adapted from https://www.benjoffe.com/fast-time-of-day
   defp seconds_to_time(seconds) when seconds in 0..@last_second_of_the_day do
-    {hour, rest_seconds} = div_rem(seconds, @seconds_per_hour)
-    {minute, second} = div_rem(rest_seconds, @seconds_per_minute)
+    total_minutes = (seconds * @minutes_from_seconds_reciprocal) >>> 32
+    hour = (seconds * @hours_from_seconds_reciprocal) >>> 32
+
+    minute = band(total_minutes + hour * 4, 63)
+    second = band(seconds + total_minutes * 4, 63)
 
     {hour, minute, second}
   end

@@ -32,8 +32,8 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
       ExecutionCallback(E),
       AfterExecutionCallback(E)
   end.
-trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
-  ?tracker:alias_dispatch(Pid, Lookup),
+trace({alias_expansion, _Meta, Lookup, Result}, #{lexical_tracker := Pid}) ->
+  ?tracker:alias_dispatch(Pid, Lookup, Result),
   ok;
 trace({require, Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
   case lists:keyfind(from_macro, 1, Meta) of

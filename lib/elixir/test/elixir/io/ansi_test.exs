@@ -86,6 +86,32 @@ defmodule IO.ANSITest do
              "#{IO.ANSI.red()}Hello!"
   end
 
+  test "sequence aliases remain compatible" do
+    aliases = [
+      bright: :bold,
+      faint: :dim,
+      blink_slow: :blink,
+      conceal: :invisible,
+      crossed_out: :strikethrough,
+      normal: :bold_off,
+      not_italic: :italic_off,
+      no_underline: :underline_off,
+      reverse: :inverse,
+      reverse_off: :inverse_off,
+      reveal: :invisible_off,
+      not_crossed_out: :strikethrough_off,
+      overlined: :overline,
+      not_overlined: :overline_off,
+      home: :cursor_home
+    ]
+
+    for {old, new} <- aliases do
+      assert apply(IO.ANSI, old, []) == apply(IO.ANSI, new, [])
+    end
+
+    assert IO.ANSI.normal() == IO.ANSI.dim_off()
+  end
+
   test "format invalid sequence" do
     assert_raise ArgumentError, "invalid ANSI sequence specification: :brigh", fn ->
       IO.ANSI.format([:brigh, "Hello!"], true)

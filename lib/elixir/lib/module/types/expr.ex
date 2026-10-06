@@ -11,6 +11,7 @@ defmodule Module.Types.Expr do
   14 = length(Macro.Env.__info__(:struct))
 
   aliases = list(tuple([atom(), atom()]))
+  macro_aliases = list(tuple([atom(), tuple([term(), atom()])]))
   functions_and_macros = list(tuple([atom(), list(tuple([atom(), integer()]))]))
   list_of_modules = list(atom())
 
@@ -26,7 +27,7 @@ defmodule Module.Types.Expr do
             functions: {functions_and_macros, false},
             lexical_tracker: {opt_union(pid(), atom([nil])), false},
             line: {integer(), false},
-            macro_aliases: {aliases, false},
+            macro_aliases: {macro_aliases, false},
             macros: {functions_and_macros, false},
             module: {atom(), false},
             requires: {list_of_modules, false},
@@ -180,17 +181,7 @@ defmodule Module.Types.Expr do
         {{key_type, value_type}, context}
       end)
 
-    # The only information we can attach to the expected types is that
-    # certain keys are expected.
-    expected_pairs =
-      Enum.flat_map(pairs_types, fn {key_type, _value_type} ->
-        case atom_fetch(key_type) do
-          {:finite, [key]} -> [{key, {term(), false}}]
-          _ -> []
-        end
-      end)
-
-    expected = opt_intersection(expected, open_map(expected_pairs))
+    expected = expected_map_update(pairs_types, expected)
     {map_type, context} = of_expr(map, expected, expr, stack, context)
 
     try do
@@ -415,7 +406,7 @@ defmodule Module.Types.Expr do
           previous = Pattern.init_previous()
           info = {{:case, meta, case_expr, case_type}, head}
 
-          {_, _, _, _, context} =
+          {_, _, _, _, _, context} =
             Pattern.of_head(patterns, guards, [case_type], previous, info, meta, stack, context)
 
           {_, context} = of_expr(body, expected, body, stack, context)
@@ -435,19 +426,13 @@ defmodule Module.Types.Expr do
       of_expr(case_expr, term(), case_expr, %{stack | reverse_arrow: :cache}, base_context)
 
     info = {:case, meta, case_expr, case_type}
-
-    added_meta =
-      if Macro.quoted_literal?(case_expr) do
-        [generated: true]
-      else
-        case_expr |> get_meta() |> Keyword.take([:generated])
-      end
+    literal? = Macro.quoted_literal?(case_expr)
 
     # If the expression is generated or the construct is a literal,
     # it is most likely a macro code. However, if no clause is matched,
     # we should still check for that.
     clauses =
-      if added_meta != [] do
+      if literal? or case_expr |> get_meta() |> Keyword.get(:generated, false) do
         for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
       else
         clauses
@@ -458,19 +443,13 @@ defmodule Module.Types.Expr do
 
       {{none?, body_acc, clauses_acc}, context} =
         of_clauses_fun(clauses, [case_type], info, stack, context, acc, fn
-          trees, precise?, {:->, _, [_, body]} = clause, context, acc ->
+          trees, precise?, errored?, {:->, _, [_, body]} = clause, context, acc ->
             # Compute the arg type based on the clause itself
             [arg_type] = Pattern.of_domain(trees, stack, context)
 
             # Now we refine the case_expr context and use it to compute the body
-            {_, refined_context} =
-              of_expr(
-                case_expr,
-                arg_type,
-                case_expr,
-                %{stack | reverse_arrow: :except_none},
-                context
-              )
+            reverse_stack = %{stack | reverse_arrow: :except_none}
+            {_, refined_context} = of_expr(case_expr, arg_type, case_expr, reverse_stack, context)
 
             {body_type, context} =
               of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
@@ -478,7 +457,7 @@ defmodule Module.Types.Expr do
             # Now we compute the return type and the clauses for reverse arrow
             {none?, body_acc, clauses_acc} = acc
 
-            if precise? and empty?(body_type) do
+            if (precise? and empty?(body_type)) or (errored? and not literal?) do
               {{true, body_acc, clauses_acc}, context}
             else
               [arg_type] = Pattern.of_domain(trees, stack, context)
@@ -519,13 +498,22 @@ defmodule Module.Types.Expr do
 
       {acc, context} =
         of_clauses_fun(clauses, domain, :fn, stack, context, [], fn
-          trees, _precise?, {:->, _, [_, body]}, context, acc ->
+          trees, _precise?, errored?, {:->, _, [_, body]}, context, acc ->
             {body_type, context} = of_expr(body, term(), body, stack, context)
-            args_types = Pattern.of_domain(trees, stack, context)
-            {add_inferred(acc, args_types, body_type), context}
+
+            if errored? do
+              {acc, context}
+            else
+              args_types = Pattern.of_domain(trees, stack, context)
+              {add_inferred(acc, args_types, body_type), context}
+            end
         end)
 
-      {fun_from_inferred_clauses(acc), context}
+      if acc == [] do
+        {fun(length(domain)), context}
+      else
+        {fun_from_inferred_clauses(acc), context}
+      end
     end)
   end
 
@@ -624,34 +612,41 @@ defmodule Module.Types.Expr do
       else
         # TODO: Use the collectable protocol for the output
         into = Keyword.get(opts, :into, [])
-        {into_type, into_kind, context} = for_into(into, meta, stack, context)
 
-        case into_kind do
-          :bitstring ->
-            {block_type, context} = of_expr(block, bitstring(), block, stack, context)
+        {into_kinds, into_type, expected, context} =
+          for_into(into, meta, expected, stack, context)
+
+        {block_type, context} = of_expr(block, expected, block, stack, context)
+
+        result_type =
+          if :non_empty_list in into_kinds do
+            opt_union(into_type, non_empty_list(block_type))
+          else
+            into_type
+          end
+
+        {result_type, context} =
+          if :bitstring in into_kinds do
             intersection = opt_intersection(block_type, bitstring())
 
+            # TODO: currently if :into is a binary, then we expect the body
+            # to return a binary, even if the binary is a gradual type. This
+            # is ok for now because we only check for bitstring if the type
+            # is a subset of empty_list() or bitstring(), but we may want to
+            # relax in the future.
             if empty?(intersection) do
               error = {:badbitbody, block_type, block, context}
               {error_type(), error(__MODULE__, error, meta, stack, context)}
             else
-              {opt_union(into_type, intersection), context}
+              # If into_type is a binary but the block is a bitstring_no_binary(),
+              # then the result may be a bitstring_no_binary().
+              {opt_union(intersection, result_type), context}
             end
+          else
+            {result_type, context}
+          end
 
-          :non_empty_list ->
-            expected =
-              case list_hd(expected) do
-                {:ok, head} -> head
-                _ -> term()
-              end
-
-            {block_type, context} = of_expr(block, expected, block, stack, context)
-            {opt_union(into_type, non_empty_list(block_type)), context}
-
-          :none ->
-            {_, context} = of_expr(block, term(), block, stack, context)
-            {into_type, context}
-        end
+        {if(gradual?(into_type), do: dynamic(result_type), else: result_type), context}
         |> dynamic_unless_static(stack)
       end
     end)
@@ -838,13 +833,20 @@ defmodule Module.Types.Expr do
 
   @into_compile opt_union(bitstring(), empty_list())
 
-  defp for_into([], _meta, _stack, context),
-    do: {empty_list(), :non_empty_list, context}
+  defp maybe_list_hd_or_term(expected) do
+    case list_hd(expected) do
+      {:ok, head} -> head
+      _ -> term()
+    end
+  end
 
-  defp for_into(binary, _meta, _stack, context) when is_binary(binary),
-    do: {binary(), :bitstring, context}
+  defp for_into([], _meta, expected, _stack, context),
+    do: {[:non_empty_list], empty_list(), maybe_list_hd_or_term(expected), context}
 
-  defp for_into(into, meta, stack, context) do
+  defp for_into(binary, _meta, _expected, _stack, context) when is_binary(binary),
+    do: {[:bitstring], binary(), bitstring(), context}
+
+  defp for_into(into, meta, expected, stack, context) do
     meta =
       case into do
         {_, meta, _} -> meta
@@ -861,27 +863,26 @@ defmodule Module.Types.Expr do
     # We use subtype? instead of compatible because we want to handle
     # only bitstring/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
-      case {bitstring_type?(type), empty_list_type?(type)} do
-        # If they can be both be true, then we don't know
-        # what the contents of the block are for
-        {true, true} ->
-          type = opt_union(bitstring(), list(term()))
-          {if(gradual?(type), do: dynamic(type), else: type), :none, context}
+      cond do
+        bitstring_type?(type) ->
+          kinds = if empty_list_type?(type), do: [:bitstring, :non_empty_list], else: [:bitstring]
+          # A comprehension may concatenate the block an arbitrary number of times.
+          # Even if both the initial value and each block are unaligned bitstrings,
+          # repeated concatenation may eventually produce an aligned binary.
+          {kinds, opt_union(binary(), type), bitstring(), context}
 
-        {false, true} ->
-          {type, :non_empty_list, context}
+        empty_list_type?(type) ->
+          {[:non_empty_list], type, maybe_list_hd_or_term(expected), context}
 
-        {true, false} ->
-          {type, :bitstring, context}
-
-        {false, false} ->
-          {type, :none, context}
+        # The type is empty...
+        true ->
+          {[], type, term(), context}
       end
     else
       {_type, context} =
         Apply.remote_apply(info, Collectable, :into, [type], expr, stack, context)
 
-      {dynamic(), :none, context}
+      {[], dynamic(), term(), context}
     end
   end
 
@@ -988,9 +989,10 @@ defmodule Module.Types.Expr do
   end
 
   defp of_clauses(clauses, domain, expected, base_info, stack, context, acc) do
-    of_acc = fn _args_types, _precise?, {:->, _, [_, body]}, context, acc ->
+    of_acc = fn _args_types, _precise?, errored?, {:->, _, [_, body]}, context, acc ->
       {body_type, context} = of_expr(body, expected, body, stack, context)
-      {opt_union(acc, body_type), context}
+      acc = if errored?, do: acc, else: opt_union(acc, body_type)
+      {acc, context}
     end
 
     of_clauses_fun(clauses, domain, base_info, stack, context, acc, of_acc)
@@ -1006,10 +1008,10 @@ defmodule Module.Types.Expr do
           {patterns, guards} = extract_head(head)
           info = {base_info, head}
 
-          {trees, precise?, _, previous, context} =
+          {trees, precise?, errored?, _, previous, context} =
             Pattern.of_head(patterns, guards, domain, previous, info, meta, stack, context)
 
-          {acc, context} = of_acc.(trees, precise?, clause, context, acc)
+          {acc, context} = of_acc.(trees, precise?, errored?, clause, context, acc)
           {acc, previous, context |> set_failed(failed?) |> Of.reset_vars(original)}
       end)
 
@@ -1052,6 +1054,46 @@ defmodule Module.Types.Expr do
 
   defp add_inferred([], args, return),
     do: [{args, return}]
+
+  # In map update syntax, fields that are replaced by the update need
+  # to exist in the original map, but their old values are not constrained
+  # by what the consumer expects of the new values. Fields that are not
+  # replaced keep whatever constraint the consumer has on them.
+  #
+  # One way to implement this function is to compute the union of any
+  # non-singleton key and then call map_update(type, union, term, true, false, false).
+  # The downside of this approach is that %{x | key => value} will generate
+  # a union with all possible keys set to term, which is not terribly useful.
+  # So in case there is a non-singleton key, we fallback to an open_map.
+  # The alternative implementation would only fallback to open_map if the
+  # update of either required or optional keys fail.
+  defp expected_map_update(pairs_types, expected) do
+    {all_singleton?, required_keys} =
+      Enum.reduce(pairs_types, {true, []}, fn {key_type, _}, {all_singleton?, required_keys} ->
+        # The only consider a key as required if it has no other components,
+        # even dynamic ones (hence upper bound).
+        case atom_fetch(upper_bound(key_type)) do
+          {:finite, [key]} -> {all_singleton?, [key | required_keys]}
+          _ -> {false, required_keys}
+        end
+      end)
+
+    with true <- all_singleton?,
+         {:ok, expected} <- put_required_keys(expected, required_keys) do
+      expected
+    else
+      _ -> open_map(Enum.map(required_keys, &{&1, {term(), false}}))
+    end
+  end
+
+  defp put_required_keys(type, [key | keys]) do
+    case map_put_key(type, key, term()) do
+      {:ok, type} -> put_required_keys(type, keys)
+      _ -> :error
+    end
+  end
+
+  defp put_required_keys(type, []), do: {:ok, type}
 
   defp literal_map_update(descr, key_descr, value_descr) do
     case map_update(descr, key_descr, value_descr, false, false, false) do

@@ -476,6 +476,14 @@ defmodule TypespecTest do
       end
     end
 
+    test "@type with a stepped range" do
+      assert_raise Kernel.TypespecError, ~r"ranges with steps are not supported", fn ->
+        test_module do
+          @type my_type :: 1..10//2
+        end
+      end
+    end
+
     test "@type with a keyword map" do
       bytecode =
         test_module do

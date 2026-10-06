@@ -309,6 +309,20 @@ defmodule String do
 
   @conditional_mappings [:greek, :turkic]
 
+  # Checks one Unicode code point decoded by ::utf8, including printable control characters.
+  defguardp is_printable_codepoint(codepoint)
+            when codepoint in 0x20..0x7F or
+                   codepoint in ?\a..?\r or codepoint == ?\e or
+                   (codepoint >= 0xA0 and codepoint not in 0xFFFE..0xFFFF)
+
+  # ::56 packs seven bytes into an integer; the mask checks each byte's high bit.
+  defguardp is_ascii(bytes) when Bitwise.band(bytes, 0x80808080808080) == 0
+
+  # The ::56 fast path accepts ASCII bytes >= 0x20; tabs and newlines use ::utf8.
+  defguardp is_printable_ascii_bytes(bytes)
+            when is_ascii(bytes) and
+                   Bitwise.band(bytes - 0x20202020202020, 0x80808080808080) == 0
+
   @doc """
   Checks if a string contains only printable characters up to `character_limit`.
 
@@ -333,40 +347,27 @@ defmodule String do
   @spec printable?(t, 0) :: true
   @spec printable?(t, pos_integer | :infinity) :: boolean
   def printable?(string, character_limit \\ :infinity)
-      when is_binary(string) and
-             (character_limit == :infinity or
-                (is_integer(character_limit) and character_limit >= 0)) do
+
+  def printable?(string, :infinity) when is_binary(string) do
+    drop_printable(string, true) == ""
+  end
+
+  def printable?(string, character_limit)
+      when is_binary(string) and is_integer(character_limit) and character_limit >= 0 do
     recur_printable?(string, character_limit)
   end
 
   defp recur_printable?(<<_::binary>>, 0), do: true
   defp recur_printable?(<<>>, _character_limit), do: true
 
-  for char <- 0x20..0x7E do
-    defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
-      recur_printable?(rest, decrement(character_limit))
-    end
-  end
-
-  for char <- [?\n, ?\r, ?\t, ?\v, ?\b, ?\f, ?\e, ?\d, ?\a] do
-    defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
-      recur_printable?(rest, decrement(character_limit))
-    end
-  end
-
-  defp recur_printable?(<<char::utf8, rest::binary>>, character_limit)
-       when char in 0xA0..0xD7FF
-       when char in 0xE000..0xFFFD
-       when char in 0x10000..0x10FFFF do
-    recur_printable?(rest, decrement(character_limit))
+  defp recur_printable?(<<codepoint::utf8, rest::binary>>, character_limit)
+       when is_printable_codepoint(codepoint) do
+    recur_printable?(rest, character_limit - 1)
   end
 
   defp recur_printable?(_string, _character_limit) do
     false
   end
-
-  defp decrement(:infinity), do: :infinity
-  defp decrement(character_limit), do: character_limit - 1
 
   @doc ~S"""
   Divides a string into substrings at each Unicode whitespace
@@ -2151,29 +2152,43 @@ defmodule String do
   def chunk("", _), do: []
 
   def chunk(string, trait) when is_binary(string) and trait in [:valid, :printable] do
-    {cp, _} = next_codepoint(string)
-    pred_fn = make_chunk_pred(trait)
-    do_chunk(string, pred_fn.(cp), pred_fn)
+    do_chunk(string, true, trait, [])
   end
 
-  defp do_chunk(string, flag, pred_fn), do: do_chunk(string, [], <<>>, flag, pred_fn)
+  defp do_chunk(string, matches?, trait, acc) do
+    rest =
+      case trait do
+        :valid -> drop_valid(string, matches?)
+        :printable -> drop_printable(string, matches?)
+      end
 
-  defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
+    size = byte_size(string) - byte_size(rest)
+    acc = if size == 0, do: acc, else: [binary_part(string, 0, size) | acc]
 
-  defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
+    if rest == "", do: :lists.reverse(acc), else: do_chunk(rest, not matches?, trait, acc)
+  end
 
-  defp do_chunk(string, acc, chunk, flag, pred_fn) do
-    {cp, rest} = next_codepoint(string)
+  defp drop_valid(<<bytes::56, rest::binary>>, true) when is_ascii(bytes),
+    do: drop_valid(rest, true)
 
-    if pred_fn.(cp) != flag do
-      do_chunk(rest, [chunk | acc], cp, not flag, pred_fn)
+  defp drop_valid(<<_::utf8, rest::binary>>, true), do: drop_valid(rest, true)
+  defp drop_valid(<<_::utf8, _::binary>> = rest, false), do: rest
+  defp drop_valid(<<_, rest::binary>>, false), do: drop_valid(rest, false)
+  defp drop_valid(rest, _matches?), do: rest
+
+  defp drop_printable(<<bytes::56, rest::binary>>, true) when is_printable_ascii_bytes(bytes),
+    do: drop_printable(rest, true)
+
+  defp drop_printable(<<codepoint::utf8, rest::binary>> = string, matches?) do
+    if is_printable_codepoint(codepoint) == matches? do
+      drop_printable(rest, matches?)
     else
-      do_chunk(rest, acc, chunk <> cp, flag, pred_fn)
+      string
     end
   end
 
-  defp make_chunk_pred(:valid), do: &valid?/1
-  defp make_chunk_pred(:printable), do: &printable?/1
+  defp drop_printable(<<_, rest::binary>>, false), do: drop_printable(rest, false)
+  defp drop_printable(rest, _matches?), do: rest
 
   @doc ~S"""
   Returns Unicode graphemes in the string as per Extended Grapheme

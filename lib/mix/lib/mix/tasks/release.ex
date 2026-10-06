@@ -1131,8 +1131,8 @@ defmodule Mix.Tasks.Release do
     {consolidation_path, release} = build_rel(release, config)
 
     [
-      # erts-VSN/
-      :erts,
+      # erts-VSN/ - written as __MODULE__ to avoid conflicting with :erts app
+      __MODULE__,
       # releases/VERSION/consolidated
       {:consolidated, consolidation_path},
       # bin/
@@ -1392,7 +1392,7 @@ defmodule Mix.Tasks.Release do
 
   ## Copy operations
 
-  defp copy(:erts, release) do
+  defp copy(__MODULE__, release) do
     _ = Mix.Release.copy_erts(release)
     :ok
   end

@@ -1023,11 +1023,11 @@ defmodule Kernel.ParallelCompiler do
       relative = Path.relative_to_cwd(data.file)
 
       messages =
-        case List.pop_at(data.waiting, 0) do
-          {nil, []} ->
+        case data.waiting do
+          [] ->
             "[profile] #{compiling}ms compiling +      0ms waiting while compiling #{relative}"
 
-          {{kind, on, time}, rest} ->
+          [{kind, on, time} | rest] ->
             initial_message = [
               "[profile] #{compiling}ms compiling + ",
               format_waiting_message(time, kind, on, relative)

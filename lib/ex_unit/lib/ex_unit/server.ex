@@ -91,7 +91,7 @@ defmodule ExUnit.Server do
           {[module | async_modules], async_groups, groups}
 
         {group, group_modules}, {async_modules, async_groups, groups} ->
-          {async_modules, [group | async_groups], [{group, group_modules} | groups]}
+          {async_modules, [group | async_groups], [{group, Enum.reverse(group_modules)} | groups]}
       end)
 
     {:reply, :ok,
@@ -99,8 +99,8 @@ defmodule ExUnit.Server do
        state
        | loaded: :done,
          groups: Map.new(groups),
-         async_groups: async_groups,
-         async_modules: :queue.from_list(async_modules),
+         async_groups: Enum.reverse(async_groups),
+         async_modules: async_modules |> Enum.reverse() |> :queue.from_list(),
          sync_modules: sync_modules
      }}
   end

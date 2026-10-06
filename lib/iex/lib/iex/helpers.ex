@@ -1139,9 +1139,15 @@ defmodule IEx.Helpers do
 
   defp print_table(list, printer) do
     # print items in multiple columns (2 columns in the worst case)
-    lengths = Enum.map(list, &String.length(&1))
-    max_length = max_length(lengths)
-    offset = min(max_length, 30) + 4
+    max_length =
+      Enum.reduce_while(list, 0, fn item, acc ->
+        case String.length(item) do
+          len when len >= 30 -> {:halt, 30}
+          len -> {:cont, max(acc, len)}
+        end
+      end)
+
+    offset = max_length + 4
     print_table(list, printer, offset)
   end
 
@@ -1163,10 +1169,6 @@ defmodule IEx.Helpers do
     end)
 
     IO.puts("")
-  end
-
-  defp max_length(list) do
-    Enum.reduce(list, 0, &max(&1, &2))
   end
 
   defp format_item(path, representation) do

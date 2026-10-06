@@ -115,6 +115,55 @@ defmodule ExUnit.RunnerStatsTest do
     end
   end
 
+  describe "parameterized test variants sharing a test id (#15820)" do
+    @tag :tmp_dir
+    test "keeps the manifest entry when a failing variant runs before a passing sibling", %{
+      tmp_dir: tmp_dir
+    } do
+      File.cd!(tmp_dir, fn ->
+        simulate_suite(fn formatter ->
+          simulate_test(formatter, :test_1, :failed)
+          simulate_test(formatter, :test_1, :passed)
+        end)
+
+        assert read_failures_manifest() == %{{TestModule, :test_1} => __ENV__.file}
+      end)
+    end
+
+    @tag :tmp_dir
+    test "keeps the manifest entry when a failing variant runs after a passing sibling", %{
+      tmp_dir: tmp_dir
+    } do
+      File.cd!(tmp_dir, fn ->
+        simulate_suite(fn formatter ->
+          simulate_test(formatter, :test_1, :passed)
+          simulate_test(formatter, :test_1, :failed)
+        end)
+
+        assert read_failures_manifest() == %{{TestModule, :test_1} => __ENV__.file}
+      end)
+    end
+
+    @tag :tmp_dir
+    test "clears the manifest entry once every variant passes in a later run", %{
+      tmp_dir: tmp_dir
+    } do
+      File.cd!(tmp_dir, fn ->
+        simulate_suite(fn formatter ->
+          simulate_test(formatter, :test_1, :failed)
+          simulate_test(formatter, :test_1, :passed)
+        end)
+
+        simulate_suite(fn formatter ->
+          simulate_test(formatter, :test_1, :passed)
+          simulate_test(formatter, :test_1, :passed)
+        end)
+
+        assert read_failures_manifest() == %{}
+      end)
+    end
+  end
+
   defp simulate_suite(opts \\ [failures_manifest_path: @failures_manifest_path], fun) do
     {:ok, pid} = GenServer.start_link(RunnerStats, opts)
     GenServer.cast(pid, {:suite_started, opts})

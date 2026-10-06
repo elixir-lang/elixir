@@ -508,7 +508,7 @@ defmodule Date do
   @doc since: "1.11.0"
   @spec from_gregorian_days(integer(), Calendar.calendar()) :: t
   def from_gregorian_days(days, calendar \\ Calendar.ISO) when is_integer(days) do
-    from_iso_days({days, 0}, calendar)
+    from_iso_days({days, {0, 86_400}}, calendar)
   end
 
   @doc """

@@ -31,6 +31,10 @@ defmodule Code.Normalizer do
     do_normalize(quoted, state)
   end
 
+  defp do_normalize({_, meta, _} = quoted, state) when not is_list(meta) do
+    normalize_literal(quoted, [], state)
+  end
+
   # Wrapped literals should receive the block meta
   defp do_normalize({:__block__, meta, [literal]}, state)
        when not is_tuple(literal) or tuple_size(literal) == 2 do

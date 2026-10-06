@@ -71,6 +71,41 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "process_cover_opts/3" do
+    test "returns the default coverage options" do
+      assert Mix.Tasks.Test.process_cover_opts([], [], false) == [
+               export: false,
+               output: "cover",
+               tool: Mix.Tasks.Test.Coverage
+             ]
+    end
+
+    test "merges project and command line coverage options" do
+      assert Mix.Tasks.Test.process_cover_opts([], [format: :text], false)[:format] == :text
+
+      opts = [export_coverage: "unit", coverage_format: "text"]
+      test_coverage = [output: "coverage", format: :html, summary: false]
+      coverage = Mix.Tasks.Test.process_cover_opts(opts, test_coverage, false)
+
+      assert coverage[:export] == "unit"
+      assert coverage[:output] == "coverage"
+      assert coverage[:format] == :text
+      assert coverage[:summary] == false
+    end
+
+    test "uses the partition as the export name" do
+      assert Mix.Tasks.Test.process_cover_opts([], [], "2")[:export] == "2"
+    end
+
+    test "validates the coverage format" do
+      assert_raise Mix.Error,
+                   ~s(Unknown coverage format "xml", expected "html" or "text"),
+                   fn ->
+                     Mix.Tasks.Test.process_cover_opts([coverage_format: "xml"], [], false)
+                   end
+    end
+  end
+
   describe "--stale" do
     test "runs all tests for first run, then none on second" do
       in_fixture("test_stale", fn ->
@@ -149,6 +184,20 @@ defmodule Mix.Tasks.TestTest do
 
   describe "--cover" do
     @describetag :cover
+
+    test "supports text coverage reports" do
+      in_fixture("test_stale", fn ->
+        assert mix(["test", "--cover", "--coverage-format", "text"]) =~
+                 "Generated text coverage results in \"cover\" directory"
+
+        assert File.regular?("cover/Elixir.A.txt")
+        assert File.regular?("cover/Elixir.B.txt")
+        assert File.read!("cover/Elixir.A.txt") =~ "defmodule A do"
+        refute File.exists?("cover/Elixir.A.html")
+        refute File.exists?("cover/Elixir.B.html")
+      end)
+    end
+
     test "reports the coverage of each app's modules in an umbrella" do
       in_fixture("umbrella_test", fn ->
         # This fixture by default results in coverage above the default threshold
