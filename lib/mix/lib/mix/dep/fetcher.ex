@@ -106,7 +106,7 @@ defmodule Mix.Dep.Fetcher do
     # to fail.
     parent_deps =
       if Enum.all?(all_deps, &available?/1) do
-        Enum.uniq_by(with_depending(deps, all_deps), & &1.app)
+        with_depending(deps, all_deps)
       else
         []
       end
@@ -140,24 +140,21 @@ defmodule Mix.Dep.Fetcher do
     :ok
   end
 
+  defp with_depending([], _all_deps), do: []
+
   defp with_depending(deps, all_deps) do
-    deps ++ do_with_depending(deps, all_deps)
+    do_with_depending(all_deps, deps, MapSet.new(deps, & &1.app))
   end
 
-  defp do_with_depending([], _all_deps) do
-    []
+  defp do_with_depending([], deps, _apps), do: deps
+
+  defp do_with_depending([dep | rest], deps, apps) do
+    if not included?(apps, dep) and Enum.any?(dep.deps, &included?(apps, &1)),
+      do: do_with_depending(rest, [dep | deps], MapSet.put(apps, dep.app)),
+      else: do_with_depending(rest, deps, apps)
   end
 
-  defp do_with_depending(deps, all_deps) do
-    dep_names = Enum.map(deps, fn dep -> dep.app end)
-
-    parents =
-      Enum.filter(all_deps, fn dep ->
-        Enum.any?(dep.deps, &(&1.app in dep_names))
-      end)
-
-    do_with_depending(parents, all_deps) ++ parents
-  end
+  defp included?(apps, dep), do: MapSet.member?(apps, dep.app)
 
   defp to_app_names(given) do
     Enum.map(given, fn app ->
