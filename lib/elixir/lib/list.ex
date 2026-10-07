@@ -303,6 +303,9 @@ defmodule List do
 
   If `list` is empty, an error is raised.
 
+  This function is equivalent to `Kernel.hd/1` but provided
+  for consistency with `List.last!/1`.
+
   ## Examples
 
       iex> List.first!([1])
