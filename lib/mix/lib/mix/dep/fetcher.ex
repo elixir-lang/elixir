@@ -143,15 +143,15 @@ defmodule Mix.Dep.Fetcher do
   defp with_depending([], _all_deps), do: []
 
   defp with_depending(deps, all_deps) do
-    collect_depending(all_deps, deps, MapSet.new(deps, & &1.app))
+    do_with_depending(all_deps, deps, MapSet.new(deps, & &1.app))
   end
 
-  defp collect_depending([], deps, _apps), do: deps
+  defp do_with_depending([], deps, _apps), do: deps
 
-  defp collect_depending([dep | rest], deps, apps) do
+  defp do_with_depending([dep | rest], deps, apps) do
     if not included?(apps, dep) and Enum.any?(dep.deps, &included?(apps, &1)),
-      do: collect_depending(rest, [dep | deps], MapSet.put(apps, dep.app)),
-      else: collect_depending(rest, deps, apps)
+      do: do_with_depending(rest, [dep | deps], MapSet.put(apps, dep.app)),
+      else: do_with_depending(rest, deps, apps)
   end
 
   defp included?(apps, dep), do: MapSet.member?(apps, dep.app)
