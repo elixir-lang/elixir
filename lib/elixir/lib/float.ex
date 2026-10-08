@@ -584,52 +584,42 @@ defmodule Float do
   def ratio(float) when is_float(float) do
     <<sign::1, exp::11, mantissa::52>> = <<float::float>>
 
-    {num, den_exp} =
-      if exp != 0 do
-        # Floats are expressed like this:
-        # (2**52 + mantissa) * 2**(-52 + exp - 1023)
-        #
-        # We compute the root factors of the mantissa so we have this:
-        # (2**52 + mantissa * 2**count) * 2**(-52 + exp - 1023)
-        {mantissa, count} = root_factors(mantissa, 0)
-
-        # Now we can move the count around so we have this:
-        # (2**(52-count) + mantissa) * 2**(count + -52 + exp - 1023)
-        if mantissa == 0 do
-          {1, exp - 1023}
-        else
-          num = (1 <<< (52 - count)) + mantissa
-          den_exp = count - 52 + exp - 1023
-          {num, den_exp}
-        end
+    if exp != 0 do
+      if mantissa == 0 do
+        to_ratio(1, exp - 1023, sign)
       else
-        # Subnormals are expressed like this:
-        # (mantissa) * 2**(-52 + 1 - 1023)
-        #
-        # So we compute it to this:
-        # (mantissa * 2**(count)) * 2**(-52 + 1 - 1023)
-        #
-        # Which becomes:
-        # mantissa * 2**(count-1074)
-        root_factors(mantissa, -1074)
+        # Normal float magnitudes are (2^52 + mantissa) * 2^(exp - 1075).
+        reduce_to_ratio(mantissa ||| @power_of_2_to_52, exp - 1075, sign)
       end
-
-    if den_exp > 0 do
-      {sign(sign, num <<< den_exp), 1}
     else
-      {sign(sign, num), 1 <<< -den_exp}
+      # Subnormal float magnitudes are mantissa * 2^-1074.
+      reduce_to_ratio(mantissa, -1074, sign)
     end
   end
 
-  defp root_factors(mantissa, count) when mantissa != 0 and (mantissa &&& 1) == 0,
-    do: root_factors(mantissa >>> 1, count + 1)
+  # Strip trailing zero bits in chunks to reduce recursive calls.
+  defp reduce_to_ratio(significand, exp2, sign) when (significand &&& 1) == 1,
+    do: to_ratio(significand, exp2, sign)
 
-  defp root_factors(mantissa, count),
-    do: {mantissa, count}
+  defp reduce_to_ratio(significand, exp2, sign) when (significand &&& 0xFFFF) == 0,
+    do: reduce_to_ratio(significand >>> 16, exp2 + 16, sign)
 
-  @compile {:inline, sign: 2}
-  defp sign(0, num), do: num
-  defp sign(1, num), do: -num
+  defp reduce_to_ratio(significand, exp2, sign) when (significand &&& 0xF) == 0,
+    do: reduce_to_ratio(significand >>> 4, exp2 + 4, sign)
+
+  defp reduce_to_ratio(significand, exp2, sign),
+    do: reduce_to_ratio(significand >>> 1, exp2 + 1, sign)
+
+  @compile {:inline, to_ratio: 3}
+  defp to_ratio(significand, exp2, sign) do
+    significand = if sign == 1, do: -significand, else: significand
+
+    if exp2 >= 0 do
+      {significand <<< exp2, 1}
+    else
+      {significand, 1 <<< -exp2}
+    end
+  end
 
   @doc """
   Returns a charlist which corresponds to the shortest text representation
