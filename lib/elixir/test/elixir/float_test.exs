@@ -139,7 +139,7 @@ defmodule FloatTest do
     end
 
     test "with very large floats hits the bignum slow path" do
-      # n = round(|f| * 10^p) >= 2^53 — exercises bignum_to_float / align.
+      # n = round(|f| * 10^p) >= 2^53 — exercises bignum_to_float.
       # The slow path must round-trip representable floats back to themselves.
       assert Float.floor(2_661_101_816_343_531.5, 1) === 2_661_101_816_343_531.5
       assert Float.floor(3.0e15, 1) === 3.0e15
@@ -233,6 +233,9 @@ defmodule FloatTest do
       assert Float.ceil(1.234e15, 3) === 1.234e15
       assert Float.ceil(1.234567e11, 5) === 1.234567e11
       assert Float.ceil(-1.234567e11, 5) === -1.234567e11
+
+      # Halfway guard bits with a nonzero remainder must round up.
+      assert Float.ceil(1.0e14 + 0.03125, 2) === 1.0e14 + 0.046875
     end
   end
 
@@ -311,6 +314,10 @@ defmodule FloatTest do
       assert Float.round(-5.5675, 3) === -5.567
       assert Float.round(12.5, 0) === 13.0
       assert Float.round(-12.5, 0) === -13.0
+
+      # Exact ties at positive precision exercise the scaled rounding path.
+      assert Float.round(0.25, 1) === 0.3
+      assert Float.round(-0.25, 1) === -0.3
     end
   end
 
