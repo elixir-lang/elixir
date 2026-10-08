@@ -488,10 +488,10 @@ defmodule Mix.Tasks.XrefTest do
 
       Top 5 files with most outgoing dependencies:
         * lib/c.ex (1)
-        * lib/b.ex (1)
         * lib/a.ex (1)
         * lib/e.ex (0)
         * lib/d.ex (0)
+        * lib/b.ex (0)
 
       Top 5 files with most incoming dependencies:
         * lib/d.ex (1)

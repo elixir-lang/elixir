@@ -1181,7 +1181,7 @@ defmodule Mix.Tasks.Xref do
     |> :digraph.out_neighbours(file)
     |> Enum.count(fn v ->
       {_edge, _v1, _v2, label} = :digraph.edge(graph, {file, v})
-      filter_fn.({file, label})
+      filter_fn.({v, label})
     end)
   end
 
