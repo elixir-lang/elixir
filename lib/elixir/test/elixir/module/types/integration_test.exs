@@ -93,6 +93,14 @@ defmodule Module.Types.IntegrationTest do
           def itself(data)
         end
 
+        defmodule ImplStruct do
+          defstruct [:value]
+
+          defimpl Itself do
+            def itself(data), do: data
+          end
+        end
+
         defimpl Itself,
           for: [
             Atom,
@@ -160,6 +168,14 @@ defmodule Module.Types.IntegrationTest do
                    first: {term(), false},
                    last: {term(), false},
                    step: {term(), false}
+                 )
+               )
+
+      assert itself_arg.(Itself.ImplStruct) ==
+               dynamic(
+                 closed_map(
+                   __struct__: {atom([ImplStruct]), false},
+                   value: {term(), false}
                  )
                )
 
