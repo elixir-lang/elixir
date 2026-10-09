@@ -41,7 +41,7 @@ defmodule Module.Types do
     infer_signatures? =
       :elixir_config.get(:infer_signatures) != false and cache != nil and not protocol?(attrs)
 
-    impl = impl_for(attrs)
+    impl = impl_for(attrs, env)
 
     finder =
       fn fun_arity ->
@@ -133,11 +133,12 @@ defmodule Module.Types do
     List.keymember?(attrs, :__protocol__, 0)
   end
 
-  defp impl_for(attrs) do
+  defp impl_for(attrs, mode) do
     case List.keyfind(attrs, :__impl__, 0) do
       {:__impl__, [protocol: protocol, for: for]} ->
         if Code.ensure_loaded?(protocol) and function_exported?(protocol, :__protocol__, 1) do
-          {for, protocol.__protocol__(:functions)}
+          domain = Descr.dynamic(Module.Types.Of.impl(for, mode))
+          {for, protocol.__protocol__(:functions), domain}
         else
           nil
         end
@@ -148,12 +149,9 @@ defmodule Module.Types do
   end
 
   defp default_domain(mode, def, {_, arity} = fun_arity, impl) do
-    with {for, callbacks} <- impl,
+    with {for, callbacks, domain} <- impl,
          true <- fun_arity in callbacks do
-      args = [
-        Descr.dynamic(Module.Types.Of.impl(for))
-        | List.duplicate(Descr.dynamic(), arity - 1)
-      ]
+      args = [domain | List.duplicate(Descr.dynamic(), arity - 1)]
 
       {_fun_arity, kind, meta, clauses} = def
 
@@ -218,7 +216,7 @@ defmodule Module.Types do
 
   @doc false
   def warnings(module, file, attrs, defs, no_warn_undefined, cache) do
-    impl = impl_for(attrs)
+    impl = impl_for(attrs, :closed)
 
     finder = fn fun_arity ->
       case :lists.keyfind(fun_arity, 1, defs) do

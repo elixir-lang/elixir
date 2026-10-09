@@ -167,7 +167,10 @@ maybe_load_struct_info(Meta, Name, Mode, E) ->
 lookup_struct_info_from_data_tables(Module) ->
   try
     {Set, _} = elixir_module:data_tables(Module),
-    ets:lookup_element(Set, {elixir, struct}, 2)
+    case ets:lookup(Set, {elixir, struct}) of
+      [{{elixir, struct}, Info}] -> Info;
+      [] -> nil
+    end
   catch
     _:_ -> false
   end.

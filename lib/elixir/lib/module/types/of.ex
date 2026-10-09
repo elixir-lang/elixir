@@ -286,6 +286,13 @@ defmodule Module.Types.Of do
     def impl(unquote(for), _mode), do: unquote(Macro.escape(type))
   end
 
+  def impl(struct, %Macro.Env{} = env) do
+    case :elixir_map.maybe_load_struct_info([], struct, :soft, env) do
+      {:ok, info} -> struct_type(struct, info)
+      {:error, _desc} -> open_map(__struct__: {atom([struct]), false})
+    end
+  end
+
   def impl(struct, mode) do
     # Elixir did not strictly require the implementation to be available,
     # so we need to deal with such cases accordingly.

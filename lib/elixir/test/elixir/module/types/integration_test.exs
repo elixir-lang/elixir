@@ -170,6 +170,65 @@ defmodule Module.Types.IntegrationTest do
                dynamic(open_map(__struct__: {atom([GenServer]), false}))
     end
 
+    test "infers the same implementation signatures with an unloaded or loaded enclosing struct" do
+      modules = [StructIdentity, IdentityStruct, StructIdentity.IdentityStruct]
+
+      cleanup = fn ->
+        for module <- modules do
+          :code.purge(module)
+          purge(module)
+        end
+      end
+
+      on_exit(cleanup)
+
+      impl = """
+      defimpl StructIdentity do
+        def identity(data), do: data
+      end
+      """
+
+      for {body, expected} <- [
+            {"defstruct [:statement]\n" <> impl,
+             closed_map(
+               __struct__: {atom([IdentityStruct]), false},
+               statement: {term(), false}
+             )},
+            {impl <> "defstruct [:statement]\n",
+             open_map(__struct__: {atom([IdentityStruct]), false})}
+          ] do
+        cleanup.()
+
+        source = """
+        defprotocol StructIdentity do
+          def identity(data)
+        end
+
+        defmodule IdentityStruct do
+          #{body}
+        end
+        """
+
+        compile = fn ->
+          source
+          |> Code.compile_string("struct_identity.ex")
+          |> Map.new()
+          |> Map.fetch!(StructIdentity.IdentityStruct)
+          |> read_chunk()
+        end
+
+        cold = compile.()
+        {warm, _warnings} = with_io(:stderr, compile)
+        assert cold == warm
+
+        {_, %{sig: {:infer, nil, [{[domain], return}]}}} =
+          List.keyfind(cold.exports, {:identity, 1}, 0)
+
+        assert domain == expected
+        assert return == dynamic(expected)
+      end
+    end
+
     test "ignores additional callbacks on implementations" do
       files = %{
         "p.ex" => """
