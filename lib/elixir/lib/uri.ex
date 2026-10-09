@@ -71,6 +71,8 @@ defmodule URI do
 
   import Bitwise
 
+  @compile {:inline, char_reserved?: 1, char_unreserved?: 1, hex: 1}
+
   @reserved_characters ~c":/?#[]@!$&'()*+,;="
   @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &<<?`, &1, ?`>>)
 
@@ -419,8 +421,18 @@ defmodule URI do
   @spec encode(binary, (byte -> as_boolean(term))) :: binary
   def encode(string, predicate \\ &char_unescaped?/1)
       when is_binary(string) and is_function(predicate, 1) do
-    for <<byte <- string>>, into: "", do: percent(byte, predicate)
+    encode(string, "", predicate)
   end
+
+  defp encode(<<byte, rest::binary>>, acc, predicate) do
+    if predicate.(byte) do
+      encode(rest, <<acc::binary, byte>>, predicate)
+    else
+      encode(rest, <<acc::binary, ?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>, predicate)
+    end
+  end
+
+  defp encode(<<>>, acc, _predicate), do: acc
 
   @doc """
   Encodes `string` as "x-www-form-urlencoded".
@@ -460,14 +472,6 @@ defmodule URI do
   end
 
   defp encode_unreserved(<<>>, acc, _mode), do: acc
-
-  defp percent(char, predicate) do
-    if predicate.(char) do
-      <<char>>
-    else
-      <<"%", hex(bsr(char, 4)), hex(band(char, 15))>>
-    end
-  end
 
   defp hex(n) when n <= 9, do: n + ?0
   defp hex(n), do: n + ?A - 10
