@@ -129,12 +129,10 @@ defmodule Base do
     for e1 <- alphabet, e2 <- alphabet, do: bsl(e1, 8) + e2
   end
 
-  to_decode_list = fn alphabet ->
-    alphabet = Enum.sort(alphabet)
+  # A tuple indexed by byte, with nil for bytes outside the alphabet.
+  to_decode_table = fn alphabet ->
     map = Map.new(alphabet)
-    {min, _} = List.first(alphabet)
-    {max, _} = List.last(alphabet)
-    {min, Enum.map(min..max, &map[&1])}
+    {:{}, [], Enum.map(0..255, &map[&1])}
   end
 
   defp bad_character!(byte) do
@@ -622,7 +620,7 @@ defmodule Base do
     valid_char_name = String.to_unsafe_atom("valid_char16#{base}?")
     valid_word_name = String.to_unsafe_atom("valid_word16#{base}?")
 
-    {min, decoded} = to_decode_list.(alphabet)
+    decode_table = to_decode_table.(alphabet)
 
     # SWAR fast path: 7 bytes per stride, validated entirely via
     # `valid_word16<base>?` in the body. The `and` short-circuits when SWAR
@@ -636,14 +634,9 @@ defmodule Base do
     defp unquote(validate_name)(<<char, rest::binary>>),
       do: unquote(valid_char_name)(char) and unquote(validate_name)(rest)
 
+    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
-      index = char - unquote(min)
-
-      cond do
-        index not in 0..unquote(length(decoded) - 1) -> bad_character!(char)
-        new_char = elem({unquote_splicing(decoded)}, index) -> new_char
-        true -> bad_character!(char)
-      end
+      elem(unquote(decode_table), char) || bad_character!(char)
     end
 
     defp unquote(decode_name)(<<c1, c2, c3, c4, c5, c6, c7, c8, rest::binary>>, acc) do
@@ -1007,7 +1000,7 @@ defmodule Base do
     validate_main_name = String.to_unsafe_atom("validate_main64#{validate_name}?")
     valid_char_name = String.to_unsafe_atom("valid_char64#{base}?")
     valid_word_name = String.to_unsafe_atom("valid_word64#{base}?")
-    {min, decoded} = alphabet |> Enum.with_index() |> to_decode_list.()
+    decode_table = alphabet |> Enum.with_index() |> to_decode_table.()
 
     # SWAR fast path: 7 bytes per stride, validated via `valid_word64<base>?`
     # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
@@ -1104,14 +1097,9 @@ defmodule Base do
       end
     end
 
+    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
-      index = char - unquote(min)
-
-      cond do
-        index not in 0..unquote(length(decoded) - 1) -> bad_character!(char)
-        new_char = elem({unquote_splicing(decoded)}, index) -> new_char
-        true -> bad_character!(char)
-      end
+      elem(unquote(decode_table), char) || bad_character!(char)
     end
 
     defp unquote(decode_name)(<<>>, _pad?), do: <<>>
@@ -1657,7 +1645,7 @@ defmodule Base do
     validate_name = String.to_unsafe_atom("validate32#{base}?")
     validate_main_name = String.to_unsafe_atom("validate_main32#{validate_name}?")
     valid_char_name = String.to_unsafe_atom("valid_char32#{base}?")
-    {min, decoded} = to_decode_list.(alphabet)
+    decode_table = to_decode_table.(alphabet)
 
     # SWAR fast path: 7 bytes per stride, validated via `valid_word32<base>?`
     # in the body. Tail leftover (1-6 bytes after a 7-byte stride hits an
@@ -1750,14 +1738,9 @@ defmodule Base do
       end
     end
 
+    @compile {:inline, [{decode_name, 1}]}
     defp unquote(decode_name)(char) do
-      index = char - unquote(min)
-
-      cond do
-        index not in 0..unquote(length(decoded) - 1) -> bad_character!(char)
-        new_char = elem({unquote_splicing(decoded)}, index) -> new_char
-        true -> bad_character!(char)
-      end
+      elem(unquote(decode_table), char) || bad_character!(char)
     end
 
     defp unquote(decode_name)(<<>>, _), do: <<>>
