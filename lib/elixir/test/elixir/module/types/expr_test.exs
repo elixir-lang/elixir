@@ -3595,43 +3595,100 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  opt_union(opt_union(bitstring(), empty_list()), list(bitstring_no_binary()))
                )
-    end
 
-    test ":into bitstrings" do
-      assert typecheck!([items], for(_ <- items, into: <<0::4>>, do: <<1::4>>)) == bitstring()
+      # In dynamic mode the list path may succeed, so the body is not restricted
+      # to bitstrings and the list result keeps the full element type
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(opt_union(atom([:ok]), binary()))))
+
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(atom([:ok]))))
+
+      # A static mixed target does not refine a dynamic body to bitstrings
+      assert typecheck!(
+               [flag, value],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: value, into: into)
+                 value
+               )
+             ) == dynamic()
 
       assert typecheck!(
-               [items],
+               [flag, value],
                (
-                 bits = for _ <- items, into: <<0::4>>, do: <<1::4>>
-
-                 case bits do
-                   x when is_binary(x) -> :binary
-                   _ -> :bits
-                 end
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: value, into: into)
                )
-             ) == atom([:binary, :bits])
-    end
-
-    test ":into inference" do
-      assert typecheck!(
-               [x, y],
-               (
-                 List.to_integer([_ | _] = for(_ <- x, do: y))
-                 y
+             ) ==
+               opt_union(
+                 dynamic(opt_union(bitstring_no_binary(), non_empty_list(term()))),
+                 opt_union(binary(), empty_list())
                )
-             ) == dynamic(integer())
-
-      assert typecheck!(
-               [x, y],
-               (
-                 for(<<_ <- x>>, do: y, into: "")
-                 y
-               )
-             ) == dynamic(bitstring())
     end
 
     test ":into incompatibility" do
+      # In static mode the body must be a bitstring whenever the target may be a binary
+      assert typeerror!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 value
+
+             but got type:
+
+                 :ok or binary()
+             """
+
+      assert typeerror!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 :ok
+
+             but got type:
+
+                 :ok
+             """
+
+      assert typeerror!(
+               [flag],
+               (
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: "")
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 value
+
+             but got type:
+
+                 :ok or binary()
+             """
+
       assert typeerror!([binary], for(<<x <- binary>>, do: x, into: "")) =~ ~l"""
              expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
 

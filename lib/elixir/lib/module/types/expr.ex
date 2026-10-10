@@ -613,7 +613,7 @@ defmodule Module.Types.Expr do
         # TODO: Use the collectable protocol for the output
         into = Keyword.get(opts, :into, [])
 
-        {into_kinds, into_type, expected, context} =
+        {into_kinds, original_into_type, into_type, expected, context} =
           for_into(into, meta, expected, stack, context)
 
         {block_type, context} = of_expr(block, expected, block, stack, context)
@@ -629,18 +629,17 @@ defmodule Module.Types.Expr do
           if :bitstring in into_kinds do
             intersection = opt_intersection(block_type, bitstring())
 
-            # TODO: currently if :into is a binary, then we expect the body
-            # to return a binary, even if the binary is a gradual type. This
-            # is ok for now because we only check for bitstring if the type
-            # is a subset of empty_list() or bitstring(), but we may want to
-            # relax in the future.
-            if empty?(intersection) do
-              error = {:badbitbody, block_type, block, context}
-              {error_type(), error(__MODULE__, error, meta, stack, context)}
-            else
+            # On the binary path the body must be a bitstring. If the collectable
+            # is compatible with a list, that path may never happen, so we accept.
+            if compatible?(block_type, bitstring()) or
+                 (:non_empty_list in into_kinds and
+                    compatible?(original_into_type, empty_list())) do
               # If into_type is a binary but the block is a bitstring_no_binary(),
               # then the result may be a bitstring_no_binary().
               {opt_union(intersection, result_type), context}
+            else
+              error = {:badbitbody, block_type, block, context}
+              {error_type(), error(__MODULE__, error, meta, stack, context)}
             end
           else
             {result_type, context}
@@ -841,10 +840,10 @@ defmodule Module.Types.Expr do
   end
 
   defp for_into([], _meta, expected, _stack, context),
-    do: {[:non_empty_list], empty_list(), maybe_list_hd_or_term(expected), context}
+    do: {[:non_empty_list], empty_list(), empty_list(), maybe_list_hd_or_term(expected), context}
 
   defp for_into(binary, _meta, _expected, _stack, context) when is_binary(binary),
-    do: {[:bitstring], binary(), bitstring(), context}
+    do: {[:bitstring], binary(), binary(), bitstring(), context}
 
   defp for_into(into, meta, expected, stack, context) do
     meta =
@@ -863,26 +862,30 @@ defmodule Module.Types.Expr do
     # We use subtype? instead of compatible because we want to handle
     # only bitstring/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
-      cond do
-        bitstring_type?(type) ->
-          kinds = if empty_list_type?(type), do: [:bitstring, :non_empty_list], else: [:bitstring]
-          # A comprehension may concatenate the block an arbitrary number of times.
-          # Even if both the initial value and each block are unaligned bitstrings,
-          # repeated concatenation may eventually produce an aligned binary.
-          {kinds, opt_union(binary(), type), bitstring(), context}
+      # A comprehension may concatenate the block an arbitrary number of times.
+      # Even if both the initial value and each block are unaligned bitstrings,
+      # repeated concatenation may eventually produce an aligned binary.
+      case {bitstring_type?(type), empty_list_type?(type)} do
+        # The collectable may be a list, which accepts any element, so the
+        # body is not restricted. The caller checks the binary path.
+        {true, true} ->
+          {[:bitstring, :non_empty_list], type, opt_union(binary(), type), term(), context}
 
-        empty_list_type?(type) ->
-          {[:non_empty_list], type, maybe_list_hd_or_term(expected), context}
+        {true, false} ->
+          {[:bitstring], type, opt_union(binary(), type), bitstring(), context}
+
+        {false, true} ->
+          {[:non_empty_list], type, type, maybe_list_hd_or_term(expected), context}
 
         # The type is empty...
-        true ->
-          {[], type, term(), context}
+        {false, false} ->
+          {[], type, type, term(), context}
       end
     else
       {_type, context} =
         Apply.remote_apply(info, Collectable, :into, [type], expr, stack, context)
 
-      {[], dynamic(), term(), context}
+      {[], dynamic(), dynamic(), term(), context}
     end
   end
 
