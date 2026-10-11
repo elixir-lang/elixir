@@ -501,6 +501,7 @@ defmodule Float do
     # on a 64-bit BEAM.
     numerator = rounded_int <<< (1077 - exp)
     quotient = div(numerator, decimal_scale)
+    remainder = rem(numerator, decimal_scale)
     significand = quotient >>> 2
 
     guard_bits = quotient &&& 3
@@ -512,7 +513,7 @@ defmodule Float do
         guard_bits > 2 -> significand + 1
         guard_bits < 2 -> significand
         (significand &&& 1) == 1 -> significand + 1
-        rem(numerator, decimal_scale) != 0 -> significand + 1
+        remainder != 0 -> significand + 1
         true -> significand
       end
 

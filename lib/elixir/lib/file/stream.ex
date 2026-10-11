@@ -140,8 +140,10 @@ defmodule File.Stream do
           bom_offset = count_raw_bom(stream, modes)
           offset = get_read_offset(modes)
           size = max(size - bom_offset - offset, 0)
-          remainder = if rem(size, bytes) == 0, do: 0, else: 1
-          {:ok, div(size, bytes) + remainder}
+          div = div(size, bytes)
+          rem = rem(size, bytes)
+          remainder = if rem == 0, do: 0, else: 1
+          {:ok, div + remainder}
 
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path

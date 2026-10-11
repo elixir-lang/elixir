@@ -1558,14 +1558,15 @@ defmodule String do
   defp build_filler(0, _source, _padding, _size, filler), do: filler
 
   defp build_filler(count, source, [], size, filler) do
-    rem_filler =
-      rem(count, size)
-      |> build_filler(source, source, 0, [])
+    div = div(count, size)
+    rem = rem(count, size)
+
+    rem_filler = build_filler(rem, source, source, 0, [])
 
     filler =
       filler
       |> IO.iodata_to_binary()
-      |> duplicate(div(count, size) + 1)
+      |> duplicate(div + 1)
 
     [filler | rem_filler]
   end

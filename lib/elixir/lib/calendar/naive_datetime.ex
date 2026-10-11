@@ -1130,7 +1130,7 @@ defmodule NaiveDateTime do
 
   defp div_rem(int1, int2) do
     div = div(int1, int2)
-    rem = int1 - div * int2
+    rem = rem(int1, int2)
 
     if rem >= 0 do
       {div, rem}

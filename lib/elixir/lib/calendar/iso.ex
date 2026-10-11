@@ -973,7 +973,7 @@ defmodule Calendar.ISO do
 
   defp div_rem(int1, int2) do
     div = div(int1, int2)
-    rem = int1 - div * int2
+    rem = rem(int1, int2)
 
     if rem >= 0 do
       {div, rem}
@@ -1692,8 +1692,8 @@ defmodule Calendar.ISO do
   def offset_to_iodata(utc, std, _zone, format) do
     total = utc + std
     second = abs(total)
-    minute = second |> rem(3600) |> div(60)
     hour = div(second, 3600)
+    minute = second |> rem(3600) |> div(60)
     format_offset(total, hour, minute, format)
   end
 

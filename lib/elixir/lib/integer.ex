@@ -204,10 +204,13 @@ defmodule Integer do
   @doc since: "1.4.0"
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
   def floor_div(dividend, divisor) do
-    if :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
-      div(dividend, divisor) - 1
+    div = div(dividend, divisor)
+    rem = rem(dividend, divisor)
+
+    if :erlang.xor(dividend < 0, divisor < 0) and rem != 0 do
+      div - 1
     else
-      div(dividend, divisor)
+      div
     end
   end
 
@@ -233,10 +236,13 @@ defmodule Integer do
   @doc since: "1.20.0"
   @spec ceil_div(integer, neg_integer | pos_integer) :: integer
   def ceil_div(dividend, divisor) do
-    if not :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
-      div(dividend, divisor) + 1
+    div = div(dividend, divisor)
+    rem = rem(dividend, divisor)
+
+    if not :erlang.xor(dividend < 0, divisor < 0) and rem != 0 do
+      div + 1
     else
-      div(dividend, divisor)
+      div
     end
   end
 
@@ -557,7 +563,7 @@ defmodule Integer do
   defp extended_gcd(r1, r0, s1, s0, t1, t0) do
     div = div(r0, r1)
 
-    case r0 - div * r1 do
+    case rem(r0, r1) do
       0 when r1 > 0 -> {r1, s1, t1}
       0 when r1 < 0 -> {-r1, -s1, -t1}
       r2 -> extended_gcd(r2, r1, s0 - div * s1, s1, t0 - div * t1, t1)
