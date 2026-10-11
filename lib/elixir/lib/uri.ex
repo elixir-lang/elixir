@@ -169,13 +169,13 @@ defmodule URI do
     raise ArgumentError, "encode_query/2 values cannot be lists, got: #{inspect(value)}"
   end
 
-  defp encode_kv_pair({key, value}, :rfc3986) do
-    encode_unreserved(Kernel.to_string(key), :percent) <>
-      "=" <> encode_unreserved(Kernel.to_string(value), :percent)
-  end
+  defp encode_kv_pair({key, value}, :rfc3986), do: encode_kv_pair(key, value, :percent)
+  defp encode_kv_pair({key, value}, :www_form), do: encode_kv_pair(key, value, :www_form)
 
-  defp encode_kv_pair({key, value}, :www_form) do
-    encode_www_form(Kernel.to_string(key)) <> "=" <> encode_www_form(Kernel.to_string(value))
+  # The value is appended to the encoded key, so each pair is built as a single binary
+  defp encode_kv_pair(key, value, mode) do
+    key = encode_unreserved(Kernel.to_string(key), "", mode)
+    encode_unreserved(Kernel.to_string(value), <<key::binary, ?=>>, mode)
   end
 
   @doc """
@@ -453,11 +453,6 @@ defmodule URI do
   def encode_www_form(string) when is_binary(string) do
     encode_unreserved(string, "", :www_form)
   end
-
-  # Matching upfront keeps the empty case from allocating the accumulator.
-  defp encode_unreserved(<<>>, _mode), do: ""
-
-  defp encode_unreserved(string, mode), do: encode_unreserved(string, "", mode)
 
   defp encode_unreserved(<<?\s, rest::binary>>, acc, :www_form) do
     encode_unreserved(rest, <<acc::binary, ?+>>, :www_form)
