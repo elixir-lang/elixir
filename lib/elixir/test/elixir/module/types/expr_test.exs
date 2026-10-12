@@ -3576,6 +3576,22 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
     end
 
+    test ":into bitstrings" do
+      assert typecheck!([items], for(_ <- items, into: <<0::4>>, do: <<1::4>>)) == bitstring()
+
+      assert typecheck!(
+               [items],
+               (
+                 bits = for _ <- items, into: <<0::4>>, do: <<1::4>>
+
+                 case bits do
+                   x when is_binary(x) -> :binary
+                   _ -> :bits
+                 end
+               )
+             ) == atom([:binary, :bits])
+    end
+
     test ":into unions" do
       assert typecheck!(
                [binary],
@@ -3595,22 +3611,18 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  opt_union(opt_union(bitstring(), empty_list()), list(bitstring_no_binary()))
                )
-    end
-
-    test ":into bitstrings" do
-      assert typecheck!([items], for(_ <- items, into: <<0::4>>, do: <<1::4>>)) == bitstring()
 
       assert typecheck!(
-               [items],
+               [value],
                (
-                 bits = for _ <- items, into: <<0::4>>, do: <<1::4>>
-
-                 case bits do
-                   x when is_binary(x) -> :binary
-                   _ -> :bits
-                 end
+                 into = if :rand.uniform() > 0.5, do: [], else: ""
+                 for(_ <- [1], do: value, into: into)
                )
-             ) == atom([:binary, :bits])
+             ) ==
+               opt_union(
+                 dynamic(opt_union(bitstring_no_binary(), non_empty_list(term()))),
+                 opt_union(binary(), empty_list())
+               )
     end
 
     test ":into inference" do
@@ -3647,6 +3659,77 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE
                  <<x>>
              """
+
+      # In static mode the body must be a bitstring whenever the target may be a binary
+      assert typeerror!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 value
+
+             but got type:
+
+                 :ok or binary()
+             """
+
+      assert typeerror!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 :ok
+
+             but got type:
+
+                 :ok
+             """
+
+      assert typeerror!(
+               [flag],
+               (
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: "")
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 value
+
+             but got type:
+
+                 :ok or binary()
+             """
+    end
+
+    test ":into dynamic" do
+      # In dynamic mode the list path may succeed, so the body is not restricted
+      # to bitstrings and the list result keeps the full element type
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(opt_union(atom([:ok]), binary()))))
+
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(atom([:ok]))))
     end
 
     test ":into with non-returning collectable" do
