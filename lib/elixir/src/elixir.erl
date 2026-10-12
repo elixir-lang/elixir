@@ -127,8 +127,8 @@ preload_common_modules() ->
 
 parse_otp_release() ->
   %% Whenever we change this check, we should also change Makefile.
-  case string:to_integer(erlang:system_info(otp_release)) of
-    {Num, _} when Num >= 27 ->
+  case list_to_integer(erlang:system_info(otp_release)) of
+    Num when Num >= 27 ->
       case Num == 28 andalso (code:ensure_loaded(re) == {module, re}) andalso not erlang:function_exported(re, import, 1) of
         true ->
           io:format(standard_error,
