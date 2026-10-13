@@ -453,6 +453,12 @@ defmodule EnumTest do
     assert Enum.group_by([1, 2, 3], &rem(&1, 2)) == %{0 => [2], 1 => [1, 3]}
   end
 
+  test "group_by/3 with a deprecated dictionary argument" do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert Enum.group_by([1, 2, 1], %{}, & &1) == %{1 => [1, 1], 2 => [2]}
+    end)
+  end
+
   test "intersperse/2" do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]

@@ -99,6 +99,16 @@ defmodule URITest do
     assert URI.decode_query("something=weird=happening") == %{"something" => "weird=happening"}
   end
 
+  test "decode_query/2 with a deprecated dictionary argument" do
+    # Avoid compile-time deprecation warnings for HashDict.new/0 and get/2.
+    dict = apply(HashDict, :new, [])
+
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      result = URI.decode_query("a=1", dict)
+      assert apply(HashDict, :get, [result, "a"]) == "1"
+    end)
+  end
+
   test "query_decoder/1,2" do
     decoder = URI.query_decoder("q=search%20query&cookie=ab%26cd&block+buster=")
     expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
