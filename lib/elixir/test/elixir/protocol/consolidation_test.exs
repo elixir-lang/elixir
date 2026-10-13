@@ -193,9 +193,20 @@ defmodule Protocol.ConsolidationTest do
     :code.load_binary(Multi, ~c"protocol_test.exs", binary)
     assert Multi.second(:foo, 1) == {:second, :atom, :foo, 1}
     assert Multi.first(%ImplStruct{}) == {:first, :struct, %ImplStruct{}}
+    assert Multi.impl_for(%ImplStruct{}) == Multi.Protocol.ConsolidationTest.ImplStruct
   after
     :code.purge(Multi)
     :code.load_binary(Multi, ~c"protocol_test.exs", multi_binary())
+  end
+
+  test "consolidation replaces struct_impl_for/1" do
+    for binary <- [sample_binary(), with_any_binary(), no_impl_binary(), multi_binary()] do
+      {:ok, {_, [debug_info: {:debug_info_v1, :elixir_erl, {:elixir_v1, map, _}}]}} =
+        :beam_lib.chunks(binary, [:debug_info])
+
+      refute List.keymember?(map.definitions, {:struct_impl_for, 1}, 0)
+      refute {:inline, [struct_impl_for: 1]} in map.compile_opts
+    end
   end
 
   test "consolidated dispatch does not look up implementations at runtime" do

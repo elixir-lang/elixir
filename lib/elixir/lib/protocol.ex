@@ -637,22 +637,19 @@ defmodule Protocol do
 
         {impl_for, definitions} = List.keytake(definitions, {:impl_for, 1}, 0)
         {impl_for!, definitions} = List.keytake(definitions, {:impl_for!, 1}, 0)
-        {struct_impl_for, definitions} = List.keytake(definitions, {:struct_impl_for, 1}, 0)
 
-        # Present when the protocol is consolidated again
+        # __impl_funs__/1 replaces struct_impl_for/1 and is
+        # present when the protocol is consolidated again
+        definitions = List.keydelete(definitions, {:struct_impl_for, 1}, 0)
         definitions = List.keydelete(definitions, {:__impl_funs__, 1}, 0)
 
         protocol_funs = get_protocol_functions(protocol_def)
-
         protocol_def = change_protocol(protocol_def, types)
-        impl_for = change_impl_for(impl_for, protocol, types)
-        struct_impl_for = change_struct_impl_for(struct_impl_for, protocol, types, structs)
 
-        {impl_funs, definitions} =
-          change_protocol_funs(definitions, protocol_funs, impl_for, protocol, types, structs)
+        {impl_for, impl_funs, definitions} =
+          change_impl_for(impl_for, definitions, protocol_funs, protocol, types, structs)
 
-        definitions =
-          [protocol_def, impl_for, impl_for!, struct_impl_for | impl_funs] ++ definitions
+        definitions = [protocol_def, impl_for, impl_for!, impl_funs] ++ definitions
 
         checker =
           if checker do
@@ -753,37 +750,11 @@ defmodule Protocol do
     {{:__protocol__, 1}, :def, meta, clauses}
   end
 
-  defp change_impl_for({_name, _kind, meta, _clauses}, protocol, types) do
-    fallback = if Any in types, do: __concat__(protocol, Any)
-    line = meta[:line]
-
-    clauses =
-      for {mod, guard} <- built_in(),
-          mod in types,
-          do: built_in_clause_for(guard, __concat__(protocol, mod), meta, line)
-
-    struct_clause = struct_clause_for(meta, line)
-    fallback_clause = fallback_clause_for(fallback, protocol, meta)
-    clauses = [struct_clause] ++ clauses ++ [fallback_clause]
-
-    {{:impl_for, 1}, :def, meta, clauses}
-  end
-
-  defp change_struct_impl_for({_name, _kind, meta, _clauses}, protocol, types, structs) do
-    fallback = if Any in types, do: __concat__(protocol, Any)
-    clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, meta)
-    clauses = clauses ++ [fallback_clause_for(fallback, protocol, meta)]
-
-    {{:struct_impl_for, 1}, :defp, meta, clauses}
-  end
-
-  # Protocol functions fetch the implementation function from a literal tuple, with
-  # one tuple per implementation, and call it.
-  defp change_protocol_funs(definitions, [], _impl_for, _protocol, _types, _structs) do
-    {[], definitions}
-  end
-
-  defp change_protocol_funs(definitions, protocol_funs, impl_for, protocol, types, structs) do
+  # __impl_funs__/1 returns a literal tuple for each implementation, with the
+  # implementation module followed by an external function for each protocol
+  # function. impl_for/1 returns the module and protocol functions call the
+  # external function, which skips the export table lookup of a dynamic call.
+  defp change_impl_for(impl_for, definitions, protocol_funs, protocol, types, structs) do
     {_name, _kind, meta, _clauses} = impl_for
     line = meta[:line]
     any? = Any in types
@@ -794,7 +765,7 @@ defmodule Protocol do
           quote(line: line, do: &(unquote(impl).unquote(name) / unquote(arity)))
         end
 
-      {:{}, [line: line], captures}
+      {:{}, [line: line], [impl | captures]}
     end
 
     fallback = if any?, do: funs_for.(__concat__(protocol, Any))
@@ -810,35 +781,42 @@ defmodule Protocol do
     impl_funs =
       {{:__impl_funs__, 1}, :defp, meta, [struct_clause] ++ clauses ++ [fallback_clause]}
 
+    # Generated, like protocol functions, so the type system does not warn when
+    # __impl_funs__/1 always returns nil because there are no implementations
+    x = {:x, [line: line, version: -1], __MODULE__}
+    impl_for_body = impl_funs_element(x, 1, any?, nil, [generated: true] ++ meta, & &1)
+    impl_for = {{:impl_for, 1}, :def, meta, [{meta, [x], [], impl_for_body}]}
+
     definitions =
       for definition <- definitions do
         with {fun_arity, :def, fun_meta, [{clause_meta, [term | _] = args, [], _}]} <- definition,
              index when index != nil <- Enum.find_index(protocol_funs, &(&1 == fun_arity)) do
-          body = impl_funs_call_for(term, args, index + 1, any?, fun_meta)
+          # impl_for!/1 raises Protocol.UndefinedError. It must receive the
+          # protocol function argument, which the type system has not narrowed.
+          on_nil = {:impl_for!, fun_meta, [term]}
+          call = &{{:., fun_meta, [&1]}, fun_meta, args}
+          body = impl_funs_element(term, index + 2, any?, on_nil, fun_meta, call)
           {fun_arity, :def, fun_meta, [{clause_meta, args, [], body}]}
         else
           _ -> definition
         end
       end
 
-    {[impl_funs], definitions}
+    {impl_for, impl_funs, definitions}
   end
 
   # With Any, there is always an implementation.
-  defp impl_funs_call_for(term, args, index, true, meta) do
-    fun = {{:., meta, [:erlang, :element]}, meta, [index, {:__impl_funs__, meta, [term]}]}
-    {{:., meta, [fun]}, meta, args}
+  defp impl_funs_element(term, index, true, _on_nil, meta, fun) do
+    fun.({{:., meta, [:erlang, :element]}, meta, [index, {:__impl_funs__, meta, [term]}]})
   end
 
-  # Without Any, impl_for!/1 raises Protocol.UndefinedError. It must receive
-  # the protocol function argument, which the type system has not narrowed.
-  defp impl_funs_call_for(term, args, index, false, meta) do
-    funs = {:funs, [version: -1] ++ meta, __MODULE__}
-    fun = {{:., meta, [:erlang, :element]}, meta, [index, funs]}
+  defp impl_funs_element(term, index, false, on_nil, meta, fun) do
+    funs = {:funs, [version: -2] ++ meta, __MODULE__}
+    element = {{:., meta, [:erlang, :element]}, meta, [index, funs]}
 
     clauses = [
-      {:->, meta, [[nil], {:impl_for!, meta, [term]}]},
-      {:->, meta, [[funs], {{:., meta, [fun]}, meta, args}]}
+      {:->, meta, [[nil], on_nil]},
+      {:->, meta, [[funs], fun.(element)]}
     ]
 
     {:case, meta, [{:__impl_funs__, meta, [term]}, [do: clauses]]}
@@ -864,25 +842,15 @@ defmodule Protocol do
     {meta, [x], [guard], body}
   end
 
-  defp struct_clause_for(meta, line) do
-    x = {:x, [line: line, version: -1], __MODULE__}
-    head = quote(line: line, do: %{__struct__: unquote(x)})
-    guard = quote(line: line, do: :erlang.is_atom(unquote(x)))
-    body = quote(line: line, do: struct_impl_for(unquote(x)))
-    {meta, [head], [guard], body}
-  end
-
-  defp each_struct_clause_for(struct, protocol, meta) do
-    {meta, [struct], [], __concat__(protocol, struct)}
-  end
-
   defp fallback_clause_for(value, _protocol, meta) do
     {meta, [{:_, [version: -1], __MODULE__}], [], value}
   end
 
   # Finally compile the module and emit its bytecode.
   defp compile(definitions, checker, {module_map, specs, docs_chunk}) do
-    module_map = %{module_map | definitions: definitions}
+    # struct_impl_for/1 is removed by consolidation
+    compile_opts = List.delete(module_map.compile_opts, {:inline, [struct_impl_for: 1]})
+    module_map = %{module_map | definitions: definitions, compile_opts: compile_opts}
     {:ok, :elixir_erl.consolidate(module_map, checker, specs, docs_chunk)}
   end
 
