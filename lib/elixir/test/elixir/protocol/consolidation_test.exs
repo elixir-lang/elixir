@@ -12,7 +12,17 @@ Kernel.ParallelCompiler.compile_to_path(files, path, return_diagnostics: true)
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true
-  alias Protocol.ConsolidationTest.{Sample, WithAny, NoImpl}
+  alias Protocol.ConsolidationTest.{Sample, WithAny, NoImpl, Multi}
+
+  defimpl Multi, for: Atom do
+    def first(atom), do: {:first, :atom, atom}
+    def second(atom, arg), do: {:second, :atom, atom, arg}
+  end
+
+  defimpl Multi, for: Map do
+    def first(map), do: {:first, :map, map}
+    def second(map, arg), do: {:second, :map, map, arg}
+  end
 
   defimpl WithAny, for: Map do
     def ok(map, _opts) do
@@ -41,6 +51,11 @@ defmodule Protocol.ConsolidationTest do
         Unknown.undefined(struct)
       end
     end
+
+    defimpl Multi do
+      def first(struct), do: {:first, :struct, struct}
+      def second(struct, arg), do: {:second, :struct, struct, arg}
+    end
   end
 
   Code.append_path(path)
@@ -68,6 +83,14 @@ defmodule Protocol.ConsolidationTest do
   :code.load_binary(NoImpl, ~c"protocol_test.exs", binary)
 
   defp no_impl_binary, do: unquote(binary)
+
+  # Multiple functions
+  :code.purge(Multi)
+  :code.delete(Multi)
+  {:ok, binary} = Protocol.consolidate(Multi, [Atom, ImplStruct, Map])
+  :code.load_binary(Multi, ~c"protocol_test.exs", binary)
+
+  defp multi_binary, do: unquote(binary)
 
   test "consolidated?/1" do
     assert Protocol.consolidated?(WithAny)
@@ -130,6 +153,62 @@ defmodule Protocol.ConsolidationTest do
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any
+  end
+
+  test "consolidated dispatch without fallback to any" do
+    assert Multi.first(:foo) == {:first, :atom, :foo}
+    assert Multi.second(:foo, 1) == {:second, :atom, :foo, 1}
+    assert Multi.first(%{}) == {:first, :map, %{}}
+    assert Multi.second(%{}, 2) == {:second, :map, %{}, 2}
+    assert Multi.first(%ImplStruct{}) == {:first, :struct, %ImplStruct{}}
+    assert Multi.second(%ImplStruct{}, 3) == {:second, :struct, %ImplStruct{}, 3}
+
+    # Maps with a non-atom __struct__ are not structs
+    assert Multi.first(%{__struct__: "foo"}) == {:first, :map, %{__struct__: "foo"}}
+
+    # Structs do not fall back to the Map implementation
+    assert_raise Protocol.UndefinedError, fn -> Multi.first(%NoImplStruct{}) end
+    assert_raise Protocol.UndefinedError, fn -> Multi.second(%NoImplStruct{}, 1) end
+    assert_raise Protocol.UndefinedError, fn -> Multi.second(1, 1) end
+    assert_raise Protocol.UndefinedError, fn -> NoImpl.ok(:foo) end
+  end
+
+  test "consolidated dispatch with fallback to any" do
+    assert WithAny.ok(%{}, :opts) == {:ok, %{}}
+    assert WithAny.ok(%NoImplStruct{}, :opts) == {:ok, %NoImplStruct{}}
+    assert WithAny.ok(%ImplStruct{}, :opts) == {:ok, %ImplStruct{}}
+    assert WithAny.ok(self(), :opts) == {:ok, self()}
+  end
+
+  test "consolidates an already consolidated protocol" do
+    path = PathHelpers.tmp_path("consolidation/Elixir.Protocol.ConsolidationTest.Multi.beam")
+    File.mkdir_p!(Path.dirname(path))
+    File.write!(path, multi_binary())
+
+    :code.purge(Multi)
+    {:module, Multi} = :code.load_abs(String.to_charlist(Path.rootname(path)))
+    assert {:ok, binary} = Protocol.consolidate(Multi, [Atom, ImplStruct, Map])
+
+    :code.purge(Multi)
+    :code.load_binary(Multi, ~c"protocol_test.exs", binary)
+    assert Multi.second(:foo, 1) == {:second, :atom, :foo, 1}
+    assert Multi.first(%ImplStruct{}) == {:first, :struct, %ImplStruct{}}
+  after
+    :code.purge(Multi)
+    :code.load_binary(Multi, ~c"protocol_test.exs", multi_binary())
+  end
+
+  test "consolidated dispatch does not look up implementations at runtime" do
+    for binary <- [sample_binary(), with_any_binary(), no_impl_binary(), multi_binary()] do
+      {:beam_file, _, _, _, _, functions} = :beam_disasm.file(binary)
+
+      for {:function, name, arity, _, instructions} <- functions,
+          instruction <- instructions,
+          is_tuple(instruction) do
+        refute elem(instruction, 0) in [:apply, :apply_last],
+               "#{name}/#{arity} has #{inspect(instruction)}"
+      end
+    end
   end
 
   test "consolidation keeps docs" do
