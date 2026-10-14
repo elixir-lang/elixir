@@ -81,7 +81,9 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- list, uniq: true, into: [], do: x * 2) == [2, 4, 6]
     assert for(x <- list, uniq: true, into: %{}, do: {x, 1}) == %{1 => 1, 2 => 1, 3 => 1}
     assert for(x <- list, uniq: true, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+    assert for(x <- list, uniq: true, into: <<0>>, do: to_bin(x * 2)) == <<0, 2, 4, 6>>
     assert for(<<x <- "abcabc">>, uniq: true, into: "", do: to_bin(x)) == "abc"
+    assert for(<<x <- "abcabc">>, uniq: true, into: "0", do: to_bin(x)) == "0abc"
 
     Process.put(:into_cont, [])
     Process.put(:into_done, false)
@@ -212,6 +214,10 @@ defmodule Kernel.ComprehensionTest do
     assert (for x <- enum, into: "" do
               if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
             end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+
+    assert (for x <- enum, into: <<7::size(1)>> do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
   test "for comprehensions into dynamic binary" do
@@ -363,6 +369,10 @@ defmodule Kernel.ComprehensionTest do
     assert (for x <- enum, into: "" do
               if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
             end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+
+    assert (for x <- enum, into: <<7::size(1)>> do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
   test "list for comprehensions into dynamic binary" do
@@ -437,6 +447,10 @@ defmodule Kernel.ComprehensionTest do
     assert (for <<x <- bin>>, into: "" do
               if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
             end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+
+    assert (for <<x <- bin>>, into: <<7::size(1)>> do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
   test "binary for comprehensions into dynamic binary" do

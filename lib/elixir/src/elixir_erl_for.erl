@@ -140,7 +140,7 @@ build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, InitVars, S) ->
   InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
   {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, InitVars, S),
   {?remote(Ann, lists, reverse, [ReduceExpr]), SR};
-build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, InitVars, S) ->
+build_inline_each(Ann, Clauses, Expr, {bin, _, _} = Into, Uniq, InitVars, S) ->
   {InnerValue, SV} = build_var(Ann, S),
   Generated = erl_anno:set_generated(true, Ann),
 
@@ -158,7 +158,8 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, InitVars, S) ->
     ]}
   end,
 
-  {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, InitVars, SV),
+  InitAcc = {cons, Generated, Into, {nil, Generated}},
+  {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, InitAcc, Uniq, InitVars, SV),
   {?remote(Ann, erlang, list_to_bitstring, [ReduceExpr]), SR}.
 
 build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, InitVars, S) ->
@@ -335,6 +336,10 @@ valid_var_size({op, _Ann, _Op, Left, Right}, Vars) ->
   valid_var_size(Left, Vars) andalso valid_var_size(Right, Vars);
 valid_var_size(_Size, _vars) -> false.
 
+build_comprehension(Ann, Clauses, Expr, {bin, IntoAnn, [_ | _] = Elements}) ->
+  Generated = erl_anno:set_generated(true, Ann),
+  Comprehension = {bc, Ann, Expr, comprehension_clause(Clauses)},
+  {bin, IntoAnn, Elements ++ [{bin_element, Generated, Comprehension, default, [bitstring]}]};
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.
 
@@ -350,7 +355,7 @@ comprehension_kind(false) -> lc;
 comprehension_kind({nil, _}) -> lc;
 comprehension_kind({bin, _, []}) -> bc.
 
-inline_or_into({bin, _, []}) -> inline;
+inline_or_into({bin, _, _}) -> inline;
 inline_or_into({nil, _}) -> inline;
 inline_or_into(false) -> inline;
 inline_or_into(_) -> into.
