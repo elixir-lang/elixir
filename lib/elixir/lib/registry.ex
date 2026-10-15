@@ -231,7 +231,7 @@ defmodule Registry do
           | {:partitions, pos_integer}
           | {:listeners, [atom]}
           | {:compressed, boolean}
-          | {:off_heap, boolean}
+          | {:spawn_opt, [Process.spawn_opt()]}
           | {:meta, [{meta_key, meta_value}]}
 
   @typedoc """
@@ -361,13 +361,9 @@ defmodule Registry do
       crashes. Messages sent to listeners are of type `t:listener_message/0`.
     * `:compressed` - turns on compression for registry's keys ETS tables, reducing
       memory usage at the cost of additional CPU usage. Defaults to `false`.
-    * `:off_heap` - sets `:message_queue_data` to `:off_heap` for the registry's
-      partition processes, which keeps their message queue outside of their
-      own heap. This is useful when a partition can accumulate a large
-      number of messages (for example, `:EXIT` messages from many linked
-      registrants), as it avoids expensive garbage collections of large
-      heaps at the cost of additional memory usage per message. Defaults to
-      `false`.
+    * `:spawn_opt` - a list of options passed to the registry's partition
+      processes on spawn. See `Process.spawn/2` for the full list of options.
+      Defaults to `[]`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
   For `:duplicate` registries, you can specify the partitioning strategy
@@ -447,11 +443,11 @@ defmodule Registry do
             "expected :compressed to be a boolean, got: #{inspect(compressed)}"
     end
 
-    off_heap = Keyword.get(options, :off_heap, false)
+    spawn_opt = Keyword.get(options, :spawn_opt, [])
 
-    if not is_boolean(off_heap) do
+    if not is_list(spawn_opt) do
       raise ArgumentError,
-            "expected :off_heap to be a boolean, got: #{inspect(off_heap)}"
+            "expected :spawn_opt to be a list, got: #{inspect(spawn_opt)}"
     end
 
     # The @info format must be kept in sync with Registry.Partition optimization.
@@ -467,7 +463,7 @@ defmodule Registry do
       listeners,
       entries,
       compressed,
-      off_heap
+      spawn_opt
     )
   end
 
@@ -1792,12 +1788,12 @@ defmodule Registry.Supervisor do
   @moduledoc false
   use Supervisor
 
-  def start_link(kind, registry, partitions, listeners, entries, compressed, off_heap) do
-    arg = {kind, registry, partitions, listeners, entries, compressed, off_heap}
+  def start_link(kind, registry, partitions, listeners, entries, compressed, spawn_opt) do
+    arg = {kind, registry, partitions, listeners, entries, compressed, spawn_opt}
     Supervisor.start_link(__MODULE__, arg, name: registry)
   end
 
-  def init({kind, registry, partitions, listeners, entries, compressed, off_heap}) do
+  def init({kind, registry, partitions, listeners, entries, compressed, spawn_opt}) do
     ^registry = :ets.new(registry, [:set, :public, :named_table, read_concurrency: true])
     true = :ets.insert(registry, entries)
 
@@ -1808,7 +1804,7 @@ defmodule Registry.Supervisor do
 
         arg =
           {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
-           off_heap}
+           spawn_opt}
 
         %{
           id: pid_partition,
@@ -1864,9 +1860,8 @@ defmodule Registry.Partition do
   """
   def start_link(registry, arg) do
     {_kind, _registry, _i, _partitions, _key_partition, _pid_partition, _listeners, _compressed,
-     off_heap} = arg
+     spawn_opt} = arg
 
-    spawn_opt = if off_heap, do: [message_queue_data: :off_heap], else: []
     GenServer.start_link(__MODULE__, arg, name: registry, spawn_opt: spawn_opt)
   end
 
@@ -1887,7 +1882,7 @@ defmodule Registry.Partition do
 
   def init(
         {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
-         _off_heap}
+         _spawn_opt}
       ) do
     Process.flag(:trap_exit, true)
 
