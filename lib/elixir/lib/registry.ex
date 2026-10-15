@@ -231,6 +231,7 @@ defmodule Registry do
           | {:partitions, pos_integer}
           | {:listeners, [atom]}
           | {:compressed, boolean}
+          | {:off_heap, boolean}
           | {:meta, [{meta_key, meta_value}]}
 
   @typedoc """
@@ -360,6 +361,13 @@ defmodule Registry do
       crashes. Messages sent to listeners are of type `t:listener_message/0`.
     * `:compressed` - turns on compression for registry's keys ETS tables, reducing
       memory usage at the cost of additional CPU usage. Defaults to `false`.
+    * `:off_heap` - sets `:message_queue_data` to `:off_heap` for the registry's
+      partition processes, which keeps their message queue outside of their
+      own heap. This is useful when a partition can accumulate a large
+      number of messages (for example, `:EXIT` messages from many linked
+      registrants), as it avoids expensive garbage collections of large
+      heaps at the cost of additional memory usage per message. Defaults to
+      `false`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
   For `:duplicate` registries, you can specify the partitioning strategy
@@ -439,6 +447,13 @@ defmodule Registry do
             "expected :compressed to be a boolean, got: #{inspect(compressed)}"
     end
 
+    off_heap = Keyword.get(options, :off_heap, false)
+
+    if not is_boolean(off_heap) do
+      raise ArgumentError,
+            "expected :off_heap to be a boolean, got: #{inspect(off_heap)}"
+    end
+
     # The @info format must be kept in sync with Registry.Partition optimization.
     entries = [
       {@all_info, {kind, partitions, nil, nil, listeners}},
@@ -451,7 +466,8 @@ defmodule Registry do
       partitions,
       listeners,
       entries,
-      compressed
+      compressed,
+      off_heap
     )
   end
 
@@ -1776,12 +1792,12 @@ defmodule Registry.Supervisor do
   @moduledoc false
   use Supervisor
 
-  def start_link(kind, registry, partitions, listeners, entries, compressed) do
-    arg = {kind, registry, partitions, listeners, entries, compressed}
+  def start_link(kind, registry, partitions, listeners, entries, compressed, off_heap) do
+    arg = {kind, registry, partitions, listeners, entries, compressed, off_heap}
     Supervisor.start_link(__MODULE__, arg, name: registry)
   end
 
-  def init({kind, registry, partitions, listeners, entries, compressed}) do
+  def init({kind, registry, partitions, listeners, entries, compressed, off_heap}) do
     ^registry = :ets.new(registry, [:set, :public, :named_table, read_concurrency: true])
     true = :ets.insert(registry, entries)
 
@@ -1789,7 +1805,10 @@ defmodule Registry.Supervisor do
       for i <- 0..(partitions - 1) do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
-        arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
+
+        arg =
+          {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
+           off_heap}
 
         %{
           id: pid_partition,
@@ -1844,7 +1863,11 @@ defmodule Registry.Partition do
   The process is only responsible for linking and cleaning up when processes crash.
   """
   def start_link(registry, arg) do
-    GenServer.start_link(__MODULE__, arg, name: registry)
+    {_kind, _registry, _i, _partitions, _key_partition, _pid_partition, _listeners, _compressed,
+     off_heap} = arg
+
+    spawn_opt = if off_heap, do: [message_queue_data: :off_heap], else: []
+    GenServer.start_link(__MODULE__, arg, name: registry, spawn_opt: spawn_opt)
   end
 
   @doc """
@@ -1862,7 +1885,10 @@ defmodule Registry.Partition do
 
   ## Callbacks
 
-  def init({kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}) do
+  def init(
+        {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
+         _off_heap}
+      ) do
     Process.flag(:trap_exit, true)
 
     key_ets = init_key_ets(kind, key_partition, compressed)

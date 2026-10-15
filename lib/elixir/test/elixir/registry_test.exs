@@ -7,6 +7,28 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule Registry.CommonTest do
   use ExUnit.Case, async: true
   doctest Registry, except: [:moduledoc]
+
+  test "raises on invalid :off_heap option" do
+    assert_raise ArgumentError, ~r/expected :off_heap to be a boolean/, fn ->
+      Registry.start_link(keys: :unique, name: :invalid_off_heap, off_heap: :oops)
+    end
+  end
+
+  test "partitions run with on_heap message queue data by default" do
+    {:ok, _} = Registry.start_link(keys: :unique, name: __MODULE__.OnHeapByDefault)
+    {_, _, _, {partition, _}, _} = :ets.lookup_element(__MODULE__.OnHeapByDefault, -1, 2)
+    assert {:message_queue_data, :on_heap} = Process.info(partition, :message_queue_data)
+  end
+
+  test "partitions run with off_heap message queue data when :off_heap is true" do
+    {:ok, _} =
+      Registry.start_link(keys: :unique, name: __MODULE__.OffHeap, partitions: 4, off_heap: true)
+
+    for i <- 0..3 do
+      {partition, _} = :ets.lookup_element(__MODULE__.OffHeap, i, 3)
+      assert {:message_queue_data, :off_heap} = Process.info(partition, :message_queue_data)
+    end
+  end
 end
 
 defmodule Registry.Test do
