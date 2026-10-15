@@ -306,7 +306,9 @@ defmodule Protocol do
 
       # Generate the actual implementation
       Kernel.def unquote(name)(unquote_splicing(call_args)) do
-        impl_for!(term).unquote(name)(unquote_splicing(call_args))
+        __dispatch_impl__(term, length(@__functions__) + 1, unquote(name), unquote(arity)).(
+          unquote_splicing(call_args)
+        )
       end
 
       # Copy spec as callback if possible,
@@ -634,16 +636,20 @@ defmodule Protocol do
         built_in_plus_any = [Any] ++ for {mod, _guard} <- built_in(), do: mod
         structs = types -- built_in_plus_any
 
-        {impl_for, definitions} = List.keytake(definitions, {:impl_for, 1}, 0)
-        {impl_for!, definitions} = List.keytake(definitions, {:impl_for!, 1}, 0)
-        {struct_impl_for, definitions} = List.keytake(definitions, {:struct_impl_for, 1}, 0)
+        {select_impl, definitions} = List.keytake(definitions, {:__select_impl__, 1}, 0)
+        {dispatch_impl, definitions} = List.keytake(definitions, {:__dispatch_impl__, 4}, 0)
+        {select_struct, definitions} = List.keytake(definitions, {:__select_struct__, 1}, 0)
 
         protocol_funs = get_protocol_functions(protocol_def)
 
         protocol_def = change_protocol(protocol_def, types)
-        impl_for = change_impl_for(impl_for, protocol, types)
-        struct_impl_for = change_struct_impl_for(struct_impl_for, protocol, types, structs)
-        definitions = [protocol_def, impl_for, impl_for!, struct_impl_for] ++ definitions
+        select_impl = change_select_impl(select_impl, protocol, types, protocol_funs)
+        dispatch_impl = change_dispatch_impl(dispatch_impl)
+
+        select_struct =
+          change_select_struct(select_struct, protocol, types, structs, protocol_funs)
+
+        definitions = [protocol_def, select_impl, dispatch_impl, select_struct] ++ definitions
 
         checker =
           if checker do
@@ -744,34 +750,63 @@ defmodule Protocol do
     {{:__protocol__, 1}, :def, meta, clauses}
   end
 
-  defp change_impl_for({_name, _kind, meta, _clauses}, protocol, types) do
-    fallback = if Any in types, do: __concat__(protocol, Any)
+  defp change_select_impl({_name, _kind, meta, _clauses}, protocol, types, functions) do
+    fallback = if Any in types, do: impl_tuple_for(protocol, Any, functions, meta)
     line = meta[:line]
 
     clauses =
       for {mod, guard} <- built_in(),
           mod in types,
-          do: built_in_clause_for(mod, guard, protocol, meta, line)
+          do: built_in_clause_for(mod, guard, protocol, functions, meta, line)
 
     struct_clause = struct_clause_for(meta, line)
     fallback_clause = fallback_clause_for(fallback, protocol, meta)
     clauses = [struct_clause] ++ clauses ++ [fallback_clause]
 
-    {{:impl_for, 1}, :def, meta, clauses}
+    {{:__select_impl__, 1}, :defp, meta, clauses}
   end
 
-  defp change_struct_impl_for({_name, _kind, meta, _clauses}, protocol, types, structs) do
-    fallback = if Any in types, do: __concat__(protocol, Any)
-    clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, meta)
+  defp change_dispatch_impl({_name, _kind, meta, _clauses}) do
+    term = {:term, [version: -1], __MODULE__}
+    index = {:index, [version: -2], __MODULE__}
+    fun = {:_fun, [version: -3], __MODULE__}
+    arity = {:_arity, [version: -4], __MODULE__}
+    impl = {:impl, [version: -5], __MODULE__}
+
+    body =
+      quote generated: true do
+        case __select_impl__(unquote(term)) do
+          nil -> __raise_undefined__(unquote(term))
+          unquote(impl) -> :erlang.element(unquote(index), unquote(impl))
+        end
+      end
+
+    {{:__dispatch_impl__, 4}, :defp, meta, [{meta, [term, index, fun, arity], [], body}]}
+  end
+
+  defp change_select_struct({_name, _kind, meta, _clauses}, protocol, types, structs, functions) do
+    fallback = if Any in types, do: impl_tuple_for(protocol, Any, functions, meta)
+    clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, functions, meta)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, meta)]
 
-    {{:struct_impl_for, 1}, :defp, meta, clauses}
+    {{:__select_struct__, 1}, :defp, meta, clauses}
   end
 
-  defp built_in_clause_for(mod, guard, protocol, meta, line) do
+  defp impl_tuple_for(protocol, type, functions, meta) do
+    impl = __concat__(protocol, type)
+
+    captures =
+      for {name, arity} <- functions do
+        quote do: &(unquote(impl).unquote(name) / unquote(arity))
+      end
+
+    {:{}, meta, [impl | captures]}
+  end
+
+  defp built_in_clause_for(mod, guard, protocol, functions, meta, line) do
     x = {:x, [line: line, version: -1], __MODULE__}
     guard = quote(line: line, do: :erlang.unquote(guard)(unquote(x)))
-    body = __concat__(protocol, mod)
+    body = impl_tuple_for(protocol, mod, functions, meta)
     {meta, [x], [guard], body}
   end
 
@@ -779,12 +814,12 @@ defmodule Protocol do
     x = {:x, [line: line, version: -1], __MODULE__}
     head = quote(line: line, do: %{__struct__: unquote(x)})
     guard = quote(line: line, do: :erlang.is_atom(unquote(x)))
-    body = quote(line: line, do: struct_impl_for(unquote(x)))
+    body = quote(line: line, do: __select_struct__(unquote(x)))
     {meta, [head], [guard], body}
   end
 
-  defp each_struct_clause_for(struct, protocol, meta) do
-    {meta, [struct], [], __concat__(protocol, struct)}
+  defp each_struct_clause_for(struct, protocol, functions, meta) do
+    {meta, [struct], [], impl_tuple_for(protocol, struct, functions, meta)}
   end
 
   defp fallback_clause_for(value, _protocol, meta) do
@@ -929,7 +964,7 @@ defmodule Protocol do
 
   defp after_defprotocol do
     prefix =
-      quote bind_quoted: [built_in: built_in()] do
+      quote generated: true, bind_quoted: [built_in: built_in()] do
         any_impl_for =
           if @fallback_to_any do
             Protocol.__concat__(__MODULE__, "Any")
@@ -937,20 +972,27 @@ defmodule Protocol do
             nil
           end
 
+        any_select_impl = if any_impl_for, do: {:{}, [], [any_impl_for]}
+
         # Disable Dialyzer checks - before and after consolidation
         # the types could be more strict
         @dialyzer {:nowarn_function, __protocol__: 1, impl_for: 1, impl_for!: 1}
 
         @doc false
         @spec impl_for(term) :: atom | nil
-        Kernel.def(impl_for(data))
+        Kernel.def impl_for(data) do
+          case __select_impl__(data) do
+            nil -> nil
+            impl -> elem(impl, 0)
+          end
+        end
 
         # Define the implementation for structs.
         #
-        # It simply delegates to struct_impl_for which is then
+        # It simply delegates to __select_struct__ which is then
         # optimized during protocol consolidation.
-        Kernel.def impl_for(%struct{}) do
-          struct_impl_for(struct)
+        Kernel.defp __select_impl__(%struct{}) do
+          __select_struct__(struct)
         end
 
         # Define the implementation for built-ins
@@ -958,10 +1000,10 @@ defmodule Protocol do
           fn {mod, guard} ->
             target = Protocol.__concat__(__MODULE__, mod)
 
-            Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
+            Kernel.defp __select_impl__(data) when :erlang.unquote(guard)(data) do
               case Code.ensure_compiled(unquote(target)) do
-                {:module, module} -> module
-                {:error, _} -> unquote(any_impl_for)
+                {:module, module} -> {module}
+                {:error, _} -> unquote(any_select_impl)
               end
             end
           end,
@@ -969,15 +1011,15 @@ defmodule Protocol do
         )
 
         # Internal handler for Structs
-        Kernel.defp struct_impl_for(struct) do
+        Kernel.defp __select_struct__(struct) do
           case Code.ensure_compiled(Protocol.__concat__(__MODULE__, struct)) do
-            {:module, module} -> module
-            {:error, _} -> unquote(any_impl_for)
+            {:module, module} -> {module}
+            {:error, _} -> unquote(any_select_impl)
           end
         end
 
         # Inline struct implementation for performance
-        @compile {:inline, struct_impl_for: 1}
+        @compile {:inline, __select_struct__: 1}
 
         if not Module.defines_type?(__MODULE__, {:t, 0}) do
           @typedoc """
@@ -997,36 +1039,35 @@ defmodule Protocol do
         @spec __protocol__(:consolidated?) :: boolean()
         @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module()]}
         Kernel.def(__protocol__(:module), do: __MODULE__)
-        Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@__functions__)))
+        Kernel.def(__protocol__(:functions), do: unquote(:lists.reverse(@__functions__)))
         Kernel.def(__protocol__(:consolidated?), do: false)
         Kernel.def(__protocol__(:impls), do: :not_consolidated)
       end
 
-    raise =
-      quote do
-        raise(Protocol.UndefinedError,
-          protocol: __MODULE__,
-          value: data,
-          description: @undefined_impl_description
-        )
-      end
-
-    # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
+    # Define a catch-all __select_impl__/1 clause to pacify Dialyzer (since
     # destructuring opaque types is illegal, Dialyzer will think none of the
     # previous clauses matches opaque types, and without this clause, will
-    # conclude that impl_for can't handle an opaque argument). This is a hack
+    # conclude that __select_impl__ can't handle an opaque argument). This is a hack
     # since it relies on Dialyzer not being smart enough to conclude that all
-    # opaque types will get the any_impl_for/0 implementation.
-    impl_for_fallback =
+    # opaque types will get the fallback implementation.
+    select_impl_fallback =
       quote generated: true, bind_quoted: [] do
-        Kernel.def impl_for(_) do
-          unquote(any_impl_for)
+        Kernel.defp __select_impl__(_) do
+          unquote(any_select_impl)
         end
       end
 
     quote generated: true do
       unquote(prefix)
-      unquote(impl_for_fallback)
+      unquote(select_impl_fallback)
+
+      @compile {:inline, __dispatch_impl__: 4}
+      Kernel.defp __dispatch_impl__(term, _index, fun, arity) do
+        case impl_for(term) do
+          nil -> __raise_undefined__(term)
+          module -> :erlang.make_fun(module, fun, arity)
+        end
+      end
 
       @doc false
       @spec impl_for!(term) :: atom
@@ -1036,8 +1077,16 @@ defmodule Protocol do
         end
       else
         Kernel.def impl_for!(data) do
-          impl_for(data) || unquote(raise)
+          impl_for(data) || __raise_undefined__(data)
         end
+      end
+
+      Kernel.defp __raise_undefined__(data) do
+        raise(Protocol.UndefinedError,
+          protocol: __MODULE__,
+          value: data,
+          description: @undefined_impl_description
+        )
       end
     end
   end

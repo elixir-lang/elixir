@@ -615,7 +615,7 @@ defmodule Inspect.MapTest do
         assert message =~ "name: \"Foo\""
 
         assert [
-                 {Enumerable, :impl_for!, 1, _} | _
+                 {Enumerable, :__raise_undefined__, 1, _} | _
                ] = __STACKTRACE__
 
         # The culprit
@@ -1040,7 +1040,9 @@ defmodule Inspect.CustomProtocolTest do
     rescue
       e in Inspect.Error ->
         assert Exception.message(e) =~ msg
-        assert [{Inspect.CustomProtocolTest.CustomInspect, :impl_for!, 1, _} | _] = __STACKTRACE__
+
+        assert [{Inspect.CustomProtocolTest.CustomInspect, :__raise_undefined__, 1, _} | _] =
+                 __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
