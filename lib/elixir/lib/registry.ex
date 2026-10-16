@@ -1802,13 +1802,11 @@ defmodule Registry.Supervisor do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
 
-        arg =
-          {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
-           spawn_opt}
+        arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
 
         %{
           id: pid_partition,
-          start: {Registry.Partition, :start_link, [pid_partition, arg]}
+          start: {Registry.Partition, :start_link, [pid_partition, {arg, spawn_opt}]}
         }
       end
 
@@ -1858,10 +1856,7 @@ defmodule Registry.Partition do
 
   The process is only responsible for linking and cleaning up when processes crash.
   """
-  def start_link(registry, arg) do
-    {_kind, _registry, _i, _partitions, _key_partition, _pid_partition, _listeners, _compressed,
-     spawn_opt} = arg
-
+  def start_link(registry, {arg, spawn_opt}) do
     GenServer.start_link(__MODULE__, arg, name: registry, spawn_opt: spawn_opt)
   end
 
@@ -1880,10 +1875,7 @@ defmodule Registry.Partition do
 
   ## Callbacks
 
-  def init(
-        {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed,
-         _spawn_opt}
-      ) do
+  def init({kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}) do
     Process.flag(:trap_exit, true)
 
     key_ets = init_key_ets(kind, key_partition, compressed)
