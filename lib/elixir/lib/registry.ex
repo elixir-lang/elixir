@@ -231,6 +231,7 @@ defmodule Registry do
           | {:partitions, pos_integer}
           | {:listeners, [atom]}
           | {:compressed, boolean}
+          | {:spawn_opt, [Process.spawn_opt()]}
           | {:meta, [{meta_key, meta_value}]}
 
   @typedoc """
@@ -360,6 +361,9 @@ defmodule Registry do
       crashes. Messages sent to listeners are of type `t:listener_message/0`.
     * `:compressed` - turns on compression for registry's keys ETS tables, reducing
       memory usage at the cost of additional CPU usage. Defaults to `false`.
+    * `:spawn_opt` - a list of options passed to the registry's partition
+      processes on spawn. See `Process.spawn/2` for the full list of options.
+      Defaults to `[]`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
   For `:duplicate` registries, you can specify the partitioning strategy
@@ -439,6 +443,13 @@ defmodule Registry do
             "expected :compressed to be a boolean, got: #{inspect(compressed)}"
     end
 
+    spawn_opt = Keyword.get(options, :spawn_opt, [])
+
+    if not is_list(spawn_opt) do
+      raise ArgumentError,
+            "expected :spawn_opt to be a list, got: #{inspect(spawn_opt)}"
+    end
+
     # The @info format must be kept in sync with Registry.Partition optimization.
     entries = [
       {@all_info, {kind, partitions, nil, nil, listeners}},
@@ -451,7 +462,8 @@ defmodule Registry do
       partitions,
       listeners,
       entries,
-      compressed
+      compressed,
+      spawn_opt
     )
   end
 
@@ -1776,12 +1788,12 @@ defmodule Registry.Supervisor do
   @moduledoc false
   use Supervisor
 
-  def start_link(kind, registry, partitions, listeners, entries, compressed) do
-    arg = {kind, registry, partitions, listeners, entries, compressed}
+  def start_link(kind, registry, partitions, listeners, entries, compressed, spawn_opt) do
+    arg = {kind, registry, partitions, listeners, entries, compressed, spawn_opt}
     Supervisor.start_link(__MODULE__, arg, name: registry)
   end
 
-  def init({kind, registry, partitions, listeners, entries, compressed}) do
+  def init({kind, registry, partitions, listeners, entries, compressed, spawn_opt}) do
     ^registry = :ets.new(registry, [:set, :public, :named_table, read_concurrency: true])
     true = :ets.insert(registry, entries)
 
@@ -1789,11 +1801,12 @@ defmodule Registry.Supervisor do
       for i <- 0..(partitions - 1) do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
+
         arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
 
         %{
           id: pid_partition,
-          start: {Registry.Partition, :start_link, [pid_partition, arg]}
+          start: {Registry.Partition, :start_link, [pid_partition, {arg, spawn_opt}]}
         }
       end
 
@@ -1843,8 +1856,8 @@ defmodule Registry.Partition do
 
   The process is only responsible for linking and cleaning up when processes crash.
   """
-  def start_link(registry, arg) do
-    GenServer.start_link(__MODULE__, arg, name: registry)
+  def start_link(registry, {arg, spawn_opt}) do
+    GenServer.start_link(__MODULE__, arg, name: registry, spawn_opt: spawn_opt)
   end
 
   @doc """
