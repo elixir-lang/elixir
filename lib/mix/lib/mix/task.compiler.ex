@@ -80,7 +80,7 @@ defmodule Mix.Task.Compiler do
         * `:scm` - the SCM module of the dependency.
 
         * `:manager` - the dependency project management, possible values:
-          `:rebar3`, `:mix`, `:make`, `nil`.
+          `:rebar3`, `:mix`, `:make`, `:gleam`, `nil`.
 
         * `:os_pid` - the operating system PID of the process that run
           the compilation. The value is a string and it can be compared
