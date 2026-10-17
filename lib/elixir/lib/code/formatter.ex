@@ -279,13 +279,15 @@ defmodule Code.Formatter do
 
   # Special AST nodes from compiler feedback
 
-  defp quoted_to_algebra({form, meta, args} = quoted, context, state) when is_list(meta) do
+  defp quoted_to_algebra({form, meta, args}, context, state) when is_list(meta) do
+    {meta, args} = move_do_end_keyword_comments(form, meta, args, state)
+
     if comments = meta[:leading_comments] do
       quoted = {form, Keyword.delete(meta, :leading_comments), args}
       {doc, state} = quoted_to_algebra_without_comments(quoted, context, state)
       {prepend_comments(doc, format_comments(comments, :leading)), state}
     else
-      quoted_to_algebra_without_comments(quoted, context, state)
+      quoted_to_algebra_without_comments({form, meta, args}, context, state)
     end
   end
 
@@ -1401,6 +1403,30 @@ defmodule Code.Formatter do
   end
 
   defp do_end_blocks(_, _, _), do: nil
+
+  # Comments on do-end block keywords (rescue, catch, else, after) cannot
+  # be preserved in place since the formatter doesn't emit trailing comments
+  # on keyword lines. We move them to leading comments on the parent node.
+  defp move_do_end_keyword_comments(form, meta, [_ | _] = args, state) when form != :{} do
+    {rest, last} = split_last(args)
+
+    with [_ | _] <- do_end_blocks(meta, last, state),
+         {last, [_ | _] = comments} <- pop_do_end_keyword_comments(last) do
+      leading_comments = Keyword.get(meta, :leading_comments, []) ++ comments
+      {Keyword.put(meta, :leading_comments, leading_comments), rest ++ [last]}
+    else
+      _ -> {meta, args}
+    end
+  end
+
+  defp move_do_end_keyword_comments(_form, meta, args, _state), do: {meta, args}
+
+  defp pop_do_end_keyword_comments(blocks) do
+    Enum.map_reduce(blocks, [], fn {{:__block__, key_meta, [key]}, value}, acc ->
+      {comments, key_meta} = Keyword.pop(key_meta, :leading_comments, [])
+      {{{:__block__, key_meta, [key]}, value}, acc ++ comments}
+    end)
+  end
 
   defp can_force_do_end_blocks?(rest, state) do
     state.force_do_end_blocks and
