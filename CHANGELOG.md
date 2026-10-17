@@ -63,7 +63,6 @@
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
   * [Macro] Properly escape C1 control characters and Unicode noncharacters
   * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
-  * [Protocol] Fix protocol consolidation crashing with a MatchError when the protocol beam was compiled with an incompatible version of Elixir, raising a proper error message instead
   * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
   * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
@@ -84,7 +83,6 @@
 
 #### Mix
 
-  * [Mix] Bump the Elixir compiler manifest version, so builds compiled before the new consolidated protocol dispatch are recompiled
   * [Mix] Prevent synchronization lock files from being overwritten with empty contents
   * [Mix.Release] Accept chardata paths in `Mix.Release.make_boot_script/4`
   * [Mix.SCM.Git] Raise if Git refspecs start with `-`

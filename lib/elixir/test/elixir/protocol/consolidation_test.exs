@@ -260,35 +260,6 @@ defmodule Protocol.ConsolidationTest do
     assert Protocol.consolidate(NoBeam, []) == {:error, :no_beam_info}
   end
 
-  test "consolidation errors on incompatible protocol beams" do
-    import PathHelpers
-
-    # A protocol compiled before Elixir v1.21 does not define the
-    # __select_impl__/1, __dispatch_impl__/4, and __select_struct__/1
-    # definitions used during consolidation.
-    write_beam(
-      defmodule IncompatibleProtocol do
-        Module.register_attribute(__MODULE__, :__protocol__, persist: true)
-        @__protocol__ [fallback_to_any: false]
-
-        def __protocol__(:module), do: __MODULE__
-        def __protocol__(:functions), do: [ok: 1]
-        def __protocol__(:consolidated?), do: false
-        def __protocol__(:impls), do: :not_consolidated
-      end
-    )
-
-    message =
-      "cannot consolidate protocol Protocol.ConsolidationTest.IncompatibleProtocol: " <>
-        "it does not define __select_impl__/1, which means it was compiled " <>
-        "with an incompatible version of Elixir, please recompile the protocol " <>
-        "with the current version"
-
-    assert_raise ArgumentError, message, fn ->
-      Protocol.consolidate(IncompatibleProtocol, [])
-    end
-  end
-
   test "protocol not implemented" do
     message =
       "protocol Protocol.ConsolidationTest.Sample not implemented for Atom. " <>
