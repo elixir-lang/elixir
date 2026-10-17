@@ -2614,7 +2614,7 @@ defmodule Module.Types.Descr do
   # Case 3: when a list with negations is united with one of its negations
   defp add_to_list_normalize([{t, l, n} = cur | rest], list, last, []) do
     case delete_elem(n, bdd_leaf_new(list, last), []) do
-      :error -> [cur | add_to_list_normalize(rest, list, last, n)]
+      :error -> [cur, {list, last, []} | rest]
       n1 -> [{t, l, n1} | rest]
     end
   end
