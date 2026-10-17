@@ -1396,7 +1396,9 @@ defmodule Code.Formatter do
 
   defp do_end_blocks(meta, [{{:__block__, _, [:do]}, _} | rest] = blocks, state) do
     if meta?(meta, :do) or can_force_do_end_blocks?(rest, state) do
-      Enum.map(blocks, fn {{:__block__, _, [key]}, value} -> {key, value} end)
+      Enum.map(blocks, fn {{:__block__, meta, [key]}, value} ->
+        {key, Keyword.get(meta, :leading_comments, []), value}
+      end)
     end
   end
 
@@ -1407,19 +1409,23 @@ defmodule Code.Formatter do
       Enum.all?(rest, fn {{:__block__, _, [key]}, _} -> key in @do_end_keywords end)
   end
 
-  defp do_end_blocks_to_algebra([{:do, value} | blocks], state) do
-    {acc, state} = do_end_block_to_algebra(@empty, value, state)
+  defp do_end_blocks_to_algebra([{:do, comments, value} | blocks], state) do
+    {acc, state} = do_end_block_to_algebra(@empty, comments, value, state)
 
-    Enum.reduce(blocks, {acc, state}, fn {key, value}, {acc, state} ->
-      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), value, state)
+    Enum.reduce(blocks, {acc, state}, fn {key, comments, value}, {acc, state} ->
+      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), comments, value, state)
       {line(acc, doc), state}
     end)
   end
 
-  defp do_end_block_to_algebra(key_doc, value, state) do
-    case clauses_to_algebra(value, state) do
-      {@empty, state} -> {key_doc, state}
-      {value_doc, state} -> {key_doc |> line(value_doc) |> nest(2), state}
+  # Comments on the keyword itself (such as `else # comment`)
+  # are moved to the beginning of the block body
+  defp do_end_block_to_algebra(key_doc, comments, value, state) do
+    {value_doc, state} = clauses_to_algebra(value, state)
+
+    case prepend_comments(value_doc, format_comments(comments, :leading)) do
+      @empty -> {key_doc, state}
+      value_doc -> {key_doc |> line(value_doc) |> nest(2), state}
     end
   end
 

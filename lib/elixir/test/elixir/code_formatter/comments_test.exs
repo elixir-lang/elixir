@@ -846,6 +846,92 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with trailing comments on block keywords" do
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      try do
+        hello
+      rescue # rescue
+        _ -> world
+      catch # catch
+        _ -> world
+      else # else
+        _ -> world
+      after # after
+        world
+      end
+      """
+
+      assert_format ambiguous, ~S"""
+      try do
+        hello
+      rescue
+        # rescue
+        _ -> world
+      catch
+        # catch
+        _ -> world
+      else
+        # else
+        _ -> world
+      after
+        # after
+        world
+      end
+      """
+
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      if hello do
+        world
+      else # else
+      end
+      """
+
+      assert_format ambiguous, ~S"""
+      if hello do
+        world
+      else
+        # else
+      end
+      """
+
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      foo(
+        hello
+      ) do # do
+        world
+      end
+      """
+
+      assert_format ambiguous, ~S"""
+      foo(hello) do
+        # do
+        world
+      end
+      """
+
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      if hello,
+        do: world, # do
+        else: world # else
+      """
+
+      assert_format ambiguous,
+                    ~S"""
+                    if hello do
+                      # do
+                      world
+                    else
+                      # else
+                      world
+                    end
+                    """,
+                    force_do_end_blocks: true
+    end
+
     test "with comment inside before and after" do
       assert_same ~S"""
       assert do
