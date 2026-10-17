@@ -453,6 +453,13 @@ defmodule Protocol do
 
   Does not load any of the protocols.
 
+  ## Options
+
+    * `:skip_consolidated` - when `true`, skips protocols which have
+      already been consolidated. Protocols compiled by earlier Elixir
+      versions are also skipped, as they cannot be consolidated by the
+      current version. Defaults to `false`.
+
   ## Examples
 
       # Get Elixir's ebin directory path and retrieve all protocols
@@ -462,12 +469,19 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_protocols([charlist | String.t() | {charlist, [charlist]}]) :: [atom]
-  def extract_protocols(paths) do
+  @spec extract_protocols([charlist | String.t() | {charlist, [charlist]}], keyword) :: [atom]
+  def extract_protocols(paths, opts \\ []) do
+    skip_consolidated? = Keyword.get(opts, :skip_consolidated, false)
+
     extract_matching_by_attribute(paths, [?E, ?l, ?i, ?x, ?i, ?r, ?.], fn module, attributes ->
       case attributes[:__protocol__] do
-        [fallback_to_any: _] -> module
-        _ -> nil
+        # Protocols without the :consolidated key come from earlier Elixir versions,
+        # which we cannot consolidate anyway since we changed the consolidation format
+        [{:fallback_to_any, _} | rest] ->
+          if skip_consolidated? and Keyword.get(rest, :consolidated, true), do: nil, else: module
+
+        _ ->
+          nil
       end
     end)
   end
@@ -586,7 +600,7 @@ defmodule Protocol do
     with {:ok, any, definitions, checker, compile_info} <- beam_protocol(protocol),
          {:ok, definitions, checker} <-
            consolidate(protocol, any, definitions, checker, types),
-         do: compile(definitions, checker, compile_info)
+         do: compile(definitions, checker, any, compile_info)
   end
 
   defp beam_protocol(protocol) do
@@ -599,7 +613,7 @@ defmodule Protocol do
         %{attributes: attributes, definitions: definitions} = module_map
 
         case attributes[:__protocol__] do
-          [fallback_to_any: any] ->
+          [{:fallback_to_any, any} | _] ->
             checker =
               with true <- is_binary(checker),
                    {@elixir_checker_version, contents} <- :erlang.binary_to_term(checker) do
@@ -848,8 +862,11 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(definitions, checker, {module_map, specs, docs_chunk}) do
-    module_map = %{module_map | definitions: definitions}
+  defp compile(definitions, checker, any, {module_map, specs, docs_chunk}) do
+    protocol = {:__protocol__, [fallback_to_any: any, consolidated: true]}
+    attributes = List.keystore(module_map.attributes, :__protocol__, 0, protocol)
+
+    module_map = %{module_map | definitions: definitions, attributes: attributes}
     {:ok, :elixir_erl.consolidate(module_map, checker, specs, docs_chunk)}
   end
 
@@ -1052,7 +1069,7 @@ defmodule Protocol do
         # Store information as an attribute so it
         # can be read without loading the module.
         Module.register_attribute(__MODULE__, :__protocol__, persist: true)
-        @__protocol__ [fallback_to_any: !!@fallback_to_any]
+        @__protocol__ [fallback_to_any: !!@fallback_to_any, consolidated: false]
 
         @doc false
         @spec __protocol__(:module) :: __MODULE__

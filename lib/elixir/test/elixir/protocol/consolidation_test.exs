@@ -157,6 +157,12 @@ defmodule Protocol.ConsolidationTest do
     assert WithAny.__protocol__(:impls) == {:consolidated, [Any, Map, ImplStruct]}
     assert NoImpl.__protocol__(:consolidated?)
     assert NoImpl.__protocol__(:impls) == {:consolidated, []}
+
+    assert Sample.__info__(:attributes)[:__protocol__] ==
+             [fallback_to_any: false, consolidated: true]
+
+    assert WithAny.__info__(:attributes)[:__protocol__] ==
+             [fallback_to_any: true, consolidated: true]
   end
 
   describe "exports" do
@@ -285,6 +291,23 @@ defmodule Protocol.ConsolidationTest do
       protos = Protocol.extract_protocols([{path, mods}])
       assert Enumerable in protos
       assert Inspect in protos
+    end
+
+    @tag :tmp_dir
+    test "protocols skipping consolidated", %{tmp_dir: tmp_dir} do
+      File.write!(
+        Path.join(tmp_dir, "Elixir.Protocol.ConsolidationTest.Sample.beam"),
+        sample_binary()
+      )
+
+      paths = [tmp_dir, Application.app_dir(:elixir, "ebin")]
+      protos = Protocol.extract_protocols(paths)
+      assert Sample in protos
+      assert Enumerable in protos
+
+      protos = Protocol.extract_protocols(paths, skip_consolidated: true)
+      refute Sample in protos
+      assert Enumerable in protos
     end
 
     test "implementations with charlist path" do
