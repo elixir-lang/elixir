@@ -1300,6 +1300,50 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with trailing comments after the right operand" do
+      bad = """
+      assert %{
+               status: 200
+             } = conn # check response
+      """
+
+      assert_format bad, """
+      assert %{
+               status: 200
+             } =
+               # check response
+               conn
+      """
+
+      bad = """
+      foo(
+        a
+      ) == bar(b) # comment
+      """
+
+      assert_format bad, """
+      foo(a) ==
+        # comment
+        bar(b)
+      """
+
+      bad = """
+      [
+        a
+      ] ++ b + c # comment
+      """
+
+      assert_format bad, """
+      [
+        a
+      ] ++
+        (
+          # comment
+          b + c
+        )
+      """
+    end
+
     test "handles nodes without meta info" do
       assert_same "(a -> b) |> (c -> d)"
       assert_same "(a -> b) when c: d"

@@ -895,7 +895,7 @@ defmodule Code.Formatter do
           {" " <> op_string <> " ", group(right)}
 
         true ->
-          eol? = eol?(meta, state)
+          eol? = eol?(meta, state) or operand_leading_comments?(right_arg)
 
           next_break_fits? =
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
@@ -987,7 +987,7 @@ defmodule Code.Formatter do
 
           operand = prepend_comments(operand, leading_comments)
 
-          if leading_comments == [] do
+          if leading_comments == [] and not operand_leading_comments?(left) do
             {wrap_in_parens(operand), state}
           else
             {"(" |> line(operand) |> nest(2) |> line(")") |> force_unfit(), state}
@@ -2525,6 +2525,13 @@ defmodule Code.Formatter do
   end
 
   defp leading_comments?(_), do: false
+
+  defp operand_leading_comments?({_, meta, args} = quoted) when is_list(meta) do
+    Keyword.has_key?(meta, :leading_comments) or
+      (binary_operator?(quoted) and operand_leading_comments?(hd(args)))
+  end
+
+  defp operand_leading_comments?(_), do: false
 
   defp force_args?(args) do
     match?([_ | _], args) and force_args?(args, %{})
