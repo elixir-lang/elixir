@@ -2442,17 +2442,17 @@ defmodule Code.Formatter do
     end
   end
 
-  defp next_break_fits?({:{}, meta, _args}, state) do
-    eol?(meta, state)
+  defp next_break_fits?({:{}, meta, args}, state) do
+    eol_or_comments?(meta, args, state)
   end
 
-  defp next_break_fits?({:__block__, meta, [{_, _}]}, state) do
-    eol?(meta, state)
+  defp next_break_fits?({:__block__, meta, [{left, right}]}, state) do
+    eol_or_comments?(meta, [left, right], state)
   end
 
   defp next_break_fits?({:<<>>, meta, [_ | _] = entries}, state) do
     meta[:delimiter] == ~s["""] or
-      (not interpolated?(entries) and eol?(meta, state))
+      (not interpolated?(entries) and eol_or_comments?(meta, entries, state))
   end
 
   # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
@@ -2488,6 +2488,19 @@ defmodule Code.Formatter do
   defp next_break_fits?(_, _state) do
     false
   end
+
+  defp eol_or_comments?(meta, args, state) do
+    eol?(meta, state) or meta[:closing][:leading_comments] != nil or
+      Enum.any?(args, &comments?/1)
+  end
+
+  defp comments?({_, meta, _}) when is_list(meta) do
+    Keyword.has_key?(meta, :leading_comments) or Keyword.has_key?(meta, :trailing_comments)
+  end
+
+  defp comments?({left, right}), do: comments?(left) or comments?(right)
+  defp comments?(list) when is_list(list), do: Enum.any?(list, &comments?/1)
+  defp comments?(_), do: false
 
   # A literal list is a keyword or (... -> ...)
   defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?, _skip_parens?) do
