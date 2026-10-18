@@ -1657,6 +1657,84 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
+    test "with comments inside the last argument" do
+      bad = ~S"""
+      assert_receive {:event,
+        # comment
+        {:warning, 1}}
+      """
+
+      assert_format bad, ~S"""
+      assert_receive {
+        :event,
+        # comment
+        {:warning, 1}
+      }
+      """
+
+      bad = ~S"""
+      foo(bar, {:a, :b,
+        # comment
+        :c})
+      """
+
+      assert_format bad, ~S"""
+      foo(bar, {
+        :a,
+        :b,
+        # comment
+        :c
+      })
+      """
+
+      bad = ~S"""
+      foo({:a,
+        :b
+        # comment
+      })
+      """
+
+      assert_format bad, ~S"""
+      foo({
+        :a,
+        :b
+        # comment
+      })
+      """
+
+      bad = ~S"""
+      foo(key: <<1,
+        # comment
+        2>>)
+      """
+
+      assert_format bad, ~S"""
+      foo(
+        key: <<
+          1,
+          # comment
+          2
+        >>
+      )
+      """
+
+      bad = ~S"""
+      %{key => {:a,
+        # comment
+        :b}}
+      """
+
+      assert_format bad, ~S"""
+      %{
+        key => {
+          :a,
+          # comment
+          :b
+        }
+      }
+      """
+    end
+
     test "with comments inside maps before and after" do
       bad = ~S"""
       %{
