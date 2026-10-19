@@ -353,6 +353,9 @@ defmodule Duration do
 
   Only seconds may be specified with a decimal fraction, using either a comma or a full stop: `P1DT4,5S`.
 
+  Inputs longer than 192 bytes are rejected, which is enough to parse each unit as a maximum signed
+  64-bit integer (although it also allows parsing a single unit with 190 digits).
+
   ## Examples
 
       iex> Duration.from_iso8601("P1Y2M3DT4H5M6S")
