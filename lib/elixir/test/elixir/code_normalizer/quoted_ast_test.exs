@@ -405,6 +405,21 @@ defmodule Code.Normalizer.QuotedASTTest do
       """
 
       assert quoted_to_string(quoted) <> "\n" == expected
+
+      quoted =
+        quote do
+          callback.(arg) do
+            :ok
+          end
+        end
+
+      expected = """
+      callback.(arg) do
+        :ok
+      end
+      """
+
+      assert quoted_to_string(quoted) <> "\n" == expected
     end
 
     test "range" do

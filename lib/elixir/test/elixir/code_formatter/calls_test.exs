@@ -849,6 +849,35 @@ defmodule Code.Formatter.CallsTest do
       # Doesn't preserve this because only the ending has a newline
       assert_format "call.(foo, bar, baz\n)", "call.(foo, bar, baz)"
     end
+
+    test "with do-end blocks" do
+      assert_format "callback.(conn, opts) do :ok end", """
+      callback.(conn, opts) do
+        :ok
+      end
+      """
+
+      assert_same """
+      callback.() do
+        :ok
+      end
+      """
+
+      assert_same """
+      callback.(arg) do
+        :ok
+      else
+        :error
+      end
+      """
+
+      assert_same """
+      result =
+        callback.(arg) do
+          :ok
+        end
+      """
+    end
   end
 
   describe "do-end blocks" do
