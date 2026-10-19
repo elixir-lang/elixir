@@ -706,15 +706,15 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom}
-  def parse_duration("P" <> string) when byte_size(string) > 0 do
+  def parse_duration("P" <> string) when byte_size(string) in 1..191 do
     parse_duration_date(string, 1, [], 0)
   end
 
-  def parse_duration("+P" <> string) when byte_size(string) > 0 do
+  def parse_duration("+P" <> string) when byte_size(string) in 1..190 do
     parse_duration_date(string, 1, [], 0)
   end
 
-  def parse_duration("-P" <> string) when byte_size(string) > 0 do
+  def parse_duration("-P" <> string) when byte_size(string) in 1..190 do
     parse_duration_date(string, -1, [], 0)
   end
 
