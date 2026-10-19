@@ -177,6 +177,14 @@ defmodule Regex do
       iex> Regex.replace(~r/\s/u, "Unicode\u00A0spaces", "-")
       "Unicode-spaces"
 
+  ## Match limits
+
+  The underlying regex engine limits how much backtracking a single match
+  may perform. Patterns with nested quantifiers, such as `~r/(a+)+$/`, may
+  reach this limit on certain inputs (known as catastrophic backtracking).
+  When that happens, the functions in this module raise `SystemLimitError`
+  (since Elixir v1.21) instead of returning no match, since the outcome of
+  the match is unknown.
   """
 
   defstruct re_pattern: nil, source: "", opts: []
@@ -616,7 +624,19 @@ defmodule Regex do
     end
   end
 
-  defp safe_run(%Regex{re_pattern: re_pattern} = regex, string, options) do
+  defp safe_run(regex, string, options) do
+    case do_run(regex, string, [:report_errors | options]) do
+      {:error, reason} ->
+        raise SystemLimitError,
+              "regex #{inspect(regex)} could not complete the match because it " <>
+                "reached #{inspect(reason)}, see the \"Match limits\" section in the Regex docs"
+
+      result ->
+        result
+    end
+  end
+
+  defp do_run(%Regex{re_pattern: re_pattern} = regex, string, options) do
     # TODO: Remove me when Erlang/OTP 28+ is required
     # This allows regexes precompiled on Erlang/OTP 27- to work on Erlang/OTP 28+
     with {:re_pattern, _, _, _, <<_::bitstring>>} <- re_pattern,

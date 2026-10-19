@@ -363,6 +363,22 @@ defmodule RegexTest do
     assert Regex.escape("\u0080\u200D\u2030ą") == "\u0080\u200D\u2030ą"
   end
 
+  test "raises when the match limit is reached" do
+    regex = ~r/(a+)+$/
+    string = String.duplicate("a", 30) <> "b"
+    message = ~r/could not complete the match because it reached :match_limit/
+
+    assert_raise SystemLimitError, message, fn -> Regex.match?(regex, string) end
+    assert_raise SystemLimitError, message, fn -> Regex.run(regex, string) end
+    assert_raise SystemLimitError, message, fn -> Regex.scan(regex, string) end
+    assert_raise SystemLimitError, message, fn -> Regex.split(regex, string) end
+    assert_raise SystemLimitError, message, fn -> Regex.replace(regex, string, "") end
+
+    assert_raise SystemLimitError, message, fn ->
+      Regex.named_captures(~r/(?<all>(a+)+$)/, string)
+    end
+  end
+
   defp matches_escaped?(string) do
     matches_escaped?(string, string)
   end
