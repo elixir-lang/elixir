@@ -349,6 +349,18 @@ defmodule RegexTest do
 
     assert Regex.escape("{foo}") == "\\{foo\\}"
     assert Regex.escape("[foo]") == "\\[foo\\]"
+
+    # Ignored in extended mode since Erlang/OTP 28
+    for char <- ["\u0085", "\u200E", "\u200F", "\u2028", "\u2029"] do
+      string = "a#{char}b"
+      assert Regex.escape(string) == "a\\#{char}b"
+      assert Regex.match?(~r/^#{Regex.escape(string)}$/xu, string)
+      assert Regex.match?(~r/^#{Regex.escape(string)}$/u, string)
+      assert Regex.match?(~r/^#{Regex.escape(string)}$/, string)
+    end
+
+    # Other characters sharing the same leading bytes are untouched
+    assert Regex.escape("\u0080\u200D\u2030ą") == "\u0080\u200D\u2030ą"
   end
 
   defp matches_escaped?(string) do

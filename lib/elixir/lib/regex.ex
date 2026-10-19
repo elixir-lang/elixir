@@ -92,7 +92,11 @@ defmodule Regex do
       each line; use `\A` and `\z` to match the end or beginning of the string
 
     * `:extended` (x) - whitespace characters are ignored except when escaped
-      or within `[..]`, and allow `#` to delimit comments
+      or within `[..]`, and allow `#` to delimit comments. Since Erlang/OTP 28,
+      U+0085, U+200E, U+200F, U+2028, and U+2029 are also ignored. Without
+      `:unicode`, this means the byte `0x85` is ignored even when it is part
+      of a multibyte UTF-8 character (such as "ą" or "х"), so always enable
+      `:unicode` when using `:extended` with non-ASCII patterns
 
     * `:firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
@@ -991,6 +995,17 @@ defmodule Regex do
 
   defp escape(<<char, rest::binary>>, length, original) when char in @escapable do
     escape_char(rest, length, original, char)
+  end
+
+  # U+0085, U+200E, U+200F, U+2028, and U+2029 are ignored in extended mode
+  # since Erlang/OTP 28 (PCRE2), so we escape them too
+  defp escape(<<0xC2, 0x85, rest::binary>>, length, original) do
+    escape_char(rest, length, original, <<0xC2, 0x85>>)
+  end
+
+  defp escape(<<0xE2, 0x80, char, rest::binary>>, length, original)
+       when char in [0x8E, 0x8F, 0xA8, 0xA9] do
+    escape_char(rest, length, original, <<0xE2, 0x80, char>>)
   end
 
   defp escape(<<_, rest::binary>>, length, original) do
