@@ -1137,7 +1137,7 @@ defmodule Code.Formatter do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, meta, context, :skip_if_do_end, true, state)
+      call_args_to_algebra(args, meta, context, :required, true, state)
 
     doc = concat(concat(target_doc, "."), call_doc)
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
