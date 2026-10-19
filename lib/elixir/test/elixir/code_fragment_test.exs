@@ -245,6 +245,14 @@ defmodule CodeFragmentTest do
                {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Wor"}
 
       assert CF.cursor_context("@foo.Wor") == {:alias, {:module_attribute, ~c"foo"}, ~c"Wor"}
+
+      assert CF.cursor_context("Hello.Big.Wor") == {:alias, ~c"Hello.Big.Wor"}
+
+      assert CF.cursor_context("hello.Big.World") ==
+               {:alias, {:local_or_var, ~c"hello"}, ~c"Big.World"}
+
+      assert CF.cursor_context("@foo.Big.Wor") ==
+               {:alias, {:module_attribute, ~c"foo"}, ~c"Big.Wor"}
     end
 
     test "structs" do
@@ -279,6 +287,14 @@ defmodule CodeFragmentTest do
 
       assert CF.cursor_context("%@foo.Wor") ==
                {:struct, {:alias, {:module_attribute, ~c"foo"}, ~c"Wor"}}
+
+      assert CF.cursor_context("%Hello.Big.Wor") == {:struct, ~c"Hello.Big.Wor"}
+
+      assert CF.cursor_context("%__MODULE__.Big.Wor") ==
+               {:struct, {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Big.Wor"}}
+
+      assert CF.cursor_context("%@foo.Big.Wor") ==
+               {:struct, {:alias, {:module_attribute, ~c"foo"}, ~c"Big.Wor"}}
     end
 
     test "unquoted atom" do

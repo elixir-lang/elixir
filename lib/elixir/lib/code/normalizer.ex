@@ -202,7 +202,7 @@ defmodule Code.Normalizer do
 
     if args != [] and match?([_ | _], last_arg) and keyword?(last_arg) do
       args = normalize_args(args, state)
-      kw_list = normalize_kw_args(last_arg, state, true)
+      kw_list = normalize_kw_args(last_arg, state, 0)
       {:{}, meta, args ++ kw_list}
     else
       normalize_call(quoted, state)
@@ -214,7 +214,7 @@ defmodule Code.Normalizer do
     value =
       cond do
         keyword?(value) and value != [] ->
-          normalize_kw_args(value, state, true)
+          normalize_kw_args(value, state, 0)
 
         is_list(value) ->
           normalize_literal(value, meta, state)
@@ -286,7 +286,7 @@ defmodule Code.Normalizer do
     state = %{state | parent_meta: meta}
 
     if match?([_ | _], right) and keyword?(right) do
-      {:__block__, meta, [{do_normalize(left, state), normalize_kw_args(right, state, true)}]}
+      {:__block__, meta, [{do_normalize(left, state), normalize_kw_args(right, state, 0)}]}
     else
       {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
     end
@@ -317,7 +317,7 @@ defmodule Code.Normalizer do
           meta
         end
 
-      {:__block__, meta, [normalize_kw_args(list, state, false)]}
+      {:__block__, meta, [normalize_kw_args(list, state, keyword_start(list))]}
     end
   end
 
@@ -479,7 +479,7 @@ defmodule Code.Normalizer do
   end
 
   defp normalize_map_args(args, state) do
-    Enum.map(normalize_kw_args(args, state, false), fn
+    Enum.map(normalize_kw_args(args, state, keyword_start(args)), fn
       {:__block__, _, [{_, _} = pair]} -> pair
       pair -> pair
     end)
@@ -512,15 +512,17 @@ defmodule Code.Normalizer do
     {form, meta, leading_args ++ [kw_blocks]}
   end
 
-  defp normalize_kw_args(elems, state, keyword?)
+  # The last argument is how many elements are left until the
+  # trailing keyword list starts (0 if we are already in it)
+  defp normalize_kw_args(elems, state, until_keyword)
 
   defp normalize_kw_args(
-         [{{:__block__, key_meta, [key]}, value} = first | rest] = current,
+         [{{:__block__, key_meta, [key]}, value} = first | rest],
          state,
-         keyword?
+         until_keyword
        )
        when is_atom(key) do
-    keyword? = keyword? or keyword?(current)
+    keyword? = until_keyword == 0
 
     first =
       if key_meta[:format] == :keyword and not keyword? do
@@ -531,11 +533,11 @@ defmodule Code.Normalizer do
         first
       end
 
-    [first | normalize_kw_args(rest, state, keyword?)]
+    [first | normalize_kw_args(rest, state, max(until_keyword - 1, 0))]
   end
 
-  defp normalize_kw_args([{left, right} | rest] = current, state, keyword?) do
-    keyword? = keyword? or keyword?(current)
+  defp normalize_kw_args([{left, right} | rest], state, until_keyword) do
+    keyword? = until_keyword == 0
 
     left =
       if keyword? do
@@ -555,16 +557,26 @@ defmodule Code.Normalizer do
         _ -> {:__block__, meta_line(state), [{left, right}]}
       end
 
-    [pair | normalize_kw_args(rest, state, keyword?)]
+    [pair | normalize_kw_args(rest, state, max(until_keyword - 1, 0))]
   end
 
-  defp normalize_kw_args([first | rest], state, keyword?) do
-    [do_normalize(first, state) | normalize_kw_args(rest, state, keyword?)]
+  defp normalize_kw_args([first | rest], state, until_keyword) do
+    [do_normalize(first, state) | normalize_kw_args(rest, state, max(until_keyword - 1, 0))]
   end
 
-  defp normalize_kw_args([], _state, _keyword?) do
+  defp normalize_kw_args([], _state, _until_keyword) do
     []
   end
+
+  defp keyword_start(list) do
+    length(list) - keyword_suffix_length(:lists.reverse(list), 0)
+  end
+
+  defp keyword_suffix_length([head | tail], acc) do
+    if keyword_pair?(head), do: keyword_suffix_length(tail, acc + 1), else: acc
+  end
+
+  defp keyword_suffix_length([], acc), do: acc
 
   defp normalize_args(args, state) do
     Enum.map(args, &do_normalize(&1, state))
@@ -619,21 +631,20 @@ defmodule Code.Normalizer do
     end
   end
 
-  defp keyword?([{{:__block__, key_meta, [key]}, _} | rest]) when is_atom(key) do
-    if key_meta[:format] == :keyword do
-      keyword?(rest)
-    else
-      false
-    end
-  end
-
-  defp keyword?([{key, _value} | rest]) when is_atom(key) do
-    case Atom.to_charlist(key) do
-      ~c"Elixir." ++ _ -> false
-      _ -> keyword?(rest)
-    end
-  end
-
+  defp keyword?([head | rest]), do: keyword_pair?(head) and keyword?(rest)
   defp keyword?([]), do: true
   defp keyword?(_other), do: false
+
+  defp keyword_pair?({{:__block__, key_meta, [key]}, _}) when is_atom(key) do
+    key_meta[:format] == :keyword
+  end
+
+  defp keyword_pair?({key, _value}) when is_atom(key) do
+    case Atom.to_charlist(key) do
+      ~c"Elixir." ++ _ -> false
+      _ -> true
+    end
+  end
+
+  defp keyword_pair?(_other), do: false
 end

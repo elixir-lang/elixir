@@ -367,16 +367,7 @@ defmodule Code.Fragment do
         {{:unquoted_atom, acc}, count}
 
       {:alias, rest, acc, count} ->
-        case strip_spaces(rest, count) do
-          {~c"." ++ rest, count} when rest == [] or hd(rest) != ?. ->
-            nested_alias(rest, count + 1, acc)
-
-          {~c"%" ++ _, count} ->
-            {{:struct, acc}, count + 1}
-
-          _ ->
-            {{:alias, acc}, count}
-        end
+        alias_to_cursor_context(rest, count, acc)
 
       {:identifier, _, acc, count} when call_op? and acc in @textual_operators ->
         {{:operator, acc}, count}
@@ -501,33 +492,42 @@ defmodule Code.Fragment do
     end
   end
 
+  defp alias_to_cursor_context(rest, count, acc) do
+    case strip_spaces(rest, count) do
+      {~c"." ++ rest, count} when rest == [] or hd(rest) != ?. ->
+        nested_alias(rest, count + 1, acc)
+
+      {~c"%" ++ _, count} ->
+        {{:struct, acc}, count + 1}
+
+      _ ->
+        {{:alias, acc}, count}
+    end
+  end
+
+  # Aliases are handled directly, so we only prepend the previous
+  # segment to acc, instead of appending acc to everything before it
   defp nested_alias(rest, count, acc) do
     {rest, count} = strip_spaces(rest, count)
 
-    case identifier_to_cursor_context(rest, count, true) do
-      {{:struct, prev}, count} when is_list(prev) ->
-        {{:struct, prev ++ ~c"." ++ acc}, count}
-
-      {{:struct, {:alias, parent, prev}}, count} ->
-        {{:struct, {:alias, parent, prev ++ ~c"." ++ acc}}, count}
-
-      {{:struct, prev}, count} ->
-        {{:struct, {:alias, prev, acc}}, count}
-
-      {{:alias, prev}, count} ->
-        {{:alias, prev ++ ~c"." ++ acc}, count}
-
-      {{:alias, parent, prev}, count} ->
-        {{:alias, parent, prev ++ ~c"." ++ acc}, count}
-
-      {{:local_or_var, prev}, count} ->
-        {{:alias, {:local_or_var, prev}, acc}, count}
-
-      {{:module_attribute, prev}, count} ->
-        {{:alias, {:module_attribute, prev}, acc}, count}
+    case identifier(rest, count) do
+      {:alias, rest, prev, count} ->
+        alias_to_cursor_context(rest, count, prev ++ ~c"." ++ acc)
 
       _ ->
-        {:none, 0}
+        case identifier_to_cursor_context(rest, count, true) do
+          {{:struct, prev}, count} ->
+            {{:struct, {:alias, prev, acc}}, count}
+
+          {{:local_or_var, prev}, count} ->
+            {{:alias, {:local_or_var, prev}, acc}, count}
+
+          {{:module_attribute, prev}, count} ->
+            {{:alias, {:module_attribute, prev}, acc}, count}
+
+          _ ->
+            {:none, 0}
+        end
     end
   end
 
