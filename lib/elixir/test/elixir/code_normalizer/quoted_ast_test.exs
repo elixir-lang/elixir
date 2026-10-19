@@ -245,6 +245,8 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "not in" do
       assert quoted_to_string(quote(do: false not in [])) == "false not in []"
+      assert quoted_to_string({:in, [], [quote(do: !foo), []]}) == "(!foo) in []"
+      assert quoted_to_string({:in, [], [quote(do: not foo), []]}) == "(not foo) in []"
     end
 
     test "if else" do

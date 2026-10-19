@@ -875,6 +875,16 @@ defmodule Code.Formatter do
     operand_to_algebra_with_comments(pipes, meta, state, fun)
   end
 
+  # TODO: We can remove this workaround once we remove
+  # ?rearrange_uop from the parser on v2.0.
+  # (! left) in right
+  # (not left) in right
+  defp binary_op_to_algebra(:in, "in", meta, {op, _, [_]} = left, right, context, state, nesting)
+       when op in [:not, :!] do
+    left = {:__block__, [], [left]}
+    binary_op_to_algebra(:in, "in", meta, left, right, context, state, nesting)
+  end
+
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting) do
     op_info = augmented_binary_op(op)
     left_context = left_op_context(context)
