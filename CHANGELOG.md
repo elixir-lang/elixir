@@ -192,6 +192,33 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
+## v1.20.5-dev
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Calendar.ISO] Optimize `Calendar.ISO.parse_duration/1`
+  * [Kernel] Improve boot time by parsing the Erlang/OTP release with `list_to_integer/1`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Date] Fix `Date.from_gregorian_days/2` passing an invalid day fraction to non-ISO calendars
+  * [Duration] Fix `Duration.from_iso8601/1` accepting a fractional seconds component after whole seconds, such as `PT1S2.5S`
+  * [Duration] Reject inputs longer than 192 bytes in `Duration.from_iso8601/1`
+  * [Regex] Raise `SystemLimitError` when a match reaches the regex engine match limit, instead of returning no match
+  * [String] Skip U+055F (Armenian abbreviation mark) when applying the Greek final sigma rule in `String.downcase/2` and `String.capitalize/2`
+
+#### IEx
+
+  * [IEx] Do not halt the remote node when the remote shell receives EOF with `--remsh`
+
+#### Mix
+
+  * [mix xref] Fix outgoing compile-connected counts in `mix xref graph --format stats`
+
 ## v1.20.4 (2026-08-28)
 
 ### 1. Security
