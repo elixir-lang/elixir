@@ -789,6 +789,37 @@ defmodule Code.Formatter.CommentsTest do
       end
       """
     end
+
+    test "with comments between clause arguments" do
+      bad = """
+      Enum.reduce(list, acc, fn {a, b},
+                                # comment
+                                acc ->
+        acc
+      end)
+      """
+
+      assert_format bad, """
+      Enum.reduce(list, acc, fn
+        # comment
+        {a, b}, acc ->
+          acc
+      end)
+      """
+
+      bad = """
+      @type t :: (a,
+                  # comment
+                  b -> c)
+      """
+
+      assert_format bad, """
+      @type t :: (
+              # comment
+              a, b -> c
+            )
+      """
+    end
   end
 
   describe "do-end blocks" do
@@ -1344,6 +1375,94 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with leading comments on right-associative operators inside calls" do
+      assert_same """
+      foo(
+        # c
+        a ++ b
+      )
+      """
+
+      assert_same """
+      foo(
+        # c
+        a <> b
+      )
+      """
+    end
+
+    test "with end-of-line comments on pipelines in assignments" do
+      bad = """
+      y =
+        x |> f() |> g() # c
+
+      z
+      """
+
+      assert_format bad, """
+      y =
+        # c
+        x |> f() |> g()
+
+      z
+      """
+    end
+
+    test "with end-of-line comments on pipelines in case clauses" do
+      bad = """
+      case x do
+        :a ->
+          y |> f() # c
+
+        _ ->
+          :ok
+      end
+      """
+
+      assert_format bad, """
+      case x do
+        :a ->
+          # c
+          y |> f()
+
+        _ ->
+          :ok
+      end
+      """
+    end
+
+    test "with end-of-line comments on spec unions" do
+      bad = """
+      @spec f() ::
+        {:ok, t} | :error # c
+
+      def f, do: :ok
+      """
+
+      assert_format bad, """
+      @spec f() ::
+              # c
+              {:ok, t} | :error
+
+      def f, do: :ok
+      """
+    end
+
+    test "with end-of-line comments on operands in parens" do
+      bad = """
+      total =
+        (a - b) * 3 + # c
+          (e - f)
+      """
+
+      assert_format bad, """
+      total =
+        # c
+        (a - b) * 3 +
+          (e - f)
+      """
+    end
+
     test "handles nodes without meta info" do
       assert_same "(a -> b) |> (c -> d)"
       assert_same "(a -> b) when c: d"
@@ -1513,6 +1632,42 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
+    test "with end-of-line comments and blank lines inside lists" do
+      bad = """
+      [
+        a, # c
+
+        d
+      ]
+      """
+
+      assert_format bad, """
+      [
+        # c
+        a,
+        d
+      ]
+      """
+    end
+
+    test "with end-of-line comments and blank lines inside calls" do
+      bad = """
+      foo(
+        a, # c
+
+        d
+      )
+      """
+
+      assert_format bad, """
+      foo(
+        # c
+        a,
+        d
+      )
+      """
+    end
+
     test "with comments inside tuples before and after" do
       bad = ~S"""
       {
@@ -1655,6 +1810,23 @@ defmodule Code.Formatter.CommentsTest do
       """
 
       assert_format bad, good
+    end
+
+    test "with comments between bitstring segments" do
+      bad = """
+      <<a::8, b::8,
+        # c
+        c::8>>
+      """
+
+      assert_format bad, """
+      <<
+        a::8,
+        b::8,
+        # c
+        c::8
+      >>
+      """
     end
 
     test "with comments inside the last argument" do
