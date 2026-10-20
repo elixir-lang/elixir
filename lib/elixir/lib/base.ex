@@ -165,17 +165,20 @@ defmodule Base do
   @swar_mask80 0x80808080808080
   @swar_fold_case 0x20202020202020
 
-  # For general lo..hi, XOR-ing `x + (0x80 - lo)` and `x + (0x7F - hi)` sets
-  # the high bit of an ASCII lane iff its byte is in lo..hi.
-  # For 0..9, 2..7, or single bytes, XOR-ing with lo (or hi for 2..7) maps the
-  # range onto 0..(hi - lo), so adding `0x7F - hi + lo` sets the high bit iff
-  # its byte is outside lo..hi.
+  # Each check sets the high bit of an ASCII lane either when its byte is inside
+  # `lo..hi` or when its byte is outside `?0..?9`, `?2..?7`, or `c` (where XOR
+  # maps the valid bytes onto `0..span` so a single addition suffices). Because
+  # each alphabet's ranges are disjoint and include an odd number (1 or 3) of
+  # outside-range checks, XOR-ing all masks sets the high bit iff the byte is
+  # outside every range.
   ones = 0x01010101010101
 
-  in_range = fn
-    x, lo..hi//1 when lo == hi or lo in [?0, ?2] ->
-      xor_constant = if lo == ?2, do: hi, else: lo
-      quote do: bxor(unquote(x), unquote(xor_constant * ones)) + unquote((0x7F - hi + lo) * ones)
+  range_mask = fn
+    x, ?0..?9 ->
+      quote do: bxor(unquote(x), unquote(?0 * ones)) + unquote((0x7F - 9) * ones)
+
+    x, ?2..?7 ->
+      quote do: bxor(unquote(x), unquote(?7 * ones)) + unquote((0x7F - 5) * ones)
 
     x, lo..hi//1 ->
       quote do:
@@ -183,6 +186,9 @@ defmodule Base do
                 unquote(x) + unquote((0x80 - lo) * ones),
                 unquote(x) + unquote((0x7F - hi) * ones)
               )
+
+    x, c ->
+      quote do: bxor(unquote(x), unquote(c * ones)) + unquote(0x7F * ones)
   end
 
   for {name, ranges, folded} <- [
@@ -195,12 +201,12 @@ defmodule Base do
         {:valid_word32hexupper?, [?A..?V, ?0..?9], []},
         {:valid_word32hexlower?, [?a..?v, ?0..?9], []},
         {:valid_word32hexmixed?, [?0..?9], [?a..?v]},
-        {:valid_word64base?, [?/..?9, ?+..?+], [?a..?z]},
-        {:valid_word64url?, [?0..?9, ?-..?-, ?_..?_], [?a..?z]}
+        {:valid_word64base?, [?/..?9, ?+], [?a..?z]},
+        {:valid_word64url?, [?0..?9, ?-, ?_], [?a..?z]}
       ] do
     w = Macro.var(:w, __MODULE__)
     folded_w = quote do: bor(unquote(w), @swar_fold_case)
-    masks = Enum.map(folded, &in_range.(folded_w, &1)) ++ Enum.map(ranges, &in_range.(w, &1))
+    masks = Enum.map(folded, &range_mask.(folded_w, &1)) ++ Enum.map(ranges, &range_mask.(w, &1))
     invalid = Enum.reduce(masks, &quote(do: bxor(unquote(&2), unquote(&1))))
 
     @compile {:inline, [{name, 1}]}
