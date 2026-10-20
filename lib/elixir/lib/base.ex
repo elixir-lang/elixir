@@ -868,21 +868,20 @@ defmodule Base do
       end
     end
 
-    defp unquote(validate_main_name)(<<w1::56, rest::binary>>, eq?) do
-      if unquote(valid_word_name)(w1) do
-        case rest do
-          <<w2::56, rest::binary>> ->
-            if unquote(valid_word_name)(w2) do
-              unquote(validate_main_name)(rest, eq?)
-            else
-              eq? and unquote(validate_pad_name)(w2, rest)
-            end
-
-          rest ->
-            unquote(valid_word_name)(tail_word64(rest, eq?))
+    defp unquote(validate_main_name)(<<w1::56, w2::56, rest::binary>>, eq?) do
+      unquote(valid_word_name)(w1) and
+        if unquote(valid_word_name)(w2) do
+          unquote(validate_main_name)(rest, eq?)
+        else
+          eq? and unquote(validate_pad_name)(w2, rest)
         end
+    end
+
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>, eq?) do
+      if unquote(valid_word_name)(w) do
+        unquote(validate_main_name)(rest, eq?)
       else
-        eq? and unquote(validate_pad_name)(w1, rest)
+        eq? and unquote(validate_pad_name)(w, rest)
       end
     end
 
