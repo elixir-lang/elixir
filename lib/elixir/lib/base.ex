@@ -137,6 +137,24 @@ defmodule Base do
     {min, Enum.map(min..max, &map[&1])}
   end
 
+  defp bad_character!(byte) do
+    raise ArgumentError,
+          "non-alphabet character found: #{inspect(<<byte>>, binaries: :as_strings)} (byte #{byte})"
+  end
+
+  defp maybe_pad(acc, false, _count), do: acc
+  defp maybe_pad(acc, true, 6), do: acc <> "======"
+  defp maybe_pad(acc, true, 4), do: acc <> "===="
+  defp maybe_pad(acc, true, 3), do: acc <> "==="
+  defp maybe_pad(acc, true, 2), do: acc <> "=="
+  defp maybe_pad(acc, true, 1), do: acc <> "="
+
+  defp remove_ignored(string, nil), do: string
+
+  defp remove_ignored(string, :whitespace) do
+    for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
+  end
+
   # SWAR (SIMD Within A Register) validation for valid16?/2, valid32?/2,
   # hex_valid32?/2, valid64?/2 and url_valid64?/2.
   #
@@ -194,7 +212,7 @@ defmodule Base do
   # Turns the last 0..6 bytes into a 56-bit word, filled with `?2`, which is
   # valid in every alphabet.
   @compile {:inline, tail_word: 1}
-  for k <- [0, 1, 3, 4, 2, 5, 6] do
+  for k <- 0..6 do
     bits = k * 8
     pad = bsl(bsr(ones, bits) * ?2, bits)
     defp tail_word(<<w::size(unquote(bits))>>), do: bor(w, unquote(pad))
@@ -233,24 +251,6 @@ defmodule Base do
     end
 
     defp unquote(unpad_name)(_, _), do: 0
-  end
-
-  defp bad_character!(byte) do
-    raise ArgumentError,
-          "non-alphabet character found: #{inspect(<<byte>>, binaries: :as_strings)} (byte #{byte})"
-  end
-
-  defp maybe_pad(acc, false, _count), do: acc
-  defp maybe_pad(acc, true, 6), do: acc <> "======"
-  defp maybe_pad(acc, true, 4), do: acc <> "===="
-  defp maybe_pad(acc, true, 3), do: acc <> "==="
-  defp maybe_pad(acc, true, 2), do: acc <> "=="
-  defp maybe_pad(acc, true, 1), do: acc <> "="
-
-  defp remove_ignored(string, nil), do: string
-
-  defp remove_ignored(string, :whitespace) do
-    for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
   end
 
   @doc """
