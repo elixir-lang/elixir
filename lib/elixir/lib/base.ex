@@ -218,8 +218,8 @@ defmodule Base do
   # Turns the last 0..6 bytes into a 56-bit word, filled with `?2`, which is
   # valid in every alphabet.
   @compile {:inline, tail_word: 1}
-  for k <- 0..6 do
-    bits = k * 8
+  for byte_count <- 0..6 do
+    bits = byte_count * 8
     pad = bsl(bsr(ones, bits) * ?2, bits)
     defp tail_word(<<w::size(unquote(bits))>>), do: bor(w, unquote(pad))
   end
@@ -228,34 +228,41 @@ defmodule Base do
 
   # Turn trailing `=` bytes into `?2`, valid in every alphabet. A padding
   # suffix can start in the word and continue in `rest`; unmatched shapes fail.
-  for {base, pads} <- [{32, [6, 4, 3, 1]}, {64, [2, 1]}] do
+  # Try longer padding suffixes first so every trailing `=` is replaced.
+  for {base, padding_lengths} <- [{32, [6, 4, 3, 1]}, {64, [2, 1]}] do
     unpad_name = String.to_unsafe_atom("unpad_word#{base}")
     tail_name = String.to_unsafe_atom("tail_word#{base}")
     @compile {:inline, [{unpad_name, 1}]}
 
-    defmacrop unquote(tail_name)(rest, eq?) do
+    defmacrop unquote(tail_name)(rest, allow_padding?) do
       unpad_name = unquote(unpad_name)
 
       quote do
         w = tail_word(unquote(rest))
-        if unquote(eq?) and band(w, 0xFF) == ?=, do: unquote(unpad_name)(w), else: w
+        if unquote(allow_padding?) and band(w, 0xFF) == ?=, do: unquote(unpad_name)(w), else: w
       end
     end
 
-    for r <- 0..(hd(pads) - 1), p <- pads, k = p - r, k >= 1 do
-      rep = bsr(ones, 56 - 8 * k)
-      {mask, pad, flip} = {rep * 0xFF, rep * ?=, rep * bxor(?=, ?2)}
+    for rest_padding <- 0..(hd(padding_lengths) - 1),
+        total_padding <- padding_lengths,
+        word_padding = total_padding - rest_padding,
+        word_padding >= 1 do
+      padding_ones = bsr(ones, 56 - 8 * word_padding)
 
-      if r == 0 do
-        defp unquote(unpad_name)(w) when band(w, unquote(mask)) == unquote(pad),
+      {mask, padding, flip} =
+        {padding_ones * 0xFF, padding_ones * ?=, padding_ones * bxor(?=, ?2)}
+
+      if rest_padding == 0 do
+        defp unquote(unpad_name)(w) when band(w, unquote(mask)) == unquote(padding),
           do: bxor(w, unquote(flip))
       end
 
-      defp unquote(unpad_name)(w, unquote(String.duplicate("=", r)))
-           when band(w, unquote(mask)) == unquote(pad),
+      defp unquote(unpad_name)(w, unquote(String.duplicate("=", rest_padding)))
+           when band(w, unquote(mask)) == unquote(padding),
            do: bxor(w, unquote(flip))
     end
 
+    # NUL is outside every alphabet, so a zero word always fails validation.
     defp unquote(unpad_name)(_, _), do: 0
   end
 
@@ -860,6 +867,8 @@ defmodule Base do
 
     @compile {:inline, [{validate_name, 2}]}
     defp unquote(validate_name)(string, pad?) do
+      # `padding: false` accepts both padded and unpadded input. Only input
+      # lengths divisible by 4 can contain `=`.
       case byte_size(string) do
         0 -> true
         n when band(n, 3) == 0 -> unquote(validate_main_name)(string, true)
@@ -868,25 +877,25 @@ defmodule Base do
       end
     end
 
-    defp unquote(validate_main_name)(<<w1::56, w2::56, rest::binary>>, eq?) do
+    defp unquote(validate_main_name)(<<w1::56, w2::56, rest::binary>>, allow_padding?) do
       unquote(valid_word_name)(w1) and
         if unquote(valid_word_name)(w2) do
-          unquote(validate_main_name)(rest, eq?)
+          unquote(validate_main_name)(rest, allow_padding?)
         else
-          eq? and unquote(validate_pad_name)(w2, rest)
+          allow_padding? and unquote(validate_pad_name)(w2, rest)
         end
     end
 
-    defp unquote(validate_main_name)(<<w::56, rest::binary>>, eq?) do
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>, allow_padding?) do
       if unquote(valid_word_name)(w) do
-        unquote(validate_main_name)(rest, eq?)
+        unquote(validate_main_name)(rest, allow_padding?)
       else
-        eq? and unquote(validate_pad_name)(w, rest)
+        allow_padding? and unquote(validate_pad_name)(w, rest)
       end
     end
 
-    defp unquote(validate_main_name)(rest, eq?) do
-      unquote(valid_word_name)(tail_word64(rest, eq?))
+    defp unquote(validate_main_name)(rest, allow_padding?) do
+      unquote(valid_word_name)(tail_word64(rest, allow_padding?))
     end
 
     defp unquote(validate_pad_name)(w, rest) do
@@ -1450,6 +1459,8 @@ defmodule Base do
 
     @compile {:inline, [{validate_name, 2}]}
     defp unquote(validate_name)(string, pad?) do
+      # `padding: false` accepts both padded and unpadded input. Only input
+      # lengths divisible by 8 can contain `=`.
       case byte_size(string) do
         0 ->
           true
@@ -1465,16 +1476,16 @@ defmodule Base do
       end
     end
 
-    defp unquote(validate_main_name)(<<w::56, rest::binary>>, eq?) do
+    defp unquote(validate_main_name)(<<w::56, rest::binary>>, allow_padding?) do
       if unquote(valid_word_name)(w) do
-        unquote(validate_main_name)(rest, eq?)
+        unquote(validate_main_name)(rest, allow_padding?)
       else
-        eq? and unquote(valid_word_name)(unpad_word32(w, rest))
+        allow_padding? and unquote(valid_word_name)(unpad_word32(w, rest))
       end
     end
 
-    defp unquote(validate_main_name)(rest, eq?) do
-      unquote(valid_word_name)(tail_word32(rest, eq?))
+    defp unquote(validate_main_name)(rest, allow_padding?) do
+      unquote(valid_word_name)(tail_word32(rest, allow_padding?))
     end
 
     defp unquote(decode_name)(char) do
