@@ -4,19 +4,18 @@
 
 defmodule ExUnit.CaptureLog do
   @moduledoc ~S"""
-  Functionality to capture logs for testing.
+  Functionality for capturing logs in tests.
 
   ## Examples
 
       defmodule AssertionTest do
-        use ExUnit.Case
+        use ExUnit.Case, async: true
 
         import ExUnit.CaptureLog
         require Logger
 
-        test "example" do
-          {result, log} =
-            with_log(fn ->
+        test "capturing function result with `with_log`" do
+          {result, log} = with_log(fn ->
               Logger.error("log msg")
               2 + 2
             end)
@@ -25,17 +24,29 @@ defmodule ExUnit.CaptureLog do
           assert log =~ "log msg"
         end
 
-        test "check multiple captures concurrently" do
+        test "concurrent processes' logs are captured" do
+          parent = self()
+
           fun = fn ->
             for msg <- ["hello", "hi"] do
-              assert capture_log(fn -> Logger.error(msg) end) =~ msg
+              spawn fn ->
+                Logger.error(msg)
+                send parent, :done
+              end
+
+              receive do
+                :done -> :ok
+              end
             end
 
-            Logger.debug("testing")
+            Logger.debug("parent")
           end
 
-          assert capture_log(fun) =~ "hello"
-          assert capture_log(fun) =~ "testing"
+          log = capture_log(fun)
+
+          assert log =~ "hello"
+          assert log =~ "hi"
+          assert log =~ "parent"
         end
       end
 
@@ -57,32 +68,31 @@ defmodule ExUnit.CaptureLog do
   forwarded as an override to the default formatter.
 
   This function mutes the default logger handler and captures any log
-  messages sent to Logger from the calling processes. It is possible
+  messages sent to Logger from all logging processes. It is possible
   to ensure explicit log messages from other processes are captured
   by waiting for their exit or monitor signal.
 
-  Note that when the `async` is set to `true` on `use ExUnit.Case`,
-  messages from other tests might be captured. This is OK as long
-  you consider such cases in your assertions, typically by using
-  the `=~/2` operator to perform partial matches.
-
-  It is possible to configure the level to capture with `:level`,
-  which will set the capturing level for the duration of the
-  capture, for instance, if the log level is set to `:error`, then
-  any message with the lower level will be ignored.
-  The default level is `nil`, which will capture all messages.
-  Note this setting does not override the overall `Logger.level/0` value.
-  Therefore, if `Logger.level/0` is set to a higher level than the one
-  configured in this function, no message will be captured.
-  The behaviour is undetermined if async tests change Logger level.
-
-  It is possible to use an alternative log formatter with `:formatter`,
-  which must be provided as `{module, config}`. If `:formatter` is not
-  provided, the formatter configuration from `Logger.default_formatter/1`
-  will be used.
+  Note that when `async` is set to `true` on `use ExUnit.Case`,
+  messages from other tests might be captured. For this reason,
+  the `=~/2` operator is recommended for use when asserting against
+  captured logs.
 
   To get the result of the evaluation along with the captured log,
   use `with_log/2`.
+
+  ## Options
+
+    * `:level` - set the capturing level for the duration of the capture.
+      for instance, if set to `:warn`, then any message lower than `:warn`
+      (`:notice`, `:info`, and `:debug`) will be ignored.
+      Defaults to `nil`, meaning all messages are captured.
+      Note this setting does not override the overall `Logger.level/0` value.
+      Therefore, if `Logger.level/0` is set to a higher level than the one
+      configured in this function, no message will be captured.
+      The behaviour is undetermined if async tests change Logger level.
+
+    * `:formatter` - use an alternative log formatter. Must be provided as `{module, config}`
+      By default `Logger.default_formatter/1` is used.
   """
   @spec capture_log(capture_log_opts, (-> any)) :: String.t()
   def capture_log(opts \\ [], fun) do
