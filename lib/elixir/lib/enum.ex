@@ -3810,6 +3810,10 @@ defmodule Enum do
   def take_random(_enumerable, 0), do: []
   def take_random([], _), do: []
 
+  def take_random(list, count) when is_list(list) and is_integer(count) and count > 0 do
+    take_random_list(list, -count, [], count)
+  end
+
   def take_random(enumerable, count) when is_integer(count) and count > 0 do
     case reduce(enumerable, [-count], &take_random_step(&1, &2, count)) do
       [left | reservoir] when left < 0 -> take_random_shuffle(reservoir)
@@ -3829,6 +3833,31 @@ defmodule Enum do
   # The accumulator is an improper list to reduce allocations while
   # skipping. It is [-left | reservoir] while filling the reservoir
   # and [skip | data] afterwards.
+
+  # For lists, we keep the accumulator as two arguments, so skipping
+  # elements does not allocate.
+  defp take_random_list([], left, reservoir, _count) when left < 0,
+    do: take_random_shuffle(reservoir)
+
+  defp take_random_list([], _skip, data, _count),
+    do: take_random_shuffle(take_random_finish(data))
+
+  defp take_random_list([_ | rest], skip, data, count) when skip > 0,
+    do: take_random_list(rest, skip - 1, data, count)
+
+  defp take_random_list([elem | rest], 0, data, count) do
+    [skip | data] = take_random_accept(elem, data)
+    take_random_list(rest, skip, data, count)
+  end
+
+  defp take_random_list([elem | rest], -1, reservoir, count) do
+    [skip | data] = take_random_next(count, 1.0, [elem | reservoir], [], 0)
+    take_random_list(rest, skip, data, count)
+  end
+
+  defp take_random_list([elem | rest], left, reservoir, count),
+    do: take_random_list(rest, left + 1, [elem | reservoir], count)
+
   defp take_random_step(_elem, [skip | data], _count) when skip > 0,
     do: [skip - 1 | data]
 
