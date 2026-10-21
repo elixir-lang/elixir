@@ -888,8 +888,8 @@ defmodule EnumTest do
     seed = {1406, 407_414, 139_258}
     :rand.seed(:exsss, seed)
 
-    assert random_stream.([1, 2]) == 2
-    assert random_stream.([1, 2, 3]) == 3
+    assert random_stream.([1, 2]) == 1
+    assert random_stream.([1, 2, 3]) == 2
     assert random_stream.([1, 2, 3, 4]) == 1
     assert random_stream.([1, 2, 3, 4, 5]) == 3
   end
@@ -1566,22 +1566,34 @@ defmodule EnumTest do
     seed1 = {1406, 407_414, 139_258}
     seed2 = {1406, 421_106, 567_597}
     :rand.seed(:exsss, seed1)
-    assert Enum.take_random([1, 2, 3], 1) == [2]
-    assert Enum.take_random([1, 2, 3], 2) == [2, 3]
-    assert Enum.take_random([1, 2, 3], 3) == [3, 1, 2]
-    assert Enum.take_random([1, 2, 3], 4) == [2, 3, 1]
-    :rand.seed(:exsss, seed2)
-    assert Enum.take_random([1, 2, 3], 1) == [1]
-    assert Enum.take_random([1, 2, 3], 2) == [3, 1]
+    assert Enum.take_random([1, 2, 3], 1) == [3]
+    assert Enum.take_random([1, 2, 3], 2) == [2, 1]
     assert Enum.take_random([1, 2, 3], 3) == [2, 3, 1]
     assert Enum.take_random([1, 2, 3], 4) == [3, 2, 1]
+    :rand.seed(:exsss, seed2)
+    assert Enum.take_random([1, 2, 3], 1) == [2]
+    assert Enum.take_random([1, 2, 3], 2) == [1, 2]
+    assert Enum.take_random([1, 2, 3], 3) == [3, 1, 2]
+    assert Enum.take_random([1, 2, 3], 4) == [2, 3, 1]
     assert Enum.take_random([1, 2, 3], 129) == [2, 1, 3]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(Enum.to_list(1..100), 5) == [22, 99, 3, 36, 65]
 
     # assert that every item in the sample comes from the input list
     list = for _ <- 1..100, do: make_ref()
 
     for x <- Enum.take_random(list, 50) do
       assert x in list
+    end
+
+    # replacements in the reservoir are applied in batches
+    list = Enum.to_list(1..10_000)
+
+    for count <- [1, 2, 10, 129, 1000, 9999, 10_000, 10_001] do
+      sample = Enum.take_random(list, count)
+      assert length(sample) == min(count, 10_000)
+      assert length(Enum.uniq(sample)) == length(sample)
+      assert Enum.all?(sample, &(&1 in 1..10_000))
     end
 
     assert_raise FunctionClauseError, fn ->
@@ -2537,27 +2549,27 @@ defmodule EnumTest.Range do
     seed1 = {1406, 407_414, 139_258}
     seed2 = {1406, 421_106, 567_597}
     :rand.seed(:exsss, seed1)
-    assert Enum.take_random(1..3, 1) == [2]
+    assert Enum.take_random(1..3, 1) == [3]
     :rand.seed(:exsss, seed1)
-    assert Enum.take_random(1..3, 2) == [3, 1]
-    :rand.seed(:exsss, seed1)
-    assert Enum.take_random(1..3, 3) == [3, 1, 2]
-    :rand.seed(:exsss, seed1)
-    assert Enum.take_random(1..3, 4) == [3, 1, 2]
-    :rand.seed(:exsss, seed1)
-    assert Enum.take_random(1..3, 5) == [3, 1, 2]
-    :rand.seed(:exsss, seed1)
-    assert Enum.take_random(3..1//-1, 1) == [2]
-    :rand.seed(:exsss, seed2)
-    assert Enum.take_random(1..3, 1) == [1]
-    :rand.seed(:exsss, seed2)
     assert Enum.take_random(1..3, 2) == [3, 2]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(1..3, 3) == [3, 2, 1]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(1..3, 4) == [1, 2, 3]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(1..3, 5) == [1, 2, 3]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(3..1//-1, 1) == [1]
     :rand.seed(:exsss, seed2)
-    assert Enum.take_random(1..3, 3) == [1, 3, 2]
+    assert Enum.take_random(1..3, 1) == [2]
     :rand.seed(:exsss, seed2)
-    assert Enum.take_random(1..3, 4) == [1, 3, 2]
+    assert Enum.take_random(1..3, 2) == [1, 3]
     :rand.seed(:exsss, seed2)
-    assert Enum.take_random(1..3, 5) == [1, 3, 2]
+    assert Enum.take_random(1..3, 3) == [3, 2, 1]
+    :rand.seed(:exsss, seed2)
+    assert Enum.take_random(1..3, 4) == [2, 1, 3]
+    :rand.seed(:exsss, seed2)
+    assert Enum.take_random(1..3, 5) == [2, 1, 3]
   end
 
   test "take_while/2" do
@@ -2643,21 +2655,21 @@ defmodule EnumTest.Map do
     seed1 = {1406, 407_414, 139_258}
     seed2 = {1406, 421_106, 567_597}
     :rand.seed(:exsss, seed1)
-    assert Enum.take_random(map, 1) == [x2]
+    assert Enum.take_random(map, 1) == [x3]
     :rand.seed(:exsss, seed1)
-    assert Enum.take_random(map, 2) == [x3, x1]
-    :rand.seed(:exsss, seed1)
-    assert Enum.take_random(map, 3) == [x3, x1, x2]
-    :rand.seed(:exsss, seed1)
-    assert Enum.take_random(map, 4) == [x3, x1, x2]
-    :rand.seed(:exsss, seed2)
-    assert Enum.take_random(map, 1) == [x1]
-    :rand.seed(:exsss, seed2)
     assert Enum.take_random(map, 2) == [x3, x2]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(map, 3) == [x3, x2, x1]
+    :rand.seed(:exsss, seed1)
+    assert Enum.take_random(map, 4) == [x1, x2, x3]
     :rand.seed(:exsss, seed2)
-    assert Enum.take_random(map, 3) == [x1, x3, x2]
+    assert Enum.take_random(map, 1) == [x2]
     :rand.seed(:exsss, seed2)
-    assert Enum.take_random(map, 4) == [x1, x3, x2]
+    assert Enum.take_random(map, 2) == [x1, x3]
+    :rand.seed(:exsss, seed2)
+    assert Enum.take_random(map, 3) == [x3, x2, x1]
+    :rand.seed(:exsss, seed2)
+    assert Enum.take_random(map, 4) == [x2, x1, x3]
   end
 
   test "reverse/1" do
