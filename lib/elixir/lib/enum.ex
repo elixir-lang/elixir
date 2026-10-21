@@ -3039,23 +3039,20 @@ defmodule Enum do
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsss, {11, 22, 33})
       iex> Enum.shuffle([1, 2, 3])
-      [2, 1, 3]
+      [1, 3, 2]
       iex> Enum.shuffle([1, 2, 3])
-      [2, 3, 1]
+      [3, 1, 2]
 
   """
   @spec shuffle(t) :: list
-  def shuffle(enumerable) do
-    randomized =
-      reduce(enumerable, [], fn x, acc ->
-        [{:rand.uniform(), x} | acc]
-      end)
-
-    shuffle_unwrap(:lists.keysort(1, randomized))
+  def shuffle(list) when is_list(list) do
+    :elixir_utils.rand_shuffle(list)
   end
 
-  defp shuffle_unwrap([{_, h} | rest]), do: [h | shuffle_unwrap(rest)]
-  defp shuffle_unwrap([]), do: []
+  def shuffle(enumerable) do
+    # The order does not matter, so we don't reverse the list
+    :elixir_utils.rand_shuffle(reduce(enumerable, [], &[&1 | &2]))
+  end
 
   @doc """
   Returns a subset list of the given `enumerable` by `index_range`.

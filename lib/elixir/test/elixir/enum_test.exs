@@ -1155,7 +1155,7 @@ defmodule EnumTest do
   test "shuffle/1" do
     # set a fixed seed so the test can be deterministic
     :rand.seed(:exsss, {1374, 347_975, 449_264})
-    assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 5, 4, 3, 1]
+    assert Enum.shuffle([1, 2, 3, 4, 5]) == [4, 1, 5, 3, 2]
   end
 
   test "slice/2" do
@@ -2290,8 +2290,8 @@ defmodule EnumTest.Range do
   test "shuffle/1" do
     # set a fixed seed so the test can be deterministic
     :rand.seed(:exsss, {1374, 347_975, 449_264})
-    assert Enum.shuffle(1..5) == [2, 5, 4, 3, 1]
-    assert Enum.shuffle(1..10//2) == [5, 1, 7, 9, 3]
+    assert Enum.shuffle(1..5) == [2, 5, 1, 3, 4]
+    assert Enum.shuffle(1..10//2) == [9, 5, 3, 1, 7]
   end
 
   test "slice/2" do
