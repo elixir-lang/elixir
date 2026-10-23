@@ -7041,21 +7041,140 @@ defmodule Module.Types.Descr do
     if subtype?, do: :subtype, else: :none
   end
 
-  defp opt_tuple_union({tag1, elements1}, {tag2, elements2}) do
-    opt_tuple_union_literal({tag1, elements1}, {tag2, elements2})
-  end
+  # Tuple fusion
+  #
+  # Two tuples with the same tag and size which differ in a single
+  # element can be fused into one tuple by unioning said element:
+  #
+  #     {:a, true} or {:a, false} => {:a, boolean()}
+  #
+  # This matters for unions built incrementally, such as the union of
+  # previous clauses (see Pattern), which grows by one tuple per clause.
+  # Functions with thousands of clauses matching on literals would
+  # otherwise build unions with thousands of leaves, and every later
+  # difference against them (one per clause) would be linear on the
+  # number of leaves, making type checking quadratic.
+  #
+  # However, we only fuse elements which are made of atoms and bitmaps,
+  # or of single tuples which are themselves fusible (up to a limited
+  # depth). Fusing any element (for example, with opt_union) is sound,
+  # but it often makes later operations more expensive. If the fused
+  # element is a union of maps, such as `%Schema{type: :boolean}` and
+  # `%Schema{type: :integer}`, later clauses are more likely to partially
+  # overlap with the fused tuple (instead of being disjoint or a subtype),
+  # and differences must then keep it as a negation, which led to much
+  # larger types (and slower compilation) in practice. Negations of atoms
+  # and bitmaps, on the other hand, are cheap to compute and to represent.
+  # A similar approach could be explored for maps in the future.
 
-  defp opt_tuple_union(
-         bdd_leaf(tag1, elements1) = bdd1,
-         bdd_leaf(tag2, elements2) = bdd2
-       ) do
+  # Unions that fuse stay small, so we only look at the first leaves
+  # to not pay a high cost on large unions that are unlikely to fuse.
+  @fusion_limit 64
+
+  # How many nested tuples we traverse when fusing, which bounds the
+  # cost of fusing deeply nested tuples.
+  @fusion_depth 3
+
+  defp opt_tuple_union(bdd_leaf(tag1, elements1) = bdd1, bdd_leaf(tag2, elements2) = bdd2) do
     case opt_tuple_union_literal({tag1, elements1}, {tag2, elements2}) do
       {tag, elements} -> bdd_leaf_new(tag, elements)
       nil -> bdd_union(bdd1, bdd2)
     end
   end
 
+  defp opt_tuple_union(bdd_leaf(_, _) = leaf, {_, _, _, _, _} = bdd),
+    do: opt_tuple_union_leaf(bdd, leaf)
+
+  defp opt_tuple_union({_, _, _, _, _} = bdd, bdd_leaf(_, _) = leaf),
+    do: opt_tuple_union_leaf(bdd, leaf)
+
   defp opt_tuple_union(bdd1, bdd2), do: tuple_union(bdd1, bdd2)
+
+  # When the BDD is a union of tuple leaves, we try to fuse the leaf
+  # into one of them.
+  #
+  # Once a leaf is fused, we remove it from the union and add the fused
+  # leaf back, as it may now fuse with leaves it could not fuse before.
+  # For example, given `{:a, true, :lower or :upper} or {:a, false, :lower}`,
+  # adding `{:a, false, :upper}` fuses into `{:a, false, :lower or :upper}`,
+  # which can then be fused with the first leaf into
+  # `{:a, boolean(), :lower or :upper}`. Without this step, unions of
+  # previous clauses grow linearly once again.
+  defp opt_tuple_union_leaf(bdd, leaf) do
+    case opt_tuple_fuse_chain(bdd, leaf, @fusion_limit) do
+      {fused, :bdd_bot} -> fused
+      {fused, bdd} -> opt_tuple_union_leaf(bdd, fused)
+      nil -> tuple_union(bdd, leaf)
+    end
+  end
+
+  # Returns the fused leaf and the union without the leaf it fused with.
+  defp opt_tuple_fuse_chain(_bdd, _leaf, 0), do: nil
+
+  defp opt_tuple_fuse_chain({_, current, :bdd_top, u, :bdd_bot}, leaf, limit) do
+    if fused = opt_tuple_fuse_leaf(current, leaf) do
+      {fused, u}
+    else
+      case opt_tuple_fuse_chain(u, leaf, limit - 1) do
+        {fused, :bdd_bot} -> {fused, current}
+        {fused, u} -> {fused, bdd_node_new(current, :bdd_top, u, :bdd_bot)}
+        nil -> nil
+      end
+    end
+  end
+
+  defp opt_tuple_fuse_chain(bdd_leaf(_, _) = current, leaf, _limit) do
+    if fused = opt_tuple_fuse_leaf(current, leaf), do: {fused, :bdd_bot}
+  end
+
+  defp opt_tuple_fuse_chain(_bdd, _leaf, _limit), do: nil
+
+  defp opt_tuple_fuse_leaf(bdd_leaf(tag, elements1), bdd_leaf(tag, elements2))
+       when length(elements1) == length(elements2) do
+    if elements = opt_tuple_fuse_elements(elements1, elements2, [], @fusion_depth) do
+      bdd_leaf_new(tag, elements)
+    end
+  end
+
+  defp opt_tuple_fuse_leaf(_, _), do: nil
+
+  defp opt_tuple_fuse_elements([], [], acc, _depth), do: Enum.reverse(acc)
+
+  defp opt_tuple_fuse_elements([v | t1], [v | t2], acc, depth),
+    do: opt_tuple_fuse_elements(t1, t2, [v | acc], depth)
+
+  defp opt_tuple_fuse_elements([v1 | t], [v2 | t], acc, depth) do
+    if element = opt_tuple_fuse_element(v1, v2, depth) do
+      Enum.reverse(acc, [element | t])
+    end
+  end
+
+  defp opt_tuple_fuse_elements(_, _, _, _depth), do: nil
+
+  # Fuses two elements if they are made of atoms and bitmaps or if they
+  # are single tuples which are themselves fusible. See "Tuple fusion".
+  defp opt_tuple_fuse_element(
+         %{tuple: bdd_leaf(tag, e1)} = v1,
+         %{tuple: bdd_leaf(tag, e2)} = v2,
+         depth
+       )
+       when map_size(v1) == 1 and map_size(v2) == 1 and depth > 0 do
+    if elements = opt_tuple_fuse_elements(e1, e2, [], depth - 1) do
+      %{tuple: bdd_leaf_new(tag, elements)}
+    end
+  end
+
+  defp opt_tuple_fuse_element(v1, v2, _depth) do
+    if atom_or_bitmap_only?(v1) and atom_or_bitmap_only?(v2) do
+      bare_union(v1, v2)
+    end
+  end
+
+  # Elements may also be :term or folded recursive types, which are not maps.
+  defp atom_or_bitmap_only?(%{atom: _, bitmap: _} = descr), do: map_size(descr) == 2
+  defp atom_or_bitmap_only?(%{atom: _} = descr), do: map_size(descr) == 1
+  defp atom_or_bitmap_only?(%{bitmap: _} = descr), do: map_size(descr) == 1
+  defp atom_or_bitmap_only?(_descr), do: false
 
   defp opt_tuple_union_literal({:open, []} = tuple1, _tuple2), do: tuple1
   defp opt_tuple_union_literal(_tuple1, {:open, []} = tuple2), do: tuple2
@@ -7066,8 +7185,8 @@ defmodule Module.Types.Descr do
         tuple1
 
       {:one_index_difference, index, v1, v2} ->
-        new_pos = List.replace_at(pos1, index, bare_union(v1, v2))
-        {tag1, new_pos}
+        element = opt_tuple_fuse_element(v1, v2, @fusion_depth) || bare_union(v1, v2)
+        {tag1, List.replace_at(pos1, index, element)}
 
       :left_subtype_of_right ->
         tuple2
@@ -7168,7 +7287,7 @@ defmodule Module.Types.Descr do
   defp opt_tuple_fuse_with_first_fusible(tuple, []), do: [tuple]
 
   defp opt_tuple_fuse_with_first_fusible(tuple, [candidate | rest]) do
-    if fused = opt_tuple_union(tuple, candidate) do
+    if fused = opt_tuple_union_literal(tuple, candidate) do
       # we found a fusible candidate, we're done
       [fused | rest]
     else

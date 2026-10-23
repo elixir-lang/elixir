@@ -282,6 +282,39 @@ defmodule Module.Types.DescrTest do
                tuple([float(), binary()]),
                open_tuple([term()])
              ) == open_tuple([term()])
+
+      # Optimization three: nested tuples that differ in a single element are fused
+      assert opt_union(
+               tuple([tuple([atom([:mod]), atom([:a])]), binary()]),
+               tuple([tuple([atom([:mod]), atom([:b])]), binary()])
+             ) == tuple([tuple([atom([:mod]), atom([:a, :b])]), binary()])
+
+      # Optimization four: tuples are fused into an existing union of tuples.
+      # Unions built incrementally, such as the union of previous clauses,
+      # would otherwise grow by one leaf per clause, making type checking
+      # of functions with many clauses quadratic (see "Tuple fusion" in Descr).
+      union =
+        for a <- [:a, :b, :c], b <- [true, false], reduce: none() do
+          acc -> opt_union(acc, tuple([atom([a]), atom([b]), binary()]))
+        end
+
+      assert union == tuple([atom([:a, :b, :c]), boolean(), binary()])
+
+      union =
+        for a <- [:a, :b, :c], b <- [true, false], reduce: none() do
+          acc -> opt_union(acc, tuple([tuple([atom([:mod]), atom([a])]), atom([b])]))
+        end
+
+      assert union == tuple([tuple([atom([:mod]), atom([:a, :b, :c])]), boolean()])
+
+      # Leaves which cannot be fused are kept as is
+      union =
+        tuple([integer(), binary()])
+        |> opt_union(tuple([atom(), float()]))
+        |> opt_union(tuple([float(), binary()]))
+
+      assert union == opt_union(tuple([atom(), float()]), tuple([number(), binary()]))
+      assert equal?(union, bare_union(tuple([atom(), float()]), tuple([number(), binary()])))
     end
   end
 
