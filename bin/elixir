@@ -215,8 +215,13 @@ while [ $I -ge 0 ]; do
   I=$((I - 1))
 done
 
-SELF=$(readlink_f "$0")
-SCRIPT_PATH=$(dirname "$SELF")
+# Use $0 directly when it is an absolute path that is not a symbolic link
+if [ "${0#/}" != "$0" ] && [ ! -h "$0" ]; then
+  SELF="$0"
+else
+  SELF=$(readlink_f "$0")
+fi
+SCRIPT_PATH="${SELF%/*}"
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-s elixir start_cli $ERL"; fi
