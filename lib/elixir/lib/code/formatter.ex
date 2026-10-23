@@ -689,11 +689,16 @@ defmodule Code.Formatter do
         {left, " =>", right, state}
       end
 
+    # Comments before the value can only be kept above it
+    # when the value starts on its own line
+    {value_comments, _trailing, _right_arg} = pop_comments(right_arg, true, false)
+
     doc =
       concat(
         group(left),
         with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
-          nest(glue(op, right), 2, :break)
+          right = nest(glue(op, right), 2, :break)
+          if value_comments == [], do: right, else: force_unfit(right)
         end)
       )
 
@@ -1309,7 +1314,7 @@ defmodule Code.Formatter do
       if left != [] and keyword? and no_generators? do
         join = if force_args?(left) or many_eol?, do: :line, else: :break
 
-        {left_doc, _join, state} =
+        {left_doc, left_join, state} =
           args_to_algebra_with_comments(
             left,
             Keyword.drop(meta, [:closing, :trailing_comments]),
@@ -1320,7 +1325,12 @@ defmodule Code.Formatter do
             to_algebra_fun
           )
 
-        join = if force_args?(right) or force_args?(args) or many_eol?, do: :line, else: :break
+        # If comments forced the leading arguments into separate lines,
+        # the keyword list must also go into its own line
+        join =
+          if left_join == :line or force_args?(right) or force_args?(args) or many_eol?,
+            do: :line,
+            else: :break
 
         {right_doc, _join, state} =
           args_to_algebra_with_comments(right, meta, false, :none, join, state, to_algebra_fun)
