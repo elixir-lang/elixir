@@ -43,6 +43,16 @@ defmodule Module.Types.RecursiveTest do
       |> unfold()
     end
 
+    test "scoped nodes can be escaped and are printed by name" do
+      assert {{Module.Types.Descr, :chardata}, _state, _generator} = chardata()
+
+      # Scoped nodes are made of literals, so they can be embedded in compiled code
+      assert Macro.escape(chardata()) |> Code.eval_quoted() |> elem(0) |> equal?(chardata())
+
+      assert to_quoted_string(chardata()) == "chardata()"
+      assert to_quoted_string(tuple([atom([:file]), chardata()])) == "{:file, chardata()}"
+    end
+
     test "node infrastructure" do
       descr = integer()
 
@@ -165,6 +175,21 @@ defmodule Module.Types.RecursiveTest do
       assert subtype?(non_empty_list(integer(), empty_list()), chardata)
       assert subtype?(non_empty_list(binary(), binary()), chardata)
       refute subtype?(pid(), chardata)
+
+      ## The chardata/0 constructor is the real unicode:chardata()
+      assert subtype?(binary(), chardata())
+      assert subtype?(empty_list(), chardata())
+      assert subtype?(list(integer()), chardata())
+      assert subtype?(list(binary()), chardata())
+      assert subtype?(non_empty_list(integer(), binary()), chardata())
+      # nested chardata, which the equation above does not admit
+      assert subtype?(list(list(integer())), chardata())
+      assert subtype?(list(list(list(binary()))), chardata())
+      assert subtype?(list(non_empty_list(integer(), binary())), chardata())
+      refute subtype?(list(atom()), chardata())
+      refute subtype?(list(float()), chardata())
+      refute subtype?(non_empty_list(integer(), atom()), chardata())
+      refute subtype?(atom(), chardata())
 
       ## expression trees
       # Expr = integer() | {atom, Expr, Expr}, Binop = {atom, Expr, Expr}
