@@ -734,7 +734,7 @@ defmodule Module.Types.Of do
   def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
     case atom_fetch(type) do
       {:finite, mods} ->
-        {mods, context}
+        {:lists.sort(mods), context}
 
       {:infinite, _} ->
         {[], context}
