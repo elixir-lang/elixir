@@ -689,11 +689,16 @@ defmodule Code.Formatter do
         {left, " =>", right, state}
       end
 
+    # Comments before the value can only be kept above it
+    # when the value starts on its own line
+    {value_comments, _trailing, _right_arg} = pop_comments(right_arg, true, false)
+
     doc =
       concat(
         group(left),
         with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
-          nest(glue(op, right), 2, :break)
+          right = nest(glue(op, right), 2, :break)
+          if value_comments == [], do: right, else: force_unfit(right)
         end)
       )
 

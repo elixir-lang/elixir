@@ -711,6 +711,34 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
+    test "with comments after the first keyword value without parens" do
+      bad = ~S"""
+      @moduledoc deprecated:
+                   "Use something else" # comment
+      """
+
+      good = ~S"""
+      @moduledoc deprecated:
+                   # comment
+                   "Use something else"
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      defstruct name:
+                  "default" # comment
+      """
+
+      good = ~S"""
+      defstruct name:
+                  # comment
+                  "default"
+      """
+
+      assert_format bad, good
+    end
+
     test "local with no parens inside before and after" do
       bad = ~S"""
              # before
