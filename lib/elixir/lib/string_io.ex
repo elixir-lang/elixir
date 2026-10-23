@@ -342,6 +342,10 @@ defmodule StringIO do
     {chars, rest}
   end
 
+  defp get_chars(input, :unicode, 0) do
+    {"", input}
+  end
+
   defp get_chars(input, :unicode, count) do
     with {:ok, rest} <- split_at(input, count) do
       size = byte_size(input) - byte_size(rest)
@@ -350,11 +354,11 @@ defmodule StringIO do
     end
   end
 
-  defp split_at(input, 0),
-    do: {:ok, input}
-
-  defp split_at(<<_::utf8, rest::binary>>, count),
+  defp split_at(<<_::utf8, rest::binary>>, count) when count !== 0,
     do: split_at(rest, count - 1)
+
+  defp split_at(<<input::binary>>, 0),
+    do: {:ok, input}
 
   defp split_at(<<_, _::binary>>, _count),
     do: {:error, :invalid_unicode}
