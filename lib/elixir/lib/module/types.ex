@@ -487,20 +487,31 @@ defmodule Module.Types do
           compute_domain(args, head_args, head_no_previous_args, domain)
       end)
 
-    {_, mapping, inferred} =
-      Enum.reduce(clauses, {0, [], []}, fn
+    # Clauses with the same arguments are merged by unioning their returns.
+    # We index them by arguments to avoid a quadratic lookup on functions
+    # with many clauses.
+    {total, mapping, inferred, _indexes} =
+      Enum.reduce(clauses, {0, [], %{}, %{}}, fn
         {{{args, _head_args, _head_no_previous_args}, return, _precise?}, index},
-        {total, mapping, inferred} ->
-          {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
+        {total, mapping, inferred, indexes} ->
+          case indexes do
+            %{^args => type_index} ->
+              %{^type_index => {_, existing_return}} = inferred
 
-          if type_index == -1 do
-            {total + 1, [{index, total} | mapping], inferred}
-          else
-            {total, [{index, type_index} | mapping], inferred}
+              inferred = %{
+                inferred
+                | type_index => {args, Descr.opt_union(existing_return, return)}
+              }
+
+              {total, [{index, type_index} | mapping], inferred, indexes}
+
+            %{} ->
+              inferred = Map.put(inferred, total, {args, return})
+              {total + 1, [{index, total} | mapping], inferred, Map.put(indexes, args, total)}
           end
       end)
 
-    {Enum.reverse(inferred), mapping, domain}
+    {Enum.map(0..(total - 1)//1, &Map.fetch!(inferred, &1)), mapping, domain}
   end
 
   defp compute_domain(
@@ -618,7 +629,7 @@ defmodule Module.Types do
 
   defp union_args([_ | _], [_ | _], _acc, true), do: nil
 
-  # In theory fully equal args are merged on add_inferred
+  # In theory fully equal args are merged when inferring
   defp union_args([], [], acc, _changed?), do: Enum.reverse(acc)
 
   defp with_file_meta(stack, meta) do
