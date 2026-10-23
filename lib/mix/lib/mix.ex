@@ -457,8 +457,42 @@ defmodule Mix do
     :ok
   end
 
+  # Modules loaded when running a Mix task, such as `mix iex`
+  @preload_modules [
+    Agent,
+    Agent.Server,
+    Exception,
+    GenServer,
+    IO.ANSI,
+    Kernel.Utils,
+    List.Chars,
+    List.Chars.BitString,
+    Macro,
+    Mix.Error,
+    Mix.Hex,
+    Mix.Local,
+    Mix.Project,
+    Mix.ProjectStack,
+    Mix.Shell,
+    Mix.Shell.IO,
+    Mix.State,
+    Mix.Sync.PubSub,
+    Mix.Task,
+    Mix.Tasks.Loadconfig,
+    Mix.TasksServer,
+    Mix.Utils,
+    Module,
+    Process,
+    String.Chars,
+    String.Chars.Atom,
+    Version,
+    Version.Parser,
+    Version.Requirement
+  ]
+
   @impl true
   def start(_type, []) do
+    _ = Code.ensure_all_loaded(@preload_modules)
     Mix.Local.append_archives()
     Mix.Local.append_paths()
     children = [Mix.Sync.PubSub, Mix.State, Mix.TasksServer, Mix.ProjectStack]
