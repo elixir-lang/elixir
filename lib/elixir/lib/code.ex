@@ -1605,7 +1605,7 @@ defmodule Code do
     {{form, meta, args}, comments} = maybe_attach_leading_comments(quoted, comments)
     {form, comments, form_info} = attach_comments_to_quoted(form, comments, nil, collect?)
     {child_boundary, node_boundary} = comments_boundaries(form, meta, boundary)
-    collect_children? = collect? or (form == :<<>> and meta[:delimiter] != nil)
+    collect_children? = collect? or interpolated?(form, meta)
 
     {args, comments, args_info} =
       attach_comments_to_quoted(args, comments, child_boundary, collect_children?)
@@ -1881,6 +1881,19 @@ defmodule Code do
       nil -> {nil, boundary}
       line -> {min_comments_boundary(line, boundary), boundary}
     end
+  end
+
+  # Strings, charlists, atoms, and sigils cannot hold comments inside
+  # their interpolations, so we collect them and move them outside
+  defp interpolated?(form, meta) do
+    meta[:delimiter] != nil and
+      case form do
+        :<<>> -> true
+        {:., _, [List, :to_charlist]} -> true
+        {:., _, [:erlang, :binary_to_atom]} -> true
+        form when is_atom(form) -> String.starts_with?(Atom.to_string(form), "sigil_")
+        _ -> false
+      end
   end
 
   defp min_comments_boundary(line, nil), do: line
