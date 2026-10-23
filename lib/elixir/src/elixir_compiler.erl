@@ -69,11 +69,44 @@ compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->
   {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
   elixir_env:check_unused_vars(SE, EE),
 
-  {Module, Fun, LabelledLocals} =
-    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, CompilerOpts, E) end),
+  case literal_remote_call(Expanded) of
+    {ok, Meta, Module, Fun, Args} ->
+      {apply_literal_remote_call(Module, Fun, Args, ?line(Meta), E), SE, EE};
 
-  Args = list_to_tuple(ArgsList),
-  {dispatch(Module, Fun, Args, LabelledLocals), SE, EE}.
+    error ->
+      {Module, Fun, LabelledLocals} =
+        elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, CompilerOpts, E) end),
+
+      Args = list_to_tuple(ArgsList),
+      {dispatch(Module, Fun, Args, LabelledLocals), SE, EE}
+  end.
+
+literal_remote_call({'__block__', _, [
+  {'=', _, [{result, _, ?MODULE}, {{'.', _, [Module, Fun]}, Meta, Args}]},
+  {{'.', _, [elixir_utils, noop]}, _, []},
+  {result, _, ?MODULE}
+]}) when is_atom(Module), is_atom(Fun), is_list(Args) ->
+  case lists:all(fun is_literal/1, Args) of
+    true -> {ok, Meta, Module, Fun, Args};
+    false -> error
+  end;
+literal_remote_call(_) ->
+  error.
+
+is_literal(Term) when is_atom(Term); is_number(Term); is_binary(Term) -> true;
+is_literal(List) when is_list(List) -> lists:all(fun is_literal/1, List);
+is_literal({Left, Right}) -> is_literal(Left) andalso is_literal(Right);
+is_literal(_) -> false.
+
+%% Replace our frame by the caller one, as if the code was compiled.
+apply_literal_remote_call(Module, Fun, Args, Line, #{file := File, module := Mod, function := Function}) ->
+  try
+    apply(Module, Fun, Args)
+  catch
+    Kind:Reason:Stacktrace ->
+      Entry = elixir_utils:caller(Line, File, Mod, Function),
+      erlang:raise(Kind, Reason, lists:keyreplace(apply_literal_remote_call, 2, Stacktrace, Entry))
+  end.
 
 spawned_compile(ExExprs, CompilerOpts, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),
