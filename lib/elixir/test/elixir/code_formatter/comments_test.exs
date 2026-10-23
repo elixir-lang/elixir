@@ -326,6 +326,128 @@ defmodule Code.Formatter.CommentsTest do
 
       assert_format bad, good
     end
+
+    test "with comment inside sigils, charlists, and atoms" do
+      bad = ~S"""
+      IO.puts(
+        ~s"Hello #{
+          # comment
+          world
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        # comment
+        ~s"Hello #{world}"
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      IO.puts(
+        ~s"Hello #{
+          world
+          # comment
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        ~s"Hello #{world}"
+        # comment
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      IO.puts(
+        ~c"Hello #{
+          # comment
+          world
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        # comment
+        ~c"Hello #{world}"
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      IO.puts(
+        :"Hello #{
+          world
+          # comment
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        :"Hello #{world}"
+        # comment
+      )
+      """
+
+      assert_format bad, good
+    end
+
+    test "with comment inside quoted calls" do
+      assert_same ~S"""
+      :erlang."/="(
+        # comment
+        left,
+        right
+      )
+      """
+    end
+
+    test "with comment inside heredoc sigils and charlists" do
+      bad = ~S'''
+      IO.puts(~s"""
+      Hello #{world # comment
+      }
+      """)
+      '''
+
+      good = ~S'''
+      IO.puts(
+        # comment
+        ~s"""
+        Hello #{world}
+        """
+      )
+      '''
+
+      assert_format bad, good
+
+      bad = ~S'''
+      IO.puts(~c"""
+      Hello #{world # comment
+      }
+      """)
+      '''
+
+      good = ~S'''
+      IO.puts(
+        # comment
+        ~c"""
+        Hello #{world}
+        """
+      )
+      '''
+
+      assert_format bad, good
+    end
   end
 
   describe "parens block within root" do
@@ -553,6 +675,40 @@ defmodule Code.Formatter.CommentsTest do
         # key after
       )
       """
+    end
+
+    test "with comments between arguments and trailing keywords" do
+      bad = ~S"""
+      call(hello, # middle
+      world, key: value)
+      """
+
+      good = ~S"""
+      # middle
+      call(
+        hello,
+        world,
+        key: value
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      Remote.call(hello, # middle
+      world, key: value)
+      """
+
+      good = ~S"""
+      # middle
+      Remote.call(
+        hello,
+        world,
+        key: value
+      )
+      """
+
+      assert_format bad, good
     end
 
     test "local with no parens inside before and after" do
