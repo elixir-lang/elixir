@@ -16,6 +16,20 @@
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 -define(elixir_eval_env, {elixir, eval_env}).
+-define(cli_modules, [
+  'Elixir.Access', 'Elixir.Application', 'Elixir.Code', 'Elixir.Enum', 'Elixir.IO',
+  'Elixir.Kernel', 'Elixir.Kernel.CLI', 'Elixir.Keyword', 'Elixir.List.Chars',
+  'Elixir.List.Chars.List', 'Elixir.Macro.Env', 'Elixir.Map', 'Elixir.Module.ParallelChecker',
+  'Elixir.Regex', 'Elixir.String.Chars', 'Elixir.String.Tokenizer', 'Elixir.Supervisor',
+  'Elixir.Supervisor.Default', 'Elixir.System', elixir_aliases, elixir_bitstring,
+  elixir_code_server, elixir_config, elixir_dispatch, elixir_env, elixir_erl, elixir_erl_pass,
+  elixir_erl_var, elixir_expand, elixir_interpolation, elixir_module, elixir_parser,
+  elixir_quote, elixir_rewrite, elixir_sup, elixir_tokenizer, elixir_utils,
+  erl_bits, eval_bits, logger_backend, re
+]).
+-define(cli_logger_modules, [
+  'Elixir.Logger', 'Elixir.Logger.App', 'Elixir.Logger.Formatter', 'Elixir.Logger.Utils'
+]).
 
 %% Top level types
 %% TODO: Remove char_list type on v2.0
@@ -180,7 +194,9 @@ start() ->
   user_drv:start(#{initial_shell => iex:shell()}).
 
 start_cli() ->
+  _ = code:ensure_modules_loaded(?cli_modules),
   {ok, _} = application:ensure_all_started(elixir),
+  _ = code:ensure_modules_loaded(?cli_logger_modules),
 
   %% We start the Logger so tools that depend on Elixir
   %% always have the Logger directly accessible. However
