@@ -16,6 +16,15 @@
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 -define(elixir_eval_env, {elixir, eval_env}).
+-define(cli_elixir_modules, [
+  'Elixir.Access', 'Elixir.Application', 'Elixir.Enum', 'Elixir.Kernel', 'Elixir.Kernel.CLI',
+  'Elixir.Keyword', 'Elixir.Macro.Env', 'Elixir.Map', 'Elixir.Regex', 'Elixir.String.Tokenizer',
+  'Elixir.Supervisor', 'Elixir.Supervisor.Default', 'Elixir.System',
+  elixir_code_server, elixir_config, elixir_sup, re
+]).
+-define(cli_logger_modules, [
+  'Elixir.Logger', 'Elixir.Logger.App', 'Elixir.Logger.Formatter', 'Elixir.Logger.Utils'
+]).
 
 %% Top level types
 %% TODO: Remove char_list type on v2.0
@@ -32,7 +41,6 @@
 
 start(_Type, _Args) ->
   _OTP = parse_otp_release(),
-  preload_common_modules(),
   ok = io:setopts(standard_io, [binary]),
   check_file_encoding(file:native_name_encoding()),
 
@@ -118,13 +126,6 @@ stop(Tab) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-preload_common_modules() ->
-  %% We attempt to load those modules here so throughout
-  %% the codebase we can avoid code:ensure_loaded/1 checks.
-  _ = code:ensure_loaded('Elixir.Kernel'),
-  _ = code:ensure_loaded('Elixir.Macro.Env'),
-  ok.
-
 parse_otp_release() ->
   %% Whenever we change this check, we should also change Makefile.
   case list_to_integer(erlang:system_info(otp_release)) of
@@ -180,16 +181,18 @@ start() ->
   user_drv:start(#{initial_shell => iex:shell()}).
 
 start_cli() ->
+  _ = code:ensure_modules_loaded(?cli_elixir_modules),
   {ok, _} = application:ensure_all_started(elixir),
+  _ = code:ensure_modules_loaded(?cli_logger_modules),
 
   %% We start the Logger so tools that depend on Elixir
   %% always have the Logger directly accessible. However
   %% Logger is not a dependency of the Elixir application,
   %% which means releases that want to use Logger must
   %% always list it as part of its applications.
-  _ = case code:ensure_loaded('Elixir.Logger') of
-    {module, _} -> application:start(logger);
-    {error, _}  -> ok
+  _ = case code:is_loaded('Elixir.Logger') of
+    {file, _} -> application:start(logger);
+    false -> ok
   end,
 
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
