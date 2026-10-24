@@ -354,16 +354,32 @@ defmodule StringIO do
     end
   end
 
-  defp split_at(<<_::utf8, rest::binary>>, count) when count !== 0,
-    do: split_at(rest, count - 1)
+  defguardp is_ascii(bytes) when Bitwise.band(bytes, 0x80808080808080) == 0
 
-  defp split_at(<<input::binary>>, 0),
+  # Seven ASCII code points fit in a 56-bit small integer on a 64-bit VM.
+  defp split_at(<<ascii::56, rest::binary>>, count) when count >= 7 and is_ascii(ascii),
+    do: split_at(rest, count - 7)
+
+  defp split_at(
+         <<_::utf8, _::utf8, _::utf8, _::utf8, _::utf8, _::utf8, _::utf8, rest::binary>>,
+         count
+       )
+       when count >= 7,
+       do: split_at(rest, count - 7)
+
+  defp split_at(<<input::binary>>, count),
+    do: split_at_utf8(input, count)
+
+  defp split_at_utf8(<<_::utf8, rest::binary>>, count) when count !== 0,
+    do: split_at_utf8(rest, count - 1)
+
+  defp split_at_utf8(<<input::binary>>, 0),
     do: {:ok, input}
 
-  defp split_at(<<_, _::binary>>, _count),
+  defp split_at_utf8(<<_, _::binary>>, _count),
     do: {:error, :invalid_unicode}
 
-  defp split_at(<<>>, _count),
+  defp split_at_utf8(<<>>, _count),
     do: {:ok, <<>>}
 
   ## get_line
