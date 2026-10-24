@@ -1176,31 +1176,20 @@ defmodule String do
       raise ArgumentError, "cannot use an empty string as the match to replace"
     end
 
-    prefix_size = byte_size(match)
-    suffix_size = byte_size(string) - prefix_size
-    replace_leading(string, match, replacement, prefix_size, suffix_size, 0)
+    replace_leading(string, match, replacement, 0)
   end
 
-  defp replace_leading(string, match, replacement, prefix_size, suffix_size, acc)
-       when suffix_size >= 0 do
+  defp replace_leading(string, match, replacement, acc) do
     case string do
-      <<prefix::size(^prefix_size)-binary, suffix::binary>> when prefix == match ->
-        replace_leading(
-          suffix,
-          match,
-          replacement,
-          prefix_size,
-          suffix_size - prefix_size,
-          acc + 1
-        )
+      <<^match::binary, rest::binary>> ->
+        replace_leading(rest, match, replacement, acc + 1)
+
+      _ when acc == 0 ->
+        string
 
       _ ->
         prepend_unless_empty(duplicate(replacement, acc), string)
     end
-  end
-
-  defp replace_leading(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    prepend_unless_empty(duplicate(replacement, acc), string)
   end
 
   @doc """
