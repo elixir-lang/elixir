@@ -78,19 +78,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles a project with custom tracer" do
-    Process.register(self(), __MODULE__)
-
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-      Mix.Tasks.Compile.Elixir.run(["--tracer", "Mix.Tasks.Compile.ElixirTest"])
-      assert_received {{:on_module, _, :none}, %{module: A}}
-      assert_received {{:on_module, _, :none}, %{module: B}}
-    end)
-  after
-    Code.put_compiler_option(:tracers, [])
-  end
-
   test "compiles a project with a previously set custom tracer" do
     Process.register(self(), __MODULE__)
     Code.put_compiler_option(:tracers, [__MODULE__])

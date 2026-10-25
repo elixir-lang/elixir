@@ -62,7 +62,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
-    * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules
+    * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules.
+      Passing this flag will force a full recompilation
     * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules.
       Passing this flag will force a full recompilation
     * `--force` - forces compilation regardless of modification times
@@ -82,7 +83,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--purge-compiler-modules` - automatically purge compilation modules
       after compilation (see `Code.purge_compiler_modules/0`)
     * `--profile` - if set to `time`, outputs timing information of compilation steps
-    * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs` file
     * `--verbose` - prints each file being compiled
     * `--warnings-as-errors` - exit with non-zero status if compilation has one or more warnings
 
@@ -140,9 +140,12 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> xref_exclude_opts(project)
       |> Keyword.pop(:infer_signatures, true)
 
-    # Optional dependencies and debug info affect how artifacts are generated
-    cache_key =
-      {base, srcs, "--no-optional-deps" in args, "--no-debug-info" in args}
+    # Debug info and docs given via the command line affect how artifacts are generated
+    {artifact_opts, opts} = Keyword.split(opts, [:debug_info, :docs])
+    base = Keyword.merge(base, artifact_opts)
+
+    # Optional dependencies also affect how artifacts are generated
+    cache_key = {base, srcs, "--no-optional-deps" in args}
 
     opts =
       base
@@ -253,6 +256,12 @@ defmodule Mix.Tasks.Compile.Elixir do
         {[], opts}
 
       {tracers, opts} ->
+        # TODO: Remove on v2.0
+        IO.warn(
+          "the --tracer flag in mix compile.elixir is deprecated, " <>
+            "set :tracers in :elixirc_options or use Code.put_compiler_option/2 instead"
+        )
+
         {Enum.map(tracers, &Module.concat([&1])), opts}
     end
   end
