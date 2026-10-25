@@ -883,32 +883,36 @@ defmodule DynamicSupervisor do
       {_, {:restarting, _}}, acc ->
         acc
 
-      {pid, {_, restart, _, _, _} = child}, {pids, times, stacks} ->
-        case monitor_child(pid) do
-          :ok ->
-            times = exit_child(pid, child, times)
-            {Map.put(pids, pid, child), times, stacks}
-
-          {:error, :normal} when restart != :permanent ->
-            {pids, times, stacks}
-
-          {:error, reason} ->
-            {pids, times, Map.put(stacks, pid, {child, reason})}
-        end
+      {pid, child}, {pids, times, stacks} ->
+        # Children are kept linked until they exit, so if one
+        # exits on its own, we still get its exit reason
+        Process.monitor(pid)
+        times = exit_child(pid, child, times)
+        {Map.put(pids, pid, child), times, stacks}
     end)
   end
 
-  defp monitor_child(pid) do
-    ref = Process.monitor(pid)
+  defp unlink_flush(pid, :noproc) do
+    # The child has terminated. If we are still linked, the :EXIT
+    # message with the actual reason is guaranteed to arrive. If not,
+    # it is already in the mailbox, unless the child unlinked itself.
+    {:links, links} = Process.info(self(), :links)
+    timeout = if pid in links, do: :infinity, else: 0
+
+    receive do
+      {:EXIT, ^pid, reason} -> reason
+    after
+      timeout -> :noproc
+    end
+  end
+
+  defp unlink_flush(pid, reason) do
     Process.unlink(pid)
 
     receive do
-      {:EXIT, ^pid, reason} ->
-        receive do
-          {:DOWN, ^ref, :process, ^pid, _} -> {:error, reason}
-        end
+      {:EXIT, ^pid, _} -> reason
     after
-      0 -> :ok
+      0 -> reason
     end
   end
 
@@ -944,6 +948,7 @@ defmodule DynamicSupervisor do
       {:DOWN, _ref, :process, pid, reason} ->
         case pids do
           %{^pid => child} ->
+            reason = unlink_flush(pid, reason)
             stacks = wait_child(pid, child, reason, stacks)
             wait_children(pids, size - 1, timers, stacks)
 
@@ -957,9 +962,12 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp wait_child(pid, {_, _, :brutal_kill, _, _} = child, reason, stacks) do
+  defp wait_child(pid, {_, restart, :brutal_kill, _, _} = child, reason, stacks) do
     case reason do
       :killed -> stacks
+      :shutdown when restart != :permanent -> stacks
+      {:shutdown, _} when restart != :permanent -> stacks
+      :normal when restart != :permanent -> stacks
       _ -> Map.put(stacks, pid, {child, reason})
     end
   end
