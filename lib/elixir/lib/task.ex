@@ -997,26 +997,29 @@ defmodule Task do
         Process.send_after(self(), timeout_ref, timeout)
       end
 
-    try do
-      await_many(tasks, timeout, awaiting, %{}, timeout_ref)
-    after
-      timer_ref && Process.cancel_timer(timer_ref)
-      receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
-    end
+    await_many(tasks, timeout, awaiting, %{}, timeout_ref, timer_ref)
   end
 
-  defp await_many(tasks, _timeout, awaiting, replies, _timeout_ref)
+  defp await_many(tasks, _timeout, awaiting, replies, timeout_ref, timer_ref)
        when map_size(awaiting) == 0 do
+    if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+      receive do: (^timeout_ref -> :ok)
+    end
+
     for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
   end
 
-  defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
+  defp await_many(tasks, timeout, awaiting, replies, timeout_ref, timer_ref) do
     receive do
       ^timeout_ref ->
         demonitor_pending_tasks(awaiting)
         exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
 
       {:DOWN, ref, _, proc, reason} when is_map_key(awaiting, ref) ->
+        if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+          receive do: (^timeout_ref -> :ok)
+        end
+
         demonitor_pending_tasks(awaiting)
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
@@ -1028,7 +1031,8 @@ defmodule Task do
           timeout,
           Map.delete(awaiting, ref),
           Map.put(replies, ref, reply),
-          timeout_ref
+          timeout_ref,
+          timer_ref
         )
     end
   end
@@ -1283,8 +1287,11 @@ defmodule Task do
   end
 
   defp yield_many(0, refs, timeout_ref, timer_ref) do
-    timer_ref && Process.cancel_timer(timer_ref)
-    receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    # If the timer has already expired, its message is guaranteed to arrive
+    if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+      receive do: (^timeout_ref -> :ok)
+    end
+
     {false, refs}
   end
 
@@ -1296,6 +1303,10 @@ defmodule Task do
 
       {:DOWN, ref, _, proc, reason} when is_map_key(refs, ref) ->
         if reason == :noconnection do
+          if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+            receive do: (^timeout_ref -> :ok)
+          end
+
           throw({:noconnection, reason(:noconnection, proc)})
         else
           yield_many(limit - 1, %{refs | ref => {:exit, reason}}, timeout_ref, timer_ref)

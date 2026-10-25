@@ -369,12 +369,9 @@ defmodule Kernel.ParallelCompiler do
         purge_compiler_modules: purge_compiler_modules
       })
 
-    Process.cancel_timer(state.timer_ref)
-
-    receive do
-      :threshold_check -> :ok
-    after
-      0 -> :ok
+    # If the timer has already expired, its message is guaranteed to arrive
+    if Process.cancel_timer(state.timer_ref) == false do
+      receive do: (:threshold_check -> :ok)
     end
 
     outcome
