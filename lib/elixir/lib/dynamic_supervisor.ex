@@ -930,12 +930,9 @@ defmodule DynamicSupervisor do
 
   defp wait_children(_pids, 0, timers, stacks) do
     for {timer, _} <- timers do
-      _ = :erlang.cancel_timer(timer)
-
-      receive do
-        {:timeout, ^timer, :kill} -> :ok
-      after
-        0 -> :ok
+      # If the timer has already expired, its message is guaranteed to arrive
+      if :erlang.cancel_timer(timer) == false do
+        receive do: ({:timeout, ^timer, :kill} -> :ok)
       end
     end
 
