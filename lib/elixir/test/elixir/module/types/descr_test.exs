@@ -3520,7 +3520,6 @@ defmodule Module.Types.DescrTest do
                     {:key, {atom(), false}},
                     {domain_key(:integer), opt_union(binary(), integer())}
                   ])
-                  |> opt_difference(empty_map())
                 ), []}
 
       # Negated keys
@@ -3565,7 +3564,6 @@ defmodule Module.Types.DescrTest do
                     key1: {binary(), false},
                     key2: {binary(), false}
                   ])
-                  |> opt_difference(empty_map())
                 ), []}
 
       # Missing keys
@@ -3591,8 +3589,7 @@ defmodule Module.Types.DescrTest do
                     {:key, {atom(), false}},
                     {domain_key(:integer), binary()},
                     {domain_key(:pid), integer()}
-                  ])
-                  |> opt_difference(empty_map()),
+                  ]),
                   closed_map([
                     {:key, {atom(), false}},
                     {:other_key, {integer(), false}},
@@ -3980,7 +3977,6 @@ defmodule Module.Types.DescrTest do
                     {:key, {atom(), false}},
                     {domain_key(:integer), opt_union(binary(), integer())}
                   ])
-                  |> opt_difference(empty_map())
                 )}
 
       assert map_put(
@@ -4000,7 +3996,6 @@ defmodule Module.Types.DescrTest do
                     {domain_key(:integer), binary()},
                     {domain_key(:pid), integer()}
                   ])
-                  |> opt_difference(empty_map())
                 )}
 
       # Negated keys
@@ -4044,7 +4039,6 @@ defmodule Module.Types.DescrTest do
                     key1: {binary(), false},
                     key2: {binary(), false}
                   ])
-                  |> opt_difference(empty_map())
                 )}
     end
 

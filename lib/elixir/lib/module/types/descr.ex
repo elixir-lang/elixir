@@ -4067,10 +4067,17 @@ defmodule Module.Types.Descr do
     |> map_update_domains_result()
   end
 
-  # Domain updates accumulate the updated and unchanged maps separately,
-  # so the empty map is excluded from the updated ones only once at the end.
-  # Maps are accumulated in lists, as their pairwise union is faster than
-  # adding each map to an ever-growing union.
+  # Domain updates accumulate the updated maps separately from the unchanged
+  # ones, so the empty map is excluded from the updated ones only once at the end.
+  # Updated maps with a required key are never empty, so they are accumulated
+  # with the unchanged ones. Maps are accumulated in lists, as their pairwise
+  # union is faster than adding each map to an ever-growing union.
+  defp map_update_domains_add(output, fields, {updated, unchanged}) do
+    if Enum.any?(fields, fn {_key, {_type, optional?}} -> not optional? end),
+      do: {updated, [output | unchanged]},
+      else: {[output | updated], unchanged}
+  end
+
   defp map_update_domains_result({updated, unchanged}) do
     updated =
       case map_union_all(updated) do
@@ -4152,7 +4159,7 @@ defmodule Module.Types.Descr do
             end)
           end
 
-        {[output | updated], unchanged}
+        map_update_domains_add(output, fields, {updated, unchanged})
       end
     end)
     |> map_update_domains_result()
@@ -4213,7 +4220,7 @@ defmodule Module.Types.Descr do
             map_difference(output, negative)
           end)
 
-        {[output | updated], unchanged}
+        map_update_domains_add(output, fields, {updated, unchanged})
       end)
     end
   end
