@@ -3690,36 +3690,43 @@ defmodule Module.Types.Descr do
         {found_required? or found_optional?, value, domains, errors}
       end
 
-    # Named-key updates below always union into this using the original bdd/dnf
-    acc =
-      cond do
-        domains != [] and (found? or accepts_missing?) ->
-          atom_keys =
-            if maybe_negated_set,
-              do: :lists.usort(optional_keys ++ :sets.to_list(maybe_negated_set)),
-              else: []
+    update_domains? = domains != [] and (found? or accepts_missing?)
+    found? = if update_domains?, do: found? or force?, else: found?
 
-          descr = map_update_domains(dnf, domains, operation, atom_keys)
-          {value, descr, errors, found? or force?}
+    if maybe_negated_set do
+      # The key may be any atom outside of a finite set, so it may hit any of
+      # the named keys and the domains. Computing one alternative per key
+      # makes chained updates grow exponentially, so we update all of them
+      # at once instead, which gives one map per line.
+      atom_keys = :lists.usort(optional_keys ++ :sets.to_list(maybe_negated_set))
+      domains = if update_domains?, do: :lists.usort(domains), else: []
+      acc = {value, none(), errors, found?}
 
-        found? ->
-          # Hit named atom keys only; there is no domain association to rewrite
-          {value, none(), errors, true}
+      acc =
+        map_update_keys_static(dnf, required_keys, optional_keys, operation, static?, acc, false)
 
-        true ->
-          {value, none(), errors, false}
-      end
+      {value, descr, errors, found?} = acc
+      widened = map_update_widen(dnf, optional_keys, domains, operation, atom_keys)
+      {value, opt_union(descr, widened), errors, found?}
+    else
+      # Named-key updates below always union into this using the original bdd/dnf
+      descr =
+        if update_domains?,
+          do: map_update_domains(dnf, domains, operation, []),
+          else: none()
 
-    map_update_keys_static(dnf, required_keys, optional_keys, operation, static?, acc)
+      acc = {value, descr, errors, found?}
+      map_update_keys_static(dnf, required_keys, optional_keys, operation, static?, acc, true)
+    end
   end
 
   # The updated maps are accumulated in a list as their pairwise union is faster
-  defp map_update_keys_static(dnf, required, optional, operation, static?, acc) do
+  defp map_update_keys_static(dnf, required, optional, operation, static?, acc, build_optional?) do
     {value, descr, errors, found?} = acc
     bdds = if descr == @none, do: [], else: [Map.fetch!(descr, :map)]
     acc = {value, bdds, errors, found?}
-    acc = map_update_named_keys(dnf, required, operation, true, static?, acc)
-    acc = map_update_named_keys(dnf, optional, operation, false, static?, acc)
+    acc = map_update_named_keys(dnf, required, operation, true, static?, acc, true)
+    acc = map_update_named_keys(dnf, optional, operation, false, static?, acc, build_optional?)
     {value, bdds, errors, found?} = acc
 
     case map_union_all(bdds) do
@@ -3735,12 +3742,16 @@ defmodule Module.Types.Descr do
   # 3. For callbacks, apply it.
   # 4. Rebuild maps with the new field and union them into the result.
   # 5. Accumulate the old values and handle missing-key errors.
-  defp map_update_named_keys(dnf, keys, operation, required_key?, static?, acc) do
+  defp map_update_named_keys(dnf, keys, operation, required_key?, static?, acc, build?) do
     force? = elem(operation, 1) == :force
 
     Enum.reduce(keys, acc, fn key, {acc_value, acc_descr, acc_errors, acc_found?} ->
       {pairs, {value, optional?}} =
         case dnf do
+          # When not building, we only need the old values
+          _ when not build? ->
+            {[], map_dnf_fetch_static(dnf, key)}
+
           # Optimization: for one open map with no exclusions, read the field and rest directly
           [{:open, fields, []}] ->
             {field, rest} = map_pop_key_bdd(:open, fields, key)
@@ -4156,6 +4167,131 @@ defmodule Module.Types.Descr do
       end
     end)
     |> map_update_domains_result()
+  end
+
+  # Updates all given named keys and domains at once in each line, which is a
+  # supertype of the union of the per-key updates. Each key and domain may
+  # keep its old value or have the new one.
+  #
+  # A negative is kept only if, for every updated key and domain, it already
+  # contains the old values of the line, as done in map_update_many_domains/4.
+  defp map_update_widen(dnf, keys, domains, operation, atom_keys) do
+    insert? = elem(operation, 1) == :force
+
+    Enum.reduce(dnf, {[], []}, fn {tag, fields, negs}, acc ->
+      rest = map_new(tag, fields)
+
+      new_field = fn old_field ->
+        map_update_prepare_pairs([], old_field, rest, operation)
+        |> map_update_maybe_apply_callback(operation)
+        |> Enum.reduce({none(), false}, fn {field, _rest}, acc ->
+          field_opt_union(field, acc, %{})
+        end)
+      end
+
+      key_updates =
+        for key <- keys,
+            old_field = map_fetch_field(tag, fields, key),
+            new_field = new_field.(old_field),
+            not field_empty?(new_field),
+            do: {key, old_field, new_field}
+
+      domain_updates =
+        for domain <- domains,
+            old_type = map_domain_tag_to_type(tag, domain),
+            {new_type, _} = field = new_field.({old_type, true}),
+            not field_empty?(field),
+            do: {domain, old_type, new_type}
+
+      if key_updates == [] and domain_updates == [] do
+        acc
+      else
+        # If the key must exist and there is a single candidate, it is the one updated
+        replace? =
+          match?({[_], [], :reject}, {key_updates, domain_updates, elem(operation, 1)})
+
+        {output_tag, output_fields} =
+          map_widen_literal(tag, fields, key_updates, domain_updates, atom_keys, replace?)
+
+        output = map_new(output_tag, output_fields)
+
+        output =
+          Enum.reduce(negs, output, fn bdd_leaf(neg_tag, neg_fields), output ->
+            if map_widen_keeps_negative?(neg_tag, neg_fields, key_updates, domain_updates) do
+              {neg_tag, neg_fields} =
+                map_widen_literal(
+                  neg_tag,
+                  neg_fields,
+                  key_updates,
+                  domain_updates,
+                  atom_keys,
+                  replace?
+                )
+
+              map_difference(output, map_new(neg_tag, neg_fields))
+            else
+              output
+            end
+          end)
+
+        inserted? =
+          insert? and
+            (Enum.any?(key_updates, fn {_, _, {type, _}} -> not empty?(type) end) or
+               Enum.any?(domain_updates, fn {_, _, type} -> not empty?(type) end))
+
+        if inserted? do
+          map_update_domains_add(output, output_fields, acc)
+        else
+          {updated, unchanged} = acc
+          {updated, [output | unchanged]}
+        end
+      end
+    end)
+    |> map_update_domains_result()
+  end
+
+  defp map_fetch_field(tag, fields, key) do
+    case fields_find(key, fields) do
+      {:ok, field} -> field
+      :error -> map_key_tag_to_field(tag)
+    end
+  end
+
+  defp map_widen_literal(tag, fields, key_updates, domain_updates, atom_keys, replace?) do
+    fields =
+      if List.keymember?(domain_updates, :atom, 0),
+        do: map_domain_protect_fields(tag, fields, :atom, atom_keys),
+        else: fields
+
+    fields =
+      Enum.reduce(key_updates, fields, fn {key, _old_field, new_field}, fields ->
+        field =
+          if replace?,
+            do: new_field,
+            else: field_opt_union(map_fetch_field(tag, fields, key), new_field, %{})
+
+        fields_store(key, field, fields)
+      end)
+
+    tag =
+      Enum.reduce(domain_updates, tag, fn {domain, _old_type, new_type}, acc_tag ->
+        map_replace_domain(
+          acc_tag,
+          domain,
+          opt_union(map_domain_tag_to_type(tag, domain), new_type)
+        )
+      end)
+
+    {tag, fields}
+  end
+
+  defp map_widen_keeps_negative?(neg_tag, neg_fields, key_updates, domain_updates) do
+    Enum.all?(key_updates, fn {key, old_field, _} ->
+      field_subtype?(old_field, map_fetch_field(neg_tag, neg_fields, key))
+    end) and
+      Enum.all?(domain_updates, fn {domain, old_type, _} ->
+        subtype?(old_type, map_domain_tag_to_type(neg_tag, domain))
+      end)
   end
 
   defp map_update_many_domains_negative(output, updates, neg_tag, neg_fields) do

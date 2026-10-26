@@ -3453,11 +3453,12 @@ defmodule Module.Types.DescrTest do
 
       assert equal?(type, opt_union(binary(), pid()))
 
+      # Keys that may be any atom update all named keys at once
       assert equal?(
                descr,
-               opt_union(
-                 closed_map(key1: {binary(), false}, key2: {integer(), false}),
-                 closed_map(key1: {integer(), false}, key2: {pid(), false})
+               closed_map(
+                 key1: {opt_union(binary(), integer()), false},
+                 key2: {opt_union(pid(), integer()), false}
                )
              )
 
@@ -3470,16 +3471,11 @@ defmodule Module.Types.DescrTest do
       assert equal?(type, opt_union(binary(), pid()))
 
       expected =
-        [
-          closed_map([
-            {domain_key(:atom), integer()},
-            key1: {binary(), false},
-            key2: {pid(), false}
-          ]),
-          closed_map(key1: {integer(), false}, key2: {pid(), false}),
-          closed_map(key1: {binary(), false}, key2: {integer(), false})
-        ]
-        |> Enum.reduce(&opt_union/2)
+        closed_map([
+          {domain_key(:atom), integer()},
+          key1: {opt_union(binary(), integer()), false},
+          key2: {opt_union(pid(), integer()), false}
+        ])
 
       assert equal?(descr, expected)
       assert errors == [baddomain: atom()]
@@ -3497,9 +3493,9 @@ defmodule Module.Types.DescrTest do
 
       assert equal?(
                descr,
-               opt_union(
-                 closed_map(key1: {binary(), false}, key2: {integer(), false}),
-                 closed_map(key1: {integer(), false}, key2: {pid(), false})
+               closed_map(
+                 key1: {opt_union(binary(), integer()), false},
+                 key2: {opt_union(pid(), integer()), false}
                )
              )
 
@@ -3573,26 +3569,25 @@ defmodule Module.Types.DescrTest do
             [{domain_key(:atom), pid()}]
         )
 
-      assert map_update(
-               map_with_atom_domain,
-               opt_difference(atom(), atom([:key1])),
-               integer(),
-               :reject,
-               true
-             ) ==
-               {opt_union(binary(), pid()),
-                opt_union(
-                  closed_map([
-                    {domain_key(:atom), pid()},
-                    key1: {binary(), false},
-                    key2: {integer(), false}
-                  ]),
-                  closed_map([
-                    {domain_key(:atom), opt_union(pid(), integer())},
-                    key1: {binary(), false},
-                    key2: {binary(), false}
-                  ])
-                ), []}
+      assert {type, descr, []} =
+               map_update(
+                 map_with_atom_domain,
+                 opt_difference(atom(), atom([:key1])),
+                 integer(),
+                 :reject,
+                 true
+               )
+
+      assert equal?(type, opt_union(binary(), pid()))
+
+      assert equal?(
+               descr,
+               closed_map([
+                 {domain_key(:atom), opt_union(pid(), integer())},
+                 key1: {binary(), false},
+                 key2: {opt_union(binary(), integer()), false}
+               ])
+             )
 
       # Missing keys
       assert map_update(
