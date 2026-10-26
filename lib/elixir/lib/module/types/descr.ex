@@ -3518,60 +3518,44 @@ defmodule Module.Types.Descr do
   `key_descr` is split into optional and required keys and tracked accordingly.
   The gradual aspect of `key_descr` does not impact the return type.
 
-  `optional?` describes if the key is optional (in case of atoms).
+  `type` may also be `:delete`, which removes the key.
 
-  It returns `{type, descr, errors}`, `:badmap`, `{:error, errors}`.
-  The list of `errors` may be empty, which implies a bad domain.
+  `on_missing` says what to do when the key may be absent:
+
+    * `:force` - forces the key into existence
+    * `:keep` - leaves the map unchanged
+    * `:reject` - excludes that case from the result,
+      as the key is expected to exist
 
   The `return_type?` flag is used for optimizations purposes. If set to false,
   the returned `type` should not be used, as it will be imprecise.
 
-  With the default `on_missing` policy:
-  If `force?` is false, the key is expected to exist. When true, it forces
-  the key into existence.
-
-  `on_missing` says what to do when the key is absent: `:apply` applies the update,
-  `:keep` leaves the map unchanged, and `:reject` excludes that case from the result.
-  Error reporting is handled separately. The default is `:apply` when `force?` is
-  true, and `:reject` otherwise.
+  It returns `{type, descr, errors}`, `:badmap`, `{:error, errors}`.
+  The list of `errors` may be empty, which implies a bad domain.
   """
-  def map_update(
-        descr,
-        key_descr,
-        type,
-        optional?,
-        return_type? \\ true,
-        force? \\ false,
-        on_missing \\ :default
-      )
-      when is_boolean(optional?) do
-    {descr, type} =
+  def map_update(descr, key_descr, type, on_missing, return_type?)
+      when on_missing in [:force, :keep, :reject] and is_boolean(return_type?) do
+    {descr, field} =
       case type do
-        %{dynamic: dynamic} -> {dynamic(descr), dynamic}
-        _ -> {descr, type}
+        :delete -> {descr, {none(), true}}
+        %{dynamic: dynamic} -> {dynamic(descr), {dynamic, false}}
+        _ -> {descr, {type, false}}
       end
 
-    operation = {{:constant, {type, optional?}}, map_update_on_missing(on_missing, force?)}
-    map_update_unchecked(descr, key_descr, operation, return_type?, force?)
+    map_update_unchecked(descr, key_descr, {{:constant, field}, on_missing}, return_type?)
   end
 
   @doc """
   Updates `key_descr` in `descr` with `type_fun`.
 
-  This is a more general version of `map_update/7`: the third argument is an
+  This is a more general version of `map_update/5`: the third argument is an
   anonymous function that receives the current value and whether it is optional.
   For a gradual map, the value passed to the callback is gradual too. A returned
   dynamic wrapper is removed before rebuilding the map; the map's gradual component
   is handled by the update itself.
   """
-  def map_update_fun(
-        descr,
-        key_descr,
-        type_fun,
-        return_type? \\ true,
-        force? \\ false,
-        on_missing \\ :default
-      ) do
+  def map_update_fun(descr, key_descr, type_fun, on_missing, return_type?)
+      when on_missing in [:force, :keep, :reject] and is_boolean(return_type?) do
     gradual? = gradual?(descr)
 
     type_fun = fn value, optional? ->
@@ -3583,24 +3567,19 @@ defmodule Module.Types.Descr do
       {new_value, new_optional?}
     end
 
-    operation = {{:callback, type_fun}, map_update_on_missing(on_missing, force?)}
-    map_update_unchecked(descr, key_descr, operation, return_type?, force?)
+    map_update_unchecked(descr, key_descr, {{:callback, type_fun}, on_missing}, return_type?)
   end
 
-  defp map_update_on_missing(:default, true), do: :apply
-  defp map_update_on_missing(:default, false), do: :reject
-  defp map_update_on_missing(mode, _) when mode in [:apply, :keep, :reject], do: mode
+  defp map_update_unchecked(:term, _key_descr, _operation, _return_type?), do: :badmap
 
-  defp map_update_unchecked(:term, _key_descr, _operation, _return_type?, _force?), do: :badmap
-
-  defp map_update_unchecked(descr, key_descr, operation, return_type?, force?) do
+  defp map_update_unchecked(descr, key_descr, operation, return_type?) do
     split_keys = map_split_keys_and_domains(key_descr)
 
     case :maps.take(:dynamic, descr) do
       :error ->
         with true <- descr_key?(descr, :map) and map_only?(descr),
              {type, descr, errors, found?} <-
-               map_update_static(descr, split_keys, operation, return_type?, force?, true) do
+               map_update_static(descr, split_keys, operation, return_type?, true) do
           if found? do
             {type, descr, errors}
           else
@@ -3614,9 +3593,9 @@ defmodule Module.Types.Descr do
       {dynamic, static} ->
         with true <- descr_key?(dynamic, :map) and map_only?(static),
              {dynamic_value, dynamic_descr, dynamic_errors, dynamic_found?} <-
-               map_update_static(dynamic, split_keys, operation, return_type?, force?, false) do
+               map_update_static(dynamic, split_keys, operation, return_type?, false) do
           {static_value, static_descr, static_errors, _static_found?} =
-            case map_update_static(static, split_keys, operation, return_type?, force?, true) do
+            case map_update_static(static, split_keys, operation, return_type?, true) do
               :badmap -> {none(), none(), [], false}
               result -> result
             end
@@ -3642,7 +3621,6 @@ defmodule Module.Types.Descr do
          split_keys,
          operation,
          return_type?,
-         force?,
          static?
        ) do
     if map_leaf_empty?(leaf) do
@@ -3654,32 +3632,33 @@ defmodule Module.Types.Descr do
         split_keys,
         operation,
         return_type?,
-        force?,
         static?
       )
     end
   end
 
-  defp map_update_static(%{map: bdd}, split_keys, operation, return_type?, force?, static?) do
+  defp map_update_static(%{map: bdd}, split_keys, operation, return_type?, static?) do
     case map_bdd_to_dnf_remove_empty(bdd) do
       [] -> :badmap
-      dnf -> map_update_static_dnf(bdd, dnf, split_keys, operation, return_type?, force?, static?)
+      dnf -> map_update_static_dnf(bdd, dnf, split_keys, operation, return_type?, static?)
     end
   end
 
-  defp map_update_static(%{}, _split_keys, _operation, _return_type?, _force?, _static?) do
+  defp map_update_static(%{}, _split_keys, _operation, _return_type?, _static?) do
     {none(), none(), [], false}
   end
 
-  defp map_update_static(:term, split_keys, operation, return_type?, force?, static?) do
-    map_update_static(%{map: @map_top}, split_keys, operation, return_type?, force?, static?)
+  defp map_update_static(:term, split_keys, operation, return_type?, static?) do
+    map_update_static(%{map: @map_top}, split_keys, operation, return_type?, static?)
   end
 
-  defp map_update_static_dnf(bdd, dnf, split_keys, operation, return_type?, force?, static?) do
+  defp map_update_static_dnf(bdd, dnf, split_keys, operation, return_type?, static?) do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
       split_keys
 
-    accepts_missing? = elem(operation, 1) != :reject
+    {_, on_missing} = operation
+    force? = on_missing == :force
+    accepts_missing? = on_missing != :reject
 
     optional_keys =
       ((map_keys_from_negated_set(maybe_negated_set, bdd) -- optional_keys) -- required_keys) ++
@@ -3731,12 +3710,12 @@ defmodule Module.Types.Descr do
           {value, none(), errors, false}
       end
 
-    map_update_keys_static(dnf, required_keys, optional_keys, operation, force?, static?, acc)
+    map_update_keys_static(dnf, required_keys, optional_keys, operation, static?, acc)
   end
 
-  defp map_update_keys_static(dnf, required, optional, operation, force?, static?, acc) do
-    acc = map_update_named_keys(dnf, required, operation, true, force?, static?, acc)
-    acc = map_update_named_keys(dnf, optional, operation, false, force?, static?, acc)
+  defp map_update_keys_static(dnf, required, optional, operation, static?, acc) do
+    acc = map_update_named_keys(dnf, required, operation, true, static?, acc)
+    acc = map_update_named_keys(dnf, optional, operation, false, static?, acc)
     acc
   end
 
@@ -3747,7 +3726,9 @@ defmodule Module.Types.Descr do
   # 3. For callbacks, apply it.
   # 4. Rebuild maps with the new field and union them into the result.
   # 5. Accumulate the old values and handle missing-key errors.
-  defp map_update_named_keys(dnf, keys, operation, required_key?, force?, static?, acc) do
+  defp map_update_named_keys(dnf, keys, operation, required_key?, static?, acc) do
+    force? = elem(operation, 1) == :force
+
     Enum.reduce(keys, acc, fn key, {acc_value, acc_descr, acc_errors, acc_found?} ->
       {pairs, {value, optional?}} =
         case dnf do
@@ -3807,7 +3788,7 @@ defmodule Module.Types.Descr do
   # Callbacks return OLD fields; map_update_maybe_apply_callback applies the callback later.
   defp map_update_prepare_pairs(negative, field, rest, {{:constant, new}, mode}) do
     case mode do
-      :apply ->
+      :force ->
         # Update both present and absent keys.
         map_update_project_pair(negative, field, rest, new)
 
@@ -3908,7 +3889,7 @@ defmodule Module.Types.Descr do
 
     absent =
       case {optional?, mode} do
-        {true, :apply} -> fun.(none(), true)
+        {true, :force} -> fun.(none(), true)
         {true, :keep} -> {none(), true}
         _ -> {none(), false}
       end
@@ -4380,7 +4361,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_put_domains(dnf, domain_keys, type, atom_keys) do
-    operation = {{:constant, {type, false}}, :apply}
+    operation = {{:constant, {type, false}}, :force}
     map_update_domains(dnf, domain_keys, operation, atom_keys)
   end
 

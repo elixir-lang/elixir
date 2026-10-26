@@ -1063,7 +1063,7 @@ defmodule Module.Types.Expr do
   # replaced keep whatever constraint the consumer has on them.
   #
   # One way to implement this function is to compute the union of any
-  # non-singleton key and then call map_update(type, union, term, true, false, false).
+  # non-singleton key and then call map_update(type, union, term(), :reject, false).
   # The downside of this approach is that %{x | key => value} will generate
   # a union with all possible keys set to term, which is not terribly useful.
   # So in case there is a non-singleton key, we fallback to an open_map.
@@ -1098,7 +1098,7 @@ defmodule Module.Types.Expr do
   defp put_required_keys(type, []), do: {:ok, type}
 
   defp literal_map_update(descr, key_descr, value_descr) do
-    case map_update(descr, key_descr, value_descr, false, false, false) do
+    case map_update(descr, key_descr, value_descr, :reject, false) do
       {_type, descr, []} -> {:ok, descr}
       {_, _, [error | _]} -> error
       :badmap -> :badmap

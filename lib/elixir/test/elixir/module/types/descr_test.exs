@@ -3015,14 +3015,26 @@ defmodule Module.Types.DescrTest do
 
   describe "map_update" do
     test "with static atom keys" do
-      assert map_update(open_map(key: {binary(), false}), atom([:key]), integer(), false) ==
+      assert map_update(open_map(key: {binary(), false}), atom([:key]), integer(), :reject, true) ==
                {binary(), open_map(key: {integer(), false}), []}
 
-      assert map_update(dynamic(open_map(key: {binary(), false})), atom([:key]), integer(), false) ==
+      assert map_update(
+               dynamic(open_map(key: {binary(), false})),
+               atom([:key]),
+               integer(),
+               :reject,
+               true
+             ) ==
                {dynamic(binary()), dynamic(open_map(key: {integer(), false})), []}
 
       # Optional fail for static maps
-      assert map_update(open_map(key: {atom([:value]), true}), atom([:key]), integer(), false) ==
+      assert map_update(
+               open_map(key: {atom([:value]), true}),
+               atom([:key]),
+               integer(),
+               :reject,
+               true
+             ) ==
                {:error, [badkey: :key]}
 
       # ...unless forcing
@@ -3030,8 +3042,7 @@ defmodule Module.Types.DescrTest do
                open_map(key: {atom([:value]), true}),
                atom([:key]),
                integer(),
-               false,
-               true,
+               :force,
                true
              ) ==
                {atom([:value]), open_map(key: {integer(), false}), []}
@@ -3041,15 +3052,16 @@ defmodule Module.Types.DescrTest do
                dynamic(open_map(key: {atom([:value]), true})),
                atom([:key]),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {dynamic(atom([:value])), dynamic(open_map(key: {integer(), false})), []}
 
-      assert map_update(dynamic(), atom([:key]), integer(), false) ==
+      assert map_update(dynamic(), atom([:key]), integer(), :reject, true) ==
                {dynamic(), dynamic(open_map(key: {integer(), false})), []}
 
       # Empty value fails for static maps
-      assert map_update(closed_map(key: {none(), true}), atom([:key]), integer(), false) ==
+      assert map_update(closed_map(key: {none(), true}), atom([:key]), integer(), :reject, true) ==
                {:error, [badkey: :key]}
 
       # ...unless forcing
@@ -3057,8 +3069,7 @@ defmodule Module.Types.DescrTest do
                closed_map(key: {none(), true}),
                atom([:key]),
                integer(),
-               false,
-               true,
+               :force,
                true
              ) ==
                {none(), closed_map(key: {integer(), false}), []}
@@ -3068,7 +3079,8 @@ defmodule Module.Types.DescrTest do
                open_map(key1: {atom(), false}, key2: {binary(), false}),
                atom([:key1, :key2]),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {opt_union(atom(), binary()),
                 opt_union(
@@ -3081,7 +3093,8 @@ defmodule Module.Types.DescrTest do
                open_map(key1: {atom(), false}, key2: {binary(), false}),
                atom([:key1, :key3]),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {term(),
                 opt_union(
@@ -3098,8 +3111,7 @@ defmodule Module.Types.DescrTest do
                open_map(key1: {atom(), false}, key2: {binary(), false}),
                atom([:key1, :key3]),
                integer(),
-               false,
-               true,
+               :force,
                true
              ) ==
                {term(),
@@ -3113,7 +3125,7 @@ defmodule Module.Types.DescrTest do
                 ), []}
 
       # ...unless dynamic
-      assert map_update(dynamic(open_map()), atom([:key1, :key2]), integer(), false) ==
+      assert map_update(dynamic(open_map()), atom([:key1, :key2]), integer(), :reject, true) ==
                {dynamic(),
                 dynamic(
                   opt_union(
@@ -3125,17 +3137,17 @@ defmodule Module.Types.DescrTest do
       # A semantically empty map reports an invalid operand, not a missing key.
       assert open_map()
              |> opt_difference(open_map(a: {term(), true}, c: {term(), true}))
-             |> map_update(atom([:b]), integer(), false) == :badmap
+             |> map_update(atom([:b]), integer(), :reject, true) == :badmap
 
       # ... even when forcing.
       assert open_map()
              |> opt_difference(open_map(a: {term(), true}, c: {term(), true}))
-             |> map_update(atom([:b]), integer(), false, true, true) == :badmap
+             |> map_update(atom([:b]), integer(), :force, true) == :badmap
     end
 
     # Times out without a projection-aware map_update path
     test "with projected negative maps" do
-      assert map_update(projected_negative_map(100), atom([:k]), binary(), false) ==
+      assert map_update(projected_negative_map(100), atom([:k]), binary(), :reject, true) ==
                {open_map(), open_map(k: {binary(), false}, x: {term(), false}), []}
     end
 
@@ -3151,7 +3163,7 @@ defmodule Module.Types.DescrTest do
         {value, false}
       end
 
-      assert {value, result, []} = map_update_fun(type, binary(), fun, false, false)
+      assert {value, result, []} = map_update_fun(type, binary(), fun, :reject, false)
       assert equal?(value, dynamic(none()))
       assert equal?(result, type)
       refute_received :callback_invoked_with_none
@@ -3160,7 +3172,7 @@ defmodule Module.Types.DescrTest do
     test "popping a binary key drops invalidated negative map constraints" do
       non_empty_map = opt_difference(open_map(), empty_map())
 
-      assert {value, rest, []} = map_update(non_empty_map, binary(), none(), true)
+      assert {value, rest, []} = map_update(non_empty_map, binary(), :delete, :reject, true)
       assert value == term()
       assert equal?(rest, open_map())
     end
@@ -3169,7 +3181,7 @@ defmodule Module.Types.DescrTest do
       no_integer_keys = open_map([{domain_key(:integer), none()}])
       has_integer_key = opt_difference(open_map(), no_integer_keys)
 
-      assert {value, rest, []} = map_update(has_integer_key, binary(), none(), true)
+      assert {value, rest, []} = map_update(has_integer_key, binary(), :delete, :reject, true)
       assert value == term()
       assert equal?(rest, has_integer_key)
     end
@@ -3179,7 +3191,7 @@ defmodule Module.Types.DescrTest do
 
       for {optional?, expected} <- [{true, open_map()}, {false, none()}] do
         fun = fn _value, _optional? -> {none(), optional?} end
-        assert {:term, rest, []} = map_update_fun(type, binary(), fun, true, false)
+        assert {:term, rest, []} = map_update_fun(type, binary(), fun, :reject, true)
         assert equal?(rest, expected)
       end
     end
@@ -3196,10 +3208,10 @@ defmodule Module.Types.DescrTest do
         {if(disjoint?(value, binary()), do: none(), else: pid()), false}
       end
 
-      assert {_value, only_float, []} = map_update_fun(type, float(), fun, true, false)
+      assert {_value, only_float, []} = map_update_fun(type, float(), fun, :reject, true)
 
       assert {_value, both, []} =
-               map_update_fun(type, opt_union(integer(), float()), fun, true, false)
+               map_update_fun(type, opt_union(integer(), float()), fun, :reject, true)
 
       assert equal?(only_float, both)
 
@@ -3225,14 +3237,14 @@ defmodule Module.Types.DescrTest do
         closed_map([{domain_key(:float), opt_union(atom([:b]), pid())}])
         |> opt_difference(empty_map())
 
-      assert {_value, rest, []} = map_update_fun(type, integer(), fun, true, false)
+      assert {_value, rest, []} = map_update_fun(type, integer(), fun, :reject, true)
       assert equal?(rest, int_result)
       refute subtype?(float_map, rest)
 
       required = fn value, _optional? -> fun.(value, false) end
 
       assert {_value, rest, []} =
-               map_update_fun(type, opt_union(integer(), float()), required, true, false)
+               map_update_fun(type, opt_union(integer(), float()), required, :reject, true)
 
       assert equal?(rest, opt_union(int_result, float_result))
     end
@@ -3243,7 +3255,8 @@ defmodule Module.Types.DescrTest do
                  closed_map(key: {atom([:value]), false}),
                  dynamic(),
                  atom([:new_value]),
-                 false
+                 :reject,
+                 true
                )
 
       assert equal?(type, atom([:value]))
@@ -3255,7 +3268,8 @@ defmodule Module.Types.DescrTest do
                  dynamic(closed_map(key: {atom([:value]), false})),
                  dynamic(),
                  atom([:new_value]),
-                 false
+                 :reject,
+                 true
                )
 
       assert equal?(type, dynamic(atom([:value])))
@@ -3268,7 +3282,8 @@ defmodule Module.Types.DescrTest do
                  open_map(__struct__: {term(), false}),
                  dynamic(atom()),
                  integer(),
-                 false
+                 :reject,
+                 true
                )
 
       assert type == term()
@@ -3281,7 +3296,8 @@ defmodule Module.Types.DescrTest do
                closed_map(key1: {atom(), false}, key2: {binary(), false}),
                dynamic(atom([:key1, :key3])),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {atom(), closed_map(key1: {integer(), false}, key2: {binary(), false}), []}
 
@@ -3289,7 +3305,8 @@ defmodule Module.Types.DescrTest do
                closed_map(key1: {atom(), false}, key2: {binary(), false}),
                dynamic(atom([:key3, :key4])),
                integer(),
-               false
+               :reject,
+               true
              ) == {:error, []}
 
       # ...unless forcing
@@ -3297,8 +3314,7 @@ defmodule Module.Types.DescrTest do
                closed_map(key1: {atom(), false}, key2: {binary(), false}),
                dynamic(atom([:key3, :key4])),
                integer(),
-               false,
-               true,
+               :force,
                true
              ) ==
                {none(),
@@ -3320,7 +3336,8 @@ defmodule Module.Types.DescrTest do
                open_map(key1: {atom(), false}, key2: {binary(), false}),
                dynamic(atom([:key1, :key3])),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {term(),
                 opt_union(
@@ -3336,7 +3353,8 @@ defmodule Module.Types.DescrTest do
                open_map(key1: {atom(), false}, key2: {binary(), false}),
                dynamic(atom([:key3, :key4])),
                integer(),
-               false
+               :reject,
+               true
              ) == {:error, []}
     end
 
@@ -3381,20 +3399,23 @@ defmodule Module.Types.DescrTest do
         ])
         |> opt_difference(empty_map())
 
-      assert map_update(map, none(), integer(), false) == {:error, []}
-      assert map_update(map, integer(), integer(), false) == {binary(), integer_result, []}
+      assert map_update(map, none(), integer(), :reject, true) == {:error, []}
 
-      assert map_update(map, opt_union(pid(), integer()), integer(), false) ==
+      assert map_update(map, integer(), integer(), :reject, true) ==
+               {binary(), integer_result, []}
+
+      assert map_update(map, opt_union(pid(), integer()), integer(), :reject, true) ==
                {binary(), pid_integer_result, []}
 
-      assert map_update(map, opt_union(pid(), reference()), integer(), false) ==
+      assert map_update(map, opt_union(pid(), reference()), integer(), :reject, true) ==
                {binary(), pid_result, [baddomain: reference()]}
 
       assert map_update(
                map,
                opt_union(pid(), dynamic(opt_union(reference(), integer()))),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {binary(), pid_integer_result, []}
 
@@ -3402,11 +3423,12 @@ defmodule Module.Types.DescrTest do
                map,
                opt_union(pid(), dynamic(opt_union(reference(), binary()))),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {binary(), pid_result, []}
 
-      assert map_update(map, dynamic(opt_union(reference(), binary())), integer(), false) ==
+      assert map_update(map, dynamic(opt_union(reference(), binary())), integer(), :reject, true) ==
                {:error, []}
 
       # Forcing admits absent domains
@@ -3414,8 +3436,7 @@ defmodule Module.Types.DescrTest do
                map,
                dynamic(opt_union(reference(), binary())),
                integer(),
-               false,
-               true,
+               :force,
                true
              ) ==
                {none(), reference_binary_result, []}
@@ -3426,7 +3447,8 @@ defmodule Module.Types.DescrTest do
                  closed_map(key1: {binary(), false}, key2: {pid(), false}),
                  atom(),
                  integer(),
-                 false
+                 :reject,
+                 true
                )
 
       assert equal?(type, opt_union(binary(), pid()))
@@ -3444,7 +3466,7 @@ defmodule Module.Types.DescrTest do
       # ... unless forcing
       map = closed_map(key1: {binary(), false}, key2: {pid(), false})
 
-      assert {type, descr, errors} = map_update(map, atom(), integer(), false, true, true)
+      assert {type, descr, errors} = map_update(map, atom(), integer(), :force, true)
       assert equal?(type, opt_union(binary(), pid()))
 
       expected =
@@ -3467,7 +3489,8 @@ defmodule Module.Types.DescrTest do
                  closed_map(key1: {binary(), false}, key2: {pid(), false}),
                  dynamic(atom()),
                  integer(),
-                 false
+                 :reject,
+                 true
                )
 
       assert equal?(type, opt_union(binary(), pid()))
@@ -3485,11 +3508,13 @@ defmodule Module.Types.DescrTest do
       # A non-empty map with no binary keys reports a missing domain.
       map = closed_map(a: {integer(), false})
       refute empty?(map)
-      assert map_update(map, binary(), integer(), false) == {:error, [baddomain: binary()]}
+
+      assert map_update(map, binary(), integer(), :reject, true) ==
+               {:error, [baddomain: binary()]}
 
       # Forcing a required none() value has no old value and no possible result,
       # but must still report the missing domain.
-      assert {type, descr, errors} = map_update(map, binary(), none(), false, true, true)
+      assert {type, descr, errors} = map_update(map, binary(), none(), :force, true)
       assert empty?(type)
       assert empty?(descr)
       assert errors == [baddomain: binary()]
@@ -3499,7 +3524,7 @@ defmodule Module.Types.DescrTest do
       expected = opt_difference(open_map(), empty_map())
 
       assert {value, result, []} =
-               map_update(dynamic(), opt_union(atom([:key]), binary()), integer(), false)
+               map_update(dynamic(), opt_union(atom([:key]), binary()), integer(), :reject, true)
 
       assert equal?(value, dynamic())
       assert equal?(result, dynamic(expected))
@@ -3511,7 +3536,8 @@ defmodule Module.Types.DescrTest do
                map,
                dynamic(opt_union(atom([:key]), integer())),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {opt_union(atom(), binary()),
                 opt_union(
@@ -3528,7 +3554,8 @@ defmodule Module.Types.DescrTest do
                  closed_map(key1: {binary(), false}, key2: {binary(), false}),
                  opt_difference(atom(), atom([:key1])),
                  integer(),
-                 false
+                 :reject,
+                 true
                )
 
       assert equal?(type, binary())
@@ -3550,7 +3577,8 @@ defmodule Module.Types.DescrTest do
                map_with_atom_domain,
                opt_difference(atom(), atom([:key1])),
                integer(),
-               false
+               :reject,
+               true
              ) ==
                {opt_union(binary(), pid()),
                 opt_union(
@@ -3571,7 +3599,8 @@ defmodule Module.Types.DescrTest do
                closed_map([{:key, {atom(), false}}, {domain_key(:integer), binary()}]),
                dynamic(opt_union(atom([:other_key]), pid())),
                integer(),
-               false
+               :reject,
+               true
              ) == {:error, []}
 
       # ...unless forcing
@@ -3579,8 +3608,7 @@ defmodule Module.Types.DescrTest do
                closed_map([{:key, {atom(), false}}, {domain_key(:integer), binary()}]),
                dynamic(opt_union(atom([:other_key]), pid())),
                integer(),
-               false,
-               true,
+               :force,
                true
              ) ==
                {none(),
@@ -3599,7 +3627,7 @@ defmodule Module.Types.DescrTest do
 
       # Popping dynamic keys
       non_struct_map = opt_difference(open_map(), open_map(__struct__: {atom(), false}))
-      {type, descr, []} = map_update(non_struct_map, dynamic(), none(), true, true, true)
+      {type, descr, []} = map_update(non_struct_map, dynamic(), :delete, :force, true)
       assert type == term()
       assert equal?(descr, open_map(__struct__: {opt_negation(atom()), true}))
     end
@@ -3621,7 +3649,7 @@ defmodule Module.Types.DescrTest do
         {value, false}
       end
 
-      assert {_, _, []} = map_update_fun(input, atom([:a]), fun)
+      assert {_, _, []} = map_update_fun(input, atom([:a]), fun, :reject, true)
     end
 
     test "keeping absence preserves its remainder without invoking the callback" do
@@ -3634,15 +3662,15 @@ defmodule Module.Types.DescrTest do
         {pid(), false}
       end
 
-      assert {_, result, []} = map_update_fun(input, atom([:a]), fun, false, false, :keep)
+      assert {_, result, []} = map_update_fun(input, atom([:a]), fun, :keep, false)
 
       expected =
         dynamic(opt_union(closed_map(a: {pid(), false}), closed_map(b: {binary(), false})))
 
       assert equal?(result, expected)
 
-      assert {_, kept, []} = map_update(input, atom([:a]), none(), true, true, false, :keep)
-      assert {_, rejected, []} = map_update(input, atom([:a]), none(), true, true, false)
+      assert {_, kept, []} = map_update(input, atom([:a]), :delete, :keep, true)
+      assert {_, rejected, []} = map_update(input, atom([:a]), :delete, :reject, true)
       assert equal?(kept, dynamic(opt_union(empty_map(), closed_map(b: {binary(), false}))))
       assert equal?(rejected, dynamic(empty_map()))
     end
@@ -3650,10 +3678,12 @@ defmodule Module.Types.DescrTest do
     test "excluded atoms are not counted as old values or successful keys" do
       key = opt_difference(atom(), atom([:a]))
       input = closed_map(a: {integer(), false}, b: {binary(), false})
-      assert {value, result, _errors} = map_update(input, key, pid(), false)
+      assert {value, result, _errors} = map_update(input, key, pid(), :reject, true)
       assert value == binary()
       assert equal?(result, closed_map(a: {integer(), false}, b: {pid(), false}))
-      assert {:error, _} = map_update(closed_map(a: {integer(), false}), key, pid(), false)
+
+      assert {:error, _} =
+               map_update(closed_map(a: {integer(), false}), key, pid(), :reject, true)
     end
 
     test "atom-domain updates include redundant named fields" do
@@ -3663,7 +3693,7 @@ defmodule Module.Types.DescrTest do
       assert {:ok, put} = map_put(input, atom(), pid())
       assert subtype?(expected, put)
 
-      assert {_, updated, []} = map_update(input, atom(), pid(), false)
+      assert {_, updated, []} = map_update(input, atom(), pid(), :reject, true)
       assert subtype?(expected, updated)
     end
 
@@ -3682,8 +3712,8 @@ defmodule Module.Types.DescrTest do
       assert map_fetch_key(put, :tag) == {false, atom([:new])}
       assert equal?(put, simple_put)
 
-      assert {_, update, []} = map_update(input, integer(), pid(), false)
-      assert {_, simple_update, []} = map_update(simplified, integer(), pid(), false)
+      assert {_, update, []} = map_update(input, integer(), pid(), :reject, true)
+      assert {_, simple_update, []} = map_update(simplified, integer(), pid(), :reject, true)
       assert equal?(update, simple_update)
       assert map_fetch_key(update, :tag) == {false, atom([:new])}
     end
@@ -3711,7 +3741,7 @@ defmodule Module.Types.DescrTest do
         |> opt_difference(closed_map([{domain_key(:binary), atom()}]))
         |> opt_difference(closed_map([{domain_key(:binary), pid()}]))
 
-      assert {_, result, []} = map_update(input, binary(), none(), true)
+      assert {_, result, []} = map_update(input, binary(), :delete, :reject, true)
       assert equal?(result, opt_difference(positive, empty_map()))
     end
   end
@@ -3723,7 +3753,7 @@ defmodule Module.Types.DescrTest do
 
       for {type, target} <- [{type, target}, {dynamic(type), dynamic(target)}] do
         assert {:ok, put} = map_put(type, atom(), atom([:x]))
-        assert {_, update, []} = map_update(type, atom(), atom([:x]), false, true)
+        assert {_, update, []} = map_update(type, atom(), atom([:x]), :reject, true)
         assert subtype?(target, put)
         assert subtype?(target, update)
       end
@@ -4142,11 +4172,11 @@ defmodule Module.Types.DescrTest do
 
       assert equal?(polluted, canonical)
 
-      assert map_update(canonical, atom([:b]), atom([:x]), false) ==
+      assert map_update(canonical, atom([:b]), atom([:x]), :reject, true) ==
                {term(), closed_map(b: {atom([:x]), false}), []}
 
-      assert map_update(polluted, atom([:b]), atom([:x]), false) ==
-               map_update(canonical, atom([:b]), atom([:x]), false)
+      assert map_update(polluted, atom([:b]), atom([:x]), :reject, true) ==
+               map_update(canonical, atom([:b]), atom([:x]), :reject, true)
     end
 
     test "an empty open component does not provide a missing key domain" do
@@ -4154,19 +4184,19 @@ defmodule Module.Types.DescrTest do
 
       assert equal?(polluted, empty_map())
 
-      assert map_update(empty_map(), integer(), atom([:x]), false) ==
+      assert map_update(empty_map(), integer(), atom([:x]), :reject, true) ==
                {:error, [baddomain: integer()]}
 
-      assert map_update(polluted, integer(), atom([:x]), false) ==
-               map_update(empty_map(), integer(), atom([:x]), false)
+      assert map_update(polluted, integer(), atom([:x]), :reject, true) ==
+               map_update(empty_map(), integer(), atom([:x]), :reject, true)
     end
 
     test "map_update ignores an empty static component beside a gradual map" do
       canonical = dynamic(open_map(key: {binary(), false}))
       polluted = opt_union(canonical, closed_map(a: {none(), false}))
 
-      assert map_update(polluted, atom([:key]), integer(), false) ==
-               map_update(canonical, atom([:key]), integer(), false)
+      assert map_update(polluted, atom([:key]), integer(), :reject, true) ==
+               map_update(canonical, atom([:key]), integer(), :reject, true)
     end
 
     test "map operations reject an empty map component" do
@@ -4192,9 +4222,12 @@ defmodule Module.Types.DescrTest do
 
       assert map_put(empty_map_component, atom([:a]), atom([:x])) == :badmap
       assert map_put(none(), atom([:a]), atom([:x])) == :badmap
-      assert map_update(empty_map_component, atom([:a]), atom([:x]), false) == :badmap
-      assert map_update(none(), atom([:a]), atom([:x]), false) == :badmap
-      assert map_update(gradual_empty_map_component, atom([:a]), atom([:x]), false) == :badmap
+      assert map_update(empty_map_component, atom([:a]), atom([:x]), :reject, true) == :badmap
+      assert map_update(none(), atom([:a]), atom([:x]), :reject, true) == :badmap
+
+      assert map_update(gradual_empty_map_component, atom([:a]), atom([:x]), :reject, true) ==
+               :badmap
+
       assert map_fetch_key(empty_map_component, :a) == :badmap
       assert map_fetch_key(gradual_empty_map_component, :a) == :badmap
       assert map_fetch_key(none(), :a) == :badmap
