@@ -3289,6 +3289,12 @@ defmodule Module.Types.Descr do
   end
 
   # Add the possible old field to acc, and keep the split for updating the map.
+  # The DNF lines are non-empty, so without negatives the field is kept as is.
+  defp map_split_key_line(tag, fields, [], key, acc) do
+    {field, bdd} = map_pop_key_bdd(tag, fields, key)
+    {field_opt_union(field, acc, %{}), field, bdd, []}
+  end
+
   defp map_split_key_line(tag, fields, negs, key, acc) do
     {field, bdd} = map_pop_key_bdd(tag, fields, key)
 
@@ -3683,9 +3689,9 @@ defmodule Module.Types.Descr do
       if force? and not return_type? do
         {false, none(), required_domains ++ optional_domains, []}
       else
-        callback = fn ->
-          map_update_named_key_type(dnf, required_keys ++ optional_keys, return_type?)
-        end
+        # The named keys are only checked for existence, their values are
+        # accumulated by map_update_keys_static/7 below
+        callback = fn -> map_update_any_named_key?(dnf, required_keys ++ optional_keys) end
 
         # Required domains must be found
         {found_required?, matched_required_domains, missing_domains, value} =
@@ -3763,10 +3769,17 @@ defmodule Module.Types.Descr do
         end
 
       # If callback, then apply it.
-      # Then rebuild the maps with the new field.
+      # Then rebuild the maps with the new field. Pairs often share the same
+      # new field, so we union their rests before putting the key only once.
       descr =
         pairs
         |> map_update_maybe_apply_callback(operation)
+        |> Enum.reduce(%{}, fn {new_field, rest}, acc ->
+          case acc do
+            %{^new_field => bdd} -> %{acc | new_field => opt_map_union(rest, bdd, %{})}
+            %{} -> Map.put(acc, new_field, rest)
+          end
+        end)
         |> Enum.reduce(none(), fn {{new_type, new_optional?}, rest}, acc ->
           opt_union(map_put_key_static(%{map: rest}, key, new_type, new_optional?), acc)
         end)
@@ -3870,21 +3883,37 @@ defmodule Module.Types.Descr do
   defp map_update_maybe_apply_callback(pairs, {{:constant, _new}, _mode}), do: pairs
 
   defp map_update_maybe_apply_callback(pairs, {{:callback, fun}, mode}) do
-    # Apply the callback to each pair separately
+    # Apply the callback to each pair separately. Many pairs share the same
+    # old field, so we cache the callback results by field.
+    {pairs, _cache} =
+      Enum.flat_map_reduce(pairs, %{}, fn {field, rest}, cache ->
+        {new, cache} =
+          case cache do
+            %{^field => new} ->
+              {new, cache}
+
+            %{} ->
+              new = map_update_apply_callback(field, fun, mode)
+              {new, Map.put(cache, field, new)}
+          end
+
+        if field_empty?(new), do: {[], cache}, else: {[{new, rest}], cache}
+      end)
+
     pairs
-    |> Enum.flat_map(fn {{old_type, optional?}, rest} ->
-      present = if empty?(old_type), do: {none(), false}, else: fun.(old_type, false)
+  end
 
-      absent =
-        case {optional?, mode} do
-          {true, :apply} -> fun.(none(), true)
-          {true, :keep} -> {none(), true}
-          _ -> {none(), false}
-        end
+  defp map_update_apply_callback({old_type, optional?}, fun, mode) do
+    present = if empty?(old_type), do: {none(), false}, else: fun.(old_type, false)
 
-      new = field_opt_union(present, absent, %{})
-      if field_empty?(new), do: [], else: [{new, rest}]
-    end)
+    absent =
+      case {optional?, mode} do
+        {true, :apply} -> fun.(none(), true)
+        {true, :keep} -> {none(), true}
+        _ -> {none(), false}
+      end
+
+    field_opt_union(present, absent, %{})
   end
 
   # Directly inserts a key of a given type into every positive and negative map.
@@ -3963,13 +3992,10 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_update_named_key_type(dnf, keys, return_type?) do
-    Enum.reduce_while(keys, none(), fn key, acc ->
+  defp map_update_any_named_key?(dnf, keys) do
+    Enum.any?(keys, fn key ->
       {value, _optional?} = map_dnf_fetch_static(dnf, key)
-
-      if not return_type? and not empty?(value),
-        do: {:halt, term()},
-        else: {:cont, opt_union(value, acc)}
+      not empty?(value)
     end)
   end
 
@@ -3984,17 +4010,14 @@ defmodule Module.Types.Descr do
       cond do
         # Atom domains are special: we also check for individually named atom keys
         domain_key == :atom ->
-          atom_acc = any_atom_key.()
-
           cond do
-            # Domain has a direct match: valid, union both atom keys and domain value
+            # Domain has a direct match: valid, union the domain value
             not empty?(value) ->
-              acc = if require_type?, do: opt_union(opt_union(atom_acc, acc), value), else: acc
+              acc = if require_type?, do: opt_union(acc, value), else: acc
               {true, [:atom | valid], invalid, acc}
 
             # No direct match, but individual atom keys exist: found but domain is invalid
-            not empty?(atom_acc) ->
-              acc = if require_type?, do: opt_union(atom_acc, acc), else: acc
+            any_atom_key.() ->
               {true, valid, [:atom | invalid], acc}
 
             # No match at all
@@ -4038,10 +4061,35 @@ defmodule Module.Types.Descr do
       end)
 
     map_update_maybe_apply_callback(pairs, operation)
-    |> Enum.reduce(none(), fn {new_field, rest}, acc ->
-      opt_union(map_rejoin_domain(rest, domain, new_field, atom_keys), acc)
+    |> Enum.reduce({[], []}, fn {new_field, rest}, acc ->
+      map_rejoin_domain(rest, domain, new_field, atom_keys, acc)
     end)
+    |> map_update_domains_result()
   end
+
+  # Domain updates accumulate the updated and unchanged maps separately,
+  # so the empty map is excluded from the updated ones only once at the end.
+  # Maps are accumulated in lists, as their pairwise union is faster than
+  # adding each map to an ever-growing union.
+  defp map_update_domains_result({updated, unchanged}) do
+    updated =
+      case map_union_all(updated) do
+        :bdd_bot -> none()
+        bdd -> opt_difference(%{map: bdd}, empty_map())
+      end
+
+    case map_union_all(unchanged) do
+      :bdd_bot -> updated
+      bdd -> opt_union(%{map: bdd}, updated)
+    end
+  end
+
+  defp map_union_all([]), do: :bdd_bot
+  defp map_union_all([bdd]), do: bdd
+  defp map_union_all(bdds), do: map_union_all(map_union_pairs(bdds))
+
+  defp map_union_pairs([bdd1, bdd2 | bdds]), do: [map_union(bdd1, bdd2) | map_union_pairs(bdds)]
+  defp map_union_pairs(bdds), do: bdds
 
   # When the key may belong to several domains, computing one alternative per
   # domain makes the number of lines grow exponentially on chained updates.
@@ -4054,12 +4102,12 @@ defmodule Module.Types.Descr do
   # Other negatives are discarded, as done by the projection shortcut in
   # map_update_project_pair/4, which is sound.
   defp map_update_many_domains(dnf, domains, operation, atom_keys) do
-    Enum.reduce(dnf, none(), fn {tag, fields, negs}, acc ->
+    Enum.reduce(dnf, {[], []}, fn {tag, fields, negs}, {updated, unchanged} ->
       rest = map_new(tag, fields)
 
       {updates, optional?} =
         Enum.reduce(domains, {[], false}, fn domain, {updates, optional?} ->
-          {old_field, rest} = map_pop_domain_bdd(tag, fields, domain)
+          old_field = {map_domain_tag_to_type(tag, domain), true}
 
           {new_type, new_optional?} =
             map_update_prepare_pairs([], old_field, rest, operation)
@@ -4072,10 +4120,10 @@ defmodule Module.Types.Descr do
           {updates, optional? or new_optional?}
         end)
 
-      acc = if optional?, do: opt_union(%{map: rest}, acc), else: acc
+      unchanged = if optional?, do: [rest | unchanged], else: unchanged
 
       if updates == [] do
-        acc
+        {updated, unchanged}
       else
         fields =
           if List.keymember?(updates, :atom, 0),
@@ -4104,9 +4152,10 @@ defmodule Module.Types.Descr do
             end)
           end
 
-        opt_union(opt_difference(%{map: output}, empty_map()), acc)
+        {[output | updated], unchanged}
       end
     end)
+    |> map_update_domains_result()
   end
 
   defp map_update_many_domains_negative(output, updates, neg_tag, neg_fields) do
@@ -4139,17 +4188,17 @@ defmodule Module.Types.Descr do
   #    Keep named keys and other domains unchanged.
   # 3. Add values in new_type but not old_type to each negative's domain, then
   #    subtract it to preserve its restrictions on the remaining entries.
-  # 4. Exclude the empty map after inserting a value.
-  # 5. Union the rebuilt maps with the unchanged map alternatives from step 1.
-  defp map_rejoin_domain(rest, domain, {new_type, optional?}, atom_keys) do
-    acc = if optional?, do: %{map: rest}, else: none()
+  # 4. Accumulate the rebuilt maps separately from the unchanged map alternatives
+  #    from step 1, as the empty map is excluded from the rebuilt maps at the end.
+  defp map_rejoin_domain(rest, domain, {new_type, optional?}, atom_keys, {updated, unchanged}) do
+    unchanged = if optional?, do: [rest | unchanged], else: unchanged
 
     if empty?(new_type) do
-      acc
+      {updated, unchanged}
     else
       rest
       |> map_bdd_to_dnf_remove_empty()
-      |> Enum.reduce(acc, fn {tag, fields, negs}, acc ->
+      |> Enum.reduce({updated, unchanged}, fn {tag, fields, negs}, {updated, unchanged} ->
         fields = map_domain_protect_fields(tag, fields, domain, atom_keys)
         old_type = map_domain_tag_to_type(tag, domain)
         added_type = bare_difference(new_type, old_type)
@@ -4164,7 +4213,7 @@ defmodule Module.Types.Descr do
             map_difference(output, negative)
           end)
 
-        opt_union(opt_difference(%{map: output}, empty_map()), acc)
+        {[output | updated], unchanged}
       end)
     end
   end
