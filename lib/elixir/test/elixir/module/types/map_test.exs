@@ -1389,6 +1389,20 @@ defmodule Module.Types.MapTest do
 
       assert typecheck!([], Map.update(%{123 => 456}, 456, :default, fn x -> x * 1.0 end))
              |> equal?(integer_update_result)
+
+      # The dynamic key may be :__struct__, which the callback does not accept,
+      # but the other fields can still be updated
+      assert typecheck!(
+               [kind, id, value, users, groups],
+               is_binary(id) and is_map(value),
+               Map.update(
+                 %{__struct__: Foo, users: users, groups: groups},
+                 %{user: :users, group: :groups}[kind],
+                 %{id => value},
+                 &Map.put(&1, id, value)
+               )
+             )
+             |> subtype?(dynamic(open_map(__struct__: {atom([Foo]), false})))
     end
 
     test "inference" do
