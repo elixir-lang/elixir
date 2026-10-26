@@ -4149,8 +4149,8 @@ defmodule Module.Types.DescrTest do
       empty_map_component = closed_map(a: {none(), false})
       gradual_empty_map_component = dynamic(empty_map_component)
 
-      assert %{map: :bdd_bot} = empty_map_component
-      assert %{map: :bdd_bot} = closed_map(a: {empty_map_component, false})
+      assert empty?(empty_map_component)
+      assert empty?(closed_map(a: {empty_map_component, false}))
 
       excluded_maps =
         opt_union(
@@ -4159,7 +4159,8 @@ defmodule Module.Types.DescrTest do
         )
 
       negative_map = opt_difference(open_map(), excluded_maps)
-      assert {:ok, %{map: :bdd_bot}} = map_put(negative_map, atom([:a]), none())
+      assert {:ok, empty_put} = map_put(negative_map, atom([:a]), none())
+      assert empty?(empty_put)
 
       assert equal?(empty_map_component, none())
       assert map_get(empty_map_component, atom([:a])) == map_get(none(), atom([:a]))
