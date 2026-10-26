@@ -3713,10 +3713,19 @@ defmodule Module.Types.Descr do
     map_update_keys_static(dnf, required_keys, optional_keys, operation, static?, acc)
   end
 
+  # The updated maps are accumulated in a list as their pairwise union is faster
   defp map_update_keys_static(dnf, required, optional, operation, static?, acc) do
+    {value, descr, errors, found?} = acc
+    bdds = if descr == @none, do: [], else: [Map.fetch!(descr, :map)]
+    acc = {value, bdds, errors, found?}
     acc = map_update_named_keys(dnf, required, operation, true, static?, acc)
     acc = map_update_named_keys(dnf, optional, operation, false, static?, acc)
-    acc
+    {value, bdds, errors, found?} = acc
+
+    case map_union_all(bdds) do
+      :bdd_bot -> {value, none(), errors, found?}
+      bdd -> {value, %{map: bdd}, errors, found?}
+    end
   end
 
   # For each possible key, starting from the original map:
@@ -3752,20 +3761,21 @@ defmodule Module.Types.Descr do
       # If callback, then apply it.
       # Then rebuild the maps with the new field. Pairs often share the same
       # new field, so we union their rests before putting the key only once.
-      descr =
+      acc_descr =
         pairs
         |> map_update_maybe_apply_callback(operation)
         |> Enum.reduce(%{}, fn {new_field, rest}, acc ->
           case acc do
-            %{^new_field => bdd} -> %{acc | new_field => opt_map_union(rest, bdd, %{})}
-            %{} -> Map.put(acc, new_field, rest)
+            %{^new_field => rests} -> %{acc | new_field => [rest | rests]}
+            %{} -> Map.put(acc, new_field, [rest])
           end
         end)
-        |> Enum.reduce(none(), fn {{new_type, new_optional?}, rest}, acc ->
-          opt_union(map_put_key_static(%{map: rest}, key, new_type, new_optional?), acc)
-        end)
+        |> Enum.reduce(acc_descr, fn {{new_type, new_optional?}, rests}, acc ->
+          %{map: bdd} =
+            map_put_key_static(%{map: map_union_all(rests)}, key, new_type, new_optional?)
 
-      acc_descr = opt_union(descr, acc_descr)
+          [bdd | acc]
+        end)
 
       if not force? and empty?(value) do
         acc_errors = if required_key?, do: [{:badkey, key} | acc_errors], else: acc_errors
@@ -3927,11 +3937,11 @@ defmodule Module.Types.Descr do
   # So we don't compute it for performance.
   defp map_dnf_pop_key_static(dnf, key, initial) do
     {field, bdd} =
-      Enum.reduce(dnf, {initial, :bdd_bot}, fn
+      Enum.reduce(dnf, {initial, []}, fn
         # Optimization: if there are no negatives, we can directly remove the key.
         {tag, fields, []}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
-          {maybe_field_opt_union(field, fn -> fst end), opt_map_union(bdd, snd, %{})}
+          {maybe_field_opt_union(field, fn -> fst end), [snd | bdd]}
 
         {tag, fields, negs}, {field, bdd} ->
           {fst, snd} = map_pop_key_bdd(tag, fields, key)
@@ -3959,17 +3969,17 @@ defmodule Module.Types.Descr do
                  end
                end),
                if keep_snd? do
-                 opt_map_union(bdd, snd, %{})
+                 [snd | bdd]
                else
-                 Enum.reduce(pairs, bdd, &opt_map_union(elem(&1, 1), &2, %{}))
+                 Enum.reduce(pairs, bdd, &[elem(&1, 1) | &2])
                end}
           end
       end)
 
-    if bdd == :bdd_bot do
-      {field, %{}}
-    else
-      {field, %{map: bdd}}
+    # Rests are accumulated in a list as their pairwise union is faster
+    case map_union_all(bdd) do
+      :bdd_bot -> {field, %{}}
+      bdd -> {field, %{map: bdd}}
     end
   end
 
@@ -4076,7 +4086,9 @@ defmodule Module.Types.Descr do
   defp map_union_all([bdd]), do: bdd
   defp map_union_all(bdds), do: map_union_all(map_union_pairs(bdds))
 
-  defp map_union_pairs([bdd1, bdd2 | bdds]), do: [map_union(bdd1, bdd2) | map_union_pairs(bdds)]
+  defp map_union_pairs([bdd1, bdd2 | bdds]),
+    do: [opt_map_union(bdd1, bdd2, %{}) | map_union_pairs(bdds)]
+
   defp map_union_pairs(bdds), do: bdds
 
   # When the key may belong to several domains, computing one alternative per
