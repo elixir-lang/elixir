@@ -163,9 +163,11 @@ defmodule Mix.Compilers.Elixir do
     removed = prev_paths -- all_paths
     {sources, removed_modules} = remove_removed_sources(all_sources, removed)
 
+    tracers = Keyword.get_lazy(opts, :tracers, fn -> Code.get_compiler_option(:tracers) end)
+
     {modules, exports, changed, sources_stats} =
       if force? do
-        compiler_info_from_force(manifest, all_paths, all_modules, dest)
+        compiler_info_from_force(manifest, all_paths, all_modules, dest, tracers)
       else
         compiler_info_from_updated(
           manifest,
@@ -175,7 +177,8 @@ defmodule Mix.Compilers.Elixir do
           removed,
           Map.merge(stale_modules, removed_modules),
           Map.merge(stale_exports, removed_modules),
-          dest
+          dest,
+          tracers
         )
       end
 
@@ -220,7 +223,8 @@ defmodule Mix.Compilers.Elixir do
           changed: [],
           pending_modules: modules,
           stale_exports: stale_exports,
-          consolidation: consolidation
+          consolidation: consolidation,
+          tracers: tracers
         }
 
         compiler_loop(manifest, stale, stale_modules, dest, timestamp, reinfer?, opts, state)
@@ -370,10 +374,12 @@ defmodule Mix.Compilers.Elixir do
     previous_warnings(sources, false)
   end
 
-  defp compiler_info_from_force(manifest, all_paths, all_modules, dest) do
+  defp compiler_info_from_force(manifest, all_paths, all_modules, dest, tracers) do
     # A config, path dependency or manifest has changed, let's just compile everything
     for {module, _} <- all_modules,
         do: remove_and_purge(beam_path(dest, module), module)
+
+    :elixir_env.trace(:purge_all, %{:elixir_env.new() | tracers: tracers})
 
     sources_stats =
       for path <- all_paths,
@@ -405,7 +411,8 @@ defmodule Mix.Compilers.Elixir do
          removed,
          stale_modules,
          stale_exports,
-         dest
+         dest,
+         tracers
        ) do
     {checkpoint_stale_modules, checkpoint_stale_exports, checkpoint_changed} =
       case parse_checkpoint(:update, manifest) do
@@ -494,7 +501,8 @@ defmodule Mix.Compilers.Elixir do
         removed ++ changed,
         stale_modules,
         stale_exports,
-        dest
+        dest,
+        tracers
       )
 
     # Now sort the files so the ones changed more recently come first.
@@ -593,14 +601,31 @@ defmodule Mix.Compilers.Elixir do
   # files that have changed. Then it recursively figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
-  defp update_stale_entries(modules, _sources, [], stale_modules, stale_exports, _compile_path)
+  defp update_stale_entries(
+         modules,
+         _sources,
+         [],
+         stale_modules,
+         stale_exports,
+         _compile_path,
+         _tracers
+       )
        when stale_modules == %{} and stale_exports == %{} do
     {modules, %{}, []}
   end
 
-  defp update_stale_entries(modules, sources, changed, stale_modules, stale_exports, compile_path) do
+  defp update_stale_entries(
+         modules,
+         sources,
+         changed,
+         stale_modules,
+         stale_exports,
+         compile_path,
+         tracers
+       ) do
     changed = Map.from_keys(changed, true)
-    reducer = &remove_stale_entry(&1, &2, sources, stale_exports, compile_path)
+    Enum.each(changed, fn {file, true} -> trace_purge(file, sources, tracers) end)
+    reducer = &remove_stale_entry(&1, &2, sources, stale_exports, compile_path, tracers)
     remove_stale_entries(modules, %{}, changed, stale_modules, reducer)
   end
 
@@ -615,7 +640,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp remove_stale_entry(entry, acc, sources, stale_exports, compile_path) do
+  defp remove_stale_entry(entry, acc, sources, stale_exports, compile_path, tracers) do
     {module, module(sources: source_files, export: export)} = entry
     {pending_modules, exports, changed, stale_modules} = acc
 
@@ -637,7 +662,16 @@ defmodule Mix.Compilers.Elixir do
       has_any_key?(changed, source_files) or has_any_key?(stale_modules, compile_references) or
           has_any_key?(stale_exports, export_references) ->
         remove_and_purge(beam_path(compile_path, module), module)
-        changed = Enum.reduce(source_files, changed, &Map.put(&2, &1, true))
+
+        changed =
+          Enum.reduce(source_files, changed, fn file, changed ->
+            if is_map_key(changed, file) do
+              changed
+            else
+              trace_purge(file, sources, tracers)
+              Map.put(changed, file, true)
+            end
+          end)
 
         {Map.delete(pending_modules, module), Map.put(exports, module, export), changed,
          Map.put(stale_modules, module, true)}
@@ -650,6 +684,19 @@ defmodule Mix.Compilers.Elixir do
       # Otherwise, we don't store it anywhere
       true ->
         {pending_modules, exports, changed, stale_modules}
+    end
+  end
+
+  defp trace_purge(_file, _sources, []), do: :ok
+
+  defp trace_purge(file, sources, tracers) do
+    case sources do
+      %{^file => source(modules: modules)} ->
+        env = %{:elixir_env.new() | file: Path.absname(file), context_modules: modules}
+        :elixir_env.trace(:purge, %{env | tracers: tracers})
+
+      %{} ->
+        :ok
     end
   end
 
@@ -1185,7 +1232,8 @@ defmodule Mix.Compilers.Elixir do
       sources: sources,
       changed: changed,
       pending_modules: pending_modules,
-      stale_exports: stale_exports
+      stale_exports: stale_exports,
+      tracers: tracers
     } = state
 
     # At this point, we may have additional files to compile.
@@ -1198,7 +1246,7 @@ defmodule Mix.Compilers.Elixir do
     #
     # * In case a module is defined in two places, we add all sources to changed
     {pending_modules, exports, changed} =
-      update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, dest)
+      update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, dest, tracers)
 
     state = %{
       state

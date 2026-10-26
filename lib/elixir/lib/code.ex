@@ -117,6 +117,17 @@ defmodule Code do
     * `:stop` - (since v1.11.0) invoked whenever the compiler stops tracing a
       new lexical context, such as a new file.
 
+    * `:purge` - (since v1.21.0) invoked by Mix whenever the modules previously
+      compiled from a file are purged. This happens when the file is removed or
+      before it is compiled again, in which case its modules may be defined again
+      later on. `env.file` is the file and `env.context_modules` are the modules
+      previously defined in it. This event is emitted outside of `:start`/`:stop`,
+      so `env.module`, `env.function`, and `env.lexical_tracker` are all `nil`.
+
+    * `:purge_all` - (since v1.21.0) invoked by Mix whenever all modules
+      previously compiled in the project are purged, such as when compiling
+      with `--force`. This event is emitted with an empty environment.
+
     * `{:import, meta, module, opts}` - traced whenever `module` is imported.
       `meta` is the import AST metadata and `opts` are the import options.
 
