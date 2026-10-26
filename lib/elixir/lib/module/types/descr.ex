@@ -4020,22 +4020,110 @@ defmodule Module.Types.Descr do
   # 3. For callbacks, update each remaining pair's field, handling absent keys as requested.
   # 4. Rebuild maps with the updated domain and union them into the result.
   defp map_update_domains(dnf, domain_keys, operation, atom_keys) do
-    Enum.reduce(:lists.usort(domain_keys), none(), fn domain, acc ->
-      pairs =
-        Enum.flat_map(dnf, fn {tag, fields, negs} ->
+    case :lists.usort(domain_keys) do
+      [domain] -> map_update_domain(dnf, domain, operation, atom_keys)
+      domains -> map_update_many_domains(dnf, domains, operation, atom_keys)
+    end
+  end
+
+  defp map_update_domain(dnf, domain, operation, atom_keys) do
+    pairs =
+      Enum.flat_map(dnf, fn {tag, fields, negs} ->
+        {old_field, rest} = map_pop_domain_bdd(tag, fields, domain)
+
+        case map_split_negative_pairs_domain(negs, domain) do
+          :empty -> []
+          negative -> map_update_prepare_pairs(negative, old_field, rest, operation)
+        end
+      end)
+
+    map_update_maybe_apply_callback(pairs, operation)
+    |> Enum.reduce(none(), fn {new_field, rest}, acc ->
+      opt_union(map_rejoin_domain(rest, domain, new_field, atom_keys), acc)
+    end)
+  end
+
+  # When the key may belong to several domains, computing one alternative per
+  # domain makes the number of lines grow exponentially on chained updates.
+  # Instead, we update all domains at once in each line, which is a supertype
+  # of the union of the per-domain updates.
+  #
+  # A negative is kept only if, for every updated domain, it already contains
+  # the old values of the line. In this case, a map excluded by the negative
+  # is excluded because of a key we do not update, so it remains excluded.
+  # Other negatives are discarded, as done by the projection shortcut in
+  # map_update_project_pair/4, which is sound.
+  defp map_update_many_domains(dnf, domains, operation, atom_keys) do
+    Enum.reduce(dnf, none(), fn {tag, fields, negs}, acc ->
+      rest = map_new(tag, fields)
+
+      {updates, optional?} =
+        Enum.reduce(domains, {[], false}, fn domain, {updates, optional?} ->
           {old_field, rest} = map_pop_domain_bdd(tag, fields, domain)
 
-          case map_split_negative_pairs_domain(negs, domain) do
-            :empty -> []
-            negative -> map_update_prepare_pairs(negative, old_field, rest, operation)
-          end
+          {new_type, new_optional?} =
+            map_update_prepare_pairs([], old_field, rest, operation)
+            |> map_update_maybe_apply_callback(operation)
+            |> Enum.reduce({none(), false}, fn {field, _rest}, acc ->
+              field_opt_union(field, acc, %{})
+            end)
+
+          updates = if empty?(new_type), do: updates, else: [{domain, new_type} | updates]
+          {updates, optional? or new_optional?}
         end)
 
-      map_update_maybe_apply_callback(pairs, operation)
-      |> Enum.reduce(acc, fn {new_field, rest}, acc ->
-        opt_union(map_rejoin_domain(rest, domain, new_field, atom_keys), acc)
-      end)
+      acc = if optional?, do: opt_union(%{map: rest}, acc), else: acc
+
+      if updates == [] do
+        acc
+      else
+        fields =
+          if List.keymember?(updates, :atom, 0),
+            do: map_domain_protect_fields(tag, fields, :atom, atom_keys),
+            else: fields
+
+        updates =
+          Enum.map(updates, fn {domain, new_type} ->
+            {domain, map_domain_tag_to_type(tag, domain), new_type}
+          end)
+
+        output_tag =
+          Enum.reduce(updates, tag, fn {domain, old_type, new_type}, acc_tag ->
+            map_replace_domain(acc_tag, domain, opt_union(old_type, new_type))
+          end)
+
+        output = map_new(output_tag, fields)
+
+        # Named atom keys may be added by an atom update, so we discard negatives
+        output =
+          if List.keymember?(updates, :atom, 0) do
+            output
+          else
+            Enum.reduce(negs, output, fn bdd_leaf(neg_tag, neg_fields), output ->
+              map_update_many_domains_negative(output, updates, neg_tag, neg_fields)
+            end)
+          end
+
+        opt_union(opt_difference(%{map: output}, empty_map()), acc)
+      end
     end)
+  end
+
+  defp map_update_many_domains_negative(output, updates, neg_tag, neg_fields) do
+    neg_tag =
+      Enum.reduce_while(updates, neg_tag, fn {domain, old_type, new_type}, acc_tag ->
+        neg_type = map_domain_tag_to_type(neg_tag, domain)
+
+        if subtype?(old_type, neg_type) do
+          {:cont, map_replace_domain(acc_tag, domain, opt_union(neg_type, new_type))}
+        else
+          {:halt, nil}
+        end
+      end)
+
+    if neg_tag,
+      do: map_difference(output, map_new(neg_tag, neg_fields)),
+      else: output
   end
 
   defp map_split_negative_pairs_domain(negs, domain_key) do

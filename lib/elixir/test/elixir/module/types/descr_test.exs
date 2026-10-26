@@ -3365,17 +3365,27 @@ defmodule Module.Types.DescrTest do
         ])
         |> opt_difference(empty_map())
 
-      reference_result =
-        closed_map([{domain_key(:reference), integer()} | fields]) |> opt_difference(empty_map())
+      # Keys in several domains update all of them at once
+      pid_integer_result =
+        closed_map([
+          {domain_key(:integer), opt_union(integer(), binary())},
+          {domain_key(:pid), opt_union(integer(), binary())},
+          {domain_key(:port), binary()}
+        ])
+        |> opt_difference(empty_map())
 
-      binary_result =
-        closed_map([{domain_key(:binary), integer()} | fields]) |> opt_difference(empty_map())
+      reference_binary_result =
+        closed_map([
+          {domain_key(:binary), integer()},
+          {domain_key(:reference), integer()} | fields
+        ])
+        |> opt_difference(empty_map())
 
       assert map_update(map, none(), integer(), false) == {:error, []}
       assert map_update(map, integer(), integer(), false) == {binary(), integer_result, []}
 
       assert map_update(map, opt_union(pid(), integer()), integer(), false) ==
-               {binary(), opt_union(pid_result, integer_result), []}
+               {binary(), pid_integer_result, []}
 
       assert map_update(map, opt_union(pid(), reference()), integer(), false) ==
                {binary(), pid_result, [baddomain: reference()]}
@@ -3386,7 +3396,7 @@ defmodule Module.Types.DescrTest do
                integer(),
                false
              ) ==
-               {binary(), opt_union(pid_result, integer_result), []}
+               {binary(), pid_integer_result, []}
 
       assert map_update(
                map,
@@ -3399,7 +3409,7 @@ defmodule Module.Types.DescrTest do
       assert map_update(map, dynamic(opt_union(reference(), binary())), integer(), false) ==
                {:error, []}
 
-      # Forcing admits absent domains, still as alternative key choices.
+      # Forcing admits absent domains
       assert map_update(
                map,
                dynamic(opt_union(reference(), binary())),
@@ -3408,7 +3418,7 @@ defmodule Module.Types.DescrTest do
                true,
                true
              ) ==
-               {none(), opt_union(reference_result, binary_result), []}
+               {none(), reference_binary_result, []}
 
       # Putting dynamic atom over record keys
       assert {type, descr, errors} =
@@ -3881,33 +3891,53 @@ defmodule Module.Types.DescrTest do
         ])
         |> opt_difference(empty_map())
 
-      pid_result =
+      # Keys in several domains update all of them at once
+      pid_integer_result =
         closed_map([
-          {domain_key(:integer), binary()},
+          {domain_key(:integer), opt_union(integer(), binary())},
           {domain_key(:pid), opt_union(integer(), binary())},
           {domain_key(:port), binary()}
         ])
         |> opt_difference(empty_map())
 
-      reference_result =
-        closed_map([{domain_key(:reference), integer()} | fields]) |> opt_difference(empty_map())
+      reference_binary_result =
+        closed_map([
+          {domain_key(:binary), integer()},
+          {domain_key(:reference), integer()} | fields
+        ])
+        |> opt_difference(empty_map())
 
-      binary_result =
-        closed_map([{domain_key(:binary), integer()} | fields]) |> opt_difference(empty_map())
+      pid_reference_result =
+        closed_map([
+          {domain_key(:integer), binary()},
+          {domain_key(:pid), opt_union(integer(), binary())},
+          {domain_key(:port), binary()},
+          {domain_key(:reference), integer()}
+        ])
+        |> opt_difference(empty_map())
+
+      pid_reference_integer_result =
+        closed_map([
+          {domain_key(:integer), opt_union(integer(), binary())},
+          {domain_key(:pid), opt_union(integer(), binary())},
+          {domain_key(:port), binary()},
+          {domain_key(:reference), integer()}
+        ])
+        |> opt_difference(empty_map())
 
       assert map_put(map, integer(), integer()) == {:ok, integer_result}
 
       assert map_put(map, opt_union(pid(), integer()), integer()) ==
-               {:ok, opt_union(pid_result, integer_result)}
+               {:ok, pid_integer_result}
 
       assert map_put(map, opt_union(pid(), reference()), integer()) ==
-               {:ok, opt_union(pid_result, reference_result)}
+               {:ok, pid_reference_result}
 
       assert map_put(map, opt_union(pid(), dynamic(opt_union(reference(), integer()))), integer()) ==
-               {:ok, opt_union(pid_result, opt_union(reference_result, integer_result))}
+               {:ok, pid_reference_integer_result}
 
       assert map_put(map, dynamic(opt_union(reference(), binary())), integer()) ==
-               {:ok, opt_union(reference_result, binary_result)}
+               {:ok, reference_binary_result}
 
       # Putting dynamic atom over record keys
       record_map = closed_map(key1: {binary(), false}, key2: {binary(), false})
