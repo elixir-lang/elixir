@@ -52,10 +52,13 @@ defmodule Integer do
     do: :erlang.error(:badarith, [integer])
 
   def popcount(integer) when is_integer(integer),
-    do: popcount(integer, 0)
+    do: popcount(:binary.encode_unsigned(integer), 0)
 
-  defp popcount(0, acc), do: acc
-  defp popcount(n, acc), do: popcount(n &&& n - 1, acc + 1)
+  popcounts = for byte <- 0..255, do: Enum.count(:erlang.integer_to_list(byte, 2), &(&1 == ?1))
+  @popcounts List.to_tuple(popcounts)
+
+  defp popcount(<<byte, rest::binary>>, acc), do: popcount(rest, acc + elem(@popcounts, byte))
+  defp popcount(<<>>, acc), do: acc
 
   @doc """
   Determines if `integer` is odd.
