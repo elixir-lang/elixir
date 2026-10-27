@@ -108,12 +108,12 @@ import_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
 
 import_sigil_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
   calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
-    filter_sigils(InfoCallback(functions))
+    filter_sigils(get_functions(Ref, InfoCallback))
   end).
 
 import_sigil_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
   calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
-    filter_sigils(InfoCallback(macros))
+    filter_sigils(get_macros(InfoCallback))
   end).
 
 calculate_except(Meta, Key, false, Old, E, Warn, Existing) ->
