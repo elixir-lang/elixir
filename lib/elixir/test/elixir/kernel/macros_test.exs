@@ -58,6 +58,12 @@ defmodule Kernel.MacrosTest do
     quote(do: 1 + unquote(value))
   end
 
+  defp eight, do: 8
+
+  defmacro my_macro_with_local_in_bitstring_size(value) do
+    <<value::size(eight())>>
+  end
+
   defmacro my_macro_with_capture(value) do
     Enum.map(value, &by_two/1)
   end
@@ -80,6 +86,10 @@ defmodule Kernel.MacrosTest do
 
   test "local with local call" do
     assert my_macro_with_local(4) == 17
+  end
+
+  test "local with local call in bitstring size" do
+    assert my_macro_with_local_in_bitstring_size(1) == <<1>>
   end
 
   test "local with capture" do

@@ -27,8 +27,9 @@ defmodule Module.Types.Traverse do
   # <<...>>
   def of_expr({:<<>>, _meta, args}, stack, context) do
     Enum.reduce(args, context, fn
-      {:"::", _meta, [left, _right]}, context ->
-        of_expr(left, stack, context)
+      {:"::", _meta, [left, right]}, context ->
+        context = of_expr(left, stack, context)
+        of_specifier(right, stack, context)
 
       expr, context ->
         of_expr(expr, stack, context)
@@ -161,6 +162,14 @@ defmodule Module.Types.Traverse do
       when is_atom(name) and is_atom(ctx) do
     context
   end
+
+  defp of_specifier({:-, _, [left, right]}, stack, context) do
+    context = of_specifier(left, stack, context)
+    of_specifier(right, stack, context)
+  end
+
+  defp of_specifier({:size, _, [arg]}, stack, context), do: of_expr(arg, stack, context)
+  defp of_specifier(_specifier, _stack, context), do: context
 
   defp of_pattern({:%, meta, [module, {:%{}, _, pairs}]}, stack, context) when is_atom(module) do
     context = of_pattern(pairs, stack, context)
