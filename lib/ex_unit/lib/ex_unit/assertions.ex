@@ -751,9 +751,7 @@ defmodule ExUnit.Assertions do
 
   defp has_var?(pattern, name, context), do: Enum.any?(pattern, &match?({^name, _, ^context}, &1))
 
-  defp mark_as_generated(vars) when is_list(vars) do
-    Enum.map(vars, fn {name, meta, context} -> {name, [generated: true] ++ meta, context} end)
-  end
+  defp mark_as_generated(vars) when is_list(vars), do: Enum.map(vars, &mark_as_generated/1)
 
   defp mark_as_generated({name, meta, context}), do: {name, [generated: true] ++ meta, context}
   defp mark_as_generated(other), do: other
