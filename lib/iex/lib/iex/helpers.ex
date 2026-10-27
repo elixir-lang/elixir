@@ -982,6 +982,8 @@ defmodule IEx.Helpers do
   defp pid_or_port_details(name) when is_atom(name), do: to_process_details(name)
   defp pid_or_port_details(port) when is_port(port), do: to_port_details(port)
   defp pid_or_port_details(reference) when is_reference(reference), do: reference
+  defp pid_or_port_details({name, node}) when node == node(), do: to_process_details(name)
+  defp pid_or_port_details({_name, _node}), do: "-"
 
   defp to_process_details(pid) when is_pid(pid) do
     case Process.info(pid, [:initial_call, :dictionary, :registered_name]) do
@@ -998,8 +1000,10 @@ defmodule IEx.Helpers do
   end
 
   defp to_process_details(name) when is_atom(name) do
-    Process.whereis(name)
-    |> to_process_details()
+    case Process.whereis(name) do
+      nil -> "-"
+      pid -> to_process_details(pid)
+    end
   end
 
   defp format_process_label(nil), do: nil

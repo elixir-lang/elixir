@@ -1756,6 +1756,14 @@ defmodule IEx.HelpersTest do
       assert result =~ "## Links"
       assert result =~ "## Monitors"
       assert result =~ ":iex_process_info_link_test"
+
+      Process.monitor(:iex_process_info_link_test)
+      result = capture_io(fn -> process_info(self()) end)
+      assert result =~ "{:iex_process_info_link_test, #{inspect(node())}}"
+
+      Process.unregister(:iex_process_info_link_test)
+      result = capture_io(fn -> process_info(self()) end)
+      assert result =~ "## Current stacktrace"
     end
   end
 
