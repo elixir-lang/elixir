@@ -139,11 +139,16 @@ defmodule ProcessTest do
     refute Process.alive?(pid)
   end
 
-  test "exit(self(), :normal) causes the calling process to exit" do
-    Process.flag(:trap_exit, true)
-    pid = spawn_link(fn -> Process.exit(self(), :normal) end)
-    assert_receive {:EXIT, ^pid, :normal}
-    refute Process.alive?(pid)
+  test "exit(self(), :normal) does not cause the calling process to exit" do
+    parent = self()
+
+    pid =
+      spawn(fn ->
+        Process.exit(self(), :normal)
+        send(parent, {self(), :alive})
+      end)
+
+    assert_receive {^pid, :alive}
   end
 
   describe "alias/0, alias/1, and unalias/1" do

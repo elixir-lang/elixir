@@ -451,6 +451,7 @@ defmodule Kernel.CLI do
 
       :exit, {kind, exit} when kind in [:exception, :signal] ->
         Process.exit(self(), exit)
+        Process.sleep(:infinity)
     else
       :ok -> :ok
       {kind, reason, stack} -> :erlang.raise(kind, reason, stack)
