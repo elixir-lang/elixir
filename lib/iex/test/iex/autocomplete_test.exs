@@ -619,6 +619,17 @@ defmodule IEx.AutocompleteTest do
     assert :undefined == :shell.whereis()
     assert {:yes, [], list} = IEx.Autocomplete.expand(~c"rtS")
     assert ~c"String" in list
+
+    # a shell without an evaluator, such as while it respawns
+    {pid, ref} = spawn_monitor(fn -> receive do: (:stop -> :ok) end)
+    assert {:yes, [], list} = IEx.Autocomplete.expand(~c"rtS", pid)
+    assert ~c"String" in list
+
+    # a dead shell
+    send(pid, :stop)
+    assert_receive {:DOWN, ^ref, _, _, _}
+    assert {:yes, [], list} = IEx.Autocomplete.expand(~c"rtS", pid)
+    assert ~c"String" in list
   end
 
   defp path_autocompletion(dir, hint \\ "") do

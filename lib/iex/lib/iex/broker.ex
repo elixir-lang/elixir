@@ -35,9 +35,12 @@ defmodule IEx.Broker do
   """
   @spec evaluator(shell()) :: {evaluator :: pid, server :: pid} | nil
   def evaluator(pid \\ shell()) do
-    if is_pid(pid) do
-      {:dictionary, dictionary} = Process.info(pid, :dictionary)
-      {dictionary[:evaluator], pid}
+    with true <- is_pid(pid),
+         {:dictionary, dictionary} <- Process.info(pid, :dictionary),
+         evaluator when is_pid(evaluator) <- dictionary[:evaluator] do
+      {evaluator, pid}
+    else
+      _ -> nil
     end
   end
 
