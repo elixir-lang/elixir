@@ -1641,6 +1641,11 @@ defmodule MacroTest do
     assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: Access.get(:foo)), 0) ==
              quote(do: Access.get(%{foo: "bar"}, :foo))
 
+    assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: unquote(Access).get(:foo, :bar)), 0) ==
+             quote(do: unquote(Access).get(%{foo: "bar"}, :foo, :bar))
+
+    assert Code.eval_string(~s'%{a: 1} |> :"Elixir.Access".get(:a, :default)') == {1, []}
+
     assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1, the :\+ operator can", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))
     end

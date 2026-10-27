@@ -316,10 +316,10 @@ defmodule Macro do
   # (foo |> bar[]) raises a nice error.
   def pipe(
         expr,
-        {{_, meta, [Access, :get] = op}, _meta, [first, second]} = _op_args,
+        {{_, dot_meta, [Access, :get]} = dot, meta, [first, second]} = _op_args,
         integer
       ) do
-    if {:from_brackets, true} in meta do
+    if {:from_brackets, true} in dot_meta do
       raise ArgumentError, """
       wrong operator precedence when piping into bracket-based access
 
@@ -332,7 +332,7 @@ defmodule Macro do
            (#{to_string(expr)} |> #{to_string(first)})[#{to_string(second)}]
       """
     else
-      {op, meta, List.insert_at([first, second], integer, expr)}
+      {dot, meta, List.insert_at([first, second], integer, expr)}
     end
   end
 
