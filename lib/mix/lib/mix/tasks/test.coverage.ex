@@ -324,7 +324,8 @@ defmodule Mix.Tasks.Test.Coverage do
 
     if totals < get_threshold(summary_opts) do
       print_failed_threshold(totals, get_threshold(summary_opts))
-      System.at_exit(fn _ -> exit({:shutdown, 3}) end)
+      # Do not override the exit status of test failures
+      System.at_exit(fn status -> if status == 0, do: exit({:shutdown, 3}) end)
     end
 
     :ok

@@ -231,7 +231,7 @@ defmodule Mix.Tasks.TestTest do
                """
 
         # We skip a test in bar to force coverage below the default threshold
-        # which should result in an exit status of 1.
+        # which should result in an exit status of 3.
         assert {output, code} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
 
         assert output =~ """
