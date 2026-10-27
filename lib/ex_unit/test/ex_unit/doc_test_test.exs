@@ -1277,7 +1277,7 @@ defmodule ExUnit.DocTestTest do
                   left:  3
                   right: 4
                   stacktrace:
-                    test/fixtures/failing.md:4: ExUnit.DocTestTest.FileFailing (module)
+                    test/fixtures/failing.md:3: ExUnit.DocTestTest.FileFailing (module)
              """
     end
   end

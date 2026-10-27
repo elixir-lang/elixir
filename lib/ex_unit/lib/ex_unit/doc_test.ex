@@ -300,7 +300,7 @@ defmodule ExUnit.DocTest do
     tags = [doctest: file] ++ Keyword.get(opts, :tags, [])
     inspect_opts = Keyword.get(opts, :inspect_opts, [])
 
-    extract_tests(1, doc, module, :moduledoc)
+    extract_tests(0, doc, module, :moduledoc)
     |> Enum.with_index(fn test, acc ->
       {
         "#{file} (#{acc + 1})",
