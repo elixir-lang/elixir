@@ -17,6 +17,7 @@
 #### Elixir
 
   * [Access] Add support for keyword lists in `Access.key/2` and `Access.key!/1`
+  * [Code] Add `:purge` and `:purge_all` compilation tracer events
   * [Code] Add support for the `:erlc_options` compiler option
   * [Code.Formatter] Add a `:migrate_atom_interpolations` option
   * [File] Accept an open IO device in `File.stat/2`, `File.stat!/2`, `File.regular?/2`, `File.dir?/2`, and `File.exists?/2`
@@ -50,27 +51,39 @@
 
 #### Elixir
 
+  * [bin/elixirc] Fail compilation on warnings when `--warnings-as-errors` is given
   * [Calendar] Fix `Calendar.strftime/3` formatting of negative years with `%y`
   * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
   * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
   * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
   * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
   * [Code.Formatter] Keep comments written after do-end block keywords (such as `rescue` and `after`) or after the right side of an operator close to where they were written, instead of moving them before the whole expression
+  * [Code.Formatter] Keep parentheses on anonymous function calls with do-end blocks
+  * [Code.Formatter] Keep parentheses on unary operators on the left side of `in`, such as `(!foo) in bar`
   * [Code.Fragment] Fix cursor completion when operator keywords such as `in`, `when`, `and`, `or`, and `not` follow another operator
+  * [Code.Fragment] Respect the `:file`, `:line`, and `:column` options in `Code.Fragment.container_cursor_to_quoted/2`
   * [Date] Preserve the `:format` option in `Date.to_iso8601/2` with custom calendars
   * [Date.Range] Fix slicing date ranges with stepped ranges
   * [DateTime] Keep the calendar of the given map in `DateTime.convert/2` and `DateTime.truncate/2`
   * [DateTime] Truncate fractional differences towards zero in `DateTime.diff/3`
   * [Duration] Reject duplicate seconds in `Duration.from_iso8601/1`
+  * [DynamicSupervisor] Do not discard the exit reason of children that terminate during shutdown
   * [Enum] Fix `Enum.min/2,3` and `Enum.max/2,3` with custom sorters on ranges
+  * [File] Trim UTF-32 LE BOMs in `File.stream!/3`
+  * [IO.ANSI.Docs] Do not crash on unclosed HTML comments
   * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
+  * [Kernel] Continue compilation after reporting repeated map keys in patterns
+  * [Kernel] Do not consider local functions invoked in bitstring size expressions inside macros as unused
+  * [Kernel] Do not crash on invalid number specifiers in bitstrings inside functions
   * [Kernel] Fix expansion of rebound variables in bitstring size expressions
   * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
   * [Kernel] Fix inferred stacktrace types to allow arbitrary keyword metadata
   * [Kernel] Fix inferred types for functions with non-returning clauses
   * [Kernel] Fix map field type inference in the presence of empty map types
   * [Kernel] Fix tuple fetch and deletion type operations across equivalent tuple types
+  * [Kernel] Fix type checking of map updates with keys that span several domains
   * [Kernel] Fix variables defined in one default argument leaking into subsequent default arguments
+  * [Kernel] Follow UAX #9 levels when computing the bidi skeleton of confusable identifiers
   * [Kernel] Improve the error message for non-atom struct keys
   * [Kernel] Raise when `|` is used in guards
   * [Kernel] Raise on duplicate keys in `@enforce_keys`
@@ -84,15 +97,18 @@
   * [Kernel] Improve type precision of `case` when some of its clauses always raise
   * [Kernel] Make pin patterns with singleton types precise, so subsequent redundant clauses are detected
   * [Kernel] Report applying empty function types as bad functions instead of bad arities
+  * [Kernel] Support Erlang modules in `import Mod, only: :sigils`
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
   * [Macro] Properly escape C1 control characters and Unicode noncharacters
   * [Macro] Respect the disabled ANSI setting in `Macro.dbg/3`
   * [Macro] Return `true` from `Macro.quoted_literal?/1` for literals wrapped in `__block__`
+  * [Macro] Return valid AST from `Macro.pipe/3` when piping into `Access.get/3`
   * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
   * [OptionParser] Report missing and invalid arguments for switches with `:keep`
   * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
   * [Regex] Escape U+0085, U+200E, U+200F, U+2028, and U+2029 in `Regex.escape/1`, as Erlang/OTP 28+ ignores them in extended mode
+  * [Stream] Discard leftovers in the deprecated `Stream.chunk/3`
   * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
   * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
   * [Time] Validate microseconds in `Time.from_seconds_after_midnight/3`
@@ -100,34 +116,62 @@
 #### ExUnit
 
   * [ExUnit.Assertions] Fix `refute_in_delta/4` at the delta boundary and with negative deltas
+  * [ExUnit.Assertions] Support list literals in `catch_throw/1`, `catch_exit/1`, and `catch_error/1`
+  * [ExUnit.CaptureIO] Close the capture device when `capture_io` fails to set the group leader
   * [ExUnit.CaptureIO] Stop `StringIO` processes when capturing a named device fails
+  * [ExUnit.CLIFormatter] Color the summary yellow only when all tests are excluded
   * [ExUnit.CLIFormatter] Report failures whose messages contain invalid UTF-8
+  * [ExUnit.DocTest] Fix line numbers in `doctest_file/2` failures
+  * [ExUnit.DocTest] Fix the expected line in doctests with multi-line expressions
   * [ExUnit.FailuresManifest] Do not overlap failures of sibling parameterized tests
+  * [ExUnit.Filters] Warn on invalid line filters instead of raising in `ExUnit.Filters.parse/1`
+  * [ExUnit.Runner] Do not count excluded tests towards `--max-failures` on `setup_all` failures
+  * [ExUnit.Runner] Do not leak monitor messages when the test supervisor times out on shutdown
   * [ExUnit.Runner] Give each parameter set of parameterized tests its own random seed
+  * [ExUnit.Runner] List tests in execution order with `--dry-run`
   * [ExUnit.Runner] Preserve the order of async modules across `--repeat-until-failure` runs
+  * [ExUnit.Runner] Record tests invalidated by module failures as failures in the failures manifest
 
 #### IEx
 
+  * [IEx.Autocomplete] Do not crash when the shell has no evaluator, such as while it restarts
   * [IEx.Autocomplete] Fix completion crashes on maps with non-atom keys
   * [IEx.Autocomplete] Do not split Unicode codepoints when completing map keys
   * [IEx.Evaluator] Recognize `**` and `not in` as continuation operators
+  * [IEx.Helpers] Do not crash `process_info/1` on processes monitoring others by name
   * [IEx.Helpers] Fix `r/1` when multiple modules are defined in the same file
   * [IEx.Helpers] Fix heap and stack memory calculations in `process_info/1`
   * [IEx.Helpers] Fix showing macro specs in `h/1`
+  * [IEx.Helpers] Shell-quote file paths given to the editor in `open/1`
+
+#### Logger
+
+  * [Logger] Restore the Erlang default handler when the `:logger` application stops
+  * [Logger.Backends] Do not remove the backends handler when formatting an event crashes, such as on a raising `:report_cb`
+  * [Logger.Backends] Support all handler configuration changes, such as `:logger.set_handler_config/3`, in the backends handler
+  * [Logger.Formatter] Prune surrogate code points in `Logger.Formatter.prune/1`
 
 #### Mix
 
-  * [Mix] Prevent synchronization lock files from being overwritten with empty contents
-  * [Mix.Release] Accept chardata paths in `Mix.Release.make_boot_script/4`
+  * [Mix] Ensure the lock and pubsub directories in the system tmp directory are owned by the current user
+  * [Mix.Generator] Support iodata contents in `create_file/3` with `:format_elixir`
+  * [Mix.Rebar] Handle empty refs and charlist sparse directories in rebar Git dependencies
   * [Mix.SCM.Git] Raise if Git refspecs start with `-`
+  * [mix cmd] Exit with the status of the failing command
   * [mix compile] Compile optional dependencies that non-optional dependencies require when `--no-optional-deps` is given
+  * [mix compile.elixir] Recompile the project when `--docs` or `--debug-info` change
   * [mix deps] Recompile path and fetchable dependencies when one of the dependencies they were compiled with is removed
   * [mix deps] Mark fetchable dependencies for compilation when their build exists but their SCM manifest is missing
   * [mix deps.compile] Preserve code paths and compiler options across OS partitions
+  * [mix escript.install] Respect the `:path` escript option and raise on URLs without a path
+  * [mix format] Invalidate the cached configuration when imported `.formatter.exs` files change
   * [mix format] Pass `:sigils` to plugins invoked for sigils, allowing nested sigils to be formatted
   * [mix local.hex] Install Hex with `--if-missing` when the installed version is older than the requested one
   * [mix new] Avoid trailing whitespace in generated files
+  * [mix profile.tprof] Forward script arguments
   * [mix release] Keep `:erts` in the release applications
+  * [mix test] Do not crash the coverage summary when there are no modules
+  * [mix test] Do not let the coverage threshold override the exit status of test failures
 
 ### 3. Hard deprecations
 
@@ -135,6 +179,10 @@
 
   * [Macro.Env] `Macro.Env.fetch_alias/2` and `Macro.Env.fetch_macro_alias/2` are deprecated, use `Macro.Env.expand_alias/4` instead
   * [Path] `Path.safe_relative_to/2` is deprecated, use `Path.safe_relative/2` instead
+
+#### Mix
+
+  * [mix compile.elixir] `--tracer` is deprecated, set `:tracers` in `:elixirc_options` or use `Code.put_compiler_option/2` instead
 
 ### 4. Soft deprecations
 
