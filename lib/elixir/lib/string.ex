@@ -1282,10 +1282,8 @@ defmodule String do
   @spec replace_prefix(t, t, t) :: t
   def replace_prefix(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
-    prefix_size = byte_size(match)
-
     case string do
-      <<prefix::size(^prefix_size)-binary, suffix::binary>> when prefix == match ->
+      <<^match::binary, suffix::binary>> ->
         prepend_unless_empty(replacement, suffix)
 
       _ ->
