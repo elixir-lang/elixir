@@ -1408,6 +1408,78 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "map callback application" do
+    test "returns dynamic when one callback's return type is unknown for floats" do
+      overloaded =
+        opt_intersection(
+          fun([integer()], atom([:integer_branch])),
+          fun([float()], atom([:float_branch]))
+        )
+
+      callback = dynamic(opt_union(overloaded, fun([integer()], atom([:other_branch]))))
+
+      assert fun_apply_or_none(callback, [dynamic(number())]) == {:ok, dynamic(), :ok}
+
+      assert {:ok, result, :ok} = fun_apply_or_none(callback, [integer()])
+      assert equal?(result, dynamic(atom([:integer_branch, :other_branch])))
+    end
+
+    test "allows gradual function unions with disjoint domains" do
+      callback =
+        dynamic(
+          opt_union(
+            fun([integer()], atom([:integer_branch])),
+            fun([float()], atom([:float_branch]))
+          )
+        )
+
+      assert fun_apply_or_none(callback, [dynamic(number())]) == {:ok, dynamic(), :ok}
+    end
+
+    test "keeps possible results separate from input diagnostics" do
+      callback = fun([integer()], atom([:ok]))
+      status = {:badarg, [integer()], false}
+
+      # A weak arrow does not constrain results outside its input domain.
+      assert fun_apply_or_none(callback, [float()]) == {:ok, term(), status}
+
+      assert fun_apply_or_none(fun([integer()], dynamic(atom([:ok]))), [float()]) ==
+               {:ok, term(), status}
+
+      # A purely dynamic function has the same extended domain as in fun_apply/2.
+      assert fun_apply_or_none(dynamic(callback), [float()]) == {:ok, dynamic(), :ok}
+      assert fun_apply_or_none(dynamic(), [float()]) == {:ok, dynamic(), :ok}
+    end
+
+    test "preserves successful results after a function union absorbs a subtype" do
+      callback = fun([atom([:good])], atom([:ok]))
+
+      extended =
+        opt_intersection(callback, fun([atom([:bad])], atom([:surprise])))
+
+      union = opt_union(callback, extended)
+      assert equal?(union, callback)
+
+      for fun <- [callback, union] do
+        assert fun_apply_or_none(dynamic(fun), [atom([:bad])]) == {:ok, dynamic(), :ok}
+      end
+    end
+
+    test "preserves empty input, function, and arity diagnostics" do
+      callback = fun([integer()], atom([:ok]))
+
+      assert fun_apply_or_none(callback, [none()]) ==
+               {:ok, none(), {:badarg, [integer()], true}}
+
+      assert fun_apply_or_none(integer(), [integer()]) == :badfun
+      assert fun_apply_or_none(term(), [integer()]) == :badfun
+      assert fun_apply_or_none(none(), [integer()]) == :badfun
+
+      assert fun_apply_or_none(fun([integer(), integer()], atom()), [integer()]) ==
+               {:badarity, [2]}
+    end
+  end
+
   describe "function application" do
     defp none_fun(arity), do: %{fun: {:union, %{arity => :bdd_top}}}
 

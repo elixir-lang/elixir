@@ -1390,19 +1390,33 @@ defmodule Module.Types.MapTest do
       assert typecheck!([], Map.update(%{123 => 456}, 456, :default, fn x -> x * 1.0 end))
              |> equal?(integer_update_result)
 
-      # The dynamic key may be :__struct__, which the callback does not accept,
-      # but the other fields can still be updated
-      assert typecheck!(
-               [kind, id, value, users, groups],
-               is_binary(id) and is_map(value),
-               Map.update(
-                 %{__struct__: Foo, users: users, groups: groups},
-                 %{user: :users, group: :groups}[kind],
-                 %{id => value},
-                 &Map.put(&1, id, value)
+      # Access.get/2 infers a dynamic key, which may be :__struct__.
+      # The weak callback type does not record that atom inputs cannot return.
+      # TODO: Preserving Foo here would require tracking that the function is strong.
+      result =
+        typecheck!(
+          [kind, id, value, users, groups],
+          is_binary(id) and is_map(value),
+          Map.update(
+            %{__struct__: Foo, users: users, groups: groups},
+            %{user: :users, group: :groups}[kind],
+            %{id => value},
+            &Map.put(&1, id, value)
+          )
+        )
+
+      assert subtype?(
+               result,
+               dynamic(
+                 open_map(
+                   __struct__: {term(), false},
+                   users: {term(), false},
+                   groups: {term(), false}
+                 )
                )
              )
-             |> subtype?(dynamic(open_map(__struct__: {atom([Foo]), false})))
+
+      assert map_fetch_key(result, :__struct__) == {false, dynamic()}
     end
 
     test "inference" do
@@ -1434,45 +1448,160 @@ defmodule Module.Types.MapTest do
     end
   end
 
+  for {name, extra_args} <- [update!: [], update: [:default], replace_lazy: []] do
+    test "Map.#{name} preserves results outside a callback union's common domain" do
+      result =
+        typedyn!(
+          [flag],
+          (
+            {value, fun} =
+              if flag do
+                {1.0,
+                 fn
+                   x when is_integer(x) -> :integer_branch
+                   x when is_float(x) -> :float_branch
+                 end}
+              else
+                {1, fn x when is_integer(x) -> :other_branch end}
+              end
+
+            result = Map.unquote(name)(%{a: value}, :a, unquote_splicing(extra_args), fun)
+
+            case result do
+              %{a: :float_branch} -> :valid
+              _ -> :other
+            end
+
+            result
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
+    end
+
+    test "Map.#{name} allows gradual callback unions with disjoint domains" do
+      result =
+        typedyn!(
+          [flag],
+          (
+            {value, fun} =
+              if flag do
+                {1.0, fn x when is_float(x) -> :float_branch end}
+              else
+                {1, fn x when is_integer(x) -> :integer_branch end}
+              end
+
+            Map.unquote(name)(%{a: value}, :a, unquote_splicing(extra_args), fun)
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
+    end
+  end
+
   describe "Map.update!/3" do
-    test "callback diagnostics do not depend on equivalent map partitions" do
+    test "allows the update when only one possible callback handles :bad" do
+      result =
+        typedyn!(
+          [flag],
+          (
+            fun =
+              if flag do
+                fn :good -> :ok end
+              else
+                fn
+                  :good -> :ok
+                  :bad -> :surprise
+                end
+              end
+
+            Map.update!(%{a: :bad}, :a, fun)
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
+    end
+
+    test "checks callback inputs across equivalent map partitions" do
       callback = typecheck!(fn x when is_integer(x) -> x + 1 end)
+
+      apply = fn map, key ->
+        Module.Types.Apply.map_update_or_replace_lazy(
+          :update!,
+          [dynamic(map), key, callback],
+          %{mode: :static},
+          "raise"
+        )
+      end
 
       for {input, cut, key} <- [
             {closed_map(value: {opt_union(integer(), float()), false}),
              closed_map(value: {integer(), false}), atom([:value])},
             {closed_map([{domain_key(:integer), opt_union(integer(), float())}]),
-             closed_map([{domain_key(:integer), integer()}]), integer()},
-            {closed_map([{domain_key(:atom), opt_union(integer(), float())}]),
-             closed_map(a: {integer(), false}), atom()}
+             closed_map([{domain_key(:integer), integer()}]), integer()}
           ] do
         partitioned = opt_union(opt_intersection(input, cut), opt_difference(input, cut))
         assert equal?(input, partitioned)
 
-        apply = fn map ->
-          Module.Types.Apply.map_update_or_replace_lazy(
-            :update!,
-            [dynamic(map), key, callback],
-            %{mode: :static},
-            "raise"
-          )
-        end
-
-        assert {:ok, left} = apply.(input)
-        assert {:ok, right} = apply.(partitioned)
+        assert {:ok, left} = apply.(input, key)
+        assert {:ok, right} = apply.(partitioned, key)
         assert equal?(left, right)
       end
+
+      number = opt_union(integer(), float())
+      input = closed_map([{domain_key(:atom), number}])
+      cut = closed_map(a: {integer(), false})
+      partitioned = opt_union(opt_intersection(input, cut), opt_difference(input, cut))
+      assert equal?(input, partitioned)
+
+      assert {:ok, left} = apply.(input, atom())
+      assert {:ok, right} = apply.(partitioned, atom())
+
+      # A weak callback can return anything for float inputs. The equivalent
+      # input mentions :a, so updates of that key are approximated separately.
+      # TODO: A strong callback type proving that float inputs cannot return
+      # would avoid this widening.
+      assert equal?(
+               left,
+               dynamic(opt_difference(closed_map([{domain_key(:atom), term()}]), empty_map()))
+             )
+
+      assert equal?(
+               right,
+               dynamic(
+                 opt_union(
+                   closed_map([{domain_key(:atom), number}, {:a, {term(), false}}]),
+                   opt_difference(
+                     closed_map([{domain_key(:atom), term()}, {:a, {number, true}}]),
+                     empty_map()
+                   )
+                 )
+               )
+             )
     end
 
-    test "ignores an incompatible callback alternative" do
-      assert typecheck!(
-               [condition?],
-               Map.update!(
-                 if(condition?, do: %{value: 1, kind: :good}, else: %{value: 1.0, kind: :bad}),
-                 :value,
-                 fn x when is_integer(x) -> x + 1 end
+    test "keeps map alternatives outside a weak callback's domain" do
+      result =
+        typecheck!(
+          [condition?],
+          Map.update!(
+            if(condition?, do: %{value: 1, kind: :good}, else: %{value: 1.0, kind: :bad}),
+            :value,
+            fn x when is_integer(x) -> x + 1 end
+          )
+        )
+
+      # The inferred weak arrow does not encode that this particular callback
+      # raises on floats. Its result on the :bad alternative is unconstrained.
+      assert equal?(
+               result,
+               dynamic(
+                 opt_union(
+                   closed_map(value: {integer(), false}, kind: {atom([:good]), false}),
+                   closed_map(value: {term(), false}, kind: {atom([:bad]), false})
+                 )
                )
-             ) == dynamic(closed_map(value: {integer(), false}, kind: {atom([:good]), false}))
+             )
     end
 
     test "preserves correlations when applying an inferred multi-clause function" do

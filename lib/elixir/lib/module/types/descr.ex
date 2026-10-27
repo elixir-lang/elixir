@@ -1403,7 +1403,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Variant of fun_apply for map callbacks: incompatible fields contribute none().
+  # Compute map callback results independently of input diagnostics. Weak function
+  # types may return successfully outside their domain, so only an empty argument
+  # or a constrained return type can make the result empty.
   def fun_apply_or_none(:term, [_argument]), do: :badfun
 
   def fun_apply_or_none(fun, [argument]) do
@@ -1414,27 +1416,29 @@ defmodule Module.Types.Descr do
       end
 
     fun_static = if empty?(fun_static), do: none(), else: fun_static
-    fun = if fun_dynamic, do: Map.put(fun_static, :dynamic, fun_dynamic), else: fun_static
 
     with true <- fun_only?(fun_static) or :badfun,
          {:ok, domain, static_arrows, dynamic_arrows} <-
            fun_normalize_both(fun_static, fun_dynamic, 1) do
-      # Match fields against the callback's known input domain.
-      # For a gradual callback, discard the dynamic() fallback that would accept any input.
-      domain =
-        if static_arrows == [] and
-             Enum.any?(dynamic_arrows, &(not empty?(fetch_domain(&1)))),
-           do: lower_bound(domain),
-           else: upper_bound(domain)
-
+      # Use the same extended gradual domain as ordinary application. In particular,
+      # a purely dynamic function may accept inputs outside its known arrow domains.
+      domain = upper_bound(domain)
       [domain] = if domain == :term, do: [term()], else: domain_to_flat_args(domain, 1)
-      matching = bare_intersection(upper_bound(argument), domain)
+      argument = upper_bound(argument)
 
-      if empty?(matching) do
-        {:ok, none(), {:badarg, [domain], empty?(argument)}}
-      else
-        with {:ok, result} <- fun_apply(fun, [matching]), do: {:ok, result, :ok}
-      end
+      status =
+        if disjoint?(argument, domain),
+          do: {:badarg, [domain], empty?(argument)},
+          else: :ok
+
+      # A domain mismatch is a diagnostic, not evidence that the callback cannot
+      # return. Apply every alternative to the full argument to retain such results.
+      result =
+        if empty?(argument),
+          do: none(),
+          else: fun_apply_result([argument], static_arrows, dynamic_arrows, fun_dynamic == nil)
+
+      {:ok, result, status}
     end
   end
 
@@ -1467,7 +1471,7 @@ defmodule Module.Types.Descr do
         args_domain = args_to_domain(arguments)
         static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
 
-        cond do
+        if not subtype?(args_domain, domain) do
           # The domain here is the extended gradual domain computed by
           # fun_normalize_both/3. If the argument does not satisfy it, we
           # check compatibility before rejecting.
@@ -1480,45 +1484,49 @@ defmodule Module.Types.Descr do
           # useless. So when the static part is empty, we instead check
           # that the upper bound overlaps with the domain. When the static
           # part is non-empty, we check it is a subtype of the domain.
-          not subtype?(args_domain, domain) ->
-            if static? or not compatible?(args_domain, domain),
-              do: {:badarg, domain_to_flat_args(domain, arity), false},
-              else: {:ok, dynamic()}
-
-          static? ->
-            {:ok, fun_apply_static(arguments, static_arrows)}
-
-          static_arrows == [] ->
-            # Purely dynamic function (e.g. dynamic() and (integer() -> integer())).
-            # There are no static arrows, so the general mixed formula simplifies:
-            # applying none() to anything yields none(), so the static branch
-            # vanishes and only the dynamic branch remains.
-            # The result is wrapped in dynamic(), so it is safe regardless of argument precision.
-            # If the upper-bounded arguments escape the domain, fun_apply_static returns term(),
-            # and dynamic(term()) = dynamic(), which brings back to the compatible case.
-            arguments = Enum.map(arguments, &upper_bound/1)
-            {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows))}
-
-          true ->
-            # Mixed case: union of the static and dynamic results.
-            # static_arrows (lower materialization) contain only arrows that are
-            # guaranteed to exist at runtime. Static guarantees about the result
-            # come from these alone.
-            # dynamic_arrows (upper materialization) include dynamically uncertain
-            # arrows, so their result is wrapped in dynamic().
-            # We use upper_bound on the arguments for both branches. This is sound
-            # because the dynamic branch wraps its result in dynamic().
-            # It is more strict and informative than using lower_bound in the static part,
-            # as it amounts to assuming the worst case of using the statically present arrows.
-            arguments = Enum.map(arguments, &upper_bound/1)
-
-            {:ok,
-             bare_union(
-               fun_apply_static(arguments, static_arrows),
-               dynamic(fun_apply_static(arguments, dynamic_arrows))
-             )}
+          if static? or not compatible?(args_domain, domain),
+            do: {:badarg, domain_to_flat_args(domain, arity), false},
+            else: {:ok, dynamic()}
+        else
+          {:ok, fun_apply_result(arguments, static_arrows, dynamic_arrows, static?)}
         end
       end
+    end
+  end
+
+  defp fun_apply_result(arguments, static_arrows, dynamic_arrows, static?) do
+    cond do
+      static? ->
+        fun_apply_static(arguments, static_arrows)
+
+      static_arrows == [] ->
+        # Purely dynamic function (e.g. dynamic() and (integer() -> integer())).
+        # There are no static arrows, so the general mixed formula simplifies:
+        # applying none() to anything yields none(), so the static branch
+        # vanishes and only the dynamic branch remains.
+        # The result is wrapped in dynamic(), so it is safe regardless of argument precision.
+        # If the upper-bounded arguments escape the domain, fun_apply_static returns term(),
+        # and dynamic(term()) = dynamic(), which brings back to the compatible case.
+        arguments = Enum.map(arguments, &upper_bound/1)
+        dynamic(fun_apply_static(arguments, dynamic_arrows))
+
+      true ->
+        # Mixed case: union of the static and dynamic results.
+        # static_arrows (lower materialization) contain only arrows that are
+        # guaranteed to exist at runtime. Static guarantees about the result
+        # come from these alone.
+        # dynamic_arrows (upper materialization) include dynamically uncertain
+        # arrows, so their result is wrapped in dynamic().
+        # We use upper_bound on the arguments for both branches. This is sound
+        # because the dynamic branch wraps its result in dynamic().
+        # It is more strict and informative than using lower_bound in the static part,
+        # as it amounts to assuming the worst case of using the statically present arrows.
+        arguments = Enum.map(arguments, &upper_bound/1)
+
+        bare_union(
+          fun_apply_static(arguments, static_arrows),
+          dynamic(fun_apply_static(arguments, dynamic_arrows))
+        )
     end
   end
 
