@@ -1198,12 +1198,13 @@ defmodule Inspect.Algebra do
                )
                | {:tail, boolean(), entries}
 
-  # We need at least a break to consider the document does not fit since a
-  # large document without breaks has no option but fitting its current line.
+  # The document does not fit as soon as it goes over the width. We don't
+  # check if there are breaks ahead, as that would require traversing the
+  # whole document, leading to quadratic behaviour on nested groups.
   #
   # In case we have groups and the group fits, we need to consider the group
   # parent without the child breaks, hence {:tail, b?, t} below.
-  defp fits?(w, k, b?, _) when k > w and b?, do: false
+  defp fits?(w, k, _, _) when k > w, do: false
   defp fits?(_, _, _, []), do: true
   defp fits?(w, k, _, {:tail, b?, t}), do: fits?(w, k, b?, t)
 

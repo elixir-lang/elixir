@@ -2447,6 +2447,7 @@ defmodule Module.Types.Descr do
 
   defp list_line_empty?(list_type, last_type, negs, seen) do
     last_type = list_tail_unfold(last_type)
+
     # To make a list {list, last} empty with some negative lists:
     # 1. Ignore negative lists which do not have a list type that is a supertype of the positive one.
     # 2. Each of the list supertypes:

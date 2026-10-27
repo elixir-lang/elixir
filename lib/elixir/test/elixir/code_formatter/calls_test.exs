@@ -397,8 +397,8 @@ defmodule Code.Formatter.CallsTest do
 
       assert_same """
                   import :really_long_atom_but_no_breaks,
-                    one: two,
-                    three: four
+                         one: two,
+                         three: four
                   """,
                   @medium_length
 
