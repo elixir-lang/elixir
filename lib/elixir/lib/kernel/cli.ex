@@ -450,7 +450,7 @@ defmodule Kernel.CLI do
         end
 
       :exit, {kind, exit} when kind in [:exception, :signal] ->
-        Process.exit(self(), exit)
+        exit(exit)
     else
       :ok -> :ok
       {kind, reason, stack} -> :erlang.raise(kind, reason, stack)

@@ -952,7 +952,7 @@ defmodule ExUnit.Assertions do
   with `Process.flag/2` and assert the exit message with `assert_receive/2`.
 
       Process.flag(:trap_exit, true)
-      pid = spawn_link(fn -> Process.exit(self(), :normal) end)
+      pid = spawn_link(fn -> exit(:normal) end)
       assert_receive {:EXIT, ^pid, :normal}
 
   """

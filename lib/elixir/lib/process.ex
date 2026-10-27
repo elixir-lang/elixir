@@ -205,10 +205,10 @@ defmodule Process do
 
   Exit behavior differs based on the value of `reason`:
 
-    - If `:normal`, `pid` will not exit unless it is the calling process, in
-      which case it will exit with the reason `:normal`. If it is trapping exits,
-      the exit signal is transformed into a message `{:EXIT, from, :normal}` and
-      delivered to its message queue.
+    - If `:normal`, `pid` will not exit. If it is trapping exits, the exit
+      signal is transformed into a message `{:EXIT, from, :normal}` and
+      delivered to its message queue. This also applies when `pid` is the
+      calling process.
 
     - If `:kill`, which occurs when `Process.exit(pid, :kill)` is called, an
       untrappable exit signal is sent to `pid` which will unconditionally exit
@@ -240,7 +240,7 @@ defmodule Process do
 
   """
   @spec exit(pid, term) :: true
-  defdelegate exit(pid, reason), to: :erlang
+  defdelegate exit(pid, reason), to: :erlang, as: :exit_signal
 
   @doc """
   Sleeps the current process for the given `timeout`.

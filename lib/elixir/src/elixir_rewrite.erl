@@ -189,7 +189,7 @@ inner_inline(ex_to_erl, ?list, to_atom, 1) -> {erlang, list_to_atom};
 ?inline(?process, cancel_timer, 2, erlang, cancel_timer);
 ?inline(?process, demonitor, 1, erlang, demonitor);
 ?inline(?process, demonitor, 2, erlang, demonitor);
-?inline(?process, exit, 2, erlang, exit);
+?inline(?process, exit, 2, erlang, exit_signal);
 ?inline(?process, flag, 2, erlang, process_flag);
 ?inline(?process, flag, 3, erlang, process_flag);
 ?inline(?process, get, 0, erlang, get);
