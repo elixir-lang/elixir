@@ -198,6 +198,13 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "supports projects without modules" do
+      in_fixture("test_failed", fn ->
+        assert {output, 0} = mix_code(["test", "--cover"], [{"PASS_FAILING_TESTS", "true"}])
+        assert output =~ "|    100.00% | Total      |"
+      end)
+    end
+
     test "reports the coverage of each app's modules in an umbrella" do
       in_fixture("umbrella_test", fn ->
         # This fixture by default results in coverage above the default threshold

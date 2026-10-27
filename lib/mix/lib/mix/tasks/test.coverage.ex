@@ -372,7 +372,9 @@ defmodule Mix.Tasks.Test.Coverage do
     results =
       results |> Enum.sort() |> Enum.map(fn {coverage, module} -> {coverage, inspect(module)} end)
 
-    name_max_length = results |> Enum.map(&String.length(elem(&1, 1))) |> Enum.max() |> max(10)
+    name_max_length =
+      results |> Enum.map(&String.length(elem(&1, 1))) |> Enum.max(fn -> 0 end) |> max(10)
+
     name_separator = String.duplicate("-", name_max_length)
 
     Mix.shell().info("| Percentage | #{String.pad_trailing("Module", name_max_length)} |")
