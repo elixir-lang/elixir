@@ -326,6 +326,7 @@ defimpl Inspect, for: HashSet do
   def inspect(set, opts) do
     # Avoid warnings about HashSet being deprecated.
     module = String.to_unsafe_atom("Elixir.HashSet")
-    concat(["#HashSet<", Inspect.List.inspect(module.to_list(set), opts), ">"])
+    {doc, opts} = to_doc_with_opts(module.to_list(set), opts)
+    {concat(["#HashSet<", doc, ">"]), opts}
   end
 end

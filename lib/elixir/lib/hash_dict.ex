@@ -316,6 +316,7 @@ defimpl Inspect, for: HashDict do
   def inspect(dict, opts) do
     # Avoid warnings about HashDict being deprecated.
     module = String.to_unsafe_atom("Elixir.HashDict")
-    concat(["#HashDict<", Inspect.List.inspect(module.to_list(dict), opts), ">"])
+    {doc, opts} = to_doc_with_opts(module.to_list(dict), opts)
+    {concat(["#HashDict<", doc, ">"]), opts}
   end
 end

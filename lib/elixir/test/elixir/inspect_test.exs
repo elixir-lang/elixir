@@ -921,6 +921,15 @@ defmodule Inspect.OthersTest do
     assert "MapSet.new(" <> _ = inspect(MapSet.new())
   end
 
+  test "hash dict and hash set" do
+    # Avoid warnings about HashDict and HashSet being deprecated.
+    hash_dict = String.to_unsafe_atom("Elixir.HashDict")
+    hash_set = String.to_unsafe_atom("Elixir.HashSet")
+
+    assert inspect(Enum.into([a: 1], hash_dict.new())) == "#HashDict<[a: 1]>"
+    assert inspect(Enum.into([1], hash_set.new())) == "#HashSet<[1]>"
+  end
+
   test "PIDs" do
     assert "#PID<" <> _ = inspect(self())
     opts = [syntax_colors: []]
