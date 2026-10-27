@@ -644,8 +644,41 @@ defmodule Path do
 
   """
   @spec join(nonempty_list(t)) :: binary
-  def join([name1, name2 | rest]), do: join([join(name1, name2) | rest])
+  def join([name1, name2 | rest]) do
+    acc = push_segment([], IO.chardata_to_string(name1))
+    join_list([name2 | rest], acc, major_os_type())
+  end
+
   def join([name]), do: IO.chardata_to_string(name)
+
+  # Same as join/2 but the path is accumulated as a reversed list
+  # of non-empty segments, so it is not copied on every join
+  defp join_list([right | rest], acc, os_type) do
+    acc =
+      cond do
+        right == "/" ->
+          remove_segment_dir_sep(acc, os_type)
+
+        acc in [[], ["/"]] ->
+          push_segment(acc, relative(right, os_type))
+
+        true ->
+          push_segment(["/" | remove_segment_dir_sep(acc, os_type)], relative(right, os_type))
+      end
+
+    join_list(rest, remove_segment_dir_sep(acc, os_type), os_type)
+  end
+
+  defp join_list([], acc, _os_type), do: IO.iodata_to_binary(:lists.reverse(acc))
+
+  defp push_segment(acc, ""), do: acc
+  defp push_segment(acc, segment), do: [segment | acc]
+
+  defp remove_segment_dir_sep(acc, _os_type) when acc in [[], ["/"]], do: acc
+  defp remove_segment_dir_sep(["/" | acc], _os_type), do: acc
+
+  defp remove_segment_dir_sep([segment | acc], os_type),
+    do: push_segment(acc, remove_dir_sep(segment, os_type))
 
   @doc """
   Joins two paths.
