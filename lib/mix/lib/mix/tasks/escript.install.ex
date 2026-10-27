@@ -134,7 +134,8 @@ defmodule Mix.Tasks.Escript.Install do
   def build(_spec, _opts) do
     Mix.Task.run("loadconfig")
     Mix.Task.run("escript.build", [])
-    Mix.Local.name_for(:escripts, Mix.Project.config())
+    config = Mix.Project.config()
+    config[:escript][:path] || Mix.Local.name_for(:escripts, config)
   end
 
   # Helpers

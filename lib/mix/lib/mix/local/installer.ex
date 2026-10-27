@@ -125,7 +125,12 @@ defmodule Mix.Local.Installer do
   end
 
   defp local_install(module, src, opts) do
-    basename = Path.basename(URI.parse(src).path)
+    basename = Path.basename(URI.parse(src).path || "")
+
+    if basename == "" do
+      Mix.raise("Expected #{inspect(src)} to point to a file")
+    end
+
     previous_files = module.find_previous_versions(basename)
 
     if opts[:force] || should_install?(src, previous_files) do
