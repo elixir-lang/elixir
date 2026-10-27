@@ -1035,10 +1035,9 @@ defmodule Mix do
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
-                  lockfile = Path.join(install_project_dir, "mix.lock")
-                  old_lock = Mix.Dep.Lock.read(lockfile)
+                  old_lock = Mix.Dep.Lock.read()
                   new_lock = Mix.Dep.Lock.read(external_lockfile)
-                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
+                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock))
                   File.write!(md5_path, Base.encode64(new_md5))
                   Mix.Task.rerun("deps.get")
                 end
