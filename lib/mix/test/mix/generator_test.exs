@@ -156,6 +156,10 @@ defmodule Mix.GeneratorTest do
       in_tmp("create_file", fn ->
         create_file("foo", "%{ foo:  :bar }", format_elixir: true)
         assert File.read!("foo") == "%{foo: :bar}\n"
+
+        create_file("foo", ["%{ foo: ", " :bar }"], format_elixir: true)
+        assert File.read!("foo") == "%{foo: :bar}\n"
+        refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       end)
     end
   end
