@@ -157,7 +157,7 @@ defmodule Stream do
   @doc false
   @deprecated "Use Stream.chunk_every/3 instead"
   def chunk(enum, n, step) do
-    chunk_every(enum, n, step, nil)
+    chunk_every(enum, n, step, :discard)
   end
 
   @doc false
