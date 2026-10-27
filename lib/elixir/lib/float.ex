@@ -204,12 +204,21 @@ defmodule Float do
   end
 
   # Bare integer: * 1.0 casts to the nearest float without building a new binary,
-  # and raises ArithmeticError on overflow (for example a 400-digit integer).
+  # and raises ArithmeticError on overflow (for example a 309-digit integer).
+  # Integers with more than 309 significant digits always overflow, so we
+  # return early instead of building large integers.
   defp finish_mantissa(binary, rest, _dot? = false) do
-    {:erlang.binary_to_integer(consumed(binary, rest)) * 1.0, rest}
+    case skip_leading_zeros(consumed(binary, rest)) do
+      digits when byte_size(digits) > 309 -> :error
+      digits -> {:erlang.binary_to_integer(digits) * 1.0, rest}
+    end
   rescue
     ArithmeticError -> :error
   end
+
+  defp skip_leading_zeros(<<?0, rest::binary>>) when rest != "", do: skip_leading_zeros(rest)
+
+  defp skip_leading_zeros(digits), do: digits
 
   # binary_to_float/1 raises ArgumentError when the exponent is too big, e.g. "1.0e400".
   defp finish_exponent(binary, _exp_pos, rest, _dot? = true) do
