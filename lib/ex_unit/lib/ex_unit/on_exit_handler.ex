@@ -65,6 +65,7 @@ defmodule ExUnit.OnExitHandler do
       {:DOWN, ^ref, _, _, _} -> nil
     after
       timeout ->
+        Process.demonitor(ref, [:flush])
         {:error, ExUnit.TimeoutError.exception(timeout: timeout, type: "supervisor shutdown"), []}
     end
   end
