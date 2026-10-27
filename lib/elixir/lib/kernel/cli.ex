@@ -450,7 +450,8 @@ defmodule Kernel.CLI do
         end
 
       :exit, {kind, reason} when kind in [:exception, :signal] ->
-        {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
+        print_error({:EXIT, self()}, reason, [])
+        exit({:shutdown, 1})
     else
       :ok -> :ok
       {kind, reason, stack} -> :erlang.raise(kind, reason, stack)
