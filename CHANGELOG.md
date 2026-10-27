@@ -30,7 +30,6 @@
   * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/1`
   * [MapSet] Optimize `MapSet.symmetric_difference/2` when set sizes differ
   * [Path] Add `Path.safe_join/2`
-  * [Process] `Process.exit/2` now uses `:erlang.exit_signal/2`, as `:erlang.exit/2` is deprecated in upcoming Erlang/OTP versions. Therefore `Process.exit(self(), :normal)` no longer terminates the calling process and `Process.exit(self(), reason)` delivers the signal asynchronously. Use `exit/1` to terminate the calling process
   * [Protocol] Add the `:skip_consolidated` option to `Protocol.extract_protocols/2`
   * [Protocol] Warn when implementing a protocol for a module that does not define a struct
   * [Registry] Add the `:spawn_opt` option to `Registry.start_link/1`
