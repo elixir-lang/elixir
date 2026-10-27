@@ -181,9 +181,9 @@ while [ $I -le $LENGTH ]; do
         S=3
         RUN_ERL_PIPE="$2"
         RUN_ERL_LOG="$3"
-        if [ "$(starts_with "$RUN_ERL_PIPE" "-")" ]; then
+        if starts_with "$RUN_ERL_PIPE" "-"; then
           echo "--pipe-to : PIPEDIR cannot be a switch" >&2 && exit 1
-        elif [ "$(starts_with "$RUN_ERL_LOG" "-")" ]; then
+        elif starts_with "$RUN_ERL_LOG" "-"; then
           echo "--pipe-to : LOGDIR cannot be a switch" >&2 && exit 1
         fi
         ;;
