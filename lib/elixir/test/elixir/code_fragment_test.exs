@@ -1573,6 +1573,10 @@ defmodule CodeFragmentTest do
       opts = [literal_encoder: fn ast, _ -> {:ok, {:literal, ast}} end]
       assert cc2q!("foo(", opts) == s2q!("foo(__cursor__())", opts)
       assert cc2q!("foo(123,", opts) == s2q!("foo({:literal, 123},__cursor__())", [])
+
+      opts = [line: 10, column: 5, columns: true]
+      assert cc2q!("foo(", opts) == s2q!("foo(__cursor__())", opts)
+      assert cc2q!("foo(123,", opts) == s2q!("foo(123,__cursor__())", opts)
     end
   end
 end

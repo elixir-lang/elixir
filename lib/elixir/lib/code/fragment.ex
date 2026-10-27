@@ -1275,12 +1275,12 @@ defmodule Code.Fragment do
   def container_cursor_to_quoted(fragment, opts \\ []) do
     {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)
     {preserve_sigils?, opts} = Keyword.pop(opts, :preserve_sigils, false)
-    opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
-    opts = [check_terminators: {:cursor, preserve_sigils?, []}] ++ opts
-
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
+
+    opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
+    opts = [check_terminators: {:cursor, preserve_sigils?, []}] ++ opts
 
     case :elixir_tokenizer.tokenize(to_charlist(fragment), line, column, opts) do
       {:ok, line, column, _warnings, rev_tokens, rev_terminators}
