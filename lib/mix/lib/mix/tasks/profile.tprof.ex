@@ -203,7 +203,7 @@ defmodule Mix.Tasks.Profile.Tprof do
 
   @doc false
   def parse!(args) do
-    {opts, args} = OptionParser.parse!(args, aliases: @aliases, strict: @switches)
+    {opts, args} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
     {Enum.map(opts, &parse_opt/1), args}
   end
 
