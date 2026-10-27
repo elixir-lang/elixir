@@ -307,6 +307,19 @@ defmodule Kernel.CLI.CompileTest do
     refute File.exists?(context.beam_file_path)
   end
 
+  stderr_test "fails on warnings with --warnings-as-errors", context do
+    fixture = Path.join(context.tmp_dir, "warnings_sample.ex")
+    File.write!(fixture, "defmodule WarningsSample do\n  def foo(x), do: :ok\nend\n")
+
+    output =
+      elixirc(~c"--warnings-as-errors #{fixture} -o #{context.tmp_dir}", context.cli_extension)
+
+    assert output =~ "variable \"x\" is unused"
+
+    assert output =~
+             "Compilation failed due to warnings while using the --warnings-as-errors option"
+  end
+
   stderr_test "fails on missing write access to .beam file", context do
     compilation_args = ~c"#{context.fixture} -o #{context.tmp_dir}"
 

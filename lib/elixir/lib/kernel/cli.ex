@@ -522,17 +522,22 @@ defmodule Kernel.CLI do
 
           output = IO.chardata_to_string(config.output)
 
-          opts =
-            verbose_opts ++
-              [
-                profile: config.profile,
-                warnings_as_errors: config.warnings_as_errors,
-                return_diagnostics: true
-              ]
+          opts = verbose_opts ++ [profile: config.profile, return_diagnostics: true]
 
           case Kernel.ParallelCompiler.compile_to_path(files, output, opts) do
-            {:ok, _, _} -> :ok
-            {:error, _, _} -> exit({:shutdown, 1})
+            {:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}}
+            when config.warnings_as_errors and (r_warnings != [] or c_warnings != []) ->
+              message =
+                "Compilation failed due to warnings while using the --warnings-as-errors option"
+
+              IO.puts(:stderr, message)
+              exit({:shutdown, 1})
+
+            {:ok, _, _} ->
+              :ok
+
+            {:error, _, _} ->
+              exit({:shutdown, 1})
           end
         end)
 
