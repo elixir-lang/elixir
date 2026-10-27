@@ -1189,15 +1189,15 @@ defmodule ExUnitTest do
       test "one more excluded test", do: assert(false)
     end
 
-    configure_and_reload_on_exit([])
+    configure_and_reload_on_exit(colors: [enabled: true])
 
     output =
       capture_io(fn ->
         assert ExUnit.run() == %{total: 2, failures: 0, excluded: 2, skipped: 0}
       end)
 
-    assert output =~ "All tests have been excluded.\n"
-    assert output =~ "Result: 0 tests"
+    assert output =~ "All tests have been excluded."
+    assert output =~ IO.ANSI.yellow() <> "\nResult: 0 tests, 2 excluded"
   end
 
   test "tests are run in compile order (FIFO)" do
