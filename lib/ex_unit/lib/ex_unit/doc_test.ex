@@ -895,14 +895,15 @@ defmodule ExUnit.DocTest do
   defp add_line(acc, line), do: [acc, [?\n, line]]
 
   defp add_expr(exprs, expr_lines, expected_lines, formatted_lines, line_no) do
+    expr = IO.iodata_to_binary(expr_lines)
     expected = IO.iodata_to_binary(expected_lines)
     doctest = IO.iodata_to_binary([?\n, formatted_lines, ?\n, expected])
 
     expr = %{
-      expr: IO.iodata_to_binary(expr_lines),
+      expr: expr,
       expr_line: line_no,
       expected: tag_expected(expected),
-      expected_line: line_no + length(expr_lines),
+      expected_line: line_no + length(:binary.matches(expr, "\n")) + 1,
       doctest: doctest
     }
 

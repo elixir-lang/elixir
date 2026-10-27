@@ -259,6 +259,14 @@ defmodule ExUnit.DocTestTest.Invalid do
       :mixed
   """
   def invalid_second, do: :ok
+
+  @doc """
+      iex> 1 +
+      ...>   2 +
+      ...>   3
+      1 + * 1
+  """
+  def multiline_expr, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -969,7 +977,28 @@ defmodule ExUnit.DocTestTest do
                   #{stack(line)}ExUnit.DocTestTest.Invalid (module)
            """
 
-    assert output =~ "Failed: 10 doctests"
+    line = starting_line + 70
+
+    assert output =~ """
+            11) doctest ExUnit.DocTestTest.Invalid.multiline_expr/0 (11) (ExUnit.DocTestTest.InvalidCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (SyntaxError) invalid syntax found on #{location}:#{line}:5:
+                     error: syntax error before: '*'
+                     │
+                 #{line} │ 1 + * 1
+                     │     ^
+                     │
+                     └─ #{location}:#{line}:5
+                doctest:
+                  iex> 1 +
+                  ...>   2 +
+                  ...>   3
+                  1 + * 1
+                stacktrace:
+                  #{stack(line)}ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ "Failed: 11 doctests"
   end
 
   test "pattern matching assertions in doctests" do
