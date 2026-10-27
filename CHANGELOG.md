@@ -108,7 +108,6 @@
   * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
   * [Regex] Escape U+0085, U+200E, U+200F, U+2028, and U+2029 in `Regex.escape/1`, as Erlang/OTP 28+ ignores them in extended mode
-  * [Stream] Discard leftovers in the deprecated `Stream.chunk/3`
   * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
   * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
   * [Time] Validate microseconds in `Time.from_seconds_after_midnight/3`
