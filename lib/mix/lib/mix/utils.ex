@@ -1015,12 +1015,37 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns the user id of the currently running process.
+  Returns a temporary directory named after `prefix` that is private
+  to the current user, creating it if necessary.
 
-  The user id is obtained by creating a temporary file and checking
-  it's UID. Note that the UID may be `nil` on non-Unix systems.
+  Since the directory name is predictable, we check it is a real
+  directory owned by the current user (another user could have
+  created it upfront and planted symlinks in it) and that only
+  the current user can access it.
   """
-  def detect_user_id!() do
+  def user_tmp_dir!(prefix) do
+    uid = detect_user_id!()
+    dir = Path.join(System.tmp_dir!(), "#{prefix}_user#{uid}")
+    File.mkdir_p!(dir)
+
+    # Windows does not report owners nor POSIX permissions
+    # (uid is always 0) and its temporary directory is per user
+    if match?({:unix, _}, :os.type()) do
+      case File.lstat!(dir) do
+        %{type: :directory, uid: ^uid, mode: mode} ->
+          if Bitwise.band(mode, 0o777) != 0o700, do: File.chmod!(dir, 0o700)
+
+        _ ->
+          Mix.raise("#{dir} must be a directory owned by the current user, please remove it")
+      end
+    end
+
+    dir
+  end
+
+  # The user id is obtained by creating a temporary file and checking
+  # its UID. Note that the UID is always 0 on Windows.
+  defp detect_user_id!() do
     case Mix.State.fetch(:user_id) do
       {:ok, uid} ->
         uid

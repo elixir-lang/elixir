@@ -273,12 +273,7 @@ defmodule Mix.Sync.PubSub do
 
   defp path(hash) do
     hash = Base.url_encode64(hash, padding: false)
-    Path.join(base_path(), hash)
-  end
-
-  defp base_path do
-    # We include user in the dir to avoid permission conflicts across users
-    Path.join(System.tmp_dir!(), "mix_pubsub_user#{Mix.Utils.detect_user_id!()}")
+    Path.join(Mix.Utils.user_tmp_dir!("mix_pubsub"), hash)
   end
 
   defp recv(socket, size, timeout \\ :infinity) do

@@ -107,15 +107,13 @@ defmodule Mix.Sync.Lock do
     opts = Keyword.validate!(opts, [:on_taken])
 
     hash = key |> :erlang.md5() |> Base.url_encode64(padding: false)
-    path = Path.join(base_path(), hash)
-
-    pdict_key = {__MODULE__, path}
+    pdict_key = {__MODULE__, hash}
     has_lock? = Process.get(pdict_key, false)
 
     if has_lock? or lock_disabled?() do
       fun.()
     else
-      lock = lock(path, opts[:on_taken])
+      lock = lock(hash, opts[:on_taken])
       Process.put(pdict_key, true)
 
       try do
@@ -129,14 +127,10 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp base_path do
-    # We include user in the dir to avoid permission conflicts across users
-    Path.join(System.tmp_dir!(), "mix_lock_v2_user#{Mix.Utils.detect_user_id!()}")
-  end
-
   defp lock_disabled?(), do: System.get_env("MIX_OS_CONCURRENCY_LOCK") in ~w(0 false)
 
-  defp lock(path, on_taken) do
+  defp lock(hash, on_taken) do
+    path = Path.join(Mix.Utils.user_tmp_dir!("mix_lock_v2"), hash)
     File.mkdir_p!(path)
 
     case listen() do
