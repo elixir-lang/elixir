@@ -9,7 +9,8 @@ defmodule ExUnit.Filters do
   alias ExUnit.FailuresManifest
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
-  @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
+  @type location ::
+          {:location, String.t() | {String.t(), pos_integer | [pos_integer, ...]}}
   @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
   # TODO: Remove me on Elixir v2.0
