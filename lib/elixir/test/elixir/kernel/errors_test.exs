@@ -263,6 +263,25 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "invalid number specifiers on bitstring" do
+    assert_compile_error(
+      [
+        "nofile:3:8",
+        "float requires size*unit to be 16, 32, or 64 (default), got: 8",
+        "nofile:4:8",
+        "integer and float types require a size specifier if the unit specifier is given"
+      ],
+      ~c"""
+      defmodule Kernel.ErrorsTest.InvalidNumberSpecifiers do
+        def foo(x) do
+          <<x::float-size(8)>>
+          <<x::unit(8)>>
+        end
+      end
+      """
+    )
+  end
+
   test "literal on map and struct" do
     assert_compile_error(
       ["nofile:1:10", "expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)"],

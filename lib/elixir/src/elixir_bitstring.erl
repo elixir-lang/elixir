@@ -365,18 +365,15 @@ build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == integ
   if
     Type == float, is_integer(NumberSize) ->
       case valid_float_size(NumberSize) of
-        true ->
-          add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec)));
-        false ->
-          function_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize}),
-          []
+        true -> ok;
+        false -> function_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize})
       end;
     Size == default, Unit /= default ->
-      function_error(Meta, E, ?MODULE, bittype_unit),
-      [];
+      function_error(Meta, E, ?MODULE, bittype_unit);
     true ->
-      add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec)))
-  end.
+      ok
+  end,
+  add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec))).
 
 number_size(Size, default) when is_integer(Size) -> Size;
 number_size(Size, Unit) when is_integer(Size) -> Size * Unit;
