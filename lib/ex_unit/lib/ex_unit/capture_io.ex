@@ -280,6 +280,13 @@ defmodule ExUnit.CaptureIO do
 
     try do
       Process.group_leader(pid, capture_gl)
+    catch
+      kind, reason ->
+        _ = StringIO.close(capture_gl)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    end
+
+    try do
       do_capture_gl(capture_gl, fun)
     after
       Process.group_leader(pid, original_gl)
