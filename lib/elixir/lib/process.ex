@@ -224,9 +224,9 @@ defmodule Process do
   The exit signal is always sent asynchronously, even when `pid` is the
   calling process. This means `Process.exit(self(), reason)` returns and
   the calling process may continue executing before the signal is handled.
-  Prior to Elixir v1.21, if the calling process was not trapping exits,
-  it would exit before this function returned, including when `reason`
-  was `:normal`. Use `Kernel.exit/1` to stop the current process.
+  Prior to Elixir v1.21, the calling process would exit before this function
+  returned whenever the signal terminated it, and `:normal` would terminate
+  it when not trapping exits. Use `Kernel.exit/1` to stop the current process.
 
   Inlined by the compiler.
 
