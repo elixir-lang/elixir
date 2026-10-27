@@ -89,8 +89,10 @@ defmodule ExUnit.RunnerStats do
 
     state =
       Enum.reduce(successful_tests, state, fn test, acc ->
+        failed_test = %{test | state: test_module.state}
+
         acc
-        |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, test))
+        |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, failed_test))
         |> Map.update!(:failures, &(&1 + 1))
         |> Map.update!(:passed, &(&1 - 1))
       end)
