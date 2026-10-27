@@ -1088,8 +1088,9 @@ defmodule ExUnit.Assertions do
   `flags` is a list of trace flags. The following flags are supported:
 
     * `:receive` - trace received messages
-    * `{:receive, match_specification}` - trace only received messages matching the given match specification.
-       See `:trace.recv/3` for more information.
+    * `{:receive, match_spec_clause}` - trace only received messages matching the given
+      match specification clause. It may be given multiple times. See `:trace.recv/3`
+      for more information.
     * `:send` - trace sent messages
     * `{:call, {Module, function, arity}}` - trace calls to the given MFA
 
