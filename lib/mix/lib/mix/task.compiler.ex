@@ -14,15 +14,14 @@ defmodule Mix.Task.Compiler do
         use Mix.Task.Compiler
 
         def run(_args) do
-          :ok
+          {:ok, []}
         end
       end
 
-  The [`run/1`](`c:run/1`) function returns an atom indicating the status of the
-  compilation, and optionally can also return a list of "diagnostics"
-  such as warnings or compilation errors. Doing this enables code
-  editors to display issues inline without having to analyze the
-  command-line output.
+  The [`run/1`](`c:run/1`) function returns a tuple with an atom indicating
+  the status of the compilation and a list of "diagnostics", such as warnings
+  or compilation errors. Doing this enables code editors to display issues
+  inline without having to analyze the command-line output.
 
   If the compiler uses manifest files to track stale sources, it should
   define `manifests/0`, and if it writes any output to disk it should
@@ -158,11 +157,12 @@ defmodule Mix.Task.Compiler do
   @type status :: :ok | :noop | :error
 
   @doc """
-  Receives command-line arguments and performs compilation. If it
-  produces errors, warnings, or any other diagnostic information,
-  it should return a tuple with the status and a list of diagnostics.
+  Receives command-line arguments and performs compilation.
+
+  It returns a tuple with the status and a list of diagnostics,
+  such as errors and warnings.
   """
-  @callback run([binary]) :: status | {status, [Diagnostic.t()]}
+  @callback run([binary]) :: {status, [Diagnostic.t()]}
 
   @doc """
   Lists manifest files for the compiler.
