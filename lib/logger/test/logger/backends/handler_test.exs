@@ -148,6 +148,11 @@ defmodule Logger.Backends.HandlerTest do
     assert capture_log(fn -> :logger.notice(~c"ok") end) =~ "[notice] ok"
     assert capture_log(fn -> :logger.info(~c"ok") end) =~ "[info] ok"
     assert capture_log(fn -> :logger.debug(~c"ok") end) =~ "[debug] ok"
+
+    assert :logger.set_handler_config(Logger, :level, :info) == :ok
+    assert capture_log(fn -> :logger.debug(~c"ok") end) == ""
+    assert :logger.set_handler_config(Logger, %{}) == :ok
+    assert capture_log(fn -> :logger.debug(~c"ok") end) =~ "[debug] ok"
   end
 
   test "include Erlang severity level information" do

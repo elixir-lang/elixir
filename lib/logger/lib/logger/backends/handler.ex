@@ -20,6 +20,10 @@ defmodule Logger.Backends.Handler do
     {:ok, update_in(config.config, &Map.merge(&1, default_config()))}
   end
 
+  def changing_config(_set_or_update, %{config: config}, new_config) do
+    {:ok, Map.put(new_config, :config, config)}
+  end
+
   def filter_config(%{config: data} = config) do
     %{config | config: Map.drop(data, @internal_keys)}
   end
