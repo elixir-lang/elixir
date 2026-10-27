@@ -12,7 +12,8 @@ inputs:
     description: "The exact OTP version (major.minor[.patch])"
 
   build_docs:
-    description: "Whether docs have to be built"
+    description: "Whether docs have to be built (\"true\" or \"false\")"
+    default: "false"
 
 runs:
   using: "composite"
@@ -49,7 +50,7 @@ runs:
         INPUT_OTP: ${{ inputs.otp }}
         INPUT_OTP_VERSION: ${{ inputs.otp_version }}
     - name: Get ExDoc ref
-      if: ${{ inputs.build_docs }}
+      if: ${{ inputs.build_docs == 'true' }}
       shell: bash
       run: | # zizmor: ignore[github-env]
         if [ "$GITHUB_REF_NAME" = "main" ]; then
@@ -59,14 +60,14 @@ runs:
         fi
         echo "EX_DOC_REF=$ref" >> $GITHUB_ENV
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      if: ${{ inputs.build_docs }}
+      if: ${{ inputs.build_docs == 'true' }}
       with:
         repository: elixir-lang/ex_doc
         ref: ${{ env.EX_DOC_REF }}
         path: ex_doc
         persist-credentials: false
     - name: Build ex_doc
-      if: ${{ inputs.build_docs }}
+      if: ${{ inputs.build_docs == 'true' }}
       shell: bash
       run: |
         mv ex_doc ../ex_doc
@@ -74,7 +75,7 @@ runs:
         ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
         cd ../elixir
     - name: Build Docs
-      if: ${{ inputs.build_docs }}
+      if: ${{ inputs.build_docs == 'true' }}
       shell: bash
       run: |
         git fetch --tags

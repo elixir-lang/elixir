@@ -76,7 +76,7 @@ jobs:
 
           - otp: 28
             otp_version: "28.0"
-            build_docs: build_docs
+            build_docs: true
 
           - otp: 29
             otp_version: "29.0"
