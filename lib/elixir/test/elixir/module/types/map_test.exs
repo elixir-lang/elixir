@@ -1417,6 +1417,46 @@ defmodule Module.Types.MapTest do
              )
 
       assert map_fetch_key(result, :__struct__) == {false, dynamic()}
+
+      # Results outside a callback union's common domain are unconstrained
+      result =
+        typedyn!(
+          [flag],
+          (
+            {value, fun} =
+              if flag do
+                {1.0,
+                 fn
+                   x when is_integer(x) -> :integer_branch
+                   x when is_float(x) -> :float_branch
+                 end}
+              else
+                {1, fn x when is_integer(x) -> :other_branch end}
+              end
+
+            Map.update(%{a: value}, :a, :default, fun)
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
+
+      # Gradual callback unions with disjoint domains are allowed
+      result =
+        typedyn!(
+          [flag],
+          (
+            {value, fun} =
+              if flag do
+                {1.0, fn x when is_float(x) -> :float_branch end}
+              else
+                {1, fn x when is_integer(x) -> :integer_branch end}
+              end
+
+            Map.update(%{a: value}, :a, :default, fun)
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
     end
 
     test "inference" do
@@ -1445,57 +1485,6 @@ defmodule Module.Types.MapTest do
 
                    (:bar -> dynamic(:value))
                """
-    end
-  end
-
-  for {name, extra_args} <- [update!: [], update: [:default], replace_lazy: []] do
-    test "Map.#{name} preserves results outside a callback union's common domain" do
-      result =
-        typedyn!(
-          [flag],
-          (
-            {value, fun} =
-              if flag do
-                {1.0,
-                 fn
-                   x when is_integer(x) -> :integer_branch
-                   x when is_float(x) -> :float_branch
-                 end}
-              else
-                {1, fn x when is_integer(x) -> :other_branch end}
-              end
-
-            result = Map.unquote(name)(%{a: value}, :a, unquote_splicing(extra_args), fun)
-
-            case result do
-              %{a: :float_branch} -> :valid
-              _ -> :other
-            end
-
-            result
-          )
-        )
-
-      assert equal?(result, dynamic(closed_map(a: {term(), false})))
-    end
-
-    test "Map.#{name} allows gradual callback unions with disjoint domains" do
-      result =
-        typedyn!(
-          [flag],
-          (
-            {value, fun} =
-              if flag do
-                {1.0, fn x when is_float(x) -> :float_branch end}
-              else
-                {1, fn x when is_integer(x) -> :integer_branch end}
-              end
-
-            Map.unquote(name)(%{a: value}, :a, unquote_splicing(extra_args), fun)
-          )
-        )
-
-      assert equal?(result, dynamic(closed_map(a: {term(), false})))
     end
   end
 
@@ -1670,6 +1659,46 @@ defmodule Module.Types.MapTest do
 
       assert typecheck!([], Map.update!(%{123 => 456}, 456, fn x -> x * 1.0 end)) ==
                integer_update_result
+
+      # Results outside a callback union's common domain are unconstrained
+      result =
+        typedyn!(
+          [flag],
+          (
+            {value, fun} =
+              if flag do
+                {1.0,
+                 fn
+                   x when is_integer(x) -> :integer_branch
+                   x when is_float(x) -> :float_branch
+                 end}
+              else
+                {1, fn x when is_integer(x) -> :other_branch end}
+              end
+
+            Map.update!(%{a: value}, :a, fun)
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
+
+      # Gradual callback unions with disjoint domains are allowed
+      result =
+        typedyn!(
+          [flag],
+          (
+            {value, fun} =
+              if flag do
+                {1.0, fn x when is_float(x) -> :float_branch end}
+              else
+                {1, fn x when is_integer(x) -> :integer_branch end}
+              end
+
+            Map.update!(%{a: value}, :a, fun)
+          )
+        )
+
+      assert equal?(result, dynamic(closed_map(a: {term(), false})))
     end
 
     test "inference" do
