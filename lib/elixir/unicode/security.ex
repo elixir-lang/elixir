@@ -156,38 +156,77 @@ defmodule String.Tokenizer.Security do
       end
   end
 
-  # make charlist match visual order by reversing spans of {rtl, neutral}
-  # and attaching neutral characters and weak number types according to uax9
+  # make charlist match visual order by resolving the bidi levels
+  # of each character and then reversing them according to uax9
   #
   #  UTS39-28 4: '[...] if the strings are known not to contain explicit
   #   directional formatting characters[...], the algorithm can
   #   be drastically simplified, [...], obviating the need for
   #   the [...] stack of the [unicode bidi algo]'
+  #
+  # Since identifiers are always in a ltr paragraph and cannot have
+  # brackets nor formatting characters, the only levels are 0 (ltr),
+  # 1 (rtl), and 2 (numbers within rtl).
   def unbidify(chars) when is_list(chars) do
-    {neutrals, direction, last_part, acc} =
-      Enum.reduce(chars, {[], :ltr, [], []}, fn head, {neutrals, part_dir, part, acc} ->
-        # https://www.unicode.org/reports/tr9/#W2
-        case String.Tokenizer.dir(head) do
-          :weak_number ->
-            {[], part_dir, [head] ++ neutrals ++ part, acc}
+    types = Enum.map(chars, &String.Tokenizer.dir/1)
 
-          :neutral ->
-            {[head | neutrals], part_dir, part, acc}
-
-          ^part_dir ->
-            {[], part_dir, [head | neutrals] ++ part, acc}
-
-          :ltr when part_dir == :rtl ->
-            {[], :ltr, [head | neutrals], Enum.reverse(part, acc)}
-
-          :rtl when part_dir == :ltr ->
-            {[], :rtl, [head], neutrals ++ part ++ acc}
-        end
+    # https://www.unicode.org/reports/tr9/#W1
+    {types, _} =
+      Enum.map_reduce(types, :ltr, fn
+        :nonspacing_mark, previous -> {previous, previous}
+        type, _previous -> {type, type}
       end)
 
-    case direction do
-      :ltr -> Enum.reverse(acc, Enum.reverse(neutrals ++ last_part))
-      :rtl -> Enum.reverse(acc, neutrals ++ last_part)
-    end
+    # https://www.unicode.org/reports/tr9/#W7
+    {types, _} =
+      Enum.map_reduce(types, :ltr, fn
+        :weak_number, :ltr -> {:ltr, :ltr}
+        type, _strong when type in [:ltr, :rtl] -> {type, type}
+        type, strong -> {type, strong}
+      end)
+
+    # https://www.unicode.org/reports/tr9/#I1
+    levels =
+      Enum.map(types, fn
+        :ltr -> 0
+        :rtl -> 1
+        :neutral -> nil
+        number when number in [:weak_number, :arabic_number] -> 2
+      end)
+
+    # https://www.unicode.org/reports/tr9/#N1 and https://www.unicode.org/reports/tr9/#N2
+    #
+    # Neutrals are rtl if surrounded by rtl or numbers, otherwise ltr.
+    {nexts, _} =
+      levels
+      |> Enum.reverse()
+      |> Enum.map_reduce(0, fn
+        nil, next -> {next, next}
+        level, _next -> {level, level}
+      end)
+
+    {levels, _} =
+      levels
+      |> Enum.zip(Enum.reverse(nexts))
+      |> Enum.map_reduce(0, fn
+        {nil, next}, previous -> {if(previous > 0 and next > 0, do: 1, else: 0), previous}
+        {level, _next}, _previous -> {level, level}
+      end)
+
+    # https://www.unicode.org/reports/tr9/#L2
+    chars
+    |> Enum.zip(levels)
+    |> reverse_levels(2)
+    |> reverse_levels(1)
+    |> Enum.map(&elem(&1, 0))
+  end
+
+  defp reverse_levels(pairs, level) do
+    pairs
+    |> Enum.chunk_by(fn {_char, char_level} -> char_level >= level end)
+    |> Enum.flat_map(fn
+      [{_char, char_level} | _] = chunk when char_level >= level -> Enum.reverse(chunk)
+      chunk -> chunk
+    end)
   end
 end

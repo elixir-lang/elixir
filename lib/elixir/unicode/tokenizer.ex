@@ -32,12 +32,12 @@ defmodule String.Tokenizer do
     end
   end
 
-  {letter_uptitlecase, start, continue, dir_rtls, dir_neutrals, _} =
+  {letter_uptitlecase, start, continue, dirs, _} =
     Path.join(__DIR__, "UnicodeData.txt")
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
-    |> Enum.reduce({[], [], [], [], [], nil}, fn line, acc ->
-      {letter_uptitlecase, start, continue, rtls, neutrals, first} = acc
+    |> Enum.reduce({[], [], [], [], nil}, fn line, acc ->
+      {letter_uptitlecase, start, continue, dirs, first} = acc
 
       # https://www.unicode.org/reports/tr44/tr44-32.html#UnicodeData.txt
       [codepoint, line] = :binary.split(line, ";")
@@ -60,25 +60,30 @@ defmodule String.Tokenizer do
             {[String.to_integer(codepoint, 16)], nil}
         end
 
-      {rtls, neutrals} =
-        cond do
-          bidi in ~w(R AL)s -> {codepoints ++ rtls, neutrals}
-          bidi in ~w(WS ON CS EN ES ET NSM)s -> {rtls, codepoints ++ neutrals}
-          true -> {rtls, neutrals}
+      dir =
+        case bidi do
+          bidi when bidi in ~w(R AL)s -> :rtl
+          "EN" -> :weak_number
+          "AN" -> :arabic_number
+          "NSM" -> :nonspacing_mark
+          bidi when bidi in ~w(WS ON CS ES ET)s -> :neutral
+          _ -> nil
         end
+
+      dirs = if dir, do: Enum.map(codepoints, &{&1, dir}) ++ dirs, else: dirs
 
       cond do
         category in ~w(Lu Lt) ->
-          {codepoints ++ letter_uptitlecase, start, continue, rtls, neutrals, first}
+          {codepoints ++ letter_uptitlecase, start, continue, dirs, first}
 
         category in ~w(Ll Lm Lo Nl) ->
-          {letter_uptitlecase, codepoints ++ start, continue, rtls, neutrals, first}
+          {letter_uptitlecase, codepoints ++ start, continue, dirs, first}
 
         category in ~w(Mn Mc Nd Pc) ->
-          {letter_uptitlecase, start, codepoints ++ continue, rtls, neutrals, first}
+          {letter_uptitlecase, start, codepoints ++ continue, dirs, first}
 
         true ->
-          {letter_uptitlecase, start, continue, rtls, neutrals, first}
+          {letter_uptitlecase, start, continue, dirs, first}
       end
     end)
 
@@ -338,17 +343,21 @@ defmodule String.Tokenizer do
 
   defp unicode_continue(_), do: @bottom
 
-  # subset of direction-changing/neutral characters valid in idents
-  id_all = id_upper ++ id_start ++ id_continue
-  dir_rtls = for c <- dir_rtls, c in id_all, do: {c, :rtl}
-  dir_neutrals = for c <- dir_neutrals, c not in 48..57, c in id_all, do: {c, :neutral}
-  dir_ranges = rangify.(dir_rtls) ++ rangify.(dir_neutrals)
+  # subset of non-ltr characters valid in idents
+  id_all = MapSet.new(id_upper ++ id_start ++ id_continue)
+  dir_ranges = rangify.(for {c, _} = pair <- dirs, c in id_all, do: pair)
 
-  # direction of a codepoint. (rtl, neutral, weak, ltr fallback)
-  # weaks are pulled towards previous directional spans,
-  # but the only weaks allowed in idents are numbers 0..9
-  def dir(i) when i in 48..57, do: :weak_number
-
+  # bidi class of a codepoint, as used by String.Tokenizer.Security.unbidify/1:
+  #
+  #   * :rtl - R and AL
+  #   * :weak_number - EN
+  #   * :arabic_number - AN
+  #   * :nonspacing_mark - NSM
+  #   * :neutral - WS, ON, CS, ES, and ET
+  #   * :ltr - everything else
+  #
+  # Identifiers cannot have explicit formatting characters,
+  # so other bidi classes are not relevant.
   for {first, last, direction} <- dir_ranges do
     if first == last do
       def dir(unquote(first)), do: unquote(direction)
