@@ -1864,7 +1864,7 @@ defmodule Registry.Partition do
   Runs the function with a lock.
   """
   def lock(pid, key, lock) do
-    ref = GenServer.call(pid, {:lock, key})
+    ref = GenServer.call(pid, {:lock, key}, :infinity)
 
     try do
       lock.()
