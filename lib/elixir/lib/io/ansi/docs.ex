@@ -642,8 +642,10 @@ defmodule IO.ANSI.Docs do
   end
 
   defp drop_comment(line) when is_binary(line) do
-    [_comment, rest] = :binary.split(line, "-->")
-    rest
+    case :binary.split(line, "-->") do
+      [_comment, rest] -> rest
+      [_comment] -> ""
+    end
   end
 
   defp drop_comment([line | rest]) do

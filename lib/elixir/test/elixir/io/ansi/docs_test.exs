@@ -673,6 +673,12 @@ defmodule IO.ANSI.DocsTest do
       """
 
       assert format_markdown(markdown) == "hello  world\n\e[0m"
+
+      markdown = """
+      hello <!-- comment world
+      """
+
+      assert format_markdown(markdown) == "hello \n\e[0m"
     end
   end
 
