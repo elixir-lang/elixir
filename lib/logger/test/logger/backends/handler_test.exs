@@ -127,6 +127,16 @@ defmodule Logger.Backends.HandlerTest do
              callback = fn %{hello: :world} -> {"~p~n", [:formatted]} end
              :logger.info(%{hello: :world}, %{report_cb: callback})
            end) =~ "[info] :formatted"
+
+    message =
+      capture_log(fn ->
+        callback = fn %{hello: :world} -> raise "oops" end
+        :logger.info(%{hello: :world}, %{report_cb: callback})
+      end)
+
+    assert message =~ "[info] FORMATTER CRASH: {:report, %{hello: :world}}\n"
+    assert message =~ "** (RuntimeError) oops"
+    assert Logger in :logger.get_handler_ids()
   end
 
   test "uses Erlang log levels" do
