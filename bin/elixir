@@ -236,7 +236,10 @@ set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SC
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
   for PART in "$@"; do
-    ESCAPED="$ESCAPED $(printf '%s' "$PART" | sed 's@[^a-zA-Z0-9_/-]@\\&@g')"
+    # Single-quote each part, so newlines are preserved literally.
+    # The trailing x protects trailing newlines from command substitution.
+    PART=$(printf '%sx' "$PART" | sed "s/'/'\\\\''/g")
+    ESCAPED="$ESCAPED '${PART%x}'"
   done
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
