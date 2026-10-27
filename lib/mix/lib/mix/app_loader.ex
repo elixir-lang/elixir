@@ -17,6 +17,7 @@ defmodule Mix.AppLoader do
       _ -> []
     else
       {@manifest_vsn, app_to_modules} -> app_to_modules
+      _ -> []
     end
   end
 
