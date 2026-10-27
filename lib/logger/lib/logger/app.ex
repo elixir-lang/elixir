@@ -72,7 +72,7 @@ defmodule Logger.App do
 
     case Supervisor.start_link(children, strategy: :one_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        {:ok, sup, [add_elixir_handler(console? && default_handler) | revert]}
+        {:ok, sup, add_elixir_handler(console? && default_handler) ++ revert}
 
       {:error, _} = error ->
         redo(revert)
@@ -156,6 +156,7 @@ defmodule Logger.App do
 
         {:error, error} ->
           IO.puts(:stderr, "Could not attach default Logger handler: #{inspect(error)}")
+          []
       end
     else
       []
