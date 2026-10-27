@@ -344,8 +344,8 @@ defmodule String.Tokenizer do
   defp unicode_continue(_), do: @bottom
 
   # subset of non-ltr characters valid in idents
-  id_all = MapSet.new(id_upper ++ id_start ++ id_continue)
-  dir_ranges = rangify.(for {c, _} = pair <- dirs, c in id_all, do: pair)
+  id_all = Map.from_keys(id_upper ++ id_start ++ id_continue, [])
+  dir_ranges = rangify.(for {c, _} = pair <- dirs, Map.has_key?(id_all, c), do: pair)
 
   # bidi class of a codepoint, as used by String.Tokenizer.Security.unbidify/1:
   #
