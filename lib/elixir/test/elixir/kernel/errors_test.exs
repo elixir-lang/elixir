@@ -1059,6 +1059,21 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(["nofile:1:3", "key :a will be overridden in map"], """
       %{a: :b, a: :c, a: :d} = %{a: :c}
     """)
+
+    assert_compile_error(
+      [
+        "nofile:2:11",
+        "key :a will be overridden in map",
+        "nofile:3:11",
+        "key :b will be overridden in map"
+      ],
+      """
+      defmodule Kernel.ErrorsTest.DuplicateMapKeys do
+        def foo(%{a: :b, a: :c}), do: :ok
+        def bar(%{b: :b, b: :c}), do: :ok
+      end
+      """
+    )
   end
 
   test "| outside of cons" do
