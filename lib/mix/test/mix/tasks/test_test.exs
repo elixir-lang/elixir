@@ -868,6 +868,10 @@ defmodule Mix.Tasks.TestTest do
           test "new test" do
             assert true
           end
+
+          test "another new test" do
+            assert true
+          end
         end
         """)
 
@@ -882,11 +886,11 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        output = mix(["test", "--dry-run", "--stale"])
+        output = mix(["test", "--dry-run", "--stale", "--seed", "0"])
         assert output =~ "Tests that would be executed:"
         assert output =~ "test/a_test_stale.exs:4"
         assert output =~ "test/b_test_stale.exs:4"
-        assert output =~ "test/dry_run_one_test_stale.exs:4"
+        assert output =~ "test/dry_run_one_test_stale.exs:4\ntest/dry_run_one_test_stale.exs:8"
         refute output =~ "test/dry_run_two_test_stale.exs:5"
         assert output =~ "Result: 0 tests, 1 skipped"
 

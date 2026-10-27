@@ -313,7 +313,7 @@ defmodule ExUnit.Runner do
   end
 
   defp run_module_tests(%{dry_run: true}, test_module, _async?, tests) do
-    {test_module, [], tests}
+    {test_module, [], Enum.reverse(tests)}
   end
 
   defp run_module_tests(config, test_module, async?, tests) do
