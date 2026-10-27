@@ -925,11 +925,24 @@ defmodule ExUnitTest do
         test "excluded #{__ENV__.line}", do: assert(false)
       end
 
-      configure_and_reload_on_exit(max_failures: 2)
+      defmodule TestMaxFailuresSetupAll2 do
+        use ExUnit.Case
+
+        setup_all do
+          raise "oops"
+        end
+
+        test "fail #{__ENV__.line}", do: assert(false)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
+      end
+
+      configure_and_reload_on_exit(max_failures: 5)
 
       output =
         capture_io(fn ->
-          assert ExUnit.run() == %{total: 4, failures: 2, excluded: 1, skipped: 1}
+          assert ExUnit.run() == %{total: 8, failures: 5, excluded: 2, skipped: 1}
         end)
 
       assert output =~ max_failures_reached_msg()

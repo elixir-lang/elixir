@@ -254,7 +254,7 @@ defmodule ExUnit.Runner do
       run_module_tests(config, test_module, async?, to_run_tests)
 
     pending_tests =
-      case process_max_failures(config, test_module) do
+      case process_max_failures(config, test_module.state, length(invalid_tests)) do
         :no ->
           invalid_tests
 
@@ -416,7 +416,7 @@ defmodule ExUnit.Runner do
     EM.test_started(config.manager, test)
     test = spawn_test(config, test, context)
 
-    case process_max_failures(config, test) do
+    case process_max_failures(config, test.state, 1) do
       :no ->
         EM.test_finished(config.manager, test)
         {:ok, test}
@@ -559,21 +559,10 @@ defmodule ExUnit.Runner do
     :rand.seed(rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
-  defp process_max_failures(%{max_failures: :infinity}, _), do: :no
+  defp process_max_failures(%{max_failures: :infinity}, _state, _bump), do: :no
 
-  defp process_max_failures(config, %ExUnit.TestModule{state: {:failed, _}, tests: tests}) do
-    process_max_failures(config.stats_pid, config.max_failures, length(tests))
-  end
-
-  defp process_max_failures(config, %ExUnit.Test{state: {:failed, _}}) do
-    process_max_failures(config.stats_pid, config.max_failures, 1)
-  end
-
-  defp process_max_failures(config, _test_module_or_test) do
-    if max_failures_reached?(config), do: :surpassed, else: :no
-  end
-
-  defp process_max_failures(stats_pid, max_failures, bump) do
+  defp process_max_failures(config, {:failed, _}, bump) do
+    %{stats_pid: stats_pid, max_failures: max_failures} = config
     previous = ExUnit.RunnerStats.increment_failure_counter(stats_pid, bump)
 
     cond do
@@ -581,6 +570,10 @@ defmodule ExUnit.Runner do
       previous + bump < max_failures -> :no
       true -> {:reached, max_failures - previous}
     end
+  end
+
+  defp process_max_failures(config, _state, _bump) do
+    if max_failures_reached?(config), do: :surpassed, else: :no
   end
 
   defp max_failures_reached?(%{stats_pid: stats_pid, max_failures: max_failures}) do
