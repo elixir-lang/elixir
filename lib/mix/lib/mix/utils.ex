@@ -1016,27 +1016,31 @@ defmodule Mix.Utils do
 
   @doc """
   Returns a temporary directory named after `prefix` that is private
-  to the current user, creating it if necessary.
+  to the current user.
 
-  Since the directory name is predictable, we check it is a real
-  directory owned by the current user (another user could have
-  created it upfront and planted symlinks in it) and that only
-  the current user can access it.
+  If `write?` is true, the directory is created if necessary and,
+  since its name is predictable, we check it is a real directory
+  owned by the current user (another user could have created it
+  upfront and planted symlinks in it) and that only the current
+  user can access it. Otherwise, only the path is returned.
   """
-  def user_tmp_dir!(prefix) do
+  def user_tmp_dir!(prefix, write?) do
     uid = detect_user_id!()
     dir = Path.join(System.tmp_dir!(), "#{prefix}_user#{uid}")
-    File.mkdir_p!(dir)
 
-    # Windows does not report owners nor POSIX permissions
-    # (uid is always 0) and its temporary directory is per user
-    if match?({:unix, _}, :os.type()) do
-      case File.lstat!(dir) do
-        %{type: :directory, uid: ^uid, mode: mode} ->
-          if Bitwise.band(mode, 0o777) != 0o700, do: File.chmod!(dir, 0o700)
+    if write? do
+      File.mkdir_p!(dir)
 
-        _ ->
-          Mix.raise("#{dir} must be a directory owned by the current user, please remove it")
+      # Windows does not report owners nor POSIX permissions
+      # (uid is always 0) and its temporary directory is per user
+      if match?({:unix, _}, :os.type()) do
+        case File.lstat!(dir) do
+          %{type: :directory, uid: ^uid, mode: mode} ->
+            if Bitwise.band(mode, 0o777) != 0o700, do: File.chmod!(dir, 0o700)
+
+          _ ->
+            Mix.raise("#{dir} must be a directory owned by the current user, please remove it")
+        end
       end
     end
 
@@ -1053,7 +1057,7 @@ defmodule Mix.Utils do
       :error ->
         dir = System.tmp_dir!()
         File.mkdir_p!(dir)
-        rand = :crypto.strong_rand_bytes(3) |> Base.url_encode64()
+        rand = :rand.bytes(6) |> Base.url_encode64()
         path = Path.join(dir, "mix_user_check_#{System.os_time()}_#{rand}")
 
         uid =

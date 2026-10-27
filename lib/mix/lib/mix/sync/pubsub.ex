@@ -53,7 +53,7 @@ defmodule Mix.Sync.PubSub do
   @spec broadcast(String.t(), term() | (-> term())) :: :ok
   def broadcast(key, message) do
     hash = hash(key)
-    path = path(hash)
+    path = path(hash, false)
 
     case File.ls(path) do
       {:ok, []} ->
@@ -137,7 +137,7 @@ defmodule Mix.Sync.PubSub do
     case ensure_socket(state) do
       {:ok, state} ->
         hash = hash(key)
-        path = path(hash)
+        path = path(hash, true)
 
         create_subscription_file(path, state.port)
 
@@ -182,7 +182,7 @@ defmodule Mix.Sync.PubSub do
     pids = MapSet.delete(pids, pid)
 
     if Enum.empty?(pids) do
-      path = path(hash)
+      path = path(hash, false)
       remove_subscription_file(path, port)
       nil
     else
@@ -271,9 +271,11 @@ defmodule Mix.Sync.PubSub do
 
   defp hash(key), do: :erlang.md5(key)
 
-  defp path(hash) do
+  # Only subscribers write to the directory, so they are the
+  # only ones who need to create it and check its ownership
+  defp path(hash, write?) do
     hash = Base.url_encode64(hash, padding: false)
-    Path.join(Mix.Utils.user_tmp_dir!("mix_pubsub"), hash)
+    Path.join(Mix.Utils.user_tmp_dir!("mix_pubsub", write?), hash)
   end
 
   defp recv(socket, size, timeout \\ :infinity) do

@@ -130,7 +130,7 @@ defmodule Mix.Sync.Lock do
   defp lock_disabled?(), do: System.get_env("MIX_OS_CONCURRENCY_LOCK") in ~w(0 false)
 
   defp lock(hash, on_taken) do
-    path = Path.join(Mix.Utils.user_tmp_dir!("mix_lock_v2"), hash)
+    path = Path.join(Mix.Utils.user_tmp_dir!("mix_lock_v2", true), hash)
     File.mkdir_p!(path)
 
     case listen() do
