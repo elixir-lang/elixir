@@ -854,7 +854,24 @@ defmodule URI do
     {authority, userinfo, host, port} = split_authority(authority_with_slashes)
 
     scheme = scheme && String.downcase(scheme)
-    port = port || (scheme && default_port(scheme))
+
+    # Leading zeros are removed and then ports with more than
+    # 6 digits or outside of the valid range are discarded
+    port =
+      case port && String.trim_leading(port, "0") do
+        nil ->
+          scheme && default_port(scheme)
+
+        "" ->
+          0
+
+        port when byte_size(port) <= 6 ->
+          port = String.to_integer(port)
+          if port in 0..65535, do: port
+
+        _ ->
+          nil
+      end
 
     %URI{
       scheme: scheme,
@@ -890,7 +907,7 @@ defmodule URI do
     destructure [_, _, userinfo, host, _, port], components
     userinfo = nilify(userinfo)
     host = if nilify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
-    port = if nilify(port), do: String.to_integer(port)
+    port = nilify(port)
 
     {authority, userinfo, host, port}
   end
