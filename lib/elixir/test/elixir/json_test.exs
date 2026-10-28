@@ -170,6 +170,19 @@ defmodule JSONTest do
                    fn -> JSON.decode!("123o") end
     end
 
+    test "integer too large" do
+      digits = String.duplicate("9", 310)
+      assert JSON.decode(digits) == {:ok, String.to_integer(digits)}
+      assert JSON.decode("-" <> digits) == {:ok, String.to_integer("-" <> digits)}
+      assert JSON.decode(digits <> "9") == {:error, {:integer_too_large, 311}}
+      assert JSON.decode("[1, -#{digits}9]") == {:error, {:integer_too_large, 311}}
+      assert JSON.decode(digits <> "9", :ok, integer: & &1) == {digits <> "9", :ok, ""}
+
+      assert_raise JSON.DecodeError,
+                   "integer with 311 digits exceeds the limit of 310 digits",
+                   fn -> JSON.decode!(digits <> "9") end
+    end
+
     test "unexpected sequence" do
       assert JSON.decode("\"\\ud8aa\\udcxx\"") ==
                {:error, {:unexpected_sequence, 1, "\\ud8aa\\udcxx"}}
