@@ -1785,7 +1785,14 @@ defmodule Module.Types.Descr do
   # - `{[fun(1)], []}` is not empty
   # - `{[fun(integer() -> atom())], [fun(none() -> term())]}` is empty
   defp fun_line_empty?(positives, negatives), do: fun_line_empty?(positives, negatives, %{})
-  defp fun_line_empty?([], _, _seen), do: false
+  defp fun_line_empty?([], [], _seen), do: false
+
+  # With no positives, the line is the top function of its arity,
+  # which is (none(), ..., none() -> term()).
+  defp fun_line_empty?([], [bdd_leaf(args, _) | _] = negatives, seen) do
+    top = bdd_leaf_new(Enum.map(args, fn _ -> none() end), term())
+    fun_line_empty?([top], negatives, seen)
+  end
 
   defp fun_line_empty?(positives, negatives, seen) do
     # Check if any negative function negates the whole positive intersection
