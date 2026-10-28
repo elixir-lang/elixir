@@ -1007,6 +1007,7 @@ defmodule Module.Types.DescrTest do
     test "fun" do
       for arity <- [0, 1, 2, 3] do
         assert empty?(opt_difference(none_fun(arity), none_fun(arity)))
+        assert empty?(opt_difference(fun(arity), fun(List.duplicate(none(), arity), term())))
       end
 
       assert empty?(opt_difference(fun(), fun()))
@@ -1199,6 +1200,22 @@ defmodule Module.Types.DescrTest do
       assert subtype?(list(term(), boolean()), list(term(), atom()))
       assert subtype?(list(integer()), list(term()))
       assert subtype?(list(term()), list(term(), term()))
+    end
+
+    test "fun arity tops" do
+      for arity <- [0, 1, 2, 3] do
+        top = fun(arity)
+        arrow = fun(List.duplicate(none(), arity), term())
+
+        assert equal?(top, arrow)
+        assert subtype?(top, arrow)
+        assert subtype?(arrow, top)
+      end
+
+      refute subtype?(fun(1), fun([integer()], term()))
+      refute subtype?(fun(2), fun([none(), integer()], term()))
+      refute subtype?(fun(2), fun([integer(), none()], term()))
+      refute subtype?(fun(1), fun([none()], integer()))
     end
 
     test "fun" do
