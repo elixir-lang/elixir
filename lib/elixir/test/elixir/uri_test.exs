@@ -969,6 +969,14 @@ defmodule URITest do
       }
 
       assert URI.parse("http://foo.com:4444") == expected_uri
+
+      assert URI.parse("http://foo.com:65535").port == 65535
+      assert URI.parse("http://foo.com:065535").port == 65535
+      assert URI.parse("http://foo.com:65536").port == nil
+      assert URI.parse("http://foo.com:0000000065535").port == 65535
+      assert URI.parse("http://foo.com:0000000065536").port == nil
+      assert URI.parse("http://foo.com:0000000000").port == 0
+      assert URI.parse("http://foo.com:#{String.duplicate("9", 1000)}").port == nil
     end
 
     test "can parse bad URIs" do
