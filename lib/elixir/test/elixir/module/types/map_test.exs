@@ -1546,8 +1546,7 @@ defmodule Module.Types.MapTest do
       assert {:ok, left} = apply.(input, atom())
       assert {:ok, right} = apply.(partitioned, atom())
 
-      # A weak callback can return anything for float inputs. The equivalent
-      # input mentions :a, so updates of that key are approximated separately.
+      # A weak callback can return anything for float inputs.
       # TODO: A strong callback type proving that float inputs cannot return
       # would avoid this widening.
       assert equal?(
@@ -1555,18 +1554,7 @@ defmodule Module.Types.MapTest do
                dynamic(opt_difference(closed_map([{domain_key(:atom), term()}]), empty_map()))
              )
 
-      assert equal?(
-               right,
-               dynamic(
-                 opt_union(
-                   closed_map([{domain_key(:atom), number}, {:a, {term(), false}}]),
-                   opt_difference(
-                     closed_map([{domain_key(:atom), term()}, {:a, {number, true}}]),
-                     empty_map()
-                   )
-                 )
-               )
-             )
+      assert equal?(left, right)
     end
 
     test "keeps map alternatives outside a weak callback's domain" do
