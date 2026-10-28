@@ -1872,9 +1872,14 @@ defmodule Module.Types.Descr do
         {value, cache}
 
       %{} ->
-        # Compute result and cache it
+        # Compute result and cache it. Empty types are never refined back,
+        # so branches that reach one are true without recursing.
+        meet = bare_intersection(ret, return)
+
         {result1, cache} =
-          phi(args, {true, bare_intersection(ret, return)}, rest_positive, cache, seen)
+          if empty_seen?(meet, seen),
+            do: {true, cache},
+            else: phi(args, {true, meet}, rest_positive, cache, seen)
 
         if not result1 do
           cache = Map.put(cache, cache_key, false)
@@ -1883,10 +1888,16 @@ defmodule Module.Types.Descr do
           {_index, result, cache} =
             Enum.reduce_while(arguments, {0, true, cache}, fn
               type, {index, acc_result, acc_cache} ->
+                {_, arg} = Enum.at(args, index)
+                diff = bare_difference(arg, type)
+
                 {new_result, new_cache} =
-                  args
-                  |> List.update_at(index, fn {_, arg} -> {true, bare_difference(arg, type)} end)
-                  |> phi({b, ret}, rest_positive, acc_cache, seen)
+                  if empty_seen?(diff, seen) do
+                    {true, acc_cache}
+                  else
+                    args = List.replace_at(args, index, {true, diff})
+                    phi(args, {b, ret}, rest_positive, acc_cache, seen)
+                  end
 
                 if new_result do
                   {:cont, {index + 1, acc_result and new_result, new_cache}}
@@ -2474,14 +2485,8 @@ defmodule Module.Types.Descr do
     empty_seen?(list_type, seen) or empty_seen?(last_type, seen) or
       Enum.reduce_while(negs, last_type, fn bdd_leaf(neg_type, neg_last), acc_last_type ->
         if subtype_seen?(list_type, neg_type, seen) do
-          neg_last = list_tail_unfold(neg_last)
-
-          if subtype_seen?(acc_last_type, neg_last, seen) do
-            {:halt, nil}
-          else
-            d = bare_difference(acc_last_type, neg_last)
-            if empty_seen?(d, seen), do: {:halt, nil}, else: {:cont, d}
-          end
+          d = bare_difference(acc_last_type, list_tail_unfold(neg_last))
+          if empty_seen?(d, seen), do: {:halt, nil}, else: {:cont, d}
         else
           {:cont, acc_last_type}
         end
