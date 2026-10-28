@@ -188,8 +188,11 @@ defmodule Module.Types.Descr do
   def fun(args, return) when is_list(args), do: fun_descr(args, return)
 
   @doc """
-  Creates the top function type for the given arity,
-  where all arguments are none() and return is term().
+  Creates the top function type for the given arity.
+
+  It is a supertype of all functions of the given arity.
+  Note it is printed as `(none -> term)`, but it is a strict
+  supertype of the arrow `fun([none()], term())`.
 
   This function cannot be applied to, unless it is made dynamic.
 
@@ -199,7 +202,7 @@ defmodule Module.Types.Descr do
       #=> (none -> term)
 
       fun(2)
-      #=> Creates (none, none -> term)
+      #=> (none, none -> term)
   """
   def fun(arity) when is_integer(arity) and arity >= 0 do
     %{fun: {:union, %{arity => @fun_bdd_top}}}
