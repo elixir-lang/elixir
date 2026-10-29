@@ -558,6 +558,163 @@ defmodule Module.Types.RecursiveTest do
     end
   end
 
+  describe "recursive printing" do
+    defp bounded_print(fun) do
+      parent = self()
+
+      {pid, ref} =
+        spawn_monitor(fn ->
+          Process.flag(:max_heap_size, %{size: 2_000_000, kill: true, error_logger: false})
+          send(parent, {self(), fun.()})
+        end)
+
+      try do
+        receive do
+          {^pid, output} -> output
+          {:DOWN, ^ref, :process, ^pid, reason} -> flunk("printer exited: #{inspect(reason)}")
+        after
+          1000 -> flunk("printer did not finish within one second")
+        end
+      after
+        Process.exit(pid, :kill)
+        Process.demonitor(ref, [:flush])
+      end
+    end
+
+    test "prints a node and an unfolding with a recursive binder" do
+      node =
+        recursive(%{
+          x: fn recur -> tuple([integer(), recur.(:x)]) |> bare_union(atom([nil])) end
+        }).x
+
+      assert to_quoted_string(node) == "rec(x, nil or {integer(), x})"
+
+      assert to_quoted_string(unfold(node)) ==
+               "nil or {integer(), rec(x, nil or {integer(), x})}"
+    end
+
+    test "prints mutually recursive nodes" do
+      node =
+        recursive(%{
+          x: fn recur -> tuple([integer(), recur.(:y)]) |> bare_union(atom([nil])) end,
+          y: fn recur -> tuple([boolean(), recur.(:x)]) |> bare_union(atom([nil])) end
+        }).x
+
+      assert to_quoted_string(node) ==
+               "rec(x, nil or {integer(), rec(y, nil or {boolean(), x})})"
+    end
+
+    test "distinguishes enclosing binders with the same equation name" do
+      node =
+        recursive(%{
+          x: fn outer ->
+            recursive(%{
+              x: fn inner -> tuple([outer.(:x), inner.(:x)]) |> bare_union(atom([nil])) end
+            }).x
+          end
+        }).x
+
+      assert to_quoted_string(node) == "rec(x, rec(x_2, nil or {x, x_2}))"
+    end
+
+    test "prints recursion through functions and dynamic types" do
+      node = recursive(%{x: fn recur -> fun([recur.(:x)], atom()) end}).x
+      dynamic_node = recursive(%{x: fn recur -> dynamic(fun([recur.(:x)], atom())) end}).x
+
+      assert to_quoted_string(node) == "rec(x, (x -> atom()))"
+      assert to_quoted_string(dynamic_node) == "rec(x, dynamic((x -> atom())))"
+    end
+
+    test "prints recursion through lists and maps" do
+      list =
+        recursive(%{
+          x: fn recur ->
+            non_empty_list(integer(), recur.(:x)) |> bare_union(empty_list())
+          end
+        }).x
+
+      map =
+        recursive(%{
+          x: fn recur -> closed_map(a: {recur.(:x), false}) |> bare_union(atom([nil])) end
+        }).x
+
+      assert to_quoted_string(list) ==
+               "rec(x, empty_list() or non_empty_list(integer(), x))"
+
+      assert to_quoted_string(map) == "rec(x, %{a: x} or nil)"
+    end
+
+    test "terminates on an intersection of recursive tuple fields" do
+      build = fn ->
+        recursive(%{x: fn recur -> tuple([recur.(:x)]) |> bare_union(atom([nil])) end}).x
+      end
+
+      type = bare_intersection(tuple([build.()]), tuple([build.()]))
+      output = bounded_print(fn -> to_quoted_string(type) end)
+      assert {:ok, _} = Code.string_to_quoted(output)
+    end
+
+    test "bounds reentrant printing of the same node" do
+      node =
+        recursive(%{
+          x: fn recur ->
+            to_quoted_string(recur.(:x))
+            tuple([recur.(:x)]) |> bare_union(atom([nil]))
+          end
+        }).x
+
+      output = bounded_print(fn -> to_quoted_string(node) end)
+      assert {:ok, _} = Code.string_to_quoted(output)
+    end
+
+    test "prints a dynamic wrapper around a recursive node" do
+      node = recursive(%{x: fn recur -> tuple([recur.(:x)]) |> bare_union(atom([nil])) end}).x
+
+      assert to_quoted_string(dynamic(node)) == "dynamic(rec(x, nil or {x}))"
+    end
+
+    test "prints a recursive struct field as an ordinary map" do
+      tag =
+        recursive(%{tag: fn recur -> tuple([recur.(:tag)]) |> bare_union(atom([nil])) end}).tag
+
+      assert closed_map(__struct__: {tag, false}) |> to_quoted_string() ==
+               "%{__struct__: rec(tag, nil or {tag})}"
+    end
+
+    test "uses identifiers for reserved and non-identifier equation names" do
+      for name <- [:when, nil, :"a-b"] do
+        node =
+          recursive(%{
+            name => fn recur -> tuple([recur.(name)]) |> bare_union(atom([nil])) end
+          })
+          |> Map.fetch!(name)
+
+        assert {:ok, {:rec, _, [{binder, _, context}, _]}} =
+                 node |> to_quoted_string() |> Code.string_to_quoted()
+
+        assert is_atom(binder) and is_atom(context)
+      end
+    end
+
+    test "keeps a small shared graph compact" do
+      equations =
+        Map.new(0..5, fn n ->
+          {n,
+           fn recur ->
+             if n == 0, do: atom([:leaf]), else: tuple([recur.(n - 1), recur.(n - 1)])
+           end}
+        end)
+
+      output = equations |> recursive() |> Map.fetch!(5) |> to_quoted_string()
+      assert byte_size(output) < 512
+    end
+
+    test "omits the binder of an acyclic node" do
+      node = recursive(%{x: fn _recur -> integer() end}).x
+      assert to_quoted_string(node) == "integer()"
+    end
+  end
+
   describe "optimized set operations on recursive types" do
     # The opt_* operations recurse into tuple elements, map field values and
     # list heads/tails. When those contain recursive nodes, the operations must

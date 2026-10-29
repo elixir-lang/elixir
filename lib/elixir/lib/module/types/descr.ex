@@ -654,12 +654,46 @@ defmodule Module.Types.Descr do
     * `:collapse_structs` - do not show struct fields that match
       their default type
   """
-  def to_quoted(descr, opts \\ []) do
+  def to_quoted(descr, opts \\ [])
+
+  # Print one unfolding under a binder; references to an enclosing node use its name.
+  def to_quoted({id, state, _generator} = node, opts) do
+    bound = Keyword.get(opts, :recursive_nodes, %{})
+
+    case bound do
+      %{^id => name} ->
+        {name, [], nil}
+
+      %{} ->
+        name = recursive_node_name(id, state, bound)
+        opts = Keyword.put(opts, :recursive_nodes, Map.put(bound, id, name))
+        {:rec, [], [{name, [], nil}, to_quoted(expand_node(node), opts)]}
+    end
+  end
+
+  def to_quoted(descr, opts) do
     if term_type?(descr) do
       {:term, [], []}
     else
       non_term_type_to_quoted(descr, opts)
     end
+  end
+
+  defp recursive_node_name(id, state, bound) do
+    base =
+      Enum.find_value(state, "rec", fn
+        {name, {^id, _generator}} when is_atom(name) -> Atom.to_string(name)
+        _ -> nil
+      end)
+
+    used = bound |> Map.values() |> MapSet.new()
+
+    Stream.iterate(1, &(&1 + 1))
+    |> Stream.map(fn
+      1 -> String.to_unsafe_atom(base)
+      n -> String.to_unsafe_atom("#{base}_#{n}")
+    end)
+    |> Enum.find(&(not MapSet.member?(used, &1)))
   end
 
   defp non_term_type_to_quoted(descr, opts) do
@@ -983,6 +1017,7 @@ defmodule Module.Types.Descr do
   Optimized version of `not empty?(term(), type)`.
   """
   def term_type?(:term), do: true
+  def term_type?({_, _, _} = node), do: node |> unfold() |> term_type?()
   def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
 
   @doc """
