@@ -172,18 +172,14 @@ defmodule Module.Types.Of do
 
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
         new_type = opt_intersection(type, old_type)
-
-        data = %{
-          data
-          | type: new_type,
-            off_traces: new_trace(expr, type, stack, off_traces)
-        }
+        off_traces = new_trace(expr, type, stack, off_traces)
 
         if empty?(new_type) do
-          data = Map.put(%{data | type: error_type()}, :errored, true)
+          data = Map.put(%{data | type: error_type(), off_traces: off_traces}, :errored, true)
           context = %{context | vars: %{vars | version => data}}
           {:error, old_type, context}
         else
+          data = %{data | type: new_type, off_traces: off_traces}
           context = %{context | vars: %{vars | version => data}}
           {:ok, new_type, context}
         end
