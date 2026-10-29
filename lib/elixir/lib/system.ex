@@ -633,8 +633,6 @@ defmodule System do
   """
   @spec find_executable(binary) :: binary | nil
   def find_executable(program) when is_binary(program) do
-    assert_no_null_byte!(program, "System.find_executable/1")
-
     case :os.find_executable(String.to_charlist(program)) do
       false -> nil
       other -> List.to_string(other)
@@ -1126,8 +1124,6 @@ defmodule System do
   """
   @spec cmd(binary, [binary], cmd_opts) :: {Collectable.t(), exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
-    assert_no_null_byte!(command, "System.cmd/3")
-
     if not Enum.all?(args, &is_binary/1) do
       raise ArgumentError, "all arguments for System.cmd/3 must be binaries"
     end

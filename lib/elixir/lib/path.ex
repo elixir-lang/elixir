@@ -881,12 +881,7 @@ defmodule Path do
   defp chardata_to_list!(chardata) do
     case :unicode.characters_to_list(chardata) do
       result when is_list(result) ->
-        if 0 in result do
-          raise ArgumentError,
-                "cannot execute Path.wildcard/2 for path with null byte, got: #{inspect(chardata)}"
-        else
-          result
-        end
+        result
 
       {:error, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid

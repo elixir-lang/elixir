@@ -89,7 +89,7 @@ defmodule SystemTest do
   end
 
   test "cmd/2 raises for null bytes" do
-    assert_raise ArgumentError, ~r"cannot execute System.cmd/3 for program with null byte", fn ->
+    assert_raise ErlangError, ~r"enoent", fn ->
       System.cmd("null\0byte", [])
     end
   end
@@ -297,12 +297,7 @@ defmodule SystemTest do
     assert System.find_executable("erl")
     assert is_binary(System.find_executable("erl"))
     assert !System.find_executable("does-not-really-exist-from-elixir")
-
-    message = ~r"cannot execute System.find_executable/1 for program with null byte"
-
-    assert_raise ArgumentError, message, fn ->
-      System.find_executable("null\0byte")
-    end
+    assert !System.find_executable("erl\0byte")
   end
 
   test "monotonic_time/0" do

@@ -1226,35 +1226,36 @@ defmodule File do
     dereference? = Keyword.get(options, :dereference_symlinks, false)
     preserve_directory_permissions? = Keyword.get(options, :preserve_directory_permissions, false)
 
-    source =
-      source
-      |> IO.chardata_to_string()
-      |> assert_no_null_byte!("File.cp_r/3")
-
-    destination =
-      destination
-      |> IO.chardata_to_string()
-      |> assert_no_null_byte!("File.cp_r/3")
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
 
     source_parts = source |> Path.expand() |> Path.split()
     dest_parts = destination |> Path.expand() |> Path.split()
 
-    if source_parts != dest_parts and List.starts_with?(dest_parts, source_parts) do
-      {:error, :einval, destination}
-    else
-      dereference = if dereference?, do: MapSet.new(), else: nil
+    cond do
+      null_byte?(source) ->
+        {:error, :badarg, source}
 
-      case do_cp_r(
-             source,
-             destination,
-             on_conflict,
-             dereference,
-             preserve_directory_permissions?,
-             []
-           ) do
-        {:error, _, _} = error -> error
-        res -> {:ok, res}
-      end
+      null_byte?(destination) ->
+        {:error, :badarg, destination}
+
+      source_parts != dest_parts and List.starts_with?(dest_parts, source_parts) ->
+        {:error, :einval, destination}
+
+      true ->
+        dereference = if dereference?, do: MapSet.new(), else: nil
+
+        case do_cp_r(
+               source,
+               destination,
+               on_conflict,
+               dereference,
+               preserve_directory_permissions?,
+               []
+             ) do
+          {:error, _, _} = error -> error
+          res -> {:ok, res}
+        end
     end
   end
 
@@ -1671,11 +1672,13 @@ defmodule File do
   @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg, binary}
   def rm_rf(path) do
     {major, _} = :os.type()
+    path = IO.chardata_to_string(path)
 
-    path
-    |> IO.chardata_to_string()
-    |> assert_no_null_byte!("File.rm_rf/1")
-    |> do_rm_rf([], major)
+    if null_byte?(path) do
+      {:error, :badarg, path}
+    else
+      do_rm_rf(path, [], major)
+    end
   end
 
   defp do_rm_rf(path, acc, major) do
@@ -2441,16 +2444,7 @@ defmodule File do
 
   @read_ahead_size 64 * 1024
 
-  defp assert_no_null_byte!(binary, operation) do
-    case :binary.match(binary, "\0") do
-      {_, _} ->
-        raise ArgumentError,
-              "cannot execute #{operation} for path with null byte, got: #{inspect(binary)}"
-
-      :nomatch ->
-        binary
-    end
-  end
+  defp null_byte?(binary), do: :binary.match(binary, "\0") != :nomatch
 
   defp normalize_modes([:utf8 | rest], binary?) do
     [encoding: :utf8] ++ normalize_modes(rest, binary?)

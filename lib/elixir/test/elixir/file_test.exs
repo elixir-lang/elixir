@@ -490,9 +490,9 @@ defmodule FileTest do
       end
     end
 
-    test "cp_r raises on path with null byte" do
-      assert_raise ArgumentError, ~r/null byte/, fn -> File.cp_r("source", "foo\0bar") end
-      assert_raise ArgumentError, ~r/null byte/, fn -> File.cp_r("foo\0bar", "dest") end
+    test "cp_r with path with null byte" do
+      assert File.cp_r("source", "foo\0bar") == {:error, :badarg, "foo\0bar"}
+      assert File.cp_r("foo\0bar", "dest") == {:error, :badarg, "foo\0bar"}
     end
 
     test "cp_r with src file and dest file" do
@@ -1465,8 +1465,8 @@ defmodule FileTest do
       refute File.exists?(fixture)
     end
 
-    test "rm_rf raises on path with null byte" do
-      assert_raise ArgumentError, ~r/null byte/, fn -> File.rm_rf("foo\0bar") end
+    test "rm_rf with path with null byte" do
+      assert File.rm_rf("foo\0bar") == {:error, :badarg, "foo\0bar"}
     end
 
     test "rm_rf with symlink" do
