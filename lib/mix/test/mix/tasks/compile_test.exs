@@ -36,6 +36,16 @@ defmodule Mix.Tasks.CompileTest do
     assert_received {:mix_shell, :info, ["mix compile.elixir # " <> _]}
   end
 
+  @tag project: [aliases: [compile: "compile --warnings-as-errors"]]
+  test "compiles --list with alias" do
+    Mix.Task.run("compile", ["--list"])
+
+    msg = "\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"
+    assert_received {:mix_shell, :info, [^msg]}
+
+    assert_received {:mix_shell, :info, ["mix compile.elixir # " <> _]}
+  end
+
   @tag project: [compilers: [:elixir, :app, :custom]]
   test "compiles --list with custom mixfile" do
     Mix.Task.run("compile", ["--list"])
