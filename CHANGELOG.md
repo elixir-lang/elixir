@@ -223,6 +223,13 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
+## v1.18.6 (2026-10-29)
+
+### 1. Security
+
+  * [URI] Bind port limits during `URI.parse` (CVE-2026-109821)
+  * [JSON] Raise when decoding integers in JSON beyond float64 ranges (CVE-2026-115274)
+
 ## v1.18.5 (2026-08-28)
 
 ### 1. Security
