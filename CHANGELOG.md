@@ -234,6 +234,15 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by [Jonatan Männchen](https://maennchen.dev) and sponsored by the [Erlang Ecosystem Foundation](https://erlef.org).
 
+## v1.19.7 (2026-10-29)
+
+### 1. Security
+
+#### Elixir
+
+* [URI] Bind port limits during `URI.parse` (CVE-2026-109821)
+* [JSON] Raise when decoding integers in JSON beyond float64 ranges (CVE-2026-115274)
+
 ## v1.19.6 (2026-08-28)
 
 ### 1. Security
