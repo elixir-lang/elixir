@@ -192,16 +192,27 @@ It also introduces a new compiler option called `:module_definition`, which if t
 
 You can enable it by setting `elixirc_options: [module_definition: :interpreted]` in your `mix.exs`.
 
-## v1.20.5-dev
+## v1.20.5 (2026-10-29)
 
-### 1. Enhancements
+### 1. Security
+
+#### Elixir
+
+* [URI] Bind port limits during `URI.parse` (CVE-2026-109821)
+* [JSON] Raise when decoding integers in JSON beyond float64 ranges (CVE-2026-115274)
+
+#### Mix
+
+* [mix deps.partition] Validate `deps.partition` configuration with checksum on multi-user systems (CVE-2026-97209)
+
+### 2. Enhancements
 
 #### Elixir
 
   * [Calendar.ISO] Optimize `Calendar.ISO.parse_duration/1`
   * [Kernel] Improve boot time by parsing the Erlang/OTP release with `list_to_integer/1`
 
-### 2. Bug fixes
+### 3. Bug fixes
 
 #### Elixir
 
@@ -209,11 +220,14 @@ You can enable it by setting `elixirc_options: [module_definition: :interpreted]
   * [Duration] Fix `Duration.from_iso8601/1` accepting a fractional seconds component after whole seconds, such as `PT1S2.5S`
   * [Duration] Reject inputs longer than 192 bytes in `Duration.from_iso8601/1`
   * [Regex] Raise `SystemLimitError` when a match reaches the regex engine match limit, instead of returning no match
+  * [Registry] Do not crash on timeouts on `Registry.lock/3`
   * [String] Skip U+055F (Armenian abbreviation mark) when applying the Greek final sigma rule in `String.downcase/2` and `String.capitalize/2`
+  * [Task] Do not leak timeout messages on `Task.async_stream/3`
 
 #### IEx
 
   * [IEx] Do not halt the remote node when the remote shell receives EOF with `--remsh`
+  * [IEx] Fix crash on tab completion when shell is not found
 
 #### Mix
 
