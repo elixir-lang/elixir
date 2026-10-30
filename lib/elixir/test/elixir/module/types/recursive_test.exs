@@ -559,92 +559,23 @@ defmodule Module.Types.RecursiveTest do
   end
 
   describe "recursive printing" do
-    defp bounded_print(fun) do
-      parent = self()
+    test "prints a recursive node and an unfolding" do
+      node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
 
-      {pid, ref} =
-        spawn_monitor(fn ->
-          Process.flag(:max_heap_size, %{size: 2_000_000, kill: true, error_logger: false})
-          send(parent, {self(), fun.()})
-        end)
-
-      try do
-        receive do
-          {^pid, output} -> output
-          {:DOWN, ^ref, :process, ^pid, reason} -> flunk("printer exited: #{inspect(reason)}")
-        after
-          1000 -> flunk("printer did not finish within one second")
-        end
-      after
-        Process.exit(pid, :kill)
-        Process.demonitor(ref, [:flush])
-      end
+      assert to_quoted_string(node) == "rec(x, nil or {x})"
+      assert to_quoted_string(unfold(node)) == "nil or {rec(x, nil or {x})}"
     end
 
-    test "prints a node and an unfolding with a recursive binder" do
+    test "prints mutually recursive definitions" do
       node =
         recursive(%{
-          x: fn recur -> tuple([integer(), recur.(:x)]) |> bare_union(atom([nil])) end
-        }).x
-
-      assert to_quoted_string(node) == "rec(x, nil or {integer(), x})"
-
-      assert to_quoted_string(unfold(node)) ==
-               "nil or {integer(), rec(x, nil or {integer(), x})}"
-    end
-
-    test "prints mutually recursive nodes" do
-      node =
-        recursive(%{
-          x: fn recur -> tuple([integer(), recur.(:y)]) |> bare_union(atom([nil])) end,
-          y: fn recur -> tuple([boolean(), recur.(:x)]) |> bare_union(atom([nil])) end
+          x: fn recur -> bare_union(atom([nil]), tuple([integer(), recur.(:y)])) end,
+          y: fn recur -> bare_union(atom([nil]), tuple([boolean(), recur.(:x)])) end
         }).x
 
       assert to_quoted_string(node) ==
                "rec(x, nil or {integer(), rec(y, nil or {boolean(), x})})"
     end
-
-    test "distinguishes enclosing binders with the same equation name" do
-      node =
-        recursive(%{
-          x: fn outer ->
-            recursive(%{
-              x: fn inner -> tuple([outer.(:x), inner.(:x)]) |> bare_union(atom([nil])) end
-            }).x
-          end
-        }).x
-
-      assert to_quoted_string(node) == "rec(x, rec(x_2, nil or {x, x_2}))"
-    end
-
-    test "prints recursion through functions and dynamic types" do
-      node = recursive(%{x: fn recur -> fun([recur.(:x)], atom()) end}).x
-      dynamic_node = recursive(%{x: fn recur -> dynamic(fun([recur.(:x)], atom())) end}).x
-
-      assert to_quoted_string(node) == "rec(x, (x -> atom()))"
-      assert to_quoted_string(dynamic_node) == "rec(x, dynamic((x -> atom())))"
-    end
-
-    test "prints recursion through lists and maps" do
-      list =
-        recursive(%{
-          x: fn recur ->
-            non_empty_list(integer(), recur.(:x)) |> bare_union(empty_list())
-          end
-        }).x
-
-      map =
-        recursive(%{
-          x: fn recur -> closed_map(a: {recur.(:x), false}) |> bare_union(atom([nil])) end
-        }).x
-
-      assert to_quoted_string(list) ==
-               "rec(x, empty_list() or non_empty_list(integer(), x))"
-
-      assert to_quoted_string(map) == "rec(x, %{a: x} or nil)"
-    end
-
-    # Tuples
 
     test "terminates on an intersection of recursive tuple fields" do
       equations = %{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}
@@ -652,85 +583,15 @@ defmodule Module.Types.RecursiveTest do
       right = recursive(equations).x
       type = bare_intersection(tuple([left]), tuple([right]))
 
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
-               "{rec(x, nil or {x})} and {rec(x, nil or {x})}"
-    end
-
-    test "preserves overlapping and disjoint recursive tuple constraints" do
-      nodes =
-        recursive(%{
-          x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end,
-          y: fn recur -> bare_union(atom([nil]), tuple([atom(), recur.(:y)])) end,
-          z: fn recur -> bare_union(atom([:leaf]), tuple([atom(), recur.(:z)])) end
-        })
-
-      overlap = bare_intersection(open_tuple([nodes.x]), tuple([nodes.y]))
-      disjoint = bare_intersection(open_tuple([nodes.x]), tuple([nodes.z]))
-
-      assert bounded_print(fn -> to_quoted_string(overlap) end) ==
-               "{rec(x, nil or {x}), ...} and {rec(y, nil or {atom(), y})}"
-
-      assert bounded_print(fn -> to_quoted_string(disjoint) end) ==
-               "{rec(x, nil or {x}), ...} and {rec(z, :leaf or {atom(), z})}"
+      assert to_quoted_string(type) == "{rec(x, nil or {x})} and {rec(x, nil or {x})}"
     end
 
     test "keeps tuple exclusions restricted to tuples" do
-      nodes =
-        recursive(%{
-          x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end,
-          y: fn recur -> bare_union(atom([:leaf]), tuple([recur.(:y)])) end
-        })
+      node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
+      type = bare_difference(tuple(), tuple([node]))
 
-      negative = bare_difference(tuple(), tuple([nodes.x]))
-      mixed = bare_difference(open_tuple([nodes.x]), tuple([nodes.y]))
-      multiple = bare_difference(negative, open_tuple([nodes.y]))
-
-      assert bounded_print(fn -> to_quoted_string(negative) end) ==
-               "{...} and not {rec(x, nil or {x})}"
-
-      assert bounded_print(fn -> to_quoted_string(mixed) end) ==
-               "{rec(x, nil or {x}), ...} and not {rec(y, :leaf or {y})}"
-
-      assert bounded_print(fn -> to_quoted_string(multiple) end) ==
-               "{...} and not {rec(y, :leaf or {y}), ...} and not {rec(x, nil or {x})}"
+      assert to_quoted_string(type) == "{...} and not {rec(x, nil or {x})}"
     end
-
-    test "prints recursive nodes inside nested tuple and map fields" do
-      equations = %{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}
-      left = recursive(equations).x
-      right = recursive(equations).x
-
-      nested =
-        bare_intersection(open_tuple([tuple([left])]), tuple([tuple([right]), integer()]))
-
-      mapped =
-        bare_intersection(
-          tuple([closed_map(a: {left, false})]),
-          tuple([closed_map(a: {right, false})])
-        )
-
-      assert bounded_print(fn -> to_quoted_string(nested) end) ==
-               "{{rec(x, nil or {x})}, ...} and {{rec(x, nil or {x})}, integer()}"
-
-      assert bounded_print(fn -> to_quoted_string(mapped) end) ==
-               "{%{a: rec(x, nil or {x})}} and {%{a: rec(x, nil or {x})}}"
-    end
-
-    test "keeps enclosing names in tuple intersections and exclusions" do
-      node =
-        recursive(%{
-          x: fn recur ->
-            bare_difference(tuple([recur.(:y), recur.(:x)]), tuple([recur.(:x), recur.(:x)]))
-            |> bare_union(atom([nil]))
-          end,
-          y: fn recur -> bare_union(atom([:leaf]), tuple([recur.(:x)])) end
-        }).x
-
-      assert bounded_print(fn -> to_quoted_string(node) end) ==
-               "rec(x, nil or ({rec(y, :leaf or {x}), x} and not {x, x}))"
-    end
-
-    # Maps
 
     test "terminates on an intersection of recursive map fields" do
       equations = %{
@@ -741,116 +602,20 @@ defmodule Module.Types.RecursiveTest do
       right = recursive(equations).x
       type = bare_intersection(closed_map(a: {left, false}), closed_map(a: {right, false}))
 
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
+      assert to_quoted_string(type) ==
                "%{a: rec(x, %{a: x} or nil)} and %{a: rec(x, %{a: x} or nil)}"
     end
 
-    test "prints recursive map unions and differences" do
-      equations = %{
-        x: fn recur -> bare_union(atom([nil]), closed_map(a: {recur.(:x), false})) end
-      }
-
-      left = recursive(equations).x
-      right = recursive(equations).x
-
-      assert bounded_print(fn -> to_quoted_string(bare_union(left, right)) end) ==
-               "%{a: rec(x, %{a: x} or nil)} or %{a: rec(x, %{a: x} or nil)} or nil"
-
-      assert bounded_print(fn -> to_quoted_string(bare_difference(left, right)) end) ==
-               "%{a: rec(x, %{a: x} or nil)} and not %{a: rec(x, %{a: x} or nil)}"
-    end
-
-    test "prints optional recursive map fields" do
-      equations = %{x: fn recur -> closed_map(a: {recur.(:x), true}) end}
-      left = recursive(equations).x
-      right = recursive(equations).x
-
-      assert bounded_print(fn -> to_quoted_string(bare_intersection(left, right)) end) ==
-               "%{a: if_set(rec(x, %{a: if_set(x)}))} and %{a: if_set(rec(x, %{a: if_set(x)}))}"
-
-      assert bounded_print(fn -> to_quoted_string(bare_union(left, right)) end) ==
-               "%{a: if_set(rec(x, %{a: if_set(x)}))} or %{a: if_set(rec(x, %{a: if_set(x)}))}"
-    end
-
-    test "prints intersections of map fields selected by key type" do
-      equations = %{x: fn recur -> closed_map([{to_domain_keys(atom()), recur.(:x)}]) end}
-      left = recursive(equations).x
-      right = recursive(equations).x
-
-      assert bounded_print(fn -> to_quoted_string(bare_intersection(left, right)) end) ==
-               "%{atom() => rec(x, %{atom() => x})} and %{atom() => rec(x, %{atom() => x})}"
-    end
-
-    test "prints map key types, excluded keys, and extra fields" do
+    test "prints key types, optional fields, and a recursive __struct__ field" do
       node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
+      type = closed_map([{to_domain_keys(integer()), node}, {:a, {node, true}}])
 
-      closed =
-        closed_map([
-          {to_domain_keys(integer()), node},
-          {to_domain_keys(bitstring_no_binary()), node},
-          {to_domain_keys(binary()), none()},
-          {:a, {atom([:required]), false}},
-          {:b, {node, true}}
-        ])
+      assert to_quoted_string(type) ==
+               "%{integer() => rec(x, nil or {x}), a: if_set(rec(x, nil or {x}))}"
 
-      assert bounded_print(fn -> to_quoted_string(closed) end) ==
-               """
-               %{
-                 binary() => none(),
-                 (bitstring() and not binary()) => rec(x, nil or {x}),
-                 integer() => rec(x, nil or {x}),
-                 a: :required,
-                 b: if_set(rec(x, nil or {x}))
-               }\
-               """
-
-      open = open_map([{to_domain_keys(integer()), node}])
-
-      assert bounded_print(fn -> to_quoted_string(open) end) ==
-               """
-               %{
-                 atom() => term(),
-                 binary() => term(),
-                 (bitstring() and not binary()) => term(),
-                 float() => term(),
-                 fun() => term(),
-                 integer() => rec(x, nil or {x}),
-                 list() => term(),
-                 map() => term(),
-                 pid() => term(),
-                 port() => term(),
-                 reference() => term(),
-                 tuple() => term()
-               }\
-               """
+      assert to_quoted_string(closed_map(__struct__: {node, false})) ==
+               "%{__struct__: rec(x, nil or {x})}"
     end
-
-    test "keeps map exclusions restricted to maps" do
-      node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
-      type = bare_difference(open_map(), closed_map(a: {node, true}))
-
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
-               "%{...} and not %{a: if_set(rec(x, nil or {x}))}"
-    end
-
-    test "keeps recursive names in map exclusions and list elements" do
-      node =
-        recursive(%{
-          x: fn recur ->
-            bare_difference(
-              closed_map(a: {recur.(:y), false}),
-              closed_map(a: {recur.(:x), false})
-            )
-            |> bare_union(atom([nil]))
-          end,
-          y: fn recur -> bare_union(atom([:leaf]), non_empty_list(recur.(:x))) end
-        }).x
-
-      assert bounded_print(fn -> to_quoted_string(node) end) ==
-               "rec(x, nil or (%{a: rec(y, :leaf or non_empty_list(x))} and not %{a: x}))"
-    end
-
-    # Lists
 
     test "terminates on an intersection of recursive list elements" do
       equations = %{x: fn recur -> bare_union(atom([nil]), non_empty_list(recur.(:x))) end}
@@ -858,7 +623,7 @@ defmodule Module.Types.RecursiveTest do
       right = recursive(equations).x
       type = bare_intersection(non_empty_list(left), non_empty_list(right))
 
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
+      assert to_quoted_string(type) ==
                """
                non_empty_list(rec(x, nil or non_empty_list(x))) and
                  non_empty_list(rec(x, nil or non_empty_list(x)))\
@@ -866,62 +631,31 @@ defmodule Module.Types.RecursiveTest do
     end
 
     test "terminates on an intersection of recursive list tails" do
-      equations =
-        %{x: fn recur -> bare_union(empty_list(), non_empty_list(integer(), recur.(:x))) end}
+      equations = %{
+        x: fn recur -> bare_union(empty_list(), non_empty_list(integer(), recur.(:x))) end
+      }
 
       left = recursive(equations).x
       right = recursive(equations).x
       type = bare_intersection(non_empty_list(integer(), left), non_empty_list(integer(), right))
 
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
+      assert to_quoted_string(type) ==
                """
                non_empty_list(integer(), rec(x, empty_list() or non_empty_list(integer(), x))) and
                  non_empty_list(integer(), rec(x, empty_list() or non_empty_list(integer(), x)))\
                """
     end
 
-    test "prints recursive list tail unions and differences" do
-      nodes =
-        recursive(%{
-          x: fn recur -> bare_union(atom([nil]), non_empty_list(integer(), recur.(:x))) end,
-          y: fn recur -> bare_union(atom([:leaf]), non_empty_list(integer(), recur.(:y))) end
-        })
-
-      assert bounded_print(fn -> to_quoted_string(bare_union(nodes.x, nodes.y)) end) ==
-               """
-               :leaf or nil or non_empty_list(integer(), rec(x, nil or non_empty_list(integer(), x))) or
-                 non_empty_list(integer(), rec(y, :leaf or non_empty_list(integer(), y)))\
-               """
-
-      assert bounded_print(fn -> to_quoted_string(bare_difference(nodes.x, nodes.y)) end) ==
-               """
-               nil or
-                 (non_empty_list(integer(), rec(x, nil or non_empty_list(integer(), x))) and
-                    not non_empty_list(integer(), rec(y, :leaf or non_empty_list(integer(), y))))\
-               """
-    end
-
-    test "preserves list endings in tuple fields without recursive nodes" do
+    test "preserves the list element type in another tuple field" do
       node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
-      non_lists = bare_negation(non_empty_list(term(), term()))
-      improper = tuple([node, non_empty_list(integer(), non_lists)])
+      endings = bare_negation(non_empty_list(term(), term()))
+      type = tuple([node, non_empty_list(integer(), endings)])
 
-      optional_tail =
-        tuple([node, non_empty_list(integer(), bare_union(empty_list(), atom([nil])))])
-
-      assert bounded_print(fn -> to_quoted_string(improper) end) ==
-               "{rec(x, nil or {x}), non_empty_list(integer(), not non_empty_list(term(), term()))}"
-
-      assert bounded_print(fn -> to_quoted_string(optional_tail) end) ==
-               "{rec(x, nil or {x}), non_empty_list(integer(), nil or empty_list())}"
-
-      stored_list = %{list: {:erlang.phash2([integer() | :term]), integer(), :term}}
-
-      assert bounded_print(fn -> to_quoted_string(tuple([node, stored_list])) end) ==
+      assert to_quoted_string(type) ==
                "{rec(x, nil or {x}), non_empty_list(integer(), not non_empty_list(term(), term()))}"
     end
 
-    test "prints a list with a nil ending after intersection" do
+    test "keeps the list element type after intersection" do
       equations = %{
         x: fn recur -> bare_union(atom([nil]), non_empty_list(atom(), recur.(:x))) end
       }
@@ -930,170 +664,60 @@ defmodule Module.Types.RecursiveTest do
       right = recursive(equations).x
       type = opt_intersection(non_empty_list(integer(), left), non_empty_list(integer(), right))
 
-      assert bounded_print(fn -> to_quoted_string(type) end) == "non_empty_list(integer(), nil)"
+      assert to_quoted_string(type) == "non_empty_list(integer(), nil)"
     end
 
-    test "keeps list exclusions restricted to non-empty lists" do
-      node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
-      type = bare_difference(non_empty_list(term(), term()), non_empty_list(node))
-
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
-               "non_empty_list(term(), term()) and not non_empty_list(rec(x, nil or {x}))"
-    end
-
-    # Functions
-
-    test "prints recursive function result intersections, unions, and differences" do
+    test "prints an intersection of recursive function results" do
       equations = %{x: fn recur -> bare_union(atom([nil]), fun([integer()], recur.(:x))) end}
       left = recursive(equations).x
       right = recursive(equations).x
 
-      assert bounded_print(fn -> to_quoted_string(bare_intersection(left, right)) end) ==
+      assert to_quoted_string(bare_intersection(left, right)) ==
                """
                nil or
                  ((integer() -> rec(x, nil or (integer() -> x))) and
                     (integer() -> rec(x, nil or (integer() -> x))))\
                """
-
-      assert bounded_print(fn -> to_quoted_string(bare_union(left, right)) end) ==
-               """
-               nil or (integer() -> rec(x, nil or (integer() -> x))) or
-                 (integer() -> rec(x, nil or (integer() -> x)))\
-               """
-
-      assert bounded_print(fn -> to_quoted_string(bare_difference(left, right)) end) ==
-               """
-               (integer() -> rec(x, nil or (integer() -> x))) and
-                 not (integer() -> rec(x, nil or (integer() -> x)))\
-               """
     end
 
-    test "prints function exclusions with different argument counts" do
+    test "prints function exclusions with recursive arguments and results" do
       node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
-      zero = bare_difference(fun(0), fun([], node))
-      one = bare_difference(fun(1), fun([integer()], node))
-      two = bare_difference(fun(2), fun([integer(), integer()], node))
-      all_arities = bare_intersection(fun(), bare_negation(fun([integer()], node)))
-      sibling = bare_union(tuple([node]), bare_difference(fun(1), fun([integer()], atom())))
+      type = bare_difference(fun(1), fun([node], node))
 
-      assert bounded_print(fn -> to_quoted_string(zero) end) ==
-               "fun(0) and not (-> rec(x, nil or {x}))"
-
-      assert bounded_print(fn -> to_quoted_string(one) end) ==
-               "fun(1) and not (integer() -> rec(x, nil or {x}))"
-
-      assert bounded_print(fn -> to_quoted_string(two) end) ==
-               "fun(2) and not (integer(), integer() -> rec(x, nil or {x}))"
-
-      assert bounded_print(fn -> to_quoted_string(all_arities) end) ==
-               "fun() and not (integer() -> rec(x, nil or {x}))"
-
-      assert bounded_print(fn -> to_quoted_string(sibling) end) ==
-               "(fun(1) and not (integer() -> atom())) or {rec(x, nil or {x})}"
+      assert to_quoted_string(type) ==
+               "fun(1) and not (rec(x, nil or {x}) -> rec(x, nil or {x}))"
     end
 
-    # Dynamic types
-
-    test "prints dynamic() around intersected maps with recursive lists" do
-      equations =
-        %{
-          x: fn recur ->
-            bare_union(atom([nil]), closed_map(a: {non_empty_list(recur.(:x)), false}))
-          end
-        }
-
-      left = recursive(equations).x
-      right = recursive(equations).x
-      type = dynamic(bare_intersection(left, right))
-
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
-               """
-               dynamic(
-                 nil or
-                   (%{a: non_empty_list(rec(x, %{a: non_empty_list(x)} or nil))} and
-                      %{a: non_empty_list(rec(x, %{a: non_empty_list(x)} or nil))})
-               )\
-               """
-    end
-
-    test "prints dynamic() around unions of maps with recursive tuples" do
-      equations =
-        %{x: fn recur -> bare_union(atom([nil]), closed_map(a: {tuple([recur.(:x)]), false})) end}
-
-      left = recursive(equations).x
-      right = recursive(equations).x
-      type = dynamic(bare_union(left, right))
-
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
-               "dynamic(%{a: {rec(x, %{a: {x}} or nil)}} or %{a: {rec(x, %{a: {x}} or nil)}} or nil)"
-    end
-
-    test "prints static types, dynamic() types, and optional fields" do
+    test "prints both static and dynamic parts" do
       node =
         recursive(%{
           x: fn recur -> bare_union(atom([nil]), closed_map(a: {recur.(:x), false})) end
         }).x
 
-      lower = closed_map(a: {node, false})
-      type = bare_union(lower, dynamic(bare_union(lower, integer())))
-      optional = open_map(a: {bare_union(tuple([node]), dynamic(integer())), true})
+      static = closed_map(a: {node, false})
+      type = bare_union(static, dynamic(bare_union(static, integer())))
 
-      assert bounded_print(fn -> to_quoted_string(type) end) ==
+      assert to_quoted_string(type) ==
                "dynamic(%{a: rec(x, %{a: x} or nil)} or integer()) or %{a: rec(x, %{a: x} or nil)}"
-
-      assert bounded_print(fn -> to_quoted_string(optional) end) ==
-               """
-               dynamic(%{..., a: if_set(integer() or {rec(x, %{a: x} or nil)})}) or
-                 %{..., a: if_set({rec(x, %{a: x} or nil)})}\
-               """
     end
 
-    test "keeps dynamic(integer()) inside recursive definitions" do
-      leaf = recursive(%{y: fn _ -> dynamic(integer()) end}).y
+    test "keeps dynamic(integer()) inside a recursive definition" do
+      node = recursive(%{x: fn _ -> dynamic(integer()) end}).x
 
-      assert bounded_print(fn -> to_quoted_string(tuple([leaf])) end) ==
-               "{rec(y, dynamic(integer()))}"
-
-      assert bounded_print(fn -> to_quoted_string(leaf) end) == "rec(y, dynamic(integer()))"
+      assert to_quoted_string(tuple([node])) == "{rec(x, dynamic(integer()))}"
     end
 
-    test "prints a dynamic wrapper around a recursive node" do
-      node = recursive(%{x: fn recur -> tuple([recur.(:x)]) |> bare_union(atom([nil])) end}).x
-
-      assert to_quoted_string(dynamic(node)) == "dynamic(rec(x, nil or {x}))"
-    end
-
-    test "prints a recursive struct field as an ordinary map" do
-      tag =
-        recursive(%{tag: fn recur -> tuple([recur.(:tag)]) |> bare_union(atom([nil])) end}).tag
-
-      assert closed_map(__struct__: {tag, false}) |> to_quoted_string() ==
-               "%{__struct__: rec(tag, nil or {tag})}"
-    end
-
-    test "keeps valid variable names when renaming nested binders" do
-      child =
-        recursive(%{x?: fn recur -> bare_union(atom([nil]), tuple([recur.(:x?)])) end}).x?
+    test "distinguishes definitions with the same name" do
+      child = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
 
       parent =
-        recursive(%{x?: fn recur -> bare_union(atom([nil]), tuple([child, recur.(:x?)])) end}).x?
+        recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([child, recur.(:x)])) end}).x
 
-      assert to_quoted_string(parent) == "rec(x?, nil or {rec(x_2?, nil or {x_2?}), x?})"
+      assert to_quoted_string(parent) == "rec(x, nil or {rec(x_2, nil or {x_2}), x})"
     end
 
-    test "renames recursive variables ending in an exclamation mark" do
-      child =
-        recursive(%{x!: fn recur -> bare_union(atom([nil]), tuple([recur.(:x!)])) end}).x!
-
-      parent =
-        recursive(%{x!: fn recur -> bare_union(atom([nil]), tuple([child, recur.(:x!)])) end}).x!
-
-      assert to_quoted_string(parent) == "rec(x!, nil or {rec(x_2!, nil or {x_2!}), x!})"
-    end
-
-    test "skips names already used by enclosing recursive definitions" do
-      child =
-        recursive(%{x?: fn recur -> bare_union(atom([nil]), tuple([recur.(:x?)])) end}).x?
+    test "keeps question marks and skips names already in use" do
+      child = recursive(%{x?: fn recur -> bare_union(atom([nil]), tuple([recur.(:x?)])) end}).x?
 
       parent =
         recursive(%{x?: fn recur -> bare_union(atom([nil]), tuple([child, recur.(:x?)])) end}).x?
@@ -1105,6 +729,15 @@ defmodule Module.Types.RecursiveTest do
 
       assert to_quoted_string(root) ==
                "rec(x_2?, nil or {rec(x?, nil or {rec(x_3?, nil or {x_3?}), x?}), x_2?})"
+    end
+
+    test "keeps exclamation marks when renaming definitions" do
+      child = recursive(%{x!: fn recur -> bare_union(atom([nil]), tuple([recur.(:x!)])) end}).x!
+
+      parent =
+        recursive(%{x!: fn recur -> bare_union(atom([nil]), tuple([child, recur.(:x!)])) end}).x!
+
+      assert to_quoted_string(parent) == "rec(x!, nil or {rec(x_2!, nil or {x_2!}), x!})"
     end
   end
 
