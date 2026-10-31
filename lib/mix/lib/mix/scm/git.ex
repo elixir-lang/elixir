@@ -340,14 +340,25 @@ defmodule Mix.SCM.Git do
   defp get_rev_info(dir \\ nil) do
     # These commands can fail and we don't want to raise.
     origin_command = ["--git-dir=.git", "config", "remote.origin.url"]
-    rev_command = ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]
     opts = if dir, do: cmd_opts(cd: dir), else: cmd_opts([])
 
     with {origin, 0} <- System.cmd("git", origin_command, opts),
-         {rev, 0} <- System.cmd("git", rev_command, opts) do
+         {rev, 0} <- get_rev(dir, opts) do
       %{origin: String.trim(origin), rev: String.trim(rev)}
     else
       _ -> %{origin: nil, rev: nil}
+    end
+  end
+
+  # The lock of every Git dependency is checked on every Mix command,
+  # so we read detached HEADs, which is how Mix leaves its checkouts,
+  # directly and fall back to git otherwise.
+  defp get_rev(dir, opts) do
+    with {:ok, rev} <- File.read(Path.join(dir || ".", ".git/HEAD")),
+         false <- String.starts_with?(rev, "ref:") do
+      {rev, 0}
+    else
+      _ -> System.cmd("git", ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"], opts)
     end
   end
 
