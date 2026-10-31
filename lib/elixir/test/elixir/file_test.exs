@@ -1490,6 +1490,26 @@ defmodule FileTest do
       File.rm(tmp_path("tmp/from"))
     end
 
+    test "rm_rf with symlink and trailing separator" do
+      from = tmp_path("tmp/from")
+      to = tmp_path("tmp/to")
+
+      File.mkdir_p!(to)
+      File.write!(Path.join(to, "hello"), "world")
+      :file.make_symlink(to, from)
+
+      if File.exists?(from) or not windows?() do
+        assert File.exists?(from)
+
+        assert File.rm_rf(from <> "/") == {:ok, [from]}
+
+        assert File.exists?(Path.join(to, "hello"))
+        refute File.exists?(from)
+      end
+    after
+      File.rm(tmp_path("tmp/from"))
+    end
+
     test "rm_rf with charlist" do
       fixture = tmp_path("tmp") |> to_charlist()
       File.mkdir(fixture)

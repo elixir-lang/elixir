@@ -1677,9 +1677,35 @@ defmodule File do
     if null_byte?(path) do
       {:error, :badarg, path}
     else
-      do_rm_rf(path, [], major)
+      # A trailing separator makes the operating system resolve a symlink
+      # in the last component, so "link/" would list and remove the contents
+      # of the link target instead of removing the link itself.
+      do_rm_rf(strip_trailing_separators(path, major), [], major)
     end
   end
+
+  defp strip_trailing_separators(path, major) do
+    case do_strip_trailing_separators(path, major) do
+      # Keep drive roots such as "C:\" on Windows
+      <<_, ?:>> when major == :win32 -> path
+      stripped -> stripped
+    end
+  end
+
+  defp do_strip_trailing_separators(path, major) when byte_size(path) > 1 do
+    case :binary.last(path) do
+      ?/ ->
+        do_strip_trailing_separators(binary_part(path, 0, byte_size(path) - 1), major)
+
+      ?\\ when major == :win32 ->
+        do_strip_trailing_separators(binary_part(path, 0, byte_size(path) - 1), major)
+
+      _ ->
+        path
+    end
+  end
+
+  defp do_strip_trailing_separators(path, _major), do: path
 
   defp do_rm_rf(path, acc, major) do
     case safe_list_dir(path, major) do
