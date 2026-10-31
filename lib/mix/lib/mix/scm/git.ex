@@ -337,17 +337,96 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  # The lock of every Git dependency is checked on every Mix command. Mix leaves
+  # checkouts with a detached HEAD and a single plain url under [remote "origin"],
+  # so those are read directly and anything else falls back to git.
   defp get_rev_info(dir \\ nil) do
-    # These commands can fail and we don't want to raise.
-    origin_command = ["--git-dir=.git", "config", "remote.origin.url"]
-    rev_command = ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]
+    git_dir = Path.join(dir || ".", ".git")
     opts = if dir, do: cmd_opts(cd: dir), else: cmd_opts([])
 
-    with {origin, 0} <- System.cmd("git", origin_command, opts),
-         {rev, 0} <- System.cmd("git", rev_command, opts) do
-      %{origin: String.trim(origin), rev: String.trim(rev)}
+    # These commands can fail and we don't want to raise.
+    with origin when is_binary(origin) <-
+           read_origin(git_dir) || git_output(["config", "remote.origin.url"], opts),
+         rev when is_binary(rev) <-
+           read_rev(git_dir) || git_output(["rev-parse", "--verify", "--quiet", "HEAD"], opts) do
+      %{origin: origin, rev: rev}
     else
       _ -> %{origin: nil, rev: nil}
+    end
+  end
+
+  defp git_output(args, opts) do
+    case System.cmd("git", ["--git-dir=.git" | args], opts) do
+      {output, 0} -> String.trim(output)
+      _ -> nil
+    end
+  end
+
+  defp read_rev(git_dir) do
+    with {:ok, head} <- File.read(Path.join(git_dir, "HEAD")),
+         rev = String.trim_trailing(head),
+         true <- rev =~ ~r/\A([0-9a-f]{40}|[0-9a-f]{64})\z/ do
+      rev
+    else
+      _ -> nil
+    end
+  end
+
+  defp read_origin(git_dir) do
+    with nil <- System.get_env("GIT_CONFIG"),
+         nil <- System.get_env("GIT_CONFIG_PARAMETERS"),
+         nil <- System.get_env("GIT_CONFIG_COUNT"),
+         false <- File.exists?(Path.join(git_dir, "config.worktree")),
+         {:ok, config} <- File.read(Path.join(git_dir, "config")),
+         false <- String.contains?(config, ["\\", "#", ";"]),
+         {:ok, [url]} <- origin_urls(String.split(config, "\n"), false, []),
+         false <- url == "" or String.contains?(url, "\"") do
+      url
+    else
+      _ -> nil
+    end
+  end
+
+  defp origin_urls([], _origin?, urls), do: {:ok, urls}
+
+  defp origin_urls([line | lines], origin?, urls) do
+    line = String.trim(line)
+
+    cond do
+      String.starts_with?(line, "[") ->
+        case config_section(line) do
+          :origin -> origin_urls(lines, true, urls)
+          :other -> origin_urls(lines, false, urls)
+          :unsupported -> :error
+        end
+
+      origin? and line =~ ~r/\A(?i:url)(\s*=|\z)/ ->
+        case String.split(line, "=", parts: 2) do
+          [_, url] -> origin_urls(lines, origin?, [String.trim(url) | urls])
+          _ -> :error
+        end
+
+      true ->
+        origin_urls(lines, origin?, urls)
+    end
+  end
+
+  defp config_section(line) do
+    cond do
+      line =~ ~r/\A\[(?i:remote) "origin"\]\z/ ->
+        :origin
+
+      # Includes and the deprecated [remote.origin] syntax may set the url
+      line =~ ~r/\A\[(?i:include|includeif|remote)\b/ and
+          not (line =~ ~r/\A\[(?i:remote) "[^"]*"\]\z/) ->
+        :unsupported
+
+      line =~ ~r/\A\[[^\]"]*("[^"]*")?\]\z/ ->
+        :other
+
+      # For example, a key on the same line as the section header
+      true ->
+        :unsupported
     end
   end
 
