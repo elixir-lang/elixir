@@ -499,11 +499,15 @@ defmodule JSON do
     end
   end
 
+  @max_indent 31
+
+  @indent_specials [?{, ?}, ?[, ?], ?,, ?:, ?", ?\s, ?\t, ?\r, ?\n]
+
   @doc ~S"""
   Encodes the given term to JSON as a binary.
 
-  The second argument is a function that is recursively
-  invoked to encode a term.
+  The second argument is either a function that is recursively invoked to
+  encode a term, or a keyword list of options, described below.
 
   > #### IO and performance {: .tip}
   >
@@ -511,15 +515,38 @@ defmodule JSON do
   > or written to the filesystem, consider using the more
   > efficient `encode_to_iodata!/2`.
 
+  ## Options
+
+  When the second argument is a keyword list, the only accepted option is:
+
+    * `:pretty` - either `true` to indent nested members by two spaces,
+      or a binary of spaces and tabs to be used as the indent unit.
+      Empty containers are kept on a single line. Defaults to `false`.
+
+  Unknown options raise. A custom encoder function cannot be combined
+  with these options.
+
   ## Examples
 
       iex> JSON.encode!([123, "string", %{key: "value"}])
       "[123,\"string\",{\"key\":\"value\"}]"
 
+      iex> JSON.encode!(%{tags: []}, pretty: true)
+      "{\n  \"tags\": []\n}"
+
+      iex> JSON.encode!(%{id: "abc"}, pretty: "\t")
+      "{\n\t\"id\": \"abc\"\n}"
+
   """
-  @spec encode!(term(), encoder()) :: binary()
-  def encode!(term, encoder \\ &protocol_encode/2) do
+  @spec encode!(term(), encoder() | [pretty: boolean() | binary()]) :: binary()
+  def encode!(term, encoder_or_opts \\ &protocol_encode/2)
+
+  def encode!(term, encoder) when is_function(encoder, 2) do
     IO.iodata_to_binary(encoder.(term, encoder))
+  end
+
+  def encode!(term, opts) when is_list(opts) do
+    term |> encode_to_iodata!(opts) |> IO.iodata_to_binary()
   end
 
   @doc ~S"""
@@ -529,7 +556,8 @@ defmodule JSON do
   used for IO purposes.
 
   The second argument is a function that is recursively
-  invoked to encode a term.
+  invoked to encode a term. It may also be a keyword list of
+  options, as accepted by `encode!/2`.
 
   ## Examples
 
@@ -537,11 +565,167 @@ defmodule JSON do
       iex> IO.iodata_to_binary(data)
       "[123,\"string\",{\"key\":\"value\"}]"
 
+      iex> data = JSON.encode_to_iodata!(%{id: "abc"}, pretty: true)
+      iex> IO.iodata_to_binary(data)
+      "{\n  \"id\": \"abc\"\n}"
+
   """
-  @spec encode_to_iodata!(term(), encoder()) :: iodata()
-  def encode_to_iodata!(term, encoder \\ &protocol_encode/2) do
+  @spec encode_to_iodata!(term(), encoder() | [pretty: boolean() | binary()]) :: iodata()
+  def encode_to_iodata!(term, encoder_or_opts \\ &protocol_encode/2)
+
+  def encode_to_iodata!(term, encoder) when is_function(encoder, 2) do
     encoder.(term, encoder)
   end
+
+  def encode_to_iodata!(term, opts) when is_list(opts) do
+    iodata = protocol_encode(term, &protocol_encode/2)
+
+    case Keyword.fetch(validate_opts!(opts), :pretty) do
+      {:ok, false} ->
+        iodata
+
+      {:ok, true} ->
+        format_iodata(iodata, "  ")
+
+      {:ok, unit} when is_binary(unit) ->
+        format_iodata(iodata, indent_unit!(unit))
+
+      {:ok, other} ->
+        raise ArgumentError,
+              "expected :pretty to be a boolean or a binary, got: #{inspect(other)}"
+
+      :error ->
+        iodata
+    end
+  end
+
+  defp validate_opts!(opts) do
+    if Keyword.keyword?(opts) do
+      case Keyword.keys(opts) -- [:pretty] do
+        [] ->
+          opts
+
+        unknown ->
+          raise ArgumentError,
+                "unknown options #{inspect(unknown)}, expected only :pretty"
+      end
+    else
+      raise ArgumentError,
+            "expected the second argument to be a function or a keyword list, " <>
+              "got: #{inspect(opts)}"
+    end
+  end
+
+  defp indent_unit!(unit) do
+    if indent_unit?(unit) do
+      unit
+    else
+      raise ArgumentError,
+            "expected :pretty to be a binary of spaces and tabs, got: #{inspect(unit)}"
+    end
+  end
+
+  defp indent_unit?(<<char, rest::binary>>) when char in ~c" \t", do: indent_unit?(rest)
+  defp indent_unit?(<<>>), do: true
+  defp indent_unit?(_), do: false
+
+  defp format_iodata(iodata, unit) do
+    # Flattening is required: the iodata mixes binaries with byte separators,
+    # so string boundaries do not line up with iodata elements.
+    indents = List.to_tuple(for depth <- 0..@max_indent, do: :binary.copy(unit, depth))
+    format_value(IO.iodata_to_binary(iodata), 0, indents, [])
+  end
+
+  defp format_value(<<>>, _depth, _pad, acc), do: acc
+
+  defp format_value(<<?", rest::binary>>, depth, indents, acc) do
+    case format_string(rest, []) do
+      {:ok, string, rest} ->
+        format_value(rest, depth, indents, [acc, ?", string, ?"])
+
+      :eof ->
+        raise ArgumentError,
+              "expected the encoder to return valid JSON, got an unterminated string"
+    end
+  end
+
+  defp format_value(<<?{, rest::binary>>, depth, indents, acc) do
+    case skip_whitespace(rest) do
+      <<?}, rest::binary>> -> format_value(rest, depth, indents, [acc, "{}"])
+      rest -> format_value(rest, depth + 1, indents, [acc, ?{, newline(depth + 1, indents)])
+    end
+  end
+
+  defp format_value(<<?[, rest::binary>>, depth, indents, acc) do
+    case skip_whitespace(rest) do
+      <<?], rest::binary>> -> format_value(rest, depth, indents, [acc, "[]"])
+      rest -> format_value(rest, depth + 1, indents, [acc, ?[, newline(depth + 1, indents)])
+    end
+  end
+
+  defp format_value(<<?}, rest::binary>>, depth, indents, acc) when depth > 0 do
+    format_value(rest, depth - 1, indents, [acc, newline(depth - 1, indents), ?}])
+  end
+
+  defp format_value(<<?], rest::binary>>, depth, indents, acc) when depth > 0 do
+    format_value(rest, depth - 1, indents, [acc, newline(depth - 1, indents), ?]])
+  end
+
+  defp format_value(<<?,, rest::binary>>, depth, indents, acc) do
+    format_value(rest, depth, indents, [acc, ?,, newline(depth, indents)])
+  end
+
+  defp format_value(<<?:, rest::binary>>, depth, indents, acc) do
+    format_value(rest, depth, indents, [acc, ": "])
+  end
+
+  defp format_value(<<char, rest::binary>>, depth, indents, acc) when char in ~c" \t\r\n" do
+    format_value(rest, depth, indents, acc)
+  end
+
+  defp format_value(<<char, _::binary>> = binary, depth, indents, acc)
+       when char not in @indent_specials do
+    length = plain_length(binary, 0)
+    rest = binary_part(binary, length, byte_size(binary) - length)
+    format_value(rest, depth, indents, [acc, binary_part(binary, 0, length)])
+  end
+
+  defp format_value(<<char, _::binary>>, 0, _pad, _acc) when char in [?}, ?]] do
+    raise ArgumentError,
+          "expected the encoder to return valid JSON, got unexpected #{<<char>>}"
+  end
+
+  defp plain_length(<<char, rest::binary>>, count) when char not in @indent_specials,
+    do: plain_length(rest, count + 1)
+
+  defp plain_length(<<_::binary>>, count), do: count
+
+  defp format_string(<<?\\, char, rest::binary>>, acc),
+    do: format_string(rest, [acc, ?\\, char])
+
+  defp format_string(<<?", rest::binary>>, acc), do: {:ok, acc, rest}
+  defp format_string(<<>>, _acc), do: :eof
+
+  defp format_string(binary, acc) do
+    length = string_length(binary, 0)
+    rest = binary_part(binary, length, byte_size(binary) - length)
+    format_string(rest, [acc, binary_part(binary, 0, length)])
+  end
+
+  defp string_length(<<char, rest::binary>>, count) when char not in [?", ?\\],
+    do: string_length(rest, count + 1)
+
+  defp string_length(<<_::binary>>, count), do: count
+
+  defp skip_whitespace(<<char, rest::binary>>) when char in ~c" \t\r\n",
+    do: skip_whitespace(rest)
+
+  defp skip_whitespace(binary), do: binary
+
+  defp newline(depth, indents) when depth < tuple_size(indents),
+    do: [?\n, elem(indents, depth)]
+
+  defp newline(depth, indents), do: [?\n, :binary.copy(elem(indents, 1), depth)]
 
   @doc """
   This is the default encode implementation passed to `encode!/1`.

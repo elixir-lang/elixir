@@ -22,6 +22,7 @@
   * [Code.Formatter] Add a `:migrate_atom_interpolations` option
   * [File] Accept an open IO device in `File.stat/2`, `File.stat!/2`, `File.regular?/2`, `File.dir?/2`, and `File.exists?/2`
   * [IO.ANSI] Add `bold/0`, `bold_off/0`, `dim/0`, `dim_off/0`, `blink/0`, `invisible/0`, `invisible_off/0`, `strikethrough/0`, `strikethrough_off/0`, `italic_off/0`, `underline_off/0`, `overline/0`, `overline_off/0`, `cursor_forward/0`, `cursor_backward/0`, and `cursor_home/0`, aligning names with Erlang/OTP
+  * [JSON] Add the `:pretty` option to `JSON.encode!/2` and `JSON.encode_to_iodata!/2`
   * [Kernel] Improve performance of type constructors and complex intersections
   * [Kernel] Warn on aliases that are never used because a later alias shadows them
   * [Kernel] Warn on binary patterns with segments that are not byte-aligned
