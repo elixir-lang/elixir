@@ -641,10 +641,23 @@ translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'El
   case is_list(List) andalso lists:all(fun is_atom/1, List) of
     true ->
       Generated = erl_anno:set_generated(true, Ann),
+
+      %% The subject is used twice, as the case subject and as argument
+      %% of the fallback call, so bind it to a variable unless it is one.
+      {TSubject, Prelude, TS1} =
+        case TString of
+          {var, _, _} ->
+            {TString, [], TS};
+          _ ->
+            {VarName, SV} = elixir_erl_var:build('_', TS),
+            Var = {var, Generated, VarName},
+            {Var, [{match, Generated, Var, TString}], SV}
+        end,
+
       LastClause = {clause, Generated,
         [{var, Generated, '_'}],
         [],
-        [{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, '__to_existing_atom__'}}, [TString, TList]}]},
+        [{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, '__to_existing_atom__'}}, [TSubject, TList]}]},
       CastAtom = case Mod of
         'Elixir.String' -> fun atom_to_binary/1;
         'Elixir.List' -> fun atom_to_list/1
@@ -655,7 +668,12 @@ translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'El
           [],
           [{atom, Ann, Atom}]}
       || Atom <- List] ++ [LastClause],
-      {{'case', Generated, TString, Clauses}, TS};
+      Case = {'case', Generated, TSubject, Clauses},
+
+      case Prelude of
+        [] -> {Case, TS1};
+        _ -> {{block, Generated, Prelude ++ [Case]}, TS1}
+      end;
     false ->
       {{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, to_existing_atom}}, [TString, TList]}, TS}
   end;
