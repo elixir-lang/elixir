@@ -657,7 +657,7 @@ defmodule Module.Types.Descr do
   def to_quoted(descr, opts \\ [])
 
   # Print one unfolding under a binder; references to an enclosing node use its name.
-  def to_quoted({id, state, _generator} = node, opts) do
+  def to_quoted({id, _state, _generator} = node, opts) do
     bound = Keyword.get(opts, :recursive_nodes, %{})
 
     case bound do
@@ -665,14 +665,14 @@ defmodule Module.Types.Descr do
         {name, [], nil}
 
       %{} ->
-        name = recursive_node_name(id, state, bound)
+        name = :"t#{map_size(bound) + 1}"
 
         opts =
           opts
           |> Keyword.put(:recursive_nodes, Map.put(bound, id, name))
           |> Keyword.put(:recursive_printing, true)
 
-        {:rec, [], [{name, [], nil}, to_quoted(expand_node(node), opts)]}
+        {:recur, [], [{name, [], nil}, to_quoted(expand_node(node), opts)]}
     end
   end
 
@@ -689,26 +689,6 @@ defmodule Module.Types.Descr do
       true ->
         non_term_type_to_quoted(descr, opts)
     end
-  end
-
-  defp recursive_node_name(id, state, bound) do
-    base =
-      Enum.find_value(state, "rec", fn
-        {name, {^id, _generator}} when is_atom(name) -> Atom.to_string(name)
-        _ -> nil
-      end)
-
-    {prefix, suffix} =
-      if String.ends_with?(base, ["?", "!"]), do: String.split_at(base, -1), else: {base, ""}
-
-    used = bound |> Map.values() |> MapSet.new()
-
-    Stream.iterate(1, &(&1 + 1))
-    |> Stream.map(fn
-      1 -> String.to_unsafe_atom(base)
-      n -> String.to_unsafe_atom("#{prefix}_#{n}#{suffix}")
-    end)
-    |> Enum.find(&(not MapSet.member?(used, &1)))
   end
 
   # Find recursive nodes without running their generators.
