@@ -44,7 +44,7 @@ defmodule AccessTest do
     msg = ~r/the Access calls for keywords expect the key to be an atom/
 
     assert_raise ArgumentError, msg, fn ->
-      Access.fetch([], "foo")
+      Access.fetch(Process.get(:unused, []), "foo")
     end
 
     assert Access.get([foo: :bar], :foo) == :bar
