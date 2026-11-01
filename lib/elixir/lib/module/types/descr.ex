@@ -654,13 +654,194 @@ defmodule Module.Types.Descr do
     * `:collapse_structs` - do not show struct fields that match
       their default type
   """
-  def to_quoted(descr, opts \\ []) do
-    if term_type?(descr) do
-      {:term, [], []}
-    else
-      non_term_type_to_quoted(descr, opts)
+  def to_quoted(descr, opts \\ [])
+
+  # Print one unfolding under a binder; references to an enclosing node use its name.
+  def to_quoted({id, state, _generator} = node, opts) do
+    bound = Keyword.get(opts, :recursive_nodes, %{})
+
+    case bound do
+      %{^id => name} ->
+        {name, [], nil}
+
+      %{} ->
+        name = recursive_node_name(id, state, bound)
+
+        opts =
+          opts
+          |> Keyword.put(:recursive_nodes, Map.put(bound, id, name))
+          |> Keyword.put(:recursive_printing, true)
+
+        {:rec, [], [{name, [], nil}, to_quoted(expand_node(node), opts)]}
     end
   end
+
+  def to_quoted(:term, _opts), do: {:term, [], []}
+
+  def to_quoted(descr, opts) do
+    cond do
+      Keyword.get(opts, :recursive_printing, false) or contains_node?(descr) ->
+        recursive_descr_to_quoted(descr, Keyword.put(opts, :recursive_printing, true))
+
+      term_type?(descr) ->
+        {:term, [], []}
+
+      true ->
+        non_term_type_to_quoted(descr, opts)
+    end
+  end
+
+  defp recursive_node_name(id, state, bound) do
+    base =
+      Enum.find_value(state, "rec", fn
+        {name, {^id, _generator}} when is_atom(name) -> Atom.to_string(name)
+        _ -> nil
+      end)
+
+    {prefix, suffix} =
+      if String.ends_with?(base, ["?", "!"]), do: String.split_at(base, -1), else: {base, ""}
+
+    used = bound |> Map.values() |> MapSet.new()
+
+    Stream.iterate(1, &(&1 + 1))
+    |> Stream.map(fn
+      1 -> String.to_unsafe_atom(base)
+      n -> String.to_unsafe_atom("#{prefix}_#{n}#{suffix}")
+    end)
+    |> Enum.find(&(not MapSet.member?(used, &1)))
+  end
+
+  # Find recursive nodes without running their generators.
+  defp contains_node?({id, state, generator})
+       when is_reference(id) and is_map(state) and is_function(generator, 1),
+       do: true
+
+  defp contains_node?(term) when is_map(term),
+    do: Enum.any?(term, fn {key, value} -> contains_node?(key) or contains_node?(value) end)
+
+  defp contains_node?(term) when is_tuple(term),
+    do: term |> Tuple.to_list() |> Enum.any?(&contains_node?/1)
+
+  defp contains_node?([head | tail]), do: contains_node?(head) or contains_node?(tail)
+  defp contains_node?(_term), do: false
+
+  # Print stored fields directly; combining recursive field types can loop.
+  # Keep both parts of types such as integer() or dynamic(term()).
+  defp recursive_descr_to_quoted(descr, opts) do
+    {dynamic, static} = Map.pop(descr, :dynamic, @none)
+    dynamic = if dynamic == @none, do: [], else: [{:dynamic, [], [to_quoted(dynamic, opts)]}]
+
+    static =
+      Enum.flat_map(static, fn {key, value} -> recursive_component_to_quoted(key, value, opts) end)
+
+    quoted_union(dynamic ++ Enum.sort(static))
+  end
+
+  defp recursive_component_to_quoted(:fun, {tag, bdds}, opts) do
+    parts =
+      Enum.flat_map(bdds, fn {arity, bdd} ->
+        arity = {:__block__, [token: Integer.to_string(arity)], [arity]}
+
+        boolean_to_quoted(bdd, {:fun, [], [arity]}, fn literal ->
+          recursive_literal_to_quoted(:fun, literal, opts)
+        end)
+      end)
+
+    case {tag, parts} do
+      {:union, _} -> parts
+      {:negation, []} -> [{:fun, [], []}]
+      {:negation, _} -> [{:and, [], [{:fun, [], []}, {:not, [], [quoted_union(parts)]}]}]
+    end
+  end
+
+  defp recursive_component_to_quoted(key, bdd, opts) when key in [:tuple, :map, :list] do
+    all_values =
+      case key do
+        :tuple -> tuple_fields_to_quoted(:open, [], opts)
+        :map -> {:map, [], []}
+        :list -> {:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}
+      end
+
+    boolean_to_quoted(bdd, all_values, &recursive_literal_to_quoted(key, &1, opts))
+  end
+
+  defp recursive_component_to_quoted(key, value, opts), do: to_quoted(key, value, opts)
+
+  defp recursive_literal_to_quoted(:tuple, bdd_leaf(tag, elements), opts),
+    do: tuple_fields_to_quoted(tag, elements, opts)
+
+  defp recursive_literal_to_quoted(:map, bdd_leaf(tag, fields), opts) do
+    keyword? = Inspect.List.keyword?(fields)
+
+    regular =
+      Enum.map(fields, fn {key, {type, optional?}} ->
+        key =
+          if keyword?, do: {:__block__, [format: :keyword], [key]}, else: literal_to_quoted(key)
+
+        value = to_quoted(type, opts)
+        {key, if(optional?, do: {:if_set, [], [value]}, else: value)}
+      end)
+
+    fields =
+      case tag do
+        :closed ->
+          regular
+
+        :open ->
+          [{:..., [], nil} | regular]
+
+        domains ->
+          Enum.map(fields_to_list(domains), fn {key, type} ->
+            {map_domain_key_to_quoted(key), to_quoted(type, opts)}
+          end) ++ regular
+      end
+
+    {:%{}, [], fields}
+  end
+
+  defp recursive_literal_to_quoted(:list, @non_empty_list_top, _opts),
+    do: {:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}
+
+  defp recursive_literal_to_quoted(:list, bdd_leaf(elements, tail), opts) do
+    elements = to_quoted(elements, opts)
+
+    case tail do
+      tail when tail == @empty_list ->
+        {:non_empty_list, [], [elements]}
+
+      tail when tail == :term or tail == @not_non_empty_list ->
+        non_list = {:not, [], [{:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}]}
+        {:non_empty_list, [], [elements, non_list]}
+
+      %{} ->
+        {:non_empty_list, [], [elements, to_quoted(Map.delete(tail, :list), opts)]}
+
+      node ->
+        {:non_empty_list, [], [elements, to_quoted(node, opts)]}
+    end
+  end
+
+  defp recursive_literal_to_quoted(:fun, bdd_leaf(args, return), opts),
+    do:
+      {:__block__, [],
+       [[{:->, [], [Enum.map(args, &to_quoted(&1, opts)), to_quoted(return, opts)]}]]}
+
+  defp boolean_to_quoted(bdd, all_values, literal_to_quoted) do
+    Enum.map(bdd_to_dnf(bdd), fn {pos, negs} ->
+      positive =
+        case Enum.map(pos, literal_to_quoted) do
+          [] -> all_values
+          parts -> Enum.reduce(parts, &{:and, [], [&2, &1]})
+        end
+
+      Enum.reduce(negs, positive, fn literal, acc ->
+        {:and, [], [acc, {:not, [], [literal_to_quoted.(literal)]}]}
+      end)
+    end)
+  end
+
+  defp quoted_union([]), do: {:none, [], []}
+  defp quoted_union(parts), do: Enum.reduce(parts, &{:or, [], [&2, &1]})
 
   defp non_term_type_to_quoted(descr, opts) do
     {dynamic, static, extra} =
@@ -983,6 +1164,7 @@ defmodule Module.Types.Descr do
   Optimized version of `not empty?(term(), type)`.
   """
   def term_type?(:term), do: true
+  def term_type?({_, _, _} = node), do: node |> unfold() |> term_type?()
   def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
 
   @doc """
@@ -4931,17 +5113,13 @@ defmodule Module.Types.Descr do
         to_quoted(value_type, opts)
       end
 
-    key_quoted =
-      case domain_key do
-        :bitstring_no_binary ->
-          {:and, [], [{:bitstring, [], []}, {:not, [], [{:binary, [], []}]}]}
-
-        domain_key ->
-          {domain_key, [], []}
-      end
-
-    {key_quoted, value_quoted}
+    {map_domain_key_to_quoted(domain_key), value_quoted}
   end
+
+  defp map_domain_key_to_quoted(:bitstring_no_binary),
+    do: {:and, [], [{:bitstring, [], []}, {:not, [], [{:binary, [], []}]}]}
+
+  defp map_domain_key_to_quoted(domain_key), do: {domain_key, [], []}
 
   defp maybe_struct(struct) do
     try do
