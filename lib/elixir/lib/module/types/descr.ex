@@ -2790,10 +2790,11 @@ defmodule Module.Types.Descr do
               name = if empty?, do: :list, else: :non_empty_list
               {name, [recur.(list_type, opts)], empty?}
 
-            # Sugar: print the last type as term() if it only misses non empty lists.
-            subtype?(@not_non_empty_list, last_type) ->
-              args = [recur.(list_type, opts), {:term, [], []}]
-              {:non_empty_list, args, list_rendered?}
+            # This is the top list type. We can only print the last type as term()
+            # if the list type is also term(), as non_empty_list(list_type, term())
+            # folds the list part of term() into list_type.
+            last_type == @not_non_empty_list and term_type?(list_type) ->
+              {:non_empty_list, [{:term, [], []}, {:term, [], []}], list_rendered?}
 
             true ->
               args = [recur.(list_type, opts), recur.(last_type, opts)]
@@ -2839,6 +2840,11 @@ defmodule Module.Types.Descr do
   defp list_normalize(bdd) do
     list_bdd_to_pos_dnf(bdd)
     |> Enum.reduce([], fn {list, last, negs}, acc ->
+      # The last type may be stored as term() or, after differences, contain lists.
+      # Since lists in the last type would be folded into the list type once printed,
+      # we remove them (which is equivalent from the last type perspective).
+      last = list_tail_unfold(last)
+
       # Prune negations from those with empty intersections.
       negs =
         Enum.uniq(negs)

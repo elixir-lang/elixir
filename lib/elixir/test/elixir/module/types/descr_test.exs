@@ -4520,6 +4520,21 @@ defmodule Module.Types.DescrTest do
       assert list(term(), term()) |> to_quoted_string() ==
                "empty_list() or non_empty_list(term(), term())"
 
+      # The last type cannot be printed as term() unless the list type is also term(),
+      # as lists in the last type are folded into the list type
+      not_non_empty_list = opt_negation(non_empty_list(term(), term()))
+
+      assert non_empty_list(term(), not_non_empty_list) |> to_quoted_string() ==
+               "non_empty_list(term(), term())"
+
+      assert non_empty_list(integer(), not_non_empty_list) |> to_quoted_string() ==
+               "non_empty_list(integer(), not non_empty_list(term(), term()))"
+
+      # The last type may contain lists after differences, which must not be printed
+      assert opt_difference(non_empty_list(term(), term()), non_empty_list(term()))
+             |> to_quoted_string() ==
+               "non_empty_list(term(), not empty_list() and not non_empty_list(term(), term()))"
+
       # Test normalization
 
       # Remove duplicates
