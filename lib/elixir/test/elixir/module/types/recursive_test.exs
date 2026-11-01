@@ -655,6 +655,36 @@ defmodule Module.Types.RecursiveTest do
                "{recur(t1, nil or {t1}), non_empty_list(integer(), not non_empty_list(term(), term()))}"
     end
 
+    test "list last types" do
+      node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
+      endings = bare_negation(non_empty_list(term(), term()))
+      to_quoted_string = &to_quoted_string(tuple([node, &1]))
+
+      assert to_quoted_string.(non_empty_list(integer())) ==
+               "{recur(t1, nil or {t1}), non_empty_list(integer())}"
+
+      assert to_quoted_string.(non_empty_list(term(), term())) ==
+               "{recur(t1, nil or {t1}), non_empty_list(term(), term())}"
+
+      assert to_quoted_string.(non_empty_list(term(), endings)) ==
+               "{recur(t1, nil or {t1}), non_empty_list(term(), term())}"
+
+      assert to_quoted_string.(non_empty_list(integer(), atom())) ==
+               "{recur(t1, nil or {t1}), non_empty_list(integer(), atom())}"
+
+      assert to_quoted_string.(non_empty_list(integer(), bare_union(atom(), empty_list()))) ==
+               "{recur(t1, nil or {t1}), non_empty_list(integer(), atom() or empty_list())}"
+
+      assert to_quoted_string.(non_empty_list(integer(), node)) ==
+               "{recur(t1, nil or {t1}), non_empty_list(integer(), recur(t1, nil or {t1}))}"
+
+      assert to_quoted_string.(non_empty_list(node, endings)) ==
+               """
+               {recur(t1, nil or {t1}),
+                non_empty_list(recur(t1, nil or {t1}), not non_empty_list(term(), term()))}\
+               """
+    end
+
     test "keeps the list element type after intersection" do
       equations = %{
         x: fn recur -> bare_union(atom([nil]), non_empty_list(atom(), recur.(:x))) end

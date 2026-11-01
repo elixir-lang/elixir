@@ -818,27 +818,8 @@ defmodule Module.Types.Descr do
     {:%{}, [], fields}
   end
 
-  defp recursive_literal_to_quoted(:list, @non_empty_list_top, _recur, _opts),
-    do: {:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}
-
-  defp recursive_literal_to_quoted(:list, bdd_leaf(elements, tail), recur, opts) do
-    elements = recur.(elements, opts)
-
-    case tail do
-      tail when tail == @empty_list ->
-        {:non_empty_list, [], [elements]}
-
-      tail when tail == :term or tail == @not_non_empty_list ->
-        non_list = {:not, [], [{:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}]}
-        {:non_empty_list, [], [elements, non_list]}
-
-      %{} ->
-        {:non_empty_list, [], [elements, recur.(Map.delete(tail, :list), opts)]}
-
-      node ->
-        {:non_empty_list, [], [elements, recur.(node, opts)]}
-    end
-  end
+  defp recursive_literal_to_quoted(:list, bdd_leaf(list_type, last_type), recur, opts),
+    do: {:non_empty_list, [], list_args_to_quoted(list_type, last_type, recur, opts)}
 
   defp recursive_literal_to_quoted(:fun, bdd_leaf(args, return), recur, opts),
     do: {:__block__, [], [[{:->, [], [Enum.map(args, &recur.(&1, opts)), recur.(return, opts)]}]]}
@@ -2785,20 +2766,9 @@ defmodule Module.Types.Descr do
       dnf
       |> Enum.reduce({[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
         {name, arguments, list_rendered?} =
-          cond do
-            subtype?(last_type, @empty_list) ->
-              name = if empty?, do: :list, else: :non_empty_list
-              {name, [recur.(list_type, opts)], empty?}
-
-            # This is the top list type. We can only print the last type as term()
-            # if the list type is also term(), as non_empty_list(list_type, term())
-            # folds the list part of term() into list_type.
-            last_type == @not_non_empty_list and term_type?(list_type) ->
-              {:non_empty_list, [{:term, [], []}, {:term, [], []}], list_rendered?}
-
-            true ->
-              args = [recur.(list_type, opts), recur.(last_type, opts)]
-              {:non_empty_list, args, list_rendered?}
+          case list_canonical_to_quoted(list_type, last_type, recur, opts) do
+            [_] = arguments when empty? -> {:list, arguments, true}
+            arguments -> {:non_empty_list, arguments, list_rendered?}
           end
 
         acc =
@@ -2807,14 +2777,8 @@ defmodule Module.Types.Descr do
           else
             negs
             |> non_empty_map_or(fn bdd_leaf(ty, lst) ->
-              args =
-                if subtype?(lst, @empty_list) do
-                  [recur.(ty, opts)]
-                else
-                  [recur.(ty, opts), recur.(lst, opts)]
-                end
-
-              {:non_empty_list, [], args}
+              {:non_empty_list, [],
+               list_canonical_to_quoted(ty, list_tail_unfold(lst), recur, opts)}
             end)
             |> Kernel.then(
               &[
@@ -2832,6 +2796,51 @@ defmodule Module.Types.Descr do
     else
       unions
     end
+  end
+
+  # Returns the arguments to print a non empty list with the given list and last types.
+  # A single argument is returned if the list is proper.
+  #
+  # This is also used by the recursive printer, so all checks must be syntactic.
+  # Callers which can perform semantic checks must canonicalize the types first.
+  defp list_args_to_quoted(list_type, last_type, recur, opts) do
+    case last_type do
+      last_type when last_type == @empty_list ->
+        [recur.(list_type, opts)]
+
+      # The last type can only be printed as term() if the list type is also term(),
+      # as non_empty_list(list_type, term()) folds the lists in term() into list_type.
+      last_type when last_type == :term or last_type == @not_non_empty_list ->
+        term = {:term, [], []}
+
+        if list_type == :term do
+          [term, term]
+        else
+          [recur.(list_type, opts), {:not, [], [{:non_empty_list, [], [term, term]}]}]
+        end
+
+      # Lists in the last type would also be folded into list_type, so we remove them.
+      %{} ->
+        [recur.(list_type, opts), recur.(Map.delete(last_type, :list), opts)]
+
+      {_, _, _} ->
+        [recur.(list_type, opts), recur.(last_type, opts)]
+    end
+  end
+
+  # Canonicalizes list types for printing via list_args_to_quoted/4.
+  # The last type must not contain lists (see list_tail_unfold/1).
+  defp list_canonical_to_quoted(list_type, last_type, recur, opts) do
+    list_type = if term_type?(list_type), do: :term, else: list_type
+
+    last_type =
+      cond do
+        subtype?(last_type, @empty_list) -> @empty_list
+        subtype?(@not_non_empty_list, last_type) -> @not_non_empty_list
+        true -> last_type
+      end
+
+    list_args_to_quoted(list_type, last_type, recur, opts)
   end
 
   # Eliminate empty lists from the union, and redundant types (that are subtypes of others,

@@ -4530,6 +4530,9 @@ defmodule Module.Types.DescrTest do
       assert non_empty_list(integer(), not_non_empty_list) |> to_quoted_string() ==
                "non_empty_list(integer(), not non_empty_list(term(), term()))"
 
+      assert non_empty_list(integer(), opt_union(atom(), empty_list())) |> to_quoted_string() ==
+               "non_empty_list(integer(), atom() or empty_list())"
+
       # The last type may contain lists after differences, which must not be printed
       assert opt_difference(non_empty_list(term(), term()), non_empty_list(term()))
              |> to_quoted_string() ==
