@@ -1651,8 +1651,15 @@ defmodule File do
 
   @doc """
   Removes files and directories recursively at the given `path`.
-  Symlinks are not followed but simply removed, non-existing
-  files are simply ignored (i.e. doesn't make this function fail).
+  Non-existing files are simply ignored (i.e. doesn't make this
+  function fail).
+
+  Symlinks within the given `path` are not followed but simply
+  removed. However, the `path` itself is resolved by the operating
+  system, which follows symlinks in any of its components. For
+  example, if `link` is a symlink to a directory, `File.rm_rf("link")`
+  removes the symlink, while `File.rm_rf("link/")` removes the
+  contents of the directory it points to.
 
   Returns `{:ok, files_and_directories}` with all files and
   directories removed in no specific order, `{:error, reason, file}`
