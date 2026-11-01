@@ -2250,6 +2250,27 @@ defmodule Module.Types.ExprTest do
                atom([:non_empty_map, :maybe_empty_map])
     end
 
+    test "does not discard equal values when narrowing against negated types" do
+      assert typecheck!(
+               [v, q],
+               (
+                 other =
+                   case v do
+                     {a} when is_float(a) -> {:float, a}
+                     other -> other
+                   end
+
+                 w = if q, do: {1}, else: {1.5}
+
+                 case w do
+                   x when x == other -> {:matched, x}
+                   _ -> :nomatch
+                 end
+               )
+             )
+             |> to_quoted_string() == ":nomatch or {:matched, {float() or integer()}}"
+    end
+
     test "consider external variables as not precise" do
       assert typecheck!(
                [x],

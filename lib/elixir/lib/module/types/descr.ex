@@ -553,9 +553,22 @@ defmodule Module.Types.Descr do
 
   @doc """
   Converts all floats or integers into numbers.
+
+  Only types made of unions are converted, as widening a number
+  under a negation or an intersection would shrink the type.
+  In such cases, as well as for recursive types, we return `term()`.
   """
-  def numberize(:term), do: :term
-  def numberize(descr), do: numberize_each(descr, [:bitmap, :tuple, :map, :list, :dynamic])
+  def numberize_unions_or_term(:term), do: :term
+
+  def numberize_unions_or_term(descr) do
+    numberize(descr)
+  catch
+    :term -> :term
+  end
+
+  defp numberize(:term), do: :term
+  defp numberize({_, _, _}), do: throw(:term)
+  defp numberize(descr), do: numberize_each(descr, [:bitmap, :tuple, :map, :list, :dynamic])
 
   defp numberize_each(descr, [key | keys]) do
     case descr do
@@ -574,20 +587,41 @@ defmodule Module.Types.Descr do
   defp numberize(:bitmap, bitmap), do: bitmap
 
   defp numberize(:map, bdd) do
-    bdd_map(bdd, fn bdd_leaf(tag, fields) ->
+    numberize_bdd(bdd, fn bdd_leaf(tag, fields) ->
       bdd_leaf_new(
-        tag,
+        numberize_map_tag(tag),
         fields_map(fn _key, {value, optional?} -> {numberize(value), optional?} end, fields)
       )
     end)
   end
 
   defp numberize(:tuple, bdd) do
-    bdd_map(bdd, fn bdd_leaf(tag, fields) -> bdd_leaf_new(tag, Enum.map(fields, &numberize/1)) end)
+    numberize_bdd(bdd, fn bdd_leaf(tag, fields) ->
+      bdd_leaf_new(tag, Enum.map(fields, &numberize/1))
+    end)
   end
 
   defp numberize(:list, bdd) do
-    bdd_map(bdd, fn bdd_leaf(head, tail) -> bdd_leaf_new(numberize(head), numberize(tail)) end)
+    numberize_bdd(bdd, fn bdd_leaf(head, tail) ->
+      bdd_leaf_new(numberize(head), numberize(tail))
+    end)
+  end
+
+  # Domain keys are compared exactly, only their values are converted.
+  defp numberize_map_tag(domains) when is_list(domains),
+    do: fields_map(fn _key, value -> numberize(value) end, domains)
+
+  defp numberize_map_tag(tag), do: tag
+
+  # Only leaves and unions, (leaf and top) or union, are supported.
+  defp numberize_bdd(bdd, fun) do
+    case bdd do
+      :bdd_bot -> :bdd_bot
+      :bdd_top -> :bdd_top
+      bdd_leaf(_, _) = leaf -> fun.(leaf)
+      {_, leaf, :bdd_top, union, :bdd_bot} -> bdd_union(fun.(leaf), numberize_bdd(union, fun))
+      _ -> throw(:term)
+    end
   end
 
   @doc """

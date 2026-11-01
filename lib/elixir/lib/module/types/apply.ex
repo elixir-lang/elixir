@@ -852,7 +852,7 @@ defmodule Module.Types.Apply do
               # We are checking for `not x == 1` or similar, we can't say anything about x
               polarity == false -> term()
               # We are checking for `x == 1`, make sure x is integer or float
-              name in [:==, :"/="] -> numberize(type)
+              name in [:==, :"/="] -> numberize_unions_or_term(type)
               # Otherwise we have the literal type as is
               true -> type
             end

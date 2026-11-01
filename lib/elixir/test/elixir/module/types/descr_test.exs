@@ -2923,13 +2923,13 @@ defmodule Module.Types.DescrTest do
 
   describe "numberize" do
     test "with static" do
-      assert numberize(term()) == term()
+      assert numberize_unions_or_term(term()) == term()
 
       assert open_map(
                list: {list(integer(), atom()), false},
                tuple: {tuple([float(), binary(), integer()]), false}
              )
-             |> numberize() ==
+             |> numberize_unions_or_term() ==
                open_map(
                  list: {list(number(), atom()), false},
                  tuple: {tuple([number(), binary(), number()]), false}
@@ -2937,10 +2937,47 @@ defmodule Module.Types.DescrTest do
     end
 
     test "with dynamic" do
-      assert numberize(dynamic()) == dynamic()
+      assert numberize_unions_or_term(dynamic()) == dynamic()
 
-      assert dynamic(list(binary(), float())) |> numberize() ==
+      assert dynamic(list(binary(), float())) |> numberize_unions_or_term() ==
                dynamic(list(binary(), number()))
+    end
+
+    test "with domain keys" do
+      assert closed_map([{domain_key(:integer), integer()}]) |> numberize_unions_or_term() ==
+               closed_map([{domain_key(:integer), number()}])
+
+      assert open_map([{domain_key(:tuple), tuple([float()])}, {:a, {integer(), false}}])
+             |> numberize_unions_or_term() ==
+               open_map([{domain_key(:tuple), tuple([number()])}, {:a, {number(), false}}])
+    end
+
+    test "with unions" do
+      assert opt_union(tuple([integer()]), tuple([binary(), float()]))
+             |> numberize_unions_or_term() ==
+               opt_union(tuple([number()]), tuple([binary(), number()]))
+    end
+
+    test "with negations or intersections" do
+      assert opt_difference(term(), tuple([float()])) |> numberize_unions_or_term() == term()
+
+      assert opt_difference(open_map(a: {integer(), false}), closed_map(a: {integer(), false}))
+             |> numberize_unions_or_term() == term()
+
+      assert tuple([opt_difference(tuple(), tuple([float()]))]) |> numberize_unions_or_term() ==
+               term()
+
+      assert dynamic(opt_difference(non_empty_list(term()), non_empty_list(integer())))
+             |> numberize_unions_or_term() == term()
+    end
+
+    test "with recursive types" do
+      node =
+        recursive(%{x: fn recur -> opt_union(atom([nil]), tuple([integer(), recur.(:x)])) end}).x
+
+      assert numberize_unions_or_term(node) == term()
+      assert numberize_unions_or_term(tuple([node])) == term()
+      assert numberize_unions_or_term(dynamic(open_map(a: {node, false}))) == term()
     end
   end
 
