@@ -1140,5 +1140,15 @@ defmodule StringTest do
     assert_raise ArgumentError, fn ->
       String.to_existing_atom("baz", values)
     end
+
+    # the string is evaluated exactly once, also when it is not allowed
+    message = ~s(unexpected value: "baz", the allowed atoms are: [:foo, :bar])
+
+    assert_raise ArgumentError, message, fn ->
+      String.to_existing_atom(tap("baz", &send(self(), {:evaluated, &1})), [:foo, :bar])
+    end
+
+    assert_received {:evaluated, "baz"}
+    refute_received {:evaluated, _}
   end
 end
