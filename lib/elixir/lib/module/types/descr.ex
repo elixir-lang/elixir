@@ -654,76 +654,80 @@ defmodule Module.Types.Descr do
     * `:collapse_structs` - do not show struct fields that match
       their default type
   """
-  def to_quoted(descr, opts \\ [])
+  def to_quoted(descr, opts \\ []) do
+    recur =
+      if contains_recur?(descr),
+        do: recursive_to_quoted(%{}),
+        else: &non_recursive_to_quoted/2
 
-  # Print one unfolding under a binder; references to an enclosing node use its name.
-  def to_quoted({id, _state, _generator} = node, opts) do
-    bound = Keyword.get(opts, :recursive_nodes, %{})
+    recur.(descr, opts)
+  end
 
-    case bound do
-      %{^id => name} ->
-        {name, [], nil}
-
-      %{} ->
-        name = :"t#{map_size(bound) + 1}"
-
-        opts =
-          opts
-          |> Keyword.put(:recursive_nodes, Map.put(bound, id, name))
-          |> Keyword.put(:recursive_printing, true)
-
-        {:recur, [], [{name, [], nil}, to_quoted(expand_node(node), opts)]}
+  defp non_recursive_to_quoted(descr, opts) do
+    if term_type?(descr) do
+      {:term, [], []}
+    else
+      non_term_type_to_quoted(descr, &non_recursive_to_quoted/2, opts)
     end
   end
 
-  def to_quoted(:term, _opts), do: {:term, [], []}
+  # Print one unfolding under a binder; references to an enclosing node use its name.
+  defp recursive_to_quoted(bound) do
+    fn
+      {id, _state, _generator} = node, opts ->
+        case bound do
+          %{^id => name} ->
+            {name, [], nil}
 
-  def to_quoted(descr, opts) do
-    cond do
-      Keyword.get(opts, :recursive_printing, false) or contains_node?(descr) ->
-        recursive_descr_to_quoted(descr, Keyword.put(opts, :recursive_printing, true))
+          %{} ->
+            name = :"t#{map_size(bound) + 1}"
+            recur = recursive_to_quoted(Map.put(bound, id, name))
+            {:recur, [], [{name, [], nil}, recur.(expand_node(node), opts)]}
+        end
 
-      term_type?(descr) ->
+      :term, _opts ->
         {:term, [], []}
 
-      true ->
-        non_term_type_to_quoted(descr, opts)
+      descr, opts ->
+        recursive_descr_to_quoted(descr, recursive_to_quoted(bound), opts)
     end
   end
 
   # Find recursive nodes without running their generators.
-  defp contains_node?({id, state, generator})
+  defp contains_recur?({id, state, generator})
        when is_reference(id) and is_map(state) and is_function(generator, 1),
        do: true
 
-  defp contains_node?(term) when is_map(term),
-    do: Enum.any?(term, fn {key, value} -> contains_node?(key) or contains_node?(value) end)
+  defp contains_recur?(term) when is_map(term),
+    do: Enum.any?(term, fn {key, value} -> contains_recur?(key) or contains_recur?(value) end)
 
-  defp contains_node?(term) when is_tuple(term),
-    do: term |> Tuple.to_list() |> Enum.any?(&contains_node?/1)
+  defp contains_recur?(term) when is_tuple(term),
+    do: term |> Tuple.to_list() |> Enum.any?(&contains_recur?/1)
 
-  defp contains_node?([head | tail]), do: contains_node?(head) or contains_node?(tail)
-  defp contains_node?(_term), do: false
+  defp contains_recur?([head | tail]), do: contains_recur?(head) or contains_recur?(tail)
+  defp contains_recur?(_term), do: false
 
   # Print stored fields directly; combining recursive field types can loop.
   # Keep both parts of types such as integer() or dynamic(term()).
-  defp recursive_descr_to_quoted(descr, opts) do
+  defp recursive_descr_to_quoted(descr, recur, opts) do
     {dynamic, static} = Map.pop(descr, :dynamic, @none)
-    dynamic = if dynamic == @none, do: [], else: [{:dynamic, [], [to_quoted(dynamic, opts)]}]
+    dynamic = if dynamic == @none, do: [], else: [{:dynamic, [], [recur.(dynamic, opts)]}]
 
     static =
-      Enum.flat_map(static, fn {key, value} -> recursive_component_to_quoted(key, value, opts) end)
+      Enum.flat_map(static, fn {key, value} ->
+        recursive_component_to_quoted(key, value, recur, opts)
+      end)
 
     quoted_union(dynamic ++ Enum.sort(static))
   end
 
-  defp recursive_component_to_quoted(:fun, {tag, bdds}, opts) do
+  defp recursive_component_to_quoted(:fun, {tag, bdds}, recur, opts) do
     parts =
       Enum.flat_map(bdds, fn {arity, bdd} ->
         arity = {:__block__, [token: Integer.to_string(arity)], [arity]}
 
         boolean_to_quoted(bdd, {:fun, [], [arity]}, fn literal ->
-          recursive_literal_to_quoted(:fun, literal, opts)
+          recursive_literal_to_quoted(:fun, literal, recur, opts)
         end)
       end)
 
@@ -734,23 +738,24 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp recursive_component_to_quoted(key, bdd, opts) when key in [:tuple, :map, :list] do
+  defp recursive_component_to_quoted(key, bdd, recur, opts) when key in [:tuple, :map, :list] do
     all_values =
       case key do
-        :tuple -> tuple_fields_to_quoted(:open, [], opts)
+        :tuple -> tuple_fields_to_quoted(:open, [], recur, opts)
         :map -> {:map, [], []}
         :list -> {:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}
       end
 
-    boolean_to_quoted(bdd, all_values, &recursive_literal_to_quoted(key, &1, opts))
+    boolean_to_quoted(bdd, all_values, &recursive_literal_to_quoted(key, &1, recur, opts))
   end
 
-  defp recursive_component_to_quoted(key, value, opts), do: to_quoted(key, value, opts)
+  defp recursive_component_to_quoted(key, value, recur, opts),
+    do: to_quoted(key, value, recur, opts)
 
-  defp recursive_literal_to_quoted(:tuple, bdd_leaf(tag, elements), opts),
-    do: tuple_fields_to_quoted(tag, elements, opts)
+  defp recursive_literal_to_quoted(:tuple, bdd_leaf(tag, elements), recur, opts),
+    do: tuple_fields_to_quoted(tag, elements, recur, opts)
 
-  defp recursive_literal_to_quoted(:map, bdd_leaf(tag, fields), opts) do
+  defp recursive_literal_to_quoted(:map, bdd_leaf(tag, fields), recur, opts) do
     keyword? = Inspect.List.keyword?(fields)
 
     regular =
@@ -758,7 +763,7 @@ defmodule Module.Types.Descr do
         key =
           if keyword?, do: {:__block__, [format: :keyword], [key]}, else: literal_to_quoted(key)
 
-        value = to_quoted(type, opts)
+        value = recur.(type, opts)
         {key, if(optional?, do: {:if_set, [], [value]}, else: value)}
       end)
 
@@ -772,18 +777,18 @@ defmodule Module.Types.Descr do
 
         domains ->
           Enum.map(fields_to_list(domains), fn {key, type} ->
-            {map_domain_key_to_quoted(key), to_quoted(type, opts)}
+            {map_domain_key_to_quoted(key), recur.(type, opts)}
           end) ++ regular
       end
 
     {:%{}, [], fields}
   end
 
-  defp recursive_literal_to_quoted(:list, @non_empty_list_top, _opts),
+  defp recursive_literal_to_quoted(:list, @non_empty_list_top, _recur, _opts),
     do: {:non_empty_list, [], [{:term, [], []}, {:term, [], []}]}
 
-  defp recursive_literal_to_quoted(:list, bdd_leaf(elements, tail), opts) do
-    elements = to_quoted(elements, opts)
+  defp recursive_literal_to_quoted(:list, bdd_leaf(elements, tail), recur, opts) do
+    elements = recur.(elements, opts)
 
     case tail do
       tail when tail == @empty_list ->
@@ -794,17 +799,15 @@ defmodule Module.Types.Descr do
         {:non_empty_list, [], [elements, non_list]}
 
       %{} ->
-        {:non_empty_list, [], [elements, to_quoted(Map.delete(tail, :list), opts)]}
+        {:non_empty_list, [], [elements, recur.(Map.delete(tail, :list), opts)]}
 
       node ->
-        {:non_empty_list, [], [elements, to_quoted(node, opts)]}
+        {:non_empty_list, [], [elements, recur.(node, opts)]}
     end
   end
 
-  defp recursive_literal_to_quoted(:fun, bdd_leaf(args, return), opts),
-    do:
-      {:__block__, [],
-       [[{:->, [], [Enum.map(args, &to_quoted(&1, opts)), to_quoted(return, opts)]}]]}
+  defp recursive_literal_to_quoted(:fun, bdd_leaf(args, return), recur, opts),
+    do: {:__block__, [], [[{:->, [], [Enum.map(args, &recur.(&1, opts)), recur.(return, opts)]}]]}
 
   defp boolean_to_quoted(bdd, all_values, literal_to_quoted) do
     Enum.map(bdd_to_dnf(bdd), fn {pos, negs} ->
@@ -823,7 +826,7 @@ defmodule Module.Types.Descr do
   defp quoted_union([]), do: {:none, [], []}
   defp quoted_union(parts), do: Enum.reduce(parts, &{:or, [], [&2, &1]})
 
-  defp non_term_type_to_quoted(descr, opts) do
+  defp non_term_type_to_quoted(descr, recur, opts) do
     {dynamic, static, extra} =
       case :maps.take(:dynamic, descr) do
         :error ->
@@ -841,18 +844,18 @@ defmodule Module.Types.Descr do
               {:term, static, []}
 
             # We need to check for quoted here before we compute the difference below
-            quoted = maybe_negated_term_type_to_quoted(static, opts) ->
+            quoted = maybe_negated_term_type_to_quoted(static, recur, opts) ->
               {dynamic, %{}, [quoted]}
 
             # Denormalize functions (only unions) before we do the difference
             true ->
-              {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+              {static, dynamic, extra} = fun_denormalize(static, dynamic, recur, opts)
               {bare_difference(dynamic, static), static, extra}
           end
       end
 
     {static, extra} =
-      if quoted = maybe_negated_term_type_to_quoted(static, opts) do
+      if quoted = maybe_negated_term_type_to_quoted(static, recur, opts) do
         {%{}, [quoted | extra]}
       else
         {static, extra}
@@ -860,7 +863,8 @@ defmodule Module.Types.Descr do
 
     # Dynamic always come first for visibility
     unions =
-      to_quoted(:dynamic, dynamic, opts) ++ static_non_term_type_to_quoted(static, extra, opts)
+      to_quoted(:dynamic, dynamic, recur, opts) ++
+        static_non_term_type_to_quoted(static, extra, recur, opts)
 
     case unions do
       [] -> {:none, [], []}
@@ -868,7 +872,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp static_non_term_type_to_quoted(static, extra, opts) do
+  defp static_non_term_type_to_quoted(static, extra, recur, opts) do
     # Merge empty list and list together if they both exist
     {extra, static} =
       case static do
@@ -878,29 +882,31 @@ defmodule Module.Types.Descr do
             |> Map.delete(:list)
             |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
 
-          {list_to_quoted(list, true, opts) ++ extra, static}
+          {list_to_quoted(list, true, recur, opts) ++ extra, static}
 
         %{} ->
           {extra, static}
       end
 
-    Enum.sort(extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, opts) end))
+    Enum.sort(
+      extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, recur, opts) end)
+    )
   end
 
-  defp to_quoted(:atom, val, _opts), do: atom_to_quoted(val)
-  defp to_quoted(:bitmap, val, _opts), do: bitmap_to_quoted(val)
-  defp to_quoted(:dynamic, descr, opts), do: dynamic_to_quoted(descr, opts)
-  defp to_quoted(:map, bdd, opts), do: map_to_quoted(bdd, opts)
-  defp to_quoted(:list, bdd, opts), do: list_to_quoted(bdd, false, opts)
-  defp to_quoted(:tuple, bdd, opts), do: tuple_to_quoted(bdd, opts)
-  defp to_quoted(:fun, bdd, opts), do: fun_to_quoted(bdd, opts)
+  defp to_quoted(:atom, val, _recur, _opts), do: atom_to_quoted(val)
+  defp to_quoted(:bitmap, val, _recur, _opts), do: bitmap_to_quoted(val)
+  defp to_quoted(:dynamic, descr, recur, opts), do: dynamic_to_quoted(descr, recur, opts)
+  defp to_quoted(:map, bdd, recur, opts), do: map_to_quoted(bdd, recur, opts)
+  defp to_quoted(:list, bdd, recur, opts), do: list_to_quoted(bdd, false, recur, opts)
+  defp to_quoted(:tuple, bdd, recur, opts), do: tuple_to_quoted(bdd, recur, opts)
+  defp to_quoted(:fun, bdd, recur, opts), do: fun_to_quoted(bdd, recur, opts)
 
-  defp maybe_negated_term_type_to_quoted(static, opts) do
+  defp maybe_negated_term_type_to_quoted(static, recur, opts) do
     if print_as_negated_type?(static) do
       static
       |> bare_negation()
       |> unfold()
-      |> static_non_term_type_to_quoted([], opts)
+      |> static_non_term_type_to_quoted([], recur, opts)
       |> case do
         [] ->
           nil
@@ -2175,13 +2181,14 @@ defmodule Module.Types.Descr do
   defp fun_denormalize(
          %{fun: {:union, static_repr}} = static,
          %{fun: {:union, dynamic_repr}} = dynamic,
+         recur,
          opts
        ) do
     {static_repr, dynamic_repr, acc} =
       Enum.reduce(static_repr, {static_repr, dynamic_repr, []}, fn
         {arity, static_bdd}, {statics, dynamics, acc} ->
           with %{^arity => dynamic_bdd} <- dynamics,
-               {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
+               {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, recur, opts) do
             {Map.delete(statics, arity), Map.delete(dynamics, arity), [quoted | acc]}
           else
             _ -> {statics, dynamics, acc}
@@ -2192,14 +2199,14 @@ defmodule Module.Types.Descr do
   end
 
   # If not unions of functions, do not try to denormalize.
-  defp fun_denormalize(static, dynamic, _opts) do
+  defp fun_denormalize(static, dynamic, _recur, _opts) do
     {static, dynamic, []}
   end
 
   defp fun_replace_arities(descr, arities) when arities == %{}, do: Map.delete(descr, :fun)
   defp fun_replace_arities(descr, arities), do: %{descr | fun: {:union, arities}}
 
-  defp fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
+  defp fun_denormalize_arity(arity, static_bdd, dynamic_bdd, recur, opts) do
     static_pos = fun_bdd_to_pos_dnf(arity, static_bdd)
     dynamic_pos = fun_bdd_to_pos_dnf(arity, dynamic_bdd)
 
@@ -2213,13 +2220,13 @@ defmodule Module.Types.Descr do
         quoted =
           case dynamic_pos do
             [] ->
-              fun_pos_to_quoted(static_pos, opts)
+              fun_pos_to_quoted(static_pos, recur, opts)
 
             _ ->
               {:or, [],
                [
-                 {:dynamic, [], [fun_pos_to_quoted(dynamic_pos, opts)]},
-                 fun_pos_to_quoted(static_pos, opts)
+                 {:dynamic, [], [fun_pos_to_quoted(dynamic_pos, recur, opts)]},
+                 fun_pos_to_quoted(static_pos, recur, opts)
                ]}
           end
 
@@ -2295,8 +2302,8 @@ defmodule Module.Types.Descr do
   defp pivot([], _acc, _fun), do: :error
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation
-  defp fun_to_quoted({:negation, bdds}, opts) do
-    case fun_to_quoted({:union, bdds}, opts) do
+  defp fun_to_quoted({:negation, bdds}, recur, opts) do
+    case fun_to_quoted({:union, bdds}, recur, opts) do
       [] ->
         [{:fun, [], []}]
 
@@ -2306,11 +2313,11 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp fun_to_quoted({:union, bdds}, opts) do
+  defp fun_to_quoted({:union, bdds}, recur, opts) do
     for {arity, bdd} <- bdds,
         pos = fun_bdd_to_pos_dnf(arity, bdd),
         pos != [],
-        do: fun_pos_to_quoted(pos, opts)
+        do: fun_pos_to_quoted(pos, recur, opts)
   end
 
   defp fun_bdd_to_pos_dnf(arity, :bdd_top) do
@@ -2348,21 +2355,20 @@ defmodule Module.Types.Descr do
     fun_eliminate_unions(tail, [head | acc])
   end
 
-  defp fun_pos_to_quoted([_ | _] = pos, opts) do
+  defp fun_pos_to_quoted([_ | _] = pos, recur, opts) do
     opts = Keyword.put(opts, :skip_dynamic_for_indivisible, false)
 
     pos
     |> Enum.sort()
-    |> Enum.map(&fun_intersection_to_quoted(&1, opts))
+    |> Enum.map(&fun_intersection_to_quoted(&1, recur, opts))
     |> Enum.reduce(&{:or, [], [&2, &1]})
   end
 
-  defp fun_intersection_to_quoted(intersection, opts) do
+  defp fun_intersection_to_quoted(intersection, recur, opts) do
     intersection
     |> Enum.sort()
     |> Enum.map(fn bdd_leaf(args, ret) ->
-      {:__block__, [],
-       [[{:->, [], [Enum.map(args, &to_quoted(&1, opts)), to_quoted(ret, opts)]}]]}
+      {:__block__, [], [[{:->, [], [Enum.map(args, &recur.(&1, opts)), recur.(ret, opts)]}]]}
     end)
     |> case do
       [] -> {:fun, [], []}
@@ -2747,7 +2753,7 @@ defmodule Module.Types.Descr do
 
   defp list_tl_static(%{}), do: none()
 
-  defp list_to_quoted(bdd, empty?, opts) do
+  defp list_to_quoted(bdd, empty?, recur, opts) do
     dnf = list_normalize(bdd)
 
     {unions, list_rendered?} =
@@ -2757,15 +2763,15 @@ defmodule Module.Types.Descr do
           cond do
             subtype?(last_type, @empty_list) ->
               name = if empty?, do: :list, else: :non_empty_list
-              {name, [to_quoted(list_type, opts)], empty?}
+              {name, [recur.(list_type, opts)], empty?}
 
             # Sugar: print the last type as term() if it only misses non empty lists.
             subtype?(@not_non_empty_list, last_type) ->
-              args = [to_quoted(list_type, opts), {:term, [], []}]
+              args = [recur.(list_type, opts), {:term, [], []}]
               {:non_empty_list, args, list_rendered?}
 
             true ->
-              args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
+              args = [recur.(list_type, opts), recur.(last_type, opts)]
               {:non_empty_list, args, list_rendered?}
           end
 
@@ -2777,9 +2783,9 @@ defmodule Module.Types.Descr do
             |> non_empty_map_or(fn bdd_leaf(ty, lst) ->
               args =
                 if subtype?(lst, @empty_list) do
-                  [to_quoted(ty, opts)]
+                  [recur.(ty, opts)]
                 else
-                  [to_quoted(ty, opts), to_quoted(lst, opts)]
+                  [recur.(ty, opts), recur.(lst, opts)]
                 end
 
               {:non_empty_list, [], args}
@@ -2927,7 +2933,7 @@ defmodule Module.Types.Descr do
 
   defp iterator_dynamic_difference(:none, map, _fun), do: map
 
-  defp dynamic_to_quoted(descr, opts) do
+  defp dynamic_to_quoted(descr, recur, opts) do
     cond do
       # We check for :term literally instead of using term_type?
       # because we check for term_type? in to_quoted before we
@@ -2942,7 +2948,7 @@ defmodule Module.Types.Descr do
         []
 
       true ->
-        case non_term_type_to_quoted(descr, opts) do
+        case non_term_type_to_quoted(descr, recur, opts) do
           {:none, _meta, []} = none -> [none]
           descr -> [{:dynamic, [], [descr]}]
         end
@@ -4982,57 +4988,57 @@ defmodule Module.Types.Descr do
     {{map_domain_tag_to_type(tag, domain_key), true}, map_new(tag, fields)}
   end
 
-  defp map_to_quoted(bdd, opts) do
+  defp map_to_quoted(bdd, recur, opts) do
     bdd
     |> map_bdd_to_dnf_with_empty()
     |> Enum.flat_map(fn {tag, fields, negs} ->
       opt_map_eliminate_while_negs_decrease(tag, fields, negs)
     end)
     |> opt_map_fusion()
-    |> Enum.map(&map_each_to_quoted(&1, opts))
+    |> Enum.map(&map_each_to_quoted(&1, recur, opts))
   end
 
-  defp map_each_to_quoted({tag, positive_map, negative_maps}, opts) do
+  defp map_each_to_quoted({tag, positive_map, negative_maps}, recur, opts) do
     case negative_maps do
       [] ->
-        map_literal_to_quoted({tag, positive_map}, opts)
+        map_literal_to_quoted({tag, positive_map}, recur, opts)
 
       _ ->
         negative_maps
-        |> non_empty_map_or(&map_literal_to_quoted(&1, opts))
+        |> non_empty_map_or(&map_literal_to_quoted(&1, recur, opts))
         |> Kernel.then(
-          &{:and, [], [map_literal_to_quoted({tag, positive_map}, opts), {:not, [], [&1]}]}
+          &{:and, [], [map_literal_to_quoted({tag, positive_map}, recur, opts), {:not, [], [&1]}]}
         )
     end
   end
 
-  defp map_literal_to_quoted({:closed, []}, _opts) do
+  defp map_literal_to_quoted({:closed, []}, _recur, _opts) do
     {:empty_map, [], []}
   end
 
-  defp map_literal_to_quoted({:open, []}, _opts) do
+  defp map_literal_to_quoted({:open, []}, _recur, _opts) do
     {:map, [], []}
   end
 
-  defp map_literal_to_quoted({hash, tag, fields}, opts) when is_integer(hash) do
-    map_literal_to_quoted({tag, fields}, opts)
+  defp map_literal_to_quoted({hash, tag, fields}, recur, opts) when is_integer(hash) do
+    map_literal_to_quoted({tag, fields}, recur, opts)
   end
 
-  defp map_literal_to_quoted({[], []}, _opts) do
+  defp map_literal_to_quoted({[], []}, _recur, _opts) do
     {:empty_map, [], []}
   end
 
-  defp map_literal_to_quoted({:open, [{:__struct__, {@not_atom, true}}]}, _opts) do
+  defp map_literal_to_quoted({:open, [{:__struct__, {@not_atom, true}}]}, _recur, _opts) do
     {:non_struct_map, [], []}
   end
 
-  defp map_literal_to_quoted({domains, fields}, opts) when is_list(domains) do
-    domain_fields = map_domain_fields_to_quoted(fields_to_list(domains), opts)
-    regular_fields_quoted = map_fields_to_quoted(:closed, fields, opts)
+  defp map_literal_to_quoted({domains, fields}, recur, opts) when is_list(domains) do
+    domain_fields = map_domain_fields_to_quoted(fields_to_list(domains), recur, opts)
+    regular_fields_quoted = map_fields_to_quoted(:closed, fields, recur, opts)
     {:%{}, [], domain_fields ++ regular_fields_quoted}
   end
 
-  defp map_literal_to_quoted({tag, fields}, opts) do
+  defp map_literal_to_quoted({tag, fields}, recur, opts) do
     case tag do
       :closed ->
         with {:ok, {struct_descr, false}} <- fields_find(:__struct__, fields),
@@ -5052,45 +5058,46 @@ defmodule Module.Types.Descr do
           {:%, [],
            [
              literal_to_quoted(struct),
-             {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
+             {:%{}, [], map_fields_to_quoted(tag, fields, recur, opts)}
            ]}
         else
           _ ->
-            {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
+            {:%{}, [], map_fields_to_quoted(tag, fields, recur, opts)}
         end
 
       :open ->
-        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields, opts)]}
+        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields, recur, opts)]}
     end
   end
 
   defp map_domain_fields_to_quoted(
          [{:binary, value_type}, {:bitstring_no_binary, value_type} | fields],
+         recur,
          opts
        ) do
     [
-      map_domain_field_to_quoted(:bitstring, value_type, opts)
-      | map_domain_fields_to_quoted(fields, opts)
+      map_domain_field_to_quoted(:bitstring, value_type, recur, opts)
+      | map_domain_fields_to_quoted(fields, recur, opts)
     ]
   end
 
-  defp map_domain_fields_to_quoted([{domain_key, value_type} | fields], opts) do
+  defp map_domain_fields_to_quoted([{domain_key, value_type} | fields], recur, opts) do
     [
-      map_domain_field_to_quoted(domain_key, value_type, opts)
-      | map_domain_fields_to_quoted(fields, opts)
+      map_domain_field_to_quoted(domain_key, value_type, recur, opts)
+      | map_domain_fields_to_quoted(fields, recur, opts)
     ]
   end
 
-  defp map_domain_fields_to_quoted([], _opts) do
+  defp map_domain_fields_to_quoted([], _recur, _opts) do
     []
   end
 
-  defp map_domain_field_to_quoted(domain_key, value_type, opts) do
+  defp map_domain_field_to_quoted(domain_key, value_type, recur, opts) do
     value_quoted =
       if empty?(value_type) do
         {:not_set, [], []}
       else
-        to_quoted(value_type, opts)
+        recur.(value_type, opts)
       end
 
     {map_domain_key_to_quoted(domain_key), value_quoted}
@@ -5109,7 +5116,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_fields_to_quoted(tag, sorted, opts) do
+  defp map_fields_to_quoted(tag, sorted, recur, opts) do
     keyword? = Inspect.List.keyword?(sorted)
 
     for {key, {type, optional?}} <- sorted,
@@ -5121,15 +5128,15 @@ defmodule Module.Types.Descr do
           literal_to_quoted(key)
         end
 
-      {key, map_value_to_quoted(type, optional?, opts)}
+      {key, map_value_to_quoted(type, optional?, recur, opts)}
     end
   end
 
-  defp map_value_to_quoted(type, optional?, opts) do
+  defp map_value_to_quoted(type, optional?, recur, opts) do
     cond do
-      not optional? -> to_quoted(type, opts)
+      not optional? -> recur.(type, opts)
       empty?(type) -> {:not_set, [], []}
-      true -> {:if_set, [], [to_quoted(type, opts)]}
+      true -> {:if_set, [], [recur.(type, opts)]}
     end
   end
 
@@ -5583,10 +5590,10 @@ defmodule Module.Types.Descr do
   defp tuple_union(_, bdd_leaf(:open, []) = leaf), do: leaf
   defp tuple_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
 
-  defp tuple_to_quoted(bdd, opts) do
+  defp tuple_to_quoted(bdd, recur, opts) do
     tuple_bdd_to_dnf_with_negations(bdd)
     |> opt_tuple_fusion()
-    |> Enum.map(&tuple_literal_to_quoted(&1, opts))
+    |> Enum.map(&tuple_literal_to_quoted(&1, recur, opts))
   end
 
   # Transforms a bdd into a union of tuples with no negations.
@@ -5620,20 +5627,20 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp tuple_literal_to_quoted({:closed, [], []}, _opts), do: {:{}, [], []}
+  defp tuple_literal_to_quoted({:closed, [], []}, _recur, _opts), do: {:{}, [], []}
 
-  defp tuple_literal_to_quoted({tag, elements, negs}, opts) do
-    pos = tuple_fields_to_quoted(tag, elements, opts)
+  defp tuple_literal_to_quoted({tag, elements, negs}, recur, opts) do
+    pos = tuple_fields_to_quoted(tag, elements, recur, opts)
 
     Enum.reduce(negs, pos, fn bdd_leaf(tag, elements), acc ->
-      {:and, [], [acc, {:not, [], [tuple_fields_to_quoted(tag, elements, opts)]}]}
+      {:and, [], [acc, {:not, [], [tuple_fields_to_quoted(tag, elements, recur, opts)]}]}
     end)
   end
 
-  defp tuple_fields_to_quoted(tag, elements, opts) do
+  defp tuple_fields_to_quoted(tag, elements, recur, opts) do
     case tag do
-      :closed -> {:{}, [], Enum.map(elements, &to_quoted(&1, opts))}
-      :open -> {:{}, [], Enum.map(elements, &to_quoted(&1, opts)) ++ [{:..., [], nil}]}
+      :closed -> {:{}, [], Enum.map(elements, &recur.(&1, opts))}
+      :open -> {:{}, [], Enum.map(elements, &recur.(&1, opts)) ++ [{:..., [], nil}]}
     end
   end
 
