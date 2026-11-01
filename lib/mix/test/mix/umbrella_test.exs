@@ -405,6 +405,23 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.clear()
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Compile-time dependencies are recompiled even if
+        # they were compiled within the same second as us
+        File.write!("../foo/lib/foo.ex", "defmodule Foo, do: def(foo, do: :changed)")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
+
+        Mix.Task.clear()
+        Mix.Task.run("deps.loadpaths")
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
+
+        File.touch!(
+          "_build/dev/lib/bar/.mix/compile.elixir",
+          File.stat!("_build/dev/lib/foo/.mix/compile.elixir", time: :posix).mtime
+        )
+
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
 
       # Now let's add a new file to foo
