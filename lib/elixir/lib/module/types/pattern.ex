@@ -1181,6 +1181,8 @@ defmodule Module.Types.Pattern do
 
   # <<>>
   def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
+    # Building binaries may fail depending on the values
+    if args != [], do: guard_may_fail(stack)
     Of.bitstring(args, :guard, stack, context)
   end
 
@@ -1332,6 +1334,10 @@ defmodule Module.Types.Pattern do
       right == [] ->
         of_guard(left, expected, left, stack, context)
 
+      # We are checking if an outer operand fails, see guard_fail_operand/3
+      stack.reverse_arrow == :throw_none ->
+        {boolean(), of_logical_fail([left | right], fun, stack, context)}
+
       true ->
         cond_context = %{context | conditional_vars: %{}}
         stack = %{stack | reverse_arrow: :include_none}
@@ -1352,14 +1358,28 @@ defmodule Module.Types.Pattern do
               context
           end
 
-        {type, vars_conds} =
-          of_logical_cond([left | right], none(), [], expected, stack, cond_context)
+        # The sure types already discard the values in which the leftmost
+        # operand fails, as those never reach the other operands, so we
+        # check if the leftmost operand fails considering the sure types.
+        left_context = %{context | conditional_vars: %{}}
+        left_fail? = guard_fail_operand(left, stack, left_context)
+
+        {type, vars_conds, _} =
+          of_logical_cond([left], none(), [], false, expected, stack, left_context)
+
+        {type, vars_conds, fail?} =
+          of_logical_cond(right, type, vars_conds, left_fail?, expected, stack, cond_context)
+
+        # If any operand but the last may fail, the operands after it do not
+        # run for some values, so the operands no longer represent the exact
+        # values the guard accepts.
+        precise? = Of.all_same_conditional_vars?(vars_conds) and not fail?
 
         # We will be precise if all branches changed the same variable
         context =
           update_in(context.pattern_info.vars, fn
             false -> false
-            vars -> Of.all_same_conditional_vars?(vars_conds) and vars
+            vars -> precise? and vars
           end)
 
         {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
@@ -1423,6 +1443,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_remote(fun, args, call, expected, stack, context) do
+    guard_fail(fun, args, stack)
     Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
   end
 
@@ -1482,16 +1503,118 @@ defmodule Module.Types.Pattern do
     of_logical_all(tail, disjoint?, expected, to_abort, stack, context)
   end
 
-  defp of_logical_cond([head | tail], acc_type, acc_vars, expected, stack, context) do
+  # Also returns if any operand but the last may fail
+  defp of_logical_cond([head | tail], acc_type, acc_vars, acc_fail?, expected, stack, context) do
+    # The last operand may fail, as no other operand runs after it
+    acc_fail? = acc_fail? or (tail != [] and guard_fail_operand(head, stack, context))
+
     {type, %{vars: vars, conditional_vars: cond_vars}} =
       of_guard(head, expected, head, stack, context)
 
     acc_vars = [{vars, cond_vars} | acc_vars]
-    of_logical_cond(tail, opt_union(acc_type, type), acc_vars, expected, stack, context)
+    acc_type = opt_union(acc_type, type)
+    of_logical_cond(tail, acc_type, acc_vars, acc_fail?, expected, stack, context)
   end
 
-  defp of_logical_cond([], acc_type, acc_vars, _expected, _stack, _context) do
-    {acc_type, acc_vars}
+  defp of_logical_cond([], acc_type, acc_vars, acc_fail?, _expected, _stack, _context) do
+    {acc_type, acc_vars, acc_fail?}
+  end
+
+  ## Guard failures
+  #
+  # Once a guard fails (raises), the whole guard fails. This means that in
+  # `a orelse b`, `b` only runs when `a` returns false, which is not the same
+  # as `a` not returning true. So when analyzing or/and conditionals, we check
+  # if each operand, except the last, may fail, as the operands after it do not
+  # run for the values it fails on.
+  #
+  # To check if an operand fails, we type it with an expected boolean and the
+  # `:throw_none` reverse arrow. An expected boolean does not prune the domain
+  # of the functions it calls, so if any variable is refined, it is because it
+  # may be outside of the domain of some function, which throws (see
+  # `Of.refine_body_var/5`). Operands which are not booleans are also refined
+  # and therefore fail. Failures that depend on values throw in `guard_fail/3`.
+
+  # Guard functions which accept any term
+  @term_domain [:==, :"/=", :"=:=", :"=/=", :<, :>, :"=<", :>=] ++
+                 [:is_atom, :is_binary, :is_bitstring, :is_boolean, :is_float, :is_function] ++
+                 [:is_integer, :is_list, :is_map, :is_number, :is_pid, :is_port] ++
+                 [:is_reference, :is_tuple]
+
+  defp guard_may_fail(%{reverse_arrow: :throw_none}), do: throw(:guard_fail)
+  defp guard_may_fail(_stack), do: :ok
+
+  defp guard_fail(fun, args, %{reverse_arrow: :throw_none}) do
+    if fail_on_value?(fun, args), do: throw(:guard_fail), else: :ok
+  end
+
+  defp guard_fail(_fun, _args, _stack), do: :ok
+
+  # Guard functions which may fail even when their arguments are within their
+  # domain (such as `div(x, 0)`). All others only fail outside of their domain,
+  # except `xor/2`, which we list because it does not have a signature.
+  defp fail_on_value?(:element, [index, _]), do: not (is_integer(index) and index > 0)
+  defp fail_on_value?(:is_function, [_, arity]), do: not (is_integer(arity) and arity >= 0)
+  defp fail_on_value?(:*, _args), do: true
+  defp fail_on_value?(:+, _args), do: true
+  defp fail_on_value?(:-, _args), do: true
+  defp fail_on_value?(:/, _args), do: true
+  defp fail_on_value?(:binary_part, _args), do: true
+  defp fail_on_value?(:bsl, _args), do: true
+  defp fail_on_value?(:bsr, _args), do: true
+  defp fail_on_value?(:div, _args), do: true
+  defp fail_on_value?(:float, _args), do: true
+  defp fail_on_value?(:rem, _args), do: true
+  defp fail_on_value?(:xor, _args), do: true
+  defp fail_on_value?(_fun, _args), do: false
+
+  # If the guard is already imprecise, there is no need to check
+  defp guard_fail_operand(_operand, _stack, %{pattern_info: %{vars: false}}), do: false
+
+  # Calls on variables and literals with term domains cannot fail,
+  # such as `is_integer(x)` and `x == 1`, so we skip typing them
+  defp guard_fail_operand({{:., _, [:erlang, fun]}, _, args} = operand, stack, context) do
+    cond do
+      fail_on_value?(fun, args) ->
+        true
+
+      fun in @term_domain and Enum.all?(args, &(is_var(&1) or Macro.quoted_literal?(&1))) ->
+        false
+
+      true ->
+        guard_fail_typing(operand, stack, context)
+    end
+  end
+
+  defp guard_fail_operand(operand, stack, context) do
+    guard_fail_typing(operand, stack, context)
+  end
+
+  defp guard_fail_typing(operand, stack, context) do
+    # We mark the guard as imprecise, so we don't check nested operands
+    context = put_in(context.pattern_info.vars, false)
+    stack = %{stack | reverse_arrow: :throw_none}
+    of_guard(operand, boolean(), operand, stack, context)
+    false
+  catch
+    :guard_fail -> true
+  end
+
+  # Checks the operands of an or/and conditional while checking if an
+  # outer operand fails. Each operand runs only if the previous ones
+  # returned true (andalso) or false (orelse), so we refine them so.
+  defp of_logical_fail(operands, fun, stack, context) do
+    refine_stack = %{stack | reverse_arrow: :include_none}
+
+    Enum.reduce(operands, context, fn operand, context ->
+      of_guard(operand, boolean(), operand, stack, context)
+
+      case fun do
+        :andalso -> elem(of_guard(operand, @atom_true, operand, refine_stack, context), 1)
+        :orelse -> elem(of_guard(operand, @atom_false, operand, refine_stack, context), 1)
+        _ -> context
+      end
+    end)
   end
 
   ## Helpers

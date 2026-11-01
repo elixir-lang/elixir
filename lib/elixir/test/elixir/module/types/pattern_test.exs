@@ -1485,6 +1485,56 @@ defmodule Module.Types.PatternTest do
       refute precise?([x], x <= 0 or x == :infinity)
     end
 
+    test "guards which may fail" do
+      # If an operand fails, the whole guard fails, so the following
+      # operands do not run for the values the operand fails on
+      refute precise?([x], is_integer(x) or tuple_size(x) == 2 or is_atom(x))
+
+      refute precise?(
+               [x],
+               ((is_integer(x) or is_tuple(x)) and tuple_size(x) == 2) or is_integer(x)
+             )
+
+      refute precise?([x], not (is_number(x) and tuple_size(x) == 2 and is_atom(x)))
+      refute precise?([x], is_integer(x) or elem(x, 0) == :ok or is_atom(x))
+      refute precise?([x], is_integer(x) or :erlang.map_get(:key, x) == :ok or is_atom(x))
+      refute precise?([x], is_integer(x) or x.key == :ok or is_atom(x))
+      refute precise?([x], is_integer(x) or is_map_key(x, :key) or is_atom(x))
+      refute precise?([x], is_integer(x) or (is_tuple(x) and elem(x, 0) == :ok) or is_atom(x))
+      refute precise?([x, y], is_integer(x) or is_integer(div(y, 2)) or is_atom(x))
+      refute precise?([x, y], is_integer(x) or elem(x, y) == :ok or is_atom(x))
+
+      # The operands of orelse, except the last, fail if they are not booleans
+      refute precise?([x], is_integer(x) or x or is_atom(x))
+      assert precise?([x], x or is_atom(x))
+
+      # The sure types already handle failures on the leftmost operand
+      assert precise?([x], tuple_size(x) == 2 or is_atom(x))
+      assert precise?([x], elem(x, 0) == :ok or is_atom(x))
+
+      # Failures on the last operand do not affect other operands
+      assert precise?([x], is_integer(x) or is_atom(x) or tuple_size(x) == 2)
+      assert precise?([x], is_integer(x) or x.key == :ok)
+
+      # Operands of orelse only run when the previous ones return false
+      assert precise?(
+               [x],
+               is_integer(x) or ((not is_tuple(x) or tuple_size(x) == 2) and is_atom(x)) or
+                 is_float(x)
+             )
+
+      # Operands which cannot fail
+      assert precise?([x], is_integer(x) or (is_tuple(x) and tuple_size(x) == 2) or is_atom(x))
+      assert precise?([x], is_integer(x) or (is_map(x) and map_size(x) == 0) or is_atom(x))
+      assert precise?([x], is_integer(x) or (is_map(x) and is_map_key(x, :key)) or is_atom(x))
+
+      assert precise?(
+               [x],
+               is_integer(x) or (is_tuple(x) and tuple_size(x) > 0 and elem(x, 0) == :ok) or
+                 is_atom(x)
+             )
+    end
+
     test "when guards" do
       assert precise?([x, y], is_integer(x) when is_binary(x))
       refute precise?([x, y], is_integer(x) when is_binary(y))

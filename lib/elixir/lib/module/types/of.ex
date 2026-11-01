@@ -110,10 +110,16 @@ defmodule Module.Types.Of do
       _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
         {old_type, context}
 
-      %{reverse_arrow: reverse_arrow} when reverse_arrow in [:except_none, :include_none] ->
+      # :throw_none is used to check if a guard may fail by
+      # throwing on any refinement, see Module.Types.Pattern
+      %{reverse_arrow: reverse_arrow}
+      when reverse_arrow in [:except_none, :include_none, :throw_none] ->
         new_type = opt_intersection(old_type, type)
 
         case empty?(new_type) do
+          true when reverse_arrow == :throw_none ->
+            throw(:guard_fail)
+
           true when reverse_arrow == :include_none ->
             data = %{
               data
@@ -124,6 +130,8 @@ defmodule Module.Types.Of do
             {none(), %{context | vars: %{vars | version => data}}}
 
           false when new_type != old_type ->
+            if reverse_arrow == :throw_none, do: throw(:guard_fail)
+
             data = %{
               data
               | type: new_type,

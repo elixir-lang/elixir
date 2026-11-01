@@ -2481,6 +2481,23 @@ defmodule Module.Types.ExprTest do
              """
     end
 
+    test "does not warn on clauses after guards which may fail" do
+      # tuple_size(y) fails on atoms, so is_atom(y) never runs for them
+      assert typecheck!(
+               [x],
+               case x do
+                 z when is_integer(z) or is_atom(z) or (is_tuple(z) and tuple_size(z) == 2) ->
+                   case z do
+                     y when is_integer(y) or tuple_size(y) == 2 or is_atom(y) -> 1
+                     _ -> 2
+                   end
+
+                 _ ->
+                   3
+               end
+             ) == integer()
+    end
+
     test "considers singleton-typed pins precise" do
       assert typewarn!(
                [x],
