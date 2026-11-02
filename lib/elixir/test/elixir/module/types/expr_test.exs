@@ -1195,6 +1195,24 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "creating maps with keys that may be atoms or other domain keys" do
+      assert typecheck!(
+               (
+                 key = if :rand.uniform() > 0.5, do: :foo, else: 123
+                 %{key => :value}
+               )
+             )
+             |> equal?(
+               opt_union(
+                 closed_map([{domain_key(:integer), atom([:value])}]),
+                 closed_map([
+                   {domain_key(:integer), atom([:value])},
+                   foo: {atom([:value]), false}
+                 ])
+               )
+             )
+    end
+
     test "creating maps with negated atom keys" do
       assert typecheck!(
                [arg1, arg2],

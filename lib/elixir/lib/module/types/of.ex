@@ -332,6 +332,30 @@ defmodule Module.Types.Of do
           dynamic? = dynamic? or dynamic_pair?
 
           case pos_neg_domain do
+            # A single atom key becomes a field. Because a multiple key
+            # may override single keys, we can only collect single keys
+            # while there are no multiples.
+            {[key], [], []} when multiple == [] ->
+              {dynamic?, domain, [{key, {value_type, false}} | single], multiple}
+
+            # If the key is one of several atoms, we track all alternatives:
+            #
+            #     %{foo_or_bar => :baz}
+            #     #=> %{foo: :baz} or %{bar: :baz}
+            #
+            {[_ | _] = pos, [], []} ->
+              {dynamic?, domain, single, [{pos, value_type, false} | multiple]}
+
+            # If the key is made of atoms and other domain keys, we track
+            # each atom as an alternative, as well as none of them:
+            #
+            #     %{foo_or_integer => :baz}
+            #     #=> %{foo: :baz} or %{integer() => :baz}
+            #
+            {[_ | _] = pos, [], domain_keys} ->
+              domain = [{domain_keys, value_type} | domain]
+              {dynamic?, domain, single, [{pos, value_type, true} | multiple]}
+
             # If atom is included in domain keys, it unions all previous
             # single and multiple, except the ones negated:
             #
@@ -361,23 +385,6 @@ defmodule Module.Types.Of do
               else
                 {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
               end
-
-            {pos, [], domain_keys} ->
-              domain =
-                case domain_keys do
-                  [] -> domain
-                  _ -> [{domain_keys, value_type} | domain]
-                end
-
-              case pos do
-                # Because a multiple key may override single keys, we can only
-                # collect single keys while there are no multiples.
-                [key] when multiple == [] ->
-                  {dynamic?, domain, [{key, {value_type, false}} | single], multiple}
-
-                _ ->
-                  {dynamic?, domain, single, [{pos, value_type} | multiple]}
-              end
           end
       end)
 
@@ -388,11 +395,9 @@ defmodule Module.Types.Of do
         [] ->
           closed_map(non_multiple)
 
-        [{keys, type} | tail] ->
-          products = cartesian_map(tail)
-
-          for key <- keys, product <- products do
-            closed_map(non_multiple ++ [{key, {type, false}} | product])
+        multiple ->
+          for product <- cartesian_map(multiple) do
+            closed_map(non_multiple ++ product)
           end
           |> Enum.reduce(&opt_union/2)
       end
@@ -408,7 +413,9 @@ defmodule Module.Types.Of do
       end)
 
     multiple =
-      Enum.map(multiple, fn {keys, old_type} -> {keys, opt_union(old_type, new_type)} end)
+      Enum.map(multiple, fn {keys, old_type, optional?} ->
+        {keys, opt_union(old_type, new_type), optional?}
+      end)
 
     {single, multiple}
   end
@@ -425,8 +432,8 @@ defmodule Module.Types.Of do
       end)
 
     multiple =
-      Enum.map(multiple, fn {keys, old_type} ->
-        {keys, opt_union(old_type, new_type)}
+      Enum.map(multiple, fn {keys, old_type, optional?} ->
+        {keys, opt_union(old_type, new_type), optional?}
       end)
 
     previous_type =
@@ -463,7 +470,7 @@ defmodule Module.Types.Of do
     domain_keys = to_domain_keys(key_type)
 
     pos_neg_domain =
-      case atom_fetch(key_type) do
+      case atom_fetch(dynamic(key_type)) do
         {:finite, list} -> {list, [], List.delete(domain_keys, :atom)}
         {:infinite, list} -> {[], list, domain_keys}
         :error -> {[], [], domain_keys}
@@ -477,9 +484,10 @@ defmodule Module.Types.Of do
       [] ->
         [[]]
 
-      [{keys, type} | tail] ->
+      [{keys, type, optional?} | tail] ->
         products = cartesian_map(tail)
-        for key <- keys, product <- products, do: [{key, {type, false}} | product]
+        pairs = for key <- keys, product <- products, do: [{key, {type, false}} | product]
+        if optional?, do: products ++ pairs, else: pairs
     end
   end
 
