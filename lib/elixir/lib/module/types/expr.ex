@@ -375,55 +375,60 @@ defmodule Module.Types.Expr do
     end)
   end
 
+  # When refining a case, we filter the clauses which may return the expected
+  # type. If only one clause may return it, we refine the case expression and
+  # the clause in sequence. If multiple clauses may return it, each clause is a
+  # branch, and we refine the variables as long as we only have only one refining
+  # clause (see `of_case_branches/5`). Otherwise, we refine the case expression
+  # to the union of the clauses arguments.
   def of_expr({:case, meta, [case_expr, [do: _clauses]]}, expected, _expr, stack, context)
       when stack.reverse_arrow in [:except_none, :include_none] do
     version = Keyword.fetch!(meta, :version)
-    clauses = Map.fetch!(context.reverse_arrows, version)
+    {clauses, branch} = Map.fetch!(context.reverse_arrows, version)
     original = context
 
-    context =
-      clauses
-      |> Enum.reduce({0, []}, fn {_arg_type, body_type, _clause} = triplet, {counter, acc} ->
+    {skipped, filtered} =
+      Enum.reduce(clauses, {0, []}, fn {_arg_type, body_type, _clause} = entry, {skipped, acc} ->
         if disjoint?(body_type, expected) do
-          {counter + 1, acc}
+          {skipped + 1, acc}
         else
-          {counter, [triplet | acc]}
+          {skipped, [entry | acc]}
         end
       end)
-      |> case do
-        # Nothing skipped, just return the context as is
-        {0, _} ->
+
+    context =
+      case filtered do
+        # Nothing skipped and a single clause, there is nothing to refine
+        [_] when skipped == 0 ->
           context
 
-        # If there is a single clause, we assume it is always evaluated
-        # by doing reverse arrows and incorporating all variables into the context.
-        # We have to evaluate the head again but it might have been preferred
-        # if we could somehow merge a previously computed context.
-        {_, [{arg_type, _body_type, {:->, meta, [head, body]}}]} ->
-          {case_type, context} = of_expr(case_expr, arg_type, case_expr, stack, context)
-
-          {patterns, guards} = extract_head(head)
-          previous = Pattern.init_previous()
-          info = {{:case, meta, case_expr, case_type}, head}
-
-          {_, _, _, _, _, context} =
-            Pattern.of_head(patterns, guards, [case_type], previous, info, meta, stack, context)
-
-          {_, context} = of_expr(body, expected, body, stack, context)
+        [{arg_type, _body_type, clause}] ->
+          leaf = {:case, arg_type, case_expr, clause, expected}
+          {_, context} = of_case_leaf(leaf, stack, context)
           reset_warnings(context, original)
 
-        {_, filtered} ->
-          case_expected = Enum.reduce(filtered, none(), &opt_union(elem(&1, 0), &2))
-          {_, context} = of_expr(case_expr, case_expected, case_expr, stack, context)
-          reset_warnings(context, original)
+        _ ->
+          case of_case_branches(branch, clauses, expected, stack, context) do
+            {:ok, context} ->
+              reset_warnings(context, original)
+
+            # Nothing skipped, there is nothing to refine
+            :error when skipped == 0 ->
+              context
+
+            :error ->
+              case_expected = Enum.reduce(filtered, none(), &opt_union(elem(&1, 0), &2))
+              {_, context} = of_case_leaf({case_expr, case_expected}, stack, context)
+              reset_warnings(context, original)
+          end
       end
 
     dynamic_unless_static({expected, context}, stack)
   end
 
   def of_expr({:case, meta, [case_expr, [do: clauses]]}, expected, _expr, stack, base_context) do
-    {case_type, context} =
-      of_expr(case_expr, term(), case_expr, %{stack | reverse_arrow: :cache}, base_context)
+    {case_type, case_used, context} =
+      of_expr_used(case_expr, term(), %{stack | reverse_arrow: :cache}, base_context)
 
     info = {:case, meta, case_expr, case_type}
     literal? = Macro.quoted_literal?(case_expr)
@@ -438,10 +443,16 @@ defmodule Module.Types.Expr do
         clauses
       end
 
-    cache_arrows(meta, stack, fn ->
-      acc = {false, none(), []}
+    # Used to classify clauses when refining them in conditions,
+    # which depends on the variables defined before the case and
+    # the ones defined after the case expression
+    %{vars: pre_vars} = base_context
+    %{vars: case_vars} = context
 
-      {{none?, body_acc, clauses_acc}, context} =
+    cache_arrows(meta, stack, fn ->
+      acc = {false, none(), [], 0, :none}
+
+      {{none?, body_acc, clauses_acc, count, refining}, context} =
         of_clauses_fun(clauses, [case_type], info, stack, context, acc, fn
           trees, precise?, errored?, {:->, _, [_, body]} = clause, context, acc ->
             # Compute the arg type based on the clause itself
@@ -451,18 +462,23 @@ defmodule Module.Types.Expr do
             reverse_stack = %{stack | reverse_arrow: :except_none}
             {_, refined_context} = of_expr(case_expr, arg_type, case_expr, reverse_stack, context)
 
-            {body_type, context} =
-              of_expr(body, expected, body, stack, reset_warnings(refined_context, context))
+            # We track which variables the body uses to classify the clause
+            body_context = reset_warnings(refined_context, context)
+            {body_type, used, context} = of_expr_used(body, expected, stack, body_context)
 
             # Now we compute the return type and the clauses for reverse arrow
-            {none?, body_acc, clauses_acc} = acc
+            {none?, body_acc, clauses_acc, count, refining} = acc
 
             if (precise? and empty?(body_type)) or (errored? and not literal?) do
-              {{true, body_acc, clauses_acc}, context}
+              {{true, body_acc, clauses_acc, count, refining}, context}
             else
               [arg_type] = Pattern.of_domain(trees, stack, context)
+
+              refining =
+                refining_clause(clause, body_type, used, count, refining, pre_vars, case_vars)
+
               clauses_acc = [{arg_type, body_type, clause} | clauses_acc]
-              {{none?, opt_union(body_type, body_acc), clauses_acc}, context}
+              {{none?, opt_union(body_type, body_acc), clauses_acc, count + 1, refining}, context}
             end
         end)
 
@@ -484,7 +500,31 @@ defmodule Module.Types.Expr do
           context
         end
 
-      {body_acc, clauses_acc, context}
+      # The case can only refine across branches if at most one clause
+      # refines variables in its head or body (see of_case_branches/6)
+      branch =
+        case refining do
+          :many ->
+            nil
+
+          :none ->
+            {branch_ref(case_expr, context), :none}
+
+          {index, body_type, vars, leaf} ->
+            # Only the variables used by both the case expression and the
+            # refining clause may be refined by all branches
+            case Enum.filter(vars, &is_map_key(case_used, &1)) do
+              [] ->
+                nil
+
+              vars ->
+                # Clauses are stored in reverse, so we convert the index to its position
+                leaf = with {:body, body} <- leaf, do: {:body, branch_ref(body, context)}
+                {branch_ref(case_expr, context), {count - 1 - index, body_type, vars, leaf}}
+            end
+        end
+
+      {body_acc, {clauses_acc, branch}, context}
     end)
     |> dynamic_unless_static(stack)
   end
@@ -1019,6 +1059,220 @@ defmodule Module.Types.Expr do
 
     {result, context}
   end
+
+  # A case refined in a condition may have multiple clauses that can return the
+  # expected type. Each of them is a branch: if the case returned the expected
+  # type, one of the branches ran, so a variable is refined to the union of its
+  # types across all branches. This allows `or`, `||`, and the falsy side of
+  # `and` and `&&` to refine variables, similar to orelse in guards.
+  #
+  # We only do so if a single clause of the case uses the variables defined
+  # before it, as only that clause may refine them (the refining clause). The
+  # other clauses are simple and only refine the case expression with their
+  # arguments (such as `true -> true` or `x -> x`). We decide which clause is
+  # the refining one when caching the clauses, so cases with multiple refining
+  # clauses are never refined across branches.
+  #
+  # For performance, we flatten nested cases, to avoid computing the union of the
+  # conditional variables at each step along the way. We also refine only the
+  # variables refined by all branches and we type them as dynamic within each
+  # leaf. This way, each leaf only refines what it learns about the variable (for
+  # example, `%{..., m: not :pp}`) instead of the whole variable type, which keeps
+  # the join cheap, and we intersect the result with the current type at the end.
+  defp of_case_branches(
+         {case_ref, {_, body_type, candidates, _}} = branch,
+         clauses,
+         expected,
+         stack,
+         context
+       ) do
+    with false <- disjoint?(body_type, expected),
+         false <- subtype?(upper_bound(body_type), upper_bound(expected)),
+         {_count, [_, _ | _] = leaves} <- case_leaves(branch, clauses, expected, context, []) do
+      # Only the variables used by the refining clause may be refined by all branches,
+      # so we only track them and type them as dynamic, to keep the join cheap
+      %{vars: vars} = context
+      candidate_vars = Map.take(vars, candidates)
+
+      vars =
+        Enum.reduce(candidate_vars, vars, fn {version, data}, vars ->
+          Map.put(vars, version, %{data | type: dynamic()})
+        end)
+
+      branch_context = %{context | vars: vars, conditional_vars: {candidate_vars, %{}}}
+
+      vars_conds =
+        Enum.map(leaves, fn leaf ->
+          {_, %{vars: vars, conditional_vars: {_, cond_vars}}} =
+            of_case_leaf(leaf, stack, branch_context)
+
+          {vars, cond_vars}
+        end)
+
+      {:ok, Of.reduce_conditional_vars(vars_conds, ref_expr(case_ref), stack, context)}
+    else
+      _ -> :error
+    end
+  end
+
+  defp of_case_branches(_branch, _clauses, _expected, _stack, _context), do: :error
+
+  defp of_case_leaf(
+         {:clause, head_type, case_expr, {:->, meta, [head, body]}, expected},
+         stack,
+         context
+       ) do
+    {patterns, guards} = extract_head(head)
+    info = {{:case, meta, case_expr, head_type}, head}
+    previous = Pattern.init_previous()
+
+    {_, _, _, _, _, context} =
+      Pattern.of_head(patterns, guards, [head_type], previous, info, meta, stack, context)
+
+    of_expr(body, expected, body, stack, context)
+  end
+
+  defp of_case_leaf({:case, arg_type, case_expr, clause, expected}, stack, context) do
+    {case_type, context} = of_expr(case_expr, arg_type, case_expr, stack, context)
+    of_case_leaf({:clause, case_type, case_expr, clause, expected}, stack, context)
+  end
+
+  defp of_case_leaf({expr, expected}, stack, context) do
+    of_expr(expr, expected, expr, stack, context)
+  end
+
+  # Computes the leaves of the given reference with the expected type.
+  # If it references a case where multiple clauses may return the
+  # expected type, we compute the leaves of its clauses.
+  defp ref_leaves({:case, version, expr}, expected, context, acc) do
+    case Map.fetch!(context.reverse_arrows, version) do
+      {clauses, branch} when branch != nil ->
+        case case_leaves(branch, clauses, expected, context, acc) do
+          {count, leaves} when count > 1 -> leaves
+          {_count, _leaves} -> [{expr, expected} | acc]
+        end
+
+      _ ->
+        [{expr, expected} | acc]
+    end
+  end
+
+  defp ref_leaves({:expr, expr}, expected, _context, acc) do
+    [{expr, expected} | acc]
+  end
+
+  # Computes the leaves of the clauses which may return the expected type,
+  # alongside how many there are. Simple clauses only refine the case
+  # expression, so their leaves are the leaves of the case expression.
+  # At most one clause may refine variables in its body, its leaves are
+  # the leaves of its body or, if its body uses the variables bound by
+  # its head, the clause itself.
+  defp case_leaves({case_ref, refining}, clauses, expected, context, acc) do
+    {_pos, count, acc} =
+      Enum.reduce(clauses, {0, 0, acc}, fn {arg_type, body_type, clause}, {pos, count, acc} ->
+        if disjoint?(body_type, expected) do
+          {pos + 1, count, acc}
+        else
+          acc =
+            case refining do
+              {^pos, _, _, :case} ->
+                [{:case, arg_type, ref_expr(case_ref), clause, expected} | acc]
+
+              {^pos, _, _, :clause} ->
+                [{:clause, arg_type, ref_expr(case_ref), clause, expected} | acc]
+
+              {^pos, _, _, {:body, body_ref}} ->
+                ref_leaves(body_ref, expected, context, acc)
+
+              _ ->
+                ref_leaves(case_ref, arg_type, context, acc)
+            end
+
+          {pos + 1, count + 1, acc}
+        end
+      end)
+
+    {count, acc}
+  end
+
+  defp ref_expr({:case, _version, expr}), do: expr
+  defp ref_expr({:expr, expr}), do: expr
+
+  # References an expression, which may be a case with reverse arrows
+  defp branch_ref({:case, meta, [_, [do: _]]} = expr, context) do
+    with {:ok, version} <- Keyword.fetch(meta, :version),
+         true <- is_map_key(context.reverse_arrows, version) do
+      {:case, version, expr}
+    else
+      _ -> {:expr, expr}
+    end
+  end
+
+  defp branch_ref(expr, _context), do: {:expr, expr}
+
+  # Tracks the clause which refines variables defined by the parent
+  # (see `of_case_branches/5`). At most one clause may refine, which we
+  # store with how much of the case must be typed for its body:
+  #
+  #   * `:case` - the case expression narrowed to the clause, then the
+  #     clause, as its body uses variables bound by the case expression
+  #
+  #   * `:clause` - its head and body, as its body uses variables bound
+  #     by its head
+  #
+  #   * `{:body, ref}` - only its body
+  #
+  defp refining_clause(_clause, _body_type, _used, _index, :many, _pre_vars, _case_vars),
+    do: :many
+
+  defp refining_clause(
+         {:->, _, [_head, body]},
+         body_type,
+         used,
+         index,
+         refining,
+         pre_vars,
+         case_vars
+       ) do
+    # Splits the variables used by the body into the ones defined before the case
+    # and checks if any variable bound by the case expression or the head is used
+    {vars, expr?, head?} =
+      Enum.reduce(used, {[], false, false}, fn {version, _}, {vars, expr?, head?} ->
+        cond do
+          is_map_key(pre_vars, version) -> {[version | vars], expr?, head?}
+          is_map_key(case_vars, version) -> {vars, true, head?}
+          true -> {vars, expr?, true}
+        end
+      end)
+
+    cond do
+      vars == [] -> refining
+      refining != :none -> :many
+      expr? -> {index, body_type, vars, :case}
+      head? -> {index, body_type, vars, :clause}
+      true -> {index, body_type, vars, {:body, body}}
+    end
+  end
+
+  # Types the expression while tracking which variables it uses,
+  # which are then also given to the outer conditional, if any
+  defp of_expr_used(expr, expected, stack, context) do
+    %{vars: vars, conditional_vars: conditional_vars} = context
+    context = %{context | conditional_vars: {vars, %{}}}
+    {type, context} = of_expr(expr, expected, expr, stack, context)
+    %{conditional_vars: {_, used}} = context
+    {type, used, %{context | conditional_vars: merge_conditional_vars(conditional_vars, used)}}
+  end
+
+  # Merges the variables used in a nested conditional into the outer one
+  defp merge_conditional_vars({pre_vars, cond_vars}, used) do
+    {pre_vars,
+     Enum.reduce(used, cond_vars, fn {version, _}, acc ->
+       if is_map_key(pre_vars, version), do: Map.put(acc, version, true), else: acc
+     end)}
+  end
+
+  defp merge_conditional_vars(nil, _used), do: nil
 
   defp reset_warnings(context, %{warnings: warnings}), do: %{context | warnings: warnings}
 

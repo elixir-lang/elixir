@@ -3488,6 +3488,133 @@ defmodule Module.Types.ExprTest do
              ) == dynamic()
     end
 
+    test "refines types across or/and" do
+      int_or_bool = opt_union(integer(), boolean())
+
+      int_or_bool_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), int_or_bool]),
+            tuple([atom([:two]), opt_negation(int_or_bool)])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or is_boolean(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_or_bool_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) || is_boolean(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_or_bool_type
+
+      assert typecheck!(
+               [x],
+               if(is_integer(x) or is_boolean(x), do: {:one, x}, else: {:two, x})
+             ) == int_or_bool_type
+
+      # The falsy side of and/&& refines types
+      int_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), integer()]),
+            tuple([atom([:two]), opt_negation(integer())])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_number(x) and is_integer(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_number(x) && is_integer(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_type
+
+      # Variables are only refined if they are refined in all branches
+      assert typecheck!(
+               [x, y],
+               cond do
+                 is_integer(x) or is_boolean(y) -> {:one, x, y}
+                 true -> {:two, x, y}
+               end
+             ) ==
+               dynamic(
+                 opt_union(
+                   tuple([atom([:one]), term(), term()]),
+                   tuple([atom([:two]), opt_negation(integer()), opt_negation(boolean())])
+                 )
+               )
+
+      # Nested
+      int_bool_or_float = opt_union(int_or_bool, float())
+
+      int_bool_or_float_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), int_bool_or_float]),
+            tuple([atom([:two]), opt_negation(int_bool_or_float)])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or is_boolean(x) or is_float(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_bool_or_float_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or (is_boolean(x) or is_float(x)) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_bool_or_float_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) || is_boolean(x) || is_float(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_bool_or_float_type
+
+      # Multiple clauses, each refined by the falsy side of the previous ones
+      atom_or_float = opt_union(atom(), float())
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or is_boolean(x) -> {:one, x}
+                 is_atom(x) or is_float(x) -> {:two, x}
+                 true -> {:three, x}
+               end
+             ) ==
+               dynamic(
+                 tuple([atom([:one]), int_or_bool])
+                 |> opt_union(tuple([atom([:two]), opt_difference(atom_or_float, int_or_bool)]))
+                 |> opt_union(
+                   tuple([atom([:three]), opt_negation(opt_union(int_or_bool, atom_or_float))])
+                 )
+               )
+    end
+
     test "resets branches" do
       assert typecheck!(
                [x],

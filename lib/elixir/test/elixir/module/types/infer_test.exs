@@ -347,6 +347,28 @@ defmodule Module.Types.InferTest do
     end
   end
 
+  test "from conditions binding variables in case expressions", config do
+    types =
+      infer config do
+        def validate(opts, length) do
+          ((is = opts[:is]) && wrong_length(length, is)) ||
+            ((min = opts[:min]) && too_short(length, min)) ||
+            ((max = opts[:max]) && too_long(length, max))
+        end
+
+        defp wrong_length(length, value) when length == value, do: nil
+        defp wrong_length(_length, _value), do: :wrong
+
+        defp too_short(length, value) when length >= value, do: nil
+        defp too_short(_length, _value), do: :short
+
+        defp too_long(length, value) when length <= value, do: nil
+        defp too_long(_length, _value), do: :long
+      end
+
+    assert {:infer, _, _} = types[{:validate, 2}]
+  end
+
   test "from multiple defguard (regression with large code generation)", config do
     infer config do
       defstruct [:config, :v, :m, :t, :s, :k]

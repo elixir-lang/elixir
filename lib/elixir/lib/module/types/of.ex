@@ -97,12 +97,13 @@ defmodule Module.Types.Of do
       when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
+    # Only variables defined before the conditional are tracked
     context =
       case context.conditional_vars do
-        %{} = conditional_vars ->
-          %{context | conditional_vars: Map.put(conditional_vars, version, true)}
+        {pre_vars, cond_vars} when is_map_key(pre_vars, version) ->
+          %{context | conditional_vars: {pre_vars, Map.put(cond_vars, version, true)}}
 
-        nil ->
+        _ ->
           context
       end
 
@@ -226,8 +227,9 @@ defmodule Module.Types.Of do
 
     {vars_conds, {acc, context}} =
       Enum.map_reduce(args, {acc, context}, fn arg, {acc, context} ->
-        {acc, context} = fun.(arg, acc, %{context | vars: vars, conditional_vars: %{}})
-        %{vars: vars, conditional_vars: cond_vars} = context
+        context = %{context | vars: vars, conditional_vars: {vars, %{}}}
+        {acc, context} = fun.(arg, acc, context)
+        %{vars: vars, conditional_vars: {_, cond_vars}} = context
         {{vars, cond_vars}, {acc, context}}
       end)
 
@@ -239,11 +241,8 @@ defmodule Module.Types.Of do
   Reduces conditional variables collected separately.
   """
   def reduce_conditional_vars([{vars, cond} | vars_conds], expr, stack, context) do
-    %{vars: pre_vars} = context
-
     Enum.reduce(Map.keys(cond), context, fn version, context ->
-      if is_map_key(pre_vars, version) and
-           Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
+      if Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
         %{^version => %{type: type}} = vars
 
         type =

@@ -1082,12 +1082,13 @@ defmodule Module.Types.Pattern do
 
     {vars_conds, {precise?, errored?, context}} =
       Enum.map_reduce(guards, {true, true, context}, fn guard, {precise?, errored?, context} ->
-        {type, context} = of_guard(guard, stack, %{context | vars: vars, conditional_vars: %{}})
+        context = %{context | vars: vars, conditional_vars: {vars, %{}}}
+        {type, context} = of_guard(guard, stack, context)
 
         {guard_precise?, guard_errored?, context} =
           maybe_badguard(type, guard, tag, stack, context)
 
-        %{vars: vars, conditional_vars: cond_vars} = context
+        %{vars: vars, conditional_vars: {_, cond_vars}} = context
         {{vars, cond_vars}, {guard_precise? and precise?, guard_errored? and errored?, context}}
       end)
 
@@ -1339,7 +1340,7 @@ defmodule Module.Types.Pattern do
         {boolean(), of_logical_fail([left | right], fun, stack, context)}
 
       true ->
-        cond_context = %{context | conditional_vars: %{}}
+        cond_context = %{context | conditional_vars: {context.vars, %{}}}
         stack = %{stack | reverse_arrow: :include_none}
 
         # Compute the sure types, which are stored directly in the context
@@ -1361,7 +1362,7 @@ defmodule Module.Types.Pattern do
         # The sure types already discard the values in which the leftmost
         # operand fails, as those never reach the other operands, so we
         # check if the leftmost operand fails considering the sure types.
-        left_context = %{context | conditional_vars: %{}}
+        left_context = %{context | conditional_vars: {context.vars, %{}}}
         operands = [{left, left_context} | Enum.map(right, &{&1, cond_context})]
 
         {type, vars_conds, precise?} =
@@ -1503,7 +1504,7 @@ defmodule Module.Types.Pattern do
   defp of_logical_cond([{head, context} | tail], acc_type, acc_vars, precise?, expected, stack) do
     precise? = precise? and (tail == [] or not guard_fail_operand(head, stack, context))
 
-    {type, %{vars: vars, conditional_vars: cond_vars}} =
+    {type, %{vars: vars, conditional_vars: {_, cond_vars}}} =
       of_guard(head, expected, head, stack, context)
 
     precise? =
