@@ -341,13 +341,14 @@ defmodule Module.Types.Of do
             #     %{foo: :bar, not :foo => :baz}
             #     #=> %{foo: :bar, term() => :baz}
             #
-            # In case the negated term does not appear, we set it to none():
-            #
-            #     %{foo: :bar, term() => :baz}
-            #     #=> %{term() => :baz, foo: :bar or :baz}
+            # In case the negated term does not appear, it is either not set
+            # or set by a previous key that may be an atom:
             #
             #     %{not :foo => :baz}
-            #     #=> %{term() => :baz, foo: none()}
+            #     #=> %{term() => :baz, foo: not_set()}
+            #
+            #     %{term() => :bar, not :foo => :baz}
+            #     #=> %{term() => :bar or :baz, foo: if_set(:bar)}
             #
             # In case we are dealing with multiple keys, we always merge the
             # domain. A more precise approach would be to postpone doing so
@@ -355,7 +356,7 @@ defmodule Module.Types.Of do
             # uncommon.
             {[], negs, domain_keys} ->
               if :atom in domain_keys do
-                {single, multiple} = union_negated(negs, value_type, single, multiple)
+                {single, multiple} = union_negated(negs, value_type, domain, single, multiple)
                 {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
               else
                 {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
@@ -399,7 +400,7 @@ defmodule Module.Types.Of do
     {if(dynamic?, do: dynamic(map), else: map), context}
   end
 
-  defp union_negated([], new_type, single, multiple) do
+  defp union_negated([], new_type, _domain, single, multiple) do
     single =
       Enum.map(single, fn
         {key, {old_type, optional?}} ->
@@ -412,7 +413,7 @@ defmodule Module.Types.Of do
     {single, multiple}
   end
 
-  defp union_negated(negated, new_type, single, multiple) do
+  defp union_negated(negated, new_type, domain, single, multiple) do
     {single, matched} =
       Enum.map_reduce(single, [], fn
         {key, {old_type, optional?}}, matched ->
@@ -428,7 +429,12 @@ defmodule Module.Types.Of do
         {keys, opt_union(old_type, new_type)}
       end)
 
-    {Enum.map(negated -- matched, fn key -> {key, {none(), true}} end) ++ single, multiple}
+    previous_type =
+      Enum.reduce(domain, none(), fn {domain_keys, value_type}, acc ->
+        if :atom in domain_keys, do: opt_union(acc, value_type), else: acc
+      end)
+
+    {Enum.map(negated -- matched, fn key -> {key, {previous_type, true}} end) ++ single, multiple}
   end
 
   defp pairs(pairs, expected, stack, context, of_fun) do

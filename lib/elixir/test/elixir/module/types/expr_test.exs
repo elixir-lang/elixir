@@ -1195,6 +1195,39 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "creating maps with negated atom keys" do
+      assert typecheck!(
+               [arg1, arg2],
+               (
+                 key1 = String.to_atom(arg1)
+                 key2 = with :foo <- String.to_atom(arg2), do: :bar
+                 %{key1 => :first, key2 => :second}
+               )
+             )
+             |> equal?(
+               closed_map([
+                 {domain_key(:atom), atom([:first, :second])},
+                 foo: {atom([:first]), true}
+               ])
+             )
+
+      assert typecheck!(
+               [arg1, arg2],
+               (
+                 key1 = with :foo <- String.to_atom(arg1), do: :baz
+                 key2 = with :bar <- String.to_atom(arg2), do: :baz
+                 %{key1 => :first, key2 => :second}
+               )
+             )
+             |> equal?(
+               closed_map([
+                 {domain_key(:atom), atom([:first, :second])},
+                 foo: {atom([:second]), true},
+                 bar: {atom([:first]), true}
+               ])
+             )
+    end
+
     test "updating maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: {atom([:zero]), false}))
