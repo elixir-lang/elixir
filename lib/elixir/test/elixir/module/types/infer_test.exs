@@ -392,7 +392,7 @@ defmodule Module.Types.InferTest do
              (is_nil(meta.k) or not meta.config.k.ok) and
              (is_nil(meta.t) or not meta.config.t.ok) and
              not meta.config.m.ok and
-             not meta.config.v.ok do
+             not meta.config.v.on do
           :something
         else
           :another
