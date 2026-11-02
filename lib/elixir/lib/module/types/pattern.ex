@@ -1362,18 +1362,10 @@ defmodule Module.Types.Pattern do
         # operand fails, as those never reach the other operands, so we
         # check if the leftmost operand fails considering the sure types.
         left_context = %{context | conditional_vars: %{}}
-        left_fail? = guard_fail_operand(left, stack, left_context)
+        operands = [{left, left_context} | Enum.map(right, &{&1, cond_context})]
 
-        {type, vars_conds, _} =
-          of_logical_cond([left], none(), [], false, expected, stack, left_context)
-
-        {type, vars_conds, fail?} =
-          of_logical_cond(right, type, vars_conds, left_fail?, expected, stack, cond_context)
-
-        # If any operand but the last may fail, the operands after it do not
-        # run for some values, so the operands no longer represent the exact
-        # values the guard accepts.
-        precise? = Of.all_same_conditional_vars?(vars_conds) and not fail?
+        {type, vars_conds, precise?} =
+          of_logical_cond(operands, none(), [], true, expected, stack)
 
         # We will be precise if all branches changed the same variable
         context =
@@ -1503,21 +1495,31 @@ defmodule Module.Types.Pattern do
     of_logical_all(tail, disjoint?, expected, to_abort, stack, context)
   end
 
-  # Also returns if any operand but the last may fail
-  defp of_logical_cond([head | tail], acc_type, acc_vars, acc_fail?, expected, stack, context) do
-    # The last operand may fail, as no other operand runs after it
-    acc_fail? = acc_fail? or (tail != [] and guard_fail_operand(head, stack, context))
+  # Returns the union of the operands types, their variables, and if
+  # the result is precise. We are precise if all operands changed the
+  # same variables and no operand but the last may fail, as operands
+  # after it would not run for some values. Once we know we are not
+  # precise, we no longer check if the operands may fail.
+  defp of_logical_cond([{head, context} | tail], acc_type, acc_vars, precise?, expected, stack) do
+    precise? = precise? and (tail == [] or not guard_fail_operand(head, stack, context))
 
     {type, %{vars: vars, conditional_vars: cond_vars}} =
       of_guard(head, expected, head, stack, context)
 
+    precise? =
+      precise? and
+        case acc_vars do
+          [{_, ^cond_vars} | _] -> true
+          [] -> true
+          _ -> false
+        end
+
     acc_vars = [{vars, cond_vars} | acc_vars]
-    acc_type = opt_union(acc_type, type)
-    of_logical_cond(tail, acc_type, acc_vars, acc_fail?, expected, stack, context)
+    of_logical_cond(tail, opt_union(acc_type, type), acc_vars, precise?, expected, stack)
   end
 
-  defp of_logical_cond([], acc_type, acc_vars, acc_fail?, _expected, _stack, _context) do
-    {acc_type, acc_vars, acc_fail?}
+  defp of_logical_cond([], acc_type, acc_vars, precise?, _expected, _stack) do
+    {acc_type, acc_vars, precise?}
   end
 
   ## Guard failures
