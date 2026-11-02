@@ -297,6 +297,7 @@ defmodule Code do
           columns: boolean(),
           unescape: boolean(),
           existing_atoms_only: boolean(),
+          max_integer_bytes: pos_integer() | :system_limit,
           token_metadata: boolean(),
           literal_encoder: (term(), Macro.metadata() -> {:ok, Macro.t()} | {:error, binary()}),
           static_atoms_encoder: (binary(), Macro.metadata() -> {:ok, term()} | {:error, binary()}),
@@ -1301,6 +1302,11 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
+    * `:max_integer_bytes` - the maximum number of bytes in integer
+      literals, excluding underscores and base prefixes such as `0x`.
+      Defaults to `:system_limit`, which returns an error once the
+      integer exceeds the system limit.
+
     * `:token_metadata` (since v1.10.0) - when `true`, includes token-related
       metadata in the expression AST, such as metadata for `do` and `end`
       tokens, for closing tokens, end of expressions, as well as delimiters
@@ -1360,6 +1366,15 @@ defmodule Code do
 
     * atoms used to represent single-letter sigils like `:sigil_X`
       (but multi-letter sigils like `:sigil_XYZ` are encoded).
+
+  > #### Parsing complexity {: .warning}
+  >
+  > Even though parsing functions allow you to limit the creation of atoms
+  > while parsing Elixir code, note that parsing itself may be CPU intensive
+  > and scale non-linearly with input size. For example, allocation of integers
+  > may become too expensive and you may want to limit it with `:max_integer_bytes`.
+  > Other parts of the parser may have high algorithmic complexity when used
+  > with untrusted inputs.
 
   ## Examples
 
