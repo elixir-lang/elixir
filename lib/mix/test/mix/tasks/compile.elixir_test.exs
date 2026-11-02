@@ -1313,6 +1313,37 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "tracks warnings from after_verify with relative paths" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @after_verify __MODULE__
+
+        def __after_verify__(__MODULE__) do
+          IO.warn("oops", file: Path.relative_to_cwd(__ENV__.file), line: 13)
+        end
+      end
+      """)
+
+      # after_verify runs in the checker, which must make source and file absolute
+      file = Path.absname("lib/a.ex")
+
+      assert capture_io(:stderr, fn ->
+               assert {:ok,
+                       [%Mix.Task.Compiler.Diagnostic{source: ^file, file: ^file, position: 13}]} =
+                        Mix.Tasks.Compile.Elixir.run([])
+
+               assert {:noop,
+                       [%Mix.Task.Compiler.Diagnostic{source: ^file, file: ^file, position: 13}]} =
+                        Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+             end) =~ "oops"
+
+      purge([A])
+    end)
+  end
+
   test "recompiles modules with exports tracking" do
     Process.register(self(), __MODULE__)
     Code.put_compiler_option(:tracers, [__MODULE__])
