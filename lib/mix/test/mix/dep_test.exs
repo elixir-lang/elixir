@@ -149,6 +149,18 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "raises on invalid deps name" do
+    for name <- [:"../config", :"foo/bar", :"foo\\bar", :"c:foo", :..] do
+      with_deps([{name, path: "deps/ok"}], fn ->
+        in_fixture("deps_status", fn ->
+          assert_raise Mix.Error, ~r"Invalid dependency name", fn ->
+            Mix.Dep.Converger.converge([])
+          end
+        end)
+      end)
+    end
+  end
+
   test "nested deps come first" do
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"}]
 

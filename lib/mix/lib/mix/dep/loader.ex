@@ -178,6 +178,10 @@ defmodule Mix.Dep.Loader do
 
     bin_app = Atom.to_string(app)
 
+    if String.contains?(bin_app, [".", "/", "\\", ":"]) do
+      Mix.raise("Invalid dependency name #{inspect(app)}, it must not contain . / \\ or :")
+    end
+
     config = Mix.Project.config()
     dest = Path.join(Mix.Project.deps_path(config), bin_app)
     build = Path.join([Mix.Project.build_path(config), "lib", bin_app])
