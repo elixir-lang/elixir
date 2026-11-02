@@ -50,7 +50,7 @@ defmodule Module.Types.Descr do
   @map_top {:erlang.phash2([:open | @fields_new]), :open, @fields_new}
   @non_empty_list_top {:erlang.phash2([:term | :term]), :term, :term}
   @tuple_top {:erlang.phash2([:open | []]), :open, []}
-  @map_empty {-:erlang.phash2(@fields_new), :closed, @fields_new}
+  @map_empty {:erlang.phash2(@fields_new) - (1 <<< 60), :closed, @fields_new}
 
   defmacrop bdd_leaf(arg1, arg2) do
     quote do
@@ -6252,8 +6252,23 @@ defmodule Module.Types.Descr do
 
   # Some of our operations rely on eliminating closed tuples/maps,
   # so we make sure they always come first.
-  defp bdd_leaf_new(:closed, arg2), do: {-:erlang.phash2(arg2), :closed, arg2}
-  defp bdd_leaf_new(arg1, arg2), do: {:erlang.phash2([arg1 | arg2]), arg1, arg2}
+  #
+  # Leaves are ordered by their key, which is the size of the leaf
+  # (such as the number of fields in maps and elements in tuples)
+  # followed by its hash (which fits in 27 bits). Smaller leaves come
+  # first, so when intersecting a small type (such as a refinement)
+  # with a large one, the large one is kept as is under the small one,
+  # instead of the small one being pushed into all of its branches.
+  @closed_offset 1 <<< 60
+
+  defp bdd_leaf_new(:closed, arg2),
+    do: {bdd_leaf_key(arg2, :erlang.phash2(arg2)) - @closed_offset, :closed, arg2}
+
+  defp bdd_leaf_new(arg1, arg2),
+    do: {bdd_leaf_key(arg2, :erlang.phash2([arg1 | arg2])), arg1, arg2}
+
+  defp bdd_leaf_key(arg, hash) when is_list(arg), do: (length(arg) <<< 27) + hash
+  defp bdd_leaf_key(_arg, hash), do: hash
 
   defp bdd_node_new(lit, c, u, d),
     do: {bdd_compute_hash(lit, c, u, d), lit, c, u, d}
