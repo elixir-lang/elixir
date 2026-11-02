@@ -212,9 +212,14 @@ defmodule Module.ParallelChecker do
 
   defp collect_results(count, warnings, errors) do
     receive do
-      {:diagnostic, %{file: file} = diagnostic, read_snippet} ->
+      {:diagnostic, %{file: file, source: source} = diagnostic, read_snippet} ->
         :elixir_errors.print_diagnostic(diagnostic, read_snippet)
-        diagnostic = %{diagnostic | file: file && Path.absname(file)}
+
+        diagnostic = %{
+          diagnostic
+          | file: file && Path.absname(file),
+            source: source && Path.absname(source)
+        }
 
         if Map.get(diagnostic, :severity, :warning) == :error do
           collect_results(count, warnings, [diagnostic | errors])

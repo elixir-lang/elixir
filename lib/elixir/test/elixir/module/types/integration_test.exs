@@ -865,9 +865,17 @@ defmodule Module.Types.IntegrationTest do
       files = %{
         "a.ex" => """
         defmodule A do
+          @after_verify __MODULE__
           @file "generated.ex"
           def fun(arg) do
             :ok = List.to_tuple(arg)
+          end
+
+          def __after_verify__(__MODULE__) do
+            IO.warn("This is a manually emitted warning",
+              file: Path.relative_to_cwd(__ENV__.file),
+              line: __ENV__.line
+            )
           end
         end
         """
@@ -880,6 +888,11 @@ defmodule Module.Types.IntegrationTest do
                  message: "the following pattern will never match" <> _,
                  file: file,
                  source: source
+               },
+               %{
+                 message: "This is a manually emitted warning",
+                 file: file2,
+                 source: source2
                }
              ] = warnings.runtime_warnings
 
@@ -887,6 +900,10 @@ defmodule Module.Types.IntegrationTest do
       assert Path.type(source) == :absolute
       assert String.ends_with?(file, "generated.ex")
       assert Path.type(file) == :absolute
+      assert String.ends_with?(source2, "a.ex")
+      assert Path.type(source2) == :absolute
+      assert String.ends_with?(file2, "a.ex")
+      assert Path.type(file2) == :absolute
     after
       purge(A)
     end
