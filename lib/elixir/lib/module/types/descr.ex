@@ -3411,30 +3411,70 @@ defmodule Module.Types.Descr do
   end
 
   defp map_bdd_to_dnf_remove_empty(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {pos, negs}, acc ->
-      case non_empty_map_literals_intersection(pos) do
-        :empty ->
-          acc
-
-        {tag, fields} ->
-          if init_map_line_empty?(tag, fields, negs) do
-            acc
-          else
-            [{tag, fields, negs} | acc]
-          end
-      end
+    map_bdd_to_dnf([], {:open, []}, [], bdd, %{})
+    |> Enum.reduce([], fn {tag, fields, negs} = line, acc ->
+      if init_map_line_empty?(tag, fields, negs), do: acc, else: [line | acc]
     end)
   end
 
   defp map_bdd_to_dnf_with_empty(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {pos, negs}, acc ->
-      case non_empty_map_literals_intersection(pos) do
+    map_bdd_to_dnf([], {:open, []}, [], bdd, %{}) |> Enum.reverse()
+  end
+
+  # Converts a map BDD to DNF lines with the intersection of their positive
+  # literals. We intersect the positive literals as we traverse the BDD, so
+  # we can discard whole subtrees as soon as their positives are disjoint.
+  defp map_bdd_to_dnf(acc, _pos, _negs, :bdd_bot, _seen), do: acc
+  defp map_bdd_to_dnf(acc, {tag, fields}, negs, :bdd_top, _seen), do: [{tag, fields, negs} | acc]
+
+  defp map_bdd_to_dnf(acc, pos, negs, bdd_leaf(_, _) = lit, seen) do
+    case map_line_intersection(pos, lit, seen) do
+      :empty -> acc
+      {tag, fields} -> [{tag, fields, negs} | acc]
+    end
+  end
+
+  defp map_bdd_to_dnf(acc, pos, negs, {_, lit, c, u, d}, seen) do
+    acc = map_bdd_to_dnf(acc, pos, negs, u, seen)
+
+    acc =
+      case map_line_intersection(pos, lit, seen) do
         :empty -> acc
-        {tag, fields} -> [{tag, fields, negs} | acc]
+        pos -> map_bdd_to_dnf(acc, pos, negs, c, seen)
       end
-    end)
+
+    map_bdd_to_dnf(acc, pos, [lit | negs], d, seen)
+  end
+
+  # Same as map_bdd_to_dnf/5 but checks if all lines are empty,
+  # stopping as soon as it finds a non-empty one.
+  defp map_bdd_empty?(_pos, _negs, :bdd_bot, _seen), do: true
+
+  defp map_bdd_empty?({tag, fields}, negs, :bdd_top, seen),
+    do: init_map_line_empty?(tag, fields, negs, seen)
+
+  defp map_bdd_empty?(pos, negs, bdd_leaf(_, _) = lit, seen) do
+    case map_line_intersection(pos, lit, seen) do
+      :empty -> true
+      {tag, fields} -> init_map_line_empty?(tag, fields, negs, seen)
+    end
+  end
+
+  defp map_bdd_empty?(pos, negs, {_, lit, c, u, d}, seen) do
+    map_bdd_empty?(pos, [lit | negs], d, seen) and
+      case map_line_intersection(pos, lit, seen) do
+        :empty -> true
+        pos -> map_bdd_empty?(pos, negs, c, seen)
+      end and
+      map_bdd_empty?(pos, negs, u, seen)
+  end
+
+  defp map_line_intersection({tag, fields}, bdd_leaf(next_tag, next_fields), seen) do
+    try do
+      map_literal_intersection(tag, fields, next_tag, next_fields, &bare_intersection/2, seen)
+    catch
+      :empty -> :empty
+    end
   end
 
   ## Map key functions
@@ -4723,19 +4763,6 @@ defmodule Module.Types.Descr do
     {[], [], nil, to_domain_keys(key_descr), []}
   end
 
-  defp non_empty_map_literals_intersection(maps),
-    do: non_empty_map_literals_intersection(maps, %{})
-
-  defp non_empty_map_literals_intersection(maps, seen) when is_map(seen) do
-    try do
-      Enum.reduce(maps, {:open, []}, fn bdd_leaf(next_tag, next_fields), {tag, fields} ->
-        map_literal_intersection(tag, fields, next_tag, next_fields, &bare_intersection/2, seen)
-      end)
-    catch
-      :empty -> :empty
-    end
-  end
-
   # Short-circuits if it finds a non-empty map literal in the union.
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
@@ -4747,19 +4774,10 @@ defmodule Module.Types.Descr do
     else
       seen = Map.put(seen, key, true)
 
-      bdd_to_dnf(bdd)
-      |> Enum.all?(fn {pos, negs} ->
-        case non_empty_map_literals_intersection(pos, seen) do
-          :empty ->
-            true
-
-          {tag, fields} ->
-            # We check the emptiness of the fields because non_empty_map_literal_intersection
-            # will not return :empty on fields that are set to none() and that exist
-            # just in one map, but not the other.
-            init_map_line_empty?(tag, fields, negs, seen)
-        end
-      end)
+      # We check the emptiness of the fields because map_literal_intersection
+      # will not return :empty on fields that are set to none() and that exist
+      # just in one map, but not the other.
+      map_bdd_empty?({:open, []}, [], bdd, seen)
     end
   end
 
@@ -5415,29 +5433,76 @@ defmodule Module.Types.Descr do
   defp tuple_difference(bdd1, bdd2),
     do: bdd_difference(bdd1, bdd2)
 
-  defp non_empty_tuple_literals_intersection(tuples, seen) do
-    try do
-      Enum.reduce(tuples, {:open, []}, fn bdd_leaf(tag1, elements1), {tag2, elements2} ->
-        case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
-          :disjoint ->
-            throw(:empty)
+  # Converts a tuple BDD to DNF lines with the intersection of their positive
+  # literals. We intersect the positive literals as we traverse the BDD, so
+  # we can discard whole subtrees as soon as their sizes are disjoint. The
+  # emptiness of the elements is checked once per line, see tuple_line_elements_empty?/2.
+  defp tuple_bdd_to_dnf(acc, _pos, _negs, :bdd_bot), do: acc
+  defp tuple_bdd_to_dnf(acc, {tag, elements}, negs, :bdd_top), do: [{tag, elements, negs} | acc]
 
-          _ ->
-            tag = if tag1 == :open and tag2 == :open, do: :open, else: :closed
-            {tag, zip_intersection(elements1, elements2, [], &bare_intersection/2)}
-        end
-      end)
-    catch
-      :empty -> :empty
-    else
-      {tag, elements} ->
-        if Enum.any?(elements, &empty_seen?(&1, seen)) do
-          :empty
-        else
-          {tag, elements}
-        end
+  defp tuple_bdd_to_dnf(acc, pos, negs, bdd_leaf(_, _) = lit) do
+    case tuple_line_intersection(pos, lit) do
+      :empty -> acc
+      {tag, elements} -> [{tag, elements, negs} | acc]
     end
   end
+
+  defp tuple_bdd_to_dnf(acc, pos, negs, {_, lit, c, u, d}) do
+    acc = tuple_bdd_to_dnf(acc, pos, negs, u)
+
+    acc =
+      case tuple_line_intersection(pos, lit) do
+        :empty -> acc
+        pos -> tuple_bdd_to_dnf(acc, pos, negs, c)
+      end
+
+    tuple_bdd_to_dnf(acc, pos, [lit | negs], d)
+  end
+
+  # Same as tuple_bdd_to_dnf/4 but checks if all lines are empty,
+  # stopping as soon as it finds a non-empty one.
+  defp tuple_bdd_empty?(_pos, _negs, :bdd_bot, _seen), do: true
+
+  defp tuple_bdd_empty?({tag, elements}, negs, :bdd_top, seen),
+    do: tuple_line_empty_seen?(tag, elements, negs, seen)
+
+  defp tuple_bdd_empty?(pos, negs, bdd_leaf(_, _) = lit, seen) do
+    case tuple_line_intersection(pos, lit) do
+      :empty -> true
+      {tag, elements} -> tuple_line_empty_seen?(tag, elements, negs, seen)
+    end
+  end
+
+  defp tuple_bdd_empty?(pos, negs, {_, lit, c, u, d}, seen) do
+    tuple_bdd_empty?(pos, [lit | negs], d, seen) and
+      case tuple_line_intersection(pos, lit) do
+        :empty -> true
+        pos -> tuple_bdd_empty?(pos, negs, c, seen)
+      end and
+      tuple_bdd_empty?(pos, negs, u, seen)
+  end
+
+  defp tuple_line_empty_seen?(tag, elements, negs, seen) do
+    cond do
+      tuple_line_elements_empty?(elements, seen) -> true
+      negs == [] -> false
+      true -> tuple_line_empty?(tag, elements, negs, seen)
+    end
+  end
+
+  defp tuple_line_intersection({tag1, elements1}, bdd_leaf(tag2, elements2)) do
+    case tuple_sizes_strategy(tag1, length(elements1), tag2, length(elements2)) do
+      :disjoint ->
+        :empty
+
+      _ ->
+        tag = if tag1 == :open and tag2 == :open, do: :open, else: :closed
+        {tag, zip_intersection(elements1, elements2, [], &bare_intersection/2)}
+    end
+  end
+
+  defp tuple_line_elements_empty?(elements, seen),
+    do: Enum.any?(elements, &empty_seen?(&1, seen))
 
   defp zip_intersection([], types2, acc, _intersection_fun), do: Enum.reverse(acc, types2)
   defp zip_intersection(types1, [], acc, _intersection_fun), do: Enum.reverse(acc, types1)
@@ -5454,14 +5519,7 @@ defmodule Module.Types.Descr do
     else
       seen = Map.put(seen, key, true)
 
-      bdd_to_dnf(bdd)
-      |> Enum.all?(fn {pos, negs} ->
-        case non_empty_tuple_literals_intersection(pos, seen) do
-          :empty -> true
-          {_tag, _fields} when negs == [] -> false
-          {tag, fields} -> tuple_line_empty?(tag, fields, negs, seen)
-        end
-      end)
+      tuple_bdd_empty?({:open, []}, [], bdd, seen)
     end
   end
 
@@ -5638,12 +5696,11 @@ defmodule Module.Types.Descr do
 
   # Transforms a bdd into a union of tuples with no negations.
   defp tuple_bdd_to_dnf_no_negations(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.flat_map(fn {pos, negs} ->
-      case non_empty_tuple_literals_intersection(pos, %{}) do
-        :empty -> []
-        {tag, elements} -> tuple_eliminate_negations(tag, elements, negs)
-      end
+    tuple_bdd_to_dnf([], {:open, []}, [], bdd)
+    |> Enum.flat_map(fn {tag, elements, negs} ->
+      if tuple_line_elements_empty?(elements, %{}),
+        do: [],
+        else: tuple_eliminate_negations(tag, elements, negs)
     end)
     # We want to avoid each_singleton? from failing,
     # so we remove contiguous duplicates (cheaper than uniq)
@@ -5651,19 +5708,11 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_bdd_to_dnf_with_negations(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.reduce([], fn {pos, negs}, acc ->
-      case non_empty_tuple_literals_intersection(pos, %{}) do
-        :empty ->
-          acc
-
-        {tag, elements} ->
-          if tuple_line_empty?(tag, elements, negs) do
-            acc
-          else
-            [{tag, elements, negs} | acc]
-          end
-      end
+    tuple_bdd_to_dnf([], {:open, []}, [], bdd)
+    |> Enum.reduce([], fn {tag, elements, negs} = line, acc ->
+      if tuple_line_elements_empty?(elements, %{}) or tuple_line_empty?(tag, elements, negs),
+        do: acc,
+        else: [line | acc]
     end)
   end
 
