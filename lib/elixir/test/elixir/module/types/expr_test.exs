@@ -2516,19 +2516,20 @@ defmodule Module.Types.ExprTest do
                  )
                )
 
-      # Dead branches
+      # Dead branches refine all variables upstream
       assert typecheck!(
                [x],
                (
                  y = is_integer(x)
+                 z = not y
 
-                 if y do
+                 if z do
                    raise "bad"
                  end
 
-                 x
+                 {x, y}
                )
-             ) == dynamic(opt_negation(integer()))
+             ) == dynamic(tuple([integer(), atom([true])]))
     end
 
     test "refine types when it is dynamic" do
@@ -3809,6 +3810,77 @@ defmodule Module.Types.ExprTest do
                end
              ) == opt_union(boolean(), atom([:binary, :atom]))
     end
+
+    test "refines variables through their assignments" do
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+
+                 cond do
+                   y -> {:one, x}
+                   true -> {:two, x}
+                 end
+               )
+             ) ==
+               dynamic(
+                 opt_union(
+                   tuple([atom([:one]), integer()]),
+                   tuple([atom([:two]), opt_negation(integer())])
+                 )
+               )
+
+      # The falsy side refines the remaining clauses
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = is_atom(x)
+
+                 cond do
+                   y -> {:one, x}
+                   z -> {:two, x}
+                   true -> {:three, x}
+                 end
+               )
+             ) ==
+               dynamic(
+                 tuple([atom([:one]), integer()])
+                 |> opt_union(tuple([atom([:two]), atom()]))
+                 |> opt_union(tuple([atom([:three]), opt_negation(opt_union(integer(), atom()))]))
+               )
+
+      # Dead branches refine all variables upstream
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+
+                 cond do
+                   z -> raise "bad"
+                   true -> :ok
+                 end
+
+                 {x, y}
+               )
+             ) == dynamic(tuple([integer(), atom([true])]))
+
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+
+                 cond do
+                   z -> :ok
+                   true -> raise "bad"
+                 end
+
+                 {x, y}
+               )
+             ) == dynamic(tuple([opt_negation(integer()), atom([false])]))
+    end
   end
 
   describe "comprehensions" do
@@ -4188,6 +4260,25 @@ defmodule Module.Types.ExprTest do
 
                  binary()
              """
+    end
+
+    test "refines variables through their assignments" do
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 with true <- y, do: x
+               )
+             ) == opt_union(dynamic(integer()), atom([false]))
+
+      # Following clauses are refined too
+      assert typecheck!(
+               [x],
+               (
+                 y = if is_integer(x), do: {:ok, x}, else: :error
+                 with {:ok, _} <- y, true <- true, do: x
+               )
+             ) == opt_union(dynamic(integer()), atom([:error]))
     end
   end
 

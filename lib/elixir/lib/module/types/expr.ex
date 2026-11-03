@@ -324,8 +324,10 @@ defmodule Module.Types.Expr do
       )
       when is_atom(neg_head) and neg_head not in [false, nil] do
     cache_result(meta, stack, acc_context, fn ->
-      {pos_head_type, context} =
-        of_expr(pos_head, term(), pos_head, %{stack | reverse_arrow: :cache}, acc_context)
+      cache_stack = %{stack | reverse_arrow: :cache}
+
+      {pos_head_type, head_used, context} =
+        with_used(acc_context, &of_expr(pos_head, term(), pos_head, cache_stack, &1))
 
       context =
         maybe_always_or_never_match_cond(pos_head_type, pos_head, pos_meta, stack, context, false)
@@ -336,8 +338,11 @@ defmodule Module.Types.Expr do
       # Keep the context except the warnings, and compute the body
       truthy_context = reset_warnings(truthy_context, context)
 
-      {pos_body_type, pos_body_context} =
-        of_expr(pos_body, expected, expr, stack, truthy_context)
+      pos_context =
+        refine_assignments(head_used, pos_body, context, stack, truthy_context)
+        |> reset_warnings(context)
+
+      {pos_body_type, pos_body_context} = of_expr(pos_body, expected, expr, stack, pos_context)
 
       # Reset the context vars once again to compute the falsy type
       context = Of.reset_vars(pos_body_context, context)
@@ -347,16 +352,28 @@ defmodule Module.Types.Expr do
 
       falsy_context = reset_warnings(falsy_context, context)
 
-      {neg_body_type, neg_body_context} =
-        of_expr(neg_body, expected, expr, stack, falsy_context)
+      neg_context =
+        refine_assignments(head_used, neg_body, context, stack, falsy_context)
+        |> reset_warnings(context)
+
+      {neg_body_type, neg_body_context} = of_expr(neg_body, expected, expr, stack, neg_context)
 
       body_type = opt_union(pos_body_type, neg_body_type)
 
+      # If a branch is dead, the refinement of the other one applies
+      # after the cond, so we don't know the targets
       context =
         cond do
-          empty?(pos_body_type) -> Of.reset_vars(neg_body_context, falsy_context)
-          empty?(neg_body_type) -> Of.reset_vars(neg_body_context, truthy_context)
-          true -> Of.reset_vars(neg_body_context, acc_context)
+          empty?(pos_body_type) ->
+            falsy_context = refine_assignments(head_used, :all, context, stack, falsy_context)
+            Of.reset_vars(neg_body_context, falsy_context)
+
+          empty?(neg_body_type) ->
+            truthy_context = refine_assignments(head_used, :all, context, stack, truthy_context)
+            Of.reset_vars(neg_body_context, truthy_context)
+
+          true ->
+            Of.reset_vars(neg_body_context, acc_context)
         end
 
       dynamic_unless_static({body_type, context}, stack)
@@ -367,9 +384,12 @@ defmodule Module.Types.Expr do
     cache_result(meta, stack, context, fn ->
       {body_type, acc_context} =
         reduce_non_empty(clauses, {none(), context}, fn
-          {:->, meta, [[head], body]}, {acc, context}, last? ->
-            {head_type, context} =
-              of_expr(head, term(), head, %{stack | reverse_arrow: :cache}, context)
+          {:->, meta, [[head], body]}, rest, {acc, context} ->
+            last? = rest == []
+            cache_stack = %{stack | reverse_arrow: :cache}
+
+            {head_type, head_used, context} =
+              with_used(context, &of_expr(head, term(), head, cache_stack, &1))
 
             context =
               maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?)
@@ -378,7 +398,10 @@ defmodule Module.Types.Expr do
               of_expr(head, @truthy, head, %{stack | reverse_arrow: :except_none}, context)
 
             # Keep the context except the warnings, and compute the body
-            truthy_context = reset_warnings(truthy_context, context)
+            truthy_context =
+              refine_assignments(head_used, body, context, stack, truthy_context)
+              |> reset_warnings(context)
+
             {body_type, body_context} = of_expr(body, expected, expr, stack, truthy_context)
 
             # Reset the context vars to the head definition to compute the falsy type
@@ -391,7 +414,9 @@ defmodule Module.Types.Expr do
                 {_, falsy_context} =
                   of_expr(head, @falsy, head, %{stack | reverse_arrow: :except_none}, context)
 
-                reset_warnings(falsy_context, context)
+                # The falsy refinement applies to the remaining clauses
+                refine_assignments(head_used, rest, context, stack, falsy_context)
+                |> reset_warnings(context)
               end
 
             {opt_union(body_type, acc), context}
@@ -729,8 +754,7 @@ defmodule Module.Types.Expr do
     cache_result(meta, stack, original, fn ->
       {clauses, [[do: do_block] ++ options]} = Enum.split(clauses, -1)
 
-      {else_types, context} =
-        Enum.reduce(clauses, {none(), original}, &with_clause(&1, stack, &2))
+      {else_types, context} = with_clauses(clauses, do_block, stack, {none(), original})
 
       {do_result, context} = of_expr(do_block, expected, do_block, stack, context)
       context = Of.reset_vars(context, original)
@@ -965,11 +989,18 @@ defmodule Module.Types.Expr do
 
   ## With
 
-  defp with_clause({:<-, meta, [left, right]} = expr, stack, {else_types, context}) do
-    {[pattern], guards} = extract_head([left])
+  defp with_clauses([clause | rest], do_block, stack, acc) do
+    acc = with_clause(clause, [do_block | rest], stack, acc)
+    with_clauses(rest, do_block, stack, acc)
+  end
 
-    {type, context} =
-      of_expr(right, term(), right, %{stack | reverse_arrow: :cache}, context)
+  defp with_clauses([], _do_block, _stack, acc), do: acc
+
+  # The refinement of each clause applies to the remaining ones and the do block
+  defp with_clause({:<-, meta, [left, right]} = expr, remaining, stack, {else_types, context}) do
+    {[pattern], guards} = extract_head([left])
+    cache_stack = %{stack | reverse_arrow: :cache}
+    {type, used, context} = with_used(context, &of_expr(right, term(), right, cache_stack, &1))
 
     {trees, precise?, context} =
       Pattern.of_generator(pattern, guards, type, :with, expr, meta, stack, context)
@@ -979,11 +1010,12 @@ defmodule Module.Types.Expr do
     {_, refined_context} =
       of_expr(right, pattern_type, right, %{stack | reverse_arrow: :except_none}, context)
 
+    refined_context = refine_assignments(used, remaining, context, stack, refined_context)
     else_type = if precise?, do: opt_difference(type, pattern_type), else: type
     {opt_union(else_type, else_types), reset_warnings(refined_context, context)}
   end
 
-  defp with_clause(expr, stack, {else_types, context}) do
+  defp with_clause(expr, _remaining, stack, {else_types, context}) do
     {_type, context} = of_expr(expr, term(), expr, stack, context)
     {else_types, context}
   end
@@ -1009,10 +1041,10 @@ defmodule Module.Types.Expr do
   end
 
   defp reduce_non_empty([last], acc, fun),
-    do: fun.(last, acc, true)
+    do: fun.(last, [], acc)
 
   defp reduce_non_empty([head | tail], acc, fun),
-    do: reduce_non_empty(tail, fun.(head, acc, false), fun)
+    do: reduce_non_empty(tail, fun.(head, tail, acc), fun)
 
   defp maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?) do
     if is_warning(stack) do
