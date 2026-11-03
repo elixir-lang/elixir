@@ -150,6 +150,17 @@ defmodule Module.Types.Expr do
         of_expr(right_expr, expected, expr, stack, context)
 
       _ ->
+        # Unless we are already computing reverse arrows, we cache the reverse
+        # arrows of the right side and track the assignment, so refinements to
+        # the variables in the pattern can be propagated back to the right side
+        # (see refine_assignments/5)
+        {stack, track?} =
+          case stack.reverse_arrow do
+            nil -> {%{stack | reverse_arrow: :cache}, true}
+            :cache -> {stack, true}
+            _ -> {stack, false}
+          end
+
         type_fun =
           fn pattern_type, context ->
             # See if we can use the expected type to further refine the pattern type,
@@ -163,7 +174,22 @@ defmodule Module.Types.Expr do
             {opt_intersection(result, expected), context}
           end
 
-        Pattern.of_match(left_expr, type_fun, match, meta, stack, context)
+        if track? do
+          {{type, versions}, used, context} =
+            with_used(context, fn context ->
+              {type, versions, context} =
+                Pattern.of_match(left_expr, type_fun, match, meta, stack, context)
+
+              {{type, versions}, context}
+            end)
+
+          {type, track_assignment(versions, meta, match, used, context)}
+        else
+          {type, _versions, context} =
+            Pattern.of_match(left_expr, type_fun, match, meta, stack, context)
+
+          {type, context}
+        end
     end
   end
 
@@ -427,8 +453,10 @@ defmodule Module.Types.Expr do
   end
 
   def of_expr({:case, meta, [case_expr, [do: clauses]]}, expected, _expr, stack, base_context) do
+    cache_stack = %{stack | reverse_arrow: :cache}
+
     {case_type, case_used, context} =
-      of_expr_used(case_expr, term(), %{stack | reverse_arrow: :cache}, base_context)
+      with_used(base_context, &of_expr(case_expr, term(), case_expr, cache_stack, &1))
 
     info = {:case, meta, case_expr, case_type}
     literal? = Macro.quoted_literal?(case_expr)
@@ -462,9 +490,14 @@ defmodule Module.Types.Expr do
             reverse_stack = %{stack | reverse_arrow: :except_none}
             {_, refined_context} = of_expr(case_expr, arg_type, case_expr, reverse_stack, context)
 
+            refined_context =
+              refine_assignments(case_used, body, context, stack, refined_context)
+
             # We track which variables the body uses to classify the clause
             body_context = reset_warnings(refined_context, context)
-            {body_type, used, context} = of_expr_used(body, expected, stack, body_context)
+
+            {body_type, used, context} =
+              with_used(body_context, &of_expr(body, expected, body, stack, &1))
 
             # Now we compute the return type and the clauses for reverse arrow
             {none?, body_acc, clauses_acc, count, refining} = acc
@@ -495,6 +528,8 @@ defmodule Module.Types.Expr do
               context
             )
 
+          # The refinement applies after the case, so we don't know the targets
+          refined_context = refine_assignments(case_used, :all, context, stack, refined_context)
           reset_warnings(refined_context, context)
         else
           context
@@ -1254,14 +1289,184 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # Types the expression while tracking which variables it uses,
+  # Tracks the variables bound by an assignment alongside the variables used by it.
+  # The assignment version is given after its pattern and right side are expanded,
+  # so it is greater than the versions of all variables (and assignments) it uses.
+  defp track_assignment([], _meta, _match, _used, context), do: context
+
+  defp track_assignment(versions, meta, match, used, %{vars: vars} = context) do
+    assignment = {Keyword.fetch!(meta, :version), match, Map.keys(used)}
+
+    vars =
+      Enum.reduce(versions, vars, fn version, vars ->
+        %{^version => data} = vars
+        %{vars | version => Map.put(data, :assignment, assignment)}
+      end)
+
+    %{context | vars: vars}
+  end
+
+  # Once an expression refines the variables it uses (the sources), we propagate
+  # their refinements to the assignments that bound them (see track_assignment/5),
+  # by computing the reverse arrow of the assignment with the refined variables.
+  # This may refine the variables used by the assignment, which are propagated
+  # to their own assignments.
+  #
+  # Refining a variable is only useful if it is used later on (the targets), such
+  # as by the body of a clause, so we only compute assignments which may lead to
+  # a target. Targets may be `:all`, when we don't know which variables are used.
+  # Otherwise they are stored alongside the lowest version among them, as there is
+  # no point in following variables with lower versions (see var_reaches_targets/4).
+  #
+  # Assignments are sequential, so the variables used by an assignment were bound
+  # by previous ones and we can process them in reverse order of their versions,
+  # each at most once, without dealing with cycles.
+  defp refine_assignments(used, targets, original, stack, context) do
+    %{vars: vars} = context
+
+    case changed_assignments(Map.keys(used), original.vars, vars) do
+      [] ->
+        context
+
+      assignments ->
+        case body_targets(targets, vars) do
+          nil ->
+            context
+
+          targets ->
+            acc = {:gb_trees.empty(), %{}}
+            {queue, reaches} = enqueue_assignments(assignments, targets, vars, acc)
+            reverse_stack = %{stack | reverse_arrow: :except_none}
+            refine_assignments_queue(queue, reaches, targets, reverse_stack, context)
+        end
+    end
+  end
+
+  defp body_targets(:all, _vars), do: :all
+
+  defp body_targets(body, vars) do
+    case body_vars(body, vars) do
+      targets when targets == %{} -> nil
+      targets -> {targets |> Map.keys() |> Enum.min(), targets}
+    end
+  end
+
+  # Collects the variables defined before the given expression which are used by it
+  defp body_vars(body, vars) do
+    {_, acc} =
+      Macro.prewalk(body, %{}, fn
+        {_, meta, _} = var, acc when is_var(var) ->
+          case Keyword.fetch(meta, :version) do
+            {:ok, version} when is_map_key(vars, version) -> {var, Map.put(acc, version, true)}
+            _ -> {var, acc}
+          end
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    acc
+  end
+
+  defp refine_assignments_queue(queue, reaches, targets, stack, context) do
+    if :gb_trees.is_empty(queue) do
+      context
+    else
+      {_version, {match, used}, queue} = :gb_trees.take_largest(queue)
+      {_, refined_context} = of_expr(match, term(), match, stack, context)
+
+      # If the assignment fails, then it is not reachable within the
+      # current refinement, and the error will be reported elsewhere
+      if refined_context.failed and not context.failed do
+        refine_assignments_queue(queue, reaches, targets, stack, context)
+      else
+        %{vars: vars} = refined_context
+        assignments = changed_assignments(used, context.vars, vars)
+        {queue, reaches} = enqueue_assignments(assignments, targets, vars, {queue, reaches})
+        refine_assignments_queue(queue, reaches, targets, stack, refined_context)
+      end
+    end
+  end
+
+  # Returns the assignments of the used variables which changed. The variables used
+  # by an assignment existed before it, so their assignments always have lower versions
+  defp changed_assignments(used, old_vars, vars) do
+    Enum.reduce(used, [], fn version, acc ->
+      case vars do
+        %{^version => %{type: type, assignment: triplet} = data}
+        when not is_map_key(data, :errored) ->
+          case old_vars do
+            %{^version => %{type: ^type}} -> acc
+            %{} -> [triplet | acc]
+          end
+
+        %{} ->
+          acc
+      end
+    end)
+  end
+
+  defp enqueue_assignments(assignments, targets, vars, acc) do
+    Enum.reduce(assignments, acc, fn {version, match, used} = assignment, {queue, reaches} ->
+      case reaches_targets(assignment, targets, vars, reaches) do
+        {true, reaches} -> {:gb_trees.enter(version, {match, used}, queue), reaches}
+        {false, reaches} -> {queue, reaches}
+      end
+    end)
+  end
+
+  # An assignment reaches the targets if any of the variables it uses is a target or
+  # was bound by an assignment which reaches them. The results are cached by version,
+  # as the same assignment may be reached from all of the variables it binds.
+  defp reaches_targets(_assignment, :all, _vars, reaches), do: {true, reaches}
+
+  defp reaches_targets({version, _match, used}, targets, vars, reaches) do
+    case reaches do
+      %{^version => reaches?} ->
+        {reaches?, reaches}
+
+      %{} ->
+        {reaches?, reaches} =
+          Enum.reduce_while(used, {false, reaches}, fn var_version, {false, reaches} ->
+            case var_reaches_targets(var_version, targets, vars, reaches) do
+              {true, reaches} -> {:halt, {true, reaches}}
+              {false, reaches} -> {:cont, {false, reaches}}
+            end
+          end)
+
+        {reaches?, Map.put(reaches, version, reaches?)}
+    end
+  end
+
+  # The variables used by an assignment always have lower versions than the variables
+  # it binds, so a variable with a lower version than all targets cannot lead to them
+  defp var_reaches_targets(version, {min_target, targets} = all_targets, vars, reaches) do
+    cond do
+      is_map_key(targets, version) ->
+        {true, reaches}
+
+      version < min_target ->
+        {false, reaches}
+
+      true ->
+        case vars do
+          %{^version => %{assignment: assignment}} ->
+            reaches_targets(assignment, all_targets, vars, reaches)
+
+          %{} ->
+            {false, reaches}
+        end
+    end
+  end
+
+  # Invokes the function while tracking which variables it uses,
   # which are then also given to the outer conditional, if any
-  defp of_expr_used(expr, expected, stack, context) do
+  defp with_used(context, fun) do
     %{vars: vars, conditional_vars: conditional_vars} = context
     context = %{context | conditional_vars: {vars, %{}}}
-    {type, context} = of_expr(expr, expected, expr, stack, context)
+    {result, context} = fun.(context)
     %{conditional_vars: {_, used}} = context
-    {type, used, %{context | conditional_vars: merge_conditional_vars(conditional_vars, used)}}
+    {result, used, %{context | conditional_vars: merge_conditional_vars(conditional_vars, used)}}
   end
 
   # Merges the variables used in a nested conditional into the outer one

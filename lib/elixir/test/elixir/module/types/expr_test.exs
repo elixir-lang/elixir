@@ -2448,6 +2448,89 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(open_map())
     end
 
+    test "refines variables through their assignments" do
+      int_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), integer()]),
+            tuple([atom([:two]), opt_negation(integer())])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 if y, do: {:one, x}, else: {:two, x}
+               )
+             ) == int_type
+
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+
+                 case y do
+                   true -> {:one, x}
+                   false -> {:two, x}
+                 end
+               )
+             ) == int_type
+
+      # Patterns
+      assert typecheck!(
+               [x],
+               (
+                 {:ok, y} = {:ok, is_integer(x)}
+                 if y, do: {:one, x}, else: {:two, x}
+               )
+             ) == int_type
+
+      # Chained assignments
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+                 if z, do: {:two, x}, else: {:one, x}
+               )
+             ) == int_type
+
+      # Assignments with reverse arrows
+      assert typecheck!(
+               [x],
+               (
+                 y =
+                   case x do
+                     :foo -> true
+                     _ -> false
+                   end
+
+                 if y, do: {:one, x}, else: {:two, x}
+               )
+             ) ==
+               dynamic(
+                 opt_union(
+                   tuple([atom([:one]), atom([:foo])]),
+                   tuple([atom([:two]), opt_negation(atom([:foo]))])
+                 )
+               )
+
+      # Dead branches
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+
+                 if y do
+                   raise "bad"
+                 end
+
+                 x
+               )
+             ) == dynamic(opt_negation(integer()))
+    end
+
     test "refine types when it is dynamic" do
       assert typecheck!(
                [x],

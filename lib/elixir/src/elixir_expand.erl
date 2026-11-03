@@ -16,8 +16,9 @@ expand({'=', Meta, [_, _]} = Expr, S, #{context := match} = E) ->
 expand({'=', Meta, [Left, Right]}, S, E) ->
   assert_no_guard_scope(Meta, "=", S, E),
   {ERight, SR, ER} = expand(Right, S, E),
-  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Meta, Left, SR, S, ER),
-  {{'=', Meta, [ELeft, ERight]}, SL, EL};
+  {ELeft, #elixir_ex{version=Counter} = SL, EL} =
+    elixir_clauses:match(fun expand/3, Meta, Left, SR, S, ER),
+  {{'=', [{version, Counter} | Meta], [ELeft, ERight]}, SL#elixir_ex{version=Counter+1}, EL};
 
 %% Literal operators
 

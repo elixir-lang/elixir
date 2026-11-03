@@ -451,7 +451,7 @@ defmodule CodeTest do
       assert_receive {:trace, {:on_module, _, _}, %{module: CodeTest.TracingPruning} = trace_env}
 
       assert trace_env.versioned_vars == %{
-               {:result, :elixir_compiler} => 5,
+               {:result, :elixir_compiler} => 6,
                {:x, nil} => 1,
                {:y, nil} => 4
              }

@@ -309,6 +309,9 @@ defmodule Module.Types.Pattern do
 
   @doc """
   Handles the match operator.
+
+  Returns the type of the pattern alongside the versions
+  of the variables it binds (excluding pinned ones).
   """
   def of_match(pattern, expected_fun, expr, meta, stack, context) do
     stack = %{stack | meta: meta}
@@ -328,9 +331,10 @@ defmodule Module.Types.Pattern do
          {:ok, changed, context} <-
            of_pattern_refine(types, pattern_info, tag, stack, context) do
       context = of_changed(Map.keys(changed), stack, context)
-      {of_pattern_tree(tree, stack, context), context}
+      versions = for {version, false, _node} <- pattern_info, do: version
+      {of_pattern_tree(tree, stack, context), versions, context}
     else
-      {:error, context} -> {expected, context}
+      {:error, context} -> {expected, [], context}
     end
   end
 
