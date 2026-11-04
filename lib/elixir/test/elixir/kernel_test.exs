@@ -176,7 +176,7 @@ defmodule KernelTest do
     # Ensure we keep the line information around.
     # It is important for debugging tools, ExDoc, etc.
     {:v1, :def, anno, _clauses} = Module.get_definition(__MODULE__, {:__struct__, 1})
-    anno[:line] == __ENV__.line - 4
+    assert anno[:line] == __ENV__.line - 4
   end
 
   test "struct/1 and struct/2" do
