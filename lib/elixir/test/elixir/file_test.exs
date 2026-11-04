@@ -1296,7 +1296,7 @@ defmodule FileTest do
     test "mkdir_p with invalid path" do
       assert File.exists?(fixture_path("file.txt"))
       invalid = Path.join(fixture_path("file.txt"), "test/foo")
-      assert io_error?(File.mkdir(invalid))
+      assert io_error?(File.mkdir_p(invalid))
       refute File.exists?(invalid)
     end
 
