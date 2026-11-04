@@ -1452,7 +1452,7 @@ defmodule KernelTest do
       assert output =~ "KernelTest."
       assert output =~ "List.duplicate(:foo, 3)"
       assert output =~ "[:foo, :foo, :foo]"
-      refute output =~ "\\e["
+      refute output =~ "\e["
     end
 
     test "prints binding() if no arguments are given" do
