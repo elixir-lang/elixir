@@ -6322,9 +6322,15 @@ defmodule Module.Types.Descr do
   defp bdd_node_new(lit, c, u, d),
     do: {bdd_compute_hash(lit, c, u, d), lit, c, u, d}
 
+  # The hash is truncated to 32 bits and each combine step only needs two more
+  # bits of its accumulator (because of `>>> 2`), so we truncate leaf keys and
+  # intermediate results to the bits that can still reach the result. This gives
+  # the same hash, but every step stays within immediate integers: leaf keys of
+  # closed maps and tuples are below -2^59, which would otherwise make every step
+  # allocate a bignum.
   defp bdd_compute_hash(lit, c, u, d) do
-    h1 = bdd_combine_hash(bdd_hash(lit), bdd_hash(c))
-    h2 = bdd_combine_hash(h1, bdd_hash(u))
+    h1 = bdd_combine_hash(bdd_hash(lit), bdd_hash(c)) &&& 0xFFFFFFFFF
+    h2 = bdd_combine_hash(h1, bdd_hash(u)) &&& 0x3FFFFFFFF
     bdd_combine_hash(h2, bdd_hash(d)) &&& 0xFFFFFFFF
   end
 
@@ -6340,7 +6346,7 @@ defmodule Module.Types.Descr do
 
   defp bdd_hash(:bdd_bot), do: @bdd_bot_hash
   defp bdd_hash(:bdd_top), do: @bdd_top_hash
-  defp bdd_hash({hash, _, _}), do: hash
+  defp bdd_hash({key, _, _}), do: key &&& 0x3FFFFFFFFF
   defp bdd_hash({hash, _, _, _, _}), do: hash
 
   def bdd_union(bdd, bdd), do: bdd
