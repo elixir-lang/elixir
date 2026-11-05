@@ -1779,15 +1779,10 @@ defmodule DateTime do
   If the datetime is in the `"Etc/UTC"` time zone, this function
   always succeeds without consulting the `time_zone_database`.
 
-  This operation is equivalent to shifting the datetime wall clock
-  (in other words, the value as someone in that timezone would see
-  on their watch), then applying the time zone offset to convert it
-  to UTC, and finally computing the new timezone in case of shifts.
-  This ensures `shift/3` always returns a valid datetime.
-
-  Consequently, time zones that observe "Daylight Saving Time"
-  or other changes, across summer/winter time will add/remove hours
-  from the resulting datetime:
+  If the shift crosses a "Daylight Saving Time" transition or any other
+  change in the time zone offset, the wall clock of the resulting datetime
+  will differ from the one you might expect by the difference in offsets.
+  This applies to all units, including days, weeks, months, and years:
 
       dt = DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen")
       DateTime.shift(dt, hour: 1)
@@ -1802,14 +1797,31 @@ defmodule DateTime do
   due to the "spring forward" time jump, the actual elapsed time is
   still exactly of 1 hour.
 
-  In case you don't want these changes to happen automatically or you
-  want to surface time zone conflicts to the user, you can shift
+  Similarly, shifting by one day returns 13:00 instead of 12:00,
+  as exactly 24 hours elapsed but the offset changed from `+01:00` to
+  `+02:00` in between:
+
+      dt = DateTime.new!(~D[2018-10-28], ~T[12:00:00], "Europe/Copenhagen")
+      DateTime.shift(dt, day: -1)
+      #=> #DateTime<2018-10-27 13:00:00+02:00 CEST Europe/Copenhagen>
+
+  In case you want to preserve the wall clock across offset changes or
+  you want to surface time zone conflicts to the user, you can shift
   the datetime as a naive datetime and then use `from_naive/2`:
 
       dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)
 
-  The above will surface time jumps and ambiguous datetimes, allowing you
-  to deal with them accordingly.
+  The above will surface time jumps and ambiguous datetimes,
+  which you must deal with accordingly.
+
+  ## Implementation
+
+  This operation is equivalent to shifting the datetime wall clock
+  (in other words, the value as someone in that timezone would see
+  on their watch), then applying the *original* time zone offset to
+  convert it to UTC, and finally computing the new time zone period
+  for the resulting UTC datetime. This ensures `shift/3` always returns
+  a valid datetime.
 
   ## ISO calendar considerations
 
@@ -1817,7 +1829,8 @@ defmodule DateTime do
   applied in the order of months, then seconds and microseconds:
 
   * when shifting by 1 year and 2 months the date is actually shifted by 14 months
-  * weeks, days and smaller units are collapsed into seconds and microseconds
+  * weeks, days and smaller units are collapsed into seconds and microseconds,
+    which means a day is always 86400 seconds and `day: 1` is equivalent to `hour: 24`
 
   When shifting by month, days are rounded down to the nearest valid date.
 
