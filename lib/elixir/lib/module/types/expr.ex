@@ -1407,8 +1407,11 @@ defmodule Module.Types.Expr do
       {_version, {match, used}, queue} = :gb_trees.take_largest(queue)
       {_, refined_context} = of_expr(match, term(), match, stack, context)
 
-      # If the assignment fails, then it is not reachable within the
-      # current refinement, and the error will be reported elsewhere
+      # In theory, the refinement should never fail, as the assignment is
+      # replayed with a subset of the types it has already accepted.
+      # However, if it does, the assignment is not reachable within the
+      # current refinement and the error will be reported elsewhere.
+      # We also discard the context, so its failure does not leak.
       if refined_context.failed and not context.failed do
         refine_assignments_queue(queue, reaches, targets, stack, context)
       else

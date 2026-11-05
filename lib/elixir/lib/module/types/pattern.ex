@@ -193,7 +193,8 @@ defmodule Module.Types.Pattern do
     {trees, precise?, errored?, refined_types, args_types, context} =
       of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
-    if context.failed and stack.mode != :infer and not empty_previous?(previous) do
+    if context.failed and not original.failed and stack.mode != :infer and
+         not empty_previous?(previous) do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do

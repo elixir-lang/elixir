@@ -2750,6 +2750,44 @@ defmodule Module.Types.ExprTest do
 
       assert type == none()
     end
+
+    test "does not discard clauses when the case expression errors" do
+      {type, [_]} =
+        typediag!(
+          [x, y],
+          case is_integer(x) and x != nil do
+            false -> false
+            true -> is_integer(y)
+          end
+        )
+
+      assert type == boolean()
+
+      {type, [_]} =
+        typediag!(
+          [x, y],
+          is_integer(x) and x != nil and is_integer(y)
+        )
+
+      assert type == boolean()
+    end
+
+    test "does not discard clauses when the code before the case errors" do
+      {type, [_]} =
+        typediag!(
+          [x, y],
+          (
+            _ = Atom.to_string(x) == :error
+
+            case y do
+              :foo -> :foo
+              _ -> :bar
+            end
+          )
+        )
+
+      assert type == atom([:foo, :bar])
+    end
   end
 
   describe "conditionals" do
