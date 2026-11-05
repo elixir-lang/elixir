@@ -50,7 +50,7 @@ defmodule Module.Types.Descr do
   @map_top {:erlang.phash2([:open | @fields_new]), :open, @fields_new}
   @non_empty_list_top {:erlang.phash2([:term | :term]), :term, :term}
   @tuple_top {:erlang.phash2([:open | []]), :open, []}
-  @map_empty {:erlang.phash2(@fields_new) - (1 <<< 60), :closed, @fields_new}
+  @map_empty {:erlang.phash2(@fields_new) - (1 <<< 58), :closed, @fields_new}
 
   defmacrop bdd_leaf(arg1, arg2) do
     quote do
@@ -6308,7 +6308,11 @@ defmodule Module.Types.Descr do
   # first, so when intersecting a small type (such as a refinement)
   # with a large one, the large one is kept as is under the small one,
   # instead of the small one being pushed into all of its branches.
-  @closed_offset 1 <<< 60
+  #
+  # The offset keeps closed keys within the VM's immediate integers
+  # (which are 60-bit signed on 64-bit systems), as long as there are
+  # fewer than 2^31 elements in a leaf.
+  @closed_offset 1 <<< 58
 
   defp bdd_leaf_new(:closed, arg2),
     do: {bdd_leaf_key(arg2, :erlang.phash2(arg2)) - @closed_offset, :closed, arg2}
@@ -6322,14 +6326,14 @@ defmodule Module.Types.Descr do
   defp bdd_node_new(lit, c, u, d),
     do: {bdd_compute_hash(lit, c, u, d), lit, c, u, d}
 
+  # Boost-style hash_combine for four already-hashed integers.
+  # Cheaper than :erlang.phash2({lit, c, u, d}) and good enough for ruling out equality.
   defp bdd_compute_hash(lit, c, u, d) do
     h1 = bdd_combine_hash(bdd_hash(lit), bdd_hash(c))
     h2 = bdd_combine_hash(h1, bdd_hash(u))
     bdd_combine_hash(h2, bdd_hash(d)) &&& 0xFFFFFFFF
   end
 
-  # Boost-style hash_combine for four already-hashed integers.
-  # Cheaper than :erlang.phash2({lit, c, u, d}) and good enough for ruling out equality.
   @compile {:inline, bdd_combine_hash: 2, bdd_hash: 1}
   defp bdd_combine_hash(acc, x) do
     bxor(acc, x + 0x9E3779B9 + (acc <<< 6) + (acc >>> 2))
@@ -6340,7 +6344,7 @@ defmodule Module.Types.Descr do
 
   defp bdd_hash(:bdd_bot), do: @bdd_bot_hash
   defp bdd_hash(:bdd_top), do: @bdd_top_hash
-  defp bdd_hash({hash, _, _}), do: hash
+  defp bdd_hash({key, _, _}), do: key &&& 0xFFFFFFFF
   defp bdd_hash({hash, _, _, _, _}), do: hash
 
   def bdd_union(bdd, bdd), do: bdd
