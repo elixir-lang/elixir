@@ -467,6 +467,27 @@ defmodule Module.Types.DescrTest do
              )
     end
 
+    test "map open with union of closed maps" do
+      a_x = closed_map(a: {atom([:x]), false}, b: {term(), false})
+      b_y = closed_map(a: {term(), false}, b: {atom([:y]), false})
+
+      # Closed maps which are subtypes of the open map are kept as is
+      a_xz = open_map(a: {atom([:x, :z]), false})
+
+      assert opt_intersection(opt_union(a_x, b_y), a_xz) ==
+               opt_union(a_x, bare_intersection(b_y, a_xz))
+
+      # Including when the open map has optional fields not in the closed map
+      a_xz_c = open_map(a: {atom([:x, :z]), false}, c: {term(), true})
+
+      assert opt_intersection(opt_union(a_x, b_y), a_xz_c) ==
+               opt_union(a_x, bare_intersection(b_y, a_xz_c))
+
+      # The bare intersection is lazy
+      assert bare_intersection(opt_union(a_x, b_y), a_xz) !=
+               opt_union(a_x, bare_intersection(b_y, a_xz))
+    end
+
     # Closed maps with not set keys should have no impact
     test "map closed with not set keys" do
       assert opt_intersection(
