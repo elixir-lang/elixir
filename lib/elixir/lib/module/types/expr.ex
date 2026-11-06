@@ -329,17 +329,14 @@ defmodule Module.Types.Expr do
       {pos_head_type, head_used, context} =
         with_used(acc_context, &of_expr(pos_head, term(), pos_head, cache_stack, &1))
 
+      refine = {acc_context.vars, context.vars, head_used}
+
       context =
         maybe_always_or_never_match_cond(pos_head_type, pos_head, pos_meta, stack, context, false)
 
-      {_, truthy_context} =
-        of_expr(pos_head, @truthy, pos_head, %{stack | reverse_arrow: :except_none}, context)
-
       # Keep the context except the warnings, and compute the body
-      truthy_context = reset_warnings(truthy_context, context)
-
       pos_context =
-        refine_assignments(head_used, pos_body, context, stack, truthy_context)
+        refine_expr(pos_head, @truthy, pos_body, refine, stack, context)
         |> reset_warnings(context)
 
       {pos_body_type, pos_body_context} = of_expr(pos_body, expected, expr, stack, pos_context)
@@ -347,13 +344,8 @@ defmodule Module.Types.Expr do
       # Reset the context vars once again to compute the falsy type
       context = Of.reset_vars(pos_body_context, context)
 
-      {_, falsy_context} =
-        of_expr(pos_head, @falsy, pos_head, %{stack | reverse_arrow: :except_none}, context)
-
-      falsy_context = reset_warnings(falsy_context, context)
-
       neg_context =
-        refine_assignments(head_used, neg_body, context, stack, falsy_context)
+        refine_expr(pos_head, @falsy, neg_body, refine, stack, context)
         |> reset_warnings(context)
 
       {neg_body_type, neg_body_context} = of_expr(neg_body, expected, expr, stack, neg_context)
@@ -365,11 +357,11 @@ defmodule Module.Types.Expr do
       context =
         cond do
           empty?(pos_body_type) ->
-            falsy_context = refine_assignments(head_used, :all, context, stack, falsy_context)
+            falsy_context = refine_expr(pos_head, @falsy, :all, refine, stack, context)
             Of.reset_vars(neg_body_context, falsy_context)
 
           empty?(neg_body_type) ->
-            truthy_context = refine_assignments(head_used, :all, context, stack, truthy_context)
+            truthy_context = refine_expr(pos_head, @truthy, :all, refine, stack, context)
             Of.reset_vars(neg_body_context, truthy_context)
 
           true ->
@@ -384,22 +376,21 @@ defmodule Module.Types.Expr do
     cache_result(meta, stack, context, fn ->
       {body_type, acc_context} =
         reduce_non_empty(clauses, {none(), context}, fn
-          {:->, meta, [[head], body]}, rest, {acc, context} ->
+          {:->, meta, [[head], body]}, rest, {acc, head_context} ->
             last? = rest == []
             cache_stack = %{stack | reverse_arrow: :cache}
 
             {head_type, head_used, context} =
-              with_used(context, &of_expr(head, term(), head, cache_stack, &1))
+              with_used(head_context, &of_expr(head, term(), head, cache_stack, &1))
+
+            refine = {head_context.vars, context.vars, head_used}
 
             context =
               maybe_always_or_never_match_cond(head_type, head, meta, stack, context, last?)
 
-            {_, truthy_context} =
-              of_expr(head, @truthy, head, %{stack | reverse_arrow: :except_none}, context)
-
             # Keep the context except the warnings, and compute the body
             truthy_context =
-              refine_assignments(head_used, body, context, stack, truthy_context)
+              refine_expr(head, @truthy, body, refine, stack, context)
               |> reset_warnings(context)
 
             {body_type, body_context} = of_expr(body, expected, expr, stack, truthy_context)
@@ -411,11 +402,8 @@ defmodule Module.Types.Expr do
               if last? do
                 context
               else
-                {_, falsy_context} =
-                  of_expr(head, @falsy, head, %{stack | reverse_arrow: :except_none}, context)
-
                 # The falsy refinement applies to the remaining clauses
-                refine_assignments(head_used, rest, context, stack, falsy_context)
+                refine_expr(head, @falsy, rest, refine, stack, context)
                 |> reset_warnings(context)
               end
 
@@ -501,6 +489,7 @@ defmodule Module.Types.Expr do
     # the ones defined after the case expression
     %{vars: pre_vars} = base_context
     %{vars: case_vars} = context
+    refine = {pre_vars, case_vars, case_used}
 
     cache_arrows(meta, stack, fn ->
       acc = {false, none(), [], 0, :none}
@@ -512,11 +501,7 @@ defmodule Module.Types.Expr do
             [arg_type] = Pattern.of_domain(trees, stack, context)
 
             # Now we refine the case_expr context and use it to compute the body
-            reverse_stack = %{stack | reverse_arrow: :except_none}
-            {_, refined_context} = of_expr(case_expr, arg_type, case_expr, reverse_stack, context)
-
-            refined_context =
-              refine_assignments(case_used, body, context, stack, refined_context)
+            refined_context = refine_expr(case_expr, arg_type, body, refine, stack, context)
 
             # We track which variables the body uses to classify the clause
             body_context = reset_warnings(refined_context, context)
@@ -544,18 +529,9 @@ defmodule Module.Types.Expr do
         if none? or stack.mode != :static do
           head_type = Enum.reduce(clauses_acc, none(), &opt_union(elem(&1, 0), &2))
 
-          {_, refined_context} =
-            of_expr(
-              case_expr,
-              head_type,
-              case_expr,
-              %{stack | reverse_arrow: :except_none},
-              context
-            )
-
           # The refinement applies after the case, so we don't know the targets
-          refined_context = refine_assignments(case_used, :all, context, stack, refined_context)
-          reset_warnings(refined_context, context)
+          refine_expr(case_expr, head_type, :all, refine, stack, context)
+          |> reset_warnings(context)
         else
           context
         end
@@ -1000,17 +976,17 @@ defmodule Module.Types.Expr do
   defp with_clause({:<-, meta, [left, right]} = expr, remaining, stack, {else_types, context}) do
     {[pattern], guards} = extract_head([left])
     cache_stack = %{stack | reverse_arrow: :cache}
-    {type, used, context} = with_used(context, &of_expr(right, term(), right, cache_stack, &1))
+
+    {type, used, right_context} =
+      with_used(context, &of_expr(right, term(), right, cache_stack, &1))
+
+    refine = {context.vars, right_context.vars, used}
 
     {trees, precise?, context} =
-      Pattern.of_generator(pattern, guards, type, :with, expr, meta, stack, context)
+      Pattern.of_generator(pattern, guards, type, :with, expr, meta, stack, right_context)
 
     [pattern_type] = Pattern.of_domain(trees, stack, context)
-
-    {_, refined_context} =
-      of_expr(right, pattern_type, right, %{stack | reverse_arrow: :except_none}, context)
-
-    refined_context = refine_assignments(used, remaining, context, stack, refined_context)
+    refined_context = refine_expr(right, pattern_type, remaining, refine, stack, context)
     else_type = if precise?, do: opt_difference(type, pattern_type), else: type
     {opt_union(else_type, else_types), reset_warnings(refined_context, context)}
   end
@@ -1338,6 +1314,61 @@ defmodule Module.Types.Expr do
     %{context | vars: vars}
   end
 
+  # Refines the variables in the expression with the given type, so they can be
+  # used by the body (which may be `:all` if we don't know where they are used).
+  # It receives the variables before and after the expression, alongside the
+  # variables used by it (the sources).
+  #
+  # The refinement is skipped when it cannot affect the variables used by the
+  # body (the targets). That's when the expression neither uses nor binds any
+  # variables, or when the body uses none of them and none of the sources were
+  # bound by an assignment, through which their refinements could propagate.
+  defp refine_expr(expr, type, body, {pre_vars, vars, used} = refine, stack, context) do
+    with true <- used != %{} or map_size(vars) != map_size(pre_vars),
+         {targets, direct?} <- body_targets(body, refine),
+         true <- direct? or Enum.any?(used, &has_assignment?(&1, vars)) do
+      {_, refined_context} =
+        of_expr(expr, type, expr, %{stack | reverse_arrow: :except_none}, context)
+
+      refine_assignments(used, targets, context, stack, refined_context)
+    else
+      _ -> context
+    end
+  end
+
+  defp has_assignment?({version, _}, vars) do
+    match?(%{^version => %{assignment: _}}, vars)
+  end
+
+  # Collects the variables defined before the body which are used by it, and
+  # whether any of them is used or bound by the expression being refined
+  defp body_targets(:all, _refine), do: {:all, true}
+
+  defp body_targets(body, {pre_vars, vars, used}) do
+    {_, {targets, direct?}} =
+      Macro.prewalk(body, {%{}, false}, fn
+        {_, meta, _} = var, {targets, direct?} = acc when is_var(var) ->
+          case Keyword.fetch(meta, :version) do
+            {:ok, version} when is_map_key(vars, version) ->
+              direct? =
+                direct? or is_map_key(used, version) or not is_map_key(pre_vars, version)
+
+              {var, {Map.put(targets, version, true), direct?}}
+
+            _ ->
+              {var, acc}
+          end
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    case targets do
+      targets when targets == %{} -> nil
+      targets -> {{targets |> Map.keys() |> Enum.min(), targets}, direct?}
+    end
+  end
+
   # Once an expression refines the variables it uses (the sources), we propagate
   # their refinements to the assignments that bound them (see track_assignment/5),
   # by computing the reverse arrow of the assignment with the refined variables.
@@ -1361,43 +1392,11 @@ defmodule Module.Types.Expr do
         context
 
       assignments ->
-        case body_targets(targets, vars) do
-          nil ->
-            context
-
-          targets ->
-            acc = {:gb_trees.empty(), %{}}
-            {queue, reaches} = enqueue_assignments(assignments, targets, vars, acc)
-            reverse_stack = %{stack | reverse_arrow: :except_none}
-            refine_assignments_queue(queue, reaches, targets, reverse_stack, context)
-        end
+        acc = {:gb_trees.empty(), %{}}
+        {queue, reaches} = enqueue_assignments(assignments, targets, vars, acc)
+        reverse_stack = %{stack | reverse_arrow: :except_none}
+        refine_assignments_queue(queue, reaches, targets, reverse_stack, context)
     end
-  end
-
-  defp body_targets(:all, _vars), do: :all
-
-  defp body_targets(body, vars) do
-    case body_vars(body, vars) do
-      targets when targets == %{} -> nil
-      targets -> {targets |> Map.keys() |> Enum.min(), targets}
-    end
-  end
-
-  # Collects the variables defined before the given expression which are used by it
-  defp body_vars(body, vars) do
-    {_, acc} =
-      Macro.prewalk(body, %{}, fn
-        {_, meta, _} = var, acc when is_var(var) ->
-          case Keyword.fetch(meta, :version) do
-            {:ok, version} when is_map_key(vars, version) -> {var, Map.put(acc, version, true)}
-            _ -> {var, acc}
-          end
-
-        node, acc ->
-          {node, acc}
-      end)
-
-    acc
   end
 
   defp refine_assignments_queue(queue, reaches, targets, stack, context) do
