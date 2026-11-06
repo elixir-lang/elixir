@@ -1028,7 +1028,7 @@ defmodule KernelTest do
       end
 
       assert_raise KeyError, fn ->
-        put_in(users["meg"].unknown, &(&1 + 1))
+        update_in(users["meg"].unknown, &(&1 + 1))
       end
     end
 
