@@ -1003,10 +1003,6 @@ defmodule KernelTest do
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         update_in(nil, ["john", :age], fn _ -> %{} end)
       end
-
-      assert_raise UndefinedFunctionError, fn ->
-        pop_in(struct(Sample, []), [:name])
-      end
     end
 
     test "update_in/2" do
@@ -1081,6 +1077,11 @@ defmodule KernelTest do
 
       assert pop_in([], [:foo, :bar]) ==
                {nil, []}
+
+      assert %UndefinedFunctionError{module: User, function: :pop, arity: 2} =
+               assert_raise(UndefinedFunctionError, fn ->
+                 pop_in(%User{}, [:name])
+               end)
     end
 
     test "pop_in/2 with paths" do
