@@ -202,7 +202,10 @@ defmodule Mix.Compilers.Elixir do
     if stale != [] or stale_modules != %{} or removed != [] or consolidate? or reinfer? do
       path = opts[:purge_consolidation_path_if_stale]
 
-      if is_binary(path) and Code.delete_path(path) do
+      # The consolidation path may have already been pruned from the
+      # code path by compile.all, so we always purge its modules
+      if is_binary(path) do
+        Code.delete_path(path)
         purge_modules_in_path(path)
       end
 

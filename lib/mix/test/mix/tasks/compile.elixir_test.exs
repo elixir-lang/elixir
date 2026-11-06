@@ -2281,6 +2281,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
         purge([A, B, Collectable.A])
         Mix.Task.clear()
+
+        # Load the consolidated protocol, as compile.all prunes the
+        # consolidation path but the loaded modules must still be purged
+        assert Protocol.consolidated?(Collectable)
+
         consolidation = Mix.Project.consolidation_path()
         args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
         assert Mix.Tasks.Compile.run(args) == {:ok, []}
