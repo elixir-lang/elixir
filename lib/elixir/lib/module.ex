@@ -1688,7 +1688,7 @@ defmodule Module do
 
       defmodule MyModule do
         @value 1
-        Module.register_attribute(__MODULE__, :other_value)
+        Module.register_attribute(__MODULE__, :other_value, [])
         Module.put_attribute(__MODULE__, :another_value, 1)
 
         Module.has_attribute?(__MODULE__, :value) #=> true
