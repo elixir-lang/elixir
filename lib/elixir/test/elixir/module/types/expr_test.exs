@@ -1852,7 +1852,7 @@ defmodule Module.Types.ExprTest do
                    y = 321
 
                While Elixir can compare across all types, you are comparing across types \
-               which are always disjoint, and the result is either always true or always false
+               which are always disjoint
                """
 
       assert typeerror!([x = 123, y = 456.0], x === y) ==
@@ -1878,7 +1878,7 @@ defmodule Module.Types.ExprTest do
                    y = 456.0
 
                While Elixir can compare across all types, you are comparing across types \
-               which are always disjoint, and the result is either always true or always false
+               which are always disjoint
                """
     end
 
