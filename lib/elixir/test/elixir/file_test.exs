@@ -1592,6 +1592,12 @@ defmodule FileTest do
       end
     end
 
+    test "stat with closed io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+      assert :ok = File.close(io)
+      assert {:error, :terminated} = File.stat(io)
+    end
+
     test "stat! with io_device" do
       {:ok, io} = File.open(__ENV__.file, [:read])
 
