@@ -146,10 +146,17 @@ defmodule Module.Types.Of do
         end
 
       _ ->
-        case gradual?(old_type) and compatible_intersection(old_type, type) do
+        # Refinements are intersections, so once a variable has been refined
+        # by a type, refining it again by the same type has no effect. This
+        # often happens when the variable is given to the same function several
+        # times and, while the result is the same, it may still grow its BDD.
+        refined = Map.get(data, :refined, [])
+
+        case gradual?(old_type) and type not in refined and
+               compatible_intersection(old_type, type) do
           {:ok, new_type} when new_type != old_type ->
             data = %{
-              data
+              Map.put(data, :refined, [type | refined])
               | type: new_type,
                 off_traces: new_trace(expr, new_type, stack, off_traces)
             }
