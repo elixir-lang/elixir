@@ -192,7 +192,7 @@ defmodule Record do
 
       defmodule User do
         require Record
-        Record.defrecord(:user, name: "meg", age: "25")
+        Record.defrecord(:user, name: "meg", age: 25)
       end
 
   In the example above, a set of macros named `user` but with different
