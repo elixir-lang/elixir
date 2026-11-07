@@ -1182,13 +1182,31 @@ defmodule System do
         do_port_line(port, fun.(acc, {:cont, data}), fun, [])
 
       {^port, {:exit_status, status}} ->
-        # Data may arrive after exit status on line mode
-        receive do
-          {^port, {:data, {_, data}}} ->
-            data = [data | buffer] |> Enum.reverse() |> IO.iodata_to_binary()
+        # The final unterminated line may arrive after the exit status,
+        # so we monitor the port and wait for it to close. The monitor
+        # message is delivered only after all messages sent by the port.
+        ref = Port.monitor(port)
+        do_port_line_flush(port, ref, acc, fun, buffer, status)
+    end
+  end
+
+  defp do_port_line_flush(port, ref, acc, fun, buffer, status) do
+    receive do
+      {^port, {:data, {:noeol, data}}} ->
+        do_port_line_flush(port, ref, acc, fun, [data | buffer], status)
+
+      {^port, {:data, {:eol, data}}} ->
+        data = [data | buffer] |> Enum.reverse() |> IO.iodata_to_binary()
+        do_port_line_flush(port, ref, fun.(acc, {:cont, data}), fun, [], status)
+
+      {:DOWN, ^ref, :port, _, _} ->
+        case buffer do
+          [] ->
+            {acc, status}
+
+          _ ->
+            data = buffer |> Enum.reverse() |> IO.iodata_to_binary()
             {fun.(acc, {:cont, data}), status}
-        after
-          0 -> {acc, status}
         end
     end
   end
