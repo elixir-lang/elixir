@@ -370,7 +370,7 @@ defmodule Module.Types.DescrTest do
 
       empty_field =
         closed_map(key: {atom([:value]), false})
-        |> opt_difference(open_map(key: {atom(), false}, optional: {atom(), true}))
+        |> bare_difference(open_map(key: {atom(), false}, optional: {atom(), true}))
 
       assert empty?(empty_field)
       refute empty_field == none()
@@ -811,6 +811,25 @@ defmodule Module.Types.DescrTest do
         assert empty?(opt_difference(ab, c)),
                "opt difference failed for keys #{inspect({k1, k2})}"
       end
+    end
+
+    test "map difference of closed map without optional keys" do
+      a_x = closed_map(a: {atom([:x]), false})
+
+      # The closed map does not have the optional key
+      a_xz_c = open_map(a: {atom([:x, :z]), false}, c: {term(), true})
+      assert opt_difference(a_x, a_xz_c) == none()
+
+      a_xz_c = closed_map(a: {atom([:x, :z]), false}, c: {term(), true})
+      assert opt_difference(a_x, a_xz_c) == none()
+
+      # The optional key is after all keys in the closed map
+      a_xz_c = closed_map(a: {atom([:x, :z]), false}, z: {term(), true})
+      assert opt_difference(a_x, a_xz_c) == none()
+
+      # Optional keys do not make disjoint maps a subtype
+      a_w_c = closed_map(a: {atom([:w]), false}, c: {term(), true})
+      assert opt_difference(a_x, a_w_c) == a_x
     end
 
     test "map double negation with redundant empty map" do
@@ -1897,7 +1916,7 @@ defmodule Module.Types.DescrTest do
     end
 
     @disguised_empty_map closed_map(key: {atom([:value]), false})
-                         |> opt_difference(
+                         |> bare_difference(
                            open_map(key: {atom(), false}, optional: {atom(), true})
                          )
 

@@ -7459,16 +7459,23 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_difference_strategy([{k1, _} | _] = l1, [{k2, field} | t2], tag1, tag2, _status)
+  defp opt_map_difference_strategy([{k1, _} | _] = l1, [{k2, field} | t2], tag1, tag2, status)
        when k1 > k2 do
     {_, optional?} = field
 
     # Right side has a key the left side does not have,
-    # if left-side is closed, they are disjoint.
-    if tag1 == :closed and not optional? do
-      :disjoint
-    else
-      opt_map_difference_strategy(l1, t2, tag1, tag2, :none)
+    # if left-side is closed, they are disjoint, unless
+    # the key is optional.
+    cond do
+      tag1 != :closed ->
+        opt_map_difference_strategy(l1, t2, tag1, tag2, :none)
+
+      optional? ->
+        status = opt_map_difference_missing_optional(status)
+        opt_map_difference_strategy(l1, t2, tag1, tag2, status)
+
+      true ->
+        :disjoint
     end
   end
 
@@ -7529,7 +7536,29 @@ defmodule Module.Types.Descr do
       tag2 == :closed and l1 != [] and Enum.any?(l1, fn {_, {_, optional?}} -> not optional? end) ->
         :disjoint
 
+      # All remaining keys on the right side are optional
+      tag1 == :closed and l1 == [] ->
+        opt_map_difference_missing_optional(status)
+
       true ->
+        :none
+    end
+  end
+
+  # The left side is closed and does not have an optional key in the right side,
+  # so the left side may still be a subtype of the right side.
+  defp opt_map_difference_missing_optional(status) do
+    case status do
+      :all_equal ->
+        :left_subtype_of_right
+
+      :left_subtype_of_right ->
+        :left_subtype_of_right
+
+      {:one_key_difference, _, p1, p2} ->
+        if field_subtype?(p1, p2), do: :left_subtype_of_right, else: :none
+
+      :none ->
         :none
     end
   end
