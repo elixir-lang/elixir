@@ -1500,18 +1500,9 @@ defmodule Module.Types.Expr do
     context = %{context | conditional_vars: {vars, %{}}}
     {result, context} = fun.(context)
     %{conditional_vars: {_, used}} = context
-    {result, used, %{context | conditional_vars: merge_conditional_vars(conditional_vars, used)}}
+    context = %{context | conditional_vars: conditional_vars}
+    {result, used, Of.merge_conditional_vars(used, context)}
   end
-
-  # Merges the variables used in a nested conditional into the outer one
-  defp merge_conditional_vars({pre_vars, cond_vars}, used) do
-    {pre_vars,
-     Enum.reduce(used, cond_vars, fn {version, _}, acc ->
-       if is_map_key(pre_vars, version), do: Map.put(acc, version, true), else: acc
-     end)}
-  end
-
-  defp merge_conditional_vars(nil, _used), do: nil
 
   defp reset_warnings(context, %{warnings: warnings}), do: %{context | warnings: warnings}
 

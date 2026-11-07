@@ -829,6 +829,7 @@ defmodule Module.Types.Pattern do
   # ^var
   defp of_pattern({:^, _meta, [{_, meta, _} = var]}, reverse_path, _stack, context) do
     version = Keyword.fetch!(meta, :version)
+    context = Of.conditional_var(version, context)
 
     case Enum.reverse(reverse_path) do
       [%{root: :key} | _] ->
@@ -1249,10 +1250,11 @@ defmodule Module.Types.Pattern do
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
+        context = Of.conditional_var(version, context)
         {Of.var(var, context), %{context | pattern_info: [{version, false, node} | list]}}
 
       nil ->
-        {Of.var(var, context), context}
+        {Of.var(var, context), Of.conditional_var(version, context)}
     end
   end
 

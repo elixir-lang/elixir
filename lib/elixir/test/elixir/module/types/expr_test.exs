@@ -3865,6 +3865,123 @@ defmodule Module.Types.ExprTest do
              ) == opt_union(boolean(), atom([:binary, :atom]))
     end
 
+    test "refines variables used by case nested in cond" do
+      assert typecheck!(
+               [x, y],
+               cond do
+                 (case y do
+                    :a -> is_integer(x)
+                    _ -> false
+                  end) ->
+                   {:one, x}
+
+                 true ->
+                   {:two, x}
+               end
+             ) ==
+               dynamic(opt_union(tuple([atom([:one]), integer()]), tuple([atom([:two]), term()])))
+    end
+
+    test "refines variables used by the body of nested clauses" do
+      # Either x has the key :a or it does not have the key :limit
+      type =
+        open_map(a: {term(), false})
+        |> opt_union(opt_negation(open_map(limit: {term(), false})))
+        |> opt_difference(atom([nil]))
+        |> dynamic()
+        |> opt_union(atom([nil]))
+
+      assert typecheck!(
+               [x],
+               if(
+                 case x do
+                   %{limit: l} -> is_map_key(x, :a) and l > 0
+                   other -> is_list(other)
+                 end,
+                 do: x,
+                 else: nil
+               )
+             )
+             |> equal?(type)
+    end
+
+    test "refines variables used by the patterns of nested clauses" do
+      # Either x has the key :a or it does not have the key :limit
+      type =
+        open_map(a: {term(), false})
+        |> opt_union(opt_negation(open_map(limit: {term(), false})))
+        |> opt_difference(atom([nil]))
+        |> dynamic()
+        |> opt_union(atom([nil]))
+
+      assert typecheck!(
+               [x],
+               if(
+                 case x do
+                   %{limit: l} ->
+                     is_map_key(x, :a) and
+                       case 1 do
+                         ^l -> true
+                         _ -> false
+                       end
+
+                   other ->
+                     is_list(other)
+                 end,
+                 do: x,
+                 else: nil
+               )
+             )
+             |> equal?(type)
+
+      assert typecheck!(
+               [x],
+               if(
+                 case x do
+                   %{limit: l} ->
+                     is_map_key(x, :a) and
+                       case "" do
+                         <<_::size(l)>> -> true
+                         _ -> false
+                       end
+
+                   other ->
+                     is_list(other)
+                 end,
+                 do: x,
+                 else: nil
+               )
+             )
+             |> equal?(type)
+    end
+
+    test "refines variables used by the branches of nested conditionals" do
+      # Either x has the key :a or it does not have the key :limit
+      type =
+        open_map(a: {term(), false})
+        |> opt_union(opt_negation(open_map(limit: {term(), false})))
+        |> opt_difference(atom([nil]))
+        |> dynamic()
+        |> opt_union(atom([nil]))
+
+      assert typecheck!(
+               [x, y],
+               (
+                 mod = if y, do: Integer, else: Float
+
+                 if(
+                   case x do
+                     %{limit: l} -> is_map_key(x, :a) and mod.to_string(l) == ""
+                     other -> is_list(other)
+                   end,
+                   do: x,
+                   else: nil
+                 )
+               )
+             )
+             |> equal?(type)
+    end
+
     test "refines variables through their assignments" do
       assert typecheck!(
                [x],

@@ -80,13 +80,29 @@ defmodule Module.Types.Of do
   end
 
   @doc """
+  Tracks a variable as used by the current conditional.
+
+  Only variables defined before the conditional are tracked.
+  """
+  def conditional_var(version, context) do
+    case context.conditional_vars do
+      {pre_vars, cond_vars} when is_map_key(pre_vars, version) ->
+        %{context | conditional_vars: {pre_vars, Map.put(cond_vars, version, true)}}
+
+      _ ->
+        context
+    end
+  end
+
+  @doc """
   Refines a variable that already exists (in a body).
 
   This only happens if the var contains a gradual type,
   or if we are doing a guard analysis or occurrence typing.
   Returns `true` if there was a refinement, `false` otherwise.
   """
-  @skip_refinement_for [term(), dynamic()]
+  @dynamic dynamic()
+  @skip_refinement_for [term(), @dynamic]
   def refine_body_var(var_or_version, type, expr, stack, context)
 
   def refine_body_var({_, meta, _}, type, expr, stack, context) do
@@ -96,16 +112,7 @@ defmodule Module.Types.Of do
   def refine_body_var(version, type, expr, stack, context)
       when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
-
-    # Only variables defined before the conditional are tracked
-    context =
-      case context.conditional_vars do
-        {pre_vars, cond_vars} when is_map_key(pre_vars, version) ->
-          %{context | conditional_vars: {pre_vars, Map.put(cond_vars, version, true)}}
-
-        _ ->
-          context
-      end
+    context = conditional_var(version, context)
 
     case stack do
       _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
@@ -211,13 +218,14 @@ defmodule Module.Types.Of do
   @doc """
   Preserves `context` in first argument while
   resetting it to the vars in the second argument.
+
+  Conditional variables are kept, as they track the variables
+  used by the conditional, including the ones used by clauses.
+  Since they are always defined before the conditional, they
+  are still available after the reset.
   """
-  def reset_vars(context, %{
-        subpatterns: subpatterns,
-        vars: vars,
-        conditional_vars: conditional_vars
-      }),
-      do: %{context | subpatterns: subpatterns, vars: vars, conditional_vars: conditional_vars}
+  def reset_vars(context, %{subpatterns: subpatterns, vars: vars}),
+    do: %{context | subpatterns: subpatterns, vars: vars}
 
   @doc """
   Returns true if all entries have the same conditional vars.
@@ -245,26 +253,62 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Reduces conditional variables collected separately.
+  Merges the variables used by a nested conditional into the current one.
   """
-  def reduce_conditional_vars([{vars, cond} | vars_conds], expr, stack, context) do
-    Enum.reduce(Map.keys(cond), context, fn version, context ->
-      if Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
-        %{^version => %{type: type}} = vars
-
-        type =
-          Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
-            %{^version => %{type: type}} = vars
-            opt_union(acc, type)
+  def merge_conditional_vars(used, context) do
+    case context.conditional_vars do
+      {pre_vars, cond_vars} ->
+        cond_vars =
+          Enum.reduce(used, cond_vars, fn {version, _}, acc ->
+            if is_map_key(pre_vars, version), do: Map.put(acc, version, true), else: acc
           end)
 
-        {_, context} = refine_body_var(version, type, expr, stack, context)
+        %{context | conditional_vars: {pre_vars, cond_vars}}
+
+      nil ->
         context
-      else
-        context
+    end
+  end
+
+  @doc """
+  Reduces conditional variables collected separately.
+
+  All variables used by any branch are used by the current conditional.
+  A variable is refined to the union of its types across all branches,
+  as long as all branches use it. If a branch did not change the variable
+  (or its type is `dynamic()`, which is what some conditionals start with),
+  the union cannot refine it, so we skip it.
+  """
+  def reduce_conditional_vars([{_vars, cond} | _] = vars_conds, expr, stack, context) do
+    %{vars: context_vars} = context
+    context = Enum.reduce(vars_conds, context, &merge_conditional_vars(elem(&1, 1), &2))
+
+    Enum.reduce(Map.keys(cond), context, fn version, context ->
+      %{^version => %{type: context_type}} = context_vars
+
+      case conditional_type(vars_conds, version, context_type, none()) do
+        :error ->
+          context
+
+        type ->
+          {_, context} = refine_body_var(version, type, expr, stack, context)
+          context
       end
     end)
   end
+
+  defp conditional_type([{vars, cond} | vars_conds], version, context_type, acc) do
+    case vars do
+      %{^version => %{type: type}}
+      when is_map_key(cond, version) and type != context_type and type != @dynamic ->
+        conditional_type(vars_conds, version, context_type, opt_union(acc, type))
+
+      _ ->
+        :error
+    end
+  end
+
+  defp conditional_type([], _version, _context_type, acc), do: acc
 
   ## Implementations
 
