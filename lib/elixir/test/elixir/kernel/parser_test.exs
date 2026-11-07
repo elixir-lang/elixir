@@ -1674,7 +1674,7 @@ defmodule Kernel.ParserTest do
 
     test "invalid end of expression" do
       # All valid examples
-      Code.eval_quoted(~c"""
+      Code.string_to_quoted!(~c"""
       1;
       2;
       3
@@ -1685,7 +1685,7 @@ defmodule Kernel.ParserTest do
       (1; 2)
 
       fn -> 1; 2 end
-      fn -> ; end
+      fn -> nil; end
 
       if true do
         ;
@@ -1694,7 +1694,7 @@ defmodule Kernel.ParserTest do
       try do
         ;
       catch
-        _, _ -> ;
+        _, _ -> nil;
       after
         ;
       end
