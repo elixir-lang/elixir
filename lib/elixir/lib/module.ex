@@ -895,9 +895,11 @@ defmodule Module do
   Creates a module with the given name and defined by
   the given quoted expressions.
 
-  The line where the module is defined and its file **must**
-  be passed as options. See `Code.env_for_eval/1` for a complete
-  list of options.
+  `opts` may be a `Macro.Env` struct (such as `__ENV__/0`)
+  or a keyword list of options. When a keyword list is
+  given, `:file` is required. You can also pass `:line`
+  to set the line where the module is defined.
+  See `Code.env_for_eval/1` for a complete list of options.
 
   It returns a tuple of shape `{:module, module, binary, term}`
   where `module` is the module name, `binary` is the module
@@ -923,15 +925,14 @@ defmodule Module do
   ## Differences from `defmodule`
 
   `Module.create/3` works similarly to `Kernel.defmodule/2`
-  and return the same results. While one could also use
+  and returns the same results. While one could also use
   `Kernel.defmodule/2` to define modules dynamically, this function
   is preferred when the module body is given by a quoted
   expression.
 
-  Another important distinction is that `Module.create/3`
-  allows you to control the environment variables used
-  when defining the module, while `Kernel.defmodule/2`
-  automatically uses the environment it is invoked at.
+  Unlike `Kernel.defmodule/2`, which uses the caller's
+  compilation environment, `Module.create/3` uses the
+  environment supplied through `opts`.
   """
   @spec create(module, Macro.t(), Macro.Env.t() | create_opts) :: {:module, module, binary, term}
   def create(module, quoted, opts)
