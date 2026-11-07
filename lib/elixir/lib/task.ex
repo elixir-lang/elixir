@@ -934,7 +934,7 @@ defmodule Task do
       0 ->
         pid && Process.unlink(pid)
         demonitor(ref)
-        nil
+        flush_reply(ref)
     end
   end
 
