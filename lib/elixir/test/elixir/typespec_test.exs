@@ -660,10 +660,10 @@ defmodule TypespecTest do
         end
 
       assert [type: {:my_type, type, []}] = types(bytecode)
-      assert {:type, _, :tuple, [my_timestamp, term, _foo]} = type
+      assert {:type, _, :tuple, [my_timestamp, term, foo]} = type
       assert {:atom, 0, :my_timestamp} = my_timestamp
       assert {:ann_type, 0, [{:var, 0, :date}, {:type, 0, :term, []}]} = term
-      assert {:ann_type, 0, [{:var, 0, :time}, {:atom, 0, :foo}]}
+      assert {:ann_type, 0, [{:var, 0, :time}, {:atom, 0, :foo}]} = foo
     end
 
     test "@type with undefined record" do
