@@ -410,7 +410,7 @@ defmodule Module do
         @on_load :load_external_code
 
         def load_external_code do
-          :erlang.load_nif(~c"path/to/extension.so_or_dll")
+          :erlang.load_nif(~c"path/to/extension", 0)
         end
       end
 
