@@ -182,12 +182,11 @@ defmodule ProtocolTest do
     assert moduledoc == %{"en" => "for map"}
   end
 
-  @compile {:no_warn_undefined, WithAll}
-
   test "protocol keeps underlying UndefinedFunctionError" do
-    assert_raise UndefinedFunctionError, fn ->
-      WithAll.ok(%ImplStruct{})
-    end
+    assert %UndefinedFunctionError{module: Unknown, function: :undefined, arity: 1} =
+             assert_raise(UndefinedFunctionError, fn ->
+               apply(Sample, :ok, [%ImplStruct{}])
+             end)
   end
 
   test "protocol defines callbacks" do
