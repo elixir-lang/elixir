@@ -467,6 +467,28 @@ defmodule Module.Types.DescrTest do
              )
     end
 
+    test "tuple open with union of closed tuples" do
+      x_term = tuple([atom([:x]), term()])
+      term_y = tuple([term(), atom([:y])])
+      x = tuple([atom([:x])])
+
+      # Closed tuples which are subtypes of the open tuple are kept as is
+      xz = open_tuple([atom([:x, :z])])
+
+      assert opt_intersection(opt_union(x_term, term_y), xz) ==
+               opt_union(x_term, bare_intersection(term_y, xz))
+
+      # Closed tuples smaller than the open tuple are not subtypes
+      xz_term = open_tuple([atom([:x, :z]), term()])
+
+      assert opt_intersection(opt_union(x, term_y), xz_term) ==
+               opt_union(bare_intersection(x, xz_term), bare_intersection(term_y, xz_term))
+
+      # The bare intersection is lazy
+      assert bare_intersection(opt_union(x_term, term_y), xz) !=
+               opt_union(x_term, bare_intersection(term_y, xz))
+    end
+
     test "map open with union of closed maps" do
       a_x = closed_map(a: {atom([:x]), false}, b: {term(), false})
       b_y = closed_map(a: {term(), false}, b: {atom([:y]), false})

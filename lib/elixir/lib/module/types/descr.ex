@@ -6739,6 +6739,55 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # Intersects a BDD with an open leaf by pushing the leaf down the BDD,
+  # where closed literals which are subtypes of the open leaf are kept as
+  # is, instead of nesting the leaf under them. `subtype?` receives the
+  # contents of the closed literal and of the open leaf.
+  #
+  # Since literals are never changed, nodes are only rebuilt if any of their
+  # branches changed, and literals are kept shared with other types (such as
+  # the domain of the functions a variable is given to), which allows their
+  # intersections to be computed cheaply later on. Computing new literals,
+  # on the other hand, has proven to be expensive (see #15285).
+  #
+  # Closed literals come before open ones, so pushing an open leaf below
+  # closed literals keeps the BDD ordered. Once we find a literal that is
+  # not closed, we fall back to bdd_intersection/2.
+  defp bdd_open_leaf_intersection(:bdd_bot, _leaf, _subtype?), do: :bdd_bot
+  defp bdd_open_leaf_intersection(:bdd_top, leaf, _subtype?), do: leaf
+
+  defp bdd_open_leaf_intersection(
+         bdd_leaf(:closed, closed) = lit,
+         bdd_leaf(:open, open) = leaf,
+         subtype?
+       ) do
+    if subtype?.(closed, open), do: lit, else: bdd_intersection(lit, leaf)
+  end
+
+  # {lit, c, u, d} = (lit and c) or u or (not lit and d)
+  #
+  # If the literal is a subtype of the leaf, (lit and c and leaf)
+  # is the same as (lit and c), so the leaf is not pushed into c.
+  defp bdd_open_leaf_intersection(
+         {_, bdd_leaf(:closed, closed) = lit, c, u, d} = bdd,
+         bdd_leaf(:open, open) = leaf,
+         subtype?
+       ) do
+    new_c =
+      if subtype?.(closed, open),
+        do: c,
+        else: bdd_open_leaf_intersection(c, leaf, subtype?)
+
+    new_u = bdd_open_leaf_intersection(u, leaf, subtype?)
+    new_d = bdd_open_leaf_intersection(d, leaf, subtype?)
+
+    if new_c == c and new_u == u and new_d == d,
+      do: bdd,
+      else: bdd_node_new(lit, new_c, new_u, new_d)
+  end
+
+  defp bdd_open_leaf_intersection(bdd, leaf, _subtype?), do: bdd_intersection(bdd, leaf)
+
   # {lit, c, u, d} = (lit and c) or u or (not lit and d),
   # so its negation is ((lit and not c) or (not lit and not d)) and not u.
   def bdd_negation(:bdd_top), do: :bdd_bot
@@ -7289,55 +7338,16 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # When an open map is intersected with a BDD of closed maps (such
-  # as structs), we push the open map down the BDD, but closed literals
-  # which are subtypes of the open map are kept as is, instead of nesting
-  # the open map under them.
-  #
-  # This often happens when a variable is refined by `map.foo` or given
-  # to functions that pattern match on its fields. Since literals are never
-  # changed, nodes are only rebuilt if any of their branches changed, and
-  # literals are kept shared with the domain of the functions the variable
-  # is given to, which allows their intersections to be computed cheaply
-  # later on. Computing new literals, on the other hand, has proven to be
-  # expensive (see #15285).
+  # Open maps, such as the one from `map.foo`, are pushed down the BDD,
+  # which often happens when a variable is refined by field accesses or
+  # given to functions that pattern match on its fields.
   defp opt_map_intersection(bdd_leaf(:open, _) = leaf, {_, _, _, _, _} = bdd, _seen),
-    do: map_open_bdd_intersection(bdd, leaf)
+    do: bdd_open_leaf_intersection(bdd, leaf, &map_closed_subtype_of_open?/2)
 
   defp opt_map_intersection({_, _, _, _, _} = bdd, bdd_leaf(:open, _) = leaf, _seen),
-    do: map_open_bdd_intersection(bdd, leaf)
+    do: bdd_open_leaf_intersection(bdd, leaf, &map_closed_subtype_of_open?/2)
 
   defp opt_map_intersection(bdd1, bdd2, _seen), do: map_intersection(bdd1, bdd2)
-
-  defp map_open_bdd_intersection(:bdd_bot, _leaf), do: :bdd_bot
-  defp map_open_bdd_intersection(:bdd_top, leaf), do: leaf
-
-  defp map_open_bdd_intersection(bdd_leaf(:closed, closed) = lit, bdd_leaf(_, open) = leaf) do
-    if map_closed_subtype_of_open?(closed, open), do: lit, else: map_intersection(lit, leaf)
-  end
-
-  # {lit, c, u, d} = (lit and c) or u or (not lit and d)
-  #
-  # If the literal is a subtype of the open map, (lit and c and leaf)
-  # is the same as (lit and c), so the leaf is not pushed into c.
-  defp map_open_bdd_intersection(
-         {_, bdd_leaf(:closed, closed) = lit, c, u, d} = bdd,
-         bdd_leaf(_, open) = leaf
-       ) do
-    new_c =
-      if map_closed_subtype_of_open?(closed, open),
-        do: c,
-        else: map_open_bdd_intersection(c, leaf)
-
-    new_u = map_open_bdd_intersection(u, leaf)
-    new_d = map_open_bdd_intersection(d, leaf)
-
-    if new_c == c and new_u == u and new_d == d,
-      do: bdd,
-      else: bdd_node_new(lit, new_c, new_u, new_d)
-  end
-
-  defp map_open_bdd_intersection(bdd, leaf), do: map_intersection(bdd, leaf)
 
   # Only the fields in the open map have to be checked.
   defp map_closed_subtype_of_open?([{k1, _} | t1], [{k2, _} | _] = l2) when k1 < k2,
@@ -7720,7 +7730,20 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp opt_tuple_intersection(bdd_leaf(:open, _) = leaf, {_, _, _, _, _} = bdd, _seen),
+    do: bdd_open_leaf_intersection(bdd, leaf, &tuple_closed_subtype_of_open?/2)
+
+  defp opt_tuple_intersection({_, _, _, _, _} = bdd, bdd_leaf(:open, _) = leaf, _seen),
+    do: bdd_open_leaf_intersection(bdd, leaf, &tuple_closed_subtype_of_open?/2)
+
   defp opt_tuple_intersection(bdd1, bdd2, _seen), do: tuple_intersection(bdd1, bdd2)
+
+  # Only the elements in the open tuple have to be checked.
+  defp tuple_closed_subtype_of_open?([type1 | types1], [type2 | types2]),
+    do: subtype?(type1, type2) and tuple_closed_subtype_of_open?(types1, types2)
+
+  defp tuple_closed_subtype_of_open?(_types1, []), do: true
+  defp tuple_closed_subtype_of_open?([], _types2), do: false
 
   defp opt_tuple_leaf_intersection(bdd_leaf(tag1, elements1), bdd_leaf(tag2, elements2), seen) do
     intersection_fun = &opt_intersection(&1, &2, seen)
