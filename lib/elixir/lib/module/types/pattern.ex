@@ -1652,7 +1652,7 @@ defmodule Module.Types.Pattern do
     {expr, message} =
       with {{:case, meta, expr, type}, _} <- info,
            {:case, op} <- meta[:type_check],
-           true <- op in [:||, :!, :"!!"] do
+           true <- op in [:||, :!, :"!!", :&&, :if, :unless] do
         message =
           case op do
             :|| ->
@@ -1692,6 +1692,17 @@ defmodule Module.Types.Pattern do
                   #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
 
               will always evaluate to true because its inner expression has type:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            _ ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string(expr) |> indent(4)}
+
+              will always evaluate to:
 
                   #{to_quoted_string(type) |> indent(4)}
               """

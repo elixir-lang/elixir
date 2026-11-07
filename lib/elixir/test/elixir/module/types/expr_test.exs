@@ -3021,6 +3021,22 @@ defmodule Module.Types.ExprTest do
              """
     end
 
+    test "if, unless, and && report violations" do
+      message = """
+      the following conditional expression:
+
+          x
+
+      will always evaluate to:
+
+          integer()
+      """
+
+      assert typeerror!([x = 123], if(x, do: :a)) =~ message
+      assert typeerror!([x = 123], unless(x, do: :a)) =~ message
+      assert typeerror!([x = 123], x && :a) =~ message
+    end
+
     test "! reports violations" do
       assert typeerror!([x = 123], !x) =~ ~l"""
              the following conditional expression:
