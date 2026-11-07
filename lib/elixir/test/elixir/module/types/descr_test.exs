@@ -2023,6 +2023,20 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "float_type?" do
+    test "checks if the type may be a float" do
+      assert float_type?(term())
+      assert float_type?(dynamic())
+      assert float_type?(float())
+      assert float_type?(opt_union(integer(), float()))
+      assert float_type?(dynamic(opt_union(atom(), float())))
+      refute float_type?(integer())
+      refute float_type?(dynamic(integer()))
+      refute float_type?(opt_union(integer(), atom()))
+      refute float_type?(none())
+    end
+  end
+
   describe "projections" do
     test "booleaness" do
       for type <- [none(), open_map(), opt_negation(boolean()), opt_difference(atom(), boolean())] do

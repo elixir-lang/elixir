@@ -637,29 +637,34 @@ defmodule Module.Types.Of do
   based on the position of the expression within the binary.
   """
   def bitstring([], _kind, _stack, context) do
-    {binary(), context}
+    {binary(), false, context}
   end
 
   def bitstring([head], kind, stack, context) do
-    {alignment, context} = bitstring_segment(head, kind, [head], stack, context)
-    {alignment_to_type(alignment), context}
+    {alignment, fail?, context} = bitstring_segment(head, kind, [head], stack, context)
+    {alignment_to_type(alignment), fail?, context}
   end
 
   def bitstring([head | tail], kind, stack, context) do
-    {alignment, context} = bitstring_segment(head, kind, [head, @suffix], stack, context)
-    bitstring_tail(tail, alignment, kind, stack, context)
+    {alignment, fail?, context} =
+      bitstring_segment(head, kind, [head, @suffix], stack, context)
+
+    bitstring_tail(tail, alignment, fail?, kind, stack, context)
   end
 
-  defp bitstring_tail([last], alignment, kind, stack, context) do
-    {seg_alignment, context} = bitstring_segment(last, kind, [@prefix, last], stack, context)
-    {alignment_to_type(alignment(seg_alignment, alignment)), context}
+  defp bitstring_tail([last], alignment, fail?, kind, stack, context) do
+    {seg_alignment, seg_fail?, context} =
+      bitstring_segment(last, kind, [@prefix, last], stack, context)
+
+    {alignment_to_type(alignment(seg_alignment, alignment)), fail? or seg_fail?, context}
   end
 
-  defp bitstring_tail([head | tail], alignment, kind, stack, context) do
-    {seg_alignment, context} =
+  defp bitstring_tail([head | tail], alignment, fail?, kind, stack, context) do
+    {seg_alignment, seg_fail?, context} =
       bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
 
-    bitstring_tail(tail, alignment(seg_alignment, alignment), kind, stack, context)
+    alignment = alignment(seg_alignment, alignment)
+    bitstring_tail(tail, alignment, fail? or seg_fail?, kind, stack, context)
   end
 
   defp alignment(left, right) when is_integer(left) and is_integer(right), do: left + right
@@ -673,21 +678,22 @@ defmodule Module.Types.Of do
   # so we just check the size.
   defp bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
-    {_type, alignment_type} = specifier_type(kind, right)
+    {_type, alignment_type, fail} = specifier_type(kind, right)
     {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+    fail? = segment_fail?(fail, left, alignment_value)
 
     # We don't need to check for bitstrings because the left side
     # is either a binary (aligned), float (aligned), or integer
     # (which we check below).
     if alignment_type == :integer and alignment_value != :default do
-      {alignment_value, context}
+      {alignment_value, fail?, context}
     else
-      {0, context}
+      {0, fail?, context}
     end
   end
 
   defp bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    {type, alignment_type} = specifier_type(kind, right)
+    {type, alignment_type, fail} = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
     {actual, context} =
@@ -705,27 +711,43 @@ defmodule Module.Types.Of do
 
     if compatible?(actual, type) do
       {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+      fail? = segment_fail?(fail, left, alignment_value)
 
       case alignment_type do
         :aligned ->
-          {0, context}
+          {0, fail?, context}
 
         :integer when alignment_value == :default ->
-          {0, context}
+          {0, fail?, context}
 
         # There is no size, so the alignment depends on the type.
         # If the type is exclusively a binary, then it is aligned.
         :bitstring when alignment_value == :default ->
-          if bitstring_no_binary_type?(actual), do: {:unknown, context}, else: {0, context}
+          if bitstring_no_binary_type?(actual),
+            do: {:unknown, fail?, context},
+            else: {0, fail?, context}
 
         _ ->
-          {alignment_value, context}
+          {alignment_value, fail?, context}
       end
     else
       error = {:badbinary, kind, meta, expr, type, actual, context}
-      {:unknown, error(error, meta, stack, context)}
+      {:unknown, true, error(error, meta, stack, context)}
     end
   end
+
+  # Building a segment may fail depending on its value, even if it has the
+  # correct type, when its size is not a literal (it may be negative), when
+  # it is a binary/bitstring with a size or unit (the value may not fit),
+  # a float (integers may be too large), or a utf8/16/32 (the value may not
+  # be a valid codepoint).
+  defp segment_fail?(_fail, _left, :unknown), do: true
+  defp segment_fail?(:none, _left, _alignment_value), do: false
+  defp segment_fail?(:float, left, _alignment_value), do: not is_float(left)
+  defp segment_fail?(:sized, _left, alignment_value), do: alignment_value != :default
+
+  defp segment_fail?(:utf, left, _alignment_value),
+    do: not (is_binary(left) or left in 0..0xD7FF//1 or left in 0xE000..0x10FFFF//1)
 
   defp annotate_interpolation(
          {{:., _, [String.Chars, :to_string]} = dot, meta, [arg]},
@@ -738,21 +760,23 @@ defmodule Module.Types.Of do
     left
   end
 
+  # Returns the type of the segment value, its alignment, and when
+  # building the segment may fail depending on values (see segment_fail?/3)
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:match, {:utf8, _, _}), do: {@integer, :aligned}
-  defp specifier_type(:match, {:utf16, _, _}), do: {@integer, :aligned}
-  defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned}
-  defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned}
-  defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned}
-  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer, :aligned}
-  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer, :aligned}
-  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer, :aligned}
-  defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer}
-  defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring}
-  defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring}
-  defp specifier_type(_kind, {:bytes, _, _}), do: {@binary, :aligned}
-  defp specifier_type(_kind, {:binary, _, _}), do: {@binary, :aligned}
-  defp specifier_type(_kind, _specifier), do: {@integer, :integer}
+  defp specifier_type(:match, {:utf8, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(:match, {:utf16, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned, :float}
+  defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned, :float}
+  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer, :none}
+  defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring, :sized}
+  defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring, :sized}
+  defp specifier_type(_kind, {:bytes, _, _}), do: {@binary, :aligned, :sized}
+  defp specifier_type(_kind, {:binary, _, _}), do: {@binary, :aligned, :sized}
+  defp specifier_type(_kind, _specifier), do: {@integer, :integer, :none}
 
   defp specifier_size(kind, {:-, _, [left, right]}, stack, align_context) do
     specifier_size(kind, right, stack, specifier_size(kind, left, stack, align_context))

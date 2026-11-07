@@ -125,9 +125,8 @@ defmodule Module.Types.Expr do
 
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    args
-    |> Of.bitstring(:expr, stack, context)
-    |> dynamic_unless_static(stack)
+    {type, _fail?, context} = Of.bitstring(args, :expr, stack, context)
+    dynamic_unless_static({type, context}, stack)
   end
 
   def of_expr({:__CALLER__, _meta, var_context}, _expected, _expr, _stack, context)

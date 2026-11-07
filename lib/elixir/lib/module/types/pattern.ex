@@ -197,9 +197,11 @@ defmodule Module.Types.Pattern do
          not empty_previous?(previous) do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
+      # A failure does not mean the clause errored, as a guard with multiple `when` may
+      # still succeed in one of them, so we keep errored? unless the clause is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
         {other_trees, _, _, _, _, %{failed: true} = other_context} ->
-          {other_trees, false, true, args_types, previous, other_context}
+          {other_trees, false, errored?, args_types, previous, other_context}
 
         {other_trees, _, _, _, args_types, other_context} ->
           if previous_subtype?(args_types, previous) do
@@ -207,7 +209,7 @@ defmodule Module.Types.Pattern do
             context = warn(__MODULE__, warning, meta, stack, other_context)
             {other_trees, false, true, args_types, previous, context}
           else
-            {trees, false, true, args_types, previous, context}
+            {trees, false, errored?, args_types, previous, context}
           end
       end
     else
@@ -619,7 +621,8 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    Of.bitstring(args, :match, stack, context)
+    {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
+    {type, context}
   end
 
   def of_match_var({:^, _meta, [{_, meta, _}]}, expected, expr, stack, context) do
@@ -812,7 +815,7 @@ defmodule Module.Types.Pattern do
   # <<...>>>
   defp of_pattern({:<<>>, _meta, args} = node, _path, stack, context) do
     precise? = of_precise_bitstring?(node, context.vars)
-    {type, context} = Of.bitstring(args, :match, stack, context)
+    {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
     {type, precise?, context}
   end
 
@@ -1188,9 +1191,11 @@ defmodule Module.Types.Pattern do
 
   # <<>>
   def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
+    {type, fail?, context} = Of.bitstring(args, :guard, stack, context)
+
     # Building binaries may fail depending on the values
-    if args != [], do: guard_may_fail(stack)
-    Of.bitstring(args, :guard, stack, context)
+    context = if fail?, do: guard_may_fail(stack, context), else: context
+    {type, context}
   end
 
   # ^var
@@ -1443,8 +1448,10 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_remote(fun, args, call, expected, stack, context) do
-    guard_fail(fun, args, stack)
-    Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
+    {type, context} =
+      Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
+
+    {type, guard_fail(fun, args, type, stack, context)}
   end
 
   defp unpack_op({{:., _, [_mod, fun]}, _, [left, right]}, fun, acc) do
@@ -1511,11 +1518,12 @@ defmodule Module.Types.Pattern do
   defp of_logical_cond([{head, context} | tail], acc_type, acc_vars, precise?, expected, stack) do
     precise? = precise? and (tail == [] or not guard_fail_operand(head, stack, context))
 
-    {type, %{vars: vars, conditional_vars: {_, cond_vars}}} =
+    {type, %{vars: vars, conditional_vars: {_, cond_vars}} = context} =
       of_guard(head, expected, head, stack, context)
 
+    # The operand may have marked the guard as imprecise (see guard_may_fail/2)
     precise? =
-      precise? and
+      precise? and context.pattern_info.vars != false and
         case acc_vars do
           [{_, ^cond_vars} | _] -> true
           [] -> true
@@ -1543,7 +1551,10 @@ defmodule Module.Types.Pattern do
   # of the functions it calls, so if any variable is refined, it is because it
   # may be outside of the domain of some function, which throws (see
   # `Of.refine_body_var/5`). Operands which are not booleans are also refined
-  # and therefore fail. Failures that depend on values throw in `guard_fail/3`.
+  # and therefore fail. Failures that depend on values throw in `guard_fail/5`.
+  #
+  # Failures that depend on values cannot be represented by types, so they
+  # also make the whole guard imprecise, regardless of the operand they are in.
 
   # Guard functions which accept any term
   @term_domain [:==, :"/=", :"=:=", :"=/=", :<, :>, :"=<", :>=] ++
@@ -1551,32 +1562,44 @@ defmodule Module.Types.Pattern do
                  [:is_integer, :is_list, :is_map, :is_number, :is_pid, :is_port] ++
                  [:is_reference, :is_tuple]
 
-  defp guard_may_fail(%{reverse_arrow: :throw_none}), do: throw(:guard_fail)
-  defp guard_may_fail(_stack), do: :ok
+  defp guard_may_fail(%{reverse_arrow: :throw_none}, _context), do: throw(:guard_fail)
 
-  defp guard_fail(fun, args, %{reverse_arrow: :throw_none}) do
-    if fail_on_value?(fun, args), do: throw(:guard_fail), else: :ok
+  defp guard_may_fail(_stack, %{pattern_info: %{vars: vars}} = context) when vars != false,
+    do: put_in(context.pattern_info.vars, false)
+
+  defp guard_may_fail(_stack, context), do: context
+
+  defp guard_fail(fun, args, type, stack, context) do
+    case fail_on_value?(fun, args) do
+      true -> guard_may_fail(stack, context)
+      false -> context
+      :float -> if float_type?(type), do: guard_may_fail(stack, context), else: context
+    end
   end
-
-  defp guard_fail(_fun, _args, _stack), do: :ok
 
   # Guard functions which may fail even when their arguments are within their
   # domain (such as `div(x, 0)`). All others only fail outside of their domain,
   # except `xor/2`, which we list because it does not have a signature.
+  #
+  # Arithmetic operators only fail on floats (such as on overflow or when
+  # converting large integers to floats), so they return `:float` and we
+  # check if their return type, which is a float if any argument is, may
+  # be a float.
   defp fail_on_value?(:element, [index, _]), do: not (is_integer(index) and index > 0)
   defp fail_on_value?(:is_function, [_, arity]), do: not (is_integer(arity) and arity >= 0)
-  defp fail_on_value?(:*, _args), do: true
-  defp fail_on_value?(:+, _args), do: true
-  defp fail_on_value?(:-, _args), do: true
+  defp fail_on_value?(op, [_]) when op in [:+, :-], do: false
+  defp fail_on_value?(op, [_, _]) when op in [:+, :-, :*], do: :float
+  defp fail_on_value?(op, [_, divisor]) when op in [:div, :rem], do: not nonzero?(divisor)
+  defp fail_on_value?(op, [_, shift]) when op in [:bsl, :bsr], do: not is_integer(shift)
   defp fail_on_value?(:/, _args), do: true
   defp fail_on_value?(:binary_part, _args), do: true
-  defp fail_on_value?(:bsl, _args), do: true
-  defp fail_on_value?(:bsr, _args), do: true
-  defp fail_on_value?(:div, _args), do: true
   defp fail_on_value?(:float, _args), do: true
-  defp fail_on_value?(:rem, _args), do: true
   defp fail_on_value?(:xor, _args), do: true
   defp fail_on_value?(_fun, _args), do: false
+
+  defp nonzero?(integer) when is_integer(integer), do: integer != 0
+  defp nonzero?({:-, _, [integer]}) when is_integer(integer), do: integer != 0
+  defp nonzero?(_), do: false
 
   # If the guard is already imprecise, there is no need to check
   defp guard_fail_operand(_operand, _stack, %{pattern_info: %{vars: false}}), do: false
@@ -1585,7 +1608,7 @@ defmodule Module.Types.Pattern do
   # such as `is_integer(x)` and `x == 1`, so we skip typing them
   defp guard_fail_operand({{:., _, [:erlang, fun]}, _, args} = operand, stack, context) do
     cond do
-      fail_on_value?(fun, args) ->
+      fail_on_value?(fun, args) == true ->
         true
 
       fun in @term_domain and Enum.all?(args, &(is_var(&1) or Macro.quoted_literal?(&1))) ->

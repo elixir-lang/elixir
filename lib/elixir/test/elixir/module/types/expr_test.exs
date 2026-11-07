@@ -2633,6 +2633,50 @@ defmodule Module.Types.ExprTest do
              ) == integer()
     end
 
+    test "does not warn on clauses after guards which may fail on values" do
+      # div(x, y) fails when y is zero, so the second clause is reachable
+      assert typecheck!(
+               [x, y],
+               case {x, y} do
+                 {x, y} when is_integer(div(x, y)) -> :first
+                 {x, y} when is_integer(x) and is_integer(y) -> :second
+               end
+             ) == atom([:first, :second])
+
+      assert typecheck!(
+               [x],
+               case x do
+                 x when is_atom(x) or is_integer(div(x, 0)) -> :first
+                 x when is_integer(x) -> :second
+               end
+             ) == atom([:first, :second])
+    end
+
+    test "keeps clauses with failing guards when other guards may succeed" do
+      assert {type, [_]} =
+               typediag!(
+                 [x],
+                 case x do
+                   :foo -> :a
+                   y when is_integer(y) when is_atom(y) and is_integer(y) -> :b
+                 end
+               )
+
+      assert type == atom([:a, :b])
+
+      # The second guard fails because of previous clauses
+      assert {type, [_]} =
+               typediag!(
+                 [x],
+                 case x do
+                   {:ok, y} when is_atom(y) -> :a
+                   {:ok, y} when is_integer(y) when is_atom(y) -> :b
+                 end
+               )
+
+      assert type == atom([:a, :b])
+    end
+
     test "considers singleton-typed pins precise" do
       assert typewarn!(
                [x],

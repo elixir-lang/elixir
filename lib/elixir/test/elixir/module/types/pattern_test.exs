@@ -1504,6 +1504,42 @@ defmodule Module.Types.PatternTest do
       refute precise?([x, y], is_integer(x) or is_integer(div(y, 2)) or is_atom(x))
       refute precise?([x, y], is_integer(x) or elem(x, y) == :ok or is_atom(x))
 
+      # Failures that depend on values make the guard imprecise wherever they are
+      refute precise?([x, y], is_integer(div(x, y)))
+      refute precise?([x], is_number(x / 0))
+      refute precise?([x], is_atom(x) or is_integer(div(x, 0)))
+      refute precise?([x], is_atom(x) and is_integer(div(1, 0)))
+
+      # Operands which are imprecise make the guard imprecise
+      refute precise?([x], is_integer(x) or is_atom(hd(x)))
+
+      # Arithmetic only fails depending on values when floats are involved
+      assert precise?([x], is_integer(x + 1))
+      assert precise?([x], is_integer(-x))
+      assert precise?([x, y], is_integer(x * y))
+      assert precise?([x], is_atom(x) or is_integer(x - 1))
+      refute precise?([x], is_float(x * 2.0))
+      refute precise?([x], not is_integer(x * 2))
+      refute precise?([x], is_number(x + 1))
+
+      # div/rem only fail depending on values when the divisor may be zero
+      assert precise?([x], is_integer(div(x, 2)))
+      assert precise?([x], is_integer(rem(x, -3)))
+      refute precise?([x, y], is_integer(rem(x, y)))
+
+      # bsl/bsr only fail depending on values when the shift is not a literal
+      assert precise?([x], is_integer(:erlang.bsl(x, 2)))
+      refute precise?([x, y], is_integer(:erlang.bsr(x, y)))
+
+      # Binaries only fail depending on values on sizes, floats, and codepoints
+      assert precise?([x], is_bitstring(<<x::8>>))
+      assert precise?([x], is_bitstring(<<x::binary, "foo", 0xE000::utf8>>))
+      refute precise?([x, y], is_bitstring(<<x::size(y)>>))
+      refute precise?([x], is_bitstring(<<x::binary-size(2)>>))
+      refute precise?([x], is_bitstring(<<x::float>>))
+      refute precise?([x], is_bitstring(<<x::utf8>>))
+      refute precise?([x], is_bitstring(<<0xD800::utf8>>))
+
       # The operands of orelse, except the last, fail if they are not booleans
       refute precise?([x], is_integer(x) or x or is_atom(x))
       assert precise?([x], x or is_atom(x))

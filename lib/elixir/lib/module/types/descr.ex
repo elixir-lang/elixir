@@ -1181,6 +1181,15 @@ defmodule Module.Types.Descr do
   def empty_list_type?(_), do: false
 
   @doc """
+  Optimized version of `not empty?(bare_intersection(float(), type))`.
+  """
+  def float_type?(:term), do: true
+  def float_type?(%{dynamic: :term}), do: true
+  def float_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_float) != 0, do: true
+  def float_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_float) != 0, do: true
+  def float_type?(_), do: false
+
+  @doc """
   Optimized version of `not empty?(bare_intersection(bitstring(), type))`.
   """
   def bitstring_type?(:term), do: true
