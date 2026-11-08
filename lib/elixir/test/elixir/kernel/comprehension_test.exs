@@ -55,6 +55,14 @@ defmodule Kernel.ComprehensionTest do
     assert for(x when x == 3 when x == 7 <- 1..10, do: x) == [3, 7]
   end
 
+  test "for comprehensions with failing guards" do
+    assert for(x when hd(x) == 1 <- [[1], [], 2], do: x) == [[1]]
+    assert for(x when hd(x) == 1 when x == 5 <- [5, [1]], do: x) == [5, [1]]
+    assert for(x when x.a <- [%{a: 1}, %{a: true}], do: x) == [%{a: true}]
+    assert for(x when hd(x) == 1 <- [[1], [], 2], into: %{}, do: {x, x}) == %{[1] => [1]}
+    assert for(x when hd(x) == 1 <- [[1], [], 2], reduce: 0, do: (acc -> acc + 1)) == 1
+  end
+
   test "for comprehensions with guards and filters" do
     assert for(
              {var, _}

@@ -60,11 +60,11 @@ wrap_expr_if_unused(Expr, false) -> {'__block__', [], [Expr, nil]};
 wrap_expr_if_unused(Expr, _)  -> Expr.
 
 translate_gen(ForMeta, [{'<-', Meta, [Left, Right]} | T], Acc, S) ->
-  {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
-  TAcc = [{enum, Meta, TLeft, TRight, TFilters} | Acc],
+  {TLeft, TGuards, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
+  TAcc = [{enum, Meta, TLeft, TGuards, TRight, TFilters} | Acc],
   translate_gen(ForMeta, TT, TAcc, TS);
 translate_gen(ForMeta, [{'<<>>', _, [{'<-', Meta, [Left, Right]}]} | T], Acc, S) ->
-  {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
+  {TLeft, [], TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
   TAcc = [{bin, Meta, TLeft, TRight, TFilters} | Acc],
   translate_gen(ForMeta, TT, TAcc, TS);
 translate_gen(_ForMeta, [], Acc, S) ->
@@ -88,16 +88,8 @@ translate_gen(Meta, Left, Right, T, S) ->
       Filters
     ),
 
-  %% The list of guards is kept in reverse order
-  Guards = TFilters ++ translate_guards(TLeftGuards) ++ ExtraGuards,
-  {TLeft, TRight, Guards, TT, TS}.
-
-translate_guards([]) ->
-  [];
-translate_guards([[Guards]]) ->
-  [{nil, Guards}];
-translate_guards([[Left], [Right] | Rest]) ->
-  translate_guards([[{op, element(2, Left), 'orelse', Left, Right}] | Rest]).
+  %% The list of filters is kept in reverse order
+  {TLeft, TLeftGuards, TRight, TFilters ++ ExtraGuards, TT, TS}.
 
 translate_filter(Filter, Ann, S) ->
   {TFilter, TS} = elixir_erl_pass:translate(Filter, Ann, S),
@@ -127,11 +119,11 @@ build_inline(Ann, Clauses, Expr, Into, Uniq, InitVars, S) ->
 build_inline_each(Ann, Clauses, Expr, false, Uniq, InitVars, S) ->
   InnerFun = fun(InnerExpr, _InnerAcc) -> InnerExpr end,
   build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, InitVars, S);
-build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}], Expr, {nil, _} = _Into, false, _InitVars, S) ->
+build_inline_each(Ann, [{enum, _, Left = {var, _, _}, [], Right, [] = _Filters}], Expr, {nil, _} = _Into, false, _InitVars, S) ->
   Clauses = [{clause, Ann, [Left], [], [Expr]}],
   Args = [Right, {'fun', Ann, {clauses, Clauses}}],
   {?remote(Ann, 'Elixir.Enum', map, Args), S};
-build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}], Expr, {map, _, []} = _Into, false, _InitVars, S) ->
+build_inline_each(Ann, [{enum, _, Left = {var, _, _}, [], Right, [] = _Filters}], Expr, {map, _, []} = _Into, false, _InitVars, S) ->
   Clauses = [{clause, Ann, [Left], [], [Expr]}],
   Args = [Right, {'fun', Ann, {clauses, Clauses}}],
   List = ?remote(Ann, 'Elixir.Enum', map, Args),
@@ -236,14 +228,14 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, InitVars, S) ->
   EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, InitVars, SU),
   {?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SU}.
 
-build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, InitVars, S) ->
+build_reduce_each([{enum, Meta, Left, Guards, Right, Filters} | T], Expr, Arg, Acc, InitVars, S) ->
   Ann = ?ann(Meta),
   True = build_reduce_each(T, Expr, Acc, Acc, InitVars, S),
   False = Acc,
   Generated = erl_anno:set_generated(true, Ann),
 
   Clauses0 =
-    case is_var(Left) of
+    case is_var(Left) andalso Guards == [] of
       true  -> [];
       false ->
         [{clause, Generated,
@@ -253,7 +245,7 @@ build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, Init
 
   Clauses1 =
     [{clause, Ann,
-      [Left, Acc], [],
+      [Left, Acc], Guards,
       [join_filters(Generated, Filters, True, False)]} | Clauses0],
 
   Args  = [Right, Arg, {'fun', Ann, {clauses, Clauses1}}],
