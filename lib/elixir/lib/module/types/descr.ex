@@ -6896,58 +6896,14 @@ defmodule Module.Types.Descr do
 
   ## Map helpers
 
-  # Erlang maps:merge_with/3 has to preserve the order in combiner.
-  # We don't care about the order, so we have a faster implementation.
-  defp symmetrical_merge(left, right, fun) do
-    if map_size(left) > map_size(right) do
-      iterator_merge(:maps.next(:maps.iterator(right)), left, fun)
-    else
-      iterator_merge(:maps.next(:maps.iterator(left)), right, fun)
-    end
-  end
+  defp symmetrical_merge(left, right, fun), do: :maps.merge_with(fun, left, right)
 
-  defp iterator_merge({key, v1, iterator}, map, fun) do
-    acc =
-      case map do
-        %{^key => v2} -> %{map | key => fun.(key, v1, v2)}
-        %{} -> Map.put(map, key, v1)
-      end
-
-    iterator_merge(:maps.next(iterator), acc, fun)
-  end
-
-  defp iterator_merge(:none, map, _fun), do: map
-
-  # Erlang maps:intersect_with/3 has to preserve the order in combiner.
-  # We don't care about the order, so we have a faster implementation.
   defp symmetrical_intersection(left, right, fun) do
-    if map_size(left) > map_size(right) do
-      iterator_intersection(:maps.next(:maps.iterator(right)), left, [], fun)
-    else
-      iterator_intersection(:maps.next(:maps.iterator(left)), right, [], fun)
-    end
+    :maps.filter(
+      fn _key, value -> value not in @empty_intersection end,
+      :maps.intersect_with(fun, left, right)
+    )
   end
-
-  defp iterator_intersection({key, v1, iterator}, map, acc, fun) do
-    acc =
-      case map do
-        %{^key => v2} ->
-          value = fun.(key, v1, v2)
-
-          if value in @empty_intersection do
-            acc
-          else
-            [{key, value} | acc]
-          end
-
-        %{} ->
-          acc
-      end
-
-    iterator_intersection(:maps.next(iterator), map, acc, fun)
-  end
-
-  defp iterator_intersection(:none, _map, acc, _fun), do: :maps.from_list(acc)
 
   defp non_disjoint_intersection?(left, right) do
     # Erlang maps:intersect_with/3 has to preserve the order in combiner.
