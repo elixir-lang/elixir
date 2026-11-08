@@ -1527,6 +1527,12 @@ defmodule Module.Types.PatternTest do
       assert precise?([x], is_integer(rem(x, -3)))
       refute precise?([x, y], is_integer(rem(x, y)))
 
+      # map_get only fails depending on values when the key is not an atom
+      assert precise?([x], is_integer(:erlang.map_get(:a, x)))
+      refute precise?([x], is_integer(:erlang.map_get(x, %{a: 1})))
+      refute precise?([x, y], is_integer(:erlang.map_get(x, y)))
+      refute precise?([x], is_integer(:erlang.map_get(1, x)))
+
       # bsl/bsr only fail depending on values when the shift is not a literal
       assert precise?([x], is_integer(:erlang.bsl(x, 2)))
       refute precise?([x, y], is_integer(:erlang.bsr(x, y)))

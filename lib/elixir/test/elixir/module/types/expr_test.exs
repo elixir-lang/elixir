@@ -2650,6 +2650,15 @@ defmodule Module.Types.ExprTest do
                  x when is_integer(x) -> :second
                end
              ) == atom([:first, :second])
+
+      # map_get(k, map) fails when the key is not in the map
+      assert typecheck!(
+               [key],
+               case key do
+                 k when is_integer(:erlang.map_get(k, %{a: 1})) -> :present
+                 _ -> :missing
+               end
+             ) == atom([:present, :missing])
     end
 
     test "keeps clauses with failing guards when other guards may succeed" do

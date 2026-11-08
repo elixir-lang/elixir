@@ -1585,8 +1585,13 @@ defmodule Module.Types.Pattern do
   # converting large integers to floats), so they return `:float` and we
   # check if their return type, which is a float if any argument is, may
   # be a float.
+  #
+  # `map_get/2` only refines the map to have the key when the key is an atom
+  # (see `Apply.remote_domain/7`), otherwise it fails depending on whether
+  # the key is in the map.
   defp fail_on_value?(:element, [index, _]), do: not (is_integer(index) and index > 0)
   defp fail_on_value?(:is_function, [_, arity]), do: not (is_integer(arity) and arity >= 0)
+  defp fail_on_value?(:map_get, [key, _]), do: not is_atom(key)
   defp fail_on_value?(op, [_]) when op in [:+, :-], do: false
   defp fail_on_value?(op, [_, _]) when op in [:+, :-, :*], do: :float
   defp fail_on_value?(op, [_, divisor]) when op in [:div, :rem], do: not nonzero?(divisor)
