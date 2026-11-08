@@ -443,7 +443,14 @@ defmodule IO do
   @spec warn(chardata | String.Chars.t()) :: :ok
   def warn(message) do
     {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
-    warn(message, Enum.drop(stacktrace, 2))
+
+    stacktrace =
+      case stacktrace do
+        [_, _ | stacktrace] -> stacktrace
+        _ -> []
+      end
+
+    warn(message, stacktrace)
   end
 
   @doc """

@@ -232,7 +232,7 @@ defmodule File.Stream do
     end
 
     defp read_modes(modes) do
-      for mode <- modes, mode not in [:write, :append, :trim_bom], do: mode
+      :lists.filter(&(&1 not in [:write, :append, :trim_bom]), modes)
     end
 
     defp count_lines(device, path, pattern, read, count, last_byte) do
