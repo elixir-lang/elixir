@@ -186,6 +186,11 @@ defmodule Kernel.CLI do
   defp print_error(kind, reason, stacktrace) do
     {banner, rest} = format_error_parts(kind, reason, stacktrace)
     IO.write(:stderr, [IO.ANSI.format([:red, banner]), rest])
+  rescue
+    # stderr cannot be written to (a closed descriptor, or a pipe whose reader
+    # has exited): the error cannot be shown, but the exit status still applies
+    ArgumentError -> :ok
+    ErlangError -> :ok
   end
 
   defp blame_match(%{match?: true, node: node}), do: blame_ansi(:normal, "+", node)
