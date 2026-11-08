@@ -387,6 +387,8 @@ defmodule Process do
   The message is not sent immediately. Therefore, `dest` can receive other messages
   in-between even when `time` is `0`.
 
+  `time` must be non-negative unless the `:abs` option is `true`.
+
   This function returns a timer reference, which can be read with `read_timer/1`
   or canceled with `cancel_timer/1`.
 
@@ -408,7 +410,7 @@ defmodule Process do
       timer_ref = Process.send_after(pid, :hi, 1000)
 
   """
-  @spec send_after(pid | atom, term, non_neg_integer, [option]) :: reference
+  @spec send_after(pid | atom, term, integer, [option]) :: reference
         when option: {:abs, boolean}
   def send_after(dest, msg, time, opts \\ []) do
     :erlang.send_after(time, dest, msg, opts)
