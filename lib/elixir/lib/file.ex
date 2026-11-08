@@ -473,7 +473,8 @@ defmodule File do
 
   Since v1.21, this function also accepts an open `t:io_device/0`. This lets
   you stat a handle you already hold without reopening the file, and avoids
-  time-of-check to time-of-use races.
+  time-of-check to time-of-use races. For a device PID, closing the file causes
+  subsequent calls to return `{:error, :terminated}`.
 
   ## Options
 
@@ -500,7 +501,7 @@ defmodule File do
       #=> {:error, :enoent}
   """
   @spec stat(Path.t() | io_device, stat_options) ::
-          {:ok, File.Stat.t()} | {:error, posix | :badarg}
+          {:ok, File.Stat.t()} | {:error, posix | :badarg | :terminated}
   def stat(path_or_io_device, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
 
