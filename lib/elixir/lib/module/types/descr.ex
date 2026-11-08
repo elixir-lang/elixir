@@ -2967,29 +2967,26 @@ defmodule Module.Types.Descr do
   defp dynamic_difference(_left, :term, _fun), do: @none
 
   defp dynamic_difference(left, right, fun) do
-    iterator_dynamic_difference(:maps.next(:maps.iterator(unfold(right))), unfold(left), fun)
+    :maps.fold(
+      fn key, v2, map ->
+        case map do
+          %{^key => v1} ->
+            value = fun.(key, v1, v2)
+
+            if value in @empty_difference do
+              Map.delete(map, key)
+            else
+              %{map | key => value}
+            end
+
+          %{} ->
+            map
+        end
+      end,
+      unfold(left),
+      unfold(right)
+    )
   end
-
-  defp iterator_dynamic_difference({key, v2, iterator}, map, fun) do
-    acc =
-      case map do
-        %{^key => v1} ->
-          value = fun.(key, v1, v2)
-
-          if value in @empty_difference do
-            Map.delete(map, key)
-          else
-            %{map | key => value}
-          end
-
-        %{} ->
-          map
-      end
-
-    iterator_dynamic_difference(:maps.next(iterator), acc, fun)
-  end
-
-  defp iterator_dynamic_difference(:none, map, _fun), do: map
 
   defp dynamic_to_quoted(descr, recur, opts) do
     cond do
