@@ -733,7 +733,10 @@ defmodule Module.Types.Descr do
        do: true
 
   defp contains_recur?(term) when is_map(term),
-    do: Enum.any?(term, fn {key, value} -> contains_recur?(key) or contains_recur?(value) end)
+    do:
+      Enum.any?(Map.to_list(term), fn {key, value} ->
+        contains_recur?(key) or contains_recur?(value)
+      end)
 
   defp contains_recur?(term) when is_tuple(term),
     do: term |> Tuple.to_list() |> Enum.any?(&contains_recur?/1)
@@ -748,7 +751,7 @@ defmodule Module.Types.Descr do
     dynamic = if dynamic == @none, do: [], else: [{:dynamic, [], [recur.(dynamic, opts)]}]
 
     static =
-      Enum.flat_map(static, fn {key, value} ->
+      Enum.flat_map(Map.to_list(static), fn {key, value} ->
         recursive_component_to_quoted(key, value, recur, opts)
       end)
 
@@ -757,7 +760,7 @@ defmodule Module.Types.Descr do
 
   defp recursive_component_to_quoted(:fun, {tag, bdds}, recur, opts) do
     parts =
-      Enum.flat_map(bdds, fn {arity, bdd} ->
+      Enum.flat_map(Map.to_list(bdds), fn {arity, bdd} ->
         arity = {:__block__, [token: Integer.to_string(arity)], [arity]}
 
         boolean_to_quoted(bdd, {:fun, [], [arity]}, fn literal ->
@@ -904,7 +907,10 @@ defmodule Module.Types.Descr do
       end
 
     Enum.sort(
-      extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, recur, opts) end)
+      extra ++
+        Enum.flat_map(Map.to_list(static), fn {key, value} ->
+          to_quoted(key, value, recur, opts)
+        end)
     )
   end
 
@@ -1951,7 +1957,7 @@ defmodule Module.Types.Descr do
   defp fun_empty?({:negation, _}, _seen), do: false
 
   defp fun_empty?({:union, repr}, seen) do
-    Enum.all?(repr, fn {arity, bdd} ->
+    Enum.all?(Map.to_list(repr), fn {arity, bdd} ->
       key = empty_bdd_seen_key(arity, bdd)
 
       if :erlang.is_map_key(key, seen) do
@@ -2200,15 +2206,18 @@ defmodule Module.Types.Descr do
          opts
        ) do
     {static_repr, dynamic_repr, acc} =
-      Enum.reduce(static_repr, {static_repr, dynamic_repr, []}, fn
-        {arity, static_bdd}, {statics, dynamics, acc} ->
+      :maps.fold(
+        fn arity, static_bdd, {statics, dynamics, acc} ->
           with %{^arity => dynamic_bdd} <- dynamics,
                {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, recur, opts) do
             {Map.delete(statics, arity), Map.delete(dynamics, arity), [quoted | acc]}
           else
             _ -> {statics, dynamics, acc}
           end
-      end)
+        end,
+        {static_repr, dynamic_repr, []},
+        static_repr
+      )
 
     {fun_replace_arities(static, static_repr), fun_replace_arities(dynamic, dynamic_repr), acc}
   end
@@ -4095,6 +4104,7 @@ defmodule Module.Types.Descr do
       pairs
       |> map_update_maybe_apply_callback(operation)
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Map.to_list()
       |> Enum.map(fn {{new_type, new_optional?}, rests} ->
         map_put_key_bdd(map_union_all(rests), key, new_type, new_optional?)
       end)
@@ -7705,7 +7715,8 @@ defmodule Module.Types.Descr do
     without_negs =
       without_negs
       |> Enum.group_by(fn {tag, fields, _} -> {tag, fields_keys(fields)} end)
-      |> Enum.flat_map(fn {_, maps} -> opt_map_non_negated_fuse(maps) end)
+      |> :maps.values()
+      |> Enum.flat_map(&opt_map_non_negated_fuse/1)
 
     without_negs ++ with_negs
   end
@@ -8026,15 +8037,19 @@ defmodule Module.Types.Descr do
           {[triplet | with], without}
       end)
 
-    Enum.reduce(without_negs, with_negs, fn {_, tuples}, with_negs ->
-      tuples
-      |> Enum.reduce([], fn tuple, acc ->
-        opt_tuple_fuse_with_first_fusible(tuple, acc)
-      end)
-      |> Enum.reduce(with_negs, fn {tag, elements}, with_negs ->
-        [{tag, elements, []} | with_negs]
-      end)
-    end)
+    :maps.fold(
+      fn _, tuples, with_negs ->
+        tuples
+        |> Enum.reduce([], fn tuple, acc ->
+          opt_tuple_fuse_with_first_fusible(tuple, acc)
+        end)
+        |> Enum.reduce(with_negs, fn {tag, elements}, with_negs ->
+          [{tag, elements, []} | with_negs]
+        end)
+      end,
+      with_negs,
+      without_negs
+    )
   end
 
   defp opt_tuple_fuse_with_first_fusible(tuple, []), do: [tuple]
