@@ -8,6 +8,7 @@ defmodule Module.Types.ExprTest do
 
   import TypeHelper
   import Module.Types.Descr
+  import Module.Types.Of, only: [chardata: 0]
   defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defmacro generated_foo_call(x) do

@@ -44,7 +44,7 @@ defmodule Module.Types.Expr do
   custom_info_key = opt_difference(atom(), atom([:file, :line, :error_info]))
 
   # OTP declares the file entry in stacktrace_extrainfo() as unicode:chardata()
-  chardata = Module.Types.Descr.chardata()
+  chardata = Module.Types.Of.chardata()
 
   extra_info =
     list(

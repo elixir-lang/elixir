@@ -7,6 +7,7 @@ defmodule Module.Types.RecursiveTest do
   use ExUnit.Case, async: true
 
   import Module.Types.Descr
+  import Module.Types.Of, only: [chardata: 0]
 
   setup do
     Process.flag(:max_heap_size, %{size: 25_000_000, kill: true, error_logger: false})
@@ -44,7 +45,7 @@ defmodule Module.Types.RecursiveTest do
     end
 
     test "scoped nodes can be escaped and pretty printed" do
-      assert {{Module.Types.Descr, :chardata}, _state, _generator} = chardata()
+      assert {{Module.Types.Of, :chardata}, _state, _generator} = chardata()
 
       # Scoped nodes are made of literals, so they can be embedded in compiled code
       assert Macro.escape(chardata()) |> Code.eval_quoted() |> elem(0) |> equal?(chardata())
