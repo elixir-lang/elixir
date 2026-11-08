@@ -99,6 +99,12 @@ defmodule Kernel.FnTest do
     assert (&mod.flatten/1) == (&List.flatten/1)
   end
 
+  test "capture with assignment in module" do
+    mod = :outer
+    assert (&(mod = List).flatten(&1)).([1, [2], 3]) == [1, 2, 3]
+    assert mod == :outer
+  end
+
   test "local partial application" do
     assert (&atb(&1, :utf8)).(:a) == "a"
     assert (&atb(List.to_unsafe_atom(&1), :utf8)).(~c"a") == "a"

@@ -107,7 +107,13 @@ capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, ArgsTy
       end,
 
       Dot = {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
-      handle_capture(Res, RequireMeta, DotMeta, Dot, SE, EE, ArgsType);
+
+      case Res of
+        %% The left side will be expanded again inside the fn,
+        %% so we discard any state from its outer expansion.
+        false -> capture_expr(RequireMeta, Dot, S, E, ArgsType);
+        _ -> handle_capture(Res, RequireMeta, DotMeta, Dot, SE, EE, ArgsType)
+      end;
 
     {EscLeft, Escaped} ->
       Dot = {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
