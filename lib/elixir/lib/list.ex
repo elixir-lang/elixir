@@ -936,10 +936,15 @@ defmodule List do
   end
 
   @doc """
-  Returns and removes the value at the specified `index` in the `list`.
+  Removes the element at `index` from `list`.
+  Returns `{value, updated_list}`, where `value` is the
+  removed element and `updated_list` is the remaining list.
 
-  Negative indices indicate an offset from the end of the `list`.
-  If `index` is out of bounds, the original `list` is returned.
+  Indices start at `0`. Negative indices count from the
+  end of the list. Index `-1` selects the last element.
+
+  If `index` is out of bounds, returns `{default, list}`,
+  where `default` is `nil` unless specified.
 
   ## Examples
 
