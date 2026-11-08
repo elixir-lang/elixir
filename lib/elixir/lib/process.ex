@@ -472,7 +472,7 @@ defmodule Process do
   @type spawn_opt ::
           :link
           | :monitor
-          | {:monitor, :erlang.monitor_option()}
+          | {:monitor, [:erlang.monitor_option()]}
           | {:priority, :low | :normal | :high}
           | {:fullsweep_after, non_neg_integer}
           | {:min_heap_size, non_neg_integer}
@@ -484,10 +484,10 @@ defmodule Process do
   @doc """
   Spawns the given function according to the given options.
 
-  The result depends on the given options. In particular,
-  if `:monitor` is given as an option, it will return a tuple
-  containing the PID and the monitoring reference, otherwise
-  just the spawned process PID.
+  The result depends on the given options. If `:monitor` or
+  `{:monitor, monitor_opts}` is given, returns a tuple containing
+  the PID and the monitoring reference. Otherwise, returns
+  only the spawned process PID.
 
   More options are available; for the comprehensive list of available options
   check `:erlang.spawn_opt/4`.
@@ -509,10 +509,10 @@ defmodule Process do
   Spawns the given function `fun` from module `mod`, passing the given `args`
   according to the given options.
 
-  The result depends on the given options. In particular,
-  if `:monitor` is given as an option, it will return a tuple
-  containing the PID and the monitoring reference, otherwise
-  just the spawned process PID.
+  The result depends on the given options. If `:monitor` or
+  `{:monitor, monitor_opts}` is given, returns a tuple containing
+  the PID and the monitoring reference. Otherwise, returns
+  only the spawned process PID.
 
   It also accepts extra options, for the list of available options
   check `:erlang.spawn_opt/4`.
