@@ -1874,7 +1874,9 @@ defmodule Module.Types.Descr do
     type_args = args_to_domain(arguments)
 
     :lists.foldl(
-      fn intersection_of_arrows, acc -> aux_apply(acc, type_args, term(), intersection_of_arrows) end,
+      fn intersection_of_arrows, acc ->
+        aux_apply(acc, type_args, term(), intersection_of_arrows)
+      end,
       none(),
       arrows
     )
@@ -2088,7 +2090,9 @@ defmodule Module.Types.Descr do
           cache = Map.put(cache, cache_key, false)
           {false, cache}
         else
-          {result, cache} = phi_arguments(arguments, 0, args, {b, ret}, rest_positive, cache, seen)
+          {result, cache} =
+            phi_arguments(arguments, 0, args, {b, ret}, rest_positive, cache, seen)
+
           cache = Map.put(cache, cache_key, result)
           {result, cache}
         end
@@ -2497,10 +2501,13 @@ defmodule Module.Types.Descr do
 
   defp non_empty_list_literals_intersection(list_literals, seen) do
     {list, last} =
-      Enum.reduce(list_literals, {:term, :term}, fn
-        bdd_leaf(next_list, next_last), {list, last} ->
+      :lists.foldl(
+        fn bdd_leaf(next_list, next_last), {list, last} ->
           {bare_intersection(list, next_list), bare_intersection(last, next_last)}
-      end)
+        end,
+        {:term, :term},
+        list_literals
+      )
 
     if empty_seen?(list, seen) or empty_seen?(last, seen), do: :empty, else: {list, last}
   end
@@ -2692,16 +2699,19 @@ defmodule Module.Types.Descr do
     #     a. either completely covers the type, if its last type is a supertype of the positive one,
     #     b. or it removes part of the last type.
     empty_seen?(list_type, seen) or empty_seen?(last_type, seen) or
-      Enum.reduce_while(negs, last_type, fn bdd_leaf(neg_type, neg_last), acc_last_type ->
-        if subtype_seen?(list_type, neg_type, seen) do
-          d = bare_difference(acc_last_type, list_tail_unfold(neg_last))
-          if empty_seen?(d, seen), do: {:halt, nil}, else: {:cont, d}
-        else
-          {:cont, acc_last_type}
-        end
-      end)
-      |> is_nil()
+      list_line_negs_empty?(negs, list_type, last_type, seen)
   end
+
+  defp list_line_negs_empty?([bdd_leaf(neg_type, neg_last) | negs], list_type, last_type, seen) do
+    if subtype_seen?(list_type, neg_type, seen) do
+      d = bare_difference(last_type, list_tail_unfold(neg_last))
+      empty_seen?(d, seen) or list_line_negs_empty?(negs, list_type, d, seen)
+    else
+      list_line_negs_empty?(negs, list_type, last_type, seen)
+    end
+  end
+
+  defp list_line_negs_empty?([], _list_type, _last_type, _seen), do: false
 
   defp non_empty_list_only?(descr), do: empty?(Map.delete(descr, :list))
 
