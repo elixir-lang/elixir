@@ -1338,8 +1338,13 @@ defmodule FileTest do
         child = Path.join(fixture, "child")
         refute File.exists?(child)
 
-        assert File.mkdir_p(child) == {:error, :eacces}
-        refute File.exists?(child)
+        # Permissions are not enforced when running as root (such as in Docker)
+        if File.ls(fixture) == {:error, :eacces} do
+          assert File.mkdir_p(child) == {:error, :eacces}
+          refute File.exists?(child)
+        else
+          assert File.mkdir_p(child) == :ok
+        end
 
         assert File.chmod!(fixture, orig_mode) == :ok
       after
