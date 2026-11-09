@@ -37,6 +37,13 @@ defmodule Task.Supervised do
 
   defp reply(owner, owner_pid, mref, timeout) do
     receive do
+      # Sent by the async_stream monitor process once it monitors this task.
+      # We notify the owner, who will only then send us the work, guaranteeing
+      # the monitor is in place before we run and exit.
+      {:spawned, ref} ->
+        send(owner_pid, {:spawned, ref, self()})
+        reply(owner, owner_pid, mref, timeout)
+
       {^owner_pid, ref, reply_to, callers, mfa} ->
         put_initial_call(mfa)
         put_callers(callers)
@@ -484,7 +491,7 @@ defmodule Task.Supervised do
       {{^monitor_ref, _}, _} ->
         stream_cleanup_inbox(monitor_ref)
 
-      {kind, {^monitor_ref, _}, _} when kind in [:down, :timed_out] ->
+      {kind, {^monitor_ref, _}, _} when kind in [:down, :timed_out, :spawned] ->
         stream_cleanup_inbox(monitor_ref)
     after
       0 ->
@@ -510,6 +517,13 @@ defmodule Task.Supervised do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
         mfa_with_value = normalize_mfa_with_arg(mfa, value)
         send(pid, {self(), {monitor_ref, spawned}, self(), callers, mfa_with_value})
+        stored_value = if zip_input_on_exit?, do: value, else: nil
+        Map.put(waiting, spawned, {:running, stored_value})
+
+      # The task went down before it could notify us. Put the message back
+      # and mark the task as running, so it is handled as any other exit.
+      {kind, {^monitor_ref, ^spawned}, _reason} = message when kind in [:down, :timed_out] ->
+        send(self(), message)
         stored_value = if zip_input_on_exit?, do: value, else: nil
         Map.put(waiting, spawned, {:running, stored_value})
 
@@ -559,35 +573,26 @@ defmodule Task.Supervised do
     %{
       spawn: spawn,
       parent_pid: parent_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
+      monitor_ref: monitor_ref
     } = config
 
     receive do
       # The parent process is telling us to spawn a new task to process
-      # "value". We spawn it and notify the parent about its pid.
+      # "value". We spawn it and the parent is notified about its pid.
       {:spawn, position} ->
         case spawn.() do
+          # The task was spawned and monitored atomically, so we can notify the parent.
           {:ok, type, pid, ref} ->
-            # Schedule a timeout message to ourselves, unless the timeout was set to :infinity
-            timer_ref =
-              case timeout do
-                :infinity -> nil
-                timeout -> Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
-              end
-
             send(parent_pid, {:spawned, {monitor_ref, position}, pid})
+            stream_monitor_spawned(running_tasks, position, type, pid, ref, config)
 
-            running_tasks =
-              Map.put(running_tasks, ref, %{
-                position: position,
-                type: type,
-                pid: pid,
-                timer_ref: timer_ref,
-                timed_out?: false
-              })
-
-            stream_monitor_loop(running_tasks, config)
+          # The task was spawned elsewhere (such as a supervisor). There are no
+          # ordering guarantees between our monitor and the parent's message
+          # with the work, so we monitor it and ask the task to notify the parent.
+          {:ok, type, pid} ->
+            ref = Process.monitor(pid)
+            send(pid, {:spawned, {monitor_ref, position}})
+            stream_monitor_spawned(running_tasks, position, type, pid, ref, config)
 
           {:error, :max_children} ->
             send(parent_pid, {:max_children, monitor_ref})
@@ -632,6 +637,28 @@ defmodule Task.Supervised do
         handle_stop_or_parent_down(other, running_tasks, config)
         stream_monitor_loop(running_tasks, config)
     end
+  end
+
+  defp stream_monitor_spawned(running_tasks, position, type, pid, ref, config) do
+    %{monitor_ref: monitor_ref, timeout: timeout} = config
+
+    # Schedule a timeout message to ourselves, unless the timeout was set to :infinity
+    timer_ref =
+      case timeout do
+        :infinity -> nil
+        timeout -> Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
+      end
+
+    running_tasks =
+      Map.put(running_tasks, ref, %{
+        position: position,
+        type: type,
+        pid: pid,
+        timer_ref: timer_ref,
+        timed_out?: false
+      })
+
+    stream_monitor_loop(running_tasks, config)
   end
 
   defp stream_waiting_for_stop_loop(running_tasks, config) do
