@@ -17,6 +17,21 @@ defmodule Kernel.MacrosTest.Nested do
     end
   end
 
+  defmacro outer_cond do
+    quote do
+      x = :outer_value
+      Kernel.MacrosTest.Nested.inner_cond(x)
+    end
+  end
+
+  defmacro inner_cond(body) do
+    quote do
+      cond do
+        x = is_integer(1) -> unquote(body)
+      end
+    end
+  end
+
   defmacro wrap_empty_var(expr) do
     empty = Macro.var(:"", nil)
 
@@ -74,6 +89,10 @@ defmodule Kernel.MacrosTest do
 
   test "require with alias" do
     assert Nested.value() == 1
+  end
+
+  test "cond preserves hygienically distinct variables in the body" do
+    assert Nested.outer_cond() == :outer_value
   end
 
   test "local with private macro" do
