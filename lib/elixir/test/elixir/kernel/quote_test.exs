@@ -83,6 +83,70 @@ defmodule Kernel.QuoteTest do
               end)
   end
 
+  test "quote options with assignment" do
+    line = 10
+    quoted = quote line: line = line + 1, do: foo()
+    assert quoted == {:foo, [line: 11], []}
+    assert line == 11
+
+    file = "foo"
+    quoted = quote file: file = file <> ".ex", do: foo()
+    assert quoted == {:foo, [keep: {"foo.ex", 0}], []}
+    assert file == "foo.ex"
+
+    context = :foo
+    quoted = quote context: context = {context, :bar} |> elem(1), do: foo
+    assert quoted == {:foo, [], :bar}
+    assert context == :bar
+  end
+
+  test "quote options with assignment at top level" do
+    Code.compile_string("""
+    x = 10
+    q = quote line: (x = x + 1), do: foo()
+    send(self(), {q, x})
+    """)
+
+    assert_received {{:foo, [line: 11], []}, 11}
+
+    Code.compile_string("""
+    x = 10
+    q = quote line: (x = x + 1), bind_quoted: [x: x], do: x
+    send(self(), {q, x})
+    """)
+
+    assert_received {{:__block__, [],
+                      [{:=, [], [{:x, _, Elixir}, 10]}, {:x, [line: 11], Elixir}]}, 11}
+  end
+
+  test "quote options with assignment and bind_quoted" do
+    x = 10
+    quoted = quote line: x = x + 1, bind_quoted: [x: x], do: x
+
+    assert {:__block__, [], [{:=, [], [{:x, _, __MODULE__}, 10]}, x_ast]} = quoted
+    assert x_ast == {:x, [line: 11], __MODULE__}
+    assert x == 11
+  end
+
+  test "quote option evaluation order" do
+    quoted =
+      quote line: elem(send(self(), {:line, 11}), 1),
+            file: elem(send(self(), {:file, "foo.ex"}), 1),
+            context: elem(send(self(), {:context, :foo}), 1),
+            bind_quoted: [x: elem(send(self(), {:bind_quoted, 10}), 1)] do
+        x
+      end
+
+    assert {:__block__, [], [{:=, [], [{:x, _, :foo}, 10]}, {:x, _, :foo}]} = quoted
+
+    for expected <- [context: :foo, file: "foo.ex", line: 11, bind_quoted: 10] do
+      assert_received actual
+      assert actual == expected
+    end
+
+    refute_received _
+  end
+
   test "operator precedence" do
     assert {:+, _, [{:+, _, [1, _]}, 1]} = quote(do: 1 + Foo.l() + 1)
     assert {:+, _, [1, {_, _, [{:+, _, [1]}]}]} = quote(do: 1 + Foo.l(+1))

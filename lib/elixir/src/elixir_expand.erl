@@ -271,7 +271,7 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
     file_error(Meta, E, ?MODULE, quote_in_pattern_with_unquote),
 
   {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
-  {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
+  {EPrelude, SP, EP} = expand_quote_prelude(QPrelude, ST, ET),
   {EContext, SC, EC} = expand(QContext, SP, EP),
   Quoted = elixir_quote:quote(Exprs, Q),
   {EQuoted, ES, EQ} = expand(Quoted, SC, EC),
@@ -1015,6 +1015,18 @@ attach_runtime_module(Receiver, Meta, S, _E) ->
     true -> [{runtime_module, true} | Meta];
     false -> Meta
   end.
+
+%% Quote helpers
+
+expand_quote_prelude([{'=', Meta, [Var, {Dot, CallMeta, [Key, Value]}]} | Rest], S, E) ->
+  %% The option value is already expanded. Expand the generated validation and
+  %% assignment with a placeholder, then restore the value without expanding it.
+  {{'=', EMeta, [EVar, {EDot, ECallMeta, [Key, nil]}]}, SV, EV} =
+    expand({'=', Meta, [Var, {Dot, CallMeta, [Key, nil]}]}, S, E),
+  {ERest, SR, ER} = expand_quote_prelude(Rest, SV, EV),
+  {[{'=', EMeta, [EVar, {EDot, ECallMeta, [Key, Value]}]} | ERest], SR, ER};
+expand_quote_prelude([], S, E) ->
+  {[], S, E}.
 
 %% Lexical helpers
 
