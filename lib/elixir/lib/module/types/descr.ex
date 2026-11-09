@@ -4920,7 +4920,7 @@ defmodule Module.Types.Descr do
 
     if field_empty_seen?(meet, meet_optional?, seen) do
       # This negative map is disjoint from the current line at this field.
-      reverse_meet = Enum.reverse(acc_meet, [{key, {type, optional?}} | t1])
+      reverse_meet = :lists.reverse(acc_meet, [{key, {type, optional?}} | t1])
       map_line_empty?(tag, reverse_meet, negs, seen)
     else
       diff = bare_difference(type, neg_type)
@@ -4931,7 +4931,7 @@ defmodule Module.Types.Descr do
         # The field is a subtype of the negative field, so their intersection is type.
         map_line_meet_empty?(t1, t2, tag, neg_tag, new_acc_meet, negs, seen)
       else
-        reverse_meet = Enum.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1])
+        reverse_meet = :lists.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1])
 
         map_line_empty?(tag, reverse_meet, negs, seen) and
           map_line_meet_empty?(t1, t2, tag, neg_tag, new_acc_meet, negs, seen)
@@ -5004,14 +5004,20 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs, seen) do
-    Enum.all?(t1, fn {key, f1} ->
-      f2 = map_key_tag_to_field(neg_tag)
-      map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
-    end) and
-      Enum.all?(t2, fn {key, f2} ->
-        f1 = map_key_tag_to_field(tag)
+    :lists.all(
+      fn {key, f1} ->
+        f2 = map_key_tag_to_field(neg_tag)
         map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
-      end)
+      end,
+      t1
+    ) and
+      :lists.all(
+        fn {key, f2} ->
+          f1 = map_key_tag_to_field(tag)
+          map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
+        end,
+        t2
+      )
   end
 
   defp map_line_fields_empty_recur?(
@@ -5039,23 +5045,25 @@ defmodule Module.Types.Descr do
   # An open map is a subtype iff the negative domains all accept term().
   defp map_check_domain_keys?(:open, neg_domains, seen) do
     fields_size(neg_domains) == length(@domain_key_types) and
-      Enum.all?(fields_to_list(neg_domains), fn {_domain_key, type} ->
-        subtype_seen?(term(), type, seen)
-      end)
+      :lists.all(
+        fn {_domain_key, type} -> subtype_seen?(term(), type, seen) end,
+        fields_to_list(neg_domains)
+      )
   end
 
   # A positive domain is smaller than a closed map iff all its value types are empty.
   defp map_check_domain_keys?(pos_domains, :closed, seen) do
-    Enum.all?(fields_to_list(pos_domains), fn {_domain_key, type} ->
-      empty_seen?(type, seen)
-    end)
+    :lists.all(fn {_domain_key, type} -> empty_seen?(type, seen) end, fields_to_list(pos_domains))
   end
 
   # Component-wise comparison of domains
   defp map_check_domain_keys?(pos_domains, neg_domains, seen) do
-    Enum.all?(fields_to_list(pos_domains), fn {domain_key, type} ->
-      subtype_seen?(type, fields_get(neg_domains, domain_key, none()), seen)
-    end)
+    :lists.all(
+      fn {domain_key, type} ->
+        subtype_seen?(type, fields_get(neg_domains, domain_key, none()), seen)
+      end,
+      fields_to_list(pos_domains)
+    )
   end
 
   # Split out the residual domain field without removing its domain association.
@@ -5571,13 +5579,17 @@ defmodule Module.Types.Descr do
 
   defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs, seen) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
-    {ty, elements} = List.pop_at(elements, 0, term())
+    {ty, elements} =
+      case elements do
+        [ty | elements] -> {ty, elements}
+        [] -> {term(), []}
+      end
 
     meet = bare_intersection(ty, neg_type)
 
     if empty_seen?(meet, seen) do
       # This negative tuple is disjoint from the current line at this element.
-      tuple_line_empty?(tag, Enum.reverse(acc_meet, [ty | elements]), negs, seen)
+      tuple_line_empty?(tag, :lists.reverse(acc_meet, [ty | elements]), negs, seen)
     else
       diff = bare_difference(ty, neg_type)
 
@@ -5585,7 +5597,7 @@ defmodule Module.Types.Descr do
         # The element is a subtype of the negative element, so their intersection is ty.
         tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, negs, seen)
       else
-        tuple_line_empty?(tag, Enum.reverse(acc_meet, [diff | elements]), negs, seen) and
+        tuple_line_empty?(tag, :lists.reverse(acc_meet, [diff | elements]), negs, seen) and
           tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs, seen)
       end
     end
@@ -5598,9 +5610,17 @@ defmodule Module.Types.Descr do
     # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
     # closed, we also need to consider tuples of size greater than m + 1.
     tag == :closed or
-      (Enum.all?(n..(m - 1)//1, &tuple_line_empty?(:closed, tuple_fill(elements, &1), negs, seen)) and
+      (tuple_empty_sizes?(n, m, elements, negs, seen) and
          (neg_tag == :open or tuple_line_empty?(:open, tuple_fill(elements, m + 1), negs, seen)))
   end
+
+  # Checks the closed tuples of sizes n to m - 1.
+  defp tuple_empty_sizes?(n, m, elements, negs, seen) when n < m do
+    tuple_line_empty?(:closed, tuple_fill(elements, n), negs, seen) and
+      tuple_empty_sizes?(n + 1, m, elements, negs, seen)
+  end
+
+  defp tuple_empty_sizes?(_n, _m, _elements, _negs, _seen), do: true
 
   defp tuple_eliminate_negations(tag, elements, negs) do
     Enum.reduce(negs, [{tag, elements}], fn bdd_leaf(neg_tag, neg_elements), acc ->
@@ -5759,7 +5779,7 @@ defmodule Module.Types.Descr do
     if pad_length < 0 do
       raise ArgumentError, "tuple_fill: elements are longer than the desired length"
     else
-      elements ++ List.duplicate(term(), pad_length)
+      elements ++ :lists.duplicate(pad_length, term())
     end
   end
 
@@ -7858,14 +7878,14 @@ defmodule Module.Types.Descr do
 
   defp opt_tuple_fuse_leaf(_, _), do: nil
 
-  defp opt_tuple_fuse_elements([], [], acc, _depth), do: Enum.reverse(acc)
+  defp opt_tuple_fuse_elements([], [], acc, _depth), do: :lists.reverse(acc)
 
   defp opt_tuple_fuse_elements([v | t1], [v | t2], acc, depth),
     do: opt_tuple_fuse_elements(t1, t2, [v | acc], depth)
 
   defp opt_tuple_fuse_elements([v1 | t], [v2 | t], acc, depth) do
     if element = opt_tuple_fuse_element(v1, v2, depth) do
-      Enum.reverse(acc, [element | t])
+      :lists.reverse(acc, [element | t])
     end
   end
 
