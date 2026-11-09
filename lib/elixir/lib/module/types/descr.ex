@@ -1873,9 +1873,11 @@ defmodule Module.Types.Descr do
   defp fun_apply_static(arguments, arrows) do
     type_args = args_to_domain(arguments)
 
-    Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-      aux_apply(acc, type_args, term(), intersection_of_arrows)
-    end)
+    :lists.foldl(
+      fn intersection_of_arrows, acc -> aux_apply(acc, type_args, term(), intersection_of_arrows) end,
+      none(),
+      arrows
+    )
   end
 
   # A fast way to do function application when the arguments of the function are disjoint.
@@ -1883,11 +1885,15 @@ defmodule Module.Types.Descr do
   defp apply_disjoint(input_arguments, arrows) do
     type_input = args_to_domain(input_arguments)
 
-    Enum.reduce(arrows, none(), fn bdd_leaf(args, ret), acc_return ->
-      if empty?(bare_intersection(args_to_domain(args), type_input)),
-        do: acc_return,
-        else: bare_union(acc_return, ret)
-    end)
+    :lists.foldl(
+      fn bdd_leaf(args, ret), acc_return ->
+        if empty?(bare_intersection(args_to_domain(args), type_input)),
+          do: acc_return,
+          else: bare_union(acc_return, ret)
+      end,
+      none(),
+      arrows
+    )
   end
 
   # Helper function for function application that handles the application of
@@ -1957,16 +1963,19 @@ defmodule Module.Types.Descr do
   defp fun_empty?({:negation, _}, _seen), do: false
 
   defp fun_empty?({:union, repr}, seen) do
-    Enum.all?(Map.to_list(repr), fn {arity, bdd} ->
-      key = empty_bdd_seen_key(arity, bdd)
+    :lists.all(
+      fn {arity, bdd} ->
+        key = empty_bdd_seen_key(arity, bdd)
 
-      if :erlang.is_map_key(key, seen) do
-        true
-      else
-        seen = Map.put(seen, key, true)
-        Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg, seen) end)
-      end
-    end)
+        if :erlang.is_map_key(key, seen) do
+          true
+        else
+          seen = Map.put(seen, key, true)
+          :lists.all(fn {pos, neg} -> fun_line_empty?(pos, neg, seen) end, bdd_to_dnf(bdd))
+        end
+      end,
+      :maps.to_list(repr)
+    )
   end
 
   # A function type {positives, negatives} is empty if there exists a negative
@@ -1982,7 +1991,7 @@ defmodule Module.Types.Descr do
   # With no positives, the line is the top function of its arity,
   # which is (none(), ..., none() -> term()).
   defp fun_line_empty?([], [bdd_leaf(args, _) | _] = negatives, seen) do
-    top = bdd_leaf_new(Enum.map(args, fn _ -> none() end), term())
+    top = bdd_leaf_new(:lists.map(fn _ -> none() end, args), term())
     fun_line_empty?([top], negatives, seen)
   end
 
@@ -1994,19 +2003,24 @@ defmodule Module.Types.Descr do
     # * (none() -> atom())
     # * (integer() -> term())
     # * (integer() -> atom())
-    Enum.any?(negatives, fn bdd_leaf(neg_arguments, neg_return) ->
-      # Check if the negative function's domain is a supertype of the positive
-      # domain and if the phi function determines emptiness.
-      subtype_seen?(args_to_domain(neg_arguments), fetch_domain(positives), seen) and
-        phi_starter(neg_arguments, neg_return, positives, seen)
-    end)
+    :lists.any(
+      fn bdd_leaf(neg_arguments, neg_return) ->
+        # Check if the negative function's domain is a supertype of the positive
+        # domain and if the phi function determines emptiness.
+        subtype_seen?(args_to_domain(neg_arguments), fetch_domain(positives), seen) and
+          phi_starter(neg_arguments, neg_return, positives, seen)
+      end,
+      negatives
+    )
   end
 
   # Returns the union of all domains of the arrows in the intersection of positives.
   defp fetch_domain(positives) do
-    Enum.reduce(positives, none(), fn bdd_leaf(args, _), acc ->
-      bare_union(acc, args_to_domain(args))
-    end)
+    :lists.foldl(
+      fn bdd_leaf(args, _), acc -> bare_union(acc, args_to_domain(args)) end,
+      none(),
+      positives
+    )
   end
 
   # Implements the Φ (phi) function for determining function subtyping relationships.
@@ -2038,7 +2052,7 @@ defmodule Module.Types.Descr do
 
       _ ->
         # Initialize memoization cache for the recursive phi computation
-        arguments = Enum.map(arguments, &{false, &1})
+        arguments = :lists.map(&{false, &1}, arguments)
         {result, _cache} = phi(arguments, {false, bare_negation(return)}, positives, %{}, seen)
         result
     end
@@ -2046,7 +2060,7 @@ defmodule Module.Types.Descr do
 
   defp phi(args, {b, t}, [], cache, seen) do
     result =
-      Enum.any?(args, fn {bool, typ} -> bool and empty_seen?(typ, seen) end) or
+      :lists.any(fn {bool, typ} -> bool and empty_seen?(typ, seen) end, args) or
         (b and empty_seen?(t, seen))
 
     {result, Map.put(cache, {args, {b, t}, []}, result)}
@@ -2074,36 +2088,36 @@ defmodule Module.Types.Descr do
           cache = Map.put(cache, cache_key, false)
           {false, cache}
         else
-          {_index, result, cache} =
-            Enum.reduce_while(arguments, {0, true, cache}, fn
-              type, {index, acc_result, acc_cache} ->
-                {_, arg} = Enum.at(args, index)
-                diff = bare_difference(arg, type)
-
-                {new_result, new_cache} =
-                  if empty_seen?(diff, seen) do
-                    {true, acc_cache}
-                  else
-                    args = List.replace_at(args, index, {true, diff})
-                    phi(args, {b, ret}, rest_positive, acc_cache, seen)
-                  end
-
-                if new_result do
-                  {:cont, {index + 1, acc_result and new_result, new_cache}}
-                else
-                  {:halt, {index + 1, false, new_cache}}
-                end
-            end)
-
+          {result, cache} = phi_arguments(arguments, 0, args, {b, ret}, rest_positive, cache, seen)
           cache = Map.put(cache, cache_key, result)
           {result, cache}
         end
     end
   end
 
+  # Checks each argument of a positive arrow, stopping at the first false result.
+  defp phi_arguments([type | types], index, args, ret, positives, cache, seen) do
+    {_, arg} = :lists.nth(index + 1, args)
+    diff = bare_difference(arg, type)
+
+    {result, cache} =
+      if empty_seen?(diff, seen) do
+        {true, cache}
+      else
+        args = List.replace_at(args, index, {true, diff})
+        phi(args, ret, positives, cache, seen)
+      end
+
+    if result,
+      do: phi_arguments(types, index + 1, args, ret, positives, cache, seen),
+      else: {false, cache}
+  end
+
+  defp phi_arguments([], _index, _args, _ret, _positives, cache, _seen), do: {true, cache}
+
   defp disjoint_non_empty_domains?(arguments, positives, seen) do
     non_empty? =
-      Enum.all?(arguments, fn arg -> not empty_seen?(arg, seen) end) and
+      :lists.all(fn arg -> not empty_seen?(arg, seen) end, arguments) and
         all_non_empty_arguments?(positives, seen)
 
     cond do
@@ -2114,9 +2128,10 @@ defmodule Module.Types.Descr do
   end
 
   defp all_non_empty_arguments?(positives, seen) do
-    Enum.all?(positives, fn bdd_leaf(args, _ret) ->
-      Enum.all?(args, fn arg -> not empty_seen?(arg, seen) end)
-    end)
+    :lists.all(
+      fn bdd_leaf(args, _ret) -> :lists.all(fn arg -> not empty_seen?(arg, seen) end, args) end,
+      positives
+    )
   end
 
   # For two arguments to be disjoint, one of their types must be disjoint.
@@ -2129,7 +2144,7 @@ defmodule Module.Types.Descr do
   defp all_disjoint_arguments?([]), do: true
 
   defp all_disjoint_arguments?([bdd_leaf(args, _) | rest]) do
-    Enum.all?(rest, fn bdd_leaf(args_rest, _) -> disjoint_arguments?(args, args_rest) end) and
+    :lists.all(fn bdd_leaf(args_rest, _) -> disjoint_arguments?(args, args_rest) end, rest) and
       all_disjoint_arguments?(rest)
   end
 
