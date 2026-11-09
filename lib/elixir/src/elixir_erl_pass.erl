@@ -399,8 +399,9 @@ build_truthy_clause(Meta, Condition, Body, S) ->
 %% In case a variable is defined to match in a condition
 %% but a condition returns boolean, we can replace the
 %% variable directly by the boolean result.
-returns_boolean({'=', _, [{Var, _, Ctx}, Condition]}, {Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) ->
-  case elixir_utils:returns_boolean(Condition) of
+returns_boolean({'=', _, [{Var, VarMeta, Ctx}, Condition]}, {Var, BodyMeta, Ctx}) when is_atom(Var), is_atom(Ctx) ->
+  case elixir_utils:returns_boolean(Condition) andalso
+       lists:keyfind(version, 1, VarMeta) =:= lists:keyfind(version, 1, BodyMeta) of
     true  -> {Condition, true};
     false -> false
   end;
