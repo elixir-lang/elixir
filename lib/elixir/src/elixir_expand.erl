@@ -3,7 +3,7 @@
 %% SPDX-FileCopyrightText: 2012 Plataformatec
 
 -module(elixir_expand).
--export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
+-export([expand/3, expand_args/3, expand_arg/3, expand_dot/8, format_error/1]).
 -import(elixir_errors, [file_error/4, module_error/4, function_error/4]).
 -include("elixir.hrl").
 -define(kernel, 'Elixir.Kernel').
@@ -16,9 +16,7 @@ expand({'=', Meta, [_, _]} = Expr, S, #{context := match} = E) ->
 expand({'=', Meta, [Left, Right]}, S, E) ->
   assert_no_guard_scope(Meta, "=", S, E),
   {ERight, SR, ER} = expand(Right, S, E),
-  {ELeft, #elixir_ex{version=Counter} = SL, EL} =
-    elixir_clauses:match(fun expand/3, Meta, Left, SR, S, ER),
-  {{'=', [{version, Counter} | Meta], [ELeft, ERight]}, SL#elixir_ex{version=Counter+1}, EL};
+  expand_match(Meta, Left, ERight, S, SR, ER);
 
 %% Literal operators
 
@@ -271,7 +269,7 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
     file_error(Meta, E, ?MODULE, quote_in_pattern_with_unquote),
 
   {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
-  {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
+  {EPrelude, SP, EP} = expand_quote_prelude(QPrelude, ST, ET),
   {EContext, SC, EC} = expand(QContext, SP, EP),
   Quoted = elixir_quote:quote(Exprs, Q),
   {EQuoted, ES, EQ} = expand(Quoted, SC, EC),
@@ -539,10 +537,7 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S, E), E),
-
-  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF) ->
-    expand_remote(AR, DotMeta, AF, Meta, Args, S, SL, EL)
-  end);
+  expand_dot(ELeft, DotMeta, Right, Meta, Args, S, SL, EL);
 
 %% Anonymous calls
 
@@ -658,7 +653,9 @@ expand_fn_capture(Meta, Arg, S, E) ->
     {{local, Fun, Arity}, LocalMeta, _, SE, EE} ->
       {{'&', Meta, [{'/', [], [{Fun, LocalMeta, nil}, Arity]}]}, SE, EE};
     {expand, Expr, SE, EE} ->
-      expand(Expr, SE, EE)
+      expand(Expr, SE, EE);
+    {expanded, Expr, SE, EE} ->
+      {Expr, SE, EE}
   end.
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, S, E, List) ->
@@ -755,6 +752,12 @@ mapfold(_Fun, S, E, [], Acc) ->
   {lists:reverse(Acc), S, E}.
 
 %% Match/var helpers
+
+%% Expands the left side of = after its right side has been expanded.
+expand_match(Meta, Left, ERight, S, SR, ER) ->
+  {ELeft, #elixir_ex{version=Counter} = SL, EL} =
+    elixir_clauses:match(fun expand/3, Meta, Left, SR, S, ER),
+  {{'=', [{version, Counter} | Meta], [ELeft, ERight]}, SL#elixir_ex{version=Counter+1}, EL}.
 
 var_unused({_, Kind} = Pair, Meta, Version, Unused, Override) ->
   case (Kind == nil) andalso should_warn(Meta) of
@@ -965,6 +968,12 @@ expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
 
 %% Remote
 
+%% Expands a remote call after its receiver has been expanded.
+expand_dot(ELeft, DotMeta, Right, Meta, Args, S, SL, EL) ->
+  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF) ->
+    expand_remote(AR, DotMeta, AF, Meta, Args, S, SL, EL)
+  end).
+
 expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E)
     when is_atom(Receiver) or is_tuple(Receiver) ->
   if
@@ -1015,6 +1024,19 @@ attach_runtime_module(Receiver, Meta, S, _E) ->
     true -> [{runtime_module, true} | Meta];
     false -> Meta
   end.
+
+%% Quote helpers
+
+%% The prelude binds each runtime option to a variable via a call to
+%% elixir_quote:validate_runtime/2 with the already expanded value.
+%% The call is in its expanded form, so we only expand the variable.
+%% Inside patterns and guards, we expand it all to emit errors.
+expand_quote_prelude(Prelude, S, #{context := nil} = E) ->
+  mapfold(fun({'=', Meta, [Var, Call]}, SA, EA) ->
+    expand_match(Meta, Var, Call, SA, SA, EA)
+  end, S, E, Prelude);
+expand_quote_prelude(Prelude, S, E) ->
+  expand(Prelude, S, E).
 
 %% Lexical helpers
 

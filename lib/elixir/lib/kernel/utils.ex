@@ -356,12 +356,12 @@ defmodule Kernel.Utils do
     Macro.postwalk(guard, fn
       {ref, meta, context} = var when is_atom(ref) and is_atom(context) ->
         case {ref, var_context(meta, context)} in refs do
-          true -> literal_unquote(var)
-          false -> var
+          true -> literal_unquote(drop_version(var))
+          false -> drop_version(var)
         end
 
       node ->
-        node
+        drop_version(node)
     end)
   end
 
@@ -381,15 +381,15 @@ defmodule Kernel.Utils do
                 %{} ->
                   generated = String.to_unsafe_atom("arg" <> Integer.to_string(map_size(acc) + 1))
                   new_var = Macro.unique_var(generated, module)
-                  {new_var, Map.put(acc, pair, {new_var, var})}
+                  {new_var, Map.put(acc, pair, {new_var, drop_version(var)})}
               end
 
             false ->
-              {var, acc}
+              {drop_version(var), acc}
           end
 
         node, acc ->
-          {node, acc}
+          {drop_version(node), acc}
       end)
 
     all_used = for ref <- :lists.reverse(refs), used = :maps.get(ref, used_refs, nil), do: used
@@ -400,6 +400,13 @@ defmodule Kernel.Utils do
       unquote(guard)
     end
   end
+
+  # Versions are specific to the defguard expansion, so we remove
+  # them as the expression will be expanded again by the caller
+  defp drop_version({left, meta, right}) when is_list(meta),
+    do: {left, :lists.keydelete(:version, 1, meta), right}
+
+  defp drop_version(node), do: node
 
   defp literal_quote(ast, args) do
     {:quote, [], [args, [do: ast]]}

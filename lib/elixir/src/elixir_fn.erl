@@ -84,10 +84,16 @@ capture_import({Atom, ImportMeta, Args} = Expr, S, E, ArgsType) ->
         elixir_dispatch:import_function(ImportMeta, Atom, length(Args), E),
   handle_capture(Res, ImportMeta, ImportMeta, Expr, S, E, ArgsType).
 
-capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, ArgsType) ->
+capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args} = Expr, S, E, ArgsType) ->
   case escape(Left, E, []) of
     {EscLeft, []} ->
-      {ELeft, SE, EE} = elixir_expand:expand(EscLeft, S, E),
+      %% The left side is evaluated inside the fn, if one is needed, so we
+      %% expand it within the fn clause scope and then decide if this is a
+      %% remote capture or a fn, without expanding it twice.
+      {FnMeta, ClauseMeta, EscArgs, Vars} = capture_args(RequireMeta, Expr, Args, E, ArgsType),
+      SC = elixir_env:reset_unused_vars(S),
+      {EVars, SH, EH} = elixir_clauses:head(ClauseMeta, Vars, SC, E),
+      {ELeft, SL, EL} = elixir_expand:expand(EscLeft, elixir_env:prepare_write(SH, EH), EH),
 
       case ELeft of
         _ when ArgsType /= arity -> ok;
@@ -101,23 +107,39 @@ capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, ArgsTy
         {Name, _, Context} when is_atom(Name), is_atom(Context) ->
           {remote, ELeft, Right, length(Args)};
         _ when is_atom(ELeft) ->
-          elixir_dispatch:require_function(RequireMeta, ELeft, Right, length(Args), EE);
+          elixir_dispatch:require_function(RequireMeta, ELeft, Right, length(Args), EL);
         _ ->
           false
       end,
 
-      Dot = {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
-
       case Res of
-        %% The left side will be expanded again inside the fn,
-        %% so we discard any state from its outer expansion.
-        false -> capture_expr(RequireMeta, Dot, S, E, ArgsType);
-        _ -> handle_capture(Res, RequireMeta, DotMeta, Dot, SE, EE, ArgsType)
+        false ->
+          {ECall, SB, EB} = elixir_expand:expand_dot(ELeft, DotMeta, Right, ClauseMeta, EscArgs, SH, SL, EL),
+          #elixir_ex{version=Counter} = SF = elixir_env:merge_and_check_unused_vars(SB, S, EB),
+          Fn = {fn, [{version, Counter} | FnMeta], [{'->', ClauseMeta, [EVars, ECall]}]},
+          {expanded, Fn, SF#elixir_ex{version=Counter+1}, E};
+        _ ->
+          SE = elixir_env:merge_and_check_unused_vars(SL, S, EL),
+          {Res, RequireMeta, DotMeta, SE, EL}
       end;
 
     {EscLeft, Escaped} ->
       Dot = {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
       capture_expr(RequireMeta, Dot, S, E, Escaped, ArgsType)
+  end.
+
+%% Escapes the arguments of a remote capture, returning
+%% the fn meta, the clause meta, the arguments and the vars.
+capture_args(Meta, Expr, Args, E, ArgsType) ->
+  case escape(Args, E, []) of
+    {_, []} when ArgsType == non_sequential ->
+      invalid_capture(Meta, Expr, E);
+    %% TODO: Remove this clause once we raise on complex module captures like &get_mod().fun/0
+    {EArgs, []} ->
+      Meta2 = lists:keydelete(no_parens, 1, Meta),
+      {Meta2, Meta2, EArgs, []};
+    {EArgs, EDict} ->
+      {[{capture, true} | Meta], Meta, EArgs, validate(Meta, EDict, 1, E)}
   end.
 
 handle_capture(false, Meta, _DotMeta, Expr, S, E, ArgsType) ->
@@ -131,11 +153,6 @@ capture_expr(Meta, Expr, S, E, Escaped, ArgsType) ->
   case escape(Expr, E, Escaped) of
     {_, []} when ArgsType == non_sequential ->
       invalid_capture(Meta, Expr, E);
-    %% TODO: Remove this clause once we raise on complex module captures like &get_mod().fun/0
-    {{{'.', _, [_, _]} = Dot, _, Args}, []} ->
-      Meta2 = lists:keydelete(no_parens, 1, Meta),
-      Fn = {fn, Meta2, [{'->', Meta2, [[], {Dot, Meta2, Args}]}]},
-      {expand, Fn, S, E};
     {EExpr, EDict} ->
       EVars = validate(Meta, EDict, 1, E),
       Fn = {fn, [{capture, true} | Meta], [{'->', Meta, [EVars, EExpr]}]},

@@ -83,6 +83,21 @@ defmodule Kernel.QuoteTest do
               end)
   end
 
+  test "quote options with assignment" do
+    line = 10
+    assert quote(line: line = line + 1, do: foo()) == {:foo, [line: 11], []}
+    assert line == 11
+
+    {result, _} =
+      Code.eval_string("""
+      line = 10
+      quoted = quote(line: line = line + 1, do: foo())
+      {quoted, line}
+      """)
+
+    assert result == {{:foo, [line: 11], []}, 11}
+  end
+
   test "operator precedence" do
     assert {:+, _, [{:+, _, [1, _]}, 1]} = quote(do: 1 + Foo.l() + 1)
     assert {:+, _, [1, {_, _, [{:+, _, [1]}]}]} = quote(do: 1 + Foo.l(+1))

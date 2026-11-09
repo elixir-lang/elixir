@@ -105,6 +105,23 @@ defmodule Kernel.FnTest do
     assert mod == :outer
   end
 
+  defmacro expanded_module(module) do
+    send(self(), {:expanded_module, module})
+    module
+  end
+
+  test "capture with complex module expands it once" do
+    {fun, _} =
+      Code.eval_string("""
+      require Kernel.FnTest
+      &(_ = Kernel.FnTest.expanded_module(List)).flatten(&1)
+      """)
+
+    assert fun.([1, [2], 3]) == [1, 2, 3]
+    assert_received {:expanded_module, _}
+    refute_received {:expanded_module, _}
+  end
+
   test "local partial application" do
     assert (&atb(&1, :utf8)).(:a) == "a"
     assert (&atb(List.to_unsafe_atom(&1), :utf8)).(~c"a") == "a"
