@@ -3211,7 +3211,7 @@ defmodule Module.Types.Descr do
   defp map_intersection(bdd1, bdd2), do: bdd_intersection(bdd1, bdd2)
 
   defp map_difference(_, bdd_leaf(:open, [])), do: :bdd_bot
-  defp map_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2), do: bdd_negation(bdd2)
+  defp map_difference(bdd_leaf(:open, []), bdd2) when is_tuple(bdd2), do: bdd_negation(bdd2)
   defp map_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
 
   defp map_literal_intersection(tag1, map1, tag2, map2),
@@ -5454,7 +5454,7 @@ defmodule Module.Types.Descr do
   defp tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
     do: if(entries == [], do: bdd_leaf_new(:open, [:term]), else: open)
 
-  defp tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
+  defp tuple_difference(bdd_leaf(:open, []), bdd2) when is_tuple(bdd2),
     do: bdd_negation(bdd2)
 
   defp tuple_difference(bdd1, bdd2),
@@ -7377,7 +7377,31 @@ defmodule Module.Types.Descr do
 
   defp opt_map_difference(_, bdd_leaf(:open, []), _seen), do: :bdd_bot
 
-  defp opt_map_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2, _seen),
+  # When the right side is an open map with a single key, the difference
+  # can be expressed as a single leaf by negating said key:
+  #
+  #     %{...} \ %{..., a: integer()} = %{..., a: if_set(not integer())}
+  #
+  # Any other leaf on the right side has no such representation.
+  defp opt_map_difference(
+         bdd_leaf(:open, []) = bdd1,
+         bdd_leaf(:open, [{key, field2}]) = bdd2,
+         seen
+       ) do
+    case opt_bdd_seen(seen, :map_difference, bdd1, bdd2) do
+      :seen ->
+        map_difference(bdd1, bdd2)
+
+      {:ok, seen} ->
+        field_diff = field_opt_difference(map_key_tag_to_field(:open), field2, seen)
+
+        if field_empty?(field_diff),
+          do: :bdd_bot,
+          else: bdd_leaf_new(:open, [{key, field_diff}])
+    end
+  end
+
+  defp opt_map_difference(bdd_leaf(:open, []), bdd2, _seen) when is_tuple(bdd2),
     do: bdd_negation(bdd2)
 
   defp opt_map_difference(bdd1, bdd2, seen) do
@@ -7756,7 +7780,7 @@ defmodule Module.Types.Descr do
   defp opt_tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
     do: if(entries == [], do: bdd_leaf_new(:open, [:term]), else: open)
 
-  defp opt_tuple_difference(bdd_leaf(:open, []), {_, _, _, _, _} = bdd2),
+  defp opt_tuple_difference(bdd_leaf(:open, []), bdd2) when is_tuple(bdd2),
     do: bdd_negation(bdd2)
 
   defp opt_tuple_difference(bdd1, bdd2),

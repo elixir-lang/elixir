@@ -789,6 +789,10 @@ defmodule Module.Types.DescrTest do
       assert opt_difference(tuple([atom([:ok])]), tuple([atom([:error])])) == tuple([atom([:ok])])
       assert opt_difference(tuple([atom([:ok])]), tuple([integer()])) == tuple([atom([:ok])])
       assert opt_difference(tuple([integer()]), tuple([atom()])) == tuple([integer()])
+
+      # Differences from the top tuple are negations
+      %{tuple: bdd} = tuple([atom()])
+      assert opt_difference(open_tuple([]), tuple([atom()])) == %{tuple: bdd_negation(bdd)}
     end
 
     test "map" do
@@ -829,6 +833,28 @@ defmodule Module.Types.DescrTest do
 
       assert opt_difference(closed_map(a: {integer(), false}), open_map(b: {integer(), true})) ==
                none()
+    end
+
+    test "map optimizations" do
+      # We do direct assertions because we want to check how it works underneath
+      # Differences from the top map against a single key open map are a single map
+      assert opt_difference(open_map(), open_map(a: {atom(), false})) ==
+               open_map(a: {opt_negation(atom()), true})
+
+      assert opt_difference(open_map(), open_map(a: {atom(), true})) ==
+               open_map(a: {opt_negation(atom()), false})
+
+      assert opt_difference(open_map(), open_map(a: {term(), true})) == none()
+
+      # Other differences from the top map are negations
+      for map <- [
+            closed_map(a: {atom(), false}),
+            open_map(a: {atom(), false}, b: {atom(), false}),
+            open_map([{domain_key(:integer), atom()}])
+          ] do
+        %{map: bdd} = map
+        assert opt_difference(open_map(), map) == %{map: bdd_negation(bdd)}
+      end
     end
 
     test "map difference of subtype" do

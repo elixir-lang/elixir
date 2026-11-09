@@ -1001,6 +1001,27 @@ defmodule Module.Types.RecursiveTest do
       assert subtype?(atom([:b]), diff)
       refute empty?(diff)
       assert empty?(opt_difference(tb, ta))
+
+      # top map minus a recursive single key open map, which unfolds
+      # back into the same leaf: X = %{..., a: X} (X is empty)
+      x =
+        recursive(%{X: fn recur -> open_map(a: {recur.(:X), false}) end})
+        |> Map.fetch!(:X)
+
+      assert equal?(opt_difference(open_map(), x), open_map())
+
+      # Y = %{..., a: Z}, Z = Y | nil
+      y =
+        recursive(%{
+          Y: fn recur -> open_map(a: {recur.(:Z), false}) end,
+          Z: fn recur -> bare_union(recur.(:Y), atom([nil])) end
+        })
+        |> Map.fetch!(:Y)
+
+      diff = opt_difference(open_map(), y)
+      assert equal?(diff, bare_difference(open_map(), y))
+      assert subtype?(closed_map(a: {integer(), false}), diff)
+      refute subtype?(closed_map(a: {closed_map(a: {atom([nil]), false}), false}), diff)
     end
 
     test "difference reaching the same recursive pair under different operations" do
