@@ -2656,13 +2656,15 @@ defmodule Module.Types.Descr do
     else
       seen = Map.put(seen, key, true)
 
-      bdd_to_dnf(bdd)
-      |> Enum.all?(fn {pos, negs} ->
-        case non_empty_list_literals_intersection(pos, seen) do
-          :empty -> true
-          {list, last} -> list_line_empty?(list, last, negs, seen)
-        end
-      end)
+      :lists.all(
+        fn {pos, negs} ->
+          case non_empty_list_literals_intersection(pos, seen) do
+            :empty -> true
+            {list, last} -> list_line_empty?(list, last, negs, seen)
+          end
+        end,
+        bdd_to_dnf(bdd)
+      )
     end
   end
 
@@ -3363,7 +3365,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_open_closed(t1, t2, _intersection_fun, _seen) do
-    if Enum.all?(t1, fn {_, {_, optional?}} -> optional? end) do
+    if :lists.all(fn {_, {_, optional?}} -> optional? end, t1) do
       t2
     else
       throw(:empty)
@@ -3412,8 +3414,8 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_intersection_closed(t1, t2, _intersection_fun, _seen) do
-    if Enum.any?(t1, fn {_, {_, optional?}} -> not optional? end) or
-         Enum.any?(t2, fn {_, {_, optional?}} -> not optional? end) do
+    if :lists.any(fn {_, {_, optional?}} -> not optional? end, t1) or
+         :lists.any(fn {_, {_, optional?}} -> not optional? end, t2) do
       throw(:empty)
     end
 
@@ -4800,9 +4802,10 @@ defmodule Module.Types.Descr do
   defp init_map_line_empty?(tag, fields, negs), do: init_map_line_empty?(tag, fields, negs, %{})
 
   defp init_map_line_empty?(tag, fields, negs, seen) do
-    Enum.any?(fields_to_list(fields), fn {_key, {type, optional?}} ->
-      not optional? and empty_seen?(type, seen)
-    end) or
+    :lists.any(
+      fn {_key, {type, optional?}} -> not optional? and empty_seen?(type, seen) end,
+      fields_to_list(fields)
+    ) or
       map_line_empty?(tag, fields, negs, seen)
   end
 
@@ -5406,10 +5409,10 @@ defmodule Module.Types.Descr do
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
   defp zip_non_empty_intersection!([], types2, acc, _intersection_fun),
-    do: Enum.reverse(acc, types2)
+    do: :lists.reverse(acc, types2)
 
   defp zip_non_empty_intersection!(types1, [], acc, _intersection_fun),
-    do: Enum.reverse(acc, types1)
+    do: :lists.reverse(acc, types1)
 
   defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
     zip_non_empty_intersection!(
@@ -5518,10 +5521,10 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_line_elements_empty?(elements, seen),
-    do: Enum.any?(elements, &empty_seen?(&1, seen))
+    do: :lists.any(&empty_seen?(&1, seen), elements)
 
-  defp zip_intersection([], types2, acc, _intersection_fun), do: Enum.reverse(acc, types2)
-  defp zip_intersection(types1, [], acc, _intersection_fun), do: Enum.reverse(acc, types1)
+  defp zip_intersection([], types2, acc, _intersection_fun), do: :lists.reverse(acc, types2)
+  defp zip_intersection(types1, [], acc, _intersection_fun), do: :lists.reverse(acc, types1)
 
   defp zip_intersection([type1 | rest1], [type2 | rest2], acc, intersection_fun) do
     zip_intersection(rest1, rest2, [intersection_fun.(type1, type2) | acc], intersection_fun)
@@ -7573,10 +7576,10 @@ defmodule Module.Types.Descr do
             :none
         end
 
-      tag1 == :closed and l2 != [] and Enum.any?(l2, fn {_, {_, optional?}} -> not optional? end) ->
+      tag1 == :closed and l2 != [] and :lists.any(fn {_, {_, optional?}} -> not optional? end, l2) ->
         :disjoint
 
-      tag2 == :closed and l1 != [] and Enum.any?(l1, fn {_, {_, optional?}} -> not optional? end) ->
+      tag2 == :closed and l1 != [] and :lists.any(fn {_, {_, optional?}} -> not optional? end, l1) ->
         :disjoint
 
       # All remaining keys on the right side are optional
