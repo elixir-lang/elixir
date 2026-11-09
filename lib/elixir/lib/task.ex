@@ -741,9 +741,10 @@ defmodule Task do
       owner = get_owner(self())
 
       Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->
-        # No need to monitor because the processes are linked
-        {:ok, pid} = Task.Supervised.start_link(owner, :nomonitor)
-        {:ok, :link, pid}
+        # No need to monitor the owner because the processes are linked.
+        # We spawn and monitor atomically, so we never miss the exit reason.
+        {pid, ref} = Task.Supervised.spawn_link_monitor(owner, :nomonitor)
+        {:ok, :link, pid, ref}
       end)
     end
   end

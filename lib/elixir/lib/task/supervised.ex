@@ -18,6 +18,10 @@ defmodule Task.Supervised do
     {:ok, spawn_link(__MODULE__, :reply, [owner, get_ancestors(), monitor])}
   end
 
+  def spawn_link_monitor(owner, monitor) do
+    Process.spawn(__MODULE__, :reply, [owner, get_ancestors(), monitor], [:link, :monitor])
+  end
+
   def reply({_, _, owner_pid} = owner, ancestors, monitor) do
     put_ancestors(ancestors)
 
@@ -564,9 +568,7 @@ defmodule Task.Supervised do
       # "value". We spawn it and notify the parent about its pid.
       {:spawn, position} ->
         case spawn.() do
-          {:ok, type, pid} ->
-            ref = Process.monitor(pid)
-
+          {:ok, type, pid, ref} ->
             # Schedule a timeout message to ourselves, unless the timeout was set to :infinity
             timer_ref =
               case timeout do

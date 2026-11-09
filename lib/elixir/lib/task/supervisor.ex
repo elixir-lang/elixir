@@ -644,8 +644,9 @@ defmodule Task.Supervisor do
 
         case start_child_with_spec(supervisor, args, :temporary, shutdown) do
           {:ok, pid} ->
+            ref = Process.monitor(pid)
             if link_type == :link, do: Process.link(pid)
-            {:ok, link_type, pid}
+            {:ok, link_type, pid, ref}
 
           {:error, :max_children} ->
             {:error, :max_children}
