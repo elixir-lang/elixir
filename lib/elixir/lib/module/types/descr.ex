@@ -7169,25 +7169,48 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp opt_map_union(bdd_leaf(:open, []) = leaf, _, _seen), do: leaf
+  defp opt_map_union(_, bdd_leaf(:open, []) = leaf, _seen), do: leaf
+
+  # Leaves that one of the inputs already holds are returned as is,
+  # which keeps them shared and does not compute their keys again.
   defp opt_map_union(bdd_leaf(tag1, fields1) = bdd1, bdd_leaf(tag2, fields2) = bdd2, seen) do
     case opt_bdd_seen(seen, :map_union, bdd1, bdd2) do
       :seen ->
         map_union(bdd1, bdd2)
 
-      {:ok, seen} ->
-        case opt_map_union(tag1, fields1, tag2, fields2, seen) do
-          {tag, fields} -> bdd_leaf_new(tag, fields)
-          nil -> bdd_union(bdd1, bdd2)
+      {:ok, seen} when is_atom(tag1) and is_atom(tag2) ->
+        case opt_map_union_strategy(fields1, fields2, tag1, tag2, :all_equal) do
+          :all_equal when tag1 == :open ->
+            bdd1
+
+          :all_equal ->
+            bdd2
+
+          {:one_key_difference, key, v1, v2} ->
+            bdd_leaf_new(tag1, fields_store(key, field_opt_union(v1, v2, seen), fields1))
+
+          :left_subtype_of_right ->
+            bdd2
+
+          :right_subtype_of_left ->
+            bdd1
+
+          :none ->
+            bdd_union(bdd1, bdd2)
         end
+
+      {:ok, _seen} ->
+        bdd_union(bdd1, bdd2)
     end
   end
 
   defp opt_map_union(bdd1, bdd2, _seen), do: map_union(bdd1, bdd2)
 
-  defp opt_map_union(:open, [], _, _, _seen), do: {:open, @fields_new}
-  defp opt_map_union(_, _, :open, [], _seen), do: {:open, @fields_new}
+  defp opt_map_union_literal(:open, [], _, _), do: {:open, @fields_new}
+  defp opt_map_union_literal(_, _, :open, []), do: {:open, @fields_new}
 
-  defp opt_map_union(tag1, pos1, tag2, pos2, seen)
+  defp opt_map_union_literal(tag1, pos1, tag2, pos2)
        when is_atom(tag1) and is_atom(tag2) do
     case opt_map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
       :all_equal when tag1 == :open ->
@@ -7197,7 +7220,7 @@ defmodule Module.Types.Descr do
         {tag2, pos2}
 
       {:one_key_difference, key, v1, v2} ->
-        {tag1, fields_store(key, field_opt_union(v1, v2, seen), pos1)}
+        {tag1, fields_store(key, field_opt_union(v1, v2, %{}), pos1)}
 
       :left_subtype_of_right ->
         {tag2, pos2}
@@ -7210,7 +7233,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_map_union(_, _, _, _, _seen), do: nil
+  defp opt_map_union_literal(_, _, _, _), do: nil
 
   defp opt_map_union_strategy([{k1, _} | t1], [{k2, _} | _] = l2, tag1, tag2, status)
        when k1 < k2 do
@@ -7758,7 +7781,7 @@ defmodule Module.Types.Descr do
     {tag1, fields1, []} = map
     {tag2, fields2, []} = candidate
 
-    case opt_map_union(tag1, fields1, tag2, fields2, %{}) do
+    case opt_map_union_literal(tag1, fields1, tag2, fields2) do
       nil -> [candidate | opt_map_fuse_with_first_fusible(map, rest)]
       # we found a fusible candidate, we're done
       {tag, fields} -> [{tag, fields, []} | rest]
@@ -7864,10 +7887,25 @@ defmodule Module.Types.Descr do
   # cost of fusing deeply nested tuples.
   @fusion_depth 3
 
+  # Leaves that one of the inputs already holds are returned as is,
+  # which keeps them shared and does not compute their keys again.
   defp opt_tuple_union(bdd_leaf(tag1, elements1) = bdd1, bdd_leaf(tag2, elements2) = bdd2) do
-    case opt_tuple_union_literal({tag1, elements1}, {tag2, elements2}) do
-      {tag, elements} -> bdd_leaf_new(tag, elements)
-      nil -> bdd_union(bdd1, bdd2)
+    case opt_tuple_union_strategy(tag1, elements1, tag2, elements2) do
+      :all_equal ->
+        bdd1
+
+      {:one_index_difference, index, v1, v2} ->
+        element = opt_tuple_fuse_element(v1, v2, @fusion_depth) || bare_union(v1, v2)
+        bdd_leaf_new(tag1, List.replace_at(elements1, index, element))
+
+      :left_subtype_of_right ->
+        bdd2
+
+      :right_subtype_of_left ->
+        bdd1
+
+      :none ->
+        bdd_union(bdd1, bdd2)
     end
   end
 
