@@ -5035,21 +5035,25 @@ defmodule Module.Types.Descr do
   end
 
   defp map_line_fields_empty?(t1, t2, tag, neg_tag, fields, negs, seen) do
-    :lists.all(
-      fn {key, f1} ->
-        f2 = map_key_tag_to_field(neg_tag)
-        map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
-      end,
-      t1
-    ) and
-      :lists.all(
-        fn {key, f2} ->
-          f1 = map_key_tag_to_field(tag)
-          map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen)
-        end,
-        t2
-      )
+    map_line_fields_pos_empty?(t1, map_key_tag_to_field(neg_tag), tag, fields, negs, seen) and
+      map_line_fields_neg_empty?(t2, map_key_tag_to_field(tag), tag, fields, negs, seen)
   end
+
+  # The remaining positive fields against the default field of the negative map.
+  defp map_line_fields_pos_empty?([{key, f1} | t1], f2, tag, fields, negs, seen) do
+    map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen) and
+      map_line_fields_pos_empty?(t1, f2, tag, fields, negs, seen)
+  end
+
+  defp map_line_fields_pos_empty?([], _f2, _tag, _fields, _negs, _seen), do: true
+
+  # The remaining negative fields against the default field of the positive map.
+  defp map_line_fields_neg_empty?([{key, f2} | t2], f1, tag, fields, negs, seen) do
+    map_line_fields_empty_recur?(key, f1, f2, tag, fields, negs, seen) and
+      map_line_fields_neg_empty?(t2, f1, tag, fields, negs, seen)
+  end
+
+  defp map_line_fields_neg_empty?([], _f1, _tag, _fields, _negs, _seen), do: true
 
   defp map_line_fields_empty_recur?(
          key,
@@ -5326,11 +5330,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp fields_merge_with_defaults([], d1, f2, _d2, fun),
-    do: Enum.map(f2, fn {k, v2} -> {k, fun.(k, d1, v2)} end)
+  defp fields_merge_with_defaults([], d1, [{k2, v2} | rest2], d2, fun),
+    do: [{k2, fun.(k2, d1, v2)} | fields_merge_with_defaults([], d1, rest2, d2, fun)]
 
-  defp fields_merge_with_defaults(f1, _d1, [], d2, fun),
-    do: Enum.map(f1, fn {k, v1} -> {k, fun.(k, v1, d2)} end)
+  defp fields_merge_with_defaults([{k1, v1} | rest1], d1, [], d2, fun),
+    do: [{k1, fun.(k1, v1, d2)} | fields_merge_with_defaults(rest1, d1, [], d2, fun)]
+
+  defp fields_merge_with_defaults([], _d1, [], _d2, _fun), do: []
 
   defp field_union({value1, optional1?}, {value2, optional2?}) do
     {bare_union(value1, value2), optional1? or optional2?}
@@ -6379,10 +6385,10 @@ defmodule Module.Types.Descr do
   # with a large one, the large one is kept as is under the small one,
   # instead of the small one being pushed into all of its branches.
   #
-  # The offset keeps closed keys within the VM's immediate integers
-  # (which are 60-bit signed on 64-bit systems), as long as there are
-  # fewer than 2^31 elements in a leaf.
+  # Sizes are capped at 2^31 - 1 and hashes fit in 27 bits, so keys
+  # fit in 58 bits, which keeps all keys within the VM's small integers.
   @closed_offset 1 <<< 58
+  @max_leaf_size (1 <<< 31) - 1
 
   defp bdd_leaf_new(:closed, arg2),
     do: {bdd_leaf_key(arg2, :erlang.phash2(arg2)) - @closed_offset, :closed, arg2}
@@ -6390,7 +6396,9 @@ defmodule Module.Types.Descr do
   defp bdd_leaf_new(arg1, arg2),
     do: {bdd_leaf_key(arg2, :erlang.phash2([arg1 | arg2])), arg1, arg2}
 
-  defp bdd_leaf_key(arg, hash) when is_list(arg), do: (length(arg) <<< 27) + hash
+  defp bdd_leaf_key(arg, hash) when is_list(arg),
+    do: (min(length(arg), @max_leaf_size) <<< 27) + hash
+
   defp bdd_leaf_key(_arg, hash), do: hash
 
   defp bdd_node_new(lit, c, u, d),
