@@ -18,11 +18,15 @@
 
   * [Access] Add support for keyword lists in `Access.key/2` and `Access.key!/1`
   * [Code] Add `:purge` and `:purge_all` compilation tracer events
+  * [Code] Add `:max_integer_bytes` option to `Code.string_to_quoted/2` and friends to limit the size of integer literals
   * [Code] Add support for the `:erlc_options` compiler option
   * [Code.Formatter] Add a `:migrate_atom_interpolations` option
+  * [Code.Formatter] Preserve comments at their intended location in many different scenarios
   * [File] Accept an open IO device in `File.stat/2`, `File.stat!/2`, `File.regular?/2`, `File.dir?/2`, and `File.exists?/2`
   * [IO.ANSI] Add `bold/0`, `bold_off/0`, `dim/0`, `dim_off/0`, `blink/0`, `invisible/0`, `invisible_off/0`, `strikethrough/0`, `strikethrough_off/0`, `italic_off/0`, `underline_off/0`, `overline/0`, `overline_off/0`, `cursor_forward/0`, `cursor_backward/0`, and `cursor_home/0`, aligning names with Erlang/OTP
   * [Kernel] Improve performance of type constructors and complex intersections
+  * [Kernel] Refine variables across `or`, `||`, and the falsy side of `and` and `&&` in conditions, such as `cond do is_integer(x) or is_boolean(x) -> ... end`
+  * [Kernel] Refine variables through the assignments in conditionals, such as `y = is_integer(x); if y, do: x, else: x`
   * [Kernel] Warn on aliases that are never used because a later alias shadows them
   * [Kernel] Warn on binary patterns with segments that are not byte-aligned
   * [Kernel.ParallelCompiler] Add a hint when spawned processes cannot load modules defined during compilation
@@ -49,6 +53,13 @@
 
 ### 2. Bug fixes
 
+#### Potential breaking changes
+
+The following bug fixes may break applications relying on the broken behaviour:
+
+  * [Kernel] Fix parsing precedence of unary operators applied to do-end blocks, such as `!if a do b end || c`
+  * [Process] Use `:erlang.exit_signal/2` in `Process.exit/2`, so exit signals sent to the calling process are delivered asynchronously and `:normal` no longer terminates it
+
 #### Elixir
 
   * [bin/elixirc] Fail compilation on warnings when `--warnings-as-errors` is given
@@ -56,84 +67,88 @@
   * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
   * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
   * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
+  * [Code] Properly escape C1 control characters and Unicode noncharacters in `Code.quoted_to_string/1` (and `Macro.to_string/1`)
   * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
-  * [Code.Formatter] Keep comments written after do-end block keywords (such as `rescue` and `after`) or after the right side of an operator close to where they were written, instead of moving them before the whole expression
   * [Code.Formatter] Keep parentheses on anonymous function calls with do-end blocks
   * [Code.Formatter] Keep parentheses on unary operators on the left side of `in`, such as `(!foo) in bar`
   * [Code.Fragment] Fix cursor completion when operator keywords such as `in`, `when`, `and`, `or`, and `not` follow another operator
   * [Code.Fragment] Respect the `:file`, `:line`, and `:column` options in `Code.Fragment.container_cursor_to_quoted/2`
   * [Date] Preserve the `:format` option in `Date.to_iso8601/2` with custom calendars
-  * [Date.Range] Fix slicing date ranges with stepped ranges
+  * [Date.Range] Fix slicing date ranges with stepped ranges returning the wrong results
   * [DateTime] Keep the calendar of the given map in `DateTime.convert/2` and `DateTime.truncate/2`
   * [DateTime] Truncate fractional differences towards zero in `DateTime.diff/3`
   * [Duration] Reject duplicate seconds in `Duration.from_iso8601/1`
   * [DynamicSupervisor] Do not discard the exit reason of children that terminate during shutdown
   * [Enum] Fix `Enum.min/2,3` and `Enum.max/2,3` with custom sorters on ranges
+  * [File] Return `{:error, :badarg, path}` from `File.cp_r/3` and `File.rm_rf/1` on paths with null bytes instead of raising, aligning with Erlang/OTP
   * [File] Trim UTF-32 LE BOMs in `File.stream!/3`
   * [IO.ANSI.Docs] Do not crash on unclosed HTML comments
   * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
   * [Kernel] Continue compilation after reporting repeated map keys in patterns
   * [Kernel] Do not consider local functions invoked in bitstring size expressions inside macros as unused
   * [Kernel] Do not crash on invalid number specifiers in bitstrings inside functions
-  * [Kernel] Fix expansion of rebound variables in bitstring size expressions
+  * [Kernel] Do not evaluate generator guards in `for` comprehensions as body expressions, which raised instead of filtering when they failed
+  * [Kernel] Do not fold `URI.parse/1`, `URI.new/1`, and `URI.new!/1` at compile time, as they depend on the default ports configured at runtime
+  * [Kernel] Do not warn on comparisons between data structures with numbers that may be equal, such as `{1} == {1.0}`, nor discard such values when narrowing types
   * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
   * [Kernel] Fix inferred stacktrace types to allow arbitrary keyword metadata
   * [Kernel] Fix inferred types for functions with non-returning clauses
-  * [Kernel] Fix map field type inference in the presence of empty map types
-  * [Kernel] Fix tuple fetch and deletion type operations across equivalent tuple types
-  * [Kernel] Fix type checking of map updates with keys that span several domains
-  * [Kernel] Fix variables defined in one default argument leaking into subsequent default arguments
+  * [Kernel] Fix false positive type warnings on guards which may fail depending on values, such as `div/2` and `map_get/2` with non-atom keys, especially as operands of `and`/`or`
+  * [Kernel] Fix false positive type warnings on map literals with variable keys
+  * [Kernel] Fix printing of list types in type warnings, which could show wider types or misplace exclusions
+  * [Kernel] Fix subtyping between `fun(arity)` and function types with `none()` arguments
+  * [Kernel] Fix type information about variables defined in one default argument leaking into subsequent default arguments
   * [Kernel] Follow UAX #9 levels when computing the bidi skeleton of confusable identifiers
-  * [Kernel] Improve the error message for non-atom struct keys
   * [Kernel] Raise when `|` is used in guards
   * [Kernel] Raise on duplicate keys in `@enforce_keys`
-  * [Kernel] Fix parsing precedence of unary operators applied to do-end blocks, such as `!if a do b end || c`
   * [Kernel] Do not accept empty tuples in `elem/2` and other tuple operations during type checking
   * [Kernel] Fix inferred types of comprehensions using `:into` with binaries and bitstrings
   * [Kernel] Fix type checker crash on functions with impossible clauses
   * [Kernel] Fix type checker crash on `defimpl` for modules that are not Elixir structs
+  * [Kernel] Fix type checker crash on variables used by nested clauses in conditionals
   * [Kernel] Fix unsound type refinement of `min/2` and `max/2` arguments
   * [Kernel] Improve type precision of `--/2`
   * [Kernel] Improve type precision of `case` when some of its clauses always raise
   * [Kernel] Make pin patterns with singleton types precise, so subsequent redundant clauses are detected
   * [Kernel] Report applying empty function types as bad functions instead of bad arities
   * [Kernel] Support Erlang modules in `import Mod, only: :sigils`
+  * [Kernel.CLI] Keep the exit status when the error cannot be printed to stderr
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
-  * [Macro] Properly escape C1 control characters and Unicode noncharacters
   * [Macro] Respect the disabled ANSI setting in `Macro.dbg/3`
   * [Macro] Return `true` from `Macro.quoted_literal?/1` for literals wrapped in `__block__`
   * [Macro] Return valid AST from `Macro.pipe/3` when piping into `Access.get/3`
   * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
   * [OptionParser] Report missing and invalid arguments for switches with `:keep`
+  * [Path] Return `[]` from `Path.wildcard/2` on paths with null bytes instead of raising, aligning with Erlang/OTP
   * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
   * [Regex] Escape U+0085, U+200E, U+200F, U+2028, and U+2029 in `Regex.escape/1`, as Erlang/OTP 28+ ignores them in extended mode
   * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
   * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
+  * [System] Do not drop the final unterminated line in `System.cmd/3` with `:lines`
+  * [System] Return `nil` from `System.find_executable/1` on programs with null bytes instead of raising, aligning with Erlang/OTP
+  * [Task] Do not leave the reply in the caller's mailbox when `Task.ignore/1` races with the task completion
+  * [Task] Report the actual exit reason, instead of `:noproc`, of tasks in `Task.async_stream/3` and `Task.Supervisor.async_stream/4` which exit immediately
   * [Time] Validate microseconds in `Time.from_seconds_after_midnight/3`
 
 #### ExUnit
 
+  * [ExUnit] Warn on invalid line filters instead of raising in `ExUnit.Filters.parse/1`
+  * [ExUnit] Do not count excluded tests towards `--max-failures` on `setup_all` failures
+  * [ExUnit] Give each parameter set of parameterized tests its own random seed
+  * [ExUnit] List tests in execution order with `--dry-run`
+  * [ExUnit] Preserve the order of async modules across `--repeat-until-failure` runs
+  * [ExUnit] Record tests invalidated by module failures as failures in the failures manifest
   * [ExUnit.Assertions] Fix `refute_in_delta/4` at the delta boundary and with negative deltas
   * [ExUnit.Assertions] Support list literals in `catch_throw/1`, `catch_exit/1`, and `catch_error/1`
   * [ExUnit.CaptureIO] Close the capture device when `capture_io` fails to set the group leader
-  * [ExUnit.CaptureIO] Stop `StringIO` processes when capturing a named device fails
   * [ExUnit.CLIFormatter] Color the summary yellow only when all tests are excluded
   * [ExUnit.CLIFormatter] Report failures whose messages contain invalid UTF-8
   * [ExUnit.DocTest] Fix line numbers in `doctest_file/2` failures
   * [ExUnit.DocTest] Fix the expected line in doctests with multi-line expressions
-  * [ExUnit.FailuresManifest] Do not overlap failures of sibling parameterized tests
-  * [ExUnit.Filters] Warn on invalid line filters instead of raising in `ExUnit.Filters.parse/1`
-  * [ExUnit.Runner] Do not count excluded tests towards `--max-failures` on `setup_all` failures
-  * [ExUnit.Runner] Do not leak monitor messages when the test supervisor times out on shutdown
-  * [ExUnit.Runner] Give each parameter set of parameterized tests its own random seed
-  * [ExUnit.Runner] List tests in execution order with `--dry-run`
-  * [ExUnit.Runner] Preserve the order of async modules across `--repeat-until-failure` runs
-  * [ExUnit.Runner] Record tests invalidated by module failures as failures in the failures manifest
 
 #### IEx
 
-  * [IEx.Autocomplete] Do not crash when the shell has no evaluator, such as while it restarts
   * [IEx.Autocomplete] Fix completion crashes on maps with non-atom keys
   * [IEx.Autocomplete] Do not split Unicode codepoints when completing map keys
   * [IEx.Evaluator] Recognize `**` and `not in` as continuation operators
@@ -154,17 +169,21 @@
 
   * [Mix] Ensure the lock and pubsub directories in the system tmp directory are owned by the current user
   * [Mix.Generator] Support iodata contents in `create_file/3` with `:format_elixir`
-  * [Mix.Rebar] Handle empty refs and charlist sparse directories in rebar Git dependencies
-  * [Mix.SCM.Git] Raise if Git refspecs start with `-`
   * [mix cmd] Exit with the status of the failing command
   * [mix compile] Compile optional dependencies that non-optional dependencies require when `--no-optional-deps` is given
+  * [mix compile] Support `--list` when `compile` is aliased
+  * [mix compile.elixir] Emit absolute `:source` paths in diagnostics from `@after_verify` callbacks, so Mix persists them in its manifests
   * [mix compile.elixir] Recompile the project when `--docs` or `--debug-info` change
-  * [mix deps] Recompile path and fetchable dependencies when one of the dependencies they were compiled with is removed
+  * [mix compile.elixir] Purge consolidated protocols on recompilation even when the consolidation path was already removed from the code path
+  * [mix deps] Recompile path and fetchable dependencies when one of their dependencies are removed
+  * [mix deps] Raise on dependency names containing `.`, `/`, `\`, or `:` to avoid path traversal
+  * [mix deps] Handle empty refs and charlist sparse directories in rebar Git dependencies
+  * [mix deps] Raise if Git refspecs start with `-`
   * [mix deps] Mark fetchable dependencies for compilation when their build exists but their SCM manifest is missing
-  * [mix deps.compile] Preserve code paths and compiler options across OS partitions
+  * [mix deps] Preserve code paths and compiler options across OS partitions
   * [mix escript.install] Respect the `:path` escript option and raise on URLs without a path
   * [mix format] Invalidate the cached configuration when imported `.formatter.exs` files change
-  * [mix format] Pass `:sigils` to plugins invoked for sigils, allowing nested sigils to be formatted
+  * [mix format] Pass `:sigils` to plugins, allowing nested sigils to be formatted
   * [mix local.hex] Install Hex with `--if-missing` when the installed version is older than the requested one
   * [mix new] Avoid trailing whitespace in generated files
   * [mix profile.tprof] Forward script arguments
