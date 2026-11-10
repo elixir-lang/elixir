@@ -798,19 +798,20 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 %% Blocks
 
 build_block(Exprs) -> build_block(Exprs, []).
+build_block(Exprs, Meta) -> build_block(Exprs, Meta, false).
 
-build_block([{unquote_splicing, _, [_]}]=Exprs, Meta) ->
+build_block([{unquote_splicing, _, [_]}]=Exprs, Meta, _Parens) ->
   {'__block__', Meta, Exprs};
-build_block([{Op, ExprMeta, Args}], Meta) ->
+build_block([{Op, ExprMeta, Args}], Meta, Parens) ->
   ExprMetaWithExtra =
     case ?token_metadata() of
-      true when Meta /= [] -> [{parens, Meta} | ExprMeta];
+      true when Parens -> [{parens, Meta} | ExprMeta];
       _ -> ExprMeta
     end,
   {Op, ExprMetaWithExtra, Args};
-build_block([Expr], _Meta) ->
+build_block([Expr], _Meta, _Parens) ->
   Expr;
-build_block(Exprs, Meta) ->
+build_block(Exprs, Meta, _Parens) ->
   {'__block__', Meta, Exprs}.
 
 %% Newlines
@@ -1123,7 +1124,7 @@ build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) 
   {'__block__', [], Exprs};
 build_paren_stab(Before, Stab, After) ->
   case check_stab(Stab, none) of
-    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After));
+    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After), true);
     stab -> handle_literal(collect_stab(Stab, [], []), Before, newlines_pair(Before, After))
   end.
 
