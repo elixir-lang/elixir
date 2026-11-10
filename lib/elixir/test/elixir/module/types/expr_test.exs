@@ -8,6 +8,7 @@ defmodule Module.Types.ExprTest do
 
   import TypeHelper
   import Module.Types.Descr
+  import Module.Types.Of, only: [chardata: 0]
   defmacro domain_key(arg) when is_atom(arg), do: [arg]
 
   defmacro generated_foo_call(x) do
@@ -467,6 +468,18 @@ defmodule Module.Types.ExprTest do
                   [line: 1, column: 2, file: "example.ex", custom: {:any, :term}]}
                ])
              ) == none()
+
+      assert typecheck!(
+               :erlang.raise(:error, :oops, [
+                 {__MODULE__, :example, 1, [file: [~c"src/", ["example" | ".ex"]]]}
+               ])
+             ) == none()
+
+      assert typeerror!(
+               :erlang.raise(:error, :oops, [
+                 {__MODULE__, :example, 1, [file: [~c"src/", [:invalid]]]}
+               ])
+             ) =~ "incompatible types given to :erlang.raise/3"
 
       assert typeerror!(
                :erlang.raise(:error, :oops, [
@@ -3523,7 +3536,8 @@ defmodule Module.Types.ExprTest do
                      _ -> "unknown"
                    end
                end
-             ) == opt_union(list(integer()), binary())
+             )
+             |> equal?(chardata())
 
       assert typecheck!(
                try do

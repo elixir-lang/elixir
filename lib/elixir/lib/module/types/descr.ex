@@ -138,11 +138,19 @@ defmodule Module.Types.Descr do
   Builds recursive type nodes from mutually recursive equations.
 
   Generators receive `recur`, which returns the node for a named equation.
+
+  Each equation is identified by a unique reference, which means the
+  resulting nodes cannot be escaped into compiled code. Give a `scope`
+  to identify the equations by `{scope, name}` instead. In such cases,
+  the scope must be unique across all recursive types it may meet and
+  the generators must be remote captures, so the nodes are made of
+  literals that `Macro.escape/1` supports.
   """
-  def recursive(equations) when is_map(equations) do
+  def recursive(equations, scope \\ nil) when is_map(equations) do
     state =
       Map.new(equations, fn {name, generator} ->
-        {name, {make_ref(), generator}}
+        id = if scope == nil, do: make_ref(), else: {scope, name}
+        {name, {id, generator}}
       end)
 
     Map.new(state, fn {name, {id, generator}} ->
@@ -730,7 +738,7 @@ defmodule Module.Types.Descr do
 
   # Find recursive nodes without running their generators.
   defp contains_recur?({id, state, generator})
-       when is_reference(id) and is_map(state) and is_function(generator, 1),
+       when (is_reference(id) or is_tuple(id)) and is_map(state) and is_function(generator, 1),
        do: true
 
   defp contains_recur?(term) when is_map(term),
