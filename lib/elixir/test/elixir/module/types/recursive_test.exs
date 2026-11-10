@@ -13,36 +13,36 @@ defmodule Module.Types.RecursiveTest do
     :ok
   end
 
-  describe "recursive types" do
-    defp recursive_node(descr) do
-      recursive(%{X: fn _recur -> descr end})
-      |> Map.fetch!(:X)
-    end
+  defp recursive_node(descr) do
+    recursive(%{X: fn _recur -> descr end})
+    |> Map.fetch!(:X)
+  end
 
-    # linked_list(T) = {T, linked_list(T)} | nil
-    defp linked_list(descr) do
-      recursive(%{
-        X: fn recur -> tuple([descr, recur.(:X)]) |> bare_union(atom([nil])) end
-      })
-      |> Map.fetch!(:X)
-      |> unfold()
-    end
+  # linked_list(T) = {T, linked_list(T)} | nil
+  defp linked_list(descr) do
+    recursive(%{
+      X: fn recur -> tuple([descr, recur.(:X)]) |> bare_union(atom([nil])) end
+    })
+    |> Map.fetch!(:X)
+    |> unfold()
+  end
 
-    defp int_linked_list(), do: linked_list(integer())
-    defp number_linked_list(), do: linked_list(opt_union(integer(), float()))
+  defp int_linked_list(), do: linked_list(integer())
+  defp number_linked_list(), do: linked_list(opt_union(integer(), float()))
 
-    # binary_tree(T) = {T, binary_tree(T), binary_tree(T)} | nil
-    defp binary_tree(descr) do
-      recursive(%{
-        T: fn recur ->
-          tuple([descr, recur.(:T), recur.(:T)])
-          |> bare_union(atom([nil]))
-        end
-      })
-      |> Map.fetch!(:T)
-      |> unfold()
-    end
+  # binary_tree(T) = {T, binary_tree(T), binary_tree(T)} | nil
+  defp binary_tree(descr) do
+    recursive(%{
+      T: fn recur ->
+        tuple([descr, recur.(:T), recur.(:T)])
+        |> bare_union(atom([nil]))
+      end
+    })
+    |> Map.fetch!(:T)
+    |> unfold()
+  end
 
+  describe "construction" do
     test "node infrastructure" do
       descr = integer()
 
@@ -96,113 +96,9 @@ defmodule Module.Types.RecursiveTest do
       result = open_map(b: {n, false})
       refute empty?(result)
     end
+  end
 
-    test "real-world types" do
-      ## integer linked list: X = {integer(), X} | nil
-      int_list = int_linked_list()
-      assert is_map_key(int_list, :tuple) and is_map_key(int_list, :atom)
-
-      # {integer(), nil} <: X
-      assert subtype?(tuple([integer(), atom([nil])]), int_list)
-      # nil <: X
-      assert subtype?(atom([nil]), int_list)
-      # {integer(), {integer(), nil}} <: X
-      assert subtype?(tuple([integer(), tuple([integer(), atom([nil])])]), int_list)
-      # {integer(), integer()} </: X
-      refute subtype?(tuple([integer(), integer()]), int_list)
-
-      # Y = {number(), Y} | nil — integer list <: number list
-      number_list = number_linked_list()
-      assert subtype?(int_list, number_list)
-      refute subtype?(number_list, int_list)
-
-      ## json_value recursive type
-      # json_value = nil | boolean() | number() | String.t() | [json_value()]
-      #            | %{optional(String.t()) => json_value}
-      %{Json: json_value_node} =
-        recursive(%{
-          Json: fn recur ->
-            scalar =
-              atom([nil])
-              |> bare_union(boolean())
-              |> bare_union(integer())
-              |> bare_union(float())
-              |> bare_union(binary())
-
-            array = list(recur.(:Json))
-            object = open_map([{to_domain_keys(binary()), recur.(:Json)}])
-
-            scalar
-            |> bare_union(array)
-            |> bare_union(object)
-          end
-        })
-
-      json_value = unfold(json_value_node)
-
-      assert subtype?(atom([nil]), json_value)
-      assert subtype?(list(binary()), json_value)
-      assert subtype?(empty_map(), json_value)
-      refute subtype?(pid(), json_value)
-
-      ## IO.chardata recursive type
-      %{Char: chardata_node} =
-        recursive(%{
-          Char: fn recur ->
-            head = integer() |> bare_union(binary())
-            tail = recur.(:Char)
-
-            binary()
-            |> bare_union(empty_list())
-            |> bare_union(non_empty_list(head, tail))
-          end
-        })
-
-      chardata = unfold(chardata_node)
-
-      assert subtype?(binary(), chardata)
-      assert subtype?(empty_list(), chardata)
-      assert subtype?(non_empty_list(integer(), empty_list()), chardata)
-      assert subtype?(non_empty_list(binary(), binary()), chardata)
-      refute subtype?(pid(), chardata)
-
-      ## expression trees
-      # Expr = integer() | {atom, Expr, Expr}, Binop = {atom, Expr, Expr}
-      %{Expr: nexpr_node, Binop: nbinop_node} =
-        recursive(%{
-          Expr: fn recur ->
-            bare_union(
-              integer(),
-              tuple([
-                atom(),
-                recur.(:Expr),
-                recur.(:Expr)
-              ])
-            )
-          end,
-          Binop: fn recur ->
-            tuple([atom(), recur.(:Expr), recur.(:Expr)])
-          end
-        })
-
-      texpr = unfold(nexpr_node)
-      tbinop = unfold(nbinop_node)
-
-      refute empty?(texpr)
-      refute empty?(tbinop)
-
-      # 42 is an Expr
-      assert subtype?(integer(), texpr)
-
-      # {:+, 1, 2} is an Expr and a Binop
-      assert subtype?(tuple([atom(), integer(), integer()]), texpr)
-      assert subtype?(tuple([atom(), integer(), integer()]), tbinop)
-
-      # {:*, {:+, 1, 2}, 3} is an Expr
-      inner = tuple([atom(), integer(), integer()])
-      assert subtype?(tuple([atom(), inner, integer()]), texpr)
-    end
-
+  describe "emptiness and subtyping" do
     test "emptiness" do
       # X = {X, X} is empty (no base case)
       %{X: nx} = recursive(%{X: fn recur -> tuple([recur.(:X), recur.(:X)]) end})
@@ -317,23 +213,6 @@ defmodule Module.Types.RecursiveTest do
       refute empty?(tx)
     end
 
-    test "recursive map domains" do
-      # X = %{atom() => X}
-      %{X: node} =
-        recursive(%{
-          X: fn recur -> open_map([{to_domain_keys(atom()), recur.(:X)}]) end
-        })
-
-      tx = unfold(node)
-      rebuilt = open_map([{to_domain_keys(atom()), tx}])
-      closed = closed_map([{to_domain_keys(atom()), tx}])
-
-      assert subtype?(tx, rebuilt)
-      refute empty?(opt_intersection(tx, rebuilt))
-      refute subtype?(tx, closed)
-      refute disjoint?(tx, closed)
-    end
-
     test "subtyping" do
       ## recursion on list tail
       # X = non_empty_list(integer(), X) | []
@@ -416,63 +295,132 @@ defmodule Module.Types.RecursiveTest do
       assert subtype?(tx, ty)
     end
 
-    test "set operations accept nodes" do
-      n = recursive_node(integer())
-      assert equal?(bare_union(n, float()), bare_union(integer(), float()))
-      assert equal?(bare_union(atom(), n), bare_union(atom(), integer()))
-      assert equal?(opt_union(n, float()), bare_union(integer(), float()))
+    test "recursive map domains" do
+      # X = %{atom() => X}
+      %{X: node} =
+        recursive(%{
+          X: fn recur -> open_map([{to_domain_keys(atom()), recur.(:X)}]) end
+        })
 
-      n = recursive_node(bare_union(integer(), atom()))
-      assert equal?(bare_intersection(n, integer()), integer())
-      assert equal?(opt_intersection(n, integer()), integer())
-      assert equal?(opt_intersection(atom(), n), atom())
+      tx = unfold(node)
+      rebuilt = open_map([{to_domain_keys(atom()), tx}])
+      closed = closed_map([{to_domain_keys(atom()), tx}])
 
-      n = recursive_node(bare_union(integer(), float()))
-      float_node = recursive_node(float())
-      assert equal?(bare_difference(n, float()), integer())
-      assert equal?(opt_difference(n, float()), integer())
-      assert equal?(opt_difference(bare_union(integer(), float()), float_node), integer())
-      assert equal?(opt_negation(float_node), opt_negation(float()))
+      assert subtype?(tx, rebuilt)
+      refute empty?(opt_intersection(tx, rebuilt))
+      refute subtype?(tx, closed)
+      refute disjoint?(tx, closed)
     end
 
-    test "set operations on nodes built with constructors" do
-      ## map intersection inside nodes
-      # X = %{a: %{a: X}} | %{a: %{a: atom()}}
-      # Y = %{a: %{a: X}} | %{a: %{a: atom()}}
-      %{X: nx, Y: ny} =
+    test "real-world types" do
+      ## integer linked list: X = {integer(), X} | nil
+      int_list = int_linked_list()
+      assert is_map_key(int_list, :tuple) and is_map_key(int_list, :atom)
+
+      # {integer(), nil} <: X
+      assert subtype?(tuple([integer(), atom([nil])]), int_list)
+      # nil <: X
+      assert subtype?(atom([nil]), int_list)
+      # {integer(), {integer(), nil}} <: X
+      assert subtype?(tuple([integer(), tuple([integer(), atom([nil])])]), int_list)
+      # {integer(), integer()} </: X
+      refute subtype?(tuple([integer(), integer()]), int_list)
+
+      # Y = {number(), Y} | nil — integer list <: number list
+      number_list = number_linked_list()
+      assert subtype?(int_list, number_list)
+      refute subtype?(number_list, int_list)
+
+      ## json_value recursive type
+      # json_value = nil | boolean() | number() | String.t() | [json_value()]
+      #            | %{optional(String.t()) => json_value}
+      %{Json: json_value_node} =
         recursive(%{
-          X: fn recur ->
-            closed_map(a: {closed_map(a: {recur.(:X), false}), false})
-            |> bare_union(closed_map(a: {closed_map(a: {atom(), false}), false}))
-          end,
-          Y: fn recur ->
-            closed_map(a: {closed_map(a: {recur.(:Y), false}), false})
-            |> bare_union(closed_map(a: {closed_map(a: {atom(), false}), false}))
+          Json: fn recur ->
+            scalar =
+              atom([nil])
+              |> bare_union(boolean())
+              |> bare_union(integer())
+              |> bare_union(float())
+              |> bare_union(binary())
+
+            array = list(recur.(:Json))
+            object = open_map([{to_domain_keys(binary()), recur.(:Json)}])
+
+            scalar
+            |> bare_union(array)
+            |> bare_union(object)
           end
         })
 
-      tx = unfold(nx)
-      ty = unfold(ny)
+      json_value = unfold(json_value_node)
 
-      refute empty?(opt_intersection(tx, ty))
-      assert equal?(opt_union(tx, ty), tx)
+      assert subtype?(atom([nil]), json_value)
+      assert subtype?(list(binary()), json_value)
+      assert subtype?(empty_map(), json_value)
+      refute subtype?(pid(), json_value)
 
-      # X = {{X}} | {{atom()}}
-      # Y = {{Y}} | {{atom()}}
-      %{X: nx, Y: ny} =
+      ## IO.chardata recursive type
+      %{Char: chardata_node} =
         recursive(%{
-          X: fn recur -> tuple([tuple([recur.(:X)])]) |> bare_union(tuple([tuple([atom()])])) end,
-          Y: fn recur -> tuple([tuple([recur.(:Y)])]) |> bare_union(tuple([tuple([atom()])])) end
+          Char: fn recur ->
+            head = integer() |> bare_union(binary())
+            tail = recur.(:Char)
+
+            binary()
+            |> bare_union(empty_list())
+            |> bare_union(non_empty_list(head, tail))
+          end
         })
 
-      tx = unfold(nx)
-      ty = unfold(ny)
-      refute empty?(opt_intersection(tx, ty))
-      assert equal?(opt_union(tx, ty), tx)
-    end
+      chardata = unfold(chardata_node)
 
-    test "type operators" do
-      ## tuple operators on descr with recursive node element
+      assert subtype?(binary(), chardata)
+      assert subtype?(empty_list(), chardata)
+      assert subtype?(non_empty_list(integer(), empty_list()), chardata)
+      assert subtype?(non_empty_list(binary(), binary()), chardata)
+      refute subtype?(pid(), chardata)
+
+      ## expression trees
+      # Expr = integer() | {atom, Expr, Expr}, Binop = {atom, Expr, Expr}
+      %{Expr: nexpr_node, Binop: nbinop_node} =
+        recursive(%{
+          Expr: fn recur ->
+            bare_union(
+              integer(),
+              tuple([
+                atom(),
+                recur.(:Expr),
+                recur.(:Expr)
+              ])
+            )
+          end,
+          Binop: fn recur ->
+            tuple([atom(), recur.(:Expr), recur.(:Expr)])
+          end
+        })
+
+      texpr = unfold(nexpr_node)
+      tbinop = unfold(nbinop_node)
+
+      refute empty?(texpr)
+      refute empty?(tbinop)
+
+      # 42 is an Expr
+      assert subtype?(integer(), texpr)
+
+      # {:+, 1, 2} is an Expr and a Binop
+      assert subtype?(tuple([atom(), integer(), integer()]), texpr)
+      assert subtype?(tuple([atom(), integer(), integer()]), tbinop)
+
+      # {:*, {:+, 1, 2}, 3} is an Expr
+      inner = tuple([atom(), integer(), integer()])
+      assert subtype?(tuple([atom(), inner, integer()]), texpr)
+    end
+  end
+
+  describe "type operators" do
+    test "tuples" do
       # X = {integer(), X} | {integer(), atom()}
       %{X: nx} =
         recursive(%{
@@ -505,8 +453,9 @@ defmodule Module.Types.RecursiveTest do
       t = opt_difference(tx, tuple([atom()]))
       assert {false, type} = tuple_fetch(t, 0)
       assert equal?(type, tx)
+    end
 
-      ## map_fetch_key on descr with recursive node value
+    test "maps" do
       # X = %{a: integer(), b: X} | %{a: integer(), b: atom()}
       %{X: nx} =
         recursive(%{
@@ -519,8 +468,9 @@ defmodule Module.Types.RecursiveTest do
       assert {false, type} = map_fetch_key(unfold(nx), :a)
       assert equal?(type, integer())
       assert {false, _type} = map_fetch_key(unfold(nx), :b)
+    end
 
-      ## list_hd and list_tl on descr with recursive node tail
+    test "lists" do
       # X = non_empty_list(integer(), X) | non_empty_list(integer(), [])
       %{X: nx} =
         recursive(%{
@@ -534,7 +484,7 @@ defmodule Module.Types.RecursiveTest do
       assert equal?(type, integer())
       assert {:ok, _type} = list_tl(unfold(nx))
 
-      ## list_hd on descr with recursive node as head element
+      # Recursive node as head element
       # X = non_empty_list(X, []) | non_empty_list(atom(), [])
       %{X: nx} =
         recursive(%{
@@ -545,8 +495,9 @@ defmodule Module.Types.RecursiveTest do
         })
 
       assert {:ok, _type} = list_hd(unfold(nx))
+    end
 
-      ## fun_apply with recursive node argument
+    test "functions" do
       # X = {X} | {atom()}
       %{X: nx} =
         recursive(%{
@@ -558,7 +509,7 @@ defmodule Module.Types.RecursiveTest do
     end
   end
 
-  describe "recursive printing" do
+  describe "printing" do
     test "prints a recursive node and an unfolding" do
       node = recursive(%{x: fn recur -> bare_union(atom([nil]), tuple([recur.(:x)])) end}).x
 
@@ -747,7 +698,7 @@ defmodule Module.Types.RecursiveTest do
     end
   end
 
-  describe "optimized set operations on recursive types" do
+  describe "optimized set operations" do
     # The opt_* operations recurse into tuple elements, map field values and
     # list heads/tails. When those contain recursive nodes, the operations must
     # detect that they are revisiting the same pair of BDDs and terminate.
@@ -871,6 +822,42 @@ defmodule Module.Types.RecursiveTest do
       assert equal?(opt_intersection(node, term()), tx)
       assert equal?(opt_difference(node, none()), tx)
       assert equal?(opt_difference(node, term()), none())
+    end
+
+    test "set operations on nodes built with constructors" do
+      ## map intersection inside nodes
+      # X = %{a: %{a: X}} | %{a: %{a: atom()}}
+      # Y = %{a: %{a: X}} | %{a: %{a: atom()}}
+      %{X: nx, Y: ny} =
+        recursive(%{
+          X: fn recur ->
+            closed_map(a: {closed_map(a: {recur.(:X), false}), false})
+            |> bare_union(closed_map(a: {closed_map(a: {atom(), false}), false}))
+          end,
+          Y: fn recur ->
+            closed_map(a: {closed_map(a: {recur.(:Y), false}), false})
+            |> bare_union(closed_map(a: {closed_map(a: {atom(), false}), false}))
+          end
+        })
+
+      tx = unfold(nx)
+      ty = unfold(ny)
+
+      refute empty?(opt_intersection(tx, ty))
+      assert equal?(opt_union(tx, ty), tx)
+
+      # X = {{X}} | {{atom()}}
+      # Y = {{Y}} | {{atom()}}
+      %{X: nx, Y: ny} =
+        recursive(%{
+          X: fn recur -> tuple([tuple([recur.(:X)])]) |> bare_union(tuple([tuple([atom()])])) end,
+          Y: fn recur -> tuple([tuple([recur.(:Y)])]) |> bare_union(tuple([tuple([atom()])])) end
+        })
+
+      tx = unfold(nx)
+      ty = unfold(ny)
+      refute empty?(opt_intersection(tx, ty))
+      assert equal?(opt_union(tx, ty), tx)
     end
 
     test "intersection of alpha-equivalent recursive types" do
@@ -1230,6 +1217,119 @@ defmodule Module.Types.RecursiveTest do
       if errors != [] do
         flunk("#{length(errors)} optimized operation(s) failed:\n" <> Enum.join(errors, "\n"))
       end
+    end
+  end
+
+  describe "public functions accept nodes" do
+    # A non-recursive node unfolds to the descr itself, so every function
+    # must return the same result for the node, as root or as dynamic part.
+    defp assert_node(descr, fun) do
+      node = recursive_node(descr)
+      assert fun.(node) == fun.(descr)
+      assert fun.(dynamic(node)) == fun.(dynamic(descr))
+    end
+
+    test "set operations accept nodes" do
+      n = recursive_node(integer())
+      assert equal?(bare_union(n, float()), bare_union(integer(), float()))
+      assert equal?(bare_union(atom(), n), bare_union(atom(), integer()))
+      assert equal?(opt_union(n, float()), bare_union(integer(), float()))
+
+      n = recursive_node(bare_union(integer(), atom()))
+      assert equal?(bare_intersection(n, integer()), integer())
+      assert equal?(opt_intersection(n, integer()), integer())
+      assert equal?(opt_intersection(atom(), n), atom())
+
+      n = recursive_node(bare_union(integer(), float()))
+      float_node = recursive_node(float())
+      assert equal?(bare_difference(n, float()), integer())
+      assert equal?(opt_difference(n, float()), integer())
+      assert equal?(opt_difference(bare_union(integer(), float()), float_node), integer())
+      assert equal?(opt_negation(float_node), opt_negation(float()))
+    end
+
+    test "set operations and relations" do
+      assert_node(integer(), &bare_union(&1, atom()))
+      assert_node(integer(), &bare_intersection(&1, integer()))
+      assert_node(integer(), &bare_difference(&1, atom()))
+      assert_node(integer(), &bare_negation/1)
+      assert_node(integer(), &opt_union(&1, atom()))
+      assert_node(integer(), &opt_intersection(&1, integer()))
+      assert_node(integer(), &opt_difference(&1, atom()))
+      assert_node(integer(), &opt_negation/1)
+      assert_node(integer(), &empty?/1)
+      assert_node(integer(), &subtype?(&1, integer()))
+      assert_node(integer(), &subtype?(integer(), &1))
+      assert_node(integer(), &equal?(&1, integer()))
+      assert_node(integer(), &disjoint?(&1, atom()))
+    end
+
+    test "bounds and predicates" do
+      # The dynamic part is never a node
+      assert dynamic(recursive_node(integer())) == dynamic(integer())
+
+      assert_node(integer(), &upper_bound/1)
+      assert_node(integer(), &lower_bound/1)
+      assert_node(dynamic(integer()), &upper_bound/1)
+      assert_node(dynamic(integer()), &lower_bound/1)
+      assert_node(dynamic(integer()), &gradual?/1)
+      assert_node(dynamic(integer()), &only_gradual?/1)
+      assert_node(integer(), &term_type?/1)
+      assert_node(atom([:a]), &singleton?/1)
+      assert_node(empty_list(), &empty_list_type?/1)
+      assert_node(float(), &float_type?/1)
+      assert_node(binary(), &bitstring_type?/1)
+      assert_node(bitstring(), &bitstring_no_binary_type?/1)
+      assert_node(boolean(), &booleaness/1)
+      assert_node(atom([nil]), &truthiness/1)
+      assert_node(atom([:a, :b]), &atom_fetch/1)
+      assert_node(integer(), &to_domain_keys/1)
+      assert_node(integer(), &compatible?(&1, integer()))
+      assert_node(integer(), &compatible?(integer(), &1))
+      assert_node(integer(), &compatible_intersection(&1, integer()))
+      assert_node(integer(), &compatible_intersection(integer(), &1))
+    end
+
+    test "functions" do
+      assert_node(args_to_domain([integer()]), &domain_to_args/1)
+      assert_node(args_to_domain([integer()]), &domain_to_flat_args(&1, 1))
+      assert_node(fun([integer()], atom()), &fun_apply(&1, [integer()]))
+      assert_node(fun([integer()], atom()), &fun_apply_or_none(&1, [integer()]))
+    end
+
+    test "lists" do
+      assert_node(list(integer()), &list_of/1)
+      assert_node(non_empty_list(integer()), &list_hd/1)
+      assert_node(non_empty_list(integer()), &list_tl/1)
+    end
+
+    test "maps" do
+      map = closed_map(a: {integer(), false})
+      update = fn value, optional? -> {value, optional?} end
+
+      assert_node(map, &map_fetch_key(&1, :a))
+      assert_node(map, &map_to_list/1)
+      assert_node(map, &map_get(&1, atom([:a])))
+      assert_node(map, &map_put(&1, atom([:b]), float()))
+      assert_node(map, &map_put(&1, term(), term()))
+      assert_node(map, &map_put_key(&1, :b, float()))
+      assert_node(map, &map_update(&1, atom([:a]), float(), :keep, true))
+      assert_node(map, &map_update_fun(&1, atom([:a]), update, :keep, true))
+
+      assert_node(atom([:a]), &map_get(map, &1))
+      assert_node(atom([:a]), &map_put(map, &1, float()))
+      assert_node(atom([:a]), &map_update(map, &1, float(), :keep, true))
+      assert_node(atom([:a]), &map_update_fun(map, &1, update, :keep, true))
+    end
+
+    test "tuples" do
+      tuple = tuple([integer(), atom()])
+
+      assert_node(tuple, &tuple_fetch(&1, 0))
+      assert_node(tuple, &tuple_values/1)
+      assert_node(tuple, &tuple_delete_at(&1, 0))
+      assert_node(tuple, &tuple_insert_at(&1, 0, float()))
+      assert_node(tuple, &tuple_replace_at(&1, 0, float()))
     end
   end
 end

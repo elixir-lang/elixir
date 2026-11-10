@@ -156,6 +156,7 @@ defmodule Module.Types.Descr do
   This is the same as removing the gradual type.
   """
   def upper_bound(%{dynamic: dynamic}), do: dynamic
+  def upper_bound({_, _, _} = node), do: upper_bound(unfold(node))
   def upper_bound(static), do: static
 
   @doc """
@@ -165,6 +166,7 @@ defmodule Module.Types.Descr do
   Note this is not generally safe and changes the representation of the type.
   """
   def lower_bound(:term), do: :term
+  def lower_bound({_, _, _} = node), do: lower_bound(unfold(node))
   def lower_bound(type), do: Map.delete(type, :dynamic)
 
   ## Function constructors
@@ -312,6 +314,8 @@ defmodule Module.Types.Descr do
 
   """
   def domain_to_args(descr) do
+    descr = unfold(descr)
+
     case :maps.take(:dynamic, descr) do
       :error ->
         unwrap_domain_tuple(descr, fn {:closed, elems} -> elems end)
@@ -356,17 +360,20 @@ defmodule Module.Types.Descr do
   Returns true if the type only has a gradual part.
   """
   def only_gradual?(%{dynamic: _} = descr), do: map_size(descr) == 1
+  def only_gradual?({_, _, _} = node), do: only_gradual?(unfold(node))
   def only_gradual?(_), do: false
 
   @doc """
   Make a whole type dynamic.
 
   It is an optimized version of `bare_intersection(dynamic(), type)`.
+  Recursive nodes are unfolded, so the dynamic part is never a node.
   """
   @compile {:inline, dynamic: 1}
   def dynamic(descr) do
     case descr do
       %{dynamic: dynamic} -> %{dynamic: dynamic}
+      {_, _, _} = node -> dynamic(unfold(node))
       _ -> %{dynamic: descr}
     end
   end
@@ -499,7 +506,7 @@ defmodule Module.Types.Descr do
   Compute the negation of a type.
   """
   def bare_negation(:term), do: none()
-  def bare_negation(%{} = descr), do: bare_difference(term(), descr)
+  def bare_negation(descr), do: bare_difference(term(), descr)
 
   @doc """
   Check if a type is empty.
@@ -531,9 +538,6 @@ defmodule Module.Types.Descr do
 
       value when value == @none ->
         true
-
-      {_, _, _} = node ->
-        empty_seen?(node, seen)
 
       descr ->
         not Map.has_key?(descr, :atom) and
@@ -1089,10 +1093,8 @@ defmodule Module.Types.Descr do
 
   # Two gradual types are disjoint if their upper bounds are disjoint.
   def disjoint?(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    left_upper = upper_bound(left) |> unfold()
-    right_upper = upper_bound(right) |> unfold()
+    left_upper = left |> upper_bound() |> unfold()
+    right_upper = right |> upper_bound() |> unfold()
 
     not non_disjoint_intersection?(left_upper, right_upper)
   end
@@ -1116,11 +1118,7 @@ defmodule Module.Types.Descr do
   def compatible?(left, right) do
     {left_dynamic, left_static} = pop_dynamic(left)
 
-    right_dynamic =
-      case right do
-        %{dynamic: dynamic} -> dynamic
-        _ -> right
-      end
+    right_dynamic = upper_bound(right)
 
     if empty?(left_static) do
       not disjoint?(left_dynamic, right_dynamic)
@@ -1148,11 +1146,7 @@ defmodule Module.Types.Descr do
   def compatible_intersection(left, right) do
     {left_dynamic, left_static} = pop_dynamic(left)
 
-    right_dynamic =
-      case right do
-        %{dynamic: dynamic} -> dynamic
-        _ -> right
-      end
+    right_dynamic = upper_bound(right)
 
     cond do
       empty?(left_static) ->
@@ -1172,8 +1166,7 @@ defmodule Module.Types.Descr do
   Optimized version of `not empty?(term(), type)`.
   """
   def term_type?(:term), do: true
-  def term_type?({_, _, _} = node), do: node |> unfold() |> term_type?()
-  def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
+  def term_type?(descr), do: subtype_static?(unfolded_term(), lower_bound(descr))
 
   @doc """
   Optimized version of `not empty?(bare_intersection(empty_list(), type))`.
@@ -1185,6 +1178,7 @@ defmodule Module.Types.Descr do
     do: true
 
   def empty_list_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_empty_list) != 0, do: true
+  def empty_list_type?({_, _, _} = node), do: empty_list_type?(unfold(node))
   def empty_list_type?(_), do: false
 
   @doc """
@@ -1194,6 +1188,7 @@ defmodule Module.Types.Descr do
   def float_type?(%{dynamic: :term}), do: true
   def float_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_float) != 0, do: true
   def float_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_float) != 0, do: true
+  def float_type?({_, _, _} = node), do: float_type?(unfold(node))
   def float_type?(_), do: false
 
   @doc """
@@ -1206,6 +1201,7 @@ defmodule Module.Types.Descr do
     do: true
 
   def bitstring_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_bitstring) != 0, do: true
+  def bitstring_type?({_, _, _} = node), do: bitstring_type?(unfold(node))
   def bitstring_type?(_), do: false
 
   @doc """
@@ -1222,6 +1218,9 @@ defmodule Module.Types.Descr do
 
   def bitstring_no_binary_type?(%{bitmap: bitmap})
       when (bitmap &&& @bit_bitstring_no_binary) != 0, do: true
+
+  def bitstring_no_binary_type?({_, _, _} = node),
+    do: bitstring_no_binary_type?(unfold(node))
 
   def bitstring_no_binary_type?(_), do: false
 
@@ -1280,7 +1279,7 @@ defmodule Module.Types.Descr do
   """
   def booleaness(:term), do: :maybe_both
 
-  def booleaness(%{} = descr) do
+  def booleaness(descr) do
     descr = upper_bound(descr)
 
     case descr do
@@ -1335,7 +1334,7 @@ defmodule Module.Types.Descr do
   """
   def truthiness(:term), do: :undefined
 
-  def truthiness(%{} = descr) do
+  def truthiness(descr) do
     descr = upper_bound(descr)
 
     case descr do
@@ -1374,6 +1373,7 @@ defmodule Module.Types.Descr do
   cases, due to negations.
   """
   def atom_fetch(:term), do: :error
+  def atom_fetch({_, _, _} = node), do: atom_fetch(unfold(node))
 
   def atom_fetch(%{} = descr) do
     {static_or_dynamic, static} = pop_dynamic(descr)
@@ -1577,6 +1577,9 @@ defmodule Module.Types.Descr do
   """
   def fun_apply(:term, _arguments), do: :badfun
 
+  def fun_apply({_, _, _} = node, arguments),
+    do: fun_apply(unfold(node), arguments)
+
   def fun_apply(fun, arguments) do
     case :maps.take(:dynamic, fun) do
       :error ->
@@ -1604,6 +1607,9 @@ defmodule Module.Types.Descr do
   # types may return successfully outside their domain, so only an empty argument
   # or a constrained return type can make the result empty.
   def fun_apply_or_none(:term, [_argument]), do: :badfun
+
+  def fun_apply_or_none({_, _, _} = node, arguments),
+    do: fun_apply_or_none(unfold(node), arguments)
 
   def fun_apply_or_none(fun, [argument]) do
     {fun_dynamic, fun_static} =
@@ -2567,6 +2573,7 @@ defmodule Module.Types.Descr do
   returns `:badproperlist`.
   """
   def list_of(:term), do: :badproperlist
+  def list_of({_, _, _} = node), do: list_of(unfold(node))
 
   def list_of(descr) do
     case :maps.take(:dynamic, descr) do
@@ -2729,6 +2736,7 @@ defmodule Module.Types.Descr do
   On a non empty list of integers, with an atom head element, it returns the atom.
   """
   def list_hd(:term), do: :badnonemptylist
+  def list_hd({_, _, _} = node), do: list_hd(unfold(node))
 
   def list_hd(%{} = descr) do
     case :maps.take(:dynamic, descr) do
@@ -2769,6 +2777,7 @@ defmodule Module.Types.Descr do
   `list(t, s) or s` (either the rest of the list or the terminator)
   """
   def list_tl(:term), do: :badnonemptylist
+  def list_tl({_, _, _} = node), do: list_tl(unfold(node))
 
   def list_tl(descr) do
     case :maps.take(:dynamic, descr) do
@@ -2987,14 +2996,12 @@ defmodule Module.Types.Descr do
   defp dynamic_union(:term, _other, _fun), do: :term
   defp dynamic_union(_other, :term, _fun), do: :term
 
-  defp dynamic_union(left, right, fun),
-    do: symmetrical_merge(unfold(left), unfold(right), fun)
+  defp dynamic_union(left, right, fun), do: symmetrical_merge(left, right, fun)
 
   defp dynamic_intersection(:term, other, _fun), do: other
   defp dynamic_intersection(other, :term, _fun), do: other
 
-  defp dynamic_intersection(left, right, fun),
-    do: symmetrical_intersection(unfold(left), unfold(right), fun)
+  defp dynamic_intersection(left, right, fun), do: symmetrical_intersection(left, right, fun)
 
   defp dynamic_difference(left, descr, _fun) when descr == %{}, do: left
   defp dynamic_difference(_left, :term, _fun), do: @none
@@ -3072,6 +3079,7 @@ defmodule Module.Types.Descr do
   Converts a type into domain keys.
   """
   def to_domain_keys(:term), do: @domain_key_types
+  def to_domain_keys({_, _, _} = node), do: to_domain_keys(unfold(node))
 
   def to_domain_keys(%{dynamic: dynamic}), do: to_domain_keys(dynamic)
 
@@ -3541,6 +3549,9 @@ defmodule Module.Types.Descr do
   """
   def map_fetch_key(:term, _key), do: :badmap
 
+  def map_fetch_key({_, _, _} = node, key),
+    do: map_fetch_key(unfold(node), key)
+
   def map_fetch_key(%{} = descr, key) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -3713,6 +3724,7 @@ defmodule Module.Types.Descr do
   def map_to_list(descr, fun \\ &tuple([&1, &2]))
 
   def map_to_list(:term, _fun), do: :badmap
+  def map_to_list({_, _, _} = node, fun), do: map_to_list(unfold(node), fun)
 
   def map_to_list(descr, fun) do
     case :maps.take(:dynamic, descr) do
@@ -3888,6 +3900,9 @@ defmodule Module.Types.Descr do
   end
 
   defp map_update_unchecked(:term, _split_keys, _operation, _return_type?), do: :badmap
+
+  defp map_update_unchecked({_, _, _} = node, split_keys, operation, return_type?),
+    do: map_update_unchecked(unfold(node), split_keys, operation, return_type?)
 
   defp map_update_unchecked(descr, split_keys, operation, return_type?) do
     case :maps.take(:dynamic, descr) do
@@ -4618,6 +4633,9 @@ defmodule Module.Types.Descr do
   """
   def map_put(:term, _, _), do: :badmap
 
+  def map_put({_, _, _} = node, key_descr, type),
+    do: map_put(unfold(node), key_descr, type)
+
   def map_put(descr, key_descr, type) do
     if key_descr in [:term, %{dynamic: :term}] and type in [:term, %{dynamic: :term}] do
       cond do
@@ -4667,6 +4685,9 @@ defmodule Module.Types.Descr do
   `Map.get`, etc. except `map.key`.
   """
   def map_get(:term, _key_descr), do: :badmap
+
+  def map_get({_, _, _} = node, key_descr),
+    do: map_get(unfold(node), key_descr)
 
   def map_get(%{} = descr, key_descr) do
     split_keys = map_split_keys_and_domains(key_descr)
@@ -4762,6 +4783,9 @@ defmodule Module.Types.Descr do
 
   # Compute which keys are optional, which ones are required, as well as domain keys
   defp map_split_keys_and_domains(:term), do: map_split_keys_and_domains(unfolded_term())
+
+  defp map_split_keys_and_domains({_, _, _} = node),
+    do: map_split_keys_and_domains(unfold(node))
 
   defp map_split_keys_and_domains(%{dynamic: dynamic} = static) do
     {required_keys, optional_keys, maybe_negated_set} =
@@ -5849,6 +5873,9 @@ defmodule Module.Types.Descr do
   def tuple_fetch(_, index) when index < 0, do: :badindex
   def tuple_fetch(:term, _key), do: :badtuple
 
+  def tuple_fetch({_, _, _} = node, key),
+    do: tuple_fetch(unfold(node), key)
+
   def tuple_fetch(%{} = descr, key) when is_integer(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -6051,6 +6078,7 @@ defmodule Module.Types.Descr do
   Returns `:badtuple` if the projection is invalid or the tuple descriptor is uninhabited.
   """
   def tuple_values(:term), do: :badtuple
+  def tuple_values({_, _, _} = node), do: tuple_values(unfold(node))
   def tuple_values(descr) when descr == %{}, do: :badtuple
 
   def tuple_values(descr) do
@@ -6093,6 +6121,9 @@ defmodule Module.Types.Descr do
   """
   # Same as tuple_delete but checks if the index is out of range.
   def tuple_delete_at(:term, _key), do: :badtuple
+
+  def tuple_delete_at({_, _, _} = node, index),
+    do: tuple_delete_at(unfold(node), index)
 
   def tuple_delete_at(descr, index) when is_integer(index) and index >= 0 do
     case :maps.take(:dynamic, descr) do
@@ -6182,6 +6213,9 @@ defmodule Module.Types.Descr do
   It returns the same as `tuple_fetch/2`. Notice, however, the range for indexes is inclusive.
   """
   def tuple_insert_at(:term, _key, _type), do: :badtuple
+
+  def tuple_insert_at({_, _, _} = node, index, type),
+    do: tuple_insert_at(unfold(node), index, type)
 
   def tuple_insert_at(descr, index, type) when is_integer(index) and index >= 0 do
     case :maps.take(:dynamic, unfold(type)) do
