@@ -191,8 +191,9 @@ defmodule Module.Types.Descr do
   Creates the top function type for the given arity.
 
   It is a supertype of all functions of the given arity.
-  Note it is printed as `(none -> term)`, but it is a strict
-  supertype of the arrow `fun([none()], term())`.
+  It is equivalent to the arrow whose `arity` arguments are `none()`
+  and whose return is `term()`, such as `fun([none()], term())` for
+  arity 1, which is how it is printed.
 
   This function cannot be applied to, unless it is made dynamic.
 
@@ -1511,10 +1512,14 @@ defmodule Module.Types.Descr do
     arity = length(args)
 
     {static_input_args, dynamic_input_args, dynamic_arguments?} =
-      Enum.reduce(args, {[], [], false}, fn arg, {static_acc, dynamic_acc, dynamic?} ->
-        {dynamic_arg, static_arg, arg_dynamic?} = split_dynamic(arg)
-        {[dynamic_arg | static_acc], [static_arg | dynamic_acc], dynamic? or arg_dynamic?}
-      end)
+      :lists.foldl(
+        fn arg, {static_acc, dynamic_acc, dynamic?} ->
+          {dynamic_arg, static_arg, arg_dynamic?} = split_dynamic(arg)
+          {[dynamic_arg | static_acc], [static_arg | dynamic_acc], dynamic? or arg_dynamic?}
+        end,
+        {[], [], false},
+        args
+      )
 
     {dynamic_output, static_output, dynamic_output?} = split_dynamic(output)
 
@@ -2033,13 +2038,14 @@ defmodule Module.Types.Descr do
   #
   # Φ((b₁,t₁)...(bₙ,tₙ), (b,t), ∅) = (∃j ∈ [1,n]. bⱼ and tⱼ ≤ ∅) ∨ (b and t ≤ ∅)
   #
-  # Φ((b₁,t₁)...(bₙ,tₙ), t, {(t'₁...t'ₙ) → t'} ∪ P) =
+  # Φ((b₁,t₁)...(bₙ,tₙ), (b,t), {(t'₁...t'ₙ) → t'} ∪ P) =
   #       Φ((b₁,t₁)...(bₙ,tₙ), (true,t ∧ t'), P) ∧
   #         ∀j ∈ [1,n]. Φ((b₁,t₁)...(true,tⱼ∖t'ⱼ)...(bₙ,tₙ), (b,t), P)
   #
   # Returns true if the intersection of the positives is a subtype of (t1,...,tn)->(not t).
   #
-  # See [Castagna and Lanvin (2024)](https://arxiv.org/abs/2408.14345), Theorem 4.2.
+  # See the Multi-arity Set-Containment theorem in
+  # [Castagna and Duboc (2024)](https://arxiv.org/abs/2408.14345).
   defp phi_starter(arguments, return, positives, seen) do
     # Optimization: When all positive functions have non-empty domains,
     # we can simplify the phi function check to a direct subtyping test.
