@@ -4756,7 +4756,8 @@ defmodule Kernel do
     end
   end
 
-  defp in_range(left, first, last, step) when is_integer(step) do
+  defp in_range(left, first, last, step)
+       when is_integer(first) and is_integer(last) and is_integer(step) do
     in_range_literal(left, first, last, step)
   end
 

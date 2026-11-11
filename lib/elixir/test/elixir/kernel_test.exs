@@ -587,6 +587,43 @@ defmodule KernelTest do
       assert case_in(-3, -1..-3//-1) == true
     end
 
+    test "in range with literal step and variable endpoints in guards" do
+      first = 1
+      last = 9
+
+      assert case_in(5, first..last//1)
+      assert case_in(5, last..first//-1)
+      assert case_in(5, first..last//2)
+      assert case_in(5, last..first//-2)
+      refute case_in(4, first..last//2)
+      refute case_in(4, last..first//-2)
+      refute case_in(5, last..first//1)
+      refute case_in(5, first..last//-1)
+      refute case_in(5.0, first..last//1)
+      refute case_in(5.0, last..first//-1)
+    end
+
+    test "in range with literal step rejects non-integer endpoints in guards" do
+      for invalid <- [nil, :atom, "z", 1.0, 9.0],
+          {first, last} <- [{1, invalid}, {invalid, 9}, {invalid, invalid}] do
+        refute case_in(5, first..last//1)
+        refute case_in(5, first..last//-1)
+        refute case_in(5, first..last//2)
+        refute case_in(5, first..last//-2)
+      end
+
+      for invalid <- [nil, :atom, "z", 9.0] do
+        refute case_in(5, 1..invalid//1)
+        refute case_in(5, 1..invalid//2)
+        refute case_in(5, invalid..1//-1)
+        refute case_in(5, invalid..1//-2)
+      end
+
+      invalid = 1.0
+      refute case_in(5, invalid..9//1)
+      refute case_in(5, 9..invalid//-1)
+    end
+
     def map_dot(map) when map.field, do: true
     def map_dot(_other), do: false
 
