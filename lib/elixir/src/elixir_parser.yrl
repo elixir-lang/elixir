@@ -797,7 +797,7 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, []).
+build_block(Exprs) -> build_block(Exprs, [], false).
 build_block(Exprs, Meta) -> build_block(Exprs, Meta, false).
 
 build_block([{unquote_splicing, _, [_]}]=Exprs, Meta, _Parens) ->
