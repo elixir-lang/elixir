@@ -673,13 +673,14 @@ defmodule Module.Types.Expr do
   def of_expr({:for, meta, [_ | _] = args}, expected, expr, stack, context) do
     cache_result(meta, stack, context, fn ->
       {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
-      context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
 
       # We don't need to type check uniq, as it is a compile-time boolean.
-      # We handle reduce and into accordingly instead.
+      # We handle reduce and into accordingly instead. Note they are
+      # evaluated before the generators, so they must be checked first.
       if Keyword.has_key?(opts, :reduce) do
         reduce = Keyword.fetch!(opts, :reduce)
         {reduce_type, context} = of_expr(reduce, expected, expr, stack, context)
+        context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
         # TODO: We need to type check against dynamic() instead of using reduce_type
         # because this is recursive. We need to infer the block type first.
         args = [dynamic()]
@@ -691,6 +692,7 @@ defmodule Module.Types.Expr do
         {into_kinds, into_type, expected, context} =
           for_into(into, meta, expected, stack, context)
 
+        context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
         {block_type, context} = of_expr(block, expected, block, stack, context)
 
         result_type =

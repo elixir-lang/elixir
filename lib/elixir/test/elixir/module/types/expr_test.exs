@@ -4349,6 +4349,34 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([list], for(x <- list, into: raise("oops"), do: x)) == none()
     end
 
+    test "variables defined in options are available in generators" do
+      assert typecheck!(
+               [list],
+               for(
+                 x <- items,
+                 into:
+                   (
+                     items = list
+                     []
+                   ),
+                 do: x
+               )
+             ) == opt_union(list(dynamic()), empty_list())
+
+      assert typecheck!(
+               [list],
+               for(
+                 x <- items,
+                 reduce:
+                   (
+                     items = list
+                     :ok
+                   ),
+                 do: (_ -> x)
+               )
+             ) == opt_union(dynamic(), atom([:ok]))
+    end
+
     test ":reduce checks" do
       assert typecheck!(
                [list],
