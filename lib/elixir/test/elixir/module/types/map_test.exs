@@ -334,6 +334,15 @@ defmodule Module.Types.MapTest do
                )
              ) ==
                closed_map([{domain_key(:integer), integer()}, {domain_key(:binary), integer()}])
+
+      assert typecheck!(
+               (
+                 x = [:key, "key"]
+                 Map.from_keys(x, 123)
+               )
+             ) ==
+               closed_map([{domain_key(:binary), integer()}, {:key, {integer(), true}}])
+               |> opt_difference(empty_map())
     end
 
     test "reports errors from static part of optionalized gradual value" do

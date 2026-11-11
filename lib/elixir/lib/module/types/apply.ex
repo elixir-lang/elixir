@@ -1431,7 +1431,7 @@ defmodule Module.Types.Apply do
           domain_keys = to_domain_keys(key_type)
 
           keys =
-            case atom_fetch(key_type) do
+            case atom_fetch(dynamic(key_type)) do
               {:finite, atom_keys} -> [List.delete(domain_keys, :atom) | atom_keys]
               _ -> [domain_keys]
             end
