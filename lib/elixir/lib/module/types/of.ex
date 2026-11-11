@@ -99,7 +99,7 @@ defmodule Module.Types.Of do
 
   This only happens if the var contains a gradual type,
   or if we are doing a guard analysis or occurrence typing.
-  Returns `true` if there was a refinement, `false` otherwise.
+  Returns the variable type and if there was a refinement.
   """
   @dynamic dynamic()
   @skip_refinement_for [term(), @dynamic]
@@ -116,7 +116,7 @@ defmodule Module.Types.Of do
 
     case stack do
       _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
-        {old_type, context}
+        {old_type, false, context}
 
       # :throw_none is used to check if a guard may fail by
       # throwing on any refinement, see Module.Types.Pattern
@@ -135,7 +135,7 @@ defmodule Module.Types.Of do
                 off_traces: new_trace(expr, none(), stack, off_traces)
             }
 
-            {none(), %{context | vars: %{vars | version => data}}}
+            {none(), true, %{context | vars: %{vars | version => data}}}
 
           false when new_type != old_type ->
             if reverse_arrow == :throw_none, do: throw(:guard_fail)
@@ -146,10 +146,10 @@ defmodule Module.Types.Of do
                 off_traces: new_trace(expr, new_type, stack, off_traces)
             }
 
-            {new_type, %{context | vars: %{vars | version => data}}}
+            {new_type, true, %{context | vars: %{vars | version => data}}}
 
           _ ->
-            {old_type, context}
+            {old_type, false, context}
         end
 
       _ ->
@@ -168,10 +168,10 @@ defmodule Module.Types.Of do
                 off_traces: new_trace(expr, new_type, stack, off_traces)
             }
 
-            {new_type, %{context | vars: %{vars | version => data}}}
+            {new_type, true, %{context | vars: %{vars | version => data}}}
 
           _ ->
-            {old_type, context}
+            {old_type, false, context}
         end
     end
   end
@@ -291,8 +291,15 @@ defmodule Module.Types.Of do
           context
 
         type ->
-          {_, context} = refine_body_var(version, type, expr, stack, context)
-          context
+          {_type, refined?, context} = refine_body_var(version, type, expr, stack, context)
+
+          # Propagate the refinement to variables bound by the same pattern
+          if refined? and context.vars[version].deps != %{} and
+               stack.reverse_arrow in [nil, :cache] do
+            Module.Types.Pattern.of_changed([version], stack, context)
+          else
+            context
+          end
       end
     end)
   end

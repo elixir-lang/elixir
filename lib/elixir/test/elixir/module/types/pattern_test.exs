@@ -95,6 +95,24 @@ defmodule Module.Types.PatternTest do
              ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
+    test "propagates body refinements" do
+      assert typecheck!(
+               [a = b],
+               (
+                 _ = elem(a, 0)
+                 b
+               )
+             ) == dynamic(open_tuple([term()]))
+
+      assert typeerror!(
+               [a = b],
+               (
+                 _ = elem(a, 0)
+                 fn x when is_map(b) -> x end
+               )
+             ) =~ "this guard will never succeed"
+    end
+
     test "reports incompatible types" do
       assert typeerror!([x = 123 = "123"], x) == ~l"""
              the following pattern will never match:

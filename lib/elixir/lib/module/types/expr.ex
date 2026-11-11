@@ -814,7 +814,14 @@ defmodule Module.Types.Expr do
   # var
   def of_expr({_, meta, _} = var, expected, expr, stack, context) when is_var(var) do
     version = Keyword.fetch!(meta, :version)
-    Of.refine_body_var(version, expected, expr, stack, context)
+    {type, refined?, context} = Of.refine_body_var(version, expected, expr, stack, context)
+
+    # Propagate the refinement to variables bound by the same pattern
+    if refined? and context.vars[version].deps != %{} and stack.reverse_arrow in [nil, :cache] do
+      {type, Pattern.of_changed([version], stack, context)}
+    else
+      {type, context}
+    end
   end
 
   ## Tuples

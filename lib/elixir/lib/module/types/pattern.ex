@@ -628,7 +628,8 @@ defmodule Module.Types.Pattern do
 
   def of_match_var({:^, _meta, [{_, meta, _}]}, expected, expr, stack, context) do
     version = Keyword.fetch!(meta, :version)
-    Of.refine_body_var(version, expected, expr, stack, context)
+    {type, _refined?, context} = Of.refine_body_var(version, expected, expr, stack, context)
+    {type, context}
   end
 
   def of_match_var(atom, _expected, _expr, _stack, context) when is_atom(atom) do
@@ -1254,7 +1255,8 @@ defmodule Module.Types.Pattern do
             do: Of.track_var(version, [parent_version], [], context),
             else: context
 
-        Of.refine_body_var(version, expected, expr, stack, context)
+        {type, _refined?, context} = Of.refine_body_var(version, expected, expr, stack, context)
+        {type, context}
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
