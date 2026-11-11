@@ -968,7 +968,7 @@ defmodule Module.Types.Pattern do
 
   # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
   defp of_list(prefix, suffix, path, stack, context) do
-    {suffix_type, _precise?, context} = of_pattern(suffix, [:tail | path], stack, context)
+    {suffix_type, _precise?, context} = of_subpattern(suffix, [:tail | path], stack, context)
 
     {static, dynamic, context} =
       Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->

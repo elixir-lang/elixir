@@ -336,6 +336,28 @@ defmodule Module.Types.PatternTest do
                dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
     end
 
+    test "in patterns with nested tails" do
+      assert typecheck!(
+               [x],
+               case [x, 2] do
+                 [y | [_]] -> y
+               end
+             ) == opt_union(dynamic(), integer())
+
+      assert typecheck!(
+               [x],
+               case [x, 2, 3] do
+                 [_ | [y | z]] -> {y, z}
+               end
+             )
+             |> equal?(
+               opt_union(
+                 dynamic(tuple([term(), list(term())])),
+                 tuple([integer(), list(integer())])
+               )
+             )
+    end
+
     test "in patterns through ++" do
       assert typecheck!([x = [] ++ []], x) == dynamic(empty_list())
 
