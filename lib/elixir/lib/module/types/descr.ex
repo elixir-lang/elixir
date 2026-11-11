@@ -7156,6 +7156,7 @@ defmodule Module.Types.Descr do
 
   defp opt_list_intersection(bdd_leaf(:term, :term), bdd, _seen), do: bdd
   defp opt_list_intersection(bdd, bdd_leaf(:term, :term), _seen), do: bdd
+  defp opt_list_intersection(bdd_leaf(_, _) = leaf, leaf, _seen), do: leaf
 
   defp opt_list_intersection(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, seen) do
     case opt_bdd_seen(seen, :list_intersection, bdd1, bdd2) do
@@ -7178,7 +7179,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp opt_list_difference(bdd_leaf(:term, :term), bdd_leaf(:term, :term), _seen), do: :bdd_bot
+  defp opt_list_difference(bdd_leaf(_, _) = leaf, leaf, _seen), do: :bdd_bot
   defp opt_list_difference(bdd_leaf(:term, :term), bdd2, _seen), do: bdd_negation(bdd2)
 
   # Computes the difference between two BDD (Binary Decision Diagram) list types.
@@ -7219,6 +7220,7 @@ defmodule Module.Types.Descr do
 
   defp opt_map_union(bdd_leaf(:open, []) = leaf, _, _seen), do: leaf
   defp opt_map_union(_, bdd_leaf(:open, []) = leaf, _seen), do: leaf
+  defp opt_map_union(bdd_leaf(_, _) = leaf, leaf, _seen), do: leaf
 
   # Leaves that one of the inputs already holds are returned as is,
   # which keeps them shared and does not compute their keys again.
@@ -7229,12 +7231,6 @@ defmodule Module.Types.Descr do
 
       {:ok, seen} when is_atom(tag1) and is_atom(tag2) ->
         case opt_map_union_strategy(fields1, fields2, tag1, tag2, :all_equal) do
-          :all_equal when tag1 == :open ->
-            bdd1
-
-          :all_equal ->
-            bdd2
-
           {:one_key_difference, key, v1, v2} ->
             bdd_leaf_new(tag1, fields_store(key, field_opt_union(v1, v2, seen), fields1))
 
@@ -7261,12 +7257,6 @@ defmodule Module.Types.Descr do
   defp opt_map_union_literal(tag1, pos1, tag2, pos2)
        when is_atom(tag1) and is_atom(tag2) do
     case opt_map_union_strategy(pos1, pos2, tag1, tag2, :all_equal) do
-      :all_equal when tag1 == :open ->
-        {tag1, pos1}
-
-      :all_equal ->
-        {tag2, pos2}
-
       {:one_key_difference, key, v1, v2} ->
         {tag1, fields_store(key, field_opt_union(v1, v2, %{}), pos1)}
 
@@ -7384,6 +7374,9 @@ defmodule Module.Types.Descr do
 
   defp opt_map_union_strategy([], [], tag1, tag2, status) do
     case status do
+      # Same fields, so the open map (if any) is the supertype
+      :all_equal when tag1 == :open -> :right_subtype_of_left
+      :all_equal -> :left_subtype_of_right
       :left_subtype_of_right when tag1 == :open and tag2 == :closed -> :none
       :right_subtype_of_left when tag1 == :closed and tag2 == :open -> :none
       _ -> status
@@ -7421,6 +7414,7 @@ defmodule Module.Types.Descr do
 
   defp opt_map_intersection(bdd_leaf(:open, []), bdd, _seen), do: bdd
   defp opt_map_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
+  defp opt_map_intersection(bdd_leaf(_, _) = leaf, leaf, _seen), do: leaf
 
   defp opt_map_intersection(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, seen) do
     case opt_bdd_seen(seen, :map_intersection, bdd1, bdd2) do
@@ -7472,6 +7466,7 @@ defmodule Module.Types.Descr do
   end
 
   defp opt_map_difference(_, bdd_leaf(:open, []), _seen), do: :bdd_bot
+  defp opt_map_difference(bdd_leaf(_, _) = leaf, leaf, _seen), do: :bdd_bot
 
   # When the right side is an open map with a single key, the difference
   # can be expressed as a single leaf by negating said key:
@@ -7838,6 +7833,7 @@ defmodule Module.Types.Descr do
 
   defp opt_tuple_intersection(bdd_leaf(:open, []), bdd, _seen), do: bdd
   defp opt_tuple_intersection(bdd, bdd_leaf(:open, []), _seen), do: bdd
+  defp opt_tuple_intersection(bdd_leaf(_, _) = leaf, leaf, _seen), do: leaf
 
   defp opt_tuple_intersection(bdd_leaf(_, _) = bdd1, bdd_leaf(_, _) = bdd2, seen) do
     case opt_bdd_seen(seen, :tuple_intersection, bdd1, bdd2) do
@@ -7871,6 +7867,9 @@ defmodule Module.Types.Descr do
   end
 
   defp opt_tuple_difference(_, bdd_leaf(:open, [])),
+    do: :bdd_bot
+
+  defp opt_tuple_difference(bdd_leaf(_, _) = leaf, leaf),
     do: :bdd_bot
 
   defp opt_tuple_difference(bdd_leaf(:open, entries) = open, bdd_leaf(:closed, [])),
@@ -7935,13 +7934,12 @@ defmodule Module.Types.Descr do
   # cost of fusing deeply nested tuples.
   @fusion_depth 3
 
+  defp opt_tuple_union(bdd_leaf(_, _) = leaf, leaf), do: leaf
+
   # Leaves that one of the inputs already holds are returned as is,
   # which keeps them shared and does not compute their keys again.
   defp opt_tuple_union(bdd_leaf(tag1, elements1) = bdd1, bdd_leaf(tag2, elements2) = bdd2) do
     case opt_tuple_union_strategy(tag1, elements1, tag2, elements2) do
-      :all_equal ->
-        bdd1
-
       {:one_index_difference, index, v1, v2} ->
         element = opt_tuple_fuse_element(v1, v2, @fusion_depth) || bare_union(v1, v2)
         bdd_leaf_new(tag1, List.replace_at(elements1, index, element))
@@ -8056,9 +8054,6 @@ defmodule Module.Types.Descr do
 
   defp opt_tuple_union_literal({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
     case opt_tuple_union_strategy(tag1, pos1, tag2, pos2) do
-      :all_equal ->
-        tuple1
-
       {:one_index_difference, index, v1, v2} ->
         element = opt_tuple_fuse_element(v1, v2, @fusion_depth) || bare_union(v1, v2)
         {tag1, List.replace_at(pos1, index, element)}
@@ -8121,6 +8116,11 @@ defmodule Module.Types.Descr do
           do: opt_tuple_union_strategy_index(pos1, pos2, i + 1, :right_subtype_of_left),
           else: :none
     end
+  end
+
+  # Same elements, so either tuple is a subtype of the other
+  defp opt_tuple_union_strategy_index(_pos1, _pos2, _i, :all_equal) do
+    :left_subtype_of_right
   end
 
   defp opt_tuple_union_strategy_index(_pos1, _pos2, _i, status) do
