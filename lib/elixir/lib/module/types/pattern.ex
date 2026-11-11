@@ -221,7 +221,8 @@ defmodule Module.Types.Pattern do
           {trees, false, true, args_types, previous,
            warn(__MODULE__, warning, meta, stack, context)}
 
-        precise? ->
+        # A clause that failed cannot match, so we don't add it to previous.
+        precise? and not context.failed ->
           {trees, true, errored?, args_types, concat_previous(args_types, previous), context}
 
         true ->

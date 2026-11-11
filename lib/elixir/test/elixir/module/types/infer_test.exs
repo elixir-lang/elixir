@@ -6,6 +6,7 @@ Code.require_file("type_helper.exs", __DIR__)
 defmodule Module.Types.InferTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
   import Module.Types.Descr
 
   defmacro infer(config, do: block) do
@@ -139,6 +140,21 @@ defmodule Module.Types.InferTest do
 
     assert types[{:mixed, 1}] ==
              {:infer, nil, [{[tuple([atom([:ok]), term()])], dynamic()}]}
+  end
+
+  test "from patterns (with impossible clauses)", config do
+    {types, stderr} =
+      with_io(:stderr, fn ->
+        infer config do
+          def fun(x = y) when is_integer(x) and is_atom(y), do: raise("unreachable")
+          def fun(_), do: :other
+        end
+      end)
+
+    assert stderr =~ "the following pattern will never match"
+
+    assert types[{:fun, 1}] ==
+             {:infer, [term()], [{[atom()], dynamic(none())}, {[term()], atom([:other])}]}
   end
 
   test "from expressions", config do
