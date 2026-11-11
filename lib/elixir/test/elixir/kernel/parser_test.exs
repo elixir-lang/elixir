@@ -816,6 +816,37 @@ defmodule Kernel.ParserTest do
                 ]}
     end
 
+    test "only adds parens metadata for grouped do bodies" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
+
+      assert {:if, _, [_, [do: do_body, else: else_body]]} =
+               string_to_quoted.("if a do b else c end")
+
+      assert do_body == {:b, [line: 1, column: 9], nil}
+      assert else_body == {:c, [line: 1, column: 16], nil}
+
+      assert {:if, _, [_, [do: do_body]]} = string_to_quoted.("if a do (b) end")
+
+      assert do_body ==
+               {:b,
+                [
+                  parens: [closing: [line: 1, column: 11], line: 1, column: 9],
+                  line: 1,
+                  column: 10
+                ], nil}
+
+      assert {:if, _, [_, [do: do_body]]} = string_to_quoted.("if a do b; c end")
+
+      assert do_body ==
+               {:__block__, [line: 1, column: 6],
+                [
+                  {:b,
+                   [end_of_expression: [newlines: 0, line: 1, column: 10], line: 1, column: 9],
+                   nil},
+                  {:c, [line: 1, column: 12], nil}
+                ]}
+    end
+
     test "adds opening and closing information for tuples" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
 
