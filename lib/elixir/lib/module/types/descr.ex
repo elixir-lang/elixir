@@ -1664,7 +1664,7 @@ defmodule Module.Types.Descr do
   #      applying dynamic arrows to upper-bounded arguments in dynamic().
   #    - Mixed: union the static result with the dynamic-wrapped dynamic result.
   defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
-    if Enum.any?(arguments, &empty?/1) do
+    if :lists.any(&empty?/1, arguments) do
       {:badarg, arguments, true}
     else
       arity = length(arguments)
@@ -1672,7 +1672,7 @@ defmodule Module.Types.Descr do
       with {:ok, domain, static_arrows, dynamic_arrows} <-
              fun_normalize_both(fun_static, fun_dynamic, arity) do
         args_domain = args_to_domain(arguments)
-        static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
+        static? = fun_dynamic == nil and :lists.all(fn arg -> not gradual?(arg) end, arguments)
 
         if not subtype?(args_domain, domain) do
           # The domain here is the extended gradual domain computed by
@@ -1710,7 +1710,7 @@ defmodule Module.Types.Descr do
         # The result is wrapped in dynamic(), so it is safe regardless of argument precision.
         # If the upper-bounded arguments escape the domain, fun_apply_static returns term(),
         # and dynamic(term()) = dynamic(), which brings back to the compatible case.
-        arguments = Enum.map(arguments, &upper_bound/1)
+        arguments = :lists.map(&upper_bound/1, arguments)
         dynamic(fun_apply_static(arguments, dynamic_arrows))
 
       true ->
@@ -1724,7 +1724,7 @@ defmodule Module.Types.Descr do
         # because the dynamic branch wraps its result in dynamic().
         # It is more strict and informative than using lower_bound in the static part,
         # as it amounts to assuming the worst case of using the statically present arrows.
-        arguments = Enum.map(arguments, &upper_bound/1)
+        arguments = :lists.map(&upper_bound/1, arguments)
 
         bare_union(
           fun_apply_static(arguments, static_arrows),
@@ -1814,9 +1814,14 @@ defmodule Module.Types.Descr do
   # supported arity (otherwise we would return :badarity for a function type
   # that is actually empty, or reject a live arity in favour of a dead one).
   defp bdds_non_empty_arities(bdds) do
-    for {arity, bdd} <- bdds,
-        not Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end),
-        do: arity
+    :lists.filtermap(
+      fn {arity, bdd} ->
+        if :lists.all(fn {pos, neg} -> fun_line_empty?(pos, neg) end, bdd_to_dnf(bdd)),
+          do: false,
+          else: {true, arity}
+      end,
+      :maps.to_list(bdds)
+    )
   end
 
   # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
@@ -1846,10 +1851,13 @@ defmodule Module.Types.Descr do
     case :maps.take(arity, bdds) do
       {bdd, rest} ->
         {domain, arrows} =
-          Enum.reduce(fun_bdd_to_pos_dnf(arity, bdd), {term(), []}, fn pos_funs,
-                                                                       {domain, arrows} ->
-            {bare_intersection(domain, fetch_domain(pos_funs)), [pos_funs | arrows]}
-          end)
+          :lists.foldl(
+            fn pos_funs, {domain, arrows} ->
+              {bare_intersection(domain, fetch_domain(pos_funs)), [pos_funs | arrows]}
+            end,
+            {term(), []},
+            fun_bdd_to_pos_dnf(arity, bdd)
+          )
 
         if arrows == [] do
           # The function is empty at the requested arity. Report the *other*
@@ -1970,7 +1978,7 @@ defmodule Module.Types.Descr do
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
   defp fun_bdd_to_dnf(bdd),
-    do: bdd_to_dnf(bdd) |> Enum.filter(fn {pos, neg} -> not fun_line_empty?(pos, neg) end)
+    do: :lists.filter(fn {pos, neg} -> not fun_line_empty?(pos, neg) end, bdd_to_dnf(bdd))
 
   # Check if all functions types for all arities are empty.
   defp fun_empty?({:negation, _}, _seen), do: false
@@ -2341,11 +2349,10 @@ defmodule Module.Types.Descr do
     subtype?(left_return, right_return) and args_subtype?(right_args, left_args)
   end
 
-  defp args_subtype?(left_args, right_args) do
-    Enum.zip_reduce(left_args, right_args, true, fn left, right, acc ->
-      acc and subtype?(left, right)
-    end)
-  end
+  defp args_subtype?([left | left_args], [right | right_args]),
+    do: subtype?(left, right) and args_subtype?(left_args, right_args)
+
+  defp args_subtype?(_left_args, _right_args), do: true
 
   defp pivot([head | tail], acc, fun) do
     case fun.(head) do
@@ -2376,14 +2383,13 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_bdd_to_pos_dnf(arity, :bdd_top) do
-    args = List.duplicate(none(), arity)
+    args = :lists.duplicate(arity, none())
     ret = term()
     [[bdd_leaf_new(args, ret)]]
   end
 
   defp fun_bdd_to_pos_dnf(_arity, bdd) do
-    fun_bdd_to_dnf(bdd)
-    |> Enum.map(fn {pos, _negs} -> pos end)
+    :lists.map(fn {pos, _negs} -> pos end, fun_bdd_to_dnf(bdd))
     |> fun_eliminate_unions([])
   end
 
@@ -2399,7 +2405,7 @@ defmodule Module.Types.Descr do
         false
     end
 
-    if Enum.any?(tail, superset) or Enum.any?(acc, superset) do
+    if :lists.any(superset, tail) or :lists.any(superset, acc) do
       fun_eliminate_unions(tail, acc)
     else
       fun_eliminate_unions(tail, [[current] | acc])
