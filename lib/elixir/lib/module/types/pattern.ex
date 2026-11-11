@@ -813,11 +813,27 @@ defmodule Module.Types.Pattern do
     of_open_map(args, true, [], [], path, stack, context)
   end
 
-  # <<...>>>
-  defp of_pattern({:<<>>, _meta, args} = node, _path, stack, context) do
-    precise? = of_precise_bitstring?(node, context.vars)
+  # <<var::bitstring>>
+  defp of_pattern({:<<>>, _meta, [{:"::", _, [var, {kind, _, _}]}] = args}, _path, stack, context)
+       when is_var(var) and kind in [:binary, :bitstring, :bytes, :bits] do
+    {_, meta, _} = var
+    version = Keyword.fetch!(meta, :version)
+    new_var? = not is_map_key(context.vars, version)
     {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
-    {type, precise?, context}
+
+    # If the whole bitstring is bound to a new variable, the bitstring
+    # is precise and its type follows the variable refinements.
+    if new_var? do
+      {{:intersection, [type, {:var, version}]}, true, context}
+    else
+      {type, false, context}
+    end
+  end
+
+  # <<...>>>
+  defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
+    {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
+    {type, false, context}
   end
 
   # left ++ right
@@ -1021,20 +1037,6 @@ defmodule Module.Types.Pattern do
     {type, precise?, context} = of_pattern(arg, [{:subpattern, key} | path], stack, context)
     {type, precise?, put_in(context.subpatterns[key], of_pattern_tree(type, stack, context))}
   end
-
-  defp of_precise_bitstring?({:<<>>, _meta, [{:"::", _, [expr, {type, _, _}]}]}, vars)
-       when type in [:binary, :bitstring, :bytes, :bits] do
-    new_var?(expr, vars) or of_precise_bitstring?(expr, vars)
-  end
-
-  defp of_precise_bitstring?(_expr, _vars), do: false
-
-  defp new_var?({_, meta, _} = var, vars) when is_var(var) do
-    version = Keyword.fetch!(meta, :version)
-    not is_map_key(vars, version)
-  end
-
-  defp new_var?(_expr, _vars), do: false
 
   ## Guards
   #

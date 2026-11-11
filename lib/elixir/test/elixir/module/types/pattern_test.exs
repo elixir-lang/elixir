@@ -431,6 +431,17 @@ defmodule Module.Types.PatternTest do
       assert typedyn!([<<x::bitstring>>], <<x::binary>>) == dynamic(binary())
     end
 
+    test "refined by guards" do
+      assert typecheck!(
+               [y],
+               case y do
+                 <<x::bitstring>> when is_binary(x) -> :binary
+                 z -> z
+               end
+             )
+             |> equal?(opt_union(dynamic(opt_negation(binary())), atom([:binary])))
+    end
+
     test "nested" do
       assert typecheck!([<<0, <<x::binary>>::binary>>], x) == binary()
 
