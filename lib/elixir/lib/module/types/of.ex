@@ -699,6 +699,8 @@ defmodule Module.Types.Of do
     {actual, context} =
       case kind do
         :match ->
+          # Variables bound in bitstring patterns are only dynamic outside of static mode
+          type = if stack.mode == :static, do: type, else: dynamic(type)
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->

@@ -424,6 +424,11 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([<<x::float>>], x) == float()
       assert typecheck!([<<x::binary>>], x) == binary()
       assert typecheck!([<<x::utf8>>], x) == integer()
+
+      # Variables are only dynamic outside of static mode
+      assert typedyn!([<<x>>], x) == dynamic(integer())
+      assert typedyn!([<<x::bitstring>>], x) == dynamic(bitstring())
+      assert typedyn!([<<x::bitstring>>], <<x::binary>>) == dynamic(binary())
     end
 
     test "nested" do

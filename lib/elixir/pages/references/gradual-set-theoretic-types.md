@@ -287,22 +287,6 @@ Even though it is guaranteed at runtime that user is always a `User` struct. If 
 %User{user | name: "John Doe"}
 ```
 
-#### Types from bitstring matching are always static
-
-Variables bound inside bitstring patterns are always given a static type, based on their segment type, even when the bitstring being matched is dynamic. Take this code:
-
-```elixir
-def example(<<x::bitstring>>), do: <<x::binary>>
-```
-
-`x` has the static type `bitstring()`, so the type system emits a warning when it is used as a binary, as not all bitstrings are binaries. On the other hand, the code below emits no warning:
-
-```elixir
-def example(x) when is_bitstring(x), do: <<x::binary>>
-```
-
-That's because the guard refines the dynamic argument to `dynamic(bitstring())`, which is compatible with `binary()`. If the variable is meant to be a binary, then use the `binary` type in the bitstring pattern instead.
-
 ## Roadmap
 
 At this moment, Elixir implements type inference of all language constructs. The goal is to assess performance and collect feedback on the quality of error messages, before introducing user facing types.
