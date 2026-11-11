@@ -66,35 +66,76 @@ defmodule Module.Types.RecursiveTest do
     end
 
     test "constructors accept nodes and descrs" do
-      n1 = recursive_node(integer())
-      n2 = recursive_node(atom())
+      int = recursive_node(integer())
+      empty = recursive_node(empty_list())
+      keys = to_domain_keys(atom())
 
-      result = tuple([n1, n2])
-      refute empty?(result)
+      assert equal?(tuple([int, float()]), tuple([integer(), float()]))
+      assert equal?(open_tuple([int]), open_tuple([integer()]))
+      assert equal?(list(int), list(integer()))
+      assert equal?(non_empty_list(int), non_empty_list(integer()))
+      assert equal?(non_empty_list(int, empty), non_empty_list(integer(), empty_list()))
 
-      n = recursive_node(integer())
-      result = tuple([n, float()])
-      assert equal?(result, tuple([integer(), float()]))
+      assert equal?(closed_map(a: {int, false}), closed_map(a: {integer(), false}))
+      assert equal?(closed_map(a: {int, true}), closed_map(a: {integer(), true}))
+      assert equal?(open_map(a: {int, false}), open_map(a: {integer(), false}))
+      assert equal?(closed_map([{keys, int}]), closed_map([{keys, integer()}]))
+      assert equal?(open_map([{keys, int}]), open_map([{keys, integer()}]))
 
-      n = recursive_node(integer())
-      from_node = list(n)
-      from_descr = list(integer())
-      assert equal?(from_node, from_descr)
+      assert equal?(fun([int], int), fun([integer()], integer()))
+      assert equal?(args_to_domain([int]), args_to_domain([integer()]))
+      assert equal?(args_to_static_domain([int]), args_to_static_domain([integer()]))
 
-      elem_node = recursive_node(integer())
-      tail_node = recursive_node(empty_list())
+      assert equal?(
+               fun_from_non_overlapping_clauses([{[int], int}]),
+               fun_from_non_overlapping_clauses([{[integer()], integer()}])
+             )
 
-      from_nodes = non_empty_list(elem_node, tail_node)
-      from_descrs = non_empty_list(integer(), empty_list())
-      assert equal?(from_nodes, from_descrs)
+      assert equal?(
+               fun_from_inferred_clauses([{[int], int}]),
+               fun_from_inferred_clauses([{[integer()], integer()}])
+             )
 
-      n = recursive_node(integer())
-      result = closed_map(a: {n, false})
-      refute empty?(result)
+      assert dynamic(int) == dynamic(integer())
+    end
 
-      n = recursive_node(atom())
-      result = open_map(b: {n, false})
-      refute empty?(result)
+    test "constructors accept recursive nodes" do
+      # X = nil or {integer(), X}
+      %{X: node} =
+        recursive(%{X: fn recur -> bare_union(atom([nil]), tuple([integer(), recur.(:X)])) end})
+
+      value = tuple([integer(), atom([nil])])
+      keys = to_domain_keys(atom())
+
+      assert subtype?(tuple([value]), tuple([node]))
+      assert subtype?(tuple([value, atom()]), open_tuple([node]))
+      assert subtype?(list(value), list(node))
+      assert subtype?(non_empty_list(value), non_empty_list(node))
+      assert subtype?(non_empty_list(integer(), value), non_empty_list(integer(), node))
+
+      assert subtype?(closed_map(a: {value, false}), closed_map(a: {node, false}))
+      assert subtype?(empty_map(), closed_map(a: {node, true}))
+      assert subtype?(open_map(a: {value, false}), open_map(a: {node, false}))
+      assert subtype?(closed_map([{keys, value}]), closed_map([{keys, node}]))
+      assert subtype?(open_map([{keys, value}]), open_map([{keys, node}]))
+      refute subtype?(closed_map(a: {integer(), false}), closed_map(a: {node, false}))
+
+      assert subtype?(fun([node], value), fun([node], node))
+      assert subtype?(fun([node], node), fun([value], node))
+      assert subtype?(args_to_domain([value]), args_to_domain([node]))
+      assert subtype?(args_to_static_domain([value]), args_to_static_domain([node]))
+
+      assert subtype?(
+               fun_from_non_overlapping_clauses([{[node], value}]),
+               fun_from_non_overlapping_clauses([{[node], node}])
+             )
+
+      assert subtype?(
+               fun_from_inferred_clauses([{[node], value}]),
+               fun_from_inferred_clauses([{[node], node}])
+             )
+
+      assert equal?(dynamic(node), dynamic(unfold(node)))
     end
   end
 
