@@ -1779,6 +1779,10 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(min(123, 456.0)) == opt_union(integer(), float())
       # min/max uses parametric types, which will carry dynamic regardless of being a strong arrow
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(opt_union(integer(), float()))
+
+      # dynamic arguments make the result dynamic
+      assert typedyn!([x], min(x, true)) == dynamic()
+      assert typedyn!([x], max(x, true)) == dynamic()
     end
 
     test "min/max does not refine discarded arguments from the expected type" do

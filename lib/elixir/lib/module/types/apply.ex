@@ -471,7 +471,7 @@ defmodule Module.Types.Apply do
     # know is that the result is one of the two, so it is always their union.
     {left_type, context} = of_fun.(left, term(), expr, stack, context)
     {right_type, context} = of_fun.(right, term(), expr, stack, context)
-    result = opt_union(left_type, right_type)
+    result = return(opt_union(left_type, right_type), [left_type, right_type], stack)
 
     if error = mismatched_ordered_comparison(left_type, right_type, stack) do
       remote_error(error, :erlang, name, 2, expr, stack, context)
