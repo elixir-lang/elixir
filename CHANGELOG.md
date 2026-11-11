@@ -58,7 +58,7 @@
 The following bug fixes may break applications relying on the broken behaviour:
 
   * [Kernel] Fix parsing precedence of unary operators applied to do-end blocks, such as `!if a do b end || c`
-  * [Process] Use `:erlang.exit_signal/2` in `Process.exit/2`, so exit signals sent to the calling process are delivered asynchronously and `:normal` no longer terminates it
+  * [Process] Use `exit_signal/2` from `:erlang` in `Process.exit/2`, so exit signals sent to the calling process are delivered asynchronously and `:normal` no longer terminates it
 
 #### Elixir
 
@@ -67,7 +67,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
   * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
   * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
-  * [Code] Properly escape C1 control characters and Unicode noncharacters in `Code.quoted_to_string/1` (and `Macro.to_string/1`)
+  * [Code] Properly escape C1 control characters and Unicode noncharacters in `Code.quoted_to_algebra/2` (and `Macro.to_string/1`)
   * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
   * [Code.Formatter] Keep parentheses on anonymous function calls with do-end blocks
   * [Code.Formatter] Keep parentheses on unary operators on the left side of `in`, such as `(!foo) in bar`
