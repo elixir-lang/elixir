@@ -1,0 +1,15 @@
+[package]
+name = "elixir-fuzz"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ephyra = { git = "https://github.com/datadog-labs/ephyra", rev = "0259251" }
+serde_json = "1"
+
+[workspace]
+
+[profile.release]
+debug-assertions = true
+overflow-checks = true
