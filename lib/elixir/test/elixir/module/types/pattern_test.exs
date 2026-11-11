@@ -58,7 +58,7 @@ defmodule Module.Types.PatternTest do
                  [info | _] = __ENV__.function
                  info
                )
-             ) =~ "the following pattern will never match"
+             ) =~ "the following pattern is incompatible with its expected type"
     end
 
     test "does not check underscore" do

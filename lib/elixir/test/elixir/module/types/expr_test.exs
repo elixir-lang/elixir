@@ -359,7 +359,7 @@ defmodule Module.Types.ExprTest do
 
     test "capture printing" do
       assert typeerror!(123 = &{:ok, &1}) == """
-             the following pattern will never match:
+             the following pattern is incompatible with its expected type:
 
                  123 = &{:ok, &1}
 
@@ -2137,7 +2137,7 @@ defmodule Module.Types.ExprTest do
                  :baz = x
                )
              ) == ~l"""
-             the following pattern will never match:
+             the following pattern is incompatible with its expected type:
 
                  :baz = x
 
@@ -2781,7 +2781,7 @@ defmodule Module.Types.ExprTest do
                  x -> x
                end
              ) == ~l"""
-             the following clause will never match:
+             the following clause is incompatible with its expected type:
 
                  :error ->
 
@@ -2792,6 +2792,8 @@ defmodule Module.Types.ExprTest do
              which has type:
 
                  binary()
+
+             hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
              """
     end
 
@@ -3393,13 +3395,15 @@ defmodule Module.Types.ExprTest do
                  x -> x
                end
              ) == ~l"""
-             the following clause will never match:
+             the following clause is incompatible with its expected type:
 
                  :error ->
 
              it is expected to match on type:
 
                  binary()
+
+             hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
              """
     end
 
@@ -4468,7 +4472,7 @@ defmodule Module.Types.ExprTest do
                  x
                end
              ) =~ """
-             the following pattern will never match:
+             the following pattern is incompatible with its expected type:
 
                  :ok <- System.get_env(x)
 
@@ -4487,13 +4491,15 @@ defmodule Module.Types.ExprTest do
                  :ok -> :ok
                end
              ) == ~l"""
-             the following clause will never match:
+             the following clause is incompatible with its expected type:
 
                  :ok ->
 
              it is expected to match on type:
 
                  dynamic(nil)
+
+             hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
              """
     end
 

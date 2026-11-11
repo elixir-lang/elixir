@@ -129,6 +129,13 @@ defmodule Module.Types.Helpers do
         #{hint()} the function has an empty domain and therefore cannot be applied to \
         any argument
         """
+
+      :dead_code ->
+        """
+
+        #{hint()} this clause is either unreachable or only reachable on code paths \
+        that will fail, so it can likely be removed
+        """
     end)
   end
 

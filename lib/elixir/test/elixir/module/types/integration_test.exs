@@ -287,7 +287,7 @@ defmodule Module.Types.IntegrationTest do
                 :error
         """,
         """
-            warning: the following pattern will never match:
+            warning: the following pattern is incompatible with its expected type:
 
                 :doki = A.fun(:error)
 
@@ -595,7 +595,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         """
-            warning: the 1st pattern in clause will never match:
+            warning: the 1st pattern in clause is incompatible with its expected type:
 
                 nil
 
@@ -604,6 +604,8 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(%Range{})
 
             hint: defimpl for Range requires its callbacks to match exclusively on %Range{}
+
+            hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
 
             type warning found at:
             │
@@ -885,7 +887,9 @@ defmodule Module.Types.IntegrationTest do
 
       assert [
                %{
-                 message: "the following pattern will never match" <> _,
+                 message:
+                   "the following pattern is incompatible with its expected type" <>
+                     _,
                  file: file,
                  source: source
                },

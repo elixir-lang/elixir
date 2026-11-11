@@ -1910,13 +1910,13 @@ defmodule Module.Types.Pattern do
   # $ typep match_pattern =
   #     {:with or :for or :match, pattern, type}
   def format_diagnostic({:badpattern, meta, index, tag, context}) do
-    {to_trace, message} = badpattern(tag, index)
+    {to_trace, message, hints} = badpattern(tag, index)
     traces = collect_traces(to_trace, context)
 
     hints =
       case Keyword.get(meta, :type_check) do
-        {:impl, _} = impl -> [impl]
-        _ -> []
+        {:impl, _} = impl -> [impl | hints]
+        _ -> hints
       end
 
     %{
@@ -1935,19 +1935,19 @@ defmodule Module.Types.Pattern do
        the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
 
            #{expr_to_string(arg) |> indent(4)}
-       """}
+       """, []}
     else
       # This can only happen in protocol implementations for now
       {arg,
        """
-       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+       the #{integer_to_ordinal(index + 1)} pattern in clause is incompatible with its expected type:
 
            #{expr_to_string(arg) |> indent(4)}
 
        because it is expected to receive type:
 
            #{to_quoted_string(type) |> indent(4)}
-       """}
+       """, [:dead_code]}
     end
   end
 
@@ -1987,12 +1987,12 @@ defmodule Module.Types.Pattern do
               """
           end
 
-        {expr, message}
+        {expr, message, []}
 
       _ ->
         {args,
          """
-         the following clause will never match:
+         the following clause is incompatible with its expected type:
 
              #{args_to_string(args) |> indent(4)} ->
 
@@ -2003,7 +2003,7 @@ defmodule Module.Types.Pattern do
          which has type:
 
              #{to_quoted_string(type) |> indent(4)}
-         """}
+         """, [:dead_code]}
     end
   end
 
@@ -2012,14 +2012,14 @@ defmodule Module.Types.Pattern do
 
     {arg,
      """
-     the following clause will never match:
+     the following clause is incompatible with its expected type:
 
          #{args_to_string(args) |> indent(4)} ->
 
      it is expected to match on type:
 
          #{to_quoted_string(type) |> indent(4)}
-     """}
+     """, [:dead_code]}
   end
 
   defp badpattern({op, args}, index) when op in [:for_reduce, :receive, :try_catch, :fn] do
@@ -2030,7 +2030,7 @@ defmodule Module.Types.Pattern do
      the following pattern will never match:
 
          #{expr_to_string(arg) |> indent(4)}
-     """}
+     """, []}
   end
 
   defp badpattern({op, pattern, type}, _index) when op in [:match, :for, :with] do
@@ -2043,7 +2043,7 @@ defmodule Module.Types.Pattern do
         """
       else
         """
-        the following pattern will never match:
+        the following pattern is incompatible with its expected type:
 
             #{expr_to_string(pattern) |> indent(4)}
 
@@ -2053,7 +2053,7 @@ defmodule Module.Types.Pattern do
         """
       end
 
-    {pattern, message}
+    {pattern, message, []}
   end
 
   defp args_to_string(args) do
