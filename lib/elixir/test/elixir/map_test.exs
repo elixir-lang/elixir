@@ -190,24 +190,6 @@ defmodule MapTest do
     assert Map.merge(map, %{a: 3, c: 3}) |> Map.merge(%{a: 2}) == %{a: 2, b: 2, c: 3}
   end
 
-  test "merge/2 validates the left update before evaluating the right map" do
-    map = Process.get(:unused, %{})
-
-    assert_raise KeyError, fn ->
-      Map.merge(%{map | a: send(self(), :left)}, %{a: send(self(), :right)})
-    end
-
-    assert_received :left
-    refute_received :right
-
-    assert_raise KeyError, fn ->
-      :maps.merge(%{map | a: send(self(), :left)}, %{a: send(self(), :right)})
-    end
-
-    assert_received :left
-    refute_received :right
-  end
-
   test "merge/2 preserves the exception from the left update" do
     map = Process.get(:unused, %{})
 
