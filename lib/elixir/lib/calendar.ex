@@ -986,8 +986,8 @@ defmodule Calendar do
     offset_number =
       Integer.to_string(div(absolute_offset, 3600) * 100 + rem(div(absolute_offset, 60), 60))
 
-    sign = if utc_offset + std_offset >= 0, do: "+", else: "-"
-    result = "#{sign}#{pad_leading_ascii(offset_number, width, pad)}"
+    sign = if utc_offset + std_offset >= 0, do: ?+, else: ?-
+    result = [sign | pad_leading_ascii(offset_number, width, pad)]
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -1006,11 +1006,16 @@ defmodule Calendar do
     raise ArgumentError, "invalid strftime format: %#{next}"
   end
 
+  defp pad_preferred(result, width, pad) when width == 0 or pad == "", do: result
+
   defp pad_preferred(result, width, pad) do
     result
     |> IO.iodata_to_binary()
     |> pad_leading(width, pad)
   end
+
+  defp pad_leading(string, count, padding)
+       when is_binary(string) and (count == 0 or padding == ""), do: string
 
   defp pad_leading(string, count, padding) do
     to_pad = count - String.length(string)
@@ -1020,7 +1025,7 @@ defmodule Calendar do
   # Similar to `pad_leading/3`, but only for strings that always ASCII-only
   defp pad_leading_ascii(string, count, padding) do
     to_pad = count - byte_size(string)
-    if to_pad > 0, do: do_pad_leading(to_pad, padding, string), else: string
+    if to_pad > 0 and padding != "", do: do_pad_leading(to_pad, padding, string), else: string
   end
 
   defp do_pad_leading(0, _, acc), do: acc
