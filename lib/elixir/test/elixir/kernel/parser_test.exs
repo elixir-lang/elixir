@@ -516,38 +516,60 @@ defmodule Kernel.ParserTest do
 
     test "not in" do
       assert Code.string_to_quoted!("a not in b", columns: true) ==
-               {:not, [line: 1, column: 3],
+               {:not, [not_in: true, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 7],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a not  in b", columns: true, token_metadata: true) ==
-               {:not, [line: 1, column: 3],
+               {:not, [not_in: true, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 8],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 11], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a\nnot in b", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 2, column: 1],
+               {:not, [not_in: true, newlines: 1, line: 2, column: 1],
                 [
                   {:in, [line: 2, column: 5],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 8], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a not in\nb", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 1, column: 3],
+               {:not, [not_in: true, newlines: 1, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 7],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 1], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a\nnot in\nb", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 2, column: 1],
+               {:not, [not_in: true, newlines: 1, line: 2, column: 1],
                 [
                   {:in, [line: 2, column: 5],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 3, column: 1], nil}]}
+                ]}
+
+      assert Code.string_to_quoted!("a not in b in c", columns: true, token_metadata: true) ==
+               {:in, [line: 1, column: 12],
+                [
+                  {:not, [not_in: true, line: 1, column: 3],
+                   [
+                     {:in, [line: 1, column: 7],
+                      [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
+                   ]},
+                  {:c, [line: 1, column: 15], nil}
+                ]}
+
+      assert Code.string_to_quoted!("a not in b\nin c", columns: true, token_metadata: true) ==
+               {:in, [newlines: 1, line: 2, column: 1],
+                [
+                  {:not, [not_in: true, line: 1, column: 3],
+                   [
+                     {:in, [line: 1, column: 7],
+                      [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
+                   ]},
+                  {:c, [line: 2, column: 4], nil}
                 ]}
     end
 
@@ -572,6 +594,38 @@ defmodule Kernel.ParserTest do
                             [
                               {:a, [line: 1, column: 2], nil},
                               {:b, [line: 1, column: 7], nil}
+                            ]}
+                         ]}
+             end) =~ "!expr1 in expr2"
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.string_to_quoted!("not a in b in c", columns: true) ==
+                        {:not, [line: 1, column: 1],
+                         [
+                           {:in, [line: 1, column: 12],
+                            [
+                              {:in, [line: 1, column: 7],
+                               [
+                                 {:a, [line: 1, column: 5], nil},
+                                 {:b, [line: 1, column: 10], nil}
+                               ]},
+                              {:c, [line: 1, column: 15], nil}
+                            ]}
+                         ]}
+             end) =~ "not expr1 in expr2"
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.string_to_quoted!("!a in b in c", columns: true) ==
+                        {:!, [line: 1, column: 1],
+                         [
+                           {:in, [line: 1, column: 9],
+                            [
+                              {:in, [line: 1, column: 4],
+                               [
+                                 {:a, [line: 1, column: 2], nil},
+                                 {:b, [line: 1, column: 7], nil}
+                               ]},
+                              {:c, [line: 1, column: 12], nil}
                             ]}
                          ]}
              end) =~ "!expr1 in expr2"

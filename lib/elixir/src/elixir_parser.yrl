@@ -746,6 +746,10 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
       return_error(Location, "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
   end;
 
+%% A synthetic "not" is part of the previous membership operation, not a prefix operator.
+build_op({'not', [{not_in, true} | _], [_]} = Left, {_Kind, Location, 'in'}, Right) ->
+  {'in', newlines_op(Location) ++ meta_from_location(Location), [Left, Right]};
+
 build_op({UOp, UMeta, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Remove "not left in right" rearrangement on v2.0
   warn({Line, Column}, case UOp of
@@ -756,7 +760,7 @@ build_op({UOp, UMeta, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Righ
   {UOp, UMeta, [{'in', Meta, [Left, Right]}]};
 
 build_op(Left, {in_op, NotLocation, 'not in', InLocation}, Right) ->
-  NotMeta = newlines_op(NotLocation) ++ meta_from_location(NotLocation),
+  NotMeta = [{not_in, true} | newlines_op(NotLocation) ++ meta_from_location(NotLocation)],
   InMeta = meta_from_location(InLocation),
   {'not', NotMeta, [{'in', InMeta, [Left, Right]}]};
 
