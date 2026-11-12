@@ -1629,10 +1629,20 @@ defmodule Module.Types.DescrTest do
 
     test "static" do
       # Full static
-      assert fun_apply(fun(), [integer()]) == {:badarg, [none()], false}
+      assert fun_apply(fun(), [integer()]) == :badfun
+      assert fun_apply(opt_difference(fun(), none_fun(2)), [integer()]) == :badfun
 
-      assert fun_apply(opt_difference(fun(), none_fun(2)), [integer()]) ==
-               {:badarg, [none()], false}
+      # Negation forms hold every function of the arities they do not mention
+      int_to_int = fun([integer()], integer())
+      neg_fun = opt_difference(fun(), opt_difference(none_fun(1), int_to_int))
+      assert subtype?(none_fun(2), neg_fun)
+      assert fun_apply(neg_fun, [integer()]) == :badfun
+      assert fun_apply(opt_union(neg_fun, dynamic(int_to_int)), [integer()]) == :badfun
+      assert fun_apply(opt_difference(fun(), none_fun(1)), [integer()]) == :badfun
+
+      assert fun_apply(opt_union(opt_difference(fun(), none_fun(1)), dynamic(int_to_int)), [
+               integer()
+             ]) == :badfun
 
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}

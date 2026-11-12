@@ -1755,6 +1755,11 @@ defmodule Module.Types.Descr do
   #   contribute. The domain becomes dom(upper_bound) or dynamic(),
   #   reflecting that the lower bound has no function type at this arity.
   #   The application proceeds as purely dynamic (static_arrows = []).
+  #
+  # A static function in negation form holds every function of the arities
+  # it does not mention, so it can never be safely applied to a given arity.
+  defp fun_normalize_both(%{fun: {:negation, _}}, _fun_dynamic, _arity), do: :badfun
+
   defp fun_normalize_both(fun_static, fun_dynamic, arity) do
     case fun_normalize(fun_static, arity) do
       {:ok, static_domain, static_arrows} ->
