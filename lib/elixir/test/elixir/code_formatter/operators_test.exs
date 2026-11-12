@@ -177,6 +177,19 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "!not foo in bar", "!((not foo) in bar)"
     end
 
+    test "not in chains" do
+      assert_format "a not in b in c", "(not (a in b)) in c"
+      assert_format "a in b not in c in d", "(not (a in b in c)) in d"
+      assert_format "a not in b not in c in d", "(not ((not (a in b)) in c)) in d"
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               for source <- ["1 not in [2] in []", "1 not in [2] not in []"] do
+                 formatted = IO.iodata_to_binary(Code.format_string!(source))
+                 assert Code.eval_string(formatted) == Code.eval_string(source)
+               end
+             end) == ""
+    end
+
     test "bitwise precedence" do
       assert_format "(crc >>> 8) ||| byte", "crc >>> 8 ||| byte"
       assert_same "crc >>> (8 ||| byte)"

@@ -515,40 +515,91 @@ defmodule Kernel.ParserTest do
     end
 
     test "not in" do
+      assert Code.string_to_quoted!("a not in b") ==
+               {:not, [from_not_in: true, line: 1],
+                [{:in, [line: 1], [{:a, [line: 1], nil}, {:b, [line: 1], nil}]}]}
+
       assert Code.string_to_quoted!("a not in b", columns: true) ==
-               {:not, [line: 1, column: 3],
+               {:not, [from_not_in: true, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 7],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a not  in b", columns: true, token_metadata: true) ==
-               {:not, [line: 1, column: 3],
+               {:not, [from_not_in: true, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 8],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 11], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a\nnot in b", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 2, column: 1],
+               {:not, [from_not_in: true, newlines: 1, line: 2, column: 1],
                 [
                   {:in, [line: 2, column: 5],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 8], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a not in\nb", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 1, column: 3],
+               {:not, [from_not_in: true, newlines: 1, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 7],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 1], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a\nnot in\nb", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 2, column: 1],
+               {:not, [from_not_in: true, newlines: 1, line: 2, column: 1],
                 [
                   {:in, [line: 2, column: 5],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 3, column: 1], nil}]}
                 ]}
+    end
+
+    test "not in chains are left associative" do
+      assert Code.string_to_quoted!("a not in b\nin c", columns: true, token_metadata: true) ==
+               {:in, [newlines: 1, line: 2, column: 1],
+                [
+                  {:not, [from_not_in: true, line: 1, column: 3],
+                   [
+                     {:in, [line: 1, column: 7],
+                      [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
+                   ]},
+                  {:c, [line: 2, column: 4], nil}
+                ]}
+
+      for opts <- [
+            [],
+            [columns: true],
+            [token_metadata: true],
+            [columns: true, token_metadata: true]
+          ] do
+        assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+                 assert {:in, _,
+                         [{:not, _, [{:in, _, [{:a, _, nil}, {:b, _, nil}]}]}, {:c, _, nil}]} =
+                          Code.string_to_quoted!("a not in b in c", opts)
+
+                 assert {:in, _, [{:not, _, [{:in, _, [{:not, _, [{:in, _, _}]}, _]}]}, _]} =
+                          Code.string_to_quoted!("a not in b not in c in d", opts)
+
+                 assert {:in, _, [{:not, _, [{:in, _, [{:in, _, _}, _]}]}, _]} =
+                          Code.string_to_quoted!("a in b not in c in d", opts)
+               end) == ""
+      end
+
+      assert Code.eval_string("1 not in [2] in []") == {false, []}
+      assert Code.eval_string("1 not in [2] not in []") == {true, []}
+    end
+
+    test "prefix not still rearranges throughout in chains" do
+      for {source, op} <- [{"not a in b in c", :not}, {"!a in b in c", :!}] do
+        warnings =
+          ExUnit.CaptureIO.capture_io(:stderr, fn ->
+            assert {^op, _, [{:in, _, [{:in, _, [{:a, _, nil}, {:b, _, nil}]}, {:c, _, nil}]}]} =
+                     Code.string_to_quoted!(source)
+          end)
+
+        assert length(Regex.scan(~r/is deprecated/, warnings)) == 2
+      end
     end
 
     test "deprecated not/in" do
