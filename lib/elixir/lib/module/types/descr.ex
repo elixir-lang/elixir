@@ -1539,7 +1539,9 @@ defmodule Module.Types.Descr do
 
   Returns `{:ok, result}` if the application is valid
   or one `{:badarg, to_succeed_domain, empty?}`, `:badfun`,
-  or `{:badarity, arities}`.
+  or `{:badarity, :positive | :negative, arities}`. A `:positive`
+  badarity lists the supported arities, while a `:negative` one
+  means the function supports every arity except the given ones.
 
   Note the domain returned by `:badarg` is not the strong
   domain, but the domain that must be satisfied for the
@@ -1758,7 +1760,8 @@ defmodule Module.Types.Descr do
   #
   # A static function in negation form holds every function of the arities
   # it does not mention, so it can never be safely applied to a given arity.
-  defp fun_normalize_both(%{fun: {:negation, _}}, _fun_dynamic, _arity), do: :badfun
+  defp fun_normalize_both(%{fun: {:negation, _}} = fun_static, _fun_dynamic, _arity),
+    do: {:badarity, :negative, fun_negation_arities(fun_static)}
 
   defp fun_normalize_both(fun_static, fun_dynamic, arity) do
     case fun_normalize(fun_static, arity) do
@@ -1782,7 +1785,7 @@ defmodule Module.Types.Descr do
             end
 
           other ->
-            {:badarity, [arity | other]}
+            {:badarity, :positive, [arity | other]}
         end
 
       :badfun when fun_dynamic == nil ->
@@ -1837,7 +1840,7 @@ defmodule Module.Types.Descr do
   # ## Return Values
   #
   # - `{:ok, domain, arrows}` for valid function BDDs
-  # - `{:badarity, supported_arities}` if the given arity is not supported
+  # - `{:badarity, :positive | :negative, arities}` if the given arity is not supported
   # - `:badfun` if the BDD represents an empty function type
   #
   # ## Internal Use
@@ -1848,8 +1851,13 @@ defmodule Module.Types.Descr do
 
   # In that case, we transform the {:negation, _} into a single union
   # where we add the previous negatives into the specified arity.
+  # A negation is never empty, so if there is nothing at the given
+  # arity, it is an arity mismatch.
   defp fun_normalize(%{fun: {:negation, _}} = neg_fun, arity) do
-    fun_normalize(bare_intersection(fun(arity), neg_fun), arity)
+    case fun_normalize(bare_intersection(fun(arity), neg_fun), arity) do
+      :badfun -> {:badarity, :negative, fun_negation_arities(neg_fun)}
+      other -> other
+    end
   end
 
   defp fun_normalize(%{fun: {:union, bdds}}, arity) do
@@ -1871,7 +1879,7 @@ defmodule Module.Types.Descr do
           # function is empty.
           case bdds_non_empty_arities(rest) do
             [] -> :badfun
-            other -> {:badarity, other}
+            other -> {:badarity, :positive, other}
           end
         else
           {:ok, domain, arrows}
@@ -1880,12 +1888,22 @@ defmodule Module.Types.Descr do
       :error ->
         case bdds_non_empty_arities(bdds) do
           [] -> :badfun
-          other -> {:badarity, other}
+          other -> {:badarity, :positive, other}
         end
     end
   end
 
   defp fun_normalize(%{}, _arity), do: :badfun
+
+  # Returns the arities without any function in the given negation form.
+  defp fun_negation_arities(%{fun: {:negation, bdds}} = neg_fun) do
+    arities =
+      for {arity, _bdd} <- :maps.to_list(bdds),
+          empty?(bare_intersection(fun(arity), neg_fun)),
+          do: arity
+
+    :lists.sort(arities)
+  end
 
   # Applies a static function type to arguments by reducing over the
   # function's DNF clauses. Each clause is an intersection of arrows,
