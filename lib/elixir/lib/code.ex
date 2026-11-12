@@ -2657,15 +2657,7 @@ defmodule Code do
   def fetch_docs(module) when is_atom(module) do
     case get_beam_and_path(module) do
       {bin, beam_path} ->
-        case fetch_docs_from_beam(bin) do
-          {:error, :chunk_not_found} ->
-            app_root = Path.expand(Path.join(["..", ".."]), beam_path)
-            path = Path.join([app_root, "doc", "chunks", "#{module}.chunk"])
-            fetch_docs_from_chunk(path)
-
-          other ->
-            other
-        end
+        fetch_docs_from_beam(bin, beam_path)
 
       :error ->
         case :code.is_loaded(module) do
@@ -2674,7 +2666,7 @@ defmodule Code do
             # unless it is listed as an extra application.
             case :code.lib_dir(:erts) do
               path when is_list(path) ->
-                path = Path.join([path, "doc", "chunks", "#{module}.chunk"])
+                path = Path.join(path, "doc/chunks/#{module}.chunk")
                 fetch_docs_from_chunk(path)
 
               {:error, _} ->
@@ -2688,7 +2680,7 @@ defmodule Code do
   end
 
   def fetch_docs(path) when is_binary(path) do
-    fetch_docs_from_beam(String.to_charlist(path))
+    fetch_docs_from_beam(String.to_charlist(path), path)
   end
 
   defp get_beam_and_path(module) do
@@ -2703,13 +2695,15 @@ defmodule Code do
 
   @docs_chunk [?D, ?o, ?c, ?s]
 
-  defp fetch_docs_from_beam(bin_or_path) do
+  defp fetch_docs_from_beam(bin_or_path, path) do
     case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
       {:ok, {_module, [{@docs_chunk, bin}]}} ->
         load_docs_chunk(bin)
 
       {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
-        {:error, :chunk_not_found}
+        module = Path.basename(path, ".beam")
+        path = Path.expand("../../doc/chunks/#{module}.chunk", path)
+        fetch_docs_from_chunk(path)
 
       {:error, :beam_lib, {:file_error, _, :enoent}} ->
         {:error, :module_not_found}

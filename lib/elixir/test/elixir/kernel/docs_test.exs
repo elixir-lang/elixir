@@ -374,13 +374,16 @@ defmodule Kernel.DocsTest do
       end
     )
 
+    beam_path = :code.which(ExternalDocs) |> List.to_string()
     assert Code.fetch_docs(ExternalDocs) == {:error, :chunk_not_found}
+    assert Code.fetch_docs(beam_path) == {:error, :chunk_not_found}
 
     path = Path.join([doc_chunks_path, "#{ExternalDocs}.chunk"])
     chunk = {:docs_v1, 1, :elixir, "text/markdown", %{"en" => "Some docs"}, %{}}
     File.write!(path, :erlang.term_to_binary(chunk))
 
     assert Code.fetch_docs(ExternalDocs) == chunk
+    assert Code.fetch_docs(beam_path) == chunk
   after
     Code.compiler_options(docs: true)
   end
