@@ -1445,6 +1445,20 @@ defmodule Task do
   end
 
   defp flush_noproc(ref, proc, type) do
+    # The task has terminated but its :DOWN message may still be in flight.
+    # Task refs are aliases deactivated on demonitor, so the alias is active
+    # if and only if the monitor is. If a message sent to the alias arrives,
+    # the :DOWN message with the actual reason is guaranteed to arrive. If not,
+    # it is already in the mailbox, or it has been demonitored or received.
+    send(ref, {__MODULE__, ref})
+
+    timeout =
+      receive do
+        {__MODULE__, ^ref} -> :infinity
+      after
+        0 -> 0
+      end
+
     receive do
       {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
         nil
@@ -1455,7 +1469,7 @@ defmodule Task do
       {:DOWN, ^ref, _, _, reason} ->
         {:down, proc, reason}
     after
-      0 ->
+      timeout ->
         demonitor(ref)
         {:down, proc, :noproc}
     end
