@@ -1375,14 +1375,16 @@ defmodule List do
   end
 
   defp myers_difference_with_diff_script(list1, list2, diff_script) do
-    path = {0, list1, list2, []}
-    find_script(0, [path], diff_script)
+    case follow_snake(0, list1, list2, []) do
+      edits when is_list(edits) -> compact_reverse(edits, [])
+      path -> find_script([path], diff_script)
+    end
   end
 
-  defp find_script(envelope, paths, diff_script) do
-    case each_diagonal(-envelope, envelope, paths, [], diff_script) do
-      {:done, edits} -> compact_reverse(edits, [])
-      {:next, paths} -> find_script(envelope + 1, paths, diff_script)
+  defp find_script([first | _] = paths, diff_script) do
+    case move_down_snake(first, diff_script) do
+      edits when is_list(edits) -> compact_reverse(edits, [])
+      down_path -> each_diagonal(paths, [down_path], diff_script)
     end
   end
 
@@ -1404,81 +1406,77 @@ defmodule List do
     compact_reverse(rest, [{kind, [elem]} | acc])
   end
 
-  defp each_diagonal(diag, limit, _paths, next_paths, _diff_script) when diag > limit do
-    {:next, :lists.reverse(next_paths)}
-  end
+  defp each_diagonal([path1, path2 | rest], next_paths, diff_script) do
+    next =
+      if elem(path1, 0) > elem(path2, 0) do
+        move_right_snake(path1, diff_script)
+      else
+        move_down_snake(path2, diff_script)
+      end
 
-  defp each_diagonal(diag, limit, paths, next_paths, diff_script) do
-    {path, rest} = proceed_path(diag, limit, paths, diff_script)
-
-    case follow_snake(path) do
-      {:cont, path} -> each_diagonal(diag + 2, limit, rest, [path | next_paths], diff_script)
-      {:done, edits} -> {:done, edits}
+    case next do
+      edits when is_list(edits) -> compact_reverse(edits, [])
+      path -> each_diagonal([path2 | rest], [path | next_paths], diff_script)
     end
   end
 
-  defp proceed_path(0, 0, [path], _diff_script), do: {path, []}
-
-  defp proceed_path(diag, limit, [path | _] = paths, diff_script) when diag == -limit do
-    {move_down(path, diff_script), paths}
-  end
-
-  defp proceed_path(diag, limit, [path], diff_script) when diag == limit do
-    {move_right(path, diff_script), []}
-  end
-
-  defp proceed_path(_diag, _limit, [path1, path2 | rest], diff_script) do
-    if elem(path1, 0) > elem(path2, 0) do
-      {move_right(path1, diff_script), [path2 | rest]}
-    else
-      {move_down(path2, diff_script), [path2 | rest]}
+  defp each_diagonal([path], next_paths, diff_script) do
+    case move_right_snake(path, diff_script) do
+      edits when is_list(edits) -> compact_reverse(edits, [])
+      right_path -> find_script(:lists.reverse([right_path | next_paths]), diff_script)
     end
   end
 
-  defp move_right({y, [elem1 | rest1] = list1, [elem2 | rest2], edits}, diff_script)
-       when diff_script != nil do
+  defp move_right_snake({y, list1, [elem | rest], edits}, nil) do
+    follow_snake(y, list1, rest, [{:ins, elem} | edits])
+  end
+
+  defp move_right_snake({y, [elem1 | rest1] = list1, [elem2 | rest2], edits}, diff_script) do
     if diff = diff_script.(elem1, elem2) do
-      {y + 1, rest1, rest2, [{:diff, diff} | edits]}
+      follow_snake(y + 1, rest1, rest2, [{:diff, diff} | edits])
     else
-      {y, list1, rest2, [{:ins, elem2} | edits]}
+      follow_snake(y, list1, rest2, [{:ins, elem2} | edits])
     end
   end
 
-  defp move_right({y, list1, [elem | rest], edits}, _diff_script) do
-    {y, list1, rest, [{:ins, elem} | edits]}
+  defp move_right_snake({y, list1, [elem | rest], edits}, _diff_script) do
+    follow_snake(y, list1, rest, [{:ins, elem} | edits])
   end
 
-  defp move_right({y, list1, [], edits}, _diff_script) do
-    {y, list1, [], edits}
+  defp move_right_snake({_, _, [], _} = path, _diff_script) do
+    path
   end
 
-  defp move_down({y, [elem1 | rest1], [elem2 | rest2] = list2, edits}, diff_script)
-       when diff_script != nil do
+  defp move_down_snake({y, [elem | rest], list2, edits}, nil) do
+    follow_snake(y + 1, rest, list2, [{:del, elem} | edits])
+  end
+
+  defp move_down_snake({y, [elem1 | rest1], [elem2 | rest2] = list2, edits}, diff_script) do
     if diff = diff_script.(elem1, elem2) do
-      {y + 1, rest1, rest2, [{:diff, diff} | edits]}
+      follow_snake(y + 1, rest1, rest2, [{:diff, diff} | edits])
     else
-      {y + 1, rest1, list2, [{:del, elem1} | edits]}
+      follow_snake(y + 1, rest1, list2, [{:del, elem1} | edits])
     end
   end
 
-  defp move_down({y, [elem | rest], list2, edits}, _diff_script) do
-    {y + 1, rest, list2, [{:del, elem} | edits]}
+  defp move_down_snake({y, [elem | rest], list2, edits}, _diff_script) do
+    follow_snake(y + 1, rest, list2, [{:del, elem} | edits])
   end
 
-  defp move_down({y, [], list2, edits}, _diff_script) do
+  defp move_down_snake({y, [], list2, edits}, _diff_script) do
     {y + 1, [], list2, edits}
   end
 
-  defp follow_snake({y, [elem | rest1], [elem | rest2], edits}) do
-    follow_snake({y + 1, rest1, rest2, [{:eq, elem} | edits]})
+  defp follow_snake(y, [elem | rest1], [elem | rest2], edits) do
+    follow_snake(y + 1, rest1, rest2, [{:eq, elem} | edits])
   end
 
-  defp follow_snake({_y, [], [], edits}) do
-    {:done, edits}
+  defp follow_snake(_y, [], [], edits) do
+    edits
   end
 
-  defp follow_snake(path) do
-    {:cont, path}
+  defp follow_snake(y, list1, list2, edits) do
+    {y, list1, list2, edits}
   end
 
   ## Helpers
