@@ -61,7 +61,14 @@ expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
 
   InferredMeta = [{inferred_bitstring_spec, true} | Meta],
   EAcc = concat_or_prepend_bitstring(InferredMeta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
-  expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, Alignment, RequireSize).
+  EAlignment = case ELeft of
+    {'<<>>', PartsMeta, _} ->
+      {alignment, PartsAlignment} = lists:keyfind(alignment, 1, PartsMeta),
+      alignment(Alignment, PartsAlignment);
+    _ ->
+      Alignment
+  end,
+  expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, EAlignment, RequireSize).
 
 extract_meta({_, Meta, _}, _) -> Meta;
 extract_meta(_, Meta) -> Meta.

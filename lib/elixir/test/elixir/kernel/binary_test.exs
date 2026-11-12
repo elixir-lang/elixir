@@ -239,6 +239,45 @@ defmodule Kernel.BinaryTest do
     assert (fn <<_, _::size(^x)>> -> true end).(<<?a, ?b>>)
   end
 
+  test "nested bitsyntax preserves alignment" do
+    assert {<<130>>, []} = Code.eval_string("<< << <<1::1>>, 2::7 >>::binary >>")
+    assert {<<130>>, []} = Code.eval_string("<< <<1::1, <<2::7>> >>::binary >>")
+    assert {<<130>>, []} = Code.eval_string("<< << <<1::1>>, <<2::7>> >>::binary >>")
+
+    assert {true, _} =
+             Code.eval_string("match?(<< << <<_x::1>>, _y::7 >>::binary >>, <<130>>)")
+  end
+
+  test "nested bitsyntax rejects unaligned binary segments" do
+    message = "its number of bits is not divisible by 8"
+
+    assert_compile_error(message, fn ->
+      Code.eval_string("<< << <<1::1>> >>::binary >>")
+    end)
+
+    assert_compile_error(message, fn ->
+      Code.eval_string("fn x, y -> << << <<x::1>> >>::binary, y::binary >> end")
+    end)
+  end
+
+  test "nested bitsyntax preserves unknown alignment" do
+    {fun, []} =
+      Code.eval_string("fn x, y -> << << <<x::bitstring>> >>::binary, y::binary >> end")
+
+    assert fun.(<<130>>, "ab") == <<130, "ab">>
+    assert_raise ArgumentError, fn -> fun.(<<1::1>>, "ab") end
+
+    {fun, []} = Code.eval_string("fn x, size -> << << <<x::size(size)>> >>::binary >> end")
+    assert fun.(130, 8) == <<130>>
+    assert_raise ArgumentError, fn -> fun.(1, 1) end
+
+    {fun, []} =
+      Code.eval_string("fn x, size -> << <<0::1, <<x::size(size)>>, 0::7>>::binary >> end")
+
+    assert fun.(130, 8) == <<65, 0>>
+    assert_raise ArgumentError, fn -> fun.(1, 1) end
+  end
+
   test "bitsyntax size using expressions" do
     x = 8
     assert <<1::size(x - 5)>>
