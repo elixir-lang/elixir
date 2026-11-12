@@ -190,6 +190,27 @@ defmodule MapTest do
     assert Map.merge(map, %{a: 3, c: 3}) |> Map.merge(%{a: 2}) == %{a: 2, b: 2, c: 3}
   end
 
+  for module <- [Map, :maps] do
+    test "#{module}.merge/2 validates the left update before evaluating the right map" do
+      map = Process.get(:unused, %{})
+
+      assert_raise KeyError, fn ->
+        unquote(module).merge(%{map | a: send(self(), :left)}, %{a: send(self(), :right)})
+      end
+
+      assert_received :left
+      refute_received :right
+    end
+
+    test "#{module}.merge/2 preserves the exception from the left update" do
+      map = Process.get(:unused, %{})
+
+      assert_raise KeyError, fn ->
+        unquote(module).merge(%{map | a: 1}, %{b: raise("second")})
+      end
+    end
+  end
+
   test "merge/3" do
     # When first map is bigger
     assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==

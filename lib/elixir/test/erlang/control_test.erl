@@ -140,9 +140,10 @@ optimized_map_merge_variable_test() ->
 optimized_map_update_and_merge_test() ->
   {block, _,
     [_,
-     {map, _, {var, _, _},
-       [{map_field_exact, _, {atom, _, a}, {integer, _, 2}},
-        {map_field_assoc, _, {atom, _, b}, {integer, _, 3}}]
+     {map, _,
+       {map, _, {var, _, _},
+         [{map_field_exact, _, {atom, _, a}, {integer, _, 2}}]},
+       [{map_field_assoc, _, {atom, _, b}, {integer, _, 3}}]
      }]
   } = to_erl("x = %{a: 1}; Map.merge(%{x | a: 2}, %{b: 3})"),
   {block, _,
@@ -158,9 +159,10 @@ optimized_map_update_and_merge_test() ->
 optimized_nested_map_merge_variable_test() ->
   {block, _,
     [_,
-     {map, _, {var, _, _},
-       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
-        {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
+     {map, _,
+       {map, _, {var, _, _},
+         [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}}]},
+       [{map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
      }]
   } = to_erl("x = %{}; Map.merge(Map.merge(x, %{a: 1}), %{b: 2})").
 
