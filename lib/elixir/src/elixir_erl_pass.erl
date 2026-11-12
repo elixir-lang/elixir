@@ -626,10 +626,9 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[{map, _, Pairs1}, {map, _, Pairs2}], TS} ->
       {{map, Ann, Pairs1 ++ Pairs2}, TS};
 
-    {[{map, _, InnerMap1, Pairs1}, {map, _, Pairs2}], TS} ->
-      {{map, Ann, InnerMap1, Pairs1 ++ Pairs2}, TS};
-
     {[TMap1, {map, _, Pairs2}], TS} ->
+      %% Keep map updates nested so the left update is validated before
+      %% evaluating the fields of the right map.
       {{map, Ann, TMap1, Pairs2}, TS};
 
     {[TMap1, TMap2], TS} ->
