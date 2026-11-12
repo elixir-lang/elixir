@@ -511,7 +511,12 @@ defmodule Module.Types.Expr do
             # Now we compute the return type and the clauses for reverse arrow
             {none?, body_acc, clauses_acc, count, refining} = acc
 
-            if (precise? and empty?(body_type)) or (errored? and not literal?) do
+            # Unreachable clauses do not contribute to the return type, except in
+            # boolean operators on literals, as they are often used to convert
+            # compile-time values to booleans, such as `!!@attr` or `@attr && expr`
+            if (precise? and empty?(body_type)) or
+                 (errored? and
+                    (not literal? or meta[:type_check] in [nil, {:case, :if}, {:case, :unless}])) do
               {{true, body_acc, clauses_acc, count, refining}, context}
             else
               [arg_type] = Pattern.of_domain(trees, stack, context)

@@ -2241,7 +2241,7 @@ defmodule Module.Types.ExprTest do
                  :dev -> :ok
                  :prod -> :error
                end
-             ) == atom([:ok, :error])
+             ) == atom([:ok])
     end
 
     test "resets branches" do
@@ -2855,7 +2855,23 @@ defmodule Module.Types.ExprTest do
                if true do
                  :ok
                end
-             ) == atom([:ok, nil])
+             ) == atom([:ok])
+    end
+
+    test "if on literals discards unreachable branches" do
+      assert typeerror!(
+               (
+                 args = if false, do: {0, 1}, else: %{}
+                 elem(args, 0)
+               )
+             ) =~ "incompatible types given to Kernel.elem/2"
+    end
+
+    test "boolean operators on literals keep unreachable branches" do
+      assert typecheck!(!!false) == boolean()
+      assert typecheck!(!true) == boolean()
+      assert typecheck!(false && :ok) == atom([false, :ok])
+      assert typecheck!(true || :ok) == atom([true, :ok])
     end
 
     test "refines expression type" do
