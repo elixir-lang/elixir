@@ -869,7 +869,7 @@ defmodule DynamicSupervisor do
         Map.put(acc, :erlang.start_timer(time, self(), :kill), pids)
       end)
 
-    stacks = wait_children(pids, size, timers, stacks)
+    stacks = wait_children(pids, size, timers, stacks, nil)
 
     for {pid, {child, reason}} <- stacks do
       report_error(:shutdown_error, reason, pid, child, state)
@@ -892,28 +892,37 @@ defmodule DynamicSupervisor do
     end)
   end
 
-  defp unlink_flush(pid, :noproc) do
+  defp unlink_flush(pid, :noproc, links) do
     # The child has terminated. If we are still linked, the :EXIT
     # message with the actual reason is guaranteed to arrive. If not,
     # it is already in the mailbox, unless the child unlinked itself.
-    {:links, links} = Process.info(self(), :links)
-    timeout = if pid in links, do: :infinity, else: 0
+    #
+    # The child terminated before it was monitored and it can no longer
+    # unlink itself, so a single snapshot of our links, taken after all
+    # children were monitored, is valid for all children.
+    links = links || links_snapshot()
+    timeout = if is_map_key(links, pid), do: :infinity, else: 0
 
     receive do
-      {:EXIT, ^pid, reason} -> reason
+      {:EXIT, ^pid, reason} -> {reason, links}
     after
-      timeout -> :noproc
+      timeout -> {:noproc, links}
     end
   end
 
-  defp unlink_flush(pid, reason) do
+  defp unlink_flush(pid, reason, links) do
     Process.unlink(pid)
 
     receive do
-      {:EXIT, ^pid, _} -> reason
+      {:EXIT, ^pid, _} -> {reason, links}
     after
-      0 -> reason
+      0 -> {reason, links}
     end
+  end
+
+  defp links_snapshot do
+    {:links, links} = Process.info(self(), :links)
+    Map.from_keys(links, [])
   end
 
   defp exit_child(pid, {_, _, shutdown, _, _}, times) do
@@ -932,7 +941,7 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp wait_children(_pids, 0, timers, stacks) do
+  defp wait_children(_pids, 0, timers, stacks, _links) do
     for {timer, _} <- timers do
       # If the timer has already expired, its message is guaranteed to arrive
       if :erlang.cancel_timer(timer) == false do
@@ -943,22 +952,22 @@ defmodule DynamicSupervisor do
     stacks
   end
 
-  defp wait_children(pids, size, timers, stacks) do
+  defp wait_children(pids, size, timers, stacks, links) do
     receive do
       {:DOWN, _ref, :process, pid, reason} ->
         case pids do
           %{^pid => child} ->
-            reason = unlink_flush(pid, reason)
+            {reason, links} = unlink_flush(pid, reason, links)
             stacks = wait_child(pid, child, reason, stacks)
-            wait_children(pids, size - 1, timers, stacks)
+            wait_children(pids, size - 1, timers, stacks, links)
 
           %{} ->
-            wait_children(pids, size, timers, stacks)
+            wait_children(pids, size, timers, stacks, links)
         end
 
       {:timeout, timer, :kill} ->
         for pid <- Map.fetch!(timers, timer), do: Process.exit(pid, :kill)
-        wait_children(pids, size, Map.delete(timers, timer), stacks)
+        wait_children(pids, size, Map.delete(timers, timer), stacks, links)
     end
   end
 
