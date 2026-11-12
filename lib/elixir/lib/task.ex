@@ -892,6 +892,7 @@ defmodule Task do
     after
       timeout ->
         demonitor(ref)
+        _ = flush_reply(ref)
         exit({:timeout, {__MODULE__, :await, [task, timeout]}})
     end
   end
@@ -1041,6 +1042,7 @@ defmodule Task do
   defp demonitor_pending_tasks(awaiting) do
     Enum.each(awaiting, fn {ref, _} ->
       demonitor(ref)
+      flush_reply(ref)
     end)
   end
 
