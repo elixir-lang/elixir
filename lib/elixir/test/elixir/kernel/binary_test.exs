@@ -288,6 +288,24 @@ defmodule Kernel.BinaryTest do
     assert <<255::size(hd(List.flatten([3])))>>
   end
 
+  test "bitsyntax size preserves temporary variables" do
+    fun = fn value, label, widths ->
+      bin = <<value::size(elem(widths.(), 0))>>
+      {bin, "label: #{label}"}
+    end
+
+    assert fun.(1, :x, fn -> {8, 16} end) == {<<1>>, "label: x"}
+  end
+
+  defmodule SizeModule do
+    def bits, do: 8
+  end
+
+  test "bitsyntax size calls dynamic modules" do
+    fun = fn module -> <<1::size(module.bits())>> end
+    assert fun.(SizeModule) == <<1>>
+  end
+
   test "bitsyntax size using guard expressions in match context" do
     x = 8
     assert <<1::size(^x - 5)>> = <<1::3>>
