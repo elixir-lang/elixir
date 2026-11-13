@@ -41,13 +41,15 @@ fun_to_quoted(Function) ->
 
 has_unquotes(Ast) -> has_unquotes(Ast, 0).
 
-has_unquotes({quote, _, [Child]}, QuoteLevel) ->
-  has_unquotes(Child, QuoteLevel + 1);
-has_unquotes({quote, _, [QuoteOpts, Child]}, QuoteLevel) ->
-  case disables_unquote(QuoteOpts) of
-    true -> false;
-    _ -> has_unquotes(Child, QuoteLevel + 1)
+has_unquotes({quote, Meta, [Opts]}, QuoteLevel) when is_list(Opts) ->
+  case lists:keytake(do, 1, Opts) of
+    {value, Do, QuoteOpts} ->
+      has_unquotes({quote, Meta, [QuoteOpts, [Do]]}, QuoteLevel);
+    false -> has_unquotes(Opts, QuoteLevel)
   end;
+has_unquotes({quote, _, [QuoteOpts, Child]}, QuoteLevel) ->
+  has_unquotes(QuoteOpts, QuoteLevel) orelse
+    (not disables_unquote(QuoteOpts) andalso has_unquotes(Child, QuoteLevel + 1));
 has_unquotes({Unquote, _, [Child]}, QuoteLevel)
   when Unquote == unquote; Unquote == unquote_splicing ->
   case QuoteLevel of
@@ -326,7 +328,7 @@ quote(Expr, Q) ->
 %% quote/unquote
 
 do_quote({quote, Meta, [Arg]}, Q) when is_list(Meta) ->
-  TArg = do_quote(Arg, Q#elixir_quote{unquote=false}),
+  TArg = do_quote_opts(Arg, Q),
 
   NewMeta = case Q of
     #elixir_quote{op=quote, context=Context} -> keystore(context, Meta, Context);
@@ -440,6 +442,13 @@ do_quote([H | T], Q) ->
 
 do_quote(Other, _) ->
   Other.
+
+do_quote_opts([{do, _} = Do | Rest], Q) ->
+  [do_quote(Do, Q#elixir_quote{unquote=false}) | do_quote_opts(Rest, Q)];
+do_quote_opts([Opt | Rest], Q) ->
+  [do_quote(Opt, Q) | do_quote_opts(Rest, Q)];
+do_quote_opts(Other, Q) ->
+  do_quote(Other, Q#elixir_quote{unquote=false}).
 
 import_meta(Meta, Name, Arity, Q, E) ->
   case (keyfind(imports, Meta) == false) andalso
