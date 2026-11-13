@@ -1611,7 +1611,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply_or_none(none(), [integer()]) == :badfun
 
       assert fun_apply_or_none(fun([integer(), integer()], atom()), [integer()]) ==
-               {:badarity, [2]}
+               {:badarity, :positive, [2]}
     end
   end
 
@@ -1629,10 +1629,31 @@ defmodule Module.Types.DescrTest do
 
     test "static" do
       # Full static
-      assert fun_apply(fun(), [integer()]) == {:badarg, [none()], false}
+      assert fun_apply(fun(), [integer()]) == {:badarity, :negative, []}
 
       assert fun_apply(opt_difference(fun(), none_fun(2)), [integer()]) ==
-               {:badarg, [none()], false}
+               {:badarity, :negative, [2]}
+
+      # Negation forms hold every function of the arities they do not mention
+      int_to_int = fun([integer()], integer())
+      neg_fun = opt_difference(fun(), opt_difference(none_fun(1), int_to_int))
+      assert subtype?(none_fun(2), neg_fun)
+      assert fun_apply(neg_fun, [integer()]) == {:badarity, :negative, []}
+
+      assert fun_apply(opt_union(neg_fun, dynamic(int_to_int)), [integer()]) ==
+               {:badarity, :negative, []}
+
+      # Negation forms without the applied arity are still functions
+      no_arity_1 = opt_difference(fun(), none_fun(1))
+      refute empty?(no_arity_1)
+      assert fun_apply(no_arity_1, [integer()]) == {:badarity, :negative, [1]}
+      assert fun_apply(dynamic(no_arity_1), [integer()]) == {:badarity, :negative, [1]}
+
+      assert fun_apply(opt_union(no_arity_1, dynamic(int_to_int)), [integer()]) ==
+               {:badarity, :negative, [1]}
+
+      no_arity_1_and_2 = opt_difference(no_arity_1, none_fun(2))
+      assert fun_apply(no_arity_1_and_2, [integer()]) == {:badarity, :negative, [1, 2]}
 
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
@@ -1669,16 +1690,19 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], atom()), [dynamic(term())]) == {:ok, dynamic()}
 
       # Arity mismatches
-      assert fun_apply(fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
-      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
+      assert fun_apply(fun([integer()], integer()), [term(), term()]) ==
+               {:badarity, :positive, [1]}
+
+      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) ==
+               {:badarity, :positive, [2]}
 
       # Union of two different arities: always badarity regardless of which arity is called
       fun_mixed = opt_union(fun([integer()], integer()), fun([integer(), atom()], boolean()))
-      assert fun_apply(fun_mixed, [integer()]) == {:badarity, [1, 2]}
-      assert fun_apply(fun_mixed, [integer(), atom()]) == {:badarity, [2, 1]}
+      assert fun_apply(fun_mixed, [integer()]) == {:badarity, :positive, [1, 2]}
+      assert fun_apply(fun_mixed, [integer(), atom()]) == {:badarity, :positive, [2, 1]}
 
       # A function that is empty at the called arity is :badfun, not a
-      # self-contradictory {:badarity, [called_arity]}.
+      # self-contradictory {:badarity, :positive, [called_arity]}.
       empty_fun =
         opt_difference(fun([opt_union(integer(), float())], atom()), fun([integer()], atom()))
 
@@ -1695,8 +1719,11 @@ defmodule Module.Types.DescrTest do
       assert equal?(usable_at_2, fun([integer(), atom()], boolean()))
 
       # Congruent with the normalized form, and excludes the empty arity 1.
-      assert fun_apply(usable_at_2, [integer()]) == {:badarity, [2]}
-      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
+      assert fun_apply(usable_at_2, [integer()]) == {:badarity, :positive, [2]}
+
+      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) ==
+               {:badarity, :positive, [2]}
+
       assert fun_apply(usable_at_2, [integer(), atom()]) == {:ok, boolean()}
 
       # A function that is empty at *every* arity is :badfun at any arity, even
@@ -1725,7 +1752,7 @@ defmodule Module.Types.DescrTest do
 
       assert equal?(live_at_2, dynamic(fun([integer(), atom()], boolean())))
       assert fun_apply(live_at_2, [integer(), atom()]) == {:ok, dynamic(boolean())}
-      assert fun_apply(live_at_2, [integer()]) == {:badarity, [2]}
+      assert fun_apply(live_at_2, [integer()]) == {:badarity, :positive, [2]}
 
       # Function intersection tests (no overlap)
       fun0 = opt_intersection(fun([integer()], atom()), fun([float()], binary()))
@@ -1815,10 +1842,11 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun, [dynamic(atom())]) == {:ok, dynamic()}
 
       # Arity mismatches
-      assert fun_apply(dynamic_fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
+      assert fun_apply(dynamic_fun([integer()], integer()), [term(), term()]) ==
+               {:badarity, :positive, [1]}
 
       assert fun_apply(dynamic_fun([integer(), atom()], boolean()), [integer()]) ==
-               {:badarity, [2]}
+               {:badarity, :positive, [2]}
 
       # Union of two dynamic functions with different arities: the call may succeed,
       # so we pick the matching-arity arrows and wrap in dynamic().
@@ -1833,7 +1861,9 @@ defmodule Module.Types.DescrTest do
       # picks arity-2 arrows → dynamic(boolean())
       assert fun_apply(fun_dyn_mixed, [integer(), atom()]) == {:ok, dynamic(boolean())}
       # no matching arity → badarity (no dynamic escape here)
-      assert fun_apply(fun_dyn_mixed, [integer(), atom(), float()]) == {:badarity, [1, 2]}
+      assert fun_apply(fun_dyn_mixed, [integer(), atom(), float()]) ==
+               {:badarity, :positive, [1, 2]}
+
       # arg outside arity-1 domain but dynamic-compatible → dynamic()
       assert fun_apply(fun_dyn_mixed, [atom()]) == {:ok, dynamic()}
 
@@ -1912,7 +1942,7 @@ defmodule Module.Types.DescrTest do
              |> elem(1)
              |> equal?(integer())
 
-      assert fun_arities |> fun_apply([integer(), float()]) == {:badarity, [1]}
+      assert fun_arities |> fun_apply([integer(), float()]) == {:badarity, :positive, [1]}
 
       # Bad argument
       fun_args =
