@@ -221,6 +221,12 @@ defmodule Mix.Tasks.Deps.Compile do
           )
         end
 
+        # Dependencies have already been loaded by the parent project,
+        # so we never load them again from within the dependency.
+        # This also prevents Mix from loading (and compiling) dependencies
+        # on demand when a task is missing.
+        Mix.Task.mark_as_run("deps.loadpaths")
+
         try do
           options = [
             "--from-mix-deps-compile",
@@ -234,9 +240,19 @@ defmodule Mix.Tasks.Deps.Compile do
           kind, reason ->
             app = dep.app
 
+            feedback =
+              case reason do
+                %Mix.NoTaskError{} ->
+                  "If the task is defined by one of its dependencies, make sure they are " <>
+                    "compiled first, as in \"mix deps.compile #{app} --include-children\""
+
+                _ ->
+                  deps_compile_feedback(app)
+              end
+
             Mix.shell().error(
               "could not compile dependency #{inspect(app)}, \"mix compile\" failed. " <>
-                deps_compile_feedback(app)
+                feedback
             )
 
             :erlang.raise(kind, reason, __STACKTRACE__)
