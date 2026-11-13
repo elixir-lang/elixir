@@ -569,6 +569,17 @@ defmodule Kernel.ComprehensionTest do
     assert for(b <- [bin], <<0::size(^s), x::size(^s) <- b>>, into: "", do: <<x>>) == <<1, 3, 1>>
   end
 
+  test "binary for comprehensions skip non-matching chunks" do
+    bin = <<0, 1, 9, 2, 0, 3>>
+    assert for(n <- [8], <<0, x::size(^n) <- bin>>, do: x) == [1, 3]
+
+    bin = <<8, 1, 8, 16, 0, 2, 0, 8, 3, 8>>
+    assert for(<<len, x::size(len), len <- bin>>, uniq: true, do: x) == [1, 3]
+
+    bin = <<1.0::float-64, 0x7FF8000000000001::64, 2.0::float-64>>
+    assert for(<<x::float <- bin>>, uniq: true, do: x) == [1.0, 2.0]
+  end
+
   test "binary for comprehensions where value is not used" do
     bin = <<1, 2, 3>>
 
