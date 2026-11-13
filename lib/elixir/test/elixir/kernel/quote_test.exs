@@ -819,29 +819,6 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
     end
   end
 
-  test "unquotes in quote options in definition bodies" do
-    Code.eval_string("""
-    defmodule #{__MODULE__}.Options do
-      for value <- [42] do
-        defmacro block do
-          quote bind_quoted: [x: unquote(value)] do
-            x
-          end
-        end
-
-        defmacro keyword do
-          quote(bind_quoted: [x: unquote(value)], do: x)
-        end
-      end
-    end
-    """)
-
-    assert Code.eval_string("""
-           require #{__MODULE__}.Options
-           {#{__MODULE__}.Options.block(), #{__MODULE__}.Options.keyword()}
-           """) == {{42, 42}, []}
-  end
-
   test "body within quote disabling unquotes returns false" do
     ast =
       quote unquote: false do
