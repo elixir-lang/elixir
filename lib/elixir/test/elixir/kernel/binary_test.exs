@@ -288,6 +288,84 @@ defmodule Kernel.BinaryTest do
     assert <<255::size(hd(List.flatten([3])))>>
   end
 
+  test "bitsyntax size preserves temporary variables" do
+    fun = fn value, label, widths ->
+      bin = <<value::size(elem(widths.(), 0))>>
+      {bin, "label: #{label}"}
+    end
+
+    assert fun.(1, :x, fn -> {8, 16} end) == {<<1>>, "label: x"}
+  end
+
+  test "bitsyntax size preserves variable versions" do
+    fun = fn map ->
+      bin =
+        <<1::size(
+            case map do
+              %{size: size} -> size
+            end
+          )>>
+
+      size = 2
+      {bin, size}
+    end
+
+    assert fun.(%{size: 8}) == {<<1>>, 2}
+  end
+
+  test "bitsyntax size preserves state across segments" do
+    fun = fn widths ->
+      <<1::size(elem(widths.(8), 0)), 2::size(elem(widths.(16), 0))>>
+    end
+
+    assert fun.(fn width -> {width} end) == <<1, 0, 2>>
+  end
+
+  defmodule SizeModule do
+    def bits, do: 8
+  end
+
+  test "bitsyntax size calls dynamic modules" do
+    fun = fn module -> <<1::size(module.bits())>> end
+    assert fun.(SizeModule) == <<1>>
+
+    assert capture_err(fn -> assert fun.(dynamic(%{bits: 8})) == <<1>> end) =~
+             "using module.function() notation (with parentheses) to fetch map field :bits is deprecated"
+  end
+
+  test "bitsyntax size preserves caller usage" do
+    defmodule SizeCaller do
+      defmacro binary do
+        <<1::size(__CALLER__.line * 8)>>
+      end
+    end
+
+    assert Code.eval_string("require #{SizeCaller}\n#{SizeCaller}.binary()") == {<<0, 1>>, []}
+  end
+
+  test "bitsyntax evaluates each value before its size" do
+    step = fn tag, value ->
+      send(self(), {:step, tag})
+      value
+    end
+
+    assert <<
+             step.(:value1, 1)::size(step.(:size1, 8)),
+             step.(:value2, 2)::size(step.(:size2, 16))
+           >> == <<1, 0, 2>>
+
+    for expected <- [:value1, :size1, :value2, :size2] do
+      assert_receive {:step, actual}
+      assert actual == expected
+    end
+  end
+
+  test "bitsyntax size using map fields in guard context" do
+    fun = fn map when <<1::size(map.bits)>> == <<1>> -> :ok end
+    assert fun.(%{bits: 8}) == :ok
+    assert_raise FunctionClauseError, fn -> fun.(dynamic(SizeModule)) end
+  end
+
   test "bitsyntax size using guard expressions in match context" do
     x = 8
     assert <<1::size(^x - 5)>> = <<1::3>>
@@ -302,6 +380,16 @@ defmodule Kernel.BinaryTest do
     a = 1
     b = <<2, 3>>
     assert <<^a, ^b::binary>> = <<1, 2, 3>>
+
+    size = 8
+
+    fun = fn
+      <<^a::size(^size)>> -> :ok
+      _ -> :error
+    end
+
+    assert fun.(<<1>>) == :ok
+    assert fun.(<<2>>) == :error
   end
 
   test "automatic size computation of matched bitsyntax variable" do
@@ -375,6 +463,8 @@ defmodule Kernel.BinaryTest do
   defp capture_err(fun) do
     ExUnit.CaptureIO.capture_io(:stderr, fun)
   end
+
+  defp dynamic(value), do: value
 
   defp assert_compile_error(message, fun) do
     assert capture_err(fn -> assert_raise CompileError, fun end) =~ message

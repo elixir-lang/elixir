@@ -509,9 +509,9 @@ build_map(Ann, none, TArgs, SA) -> {{map, Ann, TArgs}, SA}.
 translate_bitstring(Meta, Args, S) ->
   build_bitstr(Args, ?ann(Meta), S, []).
 
-build_bitstr([{'::', Meta, [H, V]} | T], Ann, S, Acc) ->
-  {Size, Types} = extract_bit_info(V, Meta, S#elixir_erl{context=nil, extra=nil}),
-  build_bitstr(T, Ann, S, Acc, H, Size, Types);
+build_bitstr([{'::', Meta, [H, V]} | T], Ann, #elixir_erl{context=Context, extra=Extra} = S, Acc) ->
+  {Size, Types, SS} = extract_bit_info(V, Meta, Context, S#elixir_erl{context=nil, extra=nil}),
+  build_bitstr(T, Ann, SS#elixir_erl{context=Context, extra=Extra}, Acc, H, Size, Types);
 build_bitstr([], Ann, S, Acc) ->
   {{bin, Ann, lists:reverse(Acc)}, S}.
 
@@ -536,16 +536,21 @@ requires_utf_conversion([bitstring | _]) -> false;
 requires_utf_conversion([binary | _]) -> false;
 requires_utf_conversion(_) -> true.
 
-extract_bit_info({'-', _, [L, {size, _, [Size]}]}, Meta, S) ->
-  {extract_bit_size(Size, Meta, S), extract_bit_type(L, [])};
-extract_bit_info({size, _, [Size]}, Meta, S) ->
-  {extract_bit_size(Size, Meta, S), []};
-extract_bit_info(L, _Meta, _S) ->
-  {default, extract_bit_type(L, [])}.
+extract_bit_info({'-', _, [L, {size, _, [Size]}]}, Meta, Context, S) ->
+  {TSize, SS} = extract_bit_size(Size, Meta, Context, S),
+  {TSize, extract_bit_type(L, []), SS};
+extract_bit_info({size, _, [Size]}, Meta, Context, S) ->
+  {TSize, SS} = extract_bit_size(Size, Meta, Context, S),
+  {TSize, [], SS};
+extract_bit_info(L, _Meta, _Context, S) ->
+  {default, extract_bit_type(L, []), S}.
 
-extract_bit_size(Size, Meta, S) ->
-  {TSize, _} = translate(Size, ?ann(Meta), S#elixir_erl{context=guard}),
-  TSize.
+extract_bit_size(Size, Meta, Context, S) ->
+  SizeContext = case Context of
+    match -> guard;
+    _ -> Context
+  end,
+  translate(Size, ?ann(Meta), S#elixir_erl{context=SizeContext}).
 
 extract_bit_type({'-', _, [L, R]}, Acc) ->
   extract_bit_type(L, extract_bit_type(R, Acc));
