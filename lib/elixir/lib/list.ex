@@ -694,34 +694,34 @@ defmodule List do
   # We keep the old implementation because it also supported lists
   # of tuples, even though this was not included in its @spec.
   def zip([]), do: []
-  def zip(list_of_lists) when is_list(list_of_lists), do: do_zip(list_of_lists, [])
+  def zip(list_of_lists) when is_list(list_of_lists), do: do_zip_row(list_of_lists, [], [], [])
 
-  defp do_zip(list, acc) do
-    converter = fn x, acc -> do_zip_each(to_list(x), acc) end
+  defp do_zip_row([[head | tail] | rest], tails, heads, acc) do
+    do_zip_row(rest, [tail | tails], [head | heads], acc)
+  end
 
-    case :lists.mapfoldl(converter, [], list) do
-      {_, nil} ->
-        :lists.reverse(acc)
+  defp do_zip_row([[] | rest], _tails, _heads, acc) do
+    do_zip_abort(rest, acc)
+  end
 
-      {mlist, heads} ->
-        do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
+  defp do_zip_row([tuple | rest], tails, heads, acc) when is_tuple(tuple) do
+    case :erlang.tuple_to_list(tuple) do
+      [head | tail] -> do_zip_row(rest, [tail | tails], [head | heads], acc)
+      [] -> do_zip_abort(rest, acc)
     end
   end
 
-  defp do_zip_each(_, nil) do
-    {nil, nil}
+  defp do_zip_row([], tails, heads, acc) do
+    do_zip_row(:lists.reverse(tails), [], [], [to_tuple(:lists.reverse(heads)) | acc])
   end
 
-  defp do_zip_each([head | tail], acc) do
-    {tail, [head | acc]}
+  defp do_zip_abort([item | rest], acc) when is_list(item) or is_tuple(item) do
+    do_zip_abort(rest, acc)
   end
 
-  defp do_zip_each([], _) do
-    {nil, nil}
+  defp do_zip_abort([], acc) do
+    :lists.reverse(acc)
   end
-
-  defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
-  defp to_list(list) when is_list(list), do: list
 
   @doc ~S"""
   Checks if `list` is a charlist made only of printable ASCII characters.
