@@ -232,10 +232,17 @@ defmodule IO.ANSI.Docs do
 
   defp write_heading(heading, rest, text, indent, options) do
     write_text(text, indent, options)
-    write(:doc_headings, heading, options)
+    write(:doc_headings, strip_heading_ial(heading), options)
     newline_after_block(options)
     process(rest, [], "", options)
   end
+
+  # Removes inline attribute lists, such as {: .warning}, from the end of headings
+  defp strip_heading_ial("#" <> _ = heading) do
+    Regex.replace(~r/\s*\{:\s+[^}]+\}\z/, heading, "")
+  end
+
+  defp strip_heading_ial(line), do: line
 
   ### Quotes
 
@@ -256,7 +263,7 @@ defmodule IO.ANSI.Docs do
 
   defp write_quote(lines, indent, options, no_wrap) do
     lines
-    |> Enum.map(&String.trim/1)
+    |> Enum.map(&(&1 |> String.trim() |> strip_heading_ial()))
     |> Enum.reverse()
     |> write_lines(
       indent,
