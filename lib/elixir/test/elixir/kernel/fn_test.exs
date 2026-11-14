@@ -101,7 +101,7 @@ defmodule Kernel.FnTest do
 
   test "capture with assignment in module" do
     mod = :outer
-    assert (&(mod = List).flatten(&1)).([1, [2], 3]) == [1, 2, 3]
+    assert (&(_mod = List).flatten(&1)).([1, [2], 3]) == [1, 2, 3]
     assert mod == :outer
   end
 

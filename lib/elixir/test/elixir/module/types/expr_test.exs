@@ -4018,7 +4018,7 @@ defmodule Module.Types.ExprTest do
                    %{limit: l} ->
                      is_map_key(x, :a) and
                        case "" do
-                         <<_::size(l)>> -> true
+                         <<_::size(^l)>> -> true
                          _ -> false
                        end
 
