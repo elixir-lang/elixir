@@ -74,6 +74,11 @@ defmodule IO.ANSI.DocsTest do
       assert result == "\e[33m# wibble\e[0m\n\e[0m\ntext\n\e[0m"
     end
 
+    test "ial of first level heading is removed (non regression)" do
+      result = format_markdown("# wibble {: .warning}\n\ntext\n")
+      assert result == "\e[33m# wibble\e[0m\n\e[0m\ntext\n\e[0m"
+    end
+
     test "second level heading is converted" do
       result = format_markdown("## wibble\n\ntext\n")
       assert result == "\e[33m## wibble\e[0m\n\e[0m\ntext\n\e[0m"
@@ -177,6 +182,28 @@ defmodule IO.ANSI.DocsTest do
                \e[90m> \e[0msome-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
                \e[0m
                line2
+               \e[0m\
+               """
+    end
+
+    test "ial removed from multi-line quote block's headline (use case from String.split_at's)" do
+      result =
+        format_markdown("""
+        > #### Linear Access {: .warning}
+        >
+        > This function splits on graphemes and for such it has to linearly traverse
+        > the string.
+        > If you want to split a string or a binary based on the number of bytes,
+        > use `Kernel.binary_part/3` instead.
+        """)
+
+      assert result ==
+               """
+               \e[90m> \e[0m#### Linear Access
+               \e[90m> \e[0m
+               \e[90m> \e[0mThis function splits on graphemes and for such it has to linearly traverse
+               \e[90m> \e[0mthe string. If you want to split a string or a binary based on the number of
+               \e[90m> \e[0mbytes, use \e[36mKernel.binary_part/3\e[0m instead.
                \e[0m\
                """
     end

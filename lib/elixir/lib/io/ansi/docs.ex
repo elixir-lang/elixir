@@ -147,7 +147,7 @@ defmodule IO.ANSI.Docs do
 
     doc
     |> String.split(["\r\n", "\n"], trim: false)
-    |> Enum.map(&String.trim_trailing/1)
+    |> Enum.map(&remove_ial/1)
     |> process([], "", options)
   end
 
@@ -226,6 +226,11 @@ defmodule IO.ANSI.Docs do
       true ->
         process_rest(stripped, rest, count, text, indent, options)
     end
+  end
+
+  defp remove_ial(text) do
+    ial_and_ws = ~r/(?:\s*\{:\s+.+?\})?\s*\z/
+    Regex.replace(ial_and_ws, text, "")
   end
 
   ### Headings
