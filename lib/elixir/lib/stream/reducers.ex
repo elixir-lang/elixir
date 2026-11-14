@@ -71,13 +71,7 @@ defmodule Stream.Reducers do
   end
 
   defp do_zip_enum(zips, {:cont, acc}, callback, zip_fun) do
-    try do
-      do_zip_next(zips, acc, callback, [], [], zip_fun)
-    catch
-      kind, reason ->
-        do_zip_close(zips)
-        :erlang.raise(kind, reason, __STACKTRACE__)
-    else
+    case do_zip_next(zips, acc, callback, [], [], zip_fun) do
       {:next, buffer, acc} ->
         do_zip_enum(buffer, acc, callback, zip_fun)
 
@@ -101,7 +95,16 @@ defmodule Stream.Reducers do
   end
 
   defp do_zip_next([{fun, [], :cont} | zips], acc, callback, yielded_elems, buffer, zip_fun) do
-    case fun.({:cont, []}) do
+    # If the current stream fails, it is responsible for its own cleanup,
+    # so we only close the streams that were already advanced and the ones
+    # that were not advanced yet.
+    try do
+      fun.({:cont, []})
+    catch
+      kind, reason ->
+        do_zip_close(:lists.reverse(buffer, zips))
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    else
       {:suspended, [elem | next_acc], fun} ->
         next_buffer = [{fun, next_acc, :cont} | buffer]
         do_zip_next(zips, acc, callback, [elem | yielded_elems], next_buffer, zip_fun)
@@ -135,7 +138,17 @@ defmodule Stream.Reducers do
     # "yielded_elems" is a reversed list of results for the current iteration of
     # zipping. That is to say, the nth element from each of the enums being zipped.
     # It needs to be reversed and passed to the zipping function so it can do it's thing.
-    {:next, :lists.reverse(buffer), callback.(zip_fun.(:lists.reverse(yielded_elems)), acc)}
+    buffer = :lists.reverse(buffer)
+
+    try do
+      callback.(zip_fun.(:lists.reverse(yielded_elems)), acc)
+    catch
+      kind, reason ->
+        do_zip_close(buffer)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    else
+      acc -> {:next, buffer, acc}
+    end
   end
 
   defp do_zip_close(zips) do

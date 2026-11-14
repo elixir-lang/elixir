@@ -1431,7 +1431,16 @@ defmodule Stream do
   defp do_cycle(reduce, inner_acc, cycle, {:cont, acc}, fun) do
     case reduce.({:cont, inner_acc}) do
       {:suspended, [element], new_reduce} ->
-        do_cycle(new_reduce, inner_acc, cycle, fun.(element, acc), fun)
+        next_acc =
+          try do
+            fun.(element, acc)
+          catch
+            kind, reason ->
+              new_reduce.({:halt, inner_acc})
+              :erlang.raise(kind, reason, __STACKTRACE__)
+          end
+
+        do_cycle(new_reduce, inner_acc, cycle, next_acc, fun)
 
       {_, [element]} ->
         do_cycle(cycle, [], cycle, fun.(element, acc), fun)
