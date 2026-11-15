@@ -376,6 +376,30 @@ defmodule Kernel.TracersTest do
     refute_received {{:remote_function, _, List, :flatten, 1}, _}
   end
 
+  test "does not trace macro callbacks twice" do
+    compile_string("""
+    defmodule TraceCallbacksOnce do
+      defmacro __before_compile__(_env) do
+        quote do: List.flatten([])
+      end
+
+      defmacro __after_compile__(_env, _bin) do
+        quote do: List.duplicate(:ok, 1)
+      end
+    end
+
+    defmodule TraceCallbacksOnceUser do
+      @before_compile TraceCallbacksOnce
+      @after_compile TraceCallbacksOnce
+    end
+    """)
+
+    assert_received {{:remote_function, _, List, :flatten, 1}, _}
+    refute_received {{:remote_function, _, List, :flatten, 1}, _}
+    assert_received {{:remote_function, _, List, :duplicate, 2}, _}
+    refute_received {{:remote_function, _, List, :duplicate, 2}, _}
+  end
+
   """
   # Make sure this module is compiled with column information
   defmodule MacroWithColumn do
