@@ -376,28 +376,40 @@ defmodule Kernel.TracersTest do
     refute_received {{:remote_function, _, List, :flatten, 1}, _}
   end
 
+  defmodule ExpandOnce do
+    def noop, do: :ok
+    defmacro literal(value), do: value
+    defmacro __before_compile__(_env), do: quote(do: unquote(__MODULE__).noop())
+    defmacro __after_compile__(_env, _bin), do: quote(do: unquote(__MODULE__).noop())
+  end
+
   test "does not trace macro callbacks twice" do
     compile_string("""
     defmodule TraceCallbacksOnce do
-      defmacro __before_compile__(_env) do
-        quote do: List.flatten([])
-      end
-
-      defmacro __after_compile__(_env, _bin) do
-        quote do: List.duplicate(:ok, 1)
-      end
-    end
-
-    defmodule TraceCallbacksOnceUser do
-      @before_compile TraceCallbacksOnce
-      @after_compile TraceCallbacksOnce
+      @before_compile Kernel.TracersTest.ExpandOnce
+      @after_compile Kernel.TracersTest.ExpandOnce
     end
     """)
 
-    assert_received {{:remote_function, _, List, :flatten, 1}, _}
-    refute_received {{:remote_function, _, List, :flatten, 1}, _}
-    assert_received {{:remote_function, _, List, :duplicate, 2}, _}
-    refute_received {{:remote_function, _, List, :duplicate, 2}, _}
+    assert_received {{:remote_function, _, ExpandOnce, :noop, 0}, _}
+    assert_received {{:remote_function, _, ExpandOnce, :noop, 0}, _}
+    refute_received {{:remote_function, _, ExpandOnce, :noop, 0}, _}
+  end
+
+  test "does not trace multi-alias options twice" do
+    compile_string("""
+    defmodule TraceMultiAliasOnce do
+      require Kernel.TracersTest.ExpandOnce, as: ExpandOnce
+      alias Enum.{Foo, Bar}, warn: ExpandOnce.literal(false)
+      require Kernel.{SpecialForms, Utils}, warn: ExpandOnce.literal(false)
+      import IO.{ANSI, Stream}, only: ExpandOnce.literal([])
+    end
+    """)
+
+    assert_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
+    assert_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
+    assert_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
+    refute_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
   end
 
   """

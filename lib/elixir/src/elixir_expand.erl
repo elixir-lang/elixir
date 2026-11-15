@@ -612,18 +612,23 @@ expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E) ->
 
   case is_atom(BaseRef) of
     true ->
+      %% Expand the options once, as valid options expand to
+      %% literals, which can be expanded again for each ref
+      assert_no_match_or_guard_scope(Meta, atom_to_list(Kind), S, E),
+      {EOpts, SO, EO} = expand(Opts, SB, EB),
+
       Fun = fun
         ({'__aliases__', _, Ref}, SR, ER) ->
-          expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, SR, ER);
+          expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), EOpts]}, SR, ER);
 
         (Ref, SR, ER) when is_atom(Ref) ->
-          expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, SR, ER);
+          expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), EOpts]}, SR, ER);
 
         (Other, _SR, _ER) ->
           file_error(Meta, E, ?MODULE, {expected_compile_time_module, Kind, Other})
       end,
 
-      mapfold(Fun, SB, EB, Refs);
+      mapfold(Fun, SO, EO, Refs);
 
     false ->
       file_error(Meta, E, ?MODULE, {invalid_alias, Base})
