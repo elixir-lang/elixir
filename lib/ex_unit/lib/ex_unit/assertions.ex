@@ -166,9 +166,8 @@ defmodule ExUnit.Assertions do
 
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, mark_as_generated(assertion))
-    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-
     left = __expand_pattern__(left, __CALLER__)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
@@ -226,9 +225,8 @@ defmodule ExUnit.Assertions do
   """
   defmacro refute({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:refute, meta, assertion)
-    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-
     left = __expand_pattern__(left, __CALLER__)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do

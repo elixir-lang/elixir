@@ -412,6 +412,28 @@ defmodule Kernel.TracersTest do
     refute_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
   end
 
+  test "does not trace macro arguments twice" do
+    compile_string("""
+    defmodule TraceArgumentsOnce do
+      require Kernel.TracersTest.ExpandOnce, as: ExpandOnce
+      require Record
+      import ExUnit.Assertions
+      Record.defrecord(:user, name: nil)
+
+      def in_body(x), do: x in ExpandOnce.literal([1, 2, 3])
+      def record(x), do: user(ExpandOnce.literal(x))
+      def assert_match(x), do: assert(match?(ExpandOnce.literal({1, _}), x))
+      def refute_match(x), do: refute(match?(ExpandOnce.literal({1, _}), x))
+    end
+    """)
+
+    for _ <- 1..4 do
+      assert_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
+    end
+
+    refute_received {{:remote_macro, _, ExpandOnce, :literal, 1}, _}
+  end
+
   """
   # Make sure this module is compiled with column information
   defmodule MacroWithColumn do

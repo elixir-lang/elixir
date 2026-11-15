@@ -4709,7 +4709,7 @@ defmodule Kernel do
       [head | tail] = list ->
         case in_body? do
           false -> in_list(left, head, tail, expand, list)
-          true -> quote(do: :lists.member(unquote(left), unquote(right)))
+          true -> quote(do: :lists.member(unquote(left), unquote(list)))
         end
 
       %{} = right ->

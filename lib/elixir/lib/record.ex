@@ -384,7 +384,7 @@ defmodule Record do
           {^tag, arg} when length(fields) == 1 ->
             Record.__keyword__(tag, fields, {tag, arg})
 
-          _ ->
+          args ->
             quote(do: Record.__keyword__(unquote(tag), unquote(fields), unquote(args)))
         end
     end
