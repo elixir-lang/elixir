@@ -1015,7 +1015,8 @@ defmodule Calendar do
   end
 
   defp pad_leading(string, count, padding)
-       when is_binary(string) and (count == 0 or padding == ""), do: string
+       when is_binary(string) and (count == 0 or padding == ""),
+       do: string
 
   defp pad_leading(string, count, padding) do
     to_pad = count - String.length(string)

@@ -1214,10 +1214,12 @@ defmodule Module.Types.Descr do
   def bitstring_no_binary_type?(%{dynamic: :term}), do: true
 
   def bitstring_no_binary_type?(%{dynamic: %{bitmap: bitmap}})
-      when (bitmap &&& @bit_bitstring_no_binary) != 0, do: true
+      when (bitmap &&& @bit_bitstring_no_binary) != 0,
+      do: true
 
   def bitstring_no_binary_type?(%{bitmap: bitmap})
-      when (bitmap &&& @bit_bitstring_no_binary) != 0, do: true
+      when (bitmap &&& @bit_bitstring_no_binary) != 0,
+      do: true
 
   def bitstring_no_binary_type?({_, _, _} = node),
     do: bitstring_no_binary_type?(unfold(node))

@@ -987,7 +987,8 @@ defmodule Inspect.Algebra do
       converts breaks into newlines first, allowing the child to compute
       if it fits. However, if the child group is optimistic and it
       has breaks, then the parent assumes it fits, leaving the overall
-      fitting decision to the child
+      fitting decision to the child. Still, if the parent group breaks,
+      the optimistic group breaks too
 
     * `:pessimistic` - the group fits if it fits within the given
       width. However it disables any optimistic group within it
@@ -1354,6 +1355,10 @@ defmodule Inspect.Algebra do
   # TODO: Deprecate me in Elixir v1.23
   defp format(w, k, i, :break, doc_group(x, :inherit), t, acc) do
     format(w, k, i, :break, x, t, acc)
+  end
+
+  defp format(w, k, i, :break, doc_group(x, :optimistic), t, acc) do
+    format(w, k, i, :break, x, [:group_over | t], acc)
   end
 
   defp format(w, k, i, :flat, doc_group(x, :optimistic), t, acc) do

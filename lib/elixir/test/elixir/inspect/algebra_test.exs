@@ -203,6 +203,12 @@ defmodule Inspect.AlgebraTest do
              "hello\na\nb c\nd"
   end
 
+  test "optimistic groups break when parent breaks" do
+    child = glue("a", "b")
+    assert render(group(glue("hello", group(child))), 5) == "hello\na b"
+    assert render(group(glue("hello", group(child, :optimistic))), 5) == "hello\na\nb"
+  end
+
   test "no limit doc" do
     doc = no_limit(group(glue(glue("hello", "a"), "b")))
     assert render(doc, 5) == "hello a b"
