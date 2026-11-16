@@ -24,14 +24,21 @@
   * [Code.Formatter] Preserve comments at their intended location in many different scenarios
   * [File] Accept an open IO device in `File.stat/2`, `File.stat!/2`, `File.regular?/2`, `File.dir?/2`, and `File.exists?/2`
   * [IO.ANSI] Add `bold/0`, `bold_off/0`, `dim/0`, `dim_off/0`, `blink/0`, `invisible/0`, `invisible_off/0`, `strikethrough/0`, `strikethrough_off/0`, `italic_off/0`, `underline_off/0`, `overline/0`, `overline_off/0`, `cursor_forward/0`, `cursor_backward/0`, and `cursor_home/0`, aligning names with Erlang/OTP
+  * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
+  * [IO.ANSI.Docs] Strip inline attribute lists, such as `{: .warning}`, from headings, including inside blockquotes
   * [Kernel] Improve performance of type constructors and complex intersections
   * [Kernel] Refine variables across `or`, `||`, and the falsy side of `and` and `&&` in conditions, such as `cond do is_integer(x) or is_boolean(x) -> ... end`
   * [Kernel] Refine variables through the assignments in conditionals, such as `y = is_integer(x); if y, do: x, else: x`
   * [Kernel] Warn on aliases that are never used because a later alias shadows them
   * [Kernel] Warn on binary patterns with segments that are not byte-aligned
+  * [Kernel] Improve type precision of `--/2`
+  * [Kernel] Improve type precision of `case` when some of its clauses always raise
+  * [Kernel] Improve type precision of `case` and `if` on literals by ignoring unreachable clauses
+  * [Kernel] Make pin patterns with singleton types precise, so subsequent redundant clauses are detected
   * [Kernel.ParallelCompiler] Add a hint when spawned processes cannot load modules defined during compilation
   * [Keyword] Optimize `Keyword.pop/3`, `Keyword.pop!/2`, and `Keyword.pop_lazy/3`
   * [List] Add `List.to_existing_atom/2` and `List.to_unsafe_atom/1`
+  * [Macro] Accept a callback in `Macro.quoted_literal?/2` to consider additional nodes, such as variables, as literals
   * [MapSet] Optimize `MapSet.symmetric_difference/2` when set sizes differ
   * [Path] Add `Path.safe_join/2`
   * [Protocol] Add the `:skip_consolidated` option to `Protocol.extract_protocols/2`
@@ -58,6 +65,7 @@
 The following bug fixes may break applications relying on the broken behaviour:
 
   * [Kernel] Fix parsing precedence of unary operators applied to do-end blocks, such as `!if a do b end || c`
+  * [Kernel] Parse chained `in` and `not in` operators as left associative
   * [Process] Use `exit_signal/2` from `:erlang` in `Process.exit/2`, so exit signals sent to the calling process are delivered asynchronously and `:normal` no longer terminates it
 
 #### Elixir
@@ -67,6 +75,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Calendar] Fix rounding for `:day`, `:hour`, and `:minute` units in `DateTime.diff/3`, `NaiveDateTime.diff/3`, and `Time.diff/3`
   * [Calendar.ISO] Fix `Calendar.ISO.valid_time?/4` to reject non-integer microsecond precision
   * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
+  * [Code] Fall back to `doc/chunks` in `Code.fetch_docs/1` when given the path to a `.beam` file without documentation
   * [Code] Properly escape C1 control characters and Unicode noncharacters in `Code.quoted_to_algebra/2` (and `Macro.to_string/1`)
   * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
   * [Code.Formatter] Keep parentheses on anonymous function calls with do-end blocks
@@ -83,20 +92,19 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [File] Return `{:error, :badarg, path}` from `File.cp_r/3` and `File.rm_rf/1` on paths with null bytes instead of raising, aligning with Erlang/OTP
   * [File] Trim UTF-32 LE BOMs in `File.stream!/3`
   * [IO.ANSI.Docs] Do not crash on unclosed HTML comments
-  * [IO.ANSI.Docs] Recognize additional punctuation delimiters when rendering Markdown
+  * [Inspect.Algebra] Break optimistic groups when their parent group breaks
+  * [Kernel] Check range endpoints are integers in guards using `in` with literal steps, such as `x in 0..max//1`
   * [Kernel] Continue compilation after reporting repeated map keys in patterns
   * [Kernel] Do not consider local functions invoked in bitstring size expressions inside macros as unused
-  * [Kernel] Do not crash on invalid number specifiers in bitstrings inside functions
+  * [Kernel] Do not expand macros twice in `in/2`, in multi-alias options, such as `alias Foo.{Bar, Baz}, warn: false`, and in `@before_compile`, `@after_compile`, and `@derive` callbacks
   * [Kernel] Do not evaluate generator guards in `for` comprehensions as body expressions, which raised instead of filtering when they failed
   * [Kernel] Do not fold `URI.parse/1`, `URI.new/1`, and `URI.new!/1` at compile time, as they depend on the default ports configured at runtime
   * [Kernel] Do not warn on comparisons between data structures with numbers that may be equal, such as `{1} == {1.0}`, nor discard such values when narrowing types
   * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
+  * [Kernel] Fix `unquote` in `quote` options, such as `quote bind_quoted: [x: unquote(v)]`, inside unquote fragments
   * [Kernel] Fix inferred stacktrace types to allow arbitrary keyword metadata
-  * [Kernel] Fix inferred types for functions with non-returning clauses
   * [Kernel] Fix false positive type warnings on guards which may fail depending on values, such as `div/2` and `map_get/2` with non-atom keys, especially as operands of `and`/`or`
-  * [Kernel] Fix false positive type warnings on map literals with variable keys
   * [Kernel] Fix printing of list types in type warnings, which could show wider types or misplace exclusions
-  * [Kernel] Fix subtyping between `fun(arity)` and function types with `none()` arguments
   * [Kernel] Fix type information about variables defined in one default argument leaking into subsequent default arguments
   * [Kernel] Follow UAX #9 levels when computing the bidi skeleton of confusable identifiers
   * [Kernel] Raise when `|` is used in guards
@@ -106,11 +114,13 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Kernel] Fix type checker crash on functions with impossible clauses
   * [Kernel] Fix type checker crash on `defimpl` for modules that are not Elixir structs
   * [Kernel] Fix type checker crash on variables used by nested clauses in conditionals
-  * [Kernel] Fix unsound type refinement of `min/2` and `max/2` arguments
-  * [Kernel] Improve type precision of `--/2`
-  * [Kernel] Improve type precision of `case` when some of its clauses always raise
-  * [Kernel] Make pin patterns with singleton types precise, so subsequent redundant clauses are detected
+  * [Kernel] Fix type checker crash on `for` generators using variables bound in `:into` or `:reduce`
+  * [Kernel] Keep atom keys in the inferred type of `Map.from_keys/2` when given mixed keys
+  * [Kernel] Preserve alignment of untyped nested bitstring segments, such as `<<<<x::1>>::binary>>`
+  * [Kernel] Preserve evaluation order when the compiler merges map updates with `Map.merge/2`
   * [Kernel] Report applying empty function types as bad functions instead of bad arities
+  * [Kernel] Return `dynamic()` from `min/2` and `max/2` when their arguments are dynamic
+  * [Kernel] Skip non-matching chunks in bitstring generators instead of halting the comprehension in some cases, such as with `:uniq`
   * [Kernel] Support Erlang modules in `import Mod, only: :sigils`
   * [Kernel.CLI] Keep the exit status when the error cannot be printed to stderr
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
@@ -122,13 +132,16 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Path] Return `[]` from `Path.wildcard/2` on paths with null bytes instead of raising, aligning with Erlang/OTP
   * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
+  * [Record] Evaluate the arguments of record macros from left to right and only once, including the record being updated
   * [Regex] Escape U+0085, U+200E, U+200F, U+2028, and U+2029 in `Regex.escape/1`, as Erlang/OTP 28+ ignores them in extended mode
+  * [Stream] Close resources in `Stream.zip/1,2`, `Stream.zip_with/2,3`, and `Stream.cycle/1` when the consumer or one of the streams raises
   * [String] Fix `String.reverse/1` grapheme ordering around invalid UTF-8 bytes
   * [String] Return `1.0` from `String.bag_distance/2` for two empty strings
   * [System] Do not drop the final unterminated line in `System.cmd/3` with `:lines`
   * [System] Return `nil` from `System.find_executable/1` on programs with null bytes instead of raising, aligning with Erlang/OTP
-  * [Task] Do not leave the reply in the caller's mailbox when `Task.ignore/1` races with the task completion
+  * [Task] Do not leave replies in the caller's mailbox when `Task.ignore/1`, `Task.await/2`, and `Task.await_many/2` exit
   * [Task] Report the actual exit reason, instead of `:noproc`, of tasks in `Task.async_stream/3` and `Task.Supervisor.async_stream/4` which exit immediately
+  * [Task] Return the exit reason of tasks, instead of `{:exit, :noproc}`, from `Task.shutdown/2` when they terminate before being monitored
   * [Time] Validate microseconds in `Time.from_seconds_after_midnight/3`
 
 #### ExUnit
@@ -139,6 +152,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [ExUnit] List tests in execution order with `--dry-run`
   * [ExUnit] Preserve the order of async modules across `--repeat-until-failure` runs
   * [ExUnit] Record tests invalidated by module failures as failures in the failures manifest
+  * [ExUnit.Assertions] Do not expand the arguments of `match?/2` twice in `assert/1` and `refute/1`
   * [ExUnit.Assertions] Fix `refute_in_delta/4` at the delta boundary and with negative deltas
   * [ExUnit.Assertions] Support list literals in `catch_throw/1`, `catch_exit/1`, and `catch_error/1`
   * [ExUnit.CaptureIO] Close the capture device when `capture_io` fails to set the group leader
@@ -181,6 +195,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [mix deps] Raise if Git refspecs start with `-`
   * [mix deps] Mark fetchable dependencies for compilation when their build exists but their SCM manifest is missing
   * [mix deps] Preserve code paths and compiler options across OS partitions
+  * [mix deps.compile] Do not load dependencies inside a dependency when one of its tasks, such as a compiler, cannot be found, and suggest `--include-children` instead
   * [mix escript.install] Respect the `:path` escript option and raise on URLs without a path
   * [mix format] Invalidate the cached configuration when imported `.formatter.exs` files change
   * [mix format] Pass `:sigils` to plugins, allowing nested sigils to be formatted
