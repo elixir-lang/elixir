@@ -396,4 +396,25 @@ defmodule RecordTest do
       :code.delete(module)
     end
   end
+
+  test "records preserve variable reads before rebinding" do
+    x = 1
+    assert user(name: x, age: x = 2) == {RecordTest, 1, 2}
+    assert x == 2
+
+    x = 1
+    assert user(user(), age: x, name: x = 2) == {RecordTest, 2, 1}
+    assert x == 2
+  end
+
+  test "record updates evaluate the base before fields" do
+    record = user()
+    assert user(record, name: record = :name) == {RecordTest, :name, 25}
+    assert record == :name
+
+    assert user(user(name: send(self(), :base)), age: send(self(), :field)) ==
+             {RecordTest, :base, :field}
+
+    assert for(_ <- 1..2, do: assert_receive(_)) == [:base, :field]
+  end
 end

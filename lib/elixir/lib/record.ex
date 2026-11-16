@@ -444,13 +444,14 @@ defmodule Record do
       raise ArgumentError, "cannot invoke update style macro inside match"
     end
 
-    {keyword, exprs} = hoist_expressions(keyword, caller)
-
     if Keyword.has_key?(keyword, :_) do
       message = "updating a record with a default (:_) is equivalent to creating a new record"
       IO.warn(message, caller)
       create(tag, fields, keyword, caller)
     else
+      {[{:record, var} | keyword], exprs} =
+        hoist_expressions([{:record, var} | keyword], caller)
+
       updates =
         Enum.map(keyword, fn {key, value} ->
           if index = find_index(fields, key, 2) do
@@ -465,14 +466,18 @@ defmodule Record do
   end
 
   defp hoist_expressions(keyword, %{context: nil, module: module}) do
-    Enum.map_reduce(keyword, [], fn {key, expr}, acc ->
-      if simple_argument?(expr) do
-        {{key, expr}, acc}
-      else
-        var = Macro.unique_var(key, module)
-        {{key, var}, [{:=, [], [var, expr]} | acc]}
-      end
-    end)
+    if Enum.all?(keyword, fn {_, expr} -> simple_argument?(expr) end) do
+      {keyword, []}
+    else
+      Enum.map_reduce(keyword, [], fn {key, expr}, acc ->
+        if Macro.quoted_literal?(expr) do
+          {{key, expr}, acc}
+        else
+          var = Macro.unique_var(key, module)
+          {{key, var}, [{:=, [], [var, expr]} | acc]}
+        end
+      end)
+    end
   end
 
   defp hoist_expressions(keyword, _), do: {keyword, []}
