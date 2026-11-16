@@ -1314,7 +1314,7 @@ defmodule Code.Formatter do
       if left != [] and keyword? and no_generators? do
         join = if force_args?(left) or many_eol?, do: :line, else: :break
 
-        {left_doc, left_join, state} =
+        {left_doc, _join, state} =
           args_to_algebra_with_comments(
             left,
             Keyword.drop(meta, [:closing, :trailing_comments]),
@@ -1325,12 +1325,7 @@ defmodule Code.Formatter do
             to_algebra_fun
           )
 
-        # If comments forced the leading arguments into separate lines,
-        # the keyword list must also go into its own line
-        join =
-          if left_join == :line or force_args?(right) or force_args?(args) or many_eol?,
-            do: :line,
-            else: :break
+        join = if force_args?(right) or force_args?(args) or many_eol?, do: :line, else: :break
 
         {right_doc, _join, state} =
           args_to_algebra_with_comments(right, meta, false, :none, join, state, to_algebra_fun)
