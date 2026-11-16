@@ -1907,6 +1907,22 @@ defmodule MacroTest do
     refute Macro.quoted_literal?({:__block__, [], [1, 2]})
   end
 
+  test "quoted_literal?/2" do
+    var? = &match?({name, _, ctx} when is_atom(name) and is_atom(ctx), &1)
+
+    assert Macro.quoted_literal?(quote(do: var), var?)
+    assert Macro.quoted_literal?(quote(do: {"foo", var}), var?)
+    assert Macro.quoted_literal?(quote(do: {"foo", var, :bar}), var?)
+    assert Macro.quoted_literal?(quote(do: [1, var]), var?)
+    assert Macro.quoted_literal?(quote(do: %{foo: var}), var?)
+    assert Macro.quoted_literal?(quote(do: %URI{path: var}), var?)
+    assert Macro.quoted_literal?({:__block__, [], [quote(do: var)]}, var?)
+    refute Macro.quoted_literal?(quote(do: {"foo", var.()}), var?)
+    refute Macro.quoted_literal?(quote(do: [1, URI.parse(var)]), var?)
+
+    assert Macro.quoted_literal?(quote(do: URI.parse("/")), &match?({{:., _, _}, _, _}, &1))
+  end
+
   test "underscore/1" do
     assert Macro.underscore("foo") == "foo"
     assert Macro.underscore("foo_bar") == "foo_bar"
