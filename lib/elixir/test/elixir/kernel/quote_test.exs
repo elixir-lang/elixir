@@ -551,6 +551,15 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   end
 end
 
+defmodule Kernel.QuoteTest.AliasHygieneHelper do
+  def with_alias do
+    quote do
+      alias HashDict, as: Dict
+      Dict.Bar
+    end
+  end
+end
+
 defmodule Kernel.QuoteTest.AliasHygiene do
   alias Dict, as: SuperDict
 
@@ -561,6 +570,61 @@ defmodule Kernel.QuoteTest.AliasHygiene do
   defmacro super_dict do
     quote(do: SuperDict.Bar)
   end
+
+  defmacro with_argument(block) do
+    quote do
+      unquote(block)
+      Dict.Bar
+    end
+  end
+
+  defmacro with_alias(block) do
+    quote do
+      alias HashDict, as: Dict
+      {unquote(block), Dict.Bar}
+    end
+  end
+
+  defmacro with_alias_from_helper do
+    Kernel.QuoteTest.AliasHygieneHelper.with_alias()
+  end
+
+  defmacro with_alias_context do
+    quote context: Other do
+      alias HashDict, as: Dict
+      Dict.Bar
+    end
+  end
+
+  defmacro with_quoted_argument do
+    quote do
+      unquote(__MODULE__).with_argument(alias HashDict, as: Dict)
+    end
+  end
+
+  defmacro with_unhygienic_argument(block) do
+    quote do
+      unquote(block)
+      alias!(Dict.Bar)
+    end
+  end
+
+  defmacro nested_alias do
+    quote do
+      quote do
+        alias HashDict, as: Dict
+        Dict.Bar
+      end
+    end
+  end
+end
+
+defmodule Kernel.QuoteTest.NestedAliasHygiene do
+  require Kernel.QuoteTest.AliasHygiene
+
+  defmacro quoted do
+    Kernel.QuoteTest.AliasHygiene.nested_alias()
+  end
 end
 
 defmodule Kernel.QuoteTest.AliasHygieneTest do
@@ -570,8 +634,12 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
 
   test "annotate aliases" do
     assert {:__aliases__, [alias: false], [:Foo, :Bar]} = quote(do: Foo.Bar)
-    assert {:__aliases__, [alias: false], [:Dict, :Bar]} = quote(do: Dict.Bar)
-    assert {:__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar]} = quote(do: SuperDict.Bar)
+
+    assert {:__aliases__, [alias: false], [:Dict, :Bar]} =
+             quote(do: Dict.Bar)
+
+    assert {:__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar]} =
+             quote(do: SuperDict.Bar)
 
     # Edge-case
     assert {:__aliases__, _, [Elixir]} = quote(do: Elixir)
@@ -597,6 +665,75 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
     alias HashDict, as: SuperDict, warn: false
     require Kernel.QuoteTest.AliasHygiene
     assert Kernel.QuoteTest.AliasHygiene.super_dict() == Elixir.Dict.Bar
+  end
+
+  test "aliases in macro arguments do not affect quoted aliases" do
+    assert argument_alias() == {Elixir.Dict.Bar, Elixir.HashDict.Bar}
+  end
+
+  test "aliases emitted by macros affect caller arguments and quoted aliases" do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_alias(Dict.Bar)
+    assert result == {Elixir.HashDict.Bar, Elixir.HashDict.Bar}
+
+    assert Dict.Bar == Elixir.HashDict.Bar
+  end
+
+  test "aliases in quoted fragments from helpers retain hygiene" do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_alias_from_helper()
+    assert result == Elixir.HashDict.Bar
+
+    result = Kernel.QuoteTest.AliasHygiene.with_alias_context()
+    assert result == Elixir.HashDict.Bar
+  end
+
+  test "aliases in macro arguments retain their expansion counter" do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_quoted_argument()
+    assert result == Elixir.Dict.Bar
+  end
+
+  test "aliases in macro arguments affect alias!" do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_unhygienic_argument(alias HashDict, as: Dict)
+    assert result == Elixir.HashDict.Bar
+  end
+
+  test "aliases in nested quotes receive a new expansion counter" do
+    require Kernel.QuoteTest.NestedAliasHygiene
+
+    result = Kernel.QuoteTest.NestedAliasHygiene.quoted()
+    assert result == Elixir.HashDict.Bar
+  end
+
+  test "aliases from modules defined in macro arguments do not affect quoted aliases" do
+    assert module_argument_alias() == {Elixir.Dict.Bar, __MODULE__.Dict}
+  end
+
+  # Keep these calls outside test/2. Before the fix, test/2 would assign its own
+  # expansion counter to the arguments, masking the bug in with_argument/1.
+  defp argument_alias do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_argument(alias HashDict, as: Dict)
+    {result, Dict.Bar}
+  end
+
+  defp module_argument_alias do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result =
+      Kernel.QuoteTest.AliasHygiene.with_argument(
+        defmodule Dict do
+        end
+      )
+
+    {result, Dict}
   end
 end
 
