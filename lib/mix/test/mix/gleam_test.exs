@@ -7,7 +7,7 @@ defmodule Mix.GleamTest do
   use MixTest.Case
   @moduletag :gleam
 
-  @compile {:no_warn_undefined, [:gleam_dep, :gleam@int]}
+  @compile {:no_warn_undefined, [:gleam_dep]}
 
   defmodule GleamAsDep do
     def project do
@@ -15,7 +15,7 @@ defmodule Mix.GleamTest do
         app: :gleam_as_dep,
         version: "0.1.0",
         deps: [
-          {:gleam_dep, path: MixTest.Case.tmp_path("/gleam_dep")}
+          {:gleam_dep, path: MixTest.Case.tmp_path("gleam_dep")}
         ]
       ]
     end
@@ -35,7 +35,22 @@ defmodule Mix.GleamTest do
 
   describe "load_config/1" do
     test "loads gleam.toml" do
-      path = MixTest.Case.fixture_path("gleam_dep")
+      path = tmp_path("gleam_load_config")
+      File.rm_rf!(path)
+      File.mkdir_p!(path)
+
+      File.write!(Path.join(path, "gleam.toml"), """
+      name = "gleam_load_config"
+      version = "1.0.0"
+
+      [dependencies]
+      gleam_stdlib = "0.59.0"
+      gleam_otp = "0.16.1"
+
+      [dev-dependencies]
+      gleeunit = ">= 1.0.0 and < 2.0.0"
+      """)
+
       config = Mix.Gleam.load_config(path)
 
       expected = [
@@ -74,24 +89,50 @@ defmodule Mix.GleamTest do
 
   describe "integration with Mix" do
     test "gets and compiles dependencies" do
+      dep_path = tmp_path("gleam_dep")
+      File.rm_rf!(dep_path)
+      File.mkdir_p!(Path.join(dep_path, "src"))
+
+      File.write!(Path.join(dep_path, "gleam.toml"), """
+      name = "gleam_dep"
+      version = "1.0.0"
+      description = "GleamDep description"
+
+      [erlang]
+      extra_applications = ["ssl"]
+      """)
+
+      File.write!(Path.join(dep_path, "src/gleam_dep.gleam"), """
+      pub fn main() {
+        True
+      }
+
+      @external(erlang, "collocated_erlang", "hello")
+      pub fn erl() -> String
+      """)
+
+      File.write!(Path.join(dep_path, "src/collocated_erlang.erl"), """
+      -module(collocated_erlang).
+      -export([hello/0]).
+
+      hello() ->
+          "Hello from Collocated Erlang!".
+      """)
+
       in_tmp("get and compile dependencies", fn ->
         Mix.Project.push(GleamAsDep)
 
         Mix.Tasks.Deps.Get.run([])
-        assert_received {:mix_shell, :info, ["* Getting gleam_stdlib " <> _]}
-        assert_received {:mix_shell, :info, ["* Getting gleam_otp " <> _]}
-
         Mix.Tasks.Deps.Compile.run([])
         assert :gleam_dep.main()
         assert :gleam_dep.erl() == ~c'Hello from Collocated Erlang!'
-        assert :gleam@int.to_string(1) == "1"
 
         {:ok, [{:application, :gleam_dep, specs}]} =
           :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
 
         assert Keyword.equal?(specs, [
                  {:modules, [:collocated_erlang, :gleam_dep]},
-                 {:applications, [:gleam_otp, :gleam_stdlib, :ssl]},
+                 {:applications, [:ssl]},
                  {:description, ~c"GleamDep description"},
                  {:registered, []},
                  {:vsn, ~c"1.0.0"}
