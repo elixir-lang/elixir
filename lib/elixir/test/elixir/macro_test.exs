@@ -1641,6 +1641,11 @@ defmodule MacroTest do
     assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: Access.get(:foo)), 0) ==
              quote(do: Access.get(%{foo: "bar"}, :foo))
 
+    assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: unquote(Access).get(:foo, :bar)), 0) ==
+             quote(do: unquote(Access).get(%{foo: "bar"}, :foo, :bar))
+
+    assert Code.eval_string(~s'%{a: 1} |> :"Elixir.Access".get(:a, :default)') == {1, []}
+
     assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1, the :\+ operator can", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))
     end
@@ -1900,6 +1905,22 @@ defmodule MacroTest do
     refute Macro.quoted_literal?(quote(do: <<102, rest::binary>>))
     refute Macro.quoted_literal?({:__block__, [], [quote(do: var)]})
     refute Macro.quoted_literal?({:__block__, [], [1, 2]})
+  end
+
+  test "quoted_literal?/2" do
+    var? = &match?({name, _, ctx} when is_atom(name) and is_atom(ctx), &1)
+
+    assert Macro.quoted_literal?(quote(do: var), var?)
+    assert Macro.quoted_literal?(quote(do: {"foo", var}), var?)
+    assert Macro.quoted_literal?(quote(do: {"foo", var, :bar}), var?)
+    assert Macro.quoted_literal?(quote(do: [1, var]), var?)
+    assert Macro.quoted_literal?(quote(do: %{foo: var}), var?)
+    assert Macro.quoted_literal?(quote(do: %URI{path: var}), var?)
+    assert Macro.quoted_literal?({:__block__, [], [quote(do: var)]}, var?)
+    refute Macro.quoted_literal?(quote(do: {"foo", var.()}), var?)
+    refute Macro.quoted_literal?(quote(do: [1, URI.parse(var)]), var?)
+
+    assert Macro.quoted_literal?(quote(do: URI.parse("/")), &match?({{:., _, _}, _, _}, &1))
   end
 
   test "underscore/1" do

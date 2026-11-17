@@ -151,6 +151,13 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == "Hello, World!"
   end
 
+  test "mark_as_run/1" do
+    Mix.Task.mark_as_run("hello")
+    assert Mix.Task.run("hello") == :noop
+    Mix.Task.reenable("hello")
+    assert Mix.Task.run("hello") == "Hello, World!"
+  end
+
   test "reenable/1 for recursive inside umbrella" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

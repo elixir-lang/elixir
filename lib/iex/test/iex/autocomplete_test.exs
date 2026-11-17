@@ -613,6 +613,25 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c"\"#{dir}/dir/file") == dir |> Path.join("dir") |> path_autocompletion("file")
   end
 
+  test "expansion without a shell" do
+    # expand/1 is what IEx.Server installs as the expand_fun, and it defaults
+    # to :shell.whereis/0, which is :undefined with no shell to report
+    assert :undefined == :shell.whereis()
+    assert {:yes, [], list} = IEx.Autocomplete.expand(~c"rtS")
+    assert ~c"String" in list
+
+    # a shell without an evaluator, such as while it respawns
+    {pid, ref} = spawn_monitor(fn -> receive do: (:stop -> :ok) end)
+    assert {:yes, [], list} = IEx.Autocomplete.expand(~c"rtS", pid)
+    assert ~c"String" in list
+
+    # a dead shell
+    send(pid, :stop)
+    assert_receive {:DOWN, ^ref, _, _, _}
+    assert {:yes, [], list} = IEx.Autocomplete.expand(~c"rtS", pid)
+    assert ~c"String" in list
+  end
+
   defp path_autocompletion(dir, hint \\ "") do
     dir
     |> File.ls!()

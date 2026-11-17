@@ -251,7 +251,7 @@ defmodule Mix.Tasks.Format do
 
   @manifest_timestamp "format_timestamp"
   @manifest_dot_formatter "cached_dot_formatter"
-  @manifest_vsn 2
+  @manifest_vsn 3
 
   @newline "\n"
   @blank " "
@@ -525,7 +525,8 @@ defmodule Mix.Tasks.Format do
       {{locals_without_parens, subdirectories}, sources} =
         maybe_cache_in_manifest(dot_formatter, manifest, fn ->
           {subdirectories, sources} = eval_subs_opts(subs, cwd, sources, opts)
-          {{eval_deps_opts(deps, opts), subdirectories}, sources}
+          {locals_without_parens, sources} = eval_deps_opts(deps, sources, opts)
+          {{locals_without_parens, subdirectories}, sources}
         end)
 
       formatter_opts =
@@ -571,11 +572,11 @@ defmodule Mix.Tasks.Format do
     {entry, sources}
   end
 
-  defp eval_deps_opts([], _opts) do
-    []
+  defp eval_deps_opts([], sources, _opts) do
+    {[], sources}
   end
 
-  defp eval_deps_opts(deps, opts) do
+  defp eval_deps_opts(deps, sources, opts) do
     deps_paths = opts[:deps_paths] || Mix.Project.deps_paths()
 
     if not is_map(deps_paths) do
@@ -584,14 +585,21 @@ defmodule Mix.Tasks.Format do
       )
     end
 
-    for dep <- deps,
-        dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
-        dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
-        File.regular?(dep_dot_formatter),
-        dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
-        parenless_call <- dep_opts[:export][:locals_without_parens] || [],
-        uniq: true,
-        do: parenless_call
+    dep_dot_formatters =
+      for dep <- deps,
+          dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
+          dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
+          File.regular?(dep_dot_formatter),
+          do: dep_dot_formatter
+
+    locals_without_parens =
+      for dep_dot_formatter <- dep_dot_formatters,
+          dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
+          parenless_call <- dep_opts[:export][:locals_without_parens] || [],
+          uniq: true,
+          do: parenless_call
+
+    {locals_without_parens, dep_dot_formatters ++ sources}
   end
 
   defp eval_subs_opts(subs, cwd, sources, opts) do

@@ -87,22 +87,23 @@ defmodule IEx.History do
     end
   end
 
-  defp prune(%{start: start} = state, limit) do
-    prune(state, start, limit, false)
-  end
-
-  defp prune(state, _, limit, _) when limit < 0 do
+  defp prune(state, limit) when limit < 0 do
     {false, state}
   end
 
-  defp prune(%{size: size} = state, counter, limit, collect?) when size <= limit do
-    {collect?, %{state | start: counter}}
+  defp prune(%{start: start, queue: q, size: size} = state, limit) do
+    {collect?, q, size, start} = prune(q, size, start, limit, false)
+    {collect?, %{state | queue: q, size: size, start: start}}
   end
 
-  defp prune(%{queue: q, size: size} = state, counter, limit, collect?) do
+  defp prune(q, size, counter, limit, collect?) when size <= limit do
+    {collect?, q, size, counter}
+  end
+
+  defp prune(q, size, counter, limit, collect?) do
     {{:value, entry}, q} = :queue.out(q)
     collect? = collect? || has_binary(entry)
-    prune(%{state | queue: q, size: size - 1}, counter + 1, limit, collect?)
+    prune(q, size - 1, counter + 1, limit, collect?)
   end
 
   # Checks val and each of its elements (if it is a list or a tuple)

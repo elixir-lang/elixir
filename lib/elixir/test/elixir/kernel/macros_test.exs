@@ -17,6 +17,21 @@ defmodule Kernel.MacrosTest.Nested do
     end
   end
 
+  defmacro outer_cond do
+    quote do
+      x = :outer_value
+      Kernel.MacrosTest.Nested.inner_cond(x)
+    end
+  end
+
+  defmacro inner_cond(body) do
+    quote do
+      cond do
+        x = is_integer(1) -> unquote(body)
+      end
+    end
+  end
+
   defmacro wrap_empty_var(expr) do
     empty = Macro.var(:"", nil)
 
@@ -58,6 +73,12 @@ defmodule Kernel.MacrosTest do
     quote(do: 1 + unquote(value))
   end
 
+  defp eight, do: 8
+
+  defmacro my_macro_with_local_in_bitstring_size(value) do
+    <<value::size(eight())>>
+  end
+
   defmacro my_macro_with_capture(value) do
     Enum.map(value, &by_two/1)
   end
@@ -70,6 +91,10 @@ defmodule Kernel.MacrosTest do
     assert Nested.value() == 1
   end
 
+  test "cond preserves hygienically distinct variables in the body" do
+    assert Nested.outer_cond() == :outer_value
+  end
+
   test "local with private macro" do
     assert my_private_macro() == 4
   end
@@ -80,6 +105,10 @@ defmodule Kernel.MacrosTest do
 
   test "local with local call" do
     assert my_macro_with_local(4) == 17
+  end
+
+  test "local with local call in bitstring size" do
+    assert my_macro_with_local_in_bitstring_size(1) == <<1>>
   end
 
   test "local with capture" do

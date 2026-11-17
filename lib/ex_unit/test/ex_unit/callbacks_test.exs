@@ -183,7 +183,11 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case, async: false
 
       test "ok" do
-        on_exit(fn -> Process.exit(self(), :kill) end)
+        on_exit(fn ->
+          Process.exit(self(), :kill)
+          Process.sleep(:infinity)
+        end)
+
         :ok
       end
     end

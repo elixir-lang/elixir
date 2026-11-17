@@ -4709,7 +4709,7 @@ defmodule Kernel do
       [head | tail] = list ->
         case in_body? do
           false -> in_list(left, head, tail, expand, list)
-          true -> quote(do: :lists.member(unquote(left), unquote(right)))
+          true -> quote(do: :lists.member(unquote(left), unquote(list)))
         end
 
       %{} = right ->
@@ -4756,7 +4756,8 @@ defmodule Kernel do
     end
   end
 
-  defp in_range(left, first, last, step) when is_integer(step) do
+  defp in_range(left, first, last, step)
+       when is_integer(first) and is_integer(last) and is_integer(step) do
     in_range_literal(left, first, last, step)
   end
 
@@ -5045,13 +5046,19 @@ defmodule Kernel do
     amount = last - first + 1
 
     if first < total and amount > 0 do
-      part = binary_part(binary, first, min(amount, total - first))
+      length = min(amount, total - first)
 
-      if step == 1 do
-        part
-      else
-        <<first_byte, rest::binary>> = part
-        for <<_::size(^step - 1)-bytes, byte <- rest>>, into: <<first_byte>>, do: <<byte>>
+      cond do
+        step == 1 ->
+          binary_part(binary, first, length)
+
+        length <= step ->
+          binary_part(binary, first, 1)
+
+        true ->
+          <<first_byte, rest::binary>> = binary_part(binary, first, length)
+          skip = step - 1
+          for <<_::size(^skip)-bytes, byte <- rest>>, into: <<first_byte>>, do: <<byte>>
       end
     else
       ""

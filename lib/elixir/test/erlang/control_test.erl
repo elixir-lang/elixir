@@ -87,7 +87,9 @@ optimized_inspect_interpolation_test() ->
        default, [binary]}]} = to_erl("\"#{inspect(1)}\"").
 
 optimized_string_to_existing_atom_test() ->
-  {'case', _, _,
+  {block, _, [
+   {match, _, {var, _, Var}, _},
+   {'case', _, {var, _, Var},
     [{clause, _,
       [{bin, _, [{bin_element, _, {string, _, "foo"}, default, default}]}],
       [],
@@ -99,11 +101,13 @@ optimized_string_to_existing_atom_test() ->
      {clause, _,
       [{var, _, '_'}],
       [],
-      [{call, _, {remote, _, {atom, _, 'Elixir.String'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
-  } = to_erl("String.to_existing_atom(\"baz\", [:foo, :bar])").
+      [{call, _, {remote, _, {atom, _, 'Elixir.String'}, {atom, _, '__to_existing_atom__'}}, [{var, _, Var}, _]}]}]
+   }]} = to_erl("String.to_existing_atom(\"baz\", [:foo, :bar])").
 
 optimized_list_to_existing_atom_test() ->
-  {'case', _, _,
+  {block, _, [
+   {match, _, {var, _, Var}, _},
+   {'case', _, {var, _, Var},
     [{clause, _,
       [{cons, _, {integer, _, $f}, {cons, _, {integer, _, $o}, {cons, _, {integer, _, $o}, {nil, _}}}}],
       [],
@@ -115,8 +119,8 @@ optimized_list_to_existing_atom_test() ->
      {clause, _,
       [{var, _, '_'}],
       [],
-      [{call, _, {remote, _, {atom, _, 'Elixir.List'}, {atom, _, '__to_existing_atom__'}}, [_, _]}]}]
-  } = to_erl("List.to_existing_atom(~c\"baz\", [:foo, :bar])").
+      [{call, _, {remote, _, {atom, _, 'Elixir.List'}, {atom, _, '__to_existing_atom__'}}, [{var, _, Var}, _]}]}]
+   }]} = to_erl("List.to_existing_atom(~c\"baz\", [:foo, :bar])").
 
 optimized_map_merge_test() ->
   {map, _,
@@ -136,9 +140,10 @@ optimized_map_merge_variable_test() ->
 optimized_map_update_and_merge_test() ->
   {block, _,
     [_,
-     {map, _, {var, _, _},
-       [{map_field_exact, _, {atom, _, a}, {integer, _, 2}},
-        {map_field_assoc, _, {atom, _, b}, {integer, _, 3}}]
+     {map, _,
+       {map, _, {var, _, _},
+         [{map_field_exact, _, {atom, _, a}, {integer, _, 2}}]},
+       [{map_field_assoc, _, {atom, _, b}, {integer, _, 3}}]
      }]
   } = to_erl("x = %{a: 1}; Map.merge(%{x | a: 2}, %{b: 3})"),
   {block, _,
@@ -154,9 +159,10 @@ optimized_map_update_and_merge_test() ->
 optimized_nested_map_merge_variable_test() ->
   {block, _,
     [_,
-     {map, _, {var, _, _},
-       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
-        {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
+     {map, _,
+       {map, _, {var, _, _},
+         [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}}]},
+       [{map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
      }]
   } = to_erl("x = %{}; Map.merge(Map.merge(x, %{a: 1}), %{b: 2})").
 

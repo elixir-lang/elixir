@@ -13,6 +13,7 @@ defmodule Logger.FormatterTest do
     assert prune(<<"hí", 233>>) == "hí�"
     assert prune(["hi" | 233]) == ["hi" | "�"]
     assert prune([233 | "hi"]) == [233 | "hi"]
+    assert prune([0xD800 | "hi"]) == ["�" | "hi"]
     assert prune([[] | []]) == [[]]
   end
 

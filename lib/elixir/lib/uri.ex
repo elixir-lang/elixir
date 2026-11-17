@@ -40,7 +40,7 @@ defmodule URI do
 
   # We don't use opaque because URIs can be inlined,
   # either via module attributes or by the compiler.
-  @typedoc deprecated: "The authority field is deprecated"
+  @typedoc deprecated: "Use the userinfo, host, and port fields instead"
   @type authority :: nil | binary
 
   @type t :: %__MODULE__{
@@ -70,6 +70,8 @@ defmodule URI do
   end
 
   import Bitwise
+
+  @compile {:inline, char_reserved?: 1, char_unreserved?: 1, hex: 1}
 
   @reserved_characters ~c":/?#[]@!$&'()*+,;="
   @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &<<?`, &1, ?`>>)
@@ -167,13 +169,13 @@ defmodule URI do
     raise ArgumentError, "encode_query/2 values cannot be lists, got: #{inspect(value)}"
   end
 
-  defp encode_kv_pair({key, value}, :rfc3986) do
-    encode_unreserved(Kernel.to_string(key), :percent) <>
-      "=" <> encode_unreserved(Kernel.to_string(value), :percent)
-  end
+  defp encode_kv_pair({key, value}, :rfc3986), do: encode_kv_pair(key, value, :percent)
+  defp encode_kv_pair({key, value}, :www_form), do: encode_kv_pair(key, value, :www_form)
 
-  defp encode_kv_pair({key, value}, :www_form) do
-    encode_www_form(Kernel.to_string(key)) <> "=" <> encode_www_form(Kernel.to_string(value))
+  # The value is appended to the encoded key, so each pair is built as a single binary
+  defp encode_kv_pair(key, value, mode) do
+    key = encode_unreserved(Kernel.to_string(key), "", mode)
+    encode_unreserved(Kernel.to_string(value), <<key::binary, ?=>>, mode)
   end
 
   @doc """
@@ -252,7 +254,7 @@ defmodule URI do
 
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
-        dict_module = String.to_unsafe_atom("Dict")
+        dict_module = String.to_unsafe_atom("Elixir.Dict")
         decode_query_into_dict(rest, dict_module.put(dict, key, value), encoding)
     end
   end
@@ -419,8 +421,18 @@ defmodule URI do
   @spec encode(binary, (byte -> as_boolean(term))) :: binary
   def encode(string, predicate \\ &char_unescaped?/1)
       when is_binary(string) and is_function(predicate, 1) do
-    for <<byte <- string>>, into: "", do: percent(byte, predicate)
+    encode(string, "", predicate)
   end
+
+  defp encode(<<byte, rest::binary>>, acc, predicate) do
+    if predicate.(byte) do
+      encode(rest, <<acc::binary, byte>>, predicate)
+    else
+      encode(rest, <<acc::binary, ?%, hex(bsr(byte, 4)), hex(band(byte, 15))>>, predicate)
+    end
+  end
+
+  defp encode(<<>>, acc, _predicate), do: acc
 
   @doc """
   Encodes `string` as "x-www-form-urlencoded".
@@ -442,11 +454,6 @@ defmodule URI do
     encode_unreserved(string, "", :www_form)
   end
 
-  # Matching upfront keeps the empty case from allocating the accumulator.
-  defp encode_unreserved(<<>>, _mode), do: ""
-
-  defp encode_unreserved(string, mode), do: encode_unreserved(string, "", mode)
-
   defp encode_unreserved(<<?\s, rest::binary>>, acc, :www_form) do
     encode_unreserved(rest, <<acc::binary, ?+>>, :www_form)
   end
@@ -460,14 +467,6 @@ defmodule URI do
   end
 
   defp encode_unreserved(<<>>, acc, _mode), do: acc
-
-  defp percent(char, predicate) do
-    if predicate.(char) do
-      <<char>>
-    else
-      <<"%", hex(bsr(char, 4)), hex(band(char, 15))>>
-    end
-  end
 
   defp hex(n) when n <= 9, do: n + ?0
   defp hex(n), do: n + ?A - 10
@@ -874,7 +873,24 @@ defmodule URI do
     {authority, userinfo, host, port} = split_authority(authority_with_slashes)
 
     scheme = scheme && String.downcase(scheme)
-    port = port || (scheme && default_port(scheme))
+
+    # Leading zeros are removed and then ports with more than
+    # 6 digits or outside of the valid range are discarded
+    port =
+      case port && String.trim_leading(port, "0") do
+        nil ->
+          scheme && default_port(scheme)
+
+        "" ->
+          0
+
+        port when byte_size(port) <= 6 ->
+          port = String.to_integer(port)
+          if port in 0..65535, do: port
+
+        _ ->
+          nil
+      end
 
     %URI{
       scheme: scheme,
@@ -910,7 +926,7 @@ defmodule URI do
     destructure [_, _, userinfo, host, _, port], components
     userinfo = nilify(userinfo)
     host = if nilify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
-    port = if nilify(port), do: String.to_integer(port)
+    port = nilify(port)
 
     {authority, userinfo, host, port}
   end

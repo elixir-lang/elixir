@@ -387,8 +387,8 @@ defmodule Kernel.ExpansionTest do
               [
                 {:=, _, [var_ver(:x, 0), 0]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 2), 1]},
-                {:=, _, [_, var_ver(:x, 2)]}
+                {:=, _, [var_ver(:x, 4), 1]},
+                {:=, _, [_, var_ver(:x, 4)]}
               ]} =
                expand_with_version(
                  quote do
@@ -402,9 +402,9 @@ defmodule Kernel.ExpansionTest do
       assert {:__block__, _,
               [
                 {:=, _, [var_ver(:x, 0), 0]},
-                {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
+                {:fn, _, [{:->, _, [[var_ver(:x, 2)], {:=, _, [var_ver(:x, 3), 2]}]}]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 5), 3]}
+                {:=, _, [var_ver(:x, 8), 3]}
               ]} =
                expand_with_version(
                  quote do
@@ -418,9 +418,9 @@ defmodule Kernel.ExpansionTest do
       assert {:__block__, _,
               [
                 {:=, _, [var_ver(:x, 0), 0]},
-                {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 1)], var_ver(:x, 1)]}]]]},
+                {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 2)], var_ver(:x, 2)]}]]]},
                 {:=, _, [_, var_ver(:x, 0)]},
-                {:=, _, [var_ver(:x, 4), 2]}
+                {:=, _, [var_ver(:x, 6), 2]}
               ]} =
                expand_with_version(
                  quote do
@@ -2564,11 +2564,8 @@ defmodule Kernel.ExpansionTest do
                         quote(do: <<x()::binary-unit(4)-size(1)>>) |> clean_bit_modifiers()
              end) =~ "a binary segment must have a size-unit pair divisible by 8"
 
-      assert capture_io(:stderr, fn ->
-               assert expand(quote(do: <<x::binary-size(2)-unit(4)>>))
-                      |> clean_meta([:alignment]) ==
-                        quote(do: <<x()::binary-unit(4)-size(2)>>) |> clean_bit_modifiers()
-             end) == ""
+      assert expand(quote(do: <<x::binary-size(2)-unit(4)>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::binary-unit(4)-size(2)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::binary-little>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary>>) |> clean_bit_modifiers()

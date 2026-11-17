@@ -471,7 +471,7 @@ defmodule Module.Types.Apply do
     # know is that the result is one of the two, so it is always their union.
     {left_type, context} = of_fun.(left, term(), expr, stack, context)
     {right_type, context} = of_fun.(right, term(), expr, stack, context)
-    result = opt_union(left_type, right_type)
+    result = return(opt_union(left_type, right_type), [left_type, right_type], stack)
 
     if error = mismatched_ordered_comparison(left_type, right_type, stack) do
       remote_error(error, :erlang, name, 2, expr, stack, context)
@@ -852,7 +852,7 @@ defmodule Module.Types.Apply do
               # We are checking for `not x == 1` or similar, we can't say anything about x
               polarity == false -> term()
               # We are checking for `x == 1`, make sure x is integer or float
-              name in [:==, :"/="] -> numberize(type)
+              name in [:==, :"/="] -> numberize_unions_or_term(type)
               # Otherwise we have the literal type as is
               true -> type
             end
@@ -879,30 +879,34 @@ defmodule Module.Types.Apply do
       skip_check? or not is_warning(stack) ->
         {result, context}
 
-      name in [:==, :"/="] and number_type?(left_type) and number_type?(right_type) ->
+      not disjoint?(left_type, right_type) ->
         {result, context}
 
-      # This check is incomplete. After all, we could have the number type nested
-      # inside a tuple or a list and the comparison would still be valid.
-      # However, nested comparison between distinct numbers is very uncommon,
-      # so we only check the direct value here.
-      disjoint?(left_type, right_type) ->
-        error = {:mismatched_comparison, left_type, right_type}
-        remote_error(error, :erlang, name, 2, expr, stack, context)
+      # `==` coerces integers and floats, at the top-level and nested inside
+      # containers alike, so `{1} == {1.0}` holds even though the types are
+      # disjoint as sets. `numberize_unions_or_term/1` closes both sides over
+      # that coercion. `=:=` has no such coercion, so disjointedness settles
+      # it right away.
+      name in [:==, :"/="] and
+          not disjoint?(numberize_unions_or_term(left_type), numberize_unions_or_term(right_type)) ->
+        {result, context}
 
       true ->
-        {result, context}
+        error = {:mismatched_comparison, left_type, right_type}
+        remote_error(error, :erlang, name, 2, expr, stack, context)
     end
   end
 
   defp mismatched_ordered_comparison(left_type, right_type, stack) do
     if is_warning(stack) do
       cond do
-        # These checks are incomplete. After all, we could have numbers and
-        # structs nested inside tuples or lists, but we only check the direct
-        # value here.
-        not (number_type?(left_type) and number_type?(right_type)) and
-            disjoint?(left_type, right_type) ->
+        # Ordered comparisons compare numbers by value, at the top-level and
+        # nested inside containers alike, so `numberize_unions_or_term/1`
+        # closes both sides over that coercion before we call them distinct.
+        #
+        # The struct check below is still incomplete: we could have structs
+        # nested inside tuples or lists, but we only check the direct value.
+        disjoint?(numberize_unions_or_term(left_type), numberize_unions_or_term(right_type)) ->
           {:mismatched_comparison, left_type, right_type}
 
         match?({false, _}, map_fetch_key(dynamic(left_type), :__struct__)) and
@@ -1199,7 +1203,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :from_struct, info, [map] = args_types, stack) do
     case remote_apply(info, args_types, stack) do
       {:ok, _type} ->
-        case map_update(map, @struct_key, none(), true, false, true) do
+        case map_update(map, @struct_key, :delete, :force, false) do
           {_value, descr, _errors} ->
             {:ok, return(descr, args_types, stack)}
 
@@ -1213,7 +1217,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :delete, _info, [map, key] = args_types, stack) do
-    case map_update(map, key, none(), true, false, true) do
+    case map_update(map, key, :delete, :force, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :delete, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1290,7 +1294,7 @@ defmodule Module.Types.Apply do
         _ -> args_types
       end
 
-    case map_update(map, key, none(), true, true, false) do
+    case map_update(map, key, :delete, :keep, true) do
       {value, descr, _errors} ->
         value = opt_union(value, default)
         {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1306,7 +1310,7 @@ defmodule Module.Types.Apply do
   defp remote_apply(Map, :pop_lazy, _info, [map, key, fun] = args_types, stack) do
     case fun_apply(fun, []) do
       {:ok, default} ->
-        case map_update(map, key, none(), true, true, false) do
+        case map_update(map, key, :delete, :keep, true) do
           {value, descr, _errors} ->
             value = opt_union(value, default)
             {:ok, return(tuple([value, descr]), args_types, stack)}
@@ -1324,7 +1328,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :put, _info, [map, key, value] = args_types, stack) do
-    case map_update(map, key, value, false, false, true) do
+    case map_update(map, key, value, :force, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :put, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1332,7 +1336,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :pop!, _info, [map, key] = args_types, stack) do
-    case map_update(map, key, none(), true, true, false) do
+    case map_update(map, key, :delete, :reject, true) do
       {value, descr, _errors} -> {:ok, return(tuple([value, descr]), args_types, stack)}
       :badmap -> {:error, badremote(Map, :pop!, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1340,9 +1344,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace, _info, [map, key, value] = args_types, stack) do
-    fun = fn _value, optional? -> {value, optional?} end
-
-    case map_update_fun(map, key, fun, false, false) do
+    case map_update(map, key, upper_bound(value), :keep, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "do nothing"}}
@@ -1350,9 +1352,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :replace!, _info, [map, key, value] = args_types, stack) do
-    fun = fn _value, optional? -> {value, optional?} end
-
-    case map_update_fun(map, key, fun, false, false) do
+    case map_update(map, key, upper_bound(value), :reject, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(Map, :replace!, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1377,18 +1377,20 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
+      # `fun` is the inferred function type; this adapter computes its return type.
       fun_apply = fn arg_type, optional? ->
         if empty?(arg_type) do
           {default, false}
         else
-          case fun_apply(fun, [arg_type]) do
-            {:ok, res} -> {if(optional?, do: opt_union(res, default), else: res), false}
+          case fun_apply_or_none(fun, [arg_type]) do
+            {:ok, res, _status} -> {if(optional?, do: opt_union(res, default), else: res), false}
             reason -> throw({:badapply, reason, [arg_type]})
           end
         end
       end
 
-      map_update_fun(map, key, fun_apply, false, true)
+      map_update_fun(map, key, fun_apply, :force, true)
+      |> map_update_check_callback(fun, gradual?(map))
     catch
       {:badapply, reason, args_types} ->
         {:error, {:badapply, fun, args_types, reason}}
@@ -1429,7 +1431,7 @@ defmodule Module.Types.Apply do
           domain_keys = to_domain_keys(key_type)
 
           keys =
-            case atom_fetch(key_type) do
+            case atom_fetch(dynamic(key_type)) do
               {:finite, atom_keys} -> [List.delete(domain_keys, :atom) | atom_keys]
               _ -> [domain_keys]
             end
@@ -1472,7 +1474,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :put, _info, [key, value, map] = args_types, stack) do
-    case map_update(map, key, value, false, false, true) do
+    case map_update(map, key, value, :force, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :put, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1480,7 +1482,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :remove, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, none(), true, false, true) do
+    case map_update(map, key, :delete, :force, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :remove, args_types)}
       {:error, _errors} -> {:ok, map}
@@ -1488,7 +1490,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :take, _info, [key, map] = args_types, stack) do
-    case map_update(map, key, none(), true, true, false) do
+    case map_update(map, key, :delete, :reject, true) do
       {value, descr, _errors} ->
         result = opt_union(tuple([value, descr]), atom([:error]))
         {:ok, return(result, args_types, stack)}
@@ -1509,9 +1511,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(:maps, :update, _info, [key, value, map] = args_types, stack) do
-    fun = fn _value, optional? -> {value, optional?} end
-
-    case map_update_fun(map, key, fun, false, false) do
+    case map_update(map, key, upper_bound(value), :reject, false) do
       {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
       :badmap -> {:error, badremote(:maps, :update, args_types)}
       {:error, _errors} -> {:error, {:badkeydomain, map, key, "raise"}}
@@ -1894,15 +1894,22 @@ defmodule Module.Types.Apply do
   ## Map helpers
 
   defp map_put_new(map, key, value, name, args_types, stack) do
-    fun = fn
-      type, true -> {opt_union(type, value), false}
-      type, false -> {if(empty?(type), do: value, else: type), false}
-    end
+    # No update is needed when every possible key is already required.
+    with {:finite, [_ | _] = keys} <- atom_fetch(upper_bound(key)),
+         true <- Enum.all?(keys, &match?({false, _}, map_fetch_key(map, &1))) do
+      {:ok, return(map, args_types, stack)}
+    else
+      _ ->
+        fun = fn
+          type, true -> {opt_union(type, value), false}
+          type, false -> {if(empty?(type), do: value, else: type), false}
+        end
 
-    case map_update_fun(map, key, fun, false, true) do
-      {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
-      :badmap -> {:error, badremote(Map, name, args_types)}
-      {:error, _errors} -> {:ok, map}
+        case map_update_fun(map, key, fun, :force, false) do
+          {_value, descr, _errors} -> {:ok, return(descr, args_types, stack)}
+          :badmap -> {:error, badremote(Map, name, args_types)}
+          {:error, _errors} -> {:ok, map}
+        end
     end
   end
 
@@ -1914,14 +1921,18 @@ defmodule Module.Types.Apply do
           _ -> map
         end
 
+      # Apply the inferred function type to each old field type, without executing it.
       fun_apply = fn arg_type, optional? ->
-        case fun_apply(fun, [arg_type]) do
-          {:ok, res} -> {res, optional?}
+        case fun_apply_or_none(fun, [arg_type]) do
+          {:ok, res, _status} -> {res, optional?}
           reason -> throw({:badapply, reason, [arg_type]})
         end
       end
 
-      map_update_fun(map, key, fun_apply, false, false)
+      on_missing = if name == :replace_lazy, do: :keep, else: :reject
+
+      map_update_fun(map, key, fun_apply, on_missing, true)
+      |> map_update_check_callback(fun, gradual?(map))
     catch
       {:badapply, reason, args_types} ->
         {:error, {:badapply, fun, args_types, reason}}
@@ -1933,6 +1944,23 @@ defmodule Module.Types.Apply do
   end
 
   ## Application helpers
+
+  # Check all old values together: a single unmatched fragment must not reject the update.
+  defp map_update_check_callback({old_values, _descr, _errors} = result, fun, gradual?) do
+    unless empty?(old_values) do
+      arguments = [if(gradual?, do: dynamic(old_values), else: old_values)]
+
+      case fun_apply_or_none(fun, arguments) do
+        {:ok, _result, :ok} -> :ok
+        {:ok, _result, reason} -> throw({:badapply, reason, arguments})
+        reason -> throw({:badapply, reason, arguments})
+      end
+    end
+
+    result
+  end
+
+  defp map_update_check_callback(result, _fun, _gradual?), do: result
 
   defp domain(nil, [{domain, _}]), do: domain
   defp domain(domain, _clauses), do: domain
@@ -2399,9 +2427,7 @@ defmodule Module.Types.Apply do
           format_traces(traces),
           """
 
-          While Elixir can compare across all types, you are comparing \
-          across types which are always disjoint, and the result is either \
-          always true or always false
+          While Elixir can compare across all types, you are comparing across types which are always disjoint
           """
         ])
     }

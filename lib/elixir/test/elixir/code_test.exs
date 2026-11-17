@@ -451,7 +451,7 @@ defmodule CodeTest do
       assert_receive {:trace, {:on_module, _, _}, %{module: CodeTest.TracingPruning} = trace_env}
 
       assert trace_env.versioned_vars == %{
-               {:result, :elixir_compiler} => 5,
+               {:result, :elixir_compiler} => 6,
                {:x, nil} => 1,
                {:y, nil} => 4
              }
@@ -562,6 +562,25 @@ defmodule CodeTest do
     assert 1.23 = Code.string_to_quoted!(1.23)
     assert {:ok, 1.23, []} = Code.string_to_quoted_with_comments(1.23)
     assert {1.23, []} = Code.string_to_quoted_with_comments!(1.23)
+  end
+
+  test "string_to_quoted with :max_integer_bytes" do
+    opts = [max_integer_bytes: 3]
+    assert Code.string_to_quoted("999", opts) == {:ok, 999}
+    assert Code.string_to_quoted("9_9_9", opts) == {:ok, 999}
+    assert Code.string_to_quoted("0xFFF", opts) == {:ok, 4095}
+    assert Code.string_to_quoted("1000.0", opts) == {:ok, 1000.0}
+
+    for int <- ["1000", "0xF_FFF", "0o7777", "0b1111"] do
+      assert Code.string_to_quoted(int, opts) ==
+               {:error, {[line: 1, column: 1], "integer exceeds the maximum of 3 bytes ", int}}
+    end
+
+    # By default, integers are bounded by the system limit
+    int = "0x" <> String.duplicate("f", 1_300_000)
+
+    assert Code.string_to_quoted(int) ==
+             {:error, {[line: 1, column: 1], "integer exceeds the system limit ", int}}
   end
 
   test "string_to_quoted returns error on incomplete escaped string" do

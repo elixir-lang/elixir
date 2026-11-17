@@ -689,11 +689,16 @@ defmodule Code.Formatter do
         {left, " =>", right, state}
       end
 
+    # Comments before the value can only be kept above it
+    # when the value starts on its own line
+    {value_comments, _trailing, _right_arg} = pop_comments(right_arg, true, false)
+
     doc =
       concat(
         group(left),
         with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
-          nest(glue(op, right), 2, :break)
+          right = nest(glue(op, right), 2, :break)
+          if value_comments == [], do: right, else: force_unfit(right)
         end)
       )
 
@@ -875,6 +880,16 @@ defmodule Code.Formatter do
     operand_to_algebra_with_comments(pipes, meta, state, fun)
   end
 
+  # TODO: We can remove this workaround once we remove
+  # ?rearrange_uop from the parser on v2.0.
+  # (! left) in right
+  # (not left) in right
+  defp binary_op_to_algebra(:in, "in", meta, {op, _, [_]} = left, right, context, state, nesting)
+       when op in [:not, :!] do
+    left = {:__block__, [], [left]}
+    binary_op_to_algebra(:in, "in", meta, left, right, context, state, nesting)
+  end
+
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting) do
     op_info = augmented_binary_op(op)
     left_context = left_op_context(context)
@@ -895,7 +910,7 @@ defmodule Code.Formatter do
           {" " <> op_string <> " ", group(right)}
 
         true ->
-          eol? = eol?(meta, state)
+          eol? = eol?(meta, state) or operand_leading_comments?(right_arg)
 
           next_break_fits? =
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
@@ -965,10 +980,12 @@ defmodule Code.Formatter do
   defp binary_operand_to_algebra(operand, context, state, parent_op, parent_info, side, nesting) do
     {parent_assoc, parent_prec} = parent_info
 
-    with {op, meta, [left, right]} <- operand,
+    with {op, _meta, [_left, _right]} <- operand,
          op_info = augmented_binary_op(op),
          {_assoc, prec} <- op_info do
-      {leading_comments, meta} = Keyword.pop(meta, :leading_comments, [])
+      {leading_comments, _trailing, {op, meta, [left, right]}} =
+        pop_comments(operand, true, false)
+
       leading_comments = format_comments(leading_comments, :leading)
       op_string = Atom.to_string(op)
 
@@ -1137,7 +1154,7 @@ defmodule Code.Formatter do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, meta, context, :skip_if_do_end, true, state)
+      call_args_to_algebra(args, meta, context, :required, true, state)
 
     doc = concat(concat(target_doc, "."), call_doc)
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -1396,7 +1413,9 @@ defmodule Code.Formatter do
 
   defp do_end_blocks(meta, [{{:__block__, _, [:do]}, _} | rest] = blocks, state) do
     if meta?(meta, :do) or can_force_do_end_blocks?(rest, state) do
-      Enum.map(blocks, fn {{:__block__, _, [key]}, value} -> {key, value} end)
+      Enum.map(blocks, fn {{:__block__, meta, [key]}, value} ->
+        {key, Keyword.get(meta, :leading_comments, []), value}
+      end)
     end
   end
 
@@ -1407,19 +1426,23 @@ defmodule Code.Formatter do
       Enum.all?(rest, fn {{:__block__, _, [key]}, _} -> key in @do_end_keywords end)
   end
 
-  defp do_end_blocks_to_algebra([{:do, value} | blocks], state) do
-    {acc, state} = do_end_block_to_algebra(@empty, value, state)
+  defp do_end_blocks_to_algebra([{:do, comments, value} | blocks], state) do
+    {acc, state} = do_end_block_to_algebra(@empty, comments, value, state)
 
-    Enum.reduce(blocks, {acc, state}, fn {key, value}, {acc, state} ->
-      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), value, state)
+    Enum.reduce(blocks, {acc, state}, fn {key, comments, value}, {acc, state} ->
+      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), comments, value, state)
       {line(acc, doc), state}
     end)
   end
 
-  defp do_end_block_to_algebra(key_doc, value, state) do
-    case clauses_to_algebra(value, state) do
-      {@empty, state} -> {key_doc, state}
-      {value_doc, state} -> {key_doc |> line(value_doc) |> nest(2), state}
+  # Comments on the keyword itself (such as `else # comment`)
+  # are moved to the beginning of the block body
+  defp do_end_block_to_algebra(key_doc, comments, value, state) do
+    {value_doc, state} = clauses_to_algebra(value, state)
+
+    case prepend_comments(value_doc, format_comments(comments, :leading)) do
+      @empty -> {key_doc, state}
+      value_doc -> {key_doc |> line(value_doc) |> nest(2), state}
     end
   end
 
@@ -1902,10 +1925,14 @@ defmodule Code.Formatter do
   ## Anonymous functions
 
   defp anon_fun_to_algebra(
-         [{:->, meta, args}] = clauses,
+         [{:->, meta, [fun_args, _body] = args}] = clauses,
          state,
          multi_clauses_style
        ) do
+    # Comments in the arguments are only kept next to them
+    # when the clause starts on its own line
+    multi_clauses_style = multi_clauses_style or comments?(fun_args)
+
     if comments = meta[:leading_comments] do
       clauses = [{:->, Keyword.delete(meta, :leading_comments), args}]
 
@@ -2010,21 +2037,29 @@ defmodule Code.Formatter do
   # (x ->
   #    y)
   defp paren_fun_to_algebra([{:->, _meta, [args, body]}] = clauses, state) do
-    {args_doc, state} = clause_args_to_algebra_with_comments(args, state)
-    {body_doc, state} = block_to_algebra(body, state)
-    break_or_line = clause_break_or_line(clauses, state)
+    if comments?(args) do
+      paren_clauses_to_algebra(clauses, state)
+    else
+      {args_doc, state} = clause_args_to_algebra_with_comments(args, state)
+      {body_doc, state} = block_to_algebra(body, state)
+      break_or_line = clause_break_or_line(clauses, state)
 
-    doc =
-      args_doc
-      |> ungroup_if_group()
-      |> concat(" ->")
-      |> group()
-      |> concat(break_or_line |> concat(body_doc) |> nest(2))
-      |> wrap_in_parens()
-      |> maybe_force_clauses(clauses, state)
-      |> group()
+      doc =
+        args_doc
+        |> ungroup_if_group()
+        |> concat(" ->")
+        |> group()
+        |> concat(break_or_line |> concat(body_doc) |> nest(2))
+        |> wrap_in_parens()
+        |> maybe_force_clauses(clauses, state)
+        |> group()
 
-    {doc, state}
+      {doc, state}
+    end
+  end
+
+  defp paren_fun_to_algebra(clauses, state) do
+    paren_clauses_to_algebra(clauses, state)
   end
 
   # (
@@ -2033,7 +2068,7 @@ defmodule Code.Formatter do
   #   args2 ->
   #     block2
   # )
-  defp paren_fun_to_algebra(clauses, state) do
+  defp paren_clauses_to_algebra(clauses, state) do
     {clauses_doc, state} = clauses_to_algebra(clauses, state)
     {"(" |> line(clauses_doc) |> nest(2) |> line(")") |> force_unfit(), state}
   end
@@ -2174,11 +2209,10 @@ defmodule Code.Formatter do
   end
 
   defp each_quoted_to_algebra_with_comments([arg | args], acc, state, comments?, fun) do
-    {leading_comments, trailing_comments, next_eol_count, arg} = pop_comments(arg)
+    {leading_comments, trailing_comments, arg} = pop_comments(arg)
 
     acc = add_comments_to_acc(acc, leading_comments)
     {doc_triplet, state} = fun.(arg, args, state)
-    doc_triplet = put_next_eol_count(doc_triplet, next_eol_count)
     acc = add_comments_to_acc([doc_triplet | acc], trailing_comments)
 
     each_quoted_to_algebra_with_comments(
@@ -2191,61 +2225,59 @@ defmodule Code.Formatter do
   end
 
   defp pop_comments(quoted) do
-    {leading, trailing, next_eol_count, quoted} = pop_comments(quoted, true, true)
-
-    {format_comments(leading, :leading), format_comments(trailing), next_eol_count, quoted}
+    {leading, trailing, quoted} = pop_comments(quoted, true, true)
+    {format_comments(leading, :leading), format_comments(trailing), quoted}
   end
 
-  defp pop_comments({form, meta, args}, pop_leading?, pop_trailing?) when is_list(meta) do
-    comments = meta[:leading_comments]
-
-    next_eol_count =
-      case is_list(comments) && List.last(comments) do
-        %{previous_eol_count: 0, next_eol_count: count} -> count
-        _ -> 1
-      end
-
+  defp pop_comments({form, meta, args} = quoted, pop_leading?, pop_trailing?)
+       when is_list(meta) do
     {leading, meta} = pop_comment_metadata(meta, :leading_comments, pop_leading?)
     {trailing, meta} = pop_comment_metadata(meta, :trailing_comments, pop_trailing?)
-    {leading, trailing, next_eol_count, {form, meta, args}}
+
+    {leading, args} =
+      if pop_leading? and leading == [] and binary_operator?(quoted),
+        do: pop_left_operand_comments(args),
+        else: {leading, args}
+
+    {leading, trailing, {form, meta, args}}
   end
 
   defp pop_comments({left, right}, pop_leading?, pop_trailing?) do
-    {leading, trailing, left_eol_count, left} =
-      pop_comments(left, pop_leading?, pop_trailing?)
+    {leading, trailing, left} = pop_comments(left, pop_leading?, pop_trailing?)
 
-    {right_leading, right_trailing, right_eol_count, right} =
+    {right_leading, right_trailing, right} =
       pop_comments(
         right,
         pop_leading? and leading == [],
         pop_trailing? and trailing == []
       )
 
-    {leading ++ right_leading, trailing ++ right_trailing, max(left_eol_count, right_eol_count),
-     {left, right}}
+    {leading ++ right_leading, trailing ++ right_trailing, {left, right}}
   end
 
   defp pop_comments(list, pop_leading?, pop_trailing?) when is_list(list) do
-    {list, {leading, trailing, next_eol_count}} =
-      Enum.map_reduce(list, {[], [], 1}, fn quoted, {leading, trailing, next_eol_count} ->
-        {new_leading, new_trailing, new_eol_count, quoted} =
-          pop_comments(quoted, pop_leading?, pop_trailing?)
-
-        {quoted,
-         {leading ++ new_leading, trailing ++ new_trailing, max(next_eol_count, new_eol_count)}}
+    {list, {leading, trailing}} =
+      Enum.map_reduce(list, {[], []}, fn quoted, {leading, trailing} ->
+        {new_leading, new_trailing, quoted} = pop_comments(quoted, pop_leading?, pop_trailing?)
+        {quoted, {leading ++ new_leading, trailing ++ new_trailing}}
       end)
 
-    {leading, trailing, next_eol_count, list}
+    {leading, trailing, list}
   end
 
-  defp pop_comments(quoted, _pop_leading?, _pop_trailing?), do: {[], [], 1, quoted}
+  defp pop_comments(quoted, _pop_leading?, _pop_trailing?), do: {[], [], quoted}
+
+  # The left operand of an operator is written first, so its leading
+  # comments are written before the whole operator.
+  defp pop_left_operand_comments([{_, meta, _} = left | right]) when is_list(meta) do
+    {leading, _trailing, left} = pop_comments(left, true, false)
+    {leading, [left | right]}
+  end
+
+  defp pop_left_operand_comments(args), do: {[], args}
 
   defp pop_comment_metadata(meta, key, true), do: Keyword.pop(meta, key, [])
   defp pop_comment_metadata(meta, _key, false), do: {[], meta}
-
-  defp put_next_eol_count({doc, next_line, newlines}, count) do
-    {doc, next_line, max(newlines, count)}
-  end
 
   defp formatted_trailing_comments(meta) do
     meta
@@ -2436,17 +2468,17 @@ defmodule Code.Formatter do
     end
   end
 
-  defp next_break_fits?({:{}, meta, _args}, state) do
-    eol?(meta, state)
+  defp next_break_fits?({:{}, meta, args}, state) do
+    eol_or_comments?(meta, args, state)
   end
 
-  defp next_break_fits?({:__block__, meta, [{_, _}]}, state) do
-    eol?(meta, state)
+  defp next_break_fits?({:__block__, meta, [{left, right}]}, state) do
+    eol_or_comments?(meta, [left, right], state)
   end
 
   defp next_break_fits?({:<<>>, meta, [_ | _] = entries}, state) do
     meta[:delimiter] == ~s["""] or
-      (not interpolated?(entries) and eol?(meta, state))
+      (not interpolated?(entries) and eol_or_comments?(meta, entries, state))
   end
 
   # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
@@ -2481,6 +2513,16 @@ defmodule Code.Formatter do
 
   defp next_break_fits?(_, _state) do
     false
+  end
+
+  defp eol_or_comments?(meta, args, state) do
+    eol?(meta, state) or meta[:closing][:leading_comments] != nil or
+      Enum.any?(args, &comments?/1)
+  end
+
+  defp comments?(quoted) do
+    {leading, trailing, _quoted} = pop_comments(quoted, true, true)
+    leading != [] or trailing != []
   end
 
   # A literal list is a keyword or (... -> ...)
@@ -2519,6 +2561,13 @@ defmodule Code.Formatter do
   end
 
   defp leading_comments?(_), do: false
+
+  defp operand_leading_comments?({_, meta, args} = quoted) when is_list(meta) do
+    Keyword.has_key?(meta, :leading_comments) or
+      (binary_operator?(quoted) and operand_leading_comments?(hd(args)))
+  end
+
+  defp operand_leading_comments?(_), do: false
 
   defp force_args?(args) do
     match?([_ | _], args) and force_args?(args, %{})

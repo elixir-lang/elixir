@@ -184,6 +184,21 @@ defmodule Kernel.CLI.ExecutableTest do
              "false\n"
   end
 
+  @tag :unix
+  @tag :tmp_dir
+  test "exits with status 1 when the error cannot be written to stderr",
+       %{tmp_dir: tmp_dir, cli_extension: cli_extension} do
+    # stderr is a pipe whose reader has exited, so printing the error fails;
+    # the status must still be the error's, and no crash dump written
+    cmd =
+      ~c"cd #{tmp_dir} && (#{elixir_executable(cli_extension)} -e \"raise ArgumentError\" " ++
+        ~c"2>&1 >/dev/null; echo $? > status) | true"
+
+    :os.cmd(cmd)
+    assert File.read!(Path.join(tmp_dir, "status")) == "1\n"
+    refute File.exists?(Path.join(tmp_dir, "erl_crash.dump"))
+  end
+
   stderr_test "blames exceptions", %{cli_extension: cli_extension} do
     error = elixir(~c"-e \"Access.fetch :foo, :bar\"", cli_extension)
     assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
@@ -305,6 +320,19 @@ defmodule Kernel.CLI.CompileTest do
     assert output =~ "non_existing.ex"
     refute output =~ "compile_sample.ex"
     refute File.exists?(context.beam_file_path)
+  end
+
+  stderr_test "fails on warnings with --warnings-as-errors", context do
+    fixture = Path.join(context.tmp_dir, "warnings_sample.ex")
+    File.write!(fixture, "defmodule WarningsSample do\n  def foo(x), do: :ok\nend\n")
+
+    output =
+      elixirc(~c"--warnings-as-errors #{fixture} -o #{context.tmp_dir}", context.cli_extension)
+
+    assert output =~ "variable \"x\" is unused"
+
+    assert output =~
+             "Compilation failed due to warnings while using the --warnings-as-errors option"
   end
 
   stderr_test "fails on missing write access to .beam file", context do

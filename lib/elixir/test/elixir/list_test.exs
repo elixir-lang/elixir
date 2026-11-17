@@ -471,5 +471,15 @@ defmodule ListTest do
     assert_raise ArgumentError, fn ->
       List.to_existing_atom(~c"baz", values)
     end
+
+    # the charlist is evaluated exactly once, also when it is not allowed
+    message = ~s(unexpected value: ~c"baz", the allowed atoms are: [:foo, :bar])
+
+    assert_raise ArgumentError, message, fn ->
+      List.to_existing_atom(tap(~c"baz", &send(self(), {:evaluated, &1})), [:foo, :bar])
+    end
+
+    assert_received {:evaluated, ~c"baz"}
+    refute_received {:evaluated, _}
   end
 end

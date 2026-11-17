@@ -58,7 +58,7 @@ defmodule Module.Types.PatternTest do
                  [info | _] = __ENV__.function
                  info
                )
-             ) =~ "the following pattern will never match"
+             ) =~ "the following pattern is incompatible with its expected type"
     end
 
     test "does not check underscore" do
@@ -93,6 +93,24 @@ defmodule Module.Types.PatternTest do
                  x
                )
              ) == dynamic(tuple([atom([:foo]), integer()]))
+    end
+
+    test "propagates body refinements" do
+      assert typecheck!(
+               [a = b],
+               (
+                 _ = elem(a, 0)
+                 b
+               )
+             ) == dynamic(open_tuple([term()]))
+
+      assert typeerror!(
+               [a = b],
+               (
+                 _ = elem(a, 0)
+                 fn x when is_map(b) -> x end
+               )
+             ) =~ "this guard will never succeed"
     end
 
     test "reports incompatible types" do
@@ -336,6 +354,28 @@ defmodule Module.Types.PatternTest do
                dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
     end
 
+    test "in patterns with nested tails" do
+      assert typecheck!(
+               [x],
+               case [x, 2] do
+                 [y | [_]] -> y
+               end
+             ) == opt_union(dynamic(), integer())
+
+      assert typecheck!(
+               [x],
+               case [x, 2, 3] do
+                 [_ | [y | z]] -> {y, z}
+               end
+             )
+             |> equal?(
+               opt_union(
+                 dynamic(tuple([term(), list(term())])),
+                 tuple([integer(), list(integer())])
+               )
+             )
+    end
+
     test "in patterns through ++" do
       assert typecheck!([x = [] ++ []], x) == dynamic(empty_list())
 
@@ -402,6 +442,22 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([<<x::float>>], x) == float()
       assert typecheck!([<<x::binary>>], x) == binary()
       assert typecheck!([<<x::utf8>>], x) == integer()
+
+      # Variables are only dynamic outside of static mode
+      assert typedyn!([<<x>>], x) == dynamic(integer())
+      assert typedyn!([<<x::bitstring>>], x) == dynamic(bitstring())
+      assert typedyn!([<<x::bitstring>>], <<x::binary>>) == dynamic(binary())
+    end
+
+    test "refined by guards" do
+      assert typecheck!(
+               [y],
+               case y do
+                 <<x::bitstring>> when is_binary(x) -> :binary
+                 z -> z
+               end
+             )
+             |> equal?(opt_union(dynamic(opt_negation(binary())), atom([:binary])))
     end
 
     test "nested" do
@@ -1483,6 +1539,98 @@ defmodule Module.Types.PatternTest do
       refute precise?([x, y], x == :ok or y == :error)
       refute precise?([x, y], is_integer(min(x, y)))
       refute precise?([x], x <= 0 or x == :infinity)
+    end
+
+    test "guards which may fail" do
+      # If an operand fails, the whole guard fails, so the following
+      # operands do not run for the values the operand fails on
+      refute precise?([x], is_integer(x) or tuple_size(x) == 2 or is_atom(x))
+
+      refute precise?(
+               [x],
+               ((is_integer(x) or is_tuple(x)) and tuple_size(x) == 2) or is_integer(x)
+             )
+
+      refute precise?([x], not (is_number(x) and tuple_size(x) == 2 and is_atom(x)))
+      refute precise?([x], is_integer(x) or elem(x, 0) == :ok or is_atom(x))
+      refute precise?([x], is_integer(x) or :erlang.map_get(:key, x) == :ok or is_atom(x))
+      refute precise?([x], is_integer(x) or x.key == :ok or is_atom(x))
+      refute precise?([x], is_integer(x) or is_map_key(x, :key) or is_atom(x))
+      refute precise?([x], is_integer(x) or (is_tuple(x) and elem(x, 0) == :ok) or is_atom(x))
+      refute precise?([x, y], is_integer(x) or is_integer(div(y, 2)) or is_atom(x))
+      refute precise?([x, y], is_integer(x) or elem(x, y) == :ok or is_atom(x))
+
+      # Failures that depend on values make the guard imprecise wherever they are
+      refute precise?([x, y], is_integer(div(x, y)))
+      refute precise?([x], is_number(x / 0))
+      refute precise?([x], is_atom(x) or is_integer(div(x, 0)))
+      refute precise?([x], is_atom(x) and is_integer(div(1, 0)))
+
+      # Operands which are imprecise make the guard imprecise
+      refute precise?([x], is_integer(x) or is_atom(hd(x)))
+
+      # Arithmetic only fails depending on values when floats are involved
+      assert precise?([x], is_integer(x + 1))
+      assert precise?([x], is_integer(-x))
+      assert precise?([x, y], is_integer(x * y))
+      assert precise?([x], is_atom(x) or is_integer(x - 1))
+      refute precise?([x], is_float(x * 2.0))
+      refute precise?([x], not is_integer(x * 2))
+      refute precise?([x], is_number(x + 1))
+
+      # div/rem only fail depending on values when the divisor may be zero
+      assert precise?([x], is_integer(div(x, 2)))
+      assert precise?([x], is_integer(rem(x, -3)))
+      refute precise?([x, y], is_integer(rem(x, y)))
+
+      # map_get only fails depending on values when the key is not an atom
+      assert precise?([x], is_integer(:erlang.map_get(:a, x)))
+      refute precise?([x], is_integer(:erlang.map_get(x, %{a: 1})))
+      refute precise?([x, y], is_integer(:erlang.map_get(x, y)))
+      refute precise?([x], is_integer(:erlang.map_get(1, x)))
+
+      # bsl/bsr only fail depending on values when the shift is not a literal
+      assert precise?([x], is_integer(:erlang.bsl(x, 2)))
+      refute precise?([x, y], is_integer(:erlang.bsr(x, y)))
+
+      # Binaries only fail depending on values on sizes, floats, and codepoints
+      assert precise?([x], is_bitstring(<<x::8>>))
+      assert precise?([x], is_bitstring(<<x::binary, "foo", 0xE000::utf8>>))
+      refute precise?([x, y], is_bitstring(<<x::size(y)>>))
+      refute precise?([x], is_bitstring(<<x::binary-size(2)>>))
+      refute precise?([x], is_bitstring(<<x::float>>))
+      refute precise?([x], is_bitstring(<<x::utf8>>))
+      refute precise?([x], is_bitstring(<<0xD800::utf8>>))
+
+      # The operands of orelse, except the last, fail if they are not booleans
+      refute precise?([x], is_integer(x) or x or is_atom(x))
+      assert precise?([x], x or is_atom(x))
+
+      # The sure types already handle failures on the leftmost operand
+      assert precise?([x], tuple_size(x) == 2 or is_atom(x))
+      assert precise?([x], elem(x, 0) == :ok or is_atom(x))
+
+      # Failures on the last operand do not affect other operands
+      assert precise?([x], is_integer(x) or is_atom(x) or tuple_size(x) == 2)
+      assert precise?([x], is_integer(x) or x.key == :ok)
+
+      # Operands of orelse only run when the previous ones return false
+      assert precise?(
+               [x],
+               is_integer(x) or ((not is_tuple(x) or tuple_size(x) == 2) and is_atom(x)) or
+                 is_float(x)
+             )
+
+      # Operands which cannot fail
+      assert precise?([x], is_integer(x) or (is_tuple(x) and tuple_size(x) == 2) or is_atom(x))
+      assert precise?([x], is_integer(x) or (is_map(x) and map_size(x) == 0) or is_atom(x))
+      assert precise?([x], is_integer(x) or (is_map(x) and is_map_key(x, :key)) or is_atom(x))
+
+      assert precise?(
+               [x],
+               is_integer(x) or (is_tuple(x) and tuple_size(x) > 0 and elem(x, 0) == :ok) or
+                 is_atom(x)
+             )
     end
 
     test "when guards" do

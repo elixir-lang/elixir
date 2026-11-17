@@ -152,6 +152,9 @@ defmodule Kernel.WarningTest do
         ],
         "a_א1 or a_1א"
       )
+
+      assert_warn_quoted(["'a_12א' looks like 'a_א12'"], "a_א12 or a_12א")
+      assert_warn_quoted(["'x_۱۲بج' looks like 'x_بج۱۲'"], "x_بج۱۲ or x_۱۲بج")
     end
   end
 

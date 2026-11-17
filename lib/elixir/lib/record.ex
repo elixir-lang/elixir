@@ -192,7 +192,7 @@ defmodule Record do
 
       defmodule User do
         require Record
-        Record.defrecord(:user, name: "meg", age: "25")
+        Record.defrecord(:user, name: "meg", age: 25)
       end
 
   In the example above, a set of macros named `user` but with different
@@ -384,7 +384,7 @@ defmodule Record do
           {^tag, arg} when length(fields) == 1 ->
             Record.__keyword__(tag, fields, {tag, arg})
 
-          _ ->
+          args ->
             quote(do: Record.__keyword__(unquote(tag), unquote(fields), unquote(args)))
         end
     end
@@ -417,8 +417,8 @@ defmodule Record do
   defp create(tag, fields, keyword, caller) do
     # Using {} here is safe, since it's not valid AST
     default = if Macro.Env.in_match?(caller), do: {:_, [], nil}, else: {}
-    {default, keyword} = Keyword.pop(keyword, :_, default)
     {keyword, exprs} = hoist_expressions(keyword, caller)
+    {default, keyword} = Keyword.pop(keyword, :_, default)
 
     {elements, remaining} =
       Enum.map_reduce(fields, keyword, fn {key, field_default}, remaining ->
@@ -444,13 +444,14 @@ defmodule Record do
       raise ArgumentError, "cannot invoke update style macro inside match"
     end
 
-    {keyword, exprs} = hoist_expressions(keyword, caller)
-
     if Keyword.has_key?(keyword, :_) do
       message = "updating a record with a default (:_) is equivalent to creating a new record"
       IO.warn(message, caller)
       create(tag, fields, keyword, caller)
     else
+      {[{:record, var} | keyword], exprs} =
+        hoist_expressions([{:record, var} | keyword], caller)
+
       updates =
         Enum.map(keyword, fn {key, value} ->
           if index = find_index(fields, key, 2) do
@@ -464,15 +465,22 @@ defmodule Record do
     end
   end
 
+  # If all expressions are literals or variables, there is no need to hoist.
+  # Otherwise we hoist everything that is not a literal, including variables,
+  # as a later expression may rebind them, to guarantee left-to-right evaluation.
   defp hoist_expressions(keyword, %{context: nil, module: module}) do
-    Enum.map_reduce(keyword, [], fn {key, expr}, acc ->
-      if simple_argument?(expr) do
-        {{key, expr}, acc}
-      else
-        var = Macro.unique_var(key, module)
-        {{key, var}, [{:=, [], [var, expr]} | acc]}
-      end
-    end)
+    if Enum.all?(keyword, fn {_key, expr} -> Macro.quoted_literal?(expr, &var?/1) end) do
+      {keyword, []}
+    else
+      Enum.map_reduce(keyword, [], fn {key, expr}, acc ->
+        if Macro.quoted_literal?(expr) do
+          {{key, expr}, acc}
+        else
+          var = Macro.unique_var(if(key == :_, do: :default, else: key), module)
+          {{key, var}, [{:=, [], [var, expr]} | acc]}
+        end
+      end)
+    end
   end
 
   defp hoist_expressions(keyword, _), do: {keyword, []}
@@ -491,8 +499,8 @@ defmodule Record do
     end)
   end
 
-  defp simple_argument?({name, _, ctx}) when is_atom(name) and is_atom(ctx), do: true
-  defp simple_argument?(other), do: Macro.quoted_literal?(other)
+  defp var?({name, _, ctx}), do: is_atom(name) and is_atom(ctx)
+  defp var?(_), do: false
 
   # Gets a record key from the given var.
   defp get(tag, fields, var, key) do

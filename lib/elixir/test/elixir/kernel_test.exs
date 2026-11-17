@@ -176,7 +176,7 @@ defmodule KernelTest do
     # Ensure we keep the line information around.
     # It is important for debugging tools, ExDoc, etc.
     {:v1, :def, anno, _clauses} = Module.get_definition(__MODULE__, {:__struct__, 1})
-    anno[:line] == __ENV__.line - 4
+    assert anno[:line] == __ENV__.line - 4
   end
 
   test "struct/1 and struct/2" do
@@ -585,6 +585,43 @@ defmodule KernelTest do
       assert case_in(2, 1..3) == true
       assert case_in(3, 1..3) == true
       assert case_in(-3, -1..-3//-1) == true
+    end
+
+    test "in range with literal step and variable endpoints in guards" do
+      first = 1
+      last = 9
+
+      assert case_in(5, first..last//1)
+      assert case_in(5, last..first//-1)
+      assert case_in(5, first..last//2)
+      assert case_in(5, last..first//-2)
+      refute case_in(4, first..last//2)
+      refute case_in(4, last..first//-2)
+      refute case_in(5, last..first//1)
+      refute case_in(5, first..last//-1)
+      refute case_in(5.0, first..last//1)
+      refute case_in(5.0, last..first//-1)
+    end
+
+    test "in range with literal step rejects non-integer endpoints in guards" do
+      for invalid <- [nil, :atom, "z", 1.0, 9.0],
+          {first, last} <- [{1, invalid}, {invalid, 9}, {invalid, invalid}] do
+        refute case_in(5, first..last//1)
+        refute case_in(5, first..last//-1)
+        refute case_in(5, first..last//2)
+        refute case_in(5, first..last//-2)
+      end
+
+      for invalid <- [nil, :atom, "z", 9.0] do
+        refute case_in(5, 1..invalid//1)
+        refute case_in(5, 1..invalid//2)
+        refute case_in(5, invalid..1//-1)
+        refute case_in(5, invalid..1//-2)
+      end
+
+      invalid = 1.0
+      refute case_in(5, invalid..9//1)
+      refute case_in(5, 9..invalid//-1)
     end
 
     def map_dot(map) when map.field, do: true
@@ -1003,10 +1040,6 @@ defmodule KernelTest do
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         update_in(nil, ["john", :age], fn _ -> %{} end)
       end
-
-      assert_raise UndefinedFunctionError, fn ->
-        pop_in(struct(Sample, []), [:name])
-      end
     end
 
     test "update_in/2" do
@@ -1028,7 +1061,7 @@ defmodule KernelTest do
       end
 
       assert_raise KeyError, fn ->
-        put_in(users["meg"].unknown, &(&1 + 1))
+        update_in(users["meg"].unknown, &(&1 + 1))
       end
     end
 
@@ -1081,6 +1114,11 @@ defmodule KernelTest do
 
       assert pop_in([], [:foo, :bar]) ==
                {nil, []}
+
+      assert %UndefinedFunctionError{module: User, function: :pop, arity: 2} =
+               assert_raise(UndefinedFunctionError, fn ->
+                 pop_in(%User{}, [:name])
+               end)
     end
 
     test "pop_in/2 with paths" do
@@ -1451,7 +1489,7 @@ defmodule KernelTest do
       assert output =~ "KernelTest."
       assert output =~ "List.duplicate(:foo, 3)"
       assert output =~ "[:foo, :foo, :foo]"
-      refute output =~ "\\e["
+      refute output =~ "\e["
     end
 
     test "prints binding() if no arguments are given" do

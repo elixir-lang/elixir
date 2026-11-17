@@ -80,13 +80,29 @@ defmodule Module.Types.Of do
   end
 
   @doc """
+  Tracks a variable as used by the current conditional.
+
+  Only variables defined before the conditional are tracked.
+  """
+  def conditional_var(version, context) do
+    case context.conditional_vars do
+      {pre_vars, cond_vars} when is_map_key(pre_vars, version) ->
+        %{context | conditional_vars: {pre_vars, Map.put(cond_vars, version, true)}}
+
+      _ ->
+        context
+    end
+  end
+
+  @doc """
   Refines a variable that already exists (in a body).
 
   This only happens if the var contains a gradual type,
   or if we are doing a guard analysis or occurrence typing.
-  Returns `true` if there was a refinement, `false` otherwise.
+  Returns the variable type and if there was a refinement.
   """
-  @skip_refinement_for [term(), dynamic()]
+  @dynamic dynamic()
+  @skip_refinement_for [term(), @dynamic]
   def refine_body_var(var_or_version, type, expr, stack, context)
 
   def refine_body_var({_, meta, _}, type, expr, stack, context) do
@@ -96,24 +112,22 @@ defmodule Module.Types.Of do
   def refine_body_var(version, type, expr, stack, context)
       when is_integer(version) or is_reference(version) do
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
-
-    context =
-      case context.conditional_vars do
-        %{} = conditional_vars ->
-          %{context | conditional_vars: Map.put(conditional_vars, version, true)}
-
-        nil ->
-          context
-      end
+    context = conditional_var(version, context)
 
     case stack do
       _ when type in @skip_refinement_for or is_map_key(data, :errored) ->
-        {old_type, context}
+        {old_type, false, context}
 
-      %{reverse_arrow: reverse_arrow} when reverse_arrow in [:except_none, :include_none] ->
+      # :throw_none is used to check if a guard may fail by
+      # throwing on any refinement, see Module.Types.Pattern
+      %{reverse_arrow: reverse_arrow}
+      when reverse_arrow in [:except_none, :include_none, :throw_none] ->
         new_type = opt_intersection(old_type, type)
 
         case empty?(new_type) do
+          true when reverse_arrow == :throw_none ->
+            throw(:guard_fail)
+
           true when reverse_arrow == :include_none ->
             data = %{
               data
@@ -121,34 +135,43 @@ defmodule Module.Types.Of do
                 off_traces: new_trace(expr, none(), stack, off_traces)
             }
 
-            {none(), %{context | vars: %{vars | version => data}}}
+            {none(), true, %{context | vars: %{vars | version => data}}}
 
           false when new_type != old_type ->
+            if reverse_arrow == :throw_none, do: throw(:guard_fail)
+
             data = %{
               data
               | type: new_type,
                 off_traces: new_trace(expr, new_type, stack, off_traces)
             }
 
-            {new_type, %{context | vars: %{vars | version => data}}}
+            {new_type, true, %{context | vars: %{vars | version => data}}}
 
           _ ->
-            {old_type, context}
+            {old_type, false, context}
         end
 
       _ ->
-        case gradual?(old_type) and compatible_intersection(old_type, type) do
+        # Refinements are intersections, so once a variable has been refined
+        # by a type, refining it again by the same type has no effect. This
+        # often happens when the variable is given to the same function several
+        # times and, while the result is the same, it may still grow its BDD.
+        refined = Map.get(data, :refined, [])
+
+        case gradual?(old_type) and type not in refined and
+               compatible_intersection(old_type, type) do
           {:ok, new_type} when new_type != old_type ->
             data = %{
-              data
+              Map.put(data, :refined, [type | refined])
               | type: new_type,
                 off_traces: new_trace(expr, new_type, stack, off_traces)
             }
 
-            {new_type, %{context | vars: %{vars | version => data}}}
+            {new_type, true, %{context | vars: %{vars | version => data}}}
 
           _ ->
-            {old_type, context}
+            {old_type, false, context}
         end
     end
   end
@@ -172,18 +195,14 @@ defmodule Module.Types.Of do
 
       %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
         new_type = opt_intersection(type, old_type)
-
-        data = %{
-          data
-          | type: new_type,
-            off_traces: new_trace(expr, type, stack, off_traces)
-        }
+        off_traces = new_trace(expr, type, stack, off_traces)
 
         if empty?(new_type) do
-          data = Map.put(%{data | type: error_type()}, :errored, true)
+          data = Map.put(%{data | type: error_type(), off_traces: off_traces}, :errored, true)
           context = %{context | vars: %{vars | version => data}}
           {:error, old_type, context}
         else
+          data = %{data | type: new_type, off_traces: off_traces}
           context = %{context | vars: %{vars | version => data}}
           {:ok, new_type, context}
         end
@@ -199,13 +218,14 @@ defmodule Module.Types.Of do
   @doc """
   Preserves `context` in first argument while
   resetting it to the vars in the second argument.
+
+  Conditional variables are kept, as they track the variables
+  used by the conditional, including the ones used by clauses.
+  Since they are always defined before the conditional, they
+  are still available after the reset.
   """
-  def reset_vars(context, %{
-        subpatterns: subpatterns,
-        vars: vars,
-        conditional_vars: conditional_vars
-      }),
-      do: %{context | subpatterns: subpatterns, vars: vars, conditional_vars: conditional_vars}
+  def reset_vars(context, %{subpatterns: subpatterns, vars: vars}),
+    do: %{context | subpatterns: subpatterns, vars: vars}
 
   @doc """
   Returns true if all entries have the same conditional vars.
@@ -222,8 +242,9 @@ defmodule Module.Types.Of do
 
     {vars_conds, {acc, context}} =
       Enum.map_reduce(args, {acc, context}, fn arg, {acc, context} ->
-        {acc, context} = fun.(arg, acc, %{context | vars: vars, conditional_vars: %{}})
-        %{vars: vars, conditional_vars: cond_vars} = context
+        context = %{context | vars: vars, conditional_vars: {vars, %{}}}
+        {acc, context} = fun.(arg, acc, context)
+        %{vars: vars, conditional_vars: {_, cond_vars}} = context
         {{vars, cond_vars}, {acc, context}}
       end)
 
@@ -232,29 +253,69 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Reduces conditional variables collected separately.
+  Merges the variables used by a nested conditional into the current one.
   """
-  def reduce_conditional_vars([{vars, cond} | vars_conds], expr, stack, context) do
-    %{vars: pre_vars} = context
-
-    Enum.reduce(Map.keys(cond), context, fn version, context ->
-      if is_map_key(pre_vars, version) and
-           Enum.all?(vars_conds, fn {_vars, cond} -> is_map_key(cond, version) end) do
-        %{^version => %{type: type}} = vars
-
-        type =
-          Enum.reduce(vars_conds, type, fn {vars, _cond}, acc ->
-            %{^version => %{type: type}} = vars
-            opt_union(acc, type)
+  def merge_conditional_vars(used, context) do
+    case context.conditional_vars do
+      {pre_vars, cond_vars} ->
+        cond_vars =
+          Enum.reduce(used, cond_vars, fn {version, _}, acc ->
+            if is_map_key(pre_vars, version), do: Map.put(acc, version, true), else: acc
           end)
 
-        {_, context} = refine_body_var(version, type, expr, stack, context)
+        %{context | conditional_vars: {pre_vars, cond_vars}}
+
+      nil ->
         context
-      else
-        context
+    end
+  end
+
+  @doc """
+  Reduces conditional variables collected separately.
+
+  All variables used by any branch are used by the current conditional.
+  A variable is refined to the union of its types across all branches,
+  as long as all branches use it. If a branch did not change the variable
+  (or its type is `dynamic()`, which is what some conditionals start with),
+  the union cannot refine it, so we skip it.
+  """
+  def reduce_conditional_vars([{_vars, cond} | _] = vars_conds, expr, stack, context) do
+    %{vars: context_vars} = context
+    context = Enum.reduce(vars_conds, context, &merge_conditional_vars(elem(&1, 1), &2))
+
+    Enum.reduce(Map.keys(cond), context, fn version, context ->
+      %{^version => %{type: context_type}} = context_vars
+
+      case conditional_type(vars_conds, version, context_type, none()) do
+        :error ->
+          context
+
+        type ->
+          {_type, refined?, context} = refine_body_var(version, type, expr, stack, context)
+
+          # Propagate the refinement to variables bound by the same pattern
+          if refined? and context.vars[version].deps != %{} and
+               stack.reverse_arrow in [nil, :cache] do
+            Module.Types.Pattern.of_changed([version], stack, context)
+          else
+            context
+          end
       end
     end)
   end
+
+  defp conditional_type([{vars, cond} | vars_conds], version, context_type, acc) do
+    case vars do
+      %{^version => %{type: type}}
+      when is_map_key(cond, version) and type != context_type and type != @dynamic ->
+        conditional_type(vars_conds, version, context_type, opt_union(acc, type))
+
+      _ ->
+        :error
+    end
+  end
+
+  defp conditional_type([], _version, _context_type, acc), do: acc
 
   ## Implementations
 
@@ -329,6 +390,30 @@ defmodule Module.Types.Of do
           dynamic? = dynamic? or dynamic_pair?
 
           case pos_neg_domain do
+            # A single atom key becomes a field. Because a multiple key
+            # may override single keys, we can only collect single keys
+            # while there are no multiples.
+            {[key], [], []} when multiple == [] ->
+              {dynamic?, domain, [{key, {value_type, false}} | single], multiple}
+
+            # If the key is one of several atoms, we track all alternatives:
+            #
+            #     %{foo_or_bar => :baz}
+            #     #=> %{foo: :baz} or %{bar: :baz}
+            #
+            {[_ | _] = pos, [], []} ->
+              {dynamic?, domain, single, [{pos, value_type, false} | multiple]}
+
+            # If the key is made of atoms and other domain keys, we track
+            # each atom as an alternative, as well as none of them:
+            #
+            #     %{foo_or_integer => :baz}
+            #     #=> %{foo: :baz} or %{integer() => :baz}
+            #
+            {[_ | _] = pos, [], domain_keys} ->
+              domain = [{domain_keys, value_type} | domain]
+              {dynamic?, domain, single, [{pos, value_type, true} | multiple]}
+
             # If atom is included in domain keys, it unions all previous
             # single and multiple, except the ones negated:
             #
@@ -338,13 +423,14 @@ defmodule Module.Types.Of do
             #     %{foo: :bar, not :foo => :baz}
             #     #=> %{foo: :bar, term() => :baz}
             #
-            # In case the negated term does not appear, we set it to none():
-            #
-            #     %{foo: :bar, term() => :baz}
-            #     #=> %{term() => :baz, foo: :bar or :baz}
+            # In case the negated term does not appear, it is either not set
+            # or set by a previous key that may be an atom:
             #
             #     %{not :foo => :baz}
-            #     #=> %{term() => :baz, foo: none()}
+            #     #=> %{term() => :baz, foo: not_set()}
+            #
+            #     %{term() => :bar, not :foo => :baz}
+            #     #=> %{term() => :bar or :baz, foo: if_set(:bar)}
             #
             # In case we are dealing with multiple keys, we always merge the
             # domain. A more precise approach would be to postpone doing so
@@ -352,27 +438,10 @@ defmodule Module.Types.Of do
             # uncommon.
             {[], negs, domain_keys} ->
               if :atom in domain_keys do
-                {single, multiple} = union_negated(negs, value_type, single, multiple)
+                {single, multiple} = union_negated(negs, value_type, domain, single, multiple)
                 {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
               else
                 {dynamic?, [{domain_keys, value_type} | domain], single, multiple}
-              end
-
-            {pos, [], domain_keys} ->
-              domain =
-                case domain_keys do
-                  [] -> domain
-                  _ -> [{domain_keys, value_type} | domain]
-                end
-
-              case pos do
-                # Because a multiple key may override single keys, we can only
-                # collect single keys while there are no multiples.
-                [key] when multiple == [] ->
-                  {dynamic?, domain, [{key, {value_type, false}} | single], multiple}
-
-                _ ->
-                  {dynamic?, domain, single, [{pos, value_type} | multiple]}
               end
           end
       end)
@@ -384,11 +453,9 @@ defmodule Module.Types.Of do
         [] ->
           closed_map(non_multiple)
 
-        [{keys, type} | tail] ->
-          products = cartesian_map(tail)
-
-          for key <- keys, product <- products do
-            closed_map(non_multiple ++ [{key, {type, false}} | product])
+        multiple ->
+          for product <- cartesian_map(multiple) do
+            closed_map(non_multiple ++ product)
           end
           |> Enum.reduce(&opt_union/2)
       end
@@ -396,7 +463,7 @@ defmodule Module.Types.Of do
     {if(dynamic?, do: dynamic(map), else: map), context}
   end
 
-  defp union_negated([], new_type, single, multiple) do
+  defp union_negated([], new_type, _domain, single, multiple) do
     single =
       Enum.map(single, fn
         {key, {old_type, optional?}} ->
@@ -404,12 +471,14 @@ defmodule Module.Types.Of do
       end)
 
     multiple =
-      Enum.map(multiple, fn {keys, old_type} -> {keys, opt_union(old_type, new_type)} end)
+      Enum.map(multiple, fn {keys, old_type, optional?} ->
+        {keys, opt_union(old_type, new_type), optional?}
+      end)
 
     {single, multiple}
   end
 
-  defp union_negated(negated, new_type, single, multiple) do
+  defp union_negated(negated, new_type, domain, single, multiple) do
     {single, matched} =
       Enum.map_reduce(single, [], fn
         {key, {old_type, optional?}}, matched ->
@@ -421,11 +490,16 @@ defmodule Module.Types.Of do
       end)
 
     multiple =
-      Enum.map(multiple, fn {keys, old_type} ->
-        {keys, opt_union(old_type, new_type)}
+      Enum.map(multiple, fn {keys, old_type, optional?} ->
+        {keys, opt_union(old_type, new_type), optional?}
       end)
 
-    {Enum.map(negated -- matched, fn key -> {key, {none(), true}} end) ++ single, multiple}
+    previous_type =
+      Enum.reduce(domain, none(), fn {domain_keys, value_type}, acc ->
+        if :atom in domain_keys, do: opt_union(acc, value_type), else: acc
+      end)
+
+    {Enum.map(negated -- matched, fn key -> {key, {previous_type, true}} end) ++ single, multiple}
   end
 
   defp pairs(pairs, expected, stack, context, of_fun) do
@@ -454,7 +528,7 @@ defmodule Module.Types.Of do
     domain_keys = to_domain_keys(key_type)
 
     pos_neg_domain =
-      case atom_fetch(key_type) do
+      case atom_fetch(dynamic(key_type)) do
         {:finite, list} -> {list, [], List.delete(domain_keys, :atom)}
         {:infinite, list} -> {[], list, domain_keys}
         :error -> {[], [], domain_keys}
@@ -468,9 +542,10 @@ defmodule Module.Types.Of do
       [] ->
         [[]]
 
-      [{keys, type} | tail] ->
+      [{keys, type, optional?} | tail] ->
         products = cartesian_map(tail)
-        for key <- keys, product <- products, do: [{key, {type, false}} | product]
+        pairs = for key <- keys, product <- products, do: [{key, {type, false}} | product]
+        if optional?, do: products ++ pairs, else: pairs
     end
   end
 
@@ -569,29 +644,34 @@ defmodule Module.Types.Of do
   based on the position of the expression within the binary.
   """
   def bitstring([], _kind, _stack, context) do
-    {binary(), context}
+    {binary(), false, context}
   end
 
   def bitstring([head], kind, stack, context) do
-    {alignment, context} = bitstring_segment(head, kind, [head], stack, context)
-    {alignment_to_type(alignment), context}
+    {alignment, fail?, context} = bitstring_segment(head, kind, [head], stack, context)
+    {alignment_to_type(alignment), fail?, context}
   end
 
   def bitstring([head | tail], kind, stack, context) do
-    {alignment, context} = bitstring_segment(head, kind, [head, @suffix], stack, context)
-    bitstring_tail(tail, alignment, kind, stack, context)
+    {alignment, fail?, context} =
+      bitstring_segment(head, kind, [head, @suffix], stack, context)
+
+    bitstring_tail(tail, alignment, fail?, kind, stack, context)
   end
 
-  defp bitstring_tail([last], alignment, kind, stack, context) do
-    {seg_alignment, context} = bitstring_segment(last, kind, [@prefix, last], stack, context)
-    {alignment_to_type(alignment(seg_alignment, alignment)), context}
+  defp bitstring_tail([last], alignment, fail?, kind, stack, context) do
+    {seg_alignment, seg_fail?, context} =
+      bitstring_segment(last, kind, [@prefix, last], stack, context)
+
+    {alignment_to_type(alignment(seg_alignment, alignment)), fail? or seg_fail?, context}
   end
 
-  defp bitstring_tail([head | tail], alignment, kind, stack, context) do
-    {seg_alignment, context} =
+  defp bitstring_tail([head | tail], alignment, fail?, kind, stack, context) do
+    {seg_alignment, seg_fail?, context} =
       bitstring_segment(head, kind, [@prefix, head, @suffix], stack, context)
 
-    bitstring_tail(tail, alignment(seg_alignment, alignment), kind, stack, context)
+    alignment = alignment(seg_alignment, alignment)
+    bitstring_tail(tail, alignment, fail? or seg_fail?, kind, stack, context)
   end
 
   defp alignment(left, right) when is_integer(left) and is_integer(right), do: left + right
@@ -605,26 +685,29 @@ defmodule Module.Types.Of do
   # so we just check the size.
   defp bitstring_segment({:"::", _meta, [left, right]}, kind, _args, stack, context)
        when is_binary(left) or is_number(left) do
-    {_type, alignment_type} = specifier_type(kind, right)
+    {_type, alignment_type, fail} = specifier_type(kind, right)
     {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+    fail? = segment_fail?(fail, left, alignment_value)
 
     # We don't need to check for bitstrings because the left side
     # is either a binary (aligned), float (aligned), or integer
     # (which we check below).
     if alignment_type == :integer and alignment_value != :default do
-      {alignment_value, context}
+      {alignment_value, fail?, context}
     else
-      {0, context}
+      {0, fail?, context}
     end
   end
 
   defp bitstring_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    {type, alignment_type} = specifier_type(kind, right)
+    {type, alignment_type, fail} = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
     {actual, context} =
       case kind do
         :match ->
+          # Variables bound in bitstring patterns are only dynamic outside of static mode
+          type = if stack.mode == :static, do: type, else: dynamic(type)
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
@@ -637,27 +720,43 @@ defmodule Module.Types.Of do
 
     if compatible?(actual, type) do
       {alignment_value, context} = specifier_size(kind, right, stack, {:default, context})
+      fail? = segment_fail?(fail, left, alignment_value)
 
       case alignment_type do
         :aligned ->
-          {0, context}
+          {0, fail?, context}
 
         :integer when alignment_value == :default ->
-          {0, context}
+          {0, fail?, context}
 
         # There is no size, so the alignment depends on the type.
         # If the type is exclusively a binary, then it is aligned.
         :bitstring when alignment_value == :default ->
-          if bitstring_no_binary_type?(actual), do: {:unknown, context}, else: {0, context}
+          if bitstring_no_binary_type?(actual),
+            do: {:unknown, fail?, context},
+            else: {0, fail?, context}
 
         _ ->
-          {alignment_value, context}
+          {alignment_value, fail?, context}
       end
     else
       error = {:badbinary, kind, meta, expr, type, actual, context}
-      {:unknown, error(error, meta, stack, context)}
+      {:unknown, true, error(error, meta, stack, context)}
     end
   end
+
+  # Building a segment may fail depending on its value, even if it has the
+  # correct type, when its size is not a literal (it may be negative), when
+  # it is a binary/bitstring with a size or unit (the value may not fit),
+  # a float (integers may be too large), or a utf8/16/32 (the value may not
+  # be a valid codepoint).
+  defp segment_fail?(_fail, _left, :unknown), do: true
+  defp segment_fail?(:none, _left, _alignment_value), do: false
+  defp segment_fail?(:float, left, _alignment_value), do: not is_float(left)
+  defp segment_fail?(:sized, _left, alignment_value), do: alignment_value != :default
+
+  defp segment_fail?(:utf, left, _alignment_value),
+    do: not (is_binary(left) or left in 0..0xD7FF//1 or left in 0xE000..0x10FFFF//1)
 
   defp annotate_interpolation(
          {{:., _, [String.Chars, :to_string]} = dot, meta, [arg]},
@@ -670,21 +769,23 @@ defmodule Module.Types.Of do
     left
   end
 
+  # Returns the type of the segment value, its alignment, and when
+  # building the segment may fail depending on values (see segment_fail?/3)
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:match, {:utf8, _, _}), do: {@integer, :aligned}
-  defp specifier_type(:match, {:utf16, _, _}), do: {@integer, :aligned}
-  defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned}
-  defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned}
-  defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned}
-  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer, :aligned}
-  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer, :aligned}
-  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer, :aligned}
-  defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer}
-  defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring}
-  defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring}
-  defp specifier_type(_kind, {:bytes, _, _}), do: {@binary, :aligned}
-  defp specifier_type(_kind, {:binary, _, _}), do: {@binary, :aligned}
-  defp specifier_type(_kind, _specifier), do: {@integer, :integer}
+  defp specifier_type(:match, {:utf8, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(:match, {:utf16, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(:match, {:utf32, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(:match, {:float, _, _}), do: {@float, :aligned, :float}
+  defp specifier_type(_kind, {:float, _, _}), do: {@integer_or_float, :aligned, :float}
+  defp specifier_type(_kind, {:utf8, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(_kind, {:utf16, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(_kind, {:utf32, _, _}), do: {@integer, :aligned, :utf}
+  defp specifier_type(_kind, {:integer, _, _}), do: {@integer, :integer, :none}
+  defp specifier_type(_kind, {:bits, _, _}), do: {@bitstring, :bitstring, :sized}
+  defp specifier_type(_kind, {:bitstring, _, _}), do: {@bitstring, :bitstring, :sized}
+  defp specifier_type(_kind, {:bytes, _, _}), do: {@binary, :aligned, :sized}
+  defp specifier_type(_kind, {:binary, _, _}), do: {@binary, :aligned, :sized}
+  defp specifier_type(_kind, _specifier), do: {@integer, :integer, :none}
 
   defp specifier_size(kind, {:-, _, [left, right]}, stack, align_context) do
     specifier_size(kind, right, stack, specifier_size(kind, left, stack, align_context))

@@ -218,10 +218,10 @@ defmodule File.Stream do
     end
 
     defp bom_length(<<239, 187, 191, _rest::binary>>), do: 3
+    defp bom_length(<<0, 0, 254, 255, _rest::binary>>), do: 4
+    defp bom_length(<<255, 254, 0, 0, _rest::binary>>), do: 4
     defp bom_length(<<254, 255, _rest::binary>>), do: 2
     defp bom_length(<<255, 254, _rest::binary>>), do: 2
-    defp bom_length(<<0, 0, 254, 255, _rest::binary>>), do: 4
-    defp bom_length(<<254, 255, 0, 0, _rest::binary>>), do: 4
     defp bom_length(_binary), do: 0
 
     def get_read_offset(modes) do
@@ -232,7 +232,7 @@ defmodule File.Stream do
     end
 
     defp read_modes(modes) do
-      for mode <- modes, mode not in [:write, :append, :trim_bom], do: mode
+      :lists.filter(&(&1 not in [:write, :append, :trim_bom]), modes)
     end
 
     defp count_lines(device, path, pattern, read, count, last_byte) do

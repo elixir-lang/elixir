@@ -458,8 +458,9 @@ defmodule PartitionSupervisor do
 
     * `id` - the partition number
 
-    * `child` - the PID of the corresponding child process or the
-      atom `:restarting` if the process is about to be restarted
+    * `child` - the PID of the corresponding child process, `:restarting`
+      if the process is about to be restarted, or `:undefined` if the
+      partition is not running (for example, after `resize!/2`)
 
     * `type` - `:worker` or `:supervisor` as defined in the child
       specification
@@ -470,7 +471,8 @@ defmodule PartitionSupervisor do
   @doc since: "1.14.0"
   @spec which_children(name()) :: [
           # Inlining [module()] | :dynamic here because :supervisor.modules() is not exported
-          {integer(), pid | :restarting, :worker | :supervisor, [module()] | :dynamic}
+          {integer(), pid | :restarting | :undefined, :worker | :supervisor,
+           [module()] | :dynamic}
         ]
   def which_children(name) when is_name(name) do
     Supervisor.which_children(name)

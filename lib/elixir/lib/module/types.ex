@@ -41,7 +41,7 @@ defmodule Module.Types do
     infer_signatures? =
       :elixir_config.get(:infer_signatures) != false and cache != nil and not protocol?(attrs)
 
-    impl = impl_for(attrs)
+    impl = impl_for(attrs, env)
 
     finder =
       fn fun_arity ->
@@ -133,11 +133,25 @@ defmodule Module.Types do
     List.keymember?(attrs, :__protocol__, 0)
   end
 
-  defp impl_for(attrs) do
+  defp impl_for(attrs, env) do
     case List.keyfind(attrs, :__impl__, 0) do
       {:__impl__, [protocol: protocol, for: for]} ->
         if Code.ensure_loaded?(protocol) and function_exported?(protocol, :__protocol__, 1) do
-          {for, protocol.__protocol__(:functions)}
+          type =
+            if is_struct(env, Macro.Env) and
+                 (for == env.module or for in env.context_modules) and Module.open?(for) do
+              {set, _} = :elixir_module.data_tables(for)
+
+              case :ets.lookup(set, {:elixir, :struct}) do
+                [{_, info}] -> Module.Types.Of.struct_type(for, info)
+                [] -> Module.Types.Of.impl(for, :open)
+              end
+            else
+              Module.Types.Of.impl(for)
+            end
+
+          domain = Descr.dynamic(type)
+          {for, protocol.__protocol__(:functions), domain}
         else
           nil
         end
@@ -148,12 +162,9 @@ defmodule Module.Types do
   end
 
   defp default_domain(mode, def, {_, arity} = fun_arity, impl) do
-    with {for, callbacks} <- impl,
+    with {for, callbacks, domain} <- impl,
          true <- fun_arity in callbacks do
-      args = [
-        Descr.dynamic(Module.Types.Of.impl(for))
-        | List.duplicate(Descr.dynamic(), arity - 1)
-      ]
+      args = [domain | List.duplicate(Descr.dynamic(), arity - 1)]
 
       {_fun_arity, kind, meta, clauses} = def
 
@@ -218,7 +229,7 @@ defmodule Module.Types do
 
   @doc false
   def warnings(module, file, attrs, defs, no_warn_undefined, cache) do
-    impl = impl_for(attrs)
+    impl = impl_for(attrs, nil)
 
     finder = fn fun_arity ->
       case :lists.keyfind(fun_arity, 1, defs) do
@@ -476,20 +487,31 @@ defmodule Module.Types do
           compute_domain(args, head_args, head_no_previous_args, domain)
       end)
 
-    {_, mapping, inferred} =
-      Enum.reduce(clauses, {0, [], []}, fn
+    # Clauses with the same arguments are merged by unioning their returns.
+    # We index them by arguments to avoid a quadratic lookup on functions
+    # with many clauses.
+    {total, mapping, inferred, _indexes} =
+      Enum.reduce(clauses, {0, [], %{}, %{}}, fn
         {{{args, _head_args, _head_no_previous_args}, return, _precise?}, index},
-        {total, mapping, inferred} ->
-          {type_index, inferred} = add_inferred(inferred, args, return, total - 1, [])
+        {total, mapping, inferred, indexes} ->
+          case indexes do
+            %{^args => type_index} ->
+              %{^type_index => {_, existing_return}} = inferred
 
-          if type_index == -1 do
-            {total + 1, [{index, total} | mapping], inferred}
-          else
-            {total, [{index, type_index} | mapping], inferred}
+              inferred = %{
+                inferred
+                | type_index => {args, Descr.opt_union(existing_return, return)}
+              }
+
+              {total, [{index, type_index} | mapping], inferred, indexes}
+
+            %{} ->
+              inferred = Map.put(inferred, total, {args, return})
+              {total + 1, [{index, total} | mapping], inferred, Map.put(indexes, args, total)}
           end
       end)
 
-    {Enum.reverse(inferred), mapping, domain}
+    {Enum.map(0..(total - 1)//1, &Map.fetch!(inferred, &1)), mapping, domain}
   end
 
   defp compute_domain(
@@ -607,7 +629,7 @@ defmodule Module.Types do
 
   defp union_args([_ | _], [_ | _], _acc, true), do: nil
 
-  # In theory fully equal args are merged on add_inferred
+  # In theory fully equal args are merged when inferring
   defp union_args([], [], acc, _changed?), do: Enum.reverse(acc)
 
   defp with_file_meta(stack, meta) do

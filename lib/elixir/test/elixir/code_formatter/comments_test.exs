@@ -326,6 +326,128 @@ defmodule Code.Formatter.CommentsTest do
 
       assert_format bad, good
     end
+
+    test "with comment inside sigils, charlists, and atoms" do
+      bad = ~S"""
+      IO.puts(
+        ~s"Hello #{
+          # comment
+          world
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        # comment
+        ~s"Hello #{world}"
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      IO.puts(
+        ~s"Hello #{
+          world
+          # comment
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        ~s"Hello #{world}"
+        # comment
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      IO.puts(
+        ~c"Hello #{
+          # comment
+          world
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        # comment
+        ~c"Hello #{world}"
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      IO.puts(
+        :"Hello #{
+          world
+          # comment
+        }"
+      )
+      """
+
+      good = ~S"""
+      IO.puts(
+        :"Hello #{world}"
+        # comment
+      )
+      """
+
+      assert_format bad, good
+    end
+
+    test "with comment inside quoted calls" do
+      assert_same ~S"""
+      :erlang."/="(
+        # comment
+        left,
+        right
+      )
+      """
+    end
+
+    test "with comment inside heredoc sigils and charlists" do
+      bad = ~S'''
+      IO.puts(~s"""
+      Hello #{world # comment
+      }
+      """)
+      '''
+
+      good = ~S'''
+      IO.puts(
+        # comment
+        ~s"""
+        Hello #{world}
+        """
+      )
+      '''
+
+      assert_format bad, good
+
+      bad = ~S'''
+      IO.puts(~c"""
+      Hello #{world # comment
+      }
+      """)
+      '''
+
+      good = ~S'''
+      IO.puts(
+        # comment
+        ~c"""
+        Hello #{world}
+        """
+      )
+      '''
+
+      assert_format bad, good
+    end
   end
 
   describe "parens block within root" do
@@ -553,6 +675,68 @@ defmodule Code.Formatter.CommentsTest do
         # key after
       )
       """
+    end
+
+    test "with comments between arguments and trailing keywords" do
+      bad = ~S"""
+      call(hello, # middle
+      world, key: value)
+      """
+
+      good = ~S"""
+      # middle
+      call(
+        hello,
+        world,
+        key: value
+      )
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      Remote.call(hello, # middle
+      world, key: value)
+      """
+
+      good = ~S"""
+      # middle
+      Remote.call(
+        hello,
+        world,
+        key: value
+      )
+      """
+
+      assert_format bad, good
+    end
+
+    test "with comments after the first keyword value without parens" do
+      bad = ~S"""
+      @moduledoc deprecated:
+                   "Use something else" # comment
+      """
+
+      good = ~S"""
+      @moduledoc deprecated:
+                   # comment
+                   "Use something else"
+      """
+
+      assert_format bad, good
+
+      bad = ~S"""
+      defstruct name:
+                  "default" # comment
+      """
+
+      good = ~S"""
+      defstruct name:
+                  # comment
+                  "default"
+      """
+
+      assert_format bad, good
     end
 
     test "local with no parens inside before and after" do
@@ -789,6 +973,37 @@ defmodule Code.Formatter.CommentsTest do
       end
       """
     end
+
+    test "with comments between clause arguments" do
+      bad = """
+      Enum.reduce(list, acc, fn {a, b},
+                                # comment
+                                acc ->
+        acc
+      end)
+      """
+
+      assert_format bad, """
+      Enum.reduce(list, acc, fn
+        # comment
+        {a, b}, acc ->
+          acc
+      end)
+      """
+
+      bad = """
+      @type t :: (a,
+                  # comment
+                  b -> c)
+      """
+
+      assert_format bad, """
+      @type t :: (
+              # comment
+              a, b -> c
+            )
+      """
+    end
   end
 
   describe "do-end blocks" do
@@ -844,6 +1059,92 @@ defmodule Code.Formatter.CommentsTest do
 
       # comment
       """
+    end
+
+    test "with trailing comments on block keywords" do
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      try do
+        hello
+      rescue # rescue
+        _ -> world
+      catch # catch
+        _ -> world
+      else # else
+        _ -> world
+      after # after
+        world
+      end
+      """
+
+      assert_format ambiguous, ~S"""
+      try do
+        hello
+      rescue
+        # rescue
+        _ -> world
+      catch
+        # catch
+        _ -> world
+      else
+        # else
+        _ -> world
+      after
+        # after
+        world
+      end
+      """
+
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      if hello do
+        world
+      else # else
+      end
+      """
+
+      assert_format ambiguous, ~S"""
+      if hello do
+        world
+      else
+        # else
+      end
+      """
+
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      foo(
+        hello
+      ) do # do
+        world
+      end
+      """
+
+      assert_format ambiguous, ~S"""
+      foo(hello) do
+        # do
+        world
+      end
+      """
+
+      # This is ambiguous so we move the comment inside
+      ambiguous = ~S"""
+      if hello,
+        do: world, # do
+        else: world # else
+      """
+
+      assert_format ambiguous,
+                    ~S"""
+                    if hello do
+                      # do
+                      world
+                    else
+                      # else
+                      world
+                    end
+                    """,
+                    force_do_end_blocks: true
     end
 
     test "with comment inside before and after" do
@@ -1214,6 +1515,138 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with trailing comments after the right operand" do
+      bad = """
+      assert %{
+               status: 200
+             } = conn # check response
+      """
+
+      assert_format bad, """
+      assert %{
+               status: 200
+             } =
+               # check response
+               conn
+      """
+
+      bad = """
+      foo(
+        a
+      ) == bar(b) # comment
+      """
+
+      assert_format bad, """
+      foo(a) ==
+        # comment
+        bar(b)
+      """
+
+      bad = """
+      [
+        a
+      ] ++ b + c # comment
+      """
+
+      assert_format bad, """
+      [
+        a
+      ] ++
+        (
+          # comment
+          b + c
+        )
+      """
+    end
+
+    test "with leading comments on right-associative operators inside calls" do
+      assert_same """
+      foo(
+        # c
+        a ++ b
+      )
+      """
+
+      assert_same """
+      foo(
+        # c
+        a <> b
+      )
+      """
+    end
+
+    test "with end-of-line comments on pipelines in assignments" do
+      bad = """
+      y =
+        x |> f() |> g() # c
+
+      z
+      """
+
+      assert_format bad, """
+      y =
+        # c
+        x |> f() |> g()
+
+      z
+      """
+    end
+
+    test "with end-of-line comments on pipelines in case clauses" do
+      bad = """
+      case x do
+        :a ->
+          y |> f() # c
+
+        _ ->
+          :ok
+      end
+      """
+
+      assert_format bad, """
+      case x do
+        :a ->
+          # c
+          y |> f()
+
+        _ ->
+          :ok
+      end
+      """
+    end
+
+    test "with end-of-line comments on spec unions" do
+      bad = """
+      @spec f() ::
+        {:ok, t} | :error # c
+
+      def f, do: :ok
+      """
+
+      assert_format bad, """
+      @spec f() ::
+              # c
+              {:ok, t} | :error
+
+      def f, do: :ok
+      """
+    end
+
+    test "with end-of-line comments on operands in parens" do
+      bad = """
+      total =
+        (a - b) * 3 + # c
+          (e - f)
+      """
+
+      assert_format bad, """
+      total =
+        # c
+        (a - b) * 3 +
+          (e - f)
+      """
+    end
+
     test "handles nodes without meta info" do
       assert_same "(a -> b) |> (c -> d)"
       assert_same "(a -> b) when c: d"
@@ -1383,6 +1816,42 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
+    test "with end-of-line comments and blank lines inside lists" do
+      bad = """
+      [
+        a, # c
+
+        d
+      ]
+      """
+
+      assert_format bad, """
+      [
+        # c
+        a,
+        d
+      ]
+      """
+    end
+
+    test "with end-of-line comments and blank lines inside calls" do
+      bad = """
+      foo(
+        a, # c
+
+        d
+      )
+      """
+
+      assert_format bad, """
+      foo(
+        # c
+        a,
+        d
+      )
+      """
+    end
+
     test "with comments inside tuples before and after" do
       bad = ~S"""
       {
@@ -1525,6 +1994,101 @@ defmodule Code.Formatter.CommentsTest do
       """
 
       assert_format bad, good
+    end
+
+    test "with comments between bitstring segments" do
+      bad = """
+      <<a::8, b::8,
+        # c
+        c::8>>
+      """
+
+      assert_format bad, """
+      <<
+        a::8,
+        b::8,
+        # c
+        c::8
+      >>
+      """
+    end
+
+    test "with comments inside the last argument" do
+      bad = ~S"""
+      assert_receive {:event,
+        # comment
+        {:warning, 1}}
+      """
+
+      assert_format bad, ~S"""
+      assert_receive {
+        :event,
+        # comment
+        {:warning, 1}
+      }
+      """
+
+      bad = ~S"""
+      foo(bar, {:a, :b,
+        # comment
+        :c})
+      """
+
+      assert_format bad, ~S"""
+      foo(bar, {
+        :a,
+        :b,
+        # comment
+        :c
+      })
+      """
+
+      bad = ~S"""
+      foo({:a,
+        :b
+        # comment
+      })
+      """
+
+      assert_format bad, ~S"""
+      foo({
+        :a,
+        :b
+        # comment
+      })
+      """
+
+      bad = ~S"""
+      foo(key: <<1,
+        # comment
+        2>>)
+      """
+
+      assert_format bad, ~S"""
+      foo(
+        key: <<
+          1,
+          # comment
+          2
+        >>
+      )
+      """
+
+      bad = ~S"""
+      %{key => {:a,
+        # comment
+        :b}}
+      """
+
+      assert_format bad, ~S"""
+      %{
+        key => {
+          :a,
+          # comment
+          :b
+        }
+      }
+      """
     end
 
     test "with comments inside maps before and after" do

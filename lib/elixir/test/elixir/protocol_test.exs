@@ -182,12 +182,11 @@ defmodule ProtocolTest do
     assert moduledoc == %{"en" => "for map"}
   end
 
-  @compile {:no_warn_undefined, WithAll}
-
   test "protocol keeps underlying UndefinedFunctionError" do
-    assert_raise UndefinedFunctionError, fn ->
-      WithAll.ok(%ImplStruct{})
-    end
+    assert %UndefinedFunctionError{module: Unknown, function: :undefined, arity: 1} =
+             assert_raise(UndefinedFunctionError, fn ->
+               apply(Sample, :ok, [%ImplStruct{}])
+             end)
   end
 
   test "protocol defines callbacks" do
@@ -211,13 +210,21 @@ defmodule ProtocolTest do
     assert Sample.__protocol__(:functions) == [ok: 1]
     refute Sample.__protocol__(:consolidated?)
     assert Sample.__protocol__(:impls) == :not_consolidated
-    assert Sample.__info__(:attributes)[:__protocol__] == [fallback_to_any: false]
+
+    assert Sample.__info__(:attributes)[:__protocol__] == [
+             fallback_to_any: false,
+             consolidated: false
+           ]
 
     assert WithAny.__protocol__(:module) == WithAny
     assert WithAny.__protocol__(:functions) == [ok: 1]
     refute WithAny.__protocol__(:consolidated?)
     assert WithAny.__protocol__(:impls) == :not_consolidated
-    assert WithAny.__info__(:attributes)[:__protocol__] == [fallback_to_any: true]
+
+    assert WithAny.__info__(:attributes)[:__protocol__] == [
+             fallback_to_any: true,
+             consolidated: false
+           ]
   end
 
   test "defimpl" do

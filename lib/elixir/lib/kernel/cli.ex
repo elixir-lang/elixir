@@ -185,7 +185,15 @@ defmodule Kernel.CLI do
 
   defp print_error(kind, reason, stacktrace) do
     {banner, rest} = format_error_parts(kind, reason, stacktrace)
-    IO.write(:stderr, [IO.ANSI.format([:red, banner]), rest])
+    error = [IO.ANSI.format([:red, banner]), rest]
+
+    # stderr may not be writable (a closed descriptor, or a pipe whose reader
+    # has exited): the error cannot be shown, but the exit status still applies
+    try do
+      IO.write(:stderr, error)
+    rescue
+      _ -> :ok
+    end
   end
 
   defp blame_match(%{match?: true, node: node}), do: blame_ansi(:normal, "+", node)
@@ -451,6 +459,7 @@ defmodule Kernel.CLI do
 
       :exit, {kind, exit} when kind in [:exception, :signal] ->
         Process.exit(self(), exit)
+        Process.sleep(:infinity)
     else
       :ok -> :ok
       {kind, reason, stack} -> :erlang.raise(kind, reason, stack)
@@ -522,17 +531,22 @@ defmodule Kernel.CLI do
 
           output = IO.chardata_to_string(config.output)
 
-          opts =
-            verbose_opts ++
-              [
-                profile: config.profile,
-                warnings_as_errors: config.warnings_as_errors,
-                return_diagnostics: true
-              ]
+          opts = verbose_opts ++ [profile: config.profile, return_diagnostics: true]
 
           case Kernel.ParallelCompiler.compile_to_path(files, output, opts) do
-            {:ok, _, _} -> :ok
-            {:error, _, _} -> exit({:shutdown, 1})
+            {:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}}
+            when config.warnings_as_errors and (r_warnings != [] or c_warnings != []) ->
+              message =
+                "Compilation failed due to warnings while using the --warnings-as-errors option"
+
+              IO.puts(:stderr, message)
+              exit({:shutdown, 1})
+
+            {:ok, _, _} ->
+              :ok
+
+            {:error, _, _} ->
+              exit({:shutdown, 1})
           end
         end)
 

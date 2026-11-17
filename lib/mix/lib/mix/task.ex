@@ -619,6 +619,18 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Marks the given task as run for the current project.
+
+  Future invocations of the task via `run/2` won't execute it
+  until it is reenabled. This is the opposite of `reenable/1`.
+  """
+  @doc since: "1.21.0"
+  @spec mark_as_run(task_name) :: :ok
+  def mark_as_run(task) when is_binary(task) or is_atom(task) do
+    Mix.TasksServer.put({:task, to_string(task), Mix.Project.get()})
+  end
+
+  @doc """
   Reenables a given task so it can be executed again down the stack.
 
   Both alias and the regular stack are re-enabled when this function

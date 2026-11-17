@@ -412,7 +412,7 @@ defmodule ExUnit.CLIFormatter do
       config.invalid_counter > 0 ->
         IO.puts(invalid(message, config))
 
-      test_counter > 0 && config.excluded_counter == test_counter ->
+      test_counter == 0 and config.excluded_counter > 0 ->
         IO.puts(invalid(message, config))
 
       true ->

@@ -253,6 +253,53 @@ defmodule Code.Formatter.CallsTest do
       """
     end
 
+    test "with keyword lists after multi-line arguments" do
+      assert_format "foo((a; b), c: d)", """
+      foo(
+        (
+          a
+          b
+        ),
+        c: d
+      )
+      """
+
+      assert_format "foo(fn -> a; b end, c: d)", """
+      foo(
+        fn ->
+          a
+          b
+        end,
+        c: d
+      )
+      """
+
+      assert_format "foo(bar(fn -> a; b end), c: d)", """
+      foo(
+        bar(fn ->
+          a
+          b
+        end),
+        c: d
+      )
+      """
+
+      bad = "foo([:hello, :world, :foo], c: d)"
+
+      good = """
+      foo(
+        [
+          :hello,
+          :world,
+          :foo
+        ],
+        c: d
+      )
+      """
+
+      assert_format bad, good, @medium_length
+    end
+
     test "with lists maybe rewritten as keyword lists" do
       assert_format "foo([foo: 1, bar: 2])", "foo(foo: 1, bar: 2)"
       assert_format "foo(:arg, [foo: 1, bar: 2])", "foo(:arg, foo: 1, bar: 2)"
@@ -364,6 +411,41 @@ defmodule Code.Formatter.CallsTest do
       assert_format bad, good, @medium_length
     end
 
+    test "without parens and with keyword lists after multi-line arguments" do
+      assert_format "import (a; b), opts: :next", """
+      import (
+               a
+               b
+             ),
+             opts: :next
+      """
+
+      bad = "import [:hello, :world], opts: :next"
+
+      good = """
+      import [
+               :hello,
+               :world
+             ],
+             opts: :next
+      """
+
+      assert_format bad, good, @medium_length
+
+      bad = """
+      def foo(bar)
+          when bar, do: :ok
+      """
+
+      good = """
+      def foo(bar)
+          when bar,
+          do: :ok
+      """
+
+      assert_format bad, good
+    end
+
     test "without parens and with keyword lists on line limit" do
       assert_same "import :atom, opts: [foo: :bar]"
 
@@ -397,8 +479,8 @@ defmodule Code.Formatter.CallsTest do
 
       assert_same """
                   import :really_long_atom_but_no_breaks,
-                    one: two,
-                    three: four
+                         one: two,
+                         three: four
                   """,
                   @medium_length
 
@@ -848,6 +930,35 @@ defmodule Code.Formatter.CallsTest do
 
       # Doesn't preserve this because only the ending has a newline
       assert_format "call.(foo, bar, baz\n)", "call.(foo, bar, baz)"
+    end
+
+    test "with do-end blocks" do
+      assert_format "callback.(conn, opts) do :ok end", """
+      callback.(conn, opts) do
+        :ok
+      end
+      """
+
+      assert_same """
+      callback.() do
+        :ok
+      end
+      """
+
+      assert_same """
+      callback.(arg) do
+        :ok
+      else
+        :error
+      end
+      """
+
+      assert_same """
+      result =
+        callback.(arg) do
+          :ok
+        end
+      """
     end
   end
 

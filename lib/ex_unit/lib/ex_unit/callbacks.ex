@@ -708,7 +708,7 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
-  @reserved [:case, :file, :line, :test, :async, :registered, :describe]
+  @reserved [:file, :line, :test, :async, :registered, :describe]
 
   @doc false
   def __callback__(callback, describe) do

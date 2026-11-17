@@ -93,7 +93,7 @@ validate_not_repeated(Meta, Key, Used, E) ->
   case is_literal(Key) andalso Used of
     #{Key := true} ->
       case E of
-        #{context := match} -> function_error(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
+        #{context := match} -> function_error(Meta, E, ?MODULE, {repeated_key, Key});
         _ -> file_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key})
       end,
       Used;

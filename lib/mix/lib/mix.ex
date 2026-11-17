@@ -457,8 +457,42 @@ defmodule Mix do
     :ok
   end
 
+  # Modules loaded when running a Mix task, such as `mix iex`
+  @preload_modules [
+    Agent,
+    Agent.Server,
+    Exception,
+    GenServer,
+    IO.ANSI,
+    Kernel.Utils,
+    List.Chars,
+    List.Chars.BitString,
+    Macro,
+    Mix.Error,
+    Mix.Hex,
+    Mix.Local,
+    Mix.Project,
+    Mix.ProjectStack,
+    Mix.Shell,
+    Mix.Shell.IO,
+    Mix.State,
+    Mix.Sync.PubSub,
+    Mix.Task,
+    Mix.Tasks.Loadconfig,
+    Mix.TasksServer,
+    Mix.Utils,
+    Module,
+    Process,
+    String.Chars,
+    String.Chars.Atom,
+    Version,
+    Version.Parser,
+    Version.Requirement
+  ]
+
   @impl true
   def start(_type, []) do
+    _ = Code.ensure_all_loaded(@preload_modules)
     Mix.Local.append_archives()
     Mix.Local.append_paths()
     children = [Mix.Sync.PubSub, Mix.State, Mix.TasksServer, Mix.ProjectStack]
@@ -1001,10 +1035,9 @@ defmodule Mix do
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
-                  lockfile = Path.join(install_project_dir, "mix.lock")
-                  old_lock = Mix.Dep.Lock.read(lockfile)
+                  old_lock = Mix.Dep.Lock.read()
                   new_lock = Mix.Dep.Lock.read(external_lockfile)
-                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
+                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock))
                   File.write!(md5_path, Base.encode64(new_md5))
                   Mix.Task.rerun("deps.get")
                 end

@@ -228,6 +228,11 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.parse(["run:true"]) == [run: "true"]
     assert ExUnit.Filters.parse(["run:test"]) == [run: "test"]
     assert ExUnit.Filters.parse(["line:9"]) == [line: 9]
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             assert ExUnit.Filters.parse(["line:abc"]) == [line: "abc"]
+           end) =~ "invalid line number given as ExUnit filter: abc"
+
     assert ExUnit.Filters.parse(["location:foo.exs"]) == [location: "foo.exs"]
     assert ExUnit.Filters.parse(["location:foo.exs:invalid"]) == [location: "foo.exs:invalid"]
     assert ExUnit.Filters.parse(["location:foo.exs:9"]) == [location: {"foo.exs", 9}]

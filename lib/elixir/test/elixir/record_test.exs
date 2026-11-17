@@ -176,6 +176,53 @@ defmodule RecordTest do
     assert for(_ <- 1..3, do: assert_receive(_)) == [:name, :inner_age, :inner_name]
   end
 
+  test "records evaluate arguments from left to right" do
+    x = 1
+    assert user(name: x, age: x = 2) == {RecordTest, 1, 2}
+    assert x == 2
+
+    x = 1
+    assert user(user(), name: x, age: x = 5) == {RecordTest, 1, 5}
+    assert x == 5
+
+    x = user()
+
+    assert user(x,
+             name:
+               (
+                 x = user(name: :other)
+                 :meg
+               )
+           ) == {RecordTest, :meg, 25}
+
+    assert x == {RecordTest, :other, 25}
+
+    _ =
+      user(
+        (
+          send(self(), :base)
+          user()
+        ),
+        name: send(self(), :field)
+      )
+
+    assert Process.info(self(), :messages) == {:messages, [:base, :field]}
+    flush()
+
+    assert user(_: send(self(), :default), name: send(self(), :name)) ==
+             {RecordTest, :name, :default}
+
+    assert Process.info(self(), :messages) == {:messages, [:default, :name]}
+  end
+
+  defp flush do
+    receive do
+      _ -> flush()
+    after
+      0 -> :ok
+    end
+  end
+
   Record.defrecord(
     :defaults,
     struct: ~D[2016-01-01],
@@ -354,7 +401,7 @@ defmodule RecordTest do
       end
     )
 
-    {:docs_v1, 352, :elixir, "text/markdown", _, %{}, docs} = Code.fetch_docs(RecordTest.Metadata)
+    {:docs_v1, _, :elixir, "text/markdown", _, %{}, docs} = Code.fetch_docs(RecordTest.Metadata)
     {{:macro, :user, 1}, _meta, _sig, _docs, metadata} = List.keyfind(docs, {:macro, :user, 1}, 0)
     assert %{record: {:user, [foo: 0, bar: "baz"]}} = metadata
   end

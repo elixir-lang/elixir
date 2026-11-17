@@ -205,10 +205,10 @@ defmodule Process do
 
   Exit behavior differs based on the value of `reason`:
 
-    - If `:normal`, `pid` will not exit unless it is the calling process, in
-      which case it will exit with the reason `:normal`. If it is trapping exits,
-      the exit signal is transformed into a message `{:EXIT, from, :normal}` and
-      delivered to its message queue.
+    - If `:normal`, `pid` will not exit. If it is trapping exits, the exit
+      signal is transformed into a message `{:EXIT, from, :normal}` and
+      delivered to its message queue. This also applies when `pid` is the
+      calling process.
 
     - If `:kill`, which occurs when `Process.exit(pid, :kill)` is called, an
       untrappable exit signal is sent to `pid` which will unconditionally exit
@@ -220,6 +220,13 @@ defmodule Process do
     - If any other term and `pid` is trapping exits, the exit signal is
       transformed into a message `{:EXIT, from, reason}` and delivered to its
       message queue.
+
+  The exit signal is always sent asynchronously, even when `pid` is the
+  calling process. This means `Process.exit(self(), reason)` returns and
+  the calling process may continue executing before the signal is handled.
+  Prior to Elixir v1.21, the calling process would exit before this function
+  returned whenever the signal terminated it, and `:normal` would terminate
+  it when not trapping exits. Use `Kernel.exit/1` to stop the current process.
 
   Inlined by the compiler.
 
@@ -240,7 +247,7 @@ defmodule Process do
 
   """
   @spec exit(pid, term) :: true
-  defdelegate exit(pid, reason), to: :erlang
+  defdelegate exit(pid, reason), to: :erlang, as: :exit_signal
 
   @doc """
   Sleeps the current process for the given `timeout`.
@@ -380,6 +387,8 @@ defmodule Process do
   The message is not sent immediately. Therefore, `dest` can receive other messages
   in-between even when `time` is `0`.
 
+  `time` must be non-negative unless the `:abs` option is `true`.
+
   This function returns a timer reference, which can be read with `read_timer/1`
   or canceled with `cancel_timer/1`.
 
@@ -401,7 +410,7 @@ defmodule Process do
       timer_ref = Process.send_after(pid, :hi, 1000)
 
   """
-  @spec send_after(pid | atom, term, non_neg_integer, [option]) :: reference
+  @spec send_after(pid | atom, term, integer, [option]) :: reference
         when option: {:abs, boolean}
   def send_after(dest, msg, time, opts \\ []) do
     :erlang.send_after(time, dest, msg, opts)
@@ -465,7 +474,7 @@ defmodule Process do
   @type spawn_opt ::
           :link
           | :monitor
-          | {:monitor, :erlang.monitor_option()}
+          | {:monitor, [:erlang.monitor_option()]}
           | {:priority, :low | :normal | :high}
           | {:fullsweep_after, non_neg_integer}
           | {:min_heap_size, non_neg_integer}
@@ -477,10 +486,10 @@ defmodule Process do
   @doc """
   Spawns the given function according to the given options.
 
-  The result depends on the given options. In particular,
-  if `:monitor` is given as an option, it will return a tuple
-  containing the PID and the monitoring reference, otherwise
-  just the spawned process PID.
+  The result depends on the given options. If `:monitor` or
+  `{:monitor, monitor_opts}` is given, returns a tuple containing
+  the PID and the monitoring reference. Otherwise, returns
+  only the spawned process PID.
 
   More options are available; for the comprehensive list of available options
   check `:erlang.spawn_opt/4`.
@@ -502,10 +511,10 @@ defmodule Process do
   Spawns the given function `fun` from module `mod`, passing the given `args`
   according to the given options.
 
-  The result depends on the given options. In particular,
-  if `:monitor` is given as an option, it will return a tuple
-  containing the PID and the monitoring reference, otherwise
-  just the spawned process PID.
+  The result depends on the given options. If `:monitor` or
+  `{:monitor, monitor_opts}` is given, returns a tuple containing
+  the PID and the monitoring reference. Otherwise, returns
+  only the spawned process PID.
 
   It also accepts extra options, for the list of available options
   check `:erlang.spawn_opt/4`.

@@ -316,10 +316,10 @@ defmodule Macro do
   # (foo |> bar[]) raises a nice error.
   def pipe(
         expr,
-        {{_, meta, [Access, :get] = op}, _meta, [first, second]} = _op_args,
+        {{_, dot_meta, [Access, :get]} = dot, meta, [first, second]} = _op_args,
         integer
       ) do
-    if {:from_brackets, true} in meta do
+    if {:from_brackets, true} in dot_meta do
       raise ArgumentError, """
       wrong operator precedence when piping into bracket-based access
 
@@ -332,7 +332,7 @@ defmodule Macro do
            (#{to_string(expr)} |> #{to_string(first)})[#{to_string(second)}]
       """
     else
-      {op, meta, List.insert_at([first, second], integer, expr)}
+      {dot, meta, List.insert_at([first, second], integer, expr)}
     end
   end
 
@@ -2163,6 +2163,11 @@ defmodule Macro do
   Atoms and numbers are always literals. Binaries, lists, tuples,
   maps, and structs are only literals if all of their terms are also literals.
 
+  Optionally, a `callback` may be given. It is invoked with every AST node
+  which is not a literal and, if it returns `true`, the node is considered
+  a literal. For example, it can be used to also accept variables, even
+  when nested inside other literals (since v1.21.0).
+
   ## Examples
 
       iex> Macro.quoted_literal?(quote(do: "foo"))
@@ -2179,28 +2184,42 @@ defmodule Macro do
       false
       iex> Macro.quoted_literal?(quote(do: {foo, var}))
       false
+      iex> Macro.quoted_literal?(quote(do: {foo, var}), &match?({name, _, ctx} when is_atom(name) and is_atom(ctx), &1))
+      true
 
   """
   @doc since: "1.7.0"
-  @spec quoted_literal?(t) :: boolean
-  def quoted_literal?(term)
+  @spec quoted_literal?(t, (t -> boolean)) :: boolean
+  def quoted_literal?(term, callback \\ fn _ -> false end)
 
-  def quoted_literal?({:__aliases__, _, args}),
-    do: quoted_literal?(args)
+  def quoted_literal?({:__aliases__, _, args} = term, callback),
+    do: quoted_literal?(args, callback) or callback.(term)
 
-  def quoted_literal?({:__block__, _, [wrapped]}),
-    do: quoted_literal?(wrapped)
+  def quoted_literal?({:__block__, _, [wrapped]}, callback),
+    do: quoted_literal?(wrapped, callback)
 
-  def quoted_literal?({:%, _, [left, right]}),
-    do: quoted_literal?(left) and quoted_literal?(right)
+  def quoted_literal?({:%, _, [left, right]} = term, callback),
+    do: (quoted_literal?(left, callback) and quoted_literal?(right, callback)) or callback.(term)
 
-  def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
-  def quoted_literal?({:{}, _, args}), do: quoted_literal?(args)
-  def quoted_literal?({:__MODULE__, _, ctx}) when is_atom(ctx), do: true
-  def quoted_literal?({:<<>>, _, segments}), do: Enum.all?(segments, &quoted_bitstring_segment?/1)
-  def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
-  def quoted_literal?(list) when is_list(list), do: :lists.all(&quoted_literal?/1, list)
-  def quoted_literal?(term), do: is_atom(term) or is_number(term) or is_binary(term)
+  def quoted_literal?({:%{}, _, args} = term, callback),
+    do: quoted_literal?(args, callback) or callback.(term)
+
+  def quoted_literal?({:{}, _, args} = term, callback),
+    do: quoted_literal?(args, callback) or callback.(term)
+
+  def quoted_literal?({:__MODULE__, _, ctx}, _callback) when is_atom(ctx), do: true
+
+  def quoted_literal?({:<<>>, _, segments} = term, callback),
+    do: Enum.all?(segments, &quoted_bitstring_segment?/1) or callback.(term)
+
+  def quoted_literal?({left, right} = term, callback),
+    do: (quoted_literal?(left, callback) and quoted_literal?(right, callback)) or callback.(term)
+
+  def quoted_literal?(list, callback) when is_list(list),
+    do: :lists.all(&quoted_literal?(&1, callback), list) or callback.(list)
+
+  def quoted_literal?(term, callback),
+    do: is_atom(term) or is_number(term) or is_binary(term) or callback.(term)
 
   defp quoted_bitstring_segment?(term) when is_integer(term) or is_binary(term), do: true
 

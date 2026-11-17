@@ -87,8 +87,7 @@ defmodule Mix.Tasks.Compile do
   @deprecated "Use Mix.Task.Compiler.compilers/1 instead"
   defdelegate compilers(config \\ Mix.Project.config()), to: Mix.Task.Compiler
 
-  @impl true
-  def run(["--list"]) do
+  defp list_compilers do
     # Loadpaths without checks because compilers may be defined in deps.
     args = [
       "--no-elixir-version-check",
@@ -134,6 +133,14 @@ defmodule Mix.Tasks.Compile do
 
   @impl true
   def run(args) do
+    if "--list" in args do
+      list_compilers()
+    else
+      compile(args)
+    end
+  end
+
+  defp compile(args) do
     Mix.Project.get!()
 
     Mix.Task.run("loadpaths", args)

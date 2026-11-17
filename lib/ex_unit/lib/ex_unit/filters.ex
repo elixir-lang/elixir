@@ -9,7 +9,8 @@ defmodule ExUnit.Filters do
   alias ExUnit.FailuresManifest
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
-  @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
+  @type location ::
+          {:location, String.t() | {String.t(), pos_integer | [pos_integer, ...]}}
   @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
   # TODO: Remove me on Elixir v2.0
@@ -141,7 +142,7 @@ defmodule ExUnit.Filters do
   end
 
   defp parse_kv(:line, line) when is_binary(line),
-    do: {:line, String.to_integer(line)}
+    do: {:line, validate_line_number(line) || line}
 
   defp parse_kv(:location, loc) when is_binary(loc),
     do: {:location, extract_location(loc) |> elem(1)}

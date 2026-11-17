@@ -384,7 +384,8 @@ defmodule Mix.Tasks.Test do
     * `:summary` - at the end of each coverage run, a summary of each
       module is printed, with results in red or green depending on whether
       the percentage is below or above a given threshold. The task will
-      exit with status of 1 if the total coverage is below the threshold.
+      exit with status of 3 if the total coverage is below the threshold
+      and the test suite otherwise succeeded.
       The `:summary` option allows you to customize the summary generation
       and defaults to `[threshold: 90]`, but it may be set to `false` to
       disable such reports.

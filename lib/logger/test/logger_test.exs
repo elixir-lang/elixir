@@ -550,8 +550,11 @@ defmodule LoggerTest do
   end
 
   test "stops the application silently" do
+    assert {:ok, %{formatter: {Logger.Formatter, _}}} = :logger.get_handler_config(:default)
     Logger.App.stop()
+    assert {:ok, %{formatter: {:logger_formatter, _}}} = :logger.get_handler_config(:default)
     Application.start(:logger)
+    assert {:ok, %{formatter: {Logger.Formatter, _}}} = :logger.get_handler_config(:default)
   end
 
   test "starts the application with warning level" do

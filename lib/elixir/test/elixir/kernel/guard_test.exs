@@ -527,6 +527,23 @@ defmodule Kernel.GuardTest do
              """
     end
 
+    test "does not keep versions from its own expansion" do
+      args = quote(do: [1 + 1, 2 + 2, 3 + 3])
+
+      for context <- [:guard, nil] do
+        {{:., [], [__MODULE__, :with_or_and_or]}, [], args}
+        |> Macro.expand(%{__ENV__ | context: context})
+        |> Macro.prewalk(fn
+          {_, meta, _} = node when is_list(meta) ->
+            refute Keyword.has_key?(meta, :version)
+            node
+
+          node ->
+            node
+        end)
+      end
+    end
+
     defguard in_list(a) when Kernel.in(a, [:test])
 
     test "expands remote functions" do

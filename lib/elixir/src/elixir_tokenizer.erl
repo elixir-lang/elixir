@@ -143,6 +143,9 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{unescape=Unescape};
       ({indentation, Indentation}, Acc) when Indentation >= 0 ->
         Acc#elixir_tokenizer{column=Indentation+1};
+      ({max_integer_bytes, MaxIntegerBytes}, Acc)
+          when MaxIntegerBytes == system_limit; is_integer(MaxIntegerBytes), MaxIntegerBytes > 0 ->
+        Acc#elixir_tokenizer{max_integer_bytes=MaxIntegerBytes};
       (_, Acc) ->
         Acc
     end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer}, Opts),
@@ -188,19 +191,16 @@ tokenize(("<<<<<<<" ++ _) = Original, Line, 1, Scope, Tokens) ->
 % Base integers
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
-  {Rest, Number, OriginalRepresentation, Length} = tokenize_hex(T, [H], 1),
-  Token = {int, {Line, Column, Number}, OriginalRepresentation},
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
+  {Rest, Digits, Original, Length} = tokenize_hex(T, [H], 1),
+  tokenize_base_integer(Rest, Digits, 16, Original, Length, Line, Column, Scope, Tokens);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
-  {Rest, Number, OriginalRepresentation, Length} = tokenize_bin(T, [H], 1),
-  Token = {int, {Line, Column, Number}, OriginalRepresentation},
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
+  {Rest, Digits, Original, Length} = tokenize_bin(T, [H], 1),
+  tokenize_base_integer(Rest, Digits, 2, Original, Length, Line, Column, Scope, Tokens);
 
 tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
-  {Rest, Number, OriginalRepresentation, Length} = tokenize_octal(T, [H], 1),
-  Token = {int, {Line, Column, Number}, OriginalRepresentation},
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
+  {Rest, Digits, Original, Length} = tokenize_octal(T, [H], 1),
+  tokenize_base_integer(Rest, Digits, 8, Original, Length, Line, Column, Scope, Tokens);
 
 % Comments
 
@@ -598,7 +598,7 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
 % properly in case of errors.
 
 tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
-  case tokenize_number(T, [H], 1, false) of
+  case tokenize_number(T, [H], 1, false, Scope) of
     {error, Reason, Original} ->
       error({?LOC(Line, Column), Reason, Original}, T, Scope, Tokens);
     {[I | Rest], Number, Original, _Length} when ?is_upcase(I); ?is_downcase(I); I == $_ ->
@@ -1279,64 +1279,95 @@ tokens_to_binary(Tokens) ->
 %% At this point, we are at least sure the first digit is a number.
 
 %% Check if we have a point followed by a number;
-tokenize_number([$., H | T], Acc, Length, false) when ?is_digit(H) ->
-  tokenize_number(T, [H, $. | Acc], Length + 2, true);
+tokenize_number([$., H | T], Acc, Length, false, Scope) when ?is_digit(H) ->
+  tokenize_number(T, [H, $. | Acc], Length + 2, true, Scope);
 
 %% Check if we have an underscore followed by a number;
-tokenize_number([$_, H | T], Acc, Length, Bool) when ?is_digit(H) ->
-  tokenize_number(T, [H, $_ | Acc], Length + 2, Bool);
+tokenize_number([$_, H | T], Acc, Length, Bool, Scope) when ?is_digit(H) ->
+  tokenize_number(T, [H, $_ | Acc], Length + 2, Bool, Scope);
 
 %% Check if we have e- followed by numbers (valid only for floats);
-tokenize_number([E, S, H | T], Acc, Length, true)
+tokenize_number([E, S, H | T], Acc, Length, true, Scope)
     when (E =:= $E) or (E =:= $e), ?is_digit(H), S =:= $+ orelse S =:= $- ->
-  tokenize_number(T, [H, S, E | Acc], Length + 3, true);
+  tokenize_number(T, [H, S, E | Acc], Length + 3, true, Scope);
 
 %% Check if we have e followed by numbers (valid only for floats);
-tokenize_number([E, H | T], Acc, Length, true)
+tokenize_number([E, H | T], Acc, Length, true, Scope)
     when (E =:= $E) or (E =:= $e), ?is_digit(H) ->
-  tokenize_number(T, [H, E | Acc], Length + 2, true);
+  tokenize_number(T, [H, E | Acc], Length + 2, true, Scope);
 
 %% Finally just numbers.
-tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
-  tokenize_number(T, [H | Acc], Length + 1, Bool);
+tokenize_number([H | T], Acc, Length, Bool, Scope) when ?is_digit(H) ->
+  tokenize_number(T, [H | Acc], Length + 1, Bool, Scope);
 
 %% Cast to float...
-tokenize_number(Rest, Acc, Length, true) ->
+tokenize_number(Rest, Acc, Length, true, _Scope) ->
   try
     {Number, Original} = reverse_number(Acc, [], []),
     {Rest, list_to_float(Number), Original, Length}
   catch
-    error:badarg -> {error, "invalid float number ", lists:reverse(Acc)}
+    error:badarg -> {error, "invalid float number ", lists:reverse(Acc)};
+    error:system_limit -> {error, "float number exceeds the system limit ", lists:reverse(Acc)}
   end;
 
 %% Or integer.
-tokenize_number(Rest, Acc, Length, false) ->
-  {Number, Original} = reverse_number(Acc, [], []),
-  {Rest, list_to_integer(Number), Original, Length}.
+tokenize_number(Rest, Acc, Length, false, Scope) ->
+  {Digits, Original} = reverse_number(Acc, [], []),
+
+  case digits_to_integer(Digits, 10, Scope) of
+    {ok, Number} -> {Rest, Number, Original, Length};
+    {error, Reason} -> {error, Reason, Original}
+  end.
+
+tokenize_base_integer(Rest, Digits, Base, Original, Length, Line, Column, Scope, Tokens) ->
+  case digits_to_integer(Digits, Base, Scope) of
+    {ok, Number} ->
+      Token = {int, {Line, Column, Number}, Original},
+      tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
+
+    {error, Reason} ->
+      error({?LOC(Line, Column), Reason, Original}, Rest, Scope, Tokens)
+  end.
+
+%% Converting large integers is expensive and it may exceed the system limit,
+%% so we bound the number of bytes according to the max_integer_bytes option.
+digits_to_integer(Digits, Base, #elixir_tokenizer{max_integer_bytes=MaxIntegerBytes}) ->
+  case is_integer(MaxIntegerBytes) andalso length(Digits) > MaxIntegerBytes of
+    true ->
+      Reason = io_lib:format("integer exceeds the maximum of ~B bytes ", [MaxIntegerBytes]),
+      {error, lists:flatten(Reason)};
+
+    false ->
+      try
+        {ok, list_to_integer(Digits, Base)}
+      catch
+        error:system_limit -> {error, "integer exceeds the system limit "}
+      end
+  end.
 
 tokenize_hex([H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H | Acc], Length + 1);
 tokenize_hex([$_, H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H, $_ | Acc], Length + 2);
 tokenize_hex(Rest, Acc, Length) ->
-  {Number, Original} = reverse_number(Acc, [], []),
-  {Rest, list_to_integer(Number, 16), [$0, $x | Original], Length}.
+  {Digits, Original} = reverse_number(Acc, [], []),
+  {Rest, Digits, [$0, $x | Original], Length}.
 
 tokenize_octal([H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H | Acc], Length + 1);
 tokenize_octal([$_, H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H, $_ | Acc], Length + 2);
 tokenize_octal(Rest, Acc, Length) ->
-  {Number, Original} = reverse_number(Acc, [], []),
-  {Rest, list_to_integer(Number, 8), [$0, $o | Original], Length}.
+  {Digits, Original} = reverse_number(Acc, [], []),
+  {Rest, Digits, [$0, $o | Original], Length}.
 
 tokenize_bin([H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H | Acc], Length + 1);
 tokenize_bin([$_, H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H, $_ | Acc], Length + 2);
 tokenize_bin(Rest, Acc, Length) ->
-  {Number, Original} = reverse_number(Acc, [], []),
-  {Rest, list_to_integer(Number, 2), [$0, $b | Original], Length}.
+  {Digits, Original} = reverse_number(Acc, [], []),
+  {Rest, Digits, [$0, $b | Original], Length}.
 
 reverse_number([$_ | T], Number, Original) ->
   reverse_number(T, Number, [$_ | Original]);

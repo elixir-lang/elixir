@@ -18,6 +18,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
+  defp flush do
+    receive do
+      _ -> flush()
+    after
+      0 -> :ok
+    end
+  end
+
   defp mtime(path) do
     File.stat!(path).mtime
   end
@@ -78,19 +86,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles a project with custom tracer" do
-    Process.register(self(), __MODULE__)
-
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-      Mix.Tasks.Compile.Elixir.run(["--tracer", "Mix.Tasks.Compile.ElixirTest"])
-      assert_received {{:on_module, _, :none}, %{module: A}}
-      assert_received {{:on_module, _, :none}, %{module: B}}
-    end)
-  after
-    Code.put_compiler_option(:tracers, [])
-  end
-
   test "compiles a project with a previously set custom tracer" do
     Process.register(self(), __MODULE__)
     Code.put_compiler_option(:tracers, [__MODULE__])
@@ -98,6 +93,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.Elixir.run([])
+      assert_received {:purge_all, %{module: nil, context_modules: []}}
       assert_received {{:on_module, _, :none}, %{module: A}}
       assert_received {{:on_module, _, :none}, %{module: B}}
     end)
@@ -959,6 +955,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "removes, purges and deletes old artifacts" do
+    Process.register(self(), __MODULE__)
+    Code.put_compiler_option(:tracers, [__MODULE__])
+
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
@@ -970,7 +969,13 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
       refute String.contains?(File.read!("_build/dev/lib/sample/.mix/compile.elixir"), "Elixir.A")
+
+      file = Path.absname("lib/a.ex")
+      assert_received {:purge, %{file: ^file, context_modules: [A], module: nil}}
+      refute_received {:purge, %{context_modules: [B]}}
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   test "recompiles mtime changed files if content changed but not length" do
@@ -1096,6 +1101,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "recompiles dependent changed modules" do
+    Process.register(self(), __MODULE__)
+    Code.put_compiler_option(:tracers, [__MODULE__])
+
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
@@ -1103,8 +1111,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:purge_all, _}
+      refute_received {:purge, _}
 
-      Mix.shell().flush()
+      flush()
       purge([A, B])
 
       force_recompilation("lib/b.ex")
@@ -1112,7 +1122,15 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      file_a = Path.absname("lib/a.ex")
+      file_b = Path.absname("lib/b.ex")
+      assert_received {:purge, %{file: ^file_a, context_modules: [A]}}
+      assert_received {:purge, %{file: ^file_b, context_modules: [B]}}
+      refute_received {:purge_all, _}
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   test "recompiles dependent changed modules without beam files" do
@@ -1295,7 +1313,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "tracks warnings from after_verify with relative paths" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @after_verify __MODULE__
+
+        def __after_verify__(__MODULE__) do
+          IO.warn("oops", file: Path.relative_to_cwd(__ENV__.file), line: 13)
+        end
+      end
+      """)
+
+      # after_verify runs in the checker, which must make source and file absolute
+      file = Path.absname("lib/a.ex")
+
+      assert capture_io(:stderr, fn ->
+               assert {:ok,
+                       [%Mix.Task.Compiler.Diagnostic{source: ^file, file: ^file, position: 13}]} =
+                        Mix.Tasks.Compile.Elixir.run([])
+
+               assert {:noop,
+                       [%Mix.Task.Compiler.Diagnostic{source: ^file, file: ^file, position: 13}]} =
+                        Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+             end) =~ "oops"
+
+      purge([A])
+    end)
+  end
+
   test "recompiles modules with exports tracking" do
+    Process.register(self(), __MODULE__)
+    Code.put_compiler_option(:tracers, [__MODULE__])
+
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
 
@@ -1336,9 +1388,17 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
+      flush()
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # B is purged only after A is compiled and its exports changed
+      file_a = Path.absname("lib/a.ex")
+      file_b = Path.absname("lib/b.ex")
+      assert_received {:purge, %{file: ^file_a, context_modules: [A]}}
+      assert_received {{:on_module, _, :none}, %{module: A}}
+      assert_received {:purge, %{file: ^file_b, context_modules: [B]}}
       purge([A, B])
 
       File.write!("lib/a.ex", """
@@ -1391,6 +1451,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
                {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
              end) =~ "A.__struct__/1 is undefined, cannot expand struct A"
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   test "recompiles modules with pmap tracking" do
@@ -1463,18 +1525,27 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "recompiles with --force" do
+    Process.register(self(), __MODULE__)
+    Code.put_compiler_option(:tracers, [__MODULE__])
+
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       purge([A, B])
 
       # Now we have a noop
+      flush()
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+      refute_received {:purge_all, _}
 
       # --force
       assert Mix.Tasks.Compile.Elixir.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:purge_all, %{module: nil, context_modules: []}}
+      refute_received {:purge, _}
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   test "recompiles with --force-elixir" do
@@ -2210,6 +2281,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
         purge([A, B, Collectable.A])
         Mix.Task.clear()
+
+        # Load the consolidated protocol, as compile.all prunes the
+        # consolidation path but the loaded modules must still be purged
+        assert Protocol.consolidated?(Collectable)
+
         consolidation = Mix.Project.consolidation_path()
         args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
         assert Mix.Tasks.Compile.run(args) == {:ok, []}

@@ -246,6 +246,18 @@ defmodule DurationTest do
     assert Duration.from_iso8601("PT.6S") == {:error, :invalid_time_component}
     assert Duration.from_iso8601("PT0.5H") == {:error, :invalid_time_component}
     assert Duration.from_iso8601("invalid") == {:error, :invalid_duration}
+
+    # Inputs are capped at 192 bytes
+    digits = String.duplicate("9", 189)
+    assert {:ok, %Duration{}} = Duration.from_iso8601("P9#{digits}D")
+    assert {:ok, %Duration{}} = Duration.from_iso8601("-P#{digits}D")
+    assert {:ok, %Duration{}} = Duration.from_iso8601("+P#{digits}D")
+    assert Duration.from_iso8601("P99#{digits}D") == {:error, :invalid_duration}
+    assert Duration.from_iso8601("-P9#{digits}D") == {:error, :invalid_duration}
+    assert Duration.from_iso8601("+P9#{digits}D") == {:error, :invalid_duration}
+
+    assert Duration.from_iso8601("P#{String.duplicate("9", 4_000_000)}D") ==
+             {:error, :invalid_duration}
   end
 
   test "from_iso8601!/1" do

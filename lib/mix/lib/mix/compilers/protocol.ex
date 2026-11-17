@@ -116,7 +116,7 @@ defmodule Mix.Compilers.Protocol do
         paths = consolidation_paths()
 
         paths
-        |> Protocol.extract_protocols()
+        |> Protocol.extract_protocols(skip_consolidated: true)
         |> consolidate(paths, output, opts)
       else
         protocols_and_impls

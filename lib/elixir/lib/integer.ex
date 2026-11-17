@@ -52,10 +52,13 @@ defmodule Integer do
     do: :erlang.error(:badarith, [integer])
 
   def popcount(integer) when is_integer(integer),
-    do: popcount(integer, 0)
+    do: popcount(:binary.encode_unsigned(integer), 0)
 
-  defp popcount(0, acc), do: acc
-  defp popcount(n, acc), do: popcount(n &&& n - 1, acc + 1)
+  popcounts = for byte <- 0..255, do: Enum.count(:erlang.integer_to_list(byte, 2), &(&1 == ?1))
+  @popcounts List.to_tuple(popcounts)
+
+  defp popcount(<<byte, rest::binary>>, acc), do: popcount(rest, acc + elem(@popcounts, byte))
+  defp popcount(<<>>, acc), do: acc
 
   @doc """
   Determines if `integer` is odd.
@@ -355,10 +358,13 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect(base)}"
   end
 
-  def parse(binary, base) when is_binary(binary) do
+  def parse(binary, base) when is_binary(binary) and base in 2..36 do
     case count_digits(binary, base) do
       0 ->
         :error
+
+      count when count == byte_size(binary) ->
+        {:erlang.binary_to_integer(binary, base), ""}
 
       count ->
         {digits, rem} = :erlang.split_binary(binary, count)
@@ -373,22 +379,29 @@ defmodule Integer do
     end
   end
 
-  defp count_digits(<<rest::bits>>, base) do
-    count_digits_nosign(rest, base, 0)
+  defp count_digits(<<char, rest::bits>>, 10 = base) do
+    if char in ?0..?9, do: count_digits_nosign(rest, base, 1), else: 0
   end
 
-  digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
+  defp count_digits_nosign(<<char, rest::bits>>, 10 = base, count) do
+    if char in ?0..?9, do: count_digits_nosign(rest, base, count + 1), else: count
+  end
 
-  for {chars, diff} <- digits,
-      char <- chars do
-    digit = char + diff
+  digits = [{?0..?9, ?0}, {?A..?Z, ?A - 10}, {?a..?z, ?a - 10}]
 
-    defp count_digits_nosign(<<unquote(char), rest::bits>>, base, count)
-         when base > unquote(digit) do
+  for {chars, offset} <- digits do
+    defp count_digits(<<char, rest::bits>>, base)
+         when char in unquote(Macro.escape(chars)) and char - unquote(offset) < base do
+      count_digits_nosign(rest, base, 1)
+    end
+
+    defp count_digits_nosign(<<char, rest::bits>>, base, count)
+         when char in unquote(Macro.escape(chars)) and char - unquote(offset) < base do
       count_digits_nosign(rest, base, count + 1)
     end
   end
 
+  defp count_digits(<<_::bits>>, _), do: 0
   defp count_digits_nosign(<<_::bits>>, _, count), do: count
 
   @doc """

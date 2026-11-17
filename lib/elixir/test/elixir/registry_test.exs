@@ -7,6 +7,27 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule Registry.CommonTest do
   use ExUnit.Case, async: true
   doctest Registry, except: [:moduledoc]
+
+  test "raises on invalid :spawn_opt option" do
+    assert_raise ArgumentError, ~r/expected :spawn_opt to be a list/, fn ->
+      Registry.start_link(keys: :unique, name: :invalid_spawn_opt, spawn_opt: :oops)
+    end
+  end
+
+  test "partitions are spawned with the given :spawn_opt" do
+    {:ok, _} =
+      Registry.start_link(
+        keys: :unique,
+        name: __MODULE__.OffHeap,
+        partitions: 4,
+        spawn_opt: [message_queue_data: :off_heap]
+      )
+
+    for i <- 0..3 do
+      {partition, _} = :ets.lookup_element(__MODULE__.OffHeap, i, 3)
+      assert {:message_queue_data, :off_heap} = Process.info(partition, :message_queue_data)
+    end
+  end
 end
 
 defmodule Registry.Test do

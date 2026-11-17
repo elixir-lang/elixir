@@ -30,7 +30,8 @@ defmodule ExUnit.RunnerStatsTest do
       assert stats == %{total: 10, failures: 2, skipped: 1, excluded: 4}
     end
 
-    test "invalidates successful tests when a module fails" do
+    @tag :tmp_dir
+    test "invalidates successful tests when a module fails", %{tmp_dir: tmp_dir} do
       module_tests_a = [
         {:test_a1, :passed},
         {:test_a2, :skipped},
@@ -49,28 +50,33 @@ defmodule ExUnit.RunnerStatsTest do
 
       tests = module_tests_a ++ module_tests_b
 
-      stats =
-        simulate_suite([], fn formatter ->
-          for {test_name, status} <- tests do
-            simulate_test(formatter, test_name, status)
-          end
+      File.cd!(tmp_dir, fn ->
+        stats =
+          simulate_suite(fn formatter ->
+            for {test_name, status} <- tests do
+              simulate_test(formatter, test_name, status)
+            end
 
-          simulate_module_finished(
-            formatter,
-            :module_a,
-            :passed,
-            module_tests_a
-          )
+            simulate_module_finished(
+              formatter,
+              :module_a,
+              :passed,
+              module_tests_a
+            )
 
-          simulate_module_finished(
-            formatter,
-            :module_b,
-            :failed,
-            module_tests_b
-          )
-        end)
+            simulate_module_finished(
+              formatter,
+              :module_b,
+              :failed,
+              module_tests_b
+            )
+          end)
 
-      assert stats == %{total: 10, failures: 7, skipped: 1, excluded: 1}
+        assert stats == %{total: 10, failures: 7, skipped: 1, excluded: 1}
+
+        failed = [:test_a3, :test_a4, :test_b1, :test_b2, :test_b3, :test_b4, :test_b5]
+        assert read_failures_manifest() == Map.new(failed, &{{TestModule, &1}, __ENV__.file})
+      end)
     end
   end
 

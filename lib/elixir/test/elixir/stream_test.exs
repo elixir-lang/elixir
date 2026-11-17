@@ -1458,6 +1458,40 @@ defmodule StreamTest do
     assert Process.get(:stream_done)
   end
 
+  test "zip/1 closes the started streams on outer error" do
+    stream = Stream.zip([traced_resource(:a), traced_resource(:b)])
+
+    assert_raise RuntimeError, "oops", fn -> Enum.each(stream, fn _ -> raise "oops" end) end
+    assert stream_traces() == [start: :a, start: :b, after: {:a, 1}, after: {:b, 1}]
+
+    assert catch_throw(Enum.each(stream, fn {x, _} -> if x == 2, do: throw(:oops) end)) == :oops
+    assert stream_traces() == [start: :a, start: :b, after: {:a, 3}, after: {:b, 3}]
+  end
+
+  test "zip/1 closes the streams once on inner error" do
+    stream = Stream.zip([traced_resource(:a), traced_resource(:b, 2)])
+
+    assert_raise RuntimeError, "b failed", fn -> Enum.to_list(stream) end
+    assert stream_traces() == [start: :a, start: :b, after: {:b, 2}, after: {:a, 3}]
+
+    stream = Stream.zip([stream, traced_resource(:c)])
+
+    assert_raise RuntimeError, "b failed", fn -> Enum.to_list(stream) end
+
+    assert stream_traces() ==
+             [start: :a, start: :b, start: :c, after: {:b, 2}, after: {:a, 3}, after: {:c, 2}]
+  end
+
+  test "cycle/1 closes on outer error" do
+    stream = Stream.cycle(traced_resource(:a))
+
+    assert_raise RuntimeError, "oops", fn ->
+      Enum.each(stream, fn x -> if x == 1, do: raise("oops") end)
+    end
+
+    assert stream_traces() == [start: :a, after: {:a, 2}]
+  end
+
   test "with_index/2" do
     stream = Stream.with_index([1, 2, 3])
     assert lazy?(stream)
@@ -1494,6 +1528,28 @@ defmodule StreamTest do
 
   test "inspect/1" do
     "#Stream<[enum: 1..10, funs: " <> _ = Stream.map(1..10, & &1) |> inspect()
+  end
+
+  defp traced_resource(name, fail_at \\ nil) do
+    Stream.resource(
+      fn ->
+        send(self(), {:stream_trace, {:start, name}})
+        0
+      end,
+      fn
+        ^fail_at -> raise "#{name} failed"
+        acc -> {[acc], acc + 1}
+      end,
+      fn acc -> send(self(), {:stream_trace, {:after, {name, acc}}}) end
+    )
+  end
+
+  defp stream_traces do
+    receive do
+      {:stream_trace, trace} -> [trace | stream_traces()]
+    after
+      0 -> []
+    end
   end
 
   defp lazy?(stream) do

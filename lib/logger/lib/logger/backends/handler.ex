@@ -20,6 +20,10 @@ defmodule Logger.Backends.Handler do
     {:ok, update_in(config.config, &Map.merge(&1, default_config()))}
   end
 
+  def changing_config(_set_or_update, %{config: config}, new_config) do
+    {:ok, Map.put(new_config, :config, config)}
+  end
+
   def filter_config(%{config: data} = config) do
     %{config | config: Map.drop(data, @internal_keys)}
   end
@@ -46,7 +50,7 @@ defmodule Logger.Backends.Handler do
         %{gl: gl} = metadata
         %{truncate: truncate, utc_log: utc_log?} = config
         level = erlang_level_to_elixir_level(erl_level)
-        message = Logger.Formatter.format_event(event, truncate)
+        message = format_event(event, truncate)
 
         timestamp =
           case metadata do
@@ -63,6 +67,14 @@ defmodule Logger.Backends.Handler do
     ArgumentError -> {:error, :noproc}
   catch
     :exit, reason -> {:error, reason}
+  end
+
+  defp format_event(event, truncate) do
+    Logger.Formatter.format_event(event, truncate)
+  catch
+    kind, reason ->
+      banner = Exception.format_banner(kind, reason, __STACKTRACE__)
+      ["FORMATTER CRASH: ", inspect(event.msg), ?\n, banner]
   end
 
   defp notify(:sync, msg) do

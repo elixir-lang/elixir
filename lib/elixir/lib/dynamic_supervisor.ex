@@ -869,7 +869,7 @@ defmodule DynamicSupervisor do
         Map.put(acc, :erlang.start_timer(time, self(), :kill), pids)
       end)
 
-    stacks = wait_children(pids, size, timers, stacks)
+    stacks = wait_children(pids, size, timers, stacks, nil)
 
     for {pid, {child, reason}} <- stacks do
       report_error(:shutdown_error, reason, pid, child, state)
@@ -883,33 +883,46 @@ defmodule DynamicSupervisor do
       {_, {:restarting, _}}, acc ->
         acc
 
-      {pid, {_, restart, _, _, _} = child}, {pids, times, stacks} ->
-        case monitor_child(pid) do
-          :ok ->
-            times = exit_child(pid, child, times)
-            {Map.put(pids, pid, child), times, stacks}
-
-          {:error, :normal} when restart != :permanent ->
-            {pids, times, stacks}
-
-          {:error, reason} ->
-            {pids, times, Map.put(stacks, pid, {child, reason})}
-        end
+      {pid, child}, {pids, times, stacks} ->
+        # Children are kept linked until they exit, so if one
+        # exits on its own, we still get its exit reason
+        Process.monitor(pid)
+        times = exit_child(pid, child, times)
+        {Map.put(pids, pid, child), times, stacks}
     end)
   end
 
-  defp monitor_child(pid) do
-    ref = Process.monitor(pid)
+  defp unlink_flush(pid, :noproc, links) do
+    # The child has terminated. If we are still linked, the :EXIT
+    # message with the actual reason is guaranteed to arrive. If not,
+    # it is already in the mailbox, unless the child unlinked itself.
+    #
+    # The child terminated before it was monitored and it can no longer
+    # unlink itself, so a single snapshot of our links, taken after all
+    # children were monitored, is valid for all children.
+    links = links || links_snapshot()
+    timeout = if is_map_key(links, pid), do: :infinity, else: 0
+
+    receive do
+      {:EXIT, ^pid, reason} -> {reason, links}
+    after
+      timeout -> {:noproc, links}
+    end
+  end
+
+  defp unlink_flush(pid, reason, links) do
     Process.unlink(pid)
 
     receive do
-      {:EXIT, ^pid, reason} ->
-        receive do
-          {:DOWN, ^ref, :process, ^pid, _} -> {:error, reason}
-        end
+      {:EXIT, ^pid, _} -> {reason, links}
     after
-      0 -> :ok
+      0 -> {reason, links}
     end
+  end
+
+  defp links_snapshot do
+    {:links, links} = Process.info(self(), :links)
+    Map.from_keys(links, [])
   end
 
   defp exit_child(pid, {_, _, shutdown, _, _}, times) do
@@ -928,41 +941,42 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp wait_children(_pids, 0, timers, stacks) do
+  defp wait_children(_pids, 0, timers, stacks, _links) do
     for {timer, _} <- timers do
-      _ = :erlang.cancel_timer(timer)
-
-      receive do
-        {:timeout, ^timer, :kill} -> :ok
-      after
-        0 -> :ok
+      # If the timer has already expired, its message is guaranteed to arrive
+      if :erlang.cancel_timer(timer) == false do
+        receive do: ({:timeout, ^timer, :kill} -> :ok)
       end
     end
 
     stacks
   end
 
-  defp wait_children(pids, size, timers, stacks) do
+  defp wait_children(pids, size, timers, stacks, links) do
     receive do
       {:DOWN, _ref, :process, pid, reason} ->
         case pids do
           %{^pid => child} ->
+            {reason, links} = unlink_flush(pid, reason, links)
             stacks = wait_child(pid, child, reason, stacks)
-            wait_children(pids, size - 1, timers, stacks)
+            wait_children(pids, size - 1, timers, stacks, links)
 
           %{} ->
-            wait_children(pids, size, timers, stacks)
+            wait_children(pids, size, timers, stacks, links)
         end
 
       {:timeout, timer, :kill} ->
         for pid <- Map.fetch!(timers, timer), do: Process.exit(pid, :kill)
-        wait_children(pids, size, Map.delete(timers, timer), stacks)
+        wait_children(pids, size, Map.delete(timers, timer), stacks, links)
     end
   end
 
-  defp wait_child(pid, {_, _, :brutal_kill, _, _} = child, reason, stacks) do
+  defp wait_child(pid, {_, restart, :brutal_kill, _, _} = child, reason, stacks) do
     case reason do
       :killed -> stacks
+      :shutdown when restart != :permanent -> stacks
+      {:shutdown, _} when restart != :permanent -> stacks
+      :normal when restart != :permanent -> stacks
       _ -> Map.put(stacks, pid, {child, reason})
     end
   end

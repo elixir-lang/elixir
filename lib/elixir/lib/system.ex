@@ -633,8 +633,6 @@ defmodule System do
   """
   @spec find_executable(binary) :: binary | nil
   def find_executable(program) when is_binary(program) do
-    assert_no_null_byte!(program, "System.find_executable/1")
-
     case :os.find_executable(String.to_charlist(program)) do
       false -> nil
       other -> List.to_string(other)
@@ -1126,8 +1124,6 @@ defmodule System do
   """
   @spec cmd(binary, [binary], cmd_opts) :: {Collectable.t(), exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
-    assert_no_null_byte!(command, "System.cmd/3")
-
     if not Enum.all?(args, &is_binary/1) do
       raise ArgumentError, "all arguments for System.cmd/3 must be binaries"
     end
@@ -1186,13 +1182,31 @@ defmodule System do
         do_port_line(port, fun.(acc, {:cont, data}), fun, [])
 
       {^port, {:exit_status, status}} ->
-        # Data may arrive after exit status on line mode
-        receive do
-          {^port, {:data, {_, data}}} ->
-            data = [data | buffer] |> Enum.reverse() |> IO.iodata_to_binary()
+        # The final unterminated line may arrive after the exit status,
+        # so we monitor the port and wait for it to close. The monitor
+        # message is delivered only after all messages sent by the port.
+        ref = Port.monitor(port)
+        do_port_line_flush(port, ref, acc, fun, buffer, status)
+    end
+  end
+
+  defp do_port_line_flush(port, ref, acc, fun, buffer, status) do
+    receive do
+      {^port, {:data, {:noeol, data}}} ->
+        do_port_line_flush(port, ref, acc, fun, [data | buffer], status)
+
+      {^port, {:data, {:eol, data}}} ->
+        data = [data | buffer] |> Enum.reverse() |> IO.iodata_to_binary()
+        do_port_line_flush(port, ref, fun.(acc, {:cont, data}), fun, [], status)
+
+      {:DOWN, ^ref, :port, _, _} ->
+        case buffer do
+          [] ->
+            {acc, status}
+
+          _ ->
+            data = buffer |> Enum.reverse() |> IO.iodata_to_binary()
             {fun.(acc, {:cont, data}), status}
-        after
-          0 -> {acc, status}
         end
     end
   end

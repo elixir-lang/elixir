@@ -746,6 +746,10 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
       return_error(Location, "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
   end;
 
+%% A synthetic "not" is part of the previous membership operation, not a prefix operator.
+build_op({'not', [{not_in, true} | _], [_]} = Left, {_Kind, Location, 'in'}, Right) ->
+  {'in', newlines_op(Location) ++ meta_from_location(Location), [Left, Right]};
+
 build_op({UOp, UMeta, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Remove "not left in right" rearrangement on v2.0
   warn({Line, Column}, case UOp of
@@ -756,7 +760,7 @@ build_op({UOp, UMeta, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Righ
   {UOp, UMeta, [{'in', Meta, [Left, Right]}]};
 
 build_op(Left, {in_op, NotLocation, 'not in', InLocation}, Right) ->
-  NotMeta = newlines_op(NotLocation) ++ meta_from_location(NotLocation),
+  NotMeta = [{not_in, true} | newlines_op(NotLocation) ++ meta_from_location(NotLocation)],
   InMeta = meta_from_location(InLocation),
   {'not', NotMeta, [{'in', InMeta, [Left, Right]}]};
 
@@ -797,20 +801,21 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, []).
+build_block(Exprs) -> build_block(Exprs, [], false).
+build_block(Exprs, Meta) -> build_block(Exprs, Meta, false).
 
-build_block([{unquote_splicing, _, [_]}]=Exprs, Meta) ->
+build_block([{unquote_splicing, _, [_]}]=Exprs, Meta, _Parens) ->
   {'__block__', Meta, Exprs};
-build_block([{Op, ExprMeta, Args}], Meta) ->
+build_block([{Op, ExprMeta, Args}], Meta, Parens) ->
   ExprMetaWithExtra =
     case ?token_metadata() of
-      true when Meta /= [] -> [{parens, Meta} | ExprMeta];
+      true when Parens -> [{parens, Meta} | ExprMeta];
       _ -> ExprMeta
     end,
   {Op, ExprMetaWithExtra, Args};
-build_block([Expr], _Meta) ->
+build_block([Expr], _Meta, _Parens) ->
   Expr;
-build_block(Exprs, Meta) ->
+build_block(Exprs, Meta, _Parens) ->
   {'__block__', Meta, Exprs}.
 
 %% Newlines
@@ -1123,7 +1128,7 @@ build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) 
   {'__block__', [], Exprs};
 build_paren_stab(Before, Stab, After) ->
   case check_stab(Stab, none) of
-    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After));
+    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After), true);
     stab -> handle_literal(collect_stab(Stab, [], []), Before, newlines_pair(Before, After))
   end.
 

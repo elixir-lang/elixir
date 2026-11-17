@@ -863,28 +863,46 @@ defmodule String do
   def normalize(string, :nfd) when is_binary(string) do
     case :unicode.characters_to_nfd_binary(string) do
       string when is_binary(string) -> string
-      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfd)
+      {:error, good, <<head, rest::binary>>} -> normalize(rest, :nfd, [good, head])
     end
   end
 
   def normalize(string, :nfc) when is_binary(string) do
     case :unicode.characters_to_nfc_binary(string) do
       string when is_binary(string) -> string
-      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfc)
+      {:error, good, <<head, rest::binary>>} -> normalize(rest, :nfc, [good, head])
     end
   end
 
   def normalize(string, :nfkd) when is_binary(string) do
     case :unicode.characters_to_nfkd_binary(string) do
       string when is_binary(string) -> string
-      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfkd)
+      {:error, good, <<head, rest::binary>>} -> normalize(rest, :nfkd, [good, head])
     end
   end
 
   def normalize(string, :nfkc) when is_binary(string) do
     case :unicode.characters_to_nfkc_binary(string) do
       string when is_binary(string) -> string
-      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfkc)
+      {:error, good, <<head, rest::binary>>} -> normalize(rest, :nfkc, [good, head])
+    end
+  end
+
+  defp normalize(string, form, acc) do
+    result =
+      case form do
+        :nfd -> :unicode.characters_to_nfd_binary(string)
+        :nfc -> :unicode.characters_to_nfc_binary(string)
+        :nfkd -> :unicode.characters_to_nfkd_binary(string)
+        :nfkc -> :unicode.characters_to_nfkc_binary(string)
+      end
+
+    case result do
+      string when is_binary(string) ->
+        IO.iodata_to_binary([acc | string])
+
+      {:error, good, <<head, rest::binary>>} ->
+        normalize(rest, form, [acc, good, head])
     end
   end
 
@@ -1158,31 +1176,20 @@ defmodule String do
       raise ArgumentError, "cannot use an empty string as the match to replace"
     end
 
-    prefix_size = byte_size(match)
-    suffix_size = byte_size(string) - prefix_size
-    replace_leading(string, match, replacement, prefix_size, suffix_size, 0)
+    replace_leading(string, match, replacement, 0)
   end
 
-  defp replace_leading(string, match, replacement, prefix_size, suffix_size, acc)
-       when suffix_size >= 0 do
+  defp replace_leading(string, match, replacement, acc) do
     case string do
-      <<prefix::size(^prefix_size)-binary, suffix::binary>> when prefix == match ->
-        replace_leading(
-          suffix,
-          match,
-          replacement,
-          prefix_size,
-          suffix_size - prefix_size,
-          acc + 1
-        )
+      <<^match::binary, rest::binary>> ->
+        replace_leading(rest, match, replacement, acc + 1)
+
+      _ when acc == 0 ->
+        string
 
       _ ->
         prepend_unless_empty(duplicate(replacement, acc), string)
     end
-  end
-
-  defp replace_leading(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    prepend_unless_empty(duplicate(replacement, acc), string)
   end
 
   @doc """
@@ -1275,10 +1282,8 @@ defmodule String do
   @spec replace_prefix(t, t, t) :: t
   def replace_prefix(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
-    prefix_size = byte_size(match)
-
     case string do
-      <<prefix::size(^prefix_size)-binary, suffix::binary>> when prefix == match ->
+      <<^match::binary, suffix::binary>> ->
         prepend_unless_empty(replacement, suffix)
 
       _ ->
@@ -1704,7 +1709,7 @@ defmodule String do
   defp replace_guarded(subject, "", replacement_binary, options)
        when is_binary(replacement_binary) do
     if Keyword.get(options, :global, true) do
-      intersperse_bin(subject, replacement_binary, [replacement_binary])
+      intersperse_bin(subject, replacement_binary, [replacement_binary], [])
     else
       replacement_binary <> subject
     end
@@ -1712,7 +1717,7 @@ defmodule String do
 
   defp replace_guarded(subject, "", replacement_fun, options) do
     if Keyword.get(options, :global, true) do
-      intersperse_fun(subject, replacement_fun, [replacement_fun.("")])
+      intersperse_fun(subject, replacement_fun, [replacement_fun.("")], [])
     else
       IO.iodata_to_binary([replacement_fun.("") | subject])
     end
@@ -1742,31 +1747,31 @@ defmodule String do
     end
   end
 
-  defp intersperse_bin(subject, replacement, acc) do
+  defp intersperse_bin(subject, replacement, acc, done) do
     case :unicode_util.gc(subject) do
       [current | rest] ->
-        intersperse_bin(rest, replacement, [replacement, current | acc])
+        intersperse_bin(rest, replacement, [replacement, current | acc], done)
 
       [] ->
-        reverse_characters_to_binary(acc)
+        IO.iodata_to_binary([done | reverse_characters_to_binary(acc)])
 
       {:error, <<byte, rest::bits>>} ->
-        reverse_characters_to_binary(acc) <>
-          <<byte>> <> intersperse_bin(rest, replacement, [replacement])
+        done = [done, reverse_characters_to_binary(acc), byte]
+        intersperse_bin(rest, replacement, [replacement], done)
     end
   end
 
-  defp intersperse_fun(subject, replacement, acc) do
+  defp intersperse_fun(subject, replacement, acc, done) do
     case :unicode_util.gc(subject) do
       [current | rest] ->
-        intersperse_fun(rest, replacement, [replacement.(""), current | acc])
+        intersperse_fun(rest, replacement, [replacement.(""), current | acc], done)
 
       [] ->
-        reverse_characters_to_binary(acc)
+        IO.iodata_to_binary([done | reverse_characters_to_binary(acc)])
 
       {:error, <<byte, rest::bits>>} ->
-        reverse_characters_to_binary(acc) <>
-          <<byte>> <> intersperse_fun(rest, replacement, [replacement.("")])
+        done = [done, reverse_characters_to_binary(acc), byte]
+        intersperse_fun(rest, replacement, [replacement.("")], done)
     end
   end
 
@@ -2634,26 +2639,26 @@ defmodule String do
   end
 
   defp slice_every(string, _count, 1), do: string
-  defp slice_every(string, count, step), do: slice_every(string, count, step, [])
+  defp slice_every(string, count, step), do: slice_every(string, count, step, [], [])
 
-  defp slice_every(string, count, to_drop, acc) when count > 0 do
+  defp slice_every(string, count, to_drop, acc, done) when count > 0 do
     case :unicode_util.gc(string) do
       [current | rest] ->
         rest
         |> drop(to_drop)
-        |> slice_every(count - to_drop, to_drop, [current | acc])
+        |> slice_every(count - to_drop, to_drop, [current | acc], done)
 
       [] ->
-        reverse_characters_to_binary(acc)
+        IO.iodata_to_binary([done | reverse_characters_to_binary(acc)])
 
       {:error, <<byte, rest::bits>>} ->
-        reverse_characters_to_binary(acc) <>
-          <<byte>> <> slice_every(drop(rest, to_drop), count - to_drop, to_drop, [])
+        done = [done, reverse_characters_to_binary(acc), byte]
+        slice_every(drop(rest, to_drop), count - to_drop, to_drop, [], done)
     end
   end
 
-  defp slice_every(_string, _count, _to_drop, acc) do
-    reverse_characters_to_binary(acc)
+  defp slice_every(_string, _count, _to_drop, acc, done) do
+    IO.iodata_to_binary([done | reverse_characters_to_binary(acc)])
   end
 
   defp drop(string, 1), do: string

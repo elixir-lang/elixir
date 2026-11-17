@@ -297,6 +297,20 @@ defmodule File.StreamTest do
                |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
       end
 
+      test "trims BOM via option with utf32 LE encoding" do
+        src = tmp_path("utf32_le_bom.txt")
+        content = :unicode.characters_to_binary("Русский\n", :utf8, {:utf32, :little})
+        File.write!(src, <<255, 254, 0, 0>> <> content)
+
+        assert @node
+               |> stream!(src, [:trim_bom])
+               |> Enum.take(1) == [binary_part(content, 0, byte_size(content) - 3)]
+
+        assert @node
+               |> stream!(src, [{:encoding, {:utf32, :little}}, :trim_bom])
+               |> Enum.take(1) == ["Русский\n"]
+      end
+
       test "reads and writes line by line in UTF-8" do
         src = fixture_path("file.txt")
         dest = tmp_path("tmp_test.txt")

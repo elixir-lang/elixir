@@ -92,7 +92,11 @@ defmodule Regex do
       each line; use `\A` and `\z` to match the end or beginning of the string
 
     * `:extended` (x) - whitespace characters are ignored except when escaped
-      or within `[..]`, and allow `#` to delimit comments
+      or within `[..]`, and allow `#` to delimit comments. Since Erlang/OTP 28,
+      U+0085, U+200E, U+200F, U+2028, and U+2029 are also ignored. Without
+      `:unicode`, this means the byte `0x85` is ignored even when it is part
+      of a multibyte UTF-8 character (such as "ą" or "х"), so always enable
+      `:unicode` when using `:extended` with non-ASCII patterns
 
     * `:firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
@@ -173,6 +177,14 @@ defmodule Regex do
       iex> Regex.replace(~r/\s/u, "Unicode\u00A0spaces", "-")
       "Unicode-spaces"
 
+  ## Match limits
+
+  The underlying regex engine limits how much backtracking a single match
+  may perform. Patterns with nested quantifiers, such as `~r/(a+)+$/`, may
+  reach this limit on certain inputs (known as catastrophic backtracking).
+  When that happens, the functions in this module raise `SystemLimitError`
+  (since Elixir v1.21) instead of returning no match, since the outcome of
+  the match is unknown.
   """
 
   defstruct re_pattern: nil, source: "", opts: []
@@ -612,7 +624,19 @@ defmodule Regex do
     end
   end
 
-  defp safe_run(%Regex{re_pattern: re_pattern} = regex, string, options) do
+  defp safe_run(regex, string, options) do
+    case do_run(regex, string, [:report_errors | options]) do
+      {:error, reason} ->
+        raise SystemLimitError,
+              "regex #{inspect(regex)} could not complete the match because it " <>
+                "reached #{inspect(reason)}, see the \"Match limits\" section in the Regex docs"
+
+      result ->
+        result
+    end
+  end
+
+  defp do_run(%Regex{re_pattern: re_pattern} = regex, string, options) do
     # TODO: Remove me when Erlang/OTP 28+ is required
     # This allows regexes precompiled on Erlang/OTP 27- to work on Erlang/OTP 28+
     with {:re_pattern, _, _, _, <<_::bitstring>>} <- re_pattern,
@@ -991,6 +1015,17 @@ defmodule Regex do
 
   defp escape(<<char, rest::binary>>, length, original) when char in @escapable do
     escape_char(rest, length, original, char)
+  end
+
+  # U+0085, U+200E, U+200F, U+2028, and U+2029 are ignored in extended mode
+  # since Erlang/OTP 28 (PCRE2), so we escape them too
+  defp escape(<<0xC2, 0x85, rest::binary>>, length, original) do
+    escape_char(rest, length, original, <<0xC2, 0x85>>)
+  end
+
+  defp escape(<<0xE2, 0x80, char, rest::binary>>, length, original)
+       when char in [0x8E, 0x8F, 0xA8, 0xA9] do
+    escape_char(rest, length, original, <<0xE2, 0x80, char>>)
   end
 
   defp escape(<<_, rest::binary>>, length, original) do

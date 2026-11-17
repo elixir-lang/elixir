@@ -6,6 +6,7 @@ Code.require_file("type_helper.exs", __DIR__)
 defmodule Module.Types.InferTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
   import Module.Types.Descr
 
   defmacro infer(config, do: block) do
@@ -139,6 +140,21 @@ defmodule Module.Types.InferTest do
 
     assert types[{:mixed, 1}] ==
              {:infer, nil, [{[tuple([atom([:ok]), term()])], dynamic()}]}
+  end
+
+  test "from patterns (with impossible clauses)", config do
+    {types, stderr} =
+      with_io(:stderr, fn ->
+        infer config do
+          def fun(x = y) when is_integer(x) and is_atom(y), do: raise("unreachable")
+          def fun(_), do: :other
+        end
+      end)
+
+    assert stderr =~ "the following pattern will never match"
+
+    assert types[{:fun, 1}] ==
+             {:infer, [term()], [{[atom()], dynamic(none())}, {[term()], atom([:other])}]}
   end
 
   test "from expressions", config do
@@ -347,6 +363,28 @@ defmodule Module.Types.InferTest do
     end
   end
 
+  test "from conditions binding variables in case expressions", config do
+    types =
+      infer config do
+        def validate(opts, length) do
+          ((is = opts[:is]) && wrong_length(length, is)) ||
+            ((min = opts[:min]) && too_short(length, min)) ||
+            ((max = opts[:max]) && too_long(length, max))
+        end
+
+        defp wrong_length(length, value) when length == value, do: nil
+        defp wrong_length(_length, _value), do: :wrong
+
+        defp too_short(length, value) when length >= value, do: nil
+        defp too_short(_length, _value), do: :short
+
+        defp too_long(length, value) when length <= value, do: nil
+        defp too_long(_length, _value), do: :long
+      end
+
+    assert {:infer, _, _} = types[{:validate, 2}]
+  end
+
   test "from multiple defguard (regression with large code generation)", config do
     infer config do
       defstruct [:config, :v, :m, :t, :s, :k]
@@ -370,7 +408,7 @@ defmodule Module.Types.InferTest do
              (is_nil(meta.k) or not meta.config.k.ok) and
              (is_nil(meta.t) or not meta.config.t.ok) and
              not meta.config.m.ok and
-             not meta.config.v.ok do
+             not meta.config.v.on do
           :something
         else
           :another

@@ -35,13 +35,7 @@ defmodule Mix.Tasks.Loadpaths do
   def run(args) do
     config = Mix.Project.config()
 
-    # --from-mix-deps-compile is used only internally to avoid
-    # recursively checking and loading dependencies that have
-    # already been loaded. It has no purpose from Mix.CLI
-    # because running a task may load deps.
-    if "--from-mix-deps-compile" not in args do
-      Mix.Task.run("deps.loadpaths", args)
-    end
+    Mix.Task.run("deps.loadpaths", args)
 
     if config[:app] do
       load_project(config)

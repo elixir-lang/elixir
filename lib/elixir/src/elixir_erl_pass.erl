@@ -399,8 +399,9 @@ build_truthy_clause(Meta, Condition, Body, S) ->
 %% In case a variable is defined to match in a condition
 %% but a condition returns boolean, we can replace the
 %% variable directly by the boolean result.
-returns_boolean({'=', _, [{Var, _, Ctx}, Condition]}, {Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) ->
-  case elixir_utils:returns_boolean(Condition) of
+returns_boolean({'=', _, [{Var, VarMeta, Ctx}, Condition]}, {Var, BodyMeta, Ctx}) when is_atom(Var), is_atom(Ctx) ->
+  case elixir_utils:returns_boolean(Condition) andalso
+       lists:keyfind(version, 1, VarMeta) =:= lists:keyfind(version, 1, BodyMeta) of
     true  -> {Condition, true};
     false -> false
   end;
@@ -508,9 +509,9 @@ build_map(Ann, none, TArgs, SA) -> {{map, Ann, TArgs}, SA}.
 translate_bitstring(Meta, Args, S) ->
   build_bitstr(Args, ?ann(Meta), S, []).
 
-build_bitstr([{'::', Meta, [H, V]} | T], Ann, S, Acc) ->
-  {Size, Types} = extract_bit_info(V, Meta, S#elixir_erl{context=nil, extra=nil}),
-  build_bitstr(T, Ann, S, Acc, H, Size, Types);
+build_bitstr([{'::', Meta, [H, V]} | T], Ann, #elixir_erl{context=Context, extra=Extra} = S, Acc) ->
+  {Size, Types, SS} = extract_bit_info(V, Meta, Context, S#elixir_erl{context=nil, extra=nil}),
+  build_bitstr(T, Ann, SS#elixir_erl{context=Context, extra=Extra}, Acc, H, Size, Types);
 build_bitstr([], Ann, S, Acc) ->
   {{bin, Ann, lists:reverse(Acc)}, S}.
 
@@ -535,16 +536,21 @@ requires_utf_conversion([bitstring | _]) -> false;
 requires_utf_conversion([binary | _]) -> false;
 requires_utf_conversion(_) -> true.
 
-extract_bit_info({'-', _, [L, {size, _, [Size]}]}, Meta, S) ->
-  {extract_bit_size(Size, Meta, S), extract_bit_type(L, [])};
-extract_bit_info({size, _, [Size]}, Meta, S) ->
-  {extract_bit_size(Size, Meta, S), []};
-extract_bit_info(L, _Meta, _S) ->
-  {default, extract_bit_type(L, [])}.
+extract_bit_info({'-', _, [L, {size, _, [Size]}]}, Meta, Context, S) ->
+  {TSize, SS} = extract_bit_size(Size, Meta, Context, S),
+  {TSize, extract_bit_type(L, []), SS};
+extract_bit_info({size, _, [Size]}, Meta, Context, S) ->
+  {TSize, SS} = extract_bit_size(Size, Meta, Context, S),
+  {TSize, [], SS};
+extract_bit_info(L, _Meta, _Context, S) ->
+  {default, extract_bit_type(L, []), S}.
 
-extract_bit_size(Size, Meta, S) ->
-  {TSize, _} = translate(Size, ?ann(Meta), S#elixir_erl{context=guard}),
-  TSize.
+extract_bit_size(Size, Meta, Context, S) ->
+  SizeContext = case Context of
+    match -> guard;
+    _ -> Context
+  end,
+  translate(Size, ?ann(Meta), S#elixir_erl{context=SizeContext}).
 
 extract_bit_type({'-', _, [L, R]}, Acc) ->
   extract_bit_type(L, extract_bit_type(R, Acc));
@@ -625,10 +631,9 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[{map, _, Pairs1}, {map, _, Pairs2}], TS} ->
       {{map, Ann, Pairs1 ++ Pairs2}, TS};
 
-    {[{map, _, InnerMap1, Pairs1}, {map, _, Pairs2}], TS} ->
-      {{map, Ann, InnerMap1, Pairs1 ++ Pairs2}, TS};
-
     {[TMap1, {map, _, Pairs2}], TS} ->
+      %% Keep map updates nested so the left update is validated before
+      %% evaluating the fields of the right map.
       {{map, Ann, TMap1, Pairs2}, TS};
 
     {[TMap1, TMap2], TS} ->
@@ -641,10 +646,23 @@ translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'El
   case is_list(List) andalso lists:all(fun is_atom/1, List) of
     true ->
       Generated = erl_anno:set_generated(true, Ann),
+
+      %% The subject is used twice, as the case subject and as argument
+      %% of the fallback call, so bind it to a variable unless it is one.
+      {TSubject, Prelude, TS1} =
+        case TString of
+          {var, _, _} ->
+            {TString, [], TS};
+          _ ->
+            {VarName, SV} = elixir_erl_var:build('_', TS),
+            Var = {var, Generated, VarName},
+            {Var, [{match, Generated, Var, TString}], SV}
+        end,
+
       LastClause = {clause, Generated,
         [{var, Generated, '_'}],
         [],
-        [{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, '__to_existing_atom__'}}, [TString, TList]}]},
+        [{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, '__to_existing_atom__'}}, [TSubject, TList]}]},
       CastAtom = case Mod of
         'Elixir.String' -> fun atom_to_binary/1;
         'Elixir.List' -> fun atom_to_list/1
@@ -655,7 +673,12 @@ translate_remote(Mod, to_existing_atom, Meta, [String, List], S) when Mod == 'El
           [],
           [{atom, Ann, Atom}]}
       || Atom <- List] ++ [LastClause],
-      {{'case', Generated, TString, Clauses}, TS};
+      Case = {'case', Generated, TSubject, Clauses},
+
+      case Prelude of
+        [] -> {Case, TS1};
+        _ -> {{block, Generated, Prelude ++ [Case]}, TS1}
+      end;
     false ->
       {{call, Ann, {remote, Ann, {atom, Ann, Mod}, {atom, Ann, to_existing_atom}}, [TString, TList]}, TS}
   end;
@@ -779,9 +802,6 @@ inline_pure_function('Elixir.String', graphemes) -> true;
 inline_pure_function('Elixir.String', codepoints) -> true;
 inline_pure_function('Elixir.String', split) -> true;
 inline_pure_function('Elixir.Kernel', to_timeout) -> true;
-inline_pure_function('Elixir.URI', new) -> true;
-inline_pure_function('Elixir.URI', 'new!') -> true;
-inline_pure_function('Elixir.URI', parse) -> true;
 inline_pure_function('Elixir.URI', encode_query) -> true;
 inline_pure_function('Elixir.URI', encode_www_form) -> true;
 inline_pure_function('Elixir.URI', decode) -> true;

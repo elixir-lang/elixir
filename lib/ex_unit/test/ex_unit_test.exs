@@ -925,11 +925,24 @@ defmodule ExUnitTest do
         test "excluded #{__ENV__.line}", do: assert(false)
       end
 
-      configure_and_reload_on_exit(max_failures: 2)
+      defmodule TestMaxFailuresSetupAll2 do
+        use ExUnit.Case
+
+        setup_all do
+          raise "oops"
+        end
+
+        test "fail #{__ENV__.line}", do: assert(false)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
+      end
+
+      configure_and_reload_on_exit(max_failures: 5)
 
       output =
         capture_io(fn ->
-          assert ExUnit.run() == %{total: 4, failures: 2, excluded: 1, skipped: 1}
+          assert ExUnit.run() == %{total: 8, failures: 5, excluded: 2, skipped: 1}
         end)
 
       assert output =~ max_failures_reached_msg()
@@ -1176,15 +1189,15 @@ defmodule ExUnitTest do
       test "one more excluded test", do: assert(false)
     end
 
-    configure_and_reload_on_exit([])
+    configure_and_reload_on_exit(colors: [enabled: true])
 
     output =
       capture_io(fn ->
         assert ExUnit.run() == %{total: 2, failures: 0, excluded: 2, skipped: 0}
       end)
 
-    assert output =~ "All tests have been excluded.\n"
-    assert output =~ "Result: 0 tests"
+    assert output =~ "All tests have been excluded."
+    assert output =~ IO.ANSI.yellow() <> "\nResult: 0 tests, 2 excluded"
   end
 
   test "tests are run in compile order (FIFO)" do

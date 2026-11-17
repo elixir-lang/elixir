@@ -1096,6 +1096,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "catch_throw with throw" do
     1 = catch_throw(throw(1))
+    2 = catch_throw([1, throw(2)])
   end
 
   test "catch_exit with exit" do

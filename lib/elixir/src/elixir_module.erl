@@ -520,25 +520,31 @@ expand_callback(Line, M, F, Args, Acc, Fun) ->
   E = elixir_env:reset_vars(Acc),
   S = elixir_env:env_to_ex(E),
   Meta = [{line, Line}, {required, true}],
+  Arity = length(Args),
 
-  {EE, _S, ET} =
-    elixir_dispatch:dispatch_require(Meta, M, F, Args, S, E, fun(AM, AF) ->
-      Fun(AM, AF, Args),
-      {ok, S, E}
-    end),
+  %% We invoke the macro but do not expand its result,
+  %% as that will be done by eval_forms
+  case elixir_dispatch:expand_require(Meta, M, F, Arity, E, true) of
+    {macro, M, Expander} ->
+      elixir_dispatch:check_deprecated(macro, Meta, M, F, Arity, E),
+      Quoted = Expander(Args, {Line, S, E}),
 
-  if
-    is_atom(EE) ->
-      ET;
-    true ->
       try
-        {_Value, _Binding, EF} = elixir:eval_forms(EE, [], ET),
+        Counter = next_counter(?key(E, module)),
+        Linified = elixir_quote:linify_with_context_counter(Meta, {M, Counter}, Quoted),
+        {_Value, _Binding, EF} = elixir:eval_forms(Linified, [], E),
         EF
       catch
         Kind:Reason:Stacktrace ->
-          Info = {M, F, length(Args), location(Line, E)},
+          Info = {M, F, Arity, location(Line, E)},
           erlang:raise(Kind, Reason, prune_stacktrace(Info, Stacktrace))
-      end
+      end;
+
+    error ->
+      elixir_dispatch:check_deprecated(function, Meta, M, F, Arity, E),
+      elixir_env:trace({remote_function, Meta, M, F, Arity}, E),
+      Fun(M, F, Args),
+      E
   end.
 
 %% Add attributes handling to the form

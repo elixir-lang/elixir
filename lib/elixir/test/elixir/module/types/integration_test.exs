@@ -93,6 +93,14 @@ defmodule Module.Types.IntegrationTest do
           def itself(data)
         end
 
+        defmodule ImplStruct do
+          defstruct [:value]
+
+          defimpl Itself do
+            def itself(data), do: data
+          end
+        end
+
         defimpl Itself,
           for: [
             Atom,
@@ -160,6 +168,14 @@ defmodule Module.Types.IntegrationTest do
                    first: {term(), false},
                    last: {term(), false},
                    step: {term(), false}
+                 )
+               )
+
+      assert itself_arg.(Itself.ImplStruct) ==
+               dynamic(
+                 closed_map(
+                   __struct__: {atom([ImplStruct]), false},
+                   value: {term(), false}
                  )
                )
 
@@ -271,7 +287,7 @@ defmodule Module.Types.IntegrationTest do
                 :error
         """,
         """
-            warning: the following pattern will never match:
+            warning: the following pattern is incompatible with its expected type:
 
                 :doki = A.fun(:error)
 
@@ -579,7 +595,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         """
-            warning: the 1st pattern in clause will never match:
+            warning: the 1st pattern in clause is incompatible with its expected type:
 
                 nil
 
@@ -588,6 +604,8 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(%Range{})
 
             hint: defimpl for Range requires its callbacks to match exclusively on %Range{}
+
+            hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
 
             type warning found at:
             │
@@ -849,9 +867,17 @@ defmodule Module.Types.IntegrationTest do
       files = %{
         "a.ex" => """
         defmodule A do
+          @after_verify __MODULE__
           @file "generated.ex"
           def fun(arg) do
             :ok = List.to_tuple(arg)
+          end
+
+          def __after_verify__(__MODULE__) do
+            IO.warn("This is a manually emitted warning",
+              file: Path.relative_to_cwd(__ENV__.file),
+              line: __ENV__.line
+            )
           end
         end
         """
@@ -861,9 +887,16 @@ defmodule Module.Types.IntegrationTest do
 
       assert [
                %{
-                 message: "the following pattern will never match" <> _,
+                 message:
+                   "the following pattern is incompatible with its expected type" <>
+                     _,
                  file: file,
                  source: source
+               },
+               %{
+                 message: "This is a manually emitted warning",
+                 file: file2,
+                 source: source2
                }
              ] = warnings.runtime_warnings
 
@@ -871,6 +904,10 @@ defmodule Module.Types.IntegrationTest do
       assert Path.type(source) == :absolute
       assert String.ends_with?(file, "generated.ex")
       assert Path.type(file) == :absolute
+      assert String.ends_with?(source2, "a.ex")
+      assert Path.type(source2) == :absolute
+      assert String.ends_with?(file2, "a.ex")
+      assert Path.type(file2) == :absolute
     after
       purge(A)
     end
@@ -2054,7 +2091,7 @@ defmodule Module.Types.IntegrationTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
-    assert {:elixir_checker_v10, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v12, map} = :erlang.binary_to_term(chunk)
     map
   end
 

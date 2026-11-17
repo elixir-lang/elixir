@@ -117,6 +117,17 @@ defmodule Code do
     * `:stop` - (since v1.11.0) invoked whenever the compiler stops tracing a
       new lexical context, such as a new file.
 
+    * `:purge` - (since v1.21.0) invoked by Mix whenever the modules previously
+      compiled from a file are purged. This happens when the file is removed or
+      before it is compiled again, in which case its modules may be defined again
+      later on. `env.file` is the file and `env.context_modules` are the modules
+      previously defined in it. This event is emitted outside of `:start`/`:stop`,
+      so `env.module`, `env.function`, and `env.lexical_tracker` are all `nil`.
+
+    * `:purge_all` - (since v1.21.0) invoked by Mix whenever all modules
+      previously compiled in the project are purged, such as when compiling
+      with `--force`. This event is emitted with an empty environment.
+
     * `{:import, meta, module, opts}` - traced whenever `module` is imported.
       `meta` is the import AST metadata and `opts` are the import options.
 
@@ -286,6 +297,7 @@ defmodule Code do
           columns: boolean(),
           unescape: boolean(),
           existing_atoms_only: boolean(),
+          max_integer_bytes: pos_integer() | :system_limit,
           token_metadata: boolean(),
           literal_encoder: (term(), Macro.metadata() -> {:ok, Macro.t()} | {:error, binary()}),
           static_atoms_encoder: (binary(), Macro.metadata() -> {:ok, term()} | {:error, binary()}),
@@ -1290,6 +1302,11 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
+    * `:max_integer_bytes` - the maximum number of bytes in integer
+      literals, excluding underscores and base prefixes such as `0x`.
+      Defaults to `:system_limit`, which returns an error once the
+      integer exceeds the system limit.
+
     * `:token_metadata` (since v1.10.0) - when `true`, includes token-related
       metadata in the expression AST, such as metadata for `do` and `end`
       tokens, for closing tokens, end of expressions, as well as delimiters
@@ -1349,6 +1366,15 @@ defmodule Code do
 
     * atoms used to represent single-letter sigils like `:sigil_X`
       (but multi-letter sigils like `:sigil_XYZ` are encoded).
+
+  > #### Parsing complexity {: .warning}
+  >
+  > Even though parsing functions allow you to limit the creation of atoms
+  > while parsing Elixir code, note that parsing itself may be CPU intensive
+  > and scale non-linearly with input size. For example, allocation of integers
+  > may become too expensive and you may want to limit it with `:max_integer_bytes`.
+  > Other parts of the parser may have high algorithmic complexity when used
+  > with untrusted inputs.
 
   ## Examples
 
@@ -1594,7 +1620,7 @@ defmodule Code do
     {{form, meta, args}, comments} = maybe_attach_leading_comments(quoted, comments)
     {form, comments, form_info} = attach_comments_to_quoted(form, comments, nil, collect?)
     {child_boundary, node_boundary} = comments_boundaries(form, meta, boundary)
-    collect_children? = collect? or (form == :<<>> and meta[:delimiter] != nil)
+    collect_children? = collect? or interpolated?(form, meta)
 
     {args, comments, args_info} =
       attach_comments_to_quoted(args, comments, child_boundary, collect_children?)
@@ -1739,8 +1765,6 @@ defmodule Code do
     {comments, {form, meta, args}}
   end
 
-  defp pop_node_leading_comments(quoted), do: {[], quoted}
-
   defp node_leading_comments({_, meta, _}) when is_list(meta) do
     Keyword.get(meta, :leading_comments, [])
   end
@@ -1872,6 +1896,19 @@ defmodule Code do
       nil -> {nil, boundary}
       line -> {min_comments_boundary(line, boundary), boundary}
     end
+  end
+
+  # Strings, charlists, atoms, and sigils cannot hold comments inside
+  # their interpolations, so we collect them and move them outside
+  defp interpolated?(form, meta) do
+    meta[:delimiter] != nil and
+      case form do
+        :<<>> -> true
+        {:., _, [List, :to_charlist]} -> true
+        {:., _, [:erlang, :binary_to_atom]} -> true
+        form when is_atom(form) -> String.starts_with?(Atom.to_string(form), "sigil_")
+        _ -> false
+      end
   end
 
   defp min_comments_boundary(line, nil), do: line
@@ -2620,15 +2657,7 @@ defmodule Code do
   def fetch_docs(module) when is_atom(module) do
     case get_beam_and_path(module) do
       {bin, beam_path} ->
-        case fetch_docs_from_beam(bin) do
-          {:error, :chunk_not_found} ->
-            app_root = Path.expand(Path.join(["..", ".."]), beam_path)
-            path = Path.join([app_root, "doc", "chunks", "#{module}.chunk"])
-            fetch_docs_from_chunk(path)
-
-          other ->
-            other
-        end
+        fetch_docs_from_beam(bin, beam_path)
 
       :error ->
         case :code.is_loaded(module) do
@@ -2637,7 +2666,7 @@ defmodule Code do
             # unless it is listed as an extra application.
             case :code.lib_dir(:erts) do
               path when is_list(path) ->
-                path = Path.join([path, "doc", "chunks", "#{module}.chunk"])
+                path = Path.join(path, "doc/chunks/#{module}.chunk")
                 fetch_docs_from_chunk(path)
 
               {:error, _} ->
@@ -2651,7 +2680,7 @@ defmodule Code do
   end
 
   def fetch_docs(path) when is_binary(path) do
-    fetch_docs_from_beam(String.to_charlist(path))
+    fetch_docs_from_beam(String.to_charlist(path), path)
   end
 
   defp get_beam_and_path(module) do
@@ -2666,13 +2695,15 @@ defmodule Code do
 
   @docs_chunk [?D, ?o, ?c, ?s]
 
-  defp fetch_docs_from_beam(bin_or_path) do
+  defp fetch_docs_from_beam(bin_or_path, path) do
     case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
       {:ok, {_module, [{@docs_chunk, bin}]}} ->
         load_docs_chunk(bin)
 
       {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
-        {:error, :chunk_not_found}
+        module = Path.basename(path, ".beam")
+        path = Path.expand("../../doc/chunks/#{module}.chunk", path)
+        fetch_docs_from_chunk(path)
 
       {:error, :beam_lib, {:file_error, _, :enoent}} ->
         {:error, :module_not_found}

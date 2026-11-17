@@ -53,6 +53,9 @@ defmodule Float do
   @precision_range 0..15
   @type precision_range :: 0..15
 
+  @powers_of_5 0..15 |> Enum.map(&(5 ** &1)) |> List.to_tuple()
+  @powers_of_10 0..15 |> Enum.map(&(10 ** &1)) |> List.to_tuple()
+
   @min_finite then(<<0xFFEFFFFFFFFFFFFF::64>>, fn <<num::float>> -> num end)
   @max_finite then(<<0x7FEFFFFFFFFFFFFF::64>>, fn <<num::float>> -> num end)
 
@@ -201,12 +204,21 @@ defmodule Float do
   end
 
   # Bare integer: * 1.0 casts to the nearest float without building a new binary,
-  # and raises ArithmeticError on overflow (for example a 400-digit integer).
+  # and raises ArithmeticError on overflow (for example a 309-digit integer).
+  # Integers with more than 309 significant digits always overflow, so we
+  # return early instead of building large integers.
   defp finish_mantissa(binary, rest, _dot? = false) do
-    {:erlang.binary_to_integer(consumed(binary, rest)) * 1.0, rest}
+    case skip_leading_zeros(consumed(binary, rest)) do
+      digits when byte_size(digits) > 309 -> :error
+      digits -> {:erlang.binary_to_integer(digits) * 1.0, rest}
+    end
   rescue
     ArithmeticError -> :error
   end
+
+  defp skip_leading_zeros(<<?0, rest::binary>>) when rest != "", do: skip_leading_zeros(rest)
+
+  defp skip_leading_zeros(digits), do: digits
 
   # binary_to_float/1 raises ArgumentError when the exponent is too big, e.g. "1.0e400".
   defp finish_exponent(binary, _exp_pos, rest, _dot? = true) do
@@ -221,11 +233,7 @@ defmodule Float do
     len = byte_size(binary) - byte_size(rest)
 
     literal =
-      IO.iodata_to_binary([
-        :binary.part(binary, 0, exp_pos),
-        ".0",
-        :binary.part(binary, exp_pos, len - exp_pos)
-      ])
+      <<binary::binary-size(exp_pos), ".0", :binary.part(binary, exp_pos, len - exp_pos)::binary>>
 
     {:erlang.binary_to_float(literal), rest}
   rescue
@@ -382,9 +390,10 @@ defmodule Float do
   def round(float, 0) when float === 0.0 or float === -0.0, do: float
 
   def round(float, 0) when is_float(float) do
-    case :erlang.round(float) * 1.0 do
-      zero when zero == 0.0 and float < 0.0 -> -0.0
-      rounded -> rounded
+    case :erlang.round(float) do
+      0 when float < 0.0 -> -0.0
+      0 -> 0.0
+      rounded -> rounded * 1.0
     end
   end
 
@@ -396,169 +405,132 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
-  # Decimal-place rounding via exact rational scaling. This is the bignum
-  # core used by reference implementations like David M. Gay's "Correctly
-  # Rounded Binary-Decimal and Decimal-Binary Conversions" (cited in the
-  # @doc above), Python's round(), and Java's BigDecimal.setScale.
+  # Round decimal places with exact integer arithmetic.
+  # exp is the biased binary exponent, and 1075 = 1023 + 52.
   #
-  # 1. Decompose float exactly: |float| = mantissa / 2^shift.
-  # 2. Scale exactly: |float| * 10^precision = mantissa * 10^precision / 2^shift.
-  #    Because precision is bounded to 0..15, the product fits in ~103 bits
-  #    (53-bit mantissa + ~50-bit power of ten) and BEAM bignums handle it
-  #    directly without approximation.
-  # 3. Round the exact rational to an integer per the requested mode
-  #    (half_up / floor / ceil) using quotient and remainder.
-  # 4. Emit the float closest to rounded_int / 10^precision:
-  #    - fast path: when rounded_int < 2^53, both operands are exactly
-  #      representable as floats and IEEE division is correctly rounded.
-  #    - slow path: bignum alignment + manual mantissa extraction with
-  #      round-to-nearest-even for the trailing bit.
+  # 1. Split the float: |float| = significand / 2^(1075 - exp).
+  # 2. Scale the value: |float| * 10^precision = significand * 5^precision / 2^scaled_shift,
+  #    where scaled_shift = 1075 - exp - precision.
+  #    The product needs at most 88 bits: 53 for the significand and 35 for
+  #    the power of five. BEAM integer arithmetic keeps the product exact.
+  # 3. Round the scaled value to an integer. Use half_up, floor, or ceil.
+  # 4. Convert rounded_int / 10^precision to the nearest float:
+  #    - Fast path: rounded_int < 2^53. Both operands are exact as floats,
+  #      so IEEE float division gives the nearest float.
+  #    - Slow path: use integer division to keep two extra bits. Use these
+  #      bits and the division remainder to round to nearest-even.
   #
-  # The integer-rounding decision (step 3) and the binary-emission decision
-  # (step 4) are deliberately independent: step 3 picks the exact rational
-  # the user asked for, step 4 picks the closest float to that rational.
-  # Conflating them is the classic source of double-rounding bugs.
-  #
-  # Faster algorithms exist (Cox 2026's table-based uscale; Ryū / Schubfach
-  # for round-trip printing) but target different problems or assume
-  # fixed-width machine arithmetic that BEAM doesn't expose efficiently.
-  # At precision <= 15, the exact path is small, easy to audit, and fast
-  # enough that a more complex algorithm has not been justified by benchmarks.
+  # Keep steps 3 and 4 separate. Step 3 selects the exact decimal value.
+  # Step 4 selects the nearest float. This prevents double-rounding errors.
   defp round(num, _precision, _rounding) when is_float(num) and num == 0.0, do: num
 
   defp round(float, precision, mode) do
     <<sign::1, exp::11, mantissa::52>> = <<float::float>>
 
     cond do
-      # Subnormal — tiny but non-zero; treat per-mode (ceil(+) and floor(-) bump
-      # to 10^-precision; everything else rounds to signed zero).
-      exp == 0 ->
+      # exp <= 971 means |float| < 2^-51, so |float * 10^precision| < 0.5.
+      # Half-up gives zero. Floor and ceil also depend on the sign.
+      exp <= 971 ->
         tiny_round(sign, precision, mode)
 
-      # |float| >= 2^52 — has no fractional bits, return unchanged.
-      exp - 1075 >= 0 ->
+      # The binary denominator divides 10^precision, so decimal rounding changes nothing.
+      exp >= 1075 - precision ->
         float
 
       true ->
-        mantissa = @power_of_2_to_52 ||| mantissa
-        shift = 1075 - exp
-        do_round(sign, mantissa, shift, precision, mode)
+        significand = @power_of_2_to_52 ||| mantissa
+        scaled_shift = 1075 - precision - exp
+        product = significand * elem(@powers_of_5, precision)
+
+        # Let x = product / 2^scaled_shift.
+        # Half-up uses floor(x + 1/2) == floor((floor(2x) + 1) / 2).
+        # Floor of a negative value and ceil of a positive value increase
+        # the magnitude. Use ceil(x) == -floor(-x) for these cases.
+        rounded_int =
+          case mode do
+            :half_up ->
+              ((product >>> (scaled_shift - 1)) + 1) >>> 1
+
+            :floor when sign == 1 ->
+              -(-product >>> scaled_shift)
+
+            :ceil when sign == 0 ->
+              -(-product >>> scaled_shift)
+
+            _ ->
+              product >>> scaled_shift
+          end
+
+        decimal_scale = elem(@powers_of_10, precision)
+
+        cond do
+          rounded_int == 0 ->
+            signed_zero(sign)
+
+          rounded_int < @power_of_2_to_52 <<< 1 ->
+            # Both operands fit in 53 bits, so IEEE float division gives the
+            # nearest float. Apply the sign before BEAM allocates the float.
+            if sign == 0 do
+              rounded_int / decimal_scale
+            else
+              -(rounded_int / decimal_scale)
+            end
+
+          true ->
+            bignum_to_float(sign, rounded_int, decimal_scale, exp)
+        end
     end
   end
 
-  # |float * 10^precision| < 0.5 — integer round is 0; ceil/floor still bump per sign.
-  defp do_round(sign, _mantissa, shift, precision, mode) when shift >= 104 do
-    tiny_round(sign, precision, mode)
-  end
-
-  defp do_round(sign, mantissa, shift, precision, mode) do
-    power = power_of_10(precision)
-    product = mantissa * power
-    half = 1 <<< (shift - 1)
-    quotient = product >>> shift
-    remainder = product - (quotient <<< shift)
-    rounded_int = round_step(mode, sign, quotient, remainder, half)
-
-    cond do
-      rounded_int == 0 ->
-        signed_zero(sign)
-
-      rounded_int < @power_of_2_to_52 <<< 1 ->
-        # Both rounded_int and power fit in 53 bits, so IEEE float division
-        # is correctly rounded.
-        result = rounded_int / power
-        if sign == 1, do: -result, else: result
-
-      true ->
-        bignum_to_float(sign, rounded_int, power)
-    end
-  end
-
-  defp round_step(:half_up, _sign, quotient, remainder, half) do
-    if remainder >= half, do: quotient + 1, else: quotient
-  end
-
-  defp round_step(:floor, 0, quotient, _remainder, _half), do: quotient
-  defp round_step(:floor, 1, quotient, remainder, _half) when remainder > 0, do: quotient + 1
-  defp round_step(:floor, 1, quotient, _remainder, _half), do: quotient
-
-  defp round_step(:ceil, 0, quotient, remainder, _half) when remainder > 0, do: quotient + 1
-  defp round_step(:ceil, 0, quotient, _remainder, _half), do: quotient
-  defp round_step(:ceil, 1, quotient, _remainder, _half), do: quotient
-
+  @compile {:inline, signed_zero: 1, tiny_round: 3}
   defp signed_zero(0), do: 0.0
   defp signed_zero(1), do: -0.0
 
-  # Result of rounding a non-zero float whose |float * 10^precision| < 0.5.
-  # ceil(+) → +10^-precision, floor(-) → -10^-precision, others → signed 0.
-  defp tiny_round(0, precision, :ceil), do: 1.0 / power_of_10(precision)
-  defp tiny_round(1, precision, :floor), do: -1.0 / power_of_10(precision)
+  # Round a nonzero float with |float * 10^precision| < 0.5.
+  # Ceil of a positive value gives 10^-precision.
+  # Floor of a negative value gives -10^-precision.
+  # All other cases give zero with the input sign.
+  defp tiny_round(0, precision, :ceil), do: 1.0 / elem(@powers_of_10, precision)
+  defp tiny_round(1, precision, :floor), do: -1.0 / elem(@powers_of_10, precision)
   defp tiny_round(sign, _precision, _mode), do: signed_zero(sign)
 
-  # Slow path: emit float closest to `sign * rounded_int / power` when
-  # rounded_int >= 2^53. The binary emission step is always IEEE
-  # round-to-nearest-even, regardless of the integer-rounding mode.
-  defp bignum_to_float(sign, rounded_int, power) do
-    shift_adjust = bit_length(rounded_int) - bit_length(power) - 53
-    {numerator, denominator, exp} = align(rounded_int, power, shift_adjust)
+  # Return the nearest float to rounded_int / decimal_scale. Apply the sign.
+  # This path requires rounded_int >= 2^53.
+  # Use nearest-even for binary rounding, for all decimal rounding modes.
+  defp bignum_to_float(sign, rounded_int, decimal_scale, exp) do
+    # rounded_int >= 2^53 and decimal_scale <= 10^15, so the input magnitude
+    # is greater than 9. The limits of its binary exponent interval are
+    # integers. These limits are exact at every allowed decimal precision.
+    # Decimal rounding keeps the value inside these limits.
+    # The rounded value can equal the upper limit.
+    #
+    # Scale with the input exponent to keep two guard bits.
+    # quotient is in [2^54, 2^55], and significand is in [2^52, 2^53].
+    # At precision 1, numerator stays below 2^59 and fits in a small integer
+    # on a 64-bit BEAM.
+    numerator = rounded_int <<< (1077 - exp)
+    quotient = div(numerator, decimal_scale)
+    significand = quotient >>> 2
 
-    quotient = div(numerator, denominator)
-    remainder = numerator - quotient * denominator
-    half = denominator >>> 1
+    guard_bits = quotient &&& 3
 
-    mantissa =
+    # When the guard bits equal 2, round up if the significand is odd or
+    # the division has a remainder.
+    rounded_significand =
       cond do
-        remainder > half -> quotient + 1
-        remainder < half -> quotient
-        (quotient &&& 1) === 1 -> quotient + 1
-        true -> quotient
+        guard_bits > 2 -> significand + 1
+        guard_bits < 2 -> significand
+        (significand &&& 1) == 1 -> significand + 1
+        rem(numerator, decimal_scale) != 0 -> significand + 1
+        true -> significand
       end
 
-    # Carry-bit normalization: `mantissa` lives in [2^52, 2^53]. The upper
-    # bound `2^53` is reachable when `align/3` returns an upper-bound quotient
-    # or when rounding carries. Rebalance into the canonical [2^52, 2^53)
-    # range so the 52-bit packing below doesn't silently truncate.
-    {mantissa, exp} =
-      if mantissa == @power_of_2_to_52 <<< 1,
-        do: {@power_of_2_to_52, exp + 1},
-        else: {mantissa, exp}
-
-    <<result::float>> = <<sign::1, exp + 1023::11, mantissa - @power_of_2_to_52::52>>
+    # Both the upper limit and a rounding carry give 2^53. Its low 52 bits
+    # give a zero fraction. Its high bit increases the exponent by one.
+    biased_exp = exp + (rounded_significand >>> 53)
+    <<result::float>> = <<sign::1, biased_exp::11, rounded_significand::52>>
     result
   end
-
-  # Pick (numerator, denominator, exp) so that numerator/denominator ∈ [2^52, 2^53)
-  # and the resulting float = numerator/denominator * 2^(exp-52).
-  defp align(rounded_int, power, shift_adjust) when shift_adjust >= 0 do
-    new_power = power <<< shift_adjust
-
-    if rounded_int < new_power <<< 53,
-      do: {rounded_int, new_power, 52 + shift_adjust},
-      else: {rounded_int, new_power <<< 1, 53 + shift_adjust}
-  end
-
-  defp align(rounded_int, power, shift_adjust) do
-    shifted = rounded_int <<< -shift_adjust
-
-    cond do
-      shifted >= power <<< 53 -> {shifted, power <<< 1, 53 + shift_adjust}
-      shifted >= power <<< 52 -> {shifted, power, 52 + shift_adjust}
-      true -> {shifted <<< 1, power, 51 + shift_adjust}
-    end
-  end
-
-  defp bit_length(0), do: 0
-  defp bit_length(integer) when integer > 0, do: bit_length(integer, 0)
-  defp bit_length(integer, acc) when integer >= 1 <<< 64, do: bit_length(integer >>> 64, acc + 64)
-  defp bit_length(integer, acc) when integer >= 1 <<< 16, do: bit_length(integer >>> 16, acc + 16)
-  defp bit_length(integer, acc) when integer >= 1 <<< 4, do: bit_length(integer >>> 4, acc + 4)
-  defp bit_length(integer, acc) when integer >= 1, do: bit_length(integer >>> 1, acc + 1)
-  defp bit_length(_integer, acc), do: acc
-
-  Enum.reduce(0..15, 1, fn exponent, acc ->
-    defp power_of_10(unquote(exponent)), do: unquote(acc)
-    acc * 10
-  end)
 
   @doc """
   Returns a pair of integers whose ratio is exactly equal
@@ -589,52 +561,42 @@ defmodule Float do
   def ratio(float) when is_float(float) do
     <<sign::1, exp::11, mantissa::52>> = <<float::float>>
 
-    {num, den_exp} =
-      if exp != 0 do
-        # Floats are expressed like this:
-        # (2**52 + mantissa) * 2**(-52 + exp - 1023)
-        #
-        # We compute the root factors of the mantissa so we have this:
-        # (2**52 + mantissa * 2**count) * 2**(-52 + exp - 1023)
-        {mantissa, count} = root_factors(mantissa, 0)
-
-        # Now we can move the count around so we have this:
-        # (2**(52-count) + mantissa) * 2**(count + -52 + exp - 1023)
-        if mantissa == 0 do
-          {1, exp - 1023}
-        else
-          num = (1 <<< (52 - count)) + mantissa
-          den_exp = count - 52 + exp - 1023
-          {num, den_exp}
-        end
+    if exp != 0 do
+      if mantissa == 0 do
+        to_ratio(1, exp - 1023, sign)
       else
-        # Subnormals are expressed like this:
-        # (mantissa) * 2**(-52 + 1 - 1023)
-        #
-        # So we compute it to this:
-        # (mantissa * 2**(count)) * 2**(-52 + 1 - 1023)
-        #
-        # Which becomes:
-        # mantissa * 2**(count-1074)
-        root_factors(mantissa, -1074)
+        # Normal float magnitudes are (2^52 + mantissa) * 2^(exp - 1075).
+        reduce_to_ratio(mantissa ||| @power_of_2_to_52, exp - 1075, sign)
       end
-
-    if den_exp > 0 do
-      {sign(sign, num <<< den_exp), 1}
     else
-      {sign(sign, num), 1 <<< -den_exp}
+      # Subnormal float magnitudes are mantissa * 2^-1074.
+      reduce_to_ratio(mantissa, -1074, sign)
     end
   end
 
-  defp root_factors(mantissa, count) when mantissa != 0 and (mantissa &&& 1) == 0,
-    do: root_factors(mantissa >>> 1, count + 1)
+  # Strip trailing zero bits in chunks to reduce recursive calls.
+  defp reduce_to_ratio(significand, exp2, sign) when (significand &&& 1) == 1,
+    do: to_ratio(significand, exp2, sign)
 
-  defp root_factors(mantissa, count),
-    do: {mantissa, count}
+  defp reduce_to_ratio(significand, exp2, sign) when (significand &&& 0xFFFF) == 0,
+    do: reduce_to_ratio(significand >>> 16, exp2 + 16, sign)
 
-  @compile {:inline, sign: 2}
-  defp sign(0, num), do: num
-  defp sign(1, num), do: -num
+  defp reduce_to_ratio(significand, exp2, sign) when (significand &&& 0xF) == 0,
+    do: reduce_to_ratio(significand >>> 4, exp2 + 4, sign)
+
+  defp reduce_to_ratio(significand, exp2, sign),
+    do: reduce_to_ratio(significand >>> 1, exp2 + 1, sign)
+
+  @compile {:inline, to_ratio: 3}
+  defp to_ratio(significand, exp2, sign) do
+    significand = if sign == 1, do: -significand, else: significand
+
+    if exp2 >= 0 do
+      {significand <<< exp2, 1}
+    else
+      {significand, 1 <<< -exp2}
+    end
+  end
 
   @doc """
   Returns a charlist which corresponds to the shortest text representation

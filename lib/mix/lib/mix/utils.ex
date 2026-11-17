@@ -1015,12 +1015,41 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns the user id of the currently running process.
+  Returns a temporary directory named after `prefix` that is private
+  to the current user.
 
-  The user id is obtained by creating a temporary file and checking
-  it's UID. Note that the UID may be `nil` on non-Unix systems.
+  If `write?` is true, the directory is created if necessary and,
+  since its name is predictable, we check it is a real directory
+  owned by the current user (another user could have created it
+  upfront and planted symlinks in it) and that only the current
+  user can access it. Otherwise, only the path is returned.
   """
-  def detect_user_id!() do
+  def user_tmp_dir!(prefix, write?) do
+    uid = detect_user_id!()
+    dir = Path.join(System.tmp_dir!(), "#{prefix}_user#{uid}")
+
+    if write? do
+      File.mkdir_p!(dir)
+
+      # Windows does not report owners nor POSIX permissions
+      # (uid is always 0) and its temporary directory is per user
+      if match?({:unix, _}, :os.type()) do
+        case File.lstat!(dir) do
+          %{type: :directory, uid: ^uid, mode: mode} ->
+            if Bitwise.band(mode, 0o777) != 0o700, do: File.chmod!(dir, 0o700)
+
+          _ ->
+            Mix.raise("#{dir} must be a directory owned by the current user, please remove it")
+        end
+      end
+    end
+
+    dir
+  end
+
+  # The user id is obtained by creating a temporary file and checking
+  # its UID. Note that the UID is always 0 on Windows.
+  defp detect_user_id!() do
     case Mix.State.fetch(:user_id) do
       {:ok, uid} ->
         uid
@@ -1028,7 +1057,7 @@ defmodule Mix.Utils do
       :error ->
         dir = System.tmp_dir!()
         File.mkdir_p!(dir)
-        rand = :crypto.strong_rand_bytes(3) |> Base.url_encode64()
+        rand = :rand.bytes(6) |> Base.url_encode64()
         path = Path.join(dir, "mix_user_check_#{System.os_time()}_#{rand}")
 
         uid =
@@ -1071,17 +1100,6 @@ defmodule Mix.Utils do
   defp to_erl_term(%Regex{re_pattern: {:re_pattern, _, _, _, ref}} = regex)
        when is_reference(ref) do
     throw({:error, regex, "you must use the /E modifier to store regexes"})
-  end
-
-  defp to_erl_term(map) when is_map(map) do
-    inner =
-      Enum.map_intersperse(
-        :maps.to_list(:maps.iterator(map, :reversed)),
-        ?,,
-        fn {key, value} -> [to_erl_term(key), "=>", to_erl_term(value)] end
-      )
-
-    [?#, ?{, inner, ?}]
   end
 
   defp to_erl_term(map) when is_map(map) do

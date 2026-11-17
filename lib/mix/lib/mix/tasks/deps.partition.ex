@@ -8,7 +8,8 @@ defmodule Mix.Tasks.Deps.Partition do
   ## Server
 
   def server(deps, count, force?) do
-    {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: false])
+    {:ok, socket} =
+      :gen_tcp.listen(0, [:binary, packet: :line, active: false, ip: {127, 0, 0, 1}])
 
     try do
       server(socket, deps, count, force?)
@@ -38,15 +39,20 @@ defmodule Mix.Tasks.Deps.Partition do
 
     tmp_dir = System.tmp_dir()
 
-    {config_flag, config_value} =
+    config_args =
       with true <- is_binary(tmp_dir),
            partition_dir = Path.join(tmp_dir, "mix_deps_partition"),
            :ok <- File.mkdir_p(partition_dir),
            partition_file = Path.join(partition_dir, Base.encode32(:crypto.strong_rand_bytes(10))),
            :ok <- File.write(partition_file, config) do
-        {~c"--config-file", String.to_charlist(partition_file)}
+        [
+          ~c"--config-file",
+          String.to_charlist(partition_file),
+          ~c"--config-sha512",
+          String.to_charlist(checksum(config))
+        ]
       else
-        _ -> {~c"--config", String.to_charlist(config)}
+        _ -> [~c"--config", String.to_charlist(config)]
       end
 
     args =
@@ -59,10 +65,8 @@ defmodule Mix.Tasks.Deps.Partition do
         ~c"--port",
         Integer.to_charlist(port),
         ~c"--host",
-        ~c"127.0.0.1",
-        config_flag,
-        config_value
-      ]
+        ~c"127.0.0.1"
+      ] ++ config_args
 
     options = [
       :exit_status,
@@ -248,7 +252,8 @@ defmodule Mix.Tasks.Deps.Partition do
     force: :boolean,
     index: :string,
     config: :string,
-    config_file: :string
+    config_file: :string,
+    config_sha512: :string
   ]
 
   def client do
@@ -263,7 +268,16 @@ defmodule Mix.Tasks.Deps.Partition do
 
     payload =
       if config_file = Keyword.get(opts, :config_file) do
-        File.read!(config_file)
+        config = File.read!(config_file)
+
+        expected = checksum(config)
+        given = Keyword.fetch!(opts, :config_sha512)
+
+        if byte_size(expected) != byte_size(given) or not :crypto.hash_equals(expected, given) do
+          Mix.raise("mismatched --config-file checksum")
+        end
+
+        config
       else
         Keyword.fetch!(opts, :config)
       end
@@ -308,6 +322,10 @@ defmodule Mix.Tasks.Deps.Partition do
     after
       :gen_tcp.close(socket)
     end
+  end
+
+  defp checksum(config) do
+    Base.encode64(:crypto.hash(:sha512, config))
   end
 
   def client_loop(socket, deps, force?, config) do

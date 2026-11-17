@@ -75,9 +75,7 @@ defmodule Mix.SCM.Git do
 
     cond do
       lock_rev = get_lock_rev(lock, opts) ->
-        %{origin: origin, rev: rev} = get_rev_info(opts[:checkout])
-
-        if get_lock_repo(lock) == origin and lock_rev == rev do
+        if lock_rev == get_rev(opts[:checkout]) do
           :ok
         else
           :mismatch
@@ -294,11 +292,8 @@ defmodule Mix.SCM.Git do
   end
 
   defp get_lock(opts) do
-    %{rev: rev} = get_rev_info()
-    {:git, opts[:git], rev, get_lock_opts(opts)}
+    {:git, opts[:git], get_rev(), get_lock_opts(opts)}
   end
-
-  defp get_lock_repo({:git, repo, _, _}), do: repo
 
   defp get_lock_rev({:git, repo, lock, lock_opts}, opts) when is_binary(lock) do
     if repo == opts[:git] and lock_opts == get_lock_opts(opts) do
@@ -337,17 +332,23 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp get_rev_info(dir \\ nil) do
-    # These commands can fail and we don't want to raise.
-    origin_command = ["--git-dir=.git", "config", "remote.origin.url"]
-    rev_command = ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]
-    opts = if dir, do: cmd_opts(cd: dir), else: cmd_opts([])
-
-    with {origin, 0} <- System.cmd("git", origin_command, opts),
-         {rev, 0} <- System.cmd("git", rev_command, opts) do
-      %{origin: String.trim(origin), rev: String.trim(rev)}
+  # The lock of every Git dependency is checked on every Mix command,
+  # so we read detached HEADs, which is how Mix leaves its checkouts,
+  # directly and fall back to git otherwise.
+  defp get_rev(dir \\ nil) do
+    with {:ok, rev} <- File.read(Path.join(dir || ".", ".git/HEAD")),
+         false <- String.starts_with?(rev, "ref:") do
+      String.trim(rev)
     else
-      _ -> %{origin: nil, rev: nil}
+      _ ->
+        # This command can fail and we don't want to raise.
+        command = ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]
+        opts = if dir, do: cmd_opts(cd: dir), else: cmd_opts([])
+
+        case System.cmd("git", command, opts) do
+          {rev, 0} -> String.trim(rev)
+          _ -> nil
+        end
     end
   end
 

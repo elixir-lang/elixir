@@ -193,12 +193,15 @@ defmodule Module.Types.Pattern do
     {trees, precise?, errored?, refined_types, args_types, context} =
       of_precise_head(patterns, guards, expected, previous, tag, stack, original)
 
-    if context.failed and stack.mode != :infer and not empty_previous?(previous) do
+    if context.failed and not original.failed and stack.mode != :infer and
+         not empty_previous?(previous) do
       # If it failed, let's try to break it down to a better error message.
       # First we check if it fails without previous, if it doesn't, check if it is redundant.
+      # A failure does not mean the clause errored, as a guard with multiple `when` may
+      # still succeed in one of them, so we keep errored? unless the clause is redundant.
       case of_precise_head(patterns, guards, expected, init_previous(), tag, stack, original) do
         {other_trees, _, _, _, _, %{failed: true} = other_context} ->
-          {other_trees, false, true, args_types, previous, other_context}
+          {other_trees, false, errored?, args_types, previous, other_context}
 
         {other_trees, _, _, _, args_types, other_context} ->
           if previous_subtype?(args_types, previous) do
@@ -206,7 +209,7 @@ defmodule Module.Types.Pattern do
             context = warn(__MODULE__, warning, meta, stack, other_context)
             {other_trees, false, true, args_types, previous, context}
           else
-            {trees, false, true, args_types, previous, context}
+            {trees, false, errored?, args_types, previous, context}
           end
       end
     else
@@ -218,7 +221,8 @@ defmodule Module.Types.Pattern do
           {trees, false, true, args_types, previous,
            warn(__MODULE__, warning, meta, stack, context)}
 
-        precise? ->
+        # A clause that failed cannot match, so we don't add it to previous.
+        precise? and not context.failed ->
           {trees, true, errored?, args_types, concat_previous(args_types, previous), context}
 
         true ->
@@ -309,6 +313,9 @@ defmodule Module.Types.Pattern do
 
   @doc """
   Handles the match operator.
+
+  Returns the type of the pattern alongside the versions
+  of the variables it binds (excluding pinned ones).
   """
   def of_match(pattern, expected_fun, expr, meta, stack, context) do
     stack = %{stack | meta: meta}
@@ -328,9 +335,10 @@ defmodule Module.Types.Pattern do
          {:ok, changed, context} <-
            of_pattern_refine(types, pattern_info, tag, stack, context) do
       context = of_changed(Map.keys(changed), stack, context)
-      {of_pattern_tree(tree, stack, context), context}
+      versions = for {version, false, _node} <- pattern_info, do: version
+      {of_pattern_tree(tree, stack, context), versions, context}
     else
-      {:error, context} -> {expected, context}
+      {:error, context} -> {expected, [], context}
     end
   end
 
@@ -536,7 +544,7 @@ defmodule Module.Types.Pattern do
       # We are checking for `not x == 1` or similar, we can't say anything about x
       polarity == false -> term()
       # We are checking for `x == 1`, make sure x is integer or float
-      name in [:==, :"/="] -> numberize(type)
+      name in [:==, :"/="] -> numberize_unions_or_term(type)
       # Otherwise we have the literal type as is
       true -> type
     end
@@ -614,12 +622,14 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    Of.bitstring(args, :match, stack, context)
+    {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
+    {type, context}
   end
 
   def of_match_var({:^, _meta, [{_, meta, _}]}, expected, expr, stack, context) do
     version = Keyword.fetch!(meta, :version)
-    Of.refine_body_var(version, expected, expr, stack, context)
+    {type, _refined?, context} = Of.refine_body_var(version, expected, expr, stack, context)
+    {type, context}
   end
 
   def of_match_var(atom, _expected, _expr, _stack, context) when is_atom(atom) do
@@ -804,11 +814,27 @@ defmodule Module.Types.Pattern do
     of_open_map(args, true, [], [], path, stack, context)
   end
 
+  # <<var::bitstring>>
+  defp of_pattern({:<<>>, _meta, [{:"::", _, [var, {kind, _, _}]}] = args}, _path, stack, context)
+       when is_var(var) and kind in [:binary, :bitstring, :bytes, :bits] do
+    {_, meta, _} = var
+    version = Keyword.fetch!(meta, :version)
+    new_var? = not is_map_key(context.vars, version)
+    {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
+
+    # If the whole bitstring is bound to a new variable, the bitstring
+    # is precise and its type follows the variable refinements.
+    if new_var? do
+      {{:intersection, [type, {:var, version}]}, true, context}
+    else
+      {type, false, context}
+    end
+  end
+
   # <<...>>>
-  defp of_pattern({:<<>>, _meta, args} = node, _path, stack, context) do
-    precise? = of_precise_bitstring?(node, context.vars)
-    {type, context} = Of.bitstring(args, :match, stack, context)
-    {type, precise?, context}
+  defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
+    {type, _fail?, context} = Of.bitstring(args, :match, stack, context)
+    {type, false, context}
   end
 
   # left ++ right
@@ -824,6 +850,7 @@ defmodule Module.Types.Pattern do
   # ^var
   defp of_pattern({:^, _meta, [{_, meta, _} = var]}, reverse_path, _stack, context) do
     version = Keyword.fetch!(meta, :version)
+    context = Of.conditional_var(version, context)
 
     case Enum.reverse(reverse_path) do
       [%{root: :key} | _] ->
@@ -959,7 +986,7 @@ defmodule Module.Types.Pattern do
 
   # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
   defp of_list(prefix, suffix, path, stack, context) do
-    {suffix_type, _precise?, context} = of_pattern(suffix, [:tail | path], stack, context)
+    {suffix_type, _precise?, context} = of_subpattern(suffix, [:tail | path], stack, context)
 
     {static, dynamic, context} =
       Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
@@ -1011,20 +1038,6 @@ defmodule Module.Types.Pattern do
     {type, precise?, context} = of_pattern(arg, [{:subpattern, key} | path], stack, context)
     {type, precise?, put_in(context.subpatterns[key], of_pattern_tree(type, stack, context))}
   end
-
-  defp of_precise_bitstring?({:<<>>, _meta, [{:"::", _, [expr, {type, _, _}]}]}, vars)
-       when type in [:binary, :bitstring, :bytes, :bits] do
-    new_var?(expr, vars) or of_precise_bitstring?(expr, vars)
-  end
-
-  defp of_precise_bitstring?(_expr, _vars), do: false
-
-  defp new_var?({_, meta, _} = var, vars) when is_var(var) do
-    version = Keyword.fetch!(meta, :version)
-    not is_map_key(vars, version)
-  end
-
-  defp new_var?(_expr, _vars), do: false
 
   ## Guards
   #
@@ -1082,12 +1095,13 @@ defmodule Module.Types.Pattern do
 
     {vars_conds, {precise?, errored?, context}} =
       Enum.map_reduce(guards, {true, true, context}, fn guard, {precise?, errored?, context} ->
-        {type, context} = of_guard(guard, stack, %{context | vars: vars, conditional_vars: %{}})
+        context = %{context | vars: vars, conditional_vars: {vars, %{}}}
+        {type, context} = of_guard(guard, stack, context)
 
         {guard_precise?, guard_errored?, context} =
           maybe_badguard(type, guard, tag, stack, context)
 
-        %{vars: vars, conditional_vars: cond_vars} = context
+        %{vars: vars, conditional_vars: {_, cond_vars}} = context
         {{vars, cond_vars}, {guard_precise? and precise?, guard_errored? and errored?, context}}
       end)
 
@@ -1181,7 +1195,11 @@ defmodule Module.Types.Pattern do
 
   # <<>>
   def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
-    Of.bitstring(args, :guard, stack, context)
+    {type, fail?, context} = Of.bitstring(args, :guard, stack, context)
+
+    # Building binaries may fail depending on the values
+    context = if fail?, do: guard_may_fail(stack, context), else: context
+    {type, context}
   end
 
   # ^var
@@ -1237,14 +1255,16 @@ defmodule Module.Types.Pattern do
             do: Of.track_var(version, [parent_version], [], context),
             else: context
 
-        Of.refine_body_var(version, expected, expr, stack, context)
+        {type, _refined?, context} = Of.refine_body_var(version, expected, expr, stack, context)
+        {type, context}
 
       list when is_list(list) ->
         node = path_node(expected, var, expr, [])
+        context = Of.conditional_var(version, context)
         {Of.var(var, context), %{context | pattern_info: [{version, false, node} | list]}}
 
       nil ->
-        {Of.var(var, context), context}
+        {Of.var(var, context), Of.conditional_var(version, context)}
     end
   end
 
@@ -1332,8 +1352,12 @@ defmodule Module.Types.Pattern do
       right == [] ->
         of_guard(left, expected, left, stack, context)
 
+      # We are checking if an outer operand fails, see guard_fail_operand/3
+      stack.reverse_arrow == :throw_none ->
+        {boolean(), of_logical_fail([left | right], fun, stack, context)}
+
       true ->
-        cond_context = %{context | conditional_vars: %{}}
+        cond_context = %{context | conditional_vars: {context.vars, %{}}}
         stack = %{stack | reverse_arrow: :include_none}
 
         # Compute the sure types, which are stored directly in the context
@@ -1352,14 +1376,20 @@ defmodule Module.Types.Pattern do
               context
           end
 
-        {type, vars_conds} =
-          of_logical_cond([left | right], none(), [], expected, stack, cond_context)
+        # The sure types already discard the values in which the leftmost
+        # operand fails, as those never reach the other operands, so we
+        # check if the leftmost operand fails considering the sure types.
+        left_context = %{context | conditional_vars: {context.vars, %{}}}
+        operands = [{left, left_context} | Enum.map(right, &{&1, cond_context})]
+
+        {type, vars_conds, precise?} =
+          of_logical_cond(operands, none(), [], true, expected, stack)
 
         # We will be precise if all branches changed the same variable
         context =
           update_in(context.pattern_info.vars, fn
             false -> false
-            vars -> Of.all_same_conditional_vars?(vars_conds) and vars
+            vars -> precise? and vars
           end)
 
         {type, Of.reduce_conditional_vars(vars_conds, call, stack, context)}
@@ -1423,7 +1453,10 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_remote(fun, args, call, expected, stack, context) do
-    Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
+    {type, context} =
+      Apply.remote(:erlang, fun, args, expected, call, stack, context, &of_guard/5)
+
+    {type, guard_fail(fun, args, type, stack, context)}
   end
 
   defp unpack_op({{:., _, [_mod, fun]}, _, [left, right]}, fun, acc) do
@@ -1482,16 +1515,149 @@ defmodule Module.Types.Pattern do
     of_logical_all(tail, disjoint?, expected, to_abort, stack, context)
   end
 
-  defp of_logical_cond([head | tail], acc_type, acc_vars, expected, stack, context) do
-    {type, %{vars: vars, conditional_vars: cond_vars}} =
+  # Returns the union of the operands types, their variables, and if
+  # the result is precise. We are precise if all operands changed the
+  # same variables and no operand but the last may fail, as operands
+  # after it would not run for some values. Once we know we are not
+  # precise, we no longer check if the operands may fail.
+  defp of_logical_cond([{head, context} | tail], acc_type, acc_vars, precise?, expected, stack) do
+    precise? = precise? and (tail == [] or not guard_fail_operand(head, stack, context))
+
+    {type, %{vars: vars, conditional_vars: {_, cond_vars}} = context} =
       of_guard(head, expected, head, stack, context)
 
+    # The operand may have marked the guard as imprecise (see guard_may_fail/2)
+    precise? =
+      precise? and context.pattern_info.vars != false and
+        case acc_vars do
+          [{_, ^cond_vars} | _] -> true
+          [] -> true
+          _ -> false
+        end
+
     acc_vars = [{vars, cond_vars} | acc_vars]
-    of_logical_cond(tail, opt_union(acc_type, type), acc_vars, expected, stack, context)
+    of_logical_cond(tail, opt_union(acc_type, type), acc_vars, precise?, expected, stack)
   end
 
-  defp of_logical_cond([], acc_type, acc_vars, _expected, _stack, _context) do
-    {acc_type, acc_vars}
+  defp of_logical_cond([], acc_type, acc_vars, precise?, _expected, _stack) do
+    {acc_type, acc_vars, precise?}
+  end
+
+  ## Guard failures
+  #
+  # Once a guard fails (raises), the whole guard fails. This means that in
+  # `a orelse b`, `b` only runs when `a` returns false, which is not the same
+  # as `a` not returning true. So when analyzing or/and conditionals, we check
+  # if each operand, except the last, may fail, as the operands after it do not
+  # run for the values it fails on.
+  #
+  # To check if an operand fails, we type it with an expected boolean and the
+  # `:throw_none` reverse arrow. An expected boolean does not prune the domain
+  # of the functions it calls, so if any variable is refined, it is because it
+  # may be outside of the domain of some function, which throws (see
+  # `Of.refine_body_var/5`). Operands which are not booleans are also refined
+  # and therefore fail. Failures that depend on values throw in `guard_fail/5`.
+  #
+  # Failures that depend on values cannot be represented by types, so they
+  # also make the whole guard imprecise, regardless of the operand they are in.
+
+  # Guard functions which accept any term
+  @term_domain [:==, :"/=", :"=:=", :"=/=", :<, :>, :"=<", :>=] ++
+                 [:is_atom, :is_binary, :is_bitstring, :is_boolean, :is_float, :is_function] ++
+                 [:is_integer, :is_list, :is_map, :is_number, :is_pid, :is_port] ++
+                 [:is_reference, :is_tuple]
+
+  defp guard_may_fail(%{reverse_arrow: :throw_none}, _context), do: throw(:guard_fail)
+
+  defp guard_may_fail(_stack, %{pattern_info: %{vars: vars}} = context) when vars != false,
+    do: put_in(context.pattern_info.vars, false)
+
+  defp guard_may_fail(_stack, context), do: context
+
+  defp guard_fail(fun, args, type, stack, context) do
+    case fail_on_value?(fun, args) do
+      true -> guard_may_fail(stack, context)
+      false -> context
+      :float -> if float_type?(type), do: guard_may_fail(stack, context), else: context
+    end
+  end
+
+  # Guard functions which may fail even when their arguments are within their
+  # domain (such as `div(x, 0)`). All others only fail outside of their domain,
+  # except `xor/2`, which we list because it does not have a signature.
+  #
+  # Arithmetic operators only fail on floats (such as on overflow or when
+  # converting large integers to floats), so they return `:float` and we
+  # check if their return type, which is a float if any argument is, may
+  # be a float.
+  #
+  # `map_get/2` only refines the map to have the key when the key is an atom
+  # (see `Apply.remote_domain/7`), otherwise it fails depending on whether
+  # the key is in the map.
+  defp fail_on_value?(:element, [index, _]), do: not (is_integer(index) and index > 0)
+  defp fail_on_value?(:is_function, [_, arity]), do: not (is_integer(arity) and arity >= 0)
+  defp fail_on_value?(:map_get, [key, _]), do: not is_atom(key)
+  defp fail_on_value?(op, [_]) when op in [:+, :-], do: false
+  defp fail_on_value?(op, [_, _]) when op in [:+, :-, :*], do: :float
+  defp fail_on_value?(op, [_, divisor]) when op in [:div, :rem], do: not nonzero?(divisor)
+  defp fail_on_value?(op, [_, shift]) when op in [:bsl, :bsr], do: not is_integer(shift)
+  defp fail_on_value?(:/, _args), do: true
+  defp fail_on_value?(:binary_part, _args), do: true
+  defp fail_on_value?(:float, _args), do: true
+  defp fail_on_value?(:xor, _args), do: true
+  defp fail_on_value?(_fun, _args), do: false
+
+  defp nonzero?(integer) when is_integer(integer), do: integer != 0
+  defp nonzero?({:-, _, [integer]}) when is_integer(integer), do: integer != 0
+  defp nonzero?(_), do: false
+
+  # If the guard is already imprecise, there is no need to check
+  defp guard_fail_operand(_operand, _stack, %{pattern_info: %{vars: false}}), do: false
+
+  # Calls on variables and literals with term domains cannot fail,
+  # such as `is_integer(x)` and `x == 1`, so we skip typing them
+  defp guard_fail_operand({{:., _, [:erlang, fun]}, _, args} = operand, stack, context) do
+    cond do
+      fail_on_value?(fun, args) == true ->
+        true
+
+      fun in @term_domain and Enum.all?(args, &(is_var(&1) or Macro.quoted_literal?(&1))) ->
+        false
+
+      true ->
+        guard_fail_typing(operand, stack, context)
+    end
+  end
+
+  defp guard_fail_operand(operand, stack, context) do
+    guard_fail_typing(operand, stack, context)
+  end
+
+  defp guard_fail_typing(operand, stack, context) do
+    # We mark the guard as imprecise, so we don't check nested operands
+    context = put_in(context.pattern_info.vars, false)
+    stack = %{stack | reverse_arrow: :throw_none}
+    of_guard(operand, boolean(), operand, stack, context)
+    false
+  catch
+    :guard_fail -> true
+  end
+
+  # Checks the operands of an or/and conditional while checking if an
+  # outer operand fails. Each operand runs only if the previous ones
+  # returned true (andalso) or false (orelse), so we refine them so.
+  defp of_logical_fail(operands, fun, stack, context) do
+    refine_stack = %{stack | reverse_arrow: :include_none}
+
+    Enum.reduce(operands, context, fn operand, context ->
+      of_guard(operand, boolean(), operand, stack, context)
+
+      case fun do
+        :andalso -> elem(of_guard(operand, @atom_true, operand, refine_stack, context), 1)
+        :orelse -> elem(of_guard(operand, @atom_false, operand, refine_stack, context), 1)
+        _ -> context
+      end
+    end)
   end
 
   ## Helpers
@@ -1521,7 +1687,7 @@ defmodule Module.Types.Pattern do
     {expr, message} =
       with {{:case, meta, expr, type}, _} <- info,
            {:case, op} <- meta[:type_check],
-           true <- op in [:||, :!, :"!!"] do
+           true <- op in [:||, :!, :"!!", :&&, :if, :unless] do
         message =
           case op do
             :|| ->
@@ -1561,6 +1727,17 @@ defmodule Module.Types.Pattern do
                   #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
 
               will always evaluate to true because its inner expression has type:
+
+                  #{to_quoted_string(type) |> indent(4)}
+              """
+
+            _ ->
+              """
+              the following conditional expression:
+
+                  #{expr_to_string(expr) |> indent(4)}
+
+              will always evaluate to:
 
                   #{to_quoted_string(type) |> indent(4)}
               """
@@ -1733,13 +1910,13 @@ defmodule Module.Types.Pattern do
   # $ typep match_pattern =
   #     {:with or :for or :match, pattern, type}
   def format_diagnostic({:badpattern, meta, index, tag, context}) do
-    {to_trace, message} = badpattern(tag, index)
+    {to_trace, message, hints} = badpattern(tag, index)
     traces = collect_traces(to_trace, context)
 
     hints =
       case Keyword.get(meta, :type_check) do
-        {:impl, _} = impl -> [impl]
-        _ -> []
+        {:impl, _} = impl -> [impl | hints]
+        _ -> hints
       end
 
     %{
@@ -1758,19 +1935,19 @@ defmodule Module.Types.Pattern do
        the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
 
            #{expr_to_string(arg) |> indent(4)}
-       """}
+       """, []}
     else
       # This can only happen in protocol implementations for now
       {arg,
        """
-       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+       the #{integer_to_ordinal(index + 1)} pattern in clause is incompatible with its expected type:
 
            #{expr_to_string(arg) |> indent(4)}
 
        because it is expected to receive type:
 
            #{to_quoted_string(type) |> indent(4)}
-       """}
+       """, [:dead_code]}
     end
   end
 
@@ -1810,12 +1987,12 @@ defmodule Module.Types.Pattern do
               """
           end
 
-        {expr, message}
+        {expr, message, []}
 
       _ ->
         {args,
          """
-         the following clause will never match:
+         the following clause is incompatible with its expected type:
 
              #{args_to_string(args) |> indent(4)} ->
 
@@ -1826,7 +2003,7 @@ defmodule Module.Types.Pattern do
          which has type:
 
              #{to_quoted_string(type) |> indent(4)}
-         """}
+         """, [:dead_code]}
     end
   end
 
@@ -1835,14 +2012,14 @@ defmodule Module.Types.Pattern do
 
     {arg,
      """
-     the following clause will never match:
+     the following clause is incompatible with its expected type:
 
          #{args_to_string(args) |> indent(4)} ->
 
      it is expected to match on type:
 
          #{to_quoted_string(type) |> indent(4)}
-     """}
+     """, [:dead_code]}
   end
 
   defp badpattern({op, args}, index) when op in [:for_reduce, :receive, :try_catch, :fn] do
@@ -1853,7 +2030,7 @@ defmodule Module.Types.Pattern do
      the following pattern will never match:
 
          #{expr_to_string(arg) |> indent(4)}
-     """}
+     """, []}
   end
 
   defp badpattern({op, pattern, type}, _index) when op in [:match, :for, :with] do
@@ -1866,7 +2043,7 @@ defmodule Module.Types.Pattern do
         """
       else
         """
-        the following pattern will never match:
+        the following pattern is incompatible with its expected type:
 
             #{expr_to_string(pattern) |> indent(4)}
 
@@ -1876,7 +2053,7 @@ defmodule Module.Types.Pattern do
         """
       end
 
-    {pattern, message}
+    {pattern, message, []}
   end
 
   defp args_to_string(args) do

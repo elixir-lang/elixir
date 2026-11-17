@@ -43,11 +43,6 @@ jobs:
 
       - name: Run ShellCheck on bin/ dir
         run: |
-          shellcheck -e SC2039,2086 bin/elixir && \
-            echo "bin/elixir is POSIX compliant"
-
-          shellcheck bin/elixirc && \
-            echo "bin/elixirc is POSIX compliant"
-
-          shellcheck bin/iex && \
-            echo "bin/iex is POSIX compliant"
+          shellcheck -e SC2039,SC2086,SC2269,SC3028 bin/elixir
+          shellcheck bin/elixirc
+          shellcheck bin/iex

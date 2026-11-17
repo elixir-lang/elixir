@@ -324,7 +324,8 @@ defmodule Mix.Tasks.Test.Coverage do
 
     if totals < get_threshold(summary_opts) do
       print_failed_threshold(totals, get_threshold(summary_opts))
-      System.at_exit(fn _ -> exit({:shutdown, 3}) end)
+      # Do not override the exit status of test failures
+      System.at_exit(fn status -> if status == 0, do: exit({:shutdown, 3}) end)
     end
 
     :ok
@@ -371,7 +372,9 @@ defmodule Mix.Tasks.Test.Coverage do
     results =
       results |> Enum.sort() |> Enum.map(fn {coverage, module} -> {coverage, inspect(module)} end)
 
-    name_max_length = results |> Enum.map(&String.length(elem(&1, 1))) |> Enum.max() |> max(10)
+    name_max_length =
+      results |> Enum.map(&String.length(elem(&1, 1))) |> Enum.max(fn -> 0 end) |> max(10)
+
     name_separator = String.duplicate("-", name_max_length)
 
     Mix.shell().info("| Percentage | #{String.pad_trailing("Module", name_max_length)} |")

@@ -1446,7 +1446,7 @@ defmodule Enum do
     )
 
     # Avoid warnings about Dict
-    dict_module = String.to_unsafe_atom("Dict")
+    dict_module = String.to_unsafe_atom("Elixir.Dict")
 
     reduce(reverse(enumerable), dict, fn entry, categories ->
       dict_module.update(categories, fun.(entry), [entry], &[entry | &1])
@@ -3039,23 +3039,20 @@ defmodule Enum do
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsss, {11, 22, 33})
       iex> Enum.shuffle([1, 2, 3])
-      [2, 1, 3]
+      [1, 3, 2]
       iex> Enum.shuffle([1, 2, 3])
-      [2, 3, 1]
+      [3, 1, 2]
 
   """
   @spec shuffle(t) :: list
-  def shuffle(enumerable) do
-    randomized =
-      reduce(enumerable, [], fn x, acc ->
-        [{:rand.uniform(), x} | acc]
-      end)
-
-    shuffle_unwrap(:lists.keysort(1, randomized))
+  def shuffle(list) when is_list(list) do
+    :elixir_utils.rand_shuffle(list)
   end
 
-  defp shuffle_unwrap([{_, h} | rest]), do: [h | shuffle_unwrap(rest)]
-  defp shuffle_unwrap([]), do: []
+  def shuffle(enumerable) do
+    # The order does not matter, so we don't reverse the list
+    :elixir_utils.rand_shuffle(reduce(enumerable, [], &[&1 | &2]))
+  end
 
   @doc """
   Returns a subset list of the given `enumerable` by `index_range`.
@@ -3803,9 +3800,9 @@ defmodule Enum do
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsss, {1, 2, 3})
       iex> Enum.take_random(1..10, 2)
-      [6, 1]
+      [7, 5]
       iex> Enum.take_random(?a..?z, 5)
-      ~c"bkzmt"
+      ~c"xyoai"
 
   """
   @spec take_random(t, non_neg_integer) :: list
@@ -3813,104 +3810,110 @@ defmodule Enum do
   def take_random(_enumerable, 0), do: []
   def take_random([], _), do: []
 
-  def take_random(enumerable, 1) do
-    enumerable
-    |> reduce({0, 0, 1.0, nil}, fn
-      elem, {idx, idx, w, _current} ->
-        {jdx, w} = take_jdx_w(idx, w, 1)
-        {idx + 1, jdx, w, elem}
+  def take_random(list, count) when is_list(list) and is_integer(count) and count > 0 do
+    take_random_list(list, -count, [], count)
+  end
 
-      _elem, {idx, jdx, w, current} ->
-        {idx + 1, jdx, w, current}
-    end)
-    |> case do
-      {0, 0, 1.0, nil} -> []
-      {_idx, _jdx, _w, current} -> [current]
+  def take_random(enumerable, count) when is_integer(count) and count > 0 do
+    case reduce(enumerable, [-count], &take_random_step(&1, &2, count)) do
+      [left | reservoir] when left < 0 -> take_random_shuffle(reservoir)
+      [_skip | data] -> take_random_shuffle(take_random_finish(data))
     end
   end
 
-  def take_random(enumerable, count) when count in 0..128 do
-    sample = Tuple.duplicate(nil, count)
+  # We implement Algorithm L. The first `count` elements fill the
+  # reservoir. Then we compute how many elements to skip before the
+  # next one replaces a random element in the reservoir.
+  #
+  # Instead of replacing elements in the reservoir as they come, which
+  # requires random access, we accumulate them alongside the position
+  # they replace and apply them in batches. Since the reservoir is not
+  # shuffled while filled, it is shuffled at the end.
+  #
+  # The accumulator is an improper list to reduce allocations while
+  # skipping. It is [-left | reservoir] while filling the reservoir
+  # and [skip | data] afterwards.
 
-    reducer = fn
-      elem, {idx, jdx, w, sample} when idx < count ->
-        rand = take_index(idx)
-        sample = sample |> put_elem(idx, elem(sample, rand)) |> put_elem(rand, elem)
+  # For lists, we keep the accumulator as two arguments, so skipping
+  # elements does not allocate.
+  defp take_random_list([], left, reservoir, _count) when left < 0,
+    do: take_random_shuffle(reservoir)
 
-        if idx == jdx do
-          {jdx, w} = take_jdx_w(idx, w, count)
-          {idx + 1, jdx, w, sample}
-        else
-          {idx + 1, jdx, w, sample}
-        end
+  defp take_random_list([], _skip, data, _count),
+    do: take_random_shuffle(take_random_finish(data))
 
-      elem, {idx, idx, w, sample} ->
-        pos = :rand.uniform(count) - 1
-        {jdx, w} = take_jdx_w(idx, w, count)
-        {idx + 1, jdx, w, put_elem(sample, pos, elem)}
+  defp take_random_list([_ | rest], skip, data, count) when skip > 0,
+    do: take_random_list(rest, skip - 1, data, count)
 
-      _elem, {idx, jdx, w, sample} ->
-        {idx + 1, jdx, w, sample}
-    end
+  defp take_random_list([elem | rest], 0, data, count) do
+    [skip | data] = take_random_accept(elem, data)
+    take_random_list(rest, skip, data, count)
+  end
 
-    {size, _, _, sample} = reduce(enumerable, {0, count - 1, 1.0, sample}, reducer)
+  defp take_random_list([elem | rest], -1, reservoir, count) do
+    [skip | data] = take_random_next(count, 1.0, [elem | reservoir], [], 0)
+    take_random_list(rest, skip, data, count)
+  end
 
-    if count < size do
-      Tuple.to_list(sample)
+  defp take_random_list([elem | rest], left, reservoir, count),
+    do: take_random_list(rest, left + 1, [elem | reservoir], count)
+
+  defp take_random_step(_elem, [skip | data], _count) when skip > 0,
+    do: [skip - 1 | data]
+
+  defp take_random_step(elem, [0 | data], _count),
+    do: take_random_accept(elem, data)
+
+  defp take_random_step(elem, [-1 | reservoir], count),
+    do: take_random_next(count, 1.0, [elem | reservoir], [], 0)
+
+  defp take_random_step(elem, [left | reservoir], _count),
+    do: [left + 1, elem | reservoir]
+
+  # With a single element, we can replace it right away
+  defp take_random_accept(elem, {1, w, _reservoir, [], 0}) do
+    take_random_next(1, w, [elem], [], 0)
+  end
+
+  defp take_random_accept(elem, {count, w, reservoir, pending, pending_count}) do
+    pending = [{:rand.uniform(count) - 1, elem} | pending]
+
+    if pending_count + 1 == count do
+      reservoir = take_random_apply(reservoir, pending)
+      take_random_next(count, w, reservoir, [], 0)
     else
-      take_tupled(sample, size, [])
+      take_random_next(count, w, reservoir, pending, pending_count + 1)
     end
   end
 
-  def take_random(enumerable, count) when is_integer(count) and count >= 0 do
-    reducer = fn
-      elem, {idx, jdx, w, sample} when idx < count ->
-        rand = take_index(idx)
-        sample = sample |> Map.put(idx, Map.get(sample, rand)) |> Map.put(rand, elem)
-
-        if idx == jdx do
-          {jdx, w} = take_jdx_w(idx, w, count)
-          {idx + 1, jdx, w, sample}
-        else
-          {idx + 1, jdx, w, sample}
-        end
-
-      elem, {idx, idx, w, sample} ->
-        pos = :rand.uniform(count) - 1
-        {jdx, w} = take_jdx_w(idx, w, count)
-        {idx + 1, jdx, w, %{sample | pos => elem}}
-
-      _elem, {idx, jdx, w, sample} ->
-        {idx + 1, jdx, w, sample}
-    end
-
-    {size, _, _, sample} = reduce(enumerable, {0, count - 1, 1.0, %{}}, reducer)
-    take_mapped(sample, Kernel.min(count, size), [])
+  defp take_random_next(count, w, reservoir, pending, pending_count) do
+    # :rand.uniform/0 returns 0.0 =< u < 1.0, so we use 1.0 - u to never compute log(0.0)
+    w = w * :math.exp(:math.log(1.0 - :rand.uniform()) / count)
+    skip = if w < 1.0, do: floor(:math.log(1.0 - :rand.uniform()) / :math.log(1 - w)), else: 0
+    [skip | {count, w, reservoir, pending, pending_count}]
   end
 
-  @compile {:inline, take_jdx_w: 3, take_index: 1}
-  defp take_jdx_w(idx, w, count) do
-    w = w * :math.exp(:math.log(:rand.uniform()) / count)
-    jdx = idx + floor(:math.log(:rand.uniform()) / :math.log(1 - w)) + 1
-    {jdx, w}
+  defp take_random_finish({_count, _w, reservoir, pending, _pending_count}) do
+    take_random_apply(reservoir, pending)
   end
 
-  defp take_index(0), do: 0
-  defp take_index(idx), do: :rand.uniform(idx + 1) - 1
+  # Pending is ordered from the most recent to the oldest and ukeysort
+  # is stable, so we keep only the most recent replacement per position.
+  defp take_random_apply(reservoir, []), do: reservoir
 
-  defp take_tupled(_sample, 0, acc), do: acc
+  defp take_random_apply(reservoir, pending),
+    do: take_random_merge(reservoir, 0, :lists.ukeysort(1, pending))
 
-  defp take_tupled(sample, position, acc) do
-    position = position - 1
-    take_tupled(sample, position, [elem(sample, position) | acc])
-  end
+  defp take_random_merge(reservoir, _pos, []), do: reservoir
 
-  defp take_mapped(_sample, 0, acc), do: acc
+  defp take_random_merge([_ | reservoir], pos, [{pos, elem} | pending]),
+    do: [elem | take_random_merge(reservoir, pos + 1, pending)]
 
-  defp take_mapped(sample, position, acc) do
-    position = position - 1
-    take_mapped(sample, position, [Map.fetch!(sample, position) | acc])
-  end
+  defp take_random_merge([elem | reservoir], pos, pending),
+    do: [elem | take_random_merge(reservoir, pos + 1, pending)]
+
+  defp take_random_shuffle([_] = list), do: list
+  defp take_random_shuffle(list), do: :elixir_utils.rand_shuffle(list)
 
   @doc """
   Takes the elements from the beginning of the `enumerable` while `fun` returns

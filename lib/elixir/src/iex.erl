@@ -53,7 +53,7 @@ shell() ->
 
   case get_remsh(Args) of
     nil ->
-      start_mfa(Args, {elixir, start_cli, []});
+      start_mfa(Args, {elixir, start_cli, []}, halt);
 
     Remote ->
       Ref = make_ref(),
@@ -67,15 +67,15 @@ shell() ->
           end
         end),
 
-      {remote, Remote, start_mfa(Args, {?MODULE, sync_remote, [Parent, Ref]})}
+      {remote, Remote, start_mfa(Args, {?MODULE, sync_remote, [Parent, Ref]}, stop_evaluator)}
   end.
 
 sync_remote(Parent, Ref) ->
   Parent ! {'begin', Ref, self()},
   receive {done, Ref} -> ok end.
 
-start_mfa(Args, MFA) ->
-  Opts = [{dot_iex, get_dot_iex(Args)}, {on_eof, halt}],
+start_mfa(Args, MFA, OnEof) ->
+  Opts = [{dot_iex, get_dot_iex(Args)}, {on_eof, OnEof}],
   {?MODULE, start, [Opts, MFA]}.
 
 get_dot_iex(["--dot-iex", H | _]) -> elixir_utils:characters_to_binary(H);

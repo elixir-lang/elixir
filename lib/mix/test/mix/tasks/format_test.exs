@@ -903,6 +903,32 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "invalidates cached configuration when dependencies .formatter.exs change", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
+      File.write!(".formatter.exs", "[import_deps: [:my_dep]]")
+      File.touch!(".formatter.exs", {{2010, 1, 1}, {0, 0, 0}})
+
+      File.mkdir_p!("deps/my_dep/")
+      File.write!("deps/my_dep/.formatter.exs", "[export: [locals_without_parens: [my_fun: 2]]]")
+
+      {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("a.ex")
+      assert formatter_opts[:locals_without_parens] == [my_fun: 2]
+
+      manifest_path = Path.join(Mix.Project.manifest_path(), "cached_dot_formatter")
+      File.touch!(manifest_path, {{2020, 1, 1}, {0, 0, 0}})
+
+      File.write!(
+        "deps/my_dep/.formatter.exs",
+        "[export: [locals_without_parens: [other_fun: 1]]]"
+      )
+
+      {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("a.ex")
+      assert formatter_opts[:locals_without_parens] == [other_fun: 1]
+    end)
+  end
+
   test "reads exported configuration from dependencies and subdirectories", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(__MODULE__.FormatWithDepsApp)

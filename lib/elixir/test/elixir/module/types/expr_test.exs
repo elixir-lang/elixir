@@ -359,7 +359,7 @@ defmodule Module.Types.ExprTest do
 
     test "capture printing" do
       assert typeerror!(123 = &{:ok, &1}) == """
-             the following pattern will never match:
+             the following pattern is incompatible with its expected type:
 
                  123 = &{:ok, &1}
 
@@ -1195,6 +1195,57 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "creating maps with keys that may be atoms or other domain keys" do
+      assert typecheck!(
+               (
+                 key = if :rand.uniform() > 0.5, do: :foo, else: 123
+                 %{key => :value}
+               )
+             )
+             |> equal?(
+               opt_union(
+                 closed_map([{domain_key(:integer), atom([:value])}]),
+                 closed_map([
+                   {domain_key(:integer), atom([:value])},
+                   foo: {atom([:value]), false}
+                 ])
+               )
+             )
+    end
+
+    test "creating maps with negated atom keys" do
+      assert typecheck!(
+               [arg1, arg2],
+               (
+                 key1 = String.to_atom(arg1)
+                 key2 = with :foo <- String.to_atom(arg2), do: :bar
+                 %{key1 => :first, key2 => :second}
+               )
+             )
+             |> equal?(
+               closed_map([
+                 {domain_key(:atom), atom([:first, :second])},
+                 foo: {atom([:first]), true}
+               ])
+             )
+
+      assert typecheck!(
+               [arg1, arg2],
+               (
+                 key1 = with :foo <- String.to_atom(arg1), do: :baz
+                 key2 = with :bar <- String.to_atom(arg2), do: :baz
+                 %{key1 => :first, key2 => :second}
+               )
+             )
+             |> equal?(
+               closed_map([
+                 {domain_key(:atom), atom([:first, :second])},
+                 foo: {atom([:second]), true},
+                 bar: {atom([:first]), true}
+               ])
+             )
+    end
+
     test "updating maps as records" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: {atom([:zero]), false}))
@@ -1337,7 +1388,7 @@ defmodule Module.Types.ExprTest do
                  x = %{foo: :bar}
                  %{x | key => :baz}
                )
-             ) == closed_map(foo: {atom([:bar, :baz]), false})
+             ) == closed_map(foo: {atom([:baz]), false})
 
       # Override based on position
       assert typecheck!(
@@ -1406,6 +1457,8 @@ defmodule Module.Types.ExprTest do
     end
 
     test "updating maps with mixed record/dictionary keys" do
+      expected = dynamic(tuple([opt_difference(open_map(), empty_map()), open_map()]))
+
       # Static keys
       assert typecheck!(
                [map],
@@ -1413,12 +1466,12 @@ defmodule Module.Types.ExprTest do
                  key = if :rand.uniform() > 0.5, do: "key", else: :key
                  {%{map | key => :value}, map}
                )
-             ) ==
-               dynamic(tuple([open_map(), open_map()]))
+             )
+             |> equal?(expected)
 
       # Dynamic keys
-      assert typecheck!([map, key], key in ["key", :key], {%{map | key => :value}, map}) ==
-               dynamic(tuple([open_map(), open_map()]))
+      assert typecheck!([map, key], key in ["key", :key], {%{map | key => :value}, map})
+             |> equal?(expected)
     end
 
     test "inferred maps" do
@@ -1726,6 +1779,10 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(min(123, 456.0)) == opt_union(integer(), float())
       # min/max uses parametric types, which will carry dynamic regardless of being a strong arrow
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(opt_union(integer(), float()))
+
+      # dynamic arguments make the result dynamic
+      assert typedyn!([x], min(x, true)) == dynamic()
+      assert typedyn!([x], max(x, true)) == dynamic()
     end
 
     test "min/max does not refine discarded arguments from the expected type" do
@@ -1759,6 +1816,22 @@ defmodule Module.Types.ExprTest do
              ) == opt_union(integer(), dynamic(opt_union(integer(), binary())))
     end
 
+    test "does not warn when numbers nested in containers coerce" do
+      # `{1} == {1.0}` is true at runtime, and `[1] < [2.0]` is not constant,
+      # even though the container types are disjoint as sets.
+      assert typecheck!([x = {123}, y = {456.0}], x == y) == boolean()
+      assert typecheck!([x = [123], y = [456.0]], x < y) == boolean()
+      assert typecheck!([x = %{a: 123}, y = %{a: 456.0}], x != y) == boolean()
+
+      # `===` does not coerce, so the nested types stay distinct
+      assert typeerror!([x = {123}, y = {456.0}], x === y) =~
+               "comparison between distinct types found"
+
+      # Neither does a nested type that has no number to coerce with
+      assert typeerror!([x = {123}, y = {"foo"}], x == y) =~
+               "comparison between distinct types found"
+    end
+
     test "warns when comparison is constant" do
       assert typeerror!([x = :foo, y = 321], min(x, y)) ==
                ~l"""
@@ -1783,7 +1856,7 @@ defmodule Module.Types.ExprTest do
                    y = 321
 
                While Elixir can compare across all types, you are comparing across types \
-               which are always disjoint, and the result is either always true or always false
+               which are always disjoint
                """
 
       assert typeerror!([x = 123, y = 456.0], x === y) ==
@@ -1809,7 +1882,7 @@ defmodule Module.Types.ExprTest do
                    y = 456.0
 
                While Elixir can compare across all types, you are comparing across types \
-               which are always disjoint, and the result is either always true or always false
+               which are always disjoint
                """
     end
 
@@ -2064,7 +2137,7 @@ defmodule Module.Types.ExprTest do
                  :baz = x
                )
              ) == ~l"""
-             the following pattern will never match:
+             the following pattern is incompatible with its expected type:
 
                  :baz = x
 
@@ -2168,7 +2241,7 @@ defmodule Module.Types.ExprTest do
                  :dev -> :ok
                  :prod -> :error
                end
-             ) == atom([:ok, :error])
+             ) == atom([:ok])
     end
 
     test "resets branches" do
@@ -2246,6 +2319,27 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                atom([:non_empty_map, :maybe_empty_map])
+    end
+
+    test "does not discard equal values when narrowing against negated types" do
+      assert typecheck!(
+               [v, q],
+               (
+                 other =
+                   case v do
+                     {a} when is_float(a) -> {:float, a}
+                     other -> other
+                   end
+
+                 w = if q, do: {1}, else: {1.5}
+
+                 case w do
+                   x when x == other -> {:matched, x}
+                   _ -> :nomatch
+                 end
+               )
+             )
+             |> to_quoted_string() == ":nomatch or {:matched, {float() or integer()}}"
     end
 
     test "consider external variables as not precise" do
@@ -2358,6 +2452,90 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(open_map())
     end
 
+    test "refines variables through their assignments" do
+      int_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), integer()]),
+            tuple([atom([:two]), opt_negation(integer())])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 if y, do: {:one, x}, else: {:two, x}
+               )
+             ) == int_type
+
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+
+                 case y do
+                   true -> {:one, x}
+                   false -> {:two, x}
+                 end
+               )
+             ) == int_type
+
+      # Patterns
+      assert typecheck!(
+               [x],
+               (
+                 {:ok, y} = {:ok, is_integer(x)}
+                 if y, do: {:one, x}, else: {:two, x}
+               )
+             ) == int_type
+
+      # Chained assignments
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+                 if z, do: {:two, x}, else: {:one, x}
+               )
+             ) == int_type
+
+      # Assignments with reverse arrows
+      assert typecheck!(
+               [x],
+               (
+                 y =
+                   case x do
+                     :foo -> true
+                     _ -> false
+                   end
+
+                 if y, do: {:one, x}, else: {:two, x}
+               )
+             ) ==
+               dynamic(
+                 opt_union(
+                   tuple([atom([:one]), atom([:foo])]),
+                   tuple([atom([:two]), opt_negation(atom([:foo]))])
+                 )
+               )
+
+      # Dead branches refine all variables upstream
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+
+                 if z do
+                   raise "bad"
+                 end
+
+                 {x, y}
+               )
+             ) == dynamic(tuple([integer(), atom([true])]))
+    end
+
     test "refine types when it is dynamic" do
       assert typecheck!(
                [x],
@@ -2440,6 +2618,76 @@ defmodule Module.Types.ExprTest do
 
                  {integer(), integer()}
              """
+    end
+
+    test "does not warn on clauses after guards which may fail" do
+      # tuple_size(y) fails on atoms, so is_atom(y) never runs for them
+      assert typecheck!(
+               [x],
+               case x do
+                 z when is_integer(z) or is_atom(z) or (is_tuple(z) and tuple_size(z) == 2) ->
+                   case z do
+                     y when is_integer(y) or tuple_size(y) == 2 or is_atom(y) -> 1
+                     _ -> 2
+                   end
+
+                 _ ->
+                   3
+               end
+             ) == integer()
+    end
+
+    test "does not warn on clauses after guards which may fail on values" do
+      # div(x, y) fails when y is zero, so the second clause is reachable
+      assert typecheck!(
+               [x, y],
+               case {x, y} do
+                 {x, y} when is_integer(div(x, y)) -> :first
+                 {x, y} when is_integer(x) and is_integer(y) -> :second
+               end
+             ) == atom([:first, :second])
+
+      assert typecheck!(
+               [x],
+               case x do
+                 x when is_atom(x) or is_integer(div(x, 0)) -> :first
+                 x when is_integer(x) -> :second
+               end
+             ) == atom([:first, :second])
+
+      # map_get(k, map) fails when the key is not in the map
+      assert typecheck!(
+               [key],
+               case key do
+                 k when is_integer(:erlang.map_get(k, %{a: 1})) -> :present
+                 _ -> :missing
+               end
+             ) == atom([:present, :missing])
+    end
+
+    test "keeps clauses with failing guards when other guards may succeed" do
+      assert {type, [_]} =
+               typediag!(
+                 [x],
+                 case x do
+                   :foo -> :a
+                   y when is_integer(y) when is_atom(y) and is_integer(y) -> :b
+                 end
+               )
+
+      assert type == atom([:a, :b])
+
+      # The second guard fails because of previous clauses
+      assert {type, [_]} =
+               typediag!(
+                 [x],
+                 case x do
+                   {:ok, y} when is_atom(y) -> :a
+                   {:ok, y} when is_integer(y) when is_atom(y) -> :b
+                 end
+               )
+
+      assert type == atom([:a, :b])
     end
 
     test "considers singleton-typed pins precise" do
@@ -2533,7 +2781,7 @@ defmodule Module.Types.ExprTest do
                  x -> x
                end
              ) == ~l"""
-             the following clause will never match:
+             the following clause is incompatible with its expected type:
 
                  :error ->
 
@@ -2544,6 +2792,8 @@ defmodule Module.Types.ExprTest do
              which has type:
 
                  binary()
+
+             hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
              """
     end
 
@@ -2559,6 +2809,44 @@ defmodule Module.Types.ExprTest do
 
       assert type == none()
     end
+
+    test "does not discard clauses when the case expression errors" do
+      {type, [_]} =
+        typediag!(
+          [x, y],
+          case is_integer(x) and x != nil do
+            false -> false
+            true -> is_integer(y)
+          end
+        )
+
+      assert type == boolean()
+
+      {type, [_]} =
+        typediag!(
+          [x, y],
+          is_integer(x) and x != nil and is_integer(y)
+        )
+
+      assert type == boolean()
+    end
+
+    test "does not discard clauses when the code before the case errors" do
+      {type, [_]} =
+        typediag!(
+          [x, y],
+          (
+            _ = Atom.to_string(x) == :error
+
+            case y do
+              :foo -> :foo
+              _ -> :bar
+            end
+          )
+        )
+
+      assert type == atom([:foo, :bar])
+    end
   end
 
   describe "conditionals" do
@@ -2567,7 +2855,23 @@ defmodule Module.Types.ExprTest do
                if true do
                  :ok
                end
-             ) == atom([:ok, nil])
+             ) == atom([:ok])
+    end
+
+    test "if on literals discards unreachable branches" do
+      assert typeerror!(
+               (
+                 args = if false, do: {0, 1}, else: %{}
+                 elem(args, 0)
+               )
+             ) =~ "incompatible types given to Kernel.elem/2"
+    end
+
+    test "boolean operators on literals keep unreachable branches" do
+      assert typecheck!(!!false) == boolean()
+      assert typecheck!(!true) == boolean()
+      assert typecheck!(false && :ok) == atom([false, :ok])
+      assert typecheck!(true || :ok) == atom([true, :ok])
     end
 
     test "refines expression type" do
@@ -2790,6 +3094,22 @@ defmodule Module.Types.ExprTest do
 
                  dynamic(false)
              """
+    end
+
+    test "if, unless, and && report violations" do
+      message = """
+      the following conditional expression:
+
+          x
+
+      will always evaluate to:
+
+          integer()
+      """
+
+      assert typeerror!([x = 123], if(x, do: :a)) =~ message
+      assert typeerror!([x = 123], unless(x, do: :a)) =~ message
+      assert typeerror!([x = 123], x && :a) =~ message
     end
 
     test "! reports violations" do
@@ -3091,13 +3411,15 @@ defmodule Module.Types.ExprTest do
                  x -> x
                end
              ) == ~l"""
-             the following clause will never match:
+             the following clause is incompatible with its expected type:
 
                  :error ->
 
              it is expected to match on type:
 
                  binary()
+
+             hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
              """
     end
 
@@ -3432,6 +3754,133 @@ defmodule Module.Types.ExprTest do
              ) == dynamic()
     end
 
+    test "refines types across or/and" do
+      int_or_bool = opt_union(integer(), boolean())
+
+      int_or_bool_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), int_or_bool]),
+            tuple([atom([:two]), opt_negation(int_or_bool)])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or is_boolean(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_or_bool_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) || is_boolean(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_or_bool_type
+
+      assert typecheck!(
+               [x],
+               if(is_integer(x) or is_boolean(x), do: {:one, x}, else: {:two, x})
+             ) == int_or_bool_type
+
+      # The falsy side of and/&& refines types
+      int_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), integer()]),
+            tuple([atom([:two]), opt_negation(integer())])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_number(x) and is_integer(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_number(x) && is_integer(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_type
+
+      # Variables are only refined if they are refined in all branches
+      assert typecheck!(
+               [x, y],
+               cond do
+                 is_integer(x) or is_boolean(y) -> {:one, x, y}
+                 true -> {:two, x, y}
+               end
+             ) ==
+               dynamic(
+                 opt_union(
+                   tuple([atom([:one]), term(), term()]),
+                   tuple([atom([:two]), opt_negation(integer()), opt_negation(boolean())])
+                 )
+               )
+
+      # Nested
+      int_bool_or_float = opt_union(int_or_bool, float())
+
+      int_bool_or_float_type =
+        dynamic(
+          opt_union(
+            tuple([atom([:one]), int_bool_or_float]),
+            tuple([atom([:two]), opt_negation(int_bool_or_float)])
+          )
+        )
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or is_boolean(x) or is_float(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_bool_or_float_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or (is_boolean(x) or is_float(x)) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_bool_or_float_type
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) || is_boolean(x) || is_float(x) -> {:one, x}
+                 true -> {:two, x}
+               end
+             ) == int_bool_or_float_type
+
+      # Multiple clauses, each refined by the falsy side of the previous ones
+      atom_or_float = opt_union(atom(), float())
+
+      assert typecheck!(
+               [x],
+               cond do
+                 is_integer(x) or is_boolean(x) -> {:one, x}
+                 is_atom(x) or is_float(x) -> {:two, x}
+                 true -> {:three, x}
+               end
+             ) ==
+               dynamic(
+                 tuple([atom([:one]), int_or_bool])
+                 |> opt_union(tuple([atom([:two]), opt_difference(atom_or_float, int_or_bool)]))
+                 |> opt_union(
+                   tuple([atom([:three]), opt_negation(opt_union(int_or_bool, atom_or_float))])
+                 )
+               )
+    end
+
     test "resets branches" do
       assert typecheck!(
                [x],
@@ -3491,6 +3940,194 @@ defmodule Module.Types.ExprTest do
                    float?
                end
              ) == opt_union(boolean(), atom([:binary, :atom]))
+    end
+
+    test "refines variables used by case nested in cond" do
+      assert typecheck!(
+               [x, y],
+               cond do
+                 (case y do
+                    :a -> is_integer(x)
+                    _ -> false
+                  end) ->
+                   {:one, x}
+
+                 true ->
+                   {:two, x}
+               end
+             ) ==
+               dynamic(opt_union(tuple([atom([:one]), integer()]), tuple([atom([:two]), term()])))
+    end
+
+    test "refines variables used by the body of nested clauses" do
+      # Either x has the key :a or it does not have the key :limit
+      type =
+        open_map(a: {term(), false})
+        |> opt_union(opt_negation(open_map(limit: {term(), false})))
+        |> opt_difference(atom([nil]))
+        |> dynamic()
+        |> opt_union(atom([nil]))
+
+      assert typecheck!(
+               [x],
+               if(
+                 case x do
+                   %{limit: l} -> is_map_key(x, :a) and l > 0
+                   other -> is_list(other)
+                 end,
+                 do: x,
+                 else: nil
+               )
+             )
+             |> equal?(type)
+    end
+
+    test "refines variables used by the patterns of nested clauses" do
+      # Either x has the key :a or it does not have the key :limit
+      type =
+        open_map(a: {term(), false})
+        |> opt_union(opt_negation(open_map(limit: {term(), false})))
+        |> opt_difference(atom([nil]))
+        |> dynamic()
+        |> opt_union(atom([nil]))
+
+      assert typecheck!(
+               [x],
+               if(
+                 case x do
+                   %{limit: l} ->
+                     is_map_key(x, :a) and
+                       case 1 do
+                         ^l -> true
+                         _ -> false
+                       end
+
+                   other ->
+                     is_list(other)
+                 end,
+                 do: x,
+                 else: nil
+               )
+             )
+             |> equal?(type)
+
+      assert typecheck!(
+               [x],
+               if(
+                 case x do
+                   %{limit: l} ->
+                     is_map_key(x, :a) and
+                       case "" do
+                         <<_::size(^l)>> -> true
+                         _ -> false
+                       end
+
+                   other ->
+                     is_list(other)
+                 end,
+                 do: x,
+                 else: nil
+               )
+             )
+             |> equal?(type)
+    end
+
+    test "refines variables used by the branches of nested conditionals" do
+      # Either x has the key :a or it does not have the key :limit
+      type =
+        open_map(a: {term(), false})
+        |> opt_union(opt_negation(open_map(limit: {term(), false})))
+        |> opt_difference(atom([nil]))
+        |> dynamic()
+        |> opt_union(atom([nil]))
+
+      assert typecheck!(
+               [x, y],
+               (
+                 mod = if y, do: Integer, else: Float
+
+                 if(
+                   case x do
+                     %{limit: l} -> is_map_key(x, :a) and mod.to_string(l) == ""
+                     other -> is_list(other)
+                   end,
+                   do: x,
+                   else: nil
+                 )
+               )
+             )
+             |> equal?(type)
+    end
+
+    test "refines variables through their assignments" do
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+
+                 cond do
+                   y -> {:one, x}
+                   true -> {:two, x}
+                 end
+               )
+             ) ==
+               dynamic(
+                 opt_union(
+                   tuple([atom([:one]), integer()]),
+                   tuple([atom([:two]), opt_negation(integer())])
+                 )
+               )
+
+      # The falsy side refines the remaining clauses
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = is_atom(x)
+
+                 cond do
+                   y -> {:one, x}
+                   z -> {:two, x}
+                   true -> {:three, x}
+                 end
+               )
+             ) ==
+               dynamic(
+                 tuple([atom([:one]), integer()])
+                 |> opt_union(tuple([atom([:two]), atom()]))
+                 |> opt_union(tuple([atom([:three]), opt_negation(opt_union(integer(), atom()))]))
+               )
+
+      # Dead branches refine all variables upstream
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+
+                 cond do
+                   z -> raise "bad"
+                   true -> :ok
+                 end
+
+                 {x, y}
+               )
+             ) == dynamic(tuple([integer(), atom([true])]))
+
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 z = not y
+
+                 cond do
+                   z -> :ok
+                   true -> raise "bad"
+                 end
+
+                 {x, y}
+               )
+             ) == dynamic(tuple([opt_negation(integer()), atom([false])]))
     end
   end
 
@@ -3576,6 +4213,22 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
     end
 
+    test ":into bitstrings" do
+      assert typecheck!([items], for(_ <- items, into: <<0::4>>, do: <<1::4>>)) == bitstring()
+
+      assert typecheck!(
+               [items],
+               (
+                 bits = for _ <- items, into: <<0::4>>, do: <<1::4>>
+
+                 case bits do
+                   x when is_binary(x) -> :binary
+                   _ -> :bits
+                 end
+               )
+             ) == atom([:binary, :bits])
+    end
+
     test ":into unions" do
       assert typecheck!(
                [binary],
@@ -3595,22 +4248,18 @@ defmodule Module.Types.ExprTest do
                dynamic(
                  opt_union(opt_union(bitstring(), empty_list()), list(bitstring_no_binary()))
                )
-    end
-
-    test ":into bitstrings" do
-      assert typecheck!([items], for(_ <- items, into: <<0::4>>, do: <<1::4>>)) == bitstring()
 
       assert typecheck!(
-               [items],
+               [value],
                (
-                 bits = for _ <- items, into: <<0::4>>, do: <<1::4>>
-
-                 case bits do
-                   x when is_binary(x) -> :binary
-                   _ -> :bits
-                 end
+                 into = if :rand.uniform() > 0.5, do: [], else: ""
+                 for(_ <- [1], do: value, into: into)
                )
-             ) == atom([:binary, :bits])
+             ) ==
+               opt_union(
+                 dynamic(opt_union(bitstring_no_binary(), non_empty_list(term()))),
+                 opt_union(binary(), empty_list())
+               )
     end
 
     test ":into inference" do
@@ -3647,10 +4296,109 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE
                  <<x>>
              """
+
+      # In static mode the body must be a bitstring whenever the target may be a binary
+      assert typeerror!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 value
+
+             but got type:
+
+                 :ok or binary()
+             """
+
+      assert typeerror!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 :ok
+
+             but got type:
+
+                 :ok
+             """
+
+      assert typeerror!(
+               [flag],
+               (
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: "")
+               )
+             ) =~ ~l"""
+             expected the body of a for-comprehension with into: binary() (or bitstring()) to be a binary (or bitstring):
+
+                 value
+
+             but got type:
+
+                 :ok or binary()
+             """
+    end
+
+    test ":into dynamic" do
+      # In dynamic mode the list path may succeed, so the body is not restricted
+      # to bitstrings and the list result keeps the full element type
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 value = if flag, do: :ok, else: "ok"
+                 for(_ <- [1], do: value, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(opt_union(atom([:ok]), binary()))))
+
+      assert typedyn!(
+               [flag],
+               (
+                 into = if flag, do: [], else: ""
+                 for(_ <- [1], do: :ok, into: into)
+               )
+             ) == dynamic(opt_union(binary(), list(atom([:ok]))))
     end
 
     test ":into with non-returning collectable" do
       assert typecheck!([list], for(x <- list, into: raise("oops"), do: x)) == none()
+    end
+
+    test "variables defined in options are available in generators" do
+      assert typecheck!(
+               [list],
+               for(
+                 x <- items,
+                 into:
+                   (
+                     items = list
+                     []
+                   ),
+                 do: x
+               )
+             ) == opt_union(list(dynamic()), empty_list())
+
+      assert typecheck!(
+               [list],
+               for(
+                 x <- items,
+                 reduce:
+                   (
+                     items = list
+                     :ok
+                   ),
+                 do: (_ -> x)
+               )
+             ) == opt_union(dynamic(), atom([:ok]))
     end
 
     test ":reduce checks" do
@@ -3740,7 +4488,7 @@ defmodule Module.Types.ExprTest do
                  x
                end
              ) =~ """
-             the following pattern will never match:
+             the following pattern is incompatible with its expected type:
 
                  :ok <- System.get_env(x)
 
@@ -3759,13 +4507,15 @@ defmodule Module.Types.ExprTest do
                  :ok -> :ok
                end
              ) == ~l"""
-             the following clause will never match:
+             the following clause is incompatible with its expected type:
 
                  :ok ->
 
              it is expected to match on type:
 
                  dynamic(nil)
+
+             hint: this clause is either unreachable or only reachable on code paths that will fail, so it can likely be removed
              """
     end
 
@@ -3788,6 +4538,25 @@ defmodule Module.Types.ExprTest do
 
                  binary()
              """
+    end
+
+    test "refines variables through their assignments" do
+      assert typecheck!(
+               [x],
+               (
+                 y = is_integer(x)
+                 with true <- y, do: x
+               )
+             ) == opt_union(dynamic(integer()), atom([false]))
+
+      # Following clauses are refined too
+      assert typecheck!(
+               [x],
+               (
+                 y = if is_integer(x), do: {:ok, x}, else: :error
+                 with {:ok, _} <- y, true <- true, do: x
+               )
+             ) == opt_union(dynamic(integer()), atom([:error]))
     end
   end
 

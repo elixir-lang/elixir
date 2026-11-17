@@ -91,6 +91,12 @@ defmodule Mix.RebarTest do
       assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :main}}) ==
                {:git_rebar, override: true, git: @git_rebar_string, ref: "main"}
 
+      assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, ~c""}}) ==
+               {:git_rebar, override: true, git: @git_rebar_string, branch: "HEAD"}
+
+      assert parse_dep({:git_rebar, {:git_subdir, @git_rebar_charlist, :main, ~c"sub"}}) ==
+               {:git_rebar, override: true, git: @git_rebar_string, ref: "main", sparse: "sub"}
+
       assert {:git_rebar, regex, override: true, git: @git_rebar_string, compile: false} =
                parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]})
 

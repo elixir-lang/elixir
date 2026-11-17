@@ -171,6 +171,16 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "foo not in bar"
       assert_same "(not foo) in bar"
       assert_same "(!foo) in bar"
+      assert_same "!foo not in bar"
+
+      assert_format "!!foo in bar", "!((!foo) in bar)"
+      assert_format "!not foo in bar", "!((not foo) in bar)"
+    end
+
+    test "not in chains" do
+      assert_format "a not in b in c", "(not (a in b)) in c"
+      assert_format "a in b not in c in d", "(not (a in b in c)) in d"
+      assert_format "a not in b not in c in d", "(not ((not (a in b)) in c)) in d"
     end
 
     test "bitwise precedence" do

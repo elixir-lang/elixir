@@ -80,6 +80,7 @@
   identifier_tokenizer=elixir_tokenizer,
   ascii_identifiers_only=true,
   indentation=0,
+  max_integer_bytes=system_limit,
   column=1,
   mismatch_hints=[],
   warnings=[]

@@ -30,6 +30,33 @@ defmodule TaskTest do
     end
   end
 
+  # Creates a task whose process has terminated but whose :DOWN
+  # message is still in flight, by monitoring another process
+  # which only exits once the caller is blocked on a receive
+  defp create_task_with_pending_down(reason) do
+    caller = self()
+    {pid, ref} = spawn_monitor(Kernel, :exit, [reason])
+    receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+
+    monitored = spawn(fn -> exit_once_waiting(caller, reason) end)
+    ref = :erlang.monitor(:process, monitored, alias: :demonitor)
+    %Task{ref: ref, pid: pid, owner: caller, mfa: {__MODULE__, :create_task_with_pending_down, 1}}
+  end
+
+  defp exit_once_waiting(pid, reason) do
+    case Process.info(pid, :status) do
+      {:status, :waiting} ->
+        exit(reason)
+
+      {:status, _} ->
+        Process.sleep(1)
+        exit_once_waiting(pid, reason)
+
+      nil ->
+        :ok
+    end
+  end
+
   def sleep(number) do
     Process.sleep(number)
     number
@@ -781,6 +808,12 @@ defmodule TaskTest do
       task = create_dummy_task(:noproc)
       assert Task.shutdown(task) == {:exit, :noproc}
     end
+
+    test "returns {:exit, reason} if task terminated and :DOWN is in flight" do
+      task = create_task_with_pending_down(:abnormal)
+      assert Task.shutdown(task) == {:exit, :abnormal}
+      refute_received _
+    end
   end
 
   describe "shutdown/2 with :brutal_kill" do
@@ -857,6 +890,12 @@ defmodule TaskTest do
     test "returns {:exit, :noproc} if task handled" do
       task = create_dummy_task(:noproc)
       assert Task.shutdown(task, :brutal_kill) == {:exit, :noproc}
+    end
+
+    test "returns {:exit, reason} if task terminated and :DOWN is in flight" do
+      task = create_task_with_pending_down(:abnormal)
+      assert Task.shutdown(task, :brutal_kill) == {:exit, :abnormal}
+      refute_received _
     end
   end
 

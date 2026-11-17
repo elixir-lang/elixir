@@ -333,6 +333,7 @@ defmodule JSON do
           {:unexpected_end, non_neg_integer()}
           | {:invalid_byte, non_neg_integer(), byte()}
           | {:unexpected_sequence, non_neg_integer(), binary()}
+          | {:integer_too_large, pos_integer()}
 
   @typedoc """
   Decoders for customizing JSON decoding behavior.
@@ -367,6 +368,8 @@ defmodule JSON do
     * `{:unexpected_end, offset}` if `binary` contains incomplete JSON value
     * `{:invalid_byte, offset, byte}` if `binary` contains unexpected byte or invalid UTF-8 byte
     * `{:unexpected_sequence, offset, bytes}` if `binary` contains invalid UTF-8 escape
+    * `{:integer_too_large, digits}` if `binary` contains an integer with more than
+      310 digits (enough to cover all 64-bit floats)
   """
   @spec decode(binary()) :: {:ok, term()} | {:error, decode_error_reason()}
   def decode(binary) when is_binary(binary) do
@@ -378,6 +381,8 @@ defmodule JSON do
       end
     end
   end
+
+  @max_integer_digits 310
 
   @doc ~S"""
   Decodes the given JSON with the given decoders.
@@ -397,7 +402,9 @@ defmodule JSON do
     * for `object_push`: `fn key, value, acc -> [{key, value} | acc] end`
     * for `object_finish`: `fn acc, old_acc -> {Map.new(acc), old_acc} end`
     * for `float`: `&String.to_float/1`
-    * for `integer`: `&String.to_integer/1`
+    * for `integer`: `&String.to_integer/1`, except integers with more than
+      310 digits (enough to cover all 64-bit floats) are rejected with
+      `{:integer_too_large, digits}`
     * for `string`: `&Function.identity/1`
     * for `null`: the atom `nil`
 
@@ -406,7 +413,10 @@ defmodule JSON do
   @spec decode(binary(), term(), decoders()) ::
           {term(), term(), binary()} | {:error, decode_error_reason()}
   def decode(binary, acc, decoders) when is_binary(binary) and is_list(decoders) do
-    decoders = Keyword.put_new(decoders, :null, nil)
+    decoders =
+      decoders
+      |> Keyword.put_new(:null, nil)
+      |> Keyword.put_new(:integer, &decode_integer/1)
 
     try do
       :json.decode(binary, acc, Map.new(decoders))
@@ -419,8 +429,24 @@ defmodule JSON do
 
       :error, {:unexpected_sequence, bytes} ->
         {:error, {:unexpected_sequence, offset(__STACKTRACE__), bytes}}
+
+      :throw, {__MODULE__, :integer_too_large, digits} ->
+        {:error, {:integer_too_large, digits}}
     end
   end
+
+  defp decode_integer(binary) when byte_size(binary) <= @max_integer_digits,
+    do: :erlang.binary_to_integer(binary)
+
+  defp decode_integer(<<?-, digits::binary>> = binary)
+       when byte_size(digits) <= @max_integer_digits,
+       do: :erlang.binary_to_integer(binary)
+
+  defp decode_integer(<<?-, digits::binary>>),
+    do: throw({__MODULE__, :integer_too_large, byte_size(digits)})
+
+  defp decode_integer(digits),
+    do: throw({__MODULE__, :integer_too_large, byte_size(digits)})
 
   defp offset(stacktrace) do
     with [{_, _, _, opts} | _] <- stacktrace,
@@ -464,6 +490,12 @@ defmodule JSON do
           message: "unexpected sequence #{inspect(bytes)} at position (byte offset) #{offset}",
           data: binary,
           offset: offset
+
+      {:error, {:integer_too_large, digits}} ->
+        raise JSON.DecodeError,
+          message:
+            "integer with #{digits} digits exceeds the limit of #{@max_integer_digits} digits",
+          data: binary
     end
   end
 

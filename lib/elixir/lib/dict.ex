@@ -407,7 +407,7 @@ defmodule Dict do
   @deprecated message
   @spec empty(t) :: t
   def empty(dict) do
-    target(dict).empty(dict)
+    target(dict).new()
   end
 
   @deprecated message

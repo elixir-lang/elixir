@@ -83,6 +83,21 @@ defmodule Kernel.QuoteTest do
               end)
   end
 
+  test "quote options with assignment" do
+    line = 10
+    assert quote(line: line = line + 1, do: foo()) == {:foo, [line: 11], []}
+    assert line == 11
+
+    {result, _} =
+      Code.eval_string("""
+      line = 10
+      quoted = quote(line: line = line + 1, do: foo())
+      {quoted, line}
+      """)
+
+    assert result == {{:foo, [line: 11], []}, 11}
+  end
+
   test "operator precedence" do
     assert {:+, _, [{:+, _, [1, _]}, 1]} = quote(do: 1 + Foo.l() + 1)
     assert {:+, _, [1, {_, _, [{:+, _, [1]}]}]} = quote(do: 1 + Foo.l(+1))
@@ -787,7 +802,24 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
     assert :elixir_quote.has_unquotes(ast)
   end
 
-  test "expression within quote disabling unquotes always returns false" do
+  test "unquotes in quote options are evaluated at the current level" do
+    unquote = {:unquote, [], [{:value, [], nil}]}
+    unquote_splicing = {:unquote_splicing, [], [{:values, [], nil}]}
+
+    for opts <- [
+          [bind_quoted: [x: unquote]],
+          [unquote: false, line: unquote],
+          [line: unquote],
+          [bind_quoted: unquote_splicing]
+        ],
+        args <- [[opts ++ [do: :ok]], [opts, [do: :ok]]] do
+      ast = {:quote, [], args}
+      assert :elixir_quote.has_unquotes(ast)
+      refute :elixir_quote.has_unquotes({:quote, [], [[do: ast]]})
+    end
+  end
+
+  test "body within quote disabling unquotes returns false" do
     ast =
       quote unquote: false do
         quote unquote: false do
@@ -805,6 +837,12 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
       end
 
     refute :elixir_quote.has_unquotes(ast)
+
+    for opts <- [[unquote: false], [bind_quoted: [x: 42]]],
+        body = {:unquote, [], [{:unquote, [], [{:value, [], nil}]}]},
+        args <- [[opts ++ [do: body]], [opts, [do: body]]] do
+      refute :elixir_quote.has_unquotes({:quote, [], args})
+    end
   end
 
   test "unquote with invalid AST (shallow check)" do

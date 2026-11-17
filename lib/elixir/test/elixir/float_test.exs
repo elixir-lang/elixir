@@ -139,7 +139,7 @@ defmodule FloatTest do
     end
 
     test "with very large floats hits the bignum slow path" do
-      # n = round(|f| * 10^p) >= 2^53 — exercises bignum_to_float / align.
+      # n = round(|f| * 10^p) >= 2^53 — exercises bignum_to_float.
       # The slow path must round-trip representable floats back to themselves.
       assert Float.floor(2_661_101_816_343_531.5, 1) === 2_661_101_816_343_531.5
       assert Float.floor(3.0e15, 1) === 3.0e15
@@ -233,6 +233,9 @@ defmodule FloatTest do
       assert Float.ceil(1.234e15, 3) === 1.234e15
       assert Float.ceil(1.234567e11, 5) === 1.234567e11
       assert Float.ceil(-1.234567e11, 5) === -1.234567e11
+
+      # Halfway guard bits with a nonzero remainder must round up.
+      assert Float.ceil(1.0e14 + 0.03125, 2) === 1.0e14 + 0.046875
     end
   end
 
@@ -311,6 +314,10 @@ defmodule FloatTest do
       assert Float.round(-5.5675, 3) === -5.567
       assert Float.round(12.5, 0) === 13.0
       assert Float.round(-12.5, 0) === -13.0
+
+      # Exact ties at positive precision exercise the scaled rounding path.
+      assert Float.round(0.25, 1) === 0.3
+      assert Float.round(-0.25, 1) === -0.3
     end
   end
 
@@ -334,9 +341,13 @@ defmodule FloatTest do
       assert Float.ratio(3.14) == {7_070_651_414_971_679, 2_251_799_813_685_248}
       assert Float.ratio(-3.14) == {-7_070_651_414_971_679, 2_251_799_813_685_248}
       assert Float.ratio(1.5) == {3, 2}
+      assert Float.ratio(1.0009765625) == {1025, 1024}
     end
 
     test "with subnormal floats" do
+      <<negative::float>> = <<0x8000000000100000::64>>
+      assert Float.ratio(negative) == {-1, Integer.pow(2, 1054)}
+
       assert Float.ratio(5.0e-324) ==
                {1,
                 202_402_253_307_310_618_352_495_346_718_917_307_049_556_649_764_142_118_356_901_358_027_430_339_567_995_346_891_960_383_701_437_124_495_187_077_864_316_811_911_389_808_737_385_793_476_867_013_399_940_738_509_921_517_424_276_566_361_364_466_907_742_093_216_341_239_767_678_472_745_068_562_007_483_424_692_698_618_103_355_649_159_556_340_810_056_512_358_769_552_333_414_615_230_502_532_186_327_508_646_006_263_307_707_741_093_494_784}

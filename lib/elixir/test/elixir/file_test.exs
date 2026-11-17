@@ -490,9 +490,9 @@ defmodule FileTest do
       end
     end
 
-    test "cp_r raises on path with null byte" do
-      assert_raise ArgumentError, ~r/null byte/, fn -> File.cp_r("source", "foo\0bar") end
-      assert_raise ArgumentError, ~r/null byte/, fn -> File.cp_r("foo\0bar", "dest") end
+    test "cp_r with path with null byte" do
+      assert File.cp_r("source", "foo\0bar") == {:error, :badarg, "foo\0bar"}
+      assert File.cp_r("foo\0bar", "dest") == {:error, :badarg, "foo\0bar"}
     end
 
     test "cp_r with src file and dest file" do
@@ -1296,7 +1296,7 @@ defmodule FileTest do
     test "mkdir_p with invalid path" do
       assert File.exists?(fixture_path("file.txt"))
       invalid = Path.join(fixture_path("file.txt"), "test/foo")
-      assert io_error?(File.mkdir(invalid))
+      assert io_error?(File.mkdir_p(invalid))
       refute File.exists?(invalid)
     end
 
@@ -1338,8 +1338,13 @@ defmodule FileTest do
         child = Path.join(fixture, "child")
         refute File.exists?(child)
 
-        assert File.mkdir_p(child) == {:error, :eacces}
-        refute File.exists?(child)
+        # Permissions are not enforced when running as root (such as in Docker)
+        if File.ls(fixture) == {:error, :eacces} do
+          assert File.mkdir_p(child) == {:error, :eacces}
+          refute File.exists?(child)
+        else
+          assert File.mkdir_p(child) == :ok
+        end
 
         assert File.chmod!(fixture, orig_mode) == :ok
       after
@@ -1465,8 +1470,8 @@ defmodule FileTest do
       refute File.exists?(fixture)
     end
 
-    test "rm_rf raises on path with null byte" do
-      assert_raise ArgumentError, ~r/null byte/, fn -> File.rm_rf("foo\0bar") end
+    test "rm_rf with path with null byte" do
+      assert File.rm_rf("foo\0bar") == {:error, :badarg, "foo\0bar"}
     end
 
     test "rm_rf with symlink" do
@@ -1590,6 +1595,12 @@ defmodule FileTest do
       after
         File.close(io)
       end
+    end
+
+    test "stat with closed io_device" do
+      {:ok, io} = File.open(__ENV__.file, [:read])
+      assert :ok = File.close(io)
+      assert {:error, :terminated} = File.stat(io)
     end
 
     test "stat! with io_device" do

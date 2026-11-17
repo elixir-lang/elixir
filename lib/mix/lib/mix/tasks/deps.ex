@@ -79,8 +79,8 @@ defmodule Mix.Tasks.Deps do
       other project that depends on the current project won't be forced to
       use the optional dependency. However, if the other project includes
       the optional dependency on its own, the requirements and options
-      specified here will also be applied. Optional dependencies will _not_
-      be started by the application. You should consider compiling your
+      specified here will also be applied. Optional runtime dependencies are
+      started when available. You should consider compiling your
       projects with the `mix compile --no-optional-deps --warnings-as-errors`
       during test, to ensure your project compiles without warnings even
       if optional dependencies are missing

@@ -57,8 +57,8 @@ defmodule PathTest do
     File.rm_rf(Path.join(config.tmp_dir, "wildcard"))
   end
 
-  test "wildcard/2 raises on null byte" do
-    assert_raise ArgumentError, ~r/null byte/, fn -> Path.wildcard("foo\0bar") end
+  test "wildcard/2 with null byte" do
+    assert Path.wildcard("foo\0bar") == []
   end
 
   describe "Windows" do

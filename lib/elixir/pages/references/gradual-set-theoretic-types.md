@@ -241,7 +241,7 @@ In the long term, Elixir developers who want static typing guarantees may explic
 
 Elixir's type inference generally avoids emitting false positive type violations: which are warnings emitted by the type checker when there are no runtime errors. However, in some situations, those may happen and are documented below.
 
-#### `for`-comprehensions assume they are executed at least once
+#### `for`-comprehensions assume they may be executed zero, once, or multiple times
 
 For comprehensions in Elixir assume they are executed at least once. Take this code:
 
@@ -256,6 +256,20 @@ end
 ```
 
 `x + 1` will fail because it assumes `x` is an atom from the `Atom.to_string(x)` call, even though the function may raise no runtime error if `list` is an empty list. This is intentional, as it helps find discrepancies inside and outside comprehensions. You can address this by explicitly wrapping the comprehension in a `if list != [] do` block (or similar condition).
+
+Similar, when using the `:reduce` option, Elixir assumes the list may be empty and therefore the accumulator must match the result type. Take this contrived example:
+
+```elixir
+def example([_ | _] = list) do
+  Integer.to_string(
+    for i <- list, reduce: :unused do
+      _unused -> i * 2
+    end
+  )
+end
+```
+
+Even though the list is non-empty, for-comprehension always assumes the list can be empty, and the code above will fail because passing `:unused` to `Integer.to_string/1` is a typing violation (which will happen if list is empty). You fix this by making sure the accumulator matches the type of the comprehension body.
 
 #### Struct update syntax must be statically proven
 

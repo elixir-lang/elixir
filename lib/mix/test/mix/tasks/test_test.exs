@@ -198,6 +198,13 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "supports projects without modules" do
+      in_fixture("test_failed", fn ->
+        assert {output, 0} = mix_code(["test", "--cover"], [{"PASS_FAILING_TESTS", "true"}])
+        assert output =~ "|    100.00% | Total      |"
+      end)
+    end
+
     test "reports the coverage of each app's modules in an umbrella" do
       in_fixture("umbrella_test", fn ->
         # This fixture by default results in coverage above the default threshold
@@ -231,7 +238,7 @@ defmodule Mix.Tasks.TestTest do
                """
 
         # We skip a test in bar to force coverage below the default threshold
-        # which should result in an exit status of 1.
+        # which should result in an exit status of 3.
         assert {output, code} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
 
         assert output =~ """
@@ -868,6 +875,10 @@ defmodule Mix.Tasks.TestTest do
           test "new test" do
             assert true
           end
+
+          test "another new test" do
+            assert true
+          end
         end
         """)
 
@@ -882,11 +893,11 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        output = mix(["test", "--dry-run", "--stale"])
+        output = mix(["test", "--dry-run", "--stale", "--seed", "0"])
         assert output =~ "Tests that would be executed:"
         assert output =~ "test/a_test_stale.exs:4"
         assert output =~ "test/b_test_stale.exs:4"
-        assert output =~ "test/dry_run_one_test_stale.exs:4"
+        assert output =~ "test/dry_run_one_test_stale.exs:4\ntest/dry_run_one_test_stale.exs:8"
         refute output =~ "test/dry_run_two_test_stale.exs:5"
         assert output =~ "Result: 0 tests, 1 skipped"
 

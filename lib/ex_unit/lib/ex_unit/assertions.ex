@@ -166,9 +166,8 @@ defmodule ExUnit.Assertions do
 
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, mark_as_generated(assertion))
-    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-
     left = __expand_pattern__(left, __CALLER__)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
@@ -226,9 +225,8 @@ defmodule ExUnit.Assertions do
   """
   defmacro refute({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:refute, meta, assertion)
-    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-
     left = __expand_pattern__(left, __CALLER__)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
@@ -751,9 +749,7 @@ defmodule ExUnit.Assertions do
 
   defp has_var?(pattern, name, context), do: Enum.any?(pattern, &match?({^name, _, ^context}, &1))
 
-  defp mark_as_generated(vars) when is_list(vars) do
-    Enum.map(vars, fn {name, meta, context} -> {name, [generated: true] ++ meta, context} end)
-  end
+  defp mark_as_generated(vars) when is_list(vars), do: Enum.map(vars, &mark_as_generated/1)
 
   defp mark_as_generated({name, meta, context}), do: {name, [generated: true] ++ meta, context}
   defp mark_as_generated(other), do: other
@@ -954,7 +950,7 @@ defmodule ExUnit.Assertions do
   with `Process.flag/2` and assert the exit message with `assert_receive/2`.
 
       Process.flag(:trap_exit, true)
-      pid = spawn_link(fn -> Process.exit(self(), :normal) end)
+      pid = spawn_link(fn -> exit(:normal) end)
       assert_receive {:EXIT, ^pid, :normal}
 
   """
@@ -1090,8 +1086,9 @@ defmodule ExUnit.Assertions do
   `flags` is a list of trace flags. The following flags are supported:
 
     * `:receive` - trace received messages
-    * `{:receive, match_specification}` - trace only received messages matching the given match specification.
-       See `:trace.recv/3` for more information.
+    * `{:receive, match_spec_clause}` - trace only received messages matching the given
+      match specification clause. It may be given multiple times. See `:trace.recv/3`
+      for more information.
     * `:send` - trace sent messages
     * `{:call, {Module, function, arity}}` - trace calls to the given MFA
 

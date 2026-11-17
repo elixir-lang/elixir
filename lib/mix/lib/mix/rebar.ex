@@ -170,13 +170,13 @@ defmodule Mix.Rebar do
 
     {scm, additional_opts} =
       case {scm, source} do
-        {:git_subdir, [_, sparse_dir | _]} -> {:git, [sparse: sparse_dir]}
+        {:git_subdir, [_, sparse_dir | _]} -> {:git, [sparse: to_string(sparse_dir)]}
         {_, _} -> {:git, []}
       end
 
     ref =
       case source do
-        ["" | _] -> [branch: "HEAD"]
+        [~c"" | _] -> [branch: "HEAD"]
         [{:branch, branch} | _] -> [branch: to_string(branch)]
         [{:tag, tag} | _] -> [tag: to_string(tag)]
         [{:ref, ref} | _] -> [ref: to_string(ref)]

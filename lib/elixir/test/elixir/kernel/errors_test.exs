@@ -263,6 +263,25 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "invalid number specifiers on bitstring" do
+    assert_compile_error(
+      [
+        "nofile:3:8",
+        "float requires size*unit to be 16, 32, or 64 (default), got: 8",
+        "nofile:4:8",
+        "integer and float types require a size specifier if the unit specifier is given"
+      ],
+      ~c"""
+      defmodule Kernel.ErrorsTest.InvalidNumberSpecifiers do
+        def foo(x) do
+          <<x::float-size(8)>>
+          <<x::unit(8)>>
+        end
+      end
+      """
+    )
+  end
+
   test "literal on map and struct" do
     assert_compile_error(
       ["nofile:1:10", "expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)"],
@@ -1040,6 +1059,21 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(["nofile:1:3", "key :a will be overridden in map"], """
       %{a: :b, a: :c, a: :d} = %{a: :c}
     """)
+
+    assert_compile_error(
+      [
+        "nofile:2:11",
+        "key :a will be overridden in map",
+        "nofile:3:11",
+        "key :b will be overridden in map"
+      ],
+      """
+      defmodule Kernel.ErrorsTest.DuplicateMapKeys do
+        def foo(%{a: :b, a: :c}), do: :ok
+        def bar(%{b: :b, b: :c}), do: :ok
+      end
+      """
+    )
   end
 
   test "| outside of cons" do

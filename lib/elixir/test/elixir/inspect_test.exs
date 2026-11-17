@@ -615,7 +615,7 @@ defmodule Inspect.MapTest do
         assert message =~ "name: \"Foo\""
 
         assert [
-                 {Enumerable, :impl_for!, 1, _} | _
+                 {Enumerable, :__raise_undefined__, 1, _} | _
                ] = __STACKTRACE__
 
         # The culprit
@@ -921,6 +921,15 @@ defmodule Inspect.OthersTest do
     assert "MapSet.new(" <> _ = inspect(MapSet.new())
   end
 
+  test "hash dict and hash set" do
+    # Avoid warnings about HashDict and HashSet being deprecated.
+    hash_dict = String.to_unsafe_atom("Elixir.HashDict")
+    hash_set = String.to_unsafe_atom("Elixir.HashSet")
+
+    assert inspect(Enum.into([a: 1], hash_dict.new())) == "#HashDict<[a: 1]>"
+    assert inspect(Enum.into([1], hash_set.new())) == "#HashSet<[1]>"
+  end
+
   test "PIDs" do
     assert "#PID<" <> _ = inspect(self())
     opts = [syntax_colors: []]
@@ -1040,7 +1049,9 @@ defmodule Inspect.CustomProtocolTest do
     rescue
       e in Inspect.Error ->
         assert Exception.message(e) =~ msg
-        assert [{Inspect.CustomProtocolTest.CustomInspect, :impl_for!, 1, _} | _] = __STACKTRACE__
+
+        assert [{Inspect.CustomProtocolTest.CustomInspect, :__raise_undefined__, 1, _} | _] =
+                 __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end

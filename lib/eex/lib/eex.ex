@@ -100,16 +100,18 @@ defmodule EEx do
       iex> EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
       "1"
 
-  In other words, `<%= @foo %>` translates to:
+  In other words, `<%= @foo %>` roughly translates to:
 
-      <%= {:ok, v} = Access.fetch(assigns, :foo); v %>
+      <%= Access.get(assigns, :foo) %>
+
+  except a warning is emitted if the `:foo` assign is not available.
 
   The `assigns` extension is useful when the number of variables
   required by the template is not specified at compilation time.
   """
 
   @type line :: non_neg_integer
-  @type column :: non_neg_integer
+  @type column :: pos_integer
   @type marker :: [?=] | [?/] | [?|] | []
   @type metadata :: %{column: column, line: line}
   @type token ::
@@ -315,7 +317,7 @@ defmodule EEx do
       #=> "foo baz"
 
   """
-  @spec eval_file(Path.t(), Code.binding(), [compile_opt]) :: String.t()
+  @spec eval_file(Path.t(), Code.binding(), [compile_opt]) :: term()
   def eval_file(filename, bindings \\ [], options \\ [])
       when is_list(bindings) and is_list(options) do
     filename = IO.chardata_to_string(filename)

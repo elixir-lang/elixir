@@ -30,11 +30,11 @@ defmodule Mix.Tasks.Profile.TprofTest do
   test "profiles the script", context do
     in_tmp(context.test, fn ->
       profile_script_name = "profile_script.ex"
-      File.write!(profile_script_name, @expr)
+      File.write!(profile_script_name, @expr <> "\nIO.inspect(System.argv(), label: \"argv\")")
 
-      assert capture_io(fn ->
-               Tprof.run([profile_script_name])
-             end) =~ ~r/String\.Chars\.Integer\.to_string\/1\s+\d/
+      output = capture_io(fn -> Tprof.run([profile_script_name, "--unknown", "--calls"]) end)
+      assert output =~ ~r/String\.Chars\.Integer\.to_string\/1\s+\d/
+      assert output =~ ~s(argv: ["--unknown", "--calls"])
     end)
   end
 

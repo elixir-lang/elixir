@@ -741,9 +741,10 @@ defmodule Task do
       owner = get_owner(self())
 
       Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->
-        # No need to monitor because the processes are linked
-        {:ok, pid} = Task.Supervised.start_link(owner, :nomonitor)
-        {:ok, :link, pid}
+        # No need to monitor the owner because the processes are linked.
+        # We spawn and monitor atomically, so we never miss the exit reason.
+        {pid, ref} = Task.Supervised.spawn_link_monitor(owner, :nomonitor)
+        {:ok, :link, pid, ref}
       end)
     end
   end
@@ -891,6 +892,7 @@ defmodule Task do
     after
       timeout ->
         demonitor(ref)
+        _ = flush_reply(ref)
         exit({:timeout, {__MODULE__, :await, [task, timeout]}})
     end
   end
@@ -934,7 +936,7 @@ defmodule Task do
       0 ->
         pid && Process.unlink(pid)
         demonitor(ref)
-        nil
+        flush_reply(ref)
     end
   end
 
@@ -997,27 +999,30 @@ defmodule Task do
         Process.send_after(self(), timeout_ref, timeout)
       end
 
-    try do
-      await_many(tasks, timeout, awaiting, %{}, timeout_ref)
-    after
-      timer_ref && Process.cancel_timer(timer_ref)
-      receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
-    end
+    await_many(tasks, timeout, awaiting, %{}, timeout_ref, timer_ref)
   end
 
-  defp await_many(tasks, _timeout, awaiting, replies, _timeout_ref)
+  defp await_many(tasks, _timeout, awaiting, replies, timeout_ref, timer_ref)
        when map_size(awaiting) == 0 do
+    if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+      receive do: (^timeout_ref -> :ok)
+    end
+
     for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
   end
 
-  defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
+  defp await_many(tasks, timeout, awaiting, replies, timeout_ref, timer_ref) do
     receive do
       ^timeout_ref ->
-        demonitor_pending_tasks(awaiting)
+        demonitor_pending_tasks(tasks, awaiting)
         exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
 
       {:DOWN, ref, _, proc, reason} when is_map_key(awaiting, ref) ->
-        demonitor_pending_tasks(awaiting)
+        if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+          receive do: (^timeout_ref -> :ok)
+        end
+
+        demonitor_pending_tasks(tasks, awaiting)
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
       {ref, reply} when is_map_key(awaiting, ref) ->
@@ -1028,15 +1033,19 @@ defmodule Task do
           timeout,
           Map.delete(awaiting, ref),
           Map.put(replies, ref, reply),
-          timeout_ref
+          timeout_ref,
+          timer_ref
         )
     end
   end
 
-  defp demonitor_pending_tasks(awaiting) do
-    Enum.each(awaiting, fn {ref, _} ->
+  defp demonitor_pending_tasks(tasks, awaiting) do
+    for %{ref: ref} <- tasks, is_map_key(awaiting, ref) do
       demonitor(ref)
-    end)
+      flush_reply(ref)
+    end
+
+    :ok
   end
 
   @doc false
@@ -1283,8 +1292,11 @@ defmodule Task do
   end
 
   defp yield_many(0, refs, timeout_ref, timer_ref) do
-    timer_ref && Process.cancel_timer(timer_ref)
-    receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    # If the timer has already expired, its message is guaranteed to arrive
+    if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+      receive do: (^timeout_ref -> :ok)
+    end
+
     {false, refs}
   end
 
@@ -1296,6 +1308,10 @@ defmodule Task do
 
       {:DOWN, ref, _, proc, reason} when is_map_key(refs, ref) ->
         if reason == :noconnection do
+          if is_reference(timer_ref) and Process.cancel_timer(timer_ref) == false do
+            receive do: (^timeout_ref -> :ok)
+          end
+
           throw({:noconnection, reason(:noconnection, proc)})
         else
           yield_many(limit - 1, %{refs | ref => {:exit, reason}}, timeout_ref, timer_ref)
@@ -1431,6 +1447,20 @@ defmodule Task do
   end
 
   defp flush_noproc(ref, proc, type) do
+    # The task has terminated but its :DOWN message may still be in flight.
+    # Task refs are aliases deactivated on demonitor, so the alias is active
+    # if and only if the monitor is. If a message sent to the alias arrives,
+    # the :DOWN message with the actual reason is guaranteed to arrive. If not,
+    # it is already in the mailbox, or it has been demonitored or received.
+    send(ref, {__MODULE__, ref})
+
+    timeout =
+      receive do
+        {__MODULE__, ^ref} -> :infinity
+      after
+        0 -> 0
+      end
+
     receive do
       {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
         nil
@@ -1441,7 +1471,7 @@ defmodule Task do
       {:DOWN, ^ref, _, _, reason} ->
         {:down, proc, reason}
     after
-      0 ->
+      timeout ->
         demonitor(ref)
         {:down, proc, :noproc}
     end

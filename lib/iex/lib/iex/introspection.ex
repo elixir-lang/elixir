@@ -162,11 +162,12 @@ defmodule IEx.Introspection do
       editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") ->
         command =
           if editor =~ "__FILE__" or editor =~ "__LINE__" do
-            editor
-            |> String.replace("__FILE__", inspect(file))
-            |> String.replace("__LINE__", Integer.to_string(line))
+            String.replace(editor, ["__FILE__", "__LINE__"], fn
+              "__FILE__" -> shell_quote(file)
+              "__LINE__" -> Integer.to_string(line)
+            end)
           else
-            "#{editor} #{inspect(file)}:#{line}"
+            "#{editor} #{shell_quote("#{file}:#{line}")}"
           end
 
         {:ok, :os.cmd(String.to_charlist(command))}
@@ -176,6 +177,14 @@ defmodule IEx.Introspection do
          "Could not open: #{inspect(file)}. " <>
            "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
            "command line invocation of your favorite EDITOR."}
+    end
+  end
+
+  # File names on Windows cannot contain double quotes
+  defp shell_quote(arg) do
+    case :os.type() do
+      {:win32, _} -> ~s("#{arg}")
+      _ -> "'" <> String.replace(arg, "'", "'\\''") <> "'"
     end
   end
 

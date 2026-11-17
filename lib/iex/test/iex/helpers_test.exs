@@ -153,7 +153,8 @@ defmodule IEx.HelpersTest do
     @httpc_erl "src/http_client/httpc.erl"
     @example_module_path "lib/iex/test/test_helper.exs"
 
-    test "opens __FILE__ and __LINE__" do
+    @tag :tmp_dir
+    test "opens __FILE__ and __LINE__", %{tmp_dir: tmp_dir} do
       editor = System.get_env("ELIXIR_EDITOR")
 
       try do
@@ -161,6 +162,12 @@ defmodule IEx.HelpersTest do
 
         assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
                  "3:#{__ENV__.file}"
+
+        file = Path.join(tmp_dir, "it's $(echo oops) `echo oops`.ex")
+        File.write!(file, "")
+
+        assert capture_iex("open({#{inspect(file)}, 3})") |> maybe_trim_quotes() ==
+                 "3:#{file}"
       after
         if editor do
           System.put_env("ELIXIR_EDITOR", editor)
@@ -1749,6 +1756,14 @@ defmodule IEx.HelpersTest do
       assert result =~ "## Links"
       assert result =~ "## Monitors"
       assert result =~ ":iex_process_info_link_test"
+
+      Process.monitor(:iex_process_info_link_test)
+      result = capture_io(fn -> process_info(self()) end)
+      assert result =~ "{:iex_process_info_link_test, #{inspect(node())}}"
+
+      Process.unregister(:iex_process_info_link_test)
+      result = capture_io(fn -> process_info(self()) end)
+      assert result =~ "## Current stacktrace"
     end
   end
 

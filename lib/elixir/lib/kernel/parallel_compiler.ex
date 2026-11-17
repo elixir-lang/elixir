@@ -52,7 +52,7 @@ defmodule Kernel.ParallelCompiler do
   Starts a task for parallel compilation.
   """
   # TODO: Remove me on Elixir 2.0
-  @deprecated "Use `pmap/2` instead"
+  @deprecated "Use pmap/2 instead"
   def async(fun) when is_function(fun, 0) do
     {ref, task} = inner_async(fun)
     send(task.pid, ref)
@@ -369,12 +369,9 @@ defmodule Kernel.ParallelCompiler do
         purge_compiler_modules: purge_compiler_modules
       })
 
-    Process.cancel_timer(state.timer_ref)
-
-    receive do
-      :threshold_check -> :ok
-    after
-      0 -> :ok
+    # If the timer has already expired, its message is guaranteed to arrive
+    if Process.cancel_timer(state.timer_ref) == false do
+      receive do: (:threshold_check -> :ok)
     end
 
     outcome

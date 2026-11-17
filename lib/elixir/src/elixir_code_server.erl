@@ -11,7 +11,8 @@
 -define(timeout, infinity).
 -record(elixir_code_server, {
   required=#{},
-  mod_pool={[], [], 0},
+  %% elixir_compiler_0 is reserved for code that is not compiled
+  mod_pool={[], [], 1},
   mod_ets=#{}
 }).
 

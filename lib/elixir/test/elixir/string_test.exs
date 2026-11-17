@@ -472,6 +472,12 @@ defmodule StringTest do
 
     test "with empty string and string replacement with malformed" do
       assert String.replace(<<225, 158, 128, 225, 158, 185, 225>>, "", ".") == ".កឹ.\xE1."
+
+      assert String.replace(<<"a", 255, "bc", 255, 255, "d">>, "", ".") ==
+               <<".a.", 255, ".b.c.", 255, ".", 255, ".d.">>
+
+      assert String.replace(<<"a", 255, "b", 255>>, "", fn "" -> "." end) ==
+               <<".a.", 255, ".b.", 255, ".">>
     end
 
     test "with empty pattern list" do
@@ -777,6 +783,8 @@ defmodule StringTest do
     assert String.slice("hello あいうえお Unicode", 8..-1//2) == "うおUioe"
     assert String.slice("abc", -1..14//2) == "c"
     assert String.slice("a·̀ͯ‿.⁀:", 0..-2//2) == "a‿⁀"
+    assert String.slice(<<"a", 255, "bc", 255, "de", 255>>, 0..-1//2) == <<"ab", 255, "e">>
+    assert String.slice(<<"ab", 255, "cd", 255, "ef">>, 0..-1//3) == "ace"
   end
 
   test "byte_slice/2" do
@@ -1004,6 +1012,11 @@ defmodule StringTest do
     assert String.normalize(<<216, 15>>, :nfkc) == <<216, 15>>
     assert String.normalize(<<216, 15>>, :nfkd) == <<216, 15>>
 
+    assert String.normalize(<<"ê", 216, "ǭ", 216, "ŝ">>, :nfc) == <<"ê", 216, "ǭ", 216, "ŝ">>
+    assert String.normalize(<<"ŝ", 216, "ŝ", 216>>, :nfd) == <<"s\u0302", 216, "s\u0302", 216>>
+    assert String.normalize(<<"ﬁ", 216, "ﬁ", 216>>, :nfkc) == <<"fi", 216, "fi", 216>>
+    assert String.normalize(<<"ﬁ", 216, "ﬁ", 216>>, :nfkd) == <<"fi", 216, "fi", 216>>
+
     ## Cases from NormalizationTest.txt
 
     # 05B8 05B9 05B1 0591 05C3 05B0 05AC 059F
@@ -1127,5 +1140,15 @@ defmodule StringTest do
     assert_raise ArgumentError, fn ->
       String.to_existing_atom("baz", values)
     end
+
+    # the string is evaluated exactly once, also when it is not allowed
+    message = ~s(unexpected value: "baz", the allowed atoms are: [:foo, :bar])
+
+    assert_raise ArgumentError, message, fn ->
+      String.to_existing_atom(tap("baz", &send(self(), {:evaluated, &1})), [:foo, :bar])
+    end
+
+    assert_received {:evaluated, "baz"}
+    refute_received {:evaluated, _}
   end
 end

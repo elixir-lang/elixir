@@ -36,15 +36,14 @@ defmodule Mix.Generator do
   def create_file(path, contents, opts \\ []) when is_binary(path) do
     log(:green, :creating, Path.relative_to_cwd(path), opts)
 
+    contents =
+      case opts[:format_elixir] do
+        true -> [contents |> IO.iodata_to_binary() |> Code.format_string!(), ?\n]
+        _ -> contents
+      end
+
     if opts[:force] || overwrite?(path, contents) do
       File.mkdir_p!(Path.dirname(path))
-
-      contents =
-        case opts[:format_elixir] do
-          true -> [Code.format_string!(contents), ?\n]
-          _ -> contents
-        end
-
       File.write!(path, contents)
       true
     else

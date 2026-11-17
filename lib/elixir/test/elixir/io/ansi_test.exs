@@ -229,7 +229,7 @@ defmodule IO.ANSITest do
     assert IO.ANSI.cursor_down(2) == "\e[2B"
 
     assert_raise FunctionClauseError, fn ->
-      IO.ANSI.cursor_right(0)
+      IO.ANSI.cursor_down(0)
     end
 
     assert_raise FunctionClauseError, fn ->

@@ -516,38 +516,60 @@ defmodule Kernel.ParserTest do
 
     test "not in" do
       assert Code.string_to_quoted!("a not in b", columns: true) ==
-               {:not, [line: 1, column: 3],
+               {:not, [not_in: true, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 7],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a not  in b", columns: true, token_metadata: true) ==
-               {:not, [line: 1, column: 3],
+               {:not, [not_in: true, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 8],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 11], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a\nnot in b", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 2, column: 1],
+               {:not, [not_in: true, newlines: 1, line: 2, column: 1],
                 [
                   {:in, [line: 2, column: 5],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 8], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a not in\nb", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 1, column: 3],
+               {:not, [not_in: true, newlines: 1, line: 1, column: 3],
                 [
                   {:in, [line: 1, column: 7],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 2, column: 1], nil}]}
                 ]}
 
       assert Code.string_to_quoted!("a\nnot in\nb", columns: true, token_metadata: true) ==
-               {:not, [newlines: 1, line: 2, column: 1],
+               {:not, [not_in: true, newlines: 1, line: 2, column: 1],
                 [
                   {:in, [line: 2, column: 5],
                    [{:a, [line: 1, column: 1], nil}, {:b, [line: 3, column: 1], nil}]}
+                ]}
+
+      assert Code.string_to_quoted!("a not in b in c", columns: true, token_metadata: true) ==
+               {:in, [line: 1, column: 12],
+                [
+                  {:not, [not_in: true, line: 1, column: 3],
+                   [
+                     {:in, [line: 1, column: 7],
+                      [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
+                   ]},
+                  {:c, [line: 1, column: 15], nil}
+                ]}
+
+      assert Code.string_to_quoted!("a not in b\nin c", columns: true, token_metadata: true) ==
+               {:in, [newlines: 1, line: 2, column: 1],
+                [
+                  {:not, [not_in: true, line: 1, column: 3],
+                   [
+                     {:in, [line: 1, column: 7],
+                      [{:a, [line: 1, column: 1], nil}, {:b, [line: 1, column: 10], nil}]}
+                   ]},
+                  {:c, [line: 2, column: 4], nil}
                 ]}
     end
 
@@ -572,6 +594,38 @@ defmodule Kernel.ParserTest do
                             [
                               {:a, [line: 1, column: 2], nil},
                               {:b, [line: 1, column: 7], nil}
+                            ]}
+                         ]}
+             end) =~ "!expr1 in expr2"
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.string_to_quoted!("not a in b in c", columns: true) ==
+                        {:not, [line: 1, column: 1],
+                         [
+                           {:in, [line: 1, column: 12],
+                            [
+                              {:in, [line: 1, column: 7],
+                               [
+                                 {:a, [line: 1, column: 5], nil},
+                                 {:b, [line: 1, column: 10], nil}
+                               ]},
+                              {:c, [line: 1, column: 15], nil}
+                            ]}
+                         ]}
+             end) =~ "not expr1 in expr2"
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.string_to_quoted!("!a in b in c", columns: true) ==
+                        {:!, [line: 1, column: 1],
+                         [
+                           {:in, [line: 1, column: 9],
+                            [
+                              {:in, [line: 1, column: 4],
+                               [
+                                 {:a, [line: 1, column: 2], nil},
+                                 {:b, [line: 1, column: 7], nil}
+                               ]},
+                              {:c, [line: 1, column: 12], nil}
                             ]}
                          ]}
              end) =~ "!expr1 in expr2"
@@ -813,6 +867,37 @@ defmodule Kernel.ParserTest do
                      line: 1,
                      column: 9
                    ], [2, 3]}
+                ]}
+    end
+
+    test "only adds parens metadata for grouped do bodies" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
+
+      assert {:if, _, [_, [do: do_body, else: else_body]]} =
+               string_to_quoted.("if a do b else c end")
+
+      assert do_body == {:b, [line: 1, column: 9], nil}
+      assert else_body == {:c, [line: 1, column: 16], nil}
+
+      assert {:if, _, [_, [do: do_body]]} = string_to_quoted.("if a do (b) end")
+
+      assert do_body ==
+               {:b,
+                [
+                  parens: [closing: [line: 1, column: 11], line: 1, column: 9],
+                  line: 1,
+                  column: 10
+                ], nil}
+
+      assert {:if, _, [_, [do: do_body]]} = string_to_quoted.("if a do b; c end")
+
+      assert do_body ==
+               {:__block__, [line: 1, column: 6],
+                [
+                  {:b,
+                   [end_of_expression: [newlines: 0, line: 1, column: 10], line: 1, column: 9],
+                   nil},
+                  {:c, [line: 1, column: 12], nil}
                 ]}
     end
 
@@ -1674,7 +1759,7 @@ defmodule Kernel.ParserTest do
 
     test "invalid end of expression" do
       # All valid examples
-      Code.eval_quoted(~c"""
+      Code.string_to_quoted!(~c"""
       1;
       2;
       3
@@ -1685,7 +1770,7 @@ defmodule Kernel.ParserTest do
       (1; 2)
 
       fn -> 1; 2 end
-      fn -> ; end
+      fn -> nil; end
 
       if true do
         ;
@@ -1694,7 +1779,7 @@ defmodule Kernel.ParserTest do
       try do
         ;
       catch
-        _, _ -> ;
+        _, _ -> nil;
       after
         ;
       end

@@ -218,6 +218,11 @@ defmodule Kernel.ImportTest do
     assert Macro.Env.lookup_import(__ENV__, {:helper, 1}) == []
   end
 
+  test "import only sigils from Erlang modules" do
+    import :lists, only: :sigils
+    assert Macro.Env.lookup_import(__ENV__, {:flatten, 1}) == []
+  end
+
   test "import only removes the non-import part" do
     import List
     import List, only: :macros

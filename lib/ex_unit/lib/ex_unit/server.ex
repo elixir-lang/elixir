@@ -123,18 +123,20 @@ defmodule ExUnit.Server do
           | groups: groups,
             async_groups: async_groups,
             async_modules: async_modules,
-            sync_modules: sync_modules
+            sync_modules: sync_modules,
+            loaded: :done
         }
       else
         %{
           state
           | async_groups: Enum.reverse(state.async_groups),
-            sync_modules: Enum.reverse(state.sync_modules)
+            sync_modules: Enum.reverse(state.sync_modules),
+            loaded: :done
         }
       end
 
     diff = System.convert_time_unit(System.monotonic_time() - loaded, :native, :microsecond)
-    {:reply, diff, take_modules(%{state | loaded: :done})}
+    {:reply, diff, take_modules(state)}
   end
 
   def handle_call({:add, false = _async, _group, names}, _from, %{loaded: loaded} = state)

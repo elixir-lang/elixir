@@ -245,6 +245,8 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "not in" do
       assert quoted_to_string(quote(do: false not in [])) == "false not in []"
+      assert quoted_to_string({:in, [], [quote(do: !foo), []]}) == "(!foo) in []"
+      assert quoted_to_string({:in, [], [quote(do: not foo), []]}) == "(not foo) in []"
     end
 
     test "if else" do
@@ -405,6 +407,21 @@ defmodule Code.Normalizer.QuotedASTTest do
       """
 
       assert quoted_to_string(quoted) <> "\n" == expected
+
+      quoted =
+        quote do
+          callback.(arg) do
+            :ok
+          end
+        end
+
+      expected = """
+      callback.(arg) do
+        :ok
+      end
+      """
+
+      assert quoted_to_string(quoted) <> "\n" == expected
     end
 
     test "range" do
@@ -550,6 +567,8 @@ defmodule Code.Normalizer.QuotedASTTest do
       tuple = {{:__block__, [format: :keyword], [:a]}, {:b, [], nil}}
       assert quoted_to_string([tuple, :foo, tuple]) == "[{:a, b}, :foo, a: b]"
       assert quoted_to_string([tuple, :foo, {:c, :d}, tuple]) == "[{:a, b}, :foo, c: :d, a: b]"
+      assert quoted_to_string([{:a, 1}, {:b, 2}, :foo]) == "[{:a, 1}, {:b, 2}, :foo]"
+      assert quoted_to_string([{:a, 1}, :foo, {:b, 2}, {:c, 3}]) == "[{:a, 1}, :foo, b: 2, c: 3]"
 
       # Not keyword lists
       assert quoted_to_string(quote(do: [{binary(), integer()}])) == "[{binary(), integer()}]"

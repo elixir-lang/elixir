@@ -132,7 +132,7 @@ defmodule Mix.Tasks.Cmd do
 
       case Mix.shell().cmd(arg, cmd_opts) do
         0 -> :ok
-        status -> exit(status)
+        status -> exit({:shutdown, status})
       end
     end
 
