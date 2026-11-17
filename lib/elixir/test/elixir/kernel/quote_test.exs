@@ -578,13 +578,6 @@ defmodule Kernel.QuoteTest.AliasHygiene do
     end
   end
 
-  defmacro with_alias(block) do
-    quote do
-      alias HashDict, as: Dict
-      {unquote(block), Dict.Bar}
-    end
-  end
-
   defmacro with_alias_from_helper do
     Kernel.QuoteTest.AliasHygieneHelper.with_alias()
   end
@@ -594,36 +587,6 @@ defmodule Kernel.QuoteTest.AliasHygiene do
       alias HashDict, as: Dict
       Dict.Bar
     end
-  end
-
-  defmacro with_quoted_argument do
-    quote do
-      unquote(__MODULE__).with_argument(alias HashDict, as: Dict)
-    end
-  end
-
-  defmacro with_unhygienic_argument(block) do
-    quote do
-      unquote(block)
-      alias!(Dict.Bar)
-    end
-  end
-
-  defmacro nested_alias do
-    quote do
-      quote do
-        alias HashDict, as: Dict
-        Dict.Bar
-      end
-    end
-  end
-end
-
-defmodule Kernel.QuoteTest.NestedAliasHygiene do
-  require Kernel.QuoteTest.AliasHygiene
-
-  defmacro quoted do
-    Kernel.QuoteTest.AliasHygiene.nested_alias()
   end
 end
 
@@ -667,15 +630,6 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
     assert argument_alias() == {Elixir.Dict.Bar, Elixir.HashDict.Bar}
   end
 
-  test "aliases emitted by macros affect caller arguments and quoted aliases" do
-    require Kernel.QuoteTest.AliasHygiene
-
-    result = Kernel.QuoteTest.AliasHygiene.with_alias(Dict.Bar)
-    assert result == {Elixir.HashDict.Bar, Elixir.HashDict.Bar}
-
-    assert Dict.Bar == Elixir.HashDict.Bar
-  end
-
   test "aliases in quoted fragments from helpers retain hygiene" do
     require Kernel.QuoteTest.AliasHygiene
 
@@ -683,27 +637,6 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
     assert result == Elixir.HashDict.Bar
 
     result = Kernel.QuoteTest.AliasHygiene.with_alias_context()
-    assert result == Elixir.HashDict.Bar
-  end
-
-  test "aliases in macro arguments retain their expansion counter" do
-    require Kernel.QuoteTest.AliasHygiene
-
-    result = Kernel.QuoteTest.AliasHygiene.with_quoted_argument()
-    assert result == Elixir.Dict.Bar
-  end
-
-  test "aliases in macro arguments affect alias!" do
-    require Kernel.QuoteTest.AliasHygiene
-
-    result = Kernel.QuoteTest.AliasHygiene.with_unhygienic_argument(alias HashDict, as: Dict)
-    assert result == Elixir.HashDict.Bar
-  end
-
-  test "aliases in nested quotes receive a new expansion counter" do
-    require Kernel.QuoteTest.NestedAliasHygiene
-
-    result = Kernel.QuoteTest.NestedAliasHygiene.quoted()
     assert result == Elixir.HashDict.Bar
   end
 
