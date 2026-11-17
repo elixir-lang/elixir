@@ -551,6 +551,15 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   end
 end
 
+defmodule Kernel.QuoteTest.AliasHygieneHelper do
+  def with_alias do
+    quote do
+      alias HashDict, as: Dict
+      Dict.Bar
+    end
+  end
+end
+
 defmodule Kernel.QuoteTest.AliasHygiene do
   alias Dict, as: SuperDict
 
@@ -560,6 +569,24 @@ defmodule Kernel.QuoteTest.AliasHygiene do
 
   defmacro super_dict do
     quote(do: SuperDict.Bar)
+  end
+
+  defmacro with_argument(block) do
+    quote do
+      unquote(block)
+      Dict.Bar
+    end
+  end
+
+  defmacro with_alias_from_helper do
+    Kernel.QuoteTest.AliasHygieneHelper.with_alias()
+  end
+
+  defmacro with_alias_context do
+    quote context: Other do
+      alias HashDict, as: Dict
+      Dict.Bar
+    end
   end
 end
 
@@ -597,6 +624,45 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
     alias HashDict, as: SuperDict, warn: false
     require Kernel.QuoteTest.AliasHygiene
     assert Kernel.QuoteTest.AliasHygiene.super_dict() == Elixir.Dict.Bar
+  end
+
+  test "aliases in macro arguments do not affect quoted aliases" do
+    assert argument_alias() == {Elixir.Dict.Bar, Elixir.HashDict.Bar}
+  end
+
+  test "aliases in quoted fragments from helpers retain hygiene" do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_alias_from_helper()
+    assert result == Elixir.HashDict.Bar
+
+    result = Kernel.QuoteTest.AliasHygiene.with_alias_context()
+    assert result == Elixir.HashDict.Bar
+  end
+
+  test "aliases from modules defined in macro arguments do not affect quoted aliases" do
+    assert module_argument_alias() == {Elixir.Dict.Bar, __MODULE__.Dict}
+  end
+
+  # Keep these calls outside test/2. Before the fix, test/2 would assign its own
+  # expansion counter to the arguments, masking the bug in with_argument/1.
+  defp argument_alias do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result = Kernel.QuoteTest.AliasHygiene.with_argument(alias HashDict, as: Dict)
+    {result, Dict.Bar}
+  end
+
+  defp module_argument_alias do
+    require Kernel.QuoteTest.AliasHygiene
+
+    result =
+      Kernel.QuoteTest.AliasHygiene.with_argument(
+        defmodule Dict do
+        end
+      )
+
+    {result, Dict}
   end
 end
 

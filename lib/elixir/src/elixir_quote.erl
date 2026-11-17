@@ -119,9 +119,25 @@ do_linify(Fun, {Left, Meta, Receiver}, {Receiver, Counter} = Var, Gen)
     when is_atom(Left), is_list(Meta), Left /= '_' ->
   do_tuple_linify(Fun, keynew(counter, Meta, Counter), Left, Receiver, Var, Gen);
 
+%% Only nodes that come from a quote receive the expansion counter.
+%% Quoted lexical directives carry a context and quoted aliases carry
+%% the alias annotation. Caller nodes spliced via unquote have neither.
 do_linify(Fun, {Lexical, Meta, [_ | _] = Args}, {_, Counter} = Var, Gen)
-    when ?lexical(Lexical); Lexical == '__aliases__' ->
-  do_tuple_linify(Fun, keynew(counter, Meta, Counter), Lexical, Args, Var, Gen);
+    when ?lexical(Lexical) ->
+  NewMeta =
+    case lists:keymember(context, 1, Meta) of
+      true -> keynew(counter, Meta, Counter);
+      false -> Meta
+    end,
+  do_tuple_linify(Fun, NewMeta, Lexical, Args, Var, Gen);
+
+do_linify(Fun, {'__aliases__', Meta, [_ | _] = Args}, {_, Counter} = Var, Gen) ->
+  NewMeta =
+    case lists:keymember(alias, 1, Meta) of
+      true -> keynew(counter, Meta, Counter);
+      false -> Meta
+    end,
+  do_tuple_linify(Fun, NewMeta, '__aliases__', Args, Var, Gen);
 
 do_linify(Fun, {Left, Meta, Right}, Var, Gen) when is_list(Meta) ->
   do_tuple_linify(Fun, Meta, Left, Right, Var, Gen);
