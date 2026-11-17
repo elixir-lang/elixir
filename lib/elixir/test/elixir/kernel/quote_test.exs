@@ -634,12 +634,8 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
 
   test "annotate aliases" do
     assert {:__aliases__, [alias: false], [:Foo, :Bar]} = quote(do: Foo.Bar)
-
-    assert {:__aliases__, [alias: false], [:Dict, :Bar]} =
-             quote(do: Dict.Bar)
-
-    assert {:__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar]} =
-             quote(do: SuperDict.Bar)
+    assert {:__aliases__, [alias: false], [:Dict, :Bar]} = quote(do: Dict.Bar)
+    assert {:__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar]} = quote(do: SuperDict.Bar)
 
     # Edge-case
     assert {:__aliases__, _, [Elixir]} = quote(do: Elixir)
