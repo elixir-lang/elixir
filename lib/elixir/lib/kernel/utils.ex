@@ -10,17 +10,20 @@ defmodule Kernel.Utils do
   @doc """
   Callback for destructure.
   """
-  def destructure(list, count)
-      when is_list(list) and is_integer(count) and count >= 0,
-      do: destructure_list(list, count)
+  def destructure(list, count, tail? \\ false)
 
-  def destructure(nil, count)
-      when is_integer(count) and count >= 0,
+  def destructure(list, count, tail?)
+      when is_list(list) and is_integer(count) and count >= 0 and is_boolean(tail?),
+      do: destructure_list(list, count, tail?)
+
+  def destructure(nil, count, tail?)
+      when is_integer(count) and count >= 0 and is_boolean(tail?),
       do: destructure_nil(count)
 
-  defp destructure_list(_, 0), do: []
-  defp destructure_list([], count), do: destructure_nil(count)
-  defp destructure_list([h | t], count), do: [h | destructure_list(t, count - 1)]
+  defp destructure_list(list, 0, true), do: list
+  defp destructure_list(_, 0, false), do: []
+  defp destructure_list([], count, _tail?), do: destructure_nil(count)
+  defp destructure_list([h | t], count, tail?), do: [h | destructure_list(t, count - 1, tail?)]
 
   defp destructure_nil(0), do: []
   defp destructure_nil(count), do: [nil | destructure_nil(count - 1)]

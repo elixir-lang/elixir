@@ -4153,10 +4153,28 @@ defmodule Kernel do
   The example above will only work if `x` matches the first value in the right
   list. Otherwise, it will raise a `MatchError` (like the `=` operator would
   do).
+
+  A cons pattern captures the remaining elements in its tail. Only the
+  elements before the tail are padded with `nil` if the right list is smaller:
+
+      iex> destructure([x, y | tail], [1, 2, 3, 4])
+      iex> {x, y, tail}
+      {1, 2, [3, 4]}
+
+      iex> destructure([x, y | tail], [1])
+      iex> {x, y, tail}
+      {1, nil, []}
   """
   defmacro destructure(left, right) when is_list(left) do
+    tail? =
+      case :lists.reverse(left) do
+        [{:|, _, [_, _]} | _] -> true
+        _ -> false
+      end
+
     quote do
-      unquote(left) = Kernel.Utils.destructure(unquote(right), unquote(length(left)))
+      unquote(left) =
+        Kernel.Utils.destructure(unquote(right), unquote(length(left)), unquote(tail?))
     end
   end
 
