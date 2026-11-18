@@ -79,6 +79,14 @@ defmodule Kernel.AliasTest do
 end
 
 defmodule Kernel.AliasNestingGenerator do
+  defmacro create_absolute do
+    quote do
+      defmodule unquote(__MODULE__).Child do
+        def value, do: :child
+      end
+    end
+  end
+
   defmacro create do
     quote do
       defmodule Parent do
@@ -135,6 +143,15 @@ defmodule Kernel.AliasNestingTest do
              {Elixir.Nested, Kernel.AliasNestingTest.Nested},
              {Elixir.AliasEnv, Another.AliasEnv}
            ]
+  end
+
+  require Kernel.AliasNestingGenerator
+  Kernel.AliasNestingGenerator.create_absolute()
+  def aliases_after_absolute, do: __ENV__.aliases
+
+  test "does not create aliases for a fully qualified atom alias head" do
+    assert Kernel.AliasNestingGenerator.Child.value() == :child
+    assert aliases_after_absolute() == aliases_after()
   end
 end
 
