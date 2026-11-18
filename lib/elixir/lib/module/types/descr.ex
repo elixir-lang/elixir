@@ -1891,11 +1891,9 @@ defmodule Module.Types.Descr do
   # application operator. When the arguments escape the domain, the
   # result is term() (see aux_apply/4).
   defp fun_apply_static(arguments, arrows) do
-    type_args = args_to_domain(arguments)
-
     :lists.foldl(
       fn intersection_of_arrows, acc ->
-        aux_apply(acc, type_args, term(), intersection_of_arrows)
+        aux_apply(acc, [arguments], term(), intersection_of_arrows)
       end,
       none(),
       arrows
@@ -1927,14 +1925,16 @@ defmodule Module.Types.Descr do
   # ## Parameters
 
   # - result: The accumulated result type so far
-  # - input: The input type being applied to the function
+  # - products: The input being applied to the function, as a list of disjoint
+  #   products, each product being a list of non-empty static arguments.
+  #   This is valid because application distributes over unions
   # - rets_reached: The intersection of return types reached so far
   # - arrow_intersections: The list of function arrows to process
   #
   # Domain escape: if the input is not covered by the union of all the
   # arrow domains in the clause, the result is term(). This is because
   # rets_reached starts at term() and is only refined (intersected) when
-  # an arrow's domain covers the input, which is check by dom_subtract.
+  # an arrow's domain covers the input, which is check by args_difference.
   # Along a path where no arrow covers the input, rets_reached stays
   # term() and gets unioned into the result at the base case. Since
   # term() is maximal, the overall result for that clause is term().
@@ -1942,29 +1942,26 @@ defmodule Module.Types.Descr do
   # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
   # For the escape case, see Section 13.2 of
   # https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
-  defp aux_apply(result, _input, rets_reached, []) do
+  defp aux_apply(result, _products, rets_reached, []) do
     if subtype?(rets_reached, result), do: result, else: bare_union(result, rets_reached)
   end
 
-  defp aux_apply(result, input, returns_reached, [bdd_leaf(args, ret) | arrow_intersections]) do
-    domain = args_to_domain(args)
-
+  defp aux_apply(result, products, returns_reached, [bdd_leaf(args, ret) | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = bare_difference(input, domain)
-
-    cond do
-      # The input is fully covered by the arrow's domain, so we only refine the return.
-      empty?(dom_subtract) ->
-        aux_apply(result, input, bare_intersection(returns_reached, ret), arrow_intersections)
-
+    case args_difference(products, args, [], true) do
       # If the input is disjoint from this arrow's domain, the arrow does not apply.
       # Refining the return type would only compute a subset of the result obtained
       # by skipping the arrow (as the input stays the same), so we skip it. Without
       # this check, each disjoint arrow doubles the number of paths explored.
-      disjoint?(input, domain) ->
-        aux_apply(result, input, returns_reached, arrow_intersections)
+      :disjoint ->
+        aux_apply(result, products, returns_reached, arrow_intersections)
 
-      true ->
+      # The input is fully covered by the arrow's domain, so we only refine the return.
+      [] ->
+        ret_refine = bare_intersection(returns_reached, ret)
+        aux_apply(result, products, ret_refine, arrow_intersections)
+
+      uncovered ->
         # Phase 1: Domain partitioning
         # If the input is not fully covered by the arrow's domain, then the result type should be
         # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
@@ -1972,7 +1969,7 @@ defmodule Module.Types.Descr do
         #
         # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
         # both atoms and pids in the result.
-        result = aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
+        result = aux_apply(result, uncovered, returns_reached, arrow_intersections)
 
         # 2. Return type refinement
         # The result type is also refined (intersected) in the sense that, if several arrows match
@@ -1981,9 +1978,42 @@ defmodule Module.Types.Descr do
 
         # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
         # should result in (atom() ∩ pid()), which is none().
-        aux_apply(result, input, bare_intersection(returns_reached, ret), arrow_intersections)
+        aux_apply(result, products, bare_intersection(returns_reached, ret), arrow_intersections)
     end
   end
+
+  # Returns :disjoint if all products are disjoint from the arguments,
+  # otherwise the list of disjoint products not covered by them.
+  defp args_difference([product | products], args, acc, disjoint?) do
+    # Same as tuples, we compute all meets upfront, as they tell us
+    # if the product is disjoint before computing any difference.
+    case tuple_elements_meets(product, args, [], %{}) do
+      :disjoint ->
+        args_difference(products, args, [product | acc], disjoint?)
+
+      meets ->
+        acc = product_difference(product, args, meets, [], acc)
+        args_difference(products, args, acc, false)
+    end
+  end
+
+  defp args_difference([], _args, _acc, true), do: :disjoint
+  defp args_difference([], _args, acc, false), do: acc
+
+  # Computes (a1, ..., an) \ (d1, ..., dn) as the disjoint union of products
+  # (a1 ∩ d1, ..., ai-1 ∩ di-1, ai \ di, ai+1, ..., an), skipping empty ones.
+  defp product_difference([type | types], [arg | args], [meet | meets], acc_meet, acc) do
+    diff = bare_difference(type, arg)
+
+    if empty?(diff) do
+      product_difference(types, args, meets, [type | acc_meet], acc)
+    else
+      acc = [:lists.reverse(acc_meet, [diff | types]) | acc]
+      product_difference(types, args, meets, [meet | acc_meet], acc)
+    end
+  end
+
+  defp product_difference([], [], [], _acc_meet, acc), do: acc
 
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
