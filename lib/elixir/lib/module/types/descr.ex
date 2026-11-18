@@ -1948,32 +1948,42 @@ defmodule Module.Types.Descr do
   end
 
   defp aux_apply(result, input, returns_reached, [bdd_leaf(args, ret) | arrow_intersections]) do
+    domain = args_to_domain(args)
+
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = bare_difference(input, args_to_domain(args))
+    dom_subtract = bare_difference(input, domain)
 
-    # Refine the return type by intersecting with this arrow's return type
-    ret_refine = bare_intersection(returns_reached, ret)
+    cond do
+      # The input is fully covered by the arrow's domain, so we only refine the return.
+      empty?(dom_subtract) ->
+        aux_apply(result, input, bare_intersection(returns_reached, ret), arrow_intersections)
 
-    # Phase 1: Domain partitioning
-    # If the input is not fully covered by the arrow's domain, then the result type should be
-    # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
-    # parts of the domain.
-    #
-    # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
-    # both atoms and pids in the result.
-    result =
-      if empty?(dom_subtract),
-        do: result,
-        else: aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
+      # If the input is disjoint from this arrow's domain, the arrow does not apply.
+      # Refining the return type would only compute a subset of the result obtained
+      # by skipping the arrow (as the input stays the same), so we skip it. Without
+      # this check, each disjoint arrow doubles the number of paths explored.
+      disjoint?(input, domain) ->
+        aux_apply(result, input, returns_reached, arrow_intersections)
 
-    # 2. Return type refinement
-    # The result type is also refined (intersected) in the sense that, if several arrows match
-    # the same part of the input, then the result type is an intersection of the return types of
-    # those arrows.
+      true ->
+        # Phase 1: Domain partitioning
+        # If the input is not fully covered by the arrow's domain, then the result type should be
+        # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
+        # parts of the domain.
+        #
+        # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
+        # both atoms and pids in the result.
+        result = aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
 
-    # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
-    # should result in (atom() ∩ pid()), which is none().
-    aux_apply(result, input, ret_refine, arrow_intersections)
+        # 2. Return type refinement
+        # The result type is also refined (intersected) in the sense that, if several arrows match
+        # the same part of the input, then the result type is an intersection of the return types of
+        # those arrows.
+
+        # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
+        # should result in (atom() ∩ pid()), which is none().
+        aux_apply(result, input, bare_intersection(returns_reached, ret), arrow_intersections)
+    end
   end
 
   # Takes all the paths from the root to the leaves finishing with a 1,

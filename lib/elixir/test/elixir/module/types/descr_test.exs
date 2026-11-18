@@ -1770,6 +1770,20 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun3, [atom([:ok])]) == {:ok, none()}
     end
 
+    test "static with many disjoint arrows" do
+      # Arrows disjoint from the input must not double the paths explored
+      fun =
+        Enum.reduce(1..40, fun([integer()], atom([:int])), fn i, acc ->
+          opt_intersection(acc, fun([atom([:"a#{i}"])], atom([:"r#{i}"])))
+        end)
+
+      assert fun_apply(fun, [integer()]) == {:ok, atom([:int])}
+      assert fun_apply(fun, [atom([:a1])]) == {:ok, atom([:r1])}
+
+      assert fun_apply(fun, [opt_union(integer(), atom([:a1, :a2]))]) ==
+               {:ok, atom([:int, :r1, :r2])}
+    end
+
     test "static with dynamic signature" do
       assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
       assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
