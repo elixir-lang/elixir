@@ -1978,7 +1978,13 @@ defmodule Module.Types.Descr do
 
         # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
         # should result in (atom() ∩ pid()), which is none().
-        aux_apply(result, products, bare_intersection(returns_reached, ret), arrow_intersections)
+        ret_refine = bare_intersection(returns_reached, ret)
+
+        # All results from this branch are subsets of ret_refine,
+        # so there is nothing to add if it is already in the result.
+        if subtype?(ret_refine, result),
+          do: result,
+          else: aux_apply(result, products, ret_refine, arrow_intersections)
     end
   end
 
