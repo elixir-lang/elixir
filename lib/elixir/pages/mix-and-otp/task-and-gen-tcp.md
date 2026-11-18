@@ -40,7 +40,6 @@ defmodule KV.Server do
   defp loop_acceptor(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
     serve(client)
-    loop_acceptor(socket)
   end
 
   defp serve(socket) do
@@ -177,7 +176,6 @@ In order to make our server handle simultaneous connections, we need to have one
 defp loop_acceptor(socket) do
   {:ok, client} = :gen_tcp.accept(socket)
   serve(client)
-  loop_acceptor(socket)
 end
 ```
 
