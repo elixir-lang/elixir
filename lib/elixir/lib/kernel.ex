@@ -5735,7 +5735,7 @@ defmodule Kernel do
       Elixir.Kernel.@(impl(true))
 
       def exception(args) when Kernel.is_list(args) do
-        struct!(__MODULE__, args)
+        __struct__(args)
       end
 
       defoverridable exception: 1
