@@ -4128,6 +4128,9 @@ defmodule Kernel do
   and right lists don't match, destructuring simply stops
   instead of raising an error.
 
+  An explicit tail in the left-hand list, such as `[head | tail]`, raises
+  an `ArgumentError` at compile time.
+
   ## Examples
 
       iex> destructure([x, y, z], [1, 2, 3, 4, 5])
@@ -4142,8 +4145,7 @@ defmodule Kernel do
       iex> {x, y, z}
       {1, nil, nil}
 
-  The left-hand side supports any expression you would use
-  on the left-hand side of a match:
+  Each element of the left-hand list can be any pattern:
 
       iex> x = 1
       iex> destructure([^x, y, z], [1, 2, 3])
@@ -4155,6 +4157,14 @@ defmodule Kernel do
   do).
   """
   defmacro destructure(left, right) when is_list(left) do
+    case :lists.reverse(left) do
+      [{:|, _, [_, _]} | _] ->
+        raise ArgumentError, "destructure/2 does not support a tail in the left-hand list"
+
+      _ ->
+        :ok
+    end
+
     quote do
       unquote(left) = Kernel.Utils.destructure(unquote(right), unquote(length(left)))
     end

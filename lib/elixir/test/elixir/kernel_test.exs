@@ -1238,6 +1238,14 @@ defmodule KernelTest do
   end
 
   describe "destructure" do
+    test "rejects a top-level cons pattern" do
+      assert_raise ArgumentError,
+                   "destructure/2 does not support a tail in the left-hand list",
+                   fn ->
+                     Macro.expand_once(quote(do: destructure([a, b | tail], [1, 2, 3])), __ENV__)
+                   end
+    end
+
     test "less args" do
       destructure [x, y, z], [1, 2, 3, 4, 5]
       assert x == 1
