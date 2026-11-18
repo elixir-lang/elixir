@@ -2870,7 +2870,8 @@ defmodule Enum do
     normalized_insertion_index =
       if insertion_index >= 0, do: insertion_index, else: non_neg_index.(insertion_index, count)
 
-    if normalized_first < count and normalized_first != normalized_insertion_index do
+    if normalized_first < count and normalized_last >= normalized_first and
+         normalized_first != normalized_insertion_index do
       normalized_range = normalized_first..normalized_last//1
       slide(enumerable, normalized_range, normalized_insertion_index)
     else
