@@ -1927,7 +1927,6 @@ defmodule Module.Types.Descr do
   # - result: The accumulated result type so far
   # - products: The input being applied to the function, as a list of disjoint
   #   products, each product being a list of non-empty static arguments.
-  #   This is valid because application distributes over unions
   # - rets_reached: The intersection of return types reached so far
   # - arrow_intersections: The list of function arrows to process
   #
