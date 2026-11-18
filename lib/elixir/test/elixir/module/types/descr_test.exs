@@ -1784,6 +1784,19 @@ defmodule Module.Types.DescrTest do
                {:ok, atom([:int, :r1, :r2])}
     end
 
+    test "static with many overlapping arrows" do
+      # Refining returns already in the result must not explore more paths
+      atoms = for i <- 1..40, do: :"a#{i}"
+
+      fun =
+        atoms
+        |> Enum.map(&fun([atom([&1])], atom([:ok])))
+        |> Enum.reduce(&opt_intersection/2)
+
+      assert fun_apply(fun, [atom(atoms)]) == {:ok, atom([:ok])}
+      assert fun_apply(fun, [atom([:a1, :a2])]) == {:ok, atom([:ok])}
+    end
+
     test "static with dynamic signature" do
       assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
       assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
