@@ -1238,32 +1238,12 @@ defmodule KernelTest do
   end
 
   describe "destructure" do
-    test "cons pattern preserves the tail" do
-      assert destructure([a, b | c], [1, 2, 3, 4, 5]) == [1, 2, 3, 4, 5]
-      assert {a, b, c} == {1, 2, [3, 4, 5]}
-
-      destructure [head | tail], [1 | :tail]
-      assert {head, tail} == {1, :tail}
-    end
-
-    test "cons pattern pads only the fixed prefix" do
-      for {values, expected} <- [
-            {[1], {1, nil, []}},
-            {nil, {nil, nil, []}}
-          ] do
-        destructure [a, b | c], values
-        assert {a, b, c} == expected
-      end
-    end
-
-    test "cons pattern matches the tail" do
-      tail = [3, 4]
-      destructure [a, b | ^tail], [1, 2, 3, 4]
-      assert {a, b} == {1, 2}
-
-      assert_raise MatchError, fn ->
-        destructure [_, _ | ^tail], [1, 2, 3]
-      end
+    test "rejects a top-level cons pattern" do
+      assert_raise ArgumentError,
+                   "destructure/2 does not support a tail in the left-hand list",
+                   fn ->
+                     Macro.expand_once(quote(do: destructure([a, b | tail], [1, 2, 3])), __ENV__)
+                   end
     end
 
     test "less args" do
