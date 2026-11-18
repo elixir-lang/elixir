@@ -5803,15 +5803,23 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       tuple_line_empty?(tag, elements, negs, seen)
     else
-      tuple_elements_empty?([], tag, elements, neg_elements, negs, seen) and
-        tuple_empty_arity?(n, m, tag, elements, neg_tag, negs, seen)
+      # Compute all meets upfront. If any of them is empty, the negative tuple
+      # is disjoint from the line, so we skip it before splitting the line on
+      # earlier elements.
+      case tuple_elements_meets(elements, neg_elements, [], seen) do
+        :disjoint ->
+          tuple_line_empty?(tag, elements, negs, seen)
+
+        meets ->
+          tuple_elements_empty?([], tag, elements, neg_elements, meets, negs, seen) and
+            tuple_empty_arity?(n, m, tag, elements, neg_tag, negs, seen)
+      end
     end
   end
 
-  # Recursively check elements for emptiness
-  defp tuple_elements_empty?(_, _, _, [], _, _seen), do: true
+  defp tuple_elements_meets(_elements, [], acc, _seen), do: :lists.reverse(acc)
 
-  defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs, seen) do
+  defp tuple_elements_meets(elements, [neg_type | neg_elements], acc, seen) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} =
       case elements do
@@ -5821,19 +5829,38 @@ defmodule Module.Types.Descr do
 
     meet = bare_intersection(ty, neg_type)
 
-    if empty_seen?(meet, seen) do
-      # This negative tuple is disjoint from the current line at this element.
-      tuple_line_empty?(tag, :lists.reverse(acc_meet, [ty | elements]), negs, seen)
-    else
-      diff = bare_difference(ty, neg_type)
+    if empty_seen?(meet, seen),
+      do: :disjoint,
+      else: tuple_elements_meets(elements, neg_elements, [meet | acc], seen)
+  end
 
-      if empty_seen?(diff, seen) do
-        # The element is a subtype of the negative element, so their intersection is ty.
-        tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, negs, seen)
-      else
-        tuple_line_empty?(tag, :lists.reverse(acc_meet, [diff | elements]), negs, seen) and
-          tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs, seen)
+  # Recursively check elements for emptiness
+  defp tuple_elements_empty?(_, _, _, [], _, _, _seen), do: true
+
+  defp tuple_elements_empty?(
+         acc_meet,
+         tag,
+         elements,
+         [neg_type | neg_elements],
+         [meet | meets],
+         negs,
+         seen
+       ) do
+    # Handles the case where {tag, elements} is an open tuple, like {:open, []}
+    {ty, elements} =
+      case elements do
+        [ty | elements] -> {ty, elements}
+        [] -> {term(), []}
       end
+
+    diff = bare_difference(ty, neg_type)
+
+    if empty_seen?(diff, seen) do
+      # The element is a subtype of the negative element, so their intersection is ty.
+      tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, meets, negs, seen)
+    else
+      tuple_line_empty?(tag, :lists.reverse(acc_meet, [diff | elements]), negs, seen) and
+        tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, meets, negs, seen)
     end
   end
 
