@@ -1126,6 +1126,22 @@ defmodule EnumTest do
                Enum.slide([:a, :b, :c, :d, :e, :f], 1..3, 4)
     end
 
+    test "treats out-of-bounds negative insertion indices as the start" do
+      for zero_to_5 <- [0..5, Enum.to_list(0..5)] do
+        assert Enum.slide(zero_to_5, 5, -7) == [5, 0, 1, 2, 3, 4]
+        assert Enum.slide(zero_to_5, 3..4, -7) == [3, 4, 0, 1, 2, 5]
+        assert Enum.slide(zero_to_5, -2..-1//1, -7) == [4, 5, 0, 1, 2, 3]
+        assert Enum.slide(zero_to_5, 0, -7) == Enum.to_list(zero_to_5)
+      end
+    end
+
+    test "treats ranges with out-of-bounds negative last as empty" do
+      for zero_to_5 <- [0..5, Enum.to_list(0..5)] do
+        assert Enum.slide(zero_to_5, 1..-7//1, 0) == Enum.to_list(zero_to_5)
+        assert Enum.slide(zero_to_5, -7..-7//1, 3) == Enum.to_list(zero_to_5)
+      end
+    end
+
     test "raises when insertion index would fall inside the range" do
       for zero_to_5 <- [0..5, Enum.to_list(0..5)] do
         assert_raise ArgumentError, fn ->
