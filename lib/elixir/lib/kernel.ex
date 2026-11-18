@@ -5255,14 +5255,20 @@ defmodule Kernel do
   defp alias_defmodule({:__aliases__, _, _}, module, %{module: nil}), do: {module, module, []}
 
   # defmodule Alias nested
-  defp alias_defmodule({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
-    module = :elixir_aliases.concat([env.module, h])
-    alias = String.to_unsafe_atom("Elixir." <> Atom.to_string(h))
-    opts = [as: alias, warn: false]
+  defp alias_defmodule({:__aliases__, _, [h | t]}, module, env) when is_atom(h) do
+    case Atom.to_string(h) do
+      "Elixir." <> _ ->
+        {module, module, []}
 
-    case t do
-      [] -> {module, module, opts}
-      _ -> {String.to_unsafe_atom(Enum.join([module | t], ".")), module, opts}
+      head ->
+        module = :elixir_aliases.concat([env.module, h])
+        alias = String.to_unsafe_atom("Elixir." <> head)
+        opts = [as: alias, warn: false]
+
+        case t do
+          [] -> {module, module, opts}
+          _ -> {String.to_unsafe_atom(Enum.join([module | t], ".")), module, opts}
+        end
     end
   end
 
