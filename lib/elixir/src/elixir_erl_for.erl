@@ -74,14 +74,14 @@ translate_gen(Meta, Left, Right, T, S) ->
   {TLeft, SL} = elixir_erl_clauses:match(Ann, fun elixir_erl_pass:translate/3, LeftArgs,
                                          SR#elixir_erl{extra=pin_guard}),
 
-  TLeftGuards = elixir_erl_clauses:guards(Ann, LeftGuards, [], SL),
+  {TLeftGuards, SG} = elixir_erl_clauses:guards(Ann, LeftGuards, [], SL),
   ExtraGuards = [{nil, X} || X <- SL#elixir_erl.extra_guards],
   {Filters, TT} = collect_filters(T, []),
 
   {TFilters, TS} =
     lists:mapfoldr(
       fun(F, SF) -> translate_filter(F, Ann, SF) end,
-      SL#elixir_erl{extra=S#elixir_erl.extra, extra_guards=[]},
+      SG#elixir_erl{extra=S#elixir_erl.extra, extra_guards=[]},
       Filters
     ),
 

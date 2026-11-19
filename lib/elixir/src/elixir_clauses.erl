@@ -187,12 +187,13 @@ match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
   EndE = EE#{context := ?key(E, context)},
   {EExpr, EndS, EndE}.
 
-def({Meta, Args, Guards, Body}, S, E) ->
-  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, {#{}, []}, 0}}, E#{context := match}),
+def({Meta, Args, Guards, Body}, #elixir_ex{caller=Caller} = S, E) ->
+  HeadS = S#elixir_ex{caller=Caller andalso head_guard, prematch={#{}, {#{}, []}, 0}},
+  {EArgs, SA, EA} = elixir_expand:expand_args(Args, HeadS, E#{context := match}),
   #elixir_ex{prematch={_, Cycles, _}} = SA,
   validate_cycles(Cycles, Meta, {?key(E, function), Args}, E),
   {EGuards, SG, EG} = guards(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
-  {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
+  {EBody, SB, EB} = elixir_expand:expand(Body, SG#elixir_ex{caller=Caller}, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
   {Meta, EArgs, EGuards, EBody}.
 
@@ -411,7 +412,11 @@ expand_try(Meta, {'else', _} = Else, S, E) ->
   Fun = expand_head('try', 'else'),
   expand_clauses(Meta, 'try', Fun, Else, S, E);
 expand_try(Meta, {'catch', _} = Catch, S, E) ->
-  expand_clauses_with_stacktrace(Meta, fun expand_catch/4, Catch, S, E);
+  Head = fun(HeadMeta, Args, SA, EA) ->
+    {EArgs, SB, EB} = expand_catch(HeadMeta, Args, SA#elixir_ex{stacktrace=head_guard}, EA),
+    {EArgs, SB#elixir_ex{stacktrace=true}, EB}
+  end,
+  expand_clauses_with_stacktrace(Meta, Head, Catch, S, E);
 expand_try(Meta, {'rescue', _} = Rescue, S, E) ->
   expand_clauses_with_stacktrace(Meta, fun expand_rescue/4, Rescue, S, E);
 expand_try(Meta, {Key, _}, _S, E) ->

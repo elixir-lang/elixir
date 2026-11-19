@@ -31,21 +31,23 @@ match(Ann, Fun, Match, S) ->
 clause(Ann, Fun, Match, Expr, Guards, S) ->
   {TMatch, SA} = match(Ann, Fun, Match, S),
   SG = SA#elixir_erl{extra_guards=[]},
-  TGuards = guards(Ann, Guards, SA#elixir_erl.extra_guards, SG),
-  {TExpr, SE} = elixir_erl_pass:translate(Expr, Ann, SG),
+  {TGuards, SC} = guards(Ann, Guards, SA#elixir_erl.extra_guards, SG),
+  {TExpr, SE} = elixir_erl_pass:translate(Expr, Ann, SC),
   {{clause, Ann, TMatch, TGuards, unblock(TExpr)}, SE}.
 
 % Translate/Extract guards from the given expression.
 
 guards(Ann, Guards, Extra, S) ->
   SG = S#elixir_erl{context=guard},
-  case Guards of
-    [] -> case Extra of [] -> []; _ -> [Extra] end;
-    _  -> [translate_guard(Guard, Ann, SG, Extra) || Guard <- Guards]
-  end.
+  {TGuards, TS} = case Guards of
+    [] -> {case Extra of [] -> []; _ -> [Extra] end, SG};
+    _  -> lists:mapfoldl(fun(Guard, Acc) -> translate_guard(Guard, Ann, Acc, Extra) end, SG, Guards)
+  end,
+  {TGuards, TS#elixir_erl{context=S#elixir_erl.context}}.
 
 translate_guard(Guard, Ann, S, Extra) ->
-  [element(1, elixir_erl_pass:translate(Guard, Ann, S)) | Extra].
+  {TGuard, TS} = elixir_erl_pass:translate(Guard, Ann, S),
+  {[TGuard | Extra], TS}.
 
 % Function for translating macros with match style like case and receive.
 

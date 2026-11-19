@@ -83,6 +83,16 @@ defmodule Kernel.MacrosTest do
     Enum.map(value, &by_two/1)
   end
 
+  defmacrop identity_with_caller_guard(value) do
+    case value do
+      value when __CALLER__.line > 0 -> value
+    end
+  end
+
+  test "__CALLER__ in a guard inside a macro body" do
+    assert identity_with_caller_guard(42) == 42
+  end
+
   test "require" do
     assert Kernel.MacrosTest.Nested.value() == 1
   end

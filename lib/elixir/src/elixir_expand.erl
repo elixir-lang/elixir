@@ -193,11 +193,19 @@ expand({'__DIR__', _, Atom}, S, E) when is_atom(Atom) ->
   {filename:dirname(?key(E, file)), S, E};
 expand({'__CALLER__', Meta, Atom} = Caller, S, E) when is_atom(Atom) ->
   assert_no_match_scope(Meta, "__CALLER__", E),
-  (not S#elixir_ex.caller) andalso function_error(Meta, E, ?MODULE, caller_not_allowed),
+  case S#elixir_ex.caller of
+    true -> ok;
+    false -> function_error(Meta, E, ?MODULE, caller_not_allowed);
+    head_guard -> file_error(Meta, E, ?MODULE, caller_in_head_guard)
+  end,
   {Caller, S, E};
 expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, S, E) when is_atom(Atom) ->
   assert_no_match_scope(Meta, "__STACKTRACE__", E),
-  (not S#elixir_ex.stacktrace) andalso function_error(Meta, E, ?MODULE, stacktrace_not_allowed),
+  case S#elixir_ex.stacktrace of
+    true -> ok;
+    false -> function_error(Meta, E, ?MODULE, stacktrace_not_allowed);
+    head_guard -> file_error(Meta, E, ?MODULE, stacktrace_in_head_guard)
+  end,
   {Stacktrace, S, E};
 expand({'__ENV__', Meta, Atom}, S, E) when is_atom(Atom) ->
   assert_no_match_scope(Meta, "__ENV__", E),
@@ -1373,8 +1381,12 @@ format_error({undefined_local_capture, Fun, Arity}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Fun, Arity]);
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
+format_error(caller_in_head_guard) ->
+  "__CALLER__ is not supported in macro head guards. Use it in the macro body instead";
 format_error(stacktrace_not_allowed) ->
   "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions";
+format_error(stacktrace_in_head_guard) ->
+  "__STACKTRACE__ is not supported in catch and rescue clause guards. Use it in the clause body instead";
 format_error({undefined_var_to_call, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);

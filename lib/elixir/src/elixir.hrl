@@ -14,7 +14,7 @@
   %% Stores that the function will fail, which can be used
   %% to run more expensive checks upfront
   tainted_function=false,
-  %% Stores if __CALLER__ is allowed
+  %% Whether __CALLER__ is allowed (true, false, or head_guard)
   caller=false,
   %% Stores the variables available before a match.
   %% May be one of:
@@ -29,7 +29,7 @@
   %% The bitsize is used when dealing with bitstring modifiers,
   %% as they allow guards but also support the pin operator.
   prematch=none,
-  %% Stores if __STACKTRACE__ is allowed
+  %% Whether __STACKTRACE__ is allowed (true, false, or head_guard)
   stacktrace=false,
   %% A map of unused vars
   unused=#{},

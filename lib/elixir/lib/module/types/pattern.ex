@@ -1233,6 +1233,11 @@ defmodule Module.Types.Pattern do
     Apply.remote(mod, fun, args, expected, call, stack, context, &of_guard/5)
   end
 
+  def of_guard({name, _meta, var_context} = var, expected, expr, stack, context)
+      when name in [:__CALLER__, :__STACKTRACE__] and is_atom(var_context) do
+    Module.Types.Expr.of_expr(var, expected, expr, stack, context)
+  end
+
   # var
   def of_guard({_, meta, _} = var, expected, expr, stack, context) when is_var(var) do
     version = Keyword.fetch!(meta, :version)
@@ -1268,8 +1273,8 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_compare(fun, polarity, {_, meta, _} = var, other_side, call, stack, context)
-       when is_var(var) do
+  defp of_compare(fun, polarity, {name, meta, _} = var, other_side, call, stack, context)
+       when is_var(var) and name not in [:__CALLER__, :__STACKTRACE__] do
     version = Keyword.fetch!(meta, :version)
 
     # Add a new path node to the current variable

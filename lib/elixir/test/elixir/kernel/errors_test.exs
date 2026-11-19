@@ -50,6 +50,34 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "__CALLER__ in a macro head guard" do
+    assert_compile_error(
+      ["nofile:2:26", "__CALLER__ is not supported in macro head guards"],
+      """
+      defmodule Sample do
+        defmacro check(x) when __CALLER__.line > 0, do: x
+      end
+      """
+    )
+  end
+
+  test "__STACKTRACE__ in a catch clause guard" do
+    assert_compile_error(
+      ["nofile:6:22", "__STACKTRACE__ is not supported in catch and rescue clause guards"],
+      """
+      defmodule Sample do
+        def check do
+          try do
+            throw(:ok)
+          catch
+            x when is_list(__STACKTRACE__) -> x
+          end
+        end
+      end
+      """
+    )
+  end
+
   test "undefined function" do
     assert_compile_error(
       [
