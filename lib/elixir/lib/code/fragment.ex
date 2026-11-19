@@ -1287,7 +1287,7 @@ defmodule Code.Fragment do
       when trailing_fragment == nil ->
         {rev_tokens, rev_terminators} =
           with [close, open, {_, _, :__cursor__} = cursor | rev_tokens] <- rev_tokens,
-               {_, _, after_fn} <- Enum.focus(rev_terminators, &(elem(&1, 0) == :fn)),
+               [_ | after_fn] <- Enum.drop_while(rev_terminators, &(elem(&1, 0) != :fn)),
                true <- maybe_missing_stab?(rev_tokens, false),
                [_ | rev_tokens] <- Enum.drop_while(rev_tokens, &(elem(&1, 0) != :fn)) do
             {[close, open, cursor | rev_tokens], after_fn}
