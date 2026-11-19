@@ -485,18 +485,21 @@ translate_map(Ann, [{'|', Meta, [Update, Assocs]}], S) ->
 translate_map(Ann, Assocs, S) ->
   translate_map(Ann, Assocs, none, S).
 
-translate_map(Ann, Assocs, TUpdate, #elixir_erl{extra=Extra} = S) ->
+translate_map(Ann, Assocs, TUpdate, #elixir_erl{context=Context, extra=Extra} = S) ->
   Op = translate_key_val_op(TUpdate, S),
 
+  %% Maps inside a pattern key are constructed as values.
+  KeyExtra = case Context of match -> map_key; _ -> Extra end,
+
   {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc0) ->
-    {TKey, Acc1} = translate(Key, Ann, Acc0#elixir_erl{extra=map_key}),
+    {TKey, Acc1} = translate(Key, Ann, Acc0#elixir_erl{extra=KeyExtra}),
     {TValue, Acc2} = translate(Value, Ann, Acc1#elixir_erl{extra=Extra}),
     {{Op, Ann, TKey, TValue}, Acc2}
   end, S, Assocs),
 
   build_map(Ann, TUpdate, TArgs, SA).
 
-translate_key_val_op(_TUpdate, #elixir_erl{extra=map_key}) -> map_field_assoc;
+translate_key_val_op(none, #elixir_erl{context=match, extra=map_key}) -> map_field_assoc;
 translate_key_val_op(_TUpdate, #elixir_erl{context=match}) -> map_field_exact;
 translate_key_val_op(none, _) -> map_field_assoc;
 translate_key_val_op(_, _) -> map_field_exact.

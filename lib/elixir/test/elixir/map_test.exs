@@ -76,6 +76,35 @@ defmodule MapTest do
   test "matching with map as a key" do
     assert %{%{1 => 2} => x} = %{%{1 => 2} => 3}
     assert x == 3
+
+    assert %{{%{a: %{b: 1}}} => y} = %{{%{a: %{b: 1}}} => 4}
+    assert y == 4
+  end
+
+  test "map patterns in key expressions" do
+    map = sample()
+
+    assert %{
+             case map do
+               %{a: value} -> value
+             end => :value
+           } == %{1 => :value}
+
+    assert %{
+             (
+               %{a: value} = map
+               value
+             ) => :value
+           } == %{1 => :value}
+
+    assert %{with(%{a: value} <- map, do: value) => :value} == %{1 => :value}
+
+    assert %{
+             %{1 => :old}
+             | case map do
+                 %{a: value} -> value
+               end => :new
+           } == %{1 => :new}
   end
 
   test "is_map/1" do
@@ -156,6 +185,25 @@ defmodule MapTest do
 
     assert_raise KeyError, fn ->
       %{sample() | c: 3}
+    end
+  end
+
+  test "map updates in key expressions" do
+    map = sample()
+    key = %{a: 3, b: 2}
+    outer = %{key => :old}
+
+    assert %{%{map | a: 3} => :new} == %{key => :new}
+    assert %{outer | %{map | a: 3} => :new} == %{key => :new}
+
+    assert_raise KeyError, ~r/key :c not found/, fn ->
+      %{%{map | c: 3} => :new}
+    end
+
+    outer = %{Map.put(map, :c, 3) => :old}
+
+    assert_raise KeyError, ~r/key :c not found/, fn ->
+      %{outer | %{map | c: 3} => :new}
     end
   end
 
