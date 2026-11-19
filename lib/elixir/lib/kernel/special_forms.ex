@@ -708,14 +708,18 @@ defmodule Kernel.SpecialForms do
 
   In the environment you can access the filename, line numbers,
   set up aliases, the function and others.
+
+  It is available in macro bodies, including guards nested inside them.
+  It is not supported in the head guards of `defmacro/2` or `defmacrop/2`.
   """
   defmacro __CALLER__, do: error!([])
 
   @doc """
   Returns the stacktrace for the currently handled exception.
 
-  It is available only in the `catch` and `rescue` clauses of `try/1`
-  expressions and function definitions.
+  It is available in the bodies of `catch` and `rescue` clauses of `try/1`
+  expressions and function definitions, including guards nested inside those
+  bodies. It is not supported in `catch` or `rescue` clause head guards.
 
   To retrieve the stacktrace of the current process, use
   `Process.info(self(), :current_stacktrace)` instead.

@@ -455,8 +455,8 @@ translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], _Ann, Do, Else, S) ->
   {Args, Guards} = elixir_utils:extract_guards(Left),
   {TExpr, SR} = translate(Expr, Ann, S),
   {TArgs, SA} = elixir_erl_clauses:match(Ann, fun translate/3, Args, SR),
-  TGuards = elixir_erl_clauses:guards(Ann, Guards, SA#elixir_erl.extra_guards, SA),
-  {TBody, SB} = translate_with_do(Rest, Ann, Do, Else, SA#elixir_erl{extra_guards=[]}),
+  {TGuards, SG} = elixir_erl_clauses:guards(Ann, Guards, SA#elixir_erl.extra_guards, SA),
+  {TBody, SB} = translate_with_do(Rest, Ann, Do, Else, SG#elixir_erl{extra_guards=[]}),
   Clause = {clause, Ann, [TArgs], TGuards, unblock(TBody)},
   {{'case', Ann, TExpr, [Clause, Else]}, SB};
 translate_with_do([Expr | Rest], Ann, Do, Else, S) ->

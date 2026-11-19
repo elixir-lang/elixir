@@ -21,6 +21,7 @@
   %%
   %%   * {Read, Cycle :: #{}, Meta :: Counter | {bitsize, Original}}
   %%   * pin
+  %%   * head_guard
   %%   * none.
   %%
   %% The cycle is used to detect cyclic dependencies between

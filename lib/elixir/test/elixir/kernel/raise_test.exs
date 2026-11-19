@@ -598,4 +598,18 @@ defmodule Kernel.RaiseTest do
              "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
                "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
   end
+
+  test "__STACKTRACE__ in a guard inside a catch body" do
+    result =
+      try do
+        throw(:ok)
+      catch
+        value ->
+          case value do
+            result when is_list(__STACKTRACE__) -> result
+          end
+      end
+
+    assert result == :ok
+  end
 end
