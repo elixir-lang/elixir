@@ -1124,8 +1124,8 @@ build_stab(Stab, BlockMeta) ->
     stab -> collect_stab(Stab, [], [])
   end.
 
-build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) ->
-  {'__block__', [], Exprs};
+build_paren_stab(Before, [{Op, _, [_]}]=Exprs, After) when ?rearrange_uop(Op) ->
+  {'__block__', meta_from_token_with_closing(Before, After), Exprs};
 build_paren_stab(Before, Stab, After) ->
   case check_stab(Stab, none) of
     block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After), true);
