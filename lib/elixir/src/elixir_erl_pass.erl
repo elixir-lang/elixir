@@ -731,7 +731,7 @@ rewrite_strategy(Left, shift, [Struct, Opts | RestArgs], _S) when
   Left == 'Elixir.NaiveDateTime';
   Left == 'Elixir.Time'
 ->
-  case basic_type_arg(Opts) of
+  case is_list(Opts) andalso basic_type_arg(Opts) of
     true ->
       try
         {inline_args, [Struct, Left:'__duration__!'(Opts) | RestArgs]}
@@ -743,7 +743,7 @@ rewrite_strategy(Left, shift, [Struct, Opts | RestArgs], _S) when
       none
   end;
 rewrite_strategy(Left, Right, Args, _S) ->
-  case inline_pure_function(Left, Right) andalso basic_type_arg(Args) of
+  case inline_pure_function(Left, Right, Args) andalso basic_type_arg(Args) of
     true ->
       try
         {inline_pure, apply(Left, Right, Args)}
@@ -795,24 +795,23 @@ evaluate_first(Args, Ann, S, Fun) ->
   Var = {var, Ann, VarName},
   {{block, Ann, [{match, Ann, Var, Head}, Fun([Var | Tail])]}, ST}.
 
-inline_pure_function('Elixir.Duration', 'new!') -> true;
-inline_pure_function('Elixir.MapSet', new) -> true;
-inline_pure_function('Elixir.String', length) -> true;
-inline_pure_function('Elixir.String', graphemes) -> true;
-inline_pure_function('Elixir.String', codepoints) -> true;
-inline_pure_function('Elixir.String', split) -> true;
-inline_pure_function('Elixir.Kernel', to_timeout) -> true;
-inline_pure_function('Elixir.URI', encode_query) -> true;
-inline_pure_function('Elixir.URI', encode_www_form) -> true;
-inline_pure_function('Elixir.URI', decode) -> true;
-inline_pure_function('Elixir.URI', decode_www_form) -> true;
-inline_pure_function('Elixir.Version', parse) -> true;
-inline_pure_function('Elixir.Version', 'parse!') -> true;
-inline_pure_function('Elixir.Version', parse_requirement) -> true;
-inline_pure_function('Elixir.Version', 'parse_requirement!') -> true;
-inline_pure_function(_Left, _Right) -> false.
+% Only fold enumerable arguments when the implementation handles lists directly.
+inline_pure_function('Elixir.Duration', 'new!', [Units]) -> is_list(Units);
+inline_pure_function('Elixir.MapSet', new, []) -> true;
+inline_pure_function('Elixir.MapSet', new, [Enumerable]) -> is_list(Enumerable);
+inline_pure_function('Elixir.String', length, _Args) -> true;
+inline_pure_function('Elixir.String', graphemes, _Args) -> true;
+inline_pure_function('Elixir.String', codepoints, _Args) -> true;
+inline_pure_function('Elixir.String', split, _Args) -> true;
+inline_pure_function('Elixir.Kernel', to_timeout, _Args) -> true;
+inline_pure_function('Elixir.URI', encode_www_form, _Args) -> true;
+inline_pure_function('Elixir.URI', decode, _Args) -> true;
+inline_pure_function('Elixir.URI', decode_www_form, _Args) -> true;
+inline_pure_function('Elixir.Version', parse, _Args) -> true;
+inline_pure_function('Elixir.Version', 'parse!', _Args) -> true;
+inline_pure_function(_Left, _Right, _Args) -> false.
 
-% we do not want to try and inline calls which might depend on protocols that might be overridden later
+% Basic literals can still reach protocol dispatch, depending on the function.
 basic_type_arg(Term) when is_number(Term); is_atom(Term); is_binary(Term) -> true;
 basic_type_arg(List) when is_list(List) -> lists:all(fun basic_type_arg/1, List);
 basic_type_arg({Left, Right}) -> basic_type_arg(Left) and basic_type_arg(Right);

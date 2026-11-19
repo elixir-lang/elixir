@@ -12,6 +12,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   @old_time {{2010, 1, 1}, {0, 0, 0}}
   @elixir_otp_version {System.version(), :erlang.system_info(:otp_release)}
+  @compile {:no_warn_undefined, Compile.ProtocolCaller}
 
   def trace(event, env) do
     send(__MODULE__, {event, env})
@@ -2107,6 +2108,42 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     purge([OptionalDep, OptionalDep.MixProject, RequiredDep.MixProject])
+  end
+
+  test "literal calls use the current protocol implementation", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      File.mkdir_p!("lib")
+
+      write_impl = fn value ->
+        File.write!("lib/impl.ex", """
+        defimpl String.Chars, for: Tuple do
+          def to_string(_), do: "#{value}"
+        end
+        """)
+      end
+
+      args = ["--verbose", "--no-protocol-consolidation"]
+      write_impl.("first")
+      assert Mix.Tasks.Compile.Elixir.run(args) == {:ok, []}
+
+      File.write!("lib/caller.ex", """
+      defmodule Compile.ProtocolCaller do
+        def query, do: URI.encode_query(k: {1, 2})
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(args) == {:ok, []}
+      flush()
+
+      write_impl.("second")
+      assert Mix.Tasks.Compile.Elixir.run(args) == {:ok, []}
+      refute_received {:mix_shell, :info, ["Compiled lib/caller.ex"]}
+
+      assert Compile.ProtocolCaller.query() == "k=second"
+    end)
+  after
+    purge([Compile.ProtocolCaller, String.Chars.Tuple])
   end
 
   describe "consolidation protocols" do

@@ -359,6 +359,12 @@ defmodule VersionTest do
   end
 
   describe "requirement" do
+    test "literal requirements emit deprecation warnings at runtime" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert {:ok, _} = Version.parse_requirement("!= 1.0.0")
+             end) =~ "!= inside Version requirements is deprecated"
+    end
+
     test "compile_requirement/1" do
       {:ok, req} = Version.parse_requirement("1.2.3")
       assert req == Version.compile_requirement(req)
