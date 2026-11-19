@@ -438,6 +438,15 @@ defmodule EnumTest do
     assert Enum.flat_map_reduce([1, 2, 3], 0, &{[&1, &2], &1 + &2}) == {[1, 0, 2, 1, 3, 3], 6}
   end
 
+  test "focus/2" do
+    assert Enum.focus([], fn _ -> true end) == nil
+    assert Enum.focus([1, 2, 3], fn _ -> false end) == nil
+    assert Enum.focus([1, 2, 3], &(&1 == 1)) == {[], 1, [2, 3]}
+    assert Enum.focus([1, 2, 3, 4], &(&1 > 2)) == {[2, 1], 3, [4]}
+    assert Enum.focus([1, 2, 3], &(&1 == 3)) == {[2, 1], 3, []}
+    assert Enum.focus([1, 2, 3], &(&1 > 1 and nil)) == nil
+  end
+
   test "frequencies/1" do
     assert Enum.frequencies([]) == %{}
     assert Enum.frequencies(~w{a c a a c b}) == %{"a" => 3, "b" => 1, "c" => 2}
@@ -2040,6 +2049,15 @@ defmodule EnumTest.Range do
     assert Enum.flat_map_reduce(1..100, 0, fn i, acc ->
              if acc < 3, do: {[i], acc + 1}, else: {:halt, acc}
            end) == {[1, 2, 3], 3}
+  end
+
+  test "focus/2" do
+    assert Enum.focus(1..0//1, fn _ -> true end) == nil
+    assert Enum.focus(1..3, fn _ -> false end) == nil
+    assert Enum.focus(1..3, &(&1 == 1)) == {[], 1, [2, 3]}
+    assert Enum.focus(1..4, &(&1 > 2)) == {[2, 1], 3, [4]}
+    assert Enum.focus(1..3, &(&1 == 3)) == {[2, 1], 3, []}
+    assert Enum.focus(MapSet.new([1]), &(&1 == 1)) == {[], 1, []}
   end
 
   test "group_by/3" do
