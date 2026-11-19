@@ -488,15 +488,11 @@ In the examples above, we have used the match operator ([`=`](`=/2`)) and functi
 
     `with` also supports the `else` keyword, which supports patterns matching and guards.
 
-  * [`try`](`try/1`) supports patterns and guards on `catch` and `else`.
-    [`__STACKTRACE__`](`__STACKTRACE__/0`) is not supported in `catch` clause head guards.
-    `rescue` clauses do not accept guards.
+  * [`try`](`try/1`) supports patterns and guards on `catch` and `else`
 
   * [`receive`](`receive/1`) supports patterns and guards to match on the received messages.
 
   * custom guards can also be defined with `defguard/1` and `defguardp/1`. A custom guard can only be defined based on existing guards.
-
-[`__CALLER__`](`__CALLER__/0`) is not supported in the head guards of `defmacro/2` or `defmacrop/2`.
 
 Note that the match operator ([`=`](`=/2`)) does *not* support guards:
 

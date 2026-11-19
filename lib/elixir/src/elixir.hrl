@@ -14,13 +14,14 @@
   %% Stores that the function will fail, which can be used
   %% to run more expensive checks upfront
   tainted_function=false,
-  %% Whether __CALLER__ is allowed (true, false, or head_guard)
+  %% Stores if __CALLER__ is allowed
   caller=false,
   %% Stores the variables available before a match.
   %% May be one of:
   %%
   %%   * {Read, Cycle :: #{}, Meta :: Counter | {bitsize, Original}}
   %%   * pin
+  %%   * head_guard
   %%   * none.
   %%
   %% The cycle is used to detect cyclic dependencies between
@@ -29,7 +30,7 @@
   %% The bitsize is used when dealing with bitstring modifiers,
   %% as they allow guards but also support the pin operator.
   prematch=none,
-  %% Whether __STACKTRACE__ is allowed (true, false, or head_guard)
+  %% Stores if __STACKTRACE__ is allowed
   stacktrace=false,
   %% A map of unused vars
   unused=#{},

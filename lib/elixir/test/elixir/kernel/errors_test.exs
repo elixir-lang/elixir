@@ -27,7 +27,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid __CALLER__" do
     assert_compile_error(
-      ["nofile:1:34", "__CALLER__ is available only inside defmacro and defmacrop"],
+      ["nofile:1:34", "__CALLER__ is available only inside defmacro and defmacrop bodies"],
       ~c"defmodule Sample do def hello do __CALLER__ end end"
     )
   end
@@ -36,7 +36,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:1:34",
-        "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions"
+        "__STACKTRACE__ is available only in the bodies of catch and rescue clauses of try expressions"
       ],
       ~c"defmodule Sample do def hello do __STACKTRACE__ end end"
     )
@@ -44,7 +44,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:1:66",
-        "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions"
+        "__STACKTRACE__ is available only in the bodies of catch and rescue clauses of try expressions"
       ],
       ~c"defmodule Sample do try do raise \"oops\" rescue _ -> def hello do __STACKTRACE__ end end end"
     )
@@ -63,7 +63,10 @@ defmodule Kernel.ErrorsTest do
 
   test "__STACKTRACE__ in a catch clause guard" do
     assert_compile_error(
-      ["nofile:6:22", "__STACKTRACE__ is not supported in catch and rescue clause guards"],
+      [
+        "nofile:6:22",
+        "__STACKTRACE__ is available only in the bodies of catch and rescue clauses"
+      ],
       """
       defmodule Sample do
         def check do

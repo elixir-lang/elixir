@@ -188,12 +188,12 @@ match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
   {EExpr, EndS, EndE}.
 
 def({Meta, Args, Guards, Body}, #elixir_ex{caller=Caller} = S, E) ->
-  HeadS = S#elixir_ex{caller=Caller andalso head_guard, prematch={#{}, {#{}, []}, 0}},
+  HeadS = S#elixir_ex{caller=false, prematch={#{}, {#{}, []}, 0}},
   {EArgs, SA, EA} = elixir_expand:expand_args(Args, HeadS, E#{context := match}),
   #elixir_ex{prematch={_, Cycles, _}} = SA,
   validate_cycles(Cycles, Meta, {?key(E, function), Args}, E),
-  {EGuards, SG, EG} = guards(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
-  {EBody, SB, EB} = elixir_expand:expand(Body, SG#elixir_ex{caller=Caller}, EG#{context := nil}),
+  {EGuards, SG, EG} = guards(Guards, SA#elixir_ex{caller=Caller, prematch=head_guard}, EA#{context := guard}),
+  {EBody, SB, EB} = elixir_expand:expand(Body, SG#elixir_ex{prematch=none}, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
   {Meta, EArgs, EGuards, EBody}.
 
@@ -412,21 +412,19 @@ expand_try(Meta, {'else', _} = Else, S, E) ->
   Fun = expand_head('try', 'else'),
   expand_clauses(Meta, 'try', Fun, Else, S, E);
 expand_try(Meta, {'catch', _} = Catch, S, E) ->
-  Head = fun(HeadMeta, Args, SA, EA) ->
-    {EArgs, SB, EB} = expand_catch(HeadMeta, Args, SA#elixir_ex{stacktrace=head_guard}, EA),
-    {EArgs, SB#elixir_ex{stacktrace=true}, EB}
-  end,
-  expand_clauses_with_stacktrace(Meta, Head, Catch, S, E);
+  expand_clauses_with_stacktrace(Meta, fun expand_catch/4, Catch, S, E);
 expand_try(Meta, {'rescue', _} = Rescue, S, E) ->
   expand_clauses_with_stacktrace(Meta, fun expand_rescue/4, Rescue, S, E);
 expand_try(Meta, {Key, _}, _S, E) ->
   file_error(Meta, E, ?MODULE, {unexpected_option, 'try', Key}).
 
 expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
-  OldStacktrace = S#elixir_ex.stacktrace,
-  SS = S#elixir_ex{stacktrace=true},
-  {Ret, SE} = expand_clauses(Meta, 'try', Fun, Clauses, SS, E),
-  {Ret, SE#elixir_ex{stacktrace=OldStacktrace}}.
+  Head = fun(HeadMeta, Args, SA, EA) ->
+    {EArgs, SB, EB} = Fun(HeadMeta, Args, SA#elixir_ex{stacktrace=false}, EA),
+    {EArgs, SB#elixir_ex{stacktrace=true}, EB}
+  end,
+  {Ret, SE} = expand_clauses(Meta, 'try', Head, Clauses, S, E),
+  {Ret, SE#elixir_ex{stacktrace=S#elixir_ex.stacktrace}}.
 
 expand_catch(Meta, [{'when', _, [_, _, _, _ | _]}], _, E) ->
   Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
