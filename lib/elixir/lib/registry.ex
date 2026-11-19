@@ -1879,7 +1879,7 @@ defmodule Registry.Partition do
     Process.flag(:trap_exit, true)
 
     key_ets = init_key_ets(kind, key_partition, compressed)
-    pid_ets = init_pid_ets(kind, pid_partition)
+    pid_ets = init_pid_ets(pid_partition)
 
     # If we have only one partition, we do an optimization which
     # is to write the table information alongside the registry info.
@@ -1921,7 +1921,7 @@ defmodule Registry.Partition do
 
   # A process can always have multiple keys, so the
   # pid partition is always a duplicate bag.
-  defp init_pid_ets(_, pid_partition) do
+  defp init_pid_ets(pid_partition) do
     :ets.new(pid_partition, [
       :duplicate_bag,
       :public,

@@ -382,6 +382,7 @@ defmodule Regex do
       ["d", ""]
 
   """
+  @spec run(t, binary) :: nil | [binary]
   @spec run(t, binary, capture_opts) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
@@ -608,6 +609,7 @@ defmodule Regex do
       [["cd"], ["ce"]]
 
   """
+  @spec scan(t(), String.t()) :: [[String.t()]]
   @spec scan(t(), String.t(), capture_opts) :: [[String.t()]] | [[{integer(), integer()}]]
   def scan(regex, string, options \\ [])
 

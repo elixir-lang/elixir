@@ -641,7 +641,7 @@ defmodule GenEvent do
   defp mode_to_tag(:async), do: :notify
 
   defp server_notify(event, fun, [handler | t], name, handlers, acc, hib) do
-    case server_update(handler, fun, event, name, handlers) do
+    case server_update(handler, fun, event, name) do
       {new_hib, handler} ->
         server_notify(event, fun, t, name, handlers, [handler | acc], hib or new_hib)
 
@@ -654,7 +654,7 @@ defmodule GenEvent do
     {hib, acc}
   end
 
-  defp server_update(handler, fun, event, name, _handlers) do
+  defp server_update(handler, fun, event, name) do
     handler(module: module, state: state) = handler
 
     case do_handler(module, fun, [event, state]) do
@@ -715,7 +715,7 @@ defmodule GenEvent do
         {false, {:error, :not_found}, handlers}
 
       handler ->
-        case server_call_update(handler, query, name, handlers) do
+        case server_call_update(handler, query, name) do
           {{hib, handler}, reply} ->
             {hib, reply, :lists.keyreplace(module, handler(:id) + 1, handlers, handler)}
 
@@ -725,7 +725,7 @@ defmodule GenEvent do
     end
   end
 
-  defp server_call_update(handler, query, name, _handlers) do
+  defp server_call_update(handler, query, name) do
     handler(module: module, state: state) = handler
 
     case do_handler(module, :handle_call, [query, state]) do

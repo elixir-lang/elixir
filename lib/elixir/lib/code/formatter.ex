@@ -772,16 +772,16 @@ defmodule Code.Formatter do
 
   ## Operators
 
-  defp maybe_unary_op_to_algebra(fun, meta, args, context, state) do
+  defp maybe_unary_op_to_algebra(fun, _meta, args, context, state) do
     with [arg] <- args,
          {_, _} <- Code.Identifier.unary_op(fun) do
-      unary_op_to_algebra(fun, meta, arg, context, state)
+      unary_op_to_algebra(fun, arg, context, state)
     else
       _ -> :error
     end
   end
 
-  defp unary_op_to_algebra(op, _meta, arg, context, state) do
+  defp unary_op_to_algebra(op, arg, context, state) do
     {doc, state} = quoted_to_algebra(arg, force_many_args_or_operand(context, :operand), state)
 
     # not and ! are nestable, all others are not.
@@ -932,7 +932,7 @@ defmodule Code.Formatter do
   # (! left) in right
   # (not left) in right
   defp binary_operand_to_algebra(
-         {:__block__, _, [{op, meta, [arg]}]},
+         {:__block__, _, [{op, _meta, [arg]}]},
          context,
          state,
          :in,
@@ -941,7 +941,7 @@ defmodule Code.Formatter do
          _nesting
        )
        when op in [:not, :!] do
-    {doc, state} = unary_op_to_algebra(op, meta, arg, context, state)
+    {doc, state} = unary_op_to_algebra(op, arg, context, state)
     {wrap_in_parens(doc), state}
   end
 
@@ -1075,7 +1075,7 @@ defmodule Code.Formatter do
 
   # @foo bar
   # @foo(bar)
-  defp module_attribute_to_algebra(meta, {name, call_meta, [_] = args} = expr, context, state)
+  defp module_attribute_to_algebra(_meta, {name, call_meta, [_] = args} = expr, context, state)
        when is_atom(name) and name not in [:__block__, :__aliases__] do
     if Macro.classify_atom(name) == :identifier do
       {{call_doc, state}, wrap_in_parens?} =
@@ -1089,14 +1089,14 @@ defmodule Code.Formatter do
       doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
       {doc, state}
     else
-      unary_op_to_algebra(:@, meta, expr, context, state)
+      unary_op_to_algebra(:@, expr, context, state)
     end
   end
 
   # @foo
   # @(foo.bar())
-  defp module_attribute_to_algebra(meta, quoted, context, state) do
-    unary_op_to_algebra(:@, meta, quoted, context, state)
+  defp module_attribute_to_algebra(_meta, quoted, context, state) do
+    unary_op_to_algebra(:@, quoted, context, state)
   end
 
   ## Capture operator

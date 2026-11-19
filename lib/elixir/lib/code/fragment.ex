@@ -243,7 +243,7 @@ defmodule Code.Fragment do
     fragment
     |> last_line()
     |> :lists.reverse()
-    |> codepoint_cursor_context(opts)
+    |> codepoint_cursor_context()
     |> elem(0)
   end
 
@@ -264,7 +264,7 @@ defmodule Code.Fragment do
   @textual_operators ~w(when not and or in)c
   @keywords ~w(do end after else catch rescue fn true false nil)c
 
-  defp codepoint_cursor_context(reverse, _opts) do
+  defp codepoint_cursor_context(reverse) do
     {stripped, spaces} = strip_spaces(reverse, 0)
 
     case stripped do
@@ -733,7 +733,7 @@ defmodule Code.Fragment do
     prepended_columns = Enum.sum(lines_before_lengths)
 
     charlist
-    |> position_surround_context(line, column + prepended_columns, opts)
+    |> position_surround_context(line, column + prepended_columns)
     |> to_multiline_range(
       prepended_columns,
       lines_before_lengths,
@@ -745,14 +745,14 @@ defmodule Code.Fragment do
     surround_context(to_charlist(other), position, opts)
   end
 
-  defp position_surround_context(charlist, line, column, opts)
+  defp position_surround_context(charlist, line, column)
        when is_integer(line) and line >= 1 and is_integer(column) and column >= 1 do
     {reversed_pre, post} = string_reverse_at(charlist, column - 1, [])
     {reversed_pre, post} = adjust_position(reversed_pre, post)
 
     case take_identifier(post, []) do
       {_, [], _} ->
-        maybe_operator(reversed_pre, post, line, opts)
+        maybe_operator(reversed_pre, post, line)
 
       {:identifier, reversed_post, rest} ->
         {keyword_key?, rest} =
@@ -767,7 +767,7 @@ defmodule Code.Fragment do
 
         reversed = reversed_post ++ reversed_pre
 
-        case codepoint_cursor_context(reversed, opts) do
+        case codepoint_cursor_context(reversed) do
           {{:struct, acc}, offset} ->
             build_surround({:struct, acc}, reversed, line, offset)
 
@@ -820,13 +820,13 @@ defmodule Code.Fragment do
             build_surround({:capture_arg, acc}, reversed, line, offset)
 
           _ ->
-            maybe_operator(reversed_pre, post, line, opts)
+            maybe_operator(reversed_pre, post, line)
         end
 
       {:alias, reversed_post, _rest} ->
         reversed = reversed_post ++ reversed_pre
 
-        case codepoint_cursor_context(reversed, opts) do
+        case codepoint_cursor_context(reversed) do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
@@ -842,7 +842,7 @@ defmodule Code.Fragment do
     end
   end
 
-  defp maybe_operator(reversed_pre, post, line, opts) do
+  defp maybe_operator(reversed_pre, post, line) do
     case take_operator(post, []) do
       {[], _rest} ->
         :none
@@ -850,7 +850,7 @@ defmodule Code.Fragment do
       {reversed_post, rest} ->
         reversed = reversed_post ++ reversed_pre
 
-        case codepoint_cursor_context(reversed, opts) do
+        case codepoint_cursor_context(reversed) do
           {{:operator, ~c"&"}, offset} when hd(rest) in ?0..?9 ->
             arg = Enum.take_while(rest, &(&1 in ?0..?9))
 
