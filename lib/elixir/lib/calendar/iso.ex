@@ -1674,7 +1674,7 @@ defmodule Calendar.ISO do
       ?\s,
       time_to_iodata(hour, minute, second, microsecond, format),
       offset_to_iodata(utc_offset, std_offset, time_zone, format),
-      zone_to_iodata(utc_offset, std_offset, zone_abbr, time_zone)
+      zone_to_iodata(zone_abbr, time_zone)
     ]
   end
 
@@ -1705,8 +1705,8 @@ defmodule Calendar.ISO do
     [sign(total), zero_pad(hour, 2) | zero_pad(minute, 2)]
   end
 
-  defp zone_to_iodata(_, _, _, "Etc/UTC"), do: []
-  defp zone_to_iodata(_, _, abbr, zone), do: [?\s, abbr, ?\s | zone]
+  defp zone_to_iodata(_, "Etc/UTC"), do: []
+  defp zone_to_iodata(abbr, zone), do: [?\s, abbr, ?\s | zone]
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
