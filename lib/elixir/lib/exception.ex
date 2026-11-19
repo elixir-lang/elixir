@@ -1756,7 +1756,7 @@ defmodule UndefinedFunctionError do
 
   defp hint(nil, _function, 0, _hint_type) do
     ". If you are using the dot syntax, such as module.function(), " <>
-      "make sure the left-hand side of the dot is a module atom"
+      "make sure the left side of the dot is a module atom"
   end
 
   defp hint(module, function, arity, :suggest_function) do
@@ -2549,7 +2549,7 @@ defmodule ErlangError do
               "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
                 "If you are using Kernel.apply/3, make sure the module is an atom. " <>
                 "If you are using the dot syntax, such as module.function(), " <>
-                "make sure the left-hand side of the dot is an atom representing a module"
+                "make sure the left side of the dot is an atom representing a module"
 
             true ->
               "you attempted to apply a function on #{inspect(module)}. " <>
@@ -2625,7 +2625,7 @@ defmodule ErlangError do
     message =
       "key #{inspect(key)} not found in: #{inspect(term, pretty: true, limit: :infinity)}\n\n" <>
         "If you are using the dot syntax, such as map.field, " <>
-        "make sure the left-hand side of the dot is a map"
+        "make sure the left side of the dot is a map"
 
     %KeyError{key: key, term: term, message: message}
   end

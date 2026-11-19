@@ -291,7 +291,7 @@ defmodule Module.Types.IntegrationTest do
 
                 :doki = A.fun(:error)
 
-            because the right-hand side has type:
+            because the right side has type:
 
                 dynamic(:bad)
         """

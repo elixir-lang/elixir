@@ -363,7 +363,7 @@ defmodule Module.Types.ExprTest do
 
                  123 = &{:ok, &1}
 
-             because the right-hand side has type:
+             because the right side has type:
 
                  (term() -> dynamic({:ok, term()}))
              """
@@ -2141,7 +2141,7 @@ defmodule Module.Types.ExprTest do
 
                  :baz = x
 
-             because the right-hand side has type:
+             because the right side has type:
 
                  dynamic(:bar or :foo)
 
@@ -3001,31 +3001,31 @@ defmodule Module.Types.ExprTest do
 
     test "and reports violations" do
       assert typeerror!([x = 123], x and true) =~ """
-             the following conditional expression will always fail:
+             the left side of "and" is incompatible with its expected type:
 
-                 x
+                 x and ...
 
-             because it evaluates to:
+             it is expected to be a boolean but it has type:
 
                  integer()
              """
 
       assert typeerror!([x = true], x and true) =~ """
-             the following conditional expression will always succeed:
+             the left side does not contribute to the result of "and":
 
-                 x
+                 x and ...
 
-             because it evaluates to:
+             because it always evaluates to:
 
                  dynamic(true)
              """
 
       assert typeerror!([x = false], x and true) =~ """
-             the following conditional expression will never succeed:
+             the right side of "and" (shown as ... below) will never execute:
 
-                 x
+                 x and ...
 
-             because it evaluates to:
+             because the left side always evaluates to:
 
                  dynamic(false)
              """
@@ -3033,83 +3033,178 @@ defmodule Module.Types.ExprTest do
 
     test "or reports violations" do
       assert typeerror!([x = 123], x or true) =~ """
-             the following conditional expression will always fail:
+             the left side of "or" is incompatible with its expected type:
 
-                 x
+                 x or ...
 
-             because it evaluates to:
+             it is expected to be a boolean but it has type:
 
                  integer()
              """
 
       assert typeerror!([x = true], x or true) =~ """
-             the following conditional expression will always succeed:
+             the right side of "or" (shown as ... below) will never execute:
 
-                 x
+                 x or ...
 
-             because it evaluates to:
+             because the left side always evaluates to:
 
                  dynamic(true)
              """
 
       assert typeerror!([x = false], x or true) =~ """
-             the following conditional expression will never succeed:
+             the left side does not contribute to the result of "or":
 
-                 x
+                 x or ...
 
-             because it evaluates to:
+             because it always evaluates to:
 
                  dynamic(false)
              """
+
+      assert typeerror!([x, y = true], is_boolean(x) and (x or y or true)) =~ """
+             the right side of "or" (shown as ... below) will never execute:
+
+                 x or y or ...
+
+             because the left side always evaluates to:
+
+                 true
+             """
+    end
+
+    test "and/or report non-boolean violations once" do
+      assert {_, [%{message: message}]} = typediag!([x = 123], x or true)
+      assert message =~ ~s(the left side of "or" is incompatible)
     end
 
     test "|| reports violations" do
       assert typeerror!([x = 123], x || true) =~ """
-             the right-hand side of || will never execute:
+             the right side of "||" (shown as ... below) will never execute:
 
                  x || ...
 
-             because the left-hand side always evaluates to:
+             because the left side always evaluates to:
 
                  integer()
              """
 
       assert typeerror!([x = 123], System.get_env("foo") || x || true) =~ """
-             the right-hand side of || (shown as ... below) will never execute:
+             the right side of "||" (shown as ... below) will never execute:
 
                  System.get_env("foo") || x || ...
 
-             because the left-hand side always evaluates to:
+             because the left side always evaluates to:
 
                  dynamic(binary() or integer())
 
              """
 
-      assert typewarn!([x = false], x || true) |> elem(1) =~ """
-             the right-hand side of || will always execute:
+      assert typewarn!([x = false], x || true) |> elem(1) =~ ~l"""
+             the left side does not contribute to the result of "||":
 
                  x || ...
 
-             because the left-hand side always evaluates to:
+             because it always evaluates to:
 
                  dynamic(false)
+
+             where "x" was given the type:
+
+                 # type: dynamic(false)
+                 # from: types_test.ex:LINE
+                 x = false
              """
     end
 
-    test "if, unless, and && report violations" do
-      message = """
-      the following conditional expression:
+    test "&& reports violations" do
+      assert typeerror!([x = 123], x && :a) =~ """
+             the left side does not contribute to the result of "&&":
 
-          x
+                 x && ...
 
-      will always evaluate to:
+             because it always evaluates to:
 
-          integer()
-      """
+                 integer()
+             """
 
-      assert typeerror!([x = 123], if(x, do: :a)) =~ message
-      assert typeerror!([x = 123], unless(x, do: :a)) =~ message
-      assert typeerror!([x = 123], x && :a) =~ message
+      assert typewarn!([x = nil], x && :a) |> elem(1) =~ ~l"""
+             the right side of "&&" (shown as ... below) will never execute:
+
+                 x && ...
+
+             because the left side always evaluates to:
+
+                 dynamic(nil)
+
+             where "x" was given the type:
+
+                 # type: dynamic(nil)
+                 # from: types_test.ex:LINE
+                 x = nil
+
+             hint: the right side is either unreachable or only reachable on code paths that will fail, so it can likely be removed
+             """
+    end
+
+    test "if and unless report violations" do
+      assert typeerror!([x = 123], if(x, do: :a)) =~ """
+             the "else" branch of "if" will never execute because the following condition:
+
+                 x
+
+             always evaluates to:
+
+                 integer()
+             """
+
+      assert typewarn!([x = nil], if(x, do: :a)) |> elem(1) =~ ~l"""
+             the "do" branch of "if" will never execute because the following condition:
+
+                 x
+
+             always evaluates to:
+
+                 dynamic(nil)
+
+             where "x" was given the type:
+
+                 # type: dynamic(nil)
+                 # from: types_test.ex:LINE
+                 x = nil
+
+             hint: the "do" branch is either unreachable or only reachable on code paths that will fail, so it can likely be removed
+             """
+
+      assert typeerror!([x], is_integer(x) and if(is_integer(x), do: :a)) =~ """
+             the "else" branch of "if" will never execute because the following condition:
+
+                 is_integer(x)
+
+             always evaluates to:
+
+                 true
+             """
+
+      assert typeerror!([x = 123], unless(x, do: :a)) =~ """
+             the "do" branch of "unless" will never execute because the following condition:
+
+                 x
+
+             always evaluates to:
+
+                 integer()
+             """
+
+      assert typewarn!([x = nil], unless(x, do: :a)) |> elem(1) =~ """
+             the "else" branch of "unless" will never execute because the following condition:
+
+                 x
+
+             always evaluates to:
+
+                 dynamic(nil)
+             """
     end
 
     test "! reports violations" do
@@ -3137,6 +3232,12 @@ defmodule Module.Types.ExprTest do
              will always evaluate to true because its inner expression has type:
 
                  dynamic(nil)
+
+             where "x" was given the type:
+
+                 # type: dynamic(nil)
+                 # from: types_test.ex:LINE
+                 x = nil
              """
 
       assert typeerror!([x = 123], !!x) =~ ~l"""
@@ -4492,7 +4593,7 @@ defmodule Module.Types.ExprTest do
 
                  :ok <- System.get_env(x)
 
-             because the right-hand side has type:
+             because the right side has type:
 
                  dynamic(nil or binary())
              """

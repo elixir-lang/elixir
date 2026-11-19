@@ -352,19 +352,25 @@ defmodule Module.ParallelChecker do
   defp group_diagnostics(triplets) do
     {ungrouped, grouped} =
       Enum.reduce(triplets, {[], %{}}, fn {module, term, location}, {ungrouped, grouped} ->
-        %{message: _} = diagnostic = module.format_diagnostic(term)
+        diagnostic = module.format_diagnostic(term)
 
-        if Map.get(diagnostic, :group, false) do
-          locations = MapSet.new([location])
+        cond do
+          # Diagnostics may be skipped when already reported by another one
+          diagnostic == nil ->
+            {ungrouped, grouped}
 
-          grouped =
-            Map.update(grouped, term, {locations, diagnostic}, fn
-              {locations, diagnostic} -> {MapSet.put(locations, location), diagnostic}
-            end)
+          Map.get(diagnostic, :group, false) ->
+            locations = MapSet.new([location])
 
-          {ungrouped, grouped}
-        else
-          {[{[location], diagnostic} | ungrouped], grouped}
+            grouped =
+              Map.update(grouped, term, {locations, diagnostic}, fn
+                {locations, diagnostic} -> {MapSet.put(locations, location), diagnostic}
+              end)
+
+            {ungrouped, grouped}
+
+          true ->
+            {[{[location], diagnostic} | ungrouped], grouped}
         end
       end)
 

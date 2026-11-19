@@ -85,8 +85,12 @@ defmodule TypeHelper do
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
   @doc false
-  def __typeerror__!({_type, %{warnings: [{module, warning, _locs} | _], failed: true}}),
-    do: module.format_diagnostic(warning).message
+  def __typeerror__!({_type, %{warnings: [_ | _] = warnings, failed: true}}) do
+    Enum.find_value(warnings, fn {module, warning, _locs} ->
+      diagnostic = module.format_diagnostic(warning)
+      diagnostic && diagnostic.message
+    end)
+  end
 
   def __typeerror__!({_type, %{warnings: warnings, failed: false}}),
     do: raise("type checking with warnings but expected error: #{inspect(warnings)}")
@@ -96,7 +100,7 @@ defmodule TypeHelper do
 
   @doc false
   def __typediag__!({type, %{warnings: [_ | _] = warnings}}),
-    do: {type, for({module, arg, _} <- warnings, do: module.format_diagnostic(arg))}
+    do: {type, for({module, arg, _} <- warnings, diag = module.format_diagnostic(arg), do: diag)}
 
   def __typediag__!({type, %{warnings: []}}),
     do: raise("type checking without diagnostics: #{Descr.to_quoted_string(type)}")

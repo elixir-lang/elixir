@@ -1684,66 +1684,12 @@ defmodule Module.Types.Pattern do
   end
 
   def format_diagnostic({:badguard, info, guard, type, context}) do
-    {expr, message} =
+    {expr, message, hints} =
       with {{:case, meta, expr, type}, _} <- info,
            {:case, op} <- meta[:type_check],
            true <- op in [:||, :!, :"!!", :&&, :if, :unless] do
-        message =
-          case op do
-            :|| ->
-              additional =
-                with {:case, meta, [_, _]} <- expr,
-                     {:case, :||} <- meta[:type_check] do
-                  "(shown as ... below) "
-                else
-                  _ -> ""
-                end
-
-              """
-              the right-hand side of || #{additional}will never execute:
-
-                  #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
-
-              because the left-hand side always evaluates to:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-
-            :! ->
-              """
-              the following conditional expression:
-
-                  #{expr_to_string({:!, [], [expr]}) |> indent(4)}
-
-              will always evaluate to false because its inner expression has type:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-
-            :"!!" ->
-              """
-              the following conditional expression:
-
-                  #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
-
-              will always evaluate to true because its inner expression has type:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-
-            _ ->
-              """
-              the following conditional expression:
-
-                  #{expr_to_string(expr) |> indent(4)}
-
-              will always evaluate to:
-
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-          end
-
-        {expr, message}
+        {message, hints} = conditional_message(op, true, expr, type)
+        {expr, message, hints}
       else
         _ ->
           {guard,
@@ -1755,14 +1701,14 @@ defmodule Module.Types.Pattern do
            because it returns type:
 
                #{to_quoted_string(type) |> indent(4)}
-           """}
+           """, []}
       end
 
     traces = collect_traces(expr, context)
 
     %{
       details: %{typing_traces: traces},
-      message: IO.iodata_to_binary([message, format_traces(traces)])
+      message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
     }
   end
 
@@ -1809,76 +1755,49 @@ defmodule Module.Types.Pattern do
   end
 
   def format_diagnostic({:redundant, {info, args}, expected, _types, previous, context}) do
-    traces = collect_traces(args, context)
-
-    message =
+    {to_trace, message, hints} =
       with {_op, meta, expr, type} <- info,
            true <- previous_subtype?(expected, previous) do
         case meta[:type_check] do
-          {:case, :||} ->
-            """
-            the right-hand side of || will always execute:
-
-                #{expr_to_string({:||, [], [expr, {:..., [], []}]}) |> indent(4)}
-
-            because the left-hand side always evaluates to:
-
-                #{to_quoted_string(type) |> indent(4)}
-            """
-
-          {:case, :!} ->
-            """
-            the following conditional expression:
-
-                #{expr_to_string({:!, [], [expr]}) |> indent(4)}
-
-            will always evaluate to true because its inner expression has type:
-
-                #{to_quoted_string(type) |> indent(4)}
-            """
-
-          {:case, :"!!"} ->
-            """
-            the following conditional expression:
-
-                #{expr_to_string({:!, [], [{:!, [], [expr]}]}) |> indent(4)}
-
-            will always evaluate to false because its inner expression has type:
-
-                #{to_quoted_string(type) |> indent(4)}
-            """
+          {:case, op} when op in [:||, :!, :"!!", :&&, :if, :unless] ->
+            {message, hints} = conditional_message(op, false, expr, type)
+            {expr, message, hints}
 
           _ ->
-            """
-            the following clause cannot match because the previous clauses already matched all possible values:
+            {args,
+             """
+             the following clause cannot match because the previous clauses already matched all possible values:
 
-                #{args_to_string(args) |> indent(4)} ->
+                 #{args_to_string(args) |> indent(4)} ->
 
-            it attempts to match on the result of:
+             it attempts to match on the result of:
 
-                #{expr_to_string(expr) |> indent(4)}
+                 #{expr_to_string(expr) |> indent(4)}
 
-            which has the already matched type:
+             which has the already matched type:
 
-                #{to_quoted_string(type) |> indent(4)}
-            """
+                 #{to_quoted_string(type) |> indent(4)}
+             """, []}
         end
       else
         _ ->
-          """
-          the following clause is redundant:
+          {args,
+           """
+           the following clause is redundant:
 
-              #{args_to_string(args) |> indent(4)} ->
+               #{args_to_string(args) |> indent(4)} ->
 
-          previous clauses have already matched on the following types:
+           previous clauses have already matched on the following types:
 
-              #{previous_to_string(previous)}
-          """
+               #{previous_to_string(previous)}
+           """, []}
       end
+
+    traces = collect_traces(to_trace, context)
 
     %{
       details: %{typing_traces: traces},
-      message: IO.iodata_to_binary([message, format_traces(traces)])
+      message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
     }
   end
 
@@ -1910,19 +1829,24 @@ defmodule Module.Types.Pattern do
   # $ typep match_pattern =
   #     {:with or :for or :match, pattern, type}
   def format_diagnostic({:badpattern, meta, index, tag, context}) do
-    {to_trace, message, hints} = badpattern(tag, index)
-    traces = collect_traces(to_trace, context)
+    case badpattern(tag, index) do
+      {to_trace, message, hints} ->
+        traces = collect_traces(to_trace, context)
 
-    hints =
-      case Keyword.get(meta, :type_check) do
-        {:impl, _} = impl -> [impl | hints]
-        _ -> hints
-      end
+        hints =
+          case Keyword.get(meta, :type_check) do
+            {:impl, _} = impl -> [impl | hints]
+            _ -> hints
+          end
 
-    %{
-      details: %{typing_traces: traces},
-      message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
-    }
+        %{
+          details: %{typing_traces: traces},
+          message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
+        }
+
+      nil ->
+        nil
+    end
   end
 
   defp badpattern({{:def, _kind, _fun, types}, args, _guards}, index) when is_integer(index) do
@@ -1947,45 +1871,56 @@ defmodule Module.Types.Pattern do
        because it is expected to receive type:
 
            #{to_quoted_string(type) |> indent(4)}
-       """, [:dead_code]}
+       """, [{:dead_code, "this clause"}]}
     end
   end
 
   defp badpattern({{:case, meta, expr, type}, args}, _index) do
     case meta[:type_check] do
-      {:case, op} ->
-        message =
-          cond do
-            op in [:and, :or] ->
-              {first_message, second_message} =
-                case booleaness(type) do
-                  {true, _} -> {" will always succeed", "because it evaluates to"}
-                  {false, _} -> {" will never succeed", "because it evaluates to"}
-                  :none -> {" will always fail", "because it evaluates to"}
-                  _ -> {"", "will always evaluate to"}
-                end
+      {:case, op} when op in [:and, :or] and args == [false] ->
+        if booleaness(type) == :none do
+          message = """
+          the left side of "#{op}" is incompatible with its expected type:
 
-              """
-              the following conditional expression#{first_message}:
+              #{expr_to_string({op, [], [expr, {:..., [], []}]}) |> indent(4)}
 
-                  #{expr_to_string(expr) |> indent(4)}
+          it is expected to be a boolean but it has type:
 
-              #{second_message}:
+              #{to_quoted_string(type) |> indent(4)}
+          """
 
-                  #{to_quoted_string(type) |> indent(4)}
-              """
+          {expr, message, []}
+        else
+          {message, hints} = conditional_message(op, true, expr, type)
+          {expr, message, hints}
+        end
 
-            true ->
-              """
-              the following conditional expression:
+      # If the left side is not a boolean, both false and true clauses
+      # fail, but it is reported only once (by the false clause above)
+      {:case, op} when op in [:and, :or] and args == [true] ->
+        if booleaness(type) == :none do
+          nil
+        else
+          {message, hints} = conditional_message(op, false, expr, type)
+          {expr, message, hints}
+        end
 
-                  #{expr_to_string(expr) |> indent(4)}
+      # Boolean expressions given to `if`, `unless`, `!`, `and`, and `or`
+      # are optimized to match on false and true
+      {:case, op} when args in [[false], [true]] ->
+        {message, hints} = conditional_message(op, args == [false], expr, type)
+        {expr, message, hints}
 
-              will always evaluate to:
+      {:case, _op} ->
+        message = """
+        the following conditional expression:
 
-                  #{to_quoted_string(type) |> indent(4)}
-              """
-          end
+            #{expr_to_string(expr) |> indent(4)}
+
+        will always evaluate to:
+
+            #{to_quoted_string(type) |> indent(4)}
+        """
 
         {expr, message, []}
 
@@ -2003,7 +1938,7 @@ defmodule Module.Types.Pattern do
          which has type:
 
              #{to_quoted_string(type) |> indent(4)}
-         """, [:dead_code]}
+         """, [{:dead_code, "this clause"}]}
     end
   end
 
@@ -2019,7 +1954,7 @@ defmodule Module.Types.Pattern do
      it is expected to match on type:
 
          #{to_quoted_string(type) |> indent(4)}
-     """, [:dead_code]}
+     """, [{:dead_code, "this clause"}]}
   end
 
   defp badpattern({op, args}, index) when op in [:for_reduce, :receive, :try_catch, :fn] do
@@ -2047,13 +1982,85 @@ defmodule Module.Types.Pattern do
 
             #{expr_to_string(pattern) |> indent(4)}
 
-        because the right-hand side has type:
+        because the right side has type:
 
             #{to_quoted_string(type) |> indent(4)}
         """
       end
 
     {pattern, message, []}
+  end
+
+  # The message (and hints) when the left side of a boolean operator, or the
+  # condition of a conditional, always evaluates to truthy (or falsy) values
+  defp conditional_message(op, truthy?, expr, type) when op in [:and, :or, :&&, :||] do
+    code = expr_to_string({op, [], [expr, {:..., [], []}]}) |> indent(4)
+    type = to_quoted_string(type) |> indent(4)
+
+    # The right side always executes when the left side
+    # is truthy for and/&& and falsy for or/||, so the left side
+    # does not contribute to the result
+    if truthy? == op in [:and, :&&] do
+      message = """
+      the left side does not contribute to the result of "#{op}":
+
+          #{code}
+
+      because it always evaluates to:
+
+          #{type}
+      """
+
+      {message, []}
+    else
+      message = """
+      the right side of "#{op}" (shown as ... below) will never execute:
+
+          #{code}
+
+      because the left side always evaluates to:
+
+          #{type}
+      """
+
+      {message, [{:dead_code, "the right side"}]}
+    end
+  end
+
+  defp conditional_message(op, truthy?, expr, type) when op in [:if, :unless] do
+    branch = if truthy? == (op == :if), do: "else", else: "do"
+
+    message = """
+    the "#{branch}" branch of "#{op}" will never execute because the following condition:
+
+        #{expr_to_string(expr) |> indent(4)}
+
+    always evaluates to:
+
+        #{to_quoted_string(type) |> indent(4)}
+    """
+
+    {message, [{:dead_code, ~s(the "#{branch}" branch)}]}
+  end
+
+  defp conditional_message(op, truthy?, expr, type) when op in [:!, :"!!"] do
+    {result, expr} =
+      case op do
+        :! -> {not truthy?, {:!, [], [expr]}}
+        :"!!" -> {truthy?, {:!, [], [{:!, [], [expr]}]}}
+      end
+
+    message = """
+    the following conditional expression:
+
+        #{expr_to_string(expr) |> indent(4)}
+
+    will always evaluate to #{result} because its inner expression has type:
+
+        #{to_quoted_string(type) |> indent(4)}
+    """
+
+    {message, []}
   end
 
   defp args_to_string(args) do

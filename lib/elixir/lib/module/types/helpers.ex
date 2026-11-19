@@ -130,10 +130,10 @@ defmodule Module.Types.Helpers do
         any argument
         """
 
-      :dead_code ->
+      {:dead_code, subject} ->
         """
 
-        #{hint()} this clause is either unreachable or only reachable on code paths \
+        #{hint()} #{subject} is either unreachable or only reachable on code paths \
         that will fail, so it can likely be removed
         """
     end)
