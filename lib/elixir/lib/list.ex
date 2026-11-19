@@ -130,6 +130,18 @@ defmodule List do
   characters with `ascii_printable?/2`.
 
   Improper lists are never deemed as charlists.
+
+  ## `key*` functions
+
+  This module has a few functions inherited from Erlang for
+  working with lists of tuples. They all start with the `key*`
+  prefix, for example:
+
+      iex> List.keyfind([{:a, :b, :c}, {:x, :y, :z}], :a, 0)
+      {:a, :b, :c}
+
+  They allow you to lookup, delete, or replace elements based
+  on a given value at any position.
   """
 
   @compile :inline_list_funcs
@@ -387,16 +399,14 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keyfind([a: 1, b: 2], :a, 0)
-      {:a, 1}
+      iex> List.keyfind([{:a, :b, :c}, {:x, :y, :z}], :a, 0)
+      {:a, :b, :c}
 
-      iex> List.keyfind([a: 1, b: 2], 2, 1)
-      {:b, 2}
+      iex> List.keyfind([{:a, :b, :c}, {:x, :y, :z}], :y, 1)
+      {:x, :y, :z}
 
-      iex> List.keyfind([a: 1, b: 2], :c, 0)
+      iex> List.keyfind([{:a, :b, :c}, {:x, :y, :z}], :w, 0)
       nil
-
-  This function works for any list of tuples:
 
       iex> List.keyfind([{22, "SSH"}, {80, "HTTP"}], 22, 0)
       {22, "SSH"}
@@ -416,16 +426,14 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keyfind!([a: 1, b: 2], :a, 0)
-      {:a, 1}
+      iex> List.keyfind!([{:a, :b, :c}, {:x, :y, :z}], :a, 0)
+      {:a, :b, :c}
 
-      iex> List.keyfind!([a: 1, b: 2], 2, 1)
-      {:b, 2}
+      iex> List.keyfind!([{:a, :b, :c}, {:x, :y, :z}], :y, 1)
+      {:x, :y, :z}
 
-      iex> List.keyfind!([a: 1, b: 2], :c, 0)
-      ** (KeyError) key :c at position 0 not found in: [a: 1, b: 2]
-
-  This function works for any list of tuples:
+      iex> List.keyfind!([{:a, :b, :c}, {:x, :y, :z}], :w, 0)
+      ** (KeyError) key :w at position 0 not found in: [{:a, :b, :c}, {:x, :y, :z}]
 
       iex> List.keyfind!([{22, "SSH"}, {80, "HTTP"}], 22, 0)
       {22, "SSH"}
@@ -449,16 +457,14 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keymember?([a: 1, b: 2], :a, 0)
+      iex> List.keymember?([{:a, :b, :c}, {:x, :y, :z}], :a, 0)
       true
 
-      iex> List.keymember?([a: 1, b: 2], 2, 1)
+      iex> List.keymember?([{:a, :b, :c}, {:x, :y, :z}], :y, 1)
       true
 
-      iex> List.keymember?([a: 1, b: 2], :c, 0)
+      iex> List.keymember?([{:a, :b, :c}, {:x, :y, :z}], :w, 0)
       false
-
-  This function works for any list of tuples:
 
       iex> List.keymember?([{22, "SSH"}, {80, "HTTP"}], 22, 0)
       true
@@ -475,13 +481,11 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keyreplace([a: 1, b: 2], :a, 0, {:a, 3})
-      [a: 3, b: 2]
+      iex> List.keyreplace([{:a, :b, :c}, {:x, :y, :z}], :a, 0, {:a, :b, :d})
+      [{:a, :b, :d}, {:x, :y, :z}]
 
-      iex> List.keyreplace([a: 1, b: 2], :a, 1, {:a, 3})
-      [a: 1, b: 2]
-
-  This function works for any list of tuples:
+      iex> List.keyreplace([{:a, :b, :c}, {:x, :y, :z}], :a, 1, {:a, :b, :d})
+      [{:a, :b, :c}, {:x, :y, :z}]
 
       iex> List.keyreplace([{22, "SSH"}, {80, "HTTP"}], 22, 0, {22, "Secure Shell"})
       [{22, "Secure Shell"}, {80, "HTTP"}]
@@ -504,16 +508,16 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keysort([a: 5, b: 1, c: 3], 1)
-      [b: 1, c: 3, a: 5]
+      iex> List.keysort([{:a, :y, 3}, {:b, :z, 1}, {:c, :x, 2}], 1)
+      [{:c, :x, 2}, {:a, :y, 3}, {:b, :z, 1}]
 
-      iex> List.keysort([a: 5, c: 1, b: 3], 0)
-      [a: 5, b: 3, c: 1]
+      iex> List.keysort([{:a, :y, 3}, {:b, :z, 1}, {:c, :x, 2}], 2)
+      [{:b, :z, 1}, {:c, :x, 2}, {:a, :y, 3}]
 
   To sort in descending order:
 
-      iex> List.keysort([a: 5, c: 1, b: 3], 0, :desc)
-      [c: 1, b: 3, a: 5]
+      iex> List.keysort([{:a, :y, 3}, {:b, :z, 1}, {:c, :x, 2}], 0, :desc)
+      [{:c, :x, 2}, {:b, :z, 1}, {:a, :y, 3}]
 
   As in `Enum.sort/2`, avoid using the default sorting function to sort
   structs, as by default it performs structural comparison instead of a
@@ -581,13 +585,11 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keystore([a: 1, b: 2], :a, 0, {:a, 3})
-      [a: 3, b: 2]
+      iex> List.keystore([{:a, :b, :c}, {:x, :y, :z}], :a, 0, {:a, :b, :d})
+      [{:a, :b, :d}, {:x, :y, :z}]
 
-      iex> List.keystore([a: 1, b: 2], :c, 0, {:c, 3})
-      [a: 1, b: 2, c: 3]
-
-  This function works for any list of tuples:
+      iex> List.keystore([{:a, :b, :c}, {:x, :y, :z}], :w, 0, {:w, :v, :u})
+      [{:a, :b, :c}, {:x, :y, :z}, {:w, :v, :u}]
 
       iex> List.keystore([{22, "SSH"}], 80, 0, {80, "HTTP"})
       [{22, "SSH"}, {80, "HTTP"}]
@@ -605,16 +607,14 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keydelete([a: 1, b: 2], :a, 0)
-      [b: 2]
+      iex> List.keydelete([{:a, :b, :c}, {:x, :y, :z}], :a, 0)
+      [{:x, :y, :z}]
 
-      iex> List.keydelete([a: 1, b: 2], 2, 1)
-      [a: 1]
+      iex> List.keydelete([{:a, :b, :c}, {:x, :y, :z}], :y, 1)
+      [{:a, :b, :c}]
 
-      iex> List.keydelete([a: 1, b: 2], :c, 0)
-      [a: 1, b: 2]
-
-  This function works for any list of tuples:
+      iex> List.keydelete([{:a, :b, :c}, {:x, :y, :z}], :w, 0)
+      [{:a, :b, :c}, {:x, :y, :z}]
 
       iex> List.keydelete([{22, "SSH"}, {80, "HTTP"}], 80, 0)
       [{22, "SSH"}]
@@ -634,16 +634,14 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keytake([a: 1, b: 2], :a, 0)
-      {{:a, 1}, [b: 2]}
+      iex> List.keytake([{:a, :b, :c}, {:x, :y, :z}], :a, 0)
+      {{:a, :b, :c}, [{:x, :y, :z}]}
 
-      iex> List.keytake([a: 1, b: 2], 2, 1)
-      {{:b, 2}, [a: 1]}
+      iex> List.keytake([{:a, :b, :c}, {:x, :y, :z}], :y, 1)
+      {{:x, :y, :z}, [{:a, :b, :c}]}
 
-      iex> List.keytake([a: 1, b: 2], :c, 0)
+      iex> List.keytake([{:a, :b, :c}, {:x, :y, :z}], :w, 0)
       nil
-
-  This function works for any list of tuples:
 
       iex> List.keytake([{22, "SSH"}, {80, "HTTP"}], 80, 0)
       {{80, "HTTP"}, [{22, "SSH"}]}
