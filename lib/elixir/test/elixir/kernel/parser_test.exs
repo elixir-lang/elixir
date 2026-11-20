@@ -870,6 +870,18 @@ defmodule Kernel.ParserTest do
                 ]}
     end
 
+    test "adds opening and closing information for parenthesized negation" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
+
+      assert string_to_quoted.("(! x)") ==
+               {:__block__, [closing: [line: 1, column: 5], line: 1, column: 1],
+                [{:!, [line: 1, column: 2], [{:x, [line: 1, column: 4], nil}]}]}
+
+      assert string_to_quoted.("(not x)") ==
+               {:__block__, [closing: [line: 1, column: 7], line: 1, column: 1],
+                [{:not, [line: 1, column: 2], [{:x, [line: 1, column: 6], nil}]}]}
+    end
+
     test "only adds parens metadata for grouped do bodies" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
 
