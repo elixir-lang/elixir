@@ -8,6 +8,7 @@
   atom_test,
   control_test,
   function_test,
+  inline_test,
   string_test,
   tokenizer_test
 ]).
