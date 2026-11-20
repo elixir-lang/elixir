@@ -107,6 +107,15 @@ defmodule Kernel.ImportTest do
     assert Macro.Env.lookup_import(__ENV__, {:n, 1}) == []
   end
 
+  test "import only kind with except resets the previous selection" do
+    import FunctionsAndMacros, only: [m: 1]
+    import FunctionsAndMacros, only: :functions, except: [g: 1]
+
+    assert f(:value) == {:f, :value}
+    assert Macro.Env.lookup_import(__ENV__, {:g, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:m, 1}) == []
+  end
+
   test "import except after only macros removes the named macro and leaves functions out" do
     import FunctionsAndMacros, only: :macros
     import FunctionsAndMacros, except: [n: 1]

@@ -94,6 +94,8 @@ import_selected(Meta, Ref, Only, Except, E, Warn, InfoCallback) ->
   {PreviousFuns, PreviousMacs, Exclusions} = case Except of
     false ->
       {false, false, []};
+    _ when Only =/= false ->
+      {false, false, Except};
     _ ->
       case {lists:keyfind(Ref, 1, OldFuns), lists:keyfind(Ref, 1, OldMacs)} of
         {false, false} -> {false, false, Except};
