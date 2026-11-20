@@ -19,7 +19,12 @@ import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) ->
   case import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) of
     {Functions, Macros, Added} ->
       Trace andalso elixir_env:trace({import, Meta, Ref, Opts}, E),
-      EI = E#{functions := Functions, macros := Macros},
+      %% Keep a record of empty imports so a later :except cannot restore them.
+      EFuns = case Added of
+        true -> Functions;
+        false -> [{Ref, []} | Functions]
+      end,
+      EI = E#{functions := EFuns, macros := Macros},
       {ok, Added, elixir_aliases:require(Meta, Ref, [{warn, false} | Opts], EI, Trace)};
 
     {error, Reason} ->
@@ -49,18 +54,8 @@ import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) ->
 
 import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, InfoCallback) ->
   case MaybeOnly of
-    {only, functions} ->
-      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn, InfoCallback),
-      {Funs, keydelete(Ref, ?key(E, macros)), Added1};
-
-    {only, macros} ->
-      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn, InfoCallback),
-      {keydelete(Ref, ?key(E, functions)), Macs, Added2};
-
-    {only, sigils} ->
-      {Added1, _Used1, Funs} = import_sigil_functions(Meta, Ref, Except, E, Warn, InfoCallback),
-      {Added2, _Used2, Macs} = import_sigil_macros(Meta, Ref, Except, E, Warn, InfoCallback),
-      {Funs, Macs, Added1 or Added2};
+    {only, Only} when Only =:= functions; Only =:= macros; Only =:= sigils ->
+      import_selected(Meta, Ref, Only, Except, E, Warn, InfoCallback);
 
     {only, DupOnly} when is_list(DupOnly) ->
       case ensure_keyword_list(DupOnly) of
@@ -83,9 +78,7 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, InfoCallback) ->
       {error, {invalid_option, only, Other}};
 
     false ->
-      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn, InfoCallback),
-      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn, InfoCallback),
-      {Funs, Macs, Added1 or Added2}
+      import_selected(Meta, Ref, false, Except, E, Warn, InfoCallback)
   end.
 
 import_listed_functions(Meta, Ref, Only, E, Warn, InfoCallback) ->
@@ -96,41 +89,44 @@ import_listed_macros(Meta, Ref, Only, E, Warn, InfoCallback) ->
   New = intersection(Only, get_macros(InfoCallback)),
   calculate_key(Meta, Ref, ?key(E, macros), New, E, Warn).
 
-import_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
-  calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
-    get_functions(Ref, InfoCallback)
-  end).
+import_selected(Meta, Ref, Only, Except, E, Warn, InfoCallback) ->
+  #{functions := OldFuns, macros := OldMacs} = E,
+  {PreviousFuns, PreviousMacs, Exclusions} = case Except of
+    false ->
+      {false, false, []};
+    _ ->
+      case {lists:keyfind(Ref, 1, OldFuns), lists:keyfind(Ref, 1, OldMacs)} of
+        {false, false} -> {false, false, Except};
+        {Funs, Macs} -> {import_entries(Funs), import_entries(Macs), Except}
+      end
+  end,
+  NewFuns = select_imports(functions, Only, PreviousFuns, Exclusions,
+    fun() -> get_functions(Ref, InfoCallback) end),
+  {Added1, _, Functions} = calculate_key(Meta, Ref, OldFuns, NewFuns, E, Warn),
+  NewMacs = select_imports(macros, Only, PreviousMacs, Exclusions,
+    fun() -> get_macros(InfoCallback) end),
+  {Added2, _, Macros} = calculate_key(Meta, Ref, OldMacs, NewMacs, E, Warn),
+  {Functions, Macros, Added1 or Added2}.
 
-import_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
-  calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
-    get_macros(InfoCallback)
-  end).
+import_entries(false) -> [];
+import_entries({_Ref, Entries}) -> Entries.
 
-import_sigil_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
-  calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
-    filter_sigils(get_functions(Ref, InfoCallback))
-  end).
-
-import_sigil_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
-  calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
-    filter_sigils(get_macros(InfoCallback))
-  end).
-
-calculate_except(Meta, Key, false, Old, E, Warn, Existing) ->
-  New = remove_underscored(Existing()),
-  calculate_key(Meta, Key, Old, New, E, Warn);
-
-calculate_except(Meta, Key, Except, Old, E, Warn, Existing) ->
+select_imports(functions, macros, _Previous, _Except, _Exports) -> [];
+select_imports(macros, functions, _Previous, _Except, _Exports) -> [];
+select_imports(_Kind, Only, Previous, Except, Exports) ->
+  Available = case Previous of
+    false -> remove_underscored(Exports());
+    _ -> Previous
+  end,
+  Selected = case Only of
+    sigils -> filter_sigils(Available);
+    _ -> Available
+  end,
   %% We are not checking existence of exports listed in :except
   %% option on purpose: to support backwards compatible code.
   %% For example, "import String, except: [trim: 1]"
   %% should work across all Elixir versions.
-  New =
-    case lists:keyfind(Key, 1, Old) of
-      false -> remove_underscored(Existing()) -- Except;
-      {Key, OldImports} -> OldImports -- Except
-    end,
-  calculate_key(Meta, Key, Old, New, E, Warn).
+  Selected -- Except.
 
 calculate_key(Meta, Key, Old, New, E, Warn) ->
   case ordsets:from_list(New) of

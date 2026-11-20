@@ -614,11 +614,12 @@ defmodule Kernel.SpecialForms do
       import List, only: [flatten: 1]
       import String, except: [split: 2]
 
-  Importing the same module again will erase the previous imports,
-  except when the `except` option is used, which is always exclusive
-  on a previously declared `import/2`. If there is no previous import,
-  then it applies to all functions and macros in the module. For
-  example:
+  Importing the same module again replaces the previous selection.
+  With `:except`, the previous selection is the starting point,
+  even if it is empty. On the first import, the starting point is
+  the module's default imports. You can combine `:except` with
+  `only: :functions`, `only: :macros`, or `only: :sigils` to also
+  restrict the selection to that kind. For example:
 
       import List, only: [flatten: 1, keyfind: 4]
       import List, except: [flatten: 1]
