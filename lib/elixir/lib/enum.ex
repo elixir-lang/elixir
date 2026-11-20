@@ -2866,9 +2866,10 @@ defmodule Enum do
     normalized_last = if last >= 0, do: last, else: last + count
 
     normalized_insertion_index =
-      if insertion_index >= 0, do: insertion_index, else: insertion_index + count
+      if insertion_index >= 0, do: insertion_index, else: Kernel.max(insertion_index + count, 0)
 
-    if normalized_first < count and normalized_first != normalized_insertion_index do
+    if normalized_first < count and normalized_last >= normalized_first and
+         normalized_first != normalized_insertion_index do
       normalized_range = normalized_first..normalized_last//1
       slide(enumerable, normalized_range, normalized_insertion_index)
     else
