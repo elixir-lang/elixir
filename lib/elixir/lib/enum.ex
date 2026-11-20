@@ -2861,14 +2861,12 @@ defmodule Enum do
   # Normalize negative input ranges like Enum.slice/2
   def slide(enumerable, first..last//_, insertion_index)
       when first < 0 or last < 0 or insertion_index < 0 do
-    non_neg_index = fn index, count -> Kernel.max(index + count, 0) end
-
     count = Enum.count(enumerable)
-    normalized_first = if first >= 0, do: first, else: non_neg_index.(first, count)
+    normalized_first = if first >= 0, do: first, else: Kernel.max(first + count, 0)
     normalized_last = if last >= 0, do: last, else: last + count
 
     normalized_insertion_index =
-      if insertion_index >= 0, do: insertion_index, else: non_neg_index.(insertion_index, count)
+      if insertion_index >= 0, do: insertion_index, else: Kernel.max(insertion_index + count, 0)
 
     if normalized_first < count and normalized_last >= normalized_first and
          normalized_first != normalized_insertion_index do
