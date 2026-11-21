@@ -407,6 +407,24 @@ defmodule Kernel.ParallelCompilerTest do
       assert msg =~ "** (CompileError) deadlocked waiting on struct FooDeadlock"
     end
 
+    test "stops the Erlang compiler helper when its owner is killed" do
+      parent = self()
+
+      owner =
+        spawn(fn ->
+          :elixir_erl_compiler.spawn(fn ->
+            send(parent, {:compiler_helper, self()})
+            Process.sleep(:infinity)
+          end)
+        end)
+
+      assert_receive {:compiler_helper, helper}
+      ref = Process.monitor(helper)
+      on_exit(fn -> Process.exit(helper, :kill) end)
+      Process.exit(owner, :kill)
+      assert_receive {:DOWN, ^ref, :process, ^helper, :killed}
+    end
+
     test "does not deadlock from Code.ensure_compiled" do
       [foo, bar] =
         write_tmp(
