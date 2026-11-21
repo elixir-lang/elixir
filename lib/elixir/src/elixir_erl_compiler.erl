@@ -7,8 +7,9 @@
 -include("elixir.hrl").
 
 spawn(Fun) ->
+  Parent = self(),
   CompilerInfo = get(elixir_compiler_info),
-  {error_handler, ErrorHandler} = erlang:process_info(self(), error_handler),
+  {error_handler, ErrorHandler} = erlang:process_info(Parent, error_handler),
 
   CodeDiagnostics =
     case get(elixir_code_diagnostics) of
@@ -17,7 +18,7 @@ spawn(Fun) ->
     end,
 
   {_, Ref} =
-    spawn_monitor(fun() ->
+    spawn_opt(fun() ->
       erlang:process_flag(error_handler, ErrorHandler),
       put(elixir_compiler_info, CompilerInfo),
       put(elixir_code_diagnostics, CodeDiagnostics),
@@ -27,8 +28,11 @@ spawn(Fun) ->
       catch
         Kind:Reason:Stack ->
           exit({Kind, Reason, Stack, get(elixir_code_diagnostics)})
+      after
+        %% Return the result through the monitor without exiting the caller.
+        unlink(Parent)
       end
-    end),
+    end, [link, monitor]),
 
   receive
     {'DOWN', Ref, process, _, {ok, Result, Diagnostics}} ->
