@@ -167,34 +167,27 @@ defmodule Kernel.Utils do
     escaped_struct = :elixir_quote.escape(struct, {:struct, module}, false)
 
     body =
-      case bootstrapped? do
+      case bootstrapped? and enforce_keys != [] do
         true ->
-          case enforce_keys do
-            [] ->
-              quote line: 0, generated: true do
-                Enum.reduce(kv, unquote(escaped_struct), fn {key, val}, map ->
-                  %{map | key => val}
-                end)
-              end
+          quote line: 0, generated: true do
+            {map, keys} =
+              :lists.foldl(
+                fn {key, val}, {map, keys} ->
+                  {%{map | key => val}, :lists.delete(key, keys)}
+                end,
+                {unquote(escaped_struct), unquote(enforce_keys)},
+                kv
+              )
 
-            _ ->
-              quote line: 0, generated: true do
-                {map, keys} =
-                  Enum.reduce(kv, {unquote(escaped_struct), unquote(enforce_keys)}, fn
-                    {key, val}, {map, keys} ->
-                      {%{map | key => val}, List.delete(keys, key)}
-                  end)
+            case keys do
+              [] ->
+                map
 
-                case keys do
-                  [] ->
-                    map
-
-                  _ ->
-                    raise ArgumentError,
-                          "the following keys must also be given when building " <>
-                            "struct #{inspect(__MODULE__)}: #{inspect(keys)}"
-                end
-              end
+              _ ->
+                raise ArgumentError,
+                      "the following keys must also be given when building " <>
+                        "struct #{inspect(__MODULE__)}: #{inspect(keys)}"
+            end
           end
 
         false ->
