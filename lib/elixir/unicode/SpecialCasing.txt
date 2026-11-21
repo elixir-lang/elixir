@@ -1,6 +1,6 @@
-# SpecialCasing-17.0.0.txt
-# Date: 2025-07-31, 22:11:55 GMT
-# © 2025 Unicode®, Inc.
+# SpecialCasing-18.0.0.txt
+# Date: 2026-05-19, 02:48:44 GMT
+# © 2026 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
@@ -63,8 +63,16 @@
 # do not modify the case mapping algorithms in the core specification, chapter 3.
 # ================================================================================
 
-# The German es-zed is special--the normal mapping is to SS.
-# Note: the titlecase should never occur in practice. It is equal to titlecase(uppercase(<es-zed>))
+# The German sharp s (ß, also called es-zed) is special:
+# The customary uppercase mapping is to SS,
+# rather than to the newer U+1E9E capital sharp s.
+#
+# Note: The Case Pair Stability policy forbids
+# changing the default Unicode uppercasing of U+00DF to U+1E9E.
+#
+# For details see The Unicode Standard, section 5.18.2, under “German sharp s”.
+#
+# Note: The titlecase should never occur in practice. It is equal to titlecase(uppercase('ß')).
 
 00DF; 00DF; 0053 0073; 0053 0053; # LATIN SMALL LETTER SHARP S
 
@@ -81,6 +89,7 @@ FB03; FB03; 0046 0066 0069; 0046 0046 0049; # LATIN SMALL LIGATURE FFI
 FB04; FB04; 0046 0066 006C; 0046 0046 004C; # LATIN SMALL LIGATURE FFL
 FB05; FB05; 0053 0074; 0053 0054; # LATIN SMALL LIGATURE LONG S T
 FB06; FB06; 0053 0074; 0053 0054; # LATIN SMALL LIGATURE ST
+1DF95; 1DF95; 0053 0073; 0053 0053; # LATIN SMALL LIGATURE LONG S WITH DESCENDER S
 
 0587; 0587; 0535 0582; 0535 0552; # ARMENIAN SMALL LIGATURE ECH YIWN
 FB13; FB13; 0544 0576; 0544 0546; # ARMENIAN SMALL LIGATURE MEN NOW
