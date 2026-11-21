@@ -515,16 +515,26 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # Release waiting processes
-  defp spawn_workers([{pid, found} | t], spawned, waiting, files, result, warnings, errors, state) do
+  defp spawn_workers(
+         [{pid, ref, found} | t],
+         spawned,
+         waiting,
+         files,
+         result,
+         warnings,
+         errors,
+         state
+       ) do
     {files, waiting} =
-      case Map.pop(waiting, pid) do
-        {%{kind: kind, ref: ref, file_pid: file_pid, on: on}, waiting} ->
+      case waiting do
+        %{^pid => %{kind: kind, ref: ^ref, file_pid: file_pid, on: on}} ->
           send(pid, {ref, found})
-          {update_timing(files, file_pid, {:waiting, kind, on}), waiting}
+          {update_timing(files, file_pid, {:waiting, kind, on}), Map.delete(waiting, pid)}
 
-        {nil, waiting} ->
-          # In case the waiting process died (for example, it was an async process),
-          # it will no longer be on the list. So we need to take it into account here.
+        %{} ->
+          # The process may no longer be waiting on this ref, either because
+          # it died (for example, it was an async process) or because it was
+          # released (for example, on deadlock) and is now waiting on another.
           {files, waiting}
       end
 
@@ -603,8 +613,9 @@ defmodule Kernel.ParallelCompiler do
   # spawned 1, waiting for 1: Release it!
   defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(waiting) == map_size(spawned) and map_size(waiting) == 1 do
-    {pid, _, _iterator} = :maps.next(:maps.iterator(waiting))
-    spawn_workers([{pid, :not_found}], spawned, waiting, files, result, warnings, errors, state)
+    {pid, %{ref: ref}, _iterator} = :maps.next(:maps.iterator(waiting))
+    queue = [{pid, ref, :not_found}]
+    spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
   end
 
   # spawned x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
@@ -709,17 +720,17 @@ defmodule Kernel.ParallelCompiler do
   defp without_definition(waiting_list, files) do
     nilify_empty_or_sort(
       for %{pid: file_pid} <- files,
-          {pid, %{file_pid: ^file_pid, on: on}} <- waiting_list,
+          {pid, %{file_pid: ^file_pid, on: on, ref: ref}} <- waiting_list,
           is_atom(on) and not defining?(on, waiting_list),
-          do: {pid, :not_found}
+          do: {pid, ref, :not_found}
     )
   end
 
   defp deadlocked(waiting_list, type, defining?) do
     nilify_empty_or_sort(
-      for {pid, %{on: on, deadlock: ^type}} <- waiting_list,
+      for {pid, %{on: on, deadlock: ^type, ref: ref}} <- waiting_list,
           is_atom(on) and defining?(on, waiting_list) == defining?,
-          do: {pid, :deadlock}
+          do: {pid, ref, :deadlock}
     )
   end
 
@@ -768,14 +779,14 @@ defmodule Kernel.ParallelCompiler do
 
         {available, load_status, warnings} =
           case Map.get(result, {:module, module}) do
-            [_ | _] = pids when loaded? ->
-              {Enum.map(pids, &{&1, :found}), loaded?, warnings}
+            [_ | _] = waiters when loaded? ->
+              {for({pid, ref} <- waiters, do: {pid, ref, :found}), loaded?, warnings}
 
             # When compiling files to disk, we only load the module
             # if other modules are waiting for it.
-            [_ | _] = pids ->
-              pid = load_module(module, binary, state.dest)
-              {Enum.map(pids, &{&1, {:loading, pid}}), pid, warnings}
+            [_ | _] = waiters ->
+              loader = load_module(module, binary, state.dest)
+              {for({pid, ref} <- waiters, do: {pid, ref, {:loading, loader}}), loader, warnings}
 
             # Modules defined earlier in this compilation are not necessarily
             # loaded, so defmodule may not have warned about the redefinition
@@ -836,7 +847,7 @@ defmodule Kernel.ParallelCompiler do
               })
 
             files = update_timing(files, file_pid, :compiling)
-            result = Map.put(result, {kind, on}, [child_pid | available_or_pending])
+            result = Map.put(result, {kind, on}, [{child_pid, ref} | available_or_pending])
             {waiting, files, result}
           end
 
@@ -997,7 +1008,7 @@ defmodule Kernel.ParallelCompiler do
   defp update_result(result, kind, module, value) do
     available =
       case Map.get(result, {kind, module}) do
-        [_ | _] = pids -> Enum.map(pids, &{&1, :found})
+        [_ | _] = waiters -> for {pid, ref} <- waiters, do: {pid, ref, :found}
         _ -> []
       end
 

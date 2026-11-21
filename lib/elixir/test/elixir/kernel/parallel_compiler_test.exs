@@ -536,6 +536,34 @@ defmodule Kernel.ParallelCompilerTest do
       purge([FooCircular, BarCircular])
     end
 
+    test "does not answer later waits for modules released by deadlock" do
+      [foo, bar, baz] =
+        write_tmp(
+          "parallel_released_deadlock",
+          foo: """
+          defmodule FooReleased do
+            import BazReleased, only: []
+          end
+          """,
+          bar: """
+          defmodule BarReleased do
+            {:error, :unavailable} = Code.ensure_compiled(FooReleased)
+          end
+          """,
+          baz: """
+          defmodule BazReleased do
+            {:error, :unavailable} = Code.ensure_compiled(BarReleased)
+            {:error, :unavailable} = Code.ensure_compiled(BazReleasedMissing)
+          end
+          """
+        )
+
+      assert {:ok, modules, @no_warnings} = compile([foo, bar, baz])
+      assert Enum.sort(modules) == [BarReleased, BazReleased, FooReleased]
+    after
+      purge([FooReleased, BarReleased, BazReleased])
+    end
+
     test "handles pmap compilation" do
       [foo, bar] =
         write_tmp(
