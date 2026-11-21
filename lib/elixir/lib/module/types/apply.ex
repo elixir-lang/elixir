@@ -2105,17 +2105,20 @@ defmodule Module.Types.Apply do
         {:badarity, kind, arities} ->
           arity = length(args_types)
 
-          {info, hints} =
+          # The hint only applies if the function may have the given arity
+          {info, mixed_arity?} =
             case {kind, arities} do
-              {:positive, [arity]} ->
-                {"function with arity #{arity}", []}
+              {:positive, [single]} ->
+                {"function with arity #{single}", false}
 
               {:positive, _} ->
-                {"function with arities #{Enum.join(arities, ",")}", [:mixed_arity]}
+                {"function with arities #{Enum.join(arities, ",")}", arity in arities}
 
               {:negative, _} ->
-                {"function with arities other than #{arity}", [:mixed_arity]}
+                {"function with arities other than #{arity}", arity not in arities}
             end
+
+          hints = if mixed_arity?, do: [:mixed_arity], else: []
 
           message = """
           expected a #{arity}-arity function on #{mfa_or_call}:
