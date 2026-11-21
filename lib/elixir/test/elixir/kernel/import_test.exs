@@ -90,6 +90,51 @@ defmodule Kernel.ImportTest do
     assert duplicate([1], 2) == [1]
   end
 
+  defmodule FunctionsAndMacros do
+    def f(x), do: {:f, x}
+    def g(x), do: {:g, x}
+    defmacro m(x), do: quote(do: {:m, unquote(x)})
+    defmacro n(x), do: quote(do: {:n, unquote(x)})
+  end
+
+  test "import except after only f/1 keeps f/1 and leaves macros out" do
+    import FunctionsAndMacros, only: [f: 1]
+    import FunctionsAndMacros, except: [g: 1]
+
+    assert f(:value) == {:f, :value}
+    assert Macro.Env.lookup_import(__ENV__, {:g, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:m, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:n, 1}) == []
+  end
+
+  test "import only kind with except resets the previous selection" do
+    import FunctionsAndMacros, only: [m: 1]
+    import FunctionsAndMacros, only: :functions, except: [g: 1]
+
+    assert f(:value) == {:f, :value}
+    assert Macro.Env.lookup_import(__ENV__, {:g, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:m, 1}) == []
+  end
+
+  test "import except after only macros removes the named macro and leaves functions out" do
+    import FunctionsAndMacros, only: :macros
+    import FunctionsAndMacros, except: [n: 1]
+
+    assert m(:value) == {:m, :value}
+    assert Macro.Env.lookup_import(__ENV__, {:n, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:f, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:g, 1}) == []
+  end
+
+  test "import except keeps an empty selection after the last import is excluded" do
+    import FunctionsAndMacros, only: [f: 1], warn: false
+    import FunctionsAndMacros, except: [f: 1], warn: false
+    import FunctionsAndMacros, except: [g: 1], warn: false
+
+    assert Macro.Env.lookup_import(__ENV__, {:f, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:m, 1}) == []
+  end
+
   defmodule Underscored do
     def hello(x), do: x
     def __underscore__(x), do: x
@@ -208,6 +253,15 @@ defmodule Kernel.ImportTest do
     assert ~I'10' == 10
     assert ~III'10' == 30
     assert ~w(abc def) == ["abc", "def"]
+  end
+
+  test "import Kernel only sigils with except keeps ~s and excludes ~W and non-sigils" do
+    import Kernel, only: :sigils, except: [sigil_W: 2]
+
+    assert "foo" = ~s(foo)
+    assert [] = Macro.Env.lookup_import(__ENV__, {:sigil_W, 2})
+    assert [] = Macro.Env.lookup_import(__ENV__, {:is_atom, 1})
+    assert [] = Macro.Env.lookup_import(__ENV__, {:if, 2})
   end
 
   test "import only sigils ignores malformed sigil names" do
