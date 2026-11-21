@@ -98,6 +98,9 @@ defmodule Mix.Tasks.Deps.Partition do
         {index, port}
       end)
 
+    # Sized while the partitions boot and connect
+    prioritized = Task.async(fn -> prioritize(deps) end)
+
     clients =
       Enum.map(1..count//1, fn _ ->
         with {:ok, client} <- :gen_tcp.accept(socket, 15_000),
@@ -118,8 +121,41 @@ defmodule Mix.Tasks.Deps.Partition do
         end
       end)
 
+    deps = Task.await(prioritized, :infinity)
     status = Map.new(deps, &{&1.app, :pending})
     send_deps_and_server_loop(clients, [], deps, status)
+  end
+
+  # Sorts dependencies so the ones with the most work left on their
+  # longest chain of dependents come first, as each partition gets the
+  # first dependency whose children have compiled. We estimate the work
+  # from source sizes. Ties keep the converger order.
+  def prioritize(deps) do
+    # Children come before their parents in converger order, so we go
+    # backwards and pass each priority down to the children. `inherited`
+    # has, for each child, the largest priority among its dependents.
+    {priorities, _inherited} =
+      deps
+      |> Enum.reverse()
+      |> Enum.reduce({%{}, %{}}, fn %{app: app, deps: children} = dep, {priorities, inherited} ->
+        priority = source_size(dep) + Map.get(inherited, app, 0)
+
+        inherited =
+          Enum.reduce(children, inherited, fn %{app: child}, acc ->
+            Map.update(acc, child, priority, &max(&1, priority))
+          end)
+
+        {Map.put(priorities, app, priority), inherited}
+      end)
+
+    Enum.sort_by(deps, &Map.fetch!(priorities, &1.app), :desc)
+  end
+
+  defp source_size(%Mix.Dep{opts: opts}) do
+    ~w(lib src c_src)
+    |> Enum.map(&Path.join(opts[:dest], &1))
+    |> Mix.Utils.extract_files(~w(ex erl xrl yrl c cc cpp))
+    |> Enum.sum_by(&:filelib.file_size/1)
   end
 
   defp send_deps_and_server_loop(available, busy, deps, status) do

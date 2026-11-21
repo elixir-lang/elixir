@@ -346,6 +346,147 @@ defmodule Mix.Tasks.DepsTest do
     System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
+  test "os partitions start the root of the longest chain first" do
+    in_tmp("deps_partition_chain", fn ->
+      #   * top_600
+      #     * middle_600
+      #       * root_100
+      #   * standalone_1000
+      root = partition_dep(:root_100, [{"lib/a.ex", 100}])
+      middle = partition_dep(:middle_600, [{"lib/a.ex", 600}], [root])
+      top = partition_dep(:top_600, [{"lib/a.ex", 600}], [middle])
+      standalone = partition_dep(:standalone_1000, [{"lib/a.ex", 1_000}])
+
+      deps = Mix.Tasks.Deps.Partition.prioritize([root, standalone, middle, top])
+      assert Enum.map(deps, & &1.app) == [:root_100, :middle_600, :standalone_1000, :top_600]
+    end)
+  end
+
+  test "os partitions count the longest dependent, not all of them" do
+    in_tmp("deps_partition_dependents", fn ->
+      #   * left_600
+      #     * fork_100
+      #   * right_600
+      #     * fork_100
+      #   * tail_800
+      #     * root_100
+      fork = partition_dep(:fork_100, [{"lib/a.ex", 100}])
+      left = partition_dep(:left_600, [{"lib/a.ex", 600}], [fork])
+      right = partition_dep(:right_600, [{"lib/a.ex", 600}], [fork])
+      root = partition_dep(:root_100, [{"lib/a.ex", 100}])
+      tail = partition_dep(:tail_800, [{"lib/a.ex", 800}], [root])
+
+      deps = Mix.Tasks.Deps.Partition.prioritize([fork, left, right, root, tail])
+      assert Enum.map(deps, & &1.app) == [:root_100, :tail_800, :fork_100, :left_600, :right_600]
+    end)
+  end
+
+  test "os partitions only count the sources of dependencies" do
+    in_tmp("deps_partition_sources", fn ->
+      # Listed from the smallest to the largest, and sized so that leaving out
+      # any directory or extension changes the order instead of making a tie
+      deps = [
+        partition_dep(:no_sources_0, []),
+        partition_dep(:priv_100, [
+          {"lib/a.ex", 100},
+          {"priv/a.json", 10_000},
+          {"test/a.ex", 10_000}
+        ]),
+        # Children that are not being compiled do not count
+        partition_dep(:unknown_child_450, [{"lib/a.ex", 450}], [%Mix.Dep{app: :unknown}]),
+        partition_dep(:c_src_550, [
+          {"c_src/a.c", 250},
+          {"c_src/a.cc", 150},
+          {"c_src/nested/a.cpp", 150}
+        ]),
+        partition_dep(:src_600, [{"src/a.erl", 300}, {"src/a.xrl", 200}, {"src/a.yrl", 100}]),
+        partition_dep(:nested_lib_700, [{"lib/a/b/c.ex", 700}])
+      ]
+
+      deps = Mix.Tasks.Deps.Partition.prioritize(deps)
+
+      assert Enum.map(deps, & &1.app) == [
+               :nested_lib_700,
+               :src_600,
+               :c_src_550,
+               :unknown_child_450,
+               :priv_100,
+               :no_sources_0
+             ]
+    end)
+  end
+
+  test "os partitions send the dependency with the most source first" do
+    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
+    Mix.debug(true)
+
+    in_tmp("deps_partition_send_order", fn ->
+      for app <- ["first_dep", "second_dep"] do
+        File.mkdir_p!("#{app}/lib")
+
+        File.write!("#{app}/mix.exs", """
+        defmodule #{Macro.camelize(app)}.MixProject do
+          use Mix.Project
+          def project, do: [app: :#{app}, version: "0.1.0"]
+        end
+        """)
+      end
+
+      File.write!("mix.exs", """
+      defmodule PartitionOrder.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :partition_order,
+            version: "0.1.0",
+            deps: [{:first_dep, path: "first_dep"}, {:second_dep, path: "second_dep"}]
+          ]
+        end
+      end
+      """)
+
+      Mix.Project.in_project(:partition_order, ".", fn _ ->
+        # The dependency the converger lists last is the largest, so it is
+        # only sent first if the dependencies were sorted
+        [_, last] = Enum.map(Mix.Dep.load_and_cache(), &Atom.to_string(&1.app))
+        File.write!("#{last}/lib/large.ex", "# " <> String.duplicate("a", 10_000) <> "\n")
+
+        ExUnit.CaptureIO.capture_io(fn -> Mix.Tasks.Deps.Compile.run([]) end)
+        assert_received {:mix_shell, :info, ["-- Sending " <> sent]}
+        assert sent =~ ~r/^#{last} to /
+      end)
+    end)
+  after
+    Mix.debug(false)
+    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
+  end
+
+  test "os partitions keep the converger order on ties" do
+    in_tmp("deps_partition_ties", fn ->
+      #   * parent_0
+      #     * child_0
+      #   * standalone_0
+      child = partition_dep(:child_0, [])
+      standalone = partition_dep(:standalone_0, [])
+      parent = partition_dep(:parent_0, [], [child])
+
+      deps = Mix.Tasks.Deps.Partition.prioritize([child, standalone, parent])
+      assert Enum.map(deps, & &1.app) == [:child_0, :standalone_0, :parent_0]
+    end)
+  end
+
+  defp partition_dep(app, files, children \\ []) do
+    dest = Path.expand(Atom.to_string(app))
+
+    for {file, size} <- files do
+      File.mkdir_p!(Path.join(dest, Path.dirname(file)))
+      File.write!(Path.join(dest, file), :binary.copy("a", size))
+    end
+
+    %Mix.Dep{app: app, opts: [dest: dest], deps: children}
+  end
+
   test "doesn't compile any umbrella apps if --skip-umbrella-children is given" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
