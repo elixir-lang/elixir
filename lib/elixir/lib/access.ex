@@ -1226,25 +1226,19 @@ defmodule Access do
   end
 
   defp find(:get_and_update, data, predicate, next) when is_list(data) do
-    get_and_update_find(data, [], predicate, next)
+    case Enum.focus(data, predicate) do
+      {pre, element, post} ->
+        case next.(element) do
+          {get, update} -> {get, :lists.reverse(pre, [update | post])}
+          :pop -> {element, :lists.reverse(pre, post)}
+        end
+
+      nil ->
+        {nil, data}
+    end
   end
 
   defp find(_op, data, _predicate, _next) do
     raise "Access.find/1 expected a list, got: #{inspect(data)}"
-  end
-
-  defp get_and_update_find([], updates, _predicate, _next) do
-    {nil, :lists.reverse(updates)}
-  end
-
-  defp get_and_update_find([head | rest], updates, predicate, next) do
-    if predicate.(head) do
-      case next.(head) do
-        {get, update} -> {get, :lists.reverse(updates, [update | rest])}
-        :pop -> {head, :lists.reverse(updates, rest)}
-      end
-    else
-      get_and_update_find(rest, [head | updates], predicate, next)
-    end
   end
 end

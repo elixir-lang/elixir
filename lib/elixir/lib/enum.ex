@@ -1335,6 +1335,61 @@ defmodule Enum do
   end
 
   @doc """
+  Walks the `enumerable` until `fun` returns a truthy value for
+  an element and returns `{pre, element, post}`.
+
+  `pre` holds the elements before `element` in reverse order and
+  `post` holds the elements after `element` in their original order.
+  The original list can be rebuilt with `Enum.reverse(pre, [element | post])`.
+  If no element is found, returns `nil`.
+
+  Keeping `pre` reversed is deliberate: the walk builds it in reverse
+  anyway, so returning it as is saves a reversal. This is useful to
+  replace `element` and rebuild the list, or to keep walking from there.
+
+  The name comes from Huet's zipper, where the element of interest
+  is called the focus and the reversed prefix is the path behind it.
+
+  ## Examples
+
+      iex> Enum.focus([1, 2, 3, 4], &(&1 > 2))
+      {[2, 1], 3, [4]}
+
+      iex> Enum.focus([1, 2, 3, 4], &(&1 > 4))
+      nil
+
+  Replacing the focused element and rebuilding the list:
+
+      iex> {pre, x, post} = Enum.focus([1, 2, 3, 4], &(&1 > 2))
+      iex> Enum.reverse(pre, [x * 10 | post])
+      [1, 2, 30, 4]
+
+  """
+  @doc since: "1.21.0"
+  @spec focus(t, (element -> as_boolean(term))) :: {[element], element, [element]} | nil
+  def focus(enumerable, fun) when is_list(enumerable) do
+    focus_list(enumerable, [], fun)
+  end
+
+  def focus(enumerable, fun) do
+    result =
+      Enumerable.reduce(enumerable, {:cont, {:pre, []}}, fn
+        entry, {:pre, pre} ->
+          if fun.(entry),
+            do: {:cont, {:post, pre, entry, []}},
+            else: {:cont, {:pre, [entry | pre]}}
+
+        entry, {:post, pre, element, post} ->
+          {:cont, {:post, pre, element, [entry | post]}}
+      end)
+
+    case elem(result, 1) do
+      {:post, pre, element, post} -> {pre, element, :lists.reverse(post)}
+      {:pre, _} -> nil
+    end
+  end
+
+  @doc """
   Returns a map with keys as unique elements of `enumerable` and values
   as the count of every element.
 
@@ -4643,6 +4698,20 @@ defmodule Enum do
 
   defp find_value_list([], default, _) do
     default
+  end
+
+  ## focus
+
+  defp focus_list([head | tail], pre, fun) do
+    if fun.(head) do
+      {pre, head, tail}
+    else
+      focus_list(tail, [head | pre], fun)
+    end
+  end
+
+  defp focus_list([], _, _) do
+    nil
   end
 
   ## flat_map
