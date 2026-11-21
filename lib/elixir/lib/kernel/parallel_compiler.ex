@@ -410,7 +410,7 @@ defmodule Kernel.ParallelCompiler do
 
       {modules, _} =
         Enum.flat_map_reduce(result, 0, fn
-          {{:module, module}, {binary, _}}, scheduler when is_binary(binary) ->
+          {{:module, module}, {binary, _, _, _}}, scheduler when is_binary(binary) ->
             send(elem(pool_tuple, scheduler), {:write, module, binary})
             {[module], rem(scheduler + 1, pool_size)}
 
@@ -436,7 +436,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries(result, _output, _state) do
-    for {{:module, module}, {binary, _}} when is_binary(binary) <- result, do: module
+    for {{:module, module}, {binary, _, _, _}} when is_binary(binary) <- result, do: module
   end
 
   defp write_loop(path, timestamp) do
@@ -687,7 +687,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp count_modules(result) do
-    Enum.count(result, &match?({{:module, _}, {binary, _}} when is_binary(binary), &1))
+    Enum.count(result, &match?({{:module, _}, {binary, _, _, _}} when is_binary(binary), &1))
   end
 
   defp each_cycle_return({kind, modules, warnings}), do: {kind, modules, warnings}
@@ -756,27 +756,42 @@ defmodule Kernel.ParallelCompiler do
 
       {{:module_loaded, module}, _ref, _type, _pid, _reason} ->
         result =
-          Map.update!(result, {:module, module}, fn {binary, _loader} -> {binary, true} end)
+          Map.update!(result, {:module, module}, fn {binary, _loader, file, line} ->
+            {binary, true, file, line}
+          end)
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:module_available, child, ref, file, module, binary, loaded?} ->
+      {:module_available, child, ref, file, line, redefined?, module, binary, loaded?} ->
         state.each_module.(file, module, binary)
         send(child, {ref, :ack})
 
-        {available, load_status} =
+        {available, load_status, warnings} =
           case Map.get(result, {:module, module}) do
             [_ | _] = pids when loaded? ->
-              {Enum.map(pids, &{&1, :found}), loaded?}
+              {Enum.map(pids, &{&1, :found}), loaded?, warnings}
 
             # When compiling files to disk, we only load the module
             # if other modules are waiting for it.
             [_ | _] = pids ->
               pid = load_module(module, binary, state.dest)
-              {Enum.map(pids, &{&1, {:loading, pid}}), pid}
+              {Enum.map(pids, &{&1, {:loading, pid}}), pid, warnings}
+
+            # Modules defined earlier in this compilation are not necessarily
+            # loaded, so defmodule may not have warned about the redefinition
+            {_binary, _load_status, previous_file, previous_line}
+            when not redefined? ->
+              if Code.get_compiler_option(:ignore_module_conflict) do
+                {[], loaded?, warnings}
+              else
+                warning =
+                  redefinition_warning(module, previous_file, previous_line, file, line)
+
+                {[], loaded?, [warning | warnings]}
+              end
 
             _ ->
-              {[], loaded?}
+              {[], loaded?, warnings}
           end
 
         spawn_workers(
@@ -784,7 +799,7 @@ defmodule Kernel.ParallelCompiler do
           spawned,
           waiting,
           files,
-          Map.put(result, {:module, module}, {binary, load_status}),
+          Map.put(result, {:module, module}, {binary, load_status, file, line}),
           warnings,
           errors,
           state
@@ -896,6 +911,27 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
+  defp redefinition_warning(module, previous_file, previous_line, file, line) do
+    message =
+      "redefining module #{inspect(module)} " <>
+        "(current version defined in #{Path.relative_to_cwd(previous_file)}:#{previous_line})"
+
+    location = [file: String.to_charlist(Path.relative_to_cwd(file)), line: line]
+    file = Path.absname(file)
+
+    diagnostic = %{
+      severity: :warning,
+      file: file,
+      source: file,
+      position: line,
+      message: message,
+      stacktrace: [{module, :__MODULE__, 0, location}],
+      span: nil
+    }
+
+    :elixir_errors.print_diagnostic(diagnostic, true)
+  end
+
   defp return_error(warnings, errors, state, fun) do
     state.purge_compiler_modules.()
 
@@ -911,7 +947,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp load_pending(kind, module, result, state) do
     case result do
-      %{{:module, ^module} => {binary, load_status}}
+      %{{:module, ^module} => {binary, load_status, file, line}}
       when kind in [:module, :struct] and is_binary(binary) ->
         case load_status do
           true ->
@@ -919,7 +955,7 @@ defmodule Kernel.ParallelCompiler do
 
           false ->
             pid = load_module(module, binary, state.dest)
-            result = Map.put(result, {:module, module}, {binary, pid})
+            result = Map.put(result, {:module, module}, {binary, pid, file, line})
             {{:loading, pid}, result}
 
           pid when is_pid(pid) ->

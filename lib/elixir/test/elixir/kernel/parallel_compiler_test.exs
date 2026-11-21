@@ -102,6 +102,55 @@ defmodule Kernel.ParallelCompilerTest do
                )
     end
 
+    test "warns on modules defined more than once" do
+      [redefined, loaded] =
+        write_tmp(
+          "redefined",
+          redefined: """
+          defmodule WillBeRedefined do
+          end
+
+          defmodule WillBeRedefined do
+          end
+          """,
+          loaded: """
+          defmodule WillBeRedefinedLoaded do
+          end
+
+          WillBeRedefinedLoaded.__info__(:module)
+
+          defmodule WillBeRedefinedLoaded do
+          end
+          """
+        )
+
+      output =
+        capture_io(:stderr, fn ->
+          assert {:ok, _modules, %{compile_warnings: warnings}} =
+                   Kernel.ParallelCompiler.compile_to_path(
+                     [redefined, loaded],
+                     tmp_path("redefined"),
+                     return_diagnostics: true
+                   )
+
+          # One warning by the compiler and one by defmodule, as the module was loaded
+          assert [
+                   %{file: ^redefined, position: 4, message: redefined_message},
+                   %{file: ^loaded, position: 6, message: loaded_message}
+                 ] = Enum.sort_by(warnings, & &1.file, :desc)
+
+          assert redefined_message =~
+                   ~r"redefining module WillBeRedefined \(current version defined in .*redefined.ex:1\)"
+
+          assert loaded_message =~
+                   ~r"redefining module WillBeRedefinedLoaded \(current version loaded from .*\)"
+        end)
+
+      assert output =~ "redefining module WillBeRedefined "
+    after
+      purge([WillBeRedefined, WillBeRedefinedLoaded])
+    end
+
     test "solves dependencies between modules" do
       fixtures =
         write_tmp(

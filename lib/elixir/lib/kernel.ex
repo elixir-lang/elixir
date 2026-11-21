@@ -5162,8 +5162,12 @@ defmodule Kernel do
 
   ## Reserved module names
 
-  If you attempt to define a module that already exists, you will get a
-  warning saying that a module has been redefined.
+  If you attempt to define a module that is currently being defined,
+  it will raise. If you define a module that is already loaded, you
+  will get a warning saying that a module has been redefined.
+  Furthermore, the compiler will warn when the same module is defined
+  more than once within the same compilation, such as in `mix compile`
+  or `elixirc`.
 
   There are some modules that Elixir does not currently implement but it
   may implement in the future. Those modules are reserved and defining

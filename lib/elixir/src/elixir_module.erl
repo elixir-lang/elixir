@@ -151,7 +151,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
   Line = erl_anno:line(Anno),
 
   File = ?key(E, file),
-  check_module_availability(Module, Line, E),
+  Redefined = check_module_availability(Module, Line, E),
   elixir_env:trace(defmodule, E),
 
   CompilerModules = compiler_modules(),
@@ -236,7 +236,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
       end),
 
     Autoload andalso code:load_binary(Module, BeamLocation, Binary),
-    make_module_available(Module, Binary, Autoload),
+    make_module_available(Module, Line, Redefined, Binary, Autoload),
     put_compiler_modules(CompilerModules),
     eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
     elixir_env:trace({on_module, Binary, none}, ModuleE),
@@ -386,12 +386,13 @@ check_module_availability(Module, Line, E) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          elixir_errors:file_warn([{line, Line}], E, ?MODULE, {module_defined, Module});
+          elixir_errors:file_warn([{line, Line}], E, ?MODULE, {module_defined, Module}),
+          true;
         {error, _}  ->
-          ok
+          false
       end;
     true ->
-      ok
+      false
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -612,7 +613,7 @@ spawn_parallel_checker(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation)
     end,
   'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation, Log).
 
-make_module_available(Module, Binary, Loaded) ->
+make_module_available(Module, Line, Redefined, Binary, Loaded) ->
   case erlang:get(elixir_module_binaries) of
     Current when is_list(Current) ->
       put(elixir_module_binaries, [{Module, Binary} | Current]);
@@ -625,7 +626,7 @@ make_module_available(Module, Binary, Loaded) ->
       ok;
     {PID, _} ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, erlang:get(elixir_compiler_file), Module, Binary, Loaded},
+      PID ! {module_available, self(), Ref, erlang:get(elixir_compiler_file), Line, Redefined, Module, Binary, Loaded},
       receive {Ref, ack} -> ok end
   end.
 
