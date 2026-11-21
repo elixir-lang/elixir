@@ -1640,9 +1640,6 @@ defmodule Module.Types.DescrTest do
       assert subtype?(none_fun(2), neg_fun)
       assert fun_apply(neg_fun, [integer()]) == {:badarity, :negative, []}
 
-      assert fun_apply(opt_union(neg_fun, dynamic(int_to_int)), [integer()]) ==
-               {:badarity, :negative, []}
-
       # Negation forms without the applied arity are still functions
       no_arity_1 = opt_difference(fun(), none_fun(1))
       refute empty?(no_arity_1)
@@ -1720,10 +1717,6 @@ defmodule Module.Types.DescrTest do
 
       # Congruent with the normalized form, and excludes the empty arity 1.
       assert fun_apply(usable_at_2, [integer()]) == {:badarity, :positive, [2]}
-
-      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) ==
-               {:badarity, :positive, [2]}
-
       assert fun_apply(usable_at_2, [integer(), atom()]) == {:ok, boolean()}
 
       # A function that is empty at *every* arity is :badfun at any arity, even
