@@ -1770,6 +1770,114 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun3, [atom([:ok])]) == {:ok, none()}
     end
 
+    test "static with many disjoint arrows" do
+      # Arrows disjoint from the input must not double the paths explored
+      fun =
+        Enum.reduce(1..40, fun([integer()], atom([:int])), fn i, acc ->
+          opt_intersection(acc, fun([atom([:"a#{i}"])], atom([:"r#{i}"])))
+        end)
+
+      assert fun_apply(fun, [integer()]) == {:ok, atom([:int])}
+      assert fun_apply(fun, [atom([:a1])]) == {:ok, atom([:r1])}
+
+      assert fun_apply(fun, [opt_union(integer(), atom([:a1, :a2]))]) ==
+               {:ok, atom([:int, :r1, :r2])}
+    end
+
+    test "static with many overlapping arrows" do
+      # Refining returns already in the result must not explore more paths
+      atoms = for i <- 1..40, do: :"a#{i}"
+
+      fun =
+        atoms
+        |> Enum.map(&fun([atom([&1])], atom([:ok])))
+        |> Enum.reduce(&opt_intersection/2)
+
+      assert fun_apply(fun, [atom(atoms)]) == {:ok, atom([:ok])}
+      assert fun_apply(fun, [atom([:a1, :a2])]) == {:ok, atom([:ok])}
+    end
+
+    test "static with overloaded arrows" do
+      # Andrew Kent's overloaded plus over Typed Racket's numeric tower,
+      # where each disjoint base type is encoded as an atom
+      pos_byte = [:one, :byte_gt1]
+      byte = [:zero | pos_byte]
+      pos_index = pos_byte ++ [:pos_index_not_byte]
+      index = [:zero | pos_index]
+      nonneg_fixnum = index ++ [:pos_fixnum_not_index]
+      neg_fixnum = [:neg_fixnum]
+      nonpos_fixnum = [:zero | neg_fixnum]
+      fixnum = nonneg_fixnum ++ neg_fixnum
+      integer = fixnum ++ [:pos_bignum, :neg_bignum]
+      rational = integer ++ [:pos_rat, :neg_rat]
+      float = [:float_pos, :float_neg, :float_pzero, :float_nzero, :float_nan]
+      single_float = [:sfloat_pos, :sfloat_neg, :sfloat_pzero, :sfloat_nzero, :sfloat_nan]
+      real = rational ++ float ++ single_float
+
+      pos_real =
+        pos_index ++ [:pos_fixnum_not_index, :pos_bignum, :pos_rat, :float_pos, :sfloat_pos]
+
+      neg_real = [:neg_fixnum, :neg_bignum, :neg_rat, :float_neg, :sfloat_neg]
+      zeros = [:zero, :float_pzero, :float_nzero, :sfloat_pzero, :sfloat_nzero]
+      nonneg_real = zeros ++ pos_real
+      nonpos_real = zeros ++ neg_real
+      exact_number = rational ++ [:exact_complex]
+      float_complex = [:float_complex]
+      single_float_complex = [:sfloat_complex]
+      inexact_complex = float_complex ++ single_float_complex
+      number = real ++ [:exact_complex] ++ inexact_complex
+      rational_or_single_float = rational ++ single_float
+
+      arrows = [
+        {[byte, byte], index},
+        {[index, index], nonneg_fixnum},
+        {[neg_fixnum, [:one]], nonpos_fixnum},
+        {[[:one], neg_fixnum], nonpos_fixnum},
+        {[nonpos_fixnum, nonneg_fixnum], fixnum},
+        {[nonneg_fixnum, nonpos_fixnum], fixnum},
+        {[integer, integer], integer},
+        {[float, real], float},
+        {[real, float], float},
+        {[single_float, rational_or_single_float], single_float},
+        {[rational_or_single_float, single_float], single_float},
+        {[pos_real, nonneg_real], pos_real},
+        {[nonneg_real, pos_real], pos_real},
+        {[neg_real, nonpos_real], neg_real},
+        {[nonpos_real, neg_real], neg_real},
+        {[nonneg_real, nonneg_real], nonneg_real},
+        {[nonpos_real, nonpos_real], nonpos_real},
+        {[real, real], real},
+        {[exact_number, exact_number], exact_number},
+        {[float_complex, number], float_complex},
+        {[number, float_complex], float_complex},
+        {[float, inexact_complex], float_complex},
+        {[inexact_complex, float], float_complex},
+        {[single_float_complex, rational_or_single_float ++ single_float_complex],
+         single_float_complex},
+        {[rational_or_single_float ++ single_float_complex, single_float_complex],
+         single_float_complex},
+        {[number, number], number}
+      ]
+
+      plus =
+        arrows
+        |> Enum.map(fn {args, return} -> fun(Enum.map(args, &atom/1), atom(return)) end)
+        |> Enum.reduce(&opt_intersection/2)
+
+      apply_plus = fn left, right ->
+        {:ok, result} = fun_apply(plus, [atom(left), atom(right)])
+        result
+      end
+
+      assert equal?(apply_plus.(pos_byte, pos_byte), atom(pos_index))
+      assert equal?(apply_plus.(float, integer), atom(float))
+      assert equal?(apply_plus.(integer, integer), atom(integer))
+      assert equal?(apply_plus.(real, real), atom(real))
+
+      assert subtype?(plus, fun([atom(pos_byte), atom(pos_byte)], atom(pos_index)))
+      refute subtype?(plus, fun([atom(pos_byte), atom(pos_byte)], atom(pos_byte)))
+    end
+
     test "static with dynamic signature" do
       assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
       assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}

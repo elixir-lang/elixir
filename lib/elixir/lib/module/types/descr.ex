@@ -549,7 +549,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp empty_key?(key, value), do: empty_key?(key, value, %{})
   defp empty_key?(:fun, value, seen), do: fun_empty?(value, seen)
   defp empty_key?(:map, value, seen), do: map_empty?(value, seen)
   defp empty_key?(:list, value, seen), do: list_empty?(value, seen)
@@ -1892,11 +1891,9 @@ defmodule Module.Types.Descr do
   # application operator. When the arguments escape the domain, the
   # result is term() (see aux_apply/4).
   defp fun_apply_static(arguments, arrows) do
-    type_args = args_to_domain(arguments)
-
     :lists.foldl(
       fn intersection_of_arrows, acc ->
-        aux_apply(acc, type_args, term(), intersection_of_arrows)
+        aux_apply(acc, [arguments], term(), intersection_of_arrows)
       end,
       none(),
       arrows
@@ -1928,14 +1925,16 @@ defmodule Module.Types.Descr do
   # ## Parameters
 
   # - result: The accumulated result type so far
-  # - input: The input type being applied to the function
+  # - products: The input being applied to the function, as a list of disjoint
+  #   products, each product being a list of non-empty static arguments.
+  #   This is valid because application distributes over unions
   # - rets_reached: The intersection of return types reached so far
   # - arrow_intersections: The list of function arrows to process
   #
   # Domain escape: if the input is not covered by the union of all the
   # arrow domains in the clause, the result is term(). This is because
   # rets_reached starts at term() and is only refined (intersected) when
-  # an arrow's domain covers the input, which is check by dom_subtract.
+  # an arrow's domain covers the input, which is check by args_difference.
   # Along a path where no arrow covers the input, rets_reached stays
   # term() and gets unioned into the result at the base case. Since
   # term() is maximal, the overall result for that clause is term().
@@ -1943,38 +1942,84 @@ defmodule Module.Types.Descr do
   # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
   # For the escape case, see Section 13.2 of
   # https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
-  defp aux_apply(result, _input, rets_reached, []) do
+  defp aux_apply(result, _products, rets_reached, []) do
     if subtype?(rets_reached, result), do: result, else: bare_union(result, rets_reached)
   end
 
-  defp aux_apply(result, input, returns_reached, [bdd_leaf(args, ret) | arrow_intersections]) do
+  defp aux_apply(result, products, returns_reached, [bdd_leaf(args, ret) | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = bare_difference(input, args_to_domain(args))
+    case args_difference(products, args, [], true) do
+      # If the input is disjoint from this arrow's domain, the arrow does not apply.
+      # Refining the return type would only compute a subset of the result obtained
+      # by skipping the arrow (as the input stays the same), so we skip it. Without
+      # this check, each disjoint arrow doubles the number of paths explored.
+      :disjoint ->
+        aux_apply(result, products, returns_reached, arrow_intersections)
 
-    # Refine the return type by intersecting with this arrow's return type
-    ret_refine = bare_intersection(returns_reached, ret)
+      # The input is fully covered by the arrow's domain, so we only refine the return.
+      [] ->
+        ret_refine = bare_intersection(returns_reached, ret)
+        aux_apply(result, products, ret_refine, arrow_intersections)
 
-    # Phase 1: Domain partitioning
-    # If the input is not fully covered by the arrow's domain, then the result type should be
-    # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
-    # parts of the domain.
-    #
-    # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
-    # both atoms and pids in the result.
-    result =
-      if empty?(dom_subtract),
-        do: result,
-        else: aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
+      uncovered ->
+        # Phase 1: Domain partitioning
+        # If the input is not fully covered by the arrow's domain, then the result type should be
+        # _augmented_ with the outputs obtained by applying the remaining arrows to the non-covered
+        # parts of the domain.
+        #
+        # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
+        # both atoms and pids in the result.
+        result = aux_apply(result, uncovered, returns_reached, arrow_intersections)
 
-    # 2. Return type refinement
-    # The result type is also refined (intersected) in the sense that, if several arrows match
-    # the same part of the input, then the result type is an intersection of the return types of
-    # those arrows.
+        # 2. Return type refinement
+        # The result type is also refined (intersected) in the sense that, if several arrows match
+        # the same part of the input, then the result type is an intersection of the return types of
+        # those arrows.
 
-    # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
-    # should result in (atom() ∩ pid()), which is none().
-    aux_apply(result, input, ret_refine, arrow_intersections)
+        # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
+        # should result in (atom() ∩ pid()), which is none().
+        ret_refine = bare_intersection(returns_reached, ret)
+
+        # All results from this branch are subsets of ret_refine,
+        # so there is nothing to add if it is already in the result.
+        if subtype?(ret_refine, result),
+          do: result,
+          else: aux_apply(result, products, ret_refine, arrow_intersections)
+    end
   end
+
+  # Returns :disjoint if all products are disjoint from the arguments,
+  # otherwise the list of disjoint products not covered by them.
+  defp args_difference([product | products], args, acc, disjoint?) do
+    # Same as tuples, we compute all meets upfront, as they tell us
+    # if the product is disjoint before computing any difference.
+    case tuple_elements_meets(product, args, [], %{}) do
+      :disjoint ->
+        args_difference(products, args, [product | acc], disjoint?)
+
+      meets ->
+        acc = product_difference(product, args, meets, [], acc)
+        args_difference(products, args, acc, false)
+    end
+  end
+
+  defp args_difference([], _args, _acc, true), do: :disjoint
+  defp args_difference([], _args, acc, false), do: acc
+
+  # Computes (a1, ..., an) \ (d1, ..., dn) as the disjoint union of products
+  # (a1 ∩ d1, ..., ai-1 ∩ di-1, ai \ di, ai+1, ..., an), skipping empty ones.
+  defp product_difference([type | types], [arg | args], [meet | meets], acc_meet, acc) do
+    diff = bare_difference(type, arg)
+
+    if empty?(diff) do
+      product_difference(types, args, meets, [type | acc_meet], acc)
+    else
+      acc = [:lists.reverse(acc_meet, [diff | types]) | acc]
+      product_difference(types, args, meets, [meet | acc_meet], acc)
+    end
+  end
+
+  defp product_difference([], [], [], _acc_meet, acc), do: acc
 
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
@@ -5041,7 +5086,10 @@ defmodule Module.Types.Descr do
     if map_check_domain_keys?(tag, neg_tag, seen) do
       if tag == :closed or neg_tag == :open do
         # This implements the same map line check as tuples
-        map_line_meet_empty?(fields, neg_fields, tag, neg_tag, [], negs, seen)
+        case map_line_disjoint(fields, neg_fields, tag, neg_tag, [], seen) do
+          :disjoint -> map_line_empty?(tag, fields, negs, seen)
+          entries -> map_line_meet_empty?(entries, tag, [], negs, seen)
+        end
       else
         map_line_fields_empty?(fields, neg_fields, tag, neg_tag, fields, negs, seen)
       end
@@ -5052,15 +5100,11 @@ defmodule Module.Types.Descr do
     :closed -> map_line_empty?(tag, fields, negs, seen)
   end
 
-  defp map_line_meet_empty?(
-         [{k1, f1} | t1],
-         [{k2, _} | _] = l2,
-         tag,
-         neg_tag,
-         acc_meet,
-         negs,
-         seen
-       )
+  # Aligns the fields of the positive and negative maps, checking upfront if
+  # any field is disjoint. If so, the negative map is disjoint from the line,
+  # so we skip it before splitting the line on earlier fields. Meets are only
+  # computed later, on the fields we split.
+  defp map_line_disjoint([{k1, f1} | t1], [{k2, _} | _] = l2, tag, neg_tag, acc, seen)
        when k1 < k2 do
     {_, optional1?} = f1
 
@@ -5068,94 +5112,102 @@ defmodule Module.Types.Descr do
       # The key is only in the positive map, which means the difference
       # with a negative open tag (all possible types) tag will surely be empty.
       neg_tag == :open ->
-        map_line_meet_empty?(t1, l2, tag, neg_tag, [{k1, f1} | acc_meet], negs, seen)
+        map_line_disjoint(t1, l2, tag, neg_tag, [{k1, f1, :covered, t1} | acc], seen)
 
-      # In this case the difference will never be empty, so we can skip ahead.
+      # The key is required in the positive map but not in the closed negative map.
       neg_tag == :closed and not optional1? ->
-        throw(:closed)
+        :disjoint
 
       true ->
         f2 = map_key_tag_to_field(neg_tag)
-        map_line_meet_empty?(k1, f1, f2, t1, l2, tag, neg_tag, acc_meet, negs, seen)
+        map_line_disjoint(k1, f1, f2, t1, l2, tag, neg_tag, acc, seen)
     end
   end
 
-  defp map_line_meet_empty?(
-         [{k1, _} | _] = l1,
-         [{k2, f2} | t2],
-         tag,
-         neg_tag,
-         acc_meet,
-         negs,
-         seen
-       )
+  defp map_line_disjoint([{k1, _} | _] = l1, [{k2, f2} | t2], tag, neg_tag, acc, seen)
        when k1 > k2 do
     # The keys is only in the negative map and the positive map is closed,
-    # in that case, this field is not_set(), and its difference with the
-    # negative map type is empty iff the negative type is optional.
+    # in that case, this field is not_set(), and it is disjoint from the
+    # negative map type if the negative type is required.
     {_, optional2?} = f2
 
     if tag == :closed and not optional2? do
-      throw(:closed)
+      :disjoint
     else
       f1 = map_key_tag_to_field(tag)
-      map_line_meet_empty?(k2, f1, f2, l1, t2, tag, neg_tag, acc_meet, negs, seen)
+      map_line_disjoint(k2, f1, f2, l1, t2, tag, neg_tag, acc, seen)
     end
   end
 
-  defp map_line_meet_empty?([{k, f1} | t1], [{_, f2} | t2], tag, neg_tag, acc_meet, negs, seen) do
-    map_line_meet_empty?(k, f1, f2, t1, t2, tag, neg_tag, acc_meet, negs, seen)
+  defp map_line_disjoint([{k, f1} | t1], [{_, f2} | t2], tag, neg_tag, acc, seen) do
+    map_line_disjoint(k, f1, f2, t1, t2, tag, neg_tag, acc, seen)
   end
 
-  defp map_line_meet_empty?([{k1, f1} | t1], [], tag, neg_tag, acc_meet, negs, seen) do
+  defp map_line_disjoint([{k1, f1} | t1], [], tag, neg_tag, acc, seen) do
     f2 = map_key_tag_to_field(neg_tag)
-    map_line_meet_empty?(k1, f1, f2, t1, [], tag, neg_tag, acc_meet, negs, seen)
+    map_line_disjoint(k1, f1, f2, t1, [], tag, neg_tag, acc, seen)
   end
 
-  defp map_line_meet_empty?([], [{k2, f2} | t2], tag, neg_tag, acc_meet, negs, seen) do
+  defp map_line_disjoint([], [{k2, f2} | t2], tag, neg_tag, acc, seen) do
     f1 = map_key_tag_to_field(tag)
-    map_line_meet_empty?(k2, f1, f2, [], t2, tag, neg_tag, acc_meet, negs, seen)
+    map_line_disjoint(k2, f1, f2, [], t2, tag, neg_tag, acc, seen)
   end
 
-  defp map_line_meet_empty?([], [], _tag, _neg_tag, _acc_meet, _negs, _seen) do
-    true
+  defp map_line_disjoint([], [], _tag, _neg_tag, acc, _seen) do
+    :lists.reverse(acc)
   end
 
-  defp map_line_meet_empty?(
+  defp map_line_disjoint(
          key,
-         {type, optional?},
-         {neg_type, neg_optional?},
+         {type, optional?} = f1,
+         {neg_type, neg_optional?} = f2,
          t1,
          t2,
          tag,
          neg_tag,
+         acc,
+         seen
+       ) do
+    # Two fields are disjoint if their types are disjoint and not both optional
+    if not (optional? and neg_optional?) and disjoint_seen?(type, neg_type, seen) do
+      :disjoint
+    else
+      map_line_disjoint(t1, t2, tag, neg_tag, [{key, f1, f2, t1} | acc], seen)
+    end
+  end
+
+  # Walks the aligned fields, where t1 are the positive fields after each key.
+  defp map_line_meet_empty?([{key, f1, :covered, _t1} | entries], tag, acc_meet, negs, seen) do
+    map_line_meet_empty?(entries, tag, [{key, f1} | acc_meet], negs, seen)
+  end
+
+  defp map_line_meet_empty?(
+         [{key, {type, optional?} = f1, {neg_type, neg_optional?}, t1} | entries],
+         tag,
          acc_meet,
          negs,
          seen
        ) do
-    meet = bare_intersection(type, neg_type)
-    meet_optional? = optional? and neg_optional?
+    diff = bare_difference(type, neg_type)
+    diff_optional? = optional? and not neg_optional?
 
-    if field_empty_seen?(meet, meet_optional?, seen) do
-      # This negative map is disjoint from the current line at this field.
-      reverse_meet = :lists.reverse(acc_meet, [{key, {type, optional?}} | t1])
-      map_line_empty?(tag, reverse_meet, negs, seen)
+    if field_empty_seen?(diff, diff_optional?, seen) do
+      # The field is a subtype of the negative field, so their intersection is the field.
+      map_line_meet_empty?(entries, tag, [{key, f1} | acc_meet], negs, seen)
     else
-      diff = bare_difference(type, neg_type)
-      diff_optional? = optional? and not neg_optional?
-      new_acc_meet = [{key, {meet, meet_optional?}} | acc_meet]
+      reverse_meet = :lists.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1])
 
-      if field_empty_seen?(diff, diff_optional?, seen) do
-        # The field is a subtype of the negative field, so their intersection is type.
-        map_line_meet_empty?(t1, t2, tag, neg_tag, new_acc_meet, negs, seen)
+      # The meet is only computed if the difference is empty
+      if map_line_empty?(tag, reverse_meet, negs, seen) do
+        meet = {bare_intersection(type, neg_type), optional? and neg_optional?}
+        map_line_meet_empty?(entries, tag, [{key, meet} | acc_meet], negs, seen)
       else
-        reverse_meet = :lists.reverse(acc_meet, [{key, {diff, diff_optional?}} | t1])
-
-        map_line_empty?(tag, reverse_meet, negs, seen) and
-          map_line_meet_empty?(t1, t2, tag, neg_tag, new_acc_meet, negs, seen)
+        false
       end
     end
   end
+
+  defp map_line_meet_empty?([], _tag, _acc_meet, _negs, _seen), do: true
 
   defp map_line_fields_empty?(
          [{k1, f1} | t1],
@@ -5793,15 +5845,23 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       tuple_line_empty?(tag, elements, negs, seen)
     else
-      tuple_elements_empty?([], tag, elements, neg_elements, negs, seen) and
-        tuple_empty_arity?(n, m, tag, elements, neg_tag, negs, seen)
+      # Compute all meets upfront. If any of them is empty, the negative tuple
+      # is disjoint from the line, so we skip it before splitting the line on
+      # earlier elements.
+      case tuple_elements_meets(elements, neg_elements, [], seen) do
+        :disjoint ->
+          tuple_line_empty?(tag, elements, negs, seen)
+
+        meets ->
+          tuple_elements_empty?([], tag, elements, neg_elements, meets, negs, seen) and
+            tuple_empty_arity?(n, m, tag, elements, neg_tag, negs, seen)
+      end
     end
   end
 
-  # Recursively check elements for emptiness
-  defp tuple_elements_empty?(_, _, _, [], _, _seen), do: true
+  defp tuple_elements_meets(_elements, [], acc, _seen), do: :lists.reverse(acc)
 
-  defp tuple_elements_empty?(acc_meet, tag, elements, [neg_type | neg_elements], negs, seen) do
+  defp tuple_elements_meets(elements, [neg_type | neg_elements], acc, seen) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} =
       case elements do
@@ -5811,19 +5871,38 @@ defmodule Module.Types.Descr do
 
     meet = bare_intersection(ty, neg_type)
 
-    if empty_seen?(meet, seen) do
-      # This negative tuple is disjoint from the current line at this element.
-      tuple_line_empty?(tag, :lists.reverse(acc_meet, [ty | elements]), negs, seen)
-    else
-      diff = bare_difference(ty, neg_type)
+    if empty_seen?(meet, seen),
+      do: :disjoint,
+      else: tuple_elements_meets(elements, neg_elements, [meet | acc], seen)
+  end
 
-      if empty_seen?(diff, seen) do
-        # The element is a subtype of the negative element, so their intersection is ty.
-        tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, negs, seen)
-      else
-        tuple_line_empty?(tag, :lists.reverse(acc_meet, [diff | elements]), negs, seen) and
-          tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, negs, seen)
+  # Recursively check elements for emptiness
+  defp tuple_elements_empty?(_, _, _, [], _, _, _seen), do: true
+
+  defp tuple_elements_empty?(
+         acc_meet,
+         tag,
+         elements,
+         [neg_type | neg_elements],
+         [meet | meets],
+         negs,
+         seen
+       ) do
+    # Handles the case where {tag, elements} is an open tuple, like {:open, []}
+    {ty, elements} =
+      case elements do
+        [ty | elements] -> {ty, elements}
+        [] -> {term(), []}
       end
+
+    diff = bare_difference(ty, neg_type)
+
+    if empty_seen?(diff, seen) do
+      # The element is a subtype of the negative element, so their intersection is ty.
+      tuple_elements_empty?([ty | acc_meet], tag, elements, neg_elements, meets, negs, seen)
+    else
+      tuple_line_empty?(tag, :lists.reverse(acc_meet, [diff | elements]), negs, seen) and
+        tuple_elements_empty?([meet | acc_meet], tag, elements, neg_elements, meets, negs, seen)
     end
   end
 
@@ -7221,27 +7300,37 @@ defmodule Module.Types.Descr do
     )
   end
 
-  defp non_disjoint_intersection?(left, right) do
+  defp non_disjoint_intersection?(left, right, seen \\ %{}) do
     # Erlang maps:intersect_with/3 has to preserve the order in combiner.
     # We don't care about the order, so we have a faster implementation.
     if map_size(left) > map_size(right) do
-      iterator_non_disjoint_intersection?(:maps.next(:maps.iterator(right)), left)
+      iterator_non_disjoint_intersection?(:maps.next(:maps.iterator(right)), left, seen)
     else
-      iterator_non_disjoint_intersection?(:maps.next(:maps.iterator(left)), right)
+      iterator_non_disjoint_intersection?(:maps.next(:maps.iterator(left)), right, seen)
     end
   end
 
-  defp iterator_non_disjoint_intersection?({key, v1, iterator}, map) do
+  defp iterator_non_disjoint_intersection?({key, v1, iterator}, map, seen) do
     with %{^key => v2} <- map,
          value when value not in @empty_intersection <- bare_intersection(key, v1, v2),
-         false <- empty_key?(key, value) do
+         false <- empty_key?(key, value, seen) do
       true
     else
-      _ -> iterator_non_disjoint_intersection?(:maps.next(iterator), map)
+      _ -> iterator_non_disjoint_intersection?(:maps.next(iterator), map, seen)
     end
   end
 
-  defp iterator_non_disjoint_intersection?(:none, _map), do: false
+  defp iterator_non_disjoint_intersection?(:none, _map, _seen), do: false
+
+  # Checks if two static types are disjoint during emptiness checks.
+  # Recursive and gradual types fall back to checking the intersection.
+  defp disjoint_seen?(left, right, seen)
+       when is_map(left) and is_map(right) and
+              not is_map_key(left, :dynamic) and not is_map_key(right, :dynamic) do
+    not non_disjoint_intersection?(left, right, seen)
+  end
+
+  defp disjoint_seen?(left, right, seen), do: empty_seen?(bare_intersection(left, right), seen)
 
   defp non_empty_map_or([head | tail], fun) do
     Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
