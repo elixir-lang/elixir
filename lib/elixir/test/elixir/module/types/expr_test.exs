@@ -286,6 +286,44 @@ defmodule Module.Types.ExprTest do
 
                  (binary() -> integer())
              """
+
+      assert typeerror!(
+               [x],
+               (
+                 fun = if x, do: &String.to_integer/1, else: &String.to_integer/2
+                 fun.("1")
+               )
+             )
+             |> strip_ansi() == ~l"""
+             expected a 1-arity function on function call:
+
+                 fun.("1")
+
+             but got function with arities 1,2:
+
+                 (binary() -> integer()) or (binary(), integer() -> integer())
+
+             where "fun" was given the type:
+
+                 # type: (binary() -> integer()) or (binary(), integer() -> integer())
+                 # from: types_test.ex:LINE-4
+                 fun =
+                   if x do
+                     &String.to_integer/1
+                   else
+                     &String.to_integer/2
+                   end
+
+             hint: you must select which arity you are applying to by using `is_function/2` when you have a union of functions
+             """
+
+      assert typecheck!(
+               [x],
+               (
+                 fun = if x, do: &String.to_integer/1, else: &String.to_integer/2
+                 if is_function(fun, 1), do: fun.("1"), else: fun.("1", 10)
+               )
+             ) == integer()
     end
 
     test "bad argument" do

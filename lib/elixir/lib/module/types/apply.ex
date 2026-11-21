@@ -2102,15 +2102,23 @@ defmodule Module.Types.Apply do
           # When there is an argument error, we trace the arguments
           {message, elem(expr, 2), hints}
 
-        {:badarity, arities} ->
-          info =
-            case arities do
-              [arity] -> "function with arity #{arity}"
-              _ -> "function with arities #{Enum.join(arities, ",")}"
+        {:badarity, kind, arities} ->
+          arity = length(args_types)
+
+          {info, hints} =
+            case {kind, arities} do
+              {:positive, [arity]} ->
+                {"function with arity #{arity}", []}
+
+              {:positive, _} ->
+                {"function with arities #{Enum.join(arities, ",")}", [:mixed_arity]}
+
+              {:negative, _} ->
+                {"function with arities other than #{arity}", [:mixed_arity]}
             end
 
           message = """
-          expected a #{length(args_types)}-arity function on #{mfa_or_call}:
+          expected a #{arity}-arity function on #{mfa_or_call}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -2119,7 +2127,7 @@ defmodule Module.Types.Apply do
               #{to_quoted_string(fun_type) |> indent(4)}
           """
 
-          {message, elem(expr, 0), []}
+          {message, elem(expr, 0), hints}
 
         :badfun ->
           message = """
