@@ -82,6 +82,7 @@ defmodule Module.ParallelChecker do
   defp spawn_checker(ref, pid, checker, table, module, module_tuple, log?) do
     spawn(fn ->
       mon_ref = Process.monitor(pid)
+      checker_ref = Process.monitor(checker)
 
       receive do
         {^ref, :check, profile} ->
@@ -94,6 +95,9 @@ defmodule Module.ParallelChecker do
 
         {:DOWN, ^mon_ref, _, _, _} ->
           :ok
+
+        {:DOWN, ^checker_ref, _, _, _} ->
+          :ok
       end
     end)
   end
@@ -104,6 +108,7 @@ defmodule Module.ParallelChecker do
     spawned =
       spawn(fn ->
         mon_ref = Process.monitor(pid)
+        checker_ref = Process.monitor(checker)
 
         receive do
           {^ref, :cache} ->
@@ -134,6 +139,9 @@ defmodule Module.ParallelChecker do
             end
 
           {:DOWN, ^mon_ref, _, _, _} ->
+            :ok
+
+          {:DOWN, ^checker_ref, _, _, _} ->
             :ok
         end
       end)
