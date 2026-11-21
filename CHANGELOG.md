@@ -47,6 +47,7 @@
   * [Registry] Optimize exact key matching in lookups
   * [String] Optimize `String.bag_distance/2`
   * [String] Add `String.to_existing_atom/2` and `String.to_unsafe_atom/1`
+  * [String] Update to Unicode 18.0.0
   * [URI] Optimize percent-decoding and `URI.to_string/1`
 
 #### ExUnit
@@ -77,6 +78,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Calendar.ISO] Reject negative zero UTC offsets in basic formats
   * [Code] Fall back to `doc/chunks` in `Code.fetch_docs/1` when given the path to a `.beam` file without documentation
   * [Code] Properly escape C1 control characters and Unicode noncharacters in `Code.quoted_to_algebra/2` (and `Macro.to_string/1`)
+  * [Code] Preserve opening and closing metadata of parenthesized unary operators, such as `(!x)` and `(not x)`, when `:token_metadata` is enabled
   * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
   * [Code.Formatter] Keep parentheses on anonymous function calls with do-end blocks
   * [Code.Formatter] Keep parentheses on unary operators on the left side of `in`, such as `(!foo) in bar`
@@ -89,6 +91,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Duration] Reject duplicate seconds in `Duration.from_iso8601/1`
   * [DynamicSupervisor] Do not discard the exit reason of children that terminate during shutdown
   * [Enum] Fix `Enum.min/2,3` and `Enum.max/2,3` with custom sorters on ranges
+  * [Enum] Match `Enum.slice/2` semantics in `Enum.slide/3` for negative insertion indices and ranges out of bounds
   * [File] Return `{:error, :badarg, path}` from `File.cp_r/3` and `File.rm_rf/1` on paths with null bytes instead of raising, aligning with Erlang/OTP
   * [File] Trim UTF-32 LE BOMs in `File.stream!/3`
   * [IO.ANSI.Docs] Do not crash on unclosed HTML comments
@@ -97,11 +100,15 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Kernel] Continue compilation after reporting repeated map keys in patterns
   * [Kernel] Do not consider local functions invoked in bitstring size expressions inside macros as unused
   * [Kernel] Do not expand macros twice in `in/2`, in multi-alias options, such as `alias Foo.{Bar, Baz}, warn: false`, and in `@before_compile`, `@after_compile`, and `@derive` callbacks
+  * [Kernel] Do not define aliases in nested `defmodule` calls whose name starts with a fully qualified module, such as `defmodule unquote(__MODULE__).Child`
+  * [Kernel] Do not dispatch to protocols when folding calls at compile time, such as `MapSet.new/1` and `Duration.new!/1` with non-list arguments
   * [Kernel] Do not evaluate generator guards in `for` comprehensions as body expressions, which raised instead of filtering when they failed
   * [Kernel] Do not fold `URI.parse/1`, `URI.new/1`, and `URI.new!/1` at compile time, as they depend on the default ports configured at runtime
   * [Kernel] Do not warn on comparisons between data structures with numbers that may be equal, such as `{1} == {1.0}`, nor discard such values when narrowing types
   * [Kernel] Expand `defguard` macros separately in guard and body contexts, preserving `and`/`or` error semantics outside guards
   * [Kernel] Fix `unquote` in `quote` options, such as `quote bind_quoted: [x: unquote(v)]`, inside unquote fragments
+  * [Kernel] Raise a clear error message when using `__CALLER__` and `__STACKTRACE__` within guards of the constructs that introduce them
+  * [Kernel] Fix compilation of maps whose keys contain patterns or map updates, such as `%{case x do %{a: v} -> v end => :value}`
   * [Kernel] Fix inferred stacktrace types to allow arbitrary keyword metadata
   * [Kernel] Fix false positive type warnings on guards which may fail depending on values, such as `div/2` and `map_get/2` with non-atom keys, especially as operands of `and`/`or`
   * [Kernel] Fix printing of list types in type warnings, which could show wider types or misplace exclusions
@@ -109,6 +116,8 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Kernel] Follow UAX #9 levels when computing the bidi skeleton of confusable identifiers
   * [Kernel] Raise when `|` is used in guards
   * [Kernel] Raise on duplicate keys in `@enforce_keys`
+  * [Kernel] Raise a clear error on explicit tails in `destructure/2`, such as `destructure([a | b], list)`
+  * [Kernel] Do not let aliases defined in macro arguments affect the aliases in the macro's quoted code
   * [Kernel] Do not accept empty tuples in `elem/2` and other tuple operations during type checking
   * [Kernel] Fix inferred types of comprehensions using `:into` with binaries and bitstrings
   * [Kernel] Fix type checker crash on functions with impossible clauses
