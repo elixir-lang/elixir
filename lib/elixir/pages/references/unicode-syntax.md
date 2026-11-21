@@ -52,7 +52,7 @@ Elixir conforms to the standards outlined in the [Unicode Standard Annex #31: Un
 
 ### R1. Default Identifiers
 
-The general Elixir identifier rule is specified as:
+Elixir declares a profile of the default identifiers, as allowed by UAX31-R1-2, with the changes described below. The general Elixir identifier rule is specified as:
 
     <Identifier> := <Start> <Continue>* <Ending>?
 
@@ -72,7 +72,7 @@ and `<Continue>` uses the same categories as the spec but normalizes them to the
 
 The spec also provides a `<Medial>` set, but Elixir does not include any character on this set. Therefore, the identifier rule has been simplified to consider this.
 
-Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. Bidirectional control characters are also not supported. R1b is guaranteed for backwards compatibility purposes.
+Elixir does not allow the use of ZWJ or ZWNJ in identifiers, not even in the limited contexts permitted by the General Security Profile of UTS #39 (see C1 below). Bidirectional control characters are also not supported. R1b is guaranteed for the default identifier rules, but identifiers may be further restricted when UTS #39 reclassifies characters (see C1 below). For example, Bopomofo characters were allowed until Unicode 16 and became restricted in Unicode 17.
 
 #### Atoms
 
@@ -98,7 +98,7 @@ Aliases in Elixir only allow ASCII characters, starting in uppercase, and no pun
 
 ### R3. Pattern_White_Space and Pattern_Syntax Characters
 
-Elixir supports only code points `\t` (0009), `\n` (000A), `\r` (000D) and `\s` (0020) as whitespace and therefore does not follow requirement R3. R3 requires a wider variety of whitespace and syntax characters to be supported.
+Elixir supports only code points `\t` (0009), `\n` (000A), `\r` (000D) and `\s` (0020) as whitespace and therefore does not follow requirement R3 (nor R3a and R3b, which compose it). R3 requires a wider variety of whitespace and syntax characters to be supported.
 
 ### R4. Equivalent Normalized Identifiers
 
@@ -112,29 +112,33 @@ Choosing requirement R4 automatically excludes requirements R5, R6, and R7.
 
 ## Unicode Technical Standard #39
 
-Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security, version 17.0.
+Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security, version 18.0.
 
 ### C1. General Security Profile for Identifiers
 
-Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`, except for the outlined 'Additional normalizations' section below.
+Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`, except for the ones listed in the 'Additional normalizations' section below, as allowed by UTS-39-C1-2.
 
 > An implementation following the General Security Profile does not permit any characters in \p{Identifier_Status=Restricted}, ...
 
-For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger a warning.
+For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will raise a syntax error.
 
 ### C2. Confusable detection
 
 Elixir will warn of identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn of identifiers within a single file that could be confused with each other.
 
-We use the means described in Section 4, 'Confusable Detection', with one noted modification:
+We use the means described in Section 4, 'Confusable Detection', with one noted modification, as allowed by UTS-39-C2-2:
 
-> Alternatively, it shall declare that it uses a modification, and provide a precise list of character mappings that are added to or removed from the provided ones.
+> The implementation shall provide a precise list of character mappings that are added to or removed from those provided, but otherwise be in accordance with the specifications in Section 4, Confusable Detection.
 
 Elixir will not warn about confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
 
 ### C3. Mixed Script Detection
 
-Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the 'Additional Normalizations' documented in.
+Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the changes in behavior described below, as allowed by UTS-39-C3-2:
+
+  * The 'Additional normalizations' documented below
+
+  * The Hntl (Traditional Han with Latin) augmented script set is not used. UTS 39 adds Hntl to the augmented script set of both Han and Latin characters, which makes identifiers that mix Latin and Han, such as `foo漢字`, single-script. Elixir does not apply this rule, so Latin and Han must be separated by underscores, as in `foo_漢字`. This keeps the treatment of Latin consistent with Japanese and Korean (see the example below) and avoids accepting identifiers that were previously rejected as mixed-script
 
 Examples: Elixir allows an identifiers like `幻한`, even though it includes characters from multiple 'scripts', as Han characters may be mixed with Japanese and Korean, according to the rules from UTS 39 5.1. When mixing Latin and Japanese scripts, underscores are necessary, as in `:T_シャツ` (the Japanese word for 't-shirt' with an additional underscore separating the letter T).
 
@@ -146,7 +150,7 @@ Elixir does not allow code like `if аdmin, do: :ok, else: :err`, where the scri
 
 'C5 - Mixed number detection' conformance is inapplicable as Elixir does not support Unicode numbers.
 
-### Addition Normalizations
+### Additional normalizations
 
 As of Elixir 1.14, some codepoints in `\p{Identifier_Status=Restricted}` are *normalized* to other, unrestricted codepoints.
 
