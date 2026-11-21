@@ -18,6 +18,10 @@ defmodule Kernel.TracersTest do
       send(pid, {event, env})
     end
 
+    if Process.get(:raise_on_trace) == event do
+      raise "tracer failed"
+    end
+
     :ok
   end
 
@@ -42,6 +46,16 @@ defmodule Kernel.TracersTest do
 
     assert_received {:start, %{lexical_tracker: pid}} when is_pid(pid)
     assert_received {:stop, %{lexical_tracker: pid}} when is_pid(pid)
+  end
+
+  test "stops the lexical tracker when a tracer fails" do
+    for event <- [:start, :stop] do
+      Process.put(:raise_on_trace, event)
+      assert_raise RuntimeError, "tracer failed", fn -> compile_string(":ok") end
+      assert_received {:start, %{lexical_tracker: pid}}
+      ref = Process.monitor(pid)
+      assert_receive {:DOWN, ^ref, :process, ^pid, _}
+    end
   end
 
   test "traces alias references" do
