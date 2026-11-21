@@ -407,22 +407,39 @@ defmodule Kernel.ParallelCompilerTest do
       assert msg =~ "** (CompileError) deadlocked waiting on struct FooDeadlock"
     end
 
-    test "stops the Erlang compiler helper when its owner is killed" do
-      parent = self()
+    test "stops processes waiting on modules when compilation fails" do
+      [user, failing] =
+        write_tmp(
+          "waiting_on_failure",
+          user: """
+          defmodule WaitingOnFailureUser do
+            def build(%WaitingOnFailure{} = x), do: x
+          end
+          """,
+          failing: """
+          defmodule WaitingOnFailure do
+            {:error, _} = Code.ensure_compiled(WaitingOnFailureMissing)
+            raise "oops"
+          end
+          """
+        )
 
-      owner =
-        spawn(fn ->
-          :elixir_erl_compiler.spawn(fn ->
-            send(parent, {:compiler_helper, self()})
-            Process.sleep(:infinity)
-          end)
-        end)
+      capture_io(:stderr, fn ->
+        assert {:error, [_ | _], _} = compile([user, failing])
+      end)
 
-      assert_receive {:compiler_helper, helper}
-      ref = Process.monitor(helper)
-      on_exit(fn -> Process.exit(helper, :kill) end)
-      Process.exit(owner, :kill)
-      assert_receive {:DOWN, ^ref, :process, ^helper, :killed}
+      # Processes still waiting for the compiler to answer
+      waiting =
+        for pid <- Process.list(),
+            {:dictionary, dict} <- [Process.info(pid, :dictionary)],
+            {:elixir_compiler_info, {compiler, _}} <- dict,
+            compiler == self(),
+            do: pid
+
+      for pid <- waiting do
+        ref = Process.monitor(pid)
+        assert_receive {:DOWN, ^ref, :process, ^pid, _}
+      end
     end
 
     test "does not deadlock from Code.ensure_compiled" do

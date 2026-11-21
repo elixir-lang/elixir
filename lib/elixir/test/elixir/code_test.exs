@@ -779,6 +779,35 @@ defmodule CodeTest do
         _ -> assert Enum.any?(__STACKTRACE__, &match?({_, :__FILE__, 1, _}, &1))
       end
     end
+
+    test "stops pending checkers when compilation aborts" do
+      assert_raise RuntimeError, "boom", fn ->
+        Code.compile_string("""
+        defmodule CompileAbortedSample do
+          defmodule Inner do
+            def v, do: 1
+          end
+
+          raise "boom"
+        end
+        """)
+      end
+
+      # Pending checkers monitor the caller, so look for them there
+      {:monitored_by, pids} = Process.info(self(), :monitored_by)
+
+      for pid <- pids,
+          match?(
+            {:current_function, {Module.ParallelChecker, _, _}},
+            Process.info(pid, :current_function)
+          ) do
+        ref = Process.monitor(pid)
+        assert_receive {:DOWN, ^ref, :process, ^pid, _}
+      end
+    after
+      :code.purge(CompileAbortedSample.Inner)
+      :code.delete(CompileAbortedSample.Inner)
+    end
   end
 
   test "format_string/2 returns empty iodata for empty string" do
