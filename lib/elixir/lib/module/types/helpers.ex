@@ -109,6 +109,13 @@ defmodule Module.Types.Helpers do
         the union (which may be none)
         """
 
+      :mixed_arity ->
+        """
+
+        #{hint()} you must select which arity you are applying to by using \
+        `is_function/2` when you have a union of functions
+        """
+
       {:impl, for} ->
         # Get the type without dynamic for better pretty printing
         type =
