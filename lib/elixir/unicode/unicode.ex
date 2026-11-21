@@ -192,7 +192,7 @@ cased_non_ignorable = Enum.reject(cased_letters, &:maps.is_key(&1, case_ignorabl
 
 defmodule String.Unicode do
   @moduledoc false
-  def version, do: {17, 0, 0}
+  def version, do: {18, 0, 0}
 
   [unconditional_mappings, _conditional_mappings] =
     Path.join(__DIR__, "SpecialCasing.txt")

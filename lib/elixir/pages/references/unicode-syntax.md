@@ -48,7 +48,7 @@ For the technical details, see the next sections that cover the technical Unicod
 
 ## Unicode Standard Annex #31
 
-Elixir conforms to the standards outlined in the [Unicode Standard Annex #31: Unicode Identifiers and Syntax](https://unicode.org/reports/tr31/), version 17.0.
+Elixir conforms to the standards outlined in the [Unicode Standard Annex #31: Unicode Identifiers and Syntax](https://unicode.org/reports/tr31/), version 18.0.
 
 ### R1. Default Identifiers
 

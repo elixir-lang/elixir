@@ -1,6 +1,6 @@
-# ScriptExtensions-17.0.0.txt
-# Date: 2025-08-01, 21:42:00 GMT
-# © 2025 Unicode®, Inc.
+# ScriptExtensions-18.0.0.txt
+# Date: 2026-08-06, 18:14:47 GMT
+# © 2026 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
@@ -86,6 +86,7 @@
 09E6..09EF    ; Beng Cakm Sylo                 # Nd [10] BENGALI DIGIT ZERO..BENGALI DIGIT NINE
 0A66..0A6F    ; Guru Mult                      # Nd [10] GURMUKHI DIGIT ZERO..GURMUKHI DIGIT NINE
 0AE6..0AEF    ; Gujr Khoj                      # Nd [10] GUJARATI DIGIT ZERO..GUJARATI DIGIT NINE
+0B83          ; Knda Mlym Taml Telu            # Lo      TAMIL SIGN VISARGA
 0BE6..0BEF    ; Gran Taml                      # Nd [10] TAMIL DIGIT ZERO..TAMIL DIGIT NINE
 0BF0..0BF2    ; Gran Taml                      # No  [3] TAMIL NUMBER TEN..TAMIL NUMBER ONE THOUSAND
 0BF3          ; Gran Taml                      # So      TAMIL DAY SIGN
@@ -123,7 +124,7 @@
 1CF2          ; Beng Deva Gran Knda Mlym Nand Orya Sinh Telu Tirh Tutg #Lo VEDIC SIGN ARDHAVISARGA
 1CF3          ; Deva Gran                      # Lo      VEDIC SIGN ROTATED ARDHAVISARGA
 1CF4          ; Deva Gran Knda Tutg            # Mn      VEDIC TONE CANDRA ABOVE
-1CF5..1CF6    ; Beng Deva                      # Lo  [2] VEDIC SIGN JIHVAMULIYA..VEDIC SIGN UPADHMANIYA
+1CF5..1CF6    ; Beng                           # Lo  [2] VEDIC SIGN JIHVAMULIYA..VEDIC SIGN UPADHMANIYA
 1CF7          ; Beng                           # Mc      VEDIC SIGN ATIKRAMA
 1CF8..1CF9    ; Deva Gran                      # Mn  [2] VEDIC TONE RING ABOVE..VEDIC TONE DOUBLE RING ABOVE
 1CFA          ; Nand                           # Lo      VEDIC SIGN DOUBLE ANUSVARA ANTARGOMUKHA
@@ -228,6 +229,9 @@ FF9E..FF9F    ; Hira Kana                      # Lm  [2] HALFWIDTH KATAKANA VOIC
 1133B..1133C  ; Gran Taml                      # Mn  [2] COMBINING BINDU BELOW..GRANTHA SIGN NUKTA
 11FD0..11FD1  ; Gran Taml                      # No  [2] TAMIL FRACTION ONE QUARTER..TAMIL FRACTION ONE HALF-1
 11FD3         ; Gran Taml                      # No      TAMIL FRACTION THREE QUARTERS
+12550..12586  ; Pcun Xsux                      # Nl [55] CUNEIFORM NUMERIC SIGN ONE N01..CUNEIFORM NUMERIC SIGN FIVE N50
+1258C..1258D  ; Pcun Xsux                      # Nl  [2] CUNEIFORM NUMERIC SIGN ONE N22..CUNEIFORM NUMERIC SIGN TWO N22
+1259A..125A7  ; Pcun Xsux                      # Nl [14] CUNEIFORM NUMERIC SIGN ONE N51..CUNEIFORM NUMERIC SIGN FIVE N54
 1BCA0..1BCA3  ; Dupl                           # Cf  [4] SHORTHAND FORMAT LETTER OVERLAP..SHORTHAND FORMAT UP STEP
 1D360..1D371  ; Hani                           # No [18] COUNTING ROD UNIT DIGIT ONE..COUNTING ROD TENS DIGIT NINE
 1F250..1F251  ; Hani                           # So  [2] CIRCLED IDEOGRAPH ADVANTAGE..CIRCLED IDEOGRAPH ACCEPT
