@@ -230,7 +230,9 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         compile_error_if_tainted(DataSet, E),
         Binary = elixir_erl:compile(ModuleMap, Signatures),
-        Autoload = Forceload or proplists:get_value(autoload, CompileOpts, false),
+        %% If a previous version is loaded, we load the new one immediately,
+        %% otherwise the previous version would still be used.
+        Autoload = Forceload or Redefined or proplists:get_value(autoload, CompileOpts, false),
         spawn_parallel_checker(CheckerInfo, Module, ModuleMap, Signatures, BeamLocation),
         {Binary, PersistedAttributes, Autoload}
       end),
@@ -371,6 +373,7 @@ compile_undef(Module, Fun, Arity, Stack) ->
   end.
 
 %% Handle reserved modules and duplicates.
+%% Returns true if a previous version of the module is loaded.
 
 check_module_availability(Module, Line, E) ->
   Reserved = ['Elixir.True', 'Elixir.False', 'Elixir.Nil',
@@ -392,7 +395,7 @@ check_module_availability(Module, Line, E) ->
           false
       end;
     true ->
-      false
+      erlang:module_loaded(Module)
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.

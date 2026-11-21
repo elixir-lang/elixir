@@ -937,14 +937,19 @@ defmodule Module.Types.IntegrationTest do
             Kernel.ParallelCompiler.compile_to_path(paths, ".", return_diagnostics: true)
           end)
 
-        assert {:error, errors, %{compile_warnings: warnings, runtime_warnings: []}} = result
-
-        assert [%{message: "struct RedefinedNestedStruct.Inner is undefined " <> _}] = errors
+        assert {:ok, [RedefinedNestedStruct.Inner],
+                %{compile_warnings: warnings, runtime_warnings: []}} = result
 
         assert Enum.any?(
                  warnings,
                  &(&1.message =~ "redefining module RedefinedNestedStruct.Inner")
                )
+
+        # The new version is loaded as the previous one was loaded
+        assert apply(RedefinedNestedStruct.Inner, :foo, []) == %{
+                 __struct__: RedefinedNestedStruct.Inner,
+                 value: 1
+               }
       end)
     after
       purge(RedefinedNestedStruct.Inner)

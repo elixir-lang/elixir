@@ -102,6 +102,29 @@ defmodule Kernel.ParallelCompilerTest do
                )
     end
 
+    test "loads recompiled modules if a previous version was loaded" do
+      [fixture] = write_tmp("reloaded", reloaded: "defmodule WillBeReloaded, do: def(v, do: 1)")
+      path = tmp_path("reloaded_ebin")
+
+      assert {:ok, [WillBeReloaded], _} =
+               Kernel.ParallelCompiler.compile_to_path([fixture], path, return_diagnostics: true)
+
+      assert apply(WillBeReloaded, :v, []) == 1
+
+      File.write!(fixture, "defmodule WillBeReloaded, do: def(v, do: 2)")
+
+      capture_io(:stderr, fn ->
+        assert {:ok, [WillBeReloaded], _} =
+                 Kernel.ParallelCompiler.compile_to_path([fixture], path,
+                   return_diagnostics: true
+                 )
+      end)
+
+      assert apply(WillBeReloaded, :v, []) == 2
+    after
+      purge([WillBeReloaded])
+    end
+
     test "warns on modules defined more than once" do
       [redefined, loaded] =
         write_tmp(
