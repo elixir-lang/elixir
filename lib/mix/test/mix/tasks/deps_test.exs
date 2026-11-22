@@ -346,6 +346,46 @@ defmodule Mix.Tasks.DepsTest do
     System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
+  describe "prioritize" do
+    test "starts the longest chain first" do
+      long = %Mix.Dep{app: :long}
+      long_middle = %Mix.Dep{app: :long_middle, deps: [long]}
+      long_top = %Mix.Dep{app: :long_top, deps: [long_middle]}
+      alone = %Mix.Dep{app: :alone}
+
+      deps = Mix.Tasks.Deps.Partition.prioritize([alone, long, long_middle, long_top])
+      assert Enum.map(deps, & &1.app) == [:long, :long_middle, :alone, :long_top]
+    end
+
+    test "uses the longest chain a dep starts" do
+      short = %Mix.Dep{app: :short}
+      long = %Mix.Dep{app: :long}
+      long_middle = %Mix.Dep{app: :long_middle, deps: [long]}
+
+      deps = [
+        short,
+        %Mix.Dep{app: :short_top, deps: [short]},
+        long,
+        %Mix.Dep{app: :long_side, deps: [long]},
+        long_middle,
+        %Mix.Dep{app: :long_top, deps: [long_middle]}
+      ]
+
+      assert Enum.map(Mix.Tasks.Deps.Partition.prioritize(deps), & &1.app) ==
+               [:long, :short, :long_middle, :short_top, :long_side, :long_top]
+    end
+
+    test "keeps the order on ties and ignores children not being compiled" do
+      deps = [
+        %Mix.Dep{app: :c, deps: [%Mix.Dep{app: :unknown}]},
+        %Mix.Dep{app: :a},
+        %Mix.Dep{app: :b}
+      ]
+
+      assert Enum.map(Mix.Tasks.Deps.Partition.prioritize(deps), & &1.app) == [:c, :a, :b]
+    end
+  end
+
   test "doesn't compile any umbrella apps if --skip-umbrella-children is given" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
