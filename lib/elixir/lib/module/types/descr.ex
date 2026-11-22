@@ -1576,17 +1576,15 @@ defmodule Module.Types.Descr do
 
   ## Examples
 
-      iex> fun_apply(fun([integer()], atom()), [integer()])
+      iex> fun_apply(fun([integer()], atom()), [integer()], false)
       {:ok, atom()}
 
-      iex> fun_apply(fun([integer()], atom()), [float()])
+      iex> fun_apply(fun([integer()], atom()), [float()], false)
       {:badarg, [integer()], false}
 
-      iex> fun_apply(dynamic(fun([integer()], atom())), [integer()])
+      iex> fun_apply(dynamic(fun([integer()], atom())), [integer()], false)
       {:ok, dynamic(atom())}
   """
-  def fun_apply(fun, arguments, static? \\ false)
-
   def fun_apply(:term, _arguments, _static?), do: :badfun
 
   def fun_apply({_, _, _} = node, arguments, static?),

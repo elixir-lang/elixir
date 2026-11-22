@@ -1263,7 +1263,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :get_lazy, _info, [map, key, fun] = args_types, stack) do
-    case fun_apply(fun, []) do
+    case fun_apply(fun, [], stack.mode == :static) do
       {:ok, default} ->
         case map_get(map, key) do
           {:ok, value} -> {:ok, return(opt_union(value, default), args_types, stack)}
@@ -1281,7 +1281,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :put_new_lazy, _info, [map, key, fun] = args_types, stack) do
-    case fun_apply(fun, []) do
+    case fun_apply(fun, [], stack.mode == :static) do
       {:ok, value} -> map_put_new(map, key, value, :put_new_lazy, args_types, stack)
       reason -> {:error, {:badapply, fun, [], reason}}
     end
@@ -1308,7 +1308,7 @@ defmodule Module.Types.Apply do
   end
 
   defp remote_apply(Map, :pop_lazy, _info, [map, key, fun] = args_types, stack) do
-    case fun_apply(fun, []) do
+    case fun_apply(fun, [], stack.mode == :static) do
       {:ok, default} ->
         case map_update(map, key, :delete, :keep, true) do
           {value, descr, _errors} ->

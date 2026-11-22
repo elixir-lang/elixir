@@ -545,7 +545,7 @@ defmodule Module.Types.RecursiveTest do
           X: fn recur -> tuple([recur.(:X)]) |> bare_union(tuple([atom()])) end
         })
 
-      assert {:ok, type} = fun_apply(fun([term()], integer()), [nx])
+      assert {:ok, type} = fun_apply(fun([term()], integer()), [nx], false)
       assert equal?(type, integer())
     end
   end
@@ -1334,7 +1334,7 @@ defmodule Module.Types.RecursiveTest do
     test "functions" do
       assert_node(args_to_domain([integer()]), &domain_to_args/1)
       assert_node(args_to_domain([integer()]), &domain_to_flat_args(&1, 1))
-      assert_node(fun([integer()], atom()), &fun_apply(&1, [integer()]))
+      assert_node(fun([integer()], atom()), &fun_apply(&1, [integer()], false))
       assert_node(fun([integer()], atom()), &fun_apply_or_none(&1, [integer()]))
     end
 
