@@ -107,9 +107,9 @@ defmodule RegexTest do
   end
 
   test "ungreedy" do
-    assert Regex.run(~r/[\d ]+/, "1 2 3 4 5"), ["1 2 3 4 5"]
-    assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5"), ["1"]
-    assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5"), ["1"]
+    assert Regex.run(~r/[\d ]+/, "1 2 3 4 5") == ["1 2 3 4 5"]
+    assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5") == ["1"]
+    assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5") == ["1"]
   end
 
   test "compile/1" do
