@@ -1675,9 +1675,13 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], term()), [integer()]) == {:ok, term()}
 
       # Dynamic args
-      assert fun_apply(fun([term()], term()), [dynamic()]) == {:ok, term()}
+      assert fun_apply(fun([term()], term()), [dynamic()]) == {:ok, dynamic()}
+      assert fun_apply(fun([term()], term()), [dynamic()], true) == {:ok, term()}
 
-      assert fun_apply(fun([integer()], atom()), [dynamic(integer())])
+      assert fun_apply(fun([integer()], atom()), [dynamic(integer())]) ==
+               {:ok, dynamic(atom())}
+
+      assert fun_apply(fun([integer()], atom()), [dynamic(integer())], true)
              |> elem(1)
              |> equal?(atom())
 
@@ -1753,10 +1757,16 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun0, [float()]) == {:ok, binary()}
       assert fun_apply(fun0, [number()]) == {:ok, opt_union(atom(), binary())}
 
-      assert fun_apply(fun0, [dynamic(integer())]) |> elem(1) |> equal?(atom())
-      assert fun_apply(fun0, [dynamic(float())]) |> elem(1) |> equal?(binary())
+      assert fun_apply(fun0, [dynamic(integer())]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun0, [dynamic(float())]) == {:ok, dynamic(binary())}
 
-      assert fun_apply(fun0, [dynamic(number())])
+      assert fun_apply(fun0, [dynamic(number())]) ==
+               {:ok, dynamic(opt_union(atom(), binary()))}
+
+      assert fun_apply(fun0, [dynamic(integer())], true) |> elem(1) |> equal?(atom())
+      assert fun_apply(fun0, [dynamic(float())], true) |> elem(1) |> equal?(binary())
+
+      assert fun_apply(fun0, [dynamic(number())], true)
              |> elem(1)
              |> equal?(opt_union(atom(), binary()))
 
@@ -1899,17 +1909,24 @@ defmodule Module.Types.DescrTest do
     end
 
     test "static with dynamic signature" do
-      assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
+      assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, dynamic()}
+      assert fun_apply(fun([dynamic()], term()), [dynamic()], true) == {:ok, term()}
       assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
 
-      assert fun_apply(fun([dynamic()], integer()), [dynamic()]) ==
+      assert fun_apply(fun([dynamic()], integer()), [dynamic()]) == {:ok, dynamic()}
+
+      assert fun_apply(fun([dynamic()], integer()), [dynamic()], true) ==
                {:ok, opt_union(integer(), dynamic())}
 
       assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()]) ==
+               {:ok, dynamic()}
+
+      assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()], true) ==
                {:ok, opt_union(float(), dynamic())}
 
       fun = fun([dynamic(integer())], atom())
-      assert fun_apply(fun, [dynamic(integer())]) == {:ok, opt_union(atom(), dynamic())}
+      assert fun_apply(fun, [dynamic(integer())]) == {:ok, dynamic()}
+      assert fun_apply(fun, [dynamic(integer())], true) == {:ok, opt_union(atom(), dynamic())}
       assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
       assert fun_apply(fun, [integer()]) == {:ok, opt_union(atom(), dynamic())}
       assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())], false}
@@ -1929,6 +1946,13 @@ defmodule Module.Types.DescrTest do
       assert precise?(precise, imprecise)
 
       fun = opt_union(fun([term()], atom([:a])), dynamic(fun([opt_negation(integer())], term())))
+      assert {:ok, precise} = fun_apply(fun, [integer()])
+      assert {:ok, imprecise} = fun_apply(fun, [dynamic(integer())])
+      assert precise?(precise, imprecise)
+      assert {:ok, imprecise} = fun_apply(fun, [dynamic()])
+      assert precise?(precise, imprecise)
+
+      fun = opt_intersection(fun([integer()], atom([:a])), fun([term()], atom([:a, :b])))
       assert {:ok, precise} = fun_apply(fun, [integer()])
       assert {:ok, imprecise} = fun_apply(fun, [dynamic(integer())])
       assert precise?(precise, imprecise)
@@ -2081,7 +2105,9 @@ defmodule Module.Types.DescrTest do
       fun_mixed_gdom = opt_union(fun([boolean()], boolean()), dynamic_fun([integer()], integer()))
       assert fun_apply(fun_mixed_gdom, [boolean()]) == {:ok, opt_union(dynamic(), boolean())}
 
-      assert fun_apply(fun_mixed_gdom, [dynamic(boolean())]) ==
+      assert fun_apply(fun_mixed_gdom, [dynamic(boolean())]) == {:ok, dynamic()}
+
+      assert fun_apply(fun_mixed_gdom, [dynamic(boolean())], true) ==
                {:ok, opt_union(dynamic(), boolean())}
 
       assert fun_apply(fun_mixed_gdom, [integer()]) == {:badarg, [dynamic(boolean())], false}
@@ -2110,15 +2136,17 @@ defmodule Module.Types.DescrTest do
       #                                  = int or dynamic and term = int or dynamic
 
       # The domain check dynamic and float <= int or dynamic succeeds.
-      # The static application (term -> bool) o float = bool is well-defined.
+      # The static application (term -> bool) o none = none, as the argument
+      # is purely dynamic. Using its upper bound in static mode, the static
+      # application (term -> bool) o float = bool is well-defined.
       # The dynamic application (int -> bool) o float is not well-defined (float not <: int),
       # but since it is dynamic it returns term wrapped in dynamic, which is dynamic.
-      # Result: bool or dynamic.
+      # Result: dynamic, or bool or dynamic in static mode.
       fun_type = fun([opt_union(dynamic(), integer())], boolean())
       arg = dynamic(float())
 
-      # Application yields bool or dynamic
-      assert {:ok, result} = fun_apply(fun_type, [arg])
+      assert fun_apply(fun_type, [arg]) == {:ok, dynamic()}
+      assert {:ok, result} = fun_apply(fun_type, [arg], true)
       assert equal?(opt_union(boolean(), dynamic()), result)
     end
   end
