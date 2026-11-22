@@ -1556,13 +1556,20 @@ defmodule Module.Types.Descr do
 
   ## Function application formula for dynamic types
 
-      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) or (dynamic(upper_bound(τ) ◦ upper_bound(τ′)))
+      τ◦τ′ = (lower_bound(τ) ◦ lower_bound(τ′)) or (dynamic(upper_bound(τ) ◦ upper_bound(τ′)))
 
   Where:
 
   - τ is a dynamic function type
   - τ′ are the arguments
   - ◦ is function application
+
+  Using the lower bound of the arguments in the static part preserves the
+  gradual guarantee: a less precise argument leads to a less precise result.
+  If `static?` is true, the upper bound of the arguments is used instead,
+  which returns more static information at the cost of the gradual guarantee:
+
+      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) or (dynamic(upper_bound(τ) ◦ upper_bound(τ′)))
 
   For more details, see Section 13.2 of
   https://gldubc.github.io/assets/duboc-phd-thesis-typing-elixir.pdf
@@ -1578,16 +1585,18 @@ defmodule Module.Types.Descr do
       iex> fun_apply(dynamic(fun([integer()], atom())), [integer()])
       {:ok, dynamic(atom())}
   """
-  def fun_apply(:term, _arguments), do: :badfun
+  def fun_apply(fun, arguments, static? \\ false)
 
-  def fun_apply({_, _, _} = node, arguments),
-    do: fun_apply(unfold(node), arguments)
+  def fun_apply(:term, _arguments, _static?), do: :badfun
 
-  def fun_apply(fun, arguments) do
+  def fun_apply({_, _, _} = node, arguments, static?),
+    do: fun_apply(unfold(node), arguments, static?)
+
+  def fun_apply(fun, arguments, static?) do
     case :maps.take(:dynamic, fun) do
       :error ->
         if fun_only?(fun) do
-          fun_apply_with_strategy(fun, nil, arguments)
+          fun_apply_with_strategy(fun, nil, arguments, static?)
         else
           :badfun
         end
@@ -1598,7 +1607,7 @@ defmodule Module.Types.Descr do
             {:ok, dynamic()}
 
           fun_only?(fun_static) ->
-            fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
+            fun_apply_with_strategy(fun_static, fun_dynamic, arguments, static?)
 
           true ->
             :badfun
@@ -1642,7 +1651,8 @@ defmodule Module.Types.Descr do
       result =
         if empty?(argument),
           do: none(),
-          else: fun_apply_result([argument], static_arrows, dynamic_arrows, fun_dynamic == nil)
+          else:
+            fun_apply_result([argument], static_arrows, dynamic_arrows, fun_dynamic == nil, false)
 
       {:ok, result, status}
     end
@@ -1659,10 +1669,10 @@ defmodule Module.Types.Descr do
   #    - If the upper bound of the argument is a subtype of the upper bound
   #      of the domain, proceed to application. The upper bound of the domain
   #      is the domain of the static arrows (or term() if there are none),
-  #      so they can be applied to the upper bound of the argument, which is
-  #      what fun_apply_result/4 does. Only checking upper bounds makes the
-  #      application monotone in the precision of the argument: integer()
-  #      and dynamic(integer()) take the same path.
+  #      so every materialization of the argument is accepted by them.
+  #      Only checking upper bounds makes the application monotone in the
+  #      precision of the argument: integer() and dynamic(integer()) take
+  #      the same path.
   #    - Otherwise, in gradual mode, check compatibility (see below). If
   #      compatible, the application may succeed at runtime but we have no
   #      static information about the result, so we return dynamic().
@@ -1672,7 +1682,7 @@ defmodule Module.Types.Descr do
   #    - Purely dynamic function (no static arrows): wrap the result of
   #      applying dynamic arrows to upper-bounded arguments in dynamic().
   #    - Mixed: union the static result with the dynamic-wrapped dynamic result.
-  defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
+  defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments, static?) do
     if :lists.any(&empty?/1, arguments) do
       {:badarg, arguments, true}
     else
@@ -1681,7 +1691,9 @@ defmodule Module.Types.Descr do
       with {:ok, domain, static_arrows, dynamic_arrows} <-
              fun_normalize_both(fun_static, fun_dynamic, arity) do
         args_domain = args_to_domain(arguments)
-        static? = fun_dynamic == nil and :lists.all(fn arg -> not gradual?(arg) end, arguments)
+
+        all_static? =
+          fun_dynamic == nil and :lists.all(fn arg -> not gradual?(arg) end, arguments)
 
         if not subtype?(upper_bound(args_domain), upper_bound(domain)) do
           # The domain here is the extended gradual domain computed by
@@ -1696,19 +1708,19 @@ defmodule Module.Types.Descr do
           # useless. So when the static part is empty, we instead check
           # that the upper bound overlaps with the domain. When the static
           # part is non-empty, we check it is a subtype of the domain.
-          if static? or not compatible?(args_domain, domain),
+          if all_static? or not compatible?(args_domain, domain),
             do: {:badarg, domain_to_flat_args(domain, arity), false},
             else: {:ok, dynamic()}
         else
-          {:ok, fun_apply_result(arguments, static_arrows, dynamic_arrows, static?)}
+          {:ok, fun_apply_result(arguments, static_arrows, dynamic_arrows, all_static?, static?)}
         end
       end
     end
   end
 
-  defp fun_apply_result(arguments, static_arrows, dynamic_arrows, static?) do
+  defp fun_apply_result(arguments, static_arrows, dynamic_arrows, all_static?, static?) do
     cond do
-      static? ->
+      all_static? ->
         fun_apply_static(arguments, static_arrows)
 
       static_arrows == [] ->
@@ -1729,16 +1741,23 @@ defmodule Module.Types.Descr do
         # come from these alone.
         # dynamic_arrows (upper materialization) include dynamically uncertain
         # arrows, so their result is wrapped in dynamic().
-        # We use upper_bound on the arguments for both branches. This is sound
-        # because the dynamic branch wraps its result in dynamic().
-        # It is more strict and informative than using lower_bound in the static part,
-        # as it amounts to assuming the worst case of using the statically present arrows.
-        arguments = :lists.map(&upper_bound/1, arguments)
+        # The dynamic branch uses the upper bound of the arguments. The static
+        # branch uses the lower bound, which keeps the application monotone in
+        # the precision of the arguments, unless static? is given, which uses
+        # the upper bound and assumes the worst case of the static arrows.
+        upper_arguments = :lists.map(&upper_bound/1, arguments)
 
-        bare_union(
-          fun_apply_static(arguments, static_arrows),
-          dynamic(fun_apply_static(arguments, dynamic_arrows))
-        )
+        static_arguments =
+          if static?, do: upper_arguments, else: :lists.map(&lower_bound/1, arguments)
+
+        # A purely dynamic argument has none() as lower bound, so the static
+        # branch is none() (fun_apply_static/2 would return term() for it).
+        static_result =
+          if :lists.any(&empty?/1, static_arguments),
+            do: none(),
+            else: fun_apply_static(static_arguments, static_arrows)
+
+        bare_union(static_result, dynamic(fun_apply_static(upper_arguments, dynamic_arrows)))
     end
   end
 

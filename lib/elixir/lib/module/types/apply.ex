@@ -1738,7 +1738,7 @@ defmodule Module.Types.Apply do
   ## Funs
 
   def fun(fun_type, args_types, call, stack, context) do
-    case fun_apply(fun_type, args_types) do
+    case fun_apply(fun_type, args_types, stack.mode == :static) do
       {:ok, res} ->
         {res, context}
 
