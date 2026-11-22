@@ -1911,8 +1911,29 @@ defmodule Module.Types.DescrTest do
       fun = fun([dynamic(integer())], atom())
       assert fun_apply(fun, [dynamic(integer())]) == {:ok, opt_union(atom(), dynamic())}
       assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
-      assert fun_apply(fun, [integer()]) == {:ok, dynamic()}
+      assert fun_apply(fun, [integer()]) == {:ok, opt_union(atom(), dynamic())}
       assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())], false}
+    end
+
+    # left is at least as precise as right if every materialization of
+    # left is also a materialization of right
+    defp precise?(left, right) do
+      subtype?(lower_bound(right), lower_bound(left)) and
+        subtype?(upper_bound(left), upper_bound(right))
+    end
+
+    test "is monotone in the precision of the argument" do
+      fun = fun([dynamic(integer())], atom())
+      assert {:ok, precise} = fun_apply(fun, [integer()])
+      assert {:ok, imprecise} = fun_apply(fun, [dynamic(integer())])
+      assert precise?(precise, imprecise)
+
+      fun = opt_union(fun([term()], atom([:a])), dynamic(fun([opt_negation(integer())], term())))
+      assert {:ok, precise} = fun_apply(fun, [integer()])
+      assert {:ok, imprecise} = fun_apply(fun, [dynamic(integer())])
+      assert precise?(precise, imprecise)
+      assert {:ok, imprecise} = fun_apply(fun, [dynamic()])
+      assert precise?(precise, imprecise)
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
@@ -2052,13 +2073,13 @@ defmodule Module.Types.DescrTest do
           dynamic_fun([integer()], binary())
         )
 
-      assert fun_args |> fun_apply([atom()]) == {:ok, dynamic()}
+      assert fun_args |> fun_apply([atom()]) == {:ok, opt_union(integer(), dynamic())}
       assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())], false}
 
       # ((bool->bool) or dyn(int->int))
       # booleans work, but not integers
       fun_mixed_gdom = opt_union(fun([boolean()], boolean()), dynamic_fun([integer()], integer()))
-      assert fun_apply(fun_mixed_gdom, [boolean()]) == {:ok, dynamic()}
+      assert fun_apply(fun_mixed_gdom, [boolean()]) == {:ok, opt_union(dynamic(), boolean())}
 
       assert fun_apply(fun_mixed_gdom, [dynamic(boolean())]) ==
                {:ok, opt_union(dynamic(), boolean())}

@@ -1656,7 +1656,13 @@ defmodule Module.Types.Descr do
   # Gradual function application algorithm.
   #
   # 1. Domain check against the extended gradual domain (see fun_normalize_both/3):
-  #    - If the argument is a subtype of the domain, proceed to application.
+  #    - If the upper bound of the argument is a subtype of the upper bound
+  #      of the domain, proceed to application. The upper bound of the domain
+  #      is the domain of the static arrows (or term() if there are none),
+  #      so they can be applied to the upper bound of the argument, which is
+  #      what fun_apply_result/4 does. Only checking upper bounds makes the
+  #      application monotone in the precision of the argument: integer()
+  #      and dynamic(integer()) take the same path.
   #    - Otherwise, in gradual mode, check compatibility (see below). If
   #      compatible, the application may succeed at runtime but we have no
   #      static information about the result, so we return dynamic().
@@ -1677,7 +1683,7 @@ defmodule Module.Types.Descr do
         args_domain = args_to_domain(arguments)
         static? = fun_dynamic == nil and :lists.all(fn arg -> not gradual?(arg) end, arguments)
 
-        if not subtype?(args_domain, domain) do
+        if not subtype?(upper_bound(args_domain), upper_bound(domain)) do
           # The domain here is the extended gradual domain computed by
           # fun_normalize_both/3. If the argument does not satisfy it, we
           # check compatibility before rejecting.
