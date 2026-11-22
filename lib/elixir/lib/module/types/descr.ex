@@ -1674,8 +1674,9 @@ defmodule Module.Types.Descr do
   #      precision of the argument: integer() and dynamic(integer()) take
   #      the same path.
   #    - Otherwise, in gradual mode, check compatibility (see below). If
-  #      compatible, the application may succeed at runtime but we have no
-  #      static information about the result, so we return dynamic().
+  #      compatible, the application may succeed at runtime. We apply the
+  #      static arrows to the lower bound of the arguments and union it
+  #      with dynamic(), or return only dynamic() if static? is given.
   #    - Otherwise, error.
   # 2. Compute the application result in three cases:
   #    - Fully static: apply static arrows to the arguments directly.
@@ -1708,9 +1709,25 @@ defmodule Module.Types.Descr do
           # useless. So when the static part is empty, we instead check
           # that the upper bound overlaps with the domain. When the static
           # part is non-empty, we check it is a subtype of the domain.
-          if all_static? or not compatible?(args_domain, domain),
-            do: {:badarg, domain_to_flat_args(domain, arity), false},
-            else: {:ok, dynamic()}
+          cond do
+            all_static? or not compatible?(args_domain, domain) ->
+              {:badarg, domain_to_flat_args(domain, arity), false}
+
+            static? ->
+              {:ok, dynamic()}
+
+            true ->
+              # Compatibility ensures a non-empty lower bound of the arguments
+              # is within the domain of the static arrows, so we can apply them,
+              # as in the formula. Returning only dynamic() would make a more
+              # precise function return a less precise result.
+              lower_arguments = :lists.map(&lower_bound/1, arguments)
+
+              if static_arrows == [] or :lists.any(&empty?/1, lower_arguments),
+                do: {:ok, dynamic()},
+                else:
+                  {:ok, bare_union(fun_apply_static(lower_arguments, static_arrows), dynamic())}
+          end
         else
           {:ok, fun_apply_result(arguments, static_arrows, dynamic_arrows, all_static?, static?)}
         end

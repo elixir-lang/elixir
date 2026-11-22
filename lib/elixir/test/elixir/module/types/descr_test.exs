@@ -1939,6 +1939,23 @@ defmodule Module.Types.DescrTest do
         subtype?(upper_bound(left), upper_bound(right))
     end
 
+    test "is monotone in the precision of the function" do
+      arg = opt_union(integer(), dynamic())
+      precise = fun([integer()], integer())
+
+      imprecise =
+        opt_union(
+          opt_intersection(fun([integer()], integer()), fun([term()], term())),
+          dynamic(fun([integer()], integer()))
+        )
+
+      assert precise?(precise, imprecise)
+      assert {:ok, precise_result} = fun_apply(precise, [arg])
+      assert {:ok, imprecise_result} = fun_apply(imprecise, [arg])
+      assert precise?(precise_result, imprecise_result)
+      assert precise_result == opt_union(integer(), dynamic())
+    end
+
     test "is monotone in the precision of the argument" do
       fun = fun([dynamic(integer())], atom())
       assert {:ok, precise} = fun_apply(fun, [integer()])
