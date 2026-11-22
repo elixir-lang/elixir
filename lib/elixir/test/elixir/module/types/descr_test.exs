@@ -1761,6 +1761,15 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(live_at_2, [integer(), atom()], false) == {:ok, dynamic(boolean())}
       assert fun_apply(live_at_2, [integer()], false) == {:badarity, :positive, [2]}
 
+      # Lines without positive arrows are applied as the top arrow of their arity,
+      # which accepts the empty list of arguments but nothing at higher arities.
+      not_int_0 = opt_difference(none_fun(0), fun([], integer()))
+      assert fun_apply(not_int_0, [], false) == {:ok, term()}
+      assert fun_apply(opt_union(fun([], atom()), not_int_0), [], false) == {:ok, term()}
+
+      not_int_1 = opt_difference(none_fun(1), fun([integer()], integer()))
+      assert {:badarg, _, false} = fun_apply(not_int_1, [integer()], false)
+
       # Function intersection tests (no overlap)
       fun0 = opt_intersection(fun([integer()], atom()), fun([float()], binary()))
       assert fun_apply(fun0, [integer()], false) == {:ok, atom()}
