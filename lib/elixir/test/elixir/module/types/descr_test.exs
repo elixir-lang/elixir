@@ -1949,6 +1949,23 @@ defmodule Module.Types.DescrTest do
         subtype?(upper_bound(left), upper_bound(right))
     end
 
+    test "empty arguments to the dynamic top function" do
+      f = dynamic(fun())
+
+      empty =
+        bare_intersection(fun([integer()], integer()), opt_negation(fun([integer()], term())))
+
+      assert fun_apply(f, [none()], false) == {:badarg, [none()], true}
+      assert fun_apply(bare_union(empty, f), [none()], false) == {:badarg, [none()], true}
+
+      assert fun_apply(dynamic(bare_difference(fun(), empty)), [none()], false) ==
+               {:badarg, [none()], true}
+
+      # Non-empty arguments still give dynamic()
+      assert fun_apply(f, [integer()], false) == {:ok, dynamic()}
+      assert fun_apply(bare_union(empty, f), [integer()], false) == {:ok, dynamic()}
+    end
+
     test "is monotone in the precision of the function" do
       arg = opt_union(integer(), dynamic())
       precise = fun([integer()], integer())

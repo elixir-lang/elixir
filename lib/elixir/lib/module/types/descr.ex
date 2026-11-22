@@ -1602,7 +1602,11 @@ defmodule Module.Types.Descr do
       {fun_dynamic, fun_static} ->
         cond do
           fun_static == %{} and dynamic_fun_top?(fun_dynamic) ->
-            {:ok, dynamic()}
+            # Reject empty arguments as fun_apply_with_strategy/4 does, since
+            # the shortcut does not apply to equivalent types written differently
+            if :lists.any(&empty?/1, arguments),
+              do: {:badarg, arguments, true},
+              else: {:ok, dynamic()}
 
           fun_only?(fun_static) ->
             fun_apply_with_strategy(fun_static, fun_dynamic, arguments, static?)
