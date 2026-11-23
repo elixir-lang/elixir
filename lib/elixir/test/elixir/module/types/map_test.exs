@@ -1816,4 +1816,3 @@ defmodule Module.Types.MapTest do
     end
   end
 end
-
