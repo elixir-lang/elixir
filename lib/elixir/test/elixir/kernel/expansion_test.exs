@@ -2256,6 +2256,32 @@ defmodule Kernel.ExpansionTest do
 
         expand(code)
       end)
+
+      assert_compile_error(~r"invalid \"rescue\" clause\. The clause should match", fn ->
+        code =
+          quote do
+            try do
+              x
+            rescue
+              e in [] -> e
+            end
+          end
+
+        expand(code)
+      end)
+
+      assert_compile_error(~r"invalid \"rescue\" clause\. The clause should match", fn ->
+        code =
+          quote do
+            try do
+              x
+            rescue
+              [] -> :ok
+            end
+          end
+
+        expand(code)
+      end)
     end
 
     test "expects one or two args for catch clauses" do

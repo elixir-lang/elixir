@@ -492,6 +492,8 @@ expand_rescue(Arg, S, E) ->
 
 normalize_rescue(Atom) when is_atom(Atom) ->
   [Atom];
+normalize_rescue([]) ->
+  false;
 normalize_rescue(Other) ->
   is_list(Other) andalso lists:all(fun is_atom/1, Other) andalso Other.
 
