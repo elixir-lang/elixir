@@ -546,6 +546,7 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "anonymous call", S, E),
   {[EExpr | EArgs], SA, EA} = expand_args([Expr | Args], S, E),
+  is_atom(EExpr) andalso function_error(Meta, E, ?MODULE, {invalid_function_call, EExpr}),
   {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, SA, EA};
 
 %% Invalid calls
@@ -1324,6 +1325,8 @@ format_error({invalid_clauses, Name}) ->
     "the function \"~ts\" cannot handle clauses with the -> operator because it is not a macro. "
     "Please make sure you are invoking the proper name and that it is a macro",
   io_lib:format(Message, [Name]);
+format_error({invalid_function_call, Expr}) ->
+  io_lib:format("invalid function call :~ts.()", [Expr]);
 format_error({invalid_call, Call}) ->
   io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
 format_error({invalid_quoted_expr, Expr}) ->
