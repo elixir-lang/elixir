@@ -300,8 +300,7 @@ defmodule ExUnit.Assertions do
     context = if op in [:===, :!==], do: :===, else: :==
 
     quote do
-      left = unquote(left)
-      right = unquote(right)
+      {left, right} = {unquote(left), unquote(right)}
       expr = unquote(expr)
       message = unquote(message)
 
@@ -327,8 +326,7 @@ defmodule ExUnit.Assertions do
     context = if op in [:===, :!==], do: :===, else: :==
 
     quote do
-      left = unquote(left)
-      right = unquote(right)
+      {left, right} = {unquote(left), unquote(right)}
 
       ExUnit.Assertions.assert(unquote(call),
         left: left,
@@ -428,11 +426,29 @@ defmodule ExUnit.Assertions do
         end
       )
 
-    quote do
-      right = unquote(right)
-      expr = unquote(code)
-      {unquote_splicing(vars)} = unquote(match_expr)
-      right
+    if pins == [] do
+      quote do
+        right = unquote(right)
+        expr = unquote(code)
+        {unquote_splicing(vars)} = unquote(match_expr)
+        right
+      end
+    else
+      # The right side may rebind pinned variables, so we read them
+      # alongside the right side and restore them within the match
+      pinned = Enum.map(pins, &elem(&1, 1))
+
+      quote do
+        {right, pinned} = {unquote(right), {unquote_splicing(pinned)}}
+        expr = unquote(code)
+
+        {unquote_splicing(vars)} =
+          case pinned do
+            {unquote_splicing(pinned)} -> unquote(match_expr)
+          end
+
+        right
+      end
     end
   end
 

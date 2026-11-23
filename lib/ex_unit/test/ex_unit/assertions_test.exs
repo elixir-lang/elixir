@@ -278,6 +278,35 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match with pinned variable rebound on the right side" do
+    a = "ab"
+
+    "ab" =
+      assert ^a =
+               (
+                 a = "cd"
+                 "ab"
+               )
+
+    "cd" = a
+
+    try do
+      assert ^a =
+               (
+                 a = "ef"
+                 a
+               )
+
+      flunk("This should never be tested")
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (=) failed\n" <> "The following variables were pinned:\n" <> "  a = \"cd\"" =
+          error.message
+
+        "ef" = error.right
+    end
+  end
+
   test "assert match with pinned variable from another context" do
     var!(a, Elixir) = 1
     {2, 1} = assert {2, ^var!(a, Elixir)} = Value.tuple()
@@ -935,6 +964,31 @@ defmodule ExUnit.AssertionsTest do
       "assert 2 <= 1" = Macro.to_string(error.expr)
       2 = error.left
       1 = error.right
+  end
+
+  test "assert operator does not leak bindings from left to right" do
+    x = 2
+
+    try do
+      assert (
+               x = 0
+               x + 1
+             ) >= x
+
+      flunk("This should never be tested")
+    rescue
+      error in [ExUnit.AssertionError] ->
+        1 = error.left
+        2 = error.right
+    end
+
+    x = 1
+
+    false =
+      refute (
+               x = 0
+               x
+             ) == x
   end
 
   test "assert operator with expressions" do

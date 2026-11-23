@@ -140,7 +140,8 @@ defmodule URITest do
 
   describe "new!/1" do
     test "returns the given URI if a %URI{} struct is given" do
-      assert URI.new!(uri = %URI{scheme: "http", host: "foo.com"}) == uri
+      uri = %URI{scheme: "http", host: "foo.com"}
+      assert URI.new!(uri) == uri
     end
 
     test "works with HTTP scheme" do
@@ -805,7 +806,8 @@ defmodule URITest do
 
   describe "parse/1" do
     test "returns the given URI if a %URI{} struct is given" do
-      assert URI.parse(uri = %URI{scheme: "http", host: "foo.com"}) == uri
+      uri = %URI{scheme: "http", host: "foo.com"}
+      assert URI.parse(uri) == uri
     end
 
     test "works with HTTP scheme" do
