@@ -4268,6 +4268,43 @@ defmodule Module.Types.DescrTest do
         refute empty?(opt_intersection(result, target))
       end
     end
+
+    test "map_put_key and map_update with a negation without key" do
+      type = opt_difference(open_map(b: {atom(), false}), open_map(a: {integer(), false}))
+      target = opt_difference(open_map(b: {binary(), false}), open_map(a: {integer(), false}))
+
+      assert {:ok, put} = map_put_key(type, :b, binary())
+      assert equal?(put, target)
+
+      for mode <- [:keep, :reject, :force] do
+        assert {_, update, []} = map_update(type, atom([:b]), binary(), mode, true)
+        assert equal?(update, target)
+      end
+    end
+
+    test "map_put_key and map_update with only negations" do
+      # bare_difference keeps the line without a positive map
+      type = bare_difference(open_map(), open_map(c: {tuple([atom([:b])]), true}))
+      value = tuple([term()])
+
+      put_a =
+        opt_difference(
+          open_map(a: {value, false}),
+          open_map(a: {value, false}, c: {tuple([atom([:b])]), true})
+        )
+
+      put_c = open_map(c: {value, false})
+      keep_a = opt_intersection(type, open_map(a: {none(), true}))
+
+      assert {:ok, put} = map_put_key(type, :a, value)
+      assert equal?(put, put_a)
+
+      assert {_, update, []} = map_update(type, atom([:a, :c]), value, :force, true)
+      assert equal?(update, opt_union(put_a, put_c))
+
+      assert {_, update, [badkey: :a]} = map_update(type, atom([:a, :c]), value, :keep, true)
+      assert equal?(update, opt_union(opt_union(put_a, put_c), keep_a))
+    end
   end
 
   describe "map_put" do

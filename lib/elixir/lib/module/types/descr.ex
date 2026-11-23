@@ -4309,7 +4309,7 @@ defmodule Module.Types.Descr do
     bdds =
       case map_dnf_pop_key(dnf, key) do
         :bdd_bot -> []
-        bdd -> [map_put_key_bdd(bdd, key, type, optional?)]
+        bdd -> [map_put_key_bdd(bdd, key, type, optional?, false)]
       end
 
     {bdds, if(old_value?, do: map_dnf_fetch_static(dnf, key))}
@@ -4364,7 +4364,7 @@ defmodule Module.Types.Descr do
     bdds =
       :lists.map(
         fn {{new_type, new_optional?}, rests} ->
-          map_put_key_bdd(map_union_all(rests), key, new_type, new_optional?)
+          map_put_key_bdd(map_union_all(rests), key, new_type, new_optional?, false)
         end,
         :maps.to_list(groups)
       )
@@ -4499,15 +4499,52 @@ defmodule Module.Types.Descr do
   end
 
   # Directly inserts a key of a given type into every positive and negative map.
-  defp map_put_key_bdd(bdd, key, value, optional?) do
-    bdd_map(bdd, fn
-      bdd_leaf(:closed, fields) when optional? and value == @none ->
-        bdd_leaf_new(:closed, fields)
+  #
+  # The open map without fields is the same as :bdd_top, so BDD operations may
+  # omit it. Therefore paths without a positive map, such as
+  # `map() and not %{a: integer()}`, end in an implicit open map, which must
+  # also receive the key. `positive?` tracks if the current path has a positive
+  # map and must be false on the initial call.
+  #
+  # Storing the key changes the literals and therefore their leaf keys, which
+  # may break the BDD order. We rebuild each node as is if its literal still
+  # comes before the literals of its branches, otherwise we compute it as
+  # (lit and c) or u or (d and not lit) using BDD operations, which keep the
+  # order. In practice, the remaining maps are often a single literal, so
+  # few nodes are visited.
+  defp map_put_key_bdd(:bdd_bot, _key, _value, _optional?, _positive?), do: :bdd_bot
+  defp map_put_key_bdd(:bdd_top, _key, _value, _optional?, true), do: :bdd_top
 
-      bdd_leaf(tag, fields) ->
-        bdd_leaf_new(tag, fields_store(key, {value, optional?}, fields))
-    end)
+  defp map_put_key_bdd(:bdd_top, key, value, optional?, false),
+    do: map_put_key_leaf(@map_top, key, value, optional?)
+
+  defp map_put_key_bdd(bdd_leaf(_, _) = leaf, key, value, optional?, _positive?),
+    do: map_put_key_leaf(leaf, key, value, optional?)
+
+  defp map_put_key_bdd({_, lit, c, u, d}, key, value, optional?, positive?) do
+    lit = map_put_key_leaf(lit, key, value, optional?)
+    c = map_put_key_bdd(c, key, value, optional?, true)
+    u = map_put_key_bdd(u, key, value, optional?, positive?)
+    d = map_put_key_bdd(d, key, value, optional?, positive?)
+
+    if map_put_key_before?(lit, c) and map_put_key_before?(lit, u) and
+         map_put_key_before?(lit, d) do
+      bdd_node_new(lit, c, u, d)
+    else
+      bdd_intersection(lit, c)
+      |> bdd_union(u)
+      |> bdd_union(bdd_difference(d, lit))
+    end
   end
+
+  defp map_put_key_leaf(bdd_leaf(:closed, _) = leaf, _key, value, true) when value == @none,
+    do: leaf
+
+  defp map_put_key_leaf(bdd_leaf(tag, fields), key, value, optional?),
+    do: bdd_leaf_new(tag, fields_store(key, {value, optional?}, fields))
+
+  defp map_put_key_before?(_lit, bdd) when bdd in [:bdd_top, :bdd_bot], do: true
+  defp map_put_key_before?(lit, bdd), do: lit < bdd_head(bdd)
 
   # Removes a key from all lines in a map DNF, returning the remaining maps.
   #
@@ -7320,22 +7357,6 @@ defmodule Module.Types.Descr do
       {lit1, lit2} when lit1 < lit2 -> {:lt, bdd_expand(bdd1), bdd2}
       {lit1, lit2} when lit1 > lit2 -> {:gt, bdd1, bdd_expand(bdd2)}
       _ -> {:eq, bdd1, bdd2}
-    end
-  end
-
-  defp bdd_map(bdd, fun) do
-    case bdd do
-      :bdd_bot ->
-        :bdd_bot
-
-      :bdd_top ->
-        :bdd_top
-
-      bdd_leaf(_, _) = leaf ->
-        fun.(leaf)
-
-      {_, leaf, left, union, right} ->
-        bdd_node_new(fun.(leaf), bdd_map(left, fun), bdd_map(union, fun), bdd_map(right, fun))
     end
   end
 
