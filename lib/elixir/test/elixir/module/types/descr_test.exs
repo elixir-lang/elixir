@@ -1761,6 +1761,15 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(live_at_2, [integer(), atom()], false) == {:ok, dynamic(boolean())}
       assert fun_apply(live_at_2, [integer()], false) == {:badarity, :positive, [2]}
 
+      # Lines without positive arrows are applied as the top arrow of their arity,
+      # which accepts the empty list of arguments but nothing at higher arities.
+      not_int_0 = opt_difference(none_fun(0), fun([], integer()))
+      assert fun_apply(not_int_0, [], false) == {:ok, term()}
+      assert fun_apply(opt_union(fun([], atom()), not_int_0), [], false) == {:ok, term()}
+
+      not_int_1 = opt_difference(none_fun(1), fun([integer()], integer()))
+      assert {:badarg, _, false} = fun_apply(not_int_1, [integer()], false)
+
       # Function intersection tests (no overlap)
       fun0 = opt_intersection(fun([integer()], atom()), fun([float()], binary()))
       assert fun_apply(fun0, [integer()], false) == {:ok, atom()}
@@ -1947,6 +1956,23 @@ defmodule Module.Types.DescrTest do
     defp precise?(left, right) do
       subtype?(lower_bound(right), lower_bound(left)) and
         subtype?(upper_bound(left), upper_bound(right))
+    end
+
+    test "empty arguments to the dynamic top function" do
+      f = dynamic(fun())
+
+      empty =
+        bare_intersection(fun([integer()], integer()), opt_negation(fun([integer()], term())))
+
+      assert fun_apply(f, [none()], false) == {:badarg, [none()], true}
+      assert fun_apply(bare_union(empty, f), [none()], false) == {:badarg, [none()], true}
+
+      assert fun_apply(dynamic(bare_difference(fun(), empty)), [none()], false) ==
+               {:badarg, [none()], true}
+
+      # Non-empty arguments still give dynamic()
+      assert fun_apply(f, [integer()], false) == {:ok, dynamic()}
+      assert fun_apply(bare_union(empty, f), [integer()], false) == {:ok, dynamic()}
     end
 
     test "is monotone in the precision of the function" do

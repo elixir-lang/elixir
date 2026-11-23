@@ -1602,7 +1602,11 @@ defmodule Module.Types.Descr do
       {fun_dynamic, fun_static} ->
         cond do
           fun_static == %{} and dynamic_fun_top?(fun_dynamic) ->
-            {:ok, dynamic()}
+            # Reject empty arguments as fun_apply_with_strategy/4 does, since
+            # the shortcut does not apply to equivalent types written differently
+            if :lists.any(&empty?/1, arguments),
+              do: {:badarg, arguments, true},
+              else: {:ok, dynamic()}
 
           fun_only?(fun_static) ->
             fun_apply_with_strategy(fun_static, fun_dynamic, arguments, static?)
@@ -1939,9 +1943,12 @@ defmodule Module.Types.Descr do
   # Returns the arities without any function in the given negation form.
   defp fun_negation_arities(%{fun: {:negation, bdds}} = neg_fun) do
     arities =
-      for {arity, _bdd} <- :maps.to_list(bdds),
-          empty?(bare_intersection(fun(arity), neg_fun)),
-          do: arity
+      :lists.filtermap(
+        fn {arity, _bdd} ->
+          if empty?(bare_intersection(fun(arity), neg_fun)), do: {true, arity}, else: false
+        end,
+        :maps.to_list(bdds)
+      )
 
     :lists.sort(arities)
   end
@@ -2497,8 +2504,16 @@ defmodule Module.Types.Descr do
     [[bdd_leaf_new(args, ret)]]
   end
 
-  defp fun_bdd_to_pos_dnf(_arity, bdd) do
-    :lists.map(fn {pos, _negs} -> pos end, fun_bdd_to_dnf(bdd))
+  # A line without positive arrows holds the functions of its arity that are
+  # not in its negative arrows, so it is applied as the top arrow of its arity.
+  defp fun_bdd_to_pos_dnf(arity, bdd) do
+    :lists.map(
+      fn
+        {[], _negs} -> [bdd_leaf_new(:lists.duplicate(arity, none()), term())]
+        {pos, _negs} -> pos
+      end,
+      fun_bdd_to_dnf(bdd)
+    )
     |> fun_eliminate_unions([])
   end
 
