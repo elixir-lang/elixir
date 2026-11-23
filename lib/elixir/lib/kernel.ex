@@ -3345,7 +3345,7 @@ defmodule Kernel do
   followed by one or more:
 
     * `foo[bar]` - accesses the key `bar` in `foo`; in case `foo` is nil,
-      `nil` is returned
+      an error is raised
 
     * `foo.bar` - accesses a map/struct field; in case the field is not
       present, an error is raised
