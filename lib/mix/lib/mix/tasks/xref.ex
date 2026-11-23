@@ -1069,10 +1069,15 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp sink_tree(file_references, keys) do
-    file_references
-    |> invert_references()
-    |> source_tree(keys)
-    |> invert_references()
+    tree =
+      file_references
+      |> invert_references()
+      |> source_tree(keys)
+      |> invert_references()
+
+    # Sinks without references inside the tree are not
+    # keys after inverting, so we add them back as nodes
+    Enum.reduce(keys, tree, &Map.put_new(&2, &1, []))
   end
 
   defp invert_references(file_references) do
