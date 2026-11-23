@@ -137,7 +137,7 @@ defmodule Access do
 
   @type get_and_update_fun(data, current_value) ::
           (:get_and_update, data, (term -> term) ->
-             {current_value, new_data :: container} | :pop)
+             {current_value, new_data :: container} | :pop | :skip)
 
   @type access_fun(data, current_value) ::
           get_fun(data) | get_and_update_fun(data, current_value)
@@ -166,7 +166,8 @@ defmodule Access do
 
   The implementation of this callback should invoke `fun` with the value under
   `key` in the passed structure `data`, or with `nil` if `key` is not present in it.
-  This function must return either `{current_value, new_value}` or `:pop`.
+  This function must return either `{current_value, new_value}`, `:pop`,
+  or `:skip`.
 
   If the passed function returns `{current_value, new_value}`,
   the return value of this callback should be `{current_value, new_data}`, where:
@@ -181,10 +182,15 @@ defmodule Access do
   must be `{value, new_data}` where `value` is the value under `key`
   (or `nil` if not present) and `new_data` is `data` without `key`.
 
+  If the passed function returns `:skip`, the return value of this callback
+  must be `{value, data}` where `value` is the value under `key`
+  (or `nil` if not present) and `data` is unchanged.
+
   See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
   for more examples.
   """
-  @callback get_and_update(data, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+  @callback get_and_update(data, key, (value | nil ->
+                                         {current_value, new_value :: value} | :pop | :skip)) ::
               {current_value, new_data :: data}
             when current_value: value, data: container
 
@@ -381,7 +387,9 @@ defmodule Access do
   the "get" value `current_value` (the retrieved value, which can be operated on before
   being returned) and the new value to be stored under `key` (`new_value`).
   `fun` may also return `:pop`, which means the current value
-  should be removed from the container and returned.
+  should be removed from the container and returned, or `:skip`,
+  which means the current value should be returned and the container
+  left unchanged.
 
   The returned value is a two-element tuple with the "get" value returned by
   `fun` and a new container with the updated value under `key`.
@@ -394,7 +402,8 @@ defmodule Access do
       {1, [a: 2]}
 
   """
-  @spec get_and_update(data, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update(data, key, (value | nil ->
+                                     {current_value, new_value :: value} | :pop | :skip)) ::
           {current_value, new_data :: data}
         when current_value: var, data: container
   def get_and_update(container, key, fun)
@@ -546,6 +555,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
+          :skip -> {value, data}
         end
 
       :get, data, next when is_probably_keyword(data) ->
@@ -557,6 +567,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {get, Keyword.put(data, key, update)}
           :pop -> {value, Keyword.delete(data, key)}
+          :skip -> {value, data}
         end
 
       _op, data, _next ->
@@ -635,6 +646,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
+          :skip -> {value, data}
         end
 
       :get, data, next when is_probably_keyword(data) ->
@@ -646,6 +658,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {get, Keyword.put(data, key, update)}
           :pop -> {value, Keyword.delete(data, key)}
+          :skip -> {value, data}
         end
 
       _op, data, _next ->
@@ -696,6 +709,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {get, :erlang.setelement(pos, data, update)}
           :pop -> raise "cannot pop data from a tuple"
+          :skip -> {value, data}
         end
 
       _op, data, _next ->
@@ -757,6 +771,7 @@ defmodule Access do
     case next.(head) do
       {get, update} -> all(rest, next, [get | gets], [update | updates])
       :pop -> all(rest, next, [head | gets], updates)
+      :skip -> all(rest, next, [head | gets], [head | updates])
     end
   end
 
@@ -836,6 +851,7 @@ defmodule Access do
     case next.(head) do
       {get, update} -> {get, :lists.reverse(updates, [update | rest])}
       :pop -> {head, :lists.reverse(updates, rest)}
+      :skip -> {head, :lists.reverse(updates, [head | rest])}
     end
   end
 
@@ -959,6 +975,9 @@ defmodule Access do
 
         :pop ->
           get_and_update_filter(rest, func, next, updates, [head | gets])
+
+        :skip ->
+          get_and_update_filter(rest, func, next, [head | updates], [head | gets])
       end
     else
       get_and_update_filter(rest, func, next, [head | updates], gets)
@@ -1101,6 +1120,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {[get | gets], Map.put(data_acc, key, update)}
           :pop -> {[value | gets], data_acc}
+          :skip -> {[value | gets], Map.put(data_acc, key, value)}
         end
       end)
 
@@ -1129,6 +1149,7 @@ defmodule Access do
         case next.(value) do
           {get, update} -> {[get | gets], [{key, update} | data_acc]}
           :pop -> {[value | gets], data_acc}
+          :skip -> {[value | gets], [{key, value} | data_acc]}
         end
       end)
 
@@ -1155,6 +1176,18 @@ defmodule Access do
       case next.(head) do
         :pop ->
           get_and_update_slice(rest, first, last, step, next, updates, [head | gets], index + 1)
+
+        :skip ->
+          get_and_update_slice(
+            rest,
+            first,
+            last,
+            step,
+            next,
+            [head | updates],
+            [head | gets],
+            index + 1
+          )
 
         {get, update} ->
           get_and_update_slice(
@@ -1242,6 +1275,7 @@ defmodule Access do
       case next.(head) do
         {get, update} -> {get, :lists.reverse(updates, [update | rest])}
         :pop -> {head, :lists.reverse(updates, rest)}
+        :skip -> {head, :lists.reverse(updates, [head | rest])}
       end
     else
       get_and_update_find(rest, [head | updates], predicate, next)

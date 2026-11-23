@@ -432,4 +432,43 @@ defmodule AccessTest do
       end
     end
   end
+
+  describe ":skip" do
+    defp skip_odd(n) when rem(n, 2) == 1, do: :skip
+    defp skip_odd(n), do: {n, n * 10}
+
+    test "leaves keys untouched" do
+      assert get_and_update_in(%{a: 1}, [Access.key(:a)], &skip_odd/1) == {1, %{a: 1}}
+      assert get_and_update_in(%{a: 1}, [Access.key!(:a)], &skip_odd/1) == {1, %{a: 1}}
+      assert get_and_update_in([a: 1], [Access.key(:a)], &skip_odd/1) == {1, [a: 1]}
+      assert get_and_update_in([a: 1], [Access.key!(:a)], &skip_odd/1) == {1, [a: 1]}
+      assert get_and_update_in({1, 2}, [Access.elem(0)], &skip_odd/1) == {1, {1, 2}}
+    end
+
+    test "leaves list elements untouched" do
+      list = [1, 2, 3, 4]
+
+      assert get_and_update_in(list, [Access.all()], &skip_odd/1) ==
+               {[1, 2, 3, 4], [1, 20, 3, 40]}
+
+      assert get_and_update_in(list, [Access.at(0)], &skip_odd/1) == {1, list}
+      assert get_and_update_in(list, [Access.at!(0)], &skip_odd/1) == {1, list}
+      assert get_and_update_in(list, [Access.find(&(&1 > 2))], &skip_odd/1) == {3, list}
+
+      assert get_and_update_in(list, [Access.filter(&(&1 > 1))], &skip_odd/1) ==
+               {[2, 3, 4], [1, 20, 3, 40]}
+
+      assert get_and_update_in(list, [Access.slice(1..2)], &skip_odd/1) == {[2, 3], [1, 20, 3, 4]}
+    end
+
+    test "leaves values untouched" do
+      assert get_and_update_in([a: 1, b: 2], [Access.values()], &skip_odd/1) ==
+               {[1, 2], [a: 1, b: 20]}
+
+      assert {gets, %{a: 1, b: 20}} =
+               get_and_update_in(%{a: 1, b: 2}, [Access.values()], &skip_odd/1)
+
+      assert Enum.sort(gets) == [1, 2]
+    end
+  end
 end

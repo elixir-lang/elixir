@@ -475,7 +475,8 @@ defmodule Keyword do
   (the retrieved value, which can be operated on before being returned)
   and the new value to be stored under `key`. The `fun` may also
   return `:pop`, implying the current value shall be removed from the
-  keyword list and returned.
+  keyword list and returned, or `:skip`, implying the current value
+  shall be returned and the keyword list left unchanged.
 
   Returns a tuple that contains the current value returned by
   `fun` and a new keyword list with the updated value under `key`.
@@ -503,8 +504,11 @@ defmodule Keyword do
       iex> Keyword.get_and_update([a: 1], :b, fn _ -> :pop end)
       {nil, [a: 1]}
 
+      iex> Keyword.get_and_update([a: 1], :b, fn _ -> :skip end)
+      {nil, [a: 1]}
+
   """
-  @spec get_and_update(t, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update(t, key, (value | nil -> {current_value, new_value :: value} | :pop | :skip)) ::
           {current_value, new_keywords :: t}
         when current_value: value
   def get_and_update(keywords, key, fun)
@@ -519,8 +523,11 @@ defmodule Keyword do
       :pop ->
         {current, :lists.reverse(acc, delete(t, key))}
 
+      :skip ->
+        {current, :lists.reverse(acc, [{key, current} | t])}
+
       other ->
-        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+        raise "the given function must return a two-element tuple, :pop, or :skip, got: #{inspect(other)}"
     end
   end
 
@@ -534,8 +541,11 @@ defmodule Keyword do
       :pop ->
         {nil, :lists.reverse(acc)}
 
+      :skip ->
+        {nil, :lists.reverse(acc)}
+
       other ->
-        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+        raise "the given function must return a two-element tuple, :pop, or :skip, got: #{inspect(other)}"
     end
   end
 
@@ -570,7 +580,7 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec get_and_update!(t, key, (value -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update!(t, key, (value -> {current_value, new_value :: value} | :pop | :skip)) ::
           {current_value, new_keywords :: t}
         when current_value: value
   def get_and_update!(keywords, key, fun) do
@@ -585,8 +595,11 @@ defmodule Keyword do
       :pop ->
         {value, :lists.reverse(acc, delete(t, key))}
 
+      :skip ->
+        {value, :lists.reverse(acc, [{key, value} | t])}
+
       other ->
-        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+        raise "the given function must return a two-element tuple, :pop, or :skip, got: #{inspect(other)}"
     end
   end
 

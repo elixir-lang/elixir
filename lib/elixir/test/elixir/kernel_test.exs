@@ -1156,13 +1156,28 @@ defmodule KernelTest do
     end
 
     test "pop_in/1,2 with nils" do
+      users = a_nil()
+      assert pop_in(users[:john]) == {nil, nil}
+      assert pop_in(users[:john][:age]) == {nil, nil}
+      assert pop_in(users, [:john]) == {nil, nil}
+      assert pop_in(users, [:john, :age]) == {nil, nil}
+
       users = %{"john" => nil, "meg" => %{age: 23}}
-      assert pop_in(users["john"][:age]) == {nil, %{"meg" => %{age: 23}}}
-      assert pop_in(users, ["john", :age]) == {nil, %{"meg" => %{age: 23}}}
+      assert pop_in(users["john"]) == {nil, %{"meg" => %{age: 23}}}
+      assert pop_in(users, ["john"]) == {nil, %{"meg" => %{age: 23}}}
+      assert pop_in(users["john"][:age]) == {nil, users}
+      assert pop_in(users, ["john", :age]) == {nil, users}
+      assert pop_in(users["john"][:profile][:age]) == {nil, users}
+      assert pop_in(users, ["john", :profile, :age]) == {nil, users}
+      assert pop_in(users["bob"][:profile][:age]) == {nil, users}
+      assert pop_in(users, ["bob", :profile, :age]) == {nil, users}
 
       users = %{john: nil, meg: %{age: 23}}
-      assert pop_in(users.john[:age]) == {nil, %{john: nil, meg: %{age: 23}}}
-      assert pop_in(users, [:john, :age]) == {nil, %{meg: %{age: 23}}}
+      assert pop_in(users.john[:age]) == {nil, users}
+      assert pop_in(users.john[:profile][:age]) == {nil, users}
+      assert pop_in(users, [:john, :age]) == {nil, users}
+      assert pop_in(users, [Access.key(:john), :age]) == {nil, users}
+      assert pop_in(users, [Access.key(:john), :profile, :age]) == {nil, users}
     end
 
     test "with dynamic paths" do
@@ -1199,6 +1214,7 @@ defmodule KernelTest do
           case next.(current) do
             {get, update} -> {get, List.replace_at(data, index, update)}
             :pop -> {current, List.delete_at(data, index)}
+            :skip -> {current, data}
           end
       end
     end
