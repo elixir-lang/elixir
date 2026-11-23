@@ -1156,6 +1156,16 @@ defmodule KernelTest do
     end
 
     test "pop_in/1,2 with nils" do
+      users = a_nil()
+
+      assert_raise ArgumentError, "could not pop key :john on a nil value", fn ->
+        pop_in(users[:john])
+      end
+
+      assert_raise ArgumentError, "could not pop key :john on a nil value", fn ->
+        apply(Kernel, :pop_in, [users, [:john]])
+      end
+
       users = %{"john" => nil, "meg" => %{age: 23}}
       assert pop_in(users["john"][:age]) == {nil, %{"meg" => %{age: 23}}}
       assert pop_in(users, ["john", :age]) == {nil, %{"meg" => %{age: 23}}}
@@ -1163,6 +1173,19 @@ defmodule KernelTest do
       users = %{john: nil, meg: %{age: 23}}
       assert pop_in(users.john[:age]) == {nil, %{john: nil, meg: %{age: 23}}}
       assert pop_in(users, [:john, :age]) == {nil, %{meg: %{age: 23}}}
+    end
+
+    test "pop_in/1 with nil intermediate bracket entries" do
+      users = %{}
+      assert pop_in(users[:john][:profile][:age]) == {nil, %{}}
+
+      users = %{john: nil, meg: %{profile: %{age: 23}}}
+
+      assert pop_in(users[:john][:profile][:age]) ==
+               {nil, %{meg: %{profile: %{age: 23}}}}
+
+      users = %{john: %{profile: nil, active: true}}
+      assert pop_in(users[:john][:profile][:details][:age]) == {nil, %{john: %{active: true}}}
     end
 
     test "with dynamic paths" do

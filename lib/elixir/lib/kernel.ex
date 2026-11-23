@@ -3264,7 +3264,7 @@ defmodule Kernel do
   """
   defmacro pop_in(path) do
     {[h | t], _} = unnest(path, [], true, "pop_in/1")
-    nest_pop_in(:map, h, t)
+    nest_pop_in(:top, h, t)
   end
 
   @doc """
@@ -3408,6 +3408,12 @@ defmodule Kernel do
     end
   end
 
+  defp nest_pop_in(:top, h, [{:access, key}]) do
+    quote generated: true do
+      Access.pop(unquote(h), unquote(key))
+    end
+  end
+
   defp nest_pop_in(:map, h, [{:access, key}]) do
     quote generated: true do
       case unquote(h) do
@@ -3434,6 +3440,15 @@ defmodule Kernel do
       case unquote(h) do
         nil -> :pop
         h -> Access.pop(h, unquote(key))
+      end
+    end
+  end
+
+  defp nest_pop_in(:access, h, [{:access, key} | t]) do
+    quote generated: true do
+      case unquote(h) do
+        nil -> :pop
+        h -> Access.get_and_update(h, unquote(key), unquote(nest_pop_in(:access, t)))
       end
     end
   end
