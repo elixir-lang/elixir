@@ -34,26 +34,42 @@ defmodule Mix.Compilers.Protocol do
         :off ->
           res
 
-        :on when res == :noop ->
-          :noop
-
         on_or_force ->
           deps_paths =
             for %{scm: scm, opts: opts} <- Mix.Dep.cached(),
                 not scm.fetchable?(),
                 do: opts[:build]
 
-          protocols_and_impls = Mix.Compilers.Elixir.protocols_and_impls_from_paths(deps_paths)
+          # Even if the umbrella compilation was a noop, children may have been
+          # compiled on their own on a shared build. Since they compile under the
+          # same build lock, any compilation we have not seen started at or after
+          # the time our manifest was written.
+          if on_or_force == :on and res == :noop and
+               not deps_compiled_since?(deps_paths, manifest) do
+            :noop
+          else
+            protocols_and_impls = Mix.Compilers.Elixir.protocols_and_impls_from_paths(deps_paths)
+            force? = on_or_force == :force
 
-          case compile(on_or_force == :force, old_protocols_and_impls, protocols_and_impls, opts) do
-            :ok ->
-              write_manifest(manifest, {config_mtime, protocols_and_impls})
-              :ok
+            # Always write the manifest, so we don't diff the children again
+            result =
+              case compile(force?, old_protocols_and_impls, protocols_and_impls, opts) do
+                :ok -> :ok
+                :noop -> res
+              end
 
-            :noop ->
-              res
+            write_manifest(manifest, {config_mtime, protocols_and_impls})
+            result
           end
       end
+    end)
+  end
+
+  defp deps_compiled_since?(deps_paths, manifest) do
+    modified = Mix.Utils.last_modified(manifest)
+
+    Enum.any?(deps_paths, fn path ->
+      Mix.Utils.last_modified(Path.join(path, ".mix/compile.elixir")) >= modified
     end)
   end
 

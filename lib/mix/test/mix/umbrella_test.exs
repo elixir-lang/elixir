@@ -677,6 +677,80 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "reconsolidates umbrella after child compilation on shared _build" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      File.write!("apps/foo/lib/foo.ex", """
+      defprotocol FooProtocol do
+        def foo(arg)
+      end
+      """)
+
+      File.write!("apps/bar/lib/bar.ex", """
+      defmodule BarStruct do
+        defstruct []
+      end
+      """)
+
+      consolidated_impls = fn ->
+        purge([FooProtocol])
+        binary = File.read!("_build/dev/consolidated/Elixir.FooProtocol.beam")
+        {:module, protocol} = :code.load_binary(FooProtocol, ~c"consolidated", binary)
+        {:consolidated, impls} = protocol.__protocol__(:impls)
+        impls
+      end
+
+      # Emulates running each compilation in a separate OS process
+      reset = fn consolidation_path ->
+        Mix.Task.clear()
+        Mix.State.clear_cache()
+        purge([FooProtocol, Umbrella.MixProject, Foo.MixProject, Bar.MixProject])
+        Code.delete_path(Path.expand(consolidation_path))
+      end
+
+      compile_bar = fn ->
+        reset.("_build/dev/consolidated")
+
+        Mix.Project.in_project(:bar, "apps/bar", [build_path: "../../_build"], fn _ ->
+          Mix.Task.run("compile")
+        end)
+
+        reset.("_build/dev/lib/bar/consolidated")
+      end
+
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("compile")
+        assert consolidated_impls.() == []
+      end)
+
+      # Add the implementation and compile it within the child,
+      # with an old mtime so the umbrella does not recompile it
+      File.write!("apps/bar/lib/impl.ex", """
+      defimpl FooProtocol, for: BarStruct do
+        def foo(_), do: :impl
+      end
+      """)
+
+      File.touch!("apps/bar/lib/impl.ex", {{2010, 1, 1}, {0, 0, 0}})
+      compile_bar.()
+
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("compile")
+        assert consolidated_impls.() == [BarStruct]
+      end)
+
+      # Remove the implementation and compile it within the child
+      File.rm!("apps/bar/lib/impl.ex")
+      compile_bar.()
+
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("compile")
+        assert consolidated_impls.() == []
+      end)
+    end)
+  after
+    purge([FooProtocol, FooProtocol.BarStruct, BarStruct])
+  end
+
   test "reconsolidates using umbrella child information on shared _build" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       File.write!("apps/bar/lib/bar.ex", """
