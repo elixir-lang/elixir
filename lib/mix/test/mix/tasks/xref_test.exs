@@ -502,6 +502,26 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "stats with sink" do
+      assert_graph(["--format", "stats", "--sink", "lib/c.ex"], """
+      Tracked files: 3 (nodes)
+      Compile dependencies: 1 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 2 (edges)
+      Cycles: 1
+
+      Top 3 files with most outgoing dependencies:
+        * lib/b.ex (2)
+        * lib/a.ex (1)
+        * lib/c.ex (0)
+
+      Top 3 files with most incoming dependencies:
+        * lib/c.ex (1)
+        * lib/b.ex (1)
+        * lib/a.ex (1)
+      """)
+    end
+
     test "cycles" do
       assert_graph(["--format", "cycles"], """
       1 cycles found. Showing them in decreasing size:
