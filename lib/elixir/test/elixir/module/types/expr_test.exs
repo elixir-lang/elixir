@@ -258,6 +258,17 @@ defmodule Module.Types.ExprTest do
              """
     end
 
+    test "reports error from pattern that will never match with guards" do
+      assert typeerror!(fn
+               x, "ab" = 256 when x > 1 -> x
+               _, _ -> :other
+             end) == ~l"""
+             the following pattern will never match:
+
+                 "ab" = 256
+             """
+    end
+
     test "bad function" do
       assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
              expected a 2-arity function on function call:
@@ -3552,6 +3563,21 @@ defmodule Module.Types.ExprTest do
              previous clauses have already matched on the following types:
 
                  :throw, binary()
+             """
+    end
+
+    test "catch: reports error from pattern that will never match with guards" do
+      assert typeerror!(
+               try do
+                 flunk("whatever")
+               catch
+                 {x, "ab" = 256} when x > 1 -> x
+                 _ -> :other
+               end
+             ) == ~l"""
+             the following pattern will never match:
+
+                 {x, "ab" = 256}
              """
     end
 

@@ -1948,7 +1948,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp badpattern({{op, type}, args}, index) when op in [:try_else, :with_else] do
-    arg = Enum.fetch!(args, index)
+    arg = fetch_head_arg!(args, index)
 
     {arg,
      """
@@ -1963,7 +1963,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp badpattern({op, args}, index) when op in [:for_reduce, :receive, :try_catch, :fn] do
-    arg = Enum.fetch!(args, index)
+    arg = fetch_head_arg!(args, index)
 
     {arg,
      """
@@ -1995,6 +1995,10 @@ defmodule Module.Types.Pattern do
 
     {pattern, message, []}
   end
+
+  # Clause heads with guards are stored as [{:when, meta, args ++ [guard]}]
+  defp fetch_head_arg!([{:when, _, args}], index), do: Enum.fetch!(args, index)
+  defp fetch_head_arg!(args, index), do: Enum.fetch!(args, index)
 
   # The message (and hints) when the left side of a boolean operator, or the
   # condition of a conditional, always evaluates to truthy (or falsy) values
