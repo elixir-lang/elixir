@@ -451,6 +451,10 @@ defmodule Mix.Tasks.XrefTest do
         * lib/c.ex (1)
         * lib/b.ex (1)
         * lib/a.ex (1)
+
+      Top 2 compile-connected files with most transitive dependencies:
+        * lib/b.ex (4 transitive dependencies, 1 compile-time dependent)
+        * lib/d.ex (1 transitive dependency, 1 compile-time dependent)
       """)
     end
 
@@ -475,6 +479,10 @@ defmodule Mix.Tasks.XrefTest do
         * lib/b.ex (1)
         * lib/c.ex (0)
         * lib/a.ex (0)
+
+      Top 2 compile-connected files with most transitive dependencies:
+        * lib/b.ex (4 transitive dependencies, 1 compile-time dependent)
+        * lib/d.ex (1 transitive dependency, 1 compile-time dependent)
       """)
     end
 
@@ -499,6 +507,35 @@ defmodule Mix.Tasks.XrefTest do
         * lib/e.ex (0)
         * lib/c.ex (0)
         * lib/a.ex (0)
+
+      Top 2 compile-connected files with most transitive dependencies:
+        * lib/b.ex (4 transitive dependencies, 1 compile-time dependent)
+        * lib/d.ex (1 transitive dependency, 1 compile-time dependent)
+      """)
+    end
+
+    test "stats with excluded files" do
+      assert_graph(["--format", "stats", "--exclude", "lib/c.ex"], """
+      Tracked files: 4 (nodes)
+      Compile dependencies: 2 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 2 (edges)
+      Cycles: 1
+
+      Top 4 files with most outgoing dependencies:
+        * lib/b.ex (2)
+        * lib/d.ex (1)
+        * lib/a.ex (1)
+        * lib/e.ex (0)
+
+      Top 4 files with most incoming dependencies:
+        * lib/e.ex (2)
+        * lib/b.ex (1)
+        * lib/a.ex (1)
+        * lib/d.ex (0)
+
+      Top 1 compile-connected files with most transitive dependencies:
+        * lib/b.ex (2 transitive dependencies, 1 compile-time dependent)
       """)
     end
 
@@ -519,7 +556,71 @@ defmodule Mix.Tasks.XrefTest do
         * lib/c.ex (1)
         * lib/b.ex (1)
         * lib/a.ex (1)
+
+      Top 1 compile-connected files with most transitive dependencies:
+        * lib/b.ex (2 transitive dependencies, 1 compile-time dependent)
       """)
+    end
+
+    test "stats sorts compile-connected files with the same transitive dependencies by dependents" do
+      files = %{
+        "lib/a.ex" => """
+        defmodule A do
+          B.b()
+          C.c()
+        end
+        """,
+        "lib/b.ex" => """
+        defmodule B do
+          def b, do: D.d()
+        end
+        """,
+        "lib/c.ex" => """
+        defmodule C do
+          def c, do: D.d()
+        end
+        """,
+        "lib/d.ex" => """
+        defmodule D do
+          def d, do: :ok
+        end
+        """,
+        "lib/e.ex" => """
+        defmodule E do
+          B.b()
+        end
+        """
+      }
+
+      assert_graph(
+        ["--format", "stats"],
+        """
+        Tracked files: 5 (nodes)
+        Compile dependencies: 3 (edges)
+        Exports dependencies: 0 (edges)
+        Runtime dependencies: 2 (edges)
+        Cycles: 0
+
+        Top 5 files with most outgoing dependencies:
+          * lib/a.ex (2)
+          * lib/e.ex (1)
+          * lib/c.ex (1)
+          * lib/b.ex (1)
+          * lib/d.ex (0)
+
+        Top 5 files with most incoming dependencies:
+          * lib/d.ex (2)
+          * lib/b.ex (2)
+          * lib/c.ex (1)
+          * lib/e.ex (0)
+          * lib/a.ex (0)
+
+        Top 2 compile-connected files with most transitive dependencies:
+          * lib/b.ex (1 transitive dependency, 2 compile-time dependents)
+          * lib/c.ex (1 transitive dependency, 1 compile-time dependent)
+        """,
+        files: files
+      )
     end
 
     test "cycles" do
@@ -1114,6 +1215,8 @@ defmodule Mix.Tasks.XrefTest do
                  Top 2 files with most incoming dependencies:
                    * lib/foo.ex (1)
                    * lib/bar.ex (0)
+
+                 No compile-connected files found
                  """
         end)
       end)
@@ -1151,6 +1254,8 @@ defmodule Mix.Tasks.XrefTest do
                  Top 2 files with most incoming dependencies:
                    * lib/foo.ex (1)
                    * lib/bar.ex (0)
+
+                 No compile-connected files found
                  """
 
           Mix.Tasks.Xref.run(["callers", "Foo"])

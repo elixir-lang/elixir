@@ -107,6 +107,14 @@ defmodule Mix.Tasks.Xref do
   you can use `mix xref trace` to understand why and how these dependencies
   exist.
 
+  For this reason, the stats also list the compile-connected files with most
+  transitive dependencies. For each file, it shows its number of transitive
+  dependencies, which are all files it depends on, directly or indirectly,
+  and its number of compile-time dependents, which are the files that depend
+  on it at compile time. Every dependent is recompiled whenever any of the
+  transitive dependencies changes, so files with high counts are good places
+  to start.
+
   ### Dependency types
 
   Elixir tracks three types of dependencies between modules: compile,
@@ -259,7 +267,8 @@ defmodule Mix.Tasks.Xref do
       * `plain` - the same as pretty except ASCII characters are used instead of
         Unicode characters. This is the default on Windows;
 
-      * `stats` - prints general statistics about the graph;
+      * `stats` - prints general statistics about the graph, including the
+        compile-connected files with most transitive dependencies;
 
       * `cycles` - prints all strongly connected cycles in the graph;
 
@@ -1174,8 +1183,45 @@ defmodule Mix.Tasks.Xref do
 
       shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
       for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
+
+      compile_connected_fn = transitive_filter_fn(references, :compile_connected)
+
+      # Maps each compile-connected file to the number
+      # of files that depend on it at compile time
+      compile_connected =
+        for {_file, deps} <- references,
+            {dep, _type} = pair <- deps,
+            compile_connected_fn.(pair),
+            reduce: %{} do
+          acc -> Map.update(acc, dep, 1, &(&1 + 1))
+        end
+
+      transitive =
+        compile_connected
+        |> Enum.map(fn {file, dependents} ->
+          {length(:digraph_utils.reachable([file], graph)) - 1, dependents, file}
+        end)
+        |> Enum.sort(:desc)
+        |> Enum.take(10)
+
+      if transitive == [] do
+        shell.info("\nNo compile-connected files found")
+      else
+        shell.info(
+          "\nTop #{length(transitive)} compile-connected files with most transitive dependencies:"
+        )
+
+        for {count, dependents, file} <- transitive do
+          count = pluralize(count, "transitive dependency", "transitive dependencies")
+          dependents = pluralize(dependents, "compile-time dependent", "compile-time dependents")
+          shell.info("  * #{file} (#{count}, #{dependents})")
+        end
+      end
     end)
   end
+
+  defp pluralize(1, singular, _plural), do: "1 #{singular}"
+  defp pluralize(count, _singular, plural), do: "#{count} #{plural}"
 
   defp out_stats_filter(_references, graph, file, :all), do: :digraph.out_degree(graph, file)
 

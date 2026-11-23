@@ -58,6 +58,7 @@
 #### Mix
 
   * [mix test] Add `--coverage-format` to emit coverage reports as `html` (the default) or `text`
+  * [mix xref] List the compile-connected files with most transitive dependencies in `mix xref graph --format stats`
 
 ### 2. Bug fixes
 
