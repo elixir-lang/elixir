@@ -4757,28 +4757,16 @@ defmodule Module.Types.Descr do
           replace? =
             match?({[_], [], :reject}, {key_updates, domain_updates, elem(operation, 1)})
 
-          {output_tag, output_fields} =
-            map_widen_literal(tag, fields, key_updates, domain_updates, atom_keys, replace?)
-
+          widen = &map_widen_literal(&1, &2, key_updates, domain_updates, atom_keys, replace?, &3)
+          {output_tag, output_fields} = widen.(tag, fields, false)
           output = map_new(output_tag, output_fields)
 
           output =
             :lists.foldl(
               fn bdd_leaf(neg_tag, neg_fields), output ->
-                if map_widen_keeps_negative?(neg_tag, neg_fields, key_updates, domain_updates) do
-                  {neg_tag, neg_fields} =
-                    map_widen_literal(
-                      neg_tag,
-                      neg_fields,
-                      key_updates,
-                      domain_updates,
-                      atom_keys,
-                      replace?
-                    )
-
-                  map_difference(output, map_new(neg_tag, neg_fields))
-                else
-                  output
+                case widen.(neg_tag, neg_fields, true) do
+                  {neg_tag, neg_fields} -> map_difference(output, map_new(neg_tag, neg_fields))
+                  :discard -> output
                 end
               end,
               output,
@@ -4811,7 +4799,10 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_widen_literal(tag, fields, key_updates, domain_updates, atom_keys, replace?) do
+  # Widens the keys and domains of a literal. Negatives are discarded, returning
+  # :discard, unless they contain the old values of the line for every updated
+  # key and domain (see map_update_widen/5).
+  defp map_widen_literal(tag, fields, key_updates, domain_updates, atom_keys, replace?, negative?) do
     fields =
       if :lists.keyfind(:atom, 1, domain_updates) != false,
         do: map_domain_protect_fields(tag, fields, atom_keys),
@@ -4819,12 +4810,10 @@ defmodule Module.Types.Descr do
 
     fields =
       :lists.foldl(
-        fn {key, _old_field, new_field}, fields ->
-          field =
-            if replace?,
-              do: new_field,
-              else: field_opt_union(map_fetch_field(tag, fields, key), new_field, %{})
-
+        fn {key, old_field, new_field}, fields ->
+          field = map_fetch_field(tag, fields, key)
+          if negative? and not field_subtype?(old_field, field), do: throw(:discard)
+          field = if replace?, do: new_field, else: field_opt_union(field, new_field, %{})
           fields_store(key, field, fields)
         end,
         fields,
@@ -4833,33 +4822,18 @@ defmodule Module.Types.Descr do
 
     tag =
       :lists.foldl(
-        fn {domain, _old_type, new_type}, acc_tag ->
-          map_replace_domain(
-            acc_tag,
-            domain,
-            opt_union(map_domain_tag_to_type(tag, domain), new_type)
-          )
+        fn {domain, old_type, new_type}, acc_tag ->
+          type = map_domain_tag_to_type(tag, domain)
+          if negative? and not subtype?(old_type, type), do: throw(:discard)
+          map_replace_domain(acc_tag, domain, opt_union(type, new_type))
         end,
         tag,
         domain_updates
       )
 
     {tag, fields}
-  end
-
-  defp map_widen_keeps_negative?(neg_tag, neg_fields, key_updates, domain_updates) do
-    :lists.all(
-      fn {key, old_field, _} ->
-        field_subtype?(old_field, map_fetch_field(neg_tag, neg_fields, key))
-      end,
-      key_updates
-    ) and
-      :lists.all(
-        fn {domain, old_type, _} ->
-          subtype?(old_type, map_domain_tag_to_type(neg_tag, domain))
-        end,
-        domain_updates
-      )
+  catch
+    :discard -> :discard
   end
 
   defp map_split_negative_pairs_domain(negs, domain_key),
