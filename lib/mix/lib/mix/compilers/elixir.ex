@@ -1323,7 +1323,7 @@ defmodule Mix.Compilers.Elixir do
 
         # Now we need to detect the new stale_exports.
         # This is a simplified version of update_stale_sources.
-        {sources, %{}} =
+        {sources, stale_exports} =
           Enum.reduce(changed, {sources, stale_exports}, fn file, {acc_sources, acc_modules} ->
             source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
             acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))

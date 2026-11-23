@@ -1457,6 +1457,50 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [])
   end
 
+  test "recompiles modules with transitive exports tracking" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defstruct [:foo]
+      end
+      """)
+
+      # B has an export dependency on A and C has an export dependency on B,
+      # so changing A's struct must recompile B and then C in another cycle
+      File.write!("lib/b.ex", """
+      defmodule B do
+        defstruct Map.keys(%:"Elixir.A"{}) -- [:__struct__]
+      end
+      """)
+
+      File.write!("lib/c.ex", """
+      defmodule C do
+        def fun, do: %B{}
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+      purge([A, B, C])
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defstruct [:foo_bar]
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+      assert C.fun() == %{__struct__: B, foo_bar: nil}
+    end)
+  end
+
   test "recompiles modules with pmap tracking" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
