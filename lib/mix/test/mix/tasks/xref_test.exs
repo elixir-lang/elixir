@@ -1469,6 +1469,123 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
+  describe "mix xref explain FILE" do
+    test "explains a compile-connected file" do
+      assert_explain("lib/b.ex", """
+      lib/b.ex has 1 compile-time dependent and 4 transitive dependencies.
+
+      Compile-time dependents (files that depend on lib/b.ex at compile time):
+        * lib/a.ex
+
+      Direct dependencies of lib/b.ex (and the transitive dependencies of each):
+        * lib/a.ex (4)
+        * lib/c.ex (2)
+        * lib/e.ex (0)
+
+      Each compile-time dependent is recompiled whenever lib/b.ex or any of its
+      transitive dependencies changes. To avoid it, you can either:
+
+        1. Run "mix xref trace DEPENDENT --label compile" to find where a dependent
+           depends on lib/b.ex at compile time and remove that dependency
+
+        2. Remove dependencies from lib/b.ex, starting with the direct dependencies
+           with most transitive dependencies
+      """)
+    end
+
+    test "lists all compile-time dependents" do
+      files = %{
+        "lib/a.ex" => """
+        defmodule A do
+          B.b()
+          C.c()
+        end
+        """,
+        "lib/b.ex" => """
+        defmodule B do
+          def b, do: D.d()
+        end
+        """,
+        "lib/c.ex" => """
+        defmodule C do
+          def c, do: D.d()
+        end
+        """,
+        "lib/d.ex" => """
+        defmodule D do
+          def d, do: :ok
+        end
+        """,
+        "lib/e.ex" => """
+        defmodule E do
+          B.b()
+        end
+        """
+      }
+
+      assert_explain(
+        "lib/b.ex",
+        """
+        lib/b.ex has 2 compile-time dependents and 1 transitive dependency.
+
+        Compile-time dependents (files that depend on lib/b.ex at compile time):
+          * lib/a.ex
+          * lib/e.ex
+
+        Direct dependencies of lib/b.ex (and the transitive dependencies of each):
+          * lib/d.ex (0)
+
+        Each compile-time dependent is recompiled whenever lib/b.ex or any of its
+        transitive dependencies changes. To avoid it, you can either:
+
+          1. Run "mix xref trace DEPENDENT --label compile" to find where a dependent
+             depends on lib/b.ex at compile time and remove that dependency
+
+          2. Remove dependencies from lib/b.ex, starting with the direct dependencies
+             with most transitive dependencies
+        """,
+        files
+      )
+    end
+
+    test "explains a file without compile-time dependents" do
+      assert_explain("lib/c.ex", """
+      lib/c.ex has no compile-time dependents and 2 transitive dependencies.
+
+      Direct dependencies of lib/c.ex (and the transitive dependencies of each):
+        * lib/d.ex (1)
+      """)
+    end
+
+    test "explains a file without dependencies" do
+      assert_explain("lib/e.ex", """
+      lib/e.ex has 1 compile-time dependent and no transitive dependencies.
+
+      Compile-time dependents (files that depend on lib/e.ex at compile time):
+        * lib/b.ex
+      """)
+    end
+
+    test "raises on unknown file" do
+      assert_raise Mix.Error, "File could not be found: lib/unknown.ex", fn ->
+        assert_explain("lib/unknown.ex", "")
+      end
+    end
+
+    defp assert_explain(file, expected, files \\ @default_files) do
+      in_fixture("no_mixfile", fn ->
+        generate_files(files)
+
+        assert Mix.Task.run("xref", ["explain", file]) == :ok
+
+        assert ["Compiling " <> _, "Generated sample app" | result] =
+                 receive_until_no_messages([]) |> String.split("\n")
+
+        assert Enum.join(result, "\n") == expected
+      end)
+    end
+  end
+
   ## Helpers
 
   defp receive_until_no_messages(acc) do
