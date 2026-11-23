@@ -4305,6 +4305,24 @@ defmodule Module.Types.DescrTest do
       assert {_, update, [badkey: :a]} = map_update(type, atom([:a, :c]), value, :keep, true)
       assert equal?(update, opt_union(opt_union(put_a, put_c), keep_a))
     end
+
+    test "map_put and map_update with atom keys and negations on named keys" do
+      type = open_map(a: {none(), true})
+      cover = opt_union(type, closed_map([{domain_key(:atom), term()}]))
+
+      # The same type with a line where `a` is only unset because of a negative
+      negated = opt_intersection(cover, opt_negation(opt_difference(cover, type)))
+      assert equal?(type, negated)
+
+      assert {:ok, put} = map_put(type, atom(), atom([:new]))
+      assert {:ok, negated_put} = map_put(negated, atom(), atom([:new]))
+      assert equal?(put, negated_put)
+
+      assert {_, delete, []} = map_update(type, atom(), :delete, :keep, true)
+      assert {_, negated_delete, []} = map_update(negated, atom(), :delete, :keep, true)
+      assert equal?(delete, negated_delete)
+      refute subtype?(closed_map(a: {atom([:old]), false}), negated_delete)
+    end
   end
 
   describe "map_put" do

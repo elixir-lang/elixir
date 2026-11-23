@@ -4712,13 +4712,31 @@ defmodule Module.Types.Descr do
 
     :lists.foldl(
       fn {tag, fields, negs}, acc ->
-        key_updates =
-          :lists.flatmap(
-            fn key ->
-              old_field = map_fetch_field(tag, fields, key)
+        # The old value of a key must take the negatives of the line into account.
+        # For example, `a` is not set in `%{atom() => term()} and not %{atom() => term(), a: term()}`,
+        # but the positive map alone says it may be any term. Since most negatives
+        # are discarded below, we also store the old value of each key in the
+        # positive map, which still describes the line.
+        {key_updates, fields} =
+          :lists.foldr(
+            fn key, {key_updates, acc_fields} ->
+              {old_field, acc_fields} =
+                case negs do
+                  [] ->
+                    {map_fetch_field(tag, fields, key), acc_fields}
+
+                  _ ->
+                    {field, _, _, _} = map_split_key_line(tag, fields, negs, key, {none(), false})
+                    {field, fields_store(key, field, acc_fields)}
+                end
+
               new_field = map_update_field(old_field, operation)
-              if field_empty?(new_field), do: [], else: [{key, old_field, new_field}]
+
+              if field_empty?(new_field),
+                do: {key_updates, acc_fields},
+                else: {[{key, old_field, new_field} | key_updates], acc_fields}
             end,
+            {[], fields},
             keys
           )
 
