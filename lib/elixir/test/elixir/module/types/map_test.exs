@@ -172,8 +172,18 @@ defmodule Module.Types.MapTest do
       assert typecheck!([x], x |> Map.delete(:key) |> Map.put(:key, "123")) ==
                dynamic(open_map(key: {binary(), false}))
 
+      # Some atom key holds the new value
+      not_binary = opt_negation(binary())
+
       assert typecheck!([x, y], x |> Map.delete(:key) |> Map.put(String.to_unsafe_atom(y), "123"))
-             |> equal?(dynamic(opt_difference(open_map(key: {binary(), true}), empty_map())))
+             |> equal?(
+               dynamic(
+                 opt_difference(
+                   open_map(key: {binary(), true}),
+                   open_map([{domain_key(:atom), not_binary}, key: {not_binary, true}])
+                 )
+               )
+             )
     end
   end
 
@@ -1806,3 +1816,4 @@ defmodule Module.Types.MapTest do
     end
   end
 end
+

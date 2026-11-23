@@ -4217,10 +4217,20 @@ defmodule Module.Types.Descr do
       cond do
         maybe_negated_set ->
           # The key may be any atom outside of a finite set, so it may hit any
-          # of the named keys and the domains, which we update all at once
+          # of the named keys and the atom domain, which we update all at once.
+          # A key is either an atom or not, so other domains are updated
+          # separately and unioned.
           atom_keys = :lists.usort(optional_keys ++ :sets.to_list(maybe_negated_set))
           domains = if update_domains?, do: :lists.usort(domains), else: []
-          {map_update_widen(dnf, optional_keys, domains, operation, atom_keys), false}
+          {atom_domains, other_domains} = :lists.partition(&(&1 == :atom), domains)
+          descr = map_update_box(dnf, optional_keys, atom_domains, operation, atom_keys)
+
+          descr =
+            if other_domains == [],
+              do: descr,
+              else: opt_union(descr, map_update_domains(dnf, other_domains, operation))
+
+          {descr, false}
 
         update_domains? ->
           {map_update_domains(dnf, domains, operation), true}
@@ -4636,7 +4646,7 @@ defmodule Module.Types.Descr do
   defp map_update_domains(dnf, domain_keys, operation) do
     case :lists.usort(domain_keys) do
       [domain] -> map_update_domain(dnf, domain, operation)
-      domains -> map_update_widen(dnf, [], domains, operation, [])
+      domains -> map_update_widen(dnf, domains, operation)
     end
   end
 
@@ -4695,51 +4705,159 @@ defmodule Module.Types.Descr do
 
   defp map_union_pairs(bdds), do: bdds
 
-  # When the key may hit several named keys or domains, computing one alternative
-  # per key makes the number of lines grow exponentially on chained updates.
-  # Instead, we update all given named keys and domains at once in each line,
-  # which is a supertype of the union of the per-key updates. Each key and domain
-  # may keep its old value or have the new one.
+  # When the key may be any atom outside of a finite set, it may hit any named
+  # key and the atom domain, and computing one alternative per key makes the
+  # number of lines grow exponentially on chained updates. Instead of updating
+  # each line, we build a single map from the values of each key and domain over
+  # the whole type, where each updated key and domain may keep its old value or
+  # have the new one. Since every field is computed from the whole type, equal
+  # types give equal results, regardless of how they are written, and the result
+  # never grows on chained updates. This loses the correlation between keys,
+  # which is weak anyway, as any of them may have been updated.
   #
-  # A negative is kept only if, for every updated key and domain, it already
-  # contains the old values of the line. In this case, a map excluded by the
-  # negative is excluded because of a key we do not update, so it remains
-  # excluded. Other negatives are discarded, as done by the projection shortcut
-  # in map_update_project_pair/4, which is sound.
-  defp map_update_widen(dnf, keys, domains, operation, atom_keys) do
+  # Widening each line instead, as done for other domains in map_update_widen/3,
+  # is not enough for atoms: a line's negatives may relate the values of different
+  # named keys, which cannot be kept when the keys are updated independently.
+  #
+  # The named keys include the ones mentioned only by negatives, as their
+  # values may be narrower than the domains, and the atom keys outside of
+  # the key type, so their values are kept when the atom domain is updated.
+  defp map_update_box(dnf, keys, domains, operation, atom_keys) do
+    named_keys =
+      :lists.foldl(
+        fn {_tag, fields, negs}, acc ->
+          acc = fields_fold(fields, acc, fn key, _field, acc -> [key | acc] end)
+
+          :lists.foldl(
+            fn bdd_leaf(_, neg_fields), acc ->
+              fields_fold(neg_fields, acc, fn key, _field, acc -> [key | acc] end)
+            end,
+            acc,
+            negs
+          )
+        end,
+        atom_keys,
+        dnf
+      )
+      |> :lists.usort()
+
+    {fields, key_updates} =
+      :lists.foldr(
+        fn key, {fields, key_updates} ->
+          old_field = map_dnf_fetch_static(dnf, key)
+
+          case :lists.member(key, keys) and map_update_field(old_field, operation) do
+            false ->
+              {[{key, old_field} | fields], key_updates}
+
+            new_field ->
+              {[{key, old_field} | fields], [{key, old_field, new_field} | key_updates]}
+          end
+        end,
+        {[], []},
+        named_keys
+      )
+
+    key_updates =
+      :lists.filter(fn {_, _, new_field} -> not field_empty?(new_field) end, key_updates)
+
+    {tag, domain_updates} =
+      :lists.foldl(
+        fn domain, {tag, domain_updates} ->
+          old_type = map_get_domain(dnf, domain, none())
+
+          {type, domain_updates} =
+            with true <- :lists.member(domain, domains),
+                 {new_type, _} = field = map_update_field({old_type, true}, operation),
+                 false <- field_empty?(field) do
+              {opt_union(old_type, new_type), [{domain, old_type, new_type} | domain_updates]}
+            else
+              _ -> {old_type, domain_updates}
+            end
+
+          {map_replace_domain(tag, domain, type), domain_updates}
+        end,
+        {:closed, []},
+        @domain_key_types
+      )
+
+    if key_updates == [] and domain_updates == [] do
+      none()
+    else
+      # If the key must exist and there is a single candidate, it is the one updated
+      replace? = match?({[_], [], :reject}, {key_updates, domain_updates, elem(operation, 1)})
+
+      fields =
+        :lists.foldl(
+          fn {key, old_field, new_field}, fields ->
+            field = if replace?, do: new_field, else: field_opt_union(old_field, new_field, %{})
+            fields_store(key, field, fields)
+          end,
+          fields,
+          key_updates
+        )
+
+      tag = if tag == fields_from_keys(@domain_key_types, term()), do: :open, else: tag
+      output = map_new(tag, fields)
+
+      # Unless absent keys are kept, the key exists after the update
+      present? =
+        elem(operation, 1) != :keep and
+          (:lists.any(fn {_, _, {type, _}} -> not empty?(type) end, key_updates) or
+             :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates))
+
+      case operation do
+        _ when not present? ->
+          %{map: output}
+
+        # A value is put in one of the keys or domains, so we remove the maps without it
+        {{:constant, {type, false}}, _} ->
+          unset = map_update_box_unset(keys, domains, atom_keys, type)
+          opt_difference(%{map: output}, %{map: unset})
+
+        _ ->
+          map_update_domains_add(output, fields, {[], []}) |> map_update_domains_result()
+      end
+    end
+  end
+
+  # Maps where all keys and domains of the key type are unset or hold
+  # a value outside of type. The atom keys outside of the key type are
+  # unconstrained.
+  defp map_update_box_unset(keys, domains, atom_keys, type) do
+    not_type = opt_negation(type)
+    tag = :lists.foldl(&map_replace_domain(&2, &1, not_type), :open, domains)
+
+    fields =
+      :lists.foldl(
+        fn key, fields ->
+          field = if :lists.member(key, keys), do: {not_type, true}, else: {term(), true}
+          fields_store(key, field, fields)
+        end,
+        @fields_new,
+        :lists.usort(keys ++ atom_keys)
+      )
+
+    map_new(tag, fields)
+  end
+
+  # When the key may hit several domains, computing one alternative per domain
+  # makes the number of lines grow exponentially on chained updates. Instead,
+  # we update all given domains at once in each line, which is a supertype of
+  # the union of the per-domain updates. Each domain may keep its old value or
+  # have the new one.
+  #
+  # A negative is kept only if, for every updated domain, it already contains
+  # the old values of the line. In this case, a map excluded by the negative is
+  # excluded because of a key we do not update, so it remains excluded. Other
+  # negatives are discarded, as done by the projection shortcut in
+  # map_update_project_pair/4, which is sound.
+  defp map_update_widen(dnf, domains, operation) do
     # Unless absent keys are kept, the key exists after the update
     present? = elem(operation, 1) != :keep
 
     :lists.foldl(
       fn {tag, fields, negs}, acc ->
-        # The old value of a key must take the negatives of the line into account.
-        # For example, `a` is not set in `%{atom() => term()} and not %{atom() => term(), a: term()}`,
-        # but the positive map alone says it may be any term. Since most negatives
-        # are discarded below, we also store the old value of each key in the
-        # positive map, which still describes the line.
-        {key_updates, fields} =
-          :lists.foldr(
-            fn key, {key_updates, acc_fields} ->
-              {old_field, acc_fields} =
-                case negs do
-                  [] ->
-                    {map_fetch_field(tag, fields, key), acc_fields}
-
-                  _ ->
-                    {field, _, _, _} = map_split_key_line(tag, fields, negs, key, {none(), false})
-                    {field, fields_store(key, field, acc_fields)}
-                end
-
-              new_field = map_update_field(old_field, operation)
-
-              if field_empty?(new_field),
-                do: {key_updates, acc_fields},
-                else: {[{key, old_field, new_field} | key_updates], acc_fields}
-            end,
-            {[], fields},
-            keys
-          )
-
         domain_updates =
           :lists.flatmap(
             fn domain ->
@@ -4750,23 +4868,17 @@ defmodule Module.Types.Descr do
             domains
           )
 
-        if key_updates == [] and domain_updates == [] do
+        if domain_updates == [] do
           acc
         else
-          # If the key must exist and there is a single candidate, it is the one updated
-          replace? =
-            match?({[_], [], :reject}, {key_updates, domain_updates, elem(operation, 1)})
-
-          widen = &map_widen_literal(&1, &2, key_updates, domain_updates, atom_keys, replace?, &3)
-          {output_tag, output_fields} = widen.(tag, fields, false)
-          output = map_new(output_tag, output_fields)
+          output = map_new(map_widen_domains(tag, domain_updates, false), fields)
 
           output =
             :lists.foldl(
               fn bdd_leaf(neg_tag, neg_fields), output ->
-                case widen.(neg_tag, neg_fields, true) do
-                  {neg_tag, neg_fields} -> map_difference(output, map_new(neg_tag, neg_fields))
+                case map_widen_domains(neg_tag, domain_updates, true) do
                   :discard -> output
+                  neg_tag -> map_difference(output, map_new(neg_tag, neg_fields))
                 end
               end,
               output,
@@ -4774,12 +4886,10 @@ defmodule Module.Types.Descr do
             )
 
           present? =
-            present? and
-              (:lists.any(fn {_, _, {type, _}} -> not empty?(type) end, key_updates) or
-                 :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates))
+            present? and :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates)
 
           if present? do
-            map_update_domains_add(output, output_fields, acc)
+            map_update_domains_add(output, fields, acc)
           else
             {updated, unchanged} = acc
             {updated, [output | unchanged]}
@@ -4799,39 +4909,19 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Widens the keys and domains of a literal. Negatives are discarded, returning
-  # :discard, unless they contain the old values of the line for every updated
-  # key and domain (see map_update_widen/5).
-  defp map_widen_literal(tag, fields, key_updates, domain_updates, atom_keys, replace?, negative?) do
-    fields =
-      if :lists.keyfind(:atom, 1, domain_updates) != false,
-        do: map_domain_protect_fields(tag, fields, atom_keys),
-        else: fields
-
-    fields =
-      :lists.foldl(
-        fn {key, old_field, new_field}, fields ->
-          field = map_fetch_field(tag, fields, key)
-          if negative? and not field_subtype?(old_field, field), do: throw(:discard)
-          field = if replace?, do: new_field, else: field_opt_union(field, new_field, %{})
-          fields_store(key, field, fields)
-        end,
-        fields,
-        key_updates
-      )
-
-    tag =
-      :lists.foldl(
-        fn {domain, old_type, new_type}, acc_tag ->
-          type = map_domain_tag_to_type(tag, domain)
-          if negative? and not subtype?(old_type, type), do: throw(:discard)
-          map_replace_domain(acc_tag, domain, opt_union(type, new_type))
-        end,
-        tag,
-        domain_updates
-      )
-
-    {tag, fields}
+  # Widens the domains of a literal. Negatives are discarded, returning
+  # :discard, unless they contain the old values of the line for every
+  # updated domain (see map_update_widen/3).
+  defp map_widen_domains(tag, domain_updates, negative?) do
+    :lists.foldl(
+      fn {domain, old_type, new_type}, acc_tag ->
+        type = map_domain_tag_to_type(tag, domain)
+        if negative? and not subtype?(old_type, type), do: throw(:discard)
+        map_replace_domain(acc_tag, domain, opt_union(type, new_type))
+      end,
+      tag,
+      domain_updates
+    )
   catch
     :discard -> :discard
   end
@@ -4891,18 +4981,6 @@ defmodule Module.Types.Descr do
   end
 
   # Stores the given atom keys explicitly, so they are not affected by atom domain updates
-  defp map_domain_protect_fields(tag, fields, atom_keys) do
-    :lists.foldl(
-      fn key, fields ->
-        if fields_is_key(key, fields),
-          do: fields,
-          else: fields_store(key, map_key_tag_to_field(tag), fields)
-      end,
-      fields,
-      atom_keys
-    )
-  end
-
   defp map_replace_domain(:open, _domain_key, :term), do: :open
 
   defp map_replace_domain(:open, domain_key, type) do
@@ -8576,3 +8654,4 @@ defmodule Module.Types.Descr do
     end
   end
 end
+
