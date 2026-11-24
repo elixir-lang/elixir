@@ -5124,7 +5124,8 @@ defmodule Module.Types.Descr do
           {[], :sets.to_list(dynamic_union), :sets.union(static_negation, dynamic_union)}
 
         {%{atom: {:negation, static_negation}}, %{atom: {:negation, dynamic_negation}}} ->
-          {[], [], :sets.union(dynamic_negation, static_negation)}
+          # The key may be any atom outside of either negation
+          {[], [], :sets.intersection(dynamic_negation, static_negation)}
 
         {%{}, %{atom: {:union, dynamic_union}}} ->
           {[], :sets.to_list(dynamic_union), nil}

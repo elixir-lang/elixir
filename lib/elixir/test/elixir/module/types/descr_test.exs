@@ -4649,6 +4649,20 @@ defmodule Module.Types.DescrTest do
                 )}
     end
 
+    test "with gradual keys of negated atoms" do
+      key = opt_union(bare_difference(atom(), atom([:c])), dynamic(atom()))
+
+      {:ok, result} = map_put(empty_map(), key, integer())
+      assert subtype?(closed_map(c: {integer(), false}), upper_bound(result))
+
+      {_, result, _} = map_update(closed_map(c: {atom(), false}), key, integer(), :force, true)
+
+      assert equal?(
+               map_get(result, atom([:c])) |> elem(1),
+               opt_union(atom(), integer())
+             )
+    end
+
     test "with domain keys" do
       fields = [
         {domain_key(:integer), binary()},
