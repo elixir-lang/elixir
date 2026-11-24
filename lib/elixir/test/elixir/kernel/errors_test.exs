@@ -50,6 +50,14 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "try without do" do
+    assert_compile_error(["nofile:2:18:", "missing :do option in \"try\""], ~c"""
+    defmodule MissingTryDo do
+      def f(x), do: (try rescue: (x -> x))
+    end
+    """)
+  end
+
   test "__CALLER__ in a macro head guard" do
     assert_compile_error(
       ["nofile:2:26", "__CALLER__ is not supported in macro head guards"],

@@ -375,13 +375,15 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
 
 %% Try
 
-'try'(Meta, [], _S, E) ->
-  file_error(Meta, E, elixir_expand, {missing_option, 'try', [do]});
 'try'(Meta, [{do, _}], _S, E) ->
   file_error(Meta, E, elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after']});
 'try'(Meta, Opts, _S, E) when not is_list(Opts) ->
   file_error(Meta, E, elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, S, E) ->
+  case lists:keymember(do, 1, Opts) of
+    true -> ok;
+    false -> file_error(Meta, E, elixir_expand, {missing_option, 'try', [do]})
+  end,
   % TODO: Make this an error on v2.0
   case Opts of
     [{do, _}, {'else', _}] ->
