@@ -387,6 +387,9 @@ expand({'^', Meta, [Arg]}, #elixir_ex{prematch={Prematch, _, _}, vars={_, Write}
   NoMatchS = S#elixir_ex{prematch=pin, vars={Prematch, Write}},
 
   case expand(Arg, NoMatchS, E#{context := nil}) of
+    {{Name, _, Kind}, _, _} when is_atom(Kind), Name == '__CALLER__' orelse Name == '__STACKTRACE__' ->
+      file_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg});
+
     {{Name, _, Kind} = Var, #elixir_ex{unused=Unused}, _} when is_atom(Name), is_atom(Kind) ->
       {{'^', Meta, [Var]}, S#elixir_ex{unused=Unused}, E};
 

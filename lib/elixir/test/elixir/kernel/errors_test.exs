@@ -61,6 +61,35 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "cannot pin __CALLER__ in a macro body" do
+    assert_compile_error(
+      "invalid argument for unary operator ^, expected an existing variable, got: ^__CALLER__",
+      """
+      defmodule Sample do
+        defmacro check(value), do: (^__CALLER__ = value)
+        def run, do: check(nil)
+      end
+      """
+    )
+  end
+
+  test "cannot pin __STACKTRACE__ in a rescue body" do
+    assert_compile_error(
+      "invalid argument for unary operator ^, expected an existing variable, got: ^__STACKTRACE__",
+      """
+      defmodule Sample do
+        def check(value) do
+          try do
+            raise "oops"
+          rescue
+            _ -> ^__STACKTRACE__ = value
+          end
+        end
+      end
+      """
+    )
+  end
+
   test "__STACKTRACE__ in a catch clause guard" do
     assert_compile_error(
       [
