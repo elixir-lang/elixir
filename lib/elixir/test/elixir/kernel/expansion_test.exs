@@ -53,6 +53,30 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(before_expansion) == after_expansion
     end
+
+    test "rejects blocks with multiple expressions in patterns" do
+      message = ~r"block is not allowed in matches"
+
+      assert_compile_error(message, fn ->
+        expand(Code.string_to_quoted!("(a; b) = :ok"))
+      end)
+
+      assert_compile_error(message, fn ->
+        expand(Code.string_to_quoted!("case :ok do (1; a) -> a end"))
+      end)
+    end
+
+    test "rejects blocks with multiple expressions in guards" do
+      assert_compile_error(~r"block is not allowed in guards", fn ->
+        expand(Code.string_to_quoted!("fn x when (x; x) -> x end"))
+      end)
+    end
+
+    test "rejects blocks with multiple expressions in bitstring pattern sizes" do
+      assert_compile_error(~r"block is not allowed inside a bitstring size specifier", fn ->
+        expand(Code.string_to_quoted!("<<a::size((1; 8))>> = <<0>>"))
+      end)
+    end
   end
 
   describe "alias" do
