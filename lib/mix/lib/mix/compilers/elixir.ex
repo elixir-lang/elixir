@@ -401,6 +401,21 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
+  # Reads the manifest of a dependency, including its Erlang modules (parents)
+  defp read_dep_manifest(manifest) do
+    try do
+      manifest |> File.read!() |> :erlang.binary_to_term()
+    rescue
+      _ -> {%{}, %{}, []}
+    else
+      {@manifest_vsn, modules, sources, _, parents, _, _, _, _, _, _} ->
+        {modules, sources, parents}
+
+      _ ->
+        {%{}, %{}, []}
+    end
+  end
+
   @doc """
   Retrieves all diagnostics from the given manifest.
   """
@@ -899,8 +914,18 @@ defmodule Mix.Compilers.Elixir do
         reduce: {stale_modules, stale_modules, deps_exports, protocols_and_impls(), false} do
       {modules, exports, deps_exports, protocols_and_impls, _read?} ->
         ebin = Path.join(opts[:build], "ebin")
-        {manifest_modules, manifest_sources} = read_manifest(manifest)
+        {manifest_modules, manifest_sources, manifest_parents} = read_dep_manifest(manifest)
         dep_exports = Map.get(deps_exports, app, %{})
+
+        # If the Erlang modules of the dependency changed, we consider all
+        # of them stale, as we do for the Erlang modules of the project.
+        {modules, exports} =
+          if Mix.Utils.stale?([Path.join(Path.dirname(manifest), "compile.erlang")], [modified]) do
+            {Enum.reduce(manifest_parents, modules, &Map.put(&2, &1, true)),
+             Enum.reduce(manifest_parents, exports, &Map.put(&2, &1, true))}
+          else
+            {modules, exports}
+          end
 
         # Update modules, exports, and dep exports based on removed modules
         {modules, exports, dep_exports} =

@@ -595,6 +595,51 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "recompiles after Erlang path dependency changes" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        File.mkdir_p!("../foo/src")
+
+        File.write!(
+          "../foo/src/foo_erl.erl",
+          "-module(foo_erl).\n-export([val/0]).\nval() -> 1.\n"
+        )
+
+        File.write!("../foo/lib/foo.bar.ex", """
+        defmodule Foo.Bar do
+          def val, do: :foo_erl.val()
+        end
+        """)
+
+        # Use the Erlang module at compile time directly and through Foo.Bar
+        File.write!("lib/bar.ex", """
+        defmodule Bar do
+          @values {:foo_erl.val(), Foo.Bar.val()}
+          def values, do: @values
+        end
+        """)
+
+        Mix.Task.run("compile", ["--verbose"])
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert Bar.values() == {1, 1}
+
+        File.write!(
+          "../foo/src/foo_erl.erl",
+          "-module(foo_erl).\n-export([val/0]).\nval() -> 22.\n"
+        )
+
+        ensure_touched("../foo/src/foo_erl.erl", "_build/dev/lib/bar/.mix/compile.elixir")
+
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert Bar.values() == {22, 22}
+      end)
+    end)
+  after
+    purge([:foo_erl, Foo.Bar, Bar])
+  end
+
   test "reverifies when path dependency is added" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", [deps: []], fn _ ->
