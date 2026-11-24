@@ -17,7 +17,7 @@ defmodule Mix.Compilers.Test do
   # Necessary to avoid warnings during bootstrap
   @compile {:no_warn_undefined, ExUnit}
   @stale_manifest "compile.test_stale"
-  @manifest_vsn 2
+  @manifest_vsn 3
 
   @doc """
   Requires and runs test files.
@@ -120,7 +120,7 @@ defmodule Mix.Compilers.Test do
   defp set_up_stale(matched_test_files, test_paths, opts) do
     manifest = manifest()
     modified = Mix.Utils.last_modified(manifest)
-    test_sources = read_manifest()
+    {test_sources, test_modules} = read_manifest()
 
     removed =
       for {source, _} <- test_sources, source not in matched_test_files, do: source
@@ -154,17 +154,18 @@ defmodule Mix.Compilers.Test do
     stale = MapSet.new(changed -- removed)
     sources = update_stale_sources(test_sources, removed, changed)
 
+    {changed_references, modules} = tests_with_changed_references(sources, test_modules)
+
     test_files_to_run =
-      sources
-      |> tests_with_changed_references()
+      changed_references
       |> MapSet.union(stale)
       |> MapSet.to_list()
 
     if test_files_to_run == [] do
-      write_manifest(sources)
+      write_manifest(sources, modules)
       {[], nil, nil}
     else
-      {:ok, pid} = Agent.start_link(fn -> sources end)
+      {:ok, pid} = Agent.start_link(fn -> {sources, modules} end)
       cwd = File.cwd!()
 
       parallel_require_callbacks = [
@@ -179,9 +180,9 @@ defmodule Mix.Compilers.Test do
   defp agent_write_manifest(nil), do: :noop
 
   defp agent_write_manifest(pid) do
-    Agent.cast(pid, fn sources ->
-      write_manifest(sources)
-      sources
+    Agent.cast(pid, fn {sources, modules} = state ->
+      write_manifest(sources, modules)
+      state
     end)
   end
 
@@ -213,29 +214,35 @@ defmodule Mix.Compilers.Test do
 
   defp read_manifest() do
     try do
-      [@manifest_vsn | sources] = manifest() |> File.read!() |> :erlang.binary_to_term()
-      sources
+      [@manifest_vsn, modules | sources] = manifest() |> File.read!() |> :erlang.binary_to_term()
+      {sources, modules}
     rescue
-      _ -> %{}
+      _ -> {%{}, []}
     end
   end
 
-  defp write_manifest(test_sources) when test_sources == %{} do
+  defp write_manifest(test_sources, _modules) when test_sources == %{} do
     File.rm(manifest())
     :ok
   end
 
-  defp write_manifest(test_sources = %{}) do
+  defp write_manifest(test_sources = %{}, modules) do
     manifest = manifest()
     File.mkdir_p!(Path.dirname(manifest))
 
-    manifest_data = :erlang.term_to_binary([@manifest_vsn | test_sources], [:compressed])
+    manifest_data =
+      :erlang.term_to_binary([@manifest_vsn, modules | test_sources], [:compressed])
+
     File.write!(manifest, manifest_data)
   end
 
   ## Test changed dependency resolution
 
-  defp tests_with_changed_references(test_sources) do
+  # Returns the test files that reference changed modules and the
+  # list of modules currently in the project. Modules that were in
+  # the project in the previous run but no longer exist are also
+  # considered changed.
+  defp tests_with_changed_references(test_sources, previous_modules) do
     test_manifest = manifest()
     [elixir_manifest] = Mix.Tasks.Compile.Elixir.manifests()
 
@@ -250,14 +257,21 @@ defmodule Mix.Compilers.Test do
             do: module,
             into: MapSet.new()
 
+      current_modules = for {module, _} <- elixir_modules, do: module
+      removed_modules = previous_modules -- current_modules
+      stale_modules = MapSet.union(stale_modules, MapSet.new(removed_modules))
+
       stale_modules = find_all_dependent_on(stale_modules, elixir_sources)
 
-      for {source, source(runtime_references: r, compile_references: c)} <- test_sources,
-          Enum.any?(r, &(&1 in stale_modules)) or Enum.any?(c, &(&1 in stale_modules)),
-          do: source,
-          into: MapSet.new()
+      changed =
+        for {source, source(runtime_references: r, compile_references: c)} <- test_sources,
+            Enum.any?(r, &(&1 in stale_modules)) or Enum.any?(c, &(&1 in stale_modules)),
+            do: source,
+            into: MapSet.new()
+
+      {changed, current_modules}
     else
-      MapSet.new()
+      {MapSet.new(), previous_modules}
     end
   end
 
@@ -295,10 +309,10 @@ defmodule Mix.Compilers.Test do
     external = get_external_resources(module, cwd)
 
     if external != [] do
-      Agent.update(pid, fn sources ->
+      Agent.update(pid, fn {sources, modules} ->
         file = Path.relative_to(file, cwd)
         source(external: current_external) = source = Map.fetch!(sources, file)
-        Map.put(sources, file, source(source, external: external ++ current_external))
+        {Map.put(sources, file, source(source, external: external ++ current_external)), modules}
       end)
     end
 
@@ -306,7 +320,7 @@ defmodule Mix.Compilers.Test do
   end
 
   defp each_file(pid, cwd, file, lexical) do
-    Agent.update(pid, fn sources ->
+    Agent.update(pid, fn {sources, modules} ->
       file = Path.relative_to(file, cwd)
 
       {compile_references, export_references, runtime_references, _compile_env} =
@@ -319,7 +333,7 @@ defmodule Mix.Compilers.Test do
           runtime_references: runtime_references
         )
 
-      Map.put(sources, file, source)
+      {Map.put(sources, file, source), modules}
     end)
   end
 

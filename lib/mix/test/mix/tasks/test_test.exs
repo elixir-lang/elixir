@@ -133,6 +133,18 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "runs tests that depend on removed modules" do
+      in_fixture("test_stale", fn ->
+        assert_stale_run_output("Result: 2 passed")
+
+        # Both A (directly) and B (indirectly) depend on the removed module
+        set_all_mtimes()
+        File.rm!("lib/a.ex")
+
+        assert_stale_run_output("Failed: 2 tests")
+      end)
+    end
+
     test "doesn't write manifest when there are failures" do
       in_fixture("test_stale", fn ->
         assert_stale_run_output("Result: 2 passed")
