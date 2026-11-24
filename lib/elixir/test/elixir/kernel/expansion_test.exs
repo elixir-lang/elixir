@@ -968,6 +968,14 @@ defmodule Kernel.ExpansionTest do
                quote(do: for(a <- b(), c = a, do: c, into: []))
     end
 
+    test "keeps list filters before do" do
+      assert expand(quote(do: for(a <- b, [c = a], do: c))) ==
+               quote(do: for(a <- b(), [c = a], do: c, into: []))
+
+      assert expand(quote(do: for(a <- b, [], do: a))) ==
+               quote(do: for(a <- b(), [], do: a, into: []))
+    end
+
     test "variables inside options do not leak" do
       before_expansion =
         quote do
@@ -1068,9 +1076,29 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: for(_ <- 1..2, do: 1, other: 1)))
       end)
     end
+
+    test "raises when options are not a keyword list" do
+      message = ~s(invalid options for "for", expected a keyword list)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: for(x <- [1], [2, {:do, x}])))
+      end)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: for(x <- [1], [2])))
+      end)
+    end
   end
 
   describe "with" do
+    test "keeps list expressions before do" do
+      assert expand(quote(do: with(a <- b, [c = a], do: c))) ==
+               quote(do: with(a <- b(), [c = a], do: c))
+
+      assert expand(quote(do: with(a <- b, [], do: a))) ==
+               quote(do: with(a <- b(), [], do: a))
+    end
+
     test "variables do not leak" do
       before_expansion =
         quote do
@@ -1235,6 +1263,18 @@ defmodule Kernel.ExpansionTest do
             end
           end
         )
+      end)
+    end
+
+    test "raises when options are not a keyword list" do
+      message = ~s(invalid options for "with", expected a keyword list)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: with(x <- 1, [2, {:do, x}])))
+      end)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: with(x <- 1, [2])))
       end)
     end
   end
@@ -1568,6 +1608,12 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "raises when options are not a keyword list" do
+      assert_compile_error(~s(invalid options for "cond", expected a keyword list), fn ->
+        expand(quote(do: cond([x])))
+      end)
+    end
+
     test "raises with invalid options" do
       assert_compile_error(~r"unexpected option :foo in \"cond\"", fn ->
         expand(quote(do: cond(do: (1 -> 1), foo: :bar)))
@@ -1757,6 +1803,18 @@ defmodule Kernel.ExpansionTest do
     test "fails with invalid arguments" do
       assert_compile_error(~r"invalid arguments for \"case\"", fn ->
         expand(quote(do: case(:foo, :bar)))
+      end)
+    end
+
+    test "fails when options are not a keyword list" do
+      message = ~s(invalid options for "case", expected a keyword list)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: case(x, [2])))
+      end)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: case(x, [{1, 2}])))
       end)
     end
 
@@ -2012,6 +2070,12 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "raises when options are not a keyword list" do
+      assert_compile_error(~s(invalid options for "receive", expected a keyword list), fn ->
+        expand(quote(do: receive([2])))
+      end)
+    end
+
     test "raises with invalid options" do
       assert_compile_error(~r"unexpected option :foo in \"receive\"", fn ->
         expand(quote(do: receive(do: (x -> x), foo: :bar)))
@@ -2246,6 +2310,18 @@ defmodule Kernel.ExpansionTest do
     test "raises with invalid arguments" do
       assert_compile_error(~r"invalid arguments for \"try\"", fn ->
         expand(quote(do: try(:foo)))
+      end)
+    end
+
+    test "raises when options are not a keyword list" do
+      message = ~s(invalid options for "try", expected a keyword list)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: try([x])))
+      end)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: try([{:do, 1}, 2])))
       end)
     end
 
