@@ -239,29 +239,38 @@ defmodule Mix.Compilers.Test do
   ## Test changed dependency resolution
 
   # Returns the test files that reference changed modules and the
-  # list of modules currently in the project. Modules that were in
-  # the project in the previous run but no longer exist are also
+  # list of modules currently in the project and its local dependencies.
+  # Modules that were in the previous run but no longer exist are also
   # considered changed.
   defp tests_with_changed_references(test_sources, previous_modules) do
     test_manifest = manifest()
-    [elixir_manifest] = Mix.Tasks.Compile.Elixir.manifests()
+    manifests = elixir_manifests()
 
-    if Mix.Utils.stale?([elixir_manifest], [test_manifest]) do
-      compile_path = Mix.Project.compile_path()
-      {elixir_modules, elixir_sources} = CE.read_manifest(elixir_manifest)
+    if Mix.Utils.stale?(Enum.map(manifests, &elem(&1, 0)), [test_manifest]) do
+      {stale_modules, current_modules, all_sources} =
+        Enum.reduce(manifests, {MapSet.new(), [], []}, fn {manifest, ebin}, acc ->
+          {stale_modules, current_modules, all_sources} = acc
+          {modules, sources, parents} = CE.read_manifest_with_parents(manifest)
 
-      stale_modules =
-        for {module, _} <- elixir_modules,
-            beam = Path.join(compile_path, Atom.to_string(module) <> ".beam"),
-            Mix.Utils.stale?([beam], [test_manifest]),
-            do: module,
-            into: MapSet.new()
+          # Elixir modules and Erlang modules (parents)
+          all_modules = for({module, CE.module(kind: kind)} <- modules, do: {module, kind})
+          all_modules = for(module <- parents, do: {module, :erlang}) ++ all_modules
 
-      current_modules = for {module, _} <- elixir_modules, do: module
+          stale_modules =
+            for {module, kind} <- all_modules,
+                beam = Path.join(ebin, Atom.to_string(module) <> ".beam"),
+                Mix.Utils.stale?([beam], [test_manifest]),
+                changed <- [module | impl_modules(module, kind)],
+                do: changed,
+                into: stale_modules
+
+          current_modules = for({module, _} <- all_modules, do: module) ++ current_modules
+          {stale_modules, current_modules, Enum.to_list(sources) ++ all_sources}
+        end)
+
       removed_modules = previous_modules -- current_modules
       stale_modules = MapSet.union(stale_modules, MapSet.new(removed_modules))
-
-      stale_modules = find_all_dependent_on(stale_modules, elixir_sources)
+      stale_modules = find_all_dependent_on(stale_modules, all_sources)
 
       changed =
         for {source, source(runtime_references: r, compile_references: c)} <- test_sources,
@@ -274,6 +283,29 @@ defmodule Mix.Compilers.Test do
       {MapSet.new(), previous_modules}
     end
   end
+
+  # The manifest and ebin of the project and its local dependencies
+  defp elixir_manifests() do
+    [elixir_manifest] = Mix.Tasks.Compile.Elixir.manifests()
+    base = Path.basename(elixir_manifest)
+
+    deps =
+      for %{scm: scm, opts: opts} <- Mix.Dep.cached(),
+          not scm.fetchable?(),
+          do: {Path.join([opts[:build], ".mix", base]), Path.join(opts[:build], "ebin")}
+
+    [{elixir_manifest, Mix.Project.compile_path()} | deps]
+  end
+
+  # Tests depend on protocol implementations through the protocol and
+  # the implemented module, so we consider those changed as well.
+  defp impl_modules(impl, {:impl, protocol}) do
+    prefix = Atom.to_string(protocol) <> "."
+    for_module = impl |> Atom.to_string() |> String.replace_prefix(prefix, "Elixir.")
+    [protocol, String.to_atom(for_module)]
+  end
+
+  defp impl_modules(_module, _kind), do: []
 
   defp find_all_dependent_on(modules, elixir_sources, resolved \\ MapSet.new()) do
     new_modules =

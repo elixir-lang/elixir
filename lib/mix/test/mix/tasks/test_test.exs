@@ -145,6 +145,50 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "runs tests that depend on protocol implementations, Erlang modules, and path dependencies" do
+      in_fixture("test_stale", fn ->
+        mix_exs =
+          String.replace(
+            File.read!("mix.exs"),
+            "version:",
+            ~s|deps: [{:dep, path: "dep"}], version:|
+          )
+
+        File.write!("mix.exs", mix_exs)
+
+        File.mkdir_p!("dep/lib")
+
+        File.write!(
+          "dep/mix.exs",
+          ~s|defmodule Dep.MixProject, do: (use Mix.Project; def project, do: [app: :dep, version: "0.1.0"])|
+        )
+
+        File.write!("dep/lib/dep.ex", "defmodule Dep, do: def(f, do: :ok)")
+        File.mkdir_p!("src")
+        File.write!("src/e.erl", "-module(e).\n-export([val/0]).\nval() -> ok.\n")
+        File.write!("lib/a.ex", "defmodule A, do: (defstruct []; def f, do: :e.val())")
+        File.write!("lib/p.ex", "defprotocol P, do: def(p(x))")
+        File.write!("lib/b.ex", "defmodule B, do: def(f, do: Dep.f())")
+        File.write!("lib/impl.ex", "defimpl P, for: A, do: def(p(_), do: :ok)")
+        assert_stale_run_output("Result: 2 passed")
+
+        # The test of A does not reference its protocol implementation
+        set_all_mtimes()
+        File.write!("lib/impl.ex", "defimpl P, for: A, do: def(p(_), do: :changed)")
+        assert_stale_run_output("Result: 1 passed")
+
+        # The test of A references the Erlang module through A
+        set_all_mtimes()
+        File.write!("src/e.erl", "-module(e).\n-export([val/0]).\nval() -> ok. % changed\n")
+        assert_stale_run_output("Result: 1 passed")
+
+        # The test of B references Dep through B
+        set_all_mtimes()
+        File.write!("dep/lib/dep.ex", "defmodule Dep, do: def(f, do: :ok) # changed")
+        assert_stale_run_output("Result: 1 passed")
+      end)
+    end
+
     test "doesn't write manifest when there are failures" do
       in_fixture("test_stale", fn ->
         assert_stale_run_output("Result: 2 passed")

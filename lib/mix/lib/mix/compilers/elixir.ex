@@ -401,8 +401,9 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  # Reads the manifest of a dependency, including its Erlang modules (parents)
-  defp read_dep_manifest(manifest) do
+  @doc false
+  # Reads the manifest including its Erlang modules (parents)
+  def read_manifest_with_parents(manifest) do
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
@@ -914,7 +915,10 @@ defmodule Mix.Compilers.Elixir do
         reduce: {stale_modules, stale_modules, deps_exports, protocols_and_impls(), false} do
       {modules, exports, deps_exports, protocols_and_impls, _read?} ->
         ebin = Path.join(opts[:build], "ebin")
-        {manifest_modules, manifest_sources, manifest_parents} = read_dep_manifest(manifest)
+
+        {manifest_modules, manifest_sources, manifest_parents} =
+          read_manifest_with_parents(manifest)
+
         dep_exports = Map.get(deps_exports, app, %{})
 
         # If the Erlang modules of the dependency changed, we consider all
