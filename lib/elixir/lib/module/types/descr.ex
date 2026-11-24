@@ -4231,7 +4231,7 @@ defmodule Module.Types.Descr do
               do: {domains, []},
               else: :lists.partition(&(&1 == :atom), domains)
 
-          descr = map_update_box(dnf, optional_keys, box_domains, operation, atom_keys)
+          descr = map_update_box(bdd, dnf, optional_keys, box_domains, operation, atom_keys)
 
           descr =
             if widen_domains == [],
@@ -4696,7 +4696,7 @@ defmodule Module.Types.Descr do
   # The named keys include the ones mentioned only by negatives, as their
   # values may be narrower than the domains, and the atom keys outside of
   # the key type, so their values are kept when the atom domain is updated.
-  defp map_update_box(dnf, keys, domains, operation, atom_keys) do
+  defp map_update_box(bdd, dnf, keys, domains, operation, atom_keys) do
     named_keys =
       :lists.foldl(
         fn {_tag, fields, negs}, acc ->
@@ -4755,46 +4755,54 @@ defmodule Module.Types.Descr do
         @domain_key_types
       )
 
-    if key_updates == [] and domain_updates == [] do
-      none()
-    else
-      # If the key must exist and there is a single candidate, it is the one updated
-      replace? = match?({[_], [], :reject}, {key_updates, domain_updates, elem(operation, 1)})
+    updates =
+      :lists.map(fn {_, {old, _}, {new, _}} -> {old, new} end, key_updates) ++
+        :lists.map(fn {_, old, new} -> {old, new} end, domain_updates)
 
-      fields =
-        :lists.foldl(
-          fn {key, old_field, new_field}, fields ->
-            field = if replace?, do: new_field, else: field_opt_union(old_field, new_field, %{})
-            fields_store(key, field, fields)
-          end,
-          fields,
-          key_updates
-        )
+    cond do
+      updates == [] ->
+        none()
 
-      tag = if tag == fields_from_keys(@domain_key_types, term()), do: :open, else: tag
-      output = map_new(tag, fields)
+      # Absent keys are kept and no key or domain is present, so the maps are unchanged
+      elem(operation, 1) == :keep and
+          :lists.all(fn {old, new} -> empty?(old) and empty?(new) end, updates) ->
+        %{map: bdd}
 
-      # The box contains the original maps, see map_update_non_empty?/2
-      present? =
-        (:lists.any(fn {_, _, {type, _}} -> not empty?(type) end, key_updates) or
-           :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates)) and
-          map_update_non_empty?(operation, dnf)
+      true ->
+        # If the key must exist and there is a single candidate, it is the one updated
+        replace? = match?({[_], [], :reject}, {key_updates, domain_updates, elem(operation, 1)})
 
-      case operation do
-        _ when not present? ->
-          %{map: output}
+        fields =
+          :lists.foldl(
+            fn {key, old_field, new_field}, fields ->
+              field = if replace?, do: new_field, else: field_opt_union(old_field, new_field, %{})
+              fields_store(key, field, fields)
+            end,
+            fields,
+            key_updates
+          )
 
-        # A value is put in one of the keys or domains, so we remove the maps without it.
-        # When all domains are updated, we do not, as smaller keys are widened in their
-        # non-atom domains, which does not remove them, and their results must be smaller.
-        {{:constant, {type, false}}, mode}
-        when mode != :keep and length(domains) != length(@domain_key_types) ->
-          unset = map_update_box_unset(keys, domains, atom_keys, type)
-          opt_difference(%{map: output}, %{map: unset})
+        tag = if tag == fields_from_keys(@domain_key_types, term()), do: :open, else: tag
+        output = map_new(tag, fields)
 
-        _ ->
-          map_update_domains_add(output, fields, {[], []}) |> map_update_domains_result()
-      end
+        # The box contains the original maps, see map_update_present?/3
+        present? = map_update_present?(operation, dnf, updates)
+
+        case operation do
+          _ when not present? ->
+            %{map: output}
+
+          # A value is put in one of the keys or domains, so we remove the maps without it.
+          # When all domains are updated, we do not, as smaller keys are widened in their
+          # non-atom domains, which does not remove them, and their results must be smaller.
+          {{:constant, {type, false}}, mode}
+          when mode != :keep and length(domains) != length(@domain_key_types) ->
+            unset = map_update_box_unset(keys, domains, atom_keys, type)
+            opt_difference(%{map: output}, %{map: unset})
+
+          _ ->
+            map_update_domains_add(output, fields, {[], []}) |> map_update_domains_result()
+        end
     end
   end
 
@@ -4861,10 +4869,9 @@ defmodule Module.Types.Descr do
               negs
             )
 
-          # The widened line contains the original line, see map_update_non_empty?/2
-          present? =
-            :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates) and
-              map_update_non_empty?(operation, [{tag, fields, negs}])
+          # The widened line contains the original line, see map_update_present?/3
+          updates = :lists.map(fn {_, old, new} -> {old, new} end, domain_updates)
+          present? = map_update_present?(operation, [{tag, fields, negs}], updates)
 
           if present? do
             map_update_domains_add(output, fields, acc)
@@ -4880,26 +4887,30 @@ defmodule Module.Types.Descr do
     |> map_update_domains_result()
   end
 
-  # When a key is set, the updated maps are not empty. Unless absent keys are
-  # kept: then an update that contains the original maps is only empty if one
-  # of the original lines may be empty. A line may be empty if all of its fields
-  # are optional and each negative has a required field.
-  defp map_update_non_empty?({_, :keep}, dnf) do
-    :lists.all(
-      fn {_tag, fields, negs} ->
-        :lists.any(fn {_key, {_type, optional?}} -> not optional? end, fields) or
-          :lists.any(
-            fn bdd_leaf(_tag, neg_fields) ->
-              :lists.all(fn {_key, {_type, optional?}} -> optional? end, neg_fields)
-            end,
-            negs
-          )
-      end,
-      dnf
-    )
+  # Returns true if the updated maps are not empty, given the old and new types
+  # of the updated keys and domains. When a key is set, the updated maps are not
+  # empty. Unless absent keys are kept: then the keys of the original maps are
+  # kept, unless a value is removed, so an update that contains the original maps
+  # is only empty if one of the original lines may be empty. A line may be empty
+  # if all of its fields are optional and each negative has a required field.
+  defp map_update_present?({_, :keep}, dnf, updates) do
+    not :lists.any(fn {old, new} -> empty?(new) and not empty?(old) end, updates) and
+      :lists.all(
+        fn {_tag, fields, negs} ->
+          :lists.any(fn {_key, {_type, optional?}} -> not optional? end, fields) or
+            :lists.any(
+              fn bdd_leaf(_tag, neg_fields) ->
+                :lists.all(fn {_key, {_type, optional?}} -> optional? end, neg_fields)
+              end,
+              negs
+            )
+        end,
+        dnf
+      )
   end
 
-  defp map_update_non_empty?(_operation, _dnf), do: true
+  defp map_update_present?(_operation, _dnf, updates),
+    do: :lists.any(fn {_old, new} -> not empty?(new) end, updates)
 
   defp map_fetch_field(tag, fields, key) do
     case fields_find(key, fields) do

@@ -4336,6 +4336,30 @@ defmodule Module.Types.DescrTest do
         assert subtype?(non_empty, result)
       end
     end
+
+    test "domain updates keeping absent keys are monotone on keys" do
+      input =
+        opt_union(
+          closed_map(a: {integer(), false}),
+          opt_difference(closed_map([{domain_key(:integer), integer()}]), empty_map())
+        )
+
+      small_key = opt_union(opt_difference(atom(), atom([:a])), integer())
+      assert {_, small, _} = map_update(input, small_key, binary(), :keep, true)
+      assert {_, large, _} = map_update(input, term(), binary(), :keep, true)
+      assert subtype?(small, large)
+      refute subtype?(empty_map(), small)
+
+      # No atom key is present, so only integer keys are updated
+      assert {_, integer, _} = map_update(input, integer(), binary(), :keep, true)
+      assert equal?(small, integer)
+
+      # Deleting keys may give empty maps
+      for key <- [small_key, term()] do
+        assert {_, deleted, _} = map_update(input, key, :delete, :keep, true)
+        assert subtype?(empty_map(), deleted)
+      end
+    end
   end
 
   describe "map domain updates with negated BDDs" do
