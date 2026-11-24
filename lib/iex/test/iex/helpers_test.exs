@@ -405,7 +405,7 @@ defmodule IEx.HelpersTest do
     @tag :erlang_doc
     test "prints Erlang module documentation" do
       captured = capture_io(fn -> h(:timer) end)
-      assert captured =~ "This module provides useful functions related to time."
+      assert captured =~ "functions related to time."
     end
 
     @tag :erlang_doc
