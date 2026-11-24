@@ -2554,6 +2554,11 @@ defmodule Module.Types.DescrTest do
 
       assert tuple_fetch(opt_union(dynamic(), open_tuple([atom()])), 0) ==
                {true, opt_union(atom(), dynamic())}
+
+      # Empty static literals are ignored
+      d = dynamic(open_tuple([term(), term(), term(), term()]))
+      assert tuple_fetch(opt_union(d, tuple([none(), integer()])), 3) == tuple_fetch(d, 3)
+      assert tuple_fetch(opt_union(d, tuple([none(), integer()])), 1) == tuple_fetch(d, 1)
     end
 
     test "tuple_delete_at" do

@@ -6319,10 +6319,18 @@ defmodule Module.Types.Descr do
   defp tuple_fetch_static(descr, index) when is_integer(index) do
     case descr do
       :term -> {term(), true}
-      %{tuple: bdd_leaf(tag, elements)} -> tuple_fetch_element(elements, index, tag)
+      %{tuple: bdd_leaf(tag, elements)} -> tuple_fetch_leaf(tag, elements, index)
       %{tuple: bdd} -> tuple_bdd_fetch_static(bdd, index)
       %{} -> {none(), false}
     end
+  end
+
+  # An empty literal, such as one with a none() element, has no elements
+  # to fetch, as done for the lines of tuple_bdd_fetch_static/2.
+  defp tuple_fetch_leaf(tag, elements, index) do
+    if tuple_line_elements_empty?(elements, %{}),
+      do: {none(), false},
+      else: tuple_fetch_element(elements, index, tag)
   end
 
   defp tuple_bdd_fetch_static(bdd, index) do
