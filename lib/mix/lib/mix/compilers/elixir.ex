@@ -187,8 +187,9 @@ defmodule Mix.Compilers.Elixir do
     {sources, stale_exports} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
+    # Umbrellas and shared builds consolidate after compilation
     consolidation_status =
-      if Mix.Project.umbrella?() do
+      if Mix.Project.umbrella?() or Mix.Project.config()[:build_path] do
         :off
       else
         Mix.Compilers.Protocol.status(config_mtime > old_config_mtime, opts)

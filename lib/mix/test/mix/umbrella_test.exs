@@ -757,20 +757,15 @@ defmodule Mix.UmbrellaTest do
       compile_bar.()
       assert consolidated_impls.("_build/dev/lib/bar/consolidated") == [BarStruct]
 
-      # Compile the child as a dependency of the umbrella
-      File.write!("apps/bar/lib/bar.ex", """
-      defmodule BarStruct do
-        defstruct []
-        def changed, do: :ok
-      end
-      """)
+      # Remove the implementation and compile the child as a dependency of the umbrella
+      File.rm!("apps/bar/lib/impl.ex")
 
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("compile")
+        assert consolidated_impls.("_build/dev/consolidated") == []
       end)
 
-      # Remove the implementation and the child must reconsolidate
-      File.rm!("apps/bar/lib/impl.ex")
+      # The child has nothing to compile but it must still reconsolidate
       compile_bar.()
       assert consolidated_impls.("_build/dev/lib/bar/consolidated") == []
     end)

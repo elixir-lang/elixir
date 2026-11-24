@@ -179,8 +179,8 @@ defmodule Mix.Tasks.Compile do
           Mix.Task.reenable("compile")
           :noop
 
-        Mix.Project.umbrella?(config) ->
-          Mix.Compilers.Protocol.umbrella(args, res)
+        Mix.Project.umbrella?(config) or config[:build_path] ->
+          Mix.Compilers.Protocol.shared(args, res)
 
         true ->
           res

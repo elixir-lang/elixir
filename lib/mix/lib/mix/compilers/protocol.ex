@@ -7,12 +7,20 @@ defmodule Mix.Compilers.Protocol do
   @manifest "compile.protocols"
   @manifest_vsn 3
 
-  ## Umbrella handling
+  ## Umbrella and shared build handling
 
   @switches [force: :boolean, verbose: :boolean, consolidate_protocols: :boolean]
 
-  def umbrella(args, res) do
+  @doc """
+  Consolidates protocols for an umbrella or a project with a shared build.
+
+  We diff against all protocols and implementations from the given project
+  and its local dependencies whenever any of them have been compiled since
+  our last consolidation.
+  """
+  def shared(args, res) do
     config = Mix.Project.config()
+    own_paths = if Mix.Project.umbrella?(config), do: [], else: [Mix.Project.app_path(config)]
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     opts =
@@ -36,14 +44,15 @@ defmodule Mix.Compilers.Protocol do
 
         on_or_force ->
           deps_paths =
-            for %{scm: scm, opts: opts} <- Mix.Dep.cached(),
-                not scm.fetchable?(),
-                do: opts[:build]
+            own_paths ++
+              for %{scm: scm, opts: opts} <- Mix.Dep.cached(),
+                  not scm.fetchable?(),
+                  do: opts[:build]
 
-          # Even if the umbrella compilation was a noop, children may have been
-          # compiled on their own on a shared build. Since they compile under the
-          # same build lock, any compilation we have not seen started at or after
-          # the time our manifest was written.
+          # Even if the compilation was a noop, we or our dependencies may have
+          # been compiled by other projects on the shared build. Since they compile
+          # under the same build lock, any compilation we have not seen started at
+          # or after the time our manifest was written.
           if on_or_force == :on and res == :noop and
                not deps_compiled_since?(deps_paths, manifest) do
             :noop
