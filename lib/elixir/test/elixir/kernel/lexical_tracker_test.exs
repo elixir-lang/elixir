@@ -191,6 +191,83 @@ defmodule Kernel.LexicalTrackerTest do
       refute URI in compile
     end
 
+    test "does not track references to the current module" do
+      {{compile, _, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Self do
+          def foo, do: __MODULE__.bar()
+          def bar, do: :ok
+          _ = Kernel.LexicalTrackerTest.Self
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute Kernel.LexicalTrackerTest.Self in compile
+      refute Kernel.LexicalTrackerTest.Self in runtime
+    end
+
+    test "runtime references of same-file modules invoked at compile time are compile ones" do
+      dir = PathHelpers.tmp_path("lexical_same_file")
+      File.rm_rf!(dir)
+      File.mkdir_p!(dir)
+      file = Path.join(dir, "same_file.ex")
+
+      # Snapshots include the references of earlier modules in the file,
+      # so we define the modules whose references we check last
+      File.write!(file, """
+      defmodule Kernel.LexicalTrackerTest.SameFileOuter do
+        defmodule Inner do
+          def value, do: Date.utc_today()
+        end
+
+        @value Inner.value()
+        def value, do: @value
+      end
+
+      defmodule Kernel.LexicalTrackerTest.SameFileHelper do
+        def value, do: String.upcase(Integer.to_string(1))
+      end
+
+      defmodule Kernel.LexicalTrackerTest.SameFileUser do
+        require Integer
+        @value Kernel.LexicalTrackerTest.SameFileHelper.value()
+        def runtime, do: URI.parse(@value)
+      end
+      """)
+
+      each_file = fn _file, lexical ->
+        send(self(), {:references, Kernel.LexicalTracker.references(lexical)})
+      end
+
+      assert {:ok, _, %{compile_warnings: warnings}} =
+               Kernel.ParallelCompiler.compile([file],
+                 each_file: each_file,
+                 return_diagnostics: true
+               )
+
+      assert_received {:references, {compile, _exports, runtime, _env}}
+      assert String in compile
+      refute String in runtime
+      assert URI in runtime
+      refute URI in compile
+
+      # Nested modules invoked by their parent at compile time
+      assert Date in compile
+
+      # Promoted references do not count as using a require
+      assert Enum.any?(warnings, &(&1.message =~ "unused require Integer"))
+    after
+      for module <- [
+            Kernel.LexicalTrackerTest.SameFileHelper,
+            Kernel.LexicalTrackerTest.SameFileUser,
+            Kernel.LexicalTrackerTest.SameFileOuter,
+            Kernel.LexicalTrackerTest.SameFileOuter.Inner
+          ] do
+        :code.purge(module)
+        :code.delete(module)
+      end
+    end
+
     test "attributes adds dependency based on expansion" do
       {{compile, _, _, _}, _binding} =
         Code.eval_string("""

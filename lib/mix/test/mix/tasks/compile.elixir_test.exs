@@ -1152,6 +1152,63 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [])
   end
 
+  test "recompiles dependent changed modules through compile-time modules in the same file" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A.Helper do
+        def value, do: B.value()
+      end
+
+      defmodule A do
+        @value A.Helper.value()
+        def value, do: @value
+        def runtime, do: C.value()
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def value, do: :old
+      end
+      """)
+
+      File.write!("lib/c.ex", """
+      defmodule C do
+        def value, do: :old
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert A.value() == :old
+
+      # Runtime dependencies of A (as opposed to A.Helper) are not compile-time ones
+      File.write!("lib/c.ex", """
+      defmodule C do
+        def value, do: :changed
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def value, do: :changed
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert A.value() == :changed
+    end)
+  end
+
   test "recompiles dependent changed modules without beam files" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

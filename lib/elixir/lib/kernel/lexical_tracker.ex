@@ -77,6 +77,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def module_defined(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, {:module_defined, module})
+  end
+
+  @doc false
   def import_dispatch(pid, module, fa, mode) when is_atom(module) do
     :gen_server.cast(pid, {:import_dispatch, module, fa, mode})
   end
@@ -141,6 +146,7 @@ defmodule Kernel.LexicalTracker do
       imports: %{},
       requires: %{},
       references: %{},
+      module_references: %{},
       exports: %{},
       cache: %{},
       compile_env: :ordsets.new(),
@@ -178,7 +184,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:references, _from, state) do
-    {compile, runtime} = partition(Map.to_list(state.references), [], [])
+    references = compile_references(state.references, state.module_references)
+    {compile, runtime} = partition(Map.to_list(references), [], [])
     {:reply, {compile, Map.keys(state.exports), runtime, state.compile_env}, state}
   end
 
@@ -197,6 +204,17 @@ defmodule Kernel.LexicalTracker do
   def handle_cast({:remote_dispatch, module, mode}, state) do
     references = add_reference(state.references, module, mode)
     {:noreply, %{state | references: references}}
+  end
+
+  # We store the references of the file once each module is defined.
+  # If the module is invoked at compile time, all of its runtime
+  # references become compile ones (see compile_references/2). This
+  # may have false positives (references from earlier modules) but
+  # it is cheap.
+  def handle_cast({:module_defined, module}, state) do
+    %{references: references, module_references: module_references} = state
+    snapshot = {:erlang.unique_integer([:monotonic]), references}
+    {:noreply, %{state | module_references: Map.put(module_references, module, snapshot)}}
   end
 
   def handle_cast({:import_dispatch, module, {function, arity}, mode}, state) do
@@ -302,6 +320,56 @@ defmodule Kernel.LexicalTracker do
   defp partition([], compile, runtime), do: {compile, runtime}
 
   # Callbacks helpers
+
+  # Modules defined in this file and invoked at compile time have
+  # their runtime references, transitively, become compile ones.
+  #
+  # References are only added (or upgraded from runtime to compile),
+  # so a snapshot contains all earlier ones. Therefore we only need the
+  # runtime entries of the latest snapshot among the modules invoked at
+  # compile time, moving to later snapshots reachable from it.
+  # We can't use protocols here, as this runs during bootstrap.
+  defp compile_references(references, module_references) do
+    case latest_snapshot(references, :compile, module_references, nil) do
+      nil -> references
+      latest -> promote_snapshot(latest, references, module_references)
+    end
+  end
+
+  defp promote_snapshot({_index, snapshot} = latest, references, module_references) do
+    case latest_snapshot(snapshot, :runtime, module_references, latest) do
+      ^latest ->
+        :maps.fold(
+          fn
+            ref, :runtime, acc -> Map.put(acc, ref, :compile)
+            _ref, :compile, acc -> acc
+          end,
+          references,
+          snapshot
+        )
+
+      later ->
+        promote_snapshot(later, references, module_references)
+    end
+  end
+
+  defp latest_snapshot(references, mode, module_references, latest) do
+    :maps.fold(
+      fn
+        module, ^mode, latest when is_map_key(module_references, module) ->
+          max_snapshot(Map.fetch!(module_references, module), latest)
+
+        _module, _mode, latest ->
+          latest
+      end,
+      latest,
+      references
+    )
+  end
+
+  defp max_snapshot(snapshot, nil), do: snapshot
+  defp max_snapshot({index, _} = snapshot, {latest, _}) when index > latest, do: snapshot
+  defp max_snapshot(_snapshot, latest), do: latest
 
   defp add_reference(references, module, :compile) when is_atom(module),
     do: Map.put(references, module, :compile)
