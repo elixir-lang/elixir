@@ -5,7 +5,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 40
+  @manifest_vsn 41
   @checkpoint_vsn 5
 
   import Record
@@ -39,7 +39,7 @@ defmodule Mix.Compilers.Elixir do
   def compile(manifest, srcs, dest, new_cache_key, new_parent_manifests, new_parents, opts) do
     Mix.ensure_application!(:crypto)
     modified = Mix.Utils.last_modified(manifest)
-    config_mtime = Mix.Project.config_mtime()
+    config_mtime = config_mtime()
     project_mtime = Mix.Utils.last_modified(Mix.Project.project_file())
     new_parents = :ordsets.from_list(new_parents)
 
@@ -89,9 +89,10 @@ defmodule Mix.Compilers.Elixir do
 
     # If the lock has changed or a local dependency was added or removed,
     # we need to traverse lock/config files.
+    config_changed? = config_changed?(config_mtime, old_config_mtime)
+
     deps_changed? =
-      config_mtime > old_config_mtime or
-        local_deps_changed?(old_deps_config, local_deps)
+      config_changed? or local_deps_changed?(old_deps_config, local_deps)
 
     # If a configuration is only accessed at compile-time, we don't need to
     # track modules, only the compile env. So far this is only true for Elixir's
@@ -192,7 +193,7 @@ defmodule Mix.Compilers.Elixir do
       if Mix.Project.umbrella?() or Mix.Project.config()[:build_path] do
         :off
       else
-        Mix.Compilers.Protocol.status(config_mtime > old_config_mtime, opts)
+        Mix.Compilers.Protocol.status(config_changed?, opts)
       end
 
     consolidate? =
@@ -322,6 +323,22 @@ defmodule Mix.Compilers.Elixir do
       unless_warnings_as_errors(opts, {:noop, previous_warnings})
     end
   end
+
+  # We track the number of config files alongside the config mtime,
+  # so we can detect when a config file is removed. We skip the lock
+  # files, as umbrella children compiled from the umbrella root also
+  # include the root lock, which would change the count.
+  defp config_mtime() do
+    count =
+      Mix.Project.config_files()
+      |> Enum.uniq()
+      |> Enum.count(&(Path.basename(&1) != "compile.lock"))
+
+    {Mix.Project.config_mtime(), count}
+  end
+
+  defp config_changed?({mtime, count}, {old_mtime, old_count}),
+    do: mtime > old_mtime or count != old_count
 
   defp deps_config(local_deps, opts) do
     # If you change this config, you need to bump @manifest_vsn
@@ -1025,7 +1042,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {%{}, %{}, %{}, [], nil, nil, nil, 0, 0, {%{}, %{}}}
+  @default_manifest {%{}, %{}, %{}, [], nil, nil, nil, 0, {0, 0}, {%{}, %{}}}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do

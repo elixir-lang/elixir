@@ -216,6 +216,25 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
+      # Deleting config file recompiles
+      File.rm!("config/config.exs")
+      Mix.ProjectStack.pop()
+      Mix.Project.push(MixTest.Case.Sample)
+      Mix.State.write_cache(Mix.Tasks.Loadconfig, [])
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Adding config file back recompiles
+      File.write!("config/config.exs", """
+      import Config
+      config :logger, :level, :info
+      """)
+
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
       # Removing config recompiles
       File.write!("config/config.exs", """
       import Config

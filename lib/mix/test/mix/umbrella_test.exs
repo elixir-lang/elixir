@@ -562,6 +562,39 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "tracks the same config files from the umbrella root and from children" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      File.write!("apps/foo/mix.exs", """
+      defmodule Foo.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :foo,
+            version: "0.1.0",
+            build_path: "../../_build",
+            config_path: "../../config/config.exs"
+          ]
+        end
+      end
+      """)
+
+      config_mtime = fn ->
+        "_build/dev/lib/foo/.mix/compile.elixir"
+        |> File.read!()
+        |> :erlang.binary_to_term()
+        |> elem(9)
+      end
+
+      Mix.Project.in_project(:umbrella, ".", fn _ -> Mix.Task.run("compile") end)
+      from_root = config_mtime.()
+
+      Mix.Task.clear()
+      Mix.Project.in_project(:foo, "apps/foo", fn _ -> Mix.Task.run("compile", ["--force"]) end)
+      assert config_mtime.() == from_root
+    end)
+  end
+
   test "reverifies when path dependency is added" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", [deps: []], fn _ ->
