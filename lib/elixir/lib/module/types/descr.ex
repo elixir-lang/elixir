@@ -4228,12 +4228,12 @@ defmodule Module.Types.Descr do
           descr =
             if other_domains == [],
               do: descr,
-              else: opt_union(descr, map_update_domains(dnf, other_domains, operation))
+              else: opt_union(descr, map_update_widen(dnf, other_domains, operation))
 
           {descr, false}
 
         update_domains? ->
-          {map_update_domains(dnf, domains, operation), true}
+          {map_update_widen(dnf, :lists.usort(domains), operation), true}
 
         true ->
           {none(), true}
@@ -4638,40 +4638,6 @@ defmodule Module.Types.Descr do
     )
   end
 
-  # For each possible key domain, starting from the original map:
-  # 1. Split the positive and negative maps into {field, rest_of_map} for this domain.
-  # 2. Remove pairs excluded by the negative maps. Constants attach the new field now.
-  # 3. For callbacks, update each remaining pair's field, handling absent keys as requested.
-  # 4. Rebuild maps with the updated domain and union them into the result.
-  defp map_update_domains(dnf, domain_keys, operation) do
-    case :lists.usort(domain_keys) do
-      [domain] -> map_update_domain(dnf, domain, operation)
-      domains -> map_update_widen(dnf, domains, operation)
-    end
-  end
-
-  defp map_update_domain(dnf, domain, operation) do
-    pairs =
-      :lists.flatmap(
-        fn {tag, fields, negs} ->
-          {old_field, rest} = map_pop_domain_bdd(tag, fields, domain)
-
-          case map_split_negative_pairs_domain(negs, domain) do
-            :empty -> []
-            negative -> map_update_prepare_pairs(negative, old_field, rest, operation)
-          end
-        end,
-        dnf
-      )
-
-    :lists.foldl(
-      fn {new_field, rest}, acc -> map_rejoin_domain(rest, domain, new_field, acc) end,
-      {[], []},
-      map_update_maybe_apply_callback(pairs, operation)
-    )
-    |> map_update_domains_result()
-  end
-
   # Domain updates accumulate the updated maps separately from the unchanged
   # ones, so the empty map is excluded from the updated ones only once at the end.
   # Updated maps with a required key are never empty, so they are accumulated
@@ -4841,20 +4807,21 @@ defmodule Module.Types.Descr do
     map_new(tag, fields)
   end
 
-  # When the key may hit several domains, computing one alternative per domain
-  # makes the number of lines grow exponentially on chained updates. Instead,
-  # we update all given domains at once in each line, which is a supertype of
-  # the union of the per-domain updates. Each domain may keep its old value or
-  # have the new one.
+  # Updates the given domains at once in each line, where each domain may keep
+  # its old value or have the new one. When the key may hit several domains,
+  # this is a supertype of the union of the per-domain updates, which would
+  # make the number of lines grow exponentially on chained updates.
   #
   # A negative is kept only if, for every updated domain, it already contains
   # the old values of the line. In this case, a map excluded by the negative is
   # excluded because of a key we do not update, so it remains excluded. Other
   # negatives are discarded, as done by the projection shortcut in
-  # map_update_project_pair/4, which is sound.
+  # map_update_project_pair/4, which is sound. Since domain keys are never
+  # required, the discarded negatives only lose facts about some key existing
+  # in the updated domains, such as two negatives implying there are at least
+  # two keys in them.
   defp map_update_widen(dnf, domains, operation) do
-    # Unless absent keys are kept, the key exists after the update
-    present? = elem(operation, 1) != :keep
+    keep? = elem(operation, 1) == :keep
 
     :lists.foldl(
       fn {tag, fields, negs}, acc ->
@@ -4885,8 +4852,12 @@ defmodule Module.Types.Descr do
               negs
             )
 
+          # The key exists after the update, so the result is not empty, unless
+          # absent keys are kept. In this case, the widened line contains the
+          # original line, so it is only empty if the original line may be empty.
           present? =
-            present? and :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates)
+            :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates) and
+              not (keep? and map_line_has_empty?(fields, negs))
 
           if present? do
             map_update_domains_add(output, fields, acc)
@@ -4900,6 +4871,16 @@ defmodule Module.Types.Descr do
       dnf
     )
     |> map_update_domains_result()
+  end
+
+  defp map_line_has_empty?(fields, negs) do
+    :lists.all(fn {_key, {_type, optional?}} -> optional? end, fields) and
+      :lists.all(
+        fn bdd_leaf(_tag, neg_fields) ->
+          :lists.any(fn {_key, {_type, optional?}} -> not optional? end, neg_fields)
+        end,
+        negs
+      )
   end
 
   defp map_fetch_field(tag, fields, key) do
@@ -4924,60 +4905,6 @@ defmodule Module.Types.Descr do
     )
   catch
     :discard -> :discard
-  end
-
-  defp map_split_negative_pairs_domain(negs, domain_key),
-    do: map_split_negative_pairs_domain(negs, domain_key, [])
-
-  defp map_split_negative_pairs_domain([bdd_leaf(:open, []) | _negs], _domain_key, _acc),
-    do: :empty
-
-  defp map_split_negative_pairs_domain([bdd_leaf(tag, fields) | negs], domain_key, acc),
-    do:
-      map_split_negative_pairs_domain(negs, domain_key, [
-        map_pop_domain_bdd(tag, fields, domain_key) | acc
-      ])
-
-  defp map_split_negative_pairs_domain([], _domain_key, acc), do: acc
-
-  # Rebuild maps by adding the updated field to the remaining map:
-  # 1. If optional?, include the remaining map unchanged.
-  # 2. For each alternative in rest, allow old_type or new_type in the domain.
-  #    Keep named keys and other domains unchanged.
-  # 3. Add values in new_type but not old_type to each negative's domain, then
-  #    subtract it to preserve its restrictions on the remaining entries.
-  # 4. Accumulate the rebuilt maps separately from the unchanged map alternatives
-  #    from step 1, as the empty map is excluded from the rebuilt maps at the end.
-  defp map_rejoin_domain(rest, domain, {new_type, optional?}, {updated, unchanged}) do
-    unchanged = if optional?, do: [rest | unchanged], else: unchanged
-
-    if empty?(new_type) do
-      {updated, unchanged}
-    else
-      :lists.foldl(
-        fn {tag, fields, negs}, {updated, unchanged} ->
-          old_type = map_domain_tag_to_type(tag, domain)
-          added_type = bare_difference(new_type, old_type)
-          output_type = opt_union(old_type, new_type)
-          output = map_new(map_replace_domain(tag, domain, output_type), fields)
-
-          output =
-            :lists.foldl(
-              fn bdd_leaf(neg_tag, neg_fields), output ->
-                neg_type = opt_union(map_domain_tag_to_type(neg_tag, domain), added_type)
-                negative = map_new(map_replace_domain(neg_tag, domain, neg_type), neg_fields)
-                map_difference(output, negative)
-              end,
-              output,
-              negs
-            )
-
-          map_update_domains_add(output, fields, {updated, unchanged})
-        end,
-        {updated, unchanged},
-        map_bdd_to_dnf_remove_empty(rest)
-      )
-    end
   end
 
   # Stores the given atom keys explicitly, so they are not affected by atom domain updates
@@ -5522,13 +5449,6 @@ defmodule Module.Types.Descr do
       end,
       fields_to_list(pos_domains)
     )
-  end
-
-  # Split out the residual domain field without removing its domain association.
-  # A map literal constrains every key in a residual domain uniformly and cannot
-  # require such a key to exist.
-  defp map_pop_domain_bdd(tag, fields, domain_key) do
-    {{map_domain_tag_to_type(tag, domain_key), true}, map_new(tag, fields)}
   end
 
   defp map_to_quoted(bdd, recur, opts) do

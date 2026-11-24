@@ -4274,16 +4274,49 @@ defmodule Module.Types.DescrTest do
       refute subtype?(closed_map(a: {pid(), false}), left)
     end
 
-    test "pop preserves the remaining existence required by two negative literals" do
+    test "domain updates discard existence implied by several negative literals" do
       positive = closed_map([{domain_key(:binary), opt_union(atom(), pid())}])
 
+      # Some binary key holds an atom and some binary key holds a pid
       input =
         positive
         |> opt_difference(closed_map([{domain_key(:binary), atom()}]))
         |> opt_difference(closed_map([{domain_key(:binary), pid()}]))
 
+      # So there is still a key after popping one, but this is not tracked
       assert {_, result, []} = map_update(input, binary(), :delete, :reject, true)
-      assert equal?(result, opt_difference(positive, empty_map()))
+      assert equal?(result, positive)
+
+      # Updating other domains keeps them
+      assert {:ok, result} = map_put(input, integer(), pid())
+
+      assert equal?(
+               result,
+               closed_map([
+                 {domain_key(:binary), opt_union(atom(), pid())},
+                 {domain_key(:integer), pid()}
+               ])
+               |> opt_difference(
+                 closed_map([{domain_key(:binary), atom()}, {domain_key(:integer), pid()}])
+               )
+               |> opt_difference(
+                 closed_map([{domain_key(:binary), pid()}, {domain_key(:integer), pid()}])
+               )
+             )
+    end
+
+    test "domain updates keeping absent keys preserve non-empty maps" do
+      input = closed_map([{domain_key(:integer), atom([:x])}, {domain_key(:binary), atom([:x])}])
+      non_empty = opt_difference(input, empty_map())
+
+      for key <- [integer(), opt_union(integer(), binary())] do
+        assert {_, result, []} = map_update(input, key, atom([:y]), :keep, true)
+        assert subtype?(empty_map(), result)
+
+        assert {_, result, []} = map_update(non_empty, key, atom([:y]), :keep, true)
+        refute subtype?(empty_map(), result)
+        assert subtype?(non_empty, result)
+      end
     end
   end
 
