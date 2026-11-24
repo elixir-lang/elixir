@@ -2761,6 +2761,11 @@ defmodule Module.Types.DescrTest do
              |> equal?(tuple_insert_at(tuple([dynamic()]), 1, atom([:x])))
     end
 
+    test "tuple_insert_at with empty literals" do
+      t = opt_union(tuple([none()]), tuple([atom(), atom()]))
+      assert equal?(tuple_insert_at(t, 2, integer()), tuple([atom(), atom(), integer()]))
+    end
+
     test "tuple_replace_at" do
       assert tuple_replace_at(tuple([integer(), atom()]), 2, boolean()) == :badindex
       assert tuple_replace_at(tuple([integer(), atom()]), -1, boolean()) == :badindex

@@ -6736,8 +6736,12 @@ defmodule Module.Types.Descr do
 
   # Inserts `type` at `index` into a single tuple literal. If the tuple is open,
   # `List.insert_at` needs the tuple filled with `term()` up to `index` first.
-  # Closed tuples of an incorrect size are cancelled before reaching here (the
-  # input is intersected/guarded with `tuple_of_size_at_least`).
+  # Closed tuples shorter than `index` are empty after the input is guarded with
+  # `tuple_of_size_at_least` (such as `{none()}`, which has every size), so they
+  # are skipped.
+  defp tuple_insert_leaf(:closed, elements, index, _type) when length(elements) < index,
+    do: :bdd_bot
+
   defp tuple_insert_leaf(tag, elements, index, type) do
     elements =
       if tag == :open and length(elements) < index do
