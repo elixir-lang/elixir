@@ -1474,7 +1474,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_explain("lib/b.ex", """
       lib/b.ex has 1 compile-time dependent and 4 transitive dependencies.
 
-      Compile-time dependents (files that depend on lib/b.ex at compile time):
+      Compile-time dependents:
         * lib/a.ex
 
       Direct dependencies of lib/b.ex (and the transitive dependencies of each):
@@ -1528,7 +1528,7 @@ defmodule Mix.Tasks.XrefTest do
         """
         lib/b.ex has 2 compile-time dependents and 1 transitive dependency.
 
-        Compile-time dependents (files that depend on lib/b.ex at compile time):
+        Compile-time dependents:
           * lib/a.ex
           * lib/e.ex
 
@@ -1561,7 +1561,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_explain("lib/e.ex", """
       lib/e.ex has 1 compile-time dependent and no transitive dependencies.
 
-      Compile-time dependents (files that depend on lib/e.ex at compile time):
+      Compile-time dependents:
         * lib/b.ex
       """)
     end

@@ -63,60 +63,52 @@ defmodule Mix.Tasks.Xref do
   Whenever you find a compile-time dependency, such as `lib/a.ex` pointing
   to `lib/b.ex`, there are two ways to remove them:
 
-    1. Run `mix xref trace lib/a.ex` to understand where and how `lib/a.ex`
+    1. Run `mix xref explain lib/b.ex` to understand exactly who calls into
+       it and which other modules it calls
+
+    2. Run `mix xref trace lib/a.ex` to understand where and how `lib/a.ex`
        depends on `lib/b.ex` at compile time and address it
 
-    2. Or run `mix xref trace lib/b.ex` and make sure it does not depend on
-       any other module in your project because a compile dependency makes
-       those runtime dependencies also compile time by transitivity
+    3. Alternatively, run `mix xref trace lib/b.ex` and make sure it does
+       not depend on any other module in your project because a compile
+       dependency makes those runtime dependencies also compile time by transitivity
 
-  We outline all options for `mix xref trace` and the types of dependencies
-  over the following sections.
+  We outline all options for `mix xref explain` and `mix xref trace` and
+  the types of dependencies over the following sections.
 
   If you don't have compile cycles in your project, that's a good beginning,
   but you want to avoid any compile-connected dependencies in general, as they
   may become cycles in the future. To verify the general health of your project,
   you may run:
 
-      $ mix xref graph --format stats --label compile-connected
+      $ mix xref graph --format stats
 
   This command will show general information about the project, but focus on
-  compile-connected dependencies. In the stats, you will see the following report:
+  compile-connected dependencies. At the bottom, you may see the following report:
 
-      Top 10 files with most incoming dependencies:
-        * lib/livebook_web.ex (97)
-        * lib/livebook/config.ex (3)
-        * proto/lib/livebook_proto/deployment_group.pb.ex (2)
-        * lib/livebook_web/plugs/memory_provider.ex (2)
-        * proto/lib/livebook_proto/user_connected.pb.ex (1)
+      Top 10 compile-connected files with most transitive dependencies:
+        * lib/livebook/utils.ex (29 transitive dependencies, 1 compile-time dependent)
+        * lib/livebook/live_markdown.ex (29 transitive dependencies, 1 compile-time dependent)
+        * lib/livebook/config.ex (29 transitive dependencies, 1 compile-time dependent)
 
-  You can see the first file, "lib/livebook_web.ex", is depended on by 97
-  other files and, because we are using compile-connected, it also means
-  that "lib/livebook_web.ex" itself has its own dependencies. We can find
-  which files depend on "lib/livebook_web.ex" at compile time like this:
+  You can see the first file, "lib/livebook/utils.ex", is depended on at
+  compile-time, and depends on several other dependencies. If any of those
+  transitive dependencies change, the compile-time dependents will have to
+  recompile too. Use `mix xref explain lib/livebook/utils.ex` to understand
+  these relationships and explore next steps.
 
-      $ mix xref graph --sink lib/livebook_web.ex --label compile --only-nodes
+  Finally, this task also provides low-level access to the underlying dependency
+  graph. For example, you can list all files that depend on a given file at
+  compile-time with:
 
-  And you can find the files lib/livebook_web.ex depends on like this:
+      $ mix xref graph --sink lib/livebook/utils.ex --label compile --only-nodes
 
-      $ mix xref graph --source lib/livebook_web.ex --only-nodes
+  And you can find the files lib/livebook/utils.ex depends on like this:
 
-  The trouble here is precisely that, if any of the files in the latter
-  command changes, all of the files in the first command will be recompiled,
-  because compile time dependencies are transitive. As we did with cycles,
-  you can use `mix xref trace` to understand why and how these dependencies
-  exist.
+      $ mix xref graph --source lib/livebook/utils.ex --only-nodes
 
-  For this reason, the stats also list the compile-connected files with most
-  transitive dependencies. For each file, it shows its number of transitive
-  dependencies, which are all files it depends on, directly or indirectly,
-  and its number of compile-time dependents, which are the files that depend
-  on it at compile time. Every dependent is recompiled whenever any of the
-  transitive dependencies changes, so files with high counts are good places
-  to start. You can then list the dependents and the dependencies of any of
-  those files with:
-
-      $ mix xref explain lib/livebook_web.ex
+  Let's explore dependency types next and then learn what which
+  `mix xref` command does in detail.
 
   ### Dependency types
 
@@ -165,8 +157,31 @@ defmodule Mix.Tasks.Xref do
   to be compiled when the callee changes, unless there is a transitive
   compile or an outdated export time dependency between them.
 
-  Over the next sections, we will explain what which `mix xref` command
-  does in detail.
+  ## mix xref explain FILE
+
+  Lists the files that depend on the given file at compile time and
+  the files the given file depends on. It is typically used on the
+  compile-connected files reported by `mix xref graph --format stats`,
+  to understand which files are recompiled because of them and why.
+  This mode is available since v1.21.0. Example:
+
+      $ mix xref explain lib/b.ex
+      lib/b.ex has 1 compile-time dependent and 4 transitive dependencies.
+
+      Compile-time dependents:
+        * lib/a.ex
+
+      Direct dependencies of lib/b.ex (and the transitive dependencies of each):
+        * lib/a.ex (4)
+        * lib/c.ex (2)
+        * lib/e.ex (0)
+
+  Each compile-time dependent is recompiled whenever the given file or any
+  of its transitive dependencies changes. In the example above, `lib/a.ex`
+  is recompiled whenever `lib/b.ex` or any of the four files it depends on,
+  directly or indirectly, changes. The number next to each direct dependency
+  is its own number of transitive dependencies, which helps finding the
+  dependencies to remove first.
 
   ## mix xref trace FILE
 
@@ -419,32 +434,6 @@ defmodule Mix.Tasks.Xref do
   with compile dependencies in them by passing the `--label` flag:
 
       $ mix xref graph --format cycles --label compile-connected
-
-  ## mix xref explain FILE
-
-  Lists the files that depend on the given file at compile time and
-  the files the given file depends on. It is typically used on the
-  compile-connected files reported by `mix xref graph --format stats`,
-  to understand which files are recompiled because of them and why.
-  This mode is available since v1.21.0. Example:
-
-      $ mix xref explain lib/b.ex
-      lib/b.ex has 1 compile-time dependent and 4 transitive dependencies.
-
-      Compile-time dependents (files that depend on lib/b.ex at compile time):
-        * lib/a.ex
-
-      Direct dependencies of lib/b.ex (and the transitive dependencies of each):
-        * lib/a.ex (4)
-        * lib/c.ex (2)
-        * lib/e.ex (0)
-
-  Each compile-time dependent is recompiled whenever the given file or any
-  of its transitive dependencies changes. In the example above, `lib/a.ex`
-  is recompiled whenever `lib/b.ex` or any of the four files it depends on,
-  directly or indirectly, changes. The number next to each direct dependency
-  is its own number of transitive dependencies, which helps finding the
-  dependencies to remove first.
 
   ## Shared options
 
@@ -757,7 +746,7 @@ defmodule Mix.Tasks.Xref do
     shell.info("#{file} has #{dependents_count} and #{transitive_count}.")
 
     if dependents != [] do
-      shell.info("\nCompile-time dependents (files that depend on #{file} at compile time):")
+      shell.info("\nCompile-time dependents:")
       for dependent <- dependents, do: shell.info("  * #{dependent}")
     end
 
