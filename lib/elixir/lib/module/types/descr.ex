@@ -4766,18 +4766,18 @@ defmodule Module.Types.Descr do
       tag = if tag == fields_from_keys(@domain_key_types, term()), do: :open, else: tag
       output = map_new(tag, fields)
 
-      # Unless absent keys are kept, the key exists after the update
+      # The box contains the original maps, see map_update_non_empty?/2
       present? =
-        elem(operation, 1) != :keep and
-          (:lists.any(fn {_, _, {type, _}} -> not empty?(type) end, key_updates) or
-             :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates))
+        (:lists.any(fn {_, _, {type, _}} -> not empty?(type) end, key_updates) or
+           :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates)) and
+          map_update_non_empty?(operation, dnf)
 
       case operation do
         _ when not present? ->
           %{map: output}
 
         # A value is put in one of the keys or domains, so we remove the maps without it
-        {{:constant, {type, false}}, _} ->
+        {{:constant, {type, false}}, mode} when mode != :keep ->
           unset = map_update_box_unset(keys, domains, atom_keys, type)
           opt_difference(%{map: output}, %{map: unset})
 
@@ -4821,8 +4821,6 @@ defmodule Module.Types.Descr do
   # in the updated domains, such as two negatives implying there are at least
   # two keys in them.
   defp map_update_widen(dnf, domains, operation) do
-    keep? = elem(operation, 1) == :keep
-
     :lists.foldl(
       fn {tag, fields, negs}, acc ->
         domain_updates =
@@ -4852,12 +4850,10 @@ defmodule Module.Types.Descr do
               negs
             )
 
-          # The key exists after the update, so the result is not empty, unless
-          # absent keys are kept. In this case, the widened line contains the
-          # original line, so it is only empty if the original line may be empty.
+          # The widened line contains the original line, see map_update_non_empty?/2
           present? =
             :lists.any(fn {_, _, type} -> not empty?(type) end, domain_updates) and
-              not (keep? and map_line_has_empty?(fields, negs))
+              map_update_non_empty?(operation, [{tag, fields, negs}])
 
           if present? do
             map_update_domains_add(output, fields, acc)
@@ -4873,15 +4869,26 @@ defmodule Module.Types.Descr do
     |> map_update_domains_result()
   end
 
-  defp map_line_has_empty?(fields, negs) do
-    :lists.all(fn {_key, {_type, optional?}} -> optional? end, fields) and
-      :lists.all(
-        fn bdd_leaf(_tag, neg_fields) ->
-          :lists.any(fn {_key, {_type, optional?}} -> not optional? end, neg_fields)
-        end,
-        negs
-      )
+  # When a key is set, the updated maps are not empty. Unless absent keys are
+  # kept: then an update that contains the original maps is only empty if one
+  # of the original lines may be empty. A line may be empty if all of its fields
+  # are optional and each negative has a required field.
+  defp map_update_non_empty?({_, :keep}, dnf) do
+    :lists.all(
+      fn {_tag, fields, negs} ->
+        :lists.any(fn {_key, {_type, optional?}} -> not optional? end, fields) or
+          :lists.any(
+            fn bdd_leaf(_tag, neg_fields) ->
+              :lists.all(fn {_key, {_type, optional?}} -> optional? end, neg_fields)
+            end,
+            negs
+          )
+      end,
+      dnf
+    )
   end
+
+  defp map_update_non_empty?(_operation, _dnf), do: true
 
   defp map_fetch_field(tag, fields, key) do
     case fields_find(key, fields) do

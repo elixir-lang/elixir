@@ -4306,10 +4306,23 @@ defmodule Module.Types.DescrTest do
     end
 
     test "domain updates keeping absent keys preserve non-empty maps" do
-      input = closed_map([{domain_key(:integer), atom([:x])}, {domain_key(:binary), atom([:x])}])
+      input =
+        closed_map([
+          {domain_key(:atom), atom([:x])},
+          {domain_key(:integer), atom([:x])},
+          {domain_key(:binary), atom([:x])},
+          a: {atom([:x]), true}
+        ])
+
       non_empty = opt_difference(input, empty_map())
 
-      for key <- [integer(), opt_union(integer(), binary())] do
+      for key <- [
+            integer(),
+            opt_union(integer(), binary()),
+            atom(),
+            opt_difference(atom(), atom([:a])),
+            opt_union(atom(), integer())
+          ] do
         assert {_, result, []} = map_update(input, key, atom([:y]), :keep, true)
         assert subtype?(empty_map(), result)
 
