@@ -2314,6 +2314,24 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "rejects compile-time literals in variable positions in rescue clauses" do
+      heads = [quote(do: __DIR__), quote(do: __DIR__ in _), quote(do: __MODULE__ in _)]
+
+      for head <- heads do
+        assert_compile_error(~r"invalid \"rescue\" clause\. The clause should match", fn ->
+          expand(
+            quote do
+              try do
+                x
+              rescue
+                unquote(head) -> :ok
+              end
+            end
+          )
+        end)
+      end
+    end
+
     test "expects one or two args for catch clauses" do
       message = ~r"expected one or two args for \"catch\" clauses \(->\) in \"try\""
 

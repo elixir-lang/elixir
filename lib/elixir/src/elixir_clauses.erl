@@ -455,7 +455,14 @@ expand_rescue(Meta, _, _, E) ->
 
 %% rescue var
 expand_rescue({Name, Meta, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
-  match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
+  case match(fun elixir_expand:expand/3, Meta, Var, S, S, E) of
+    {{VarName, _, VarContext}, _, _} = Result when is_atom(VarName), is_atom(VarContext) ->
+      Result;
+    {Value, SV, EV} when is_atom(Value) ->
+      expand_rescue(Value, SV, EV);
+    _ ->
+      false
+  end;
 
 %% rescue Alias => _ in [Alias]
 expand_rescue({'__aliases__', _, [_ | _]} = Alias, S, E) ->
@@ -464,7 +471,12 @@ expand_rescue({'__aliases__', _, [_ | _]} = Alias, S, E) ->
 %% rescue var in _
 expand_rescue({in, _, [{Name, Meta, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
     when is_atom(Name), is_atom(VarContext), is_atom(UnderscoreContext) ->
-  match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
+  case match(fun elixir_expand:expand/3, Meta, Var, S, S, E) of
+    {{VarName, _, Context}, _, _} = Result when is_atom(VarName), is_atom(Context) ->
+      Result;
+    _ ->
+      false
+  end;
 
 %% rescue var in (list() or atom())
 expand_rescue({in, Meta, [Left, Right]}, S, E) ->
