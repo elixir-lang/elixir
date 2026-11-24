@@ -4955,27 +4955,7 @@ defmodule Module.Types.Descr do
     do: map_put(unfold(node), key_descr, type)
 
   def map_put(descr, key_descr, type) do
-    if key_descr in [:term, %{dynamic: :term}] and type in [:term, %{dynamic: :term}] do
-      cond do
-        not map_descr_only?(descr) or empty?(descr) ->
-          :badmap
-
-        gradual?(type) or gradual?(descr) ->
-          {:ok, dynamic(opt_difference(open_map(), empty_map()))}
-
-        true ->
-          {:ok, opt_difference(open_map(), empty_map())}
-      end
-    else
-      map_put_shared(descr, map_split_keys_and_domains(key_descr), type)
-    end
-  end
-
-  defp map_descr_only?(descr) do
-    case :maps.take(:dynamic, descr) do
-      :error -> descr_key?(descr, :map) and map_only?(descr)
-      {dynamic, static} -> descr_key?(dynamic, :map) and map_only?(static)
-    end
+    map_put_shared(descr, map_split_keys_and_domains(key_descr), type)
   end
 
   # Putting is a forced update that does not compute the old values

@@ -4542,20 +4542,25 @@ defmodule Module.Types.DescrTest do
     end
 
     test "with dynamic/term as key-value" do
-      assert map_put(closed_map(key: {atom([:value]), false}), dynamic(), dynamic()) ==
-               {:ok, dynamic(opt_difference(open_map(), empty_map()))}
+      map = closed_map(key: {atom([:value]), false})
 
-      assert map_put(closed_map(key: {atom([:value]), false}), dynamic(), term()) ==
-               {:ok, opt_difference(open_map(), empty_map())}
+      # The result does not depend on how term() is written
+      assert {:ok, expected} = map_put(map, unfold(term()), unfold(term()))
+      assert {:ok, result} = map_put(map, term(), term())
+      assert equal?(result, expected)
 
-      assert map_put(closed_map(key: {atom([:value]), false}), term(), dynamic()) ==
-               {:ok, dynamic(opt_difference(open_map(), empty_map()))}
+      # The existing key is either updated or kept
+      assert subtype?(expected, open_map(key: {term(), false}))
 
-      assert map_put(closed_map(key: {atom([:value]), false}), term(), term()) ==
-               {:ok, opt_difference(open_map(), empty_map())}
-
-      assert map_put(dynamic(closed_map(key: {atom([:value]), false})), term(), term()) ==
-               {:ok, dynamic(opt_difference(open_map(), empty_map()))}
+      for {map, key, value, expected} <- [
+            {map, dynamic(), dynamic(), dynamic(expected)},
+            {map, dynamic(), term(), expected},
+            {map, term(), dynamic(), dynamic(expected)},
+            {dynamic(map), term(), term(), dynamic(expected)}
+          ] do
+        assert {:ok, result} = map_put(map, key, value)
+        assert equal?(result, expected)
+      end
     end
 
     test "with term key can update an explicit atom key" do
