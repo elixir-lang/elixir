@@ -1546,10 +1546,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp protocols_and_impls(), do: {%{}, %{}}
 
-  # When compiled as a dependency, we keep what our consolidation path
-  # was built from, so we can diff against it once consolidating again
-  defp maybe_consolidate({:off, old_protocols_and_impls, _}, _, _, _) do
-    old_protocols_and_impls
+  defp maybe_consolidate({:off, _, _}, _, _, _) do
+    protocols_and_impls()
   end
 
   defp maybe_consolidate(
