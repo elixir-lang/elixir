@@ -6498,15 +6498,18 @@ defmodule Module.Types.Descr do
   end
 
   defp process_tuples_values(bdd) do
-    tuple_bdd_to_dnf_no_negations(bdd)
-    |> Enum.reduce(none(), fn {tag, elements}, acc ->
-      cond do
-        Enum.any?(elements, &empty?/1) -> none()
-        tag == :open -> term()
-        tag == :closed -> Enum.reduce(elements, none(), &opt_union/2)
-      end
-      |> opt_union(acc)
-    end)
+    :lists.foldl(
+      fn {tag, elements}, acc ->
+        cond do
+          :lists.any(&empty?/1, elements) -> none()
+          tag == :open -> term()
+          tag == :closed -> :lists.foldl(&opt_union/2, none(), elements)
+        end
+        |> opt_union(acc)
+      end,
+      none(),
+      tuple_bdd_to_dnf_no_negations(bdd)
+    )
   end
 
   @doc """
