@@ -49,6 +49,7 @@ expand({'__block__', _Meta, []}, S, E) ->
 expand({'__block__', _Meta, [Arg]}, S, E) ->
   expand(Arg, S, E);
 expand({'__block__', Meta, Args}, S, E) when is_list(Args) ->
+  assert_no_match_or_guard_scope(Meta, "block", S, E),
   {EArgs, SA, EA} = expand_block(Args, [], Meta, S, E),
   {{'__block__', Meta, EArgs}, SA, EA};
 
