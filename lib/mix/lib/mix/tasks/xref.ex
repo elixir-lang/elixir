@@ -113,7 +113,10 @@ defmodule Mix.Tasks.Xref do
   and its number of compile-time dependents, which are the files that depend
   on it at compile time. Every dependent is recompiled whenever any of the
   transitive dependencies changes, so files with high counts are good places
-  to start.
+  to start. You can then list the dependents and the dependencies of any of
+  those files with:
+
+      $ mix xref explain lib/livebook_web.ex
 
   ### Dependency types
 
@@ -417,12 +420,39 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph --format cycles --label compile-connected
 
+  ## mix xref explain FILE
+
+  Lists the files that depend on the given file at compile time and
+  the files the given file depends on. It is typically used on the
+  compile-connected files reported by `mix xref graph --format stats`,
+  to understand which files are recompiled because of them and why.
+  This mode is available since v1.21.0. Example:
+
+      $ mix xref explain lib/b.ex
+      lib/b.ex has 1 compile-time dependent and 4 transitive dependencies.
+
+      Compile-time dependents (files that depend on lib/b.ex at compile time):
+        * lib/a.ex
+
+      Direct dependencies of lib/b.ex (and the transitive dependencies of each):
+        * lib/a.ex (4)
+        * lib/c.ex (2)
+        * lib/e.ex (0)
+
+  Each compile-time dependent is recompiled whenever the given file or any
+  of its transitive dependencies changes. In the example above, `lib/a.ex`
+  is recompiled whenever `lib/b.ex` or any of the four files it depends on,
+  directly or indirectly, changes. The number next to each direct dependency
+  is its own number of transitive dependencies, which helps finding the
+  dependencies to remove first.
+
   ## Shared options
 
   Those options are shared across all modes:
 
     * `--fail-above` - generates a failure if the relevant metric is above the
-      given threshold. Applies to all modes except `mix xref graph --format stats`.
+      given threshold. Applies to all modes except `mix xref graph --format stats`
+      and `mix xref explain`.
 
     * `--include-siblings` - includes dependencies that have `:in_umbrella` set
       to true in the current project in the reports. This can be used to find
@@ -477,6 +507,9 @@ defmodule Mix.Tasks.Xref do
 
       ["graph"] ->
         handle_graph(opts)
+
+      ["explain", file] ->
+        handle_explain(file, opts)
 
       # TODO: Remove on v2.0
       ["deprecated"] ->
@@ -688,6 +721,66 @@ defmodule Mix.Tasks.Xref do
       if opts[:only_direct], do: {label, :all}, else: {:all, label}
 
     write_graph(file_references(direct_filter, opts), transitive_filter, opts)
+  end
+
+  ## Explain
+
+  defp handle_explain(file, opts) do
+    references = file_references(:all, opts)
+
+    if not is_map_key(references, file) do
+      Mix.raise("File could not be found: #{file}")
+    end
+
+    shell = Mix.shell()
+
+    dependents =
+      Enum.sort(for {dependent, deps} <- references, {^file, :compile} <- deps, do: dependent)
+
+    {transitive, dependencies} =
+      with_digraph(references, fn graph ->
+        dependencies =
+          references
+          |> Map.fetch!(file)
+          |> Enum.map(fn {dependency, _type} ->
+            {count_transitive(graph, dependency), dependency}
+          end)
+          |> Enum.sort(:desc)
+
+        {count_transitive(graph, file), dependencies}
+      end)
+
+    dependents_count =
+      pluralize(length(dependents), "compile-time dependent", "compile-time dependents")
+
+    transitive_count = pluralize(transitive, "transitive dependency", "transitive dependencies")
+    shell.info("#{file} has #{dependents_count} and #{transitive_count}.")
+
+    if dependents != [] do
+      shell.info("\nCompile-time dependents (files that depend on #{file} at compile time):")
+      for dependent <- dependents, do: shell.info("  * #{dependent}")
+    end
+
+    if dependencies != [] do
+      shell.info("\nDirect dependencies of #{file} (and the transitive dependencies of each):")
+      for {count, dependency} <- dependencies, do: shell.info("  * #{dependency} (#{count})")
+    end
+
+    if dependents != [] and dependencies != [] do
+      shell.info("""
+
+      Each compile-time dependent is recompiled whenever #{file} or any of its
+      transitive dependencies changes. To avoid it, you can either:
+
+        1. Run "mix xref trace DEPENDENT --label compile" to find where a dependent
+           depends on #{file} at compile time and remove that dependency
+
+        2. Remove dependencies from #{file}, starting with the direct dependencies
+           with most transitive dependencies\
+      """)
+    end
+
+    :ok
   end
 
   ## Callers
@@ -1199,7 +1292,7 @@ defmodule Mix.Tasks.Xref do
       transitive =
         compile_connected
         |> Enum.map(fn {file, dependents} ->
-          {length(:digraph_utils.reachable([file], graph)) - 1, dependents, file}
+          {count_transitive(graph, file), dependents, file}
         end)
         |> Enum.sort(:desc)
         |> Enum.take(10)
@@ -1220,6 +1313,11 @@ defmodule Mix.Tasks.Xref do
     end)
   end
 
+  defp count_transitive(graph, file) do
+    length(:digraph_utils.reachable([file], graph)) - 1
+  end
+
+  defp pluralize(0, _singular, plural), do: "no #{plural}"
   defp pluralize(1, singular, _plural), do: "1 #{singular}"
   defp pluralize(count, _singular, plural), do: "#{count} #{plural}"
 
