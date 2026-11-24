@@ -277,6 +277,29 @@ defmodule Kernel.GuardTest do
   end
 
   describe "defguard(p) compilation" do
+    test "reports an invalid guard that references a guard without a body" do
+      assert_compile_error(~s(undefined variable "x"), fn ->
+        defmodule MissingGuardBody do
+          defguard x and x
+          defguardp x when x and x
+        end
+      end)
+    end
+
+    test "does not define a guard with a self-reference" do
+      assert_compile_error("cannot find or invoke local is_recursive/1 inside a guard", fn ->
+        defmodule RecursiveGuard do
+          defguard is_recursive(value) when is_recursive(value)
+
+          if Module.defines?(__MODULE__, {:is_recursive, 1}) do
+            send(self(), :recursive_guard_defined)
+          end
+        end
+      end)
+
+      refute_received :recursive_guard_defined
+    end
+
     test "refuses to compile nonsensical code" do
       assert_compile_error("cannot find or invoke local undefined/1", fn ->
         defmodule UndefinedUsage do

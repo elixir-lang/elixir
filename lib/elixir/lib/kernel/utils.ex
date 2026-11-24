@@ -335,9 +335,17 @@ defmodule Kernel.Utils do
     end
   end
 
-  defp expand_defguard(expr, env, vars) do
+  defp expand_defguard(expr, %{module: module} = env, vars) do
     env = :elixir_env.with_vars(env, vars)
+    taint_count = :elixir_module.taint_count(module)
     {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+
+    # Invalid expressions may still be returned after an error is reported.
+    # Do not store them in a macro that can be expanded later.
+    if :elixir_module.taint_count(module) != taint_count do
+      :elixir_errors.compile_error(env)
+    end
+
     expr
   end
 

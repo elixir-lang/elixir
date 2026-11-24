@@ -5,7 +5,7 @@
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
          compile/6, expand_callback/6, format_error/1, compiler_modules/0, exports_md5/3,
-         write_cache/3, read_cache/2, next_counter/1, taint/1, cache_env/1, get_cached_env/1]).
+         write_cache/3, read_cache/2, next_counter/1, taint/1, taint_count/1, cache_env/1, get_cached_env/1]).
 -include("elixir.hrl").
 -define(counter_attr, {elixir, counter}).
 -define(cache_key, {elixir, cache_env}).
@@ -73,10 +73,18 @@ next_counter(Module) ->
 taint(Module) ->
   try
     {DataSet, _} = data_tables(Module),
-    ets:insert(DataSet, [{{elixir, taint}}]),
+    ets:update_counter(DataSet, {elixir, taint}, 1, {{elixir, taint}, 0}),
     true
   catch
     _:_ -> false
+  end.
+
+taint_count(Module) ->
+  try
+    {DataSet, _} = data_tables(Module),
+    ets:lookup_element(DataSet, {elixir, taint}, 2, 0)
+  catch
+    error:badarg -> 0
   end.
 
 cache_env(#{line := Line, module := Module} = E) ->

@@ -38,7 +38,7 @@ fun_for(Meta, Module, Name, Arity, Kinds, External) ->
     {Set, Bag} = elixir_module:data_tables(Module),
     {ets:lookup(Set, {def, Tuple}), ets:lookup(Bag, {clauses, Tuple})}
   of
-    {[{_, Kind, LocalMeta, _, _, _}], ClausesPairs} ->
+    {[{_, Kind, LocalMeta, _, _, _}], [_ | _] = ClausesPairs} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
         true ->
           (Kind == defmacrop) andalso track_defmacrop(Module, Tuple),
@@ -48,7 +48,7 @@ fun_for(Meta, Module, Name, Arity, Kinds, External) ->
         false ->
           false
       end;
-    {[], _} ->
+    _ ->
       false
   catch
     _:_ -> false
