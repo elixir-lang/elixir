@@ -4219,16 +4219,24 @@ defmodule Module.Types.Descr do
           # The key may be any atom outside of a finite set, so it may hit any
           # of the named keys and the atom domain, which we update all at once.
           # A key is either an atom or not, so other domains are updated
-          # separately and unioned.
+          # separately and unioned. However, when putting a key that may be in
+          # any domain, we update all of them at once, as the union of both
+          # grows on chained puts. This is not necessary when absent keys are
+          # kept, as keys are not added.
           atom_keys = :lists.usort(optional_keys ++ :sets.to_list(maybe_negated_set))
           domains = if update_domains?, do: :lists.usort(domains), else: []
-          {atom_domains, other_domains} = :lists.partition(&(&1 == :atom), domains)
-          descr = map_update_box(dnf, optional_keys, atom_domains, operation, atom_keys)
+
+          {box_domains, widen_domains} =
+            if elem(operation, 1) != :keep and length(domains) == length(@domain_key_types),
+              do: {domains, []},
+              else: :lists.partition(&(&1 == :atom), domains)
+
+          descr = map_update_box(dnf, optional_keys, box_domains, operation, atom_keys)
 
           descr =
-            if other_domains == [],
+            if widen_domains == [],
               do: descr,
-              else: opt_union(descr, map_update_widen(dnf, other_domains, operation))
+              else: opt_union(descr, map_update_widen(dnf, widen_domains, operation))
 
           {descr, false}
 
@@ -4776,8 +4784,11 @@ defmodule Module.Types.Descr do
         _ when not present? ->
           %{map: output}
 
-        # A value is put in one of the keys or domains, so we remove the maps without it
-        {{:constant, {type, false}}, mode} when mode != :keep ->
+        # A value is put in one of the keys or domains, so we remove the maps without it.
+        # When all domains are updated, we do not, as smaller keys are widened in their
+        # non-atom domains, which does not remove them, and their results must be smaller.
+        {{:constant, {type, false}}, mode}
+        when mode != :keep and length(domains) != length(@domain_key_types) ->
           unset = map_update_box_unset(keys, domains, atom_keys, type)
           opt_difference(%{map: output}, %{map: unset})
 
@@ -5483,9 +5494,21 @@ defmodule Module.Types.Descr do
   end
 
   defp map_literal_to_quoted({domains, fields}, recur, opts) when is_list(domains) do
-    domain_fields = map_domain_fields_to_quoted(fields_to_list(domains), recur, opts)
-    regular_fields_quoted = map_fields_to_quoted(:closed, fields, recur, opts)
-    {:%{}, [], domain_fields ++ regular_fields_quoted}
+    domains = fields_to_list(domains)
+
+    # When all domains are given, the ones with any value are written as ...
+    {prefix, tag, domains} =
+      with true <- length(domains) == length(@domain_key_types),
+           [_ | _] = open <- :lists.filter(fn {_, type} -> term_type?(type) end, domains) do
+        tag = if :lists.keymember(:atom, 1, open), do: :open, else: :closed
+        {[{:..., [], nil}], tag, domains -- open}
+      else
+        _ -> {[], :closed, domains}
+      end
+
+    domain_fields = map_domain_fields_to_quoted(domains, recur, opts)
+    regular_fields_quoted = map_fields_to_quoted(tag, fields, recur, opts)
+    {:%{}, [], prefix ++ domain_fields ++ regular_fields_quoted}
   end
 
   defp map_literal_to_quoted({tag, fields}, recur, opts) do

@@ -4563,6 +4563,46 @@ defmodule Module.Types.DescrTest do
       end
     end
 
+    test "with keys in any domain update all domains at once" do
+      domains = [
+        :atom,
+        :binary,
+        :bitstring_no_binary,
+        :float,
+        :fun,
+        :integer,
+        :list,
+        :map,
+        :pid,
+        :port,
+        :reference,
+        :tuple
+      ]
+
+      map = closed_map(a: {integer(), false})
+      assert {:ok, result} = map_put(map, term(), atom([:y]))
+
+      expected =
+        closed_map(
+          for(domain <- domains, do: {[domain], atom([:y])}) ++
+            [a: {opt_union(atom([:y]), integer()), false}]
+        )
+
+      assert equal?(result, expected)
+
+      # Results do not grow on chained puts
+      values = [atom([:y]), binary(), pid()]
+      put_all = fn map -> Enum.reduce(values, map, &elem(map_put(&2, term(), &1), 1)) end
+      once = put_all.(map)
+      assert equal?(put_all.(once), once)
+
+      # Smaller keys give smaller results
+      map = closed_map([{domain_key(:integer), atom([:x])}])
+      assert {:ok, small} = map_put(map, opt_union(atom(), integer()), atom([:y]))
+      assert {:ok, large} = map_put(map, term(), atom([:y]))
+      assert subtype?(small, large)
+    end
+
     test "with term key can update an explicit atom key" do
       map = closed_map(a: {integer(), false})
 
@@ -5599,6 +5639,16 @@ defmodule Module.Types.DescrTest do
 
       assert closed_map([{domain_key(:integer), none()}, float: {float(), false}])
              |> to_quoted_string() == "%{integer() => not_set(), float: float()}"
+
+      # Domains with any value are written as ...
+      assert open_map([{domain_key(:integer), integer()}])
+             |> to_quoted_string() == "%{..., integer() => integer()}"
+
+      assert open_map([{domain_key(:atom), integer()}, a: {binary(), true}])
+             |> to_quoted_string() == "%{..., atom() => integer(), a: if_set(binary())}"
+
+      assert open_map([{domain_key(:integer), integer()}, a: {term(), true}, b: {binary(), true}])
+             |> to_quoted_string() == "%{..., integer() => integer(), b: if_set(binary())}"
     end
 
     test "map (negation)" do
