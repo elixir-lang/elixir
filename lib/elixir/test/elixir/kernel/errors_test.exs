@@ -857,6 +857,36 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "malformed @compile inline" do
+    assert_compile_error(
+      [
+        "nofile:1: ",
+        "expected a proper list of {name, arity} pairs for @compile :inline",
+        "found non-list term: 1"
+      ],
+      ~c"defmodule Test do @compile {:inline, 1} end"
+    )
+
+    for inlines <- [~c"[1]", ~c"[g: \"s\"]", ~c"[g: 0.0]"] do
+      assert_compile_error(
+        [
+          "nofile:1: ",
+          "expected a {name, arity} pair in @compile :inline with an atom name and a non-negative integer arity"
+        ],
+        ~c"defmodule Test do @compile {:inline, #{inlines}}; def g, do: :ok end"
+      )
+    end
+
+    assert_compile_error(
+      [
+        "nofile:1: ",
+        "expected a proper list of {name, arity} pairs for @compile :inline",
+        "found non-list term: tail"
+      ],
+      ~c"defmodule Test do @compile {:inline, [{:g, 0} | :tail]}; def g, do: :ok end"
+    )
+  end
+
   test "invalid @nifs attribute" do
     assert_compile_error(
       ["nofile:1: ", "undefined function foo/1 given to @nifs"],

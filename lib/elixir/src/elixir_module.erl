@@ -308,7 +308,8 @@ validate_compile_opt(Opt, Defs, Unreachable, Line, E) when is_list(Opt) ->
 validate_compile_opt(Opt, _Defs, _Unreachable, _Line, _E) ->
   [Opt].
 
-validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
+validate_inlines([{Name, Arity} = Inline | Inlines], Defs, Unreachable, Acc)
+    when is_atom(Name), is_integer(Arity), Arity >= 0 ->
   case lists:keyfind(Inline, 1, Defs) of
     false ->
       {error, {undefined_function, {compile, inline}, Inline}};
@@ -320,7 +321,12 @@ validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
         false -> validate_inlines(Inlines, Defs, Unreachable, [Inline | Acc])
       end
   end;
-validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
+validate_inlines([], _Defs, _Unreachable, Acc) ->
+  {ok, Acc};
+validate_inlines([Invalid | _], _Defs, _Unreachable, _Acc) ->
+  {error, {invalid_inline_entry, Invalid}};
+validate_inlines(Invalid, _Defs, _Unreachable, _Acc) ->
+  {error, {invalid_inline_list, Invalid}}.
 
 validate_on_load_attribute({on_load, Def}, Defs, Bag, Line, E) ->
   case lists:keyfind(Def, 1, Defs) of
@@ -674,6 +680,12 @@ format_error({module_reserved, Module}) ->
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
     [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
+format_error({invalid_inline_entry, Entry}) ->
+  io_lib:format("expected a {name, arity} pair in @compile :inline with an atom name "
+                "and a non-negative integer arity, got: ~tp", [Entry]);
+format_error({invalid_inline_list, Inlines}) ->
+  io_lib:format("expected a proper list of {name, arity} pairs for @compile :inline, "
+                "found non-list term: ~tp", [Inlines]);
 format_error({undefined_function, {Attr, Key}, {Name, Arity}}) ->
   io_lib:format("undefined function ~ts/~B given to @~ts :~ts", [Name, Arity, Attr, Key]);
 format_error({undefined_function, Attr, {Name, Arity}}) ->
