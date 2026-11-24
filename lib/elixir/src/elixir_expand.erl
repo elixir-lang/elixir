@@ -387,15 +387,14 @@ expand({'^', Meta, [Arg]}, #elixir_ex{prematch={Prematch, _, _}, vars={_, Write}
   NoMatchS = S#elixir_ex{prematch=pin, vars={Prematch, Write}},
 
   case expand(Arg, NoMatchS, E#{context := nil}) of
-    {{Name, _, Kind}, _, _} when is_atom(Kind), Name == '__CALLER__' orelse Name == '__STACKTRACE__' ->
-      file_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg});
-
-    {{Name, _, Kind} = Var, #elixir_ex{unused=Unused}, _} when is_atom(Name), is_atom(Kind) ->
+    {{Name, _, Kind} = Var, #elixir_ex{unused=Unused}, _}
+        when is_atom(Name), is_atom(Kind), Name /= '__CALLER__', Name /= '__STACKTRACE__',
+             Name /= '__MODULE__', Name /= '__DIR__', Name /= '__ENV__' ->
       {{'^', Meta, [Var]}, S#elixir_ex{unused=Unused}, E};
 
     _ ->
-      function_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg}),
-      {{'^', Meta, [Arg]}, S#elixir_ex{tainted_function=true}, E}
+      %% A local macro could be invoked and translate the invalid pin before compilation stops.
+      file_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg})
   end;
 expand({'^', Meta, [Arg]}, S, E) ->
   function_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg}),

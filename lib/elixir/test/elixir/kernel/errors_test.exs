@@ -61,16 +61,18 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "cannot pin __CALLER__ in a macro body" do
-    assert_compile_error(
-      "invalid argument for unary operator ^, expected an existing variable, got: ^__CALLER__",
-      """
-      defmodule Sample do
-        defmacro check(value), do: (^__CALLER__ = value)
-        def run, do: check(nil)
-      end
-      """
-    )
+  test "cannot pin compilation environment macros in a macro body" do
+    for name <- ~w(__CALLER__ __MODULE__ __DIR__ __ENV__) do
+      assert_compile_error(
+        "invalid argument for unary operator ^, expected an existing variable, got: ^#{name}",
+        """
+        defmodule Sample do
+          defmacro check(value), do: (^#{name} = value)
+          def run, do: check(nil)
+        end
+        """
+      )
+    end
   end
 
   test "cannot pin __STACKTRACE__ in a rescue body" do
