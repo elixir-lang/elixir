@@ -174,6 +174,41 @@ defmodule Kernel.ParallelCompilerTest do
       purge([WillBeRedefined, WillBeRedefinedLoaded])
     end
 
+    test "invokes each_deadlock to compile more files" do
+      [user, provider] =
+        write_tmp(
+          "each_deadlock",
+          user: """
+          defmodule UserDeadlock do
+            @value ProviderDeadlock.value()
+            def value, do: @value
+          end
+          """,
+          provider: """
+          defmodule ProviderDeadlock do
+            def value, do: :provided
+          end
+          """
+        )
+
+      each_deadlock = fn ->
+        send(self(), :each_deadlock)
+
+        # Only provide the file once
+        case Process.put(:each_deadlock, true) do
+          nil -> [provider]
+          true -> []
+        end
+      end
+
+      assert {:ok, modules, @no_warnings} = compile([user], each_deadlock: each_deadlock)
+      assert ProviderDeadlock in modules
+      assert UserDeadlock.value() == :provided
+      assert_received :each_deadlock
+    after
+      purge([UserDeadlock, ProviderDeadlock])
+    end
+
     test "solves dependencies between modules" do
       fixtures =
         write_tmp(

@@ -25,6 +25,7 @@ defmodule Kernel.ParallelCompiler do
           each_long_compilation: (Path.t() -> term()) | (Path.t(), pid() -> term()),
           each_long_verification: (module() -> term()) | (module(), pid() -> term()),
           each_module: (Path.t(), module(), binary() -> term()),
+          each_deadlock: (-> [Path.t()]),
           each_cycle: (-> {:compile, [Path.t()], [Code.diagnostic(:warning)]}
                           | {:runtime, [{module(), Path.t()}], [Code.diagnostic(:warning)]}),
           long_compilation_threshold: pos_integer(),
@@ -178,6 +179,11 @@ defmodule Kernel.ParallelCompiler do
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
+
+    * `:each_deadlock` (since v1.21.0) - invoked when all files being compiled
+      are waiting on modules that are not available. It returns a list of further
+      files to compile as part of the current cycle. If an empty list is returned,
+      the deadlock is resolved as usual (which may raise)
 
     * `:each_cycle` - invoked after each compilation cycle and should return one
       of the following values:
@@ -356,6 +362,7 @@ defmodule Kernel.ParallelCompiler do
         dest: Keyword.get(options, :dest),
         after_compile: Keyword.get(options, :after_compile, fn -> :ok end),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
+        each_deadlock: Keyword.get(options, :each_deadlock, fn -> [] end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
@@ -610,17 +617,30 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  # spawned 1, waiting for 1: Release it!
+  # spawned x, waiting for x: we may have more files to compile, otherwise release them
   defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
-       when map_size(waiting) == map_size(spawned) and map_size(waiting) == 1 do
+       when map_size(waiting) == map_size(spawned) do
+    case state.each_deadlock.() do
+      [] -> release_deadlock(spawned, waiting, files, result, warnings, errors, state)
+      more -> spawn_workers(more, spawned, waiting, files, result, warnings, errors, state)
+    end
+  end
+
+  # No more queue, but spawned and map_size(waiting) do not match
+  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state) do
+    wait_for_messages([], spawned, waiting, files, result, warnings, errors, state)
+  end
+
+  # spawned 1, waiting for 1: Release it!
+  defp release_deadlock(spawned, waiting, files, result, warnings, errors, state)
+       when map_size(waiting) == 1 do
     {pid, %{ref: ref}, _iterator} = :maps.next(:maps.iterator(waiting))
     queue = [{pid, ref, :not_found}]
     spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
   end
 
   # spawned x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
-  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
-       when map_size(waiting) == map_size(spawned) do
+  defp release_deadlock(spawned, waiting, files, result, warnings, errors, state) do
     # There is potentially a deadlock. We will release modules with
     # the following order:
     #
@@ -655,11 +675,6 @@ defmodule Kernel.ParallelCompiler do
         handle_deadlock(waiting, files)
       end)
     end
-  end
-
-  # No more queue, but spawned and map_size(waiting) do not match
-  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state) do
-    wait_for_messages([], spawned, waiting, files, result, warnings, errors, state)
   end
 
   defp compile_file(file, path, force_load?, parent) do

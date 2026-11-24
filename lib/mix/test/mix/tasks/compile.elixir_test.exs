@@ -1209,6 +1209,55 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles compile-time dependents of modules recompiled in a later cycle" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        defstruct timeout: 1000, name: nil
+      end
+      """)
+
+      File.write!("lib/c.ex", """
+      defmodule C do
+        def new(name), do: %B{name: name}
+      end
+      """)
+
+      File.write!("lib/d.ex", """
+      defmodule D do
+        @default C.new("default")
+        def default, do: @default
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert D.default().timeout == 1000
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        defstruct timeout: 10000, name: nil
+      end
+      """)
+
+      # A new file depending at compile time on D, which is waiting on C
+      File.write!("lib/e.ex", """
+      defmodule E do
+        @default D.default()
+        def default, do: @default
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/d.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/e.ex"]}
+      assert D.default().timeout == 10000
+      assert E.default().timeout == 10000
+    end)
+  end
+
   test "recompiles dependent changed modules without beam files" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

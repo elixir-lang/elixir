@@ -185,6 +185,10 @@ defmodule Mix.Compilers.Elixir do
 
     stale = changed -- removed
 
+    # Hold files which may use, at compile time, modules that are
+    # waiting for an export check. They are compiled in a later cycle.
+    {ready, held} = hold_files(stale, %{}, modules, sources)
+
     {sources, stale_exports} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
@@ -211,8 +215,8 @@ defmodule Mix.Compilers.Elixir do
         purge_modules_in_path(path)
       end
 
-      if stale != [] do
-        Mix.Utils.compiling_n(length(stale), :ex)
+      if ready != [] do
+        Mix.Utils.compiling_n(length(ready), :ex)
       end
 
       Mix.Project.ensure_structure()
@@ -226,13 +230,14 @@ defmodule Mix.Compilers.Elixir do
           exports: exports,
           sources: sources,
           changed: [],
+          held: held,
           pending_modules: modules,
           stale_exports: stale_exports,
           consolidation: consolidation,
           tracers: tracers
         }
 
-        compiler_loop(manifest, stale, stale_modules, dest, timestamp, reinfer?, opts, state)
+        compiler_loop(manifest, ready, stale_modules, dest, timestamp, reinfer?, opts, state)
       else
         {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
           %{
@@ -625,6 +630,149 @@ defmodule Mix.Compilers.Elixir do
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
       {Map.put(acc_sources, file, source(size: size, mtime: mtime)), acc_modules}
     end)
+  end
+
+  # Splits the files to compile into the ones ready to compile and the
+  # ones held for a later cycle.
+  #
+  # A pending module may be recompiled in a later cycle if it depends on the
+  # exports of a module being compiled, as we only know if the exports changed
+  # after compiling. We call those modules undecided. Pending modules with a
+  # compile (or export) reference to undecided modules are undecided too. Then
+  # modules that reach an undecided module through runtime or export references
+  # are tainted, and pending modules with compile references to tainted modules
+  # are undecided as well. Files that use a tainted (or held) module at compile
+  # time are held until the undecided modules are settled. If a ready file needs
+  # a held module, the compiler deadlocks and we release all held files.
+  #
+  # Held files are given as a map of file => {compile_refs, export_refs, modules},
+  # as their sources are reset once they are marked as stale.
+  defp hold_files(files, held, pending_modules, _sources) when pending_modules == %{} do
+    {files ++ Map.keys(held), %{}}
+  end
+
+  defp hold_files(files, held, pending_modules, sources) do
+    candidates =
+      Enum.reduce(files, held, fn file, acc ->
+        source(compile_references: compile, export_references: export, modules: modules) =
+          Map.get(sources, file, source())
+
+        Map.put(acc, file, {compile, export, modules})
+      end)
+
+    compiling =
+      for {_, {_, _, modules}} <- candidates, module <- modules, into: %{}, do: {module, true}
+
+    # Nothing is undecided unless a pending module depends on a module being compiled
+    if not Enum.any?(pending_modules, &depends_on_any?(&1, compiling, sources)) do
+      {Map.keys(candidates), %{}}
+    else
+      hold_undecided_files(candidates, compiling, pending_modules, sources)
+    end
+  end
+
+  defp depends_on_any?({_module, module(sources: files)}, compiling, sources) do
+    Enum.any?(files, fn file ->
+      source(compile_references: compile, export_references: export) = Map.fetch!(sources, file)
+      has_any_key?(compiling, compile) or has_any_key?(compiling, export)
+    end)
+  end
+
+  defp hold_undecided_files(candidates, compiling, pending_modules, sources) do
+    # A single graph from each reference to {module, kind}, where compile
+    # edges are only kept for pending modules, as only those can be recompiled.
+    graph =
+      Enum.reduce(sources, %{}, fn {file, source_entry}, graph ->
+        {compile, export, modules} =
+          case candidates do
+            %{^file => refs} ->
+              refs
+
+            %{} ->
+              {source(source_entry, :compile_references),
+               source(source_entry, :export_references), source(source_entry, :modules)}
+          end
+
+        runtime = source(source_entry, :runtime_references)
+
+        Enum.reduce(modules, graph, fn module, graph ->
+          graph =
+            if is_map_key(pending_modules, module),
+              do: add_edges(compile, {module, :compile}, graph),
+              else: graph
+
+          graph = add_edges(export, {module, :export}, graph)
+          add_edges(runtime, {module, :runtime}, graph)
+        end)
+      end)
+
+    seeds = for {module, true} <- compiling, do: {module, :compiling}
+    held = hold_files_fixpoint(candidates, seeds, graph, pending_modules, %{}, %{})
+
+    if map_size(held) == map_size(candidates) do
+      {Map.keys(candidates), %{}}
+    else
+      {for({file, _} <- candidates, not is_map_key(held, file), do: file), held}
+    end
+  end
+
+  # Labels modules as undecided or tainted starting from the given seeds and
+  # holds the candidates that use them at compile time (or the exports of held
+  # files). The modules of newly held files become seeds until nothing changes.
+  defp hold_files_fixpoint(candidates, seeds, graph, pending, labels, held) do
+    labels = label_modules(seeds, graph, pending, labels)
+
+    new_held =
+      for {file, {compile, export, _} = entry} <- candidates,
+          not is_map_key(held, file),
+          has_any_key?(labels, compile) or
+            Enum.any?(export, &(Map.get(labels, &1) == :held)),
+          into: %{},
+          do: {file, entry}
+
+    if new_held == %{} do
+      held
+    else
+      seeds = for {_, {_, _, modules}} <- new_held, module <- modules, do: {module, :held}
+      hold_files_fixpoint(candidates, seeds, graph, pending, labels, Map.merge(held, new_held))
+    end
+  end
+
+  defp label_modules([{module, label} | rest], graph, pending, labels) do
+    if label == :compiling or rank(label) > rank(Map.get(labels, module)) do
+      labels = if label == :compiling, do: labels, else: Map.put(labels, module, label)
+
+      rest =
+        for {target, kind} <- Map.get(graph, module, []),
+            next = next_label(label, kind, is_map_key(pending, target)),
+            next != nil,
+            reduce: rest,
+            do: (rest -> [{target, next} | rest])
+
+      label_modules(rest, graph, pending, labels)
+    else
+      label_modules(rest, graph, pending, labels)
+    end
+  end
+
+  defp label_modules([], _graph, _pending, labels), do: labels
+
+  # A compile reference to anything being compiled, undecided or tainted, or an
+  # export reference to anything being compiled or undecided, makes a pending
+  # module undecided. Runtime and export references to undecided or tainted
+  # modules taint the module.
+  defp next_label(_, :compile, _pending?), do: :undecided
+  defp next_label(label, :export, true) when label in [:compiling, :undecided], do: :undecided
+  defp next_label(:compiling, _kind, _pending?), do: nil
+  defp next_label(_, _kind, _pending?), do: :tainted
+
+  defp rank(nil), do: 0
+  defp rank(:tainted), do: 1
+  defp rank(:held), do: 2
+  defp rank(:undecided), do: 3
+
+  defp add_edges(refs, edge, graph) do
+    Enum.reduce(refs, graph, &Map.update(&2, &1, [edge], fn edges -> [edge | edges] end))
   end
 
   # This function receives the manifest entries and some source
@@ -1209,6 +1357,9 @@ defmodule Mix.Compilers.Elixir do
           each_cycle: fn ->
             compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp, reinfer?})
           end,
+          each_deadlock: fn ->
+            compiler_call(parent, ref, {:each_deadlock, dest, timestamp})
+          end,
           each_file: fn file, lexical ->
             compiler_call(parent, ref, {:each_file, file, lexical, verbose})
           end,
@@ -1258,6 +1409,11 @@ defmodule Mix.Compilers.Elixir do
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
+      {^ref, {:each_deadlock, dest, timestamp}} ->
+        {response, state} = each_deadlock(dest, timestamp, state)
+        send(pid, {ref, response})
+        compiler_loop(ref, pid, state, cwd)
+
       {^ref, {:each_cycle, stale_modules, dest, timestamp, reinfer?}} ->
         {response, state} = each_cycle(stale_modules, dest, timestamp, reinfer?, state)
         send(pid, {ref, response})
@@ -1298,34 +1454,54 @@ defmodule Mix.Compilers.Elixir do
     {:ok, %{state | consolidation: consolidation}}
   end
 
-  defp each_cycle(stale_modules, dest, timestamp, reinfer?, state) do
+  # Computes the next files to compile. There are two potential sources:
+  #
+  # * We need to go through all exports that we have confirmed that changed.
+  #   When we first compile, we store all removed/changed modules as stale
+  #   exports. Then, if they are not compiled again, or compiled with a
+  #   different exports MD5, they remain as stale, causing the next cycle.
+  #
+  # * In case a module is defined in two places, we add all sources to changed
+  #
+  # Modules in held files have unknown exports. On deadlock, files may still be
+  # compiling, so we only consider the exports of modules compiled so far, and
+  # we release all held files, as one of them may be what is missing.
+  defp next_files(release_held?, dest, timestamp, state) do
     %{
       modules: modules,
       sources: sources,
       changed: changed,
+      held: held,
       pending_modules: pending_modules,
       stale_exports: stale_exports,
       tracers: tracers
     } = state
 
-    # At this point, we may have additional files to compile.
-    # There are two potential sources:
-    #
-    # * We need to go through all exports that we have confirmed that changed.
-    #   When we first compile, we store all removed/changed modules as stale
-    #   exports. Then, if they are not compiled again, or compiled with a
-    #   different exports MD5, they remain as stale, causing the next cycle.
-    #
-    # * In case a module is defined in two places, we add all sources to changed
-    {pending_modules, exports, changed} =
-      update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, dest, tracers)
+    known_stale_exports =
+      if release_held? do
+        Map.intersect(modules, stale_exports)
+      else
+        held_modules =
+          for {_file, {_compile, _export, modules}} <- held, module <- modules, do: module
 
-    state = %{
-      state
-      | changed: [],
-        exports: exports,
-        pending_modules: pending_modules
-    }
+        Map.drop(stale_exports, held_modules)
+      end
+
+    {pending_modules, new_exports, changed} =
+      update_stale_entries(
+        pending_modules,
+        sources,
+        changed,
+        %{},
+        known_stale_exports,
+        dest,
+        tracers
+      )
+
+    {ready, held} =
+      if release_held?,
+        do: {changed ++ Map.keys(held), %{}},
+        else: hold_files(changed, held, pending_modules, sources)
 
     # Those files have been changed transitively, so we mark them as changed
     # in case compilation fails mid-cycle. The combination of the outdated
@@ -1335,21 +1511,50 @@ defmodule Mix.Compilers.Elixir do
       File.touch!(file, timestamp)
     end
 
+    # Now we need to detect the new stale_exports.
+    # This is a simplified version of update_stale_sources.
+    {sources, stale_exports} =
+      Enum.reduce(changed, {sources, stale_exports}, fn file, {acc_sources, acc_modules} ->
+        source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
+        acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
+        {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
+      end)
+
+    if ready != [] do
+      Mix.Utils.compiling_n(length(ready), :ex)
+    end
+
+    state = %{
+      state
+      | changed: [],
+        held: held,
+        sources: sources,
+        stale_exports: stale_exports,
+        exports: Map.merge(state.exports, new_exports),
+        pending_modules: pending_modules
+    }
+
+    {ready, state}
+  end
+
+  defp each_deadlock(dest, timestamp, state) do
+    # If files are held, the deadlock may be caused by a file waiting on
+    # a held module (for example, a new compile-time dependency). So we
+    # settle what we can and release the held files.
+    if state.held == %{} do
+      {[], state}
+    else
+      next_files(true, dest, timestamp, state)
+    end
+  end
+
+  defp each_cycle(stale_modules, dest, timestamp, reinfer?, state) do
+    {ready, state} = next_files(false, dest, timestamp, state)
+    %{modules: modules, sources: sources, pending_modules: pending_modules} = state
+
     cond do
-      changed != [] ->
-        Mix.Utils.compiling_n(length(changed), :ex)
-
-        # Now we need to detect the new stale_exports.
-        # This is a simplified version of update_stale_sources.
-        {sources, stale_exports} =
-          Enum.reduce(changed, {sources, stale_exports}, fn file, {acc_sources, acc_modules} ->
-            source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
-            acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-            {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
-          end)
-
-        state = %{state | sources: sources, stale_exports: stale_exports}
-        {{:compile, changed, []}, state}
+      ready != [] ->
+        {{:compile, ready, []}, state}
 
       reinfer? ->
         sources =
