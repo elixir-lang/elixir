@@ -514,6 +514,35 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "stats with compile-connected label and min transitive dependencies" do
+      args = ~w[--format stats --label compile-connected --min-transitive-dependencies 2]
+
+      assert_graph(args, """
+      Tracked files: 5 (nodes)
+      Compile dependencies: 3 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 3 (edges)
+      Cycles: 1
+
+      Top 5 files with most outgoing dependencies:
+        * lib/a.ex (1)
+        * lib/e.ex (0)
+        * lib/d.ex (0)
+        * lib/c.ex (0)
+        * lib/b.ex (0)
+
+      Top 5 files with most incoming dependencies:
+        * lib/b.ex (1)
+        * lib/e.ex (0)
+        * lib/d.ex (0)
+        * lib/c.ex (0)
+        * lib/a.ex (0)
+
+      Top 1 compile-connected files with most transitive dependencies:
+        * lib/b.ex (4 transitive dependencies, 1 compile-time dependent)
+      """)
+    end
+
     test "stats with excluded files" do
       assert_graph(["--format", "stats", "--exclude", "lib/c.ex"], """
       Tracked files: 4 (nodes)
@@ -840,6 +869,45 @@ defmodule Mix.Tasks.XrefTest do
         `-- lib/d.ex (compile)
         """)
       end
+    end
+
+    test "filter by compile-connected label with min transitive dependencies" do
+      # lib/b.ex has 3 direct dependencies and 4 transitive ones, lib/d.ex has 1
+      args = ~w[--label compile-connected --min-transitive-dependencies 4 --fail-above 1]
+
+      assert_graph(args, """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      """)
+    end
+
+    test "filter by compile-connected label with min transitive dependencies and fail-above" do
+      message = "Too many references (found: 1, permitted: 0)"
+
+      assert_raise Mix.Error, message, fn ->
+        args = ~w[--label compile-connected --min-transitive-dependencies 4 --fail-above 0]
+
+        assert_graph(args, """
+        lib/a.ex
+        `-- lib/b.ex (compile)
+        """)
+      end
+    end
+
+    test "bad min_transitive_dependencies" do
+      in_fixture("no_mixfile", fn ->
+        message = "--min-transitive-dependencies requires --label compile-connected"
+
+        assert_raise Mix.Error, message, fn ->
+          Mix.Tasks.Xref.run(~w[graph --label compile --min-transitive-dependencies 2])
+        end
+
+        message = "--min-transitive-dependencies must be greater than 0"
+
+        assert_raise Mix.Error, message, fn ->
+          Mix.Tasks.Xref.run(~w[graph --label compile-connected --min-transitive-dependencies 0])
+        end
+      end)
     end
 
     test "exclude many with fail-above" do
