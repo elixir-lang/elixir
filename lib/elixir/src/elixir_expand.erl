@@ -1057,13 +1057,15 @@ expand_opts(Meta, Kind, Allowed, Opts, S, E) ->
   validate_opts(Meta, Kind, Allowed, EOpts, EE),
   {EOpts, SE, EE}.
 
-validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
-  [begin
-    file_error(Meta, E, ?MODULE, {unsupported_option, Kind, Key})
-  end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
-
-validate_opts(Meta, Kind, _Allowed, Opts, E) ->
-  file_error(Meta, E, ?MODULE, {options_are_not_keyword, Kind, Opts}).
+validate_opts(Meta, Kind, Allowed, Opts, E) ->
+  case elixir_utils:is_keyword(Opts) of
+    true ->
+      [begin
+        file_error(Meta, E, ?MODULE, {unsupported_option, Kind, Key})
+      end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
+    false ->
+      file_error(Meta, E, ?MODULE, {options_are_not_keyword, Kind, Opts})
+  end.
 
 no_alias_opts(Opts) when is_list(Opts) ->
   case lists:keyfind(as, 1, Opts) of

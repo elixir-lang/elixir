@@ -254,8 +254,6 @@ warn_zero_length_guard(_, _) ->
 
 'case'(Meta, [], _S, E) ->
   file_error(Meta, E, elixir_expand, {missing_option, 'case', [do]});
-'case'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  file_error(Meta, E, elixir_expand, {invalid_args, 'case'});
 'case'(Meta, Opts, S, E) ->
   assert_keyword_options(Opts, Meta, 'case', E),
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
@@ -274,8 +272,6 @@ expand_case(Meta, {Key, _}, _S, E) ->
 
 'cond'(Meta, [], _S, E) ->
   file_error(Meta, E, elixir_expand, {missing_option, 'cond', [do]});
-'cond'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  file_error(Meta, E, elixir_expand, {invalid_args, 'cond'});
 'cond'(Meta, Opts, S, E) ->
   assert_keyword_options(Opts, Meta, 'cond', E),
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
@@ -294,8 +290,6 @@ expand_cond(Meta, {Key, _}, _S, E) ->
 
 'receive'(Meta, [], _S, E) ->
   file_error(Meta, E, elixir_expand, {missing_option, 'receive', [do, 'after']});
-'receive'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  file_error(Meta, E, elixir_expand, {invalid_args, 'receive'});
 'receive'(Meta, Opts, S, E) ->
   assert_keyword_options(Opts, Meta, 'receive', E),
   RaiseError = fun(Key) ->
@@ -381,8 +375,6 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
 
 'try'(Meta, [{do, _}], _S, E) ->
   file_error(Meta, E, elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after']});
-'try'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  file_error(Meta, E, elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, S, E) ->
   assert_keyword_options(Opts, Meta, 'try', E),
   case lists:keymember(do, 1, Opts) of
@@ -573,7 +565,7 @@ origin(Meta, Default) ->
   end.
 
 format_error({options_are_not_keyword, Kind}) ->
-  io_lib:format("invalid options for \"~ts\", expected a keyword list", [Kind]);
+  io_lib:format("invalid options for ~ts, expected a keyword list", [Kind]);
 
 format_error({duplicate_match, Expr}) ->
   String = 'Elixir.Macro':to_string(Expr),

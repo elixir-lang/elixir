@@ -90,6 +90,12 @@ defmodule Kernel.ExpansionTest do
       assert env.aliases == [{:"Elixir.True", true}, {:"Elixir.World", :hello}]
     end
 
+    test "raises when options are not a keyword list" do
+      assert_compile_error("invalid options for alias, expected a keyword list, got: [1]", fn ->
+        expand(quote(do: alias(:lists, [1])))
+      end)
+    end
+
     test "invalid alias" do
       message =
         ~r"invalid value for option :as, expected a simple alias, got nested alias: Sample.Lists"
@@ -189,6 +195,15 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "raises when options are not a keyword list" do
+      assert_compile_error(
+        "invalid options for import, expected a keyword list, got: [:foo]",
+        fn ->
+          expand(quote(do: import(:lists, [:foo])))
+        end
+      )
+    end
+
     test "raises for non-compile-time module" do
       assert_compile_error(~r"invalid argument for import, .*, got: {:a, :tuple}", fn ->
         expand(quote(do: import({:a, :tuple})))
@@ -206,6 +221,12 @@ defmodule Kernel.ExpansionTest do
     test "invalid options" do
       assert_compile_error(~r"unsupported option :ops given to require", fn ->
         expand(quote(do: require(Foo, ops: 1)))
+      end)
+    end
+
+    test "raises when options are not a keyword list" do
+      assert_compile_error("invalid options for require, expected a keyword list, got: [1]", fn ->
+        expand(quote(do: require(:lists, [1])))
       end)
     end
   end
@@ -1078,7 +1099,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises when options are not a keyword list" do
-      message = ~s(invalid options for "for", expected a keyword list)
+      message = "invalid options for for, expected a keyword list"
 
       assert_compile_error(message, fn ->
         expand(quote(do: for(x <- [1], [2, {:do, x}])))
@@ -1267,7 +1288,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises when options are not a keyword list" do
-      message = ~s(invalid options for "with", expected a keyword list)
+      message = "invalid options for with, expected a keyword list"
 
       assert_compile_error(message, fn ->
         expand(quote(do: with(x <- 1, [2, {:do, x}])))
@@ -1602,14 +1623,14 @@ defmodule Kernel.ExpansionTest do
       )
     end
 
-    test "raises for invalid arguments" do
-      assert_compile_error(~r"invalid arguments for \"cond\"", fn ->
+    test "raises when options are not a keyword list" do
+      message = "invalid options for cond, expected a keyword list"
+
+      assert_compile_error(message, fn ->
         expand(quote(do: cond(:foo)))
       end)
-    end
 
-    test "raises when options are not a keyword list" do
-      assert_compile_error(~s(invalid options for "cond", expected a keyword list), fn ->
+      assert_compile_error(message, fn ->
         expand(quote(do: cond([x])))
       end)
     end
@@ -1800,14 +1821,12 @@ defmodule Kernel.ExpansionTest do
       )
     end
 
-    test "fails with invalid arguments" do
-      assert_compile_error(~r"invalid arguments for \"case\"", fn ->
+    test "fails when options are not a keyword list" do
+      message = "invalid options for case, expected a keyword list"
+
+      assert_compile_error(message, fn ->
         expand(quote(do: case(:foo, :bar)))
       end)
-    end
-
-    test "fails when options are not a keyword list" do
-      message = ~s(invalid options for "case", expected a keyword list)
 
       assert_compile_error(message, fn ->
         expand(quote(do: case(x, [2])))
@@ -2064,14 +2083,14 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "raises for invalid arguments" do
-      assert_compile_error(~r"invalid arguments for \"receive\"", fn ->
+    test "raises when options are not a keyword list" do
+      message = "invalid options for receive, expected a keyword list"
+
+      assert_compile_error(message, fn ->
         expand(quote(do: receive(:foo)))
       end)
-    end
 
-    test "raises when options are not a keyword list" do
-      assert_compile_error(~s(invalid options for "receive", expected a keyword list), fn ->
+      assert_compile_error(message, fn ->
         expand(quote(do: receive([2])))
       end)
     end
@@ -2307,14 +2326,12 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "raises with invalid arguments" do
-      assert_compile_error(~r"invalid arguments for \"try\"", fn ->
+    test "raises when options are not a keyword list" do
+      message = "invalid options for try, expected a keyword list"
+
+      assert_compile_error(message, fn ->
         expand(quote(do: try(:foo)))
       end)
-    end
-
-    test "raises when options are not a keyword list" do
-      message = ~s(invalid options for "try", expected a keyword list)
 
       assert_compile_error(message, fn ->
         expand(quote(do: try([x])))
