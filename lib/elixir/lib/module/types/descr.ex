@@ -4052,7 +4052,7 @@ defmodule Module.Types.Descr do
     {descr, field} =
       case type do
         :delete -> {descr, {none(), true}}
-        %{dynamic: dynamic} -> {dynamic(descr), {dynamic, false}}
+        %{dynamic: dynamic} -> {map_gradual(descr), {dynamic, false}}
         _ -> {descr, {type, false}}
       end
 
@@ -4084,6 +4084,15 @@ defmodule Module.Types.Descr do
 
     split_keys = map_split_keys_and_domains(key_descr)
     map_update_unchecked(descr, split_keys, {{:callback, type_fun}, on_missing}, return_type?)
+  end
+
+  # A gradual value makes the whole map gradual. If the static part may
+  # hold something other than maps, we return term(), which is a badmap.
+  defp map_gradual(:term), do: :term
+  defp map_gradual({_, _, _} = node), do: map_gradual(unfold(node))
+
+  defp map_gradual(descr) do
+    if map_only?(Map.delete(descr, :dynamic)), do: dynamic(descr), else: :term
   end
 
   defp map_update_unchecked(:term, _split_keys, _operation, _return_type?), do: :badmap
@@ -4982,7 +4991,7 @@ defmodule Module.Types.Descr do
   defp map_put_shared(descr, split_keys, type) do
     {descr, type} =
       case type do
-        %{dynamic: dynamic} -> {dynamic(descr), dynamic}
+        %{dynamic: dynamic} -> {map_gradual(descr), dynamic}
         _ -> {descr, type}
       end
 

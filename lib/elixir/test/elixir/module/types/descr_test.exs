@@ -5066,6 +5066,21 @@ defmodule Module.Types.DescrTest do
         assert map_put(empty, atom(), value) == :badmap
       end
     end
+
+    test "map_put and map_update with gradual values on types that may not be maps" do
+      all = opt_union(opt_negation(open_map()), open_map())
+      assert equal?(all, term())
+
+      for map <- [opt_union(integer(), open_map()), term(), all],
+          value <- [atom(), dynamic()] do
+        assert map_put(map, atom([:a]), value) == :badmap
+        assert map_update(map, atom([:a]), value, :force, true) == :badmap
+      end
+
+      # A gradual map type remains accepted
+      map = opt_union(dynamic(integer()), open_map())
+      assert {:ok, _} = map_put(map, atom([:a]), dynamic())
+    end
   end
 
   describe "disjoint" do
