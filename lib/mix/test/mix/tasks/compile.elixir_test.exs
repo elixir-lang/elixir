@@ -2317,17 +2317,29 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         File.mkdir_p!("lib")
         assert Mix.Task.run("compile")
 
-        # Define a local protocol
+        # Define a local protocol and a runtime caller
         File.write!("lib/protocol.ex", """
         defprotocol Compile.Protocol do
           def foo(a, b)
         end
         """)
 
-        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        File.write!("lib/caller.ex", """
+        defmodule Compile.Protocol.Caller do
+          def run, do: Compile.Protocol.foo(1, 2)
+        end
+        """)
+
+        message = "the Compile.Protocol protocol was not yet implemented for any type"
+
+        assert capture_io(:stderr, fn ->
+                 assert {:ok, [_]} = Mix.Tasks.Compile.Elixir.run([])
+               end) =~ message
+
+        purge_protocol(Compile.Protocol)
         mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
 
-        # Implement a local protocol
+        # Implement a local protocol, which verifies the caller again
         File.write!("lib/impl.ex", """
         defimpl Compile.Protocol, for: Integer do
           def foo(a, b), do: a + b
@@ -2335,18 +2347,26 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         """)
 
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        purge_protocol(Compile.Protocol)
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
 
         assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
                  @old_time
 
-        # Delete a local implementation
+        # Delete a local implementation, which verifies the caller again
         File.rm!("lib/impl.ex")
-        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+        assert capture_io(:stderr, fn ->
+                 assert {:ok, [_]} = Mix.Tasks.Compile.Elixir.run([])
+               end) =~ message
+
+        purge_protocol(Compile.Protocol)
 
         assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
                  @old_time
 
         # Delete a local protocol
+        File.rm!("lib/caller.ex")
         File.rm!("lib/protocol.ex")
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")

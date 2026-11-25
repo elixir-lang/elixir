@@ -1604,8 +1604,12 @@ defmodule Mix.Compilers.Elixir do
       true ->
         # We merge stale_modules (which is a map of %{module => true} that the user changed)
         # into a map of modules we compiled (which is a map of %{module => record}). This is
-        # fine because we only care about the keys.
-        changed_modules = Map.merge(modules, stale_modules)
+        # fine because we only care about the keys. Protocols whose implementations were
+        # added or removed are consolidated again, so they are considered changed as well.
+        changed_modules =
+          modules
+          |> Map.merge(stale_modules)
+          |> Map.merge(changed_protocols(state.consolidation, modules, pending_modules))
 
         # Now we do a simple pass finding anything that directly depends on the modules that
         # changed. We don't need to compute a fixpoint, because now only the directly affected
@@ -1798,6 +1802,26 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp protocols_and_impls(), do: {%{}, %{}}
+
+  defp changed_protocols({:off, _, _}, _modules, _pending_modules) do
+    %{}
+  end
+
+  defp changed_protocols({_, {_, old_impls}, protocols_and_impls}, modules, pending_modules) do
+    protocols_and_impls = protocols_and_impls_from_modules(modules, protocols_and_impls)
+    {_, new_impls} = protocols_and_impls_from_modules(pending_modules, protocols_and_impls)
+
+    added =
+      for {impl, protocol} <- new_impls,
+          not is_map_key(old_impls, impl),
+          into: %{},
+          do: {protocol, true}
+
+    for {impl, protocol} <- old_impls,
+        not is_map_key(new_impls, impl),
+        into: added,
+        do: {protocol, true}
+  end
 
   defp maybe_consolidate({:off, _, _}, _, _, _) do
     protocols_and_impls()
