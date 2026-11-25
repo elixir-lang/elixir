@@ -2136,6 +2136,7 @@ defmodule Kernel.ExpansionTest do
           rescue
             x -> x
             Error -> x
+            e in __MODULE__ -> e
           end
 
           x
@@ -2148,6 +2149,7 @@ defmodule Kernel.ExpansionTest do
           rescue
             x -> x
             unquote(:in)(_, [:"Elixir.Error"]) -> x()
+            e in [unquote(__MODULE__)] -> e
           end
 
           x()
@@ -2314,22 +2316,36 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "rejects compile-time literals in variable positions in rescue clauses" do
-      heads = [quote(do: __DIR__), quote(do: __DIR__ in _), quote(do: __MODULE__ in _)]
+    test "rejects compilation environment macros other than __MODULE__ as rescue filters" do
+      for name <- [:__DIR__, :__ENV__, :__CALLER__, :__STACKTRACE__] do
+        macro = Macro.var(name, __MODULE__)
 
-      for head <- heads do
-        assert_compile_error(~r"invalid \"rescue\" clause\. The clause should match", fn ->
-          expand(
-            quote do
-              try do
-                x
-              rescue
-                unquote(head) -> :ok
-              end
-            end
-          )
-        end)
+        assert_invalid_rescue(macro)
+        assert_invalid_rescue(quote(do: _ in unquote(macro)))
       end
+    end
+
+    test "rejects compilation environment macros as rescue variables" do
+      for name <- [:__MODULE__, :__DIR__, :__ENV__, :__CALLER__, :__STACKTRACE__] do
+        macro = Macro.var(name, __MODULE__)
+
+        assert_invalid_rescue(quote(do: unquote(macro) in _))
+        assert_invalid_rescue(quote(do: unquote(macro) in RuntimeError))
+      end
+    end
+
+    defp assert_invalid_rescue(head) do
+      assert_compile_error(~r"invalid \"rescue\" clause\. The clause should match", fn ->
+        expand(
+          quote do
+            try do
+              x
+            rescue
+              unquote(head) -> :ok
+            end
+          end
+        )
+      end)
     end
 
     test "expects one or two args for catch clauses" do

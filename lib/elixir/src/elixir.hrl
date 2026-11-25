@@ -9,6 +9,9 @@
 -define(var_context, ?MODULE).
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
+-define(is_env_macro(Name), ((Name) =:= '__MODULE__' orelse (Name) =:= '__DIR__' orelse
+                            (Name) =:= '__ENV__' orelse (Name) =:= '__CALLER__' orelse
+                            (Name) =:= '__STACKTRACE__')).
 
 -record(elixir_ex, {
   %% Stores that the function will fail, which can be used
