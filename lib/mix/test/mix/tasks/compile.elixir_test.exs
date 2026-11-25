@@ -979,12 +979,36 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @callback callback() :: term()
+        def fun, do: :ok
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        @behaviour A
+        def callback, do: :ok
+        def run, do: A.fun()
+      end
+      """)
+
       assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert Code.ensure_loaded?(A)
 
       File.rm!("lib/a.ex")
-      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+      output =
+        capture_io(:stderr, fn ->
+          assert {:ok, [_, _]} = Mix.Tasks.Compile.Elixir.run([])
+        end)
+
+      assert output =~ "A.fun/0 is undefined (module A is not available"
+      assert output =~ "@behaviour A does not exist (in module B)"
+
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
       refute String.contains?(File.read!("_build/dev/lib/sample/.mix/compile.elixir"), "Elixir.A")
@@ -992,6 +1016,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       file = Path.absname("lib/a.ex")
       assert_received {:purge, %{file: ^file, context_modules: [A], module: nil}}
       refute_received {:purge, %{context_modules: [B]}}
+
+      # The warnings are kept for subsequent compilations
+      capture_io(:stderr, fn ->
+        assert {:noop, [_, _]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
     end)
   after
     Code.put_compiler_option(:tracers, [])
@@ -1183,7 +1212,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert A.value() == :old
+      assert apply(A, :value, []) == :old
 
       # Runtime dependencies of A (as opposed to A.Helper) are not compile-time ones
       File.write!("lib/c.ex", """
@@ -1205,7 +1234,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert A.value() == :changed
+      assert apply(A, :value, []) == :changed
     end)
   end
 
@@ -1233,7 +1262,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert D.default().timeout == 1000
+      assert apply(D, :default, []).timeout == 1000
 
       File.write!("lib/b.ex", """
       defmodule B do
@@ -1253,8 +1282,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/d.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/e.ex"]}
-      assert D.default().timeout == 10000
-      assert E.default().timeout == 10000
+      assert apply(D, :default, []).timeout == 10000
+      assert apply(E, :default, []).timeout == 10000
     end)
   end
 

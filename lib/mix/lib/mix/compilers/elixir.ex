@@ -237,7 +237,9 @@ defmodule Mix.Compilers.Elixir do
           tracers: tracers
         }
 
-        compiler_loop(manifest, ready, stale_modules, dest, timestamp, reinfer?, opts, state)
+        # Removed modules are verified as changed, so their runtime dependents warn
+        changed_modules = Map.merge(stale_modules, removed_modules)
+        compiler_loop(manifest, ready, changed_modules, dest, timestamp, reinfer?, opts, state)
       else
         {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
           %{
