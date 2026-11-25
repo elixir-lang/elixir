@@ -2913,6 +2913,15 @@ defmodule Module.Types.DescrTest do
       assert map_to_list(none()) == :badmap
       assert map_to_list(dynamic()) == {:ok, dynamic(list(tuple([term(), term()])))}
 
+      # An empty static map is ignored in gradual types
+      empty =
+        opt_union(closed_map(b: {atom(), false}), empty_map())
+        |> opt_intersection(open_map(a: {integer(), false}))
+
+      assert empty?(empty)
+      assert {:ok, list} = map_to_list(opt_union(dynamic(), empty))
+      assert equal?(list, dynamic(list(tuple([term(), term()]))))
+
       # A non existent map type is refused
       assert open_map()
              |> opt_difference(open_map(a: {term(), true}, c: {term(), true}))

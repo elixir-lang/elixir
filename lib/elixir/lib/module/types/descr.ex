@@ -3914,12 +3914,10 @@ defmodule Module.Types.Descr do
       {dynamic, static} ->
         if map_only?(static) do
           with {:ok, dynamic_type} <- map_to_list_static(dynamic, fun) do
-            if descr_key?(static, :map) do
-              with {:ok, static_type} <- map_to_list_static(static, fun) do
-                {:ok, opt_union(static_type, dynamic(dynamic_type))}
-              end
-            else
-              {:ok, dynamic(dynamic_type)}
+            # The static part may hold no map, even if it has a map BDD
+            case map_to_list_static(static, fun) do
+              {:ok, static_type} -> {:ok, opt_union(static_type, dynamic(dynamic_type))}
+              :badmap -> {:ok, dynamic(dynamic_type)}
             end
           end
         else
