@@ -276,6 +276,11 @@ defmodule Mix.Tasks.Xref do
     * `--min-cycle-label` - controls the minimum number of dependencies
       with the given `--label` on a cycle
 
+    * `--min-transitive-dependencies` - controls the minimum number of
+      transitive dependencies a file must have for compile-time dependencies
+      on it to be considered compile-connected. It requires `--label compile-connected`
+      and defaults to 1
+
     * `--format` - can be set to one of:
 
       * `pretty` - prints the graph to the terminal using Unicode characters.
@@ -435,6 +440,43 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph --format cycles --label compile-connected
 
+  ### Continuous integration checks
+
+  Once you have addressed the cycles and the compile-connected dependencies
+  in your project, you can use `--fail-above` to keep new ones from being
+  introduced, for example by running the commands below in your continuous
+  integration server:
+
+      $ mix xref graph --format cycles --label compile-connected --fail-above 0
+      $ mix xref graph --label compile-connected --fail-above 0
+
+  The first one fails if there is any cycle with a compile-time dependency,
+  the second one if there is any compile-connected dependency.
+
+  In practice, not all compile-connected dependencies are a problem. For
+  example, many files may depend at compile-time on a file that only depends
+  on a small helper, which rarely changes. Instead of raising the threshold
+  given to `--fail-above`, you can leave those dependencies out of the check
+  in three different ways:
+
+    * `--exclude lib/helper.ex` removes the given file from the graph,
+      alongside all dependencies from and to it
+
+    * `--group lib/schema.ex,lib/helper.ex` treats the given files as a
+      single one. Dependencies between them are ignored and, if they do not
+      depend on any other file, compile-time dependencies on them are no
+      longer compile-connected
+
+    * `--min-transitive-dependencies 5` only considers the compile-time
+      dependencies on files with at least 5 transitive dependencies,
+      without having to list any file:
+
+          $ mix xref graph --label compile-connected --min-transitive-dependencies 5 --fail-above 0
+
+      To choose the value, `mix xref graph --format stats` lists the
+      compile-connected files with most transitive dependencies and
+      `mix xref explain FILE` shows the number for a given file
+
   ## Shared options
 
   Those options are shared across all modes:
@@ -475,6 +517,7 @@ defmodule Mix.Tasks.Xref do
     source: :keep,
     min_cycle_size: :integer,
     min_cycle_label: :integer,
+    min_transitive_dependencies: :integer,
     output: :string
   ]
 
@@ -705,6 +748,16 @@ defmodule Mix.Tasks.Xref do
 
   defp handle_graph(opts) do
     label = label_filter(opts[:label])
+
+    if min = opts[:min_transitive_dependencies] do
+      if label != :compile_connected do
+        Mix.raise("--min-transitive-dependencies requires --label compile-connected")
+      end
+
+      if min <= 0 do
+        Mix.raise("--min-transitive-dependencies must be greater than 0")
+      end
+    end
 
     {direct_filter, transitive_filter} =
       if opts[:only_direct], do: {label, :all}, else: {:all, label}
@@ -1181,7 +1234,7 @@ defmodule Mix.Tasks.Xref do
 
   defp roots_and_callback(file_references, filter, sources, sinks, opts) do
     # Filter according to non direct label
-    file_references = transitive_filter(file_references, filter)
+    file_references = transitive_filter(file_references, filter, opts)
 
     # If a label is given, remove empty root nodes
     file_references =
@@ -1213,18 +1266,30 @@ defmodule Mix.Tasks.Xref do
     Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
   end
 
-  defp transitive_filter_fn(file_references, :compile_connected),
-    do: fn {key, type} ->
-      type == :compile and match?([_ | _], file_references[key] || [])
-    end
+  defp transitive_filter_fn(file_references, :compile_connected, opts) do
+    if min = opts[:min_transitive_dependencies] do
+      # Only files with compile-time dependents can be compile-connected,
+      # so we only compute the transitive dependencies of those
+      files = for {_file, deps} <- file_references, {dep, :compile} <- deps, uniq: true, do: dep
 
-  defp transitive_filter_fn(_file_references, filter),
+      connected =
+        with_digraph(file_references, fn graph ->
+          for file <- files, count_transitive(graph, file) >= min, into: MapSet.new(), do: file
+        end)
+
+      fn {key, type} -> type == :compile and MapSet.member?(connected, key) end
+    else
+      fn {key, type} -> type == :compile and match?([_ | _], file_references[key] || []) end
+    end
+  end
+
+  defp transitive_filter_fn(_file_references, filter, _opts),
     do: fn {_key, type} -> type == filter end
 
-  defp transitive_filter(file_references, :all), do: file_references
+  defp transitive_filter(file_references, :all, _opts), do: file_references
 
-  defp transitive_filter(file_references, filter) do
-    filter_fn = transitive_filter_fn(file_references, filter)
+  defp transitive_filter(file_references, filter, opts) do
+    filter_fn = transitive_filter_fn(file_references, filter, opts)
 
     for {key, children} <- file_references,
         into: %{},
@@ -1248,9 +1313,11 @@ defmodule Mix.Tasks.Xref do
       shell.info("Runtime dependencies: #{counters.nil} (edges)")
       shell.info("Cycles: #{length(cycles(graph, filter, opts))}")
 
+      filter_fn = transitive_filter_fn(references, filter, opts)
+
       outgoing =
         references
-        |> Enum.map(fn {file, _} -> {out_stats_filter(references, graph, file, filter), file} end)
+        |> Enum.map(fn {file, _} -> {out_stats_filter(graph, file, filter, filter_fn), file} end)
         |> Enum.sort(:desc)
         |> Enum.take(10)
 
@@ -1259,14 +1326,14 @@ defmodule Mix.Tasks.Xref do
 
       incoming =
         references
-        |> Enum.map(fn {file, _} -> {in_stats_filter(references, graph, file, filter), file} end)
+        |> Enum.map(fn {file, _} -> {in_stats_filter(graph, file, filter, filter_fn), file} end)
         |> Enum.sort(:desc)
         |> Enum.take(10)
 
       shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
       for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
 
-      compile_connected_fn = transitive_filter_fn(references, :compile_connected)
+      compile_connected_fn = transitive_filter_fn(references, :compile_connected, opts)
 
       # Maps each compile-connected file to the number
       # of files that depend on it at compile time
@@ -1310,11 +1377,9 @@ defmodule Mix.Tasks.Xref do
   defp pluralize(1, singular, _plural), do: "1 #{singular}"
   defp pluralize(count, _singular, plural), do: "#{count} #{plural}"
 
-  defp out_stats_filter(_references, graph, file, :all), do: :digraph.out_degree(graph, file)
+  defp out_stats_filter(graph, file, :all, _filter_fn), do: :digraph.out_degree(graph, file)
 
-  defp out_stats_filter(references, graph, file, filter) do
-    filter_fn = transitive_filter_fn(references, filter)
-
+  defp out_stats_filter(graph, file, _filter, filter_fn) do
     graph
     |> :digraph.out_neighbours(file)
     |> Enum.count(fn v ->
@@ -1323,11 +1388,9 @@ defmodule Mix.Tasks.Xref do
     end)
   end
 
-  defp in_stats_filter(_references, graph, file, :all), do: :digraph.in_degree(graph, file)
+  defp in_stats_filter(graph, file, :all, _filter_fn), do: :digraph.in_degree(graph, file)
 
-  defp in_stats_filter(references, graph, file, filter) do
-    filter_fn = transitive_filter_fn(references, filter)
-
+  defp in_stats_filter(graph, file, _filter, filter_fn) do
     graph
     |> :digraph.in_neighbours(file)
     |> Enum.count(fn v ->

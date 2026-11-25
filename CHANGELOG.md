@@ -61,6 +61,7 @@
   * [mix test] Add `--coverage-format` to emit coverage reports as `html` (the default) or `text`
   * [mix xref] List the compile-connected files with most transitive dependencies in `mix xref graph --format stats`
   * [mix xref] Add `mix xref explain FILE` to list the compile-time dependents and the dependencies of a file
+  * [mix xref] Add `--min-transitive-dependencies` to `mix xref graph --label compile-connected`
 
 ### 2. Bug fixes
 
