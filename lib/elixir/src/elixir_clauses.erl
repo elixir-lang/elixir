@@ -7,7 +7,7 @@
 -module(elixir_clauses).
 -export([parallel_match/4, match/6, clause/6, def/3, head/4,
          'case'/4, 'receive'/4, 'try'/4, 'cond'/4, with/4,
-         format_error/1]).
+         assert_keyword_options/4, format_error/1]).
 -import(elixir_errors, [file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
@@ -257,6 +257,7 @@ warn_zero_length_guard(_, _) ->
 'case'(Meta, Opts, _S, E) when not is_list(Opts) ->
   file_error(Meta, E, elixir_expand, {invalid_args, 'case'});
 'case'(Meta, Opts, S, E) ->
+  assert_keyword_options(Opts, Meta, 'case', E),
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     file_error(Meta, E, ?MODULE, {duplicated_clauses, 'case', Key})
   end),
@@ -276,6 +277,7 @@ expand_case(Meta, {Key, _}, _S, E) ->
 'cond'(Meta, Opts, _S, E) when not is_list(Opts) ->
   file_error(Meta, E, elixir_expand, {invalid_args, 'cond'});
 'cond'(Meta, Opts, S, E) ->
+  assert_keyword_options(Opts, Meta, 'cond', E),
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     file_error(Meta, E, ?MODULE, {duplicated_clauses, 'cond', Key})
   end),
@@ -295,6 +297,7 @@ expand_cond(Meta, {Key, _}, _S, E) ->
 'receive'(Meta, Opts, _S, E) when not is_list(Opts) ->
   file_error(Meta, E, elixir_expand, {invalid_args, 'receive'});
 'receive'(Meta, Opts, S, E) ->
+  assert_keyword_options(Opts, Meta, 'receive', E),
   RaiseError = fun(Key) ->
     file_error(Meta, E, ?MODULE, {duplicated_clauses, 'receive', Key})
   end,
@@ -320,6 +323,7 @@ expand_receive(Meta, {Key, _}, _S, E) ->
 
 with(Meta, Args, S, E) ->
   {Exprs, Opts0} = elixir_utils:split_opts(Args),
+  assert_keyword_options(Opts0, Meta, with, E),
   S0 = elixir_env:reset_unused_vars(S),
   {EExprs, {S1, E1, HasMatch}} = lists:mapfoldl(fun expand_with/2, {S0, E, false}, Exprs),
   {EDo, Opts1, S2} = expand_with_do(Meta, Opts0, S, S1, E1),
@@ -380,6 +384,7 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
 'try'(Meta, Opts, _S, E) when not is_list(Opts) ->
   file_error(Meta, E, elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, S, E) ->
+  assert_keyword_options(Opts, Meta, 'try', E),
   case lists:keymember(do, 1, Opts) of
     true -> ok;
     false -> file_error(Meta, E, elixir_expand, {missing_option, 'try', [do]})
@@ -538,6 +543,12 @@ expand_clauses_origin(Meta, Kind, Fun, {Key, [_ | _] = Clauses}, S, E) ->
 expand_clauses_origin(Meta, Kind, _Fun, {Key, _}, _, E) ->
   file_error(Meta, E, ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
+assert_keyword_options(Opts, Meta, Kind, E) ->
+  case elixir_utils:is_keyword(Opts) of
+    true -> ok;
+    false -> file_error(Meta, E, ?MODULE, {options_are_not_keyword, Kind})
+  end.
+
 assert_at_most_once(_Kind, [], _Count, _Fun) -> ok;
 assert_at_most_once(Kind, [{Kind, _} | _], 1, ErrorFun) ->
   ErrorFun(Kind);
@@ -560,6 +571,9 @@ origin(Meta, Default) ->
     {definition, Definition} -> Definition;
     false -> Default
   end.
+
+format_error({options_are_not_keyword, Kind}) ->
+  io_lib:format("invalid options for \"~ts\", expected a keyword list", [Kind]);
 
 format_error({duplicate_match, Expr}) ->
   String = 'Elixir.Macro':to_string(Expr),

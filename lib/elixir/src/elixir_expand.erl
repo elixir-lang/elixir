@@ -869,6 +869,7 @@ rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr) ->
 expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
   assert_no_match_or_guard_scope(Meta, "for", S, E),
   {Cases, Block} = elixir_utils:split_opts(Args),
+  elixir_clauses:assert_keyword_options(Block, Meta, for, E),
   validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
 
   {Expr, Opts} =

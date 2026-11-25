@@ -6,7 +6,7 @@
 %% for ast manipulation and querying.
 -module(elixir_utils).
 -export([get_line/1, get_line/2, get_file/2, generated/1,
-  split_last/1, split_opts/1, noop/0, var_context/2,
+  split_last/1, split_opts/1, is_keyword/1, noop/0, var_context/2,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
   read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
@@ -83,18 +83,25 @@ split_last([H], Acc)     -> {lists:reverse(Acc), H};
 split_last([H | T], Acc) -> split_last(T, [H | Acc]).
 
 %% Useful to handle options similarly in `opts, do ... end` and `opts, do: ...`.
+%% A list before the final options may be a positional expression.
 split_opts(Args) ->
   case elixir_utils:split_last(Args) of
     {OuterCases, OuterOpts} when is_list(OuterOpts) ->
-      case elixir_utils:split_last(OuterCases) of
-        {InnerCases, InnerOpts} when is_list(InnerOpts) ->
+      {InnerCases, InnerOpts} = elixir_utils:split_last(OuterCases),
+
+      case InnerOpts =/= [] andalso is_keyword(InnerOpts) of
+        true ->
           {InnerCases, InnerOpts ++ OuterOpts};
-        _ ->
+        false ->
           {OuterCases, OuterOpts}
       end;
     _ ->
       {Args, []}
   end.
+
+is_keyword([]) -> true;
+is_keyword([{Key, _} | Rest]) when is_atom(Key) -> is_keyword(Rest);
+is_keyword(_) -> false.
 
 read_file_type(File) ->
   read_file_type(File, []).
