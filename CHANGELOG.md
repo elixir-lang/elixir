@@ -70,7 +70,9 @@ The following bug fixes may break applications relying on the broken behaviour:
 
   * [Kernel] Fix parsing precedence of unary operators applied to do-end blocks, such as `!if a do b end || c`
   * [Kernel] Parse chained `in` and `not in` operators as left associative
+  * [Kernel] Raise on empty exception lists in `rescue`, such as `rescue e in []`, instead of rescuing every error
   * [Process] Use `exit_signal/2` from `:erlang` in `Process.exit/2`, so exit signals sent to the calling process are delivered asynchronously and `:normal` no longer terminates it
+  * [ExUnit.Assertions] Do not leak variables bound on one side of `assert left op right` into the other side, which could make false assertions pass
 
 #### Elixir
 
@@ -120,7 +122,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Kernel] Raise when `|` is used in guards
   * [Kernel] Raise on duplicate keys in `@enforce_keys`
   * [Kernel] Raise on anonymous function calls on atoms, such as `:foo.()`, instead of invoking the local function
-  * [Kernel] Raise on empty exception lists in `rescue`, such as `rescue e in []`, instead of rescuing every error
+  * [Kernel] Raise on guards that reference themselves or guards without a body, instead of hanging compilation
   * [Kernel] Raise a clear error on explicit tails in `destructure/2`, such as `destructure([a | b], list)`
   * [Kernel] Do not let aliases defined in macro arguments affect the aliases in the macro's quoted code
   * [Kernel] Do not accept empty tuples in `elem/2` and other tuple operations during type checking
@@ -130,6 +132,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Kernel] Fix type checker crash on variables used by nested clauses in conditionals
   * [Kernel] Fix type checker crash on `for` generators using variables bound in `:into` or `:reduce`
   * [Kernel] Fix type checker crash on patterns that cannot match in `fn` and `catch` clauses with guards
+  * [Kernel] Fix type checker crash and imprecise types on tuple operations over types holding empty tuples
   * [Kernel] Keep atom keys in the inferred type of `Map.from_keys/2` when given mixed keys
   * [Kernel] Preserve alignment of untyped nested bitstring segments, such as `<<<<x::1>>::binary>>`
   * [Kernel] Preserve evaluation order when the compiler merges map updates with `Map.merge/2`
@@ -172,7 +175,6 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [ExUnit] Preserve the order of async modules across `--repeat-until-failure` runs
   * [ExUnit] Record tests invalidated by module failures as failures in the failures manifest
   * [ExUnit.Assertions] Do not expand the arguments of `match?/2` twice in `assert/1` and `refute/1`
-  * [ExUnit.Assertions] Do not leak variables bound on one side of `assert left op right` into the other side, which could make false assertions pass
   * [ExUnit.Assertions] Fix `refute_in_delta/4` at the delta boundary and with negative deltas
   * [ExUnit.Assertions] Support list literals in `catch_throw/1`, `catch_exit/1`, and `catch_error/1`
   * [ExUnit.CaptureIO] Close the capture device when `capture_io` fails to set the group leader
@@ -210,6 +212,12 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [mix compile.elixir] Recompile the project when `--docs` or `--debug-info` change
   * [mix compile.elixir] Purge consolidated protocols on recompilation even when the consolidation path was already removed from the code path
   * [mix compile.elixir] Recompile modules affected by export changes of their transitive dependencies, such as struct field changes
+  * [mix compile.elixir] Recompile compile-time dependents of modules that are recompiled in a later cycle of the same compilation
+  * [mix compile.elixir] Recompile files using, at compile time, modules defined in the same file when the dependencies of those modules change
+  * [mix compile.elixir] Recompile dependents of Erlang modules from path dependencies when the Erlang modules change
+  * [mix compile.elixir] Recompile the project when configuration files are removed
+  * [mix compile.elixir] Verify runtime dependents of removed modules, so calls to them emit warnings
+  * [mix compile.elixir] Verify callers of protocols when implementations are added or removed
   * [mix deps] Recompile path and fetchable dependencies when one of their dependencies are removed
   * [mix deps] Raise on dependency names containing `.`, `/`, `\`, or `:` to avoid path traversal
   * [mix deps] Handle empty refs and charlist sparse directories in rebar Git dependencies
@@ -226,6 +234,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [mix release] Keep `:erts` in the release applications
   * [mix test] Do not crash the coverage summary when there are no modules
   * [mix test] Do not let the coverage threshold override the exit status of test failures
+  * [mix test] Consider removed modules, local dependencies, protocol implementations, and Erlang modules in `--stale`
   * [mix xref] Include the sink in `mix xref graph --format stats --sink FILE` when it has no dependencies of its own
 
 ### 3. Hard deprecations
