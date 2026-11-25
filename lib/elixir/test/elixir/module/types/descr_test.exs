@@ -3408,6 +3408,14 @@ defmodule Module.Types.DescrTest do
 
     test "with dynamic" do
       assert map_get(dynamic(), term()) == {:ok, dynamic()}
+      assert map_get(dynamic(), atom([:a])) == {:ok, dynamic()}
+
+      # Equal dynamic types select no values at no keys
+      all = opt_union(opt_negation(open_map()), open_map())
+
+      for type <- [dynamic(), dynamic(all), dynamic(open_map())] do
+        assert map_get(type, none()) == :error
+      end
     end
 
     test "with atom fall back" do

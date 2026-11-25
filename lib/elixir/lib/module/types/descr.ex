@@ -5066,7 +5066,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_get_static(%{}, _split_keys), do: {:ok, none()}
-  defp map_get_static(:term, _split_keys), do: {:ok, term()}
+  defp map_get_static(:term, split_keys), do: map_get_static(%{map: @map_top}, split_keys)
 
   defp map_get_static_dnf(bdd, dnf, split_keys) do
     {required_keys, optional_keys, maybe_negated_set, required_domains, optional_domains} =
