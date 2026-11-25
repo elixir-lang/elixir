@@ -124,6 +124,27 @@ defmodule ProtocolTest do
     assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
   end
 
+  defprotocol WithAnyNoImpl do
+    @fallback_to_any true
+    def ok(term)
+  end
+
+  defimpl WithAnyNoImpl, for: Integer do
+    def ok(int), do: {:ok, int}
+  end
+
+  test "protocol with fallback to any but no any implementation" do
+    assert WithAnyNoImpl.impl_for(1) == WithAnyNoImpl.Integer
+    assert WithAnyNoImpl.impl_for("foo") == WithAnyNoImpl.Any
+    assert WithAnyNoImpl.impl_for(%NoImplStruct{}) == WithAnyNoImpl.Any
+    assert WithAnyNoImpl.impl_for!("foo") == WithAnyNoImpl.Any
+    assert WithAnyNoImpl.ok(1) == {:ok, 1}
+
+    assert_raise UndefinedFunctionError, ~r"WithAnyNoImpl.Any.ok/1 is undefined", fn ->
+      WithAnyNoImpl.ok("foo")
+    end
+  end
+
   test "protocol not implemented" do
     message =
       """

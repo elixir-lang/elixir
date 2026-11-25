@@ -12,7 +12,7 @@ Kernel.ParallelCompiler.compile_to_path(files, path, return_diagnostics: true)
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true
-  alias Protocol.ConsolidationTest.{Sample, WithAny, NoImpl}
+  alias Protocol.ConsolidationTest.{Sample, WithAny, WithAnyNoImpl, NoImpl}
 
   defimpl WithAny, for: Map do
     def ok(map, _opts) do
@@ -68,6 +68,18 @@ defmodule Protocol.ConsolidationTest do
   :code.load_binary(NoImpl, ~c"protocol_test.exs", binary)
 
   defp no_impl_binary, do: unquote(binary)
+
+  # Fallback to Any without an Any implementation
+  defimpl WithAnyNoImpl, for: Integer do
+    def ok(int), do: {:ok, int}
+  end
+
+  :code.purge(WithAnyNoImpl)
+  :code.delete(WithAnyNoImpl)
+  {:ok, binary} = Protocol.consolidate(WithAnyNoImpl, [Integer])
+  :code.load_binary(WithAnyNoImpl, ~c"protocol_test.exs", binary)
+
+  defp with_any_no_impl_binary, do: unquote(binary)
 
   test "consolidated?/1" do
     assert Protocol.consolidated?(WithAny)
@@ -130,6 +142,21 @@ defmodule Protocol.ConsolidationTest do
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any
+  end
+
+  test "consolidated implementations with fallback to any but no any implementation" do
+    assert WithAnyNoImpl.impl_for(1) == WithAnyNoImpl.Integer
+    assert WithAnyNoImpl.impl_for("foo") == WithAnyNoImpl.Any
+    assert WithAnyNoImpl.impl_for(%NoImplStruct{}) == WithAnyNoImpl.Any
+    assert WithAnyNoImpl.impl_for!("foo") == WithAnyNoImpl.Any
+    assert WithAnyNoImpl.ok(1) == {:ok, 1}
+
+    assert_raise UndefinedFunctionError, ~r"WithAnyNoImpl.Any.ok/1 is undefined", fn ->
+      WithAnyNoImpl.ok("foo")
+    end
+
+    assert Protocol.consolidated?(WithAnyNoImpl)
+    assert WithAnyNoImpl.__protocol__(:impls) == {:consolidated, [Integer]}
   end
 
   test "consolidation keeps docs" do
@@ -232,6 +259,25 @@ defmodule Protocol.ConsolidationTest do
       assert clauses == [
                {[term(), term()], dynamic()}
              ]
+    end
+
+    test "defines signatures with fallback to any but no any implementation" do
+      exports = exports(with_any_no_impl_binary())
+
+      assert %{
+               {:impl_for, 1} => %{sig: {:strong, domain, clauses}},
+               {:impl_for!, 1} => %{sig: {:strong, domain, clauses}}
+             } = exports
+
+      assert domain == [term()]
+
+      assert clauses == [
+               {[integer()], atom([WithAnyNoImpl.Integer])},
+               {[opt_negation(integer())], atom([WithAnyNoImpl.Any])}
+             ]
+
+      assert %{{:ok, 1} => %{sig: {:strong, nil, clauses}}} = exports
+      assert clauses == [{[term()], dynamic()}]
     end
 
     test "defines signatures without implementation" do

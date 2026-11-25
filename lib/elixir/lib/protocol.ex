@@ -662,18 +662,29 @@ defmodule Protocol do
         protocol_funs = get_protocol_functions(protocol_def)
 
         protocol_def = change_protocol(protocol_def, types)
-        select_impl = change_select_impl(select_impl, protocol, types, protocol_funs)
-        dispatch_impl = change_dispatch_impl(dispatch_impl)
+
+        select_impl =
+          change_select_impl(select_impl, protocol, types, fallback_to_any?, protocol_funs)
+
+        dispatch_impl = change_dispatch_impl(dispatch_impl, fallback_to_any?)
 
         select_struct =
-          change_select_struct(select_struct, protocol, types, structs, protocol_funs)
+          change_select_struct(select_struct, protocol, structs, fallback_to_any?, protocol_funs)
 
         definitions = [protocol_def, select_impl, dispatch_impl, select_struct] ++ definitions
 
         checker =
           if checker do
             update_in(checker.exports, fn exports ->
-              signatures = new_signatures(definitions, protocol_funs, protocol, types, structs)
+              signatures =
+                new_signatures(
+                  definitions,
+                  protocol_funs,
+                  protocol,
+                  types,
+                  structs,
+                  fallback_to_any?
+                )
 
               for {fun, info} <- exports do
                 if sig = Map.get(signatures, fun) do
@@ -708,7 +719,7 @@ defmodule Protocol do
     end
   end
 
-  defp new_signatures(definitions, protocol_funs, protocol, types, structs) do
+  defp new_signatures(definitions, protocol_funs, protocol, types, structs, fallback_to_any?) do
     alias Module.Types.Descr
     types_minus_any = List.delete(types, Any)
 
@@ -720,7 +731,7 @@ defmodule Protocol do
     {domain, impl_for, impl_for!} =
       case clauses do
         [] ->
-          if Any in types do
+          if fallback_to_any? do
             clauses = [{[Descr.term()], Descr.atom([__concat__(protocol, Any)])}]
             {Descr.term(), clauses, clauses}
           else
@@ -742,7 +753,7 @@ defmodule Protocol do
 
           not_domain = Descr.opt_negation(domain)
 
-          if Any in types do
+          if fallback_to_any? do
             clauses =
               clauses ++ [{[not_domain], Descr.atom([__concat__(protocol, Any)])}]
 
@@ -785,8 +796,10 @@ defmodule Protocol do
     {{:__protocol__, 1}, :def, meta, clauses}
   end
 
-  defp change_select_impl({_name, _kind, meta, _clauses}, protocol, types, functions) do
-    fallback = if Any in types, do: impl_tuple_for(protocol, Any, functions, meta)
+  # When falling back to Any, we always dispatch to the Any implementation,
+  # even if it is not defined, which matches the unconsolidated behaviour.
+  defp change_select_impl({_name, _kind, meta, _clauses}, protocol, types, any?, functions) do
+    fallback = if any?, do: impl_tuple_for(protocol, Any, functions, meta)
     line = meta[:line]
 
     clauses =
@@ -801,7 +814,7 @@ defmodule Protocol do
     {{:__select_impl__, 1}, :defp, meta, clauses}
   end
 
-  defp change_dispatch_impl({_name, _kind, meta, _clauses}) do
+  defp change_dispatch_impl({_name, _kind, meta, _clauses}, any?) do
     term = {:term, [version: -1], __MODULE__}
     index = {:index, [version: -2], __MODULE__}
     fun = {:_fun, [version: -3], __MODULE__}
@@ -809,18 +822,24 @@ defmodule Protocol do
     impl = {:impl, [version: -5], __MODULE__}
 
     body =
-      quote generated: true do
-        case __select_impl__(unquote(term)) do
-          nil -> __raise_undefined__(unquote(term))
-          unquote(impl) -> :erlang.element(unquote(index), unquote(impl))
+      if any? do
+        quote generated: true do
+          :erlang.element(unquote(index), __select_impl__(unquote(term)))
+        end
+      else
+        quote generated: true do
+          case __select_impl__(unquote(term)) do
+            nil -> __raise_undefined__(unquote(term))
+            unquote(impl) -> :erlang.element(unquote(index), unquote(impl))
+          end
         end
       end
 
     {{:__dispatch_impl__, 4}, :defp, meta, [{meta, [term, index, fun, arity], [], body}]}
   end
 
-  defp change_select_struct({_name, _kind, meta, _clauses}, protocol, types, structs, functions) do
-    fallback = if Any in types, do: impl_tuple_for(protocol, Any, functions, meta)
+  defp change_select_struct({_name, _kind, meta, _clauses}, protocol, structs, any?, functions) do
+    fallback = if any?, do: impl_tuple_for(protocol, Any, functions, meta)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, functions, meta)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, meta)]
 
@@ -1018,10 +1037,16 @@ defmodule Protocol do
 
         @doc false
         @spec impl_for(term) :: atom | nil
-        Kernel.def impl_for(data) do
-          case __select_impl__(data) do
-            nil -> nil
-            impl -> elem(impl, 0)
+        if any_impl_for do
+          Kernel.def impl_for(data) do
+            elem(__select_impl__(data), 0)
+          end
+        else
+          Kernel.def impl_for(data) do
+            case __select_impl__(data) do
+              nil -> nil
+              impl -> elem(impl, 0)
+            end
           end
         end
 
@@ -1100,31 +1125,38 @@ defmodule Protocol do
       unquote(select_impl_fallback)
 
       @compile {:inline, __dispatch_impl__: 4}
-      Kernel.defp __dispatch_impl__(term, _index, fun, arity) do
-        case impl_for(term) do
-          nil -> __raise_undefined__(term)
-          module -> :erlang.make_fun(module, fun, arity)
-        end
-      end
-
       @doc false
       @spec impl_for!(term) :: atom
+
+      # When falling back to Any, we always dispatch to the Any
+      # implementation, even if it is not defined, so we never raise.
       if any_impl_for do
+        Kernel.defp __dispatch_impl__(term, _index, fun, arity) do
+          :erlang.make_fun(impl_for(term), fun, arity)
+        end
+
         Kernel.def impl_for!(data) do
           impl_for(data)
         end
       else
+        Kernel.defp __dispatch_impl__(term, _index, fun, arity) do
+          case impl_for(term) do
+            nil -> __raise_undefined__(term)
+            module -> :erlang.make_fun(module, fun, arity)
+          end
+        end
+
         Kernel.def impl_for!(data) do
           impl_for(data) || __raise_undefined__(data)
         end
-      end
 
-      Kernel.defp __raise_undefined__(data) do
-        raise(Protocol.UndefinedError,
-          protocol: __MODULE__,
-          value: data,
-          description: @undefined_impl_description
-        )
+        Kernel.defp __raise_undefined__(data) do
+          raise(Protocol.UndefinedError,
+            protocol: __MODULE__,
+            value: data,
+            description: @undefined_impl_description
+          )
+        end
       end
     end
   end
