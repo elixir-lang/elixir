@@ -85,7 +85,7 @@ literal_remote_call({'__block__', _, [
   {'=', _, [{result, _, ?MODULE}, {{'.', _, [Module, Fun]}, Meta, Args}]},
   {{'.', _, [elixir_utils, noop]}, _, []},
   {result, _, ?MODULE}
-]}) when is_atom(Module), is_atom(Fun), is_list(Args) ->
+]}) when is_atom(Module), Module =/= nil, not is_boolean(Module), is_atom(Fun), is_list(Args) ->
   case lists:all(fun is_literal/1, Args) of
     true -> {ok, Meta, Module, Fun, Args};
     false -> error

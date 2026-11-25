@@ -780,6 +780,17 @@ defmodule CodeTest do
       end
     end
 
+    test "treats bare dot access on nil and booleans as map access" do
+      for receiver <- [nil, true, false] do
+        access = "#{inspect(receiver)}.foo"
+
+        for source <- [access, "defmodule CompileDotAccessSample, do: #{access}"] do
+          error = assert_raise BadMapError, fn -> Code.compile_string(source) end
+          assert error.term === receiver
+        end
+      end
+    end
+
     test "stops pending checkers when compilation aborts" do
       assert_raise RuntimeError, "boom", fn ->
         Code.compile_string("""
