@@ -534,8 +534,11 @@ defmodule Kernel.ParallelCompiler do
        ) do
     {files, waiting} =
       case waiting do
-        %{^pid => %{kind: kind, ref: ^ref, file_pid: file_pid, on: on}} ->
-          send(pid, {ref, found})
+        %{^pid => %{kind: kind, ref: ^ref, file_pid: file_pid, on: on, released: released}} ->
+          # If the entry was released on deadlock, the reply has already been
+          # decided and it takes precedence (the module may have been defined
+          # in the meantime if the release had to wait for a free scheduler).
+          send(pid, {ref, released || found})
           {update_timing(files, file_pid, {:waiting, kind, on}), Map.delete(waiting, pid)}
 
         %{} ->
@@ -635,8 +638,8 @@ defmodule Kernel.ParallelCompiler do
   defp release_deadlock(spawned, waiting, files, result, warnings, errors, state)
        when map_size(waiting) == 1 do
     {pid, %{ref: ref}, _iterator} = :maps.next(:maps.iterator(waiting))
-    queue = [{pid, ref, :not_found}]
-    spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
+    released = [{pid, ref, :not_found}]
+    release_waiting(released, spawned, waiting, files, result, warnings, errors, state)
   end
 
   # spawned x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
@@ -669,12 +672,23 @@ defmodule Kernel.ParallelCompiler do
       end)
 
     if deadlocked do
-      spawn_workers(deadlocked, spawned, waiting, files, result, warnings, errors, state)
+      release_waiting(deadlocked, spawned, waiting, files, result, warnings, errors, state)
     else
       return_error(warnings, errors, state, fn ->
         handle_deadlock(waiting, files)
       end)
     end
+  end
+
+  # Record the reply on each waiting entry, so the reply is decided at the
+  # moment the deadlock is resolved and not once the process is scheduled.
+  defp release_waiting(released, spawned, waiting, files, result, warnings, errors, state) do
+    waiting =
+      Enum.reduce(released, waiting, fn {pid, _ref, found}, waiting ->
+        Map.update!(waiting, pid, &%{&1 | released: found})
+      end)
+
+    spawn_workers(released, spawned, waiting, files, result, warnings, errors, state)
   end
 
   defp compile_file(file, path, force_load?, parent) do
@@ -858,7 +872,8 @@ defmodule Kernel.ParallelCompiler do
                 position: position,
                 on: on,
                 defining: defining,
-                deadlock: deadlock
+                deadlock: deadlock,
+                released: nil
               })
 
             files = update_timing(files, file_pid, :compiling)

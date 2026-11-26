@@ -571,6 +571,28 @@ defmodule Kernel.ParallelCompilerTest do
       purge([FooCircular, BarCircular])
     end
 
+    test "does not depend on max_concurrency when releasing Code.ensure_compiled deadlocks" do
+      [foo, bar] =
+        write_tmp(
+          "parallel_ensure_concurrency",
+          foo: """
+          defmodule FooConcurrency do
+            {:error, :unavailable} = Code.ensure_compiled(BarConcurrency)
+          end
+          """,
+          bar: """
+          defmodule BarConcurrency do
+            {:error, :unavailable} = Code.ensure_compiled(FooConcurrency)
+          end
+          """
+        )
+
+      assert {:ok, modules, @no_warnings} = compile([foo, bar], max_concurrency: 1)
+      assert Enum.sort(modules) == [BarConcurrency, FooConcurrency]
+    after
+      purge([FooConcurrency, BarConcurrency])
+    end
+
     test "does not answer later waits for modules released by deadlock" do
       [foo, bar, baz] =
         write_tmp(
