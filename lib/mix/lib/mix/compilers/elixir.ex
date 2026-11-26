@@ -839,7 +839,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp remove_stale_entry(entry, acc, sources, stale_exports, compile_path, tracers) do
-    {module, module(sources: source_files, export: export)} = entry
+    {module, module(kind: kind, sources: source_files, export: export)} = entry
     {pending_modules, exports, changed, stale_modules} = acc
 
     {compile_references, export_references, runtime_references} =
@@ -872,18 +872,27 @@ defmodule Mix.Compilers.Elixir do
           end)
 
         {Map.delete(pending_modules, module), Map.put(exports, module, export), changed,
-         Map.put(stale_modules, module, true)}
+         put_stale(stale_modules, module, kind)}
 
       # If I have a runtime references to something stale,
       # I am stale too.
       has_any_key?(stale_modules, runtime_references) ->
-        {pending_modules, exports, changed, Map.put(stale_modules, module, true)}
+        {pending_modules, exports, changed, put_stale(stale_modules, module, kind)}
 
       # Otherwise, we don't store it anywhere
       true ->
         {pending_modules, exports, changed, stale_modules}
     end
   end
+
+  # Protocols dispatch to their implementations at runtime, so
+  # implementations are runtime dependencies of their protocols.
+  # Therefore, if an implementation is stale, the protocol is too.
+  defp put_stale(stale_modules, module, {:impl, protocol}),
+    do: stale_modules |> Map.put(module, true) |> Map.put(protocol, true)
+
+  defp put_stale(stale_modules, module, _kind),
+    do: Map.put(stale_modules, module, true)
 
   defp trace_purge(_file, _sources, []), do: :ok
 

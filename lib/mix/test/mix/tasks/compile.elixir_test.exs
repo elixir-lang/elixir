@@ -1351,6 +1351,64 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles compile-time dependents of protocols when implementations change" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/pr.ex", """
+      defprotocol Pr do
+        def f(x)
+      end
+      """)
+
+      File.write!("lib/impl.ex", """
+      defimpl Pr, for: Integer do
+        def f(_), do: :v1
+      end
+      """)
+
+      # A depends on the protocol directly, B through a function call
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @x Pr.f(1)
+        def get, do: @x
+        def call(x), do: Pr.f(x)
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        @x A.call(1)
+        def get, do: @x
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert A.get() == :v1
+      assert B.get() == :v1
+
+      Mix.shell().flush()
+      purge([A, B, Pr, Pr.Integer])
+
+      File.write!("lib/impl.ex", """
+      defimpl Pr, for: Integer do
+        def f(_), do: :v2
+      end
+      """)
+
+      force_recompilation("lib/impl.ex")
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/impl.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/pr.ex"]}
+      assert A.get() == :v2
+      assert B.get() == :v2
+    end)
+  after
+    purge([A, B, Pr, Pr.Integer])
+  end
+
   test "recompiles dependent changed on conflict" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
