@@ -264,6 +264,26 @@ defmodule Kernel.RaiseTest do
       assert result
     end
 
+    defmodule OwnError do
+      defexception message: "own error"
+
+      def rescue_own(fun) do
+        try do
+          fun.()
+        rescue
+          __MODULE__ -> :mine
+        end
+      end
+    end
+
+    test "rescues the current exception module" do
+      assert OwnError.rescue_own(fn -> raise OwnError end) == :mine
+
+      assert_raise RuntimeError, "other error", fn ->
+        OwnError.rescue_own(fn -> raise "other error" end)
+      end
+    end
+
     test "catch-all variable" do
       result =
         try do

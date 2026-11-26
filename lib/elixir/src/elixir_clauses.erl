@@ -450,6 +450,20 @@ expand_rescue(Meta, _, _, E) ->
   Error = {wrong_number_of_args_for_clause, "one argument", origin(Meta, 'try'), 'rescue'},
   file_error(Meta, E, ?MODULE, Error).
 
+%% rescue __MODULE__ => _ in [__MODULE__]
+expand_rescue({'__MODULE__', _, Context}, S, E) when is_atom(Context) ->
+  expand_rescue(?key(E, module), S, E);
+
+%% Reject compilation environment macros as bindings and allow only __MODULE__ as a filter.
+expand_rescue({Name, _, Context}, _S, _E) when is_atom(Context), ?is_env_macro(Name) ->
+  false;
+expand_rescue({in, _, [{Name, _, Context}, _]}, _S, _E)
+    when is_atom(Context), ?is_env_macro(Name) ->
+  false;
+expand_rescue({in, _, [_, {Name, _, Context}]}, _S, _E)
+    when is_atom(Context), Name =/= '__MODULE__', ?is_env_macro(Name) ->
+  false;
+
 %% rescue var
 expand_rescue({Name, Meta, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
   match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
