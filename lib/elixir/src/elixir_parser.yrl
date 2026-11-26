@@ -98,12 +98,12 @@ Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eoe : {'__block__', meta_from_location({1, 1, nil}), []}.
-grammar -> expr_list : build_block(reverse('$1')).
-grammar -> eoe expr_list : build_block(reverse('$2')).
-grammar -> expr_list eoe : build_block(reverse(annotate_eoe('$2', '$1'))).
-grammar -> eoe expr_list eoe : build_block(reverse(annotate_eoe('$3', '$2'))).
-grammar -> '$empty' : {'__block__', meta_from_location({1, 1, nil}), []}.
+grammar -> eoe : [].
+grammar -> expr_list : reverse('$1').
+grammar -> eoe expr_list : reverse('$2').
+grammar -> expr_list eoe : reverse(annotate_eoe('$2', '$1')).
+grammar -> eoe expr_list eoe : reverse(annotate_eoe('$3', '$2')).
+grammar -> '$empty' : [].
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
@@ -658,6 +658,8 @@ map -> '%' map_base_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4'
 
 Erlang code.
 
+-export([parse/2]).
+
 -define(columns(), get(elixir_parser_columns)).
 -define(token_metadata(), get(elixir_token_metadata)).
 
@@ -671,9 +673,18 @@ Erlang code.
 -compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
 -import(lists, [reverse/1, reverse/2]).
 
+parse(Tokens, Origin) ->
+  case parse(Tokens) of
+    {ok, []} -> {ok, {'__block__', meta_from_location(Origin), []}};
+    {ok, Exprs} -> {ok, build_block(Exprs)};
+    Other -> Other
+  end.
+
 meta_from_token(Token) ->
   meta_from_location(?location(Token)).
 
+meta_from_location(nil) ->
+  [];
 meta_from_location({Line, Column, _}) ->
   case ?columns() of
     true -> [{line, Line}, {column, Column}];
@@ -1074,7 +1085,7 @@ charlist_parts(Parts) ->
 charlist_part(Binary) when is_binary(Binary) ->
   Binary;
 charlist_part({Begin, End, Tokens}) ->
-  Form = string_tokens_parse(Tokens),
+  Form = string_tokens_parse(Tokens, Begin),
   Meta = meta_from_location(Begin),
   MetaWithExtra =
     case ?token_metadata() of
@@ -1088,7 +1099,7 @@ string_parts(Parts) ->
 string_part(Binary) when is_binary(Binary) ->
   Binary;
 string_part({Begin, End, Tokens}) ->
-  Form = string_tokens_parse(Tokens),
+  Form = string_tokens_parse(Tokens, Begin),
   Meta = meta_from_location(Begin),
   MetaWithExtra =
     case ?token_metadata() of
@@ -1097,8 +1108,8 @@ string_part({Begin, End, Tokens}) ->
     end,
   {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, [{from_interpolation, true} | MetaWithExtra], [Form]}, {binary, Meta, nil}]}.
 
-string_tokens_parse(Tokens) ->
-  case parse(Tokens) of
+string_tokens_parse(Tokens, Origin) ->
+  case parse(Tokens, Origin) of
     {ok, Forms} -> Forms;
     {error, _} = Error -> throw(Error)
   end.

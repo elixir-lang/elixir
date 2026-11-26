@@ -14,6 +14,71 @@ defmodule Kernel.ParserTest do
     assert Code.string_to_quoted!("  \n", columns: true) == {:__block__, [line: 1, column: 1], []}
   end
 
+  test "empty programs use the configured origin" do
+    for source <- ["", "\n;"] do
+      assert Code.string_to_quoted!(source, line: 5, column: 3) ==
+               {:__block__, [line: 5], []}
+
+      assert Code.string_to_quoted!(source, line: 5, column: 3, columns: true) ==
+               {:__block__, [line: 5, column: 3], []}
+    end
+
+    assert Code.string_to_quoted!("\n();",
+             line: 5,
+             column: 3,
+             columns: true,
+             emit_warnings: false
+           ) ==
+             {:__block__, [], []}
+  end
+
+  test "empty token streams without an origin omit location" do
+    for source <- ["", "\n;"] do
+      assert {:ok, tokens, _warnings} =
+               :elixir.string_to_tokens(String.to_charlist(source), 5, 3, "nofile", [])
+
+      assert {:ok, {:__block__, [], []}, []} =
+               :elixir.tokens_to_quoted(tokens, "nofile", columns: true)
+    end
+  end
+
+  test "empty interpolations use the interpolation origin" do
+    for source <- [~S("a#{}b"), "\"a\#{\n;}b\"", ~S('a#{}b')] do
+      for columns <- [false, true] do
+        quoted =
+          Code.string_to_quoted!(source,
+            line: 10,
+            column: 3,
+            columns: columns,
+            token_metadata: true,
+            emit_warnings: false
+          )
+
+        {_quoted, interpolations} =
+          Macro.prewalk(quoted, [], fn
+            {{:., _, [Kernel, :to_string]}, meta, [form]} = node, acc ->
+              {node, [{meta, form} | acc]}
+
+            node, acc ->
+              {node, acc}
+          end)
+
+        expected_meta = if columns, do: [line: 10, column: 5], else: [line: 10]
+        assert [{_, {:__block__, ^expected_meta, []}}] = interpolations
+      end
+    end
+  end
+
+  test "empty parentheses in interpolations omit location" do
+    assert {:<<>>, _, [{:"::", _, [{_, _, [{:__block__, [], []}]}, _]}]} =
+             Code.string_to_quoted!("\"\#{\n()}\"",
+               line: 10,
+               column: 3,
+               columns: true,
+               emit_warnings: false
+             )
+  end
+
   describe "nullary ops" do
     test "in expressions" do
       assert parse!("..") == {:.., [line: 1], []}

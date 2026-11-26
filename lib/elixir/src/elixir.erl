@@ -464,10 +464,13 @@ string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(Sta
       {error, elixir_tokenizer:format_error(Info)}
   end.
 
-tokens_to_quoted(Tokens, _WarningFile, Opts) ->
+tokens_to_quoted(Tokens, WarningFile, Opts) ->
+  tokens_to_quoted(Tokens, WarningFile, Opts, nil).
+
+tokens_to_quoted(Tokens, _WarningFile, Opts, Origin) ->
   put_parsing_state(Opts),
 
-  try elixir_parser:parse(Tokens) of
+  try elixir_parser:parse(Tokens, Origin) of
     {ok, Forms} ->
       {ok, Forms, get(elixir_parser_warnings)};
     {error, {Line, _, [{ErrorPrefix, ErrorSuffix}, Token]}} ->
@@ -505,7 +508,7 @@ string_to_quoted(String, StartLine, StartColumn, File, Opts) ->
     {ok, Tokens, Warnings1} ->
       emit_warnings(Warnings1, File, Opts),
 
-      case tokens_to_quoted(Tokens, File, Opts) of
+      case tokens_to_quoted(Tokens, File, Opts, {StartLine, StartColumn, nil}) of
         {ok, Forms, Warnings2} ->
           emit_warnings(Warnings2, File, Opts),
           {ok, Forms};
