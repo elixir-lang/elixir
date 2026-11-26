@@ -98,12 +98,12 @@ Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eoe : {'__block__', meta_from_location({1, 1, nil}), []}.
-grammar -> expr_list : build_block(reverse('$1')).
-grammar -> eoe expr_list : build_block(reverse('$2')).
-grammar -> expr_list eoe : build_block(reverse(annotate_eoe('$2', '$1'))).
-grammar -> eoe expr_list eoe : build_block(reverse(annotate_eoe('$3', '$2'))).
-grammar -> '$empty' : {'__block__', meta_from_location({1, 1, nil}), []}.
+grammar -> eoe : [].
+grammar -> expr_list : reverse('$1').
+grammar -> eoe expr_list : reverse('$2').
+grammar -> expr_list eoe : reverse(annotate_eoe('$2', '$1')).
+grammar -> eoe expr_list eoe : reverse(annotate_eoe('$3', '$2')).
+grammar -> '$empty' : [].
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
@@ -277,7 +277,9 @@ access_expr -> fn_eoe stab_eoe 'end' : build_fn('$1', '$2', '$3').
 access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
 access_expr -> open_paren ';' stab_eoe ')' : build_paren_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
-access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', parens_meta('$1'), []}.
+access_expr -> empty_paren :
+                 warn_empty_paren('$1'),
+                 {'__block__', parens_meta('$1') ++ meta_from_token(element(1, '$1')), []}.
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
@@ -366,9 +368,9 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
 
 block_item -> block_eoe stab_eoe :
-                {handle_literal(?exprs('$1'), '$1'), build_stab('$2', [])}.
+                {handle_literal(?exprs('$1'), '$1'), build_stab('$2', meta_from_token('$1'))}.
 block_item -> block_eoe :
-                {handle_literal(?exprs('$1'), '$1'), {'__block__', [], []}}.
+                {handle_literal(?exprs('$1'), '$1'), {'__block__', meta_from_token('$1'), []}}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1' | '$2'].
@@ -658,6 +660,8 @@ map -> '%' map_base_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4'
 
 Erlang code.
 
+-export([parse/2]).
+
 -define(columns(), get(elixir_parser_columns)).
 -define(token_metadata(), get(elixir_token_metadata)).
 
@@ -671,9 +675,17 @@ Erlang code.
 -compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
 -import(lists, [reverse/1, reverse/2]).
 
+parse(Tokens, Origin) ->
+  case parse(Tokens) of
+    {ok, Exprs} -> {ok, build_sequence(Exprs, meta_from_location(Origin))};
+    Other -> Other
+  end.
+
 meta_from_token(Token) ->
   meta_from_location(?location(Token)).
 
+meta_from_location(nil) ->
+  [];
 meta_from_location({Line, Column, _}) ->
   case ?columns() of
     true -> [{line, Line}, {column, Column}];
@@ -801,7 +813,10 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, [], false).
+%% A single expression may have a synthetic block for unquote_splicing.
+build_sequence([_] = Exprs, _Meta) -> build_block(Exprs, []);
+build_sequence(Exprs, Meta) -> build_block(Exprs, Meta).
+
 build_block(Exprs, Meta) -> build_block(Exprs, Meta, false).
 
 build_block([{unquote_splicing, _, [_]}]=Exprs, Meta, _Parens) ->
@@ -1074,7 +1089,7 @@ charlist_parts(Parts) ->
 charlist_part(Binary) when is_binary(Binary) ->
   Binary;
 charlist_part({Begin, End, Tokens}) ->
-  Form = string_tokens_parse(Tokens),
+  Form = string_tokens_parse(Tokens, Begin),
   Meta = meta_from_location(Begin),
   MetaWithExtra =
     case ?token_metadata() of
@@ -1088,7 +1103,7 @@ string_parts(Parts) ->
 string_part(Binary) when is_binary(Binary) ->
   Binary;
 string_part({Begin, End, Tokens}) ->
-  Form = string_tokens_parse(Tokens),
+  Form = string_tokens_parse(Tokens, Begin),
   Meta = meta_from_location(Begin),
   MetaWithExtra =
     case ?token_metadata() of
@@ -1097,8 +1112,8 @@ string_part({Begin, End, Tokens}) ->
     end,
   {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, [{from_interpolation, true} | MetaWithExtra], [Form]}, {binary, Meta, nil}]}.
 
-string_tokens_parse(Tokens) ->
-  case parse(Tokens) of
+string_tokens_parse(Tokens, Origin) ->
+  case parse(Tokens, Origin) of
     {ok, Forms} -> Forms;
     {error, _} = Error -> throw(Error)
   end.
@@ -1133,7 +1148,8 @@ build_paren_stab(Before, Stab, After) ->
   end.
 
 collect_stab([{'->', Meta, [Left, Right]} | T], Exprs, Stabs) ->
-  Stab = {'->', Meta, [Left, build_block([Right | Exprs])]},
+  BodyMeta = [Pair || {Key, _} = Pair <- Meta, Key =:= line orelse Key =:= column],
+  Stab = {'->', Meta, [Left, build_sequence([Right | Exprs], BodyMeta)]},
   collect_stab(T, [], [Stab | Stabs]);
 
 collect_stab([H | T], Exprs, Stabs) ->

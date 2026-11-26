@@ -14,6 +14,84 @@ defmodule Kernel.ParserTest do
     assert Code.string_to_quoted!("  \n", columns: true) == {:__block__, [line: 1, column: 1], []}
   end
 
+  test "empty programs use the configured origin" do
+    for source <- ["", "\n;"] do
+      assert Code.string_to_quoted!(source, line: 5, column: 3) ==
+               {:__block__, [line: 5], []}
+
+      assert Code.string_to_quoted!(source, line: 5, column: 3, columns: true) ==
+               {:__block__, [line: 5, column: 3], []}
+    end
+
+    assert Code.string_to_quoted!("\n();",
+             line: 5,
+             column: 3,
+             columns: true,
+             emit_warnings: false
+           ) ==
+             {:__block__, [line: 6, column: 1], []}
+  end
+
+  test "program and interpolation sequences use the parse origin" do
+    assert Code.string_to_quoted!("\n1; 2", line: 5, column: 3, columns: true) ==
+             {:__block__, [line: 5, column: 3], [1, 2]}
+
+    assert {:<<>>, _, [{:"::", _, [{_, _, [{:__block__, [line: 5, column: 4], [1, 2]}]}, _]}]} =
+             Code.string_to_quoted!(~S|"#{1; 2}"|, line: 5, column: 3, columns: true)
+  end
+
+  test "secondary clause and arrow sequences use their opening token location" do
+    source = "if true do\n  :ok\nelse\n  1; 2\nend"
+
+    assert {:if, _, [true, [do: :ok, else: {:__block__, [line: 7, column: 1], [1, 2]}]]} =
+             Code.string_to_quoted!(source, line: 5, columns: true)
+
+    assert {:fn, _, [{:->, _, [[], {:__block__, [line: 5, column: 9], [1, 2]}]}]} =
+             Code.string_to_quoted!("fn () ->\n  1; 2\nend",
+               line: 5,
+               column: 3,
+               columns: true,
+               token_metadata: true
+             )
+  end
+
+  test "empty interpolations use the interpolation origin" do
+    for source <- [~S("a#{}b"), "\"a\#{\n;}b\"", ~S('a#{}b')] do
+      for columns <- [false, true] do
+        quoted =
+          Code.string_to_quoted!(source,
+            line: 10,
+            column: 3,
+            columns: columns,
+            token_metadata: true,
+            emit_warnings: false
+          )
+
+        {_quoted, interpolations} =
+          Macro.prewalk(quoted, [], fn
+            {{:., _, [Kernel, :to_string]}, meta, [form]} = node, acc ->
+              {node, [{meta, form} | acc]}
+
+            node, acc ->
+              {node, acc}
+          end)
+
+        expected_meta = if columns, do: [line: 10, column: 5], else: [line: 10]
+        assert [{_, {:__block__, ^expected_meta, []}}] = interpolations
+      end
+    end
+  end
+
+  test "empty parentheses in interpolations use the opening parenthesis location" do
+    assert {:<<>>, _, [{:"::", _, [{_, _, [{:__block__, [line: 11, column: 1], []}]}, _]}]} =
+             Code.string_to_quoted!("\"\#{\n()}\"",
+               line: 10,
+               column: 3,
+               columns: true,
+               emit_warnings: false
+             )
+  end
+
   describe "nullary ops" do
     test "in expressions" do
       assert parse!("..") == {:.., [line: 1], []}
@@ -691,7 +769,7 @@ defmodule Kernel.ParserTest do
       ]
 
       assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
-               {:__block__, [], args}
+               {:__block__, [line: 1, column: 1], args}
     end
 
     test "adds end_of_expression to the right hand side of ->" do
@@ -717,7 +795,7 @@ defmodule Kernel.ParserTest do
                       {:->, [line: 2],
                        [
                          [:foo],
-                         {:__block__, [],
+                         {:__block__, [line: 2],
                           [
                             {:bar,
                              [
@@ -938,7 +1016,9 @@ defmodule Kernel.ParserTest do
       file = "()"
 
       assert string_to_quoted.(file) ==
-               {:__block__, [parens: [closing: [line: 1, column: 2], line: 1, column: 1]], []}
+               {:__block__,
+                [parens: [closing: [line: 1, column: 2], line: 1, column: 1], line: 1, column: 1],
+                []}
 
       file = "(())"
 
@@ -946,7 +1026,9 @@ defmodule Kernel.ParserTest do
                {:__block__,
                 [
                   parens: [closing: [line: 1, column: 4], line: 1, column: 1],
-                  parens: [closing: [line: 1, column: 3], line: 1, column: 2]
+                  parens: [closing: [line: 1, column: 3], line: 1, column: 2],
+                  line: 1,
+                  column: 2
                 ], []}
 
       file = """
@@ -964,7 +1046,9 @@ defmodule Kernel.ParserTest do
                   end_of_expression: [newlines: 1, line: 6, column: 2],
                   parens: [closing: [line: 6, column: 1], line: 1, column: 1],
                   end_of_expression: [newlines: 1, line: 5, column: 4],
-                  parens: [closing: [line: 5, column: 3], line: 3, column: 3]
+                  parens: [closing: [line: 5, column: 3], line: 3, column: 3],
+                  line: 3,
+                  column: 3
                 ], []}
     end
 
@@ -1280,7 +1364,7 @@ defmodule Kernel.ParserTest do
 
       # CRLF is still a valid line ending at the top level
       assert Code.string_to_quoted!("x = 1\r\ny = 2") ==
-               {:__block__, [],
+               {:__block__, [line: 1],
                 [
                   {:=, [line: 1], [{:x, [line: 1], nil}, 1]},
                   {:=, [line: 2], [{:y, [line: 2], nil}, 2]}
@@ -1838,13 +1922,13 @@ defmodule Kernel.ParserTest do
     test "character literals take newlines into account" do
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert parse!("{?\n}\n{123}") ==
-                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
+                 {:__block__, [line: 1], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
 
         assert parse!("{?\\n}\n{123}") ==
-                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 2], ~c"{"}]}
+                 {:__block__, [line: 1], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 2], ~c"{"}]}
 
         assert parse!("{?\\\n}\n{123}") ==
-                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
+                 {:__block__, [line: 1], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
       end)
     end
 
