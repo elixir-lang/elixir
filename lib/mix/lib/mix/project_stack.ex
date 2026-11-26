@@ -103,23 +103,32 @@ defmodule Mix.ProjectStack do
 
   @spec config_mtime() :: integer
   def config_mtime() do
-    mtime_or_files =
+    {mtime, _mtimes} = config_mtimes_and_max()
+    mtime
+  end
+
+  @spec config_mtimes() :: %{binary => integer}
+  def config_mtimes() do
+    {_mtime, mtimes} = config_mtimes_and_max()
+    mtimes
+  end
+
+  # The latest mtime and the mtime of each config file are cached together.
+  defp config_mtimes_and_max() do
+    cached_or_files =
       get_stack(fn
         [%{config_mtime: nil, config_files: files} | _] -> files
-        [%{config_mtime: mtime} | _] -> mtime
-        [] -> @minimum_mtime
+        [%{config_mtime: cached} | _] -> cached
+        [] -> {@minimum_mtime, %{}}
       end)
 
-    if is_list(mtime_or_files) do
-      mtime =
-        mtime_or_files
-        |> Enum.map(&Mix.Utils.last_modified/1)
-        |> Enum.max()
-        |> max(@minimum_mtime)
-
-      update_stack(fn [h | t] -> {mtime, [%{h | config_mtime: mtime} | t]} end)
+    if is_list(cached_or_files) do
+      mtimes = Map.new(cached_or_files, &{&1, Mix.Utils.last_modified(&1)})
+      mtime = mtimes |> Map.values() |> Enum.max(fn -> 0 end) |> max(@minimum_mtime)
+      cached = {mtime, mtimes}
+      update_stack(fn [h | t] -> {cached, [%{h | config_mtime: cached} | t]} end)
     else
-      mtime_or_files
+      cached_or_files
     end
   end
 

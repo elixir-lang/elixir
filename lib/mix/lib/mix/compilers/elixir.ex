@@ -5,7 +5,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 41
+  @manifest_vsn 42
   @checkpoint_vsn 5
 
   import Record
@@ -331,21 +331,23 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  # We track the number of config files alongside the config mtime,
-  # so we can detect when a config file is removed. We skip the lock
-  # files, as umbrella children compiled from the umbrella root also
-  # include the root lock, which would change the count.
+  # We track the mtime of each config file alongside the config mtime,
+  # so we can detect when a config file is removed or replaced by an
+  # older one. We skip the lock files, as umbrella children compiled
+  # from the umbrella root also include the root lock, and those are
+  # only touched to force recompilation (so newer mtimes suffice).
   defp config_mtime() do
-    count =
-      Mix.Project.config_files()
-      |> Enum.uniq()
-      |> Enum.count(&(Path.basename(&1) != "compile.lock"))
+    files =
+      for {file, mtime} <- Mix.ProjectStack.config_mtimes(),
+          not String.ends_with?(file, "compile.lock"),
+          into: %{},
+          do: {file, mtime}
 
-    {Mix.Project.config_mtime(), count}
+    {Mix.Project.config_mtime(), files}
   end
 
-  defp config_changed?({mtime, count}, {old_mtime, old_count}),
-    do: mtime > old_mtime or count != old_count
+  defp config_changed?({mtime, files}, {old_mtime, old_files}),
+    do: mtime > old_mtime or files != old_files
 
   defp deps_config(local_deps, opts) do
     # If you change this config, you need to bump @manifest_vsn
@@ -1221,7 +1223,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {%{}, %{}, %{}, [], nil, nil, nil, 0, {0, 0}, {%{}, %{}}}
+  @default_manifest {%{}, %{}, %{}, [], nil, nil, nil, 0, {0, %{}}, {%{}, %{}}}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
