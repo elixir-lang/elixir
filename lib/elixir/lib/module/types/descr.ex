@@ -44,7 +44,7 @@ defmodule Module.Types.Descr do
                         [:fun, :atom, :tuple, :map, :list]
                     )
 
-  # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
+  # Remark: those are explicit BDD constructors. The functional constructor is `bdd_leaf_new/2`.
   @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top {:erlang.phash2([:open | @fields_new]), :open, @fields_new}
@@ -861,7 +861,7 @@ defmodule Module.Types.Descr do
           cond do
             # Computing term_type?(bare_difference(dynamic, static)) can be
             # expensive, so we check for term type before hand and check
-            # for :term exclusively in dynamic_to_quoted/2.
+            # for :term exclusively in dynamic_to_quoted/3.
             term_type?(dynamic) ->
               {:term, static, []}
 
@@ -1083,7 +1083,8 @@ defmodule Module.Types.Descr do
   @doc """
   Check if two types are disjoint.
 
-  This reimplements intersection/2 but aborts as it finds a disjoint part.
+  This reimplements bare_intersection/2 but aborts as soon as it finds
+  a non-empty part.
   """
   def disjoint?(:term, other), do: empty?(other)
   def disjoint?(other, :term), do: empty?(other)
@@ -1103,7 +1104,7 @@ defmodule Module.Types.Descr do
 
   If `input_type` has a static part (i.e., values that are known to appear and
   need to be handled), then to be compatible it should be a subtype of the
-  the dynamic part of `expected_type` (that is, the largest allowed type at
+  dynamic part of `expected_type` (that is, the largest allowed type at
   runtime).
 
   If `input_type` is a dynamic type, then we check that the two can intersect
@@ -1162,7 +1163,7 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
-  Optimized version of `not empty?(term(), type)`.
+  Optimized version of `subtype?(term(), lower_bound(type))`.
   """
   def term_type?(:term), do: true
   def term_type?(descr), do: subtype_static?(unfolded_term(), lower_bound(descr))
@@ -1272,8 +1273,9 @@ defmodule Module.Types.Descr do
   @doc """
   Compute the booleaness of an element.
 
-  It is either `:none`, `:maybe_true` (therefore never false),
-  `:maybe_false` (therefore never true), or `:maybe_both`.
+  It is either `:none`, `:maybe_both`, `{true, :always}`, `{false, :always}`,
+  `{true, :maybe}` (therefore never false), or `{false, :maybe}` (therefore
+  never true).
 
   This is an optimization against checking if a term is
   not disjoint on either true or false.
@@ -1468,25 +1470,18 @@ defmodule Module.Types.Descr do
 
   ## Functions
 
-  # Function types are represented using Binary Decision Diagrams (BDDs) for efficient
-  # handling of unions, intersections, and negations.
-  #
-  # Currently, they only represent weak types. It is yet to be decided how all of the
-  # types will be encoded in the descr.
+  # Function types are represented as `{:union, arities}` or `{:negation, arities}`,
+  # where `arities` maps each arity to a Binary Decision Diagram (BDD) of arrows.
+  # `{:negation, %{}}` is the top function type.
 
   ### Key concepts:
-
-  # * BDD structure: A tree with function nodes and :bdd_top/:bdd_bot leaves.
-  #   Paths to :bdd_top represent valid function types. Nodes are positive when
-  #   following a left branch (e.g. (int, float -> bool) and negative otherwise.
 
   # * Function variance:
   #   - Contravariance in arguments: If s <: t, then (t → r) <: (s → r)
   #   - Covariance in returns: If s <: t, then (u → s) <: (u → t)
 
   # * Representation:
-  #   - fun(): Top function type (leaf 1)
-  #   - Function literals: {[t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
+  #   - Function literals: bdd_leaf(args, return) where args are the argument types
   #   - Normalized form for function applications: {domain, arrows} is produced by `fun_normalize/2`
 
   # * Examples:
@@ -1879,7 +1874,8 @@ defmodule Module.Types.Descr do
 
   # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
   #
-  # 1. **domain**: The union of all domains from positive functions in the BDD
+  # 1. **domain**: The intersection, across all lines, of the union of the domains
+  #    of the positive functions in each line
   # 2. **arrows**: List of lists, where each inner list contains an intersection of function arrows
   #
   # ## Return Values
@@ -2003,7 +1999,7 @@ defmodule Module.Types.Descr do
   # Domain escape: if the input is not covered by the union of all the
   # arrow domains in the clause, the result is term(). This is because
   # rets_reached starts at term() and is only refined (intersected) when
-  # an arrow's domain covers the input, which is check by args_difference.
+  # an arrow's domain covers the input, which is checked by args_difference.
   # Along a path where no arrow covers the input, rets_reached stays
   # term() and gets unioned into the result at the base case. Since
   # term() is maximal, the overall result for that clause is term().
@@ -2090,9 +2086,8 @@ defmodule Module.Types.Descr do
 
   defp product_difference([], [], [], _acc_meet, acc), do: acc
 
-  # Takes all the paths from the root to the leaves finishing with a 1,
-  # and compile into tuples of positive and negative nodes. Positive nodes are
-  # those followed by a left path, negative nodes are those followed by a right path.
+  # Converts a function BDD into DNF lines of positive and negative arrows,
+  # removing the empty lines.
   defp fun_bdd_to_dnf(bdd),
     do: :lists.filter(fn {pos, neg} -> not fun_line_empty?(pos, neg) end, bdd_to_dnf(bdd))
 
@@ -2288,8 +2283,6 @@ defmodule Module.Types.Descr do
       all_disjoint_arguments?(rest)
   end
 
-  # For all integers keys in fun_repr1, fun_repr2, call fun_bdd_union on the values that are in
-  # both, else return the single value.
   defp fun_union({tag1, repr1}, {tag2, repr2}) do
     case {tag1, tag2} do
       {:union, :union} -> {:union, fun_repr_union(repr1, repr2)}
@@ -2299,8 +2292,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # For all integer keys that are both in fun_repr1 and fun_repr2, call fun_bdd_intersection
-  # on the values that are in both, else discard.
   defp fun_intersection({tag1, repr1}, {tag2, repr2}) do
     {tag, repr} =
       case {tag1, tag2} do
@@ -2762,8 +2753,6 @@ defmodule Module.Types.Descr do
             end
 
           if empty?(dynamic_value) do
-            # list_bdd_to_pos_dnf guarantees the lists actually exists,
-            # so we can match on none() rather than empty.
             case empty_list? do
               false -> :badproperlist
               true -> {empty_list?, nil}
@@ -3210,14 +3199,14 @@ defmodule Module.Types.Descr do
 
   ## Map
   #
-  # Maps are represented as BDDs, that is, a tree of pairs `{tag_or_domain, fields}`
-  # where `tag_or_domain` is either :closed or :open, or a map from domain keys
-  # (@domain_key_types) to types, and `fields` is a map of atom keys (:foo, :bar, ...)
-  # to types.
+  # Maps are represented as BDDs whose literals are `bdd_leaf(tag_or_domains, fields)`,
+  # where `tag_or_domains` is either :closed or :open, or an orddict from domain keys
+  # (@domain_key_types) to types, and `fields` is an orddict of atom keys (:foo, :bar, ...)
+  # to `{type, optional?}` pairs.
   #
   # For instance, the type `%{atom() => integer()}` is the type of maps where atom keys
   # map to integers, without any non-atom keys. It is represented using the map literal
-  # `{%{atom: integer()}, %{}}`, with no defined keys. Domain values are implicitly optional.
+  # `bdd_leaf([atom: integer()], [])`, with no defined keys. Domain values are implicitly optional.
   #
   # The type `%{..., atom() => integer()}` represents maps with atom keys bound to integers,
   # and other keys bound to any type. It will be represented using a map domain that maps
@@ -3452,9 +3441,6 @@ defmodule Module.Types.Descr do
          intersection_fun,
          seen
        ) do
-    # For a closed map with domains intersected with an open map with domains:
-    # 1. The result is closed (more restrictive)
-    # 2. We need to check each domain in the open map against the closed map
     default1 = map_key_tag_to_field(tag_or_domains1)
     default2 = map_key_tag_to_field(tag_or_domains2)
 
@@ -3462,7 +3448,7 @@ defmodule Module.Types.Descr do
     tag_or_domains = map_domain_intersection(tag_or_domains1, tag_or_domains2, seen)
 
     # Go over all fields in map1 and map2 with default atom types atom1 and atom2
-    # 1. If key is in both maps, compute non empty intersection (:error if it is none)
+    # 1. If key is in both maps, compute non empty intersection (throws if it is empty)
     # 2. If key is only in map1, compute non empty intersection with atom2
     # 3. If key is only in map2, compute non empty intersection with atom1
     # We do that by computing intersection on all key labels in both map1 and map2,
@@ -3697,9 +3683,9 @@ defmodule Module.Types.Descr do
   Fetches the type of the value returned by accessing `key` on `map`
   with the assumption that the descr is exclusively a map (or dynamic).
 
-  It returns a two element tuple or `:error`. The first element says
-  if the type is dynamically optional or not, the second element is
-  the type. In static mode, optional keys are not allowed.
+  It returns a two element tuple, `:badkey`, or `:badmap`. The first
+  element says if the type is dynamically optional or not, the second
+  element is the type. In static mode, optional keys are not allowed.
 
   Being dynamically optional means that the field may be present
   (while statically optional means we need to consider the field as
@@ -5172,9 +5158,7 @@ defmodule Module.Types.Descr do
     {[], [], nil, to_domain_keys(key_descr), []}
   end
 
-  # Short-circuits if it finds a non-empty map literal in the union.
-  # Since the algorithm is recursive, we implement the short-circuiting
-  # as throw/catch.
+  # Short-circuits if it finds a non-empty map line in the union.
   defp map_empty?(bdd, seen) do
     key = empty_bdd_seen_key(:map, bdd)
 
@@ -5182,10 +5166,6 @@ defmodule Module.Types.Descr do
       true
     else
       seen = Map.put(seen, key, true)
-
-      # We check the emptiness of the fields because map_literal_intersection
-      # will not return :empty on fields that are set to none() and that exist
-      # just in one map, but not the other.
       map_bdd_empty?({:open, []}, [], bdd, seen)
     end
   end
@@ -6044,7 +6024,7 @@ defmodule Module.Types.Descr do
   # - Negative tuple: open or closed tuples of size m
   defp tuple_empty_arity?(n, m, tag, elements, neg_tag, negs, seen) do
     # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
-    # closed, we also need to consider tuples of size greater than m + 1.
+    # closed, we also need to consider tuples of size at least m + 1.
     tag == :closed or
       (tuple_empty_sizes?(n, m, elements, negs, seen) and
          (neg_tag == :open or tuple_line_empty?(:open, tuple_fill(elements, m + 1), negs, seen)))
@@ -6097,7 +6077,7 @@ defmodule Module.Types.Descr do
   #
   # Invariant:
   # - `acc` holds the prefix we've already forced to *match* the negative tuple,
-  #   stored in reverse order (so we can `Enum.reverse/2` at the end when we emit).
+  #   stored in reverse order (so we can `:lists.reverse/2` at the end when we emit).
   # - `elements` are the yet-unprocessed positive tuple element types.
   # - `neg_elements` are the corresponding negative tuple element types.
   #
@@ -6108,7 +6088,7 @@ defmodule Module.Types.Descr do
   # This yields disjoint branches like:
   #   {t1 /\ not u1, t2, t3, ...} OR {t1 /\ u1, t2 /\ not u2, t3, ...} OR {t1/\u1, t2/\u2, t3/\ not u3, ...} ...
   defp tuple_elim_content(acc, tag, elements, [neg_type | neg_elements]) do
-    # If `elements` is shorter, default to top type `term()` (as in your example).
+    # If `elements` is shorter (an open tuple), default to top type `term()`.
     [ty | rest] =
       case elements do
         [] -> [term()]
@@ -6142,7 +6122,7 @@ defmodule Module.Types.Descr do
   end
 
   # No more negative elements to process: there is no "all-equal" branch to add,
-  # because we're constructing {t} ant not {u}, which must differ somewhere.
+  # because we're constructing {t} and not {u}, which must differ somewhere.
   defp tuple_elim_content(_acc, _tag, _elements, []) do
     []
   end
@@ -6150,7 +6130,7 @@ defmodule Module.Types.Descr do
   # Eliminates negations according to size
   # Example: {integer(), ...} and not {term(), term(), ...} contains {integer()}
   # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
-  # closed, we also need to consider tuples of size greater than m + 1.
+  # closed, we also need to consider tuples of size at least m + 1.
   defp tuple_elim_size(_, _, :closed, _, _), do: []
 
   defp tuple_elim_size(n, m, :open, elements, neg_tag) do
@@ -6542,9 +6522,8 @@ defmodule Module.Types.Descr do
   @doc """
   Delete an element from the tuple.
 
-  It returns the same as `tuple_fetch/2`.
+  Returns the new type, `:badindex`, or `:badtuple`.
   """
-  # Same as tuple_delete but checks if the index is out of range.
   def tuple_delete_at(:term, _key), do: :badtuple
 
   def tuple_delete_at({_, _, _} = node, index),
@@ -6639,7 +6618,8 @@ defmodule Module.Types.Descr do
   @doc """
   Insert an element at the tuple.
 
-  It returns the same as `tuple_fetch/2`. Notice, however, the range for indexes is inclusive.
+  Returns the new type, `:badindex`, or `:badtuple`.
+  Notice, however, the range for indexes is inclusive.
   """
   def tuple_insert_at(:term, _key, _type), do: :badtuple
 
@@ -6729,9 +6709,9 @@ defmodule Module.Types.Descr do
           else
             # The bdd carries negations and/or implicit `:bdd_top` positive paths
             # (e.g. from `tuple_difference(open_tuple([]), _) -> bdd_negation`).
-            # `bdd_map` rewrites only explicit leaves, so it would skip the implicit
-            # top (losing the insert) and wrongly transform negated leaves. Expand to
-            # the exact negation-free positive DNF first, then insert into each leaf.
+            # Inserting into its leaves would skip the implicit top (losing the insert)
+            # and wrongly transform negated leaves. Expand to the exact negation-free
+            # positive DNF first, then insert into each leaf.
             :lists.foldl(
               fn {tag, elements}, acc ->
                 tuple_union(tuple_insert_leaf(tag, elements, index, type), acc)
@@ -6761,7 +6741,7 @@ defmodule Module.Types.Descr do
   end
 
   # Inserts `type` at `index` into a single tuple literal. If the tuple is open,
-  # `List.insert_at` needs the tuple filled with `term()` up to `index` first.
+  # it is filled with `term()` up to `index` first.
   # Closed tuples shorter than `index` are empty after the input is guarded with
   # `tuple_of_size_at_least` (such as `{none()}`, which has every size), so they
   # are skipped.
@@ -6780,7 +6760,7 @@ defmodule Module.Types.Descr do
     bdd_leaf_new(tag, before ++ [type | after_index])
   end
 
-  # `bdd_map` rewrites a tuple insert exactly only on a pure positive disjunction
+  # Inserting into the leaves of a BDD is exact only on a pure positive disjunction
   # of leaves (every node keeps its literal on the constrained-top branch with no
   # dual branch). Any dual branch (or implicit `:bdd_top` in negated position)
   # would be transformed incorrectly or skipped.
@@ -6792,7 +6772,7 @@ defmodule Module.Types.Descr do
   @doc """
   Replace an element in the tuple at the given (0-based) index.
 
-  It returns the same as `tuple_fetch/2`.
+  Returns the new type, `:badindex`, or `:badtuple`.
   """
   def tuple_replace_at(descr, index, type) when is_integer(index) and index >= 0 do
     case tuple_delete_at(descr, index) do
@@ -7626,15 +7606,11 @@ defmodule Module.Types.Descr do
   defp opt_list_difference(bdd_leaf(_, _) = leaf, leaf, _seen), do: :bdd_bot
   defp opt_list_difference(bdd_leaf(:term, :term), bdd2, _seen), do: bdd_negation(bdd2)
 
-  # Computes the difference between two BDD (Binary Decision Diagram) list types.
-  # It progressively subtracts each type in bdd2 from all types in bdd1.
-  # The algorithm handles three cases:
-  # 1. Disjoint types: keeps the original type from bdd1
-  # 2. Subtype relationship:
-  #    a) If bdd2 type is a supertype, keeps only the negations
-  #    b) If only the last type differs, subtracts it
-  # 3. Base case: adds bdd2 type to negations of bdd1 type
-  # The result may be larger than the initial bdd1, which is maintained in the accumulator.
+  # Computes the difference between two list leaves:
+  # 1. If the list type of bdd1 is not a subtype of the one of bdd2,
+  #    falls back to the BDD difference
+  # 2. If the last type of bdd1 is also a subtype, the difference is empty
+  # 3. Otherwise, only the last type differs, so we subtract it
   defp opt_list_difference(bdd_leaf(list1, last1) = bdd1, bdd_leaf(list2, last2) = bdd2, seen) do
     cond do
       not subtype?(list1, list2) ->
