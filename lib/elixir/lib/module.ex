@@ -917,7 +917,7 @@ defmodule Module do
           def world, do: true
         end
 
-      Module.create(Hello, contents, Macro.Env.location(__ENV__))
+      Module.create(Hello, contents, __ENV__)
 
       Hello.world()
       #=> true
@@ -933,9 +933,17 @@ defmodule Module do
   Unlike `Kernel.defmodule/2`, which uses the caller's
   compilation environment, `Module.create/3` uses the
   environment supplied through `opts`.
+
+  ## Compile-time dependencies
+
+  When evaluating code during compilation, such as inside a module body,
+  the dependencies of the evaluated code are only tracked by Mix if you
+  pass `__ENV__/0` as `opts_or_env`. When a keyword list is given, the
+  evaluated code is not tracked, which means the file being compiled will
+  not be recompiled when the modules invoked by the evaluated code change.
   """
   @spec create(module, Macro.t(), Macro.Env.t() | create_opts) :: {:module, module, binary, term}
-  def create(module, quoted, opts)
+  def create(module, quoted, opts_or_env)
 
   def create(module, quoted, %Macro.Env{} = env) when is_atom(module) do
     create([line: env.line], module, quoted, env)

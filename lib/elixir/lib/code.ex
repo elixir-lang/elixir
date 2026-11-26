@@ -637,6 +637,14 @@ defmodule Code do
       iex> Enum.sort(binding)
       [a: 1, b: 2]
 
+  ## Compile-time dependencies
+
+  When evaluating code during compilation, such as inside a module body,
+  the dependencies of the evaluated code are only tracked by Mix if you
+  pass `__ENV__/0` as `opts_or_env`. When a keyword list is given, the
+  evaluated code is not tracked, which means the file being compiled will
+  not be recompiled when the modules invoked by the evaluated code change.
+  In general, it is not advised to evaluate code during compilation.
   """
   @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | [eval_opt | env_eval_opt]) ::
           {term, binding}
@@ -1169,7 +1177,8 @@ defmodule Code do
 
   See `eval_string/3` for a description of arguments and return types.
   It accepts the same options as both `env_for_eval/1` and
-  `eval_quoted_with_env/4`.
+  `eval_quoted_with_env/4`. As in `eval_string/3`, compile-time
+  dependencies are only tracked by Mix if you pass `__ENV__/0`.
 
   ## Examples
 
@@ -2335,6 +2344,10 @@ defmodule Code do
   compromise the machine (for example by executing system commands).
   Don't use `compile_string/2` with untrusted input (such as strings coming
   from the network).
+
+  The dependencies of the compiled code are not tracked by Mix. If invoked
+  during compilation, such as inside a module body, the file being compiled
+  will not be recompiled when the modules invoked by the compiled code change.
   """
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
@@ -2350,6 +2363,9 @@ defmodule Code do
   the second one is its bytecode (as a binary). A `file` can be
   given as second argument which will be used for reporting warnings
   and errors.
+
+  As in `compile_string/2`, the dependencies of the compiled code
+  are not tracked by Mix.
   """
   @spec compile_quoted(Macro.t(), binary) :: [{module, binary}]
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
