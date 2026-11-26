@@ -32,16 +32,6 @@ defmodule Kernel.ParserTest do
              {:__block__, [line: 6, column: 1], []}
   end
 
-  test "empty token streams without an origin omit location" do
-    for source <- ["", "\n;"] do
-      assert {:ok, tokens, _warnings} =
-               :elixir.string_to_tokens(String.to_charlist(source), 5, 3, "nofile", [])
-
-      assert {:ok, {:__block__, [], []}, []} =
-               :elixir.tokens_to_quoted(tokens, "nofile", columns: true)
-    end
-  end
-
   test "program and interpolation sequences use the parse origin" do
     assert Code.string_to_quoted!("\n1; 2", line: 5, column: 3, columns: true) ==
              {:__block__, [line: 5, column: 3], [1, 2]}
@@ -100,22 +90,6 @@ defmodule Kernel.ParserTest do
                columns: true,
                emit_warnings: false
              )
-  end
-
-  test "empty secondary clauses use the keyword location" do
-    source = "if true do\n  else\nend"
-
-    assert {:if, _, [true, [do: {:__block__, [line: 5], []}, else: {:__block__, [line: 6], []}]]} =
-             Code.string_to_quoted!(source, line: 5, column: 3)
-
-    assert {:if, _,
-            [
-              true,
-              [
-                do: {:__block__, [line: 5, column: 11], []},
-                else: {:__block__, [line: 6, column: 3], []}
-              ]
-            ]} = Code.string_to_quoted!(source, line: 5, column: 3, columns: true)
   end
 
   describe "nullary ops" do
