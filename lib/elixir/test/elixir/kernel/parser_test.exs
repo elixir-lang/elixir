@@ -378,6 +378,20 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(["nofile:1:1:", msg], "~foo1{bar]")
     end
 
+    test "sigils missing an opening delimiter at end of input" do
+      for sigil <- ["~s", "~q", "~S", "~MAT"], prefix <- ["", "foo("] do
+        source = prefix <> sigil
+        message = "missing opening delimiter for sigil #{sigil}"
+        location = [line: 1, column: byte_size(source) + 1]
+
+        assert Code.string_to_quoted(source) == {:error, {location, message, ""}}
+
+        assert_raise TokenMissingError, ~r/#{Regex.escape(message)}/, fn ->
+          Code.string_to_quoted!(source)
+        end
+      end
+    end
+
     test "sigil newlines" do
       assert {:sigil_s, _, [{:<<>>, _, ["here\ndoc"]}, []]} =
                Code.string_to_quoted!(~s|~s"here\ndoc"|)
