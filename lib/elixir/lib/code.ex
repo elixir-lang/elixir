@@ -2505,21 +2505,35 @@ defmodule Code do
   end
 
   @doc """
-  Similar to `ensure_compiled!/1` but indicates you can continue without said module.
+  Similar to `ensure_compiled!/1` but indicates you can continue without
+  said module.
 
   While `ensure_compiled!/1` indicates to the Elixir compiler you can
   only continue when said module is available, this function indicates
   you may continue compilation without said module.
 
-  If it succeeds in loading the module, it returns `{:module, module}`.
-  If not, returns `{:error, reason}` with the error reason.
+  > #### Use with care {: .warning}
+  >
+  > If the module being checked is eventually defined by the compiler,
+  > the file that invoked this function is typically not recompiled.
+  > Furthermore, deadlocks may return `{:error, :unavailable}`, leading
+  > to non-deterministic compilation. For those reasons, we strongly
+  > advise to not use this function. Use `Code.ensure_loaded` to check
+  > for dependencies (as any module from a dependency has by definition
+  > already been compiled), and `Code.ensure_compiled!/1` otherwise.
+
+  ## Return types
+
+  If this function succeeds in loading the module, it returns `{:module, module}`.
+  If not, it returns `{:error, reason}` with the error reason.
+
   If the module being checked is currently in a compiler deadlock,
   this function returns `{:error, :unavailable}`. Unavailable doesn't
   necessarily mean the module doesn't exist, just that it is not currently
   available, but it may (or may not) become available in the future.
 
-  Therefore, if you can only continue if the module is available, use
-  `ensure_compiled!/1` instead. In particular, do not do this:
+  If you can only continue if the module is available, use `ensure_compiled!/1`
+  instead. In particular, do not do this:
 
       case Code.ensure_compiled(module) do
         {:module, _} -> module
