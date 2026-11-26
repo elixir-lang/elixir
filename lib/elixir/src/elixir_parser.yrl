@@ -368,7 +368,7 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
 
 block_item -> block_eoe stab_eoe :
-                {handle_literal(?exprs('$1'), '$1'), build_stab('$2', [])}.
+                {handle_literal(?exprs('$1'), '$1'), build_stab('$2', meta_from_token('$1'))}.
 block_item -> block_eoe :
                 {handle_literal(?exprs('$1'), '$1'), {'__block__', meta_from_token('$1'), []}}.
 
@@ -677,8 +677,7 @@ Erlang code.
 
 parse(Tokens, Origin) ->
   case parse(Tokens) of
-    {ok, []} -> {ok, {'__block__', meta_from_location(Origin), []}};
-    {ok, Exprs} -> {ok, build_block(Exprs)};
+    {ok, Exprs} -> {ok, build_sequence(Exprs, meta_from_location(Origin))};
     Other -> Other
   end.
 
@@ -814,7 +813,10 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, [], false).
+%% A single expression may have a synthetic block for unquote_splicing.
+build_sequence([_] = Exprs, _Meta) -> build_block(Exprs, []);
+build_sequence(Exprs, Meta) -> build_block(Exprs, Meta).
+
 build_block(Exprs, Meta) -> build_block(Exprs, Meta, false).
 
 build_block([{unquote_splicing, _, [_]}]=Exprs, Meta, _Parens) ->
@@ -1146,7 +1148,8 @@ build_paren_stab(Before, Stab, After) ->
   end.
 
 collect_stab([{'->', Meta, [Left, Right]} | T], Exprs, Stabs) ->
-  Stab = {'->', Meta, [Left, build_block([Right | Exprs])]},
+  BodyMeta = [Pair || {Key, _} = Pair <- Meta, Key =:= line orelse Key =:= column],
+  Stab = {'->', Meta, [Left, build_sequence([Right | Exprs], BodyMeta)]},
   collect_stab(T, [], [Stab | Stabs]);
 
 collect_stab([H | T], Exprs, Stabs) ->

@@ -42,6 +42,29 @@ defmodule Kernel.ParserTest do
     end
   end
 
+  test "program and interpolation sequences use the parse origin" do
+    assert Code.string_to_quoted!("\n1; 2", line: 5, column: 3, columns: true) ==
+             {:__block__, [line: 5, column: 3], [1, 2]}
+
+    assert {:<<>>, _, [{:"::", _, [{_, _, [{:__block__, [line: 5, column: 4], [1, 2]}]}, _]}]} =
+             Code.string_to_quoted!(~S|"#{1; 2}"|, line: 5, column: 3, columns: true)
+  end
+
+  test "secondary clause and arrow sequences use their opening token location" do
+    source = "if true do\n  :ok\nelse\n  1; 2\nend"
+
+    assert {:if, _, [true, [do: :ok, else: {:__block__, [line: 7, column: 1], [1, 2]}]]} =
+             Code.string_to_quoted!(source, line: 5, columns: true)
+
+    assert {:fn, _, [{:->, _, [[], {:__block__, [line: 5, column: 9], [1, 2]}]}]} =
+             Code.string_to_quoted!("fn () ->\n  1; 2\nend",
+               line: 5,
+               column: 3,
+               columns: true,
+               token_metadata: true
+             )
+  end
+
   test "empty interpolations use the interpolation origin" do
     for source <- [~S("a#{}b"), "\"a\#{\n;}b\"", ~S('a#{}b')] do
       for columns <- [false, true] do
@@ -772,7 +795,7 @@ defmodule Kernel.ParserTest do
       ]
 
       assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
-               {:__block__, [], args}
+               {:__block__, [line: 1, column: 1], args}
     end
 
     test "adds end_of_expression to the right hand side of ->" do
@@ -798,7 +821,7 @@ defmodule Kernel.ParserTest do
                       {:->, [line: 2],
                        [
                          [:foo],
-                         {:__block__, [],
+                         {:__block__, [line: 2],
                           [
                             {:bar,
                              [
@@ -1355,7 +1378,7 @@ defmodule Kernel.ParserTest do
 
       # CRLF is still a valid line ending at the top level
       assert Code.string_to_quoted!("x = 1\r\ny = 2") ==
-               {:__block__, [],
+               {:__block__, [line: 1],
                 [
                   {:=, [line: 1], [{:x, [line: 1], nil}, 1]},
                   {:=, [line: 2], [{:y, [line: 2], nil}, 2]}
@@ -1913,13 +1936,13 @@ defmodule Kernel.ParserTest do
     test "character literals take newlines into account" do
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert parse!("{?\n}\n{123}") ==
-                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
+                 {:__block__, [line: 1], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
 
         assert parse!("{?\\n}\n{123}") ==
-                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 2], ~c"{"}]}
+                 {:__block__, [line: 1], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 2], ~c"{"}]}
 
         assert parse!("{?\\\n}\n{123}") ==
-                 {:__block__, [], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
+                 {:__block__, [line: 1], [{:{}, [line: 1], ~c"\n"}, {:{}, [line: 3], ~c"{"}]}
       end)
     end
 

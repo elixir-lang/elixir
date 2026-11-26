@@ -484,7 +484,7 @@ defmodule Kernel.WarningTest do
     message = "code block contains unused literal \"oops\""
 
     assert_warn_eval(
-      ["nofile:1\n", message],
+      ["nofile:1:1\n", message],
       """
       "oops"
       :ok
@@ -492,7 +492,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:1\n", message],
+      ["nofile:1:4\n", message],
       """
       fn ->
         "oops"
