@@ -175,11 +175,16 @@ defmodule Integer do
   def mod(dividend, divisor) do
     remainder = rem(dividend, divisor)
 
-    if remainder * divisor < 0 do
+    if opposite_signs?(divisor, remainder) do
       remainder + divisor
     else
       remainder
     end
+  end
+
+  @compile {:inline, opposite_signs?: 2}
+  defp opposite_signs?(a, b) do
+    if a < 0, do: b > 0, else: b < 0
   end
 
   @doc """
