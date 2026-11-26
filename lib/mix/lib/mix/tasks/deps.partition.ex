@@ -204,9 +204,9 @@ defmodule Mix.Tasks.Deps.Partition do
   end
 
   defp pop_with(list, fun) do
-    case Enum.split_while(list, &(not fun.(&1))) do
-      {_, []} -> :error
-      {pre, [result | post]} -> {result, pre ++ post}
+    case Enum.focus(list, fun) do
+      {pre, result, post} -> {result, Enum.reverse(pre, post)}
+      nil -> :error
     end
   end
 

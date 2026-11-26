@@ -642,6 +642,19 @@ iex> Enum.find_value(cart, :none, fn item ->
 :none
 ```
 
+### [`focus(enum, fun)`](`Enum.focus/2`)
+
+The elements before the match are returned in reverse order:
+
+```elixir
+iex> Enum.focus(cart, &(&1.fruit =~ "n"))
+{[%{fruit: "apple", count: 3}],
+ %{fruit: "banana", count: 1},
+ [%{fruit: "orange", count: 6}]}
+iex> Enum.focus(cart, &(&1.fruit =~ "y"))
+nil
+```
+
 ## Grouping
 {: .col-2}
 

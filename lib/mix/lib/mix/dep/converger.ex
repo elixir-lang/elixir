@@ -266,15 +266,15 @@ defmodule Mix.Dep.Converger do
   # also check for the override option and mark the dependency
   # as overridden instead of diverged.
   defp match_deps(list, upper_breadths, %Mix.Dep{app: app} = dep, env_target) do
-    case Enum.split_while(list, &(&1.app != app)) do
-      {_, []} ->
+    case Enum.focus(list, &(&1.app == app)) do
+      nil ->
         if Mix.Dep.Loader.skip?(dep, env_target) do
           :skip
         else
           :nomatch
         end
 
-      {pre, [%Mix.Dep{opts: other_opts} = other | pos]} ->
+      {pre, %Mix.Dep{opts: other_opts} = other, pos} ->
         in_upper? = app in upper_breadths
 
         if other.top_level and dep.top_level do
@@ -291,11 +291,11 @@ defmodule Mix.Dep.Converger do
           not converge?(other, dep) ->
             tag = if in_upper?, do: :overridden, else: :diverged
             other = %{other | status: {tag, dep}}
-            {:match, pre ++ [other | pos]}
+            {:match, Enum.reverse(pre, [other | pos])}
 
           vsn = req_mismatch(other, dep) ->
             other = %{other | status: {:divergedreq, vsn, dep}}
-            {:match, pre ++ [other | pos]}
+            {:match, Enum.reverse(pre, [other | pos])}
 
           not in_upper? and Mix.Dep.Loader.skip?(other, env_target) and
               not Mix.Dep.Loader.skip?(dep, env_target) ->
@@ -304,7 +304,7 @@ defmodule Mix.Dep.Converger do
               |> with_matching_only_and_targets(other, in_upper?)
               |> merge_manager(other, in_upper?)
 
-            {:replace, dep, pre ++ pos}
+            {:replace, dep, Enum.reverse(pre, pos)}
 
           true ->
             other =
@@ -312,7 +312,7 @@ defmodule Mix.Dep.Converger do
               |> with_matching_only_and_targets(dep, in_upper?)
               |> merge_manager(dep, in_upper?)
 
-            {:match, pre ++ [other | pos]}
+            {:match, Enum.reverse(pre, [other | pos])}
         end
     end
   end

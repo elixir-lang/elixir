@@ -65,7 +65,7 @@ defmodule Mix.ProjectStack do
   def on_recursing_root(fun) do
     {top, file} =
       update_stack(fn stack ->
-        {top, [mid | bottom]} = Enum.split_while(stack, &(not &1.recursing?))
+        {top, mid, bottom} = Enum.focus(stack, & &1.recursing?)
         {{top, mid.file}, [%{mid | recursing?: false} | bottom]}
       end)
 
@@ -73,7 +73,7 @@ defmodule Mix.ProjectStack do
       File.cd!(Path.dirname(file), fun)
     after
       update_stack(fn [mid | bottom] ->
-        {:ok, top ++ [%{mid | recursing?: true} | bottom]}
+        {:ok, Enum.reverse(top, [%{mid | recursing?: true} | bottom])}
       end)
     end
   end
