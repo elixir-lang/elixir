@@ -1822,9 +1822,13 @@ tokenize_sigil_contents([H | _] = Original, SigilName, Line, Column, Scope, Toke
   ErrorColumn = Column - 1 - length(SigilName),
   error({?LOC(Line, ErrorColumn), "invalid sigil delimiter: ", Message}, [$~] ++ SigilName ++ Original, Scope, Tokens);
 
-% Incomplete sigil.
-tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens) ->
-  tokenize([], Line, Column, Scope, Tokens).
+tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens)
+    when Scope#elixir_tokenizer.cursor_completion /= false ->
+  tokenize([], Line, Column, Scope, Tokens);
+
+tokenize_sigil_contents([], SigilName, Line, Column, Scope, Tokens) ->
+  Message = "missing opening delimiter for sigil ~" ++ SigilName,
+  error({?LOC(Line, Column), Message, []}, [], Scope, Tokens).
 
 add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Done, Scope, Tokens, Indentation, Delimiter) ->
   TokenColumn = Column - 1 - length(SigilName),

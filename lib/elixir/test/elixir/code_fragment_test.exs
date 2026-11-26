@@ -1522,6 +1522,15 @@ defmodule CodeFragmentTest do
       assert cc2q!("foo(123, ~r/") == s2q!("foo(123, __cursor__())")
     end
 
+    test "sigils missing an opening delimiter at the cursor" do
+      for sigil <- ["~s", "~q", "~S", "~MAT"], preserve_sigils <- [false, true] do
+        assert cc2q!(sigil, preserve_sigils: preserve_sigils) == s2q!("__cursor__()")
+
+        assert cc2q!("foo(123, #{sigil}", preserve_sigils: preserve_sigils) ==
+                 s2q!("foo(123, __cursor__())")
+      end
+    end
+
     test "sigils" do
       assert cc2q!("foo(123, ~") == s2q!("foo(123, __cursor__())")
       assert cc2q!("foo(123, ~r") == s2q!("foo(123, __cursor__())")
