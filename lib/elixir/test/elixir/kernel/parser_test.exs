@@ -29,7 +29,7 @@ defmodule Kernel.ParserTest do
              columns: true,
              emit_warnings: false
            ) ==
-             {:__block__, [], []}
+             {:__block__, [line: 6, column: 1], []}
   end
 
   test "empty token streams without an origin omit location" do
@@ -69,14 +69,30 @@ defmodule Kernel.ParserTest do
     end
   end
 
-  test "empty parentheses in interpolations omit location" do
-    assert {:<<>>, _, [{:"::", _, [{_, _, [{:__block__, [], []}]}, _]}]} =
+  test "empty parentheses in interpolations use the opening parenthesis location" do
+    assert {:<<>>, _, [{:"::", _, [{_, _, [{:__block__, [line: 11, column: 1], []}]}, _]}]} =
              Code.string_to_quoted!("\"\#{\n()}\"",
                line: 10,
                column: 3,
                columns: true,
                emit_warnings: false
              )
+  end
+
+  test "empty secondary clauses use the keyword location" do
+    source = "if true do\n  else\nend"
+
+    assert {:if, _, [true, [do: {:__block__, [line: 5], []}, else: {:__block__, [line: 6], []}]]} =
+             Code.string_to_quoted!(source, line: 5, column: 3)
+
+    assert {:if, _,
+            [
+              true,
+              [
+                do: {:__block__, [line: 5, column: 11], []},
+                else: {:__block__, [line: 6, column: 3], []}
+              ]
+            ]} = Code.string_to_quoted!(source, line: 5, column: 3, columns: true)
   end
 
   describe "nullary ops" do
@@ -991,7 +1007,9 @@ defmodule Kernel.ParserTest do
       file = "()"
 
       assert string_to_quoted.(file) ==
-               {:__block__, [parens: [closing: [line: 1, column: 2], line: 1, column: 1]], []}
+               {:__block__,
+                [parens: [closing: [line: 1, column: 2], line: 1, column: 1], line: 1, column: 1],
+                []}
 
       file = "(())"
 
@@ -999,7 +1017,9 @@ defmodule Kernel.ParserTest do
                {:__block__,
                 [
                   parens: [closing: [line: 1, column: 4], line: 1, column: 1],
-                  parens: [closing: [line: 1, column: 3], line: 1, column: 2]
+                  parens: [closing: [line: 1, column: 3], line: 1, column: 2],
+                  line: 1,
+                  column: 2
                 ], []}
 
       file = """
@@ -1017,7 +1037,9 @@ defmodule Kernel.ParserTest do
                   end_of_expression: [newlines: 1, line: 6, column: 2],
                   parens: [closing: [line: 6, column: 1], line: 1, column: 1],
                   end_of_expression: [newlines: 1, line: 5, column: 4],
-                  parens: [closing: [line: 5, column: 3], line: 3, column: 3]
+                  parens: [closing: [line: 5, column: 3], line: 3, column: 3],
+                  line: 3,
+                  column: 3
                 ], []}
     end
 

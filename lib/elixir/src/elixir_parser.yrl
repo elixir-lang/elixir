@@ -277,7 +277,9 @@ access_expr -> fn_eoe stab_eoe 'end' : build_fn('$1', '$2', '$3').
 access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
 access_expr -> open_paren ';' stab_eoe ')' : build_paren_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
-access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', parens_meta('$1'), []}.
+access_expr -> empty_paren :
+                 warn_empty_paren('$1'),
+                 {'__block__', parens_meta('$1') ++ meta_from_token(element(1, '$1')), []}.
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
@@ -368,7 +370,7 @@ stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handl
 block_item -> block_eoe stab_eoe :
                 {handle_literal(?exprs('$1'), '$1'), build_stab('$2', [])}.
 block_item -> block_eoe :
-                {handle_literal(?exprs('$1'), '$1'), {'__block__', [], []}}.
+                {handle_literal(?exprs('$1'), '$1'), {'__block__', meta_from_token('$1'), []}}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1' | '$2'].
