@@ -621,7 +621,7 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.run("compile", ["--verbose"])
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert Bar.values() == {1, 1}
+        assert apply(Bar, :values, []) == {1, 1}
 
         File.write!(
           "../foo/src/foo_erl.erl",
@@ -633,7 +633,7 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.clear()
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert Bar.values() == {22, 22}
+        assert apply(Bar, :values, []) == {22, 22}
       end)
     end)
   after

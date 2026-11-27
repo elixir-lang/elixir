@@ -1384,8 +1384,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert A.get() == :v1
-      assert B.get() == :v1
+      assert apply(A, :get, []) == :v1
+      assert apply(B, :get, []) == :v1
 
       Mix.shell().flush()
       purge([A, B, Pr, Pr.Integer])
@@ -1402,8 +1402,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/pr.ex"]}
-      assert A.get() == :v2
-      assert B.get() == :v2
+      assert apply(A, :get, []) == :v2
+      assert apply(B, :get, []) == :v2
     end)
   after
     purge([A, B, Pr, Pr.Integer])
