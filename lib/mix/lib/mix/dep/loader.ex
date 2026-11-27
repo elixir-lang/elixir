@@ -205,7 +205,7 @@ defmodule Mix.Dep.Loader do
         {scm, opts}
       end
 
-    if !scm do
+    unless scm do
       Mix.raise(
         "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
       )

@@ -275,7 +275,7 @@ defmodule SupervisorTest do
   end
 
   defp wait_until_registered(name) do
-    if !Process.whereis(name) do
+    unless Process.whereis(name) do
       wait_until_registered(name)
     end
   end

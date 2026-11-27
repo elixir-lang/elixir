@@ -471,7 +471,7 @@ defmodule ExUnit.Assertions do
   end
 
   def assert(value, opts) when is_list(opts) do
-    if !value, do: raise(ExUnit.AssertionError, opts)
+    unless value, do: raise(ExUnit.AssertionError, opts)
     true
   end
 

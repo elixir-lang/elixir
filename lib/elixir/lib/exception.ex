@@ -2290,7 +2290,7 @@ defmodule MissingApplicationsError do
 
   ## Examples
 
-      if !Application.spec(:plug, :vsn) do
+      unless Application.spec(:plug, :vsn) do
         raise MissingApplicationsError,
           description: "application :plug is required for testing Plug-related functionality",
           apps: [{:plug, "~> 1.0"}]

@@ -54,7 +54,7 @@ defmodule Mix.Tasks.App.Config do
     #
     # Therefore we let the application that owns the build path
     # to ultimately perform the check.
-    if !config[:build_path] do
+    unless config[:build_path] do
       check_configured()
     end
   end

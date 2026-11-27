@@ -259,20 +259,29 @@ defmodule KernelTest do
       "invalid or duplicate keys for unless, only \"do\" " <>
         "and an optional \"else\" are permitted"
 
-    ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      for source <- [
-            "unless true, foo: 7",
-            "unless true, do: 6, boo: 7",
-            "unless true, do: 7, do: 6",
-            "unless true, do: 8, else: 7, else: 6",
-            "unless true, else: 6",
-            "unless true, []"
-          ] do
-        assert_raise ArgumentError, error_message, fn ->
-          Code.eval_string(source)
-        end
-      end
-    end)
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, foo: 7")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, do: 6, boo: 7")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, do: 7, do: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, do: 8, else: 7, else: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, else: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, []")
+    end
   end
 
   test "and/2" do

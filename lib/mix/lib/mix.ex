@@ -1108,7 +1108,7 @@ defmodule Mix do
         _ -> Mix.raise("unknown dependency #{inspect(app_name)} given to #{inspect(key)}")
       end
 
-    if !app_dir do
+    unless app_dir do
       Mix.raise("#{inspect(app_name)} given to #{inspect(key)} must be a path dependency")
     end
 

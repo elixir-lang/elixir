@@ -151,7 +151,7 @@ defmodule Mix.Tasks.Escript.Build do
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
 
-    if !main do
+    unless main do
       error_message =
         "Could not generate escript, please set :main_module " <>
           "in your project configuration (under :escript option) to a module that implements main/1. " <>

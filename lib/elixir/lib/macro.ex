@@ -2929,19 +2929,22 @@ defmodule Macro do
     ]
   end
 
-  defp dbg_ast_to_debuggable({:if, meta, [condition_ast, clauses]} = ast, env) do
-    case Macro.Env.lookup_import(env, {:if, 2}) do
+  defp dbg_ast_to_debuggable({op, meta, [condition_ast, clauses]} = ast, env)
+       when op in [:if, :unless] do
+    case Macro.Env.lookup_import(env, {op, 2}) do
       [macro: Kernel] ->
         condition_result_var = unique_var(:condition_result, __MODULE__)
 
         [
           quote do
             unquote(condition_result_var) = unquote(condition_ast)
-            {:if_condition, unquote(escape(condition_ast)), unquote(condition_result_var)}
+
+            {:condition, unquote(op), unquote(escape(condition_ast)),
+             unquote(condition_result_var)}
           end,
           quote do
-            result = unquote({:if, meta, [condition_result_var, clauses]})
-            {:if_result, unquote(escape(ast)), result}
+            result = unquote({op, meta, [condition_result_var, clauses]})
+            {:conditional, unquote(op), unquote(escape(ast)), result}
           end
         ]
 
@@ -3130,9 +3133,9 @@ defmodule Macro do
     {formatted, value}
   end
 
-  defp dbg_format_ast_to_debug({:if_condition, condition_ast, condition_result}, options) do
+  defp dbg_format_ast_to_debug({:condition, op, condition_ast, condition_result}, options) do
     formatted = [
-      dbg_maybe_underline("If condition", options),
+      dbg_maybe_underline("#{dbg_op_name(op)} condition", options),
       ":\n",
       dbg_format_ast_with_value(condition_ast, condition_result, options)
     ]
@@ -3140,9 +3143,9 @@ defmodule Macro do
     {formatted, condition_result}
   end
 
-  defp dbg_format_ast_to_debug({:if_result, ast, result}, options) do
+  defp dbg_format_ast_to_debug({:conditional, op, ast, result}, options) do
     formatted = [
-      dbg_maybe_underline("If expression", options),
+      dbg_maybe_underline("#{dbg_op_name(op)} expression", options),
       ":\n",
       dbg_format_ast_with_value(ast, result, options)
     ]
@@ -3197,6 +3200,9 @@ defmodule Macro do
     [stacktrace_entry] = Macro.Env.stacktrace(env)
     "[" <> Exception.format_stacktrace_entry(stacktrace_entry) <> "]"
   end
+
+  defp dbg_op_name(:if), do: "If"
+  defp dbg_op_name(:unless), do: "Unless"
 
   defp dbg_maybe_underline(string, options) do
     if options[:syntax_colors] != [] do

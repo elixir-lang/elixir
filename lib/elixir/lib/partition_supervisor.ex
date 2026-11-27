@@ -257,13 +257,13 @@ defmodule PartitionSupervisor do
   def start_link(opts) when is_list(opts) do
     name = opts[:name]
 
-    if !name do
+    unless name do
       raise ArgumentError, "the :name option must be given to PartitionSupervisor"
     end
 
     {child_spec, opts} = Keyword.pop(opts, :child_spec)
 
-    if !child_spec do
+    unless child_spec do
       raise ArgumentError, "the :child_spec option must be given to PartitionSupervisor"
     end
 

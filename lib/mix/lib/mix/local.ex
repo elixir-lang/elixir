@@ -131,7 +131,7 @@ defmodule Mix.Local do
 
     case File.read(elixir) do
       {:ok, req} ->
-        if !Version.match?(System.version(), req) do
+        unless Version.match?(System.version(), req) do
           archive = ebin |> Path.dirname() |> Path.basename()
 
           Mix.shell().error(

@@ -728,13 +728,13 @@ defmodule Mix.Tasks.FormatTest do
 
   test "respects the --migrate flag", context do
     in_tmp(context.test, fn ->
-      File.write!("a.ex", "unless foo, do: 'bar'\n")
+      File.write!("a.ex", "foo('bar')\n")
 
       Mix.Tasks.Format.run(["a.ex"])
-      assert File.read!("a.ex") == "unless foo, do: 'bar'\n"
+      assert File.read!("a.ex") == "foo('bar')\n"
 
       Mix.Tasks.Format.run(["a.ex", "--migrate"])
-      assert File.read!("a.ex") == "if !foo, do: ~c\"bar\"\n"
+      assert File.read!("a.ex") == "foo(~c\"bar\")\n"
     end)
   end
 

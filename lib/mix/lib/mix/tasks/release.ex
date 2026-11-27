@@ -1358,7 +1358,7 @@ defmodule Mix.Tasks.Release do
   end
 
   defp info(release, message) do
-    if !release.options[:quiet] do
+    unless release.options[:quiet] do
       Mix.shell().info(message)
     end
   end

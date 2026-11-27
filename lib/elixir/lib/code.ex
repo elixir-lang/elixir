@@ -273,7 +273,6 @@ defmodule Code do
           | {:migrate_bitstring_modifiers, boolean()}
           | {:migrate_call_parens_on_pipe, boolean()}
           | {:migrate_charlists_as_sigils, boolean()}
-          | {:migrate_unless, boolean()}
           | {atom(), term()}
 
   @typedoc """
@@ -812,11 +811,6 @@ defmodule Code do
     * `:migrate_charlists_as_sigils` (since v1.18.0) - when `true`,
       formats charlists as [`~c`](`Kernel.sigil_c/2`) sigils, for example
       `'foo'` becomes `~c"foo"`.
-      Defaults to the value of the `:migrate` option. This option changes the AST.
-
-    * `:migrate_unless` (since v1.18.0) - when `true`,
-      rewrites `unless` expressions using `if` with a negated condition, for example
-      `unless foo, do:` becomes `if !foo, do:`.
       Defaults to the value of the `:migrate` option. This option changes the AST.
 
   ## Design principles
