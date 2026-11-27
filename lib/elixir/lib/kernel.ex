@@ -2485,12 +2485,12 @@ defmodule Kernel do
   Creates and updates a struct.
 
   The `struct` argument may be an atom (which defines `defstruct`)
-  or a `struct` itself. The second argument is any `Enumerable` that
-  emits two-element tuples (key-value pairs) during enumeration.
+  or a `struct` itself. The second argument is a keyword list of
+  fields. Passing any other enumerable is deprecated.
 
-  Keys in the `Enumerable` that don't exist in the struct are automatically
+  Keys in the list that don't exist in the struct are automatically
   discarded. Note that keys must be atoms, as only atoms are allowed when
-  defining a struct. If there are duplicate keys in the `Enumerable`, the last
+  defining a struct. If there are duplicate keys in the list, the last
   entry will be taken (same behavior as `Map.new/1`).
 
   This function is useful for dynamically creating and updating structs, as
@@ -2514,17 +2514,27 @@ defmodule Kernel do
       struct(user, unknown: "value")
       #=> %User{name: "meg"}
 
-      struct(User, %{name: "meg"})
+      struct(User, Map.to_list(%{name: "meg"}))
       #=> %User{name: "meg"}
 
-      # String keys are ignored
-      struct(User, %{"name" => "meg"})
-      #=> %User{name: "john"}
-
   """
-  @spec struct(module | struct, Enumerable.t()) :: struct
-  def struct(struct, fields \\ []) do
-    struct(struct, fields, fn
+  @spec struct(module | struct, keyword()) :: struct
+  def struct(struct, fields \\ [])
+
+  def struct(struct, []) when is_atom(struct) do
+    validate_struct!(struct.__struct__(), struct, 0)
+  end
+
+  def struct(struct, fields) when is_atom(struct) do
+    struct(validate_struct!(struct.__struct__(), struct, 0), fields)
+  end
+
+  def struct(%_{} = struct, fields) do
+    with false <- is_list(fields) do
+      warn_on_non_list_fields(:struct)
+    end
+
+    Enum.reduce(fields, struct, fn
       {:__struct__, _val}, acc ->
         acc
 
@@ -2553,15 +2563,24 @@ defmodule Kernel do
       function will check if every given key-value belongs to the struct.
 
   """
-  @spec struct!(module | struct, Enumerable.t()) :: struct
+  @spec struct!(module | struct, keyword()) :: struct
   def struct!(struct, fields \\ [])
 
-  def struct!(struct, fields) when is_atom(struct) do
+  def struct!(struct, fields) when is_atom(struct) and is_list(fields) do
     validate_struct!(struct.__struct__(fields), struct, 1)
   end
 
+  def struct!(struct, fields) when is_atom(struct) do
+    warn_on_non_list_fields(:struct!)
+    validate_struct!(struct.__struct__(Enum.to_list(fields)), struct, 1)
+  end
+
   def struct!(struct, fields) when is_map(struct) do
-    struct(struct, fields, fn
+    with false <- is_list(fields) do
+      warn_on_non_list_fields(:struct!)
+    end
+
+    Enum.reduce(fields, struct, fn
       {:__struct__, _}, acc ->
         acc
 
@@ -2570,20 +2589,18 @@ defmodule Kernel do
     end)
   end
 
-  defp struct(struct, [], _fun) when is_atom(struct) do
-    validate_struct!(struct.__struct__(), struct, 0)
-  end
+  # TODO: Remove me on v2.0
+  defp warn_on_non_list_fields(fun) do
+    IO.warn_once(
+      {__MODULE__, fun},
+      fn ->
+        "passing a non-list as fields to #{fun}/2 is deprecated, " <>
+          "please pass a keyword list instead (for example, using Enum.to_list/1)"
+      end,
+      _stacktrace_drop_levels = 4
+    )
 
-  defp struct(struct, fields, fun) when is_atom(struct) do
-    struct(validate_struct!(struct.__struct__(), struct, 0), fields, fun)
-  end
-
-  defp struct(%_{} = struct, [], _fun) do
-    struct
-  end
-
-  defp struct(%_{} = struct, fields, fun) do
-    Enum.reduce(fields, struct, fun)
+    :ok
   end
 
   defp validate_struct!(%{__struct__: module} = struct, module, _arity) do
