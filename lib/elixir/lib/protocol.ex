@@ -509,12 +509,43 @@ defmodule Protocol do
   def extract_impls(protocol, paths) when is_atom(protocol) do
     prefix = Atom.to_charlist(protocol) ++ [?.]
 
-    extract_matching_by_attribute(paths, prefix, fn _mod, attributes ->
+    extract_matching_by_attribute(paths, prefix, fn mod, attributes ->
       case attributes[:__impl__] do
-        [protocol: ^protocol, for: for] -> for
-        _ -> nil
+        [protocol: ^protocol, for: for] ->
+          for
+
+        _ ->
+          warn_on_built_in_shadow(protocol, mod, prefix)
+          nil
       end
     end)
+  end
+
+  # Unconsolidated protocols dispatch to any module named after a
+  # built-in type, even if it is not an implementation, while
+  # consolidated protocols only dispatch to implementations.
+  defp warn_on_built_in_shadow(protocol, mod, prefix) do
+    with true <- mod != protocol,
+         rest = :lists.nthtail(length(prefix), Atom.to_charlist(mod)),
+         type = List.to_atom([?E, ?l, ?i, ?x, ?i, ?r, ?.] ++ rest),
+         true <- Keyword.has_key?(built_in(), type) do
+      # We cannot use the inspect protocol while consolidating
+      mod = Macro.inspect_atom(:literal, mod)
+      protocol = Macro.inspect_atom(:literal, protocol)
+      type = Macro.inspect_atom(:literal, type)
+
+      IO.warn(
+        "module " <>
+          mod <>
+          " is not an implementation of protocol " <>
+          protocol <>
+          " but it is named after the built-in type " <>
+          type <>
+          ". Either define it with defimpl " <>
+          protocol <> ", for: " <> type <> " or move it to another namespace",
+        []
+      )
+    end
   end
 
   defp extract_matching_by_attribute(paths, prefix, callback) do

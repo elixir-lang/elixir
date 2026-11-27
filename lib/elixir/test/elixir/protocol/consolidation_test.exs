@@ -356,6 +356,27 @@ defmodule Protocol.ConsolidationTest do
       assert Enumerable in protos
     end
 
+    @tag :tmp_dir
+    test "implementations warn on non-implementations named after built-in types",
+         %{tmp_dir: tmp_dir} do
+      write_beam = fn module ->
+        {:module, ^module, binary, _} = Module.create(module, quote(do: nil), __ENV__)
+        :code.purge(module)
+        :code.delete(module)
+        File.write!(Path.join(tmp_dir, "#{module}.beam"), binary)
+      end
+
+      write_beam.(ShadowProtocol)
+      write_beam.(ShadowProtocol.Float)
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Protocol.extract_impls(ShadowProtocol, [tmp_dir]) == []
+             end) =~
+               "module ShadowProtocol.Float is not an implementation of protocol ShadowProtocol " <>
+                 "but it is named after the built-in type Float. Either define it with " <>
+                 "defimpl ShadowProtocol, for: Float or move it to another namespace"
+    end
+
     test "implementations with charlist path" do
       impls =
         Protocol.extract_impls(Enumerable, [to_charlist(Application.app_dir(:elixir, "ebin"))])
