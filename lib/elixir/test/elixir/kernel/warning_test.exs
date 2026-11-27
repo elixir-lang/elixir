@@ -279,6 +279,70 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "warnings from caller code in generated macro argument containers" do
+    output =
+      capture_compile("""
+      defmodule Kernel.WarningTest.GeneratedContainerMacro do
+        defmacro passthrough(arg) do
+          quote do
+            unused_generated = 1
+            unquote(arg)
+          end
+        end
+
+        defmacro in_list(code) do
+          quote generated: true do
+            import Kernel.WarningTest.GeneratedContainerMacro, only: [passthrough: 1]
+            passthrough([unquote(code)])
+          end
+        end
+
+        defmacro in_pair(code) do
+          quote generated: true do
+            import Kernel.WarningTest.GeneratedContainerMacro, only: [passthrough: 1]
+            passthrough({unquote(code), :tag})
+          end
+        end
+
+        defmacro in_body(code) do
+          quote generated: true do
+            if is_atom(:tag), do: unquote(code)
+          end
+        end
+      end
+
+      defmodule Kernel.WarningTest.GeneratedContainerCaller do
+        import Kernel.WarningTest.GeneratedContainerMacro
+
+        def list do
+          in_list(fn ->
+            unused_list = 1
+            :ok
+          end)
+        end
+
+        def pair do
+          in_pair(fn ->
+            unused_pair = 1
+            :ok
+          end)
+        end
+
+        def body do
+          in_body(fn ->
+            unused_body = 1
+            :ok
+          end)
+        end
+      end
+      """)
+
+    assert output =~ ~s(variable "unused_list" is unused)
+    assert output =~ ~s(variable "unused_pair" is unused)
+    assert output =~ ~s(variable "unused_body" is unused)
+    refute output =~ ~s(variable "unused_generated" is unused)
+  end
+
   test "unused variable that could be pinned" do
     # Note we use compile_string because eval_string does not emit unused vars warning
     assert_warn_compile(
