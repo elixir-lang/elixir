@@ -14,12 +14,12 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.21           | Development
-1.20           | Bug fixes and security patches
+1.22           | Development
+1.21           | Bug fixes and security patches
+1.20           | Security patches only
 1.19           | Security patches only
 1.18           | Security patches only
 1.17           | Security patches only
-1.16           | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann) and on the [GitHub releases page](https://github.com/elixir-lang/elixir/releases).
 
@@ -51,6 +51,7 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Erlang relea
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
+1.22           | 27 - 29
 1.21           | 27 - 29
 1.20           | 27 - 29
 1.19           | 26 - 28
@@ -95,6 +96,8 @@ The first column is the version the feature was hard deprecated. The second colu
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.21] | `Macro.Env.fetch_alias/2` (and `fetch_macro_alias`) | `Macro.Env.expand_alias/4` (v1.17)
+[v1.21] | `Path.safe_relative_to/2`                           | `Path.safe_relative/2` (v1.14)
+[v1.21] | `--tracer` in `mix compile.elixir`                  | `:tracers` in `:elixirc_options` or `Code.put_compiler_option/2` (v1.10)
 [v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>` (v1.15)
 [v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)` (v1.16)
 [v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2` (v1.16)
@@ -228,24 +231,24 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.1]  | `Access` protocol                                   | `Access` behaviour (v1.1)
 [v1.1]  | `as: true \| false` in `alias/2` and `require/2`    | *None*
 
-[v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md#4-deprecations
-[v1.2]: https://github.com/elixir-lang/elixir/blob/v1.2/CHANGELOG.md#changelog-for-elixir-v12
-[v1.3]: https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md#4-deprecations
-[v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md#4-deprecations
-[v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md#4-deprecations
-[v1.6]: https://github.com/elixir-lang/elixir/blob/v1.6/CHANGELOG.md#4-deprecations
-[v1.7]: https://github.com/elixir-lang/elixir/blob/v1.7/CHANGELOG.md#4-hard-deprecations
-[v1.8]: https://github.com/elixir-lang/elixir/blob/v1.8/CHANGELOG.md#4-hard-deprecations
-[v1.9]: https://github.com/elixir-lang/elixir/blob/v1.9/CHANGELOG.md#4-hard-deprecations
-[v1.10]: https://github.com/elixir-lang/elixir/blob/v1.10/CHANGELOG.md#4-hard-deprecations
-[v1.11]: https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md#4-hard-deprecations
-[v1.12]: https://github.com/elixir-lang/elixir/blob/v1.12/CHANGELOG.md#4-hard-deprecations
-[v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
-[v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations
-[v1.15]: https://github.com/elixir-lang/elixir/blob/v1.15/CHANGELOG.md#4-hard-deprecations
-[v1.16]: https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md#4-hard-deprecations
-[v1.17]: https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md#4-hard-deprecations
-[v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md#4-hard-deprecations
-[v1.19]: https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md#4-hard-deprecations
-[v1.20]: https://github.com/elixir-lang/elixir/blob/v1.20/CHANGELOG.md#4-hard-deprecations
-[v1.21]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md
+[v1.2]: https://github.com/elixir-lang/elixir/blob/v1.2/CHANGELOG.md
+[v1.3]: https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md
+[v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md
+[v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md
+[v1.6]: https://github.com/elixir-lang/elixir/blob/v1.6/CHANGELOG.md
+[v1.7]: https://github.com/elixir-lang/elixir/blob/v1.7/CHANGELOG.md
+[v1.8]: https://github.com/elixir-lang/elixir/blob/v1.8/CHANGELOG.md
+[v1.9]: https://github.com/elixir-lang/elixir/blob/v1.9/CHANGELOG.md
+[v1.10]: https://github.com/elixir-lang/elixir/blob/v1.10/CHANGELOG.md
+[v1.11]: https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md
+[v1.12]: https://github.com/elixir-lang/elixir/blob/v1.12/CHANGELOG.md
+[v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md
+[v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md
+[v1.15]: https://github.com/elixir-lang/elixir/blob/v1.15/CHANGELOG.md
+[v1.16]: https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md
+[v1.17]: https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md
+[v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md
+[v1.19]: https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md
+[v1.20]: https://github.com/elixir-lang/elixir/blob/v1.20/CHANGELOG.md
+[v1.21]: https://github.com/elixir-lang/elixir/blob/v1.21/CHANGELOG.md
