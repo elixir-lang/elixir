@@ -212,7 +212,7 @@ defmodule Integer do
   @doc since: "1.4.0"
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
   def floor_div(dividend, divisor) do
-    if :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
+    if opposite_signs?(dividend, divisor) and rem(dividend, divisor) != 0 do
       div(dividend, divisor) - 1
     else
       div(dividend, divisor)
@@ -241,7 +241,7 @@ defmodule Integer do
   @doc since: "1.20.0"
   @spec ceil_div(integer, neg_integer | pos_integer) :: integer
   def ceil_div(dividend, divisor) do
-    if not :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
+    if not opposite_signs?(dividend, divisor) and rem(dividend, divisor) != 0 do
       div(dividend, divisor) + 1
     else
       div(dividend, divisor)
