@@ -96,6 +96,7 @@ The first column is the version the feature was hard deprecated. The second colu
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.22] | `unless/2`                                          | `if/2` with a negated condition (v1.0)
+[v1.22] | Non-list fields in `struct/2` and `struct!/2`       | A list of fields, such as with `Enum.to_list/1` (v1.0)
 [v1.22] | `Macro.struct!/2`                                   | `Macro.struct_info!/2` (v1.18)
 [v1.22] | `__deriving__/3` in `Any` implementations           | The `c:Protocol.__deriving__/2` macro in the protocol (v1.18)
 [v1.22] | `Regex.recompile/1` and `Regex.recompile!/1`        | *None* (they have no effect)
