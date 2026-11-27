@@ -35,14 +35,21 @@ defmodule KeywordTest do
     assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn _ -> :pop end) == {1, [b: 2]}
   end
 
+  test "get_and_update/3 with :skip leaves the keyword list unchanged" do
+    assert Keyword.get_and_update([a: 1, b: 2, a: 3], :a, fn _ -> :skip end) ==
+             {1, [a: 1, b: 2, a: 3]}
+
+    assert Keyword.get_and_update([a: 1], :b, fn _ -> :skip end) == {nil, [a: 1]}
+  end
+
   test "get_and_update/3 raises on bad return value from the argument function" do
-    message = "the given function must return a two-element tuple or :pop, got: 1"
+    message = "the given function must return a two-element tuple, :pop, or :skip, got: 1"
 
     assert_raise RuntimeError, message, fn ->
       Keyword.get_and_update([a: 1], :a, fn value -> value end)
     end
 
-    message = "the given function must return a two-element tuple or :pop, got: nil"
+    message = "the given function must return a two-element tuple, :pop, or :skip, got: nil"
 
     assert_raise RuntimeError, message, fn ->
       Keyword.get_and_update([], :a, fn value -> value end)
@@ -54,10 +61,13 @@ defmodule KeywordTest do
              {1, [a: 11, b: 2]}
 
     assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn _ -> :pop end) == {1, [b: 2]}
+
+    assert Keyword.get_and_update!([a: 1, b: 2, a: 3], :a, fn _ -> :skip end) ==
+             {1, [a: 1, b: 2, a: 3]}
   end
 
   test "get_and_update!/3 raises on bad return value from the argument function" do
-    message = "the given function must return a two-element tuple or :pop, got: 1"
+    message = "the given function must return a two-element tuple, :pop, or :skip, got: 1"
 
     assert_raise RuntimeError, message, fn ->
       Keyword.get_and_update!([a: 1], :a, fn value -> value end)

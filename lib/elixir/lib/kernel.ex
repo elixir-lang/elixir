@@ -3025,6 +3025,9 @@ defmodule Kernel do
     * `:pop`, which implies that the current value under `key`
       should be removed from the structure and returned.
 
+    * `:skip`, which implies that the current value under `key`
+      should be returned and the structure left unchanged.
+
   This function uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a function,
   which is detailed in a later section.
@@ -3082,7 +3085,7 @@ defmodule Kernel do
   @spec get_and_update_in(
           structure,
           keys,
-          (term | nil -> {current_value, new_value} | :pop)
+          (term | nil -> {current_value, new_value} | :pop | :skip)
         ) :: {current_value, new_structure :: structure}
         when structure: Access.t(),
              keys: nonempty_list(term),
@@ -3116,27 +3119,27 @@ defmodule Kernel do
       iex> pop_in(users, ["john", :age])
       {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
-  In case any entry returns `nil`, its key will be removed
-  and the deletion will be considered a success.
+  In case any entry along the path is `nil` or missing, nothing
+  is popped and the data is returned unchanged.
 
-      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => nil}
       iex> pop_in(users, ["jane", :age])
-      {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      {nil, %{"john" => %{age: 27}, "meg" => nil}}
+      iex> pop_in(users, ["meg", :age])
+      {nil, %{"john" => %{age: 27}, "meg" => nil}}
 
   """
   @spec pop_in(data, nonempty_list(Access.get_and_update_fun(term, data) | term)) :: {term, data}
         when data: Access.container()
   def pop_in(data, keys)
 
-  def pop_in(nil, [key | _]) do
-    raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
-  end
+  def pop_in(nil, [_ | _]), do: {nil, nil}
 
   def pop_in(data, [_ | _] = keys) do
     pop_in_data(data, keys)
   end
 
-  defp pop_in_data(nil, [_ | _]), do: :pop
+  defp pop_in_data(nil, [_ | _]), do: :skip
 
   defp pop_in_data(data, [fun]) when is_function(fun),
     do: fun.(:get_and_update, data, fn _ -> :pop end)
@@ -3276,12 +3279,12 @@ defmodule Kernel do
       iex> pop_in(users.john[:age])
       {27, %{john: %{}, meg: %{age: 23}}}
 
-  In case any entry returns `nil`, its key will be removed
-  and the deletion will be considered a success.
+  In case any entry along the path is `nil` or missing, nothing
+  is popped and the data is returned unchanged.
   """
   defmacro pop_in(path) do
     {[h | t], _} = unnest(path, [], true, "pop_in/1")
-    nest_pop_in(:map, h, t)
+    nest_pop_in({nil, nil}, h, t)
   end
 
   @doc """
@@ -3359,7 +3362,7 @@ defmodule Kernel do
   followed by one or more:
 
     * `foo[bar]` - accesses the key `bar` in `foo`; in case `foo` is nil,
-      `nil` is returned
+      an error is raised
 
     * `foo.bar` - accesses a map/struct field; in case the field is not
       present, an error is raised
@@ -3419,18 +3422,9 @@ defmodule Kernel do
     end
   end
 
-  defp nest_pop_in(kind, list) do
+  defp nest_pop_in(list) do
     quote do
-      fn x -> unquote(nest_pop_in(kind, quote(do: x), list)) end
-    end
-  end
-
-  defp nest_pop_in(:map, h, [{:access, key}]) do
-    quote generated: true do
-      case unquote(h) do
-        nil -> {nil, nil}
-        h -> Access.pop(h, unquote(key))
-      end
+      fn x -> unquote(nest_pop_in(:skip, quote(do: x), list)) end
     end
   end
 
@@ -3442,22 +3436,25 @@ defmodule Kernel do
 
   defp nest_pop_in(_, h, [{:map, key} | t]) do
     quote do
-      Map.get_and_update!(unquote(h), unquote(key), unquote(nest_pop_in(:map, t)))
+      Map.get_and_update!(unquote(h), unquote(key), unquote(nest_pop_in(t)))
     end
   end
 
-  defp nest_pop_in(_, h, [{:access, key}]) do
+  defp nest_pop_in(on_nil, h, [{:access, key}]) do
     quote generated: true do
       case unquote(h) do
-        nil -> :pop
+        nil -> unquote(on_nil)
         h -> Access.pop(h, unquote(key))
       end
     end
   end
 
-  defp nest_pop_in(_, h, [{:access, key} | t]) do
-    quote do
-      Access.get_and_update(unquote(h), unquote(key), unquote(nest_pop_in(:access, t)))
+  defp nest_pop_in(on_nil, h, [{:access, key} | t]) do
+    quote generated: true do
+      case unquote(h) do
+        nil -> unquote(on_nil)
+        h -> Access.get_and_update(h, unquote(key), unquote(nest_pop_in(t)))
+      end
     end
   end
 

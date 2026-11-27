@@ -159,7 +159,10 @@ defmodule MapTest do
   end
 
   test "get_and_update/3" do
-    message = "the given function must return a two-element tuple or :pop, got: 1"
+    assert Map.get_and_update(%{a: 1}, :a, fn _ -> :skip end) == {1, %{a: 1}}
+    assert Map.get_and_update(%{a: 1}, :b, fn _ -> :skip end) == {nil, %{a: 1}}
+
+    message = "the given function must return a two-element tuple, :pop, or :skip, got: 1"
 
     assert_raise RuntimeError, message, fn ->
       Map.get_and_update(%{a: 1}, :a, fn value -> value end)
@@ -167,7 +170,9 @@ defmodule MapTest do
   end
 
   test "get_and_update!/3" do
-    message = "the given function must return a two-element tuple or :pop, got: 1"
+    assert Map.get_and_update!(%{a: 1}, :a, fn _ -> :skip end) == {1, %{a: 1}}
+
+    message = "the given function must return a two-element tuple, :pop, or :skip, got: 1"
 
     assert_raise RuntimeError, message, fn ->
       Map.get_and_update!(%{a: 1}, :a, fn value -> value end)

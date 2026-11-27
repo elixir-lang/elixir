@@ -979,7 +979,8 @@ defmodule Map do
   (the retrieved value, which can be operated on before being returned) and the
   new value to be stored under `key` in the resulting new map. `fun` may also
   return `:pop`, which means the current value shall be removed from `map` and
-  returned (making this function behave like `Map.pop(map, key)`).
+  returned (making this function behave like `Map.pop(map, key)`), or `:skip`,
+  which means the current value shall be returned and `map` left unchanged.
 
   The returned value is a two-element tuple with the current value returned by
   `fun` and a new map with the updated value under `key`.
@@ -1002,8 +1003,12 @@ defmodule Map do
       iex> Map.get_and_update(%{a: 1}, :b, fn _ -> :pop end)
       {nil, %{a: 1}}
 
+      iex> Map.get_and_update(%{a: 1}, :b, fn _ -> :skip end)
+      {nil, %{a: 1}}
+
   """
-  @spec get_and_update(map, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update(map, key, (value | nil ->
+                                    {current_value, new_value :: value} | :pop | :skip)) ::
           {current_value, new_map :: map}
         when current_value: value
   def get_and_update(map, key, fun) when is_function(fun, 1) do
@@ -1016,8 +1021,11 @@ defmodule Map do
       :pop ->
         {current, delete(map, key)}
 
+      :skip ->
+        {current, map}
+
       other ->
-        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+        raise "the given function must return a two-element tuple, :pop, or :skip, got: #{inspect(other)}"
     end
   end
 
@@ -1046,7 +1054,7 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update!(map, key, (value -> {current_value, new_value :: value} | :pop | :skip)) ::
           {current_value, map}
         when current_value: value
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
@@ -1059,8 +1067,11 @@ defmodule Map do
       :pop ->
         {value, delete(map, key)}
 
+      :skip ->
+        {value, map}
+
       other ->
-        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+        raise "the given function must return a two-element tuple, :pop, or :skip, got: #{inspect(other)}"
     end
   end
 
