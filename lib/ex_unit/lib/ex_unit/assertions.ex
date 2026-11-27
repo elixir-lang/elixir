@@ -359,13 +359,12 @@ defmodule ExUnit.Assertions do
       ^expr when not reserved? and not all_quoted_literals? ->
         vars = for i <- 1..arity, do: Macro.var(String.to_unsafe_atom("arg#{i}"), __MODULE__)
 
-        quoted =
-          quote do
-            {unquote_splicing(vars)} = {unquote_splicing(args)}
-            unquote({root, meta, vars})
-          end
+        args =
+          Enum.zip_with(vars, args, fn var, arg ->
+            quote do: unquote(var) = unquote(arg)
+          end)
 
-        {vars, quoted}
+        {vars, {root, meta, args}}
 
       other ->
         {ExUnit.AssertionError.no_value(), other}
