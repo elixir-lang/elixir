@@ -85,6 +85,8 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Code] Fall back to `doc/chunks` in `Code.fetch_docs/1` when given the path to a `.beam` file without documentation
   * [Code] Properly escape C1 control characters and Unicode noncharacters in `Code.quoted_to_algebra/2` (and `Macro.to_string/1`)
   * [Code] Preserve opening and closing metadata of parenthesized unary operators, such as `(!x)` and `(not x)`, when `:token_metadata` is enabled
+  * [Code] Respect the `:line` and `:column` options in the metadata of empty programs and of blocks in programs, interpolations, and clauses in `Code.string_to_quoted/2`
+  * [Code] Return an error for sigils without an opening delimiter at the end of input, such as `~s`
   * [Code.Formatter] Fix rendering calls where `do` is followed by non-block keyword arguments
   * [Code.Formatter] Keep parentheses on anonymous function calls with do-end blocks
   * [Code.Formatter] Keep parentheses on unary operators on the left side of `in`, such as `(!foo) in bar`
@@ -144,6 +146,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [Kernel] Warn on modules defined more than once in the same compilation (regression from previous Elixir versions)
   * [Kernel.CLI] Keep the exit status when the error cannot be printed to stderr
   * [Kernel.ParallelCompiler] Do not leak processes when compilation fails
+  * [Kernel.ParallelCompiler] Release `Code.ensure_compiled/1` deadlocks regardless of `:max_concurrency`
   * [Kernel.ParallelCompiler] Do not return `{:module, module}` from `Code.ensure_compiled/1` for modules that do not exist after a deadlock is released
   * [Kernel.ParallelCompiler] Load newly compiled modules when a previous version of the module is already loaded
   * [Keyword] Delete duplicate keys when `Keyword.get_and_update/3` and `Keyword.get_and_update!/3` return `:pop`
@@ -153,6 +156,7 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [NaiveDateTime] Fix `NaiveDateTime.diff/3` over-counting incomplete units
   * [OptionParser] Report missing and invalid arguments for switches with `:keep`
   * [Path] Return `[]` from `Path.wildcard/2` on paths with null bytes instead of raising, aligning with Erlang/OTP
+  * [Protocol] Always fall back to `Any` when `@fallback_to_any` is set, even if no implementation for `Any` is defined
   * [Range] Fix `Range.disjoint?/2` for ranges beyond floating-point precision
   * [Range] Fix `Range.disjoint?/2` for single-element ranges with a negative step
   * [Record] Evaluate the arguments of record macros from left to right and only once, including the record being updated
@@ -216,7 +220,8 @@ The following bug fixes may break applications relying on the broken behaviour:
   * [mix compile.elixir] Recompile compile-time dependents of modules that are recompiled in a later cycle of the same compilation
   * [mix compile.elixir] Recompile files using, at compile time, modules defined in the same file when the dependencies of those modules change
   * [mix compile.elixir] Recompile dependents of Erlang modules from path dependencies when the Erlang modules change
-  * [mix compile.elixir] Recompile the project when configuration files are removed
+  * [mix compile.elixir] Recompile the project when configuration files are removed or replaced by older ones
+  * [mix compile.elixir] Recompile compile-time dependents of protocols when their implementations change
   * [mix compile.elixir] Verify runtime dependents of removed modules, so calls to them emit warnings
   * [mix compile.elixir] Verify callers of protocols when implementations are added or removed
   * [mix deps] Recompile path and fetchable dependencies when one of their dependencies are removed
