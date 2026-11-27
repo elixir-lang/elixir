@@ -2485,10 +2485,11 @@ defmodule Kernel do
   Creates and updates a struct.
 
   The `struct` argument may be an atom (which defines `defstruct`)
-  or a `struct` itself. The second argument is a keyword list of
-  fields. Passing any other enumerable is deprecated.
+  or a `struct` itself. The second argument is a keyword list or a
+  map (which is not a struct) of fields. Passing any other enumerable
+  is deprecated.
 
-  Keys in the list that don't exist in the struct are automatically
+  Keys in the fields that don't exist in the struct are automatically
   discarded. Note that keys must be atoms, as only atoms are allowed when
   defining a struct. If there are duplicate keys in the list, the last
   entry will be taken (same behavior as `Map.new/1`).
@@ -2514,11 +2515,15 @@ defmodule Kernel do
       struct(user, unknown: "value")
       #=> %User{name: "meg"}
 
-      struct(User, Map.to_list(%{name: "meg"}))
+      struct(User, %{name: "meg"})
       #=> %User{name: "meg"}
 
+      # String keys are ignored
+      struct(User, %{"name" => "meg"})
+      #=> %User{name: "john"}
+
   """
-  @spec struct(module | struct, keyword()) :: struct
+  @spec struct(module | struct, keyword() | map()) :: struct
   def struct(struct, fields \\ [])
 
   def struct(struct, []) when is_atom(struct) do
@@ -2530,20 +2535,22 @@ defmodule Kernel do
   end
 
   def struct(%_{} = struct, fields) do
-    with false <- is_list(fields) do
-      warn_on_non_list_fields(:struct)
-    end
+    fields = fields_to_list(fields, :struct)
 
-    Enum.reduce(fields, struct, fn
-      {:__struct__, _val}, acc ->
-        acc
+    :lists.foldl(
+      fn
+        {:__struct__, _val}, acc ->
+          acc
 
-      {key, val}, acc ->
-        case acc do
-          %{^key => _} -> %{acc | key => val}
-          _ -> acc
-        end
-    end)
+        {key, val}, acc ->
+          case acc do
+            %{^key => _} -> %{acc | key => val}
+            _ -> acc
+          end
+      end,
+      struct,
+      fields
+    )
   end
 
   @doc """
@@ -2563,44 +2570,46 @@ defmodule Kernel do
       function will check if every given key-value belongs to the struct.
 
   """
-  @spec struct!(module | struct, keyword()) :: struct
+  @spec struct!(module | struct, keyword() | map()) :: struct
   def struct!(struct, fields \\ [])
 
-  def struct!(struct, fields) when is_atom(struct) and is_list(fields) do
-    validate_struct!(struct.__struct__(fields), struct, 1)
-  end
-
   def struct!(struct, fields) when is_atom(struct) do
-    warn_on_non_list_fields(:struct!)
-    validate_struct!(struct.__struct__(Enum.to_list(fields)), struct, 1)
+    validate_struct!(struct.__struct__(fields_to_list(fields, :struct!)), struct, 1)
   end
 
   def struct!(struct, fields) when is_map(struct) do
-    with false <- is_list(fields) do
-      warn_on_non_list_fields(:struct!)
-    end
+    fields = fields_to_list(fields, :struct!)
 
-    Enum.reduce(fields, struct, fn
-      {:__struct__, _}, acc ->
-        acc
+    :lists.foldl(
+      fn
+        {:__struct__, _}, acc ->
+          acc
 
-      {key, val}, acc ->
-        Map.replace!(acc, key, val)
-    end)
+        {key, val}, acc ->
+          Map.replace!(acc, key, val)
+      end,
+      struct,
+      fields
+    )
   end
 
+  defp fields_to_list(fields, _fun) when is_list(fields), do: fields
+  defp fields_to_list(%{__struct__: _} = fields, fun), do: deprecated_fields_to_list(fields, fun)
+  defp fields_to_list(%{} = fields, _fun), do: :maps.to_list(fields)
+  defp fields_to_list(fields, fun), do: deprecated_fields_to_list(fields, fun)
+
   # TODO: Remove me on v2.0
-  defp warn_on_non_list_fields(fun) do
+  defp deprecated_fields_to_list(fields, fun) do
     IO.warn_once(
       {__MODULE__, fun},
       fn ->
-        "passing a non-list as fields to #{fun}/2 is deprecated, " <>
-          "please pass a keyword list instead (for example, using Enum.to_list/1)"
+        "passing an enumerable other than a keyword list or a map as fields to #{fun}/2 " <>
+          "is deprecated, please pass a keyword list instead (for example, using Enum.to_list/1)"
       end,
       _stacktrace_drop_levels = 4
     )
 
-    :ok
+    Enum.to_list(fields)
   end
 
   defp validate_struct!(%{__struct__: module} = struct, module, _arity) do

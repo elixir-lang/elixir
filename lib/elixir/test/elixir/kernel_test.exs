@@ -185,9 +185,14 @@ defmodule KernelTest do
     user = struct(User, name: "meg")
     assert user == %User{name: "meg"}
     assert struct(user, name: "meg") == user
+    assert struct(user, %{name: "meg"}) == user
+    assert struct(User, %{name: "meg"}) == user
+    assert struct(User, %{"name" => "meg"}) == %User{}
 
     assert struct(user, unknown: "key") == user
+    assert struct(user, %{unknown: "key"}) == user
     assert struct(user, name: "john") == %User{name: "john"}
+    assert struct(user, %{name: "john"}) == %User{name: "john"}
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
   end
 
@@ -202,27 +207,37 @@ defmodule KernelTest do
     end
 
     assert struct!(user, name: "john") == %User{name: "john"}
+    assert struct!(user, %{name: "john"}) == %User{name: "john"}
+    assert struct!(User, %{name: "john"}) == %User{name: "john"}
+
+    assert_raise KeyError, fn ->
+      struct!(user, %{unknown: "key"})
+    end
+
     assert struct!(user, name: "other", __struct__: Post) == %User{name: "other"}
   end
 
-  test "struct/2 and struct!/2 with non-list fields (deprecated)" do
+  test "struct/2 and struct!/2 with non-keyword and non-map fields (deprecated)" do
     user = %User{name: "meg"}
+    fields = fn name -> MapSet.new(name: name) end
+    message = "as fields to struct/2 is deprecated"
+    message! = "as fields to struct!/2 is deprecated"
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             assert struct(User, %{name: "meg"}) == user
-           end) =~ "passing a non-list as fields to struct/2 is deprecated"
+             assert struct(User, fields.("meg")) == user
+           end) =~ message
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             assert struct(user, %{name: "john"}) == %User{name: "john"}
-           end) =~ "passing a non-list as fields to struct/2 is deprecated"
+             assert struct(user, fields.("john")) == %User{name: "john"}
+           end) =~ message
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             assert struct!(User, %{name: "meg"}) == user
-           end) =~ "passing a non-list as fields to struct!/2 is deprecated"
+             assert struct!(User, fields.("meg")) == user
+           end) =~ message!
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             assert struct!(user, %{name: "john"}) == %User{name: "john"}
-           end) =~ "passing a non-list as fields to struct!/2 is deprecated"
+             assert struct!(user, fields.("john")) == %User{name: "john"}
+           end) =~ message!
   end
 
   test "if/2 with invalid keys" do

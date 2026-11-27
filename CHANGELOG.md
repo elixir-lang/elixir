@@ -36,7 +36,7 @@ The following bug fixes may break applications relying on the broken behaviour:
 
 #### Elixir
 
-  * [Kernel] Passing a non-list as fields to `struct/2` and `struct!/2` is deprecated
+  * [Kernel] Passing an enumerable other than a keyword list or a non-struct map as fields to `struct/2` and `struct!/2` is deprecated
   * [Macro] `Macro.struct!/2` is deprecated in favor of `Macro.struct_info!/2`
   * [Protocol] Defining `__deriving__/3` in the `Any` implementation of a protocol is deprecated in favor of defining the `__deriving__/2` macro in the protocol itself
   * [Regex] `Regex.recompile/1` and `Regex.recompile!/1` are deprecated as they have no effect
