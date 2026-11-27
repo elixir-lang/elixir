@@ -475,9 +475,9 @@ defmodule RecordTest do
                %{severity: :warning, file: ^file, message: "duplicate key :_ found in record"}
              ] = diagnostics
 
-      assert sample.run() ==
-               {{RecordTest, :first, 27}, {RecordTest, :first, 40}, :first,
-                {RecordTest, :first, :first}}
+      # The result of a duplicate update depends on the Erlang/OTP version.
+      assert {{RecordTest, :first, 27}, {RecordTest, :first, _}, :first,
+              {RecordTest, :first, :first}} = sample.run()
 
       assert Process.info(self(), :messages) == {:messages, [:first, 27, :second, 30, 40]}
     after
