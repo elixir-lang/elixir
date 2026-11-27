@@ -14,12 +14,11 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.21           | Development
-1.20           | Bug fixes and security patches
+1.21           | Bug fixes and security patches
+1.20           | Security patches only
 1.19           | Security patches only
 1.18           | Security patches only
 1.17           | Security patches only
-1.16           | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann) and on the [GitHub releases page](https://github.com/elixir-lang/elixir/releases).
 
@@ -95,6 +94,8 @@ The first column is the version the feature was hard deprecated. The second colu
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.21] | `Macro.Env.fetch_alias/2` (and `fetch_macro_alias`) | `Macro.Env.expand_alias/4` (v1.17)
+[v1.21] | `Path.safe_relative_to/2`                           | `Path.safe_relative/2` (v1.14)
+[v1.21] | `--tracer` in `mix compile.elixir`                  | `:tracers` in `:elixirc_options` or `Code.put_compiler_option/2` (v1.10)
 [v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>` (v1.15)
 [v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)` (v1.16)
 [v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2` (v1.16)
@@ -248,4 +249,4 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md#4-hard-deprecations
 [v1.19]: https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md#4-hard-deprecations
 [v1.20]: https://github.com/elixir-lang/elixir/blob/v1.20/CHANGELOG.md#4-hard-deprecations
-[v1.21]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.21]: https://github.com/elixir-lang/elixir/blob/v1.21/CHANGELOG.md#4-hard-deprecations
