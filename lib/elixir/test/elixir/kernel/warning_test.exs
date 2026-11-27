@@ -75,6 +75,42 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "warnings from caller code passed to a generated remote macro call" do
+    output =
+      capture_compile("""
+      defmodule Kernel.WarningTest.GeneratedRemoteMacro do
+        defmacro wrap(expr) do
+          quote do
+            unused_generated = 1
+            unquote(expr)
+          end
+        end
+
+        defmacro generated(expr) do
+          quote generated: true do
+            require Kernel.WarningTest.GeneratedRemoteMacro
+            Kernel.WarningTest.GeneratedRemoteMacro.wrap(unquote(expr))
+          end
+        end
+      end
+
+      defmodule Kernel.WarningTest.GeneratedRemoteMacroCaller do
+        alias Kernel.WarningTest.GeneratedRemoteMacro
+        require GeneratedRemoteMacro
+
+        def run do
+          GeneratedRemoteMacro.generated(fn ->
+            unused_caller = 1
+            :ok
+          end)
+        end
+      end
+      """)
+
+    assert output =~ ~s(variable "unused_caller" is unused)
+    refute output =~ ~s(variable "unused_generated" is unused)
+  end
+
   test "outdented heredoc" do
     assert_warn_eval(
       ["nofile:2:3", "outdented heredoc line"],
