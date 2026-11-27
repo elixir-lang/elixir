@@ -152,7 +152,7 @@ dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiv
         {macro, Receiver, Expander} ->
           check_deprecated(macro, Meta, Receiver, Name, Arity, E),
           Caller = {?line(Meta), S, E},
-          expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, Caller), S, E);
+          expand_quoted(Meta, Receiver, Name, Arity, Expander(stop_generated(Args), Caller), S, E);
         error ->
           check_deprecated(function, Meta, Receiver, Name, Arity, E),
           elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
