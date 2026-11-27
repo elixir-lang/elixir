@@ -17,6 +17,20 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptWithMix do
+    def project do
+      [
+        app: :escript_test,
+        version: "0.0.1",
+        escript: [main_module: EscriptTest, name: "escript_test"]
+      ]
+    end
+
+    def application do
+      [extra_applications: [:mix]]
+    end
+  end
+
   defmodule EscriptErlangWithDeps do
     def project do
       [
@@ -204,6 +218,20 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   after
     purge([Ok.MixProject])
+  end
+
+  test "generate escript that depends on Mix" do
+    in_fixture("escript_test", fn ->
+      push_project_with_config(EscriptWithMix)
+
+      Mix.Tasks.Escript.Build.run([])
+
+      message = "Generated escript escript_test with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^message]}
+
+      # Mix depends on EEx, so the escript must embed both
+      assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
+    end)
   end
 
   test "generate escript with Erlang and deps" do

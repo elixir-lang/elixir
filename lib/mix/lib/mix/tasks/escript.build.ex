@@ -273,11 +273,20 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   # We include hex in here as it is always an archive and it cannot be depended on
-  defp extra_apps_in_app_tree(app) when app in [:eex, :ex_unit, :iex, :logger, :mix, :hex] do
-    [app]
+  defp extra_apps_in_app_tree(:hex) do
+    [:hex]
+  end
+
+  # Elixir applications are not deps, so we include them and their dependencies
+  defp extra_apps_in_app_tree(app) when app in [:eex, :ex_unit, :iex, :logger, :mix] do
+    [app | app_tree_children(app)]
   end
 
   defp extra_apps_in_app_tree(app) do
+    app_tree_children(app)
+  end
+
+  defp app_tree_children(app) do
     _ = Application.load(app)
 
     case Application.spec(app) do
