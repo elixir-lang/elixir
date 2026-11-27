@@ -51,6 +51,14 @@ re_import_exclude =
     [:re_import]
   end
 
+gleam_exclude =
+  try do
+    Mix.Gleam.requirements!()
+    []
+  rescue
+    Mix.Error -> [gleam: true]
+  end
+
 Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
 
 cover_exclude =
@@ -68,7 +76,10 @@ ex_unit_opts =
     exclude:
       epmd_exclude ++
         deterministic_exclude ++
-        os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude ++ re_import_exclude,
+        os_exclude ++
+        git_exclude ++
+        line_exclude ++
+        cover_exclude ++ re_import_exclude ++ gleam_exclude,
     include: line_include,
     assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
   ] ++ maybe_seed_opt
