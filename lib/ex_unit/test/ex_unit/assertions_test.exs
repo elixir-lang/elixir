@@ -130,6 +130,28 @@ defmodule ExUnit.AssertionsTest do
     2 = x
   end
 
+  test "assert evaluates an anonymous function before its arguments" do
+    x = :outer
+    assert (fn argument -> {x, argument} == {:outer, :inner} end).(x = :inner)
+    assert x == :inner
+  end
+
+  test "refute evaluates a remote receiver before its arguments and reports their values" do
+    error =
+      assert_raise ExUnit.AssertionError, fn ->
+        refute step(:receiver, Enum).member?(step(:list, [1]), step(:element, 1))
+      end
+
+    assert error.args == [[1], 1]
+
+    for expected <- [:receiver, :list, :element] do
+      assert_received {:step, actual}
+      assert actual == expected
+    end
+
+    refute_received {:step, _}
+  end
+
   test "assert arguments are not kept for operators" do
     try do
       generated(assert !Value.truthy())
@@ -1194,4 +1216,9 @@ defmodule ExUnit.AssertionsTest do
   defp ok(val), do: {:ok, val}
   defp error(val), do: {:error, val}
   defp not_equal(left, right), do: left != right
+
+  defp step(tag, value) do
+    send(self(), {:step, tag})
+    value
+  end
 end
