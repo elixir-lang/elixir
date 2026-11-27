@@ -390,6 +390,20 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  test "code path pruning keeps applications Mix depends on" do
+    in_fixture("no_mixfile", fn ->
+      # bin/elixir adds Elixir applications through bin/../lib, and
+      # Code.delete_paths/1 does not remove those entries, so we
+      # normalize the EEx entry to make it subject to pruning
+      eex_path = :filename.dirname(:code.where_is_file(~c"eex.app"))
+      :code.del_path(eex_path)
+      Code.prepend_path(Path.expand(eex_path))
+
+      assert Mix.Task.run("compile", []) == {:ok, []}
+      assert is_list(:code.where_is_file(~c"eex.app"))
+    end)
+  end
+
   test "code path pruning disabled" do
     Mix.ensure_application!(:parsetools)
 

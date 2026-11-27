@@ -303,7 +303,8 @@ defmodule Mix.ReleaseTest do
                sasl: :permanent,
                mix: :permanent,
                iex: :none,
-               compiler: :permanent
+               compiler: :permanent,
+               eex: :permanent
              ]
     end
 
@@ -392,7 +393,8 @@ defmodule Mix.ReleaseTest do
                sasl: :load,
                mix: :load,
                iex: :none,
-               compiler: :load
+               compiler: :load,
+               eex: :load
              ]
     end
   end
@@ -450,7 +452,8 @@ defmodule Mix.ReleaseTest do
                    {:sasl, _, :permanent},
                    {:mix, @elixir_version, :permanent},
                    {:iex, @elixir_version, :none},
-                   {:compiler, _, :permanent}
+                   {:compiler, _, :permanent},
+                   {:eex, @elixir_version, :permanent}
                  ]}
               ]} = :file.consult(@boot_script_path <> ".rel")
 
@@ -534,8 +537,8 @@ defmodule Mix.ReleaseTest do
     end
 
     test "does not raise on child unsafe mode if parent is in `skip_mode_validation_for`" do
-      # `:mix` is a parent that depends on `:elixir`
-      release = release(applications: [elixir: :load], skip_mode_validation_for: [:mix])
+      # `:mix` and `:eex` are parents that depend on `:elixir`
+      release = release(applications: [elixir: :load], skip_mode_validation_for: [:mix, :eex])
       assert make_boot_script(release, @boot_script_path, release.boot_scripts.start) == :ok
       assert make_boot_script(release, @boot_script_path, release.boot_scripts.start_clean) == :ok
     end

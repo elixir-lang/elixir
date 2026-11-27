@@ -17,6 +17,7 @@ defmodule Mix.MixProject do
   def application do
     [
       registered: [Mix.State, Mix.TasksServer, Mix.ProjectStack],
+      extra_applications: [:eex],
       mod: {Mix, []},
       env: [colors: []]
     ]
