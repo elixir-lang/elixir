@@ -5,22 +5,6 @@
 defmodule Mix.Rebar do
   @moduledoc false
 
-  # TODO: Remove on Elixir v1.22 because phx_new and other installers rely on it.
-  @deprecated "Use env_rebar_path/1 instead"
-  def global_rebar_cmd(manager) do
-    env_rebar_path(manager)
-  end
-
-  @deprecated "Use local_rebar_path/1 instead"
-  def local_rebar_cmd(manager) do
-    local_rebar_path(manager)
-  end
-
-  @deprecated "Use rebar_args/2 or available?/1 instead"
-  def rebar_cmd(manager) do
-    global_rebar_cmd(manager) || local_rebar_cmd(manager)
-  end
-
   @doc """
   Returns if Rebar is available or not.
   """

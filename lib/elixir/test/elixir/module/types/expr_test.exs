@@ -3290,26 +3290,6 @@ defmodule Module.Types.ExprTest do
 
                  true
              """
-
-      assert typeerror!([x = 123], unless(x, do: :a)) =~ """
-             the "do" branch of "unless" will never execute because the following condition:
-
-                 x
-
-             always evaluates to:
-
-                 integer()
-             """
-
-      assert typewarn!([x = nil], unless(x, do: :a)) |> elem(1) =~ """
-             the "else" branch of "unless" will never execute because the following condition:
-
-                 x
-
-             always evaluates to:
-
-                 dynamic(nil)
-             """
     end
 
     test "! reports violations" do

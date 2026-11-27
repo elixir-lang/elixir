@@ -269,8 +269,7 @@ defmodule Regex do
   This checks the version stored in the regular expression
   and recompiles the regex in case of version mismatch.
   """
-  # TODO: Deprecate on Elixir v1.22
-  @doc deprecated: "It can be removed and it has no effect"
+  @deprecated "It can be removed and it has no effect"
   @doc since: "1.4.0"
   def recompile(%Regex{} = regex) do
     {:ok, regex}
@@ -279,8 +278,7 @@ defmodule Regex do
   @doc """
   Recompiles the existing regular expression and raises `Regex.CompileError` in case of errors.
   """
-  # TODO: Deprecate on Elixir v1.22
-  @doc deprecated: "It can be removed and it has no effect"
+  @deprecated "It can be removed and it has no effect"
   @doc since: "1.4.0"
   def recompile!(regex) do
     regex
@@ -318,8 +316,7 @@ defmodule Regex do
   @doc """
   Returns the version of the underlying Regex engine.
   """
-  # TODO: Deprecate on Elixir v1.22
-  @doc deprecated: "Use :re.version() instead"
+  @deprecated "Use :re.version() instead"
   @doc since: "1.4.0"
   def version do
     {:re.version(), :erlang.system_info(:endian)}

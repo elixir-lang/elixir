@@ -320,7 +320,7 @@ defmodule Module.ParallelChecker do
       after_verify: after_verify
     } = module_map
 
-    # TODO: Match on anno directly in Elixir v1.22+
+    # We match on both anno and line so we can load beams compiled by older Elixir versions
     line =
       case module_map do
         %{anno: anno} -> :erl_anno.line(anno)

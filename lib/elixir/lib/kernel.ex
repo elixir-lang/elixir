@@ -4074,27 +4074,32 @@ defmodule Kernel do
   argument if `condition` evaluates to a falsy value (`false` or `nil`).
   Otherwise, it returns the value of the `else` block if present or `nil` if not.
 
-  See also `if/2`.
+  This macro is deprecated in favor of `if/2` with a negated condition.
+  `mix format --migrate` can automatically rewrite `unless` expressions.
 
   ## Examples
 
-      iex> unless(Enum.empty?([]), do: "Hello")
-      nil
+      unless Enum.empty?([1, 2, 3]) do
+        "Hello"
+      end
+      #=> "Hello"
 
-      iex> unless(Enum.empty?([1, 2, 3]), do: "Hello")
-      "Hello"
+  Which can be written as:
 
-      iex> unless Enum.sum([2, 2]) == 5 do
-      ...>   "Math still works"
-      ...> else
-      ...>   "Math is broken"
-      ...> end
-      "Math still works"
+      if not Enum.empty?([1, 2, 3]) do
+        "Hello"
+      end
+      #=> "Hello"
 
   """
-  # TODO: Deprecate this on Elixir v1.22.
   @doc deprecated: "Use if/2 instead"
   defmacro unless(condition, clauses) do
+    IO.warn(
+      "unless/2 is deprecated, use if/2 with a negated condition instead. " <>
+        "You can run \"mix format --migrate\" to rewrite unless/2 automatically",
+      __CALLER__
+    )
+
     build_unless(condition, clauses)
   end
 

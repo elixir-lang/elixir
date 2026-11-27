@@ -95,6 +95,11 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.22] | `unless/2`                                          | `if/2` with a negated condition (v1.0)
+[v1.22] | `Macro.struct!/2`                                   | `Macro.struct_info!/2` (v1.18)
+[v1.22] | `__deriving__/3` in `Any` implementations           | The `c:Protocol.__deriving__/2` macro in the protocol (v1.18)
+[v1.22] | `Regex.recompile/1` and `Regex.recompile!/1`        | *None* (they have no effect)
+[v1.22] | `Regex.version/0`                                   | `:re.version/0` (v1.0)
 [v1.21] | `Macro.Env.fetch_alias/2` (and `fetch_macro_alias`) | `Macro.Env.expand_alias/4` (v1.17)
 [v1.21] | `Path.safe_relative_to/2`                           | `Path.safe_relative/2` (v1.14)
 [v1.21] | `--tracer` in `mix compile.elixir`                  | `:tracers` in `:elixirc_options` or `Code.put_compiler_option/2` (v1.10)
@@ -252,3 +257,4 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.19]: https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md
 [v1.20]: https://github.com/elixir-lang/elixir/blob/v1.20/CHANGELOG.md
 [v1.21]: https://github.com/elixir-lang/elixir/blob/v1.21/CHANGELOG.md
+[v1.22]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md

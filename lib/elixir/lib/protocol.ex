@@ -1256,9 +1256,23 @@ defmodule Protocol do
       if macro_exported?(protocol, :__deriving__, 2) do
         {protocol, [for, opts]}
       else
-        # TODO: Deprecate this on Elixir v1.22+
         assert_impl!(protocol, Any, extra)
-        {__concat__(protocol, Any), [for, Macro.struct!(for, env), opts]}
+        impl = __concat__(protocol, Any)
+
+        if macro_exported?(impl, :__deriving__, 3) do
+          IO.warn(
+            "defining __deriving__/3 in #{inspect(impl)} is deprecated, " <>
+              "#{inspect(protocol)} must define the __deriving__/2 macro instead " <>
+              "(see Protocol.derive/3)",
+            env
+          )
+        end
+
+        pairs =
+          for %{field: field, default: default} <- Macro.struct_info!(for, env),
+              do: {field, default}
+
+        {impl, [for, :maps.from_list([__struct__: for] ++ pairs), opts]}
       end
 
     # Clean up variables from eval context

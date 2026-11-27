@@ -97,12 +97,6 @@ defmodule Mix.Compilers.Erlang do
     compile_entries(manifest, entries, src_ext, dest_ext, opts, callback)
   end
 
-  # TODO: remove me on v1.22
-  @deprecated "Use compile/6 or open an up an issue"
-  def compile(manifest, entries, opts \\ [], callback) do
-    compile_entries(manifest, entries, :erl, :beam, opts, callback)
-  end
-
   @doc false
   def compile_entries(manifest, mappings, src_ext, dest_ext, opts, callback) do
     stale = for {:stale, src, dest} <- mappings, do: {src, dest}

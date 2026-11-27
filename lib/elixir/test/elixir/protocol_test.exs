@@ -34,7 +34,11 @@ defmodule ProtocolTest do
 
     @impl true
     defmacro __deriving__(module, options) do
-      struct = Macro.struct!(module, __CALLER__)
+      pairs =
+        for %{field: field, default: default} <- Macro.struct_info!(module, __CALLER__),
+            do: {field, default}
+
+      struct = Map.new([__struct__: module] ++ pairs)
 
       quote do
         defimpl Derivable, for: unquote(module) do
@@ -415,6 +419,36 @@ defmodule ProtocolTest do
                end
              end) =~
                "module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
+    end
+
+    test "when deriving through __deriving__/3 in the Any implementation" do
+      defprotocol LegacyDerivable do
+        def ok(term)
+      end
+
+      defimpl LegacyDerivable, for: Any do
+        defmacro __deriving__(module, struct, options) do
+          quote do
+            defimpl LegacyDerivable, for: unquote(module) do
+              def ok(arg), do: {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
+            end
+          end
+        end
+
+        def ok(arg), do: {:ok, arg}
+      end
+
+      assert capture_io(:stderr, fn ->
+               defmodule LegacyDerived do
+                 @derive [{LegacyDerivable, :opts}]
+                 defstruct a: 1
+               end
+             end) =~
+               "defining __deriving__/3 in ProtocolTest.LegacyDerivable.Any is deprecated, " <>
+                 "ProtocolTest.LegacyDerivable must define the __deriving__/2 macro instead"
+
+      struct = struct(ProtocolTest.LegacyDerived)
+      assert LegacyDerivable.ok(struct) == {:ok, struct, struct, :opts}
     end
 
     test "when deriving with no struct" do

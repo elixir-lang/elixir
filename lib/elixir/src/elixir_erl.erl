@@ -183,7 +183,7 @@ chunk_opts(Map) ->
 dynamic_form(#{module := Module, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
                deprecated := Deprecated, compile_opts := Opts} = Map, MD5) ->
-  %% TODO: Match on anno directly in Elixir v1.22+
+  %% We match on both anno and line so we can load beams compiled by older Elixir versions
   Line = case Map of
     #{anno := AnnoValue} -> erl_anno:line(AnnoValue);
     #{line := LineValue} -> LineValue
