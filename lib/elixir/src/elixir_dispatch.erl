@@ -135,10 +135,16 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
   end.
 
 stop_generated(Args) ->
-  lists:map(fun
-    ({Call, Meta, Ctx}) when is_list(Meta) -> {Call, [{stop_generated, true} | Meta], Ctx};
-    (Other) -> Other
-  end, Args).
+  lists:map(fun stop_generated_arg/1, Args).
+
+stop_generated_arg({Call, Meta, Ctx}) when is_list(Meta) ->
+  {Call, [{stop_generated, true} | Meta], Ctx};
+stop_generated_arg([Head | Tail]) ->
+  [stop_generated_arg(Head) | stop_generated_arg(Tail)];
+stop_generated_arg({Left, Right}) ->
+  {stop_generated_arg(Left), stop_generated_arg(Right)};
+stop_generated_arg(Other) ->
+  Other.
 
 dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiver) ->
   Arity = length(Args),
