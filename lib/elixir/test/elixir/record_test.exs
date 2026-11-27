@@ -444,6 +444,8 @@ defmodule RecordTest do
           defmodule DuplicateFields do
             import RecordTest, only: [user: 1, user: 2]
 
+            def update(record), do: user(record, age: 30, age: 40)
+
             def run do
               created =
                 user(
@@ -452,11 +454,10 @@ defmodule RecordTest do
                   name: send(self(), :second)
                 )
 
-              updated = user(created, age: send(self(), 30), age: send(self(), 40))
-              user(name: name, name: :other) = updated
-              defaulted = user(updated, _: :first, _: :second)
+              user(name: name, name: :other) = created
+              defaulted = user(created, _: :first, _: :second)
 
-              {created, updated, name, defaulted}
+              {created, name, defaulted}
             end
           end
         end)
@@ -464,8 +465,8 @@ defmodule RecordTest do
       file = __ENV__.file
 
       assert [
-               %{severity: :warning, file: ^file, message: "duplicate key :name found in record"},
                %{severity: :warning, file: ^file, message: "duplicate key :age found in record"},
+               %{severity: :warning, file: ^file, message: "duplicate key :name found in record"},
                %{severity: :warning, file: ^file, message: "duplicate key :name found in record"},
                %{
                  severity: :warning,
@@ -475,11 +476,8 @@ defmodule RecordTest do
                %{severity: :warning, file: ^file, message: "duplicate key :_ found in record"}
              ] = diagnostics
 
-      # The result of a duplicate update depends on the Erlang/OTP version.
-      assert {{RecordTest, :first, 27}, {RecordTest, :first, _}, :first,
-              {RecordTest, :first, :first}} = sample.run()
-
-      assert Process.info(self(), :messages) == {:messages, [:first, 27, :second, 30, 40]}
+      assert sample.run() == {{RecordTest, :first, 27}, :first, {RecordTest, :first, :first}}
+      assert Process.info(self(), :messages) == {:messages, [:first, 27, :second]}
     after
       purge(DuplicateFields)
     end
