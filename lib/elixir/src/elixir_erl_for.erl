@@ -200,7 +200,7 @@ stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
 
 build_reduce(Ann, Clauses, InnerFun, Expr, Into, false, S) ->
   {Acc, SA} = build_var(Ann, S),
-  {build_reduce_each(Clauses, InnerFun(Expr, Acc), Into, Acc, SA), SA};
+  build_reduce_init(Ann, Clauses, InnerFun(Expr, Acc), Into, Acc, SA);
 build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
   %% Those variables are used only inside the anonymous function
   %% so we don't need to worry about returning the scope.
@@ -222,8 +222,15 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
     ]}
   ]},
 
-  EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SU),
-  {?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SU}.
+  {EnumReduceCall, SR} = build_reduce_init(Ann, Clauses, InnerExpr, NewInto, Acc, SU),
+  {?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SR}.
+
+%% The initial accumulator comes from the :into/:reduce options, which
+%% must be evaluated before the generators, so we bind it upfront.
+build_reduce_init(Ann, Clauses, Expr, Init, Acc, S) ->
+  {Var, SV} = build_var(Ann, S),
+  ReduceExpr = build_reduce_each(Clauses, Expr, Var, Acc, SV),
+  {{block, Ann, [{match, Ann, Var, Init}, ReduceExpr]}, SV}.
 
 build_reduce_each([{enum, Meta, Left, Guards, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),

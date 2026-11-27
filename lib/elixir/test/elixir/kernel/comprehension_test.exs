@@ -32,6 +32,11 @@ defmodule Kernel.ComprehensionTest do
 
   defp nilly, do: nil
 
+  defp tag(tag, value) do
+    send(self(), tag)
+    value
+  end
+
   ## Enum comprehensions (the common case)
 
   test "for comprehensions" do
@@ -201,6 +206,25 @@ defmodule Kernel.ComprehensionTest do
              b <- [2],
              do: a + b
            ) == [3]
+  end
+
+  test "for comprehensions evaluate options before generators" do
+    assert for(
+             a <- case(x, do: (x -> [x])),
+             reduce:
+               (
+                 x = 1
+                 0
+               ),
+             do: (acc -> acc + a)
+           ) == 1
+
+    for _ <- tag(:gen, [1]), reduce: tag(:opt, 0), do: (acc -> acc)
+    for x <- tag(:gen, ["a"]), into: <<tag(:opt, 1)>>, do: x
+    for x <- tag(:gen, ["a"]), uniq: true, into: <<tag(:opt, 1)>>, do: x
+
+    assert Process.info(self(), :messages) ==
+             {:messages, [:opt, :gen, :opt, :gen, :opt, :gen]}
   end
 
   test "for comprehensions with binary, enum generators and filters" do
