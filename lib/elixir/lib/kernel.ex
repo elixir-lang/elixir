@@ -4106,6 +4106,7 @@ defmodule Kernel do
       #=> "Hello"
 
   """
+  # TODO: Remove me on v2.0
   @doc deprecated: "Use if/2 instead"
   defmacro unless(condition, clauses) do
     IO.warn(

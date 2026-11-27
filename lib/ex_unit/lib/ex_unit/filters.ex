@@ -13,7 +13,6 @@ defmodule ExUnit.Filters do
           {:location, String.t() | {String.t(), pos_integer | [pos_integer, ...]}}
   @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
-  # TODO: Remove me on Elixir v2.0
   @doc false
   @deprecated "Use parse_paths/1 instead"
   def parse_path(file_path) do

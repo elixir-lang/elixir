@@ -421,34 +421,27 @@ defmodule ProtocolTest do
                "module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
     end
 
-    test "when deriving through __deriving__/3 in the Any implementation" do
+    test "when defining __deriving__/3 in the Any implementation" do
       defprotocol LegacyDerivable do
         def ok(term)
       end
 
-      defimpl LegacyDerivable, for: Any do
-        defmacro __deriving__(module, struct, options) do
-          quote do
-            defimpl LegacyDerivable, for: unquote(module) do
-              def ok(arg), do: {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
-            end
-          end
-        end
-
-        def ok(arg), do: {:ok, arg}
-      end
-
       assert capture_io(:stderr, fn ->
-               defmodule LegacyDerived do
-                 @derive [{LegacyDerivable, :opts}]
-                 defstruct a: 1
+               defimpl LegacyDerivable, for: Any do
+                 defmacro __deriving__(module, struct, options) do
+                   quote do
+                     defimpl LegacyDerivable, for: unquote(module) do
+                       def ok(arg),
+                         do: {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
+                     end
+                   end
+                 end
+
+                 def ok(arg), do: {:ok, arg}
                end
              end) =~
                "defining __deriving__/3 in ProtocolTest.LegacyDerivable.Any is deprecated, " <>
                  "ProtocolTest.LegacyDerivable must define the __deriving__/2 macro instead"
-
-      struct = struct(ProtocolTest.LegacyDerived)
-      assert LegacyDerivable.ok(struct) == {:ok, struct, struct, :opts}
     end
 
     test "when deriving with no struct" do

@@ -1224,6 +1224,7 @@ defmodule Protocol do
         @for for
 
         res = unquote(block)
+        Protocol.__check_deriving__(@protocol, @for, __ENV__)
         Module.register_attribute(__MODULE__, :__impl__, persist: true)
         @__impl__ [protocol: @protocol, for: @for]
 
@@ -1232,6 +1233,24 @@ defmodule Protocol do
       end
     end
   end
+
+  # TODO: Remove me on v2.0
+  @doc false
+  def __check_deriving__(protocol, Any, %Macro.Env{module: module} = env) do
+    if Module.defines?(module, {:__deriving__, 3}, :defmacro) and
+         not (is_atom(protocol) and macro_exported?(protocol, :__deriving__, 2)) do
+      IO.warn(
+        "defining __deriving__/3 in #{inspect(module)} is deprecated, " <>
+          "#{inspect(protocol)} must define the __deriving__/2 macro instead " <>
+          "(see Protocol.derive/3)",
+        env
+      )
+    end
+
+    :ok
+  end
+
+  def __check_deriving__(_protocol, _for, _env), do: :ok
 
   @doc false
   def __derive__(derives, for, %Macro.Env{} = env) when is_atom(for) do
@@ -1258,15 +1277,6 @@ defmodule Protocol do
       else
         assert_impl!(protocol, Any, extra)
         impl = __concat__(protocol, Any)
-
-        if macro_exported?(impl, :__deriving__, 3) do
-          IO.warn(
-            "defining __deriving__/3 in #{inspect(impl)} is deprecated, " <>
-              "#{inspect(protocol)} must define the __deriving__/2 macro instead " <>
-              "(see Protocol.derive/3)",
-            env
-          )
-        end
 
         pairs =
           for %{field: field, default: default} <- Macro.struct_info!(for, env),

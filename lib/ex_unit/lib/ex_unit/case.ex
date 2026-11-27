@@ -734,7 +734,6 @@ defmodule ExUnit.Case do
     name
   end
 
-  # TODO: Remove me Elixir v2.0
   @deprecated "Use register_test/6 instead"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     register_test(mod, file, line, test_type, name, tags)
