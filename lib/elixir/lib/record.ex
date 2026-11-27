@@ -305,17 +305,21 @@ defmodule Record do
     end
   end
 
-  defp warn_on_duplicate_key([]) do
+  defp warn_on_duplicate_keys(fields, warn) do
+    warn_on_duplicate_key(:lists.keysort(1, fields), warn)
+  end
+
+  defp warn_on_duplicate_key([], _warn) do
     :ok
   end
 
-  defp warn_on_duplicate_key([{key, _} | [{key, _} | _] = rest]) do
-    IO.warn("duplicate key #{inspect(key)} found in record")
-    warn_on_duplicate_key(rest)
+  defp warn_on_duplicate_key([{key, _} | [{key, _} | _] = rest], warn) do
+    warn.("duplicate key #{inspect(key)} found in record")
+    warn_on_duplicate_key(rest, warn)
   end
 
-  defp warn_on_duplicate_key([_ | rest]) do
-    warn_on_duplicate_key(rest)
+  defp warn_on_duplicate_key([_ | rest], warn) do
+    warn_on_duplicate_key(rest, warn)
   end
 
   # Callback invoked from the record/2 macro.
@@ -336,7 +340,7 @@ defmodule Record do
     })
 
     # TODO: Make it raise on v2.0
-    warn_on_duplicate_key(:lists.keysort(1, fields))
+    warn_on_duplicate_keys(fields, &IO.warn/1)
     fields
   end
 
@@ -415,6 +419,8 @@ defmodule Record do
 
   # Creates a new record with the given default fields and keyword values.
   defp create(tag, fields, keyword, caller) do
+    warn_on_duplicate_keys(keyword, &IO.warn(&1, caller))
+
     # Using {} here is safe, since it's not valid AST
     default = if Macro.Env.in_match?(caller), do: {:_, [], nil}, else: {}
     {keyword, exprs} = hoist_expressions(keyword, caller)
@@ -449,6 +455,8 @@ defmodule Record do
       IO.warn(message, caller)
       create(tag, fields, keyword, caller)
     else
+      warn_on_duplicate_keys(keyword, &IO.warn(&1, caller))
+
       {[{:record, var} | keyword], exprs} =
         hoist_expressions([{:record, var} | keyword], caller)
 

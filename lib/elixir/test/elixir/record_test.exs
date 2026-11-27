@@ -438,6 +438,50 @@ defmodule RecordTest do
       purge(RecordSample)
     end
 
+    test "record macros warn with duplicate keys" do
+      {{:module, sample, _, _}, diagnostics} =
+        Code.with_diagnostics(fn ->
+          defmodule DuplicateFields do
+            import RecordTest, only: [user: 1, user: 2]
+
+            def update(record), do: user(record, age: 30, age: 40)
+
+            def run do
+              created =
+                user(
+                  name: send(self(), :first),
+                  age: send(self(), 27),
+                  name: send(self(), :second)
+                )
+
+              user(name: name, name: :other) = created
+              defaulted = user(created, _: :first, _: :second)
+
+              {created, name, defaulted}
+            end
+          end
+        end)
+
+      file = __ENV__.file
+
+      assert [
+               %{severity: :warning, file: ^file, message: "duplicate key :age found in record"},
+               %{severity: :warning, file: ^file, message: "duplicate key :name found in record"},
+               %{severity: :warning, file: ^file, message: "duplicate key :name found in record"},
+               %{
+                 severity: :warning,
+                 message:
+                   "updating a record with a default (:_) is equivalent to creating a new record"
+               },
+               %{severity: :warning, file: ^file, message: "duplicate key :_ found in record"}
+             ] = diagnostics
+
+      assert sample.run() == {{RecordTest, :first, 27}, :first, {RecordTest, :first, :first}}
+      assert Process.info(self(), :messages) == {:messages, [:first, 27, :second]}
+    after
+      purge(DuplicateFields)
+    end
+
     defp purge(module) when is_atom(module) do
       :code.purge(module)
       :code.delete(module)
