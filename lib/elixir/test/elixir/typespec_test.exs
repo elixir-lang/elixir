@@ -602,6 +602,30 @@ defmodule TypespecTest do
                    end
     end
 
+    test "@type with a struct with duplicate fields" do
+      assert_raise Kernel.TypespecError, ~r"type undefined_type/0 undefined", fn ->
+        test_module do
+          @s URI
+          @type my_type :: %@s{port: integer(), port: undefined_type()}
+        end
+      end
+
+      {bytecode, diagnostics} =
+        Code.with_diagnostics(fn ->
+          test_module do
+            @type my_type :: %URI{port: integer(), path: binary(), port: binary()}
+          end
+        end)
+
+      assert [%{severity: :warning, message: "duplicate field :port on struct URI"}] = diagnostics
+      assert [type: {:my_type, {:type, _, :map, fields}, []}] = types(bytecode)
+
+      port_types =
+        for {:type, _, :map_field_exact, [{:atom, _, :port}, type]} <- fields, do: type
+
+      assert [{:type, _, :integer, []}] = port_types
+    end
+
     test "@type when overriding Elixir built-in" do
       assert_raise Kernel.TypespecError, ~r"type struct/0 is a built-in type", fn ->
         test_module do
@@ -682,6 +706,34 @@ defmodule TypespecTest do
           @type my_type :: record(:timestamp, no_field: :foo)
         end
       end
+    end
+
+    test "@type with a record with duplicate fields" do
+      assert_raise Kernel.TypespecError, ~r"type undefined_type/0 undefined", fn ->
+        test_module do
+          require Record
+          Record.defrecord(:user, name: nil)
+          @type t :: binary()
+          @type my_type :: record(:user, name: t(), name: undefined_type())
+        end
+      end
+
+      {bytecode, diagnostics} =
+        Code.with_diagnostics(fn ->
+          test_module do
+            require Record
+            Record.defrecord(:user, name: nil)
+            @type my_type :: record(:user, name: binary(), name: integer())
+          end
+        end)
+
+      assert [%{severity: :warning, message: "duplicate field :name on record :user"}] =
+               diagnostics
+
+      assert [type: {:my_type, {:type, _, :tuple, [{:atom, _, :user}, name]}, []}] =
+               types(bytecode)
+
+      assert {:ann_type, _, [{:var, _, :name}, {:type, _, :binary, []}]} = name
     end
 
     test "@type with a record which declares the name as the type `atom` rather than an atom literal" do

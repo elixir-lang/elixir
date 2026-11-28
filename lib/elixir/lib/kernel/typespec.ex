@@ -607,24 +607,24 @@ defmodule Kernel.Typespec do
           compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
         end
 
+        field_types =
+          collect_field_types(fields, {:struct, module}, vars, caller, state, fn field ->
+            if not :lists.any(&(&1.field == field), struct_info) do
+              compile_error(
+                caller,
+                "undefined field #{inspect(field)} on struct #{inspect(module)}"
+              )
+            end
+          end)
+
         types =
           :lists.map(
             fn %{field: field} ->
-              {field, Keyword.get(fields, field, quote(do: term()))}
+              {field, :maps.get(field, field_types, quote(do: term()))}
             end,
             struct_info
           )
 
-        fun = fn {field, _} ->
-          if not Enum.any?(struct_info, &(&1.field == field)) do
-            compile_error(
-              caller,
-              "undefined field #{inspect(field)} on struct #{inspect(module)}"
-            )
-          end
-        end
-
-        :lists.foreach(fun, fields)
         typespec({:%{}, meta, [__struct__: module] ++ :lists.usort(types)}, vars, caller, state)
 
       _ ->
@@ -646,25 +646,25 @@ defmodule Kernel.Typespec do
     # as a compile time dependency because for records it actually is one.
     case Macro.expand({name, [], [{:{}, [], []}]}, caller) do
       {_, _, [tag, fields | _]} when is_list(fields) ->
+        field_types =
+          collect_field_types(field_specs, {:record, name}, vars, caller, state, fn field ->
+            if not Keyword.has_key?(fields, field) do
+              compile_error(caller, "undefined field #{field} on record #{inspect(name)}")
+            end
+          end)
+
         types =
           :lists.map(
             fn {field, _} ->
               {:"::", [],
                [
                  {field, [], nil},
-                 Keyword.get(field_specs, field, quote(do: term()))
+                 :maps.get(field, field_types, quote(do: term()))
                ]}
             end,
             fields
           )
 
-        fun = fn {field, _} ->
-          if not Keyword.has_key?(fields, field) do
-            compile_error(caller, "undefined field #{field} on record #{inspect(name)}")
-          end
-        end
-
-        :lists.foreach(fun, field_specs)
         typespec({:{}, meta, [tag | types]}, vars, caller, state)
 
       _ ->
@@ -984,6 +984,25 @@ defmodule Kernel.Typespec do
   end
 
   ## Helpers
+
+  defp collect_field_types(fields, {kind, name}, vars, caller, state, validate_field) do
+    :lists.foldl(
+      fn {field, type}, acc ->
+        validate_field.(field)
+
+        if :maps.is_key(field, acc) do
+          # Validate the discarded type without counting its references in the resulting typespec.
+          typespec(type, vars, caller, state)
+          IO.warn("duplicate field #{inspect(field)} on #{kind} #{inspect(name)}", caller)
+          acc
+        else
+          :maps.put(field, type, acc)
+        end
+      end,
+      %{},
+      fields
+    )
+  end
 
   # This is a modified backport of Macro.expand/2 because we want to expand
   # aliases but we don't them to become compile-time references.
