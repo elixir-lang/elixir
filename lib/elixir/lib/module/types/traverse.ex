@@ -58,10 +58,9 @@ defmodule Module.Types.Traverse do
     Enum.reduce(exprs, context, &of_expr(&1, stack, &2))
   end
 
-  # left = right, left <- right
-  def of_expr({op, _meta, [left, right]}, stack, context) when op in [:=, :<-] do
-    context = of_pattern(left, stack, context)
-    of_expr(right, stack, context)
+  # left = right
+  def of_expr({:=, _meta, [left, right]}, stack, context) do
+    of_match(left, right, stack, context)
   end
 
   # Blocks
@@ -115,7 +114,16 @@ defmodule Module.Types.Traverse do
 
   # for, with
   def of_expr({op, _meta, [_ | _] = args}, stack, context) when op in [:for, :with] do
-    Enum.reduce(args, context, &of_expr(&1, stack, &2))
+    Enum.reduce(args, context, fn
+      {:<-, _, [left, right]}, context ->
+        of_match(left, right, stack, context)
+
+      {:<<>>, _, [{:<-, _, [left, right]}]}, context when op == :for ->
+        of_match(left, right, stack, context)
+
+      expr, context ->
+        of_expr(expr, stack, context)
+    end)
   end
 
   # fun.(args)
@@ -161,6 +169,11 @@ defmodule Module.Types.Traverse do
   def of_expr({name, _meta, ctx}, _stack, context)
       when is_atom(name) and is_atom(ctx) do
     context
+  end
+
+  defp of_match(left, right, stack, context) do
+    context = of_pattern(left, stack, context)
+    of_expr(right, stack, context)
   end
 
   defp of_specifier({:-, _, [left, right]}, stack, context) do

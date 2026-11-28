@@ -323,7 +323,9 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler(:traverse, {_, arity}, _kind, clauses, _expected, stack, context) do
+  defp local_handler(:traverse, {_, arity} = fun_arity, _kind, clauses, _expected, stack, context) do
+    stack = %{stack | function: fun_arity}
+
     context =
       Enum.reduce(clauses, context, fn {meta, _args, _guards, body}, context ->
         stack = with_file_meta(stack, meta)

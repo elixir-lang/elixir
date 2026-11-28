@@ -7,6 +7,10 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.MacrosTest.Nested do
   defmacro value, do: 1
 
+  defmacro value_with_local_arrow(value), do: value <- value
+
+  defp left <- right, do: left + right
+
   defmacro do_identity!(do: x) do
     x
   end
@@ -115,6 +119,10 @@ defmodule Kernel.MacrosTest do
 
   test "local with local call" do
     assert my_macro_with_local(4) == 17
+  end
+
+  test "macro calls a local <- operator defined later" do
+    assert Nested.value_with_local_arrow(21) == 42
   end
 
   test "local with local call in bitstring size" do

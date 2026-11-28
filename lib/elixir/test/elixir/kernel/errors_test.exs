@@ -208,6 +208,17 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "undefined <- operator in a macro body" do
+    assert_compile_error(
+      ["nofile:2:25: Sample.m/1", "undefined function <-/2"],
+      ~c"""
+      defmodule Sample do
+        defmacro m(x), do: (x <- x)
+      end
+      """
+    )
+  end
+
   test "undefined non-local function" do
     assert_compile_error(
       ["nofile:1:1", "undefined function call/2 (there is no such import)"],
