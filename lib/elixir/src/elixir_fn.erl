@@ -120,7 +120,7 @@ capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args} = Expr, S, E,
           {expanded, Fn, SF#elixir_ex{version=Counter+1}, E};
         _ ->
           SE = elixir_env:merge_and_check_unused_vars(SL, S, EL),
-          {Res, RequireMeta, DotMeta, SE, EL}
+          {Res, RequireMeta, DotMeta, SE, E}
       end;
 
     {EscLeft, Escaped} ->
