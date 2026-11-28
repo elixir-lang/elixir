@@ -315,6 +315,28 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unused variable in a default argument" do
+    {_, diagnostics} =
+      Code.with_diagnostics(fn ->
+        quoted =
+          Code.string_to_quoted!(
+            ~S"""
+            defmodule Sample do
+              def f(a \\ (x = 1), b \\ (x = 2; x), c \\ (_ignored = 3)), do: {a, b, c}
+            end
+            """,
+            columns: true
+          )
+
+        Code.compile_quoted(quoted)
+      end)
+
+    assert [%{severity: :warning, position: {2, 15}, message: message}] = diagnostics
+    assert message =~ ~s(variable "x" is unused)
+  after
+    purge(Sample)
+  end
+
   test "warnings from caller code in generated macro argument containers" do
     output =
       capture_compile("""
