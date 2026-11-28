@@ -295,7 +295,8 @@ store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, 
 %% Handling of defaults
 
 unpack_defaults(Kind, Meta, Name, Args, S, E) ->
-  {Expanded, #elixir_ex{version=Counter}} = expand_defaults(Args, S, E#{context := nil}, []),
+  {Expanded, #elixir_ex{version=Counter} = SE} = expand_defaults(Args, S, E#{context := nil}, []),
+  elixir_env:check_unused_vars(SE, E),
   unpack_expanded(Kind, Meta, Name, Expanded, Counter, [], []).
 
 unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Counter, Acc, Clauses) ->
