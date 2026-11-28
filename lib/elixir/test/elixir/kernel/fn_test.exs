@@ -99,6 +99,16 @@ defmodule Kernel.FnTest do
     assert (&mod.flatten/1) == (&List.flatten/1)
   end
 
+  test "remote capture does not leak aliases from its receiver" do
+    by_arity = &alias(List, as: CapturedList, warn: false).flatten/1
+    sequential = &alias(List, as: SequentialList, warn: false).flatten(&1)
+
+    assert CapturedList == Elixir.CapturedList
+    assert SequentialList == Elixir.SequentialList
+    assert by_arity == (&List.flatten/1)
+    assert sequential == (&List.flatten/1)
+  end
+
   test "capture with assignment in module" do
     mod = :outer
     assert (&(_mod = List).flatten(&1)).([1, [2], 3]) == [1, 2, 3]
