@@ -4749,7 +4749,9 @@ defmodule Kernel do
       right ->
         case range_fields(right) do
           [first: first, last: last, step: step] ->
-            in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
+            in_var(in_body?, left, fn left ->
+              in_range(left, expand.(first), expand.(last), expand.(step), in_body?)
+            end)
 
           _ when in_body? ->
             quote(do: Elixir.Enum.__in__(unquote(left), unquote(right)))
@@ -4787,16 +4789,32 @@ defmodule Kernel do
     end
   end
 
-  defp in_range(left, first, last, step)
+  defp in_range(left, first, last, step, _in_body?)
        when is_integer(first) and is_integer(last) and is_integer(step) do
     in_range_literal(left, first, last, step)
   end
 
-  defp in_range(left, first, last, step) do
+  defp in_range(left, first, last, step, in_body?) do
+    integer_left = generated_is_integer(left)
+    integer_first = generated_is_integer(first)
+    integer_last = generated_is_integer(last)
+
+    checks =
+      if in_body? do
+        quote do
+          unquote(integer_left) and unquote(integer_first) and unquote(integer_last)
+        end
+      else
+        quote generated: true do
+          ((unquote(integer_first) and unquote(integer_last) and
+              unquote(generated_is_integer(step)) and unquote(step) !== 0) or :fail) and
+            unquote(integer_left)
+        end
+      end
+
     quoted =
       quote do
-        unquote(generated_is_integer(left)) and unquote(generated_is_integer(first)) and
-          unquote(generated_is_integer(last)) and
+        unquote(checks) and
           ((:erlang.>(unquote(step), 0) and
               unquote(increasing_compare(left, first, last))) or
              (:erlang.<(unquote(step), 0) and
