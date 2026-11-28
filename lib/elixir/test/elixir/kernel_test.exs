@@ -624,6 +624,34 @@ defmodule KernelTest do
       refute case_in(5, 9..invalid//-1)
     end
 
+    def outside_range(x, first, last) when x not in first..last//1, do: true
+    def outside_range(_x, _first, _last), do: false
+
+    def outside_range(x, first, last, step) when x not in first..last//step, do: true
+    def outside_range(_x, _first, _last, _step), do: false
+
+    def in_range_or(x, first, last, step, fallback)
+        when x in first..last//step or fallback,
+        do: true
+
+    def in_range_or(_x, _first, _last, _step, _fallback), do: false
+
+    test "invalid ranges fail under not and or in guards" do
+      assert outside_range(2.0, 1, 3)
+      refute outside_range(2, nil, 3)
+      refute outside_range(2, 1, 3.0)
+      refute outside_range(2.0, nil, 3)
+
+      assert outside_range(2.0, 1, 3, 1)
+      assert outside_range(2, 1, 3, 2)
+      refute outside_range(2, 1, 3, 0)
+      refute outside_range(4, 1, 3, 1.5)
+
+      assert in_range_or(4, 1, 3, 1, true)
+      refute in_range_or(2, nil, 3, 1, true)
+      refute in_range_or(4, 1, 3, 0, true)
+    end
+
     def map_dot(map) when map.field, do: true
     def map_dot(_other), do: false
 
